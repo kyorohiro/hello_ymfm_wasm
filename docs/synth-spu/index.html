@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-psf-song-list-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-extract-presets-1">
   </head>
   <body>
     <main>
@@ -94,6 +94,7 @@
             <button id="psfPlaySong" type="button" disabled>Play song</button>
             <button id="psfPauseSong" type="button" disabled>Pause</button>
             <button id="psfStopSong" type="button" disabled>Stop song</button>
+            <button id="extractPsf" type="button" title="Extract VAB banks from the selected PSF and show its Bank / Tone list." disabled>Extract VAB</button>
             <output id="psfSongPosition" aria-label="PSF playback position">0:00</output>
             <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. This Preview renders basic ADPCM / ADSR / reverb; song Noise, PMON and hardware main / reverb output-volume registers are not reproduced yet. Master still works. Song CH Live / Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
           </div>
@@ -160,10 +161,7 @@
           <section id="instrumentPanel-bank" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-bank" hidden>
             <h3>PS1 sound bank</h3>
             <p class="subtext">Open a standard Sony VAB (version 6 or 7), matching VH + VB files, or a PSF1 / MiniPSF set with all its PSFLib files. Opening or extracting a bank keeps the current instrument.</p>
-            <div class="sample-settings">
-              <button id="extractPsf" type="button" disabled>Extract VAB banks</button>
-              <span class="subtext">Uses the PSF selected above the monitor.</span>
-            </div>
+            <p class="subtext">Use Extract VAB beside the song controls to list its banks, then choose a Tone below.</p>
 
             <div class="sample-settings">
               <label>Sound bank <select id="vabBank" aria-label="Sound bank" disabled></select></label>
@@ -181,6 +179,7 @@
         <section class="instrument-toolbar" aria-label="Instrument files">
           <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
           <div class="preset-actions">
+            <button id="saveSoundToFiles" type="button" title="Save the current instrument and its sample in Files / presets. Instrument name sets the file name; existing files are kept.">Save to presets</button>
             <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
           </div>
         </section>
@@ -241,6 +240,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-psf-song-list-1"></script>
+    <script type="module" src="./synth.js?v=spu-extract-presets-1"></script>
   </body>
 </html>

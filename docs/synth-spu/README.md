@@ -132,9 +132,15 @@ still matches the observed PCM; imported ADPCM does not have an editable
 
 **Files** stores `/index.js`, local modules, text/JSON and binary data separately
 from other Synths. Code and text edits save locally. Use relative `await import()`
-and `await file()` for project resources. **Save sound** writes the edited sound,
-including its sample, to `/presets/current.spu.json`; select that JSON to apply
-it. **Export project / Import project** retains Files and the selected Code
+and `await file()` for project resources. **Save to presets** beside Instrument
+name, or **Save sound** in Files, writes the current edited sound and its sample
+to `/presets/<instrument name>.spu.json`. Change **Instrument name** before saving
+to choose a name. Existing files are kept; repeated names get `(2)`, `(3)`, etc.
+Saving opens Files and selects the new preset. Select a saved JSON to apply it.
+Recalling an identical loaded ADPCM sample reuses it, including its tuning and
+loop settings, so switching saved sounds does not keep consuming SPU RAM.
+Only explicitly saved sounds become preset files; opening a bank does not
+expand every Tone into a separate file. **Export project / Import project** retains Files and the selected Code
 file. The project import / export commands are in Menu, with project files
 and selected-file export. Restoring files never runs Code, creates audio or automatically loads an
 instrument. Project ZIPs and their expanded contents are limited to 16 MiB;
@@ -217,9 +223,11 @@ still controls the final bus. These are song-player limitations, not changes
 to the existing keyboard SPU or its supported effects. Treat this as a preview,
 not an exact PS1 recording reference.
 
-To extract an instrument instead, open **PSF / VAB** and choose
-**Extract VAB banks** for the same song selected above the monitor, then select a **Sound bank** and **Tone** and choose
-**Load selected Tone**. This shares Playground's local PSF parser: CRC and
+To extract an instrument, choose **Extract VAB** beside **Play / Pause / Stop**
+for the selected song. This opens **PSF / VAB** and shows progress and the bank
+results. Select a **Sound bank** and **Tone**, choose **Load selected Tone**, then
+use **Save to presets** to keep that sound in Files. You can try another Tone
+and return to either saved preset later. This shares Playground's local PSF parser: CRC and
 zlib validation, library resolution and RAM overlays precede standard VAB
 detection. Opening files or extracting banks leaves the current instrument
 and sounding notes in place. Missing dependencies and malformed input show an

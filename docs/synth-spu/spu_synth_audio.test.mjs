@@ -7,7 +7,7 @@ import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
 import factory from '../generated/ps1_spu_wasm.js';
 import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
-import {Ps1Synth} from '../../tetorica_src/runtime/ps1synth.js';
+import {Ps1Synth,preparePs1ADPCM} from '../../tetorica_src/runtime/ps1synth.js';
 import {Ps1Resampler} from '../../tetorica_src/runtime/ps1_resampler.js';
 import {Ps1VoiceInspector} from '../../tetorica_src/runtime/playground_ps1_inspector.js';
 import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
@@ -126,6 +126,9 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
   await client.noteOn(23,'A4');assert.equal(requests.at(-1).method,'code');assert.deepEqual(Array.from(requests.at(-1).args[2]),[23,'A4']);
   const count=requests.length;assert.throws(()=>client.noteOn(24,'A4'),/0\.\.23/);assert.equal(requests.length,count);
   await client.getState();await engine.inspect();assert.equal(published.length,1,'Code inspection never publishes over authored editor state');
+  await engine.command('findADPCM',[sine().adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0}]);
+  assert.equal(engine.getPs1Client(),promise,'private sample lookup does not retire the borrowed Code client');
+  await client.noteOn(0,60);assert.equal(published.length,1,'sample lookup never publishes an editor state');
   hold=true;const pending=client.setEnvelope(0,{attackRate:1}),retired=assert.rejects(pending,{name:'AbortError'});
   await engine.stop();finishHeld();await retired;assert.equal(published.length,2);assert.equal(engine.context.state,'suspended');
   assert.throws(()=>client.noteOn(0,60),{name:'AbortError'});
@@ -145,7 +148,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import vm from 'node:vm';
     import factory from ${url('../generated/ps1_spu_wasm.js')};
     import {Ps1Spu} from ${url('../../tetorica_src/runtime/ps1_spu.js')};
-    import {Ps1Synth} from ${url('../../tetorica_src/runtime/ps1synth.js')};
+    import {Ps1Synth,preparePs1ADPCM} from ${url('../../tetorica_src/runtime/ps1synth.js')};
     import {Ps1Resampler} from ${url('../../tetorica_src/runtime/ps1_resampler.js')};
     import {Ps1VoiceInspector} from ${url('../../tetorica_src/runtime/playground_ps1_inspector.js')};
     import {preparePs1Waveform} from ${url('../../tetorica_src/runtime/ps1_waveform.js')};
@@ -163,7 +166,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -194,7 +197,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -218,6 +221,77 @@ async function setup(rate = 48000) {
     close() {processor.dispose();},
   };
 }
+
+test('resident immutable ADPCM lookup reuses two large saved samples without allocating or stopping notes',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  const bytes=new Uint8Array(200*1024);for(let at=0;at<bytes.length;at+=16)bytes[at]=12;bytes[bytes.length-15]=1;
+  const other=bytes.slice();other[2]=1;
+  const options={baseFrequencyHz:440},first=p.command('loadADPCM',[bytes,options]),second=p.command('loadADPCM',[other,options]);
+  p.command('setInstrumentPreset',[{sample:first}]);p.command('instrumentNoteOn',[69,'lookup-held']);
+  const before=p.command('inspect'),ram=p.processor.synth.core.readRam(),frames=p.processor.synth.core.nativeFrames;
+  assert(before.nextAddress+bytes.length>524288,'the bank cannot accommodate another copy');
+  assert.throws(()=>p.command('loadADPCM',[bytes,options]),/RAM is full/);
+  const match=p.command('findADPCM',[bytes,{rootNote:'A4'}]);
+  assert.deepEqual({...match},first,'root note and frequency tuning normalize to the same resident sample');
+  assert.deepEqual({...p.command('findADPCM',[other,options])},second);
+  assert.equal(p.messages.at(-1).state,undefined,'lookup is value-only');
+  match.rootFrequencyHz=999;
+  assert.equal(p.command('findADPCM',[bytes,options]).rootFrequencyHz,440,'the returned descriptor is detached');
+  const after=p.command('inspect');assert.equal(after.nextAddress,before.nextAddress);assert.deepEqual(after.samples,before.samples);
+  assert.deepEqual(after.auditions,before.auditions);assert.equal(after.channels[0].gate,true);
+  assert.equal(p.processor.synth.core.nativeFrames,frames,'lookup does not render audio');assert.deepEqual(p.processor.synth.core.readRam(),ram);
+});
+
+test('ADPCM lookup distinguishes payload, tuning and loop metadata and rejects invalid input without edits',async t=>{
+  const p=await setup();t.after(()=>p.close());
+  const adpcm=sine().adpcm,options={baseFrequencyHz:440,loopStartSamples:0};
+  const sample=p.command('loadADPCM',[adpcm,options]),before=p.command('inspect');
+  assert.equal(p.command('findADPCM',[adpcm,{...options,baseFrequencyHz:441}]),null);
+  const changed=adpcm.slice();changed[2]^=1;
+  assert.equal(p.command('findADPCM',[changed,options]),null);
+  // Without an explicit packet marker, different valid repeat addresses
+  // still identify different instruments even when the payload is identical.
+  const noMarker=adpcm.slice();noMarker[1]&=~4;
+  p.command('loadADPCM',[noMarker,options]);
+  assert.equal(p.command('findADPCM',[noMarker,{...options,loopStartSamples:28}]),null);
+  assert.equal(p.command('findADPCM',[adpcm,options]).id,sample.id);
+  for(const args of [[adpcm],[adpcm,options,0],[new Uint8Array(15),options],[adpcm,{baseFrequencyHz:440}],[adpcm,{...options,unexpected:true}]])
+    assert.throws(()=>p.command('findADPCM',args),/lookup|packet|loopStartSamples|Unknown/);
+  const after=p.command('inspect');assert.equal(after.samples.length,before.samples.length+1);
+  assert.equal(after.nextAddress,before.nextAddress+adpcm.length);assert.equal(after.auditions.length,0);
+});
+
+test('ADPCM lookup excludes mutable waveform, morph, PMON and host slots',async t=>{
+  const p=await setup();t.after(()=>p.close());
+  const original=p.command('getInstrument',[0]);
+  assert.equal(p.command('findADPCM',[original.sample.adpcm,{baseFrequencyHz:original.sample.baseFrequencyHz,loopStartSamples:0}]),null,'editable and Morph cycles are private');
+  pmonSettings(p,{enabled:true,ratio:1,depth:.5,decayMs:0});
+  const mod=p.processor.pmonSample,modBytes=p.processor.synth.sampleBytes[mod.id];
+  assert.equal(p.command('findADPCM',[modBytes,{baseFrequencyHz:mod.rootFrequencyHz,loopStartSamples:0}]),null,'PMON reserved sample is mutable');
+  p.command('setInstrumentPmon',[{enabled:false}]);
+  const pcm=Int16Array.from({length:128},(_,i)=>Math.round(10000*Math.sin(2*Math.PI*i/128)));
+  p.command('loadHostPCM',[pcm,{baseFrequencyHz:440,loop:false}]);
+  const host=p.processor.hostSlot,hostBytes=p.processor.synth.sampleBytes[host.id];
+  assert.equal(p.command('findADPCM',[hostBytes,{baseFrequencyHz:440}]),null,'Software audio RAM placeholder is private');
+  const loaded=p.command('loadADPCM',[original.sample.adpcm,{baseFrequencyHz:original.sample.baseFrequencyHz,loopStartSamples:0}]);
+  assert.equal(p.command('findADPCM',[original.sample.adpcm,{baseFrequencyHz:original.sample.baseFrequencyHz,loopStartSamples:0}]).id,loaded.id,'a distinct immutable copy remains eligible');
+});
+
+test('ADPCM lookup follows live Code reset and restored resources without keeping stale sample IDs',async t=>{
+  const p=await setup();t.after(()=>p.close());
+  const bytes=sine().adpcm,options={baseFrequencyHz:440,loopStartSamples:0};
+  const authored=p.command('loadADPCM',[bytes,options]),session=p.command('beginCode').session;
+  const call=(method,...args)=>p.command('code',[session,method,args]);
+  assert.equal(p.command('findADPCM',[bytes,options]).id,authored.id);
+  call('reset',{clearRam:true});
+  assert.equal(p.command('findADPCM',[bytes,options]),null,'a lookup cannot return the checkpoint bank while it is not resident');
+  const temp=call('loadADPCM',bytes,options);assert.equal(temp.id,0);
+  assert.equal(p.command('findADPCM',[bytes,options]).id,temp.id);assert.equal(p.messages.at(-1).state,undefined);
+  call('setPreset',0,{sample:temp});call('noteOn',0,'A4');
+  assert(p.command('observeCode').channels[0].gate,'read-only lookup must not end Code');
+  p.command('stop');assert.equal(p.command('findADPCM',[bytes,options]).id,authored.id,'Stop restores the actual authored bank');
+  assert.throws(()=>call('noteOff',0),/session stopped/);
+});
 
 for (const rate of [44100, 48000]) test(`standalone SPU renders exact core PCM at ${rate} Hz without UI messages per block`, async t => {
   const p = await setup(rate); t.after(() => p.close());

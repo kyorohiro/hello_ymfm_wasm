@@ -2,7 +2,7 @@
 // Copyright (c) 2026, kyorohiro.
 import factory from '../generated/ps1_spu_wasm.js?v=spu-long-audio-1';
 import {Ps1Spu} from '../js/ps1_spu.js?v=ps1-deferred-release-1';
-import {Ps1Synth} from '../js/ps1synth.js?v=ps1-cyclic-1';
+import {Ps1Synth,preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-cyclic-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
 import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {patchPs1Envelope,decodePs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
@@ -17,7 +17,7 @@ import {validateHostPcm} from './spu_synth_long_audio.js';
 
 const EDITOR_METHODS = new Set(['auditionOn', 'auditionOff', 'auditionAllOff', 'setWaveform', 'setPreset', 'setChannel', 'setEnvelope', 'setReverb', 'setPitch', 'setFrequency', 'setNote']);
 const SYNTH_METHODS = new Set(['loadADPCM', 'getPreset', 'snapshot', 'noteOn', 'noteOff', 'keyOn', 'keyOff', 'allNotesOff', '_auditionKeyOn', '_auditionKeyOff', '_refreshEnvelope']);
-const READ_METHODS = new Set(['inspect', 'getState', 'getPreset', 'getInstrument', 'snapshot']);
+const READ_METHODS = new Set(['inspect', 'getState', 'getPreset', 'getInstrument', 'snapshot', 'findADPCM']);
 const CODE_METHODS = new Set(['loadADPCM','getPreset','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','snapshot']);
 const codeCancelled=()=>{const error=new Error('SPU Code session stopped');error.name='AbortError';return error;};
 
@@ -101,6 +101,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         this.clickGuard=args[0];value=this.clickGuard;
       }
       else if (method === 'inspect' || method === 'getState') value = this.readState();
+      else if (method === 'findADPCM') {
+        if(args.length!==2)throw new TypeError('SPU sample lookup needs ADPCM bytes and tuning options');
+        value=this.findADPCM(args[0],args[1]);
+      }
       else if (method === 'loadHostPCM') {
         const pcm=validateHostPcm(args[0]),options=args[1];
         if (!options || typeof options.loop!=='boolean' || !Number.isFinite(options.baseFrequencyHz) || options.baseFrequencyHz<=0 || options.baseFrequencyHz>1000000) throw new TypeError('Invalid software audio tuning');
@@ -303,6 +307,21 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     } catch (error) {
       this.port.postMessage({id, error:String(error?.message ?? error), name:error?.name ?? 'Error'});
     }
+  }
+
+  // A portable preset can point back to an immutable sample already resident
+  // in this bank. Never share editable cycles, PMON sources or host placeholders.
+  // Query the current bank each time; Code reset/Stop can replace its resources.
+  findADPCM(input,options) {
+    const prepared=preparePs1ADPCM(input,options);
+    for(const sample of this.synth.samples) {
+      if(sample.editorChannel!==undefined||sample.id===this.pmonSample?.id||sample.id===this.hostSlot?.id||
+        sample.byteLength!==prepared.adpcm.length||sample.rootFrequencyHz!==prepared.rootFrequencyHz||
+        sample.basePitch!==prepared.basePitch||sample.loop!==prepared.loop||sample.loopStartSamples!==prepared.loopStartSamples)continue;
+      const bytes=this.synth.sampleBytes[sample.id];
+      if(bytes?.length===prepared.adpcm.length&&bytes.every((value,index)=>value===prepared.adpcm[index]))return {...sample};
+    }
+    return null;
   }
 
   readInstrument(ch) {

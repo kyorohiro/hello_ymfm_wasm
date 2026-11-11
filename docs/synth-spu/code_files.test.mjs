@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setupSpuCodeFiles} from './code_files.js';
-import {createSpuCodeProject} from './code_project.js';
+import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js';
 
 class Element{
   constructor(doc,tag='div'){Object.assign(this,{ownerDocument:doc,tagName:tag.toUpperCase(),children:[],listeners:new Map(),attributes:{},dataset:{},hidden:false,value:'',disabled:false});const names=new Set();this.classList={toggle:(name,on)=>on?names.add(name):names.delete(name),contains:name=>names.has(name),add:name=>names.add(name),remove:name=>names.delete(name)};}
@@ -60,11 +60,99 @@ test('local restoration retains Files and Code mode without an audio capture or 
 
 test('only Save sound captures the authored sample; selecting valid JSON applies it after stopping Code',async t=>{
   const f=fixture(t);await f.files.ready;await f.files.persistCode();assert.equal(f.calls.length,0);
-  const path=await f.files.saveSound();assert.equal(path,'/presets/current.spu.json');assert.deepEqual(f.calls.map(call=>call[0]),['capture']);
+  const path=await f.files.saveSound();assert.equal(path,'/presets/Saved PCM.spu.json');assert.deepEqual(f.calls.map(call=>call[0]),['capture']);
   assert.deepEqual(JSON.parse(f.project.fs.get(path).data),soundFixture());
   await f.files.selectFile(path);assert.deepEqual(f.calls.map(call=>call[0]),['capture','before','instrument']);assert.deepEqual(f.calls.at(-1)[1],soundFixture());
   const count=f.calls.length;f.project.importFiles([{path:'/presets/unfinished.spu.json',data:'{"preset":'}]);await f.files.selectFile('/presets/unfinished.spu.json');
   assert.equal(f.calls.length,count);assert.equal(f.doc.getElementById('spuFileTextEditor').value,'{"preset":');assert.match(f.statuses.at(-1),/current sound kept/);
+});
+
+test('named saves retain multiple instruments, reveal presets and do not stop or apply audio',async t=>{
+  let instrument={...soundFixture(),name:'Piano'};
+  const f=fixture(t,{getInstrument:async()=>instrument});await f.files.ready;
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},stop(){assert.fail('Saving must not stop Code');},workspaceReplaced(){assert.fail('Saving must not replace the Code workspace');}});
+  const first=await f.files.saveSound(),firstBytes=f.project.fs.get(first).data;
+  const folder=walk(f.doc).find(node=>node.tagName==='DETAILS'&&node.children[0]?.getAttribute('data-file-path')==='/presets');
+  folder.open=false;await folder.fire('toggle');f.files.setVisible(false);
+  instrument={...soundFixture(),name:'Flute',preset:{...soundFixture().preset,adsr1:0x1234}};
+  const second=await f.files.saveSound();
+  instrument={...soundFixture(),name:'Piano',preset:{...soundFixture().preset,adsr1:0x5678}};
+  const third=await f.files.saveSound();
+  assert.deepEqual([first,second,third],['/presets/Piano.spu.json','/presets/Flute.spu.json','/presets/Piano (2).spu.json']);
+  assert.equal(f.project.fs.get(first).data,firstBytes,'a later save never overwrites the earlier Piano');
+  assert.equal(JSON.parse(f.project.fs.get(second).data).preset.adsr1,0x1234);
+  assert.equal(JSON.parse(f.project.fs.get(third).data).preset.adsr1,0x5678);
+  assert.equal(f.project.selectedPath,third);assert.equal(f.doc.getElementById('spuFileTextEditor').value,f.project.fs.get(third).data);
+  assert.equal(f.doc.getElementById('spuFilesPanel').hidden,false);
+  assert(walk(f.doc).find(node=>node.tagName==='DETAILS'&&node.children[0]?.getAttribute('data-file-path')==='/presets').open);
+  assert.equal(f.writes.at(-1).filesVisible,true);assert.equal(f.writes.at(-1).selectedPath,third);
+  assert.deepEqual(f.calls,[]);
+});
+
+test('preset filenames keep Unicode while escaping path characters and preserving files or directories',async t=>{
+  let instrument={...soundFixture(),name:'音色 / flute\\piano:1?'};
+  const f=fixture(t,{getInstrument:async()=>instrument});await f.files.ready;
+  const path=await f.files.saveSound();assert.equal(path,'/presets/音色 _ flute_piano_1_.spu.json');
+  assert.equal(JSON.parse(f.project.fs.get(path).data).name,instrument.name,'the authored instrument name is retained inside the preset');
+  f.project.fs.mkdir('/presets/Clav.spu.json');
+  f.project.importFiles([{path:'/presets/CLAV (2).spu.json',data:'existing user text'}]);
+  instrument={...soundFixture(),name:'clav'};
+  assert.equal(await f.files.saveSound(),'/presets/clav (3).spu.json');
+  assert.equal(f.project.fs.stat('/presets/Clav.spu.json').type,'directory');
+  assert.equal(f.project.fs.get('/presets/CLAV (2).spu.json').data,'existing user text');
+  f.project.importFiles([{path:'/presets/Café.spu.json',data:'existing Unicode filename'}]);
+  instrument={...soundFixture(),name:'Cafe\u0301'};assert.equal(await f.files.saveSound(),'/presets/Café (2).spu.json');
+  assert.equal(f.project.fs.get('/presets/Café.spu.json').data,'existing Unicode filename');
+  instrument={...soundFixture(),name:'../..\\escape\u0000'};
+  const escaped=await f.files.saveSound();assert.match(escaped,/^\/presets\/[^/\\\u0000]+\.spu\.json$/);assert(!escaped.includes('/../'));
+  instrument={...soundFixture(),name:'CON'};assert.equal(await f.files.saveSound(),'/presets/_CON.spu.json');
+  instrument={...soundFixture(),name:'CON .tone'};assert.equal(await f.files.saveSound(),'/presets/_CON .tone.spu.json');
+  instrument={...soundFixture(),name:'...'};assert.equal(await f.files.saveSound(),'/presets/Untitled.spu.json');
+  instrument={...soundFixture(),name:'波'.repeat(80)};
+  const bounded=await f.files.saveSound();assert(new TextEncoder().encode(bounded.split('/').pop()).length<=180);
+});
+
+test('capture errors and project size limits do not add a preset or change Files selection',async t=>{
+  let fail=true;
+  const f=fixture(t,{getInstrument:async()=>{if(fail)throw Error('Capture failed');return soundFixture();}});await f.files.ready;
+  f.project.select('/index.js');const initial=f.project.snapshot();
+  await assert.rejects(f.files.saveSound(),/Capture failed/);assert.deepEqual(f.project.snapshot(),initial);
+  assert.equal(f.doc.getElementById('spuFilesPanel').hidden,true);assert.equal(f.doc.querySelector('.spu-main').inert,false);
+  fail=false;f.project.importFiles([{path:'/data/filled.bin',type:'binary',data:new Uint8Array(SPU_PROJECT_FILE_BYTES-64)}]);
+  const before=f.project.snapshot();
+  await assert.rejects(f.files.saveSound(),/16 MiB cassette limit/);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.project.selectedPath,'/index.js');
+  assert.equal(f.doc.getElementById('spuFilesPanel').hidden,true);assert.equal(f.doc.querySelector('.spu-main').inert,false);
+});
+
+test('named presets survive Project ZIP and local snapshot restoration without applying audio',async t=>{
+  let instrument={...soundFixture(),name:'First',preset:{...soundFixture().preset,adsr1:123}};
+  const f=fixture(t,{getInstrument:async()=>instrument});await f.files.ready;
+  const first=await f.files.saveSound(),firstSound=JSON.parse(f.project.fs.get(first).data);
+  instrument={...soundFixture(),name:'Second',preset:{...soundFixture().preset,adsr1:456}};
+  const second=await f.files.saveSound(),secondSound=JSON.parse(f.project.fs.get(second).data);
+  const local=createSpuCodeProject({snapshot:f.writes.at(-1)});
+  assert.equal(local.selectedPath,second);assert.deepEqual(JSON.parse(local.fs.get(first).data),firstSound);assert.deepEqual(JSON.parse(local.fs.get(second).data),secondSound);
+  const zip=await f.files.exportProject();await f.files.remove(first);await f.files.remove(second);
+  assert.equal(await f.files.importProject(zip),true);assert.deepEqual(f.calls.map(call=>call[0]),['before']);
+  await f.files.selectFile(first);assert.deepEqual(f.calls.at(-1),['instrument',firstSound]);
+  await f.files.selectFile(second);assert.deepEqual(f.calls.at(-1),['instrument',secondSound]);
+});
+
+test('disposing during capture cannot create a late named preset',async t=>{
+  const gate=deferred();let capturing=false;
+  const f=fixture(t,{getInstrument:async()=>{capturing=true;return gate.promise;}});await f.files.ready;
+  const before=f.project.snapshot(),pending=f.files.saveSound();assert(capturing);
+  await f.files.dispose();gate.resolve(soundFixture());assert.equal(await pending,false);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.doc.querySelector('.spu-main').inert,false);
+});
+
+test('a persistence failure keeps the named preset available for Project export and explains recovery',async t=>{
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>{throw Error('quota exceeded');},close:async()=>{}}});await f.files.ready;
+  const path=await f.files.saveSound();assert(f.project.fs.has(path));
+  assert.match(f.statuses.at(-1),/Local save unavailable; export the project/);
+  const bytes=await f.files.exportProject(),restored=createSpuCodeProject();restored.restore(await restored.prepareImport(bytes));
+  assert.deepEqual(JSON.parse(restored.fs.get(path).data),soundFixture());
 });
 
 test('failed sound application and malformed project imports retain Files and the current instrument',async t=>{

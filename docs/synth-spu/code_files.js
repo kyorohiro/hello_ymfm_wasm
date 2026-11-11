@@ -8,6 +8,23 @@ const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/')
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
 const workspaceId=()=>globalThis.crypto?.randomUUID?.()??`spu-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
+const encoder=new TextEncoder();
+function soundFileStem(value){
+  const cleaned=value.normalize('NFC').replace(/[\u0000-\u001f\u007f<>:"/\\|?*\ud800-\udfff]/gu,'_')
+    .trim().replace(/\.spu\.json$/i,'').replace(/^\.+|[. ]+$/g,'');
+  // Leave room for the extension and collision suffix on exported filesystems.
+  let stem='',bytes=0;
+  for(const character of cleaned){const length=encoder.encode(character).length;if(bytes+length>160)break;stem+=character;bytes+=length;}
+  stem=stem.replace(/[. ]+$/g,'')||'Untitled';
+  return /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(stem.split('.')[0].trimEnd())?'_'+stem:stem;
+}
+function newSoundPath(project,name){
+  const stem=soundFileStem(name),fold=path=>path.normalize('NFC').toLowerCase();
+  const occupied=new Set([...project.fs.list().map(file=>file.path),...project.fs.listDirectories()].map(fold));
+  let index=1,path='/presets/'+stem+'.spu.json';
+  while(occupied.has(fold(path)))path=`/presets/${stem} (${++index}).spu.json`;
+  return path;
+}
 export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=async()=>{throw Error("Enable audio before saving a sound.");},applyInstrument=async()=>{},
   onBeforeWorkspaceReplace=async()=>{},setStatus=()=>{},store=createSpuProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('spuFilesPanel'),toggle=doc.getElementById('spuFilesToggle'),workspace=doc.getElementById('synthWorkspace');
@@ -119,7 +136,13 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     try{
       const sound=readSpuProjectSound(await getInstrument());if(!sound)throw Error('Expected an SPU instrument.');
       if(disposed||token!==operation)return false;
-      const path='/presets/current.spu.json';project.importFiles([{path,type:'text',data:JSON.stringify(sound,null,2)+'\n'}]);project.select(path);showText(path);render();await persistCode();say('Current SPU instrument and sample saved to '+path);return path;
+      const path=newSoundPath(project,sound.name);
+      // importFiles validates its candidate before touching this workspace.
+      // Name / size failures must keep both existing files and selection.
+      project.importFiles([{path,type:'text',data:JSON.stringify(sound,null,2)+'\n'}]);
+      project.select(path);expanded.set('/presets',true);setVisible(true);showText(path);render();
+      const persisted=await persistCode();
+      say('Current SPU instrument and sample saved to '+path+(persisted===false?' in Files. Local save unavailable; export the project to keep it.':''));return path;
     }finally{if(!disposed)setBusy(false);}
   }
   function download(bytes,filename,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),link=make('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}

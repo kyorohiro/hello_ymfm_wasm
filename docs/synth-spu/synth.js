@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-click-guard-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-preset-reuse-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-keyboard-wheels-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -10,7 +10,7 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js';
-import {setupSpuCodeHost} from './code_host.js?v=spu-menu-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-extract-presets-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -449,7 +449,7 @@ function download(name, contents) {
   const link = document.createElement('a'); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
-let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false;
+let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false, extractingPsf = false;
 const vabStatus = (message, error=false) => { $('vabStatus').textContent=message; $('vabStatus').dataset.error=String(error); };
 function updatePsfPlayback(next) {
   if(disposed)return;
@@ -488,6 +488,7 @@ $('psfStopSong').addEventListener('click',()=>{void psfSong.stop().catch(report)
 function updateBankControls() {
   const busy=Boolean(bankReadController);
   $('psfEntry').disabled=$('extractPsf').disabled=busy||!psfSet;
+  $('extractPsf').textContent=extractingPsf?'Extracting…':'Extract VAB';
   $('vabBank').disabled=busy||!bankChoices.length;
   $('vabTone').disabled=busy||!vabBank;
   $('loadVabTone').disabled=busy||!vabBank||$('vabTone').value==='';
@@ -495,7 +496,7 @@ function updateBankControls() {
 }
 function beginAssetOperation() {
   const reading=Boolean(bankReadController);
-  bankReadController?.abort(); bankReadController=null;
+  bankReadController?.abort(); bankReadController=null;extractingPsf=false;
   if (reading) vabStatus('Sound bank operation cancelled.');
   updateBankControls();
   return ++assetEpoch;
@@ -563,8 +564,11 @@ $('psfFileInput').addEventListener('change',()=>openPsf($('psfFileInput'),false)
 $('psfFolderInput').addEventListener('change',()=>openPsf($('psfFolderInput'),true));
 $('extractPsf').addEventListener('click',async()=>{
   if (!psfSet || bankReadController) return;
+  selectEditorTab('bank');
+  $('instrumentPanel-bank').scrollIntoView({block:'nearest'});
   const operation=beginAssetOperation(), entry=$('psfEntry').value;
   preparation?.cancel(); bankReadController=new AbortController(); const signal=bankReadController.signal;
+  extractingPsf=true;
   updateBankControls(); vabStatus('Expanding PSF libraries and searching for VAB banks…');
   try {
     const result=await extractPsfVabs(psfSet,entry,{signal});
@@ -576,7 +580,7 @@ $('extractPsf').addEventListener('click',async()=>{
     showBanks(result.banks.map(found=>({bank:found.bank,name:`${entry} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
     vabStatus(`Extracted ${result.banks.length} VAB banks from ${entry} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.${psfRejectionSummary(result)}`);
   } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}
-  finally {if (operation===assetEpoch) {bankReadController=null;updateBankControls();}}
+  finally {if (operation===assetEpoch) {bankReadController=null;extractingPsf=false;updateBankControls();}}
 });
 $('loadVab').addEventListener('click', () => $('vabFileInput').click());
 $('vabFileInput').addEventListener('change', async () => {
@@ -631,9 +635,10 @@ $('loadVabTone').addEventListener('click', async () => {
       await engine.command(method,args);
       if (operation!==assetEpoch) return;
     }
-    instrumentName=`${name} P${prepared.tone.program} T${prepared.tone.index}`.slice(0,80);
+    const toneSuffix=` P${prepared.tone.program} T${prepared.tone.index}`;
+    instrumentName=name.slice(0,80-toneSuffix.length)+toneSuffix;
     $('instrumentName').value=instrumentName;
-    const message=`Loaded ${instrumentName} · ${sample.byteLength} ADPCM bytes${prepared.trimmedBytes ? ` · ignored ${prepared.trimmedBytes} bytes after END` : ''}. Play the keyboard or save a preset.`;
+    const message=`Loaded ${instrumentName} · ${sample.byteLength} ADPCM bytes${prepared.trimmedBytes ? ` · ignored ${prepared.trimmedBytes} bytes after END` : ''}. Play the keyboard or use Save to presets.`;
     vabStatus(message); status(message); applyState(await engine.inspect());
   } catch (error) {if (operation===assetEpoch) {vabStatus(error.message,true); report(error);}}
 });
@@ -644,6 +649,13 @@ $('savePreset').addEventListener('click', async () => {
     download(`${name.replace(/[^\p{L}\p{N}_. -]/gu, '_')}.spu.json`, JSON.stringify(instrument));
     status(`Saved ${name}, including its sample, ADSR, PMON, Noise, Software morph and shared reverb settings.`);
   } catch (error) {report(error);}
+});
+$('saveSoundToFiles').addEventListener('pointerdown',event=>{
+  if(event.button===0){event.preventDefault();document.activeElement?.blur?.();}
+});
+$('saveSoundToFiles').addEventListener('click',async()=>{
+  try {await codeHost.ready;await codeHost.files.saveSound();}
+  catch(error){report(error);}
 });
 $('loadPreset').addEventListener('click', () => $('presetFileInput').click());
 $('presetFileInput').addEventListener('change', async () => {
@@ -668,13 +680,18 @@ async function applyInstrumentDocument(value,{isCurrent=()=>true}={}) {
   await stopCodeForEdit();if(!current())return false;
   const engine=await ensureAudio();if(!current())return false;
   const bank=await engine.inspect();if(!current())return false;
-  const requiredBytes=(instrument.waveform||instrument.version===2?0:instrument.sample.adpcm.length)+(instrument.pmon.enabled&&!bank.pmonSampleReserved?64:0);
+  const fixedAdpcm=!instrument.waveform&&instrument.version!==2;
+  let sample=null;
+  if(fixedAdpcm){
+    const {adpcm,...options}=instrument.sample;
+    sample=await engine.command('findADPCM',[adpcm,options]);if(!current())return false;
+  }
+  const requiredBytes=(fixedAdpcm&&!sample?instrument.sample.adpcm.length:0)+(instrument.pmon.enabled&&!bank.pmonSampleReserved?64:0);
   if(requiredBytes>524288-bank.nextAddress)throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
   await stop();if(!current())return false;
-  let sample;
   if(instrument.waveform)await engine.command('setInstrumentWaveform',[instrument.waveform]);
   else if(instrument.version===2){const {pcm,...options}=instrument.sample;await engine.command('loadHostPCM',[pcm,options]);}
-  else{const {adpcm,...options}=instrument.sample;sample=await engine.command('loadADPCM',[adpcm,options]);}
+  else if(!sample){const {adpcm,...options}=instrument.sample;sample=await engine.command('loadADPCM',[adpcm,options]);}
   if(!current())return false;
   await engine.command('setInstrumentPreset',[{...instrument.preset,...(sample?{sample}:{})}]);
   if(!current())return false;

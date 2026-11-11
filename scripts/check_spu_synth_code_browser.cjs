@@ -119,8 +119,10 @@ async function selectFile(page,filename){
 }
 async function download(page,id){if(await page.locator(id).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();const task=page.waitForEvent('download');await page.locator(id).click();const item=await task,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{bytes:Buffer.concat(chunks),name:item.suggestedFilename()};}
 async function savedSound(page){
-  await files(page);await page.locator('#spuFileSaveSoundButton').click();
-  await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>/Current SPU instrument.*saved/.test(value)),'Save sound');
+  await files(page);const previous=await page.locator('#spuFilesSelected').textContent();await page.locator('#spuFileSaveSoundButton').click();
+  await until(async()=>await page.locator('#spuFileSaveSoundButton').isEnabled()&&
+    await page.locator('#spuFilesSelected').textContent()!==previous&&
+    /Current SPU instrument.*saved/.test(await page.locator('#spuFilesStatus').textContent()),'Save sound');
   return JSON.parse(await page.locator('#spuFileTextEditor').inputValue());
 }
 const control=name=>`#spuVoicePanel [data-chip-control="ps1-${name}"]`;
@@ -243,7 +245,10 @@ const sample=await ps1.loadADPCM(bytes,{baseFrequencyHz:440});await ps1.setPrese
     await source(page,'globalThis.__spuProjectRan=(globalThis.__spuProjectRan??0)+1;\n');
     const archive=await download(page,'#spuProjectExportButton'),contents=await loadCassette(archive.bytes);
     for(const[file,expected]of [['notes.js',notes],['notes.json',data],['index.js','globalThis.__spuProjectRan=(globalThis.__spuProjectRan??0)+1;\n']])assert.equal(Buffer.from(contents.files.get(file)).toString(),expected);
-    assert(contents.files.has('spu-synth.project.json'));assert(contents.files.has('presets/current.spu.json'));
+    assert(contents.files.has('spu-synth.project.json'));
+    const sounds=[...contents.files].filter(([path])=>path.startsWith('presets/')&&path.endsWith('.spu.json'));
+    assert(sounds.length>=2,'named saves retain multiple sound files');
+    for(const[,bytes]of sounds)assert.deepEqual(JSON.parse(Buffer.from(bytes).toString()),baseline,'Code saves the authored instrument');
     await page.locator('#spuProjectFileInput').setInputFiles({name:'roundtrip.cassette.zip',mimeType:'application/zip',buffer:archive.bytes});
     await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>/project imported/.test(value)),'project imported');
     assert.equal(await page.evaluate(()=>typeof __spuProjectRan),'undefined');await silent(page);
