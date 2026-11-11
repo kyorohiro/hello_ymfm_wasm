@@ -360,6 +360,8 @@ footer a { color: #4a5e74; }
 .spu-code-help summary { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border:1px solid var(--line); border-radius:50%; cursor:pointer; font-weight:750; }
 .spu-code-help p { max-width:80ch; line-height:1.6; }
 #spuVoicePanel[data-observing="true"] { outline:1px solid #679bc6; outline-offset:3px; border-radius:10px; }
+#spuVoicePanel[data-observation-waiting="true"] .chip-editor-body { visibility:hidden; }
+#spuVoicePanel[data-observation-kind="psf"] .chip-sample-waveform { cursor:default; }
 
 /* The shared FM2612 menu remains outside the expandable Code workspace. */
 .synth-menu { position:relative; }

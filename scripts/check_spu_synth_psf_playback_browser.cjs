@@ -113,7 +113,7 @@ async function check(browser,name,origin,fixture){
     step('The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation');
     measurements.backend=await page.evaluate(async text=>{
       const script=document.querySelector('script[src*="synth.js"]');
-      const url=new URL('./psf_playback_core.js?v=psf-mame-spu-1',new URL(script.src,location.href));
+      const url=new URL('./psf_playback_core.js?v=psf-live-spu-1',new URL(script.src,location.href));
       const {createPsfPlaybackCore}=await import(url.href),bytes=Uint8Array.from(atob(text),value=>value.charCodeAt(0));
       const ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length);
       ram.set(bytes,0x10000);coverage.fill(1,0x10000,0x10000+bytes.length);
@@ -128,7 +128,7 @@ async function check(browser,name,origin,fixture){
       }}});}catch(reason){error=reason.message;}
       return {...measured,staleAbi:{allocations,error}};
     },fixture.textBase64);
-    assert.deepEqual(measurements.backend.backend,{abi:2,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert.deepEqual(measurements.backend.backend,{abi:3,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
     assert(measurements.backend.frozen&&measurements.backend.finite&&measurements.backend.peak>.001);
     assert.equal(measurements.backend.staleAbi.allocations,0);assert.match(measurements.backend.staleAbi.error,/out of date/);
     assert.equal((await graph(page)).contexts,0,'numeric core checks do not open an audio device');
@@ -244,7 +244,7 @@ const server=http.createServer(async(request,response)=>{
     assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert.deepEqual(httpErrors,[]);
     for(const asset of ['psf_playback_core.js','psf_player.js','psf_player.wasm']) {
       const urls=psfRequests.filter(url=>new URL(url,origin).pathname.endsWith('/'+asset));
-      assert(urls.length,asset+' was fetched locally');assert(urls.every(url=>new URL(url,origin).searchParams.get('v')==='psf-mame-spu-1'),asset+' has the matching cache identity');
+      assert(urls.length,asset+' was fetched locally');assert(urls.every(url=>new URL(url,origin).searchParams.get('v')==='psf-live-spu-1'),asset+' has the matching cache identity');
     }
     const report={schemaVersion:1,passed:true,root:config.root,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,
       fixture:{authored:true,gameAssets:false,firstSha256:hash(fixture.files[0].buffer),secondSha256:hash(fixture.files[1].buffer)},

@@ -28,7 +28,7 @@ test('original PSF MIPS program executes and produces finite stereo PCM',async()
   const core=await create();
   try {
     assert.equal(core.sampleRate,44100);
-    assert.deepEqual(core.backend,{abi:2,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert.deepEqual(core.backend,{abi:3,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
     assert.ok(Object.isFrozen(core.backend),'the backend identity is read-only metadata');
     const samples=core.render(8820);
     assert.equal(samples.length,17640);
@@ -91,7 +91,8 @@ test('abort cancels creation and further rendering without an audio device',asyn
 test('stale or mismatched CPU/SPU WASM is rejected before a machine is created',async()=>{
   for(const replacement of [
     {abi:1,model:1},
-    {abi:2,model:0},
+    {abi:2,model:1},
+    {abi:3,model:0},
     {abi:undefined,model:1},
   ]) {
     let allocationAttempt=false;
@@ -117,7 +118,7 @@ const featureImage=async fixture=>preparePsfSongSource(await readPsfFileSet(fixt
 async function nativeMachine(fixture,{traceLimit=4096}={}) {
   const image=await featureImage(fixture);
   const module=await createPsfPlayerModule({wasmBinary,print:()=>{},printErr:()=>{}});
-  assert.equal(module._psf_abi_version(),2,'PSF sound bridge ABI must identify the unified fixed core');
+  assert.equal(module._psf_abi_version(),3,'PSF sound bridge ABI must identify the unified fixed core');
   assert.equal(module._psf_spu_model(),1,'CPU playback must use the same MAME-derived SPU as Synth');
   const input=module._malloc(image.ram.length),coverage=module._malloc(image.coverage.length);
   let handle;

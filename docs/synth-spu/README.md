@@ -213,8 +213,13 @@ also apply to the song. The separate Play! HLE player needs no external BIOS;
 it keeps the edited SPU sample and settings intact. Playing the keyboard,
 editing the instrument, running Code or **Stop all sound** stops the preview.
 Selecting a different accepted entry also stops the old song. Failed imports
-keep the previous selection. This first version has no song CH Live display,
-Capture or seeking. PSF2 is not supported. Compatibility depends on the HLE
+keep the previous selection. **Live from PSF** is on by default. Choose **CH 1–24**
+to observe that physical voice in the existing **PCM / ADSR / FX** panels without
+changing the song or the edited instrument. Observations follow the output
+position, up to 20 updates/s. Pause freezes all channels; choosing another CH
+while paused inspects that same moment. Live Off restores the editable instrument
+while the song continues. Editing it then stops the song first. Stop also returns
+to the editor. Song Capture and seeking are not provided. PSF2 is not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
 The active song SPU uses the same fixed MAME-derived DSP sources as the
 keyboard Synth: ADPCM, four-point Gaussian interpolation, ADSR, Noise, PMON,
@@ -223,6 +228,19 @@ accesses, RAM transfers and IRQ use this same instance; the old Play! SPU does
 not contribute audio. Song output retains hardware mixing, without the
 keyboard's software headroom or click guard. The Synth's Master controls the
 final bus.
+
+The Live PCM graph is a read-only preview of up to 112 ADPCM samples from the
+programmed Start address, decoded with zero initial history. It is not the
+currently audible waveform, a full sample extraction or an inferred root note.
+Start / Repeat are programmed addresses, not playback cursors. Gate shows the
+last CPU KON / KOFF request; Core active is separate, and ENDX can also mark a
+looping block. ADSR stage widths remain illustrative. Noise and PMON show the
+selected voice's hardware flags; the Noise clock, main volumes and reverb are
+shared. Software PMON waveform / ratio / depth / decay helpers cannot be inferred
+from a song, so those controls are hidden in PSF Live. Unrecognized reverb
+registers are labelled **Custom**, preserving the actual shared returns and send
+flag. Instrument saves are disabled in PSF Live; turn Live Off to save your edited
+instrument. Capture is a separate future feature.
 
 CPU execution still uses Play! HLE and basic-block timing; it is not cycle-exact
 PS1 emulation. Volume sweeps, voice start / repeat addresses aligned only to
@@ -316,7 +334,10 @@ The application uses the existing generated PS1 WASM and JavaScript modules;
 there is no second chip implementation. Audio blocks send no state messages.
 Normal UI snapshots follow explicit edits and notes. While Code Live is enabled,
 one passive observation request at a time runs at up to 20 updates/s, with stale
-responses discarded after Stop, Live Off or an engine replacement.
+responses discarded after Stop, Live Off or an engine replacement. PSF Live
+uses read-only snapshots captured during the existing renderer's work and
+selected against the audible output offset. It does not run a second CPU or
+SPU, add another audio path, or send instrument-setting commands.
 
 ```sh
 npm run test:spu-synth

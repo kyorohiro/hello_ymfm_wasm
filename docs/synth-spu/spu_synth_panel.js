@@ -63,6 +63,43 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const pcmCanvas=sections[0].querySelector('[data-chip-control="ps1-waveform"]');
   const pcmHeading=sections[0].querySelector('h3'),pcmHeadingText=pcmHeading.textContent;
   const pcmCanvasLabel=pcmCanvas.getAttribute('aria-label');
+  const adsrCanvas=root.querySelector('[data-chip-control="ps1-envelope"]'),adsrCanvasLabel=adsrCanvas.getAttribute('aria-label');
+  const reverbPreset=root.querySelector('[data-chip-control="ps1-reverb-preset"]');
+  const customReverb=root.ownerDocument.createElement('option');customReverb.value='custom';customReverb.textContent='Custom · song register settings';customReverb.disabled=true;customReverb.hidden=true;reverbPreset.append(customReverb);
+  const reverbState=root.ownerDocument.createElement('p');reverbState.className='subtext';reverbState.dataset.psfReverbState='';reverbState.hidden=true;sections[2].append(reverbState);
+  const sourceNotes=[];
+  const initialWaveNotes=new Map([...sections[0].querySelectorAll('p')].map(node=>[node,node.textContent]));
+  function observationLabels() {
+    const observing=morphUiState?.observation?.kind==='psf';
+    customReverb.hidden=!observing;
+    morph.hidden=observing||Boolean(morphUiState?.noise?.enabled);
+    reverbState.hidden=!observing;
+    const waveform=morphUiState?.channels?.[0]?.waveform;
+    if(observing) {
+      pcmHeading.textContent='ADPCM preview · programmed Start';
+      pcmCanvas.setAttribute('aria-label','Read-only ADPCM preview from the programmed sample start, up to 112 decoded samples. Not the current audible waveform.');
+      const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
+      if(info)info.textContent=waveform?.pcm?`Read-only preview · ${waveform.decodedFrames??112} decoded samples, up to 4 packets · zero history at programmed Start. Not the current audible waveform; no root note is inferred.`:'ADPCM preview unavailable for this programmed Start address.';
+      if(!waveform?.pcm) {
+        const ctx=pcmCanvas.getContext('2d');ctx.fillStyle='#101820';ctx.fillRect(0,0,pcmCanvas.width,pcmCanvas.height);ctx.fillStyle='#b5c2cc';ctx.font='13px sans-serif';ctx.fillText('ADPCM preview unavailable for this programmed Start.',12,25);
+      }
+      for(const [node]of initialWaveNotes)if(node!==info)node.hidden=true;
+      const reverb=morphUiState.reverb??{},main=morphUiState.main;
+      reverbState.textContent=`Shared reverb ${reverb.enabled?'enabled':'disabled'} · ${reverb.preset==='custom'?'Custom register configuration':reverb.preset??'Unknown configuration'}${Number.isInteger(reverb.baseAddress)?` · RAM base 0x${reverb.baseAddress.toString(16).toUpperCase()}`:''}${main?` · Main L ${main.volumeLeft.toFixed(3)} / R ${main.volumeRight.toFixed(3)}`:''}. Selected CH send and shared returns are shown above.`;
+    } else {
+      for(const [node]of initialWaveNotes)node.hidden=Boolean(morphUiState?.noise?.enabled);
+    }
+    if(label)label.textContent=observing?'Selected CH reverb send':'Enable reverb';
+    adsrCanvas.setAttribute('aria-label',observing?'Read-only song ADSR settings. Stage widths are illustrative, not the current envelope stage.':adsrCanvasLabel);
+    pmon.querySelector('[data-pmon-label]').textContent=observing?'Selected CH hardware PMON':'Enable PMON';
+    for(const input of root.querySelectorAll('[data-chip-control="ps1-reverb-left"],[data-chip-control="ps1-reverb-right"]'))input.min=observing?'-1':'0';
+    pmon.querySelector('.pmon-fields').hidden=observing;
+    const pmonNotes=pmon.querySelectorAll('p');
+    pmonNotes[0].textContent=observing?'Hardware PMON uses the preceding physical voice’s output. There are no hardware waveform, ratio, depth or decay controls; those editor helpers cannot be inferred from the song.':'A silent waveform modulates each note. Waveform, Ratio and Depth update sounding notes. Decay applies to new notes; zero holds the modulation. High ratios are limited by the SPU pitch range.';
+    pmonNotes[1].hidden=observing;
+    sourceNotes.forEach(node=>{node.hidden=observing;});
+    source.querySelector('[data-noise-info]').textContent=observing?'This CH uses the shared hardware Noise clock. Noise replaces ADPCM output; PITCH does not set its frequency.':'Noise clock is shared by all 24 voices. Keys trigger the ADSR envelope, not a musical pitch. Use ADSR to shape drums and effects. Your PCM/audio sample is kept. Noise and PMON switch each other off.';
+  }
   let morphStroke=null;
   const morphListeners=[];
   function syncPcmEditor() {
@@ -81,6 +118,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
     if(editing&&info)info.textContent=`Editing Wave ${selectedMorphEndpoint.toUpperCase()} · A (blue), B (pink), Result (gold). Draw on this canvas or set individual samples. A completed stroke updates the blend without retriggering notes.`;
     if(editing)drawMorphCanvas();
+    observationLabels();
   }
   function drawMorphCanvas() {
     if(!morphDraft.enabled)return;
@@ -192,6 +230,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     <p class="subtext">Changing Source stops current notes.</p>`;
   sections[0].prepend(source);
   const sourceSelect=source.querySelector('[data-noise="source"]'),noiseClock=source.querySelector('[data-noise="clock"]');
+  sourceNotes.push(...source.querySelectorAll('p:not([data-noise-info])'));
   const displayNoise=()=>{source.querySelector('[data-noise-output="clock"]').textContent=`${noiseClock.value} · Shift ${Number(noiseClock.value)>>2} / Step ${Number(noiseClock.value)&3}`;};
   let lastNoise=readNoise(),noisePending=0;
   async function changeNoise() {
@@ -208,7 +247,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const pmon = root.ownerDocument.createElement('fieldset');
   pmon.className = 'spu-pmon';
   pmon.innerHTML = `<legend>Pitch Modulation</legend>
-    <label class="pmon-enable"><input type="checkbox" data-pmon="enabled"> Enable PMON</label>
+    <label class="pmon-enable"><input type="checkbox" data-pmon="enabled"> <span data-pmon-label>Enable PMON</span></label>
     <div class="pmon-fields">
       <label>Modulator <select data-pmon="waveform" aria-label="Modulator waveform"><option value="sine">Sine</option><option value="triangle">Triangle</option><option value="saw">Saw</option><option value="square">Square</option></select></label>
       <label>Ratio <input type="number" data-pmon="ratio" min="0.01" max="16" step="0.01" value="1" aria-label="Modulator frequency ratio"></label>
@@ -256,12 +295,18 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     sections.forEach((section, index) => {section.hidden = sectionNames[index] !== name;});
     panel.setVisible(visible && sectionNames.includes(name));
     if(visible&&name==='pcm')drawMorphCanvas();
+    observationLabels();
   }, setVisible(value) {
     visible = Boolean(value);
     if(!visible)cancelMorphStroke();
     panel.setVisible(visible && sectionNames.includes(activeSection));
     if(visible&&activeSection==='pcm')drawMorphCanvas();
+    observationLabels();
   }, dispose() {cancelMorphStroke();for(const remove of morphListeners)remove();panel.dispose();}, update(state) {
+    const observing=state.observation?.kind==='psf',voice=state.channels?.[0];
+    // Song masks are physical per-voice flags, independent of the Synth's
+    // helper parameters. Never infer its software PMON waveform or depth.
+    if(observing)state={...state,noise:{enabled:Boolean(voice?.noise),clock:state.noise.clock},pmon:{enabled:Boolean(voice?.hardwarePmon)}};
     morphUiState=state;
     lastMorph=readMorph(state.morph);
     currentPcm=state.channels?.[0]?.waveform?.pcm??null;
@@ -285,5 +330,6 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     }
     const waveInfo = root.querySelector('[data-chip-output="ps1-wave-info"]');
     if (waveInfo) waveInfo.textContent = waveInfo.textContent.replace('for this voice', 'for this instrument');
+    observationLabels();
   }};
 }

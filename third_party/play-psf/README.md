@@ -83,10 +83,21 @@ to match hardware. This does not add a full PlayStation BIOS or CPU environment.
 
 ## Private numerical diagnostics
 
-The backend reports ABI 2 (`psf_abi_version`) and core model 1 (`psf_spu_model`,
+The backend reports ABI 3 (`psf_abi_version`) and core model 1 (`psf_spu_model`,
 fixed MAME-derived SPU). Read-only `psf_spu_read`, `psf_spu_read_ram`,
 `psf_cpu_read_ram` and `psf_spu_frames` support fixtures without another audio
-path. Optional `psf_trace_start(handle,maxEvents)` enables a bounded trace
+path. `psf_spu_key_gates` returns the CPU KON/KOFF request mask, while
+`psf_spu_active_mask` reads the DSP active-voice mask. Neither changes decoder
+state. Gate request, current ENV, active state and ENDX are separate: an ENDX
+loop marker does not mean a voice stopped. The browser's `observe()` builds a
+bounded all-channel snapshot, with at most four ADPCM packets per distinct
+programmed sample start. Those first 112 decoded samples use zero initial
+history and are a source preview, not the current audible decoder output, a
+whole sample or inferred root tuning. Live transport retains bounded snapshots
+and selects only one at or before the consumed audio frame. Live Off stops
+observation, and Pause retains the frozen audible snapshot.
+
+Optional `psf_trace_start(handle,maxEvents)` enables a bounded trace
 (maximum 262,144 events; zero disables it). `psf_trace_count`, `psf_trace_read`
 and `psf_trace_overflow` expose four little-endian uint32 fields per event:
 `{frame,kind,address,value}`. Kind 1 is a 16-bit register write (byte offset),

@@ -35,6 +35,7 @@ class PsfSpu final : public spu_device {
 public:
   std::function<void(uint32_t,uint32_t,uint32_t)> transferEvent;
   uint32_t transferAddress() const { return taddr >> 2; } // standard RAM mode
+  uint32_t activeMask() const { return m_voice_active & 0xffffff; }
   bool irqPending() { return (read(0x1ae/2) & 0x40) != 0; }
   void transferIrq(uint32_t address) {
     if ((spureg.ctrl & 0x40) && address == uint32_t(spureg.irq_addr)*8)
@@ -99,6 +100,7 @@ struct PsfPlayer {
   std::unique_ptr<Iop::CSubSystem> machine;
   uint64_t clocks=0, nextFrame=0;
   uint32_t refresh=60, renderedFrames=0;
+  uint32_t keyGateMask=0;
   int64_t cpuDebt=0;
   std::string failure;
   uint32_t traceLimit=0;
@@ -128,6 +130,10 @@ struct PsfPlayer {
     }
     event(1,offset,value);
     spu.writeBus(offset,value);
+    if (offset==0x188 || offset==0x18a)
+      keyGateMask|=(uint32_t(value)<<(offset==0x18a ? 16 : 0))&0xffffff;
+    else if (offset==0x18c || offset==0x18e)
+      keyGateMask&=~((uint32_t(value)<<(offset==0x18e ? 16 : 0))&0xffffff);
     syncIrq();
   }
   uint32_t readBus(uint32_t address,uint32_t width) {
@@ -199,7 +205,7 @@ static void registerFunctions() {
   R::RegisterFunction(reinterpret_cast<uintptr_t>(&SWR_Proxy), "_SWR_Proxy", "viii");
   ready = true;
 }
-extern "C" uint32_t psf_abi_version() { return 2; }
+extern "C" uint32_t psf_abi_version() { return 3; }
 extern "C" uint32_t psf_spu_model() { return 1; } // fixed MAME-derived Tetorica SPU
 extern "C" const char* psf_last_error() { return lastError.c_str(); }
 extern "C" PsfPlayer* psf_create(const uint8_t* ram, const uint8_t* coverage, uint32_t pc, uint32_t gp, uint32_t sp, uint32_t refresh) {
@@ -268,6 +274,8 @@ extern "C" uint32_t psf_spu_read(PsfPlayer* p,uint32_t offset) {
   return p && offset<=0x3fe && !(offset&1) ? p->spu.read(offset/2) : 0xffffffffu;
 }
 extern "C" uint32_t psf_spu_frames(PsfPlayer* p) { return p ? p->renderedFrames : 0; }
+extern "C" uint32_t psf_spu_key_gates(PsfPlayer* p) { return p ? p->keyGateMask : 0; }
+extern "C" uint32_t psf_spu_active_mask(PsfPlayer* p) { return p ? p->spu.activeMask() : 0; }
 extern "C" int psf_spu_read_ram(PsfPlayer* p,uint32_t address,uint8_t* out,uint32_t length) {
   if (!p || !out || address>spuRamSize || length>spuRamSize-address) return 0;
   p->spu.read_ram(address,out,length); return 1;

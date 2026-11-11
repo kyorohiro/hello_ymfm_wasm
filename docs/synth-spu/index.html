@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-split-vab-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-psf-live-1">
   </head>
   <body>
     <main>
@@ -96,7 +96,7 @@
             <button id="psfStopSong" type="button" disabled>Stop song</button>
             <button id="extractPsf" type="button" title="Extract VAB banks from the selected PSF and show its Bank / Tone list." disabled>Extract VAB</button>
             <output id="psfSongPosition" aria-label="PSF playback position">0:00</output>
-            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. The song uses the Synth’s MAME-derived SPU DSP for ADPCM, ADSR, Noise, PMON, main / reverb volumes and reverb, with hardware mixing. CPU timing remains HLE, not cycle-exact. Unsupported volume sweeps, 8-byte-only voice addresses and transfer modes report an error. Master still works. Song CH Live / Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
+            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. The song uses the Synth’s MAME-derived SPU DSP for ADPCM, ADSR, Noise, PMON, main / reverb volumes and reverb, with hardware mixing. CPU timing remains HLE, not cycle-exact. Unsupported volume sweeps, 8-byte-only voice addresses and transfer modes report an error. Master still works. Live shows the selected song channel in the PCM / ADSR / FX panels; Pause freezes that observation. Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
           </div>
           <p id="psfPlaybackStatus" class="subtext" role="status" aria-live="polite">Open a PSF set and choose an entry to play.</p>
         </section>
@@ -128,9 +128,9 @@
 
         <section id="spuCodeLiveTools" class="spu-code-live-tools" aria-label="Code observations" hidden>
           <div class="spu-code-live-row">
-            <label>Code view <select id="spuLiveChannel" aria-label="Code channel to observe"></select></label>
-            <label class="check-control"><input id="spuLiveEnabled" type="checkbox" checked> Live from Code</label>
-            <details class="spu-code-help"><summary aria-label="About Code Live">?</summary><p>Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.</p></details>
+            <label><span id="spuLiveSourceLabel">Code view</span> <select id="spuLiveChannel" aria-label="Code channel to observe"></select></label>
+            <label class="check-control"><input id="spuLiveEnabled" type="checkbox" checked> <span id="spuLiveEnabledLabel">Live from Code</span></label>
+            <details class="spu-code-help"><summary id="spuLiveHelpLabel" aria-label="About Code Live">?</summary><p id="spuLiveHelpText">Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.</p></details>
           </div>
           <p id="spuLiveStatus" role="status">Run Code to observe its channels.</p>
           <p id="spuLiveReadout"></p>
@@ -245,6 +245,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-psf-mame-1"></script>
+    <script type="module" src="./synth.js?v=spu-psf-live-1"></script>
   </body>
 </html>
