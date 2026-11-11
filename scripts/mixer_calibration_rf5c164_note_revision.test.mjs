@@ -1,3 +1,4 @@
+import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
 // Calibration provenance and PCM arrays only. No AudioContext/audio device.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +25,7 @@ test('all 44 exact known after sources reconstruct complete pre-feature bodies a
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.equal(paths.length,44);assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths) {
-    const current=await read('docs/'+path),known=restoreMixerCalibrationCompletionPresetImportRevision(path,current),entry=receipt.sources[path];
+    const current=await read('docs/'+path),known=restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,current)),entry=receipt.sources[path];
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     const before=restore(path,known);assert.notEqual(before,known,path);
     assert.equal(before.length,entry.before.bytes,path);assert.equal(sha(before),entry.before.sha256,path);

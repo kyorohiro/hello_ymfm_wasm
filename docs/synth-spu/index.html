@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-extract-presets-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-split-vab-1">
   </head>
   <body>
     <main>
@@ -170,8 +170,13 @@
               <label>Tone <select id="vabTone" aria-label="VAB Tone" disabled></select></label>
               <button id="loadVabTone" type="button" disabled>Load selected Tone</button>
             </div>
+            <p id="vabAvailability" class="subtext" hidden></p>
+            <details id="vabUnavailableDetails" class="vab-reasons" hidden>
+              <summary>Unavailable reasons</summary>
+              <ul id="vabUnavailableReasons"></ul>
+            </details>
             <p id="vabStatus" class="subtext" role="status" aria-live="polite">No sound bank opened.</p>
-            <p class="subtext">For PSF instruments, choose an entry and extract its banks, then select a bank and Tone. Unavailable Tones are disabled. Static extraction supports contiguous standard VAB banks; separate VH/VB layouts, custom or runtime-packed banks may not be found. Song playback is independent of bank extraction. PSF2 is not supported. Extract ZIP archives before selecting their files or folder.</p>
+            <p class="subtext">For PSF instruments, choose an entry and extract its banks, then select a bank and Tone. Unavailable Tones show a reason. Static extraction supports contiguous VAB banks and separated VH / VB when the complete sample data has one unambiguous match. Custom or runtime-packed banks may not be found. Song playback is independent of bank extraction. PSF2 is not supported. Extract ZIP archives before selecting their files or folder.</p>
             <p class="subtext">Imports the original ADPCM, loop, ADSR and tuning. One Tone plays across the keyboard; key zones, layers and driver vibrato/portamento are not applied. Volume and pan are approximations. Reverb send uses the current shared reverb settings. Loading a Tone stops notes and turns off PMON, Noise and Software morph.</p>
           </section>
         </section>
@@ -240,6 +245,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-extract-presets-1"></script>
+    <script type="module" src="./synth.js?v=spu-split-vab-1"></script>
   </body>
 </html>

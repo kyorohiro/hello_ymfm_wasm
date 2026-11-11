@@ -54,12 +54,28 @@ test('bad ADPCM never borrows an END packet from the next sample or rewrites uns
     b=>{b.samples[0].bytes[0]=0x50;},
     b=>{b.samples[0].bytes[1]|=8;},
     b=>{b.samples[0].bytes[17]|=4;},
-    b=>{b.samples[0].bytes[49]=1;}, // one-shot with loop start
   ]) {const bank=readVab(createVabFixture().vab);mutate(bank);assert.throws(()=>prepareVabTone(bank,0));}
   assert.throws(()=>prepareVabTone(readVab(createVabFixture().vab),3));
   const bank=readVab(createVabFixture().vab);
   bank.samples[0].bytes[1]&=~4;
   assert.equal(prepareVabTone(bank,0).options.loopStartSamples,0,'loop without a marker starts at sample address');
+});
+
+test('one-shot VAB with a LOOP START retains its original packets and has no loop option',()=>{
+  const bank=readVab(createVabFixture().vab);
+  bank.samples[0].bytes[49]=1;
+  const original=bank.samples[0].bytes.slice(),prepared=prepareVabTone(bank,0);
+  assert.deepEqual(prepared.adpcm,original.slice(0,64));
+  assert.deepEqual(bank.samples[0].bytes,original,'preparation never patches the source bank');
+  assert.equal(prepared.trimmedBytes,16);
+  assert.equal(prepared.adpcm[1],6,'LOOP START and its non-END Repeat bit survive');
+  assert.equal(prepared.adpcm[49],1,'END remains one-shot');
+  assert.equal(Object.hasOwn(prepared.options,'loopStartSamples'),false);
+  const restored=readSpuInstrument(JSON.parse(JSON.stringify(writeSpuInstrument('Marked one-shot',{
+    sample:{adpcm:prepared.adpcm,...prepared.options},preset:prepared.preset,reverb:{preset:'off',volumeLeft:.25,volumeRight:.25},waveform:null,
+  }))));
+  assert.deepEqual(restored.sample.adpcm,prepared.adpcm);
+  assert.equal(Object.hasOwn(restored.sample,'loopStartSamples'),false);
 });
 
 test('version 6, sliced buffers and packet-aligned nonzero loop starts retain the exact sample', () => {

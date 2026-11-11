@@ -7,6 +7,7 @@ import {join,dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {inspectPsfFolder,runPsfInspection} from './inspect_psf_banks.mjs';
 import {createPsfFixture,createPsfConflictFixture,makePsf} from '../test/helpers/spu_psf_fixture.mjs';
+import {createPsfSplitVabFixture} from '../test/helpers/spu_psf_split_vab_fixture.mjs';
 
 async function folder(t) {
   const dir=await mkdtemp(join(tmpdir(),'inspect-psf-test-'));
@@ -102,4 +103,24 @@ test('CLI help and invalid arguments do not overwrite PSF input files',async t=>
   const input=join(dir,'Demo/track.minipsf');
   assert.equal(await runPsfInspection([dir,'--out',input],io),1);
   assert.deepEqual(await readFile(input),Buffer.from(fixture.mini));
+});
+
+test('CLI reports a unique separated body and every one-shot marker Tone without exporting sample data',async t=>{
+  const dir=await folder(t),fixture=createPsfSplitVabFixture();
+  await writeFile(join(dir,'split.psf'),fixture.psf);
+  const report=await inspectPsfFolder(dir),entry=report.results[0],bank=entry.banks[0];
+  assert.equal(entry.status,'banks');assert.equal(bank.layout,'split');
+  assert.equal(bank.bodyMatch,'unique-structural');
+  assert.equal(bank.address,'0x80010000');assert.equal(bank.bodyAddress,'0x80030000');
+  assert.equal(bank.playableTones,3);assert.equal(bank.unavailableTones,0);
+  assert.deepEqual(bank.unavailableReasons,[]);
+  assert.doesNotMatch(JSON.stringify(report),/"adpcm"|"sampleBytes"|"pcm"/);
+});
+
+test('CLI preserves ambiguity diagnostics instead of choosing one of two separated bodies',async t=>{
+  const dir=await folder(t),fixture=createPsfSplitVabFixture({duplicateBody:true});
+  await writeFile(join(dir,'split.psf'),fixture.psf);
+  const report=await inspectPsfFolder(dir),entry=report.results[0];
+  assert.equal(report.summary.errors,0);assert.equal(entry.status,'no-bank');
+  assert.deepEqual(entry.banks,[]);assert(entry.diagnostics.some(item=>/ambiguous/.test(item.code)));
 });

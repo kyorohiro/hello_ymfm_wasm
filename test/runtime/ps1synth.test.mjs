@@ -104,6 +104,23 @@ test('SPU ADPCM validation requires complete packets, explicit tuning, final END
   assert.equal(createPs1InitSample().adpcm[1],6,'authored fixture returns independent buffers');
 });
 
+test('one-shot LOOP START packets retain their exact flags without enabling loop metadata',()=>{
+  for(const markerBlock of [0,1,3])for(const markerRepeat of [false,true]){
+    // Repeat is meaningful on END only. Do not accidentally turn the final
+    // marker into END+Repeat in this one-shot fixture.
+    if(markerBlock===3&&markerRepeat)continue;
+    const {adpcm}=createPs1InitSample();adpcm[1]=0;adpcm[49]=1;
+    adpcm[markerBlock*16+1]|=4|(markerRepeat?2:0);
+    const before=adpcm.slice(),prepared=preparePs1ADPCM(adpcm,{rootNote:60});
+    assert.equal(prepared.loop,false);assert.equal(prepared.loopStartSamples,null);
+    assert.deepEqual(prepared.adpcm,before);
+    assert.throws(()=>preparePs1ADPCM(adpcm,{rootNote:60,loopStartSamples:markerBlock*28}),/metadata requires LOOP/);
+    adpcm.fill(255);assert.deepEqual(prepared.adpcm,before,'validation owns its returned bytes');
+  }
+  const {adpcm}=createPs1InitSample();adpcm[49]=1;adpcm[17]|=4;
+  assert.throws(()=>preparePs1ADPCM(adpcm,{rootNote:60}),/multiple LOOP START/);
+});
+
 test('PS1 instruments upload beyond capture RAM, tune A4=440, and preserve signed independent stereo',async t=>{
   const {synth,core}=await create(t),sample=load(synth);
   assert.equal(sample.startAddress,0x1000);assert.equal(sample.repeatAddress,0x1000);assert.equal(sample.byteLength,64);

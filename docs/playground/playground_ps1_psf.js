@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 // Bounded local PSF1 container / overlay loader; no CPU or network file access.
 // https://gist.github.com/SaxxonPike/11618bd321a45a70c01febae43ff564e
-import {MAX_VAB_FILE_BYTES,readVab,prepareVabTone} from './playground_ps1_vab.js';
+import {MAX_VAB_FILE_BYTES,readVab,prepareVabTone} from './playground_ps1_vab.js?v=ps1-oneshot-marker-1';
 
 export const PSF_FILES = /\.(?:psf1?|minipsf1?|psflib|psf1lib)$/i;
 export const MAX_PSF_FILE_BYTES = 4*1024*1024;
@@ -156,19 +156,43 @@ export function psfRejectionSummary({diagnostics=[]}) {
   return ` Skipped ${diagnostics.length} VAB candidate(s): ${details}${diagnostics.length>3?'; …':''}.`;
 }
 
-/** Only contiguous, fully loaded VAB headers+bodies are matched initially.
- * A playable Tone is insufficient when the assumed body contains another
- * validated header. This is a conservative layout guard, not a VH/VB resolver. */
+/** Match loaded Sony headers to one defensible sample body. The legacy
+ * contiguous path retains bytes after END. A separated body needs exact sample
+ * boundaries and a unique structural match; this is inference, not driver
+ * pointer provenance. Zero padding is never treated as an address.
+ * All searches stay inside the supplied image and have explicit work limits. */
 export function findPsfVabs({ram,coverage}) {
-  const banks=[],headers=[],sequences=[],records=[],diagnostics=[];let candidates=0,extracted=0;
+  const banks=[],headers=[],sequences=[],records=[],diagnostics=[];
+  let candidates=0,extracted=0,parsedBodyBytes=0,searchWork=0;
   const view=new DataView(ram.buffer,ram.byteOffset,ram.byteLength);
-  const loaded=(start,end)=>coverage.subarray(start,end).every(byte=>byte===1);
+  const words=Math.ceil(ram.length/8),unloaded=new Uint32Array(words+1);
+  for(let word=0;word<words;word++) {
+    let missing=false;for(let at=word*8;at<Math.min(ram.length,word*8+8);at++)if(coverage[at]!==1){missing=true;break;}
+    unloaded[word+1]=unloaded[word]+Number(missing);
+  }
+  const loaded=(start,end)=>{
+    if(start<0||end<start||end>ram.length)return false;
+    const first=Math.ceil(start/8),last=Math.floor(end/8);
+    if(last>=first&&unloaded[last]!==unloaded[first])return false;
+    for(let at=start;at<Math.min(end,first*8);at++)if(coverage[at]!==1)return false;
+    for(let at=Math.max(start,last*8);at<end;at++)if(coverage[at]!==1)return false;
+    return true;
+  };
+  const overlap=(a,b,c,d)=>a<d&&c<b;
+  const rangeLookup=ranges=>{
+    const merged=[];
+    for(const [start,end]of ranges.sort((a,b)=>a[0]-b[0])) {
+      const last=merged.at(-1);if(last&&start<=last[1])last[1]=Math.max(last[1],end);else merged.push([start,end]);
+    }
+    return(start,end)=>{
+      let low=0,high=merged.length;
+      while(low<high){const mid=(low+high)>>>1;if(merged[mid][1]<=start)low=mid+1;else high=mid;}
+      return low<merged.length&&merged[low][0]<end;
+    };
+  };
   for(let at=0;at+15<=ram.length;at++) {
     if(ram[at]!==0x70)continue;
-    // Sony SEQ v1 header: big-endian version, resolution, tempo and rhythm.
-    // https://psx-spx.consoledev.net/cdromfileformats/#seq-single-sequence
-    // Magic alone (or SEP's shared magic) does not establish a conflict.
-    // Some SEQs leave both rhythm bytes zero (observed in Crash Bandicoot).
+    // A validated SEQ is a conflicting structured file, not an ADPCM body.
     if(signature(ram,at,'pQES')&&loaded(at,at+15)&&view.getUint32(at+4,false)===1&&
       view.getUint16(at+8,false)>0&&(ram[at+10]||ram[at+11]||ram[at+12])&&
       ((ram[at+13]>0&&ram[at+13]<128&&ram[at+14]<=7)||(ram[at+13]===0&&ram[at+14]===0))) {
@@ -178,31 +202,129 @@ export function findPsfVabs({ram,coverage}) {
     if(at+0x20>ram.length||!signature(ram,at,'pBAV'))continue;
     if(++candidates>256)fail('too many VAB candidates');
     const size=view.getUint32(at+12,true),headerBytes=0xa20+view.getUint16(at+0x12,true)*0x200;
-    const record={address:at,size,headerBytes};records.push(record);
-    if(size<0xa20||size>MAX_VAB_FILE_BYTES||at+size>ram.length||headerBytes>size||!loaded(at,at+headerBytes)) {
-      Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header/body range is invalid or not fully loaded'});continue;
+    const bodyBytes=size-headerBytes,record={address:at,size,headerBytes,bodyBytes};records.push(record);
+    if(size<0xa20||size>MAX_VAB_FILE_BYTES||headerBytes>size||at+headerBytes>ram.length||!loaded(at,at+headerBytes)) {
+      Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header range is invalid or not fully loaded'});continue;
     }
     try {
-      // Body bytes are not interpreted by readVab. Validate the whole header
-      // even if its own VB is missing or none of its Tones can be prepared.
-      readVab(ram.subarray(at,at+size));headers.push(record);
-      if(!loaded(at,at+size))Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header/body range is invalid or not fully loaded'});
-    } catch(error){Object.assign(record,{code:'invalid-vab',reason:error.message});}
-  }
-  for(const record of records) {
-    const {address:at,size,headerBytes}=record;
-    if(!record.code) {
-      const nested=headers.find(other=>other.address>=at+headerBytes&&other.address<at+size);
-      const sequence=sequences.find(address=>address>=at+headerBytes&&address<at+size);
-      if(nested)Object.assign(record,{code:'ambiguous-vab-body',conflictAddress:nested.address,reason:`assumed sample body contains another VAB header at ${ramAddress(nested.address)}; VH/VB mapping is uncertain`});
-      else if(sequence!==undefined)Object.assign(record,{code:'ambiguous-seq-body',conflictAddress:sequence,reason:`assumed sample body contains a structured SEQ header at ${ramAddress(sequence)}; VH/VB mapping is uncertain`});
+      // Parse metadata without assuming where VB resides. readVab only copies
+      // body bytes here; its sample/ADPCM content is checked below.
+      parsedBodyBytes+=bodyBytes;
+      if(parsedBodyBytes>32*1024*1024)fail('VAB metadata validation budget exceeded');
+      const metadata=readVab(ram.subarray(at,at+headerBytes),new Uint8Array(bodyBytes));
+      record.prefix=view.getUint16(at+headerBytes-0x200,true)*8;
+      record.lengths=metadata.samples.map(sample=>sample.bytes.length);
+      record.used=new Set(metadata.tones.map(tone=>tone.sample).filter(index=>index>0&&index<255&&index<=metadata.samples.length));
+      headers.push(record);
+    } catch(error) {
+      if(parsedBodyBytes>32*1024*1024)throw error;
+      Object.assign(record,{code:'invalid-vab',reason:error.message});
     }
+  }
+  // Preserve structured-file guards even if the nested header's own body is
+  // absent or unsupported. A split guess must not hide an ambiguous old range.
+  for(const record of headers) {
+    const {address:at,size,headerBytes}=record,body=at+headerBytes;
+    record.contiguous=body;
+    if(at+size>ram.length||!loaded(body,at+size)) {
+      record.contiguousError={code:'unloaded-or-invalid-range',reason:'contiguous body range is not fully loaded'};continue;
+    }
+    const nested=headers.find(other=>other!==record&&other.address>=body&&other.address<at+size);
+    const sequence=sequences.find(address=>address>=body&&address<at+size);
+    if(nested)Object.assign(record,{code:'ambiguous-vab-body',conflictAddress:nested.address,reason:`assumed sample body contains another VAB header at ${ramAddress(nested.address)}; VH/VB mapping is uncertain`});
+    else if(sequence!==undefined)Object.assign(record,{code:'ambiguous-seq-body',conflictAddress:sequence,reason:`assumed sample body contains a structured SEQ header at ${ramAddress(sequence)}; VH/VB mapping is uncertain`});
+  }
+  const validPacket=at=>{
+    const h=ram[at],f=ram[at+1];return at+16<=ram.length&&(h>>4)<=4&&(h&15)<=12&&!(f&~7);
+  };
+  // The existing contiguous format may contain padding after each sample's
+  // first END. But every referenced sample must actually contain an END;
+  // accepting just one Tone can mistake a later sample's tail for another one.
+  // Unsupported predictor/flag values stay individual Tone diagnostics here,
+  // so one bad sample does not hide other sounds in a known contiguous bank.
+  for(const record of headers) {
+    if(record.code||record.contiguousError)continue;
+    let offset=record.contiguous+record.prefix,valid=record.used.size>0;
+    for(let index=0;index<record.lengths.length;index++) {
+      const length=record.lengths[index];
+      if(record.used.has(index+1)) {
+        let ended=false;
+        for(let at=offset;at+16<=offset+length;at+=16) {
+          if(ram[at+1]&1){ended=true;break;}
+        }
+        if(!ended)valid=false;
+      }
+      offset+=length;
+    }
+    record.contiguousValid=valid;
+    if(!valid)record.contiguousError={code:'invalid-vab-body',reason:'contiguous body has an unterminated referenced sample'};
+  }
+  // Two parity lanes cover all 8-byte-aligned SPU addresses. Prefix counts make
+  // each strict sample check constant-time, including a very large candidate.
+  const invalid=new Uint32Array(words+2),ends=new Uint32Array(words+2),markers=new Uint32Array(words+2),endPackets=[];
+  if(headers.some(record=>!record.code))for(let word=0;word+1<words;word++) {
+    const at=word*8,valid=validPacket(at)&&unloaded[word+2]===unloaded[word],flags=ram[at+1];
+    invalid[word+2]=invalid[word]+Number(!valid);
+    ends[word+2]=ends[word]+Number(Boolean(flags&1));
+    markers[word+2]=markers[word]+Number(Boolean(flags&4));
+    if(valid&&(flags&1))endPackets.push(at);
+  }
+  const strictSample=(at,length)=>{
+    if(length%16||at%8||at<0||at+length>ram.length)return false;
+    const first=at/8,last=(at+length)/8;
+    return invalid[last]===invalid[first]&&ends[last]-ends[first]===1&&markers[last]-markers[first]<=1&&Boolean(ram[at+length-15]&1);
+  };
+  const ownedBodies=headers.filter(record=>!record.code&&record.contiguousValid);
+  const structured=rangeLookup([...headers.map(record=>[record.address,record.address+record.headerBytes]),...sequences.map(address=>[address,address+15])]);
+  for(const record of headers) {
+    if(record.code)continue;
+    record.matches=[];
+    const otherOwned=rangeLookup(ownedBodies.filter(other=>other!==record).map(other=>[other.contiguous,other.address+other.size]));
+    const sampleBytes=record.lengths.reduce((total,length)=>total+length,record.prefix);
+    if(record.lengths.length&&sampleBytes===record.bodyBytes)for(const end of endPackets) {
+      if(++searchWork>1000000)fail('VB candidate search budget exceeded');
+      const body=end+16-record.prefix-record.lengths[0],bodyEnd=body+record.bodyBytes;
+      if(body===record.contiguous&&!record.contiguousValid)continue;
+      if(body<0||body%8||!loaded(body,bodyEnd))continue;
+      if(structured(body,bodyEnd))continue;
+      // A distinct validated contiguous bank already owns its body. Do not
+      // cross-pair common sample tables from ordinary multi-bank PSF images.
+      if(otherOwned(body,bodyEnd))continue;
+      let at=body+record.prefix,valid=true;
+      for(const length of record.lengths) {
+        if(++searchWork>1000000)fail('VB candidate search budget exceeded');
+        if(!strictSample(at,length)){valid=false;break;}at+=length;
+      }
+      if(valid) {
+        record.matches.push(body);
+        // Retain all bounded matches so a later header cannot claim a body
+        // also matched by an already ambiguous header.
+        if(record.matches.length>256)fail('too many matching VB candidates');
+      }
+    }
+    const alternatives=record.matches.filter(body=>body!==record.contiguous);
+    if(record.matches.length>1||record.contiguousValid&&alternatives.length) {
+      Object.assign(record,{code:'ambiguous-vb-candidates',reason:'multiple defensible sample bodies match this header; no VB was selected'});continue;
+    }
+    if(record.contiguousValid)record.bodyAddress=record.contiguous;
+    else if(record.matches.length===1)record.bodyAddress=record.matches[0];
+    else Object.assign(record,record.contiguousError??{code:'no-vb-body',reason:'no unique fully loaded sample body matches this header'});
+  }
+  // One unclaimed VB cannot establish ownership for two separated headers.
+  for(const record of headers)if(!record.code&&record.bodyAddress!==record.contiguous) {
+    if(headers.some(other=>other!==record&&other.matches?.some(body=>overlap(record.bodyAddress,record.bodyAddress+record.bodyBytes,body,body+other.bodyBytes))))
+      record.sharedBody=true;
+  }
+  for(const record of headers)if(record.sharedBody)Object.assign(record,{code:'ambiguous-shared-vb',reason:'the same separated sample body matches multiple VAB headers; no bank was selected'});
+  for(const record of records) {
+    const {address:at,size,headerBytes,bodyBytes,bodyAddress}=record;
     if(!record.code) {
-      const bank=readVab(ram.subarray(at,at+size));
+      const bank=readVab(ram.subarray(at,at+headerBytes),ram.subarray(bodyAddress,bodyAddress+bodyBytes));
       if(!bank.tones.some((_,index)=>{try{prepareVabTone(bank,index);return true;}catch{return false;}}))Object.assign(record,{code:'no-supported-tone',reason:'no Tone passes sample validation'});
       else {
         extracted+=size;if(banks.length>=32||extracted>8*1024*1024)fail('extracted bank limit exceeded');
-        banks.push({bank,address:at,bytes:size});
+        const layout=bodyAddress===record.contiguous?'contiguous':'split';
+        banks.push({bank,address:at,bodyAddress,headerBytes,bodyBytes,layout,bodyMatch:layout==='split'?'unique-structural':'contiguous',bytes:size});
       }
     }
     if(record.code)diagnostics.push({address:at,code:record.code,reason:record.reason,...(record.conflictAddress!==undefined?{conflictAddress:record.conflictAddress}:{})});

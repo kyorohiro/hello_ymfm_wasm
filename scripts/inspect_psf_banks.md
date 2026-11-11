@@ -1,6 +1,6 @@
 # PSFフォルダーの静的互換性レポート
 
-展開済みの1作品分のPSFセットを調べ、Playground／SPU Synthと同じパーサーで検出できる標準VABと対応ToneをJSONにまとめる。
+展開済みの1作品分のPSFセットを調べ、Playground／SPU Synthと同じパーサーで検出できる標準VAB・一意に対応する分離VH／VBと対応ToneをJSONにまとめる。
 複数作品を検証するときは作品ごとに実行し、レポートを分ける。
 Node.js 22以降。ブラウザ・音声デバイス・ネットワークは使用しない。
 
@@ -20,11 +20,13 @@ ZIPは先に展開する。PSF／MiniPSFと、その曲が参照する全PSFLib�
 ## 結果の読み方
 
 - `summary.withBanks`：少なくとも1つの対応Toneを含む標準VABが見つかった曲数。
-- `summary.withoutBanks`：正常に展開できたが、対応する連続VABが見つからなかった曲数。
-  音色が存在しないという意味ではない。分離VH／VB、独自形式、実行時展開などはこの検出の対象外。
+- `summary.withoutBanks`：正常に展開できたが、対応するVAB／VH-VBが見つからなかった曲数。
+  音色が存在しないという意味ではない。曖昧な分離VH／VB、独自形式、実行時展開などはこの検出の対象外。
 - `summary.errors`：不足ライブラリ、zlib／EXE形式などの理由で検査に失敗した曲数。
   他の曲の検査は継続する。入力セット全体のCRC・サイズ不正は検査開始前にエラー終了する。
 - 各bankの `playableTones`／`unavailableTones` と `unavailableReasons`：ブラウザのTone読み込み前検証と同じ判定。
+- 各bankの `layout`／`bodyAddress`：連続VAB／分離VH-VBの区別と本文のRAMアドレス。分離本文は全coverage・sampleサイズ・有効packet・ENDの厳密な境界と、一意な対応を要求する。
+- `bodyMatch: unique-structural`：分離本文がサンプル構造から一意に照合された推定であることを示す。元ドライバーの転送を実行して対応を証明したものではない。
 - `firstPlayableTone`：ブラウザで自動選択されるTone。`listIndex`／`program`／`tone` は0始まり。
 - `diagnostics`：除外候補のRAMアドレス・`code`・理由。`ambiguous-vab-body`／`ambiguous-seq-body`は、
   想定サンプル領域に別の有効なVABヘッダー／構造の整ったSEQヘッダーがあるため、本文対応が曖昧として除外したもの。

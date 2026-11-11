@@ -3,7 +3,7 @@ import {createVirtualFileSystem,isCheckpointPath} from '../js/tetorica_virtual_f
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createSynthCodeProject} from '../synth/synth_code_project.js?code-files-scope=2';
-import {readSpuInstrument,INSTRUMENT_SCHEMA} from './spu_synth_instrument.js';
+import {readSpuInstrument,INSTRUMENT_SCHEMA} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 export const SPU_PROJECT_FORMAT='tetorica-spu-code-project';
 export const SPU_PROJECT_MANIFEST='/spu-synth.project.json';

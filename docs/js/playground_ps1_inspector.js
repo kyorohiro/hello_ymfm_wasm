@@ -1,6 +1,6 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {patchPs1Envelope} from './ps1_parameters.js?v=ps1-voice-editor-1';
-import {preparePs1ADPCM} from './ps1synth.js?v=ps1-deferred-release-1';
+import {preparePs1ADPCM} from './ps1synth.js?v=ps1-oneshot-marker-1';
 const channel=value=>{if(!Number.isInteger(value)||value<0||value>23)throw new RangeError('PS1 SPU channel must be 0..23');return value;};
 function identity(value){if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;}
 function retriggerOption(value={}){

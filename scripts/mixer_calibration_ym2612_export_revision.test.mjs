@@ -1,3 +1,4 @@
+import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -62,7 +63,7 @@ test('the exact read-only Synth viewer revision chains to pinned SID bytes and t
   const path='playground/playground_monaco_definitions.js',bytes=await readFile(new URL('../docs/'+path,import.meta.url));
   const report=JSON.parse(await readFile(new URL('../docs/issues/ps1_state_restore_chip_levels_01.json',import.meta.url)));
   const receipt=JSON.parse(await readFile(new URL('../docs/issues/sid_playground_source_revision_02.json',import.meta.url)));
-  const original=restoreMixerCalibrationSynthDefinitionViewerRevision(path,bytes),sid=receipt.sources[path];
+  const original=restoreMixerCalibrationSynthDefinitionViewerRevision(path,restoreMixerCalibrationPs1ImportRevision(path,bytes)),sid=receipt.sources[path];
   assert.notEqual(original,bytes);assert.equal(original.length,sid.after.bytes);assert.equal(sha(original),sid.after.sha256);
   const measured=restoreMixerCalibrationSidRevision(path,original);
   assert.equal(measured.length,report.sources[path].bytes);assert.equal(sha(measured),report.sources[path].sha256);
@@ -86,7 +87,7 @@ test('the exact read-only Synth viewer revision chains to pinned SID bytes and t
 test('exact Monaco host and virtual-files import revisions reconstruct measured bytes, while every next edit is stale',async()=>{
   const report=JSON.parse(await readFile(new URL('../docs/issues/ps1_state_restore_chip_levels_01.json',import.meta.url)));
   for(const path of ['playground/playground_monaco.js','playground/playground_virtual_files.js']) {
-    const bytes=await readFile(new URL('../docs/'+path,import.meta.url)),original=restoreMixerCalibrationSynthCodeUiRevision(path,bytes),record=report.sources[path];
+    const bytes=await readFile(new URL('../docs/'+path,import.meta.url)),original=restoreMixerCalibrationSynthCodeUiRevision(path,restoreMixerCalibrationPs1ImportRevision(path,bytes)),record=report.sources[path];
     assert.notEqual(original,bytes);assert.equal(original.length,record.bytes);assert.equal(sha(original),record.sha256);
     assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record}),'ui-synth-code');
     assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:original,record}),'raw');

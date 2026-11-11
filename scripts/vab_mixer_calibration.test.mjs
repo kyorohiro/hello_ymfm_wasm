@@ -22,7 +22,9 @@ for(const [kind,parameter,validate,current,prior]of [
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);
   for(const [path,record]of Object.entries(report.sources)) {
     const actual=restoreMixerCalibrationSidRevision(path,await readFile(new URL('docs/'+path,root)));
-    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:actual,record}),path==='synth/synth_controls.js'?'ui-synth-controls':'raw',path);
+    const status=assertMixerCalibrationSourceFreshness({path,bytes:actual,record});
+    assert.equal(status==='raw',actual.length===record.bytes&&sha(actual)===record.sha256,
+      path+': raw means exact measured bytes; other accepted values require a separately pinned review');
   }
   assert.equal(sha(await readFile(new URL(path,root))),sha(bytes),'Validation must not edit a measurement');
   assert.equal(sha(await readFile(new URL(`docs/issues/${prior}.json`,root))),sha(old),'Prior measurements remain untouched');

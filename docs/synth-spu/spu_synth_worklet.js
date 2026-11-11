@@ -2,9 +2,9 @@
 // Copyright (c) 2026, kyorohiro.
 import factory from '../generated/ps1_spu_wasm.js?v=spu-long-audio-1';
 import {Ps1Spu} from '../js/ps1_spu.js?v=ps1-deferred-release-1';
-import {Ps1Synth,preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-cyclic-1';
+import {Ps1Synth,preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
-import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
+import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-oneshot-marker-1';
 import {patchPs1Envelope,decodePs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';

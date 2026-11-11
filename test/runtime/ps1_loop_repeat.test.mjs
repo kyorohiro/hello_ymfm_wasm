@@ -60,3 +60,38 @@ test('VAB and Web preset round trips retain flag4 original bytes and nonzero rep
   assert(peak(audio[0].left.subarray(8192))>.005,'VAB loop must remain audible beyond END');assert.deepEqual(audio[0],audio[1]);
   for(const core of cores)assert.equal(peak(render(core,8192).left.subarray(2048)),0);
 });
+
+test('a one-shot LOOP START never repeats and preserves exact END PCM across render partitions and presets',async t=>{
+  for(const markerBlock of [0,2,5]){
+    const fixture=createLoopRepeatFixture({loopBlock:2}),oneShot=fixture.adpcm.slice();
+    for(let at=1;at<oneShot.length;at+=16)oneShot[at]&=~4;
+    oneShot[oneShot.length-15]=1;oneShot[markerBlock*16+1]|=4;
+    const noMarker=oneShot.slice();noMarker[markerBlock*16+1]&=~4;
+    const cores=[await create(),await create(),await create(),await create()];
+    const synths=cores.map(core=>new Ps1Synth({core}));t.after(()=>synths.forEach(synth=>synth.dispose()));
+    const initial=synths[0].loadADPCM(oneShot,{baseFrequencyHz:fixture.baseFrequencyHz});
+    const instrument=readSpuInstrument(JSON.parse(JSON.stringify(writeSpuInstrument('Original marked one-shot',{
+      sample:{adpcm:oneShot,baseFrequencyHz:fixture.baseFrequencyHz},preset:{...fixture.preset,sample:initial},reverb:{...synths[0].reverb},waveform:null,
+    }))));
+    assert.deepEqual(instrument.sample.adpcm,oneShot);assert.equal(Object.hasOwn(instrument.sample,'loopStartSamples'),false);
+    const {adpcm,...options}=instrument.sample;
+    const samples=[initial,synths[1].loadADPCM(adpcm,options),
+      synths[2].loadADPCM(noMarker,{baseFrequencyHz:fixture.baseFrequencyHz}),
+      synths[3].loadADPCM(fixture.adpcm,{baseFrequencyHz:fixture.baseFrequencyHz,loopStartSamples:fixture.loopStartSamples})];
+    for(let i=0;i<synths.length;i++){synths[i].setPreset(0,{...fixture.preset,sample:samples[i]});synths[i].keyOn(0);}
+    assert.equal(initial.loop,false);assert.equal(initial.loopStartSamples,null);
+    const original=render(cores[0],8192),partitioned=render(cores[1],8192,[1,27,2,113]),unmarked=render(cores[2],8192,[17,257]);
+    assert(peak(original.left.subarray(0,256))>.01,'one-shot fixture must actually sound before END');
+    assert.equal(peak(original.left.subarray(1024)),0,'LOOP START does not enable repeat on END1');
+    assert.equal(peak(original.right.subarray(1024)),0);
+    assert.deepEqual(partitioned,original,'serialized bytes and arbitrary render chunks preserve PCM');
+    assert.deepEqual(unmarked,original,'the unused repeat address does not change one-shot PCM');
+    assert(synths[0].getState().channels[0].ended);
+    assert.deepEqual(cores[0].readRam(initial.startAddress,oneShot.length),oneShot,'native playback does not rewrite flags');
+    const repeated=render(cores[3],8192,[31,509]);
+    assert(peak(repeated.left.subarray(4096))>.01,'matching END3 control remains looped');
+    synths[3].keyOff(0);assert.equal(peak(render(cores[3],8192).left.subarray(2048)),0,'raw KeyOff still releases a loop');
+    synths[0].keyOn(0);const retrigger=render(cores[0],8192,[41,256]);
+    assert.deepEqual(retrigger,original,'retrigger starts and ends the one-shot again');
+  }
+});

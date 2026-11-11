@@ -1,0 +1,590 @@
+{
+  "schemaVersion": 1,
+  "scope": "ps1-import-compatibility-and-passive-routing",
+  "feature": "PS1 import validation and passive source navigation without reference PCM changes",
+  "baseCommit": "8a6420f492ffb5c9455ae686ebbde0f220d654d4",
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "sources": {
+    "js/playground_ps1.js": {
+      "before": {
+        "bytes": 8865,
+        "sha256": "00ad472dfd8be4cb02554427bf19373aba9ace738fc17d32c8bbfdaa32b598d5"
+      },
+      "after": {
+        "bytes": 8863,
+        "sha256": "b90138b96c4cd07727bc47f2ce42f695544e2e7de7908c2c15827947ed65e769"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 75,
+          "afterBytes": 79,
+          "beforeText": "import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-deferred-release-1';\n"
+        }
+      ]
+    },
+    "js/playground_ps1_inspector.js": {
+      "before": {
+        "bytes": 8114,
+        "sha256": "0834f0777737bada6dbbfd1bd508602b1556ad4c24adbe2e753ab8b75fd224e1"
+      },
+      "after": {
+        "bytes": 8112,
+        "sha256": "860ec56647a3577592208614c9639fe51fee4771590945306bd160ba6b3aca41"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 122,
+          "afterBytes": 70,
+          "beforeText": "import {preparePs1ADPCM} from './ps1synth.js?v=ps1-deferred-release-1';\n"
+        }
+      ]
+    },
+    "js/playground_ps1_worklet.js": {
+      "before": {
+        "bytes": 7365,
+        "sha256": "71dfd7b65b0bb39954fb012c51f71e2e56aaafd0c8dada799d9528c259a61f8d"
+      },
+      "after": {
+        "bytes": 7363,
+        "sha256": "8192179ce64e22c228e69b1a62d672c37a46ab78666b715532c0c94f456854cf"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 139,
+          "afterBytes": 83,
+          "beforeText": "import {Ps1Synth,createPs1InitSample} from './ps1synth.js?v=ps1-deferred-release-1';\n"
+        }
+      ]
+    },
+    "js/ps1synth.js": {
+      "before": {
+        "bytes": 21645,
+        "sha256": "cde0a54d196b5ededb494b62ebb8098553d600702128b8149bd022eab1b5e3f2"
+      },
+      "after": {
+        "bytes": 21748,
+        "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2112,
+          "afterBytes": 182,
+          "beforeText": " * marker must agree with it. The returned bytes are an owned copy.\n"
+        },
+        {
+          "afterOffset": 4426,
+          "afterBytes": 125,
+          "beforeText": "  if (!loop && (loopStartSamples!==undefined || marker!==null)) throw new TypeError('SPU ADPCM loop metadata requires LOOP on the END packet');\n"
+        },
+        {
+          "afterOffset": 4774,
+          "afterBytes": 136,
+          "beforeText": "  if (marker!==null && marker!==loopStart) throw new RangeError('SPU ADPCM LOOP START marker disagrees with loopStartSamples');\n"
+        }
+      ]
+    },
+    "playground/playground_ps1_psf.js": {
+      "before": {
+        "bytes": 13414,
+        "sha256": "9b831e800f824e83a5ab581cbbfcdb494f2a083f39c783c2e11464010364169b"
+      },
+      "after": {
+        "bytes": 20535,
+        "sha256": "3fe596a1121a34ff9f20cf496fd491d6adf31155f71bd8d374d43d32eeec4082"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 226,
+          "afterBytes": 106,
+          "beforeText": "import {MAX_VAB_FILE_BYTES,readVab,prepareVabTone} from './playground_ps1_vab.js';\n"
+        },
+        {
+          "afterOffset": 9491,
+          "afterBytes": 376,
+          "beforeText": "/** Only contiguous, fully loaded VAB headers+bodies are matched initially.\n * A playable Tone is insufficient when the assumed body contains another\n * validated header. This is a conservative layout guard, not a VH/VB resolver. */\n"
+        },
+        {
+          "afterOffset": 9913,
+          "afterBytes": 131,
+          "beforeText": "  const banks=[],headers=[],sequences=[],records=[],diagnostics=[];let candidates=0,extracted=0;\n"
+        },
+        {
+          "afterOffset": 10113,
+          "afterBytes": 1185,
+          "beforeText": "  const loaded=(start,end)=>coverage.subarray(start,end).every(byte=>byte===1);\n"
+        },
+        {
+          "afterOffset": 11371,
+          "afterBytes": 76,
+          "beforeText": "    // Sony SEQ v1 header: big-endian version, resolution, tempo and rhythm.\n    // https://psx-spx.consoledev.net/cdromfileformats/#seq-single-sequence\n    // Magic alone (or SEP's shared magic) does not establish a conflict.\n    // Some SEQs leave both rhythm bytes zero (observed in Crash Bandicoot).\n"
+        },
+        {
+          "afterOffset": 12017,
+          "afterBytes": 351,
+          "beforeText": "    const record={address:at,size,headerBytes};records.push(record);\n    if(size<0xa20||size>MAX_VAB_FILE_BYTES||at+size>ram.length||headerBytes>size||!loaded(at,at+headerBytes)) {\n      Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header/body range is invalid or not fully loaded'});continue;\n"
+        },
+        {
+          "afterOffset": 12384,
+          "afterBytes": 804,
+          "beforeText": "      // Body bytes are not interpreted by readVab. Validate the whole header\n      // even if its own VB is missing or none of its Tones can be prepared.\n      readVab(ram.subarray(at,at+size));headers.push(record);\n      if(!loaded(at,at+size))Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header/body range is invalid or not fully loaded'});\n    } catch(error){Object.assign(record,{code:'invalid-vab',reason:error.message});}\n"
+        },
+        {
+          "afterOffset": 13192,
+          "afterBytes": 6050,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 19275,
+          "afterBytes": 70,
+          "beforeText": "    const {address:at,size,headerBytes}=record;\n"
+        },
+        {
+          "afterOffset": 19368,
+          "afterBytes": 107,
+          "beforeText": "      const nested=headers.find(other=>other.address>=at+headerBytes&&other.address<at+size);\n      const sequence=sequences.find(address=>address>=at+headerBytes&&address<at+size);\n      if(nested)Object.assign(record,{code:'ambiguous-vab-body',conflictAddress:nested.address,reason:`assumed sample body contains another VAB header at ${ramAddress(nested.address)}; VH/VB mapping is uncertain`});\n      else if(sequence!==undefined)Object.assign(record,{code:'ambiguous-seq-body',conflictAddress:sequence,reason:`assumed sample body contains a structured SEQ header at ${ramAddress(sequence)}; VH/VB mapping is uncertain`});\n    }\n    if(!record.code) {\n      const bank=readVab(ram.subarray(at,at+size));\n"
+        },
+        {
+          "afterOffset": 19791,
+          "afterBytes": 226,
+          "beforeText": "        banks.push({bank,address:at,bytes:size});\n"
+        }
+      ]
+    },
+    "playground/playground_ps1_vab.js": {
+      "before": {
+        "bytes": 7182,
+        "sha256": "43e777bd48ebcaecbf0daca88b14c2042b44ae1eb160855959d13b59ddcb78f2"
+      },
+      "after": {
+        "bytes": 7054,
+        "sha256": "89fdd1ebf9e78a684d592eee0bb38517ad287a19734d11747c047df9052268fa"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 493,
+          "afterBytes": 74,
+          "beforeText": "import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 6080,
+          "afterBytes": 0,
+          "beforeText": "  if (!loop && marker !== null) fail('one-shot sample contains a loop-start marker; this flag pattern is not supported yet');\n"
+        }
+      ]
+    },
+    "playground/playground_ps1_vab_panel.js": {
+      "before": {
+        "bytes": 11671,
+        "sha256": "f2e4e2d2ea023833d99bda456d5333343761e52a9495750e5b50691adfcec21d"
+      },
+      "after": {
+        "bytes": 12043,
+        "sha256": "13aebbebf1e572c5a5ac666b41951976f836f0bc5ea876cef028cee528944876"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 74,
+          "afterBytes": 227,
+          "beforeText": "import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './playground_ps1_vab.js';\nimport {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js';\n"
+        },
+        {
+          "afterOffset": 3832,
+          "afterBytes": 989,
+          "beforeText": "  const help=make('p','Standard Sony VAB v6/v7, or matching VH + VB. For PSF1/MiniPSF, select the song and all referenced PSFLib files together, or open their folder; choose a PSF entry and extract its banks. Static extraction finds contiguous VAB banks in the expanded data. Separate VH/VB layouts, custom formats and runtime-packed banks may not be found. PSF2 and song playback are not supported. No game code is executed. Load one Tone into the selected Voice, then Hold to play, Sustain play or Use Keyboard. Other voices keep their instruments. Stop running code first if it controls this voice. Imports stay in live SPU RAM; Run/reset may replace them. Key zones/layers and driver vibrato/portamento are not applied; volume/pan are approximate. Reverb send uses current shared settings.');help.className='subtext';root.appendChild(help);\n"
+        },
+        {
+          "afterOffset": 6215,
+          "afterBytes": 302,
+          "beforeText": "      const reason=availability.get(tone.sample),option=make('option',`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · center ${tone.center} · shift +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}${reason?' · unavailable':''}`);\n"
+        },
+        {
+          "afterOffset": 8839,
+          "afterBytes": 528,
+          "beforeText": "      if(!result.banks.length){message(`No standard VAB found in ${song.value}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${bank?' Previous bank is kept.':''}`);return;}\n      showBanks(result.banks.map(found=>({bank:found.bank,name:`${song.value} · VAB @0x${(0x80000000+found.address).toString(16)}`})));\n"
+        }
+      ]
+    }
+  },
+  "priorPassiveRevisions": {
+    "psfStartupMetadata": {
+      "beforeCommit": "17df0f170364fc28505d21447c74979dd518242d",
+      "afterCommit": "0fced33ef6edc7b51fb8021972acc7c714220a22",
+      "reason": "PSF PC/GP/SP/refresh metadata is passive; calibration never opens or executes user PSF data.",
+      "sources": {
+        "playground/playground_ps1_psf.js": {
+          "before": {
+            "bytes": 12762,
+            "sha256": "a5cd0c80e642869163301adeb6135020b408c74fb9b232c7f376fef5f4efb1bb"
+          },
+          "after": {
+            "bytes": 13414,
+            "sha256": "9b831e800f824e83a5ab581cbbfcdb494f2a083f39c783c2e11464010364169b"
+          },
+          "reverseHunks": [
+            {
+              "afterOffset": 74,
+              "afterBytes": 81,
+              "beforeText": "// PSF1 static extraction only; no CPU/driver execution or network file access.\n"
+            },
+            {
+              "afterOffset": 5615,
+              "afterBytes": 71,
+              "beforeText": "  if(!exe.length)return {address:0,data:exe};\n"
+            },
+            {
+              "afterOffset": 6383,
+              "afterBytes": 207,
+              "beforeText": "  return {address:offset,data:exe.slice(0x800,0x800+size)};\n"
+            },
+            {
+              "afterOffset": 6902,
+              "afterBytes": 48,
+              "beforeText": "  let expanded=0,visits=0;\n"
+            },
+            {
+              "afterOffset": 8052,
+              "afterBytes": 182,
+              "beforeText": ""
+            },
+            {
+              "afterOffset": 8273,
+              "afterBytes": 272,
+              "beforeText": "    if(record.tags.has('_lib'))await load(library(record,record.tags.get('_lib')),next);\n    const {address,data}=await segment(record);check(signal);ram.set(data,address);coverage.fill(1,address,address+data.length);loadedFiles.push(record.path);\n"
+            },
+            {
+              "afterOffset": 8671,
+              "afterBytes": 150,
+              "beforeText": ""
+            },
+            {
+              "afterOffset": 8825,
+              "afterBytes": 214,
+              "beforeText": "  await load(set.records.get(entryPath));\n  return {ram,coverage,loadedFiles,expandedBytes:expanded,entryPath};\n"
+            }
+          ]
+        }
+      }
+    },
+    "spuCodeDefinitionViewer": {
+      "beforeCommit": "86904ede2ef714522d9bb4b1d7f121357c5c4bcc",
+      "afterCommit": "4464e1bb1c67095b0b554821bd651fff2ec7c8a5",
+      "reason": "One read-only PS1 definition mapping and its one cache URL; no audio/runtime changes.",
+      "sources": {
+        "playground/playground_monaco_definitions.js": {
+          "before": {
+            "bytes": 18681,
+            "sha256": "6ac975e07d8b5bbaebdf300444bfd56b68144d381f04d33733f7c9deffad30eb"
+          },
+          "after": {
+            "bytes": 18853,
+            "sha256": "252707f45af5bccba99e8bf585dfc742b0666f6526d5f424ad50c6c2bad87f10"
+          },
+          "reverseHunks": [
+            {
+              "afterOffset": 3409,
+              "afterBytes": 172,
+              "beforeText": ""
+            }
+          ]
+        },
+        "playground/playground_monaco.js": {
+          "before": {
+            "bytes": 23164,
+            "sha256": "337a282d1f2b56bba770ad53d5d60ad937f9802af38419876ae4be387bafd4af"
+          },
+          "after": {
+            "bytes": 23177,
+            "sha256": "28e8bfb630eba7caf09c3a749ea01477eea7a039e463554405b15cf391debca8"
+          },
+          "reverseHunks": [
+            {
+              "afterOffset": 0,
+              "afterBytes": 109,
+              "beforeText": "import {createDefinitionViewer} from './playground_monaco_definitions.js?v=synth-code-types-1';\n"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "pcmProof": {
+    "schemaVersion": 1,
+    "passed": true,
+    "method": "Exact pre-revision versus current Ps1Synth; original public calibration programs, actual unchanged SPU WASM and host-rate resampler",
+    "audioContextCreated": false,
+    "physicalAudio": false,
+    "listeningPerformed": false,
+    "nativeSampleRate": 44100,
+    "beforeSource": {
+      "bytes": 21645,
+      "sha256": "cde0a54d196b5ededb494b62ebb8098553d600702128b8149bd022eab1b5e3f2"
+    },
+    "afterSource": {
+      "bytes": 21748,
+      "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+    },
+    "wasm": {
+      "path": "docs/generated/ps1_spu_wasm.wasm",
+      "bytes": 52082,
+      "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f"
+    },
+    "referenceProgram": {
+      "path": "scripts/soundchip_calibration_ps1.mjs",
+      "sha256": "3adf98bbecf204d5c035bef8e85570dc3055878fe04914849b978eba38154177"
+    },
+    "routes": [
+      {
+        "role": "primary",
+        "frequencyHz": 220,
+        "outputRate": 44100,
+        "frames": 44100,
+        "pcmSha256": "8ac4ecd73dc3d008e0d5b29c015a73af24dfd22c56efba000d56bd94f32b6c33",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "827d530f695f4966ad9907b566a17b95342ffc9cc39bdc3a0b832fe69ee7e562",
+        "registerTraceSha256": "36a948888f5aab73035e6b8e202920220c82b35b9d7f5d8530ff7df3510aeace",
+        "registers": [
+          2289,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "primary",
+        "frequencyHz": 220,
+        "outputRate": 48000,
+        "frames": 48000,
+        "pcmSha256": "9712c1bef6a4a8c958cf9b6c67a79185fdf02d8eae53e2dd6481f6fccf341829",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "dc55badf3b235e1e294546216bc870e339c2162f2a2e36f33c0760a1553c30c9",
+        "registerTraceSha256": "36a948888f5aab73035e6b8e202920220c82b35b9d7f5d8530ff7df3510aeace",
+        "registers": [
+          2289,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "primary",
+        "frequencyHz": 440,
+        "outputRate": 44100,
+        "frames": 44100,
+        "pcmSha256": "f3ccefccefa3891a381ce2e0532197b506c05476986853378666d742a1481cd0",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "ba7bfb930bc364cf40064f75186ddc9ad755c59cb39c766f20d323f8993bf20f",
+        "registerTraceSha256": "44cf3cca9acea764c15eb7479bdd1792f2e782d2fc77656e3988c01503c128b9",
+        "registers": [
+          4577,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "primary",
+        "frequencyHz": 440,
+        "outputRate": 48000,
+        "frames": 48000,
+        "pcmSha256": "21ba9d2a301510edbf8248535e97828fc5078f083d81f9d637344505f292fa24",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "a9e7c532996cfa39e739458d062ace35e0212eeaf82041b7975478b8ad7aada9",
+        "registerTraceSha256": "44cf3cca9acea764c15eb7479bdd1792f2e782d2fc77656e3988c01503c128b9",
+        "registers": [
+          4577,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "primary",
+        "frequencyHz": 880,
+        "outputRate": 44100,
+        "frames": 44100,
+        "pcmSha256": "914ac92b25aa918b3d590fd4913d64aa169a198c6e2d43a753c6501d78c9448d",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "f4027373492cb74943eb09a90ab11abd02218ffca908910c03ab3cc5cb8ee776",
+        "registerTraceSha256": "978bc091495262671e3d6deb34dac5f3915a570c8e541e9987c2bb35fe19a9c5",
+        "registers": [
+          9154,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "primary",
+        "frequencyHz": 880,
+        "outputRate": 48000,
+        "frames": 48000,
+        "pcmSha256": "89b6a0b06ba4065daebcb0c543fee2b2e71f92c63c27da4a21b8bc65933c6e9d",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "cfcd2463636cae9af383386855dea6054938bc44b88f9fbdb37d5103fffc7afe",
+        "registerTraceSha256": "978bc091495262671e3d6deb34dac5f3915a570c8e541e9987c2bb35fe19a9c5",
+        "registers": [
+          9154,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "extra",
+        "frequencyHz": 220,
+        "outputRate": 44100,
+        "frames": 44100,
+        "pcmSha256": "8ac4ecd73dc3d008e0d5b29c015a73af24dfd22c56efba000d56bd94f32b6c33",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "827d530f695f4966ad9907b566a17b95342ffc9cc39bdc3a0b832fe69ee7e562",
+        "registerTraceSha256": "36a948888f5aab73035e6b8e202920220c82b35b9d7f5d8530ff7df3510aeace",
+        "registers": [
+          2289,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "extra",
+        "frequencyHz": 220,
+        "outputRate": 48000,
+        "frames": 48000,
+        "pcmSha256": "9712c1bef6a4a8c958cf9b6c67a79185fdf02d8eae53e2dd6481f6fccf341829",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "dc55badf3b235e1e294546216bc870e339c2162f2a2e36f33c0760a1553c30c9",
+        "registerTraceSha256": "36a948888f5aab73035e6b8e202920220c82b35b9d7f5d8530ff7df3510aeace",
+        "registers": [
+          2289,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "extra",
+        "frequencyHz": 440,
+        "outputRate": 44100,
+        "frames": 44100,
+        "pcmSha256": "f3ccefccefa3891a381ce2e0532197b506c05476986853378666d742a1481cd0",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "ba7bfb930bc364cf40064f75186ddc9ad755c59cb39c766f20d323f8993bf20f",
+        "registerTraceSha256": "44cf3cca9acea764c15eb7479bdd1792f2e782d2fc77656e3988c01503c128b9",
+        "registers": [
+          4577,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "extra",
+        "frequencyHz": 440,
+        "outputRate": 48000,
+        "frames": 48000,
+        "pcmSha256": "21ba9d2a301510edbf8248535e97828fc5078f083d81f9d637344505f292fa24",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "a9e7c532996cfa39e739458d062ace35e0212eeaf82041b7975478b8ad7aada9",
+        "registerTraceSha256": "44cf3cca9acea764c15eb7479bdd1792f2e782d2fc77656e3988c01503c128b9",
+        "registers": [
+          4577,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "extra",
+        "frequencyHz": 880,
+        "outputRate": 44100,
+        "frames": 44100,
+        "pcmSha256": "914ac92b25aa918b3d590fd4913d64aa169a198c6e2d43a753c6501d78c9448d",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "f4027373492cb74943eb09a90ab11abd02218ffca908910c03ab3cc5cb8ee776",
+        "registerTraceSha256": "978bc091495262671e3d6deb34dac5f3915a570c8e541e9987c2bb35fe19a9c5",
+        "registers": [
+          9154,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      },
+      {
+        "role": "extra",
+        "frequencyHz": 880,
+        "outputRate": 48000,
+        "frames": 48000,
+        "pcmSha256": "89b6a0b06ba4065daebcb0c543fee2b2e71f92c63c27da4a21b8bc65933c6e9d",
+        "stoppedFrames": 2048,
+        "stoppedPcmSha256": "cfcd2463636cae9af383386855dea6054938bc44b88f9fbdb37d5103fffc7afe",
+        "registerTraceSha256": "978bc091495262671e3d6deb34dac5f3915a570c8e541e9987c2bb35fe19a9c5",
+        "registers": [
+          9154,
+          32767,
+          16383,
+          16383
+        ],
+        "ramSha256": "781b54ccea30697c33445d5efd68408102b5b6a0a7fc5b599a54345331cafd49",
+        "maximumDifference": 0,
+        "keyOffSilence": true
+      }
+    ]
+  },
+  "review": {
+    "historicalMeasurementsUnchanged": true,
+    "mixerGainsUnchanged": true,
+    "nativeSpuWasmUnchanged": true,
+    "noGeneralCacheNormalization": true,
+    "importerActivity": "PSF/VAB decoding and UI file selection are absent from the immutable calibration programs. Only the newly accepted one-shot inputs change validation; the existing looped reference stays byte-identical."
+  }
+}

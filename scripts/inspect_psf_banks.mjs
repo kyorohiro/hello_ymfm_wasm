@@ -41,7 +41,7 @@ async function collectFiles(directory) {
   return files.sort((a,b)=>a.webkitRelativePath<b.webkitRelativePath?-1:a.webkitRelativePath>b.webkitRelativePath?1:0);
 }
 
-function summarizeBank({bank,address,bytes}) {
+function summarizeBank({bank,address,bytes,bodyAddress,layout,bodyMatch}) {
   const reasons=new Map();let playable=0,firstPlayableTone=null;
   for(const [listIndex,tone] of bank.tones.entries()) {
     try {
@@ -49,7 +49,9 @@ function summarizeBank({bank,address,bytes}) {
       firstPlayableTone??={listIndex,program:tone.program,tone:tone.index,sample:tone.sample};
     } catch(error) {reasons.set(error.message,(reasons.get(error.message)??0)+1);}
   }
-  return {address:`0x${(0x80000000+address).toString(16)}`,bytes,version:bank.version,id:bank.id,
+  return {address:`0x${(0x80000000+address).toString(16)}`,bytes,
+    ...(bodyAddress!==undefined?{bodyAddress:`0x${(0x80000000+bodyAddress).toString(16)}`,layout}:{}),
+    ...(bodyMatch?{bodyMatch}:{}),version:bank.version,id:bank.id,
     programs:bank.programs.length,tones:bank.tones.length,samples:bank.samples.length,
     playableTones:playable,unavailableTones:bank.tones.length-playable,firstPlayableTone,
     unavailableReasons:[...reasons].map(([reason,tones])=>({reason,tones}))};
@@ -71,7 +73,7 @@ export async function inspectPsfFolder(directory,{entry}={}) {
         rejectedCandidates:result.rejected,diagnostics:result.diagnostics,banks:result.banks.map(summarizeBank)});
     } catch(error) {results.push({entry:song.path,title:song.title,status:'error',error:error.message});}
   }
-  return {schemaVersion:1,scope:'PSF1/MiniPSF static contiguous VAB compatibility; no playback or fidelity assessment',
+  return {schemaVersion:1,scope:'PSF1/MiniPSF static VAB / uniquely matched VH-VB compatibility; no playback or fidelity assessment',
     files:files.map(file=>({path:file.webkitRelativePath,bytes:file.size,sha256:file.sha256})),inputBytes:set.totalBytes,
     entriesInSet:set.entries.length,entriesScanned:results.length,
     summary:{withBanks:results.filter(r=>r.status==='banks').length,withoutBanks:results.filter(r=>r.status==='no-bank').length,errors:results.filter(r=>r.status==='error').length},results};

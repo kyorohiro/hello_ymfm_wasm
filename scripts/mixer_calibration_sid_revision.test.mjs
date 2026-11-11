@@ -1,3 +1,4 @@
+import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -39,7 +40,7 @@ test('SID receipt authenticates all 20 complete source pairs and reconstructs th
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths){
-    const entry=receipt.sources[path],bytes=restoreMixerCalibrationSynthDefinitionViewerRevision(path,restoreMixerCalibrationRf5c164NoteRevision(path,restoreMixerCalibrationCompletionPresetImportRevision(path,await read('docs/'+path))));
+    const entry=receipt.sources[path],bytes=restoreMixerCalibrationSynthDefinitionViewerRevision(path,restoreMixerCalibrationRf5c164NoteRevision(path,restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,await read('docs/'+path)))));
     assert.equal(bytes.length,entry.after.bytes,path);assert.equal(sha(bytes),entry.after.sha256,path);
     const restored=restoreMixerCalibrationSidRevision(path,bytes);
     assert.equal(restored.length,entry.before.bytes,path);assert.equal(sha(restored),entry.before.sha256,path);

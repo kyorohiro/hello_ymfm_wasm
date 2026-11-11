@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-preset-reuse-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-split-vab-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-keyboard-wheels-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
-import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js';
+import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
-import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
-import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js';
-import {setupSpuCodeHost} from './code_host.js?v=spu-extract-presets-1';
+import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js?v=spu-split-vab-1';
+import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=psf-split-vab-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-split-vab-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -504,18 +504,28 @@ function beginAssetOperation() {
 function chooseBank(index) {
   const choice=bankChoices[index]; if (!choice) return;
   vabBank=choice.bank; vabName=choice.name; vabSamples=choice.samples;
-  const availability=new Map(); let first=null;
+  const availability=new Map(),reasons=new Map(); let first=null,playable=0;
   $('vabTone').replaceChildren(...vabBank.tones.map((tone,index)=>{
     if (!availability.has(tone.sample)) {
       try {prepareVabTone(vabBank,index); availability.set(tone.sample,'');}
       catch (error) {availability.set(tone.sample,error.message);}
     }
     const reason=availability.get(tone.sample);
-    const option=new Option(`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · ${noteName(tone.center)} +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}${reason?' · unavailable':''}`,String(index));
-    option.disabled=Boolean(reason); if (reason) option.title=reason; else first??=index;
+    const detail=reason?.replace(/^(?:VAB|SPU ADPCM):?\s*/,'');
+    const option=new Option(`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · ${noteName(tone.center)} +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}${reason?` · unavailable: ${detail}`:''}`,String(index));
+    option.disabled=Boolean(reason);
+    if (reason) {option.title=reason;reasons.set(reason,(reasons.get(reason)??0)+1);}
+    else {first??=index;playable++;}
     return option;
   }));
-  $('vabTone').value=first===null?'':String(first); updateBankControls();
+  $('vabTone').value=first===null?'':String(first);
+  $('vabAvailability').hidden=false;
+  $('vabAvailability').textContent=`${playable} / ${vabBank.tones.length} Tones available${reasons.size?' · see unavailable reasons below':'.'}`;
+  const details=$('vabUnavailableDetails');details.hidden=!reasons.size;details.open=false;
+  $('vabUnavailableReasons').replaceChildren(...[...reasons].map(([reason,count])=>{
+    const item=document.createElement('li');item.textContent=`${count} Tone${count===1?'':'s'} · ${reason}`;return item;
+  }));
+  updateBankControls();
 }
 function showBanks(choices) {
   bankChoices=choices.map(choice=>({...choice,samples:new Map()}));
@@ -574,10 +584,12 @@ $('extractPsf').addEventListener('click',async()=>{
     const result=await extractPsfVabs(psfSet,entry,{signal});
     if (operation!==assetEpoch) return;
     if (!result.banks.length) {
-      vabStatus(`No standard VAB found in ${entry}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${vabBank?' Previous bank is kept.':''}`);
+      vabStatus(`No standard VAB found in ${entry}. Ambiguous VH/VB mappings, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${vabBank?' Previous bank is kept.':''}`);
       return;
     }
-    showBanks(result.banks.map(found=>({bank:found.bank,name:`${entry} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
+    showBanks(result.banks.map(found=>({bank:found.bank,name:found.layout==='split'
+      ?`${entry} · VH @0x${(0x80000000+found.address).toString(16)} · matched VB @0x${(0x80000000+found.bodyAddress).toString(16)}`
+      :`${entry} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
     vabStatus(`Extracted ${result.banks.length} VAB banks from ${entry} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.${psfRejectionSummary(result)}`);
   } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}
   finally {if (operation===assetEpoch) {bankReadController=null;extractingPsf=false;updateBankControls();}}

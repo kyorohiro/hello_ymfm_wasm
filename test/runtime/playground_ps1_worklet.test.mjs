@@ -48,6 +48,22 @@ test('VAB Tone upload edits only the selected voice, keeps sibling PCM exact and
  const fresh=inspector.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset]);assert.equal(fresh.id,0);assert.equal(fresh.startAddress,4096);
 });
 
+test('a marked one-shot Tone survives Inspector and Worker resources without looping or flag rewriting',async t=>{
+ const p=await setup();t.after(()=>p.close());
+ const secondary=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ const worker=createPs1Client(secondary.port2,p.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});await worker.getState();
+ const bank=readVab(createVabFixture().vab);bank.samples[0].bytes[49]=1;
+ const tone=prepareVabTone(bank,0),inspector=p.processor.inspector;
+ const sample=inspector.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset]);
+ assert.equal(sample.loop,false);assert.equal(sample.loopStartSamples,null);
+ await worker.getState();assert.equal(worker._getState().samples[sample.id].loop,false);
+ inspector.invoke('auditionOn',[23,60,'marked-shot']);
+ const pcm=p.render(4096);assert(peak(pcm.left.subarray(0,512))>.01);assert.equal(peak(pcm.left.subarray(1024)),0);
+ assert.deepEqual(p.processor.synth.core.readRam(sample.startAddress,sample.byteLength),tone.adpcm);
+ assert.equal(tone.adpcm[1],6);assert.equal(tone.adpcm[49],1);
+ await worker.getState();assert.equal(worker._getState().channels[23].envelope,0);
+});
+
 test('invalid or oversized Tone uploads preserve RAM, registers, resources and the sounding manual lease',async t=>{
  const p=await setup();t.after(()=>p.close());const tone=prepareVabTone(readVab(createVabFixture().vab),1),inspector=p.processor.inspector;
  inspector.invoke('auditionOn',[23,69,'held']);p.render(512);

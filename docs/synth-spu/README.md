@@ -235,14 +235,21 @@ error; finding no standard bank is a separate result and keeps the previous bank
 If only PSFLib files are selected, the row is labelled **Library** and supports
 bank extraction; **Play song** is disabled until a song is opened.
 
-Unavailable Tones are disabled with a reason in their option title, and the
-first playable Tone is selected automatically. This matters for banks with
+Unavailable Tones are disabled with a reason in the option text and title.
+The available count and expandable **Unavailable reasons** appear below the
+Tone selector. The first playable Tone is selected automatically. This matters for banks with
 unassigned samples or unsupported ADPCM packets. PSF input is limited to 512
 files, 4 MiB per file and 64 MiB total, with bounded expansion and dependencies.
 Extraction runs locally without executing game code or fetching libraries.
-Separate VH/VB layouts inside PSF, custom formats and
-runtime-packed banks are outside this static extraction path. It cannot
-recover every game's instruments.
+Separated VH/VB inside PSF are accepted only when full coverage, the sample-size
+table and every sample's packet / END boundary identify one unambiguous body.
+Ambiguous candidates are rejected. Split bodies currently require exact END
+boundaries; layouts with additional sample padding, custom formats or
+runtime-packed banks may need further support. Split bank labels show both
+the VH and matched VB RAM addresses. The split pairing is inferred from sample
+structure, not established by executing the original driver's transfer calls;
+a unique structural match is not proof of the original mapping. Compare the
+instrument with the source song before relying on it. This cannot recover every game's instruments.
 
 The bank-extraction demo PSFs contain VAB data but no runnable song program;
 they cannot be used to test song playback. The playback regression fixtures
@@ -259,8 +266,10 @@ Loading a Tone stops notes and disables PMON, Noise and Software morph.
 
 The selected Tone plays across the keyboard. Key zones, layers, driver
 vibrato/portamento and per-game controller state are not reproduced. Sample
-255 (libsnd Noise), multiple loop-start markers and one-shot samples with
-loop-start markers are currently rejected. Imported samples use physical SPU
+255 (libsnd Noise) and multiple loop-start markers are currently rejected.
+A single loop-start marker is allowed in a one-shot sample; its original bytes
+are retained and the END packet's Repeat flag determines whether it loops.
+Imported samples use physical SPU
 RAM; reopening banks or choosing different sample/tuning combinations can
 exhaust the available space. Reusing a Tone in the same opened bank, including
 after switching between extracted banks, reuses its sample allocation. Opening

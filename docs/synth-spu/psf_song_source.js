@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // CPU startup data comes from the primary library; bank extraction stays static.
-import {composePsfRam} from '../playground/playground_ps1_psf.js';
+import {composePsfRam} from '../playground/playground_ps1_psf.js?v=psf-split-vab-1';
 
 export async function preparePsfSongSource(set,entry,{signal}={}) {
   const image=await composePsfRam(set,entry,{signal});

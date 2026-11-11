@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './playground_ps1_vab.js';
-import {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js';
+import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './playground_ps1_vab.js?v=ps1-oneshot-marker-1';
+import {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js?v=psf-split-vab-1';
 
 /** Opening a bank is local-only; loading a Tone is one inspector transaction. */
 export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=()=>{}}) {
@@ -28,7 +28,7 @@ export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=(
   const tones=make('select');tones.dataset.chipControl='ps1-vab-tone';tones.setAttribute('aria-label','VAB Tone');label.appendChild(tones);fields.appendChild(label);
   const load=make('button');load.type='button';load.dataset.chipAction='ps1-vab-load';fields.appendChild(load);
   const status=make('p','No sound bank opened.');status.className='chip-editor-status';status.dataset.chipOutput='ps1-vab-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');root.appendChild(status);
-  const help=make('p','Standard Sony VAB v6/v7, or matching VH + VB. For PSF1/MiniPSF, select the song and all referenced PSFLib files together, or open their folder; choose a PSF entry and extract its banks. Static extraction finds contiguous VAB banks in the expanded data. Separate VH/VB layouts, custom formats and runtime-packed banks may not be found. PSF2 and song playback are not supported. No game code is executed. Load one Tone into the selected Voice, then Hold to play, Sustain play or Use Keyboard. Other voices keep their instruments. Stop running code first if it controls this voice. Imports stay in live SPU RAM; Run/reset may replace them. Key zones/layers and driver vibrato/portamento are not applied; volume/pan are approximate. Reverb send uses current shared settings.');help.className='subtext';root.appendChild(help);
+  const help=make('p','Standard Sony VAB v6/v7, or matching VH + VB. For PSF1/MiniPSF, select the song and all referenced PSFLib files together, or open their folder; choose a PSF entry and extract its banks. Static extraction finds contiguous VAB banks and separated VH/VB when the complete sample data has one unambiguous match. Split pairing is inferred from sample structure, not original driver transfers; compare it with the source song. Custom formats and runtime-packed banks may not be found. PSF2 and song playback are not supported. No game code is executed. Load one Tone into the selected Voice, then Hold to play, Sustain play or Use Keyboard. Other voices keep their instruments. Stop running code first if it controls this voice. Imports stay in live SPU RAM; Run/reset may replace them. Key zones/layers and driver vibrato/portamento are not applied; volume/pan are approximate. Reverb send uses current shared settings.');help.className='subtext';root.appendChild(help);
   const message=(text,error=false)=>{status.textContent=text;status.dataset.error=String(error);};
   function update() {
     const context=getContext();
@@ -49,7 +49,7 @@ export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=(
     const availability=new Map();let first=null;
     tones.replaceChildren(...bank.tones.map((tone,index)=>{
       if(!availability.has(tone.sample)){try{prepareVabTone(bank,index);availability.set(tone.sample,'');}catch(error){availability.set(tone.sample,error.message);}}
-      const reason=availability.get(tone.sample),option=make('option',`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · center ${tone.center} · shift +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}${reason?' · unavailable':''}`);
+      const reason=availability.get(tone.sample),option=make('option',`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · center ${tone.center} · shift +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}${reason?' · unavailable: '+reason.replace(/^VAB: /,''):''}`);
       option.value=String(index);option.disabled=Boolean(reason);if(reason)option.title=reason;else first??=index;return option;
     }));tones.value=first===null?'':String(first);
   }
@@ -82,8 +82,8 @@ export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=(
     try {
       const result=await extractPsfVabs(psfSet,song.value,{signal});
       if(!current(token,context))return;
-      if(!result.banks.length){message(`No standard VAB found in ${song.value}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${bank?' Previous bank is kept.':''}`);return;}
-      showBanks(result.banks.map(found=>({bank:found.bank,name:`${song.value} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
+      if(!result.banks.length){message(`No standard VAB found in ${song.value}. Ambiguous VH/VB mappings, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${bank?' Previous bank is kept.':''}`);return;}
+      showBanks(result.banks.map(found=>({bank:found.bank,name:found.layout==='split'?`${song.value} · VH @0x${(0x80000000+found.address).toString(16)} · matched VB @0x${(0x80000000+found.bodyAddress).toString(16)}`:`${song.value} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
       message(`Extracted ${result.banks.length} VAB banks from ${song.value} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.${psfRejectionSummary(result)}`);
     }catch(error){if(current(token,context)&&error.name!=='AbortError'){message(error.message,true);onError(error);}}
     finally{if(token===sequence&&!disposed){busy=false;controller=null;update();}}

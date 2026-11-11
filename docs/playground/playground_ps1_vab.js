@@ -6,7 +6,7 @@
 // libsnd tuning and body prefix checked against:
 // https://github.com/Xeeynamo/sotn-decomp/blob/master/src/main/psxsdk/libsnd/vmanager.c
 // https://github.com/Xeeynamo/sotn-decomp/blob/master/src/main/psxsdk/libsnd/vs_vh.c
-import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';
+import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
 
 export const MAX_VAB_FILE_BYTES = 1024 * 1024;
 const bytesOf = input => {
@@ -89,7 +89,6 @@ export function prepareVabTone(bank, toneNumber) {
   }
   if (end < 0) fail(`sample ${tone.sample} has no END packet`);
   const adpcm = bytes.slice(0, end), loop = Boolean(adpcm[end-15] & 2);
-  if (!loop && marker !== null) fail('one-shot sample contains a loop-start marker; this flag pattern is not supported yet');
   // Positive shift raises playback pitch; therefore it lowers the effective
   // root frequency. See libsnd note2pitch2 (shift / 8, 16 steps/semitone).
   const options = {baseFrequencyHz:440 * 2 ** ((tone.center - tone.shift/128 - 69)/12),

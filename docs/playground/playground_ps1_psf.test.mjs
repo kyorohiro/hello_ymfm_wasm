@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {readPsfFile,readPsfFileSet,composePsfRam,extractPsfVabs,findPsfVabs,psfCrc32} from './playground_ps1_psf.js';
 import {prepareVabTone} from './playground_ps1_vab.js';
 import {createPsfFixture,createPsfConflictFixture,makePsf,psfFromExe,psfFile,fixtureCrc32} from '../../test/helpers/spu_psf_fixture.mjs';
+import {createPsfSplitVabFixture} from '../../test/helpers/spu_psf_split_vab_fixture.mjs';
+import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
 
 test('compressed CRC and zlib data produce two bounded VABs with original Tone bytes',async()=>{
   assert.equal(psfCrc32(new TextEncoder().encode('123456789')),0xcbf43926);
@@ -141,4 +143,140 @@ test('a structured SEQ outside the bank and genuine short samples remain accepte
   const result=await extractPsfVabs(await readPsfFileSet([psfFile('a.psf',makePsf(data))]),'a.psf');
   assert.equal(result.banks.length,1);assert.equal(result.rejected,0);
   assert.equal(prepareVabTone(result.banks[0].bank,2).adpcm.length,16);
+});
+
+const splitImage=async options=>{
+  const fixture=createPsfSplitVabFixture(options);
+  return {fixture,image:await composePsfRam(await readPsfFileSet(fixture.files),'split.psf')};
+};
+
+test('a unique separated body matches exact packet boundaries rather than the zero-filled contiguous gap',async()=>{
+  for(const coverGap of [true,false]) {
+    const {fixture,image}=await splitImage({coverGap}),result=findPsfVabs(image);
+    assert.equal(result.banks.length,1);assert.equal(result.rejected,0);
+    const found=result.banks[0];
+    assert.equal(found.address,fixture.headerAddress);assert.equal(found.bodyAddress,fixture.bodyAddress);
+    assert.equal(found.layout,'split');assert.equal(found.headerBytes,fixture.vh.length);assert.equal(found.bodyBytes,fixture.vb.length);
+    assert.equal(found.bodyMatch,'unique-structural');
+    assert.deepEqual(found.bank,fixture.bank);
+    assert.deepEqual(prepareVabTone(found.bank,2).adpcm,fixture.vb.slice(80));
+  }
+});
+
+test('missing bytes in a separated sample body or its header never produce a partial bank',async()=>{
+  for(const at of ['header','body']) {
+    const {fixture,image}=await splitImage();
+    image.coverage[(at==='header'?fixture.headerAddress:fixture.bodyAddress)+20]=0;
+    const result=findPsfVabs(image);assert.equal(result.banks.length,0);assert.equal(result.rejected,1);
+  }
+  const {image}=await splitImage({missingBody:true});assert.equal(findPsfVabs(image).banks.length,0);
+});
+
+test('split matching requires each sample END at its own declared boundary',async()=>{
+  for(const kind of ['missing-end','early-end','invalid-header','unsupported-flags','multiple-markers']) {
+    const {fixture,image}=await splitImage({coverGap:false}),at=fixture.bodyAddress+16;
+    if(kind==='missing-end')image.ram[at+49]&=~1;
+    if(kind==='early-end')image.ram[at+17]|=1;
+    if(kind==='invalid-header')image.ram[at]=0x50;
+    if(kind==='unsupported-flags')image.ram[at+1]|=8;
+    if(kind==='multiple-markers')image.ram[at+17]|=4;
+    assert.equal(findPsfVabs(image).banks.length,0,kind);
+  }
+});
+
+test('two separated candidate bodies remain ambiguous instead of choosing the first match',async()=>{
+  const {image}=await splitImage({duplicateBody:true}),result=findPsfVabs(image);
+  assert.equal(result.banks.length,0);assert.equal(result.diagnostics[0].code,'ambiguous-vb-candidates');
+});
+
+test('structural inference excludes an early-END origin but does not claim proof of driver pointers',async()=>{
+  const {fixture,image}=await splitImage();
+  image.ram[fixture.bodyAddress+16+17]|=1;
+  // These bytes now also form a different, structurally valid stream starting
+  // 32 bytes earlier. There is no pointer in VH proving which one a driver used.
+  const result=findPsfVabs(image);assert.equal(result.banks.length,1);
+  assert.equal(result.banks[0].bodyAddress,fixture.bodyAddress-32);
+  assert.equal(result.banks[0].bodyMatch,'unique-structural');
+  image.coverage[fixture.bodyAddress-32]=0;
+  assert.equal(findPsfVabs(image).banks.length,0,'unloaded prefix cannot support that alternate candidate');
+});
+
+test('a valid contiguous body and a different strict body are also an ambiguous mapping',async()=>{
+  const {fixture,image}=await splitImage();
+  image.ram.set(fixture.vb,fixture.headerAddress+fixture.vh.length);
+  const result=findPsfVabs(image);assert.equal(result.banks.length,0);
+  assert.equal(result.diagnostics[0].code,'ambiguous-vb-candidates');
+});
+
+test('two unclaimed headers cannot both establish ownership of the same separated body',async()=>{
+  const {fixture,image}=await splitImage(),other=0x20000;
+  image.ram.set(fixture.vh,other);new DataView(image.ram.buffer).setUint32(other+8,99,true);
+  const result=findPsfVabs(image);assert.equal(result.banks.length,0);
+  assert.deepEqual(result.diagnostics.map(item=>item.code),['ambiguous-shared-vb','ambiguous-shared-vb']);
+});
+
+test('overlapping separated bodies are ambiguous even when their prefix addresses differ',async()=>{
+  const {fixture,image}=await splitImage(),other=0x20000;
+  image.ram.set(fixture.vh,other);const view=new DataView(image.ram.buffer);
+  view.setUint32(other+8,99,true);view.setUint32(other+12,fixture.vh.length+fixture.vb.length-8,true);
+  view.setUint16(other+0xc20,1,true);
+  const result=findPsfVabs(image);assert.equal(result.banks.length,0);
+  assert.deepEqual(result.diagnostics.map(item=>item.code),['ambiguous-shared-vb','ambiguous-shared-vb']);
+});
+
+test('independent exact contiguous banks do not borrow each other\'s owned bodies',()=>{
+  const fixture=createPsfSplitVabFixture(),ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length);
+  for(const at of [0x10000,0x40000]){ram.set(fixture.vab,at);coverage.fill(1,at,at+fixture.vab.length);}
+  const result=findPsfVabs({ram,coverage});assert.equal(result.rejected,0);
+  assert.deepEqual(result.banks.map(bank=>[bank.address,bank.layout]),[[0x10000,'contiguous'],[0x40000,'contiguous']]);
+});
+
+test('unsupported packets stay per-Tone diagnostics in an otherwise located contiguous bank',async()=>{
+  const {vh,vab}=createVabFixture();vab[vh.length+16]=0xf0;
+  const result=await extractPsfVabs(await readPsfFileSet([psfFile('bad-sample.psf',makePsf(vab))]),'bad-sample.psf');
+  assert.equal(result.banks.length,1);assert.equal(result.banks[0].layout,'contiguous');
+  assert.throws(()=>prepareVabTone(result.banks[0].bank,0),/predictor/);
+  assert.equal(prepareVabTone(result.banks[0].bank,2).adpcm.length,16);
+});
+
+test('a separated body cannot contain another validated structured file',async()=>{
+  const {fixture,image}=await splitImage(),seq=createPsfConflictFixture('seq');
+  image.ram.set(seq.data.subarray(seq.embeddedOffset,seq.embeddedOffset+seq.embeddedBytes),fixture.bodyAddress+18);
+  assert.equal(findPsfVabs(image).banks.length,0);
+});
+
+test('a loaded header near the end of RAM can reference a separated body before it',async()=>{
+  const {fixture,image}=await splitImage({headerAddress:0x1ff000,bodyAddress:0x10000,coverGap:false});
+  const result=findPsfVabs(image);assert.equal(result.banks.length,1);
+  assert.equal(result.banks[0].address,fixture.headerAddress);assert.equal(result.banks[0].bodyAddress,fixture.bodyAddress);
+});
+
+test('separated bodies with legacy END padding are not guessed from a partial stream',async()=>{
+  const {vh,vb}=createVabFixture(),ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length);
+  ram.set(vh,0x10000);coverage.fill(1,0x10000,0x10000+vh.length);
+  ram.set(vb,0x30000);coverage.fill(1,0x30000,0x30000+vb.length);
+  assert.equal(findPsfVabs({ram,coverage}).banks.length,0);
+});
+
+test('metadata parsing has a finite total body-validation budget',()=>{
+  const {vh}=createVabFixture(),header=vh.slice(),ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length).fill(1);
+  new DataView(header.buffer).setUint32(12,header.length+524288,true);
+  for(let index=0;index<65;index++)ram.set(header,0x1000+index*0x1000);
+  assert.throws(()=>findPsfVabs({ram,coverage}),/metadata validation budget/);
+});
+
+test('many END-like packets cannot create an unbounded candidate search',()=>{
+  const {vh}=createVabFixture(),ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length).fill(1);
+  for(let at=0;at<ram.length;at+=16){ram[at]=12;ram[at+1]=1;}
+  for(let index=0;index<8;index++)ram.set(vh,0x10000+index*0x10000);
+  assert.throws(()=>findPsfVabs({ram,coverage}),/candidate search budget/);
+});
+
+test('matching-body lists also have a bounded ambiguity limit',()=>{
+  const {vh}=createVabFixture(),header=vh.slice(),view=new DataView(header.buffer);
+  view.setUint16(0xc22,2,true);view.setUint16(0xc24,2,true);view.setUint32(12,header.length+48,true);
+  const ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length).fill(1);
+  for(let at=0;at<ram.length;at+=16){ram[at]=12;ram[at+1]=1;}
+  ram.set(header,0x10000);
+  assert.throws(()=>findPsfVabs({ram,coverage}),/too many matching VB candidates/);
 });

@@ -3,7 +3,7 @@
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
-import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-cyclic-1';
+import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
 import {encodePs1Adpcm} from '../js/ps1_adpcm_encoder.js?v=ps1-cyclic-1';
 import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-cyclic-1';
 import {PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
