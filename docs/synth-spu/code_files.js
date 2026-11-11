@@ -20,6 +20,9 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   const buttons=new Map();
   for(const[id,label]of [['spuFileNewButton','New…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileSaveSoundButton','Save sound'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';toolbar.append(button);buttons.set(id,button);
+    const destination={spuProjectImportButton:['spuMenuProjectImport','Project · ZIP…'],spuProjectExportButton:['spuMenuProjectExport','Project · ZIP'],spuFileImportButton:['spuMenuFilesImport','Project files…'],spuFileExportButton:['spuMenuFileExport','Selected file']}[id];
+    const mount=destination&&doc.getElementById(destination[0]);
+    if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();doc.activeElement?.blur?.();}});
   }
   const selected=make('p','spuFilesSelected','Project /');selected.className='spu-files-path';
@@ -126,7 +129,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   listen(editor,'input',()=>{if(!textPath||busy)return;try{project.fs.writeText(textPath,editor.value);schedule();}catch(error){report(error);}});
   listen(form,'submit',event=>{event.preventDefault();const action=dialogAction,value=nameInput.value;dialog.close();void(action==='new'?createFile(value):action==='rename'?move(project.selectedPath,value):remove(project.selectedPath)).catch(report);});
   listen(cancel,'click',()=>dialog.close());
-  for(const[id,fn]of [['spuFileNewButton',()=>ask('new')],['spuFileRenameButton',()=>ask('rename')],['spuFileDeleteButton',()=>ask('delete')],['spuFileImportButton',()=>{fileInput.value='';fileInput.click();}],['spuProjectImportButton',()=>{projectInput.value='';projectInput.click();}],['spuFileSaveSoundButton',()=>void saveSound().catch(report)],['spuProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['spuFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['spuFileNewButton',()=>ask('new')],['spuFileRenameButton',()=>ask('rename')],['spuFileDeleteButton',()=>ask('delete')],['spuFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['spuProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['spuFileSaveSoundButton',()=>void saveSound().catch(report)],['spuProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['spuFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(doc,'keydown',event=>{if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='s'){event.preventDefault();event.stopPropagation();void(code?.flush?.()??persistCode()).catch(report);}},true);

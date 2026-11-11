@@ -10,6 +10,13 @@ Synth icon. The original icon is used in the header and browser icons.
 Master volume uses the existing calibrated PS1 System gain as its reference.
 The Master slider reaches 380%; it turns orange above 100% and blue at or below 100%.
 
+The upper-left **☰ Menu** follows FM2612 Synth's Import / Export layout and
+stays available while Code is maximized. **Import** opens VAB / VH + VB, PSF
+sets or folders, Audio samples, SPU instrument JSON, project ZIPs and project
+files. **Export** downloads the instrument JSON, project ZIP or selected file.
+Choosing Audio or a sound bank reveals its settings tab. Cancelling a file
+picker keeps the current sound and Code performance.
+
 ## Play and edit
 
 1. Select **Enable audio**. Opening the page does not start an audio context.
@@ -24,8 +31,9 @@ disable morph; loaded presets restore their saved setting.
 
 **PCM** draws a short repeating waveform. **ADSR** contains the envelope
 parameters and draggable A / D / S / R guide. **FX** controls SPU reverb.
-**Audio** loads recordings or longer audio files and sets their root note and
-looping option. **PSF / VAB** imports PlayStation sound banks and extracts supported banks from PSF sets. Tab changes keep sounding notes and the current settings.
+**Audio** sets the root note and looping option for recordings loaded from
+Menu. **PSF / VAB** lists opened PlayStation sound banks and extracts supported
+banks from PSF sets. Tab changes keep sounding notes and the current settings.
 Use Left / Right, Home and End when a settings tab has keyboard focus.
 
 Pitch and Morph wheels are available beside both the monitor and the keyboard.
@@ -127,9 +135,10 @@ from other Synths. Code and text edits save locally. Use relative `await import(
 and `await file()` for project resources. **Save sound** writes the edited sound,
 including its sample, to `/presets/current.spu.json`; select that JSON to apply
 it. **Export project / Import project** retains Files and the selected Code
-file. Restoring files never runs Code, creates audio or automatically loads an
+file. The project import / export commands are in Menu, with project files
+and selected-file export. Restoring files never runs Code, creates audio or automatically loads an
 instrument. Project ZIPs and their expanded contents are limited to 16 MiB;
-use the existing Save preset command for larger Software audio instruments.
+use **Menu → Export → Instrument · SPU JSON** for larger Software audio instruments.
 
 ## Instrument display
 
@@ -152,16 +161,17 @@ staircase while keeping 112 samples and four packets. Existing editable PCM
 presets remain readable and use the improved preparation when restored.
 
 Open the **Audio** tab, then set **Root MIDI note** and **Loop imported audio**
-before choosing **Load audio**.
+before choosing **Menu → Import → Audio sample…**.
 Audio files supported by the browser (including supported M4A codecs) are decoded at 44,100 Hz and mixed to mono. Input files may be up to 32 MiB, with at most 30 minutes of decoded audio. Root MIDI note declares the source recording's pitch; it does not estimate or correct that pitch.
 
 Short recordings that fit free SPU RAM are encoded as SPU ADPCM. Longer recordings automatically use **Software audio**: signed 16-bit mono PCM in host memory, outside the PS1's physical 512 KiB RAM. This is a Tetorica software extension, clearly shown beside the sample name. The native SPU still applies its Gaussian interpolation, per-note pitch, ADSR, PMON, stereo volume and reverb, with shared sample storage and independent voice positions. Long loops preserve the entire recording. This path does not add ADPCM encoding coloration. Loading another long recording replaces the host bank instead of appending another full copy. Large compressed files need more memory when decoded; the stated limits are bounds, not a guarantee that every device has sufficient memory.
 
-The Audio tab shows decoding, preparation, success and error messages beside Load audio. Set root and loop before loading; a changed setting applies on the next load.
+The Audio tab shows decoding, preparation, success and error messages. Set root
+and loop before loading; a changed setting applies on the next load.
 
-**Save preset** downloads a `.spu.json` instrument containing its sample (ADPCM in version 1, base64 signed PCM in version 2 for Software audio),
+**Menu → Export → Instrument · SPU JSON** downloads a `.spu.json` instrument containing its sample (ADPCM in version 1, base64 signed PCM in version 2 for Software audio),
 tuning, ADSR, stereo volume, and shared reverb settings.
-Editable short PCM cycles retain their drawing data too. **Load preset**
+Editable short PCM cycles retain their drawing data too. **Menu → Import → Instrument · SPU JSON…**
 validates the complete instrument before applying it to all 24 voices.
 Loading audio, loading a preset or resetting the instrument first stops the
 current notes. New keyboard notes then use the updated instrument.
@@ -177,15 +187,15 @@ remain available in [Playground](../playground/index.html?mode=ps1).
 
 ## PS1 sound banks
 
-In **PSF / VAB**, choose **Open VAB / VH + VB…**. Select one complete `.vab`, or
+Choose **Menu → Import → VAB / VH + VB…**. Select one complete `.vab`, or
 select its matching `.vh` and `.vb` together. Standard Sony versions 6 and 7
 are supported. Opening a bank lists its Tones without changing the current
 instrument. Select a Tone and choose **Load selected Tone**, then play the
-keyboard. **Save preset** stores the imported sample and settings in the usual
+keyboard. **Menu → Export → Instrument · SPU JSON** stores the imported sample and settings in the usual
 `.spu.json` format.
 
-For **PSF1 / MiniPSF**, choose **Open PSF set…** and select the song and all
-referenced PSFLib files together, or use **Open PSF folder…** to retain library
+For **PSF1 / MiniPSF**, choose **Menu → Import → PSF set…** and select the song and all
+referenced PSFLib files together, or use **PSF folder…** in the same menu to retain library
 subdirectories. Extract ZIP archives first. Select a **PSF entry**, choose
 **Extract VAB banks**, then select a **Sound bank** and **Tone** and choose
 **Load selected Tone**. This shares Playground's local PSF parser: CRC and

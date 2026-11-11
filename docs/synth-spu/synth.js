@@ -10,9 +10,10 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js';
-import {setupSpuCodeHost} from './code_host.js?v=spu-click-guard-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-menu-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
+import {setupSynthMenu} from '../synth/synth_menu.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
@@ -161,6 +162,15 @@ async function invoke(method, args = []) {
 const panel = createSpuInstrumentPanel({
   root:$('spuVoicePanel'), morphPerformanceRoot:document, invoke, ensureAudioReady:ensureAudio, onError:report,
 });
+setupSynthMenu({document,window});
+$('synthMenuPanel').addEventListener('click',event=>{
+  const action=event.target.closest('[data-spu-open-panel],[data-spu-restore-editor]');
+  if(!action)return;
+  // Restore the existing editor without changing Code ownership or sound.
+  // A cancelled picker must not stop a running performance.
+  void codeHost?.controls.setExpanded(false);
+  if(action.dataset.spuOpenPanel)selectEditorTab(action.dataset.spuOpenPanel);
+}, {capture:true});
 codeLive=createSpuCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isCodeMode()&&codeHost?.isRunning()&&!document.hidden),onUpdate:updateCodeDisplay});
 for(let ch=0;ch<24;ch++)$('spuLiveChannel').append(new Option(`CH ${ch+1}`,String(ch)));
 $('spuLiveChannel').addEventListener('change',()=>{codeLive.setVoice(Number($('spuLiveChannel').value));$('spuLiveChannel').blur();});

@@ -117,7 +117,7 @@ async function selectFile(page,filename){
   await page.locator('#spuFilesTree button.file-entry').locator(`xpath=self::*[@data-file-path=${JSON.stringify(filename)}]`).click();
   await until(()=>page.locator('#spuFilesSelected').textContent().then(value=>value===filename),'select '+filename);
 }
-async function download(page,id){const task=page.waitForEvent('download');await page.locator(id).click();const item=await task,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{bytes:Buffer.concat(chunks),name:item.suggestedFilename()};}
+async function download(page,id){if(await page.locator(id).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();const task=page.waitForEvent('download');await page.locator(id).click();const item=await task,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{bytes:Buffer.concat(chunks),name:item.suggestedFilename()};}
 async function savedSound(page){
   await files(page);await page.locator('#spuFileSaveSoundButton').click();
   await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>/Current SPU instrument.*saved/.test(value)),'Save sound');

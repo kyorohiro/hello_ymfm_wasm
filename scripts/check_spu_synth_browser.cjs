@@ -202,11 +202,19 @@ async function fastEnvelope(page) {
 }
 
 const editorNames = ['pcm', 'adsr', 'fx', 'audio', 'bank'];
-async function assertEditorTab(page, name, {focused = false} = {}) {
+async function setMenuOpen(page, open) {
+  if(await page.locator('#synthMenu').evaluate(node=>node.open)!==open)await page.locator('#synthMenuButton').click();
+  await page.waitForFunction(open=>document.getElementById('synthMenu').open===open,open);
+}
+async function menuClick(page, selector) {
+  if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu'))))await setMenuOpen(page,true);
+  await page.locator(selector).click();
+}
+async function assertEditorTab(page, name, {focused = false, checkMenu = false} = {}) {
   const snapshot = await page.evaluate(names => ({tabs:names.map(value => {
     const button = document.querySelector(`[data-spu-editor-tab="${value}"]`), content = document.getElementById(`instrumentPanel-${value}`);
     return {name:value, button:button && {role:button.getAttribute('role'), id:button.id, controls:button.getAttribute('aria-controls'), selected:button.getAttribute('aria-selected'), tabindex:button.getAttribute('tabindex'), focused:button === document.activeElement}, content:content && {role:content.getAttribute('role'), labelledby:content.getAttribute('aria-labelledby'), hidden:content.getAttribute('hidden'), visible:content.getClientRects().length > 0}};
-  }), files:['instrumentName', 'loadPreset', 'savePreset', 'resetPreset'].map(id => ({id, visible:document.getElementById(id)?.getClientRects().length > 0}))}), editorNames);
+  }), files:['instrumentName', 'resetPreset'].map(id => ({id, visible:document.getElementById(id)?.getClientRects().length > 0}))}), editorNames);
   for (const value of editorNames) {
     const {button, content} = snapshot.tabs.find(tab => tab.name === value);
     assert(button && content, `Both ${value} tab and panel exist`);
@@ -222,30 +230,44 @@ async function assertEditorTab(page, name, {focused = false} = {}) {
   }
   if (focused) assert.equal(snapshot.tabs.find(tab => tab.name === name).button.focused, true, 'Arrow navigation focuses the selected settings tab');
   for (const file of snapshot.files) assert.equal(file.visible, true, 'Common instrument files stay available in every settings tab: ' + file.id);
+  // Import/export lives in the global header menu on every settings tab.
+  // Test actual accessibility through that menu, not a hidden DOM presence.
+  assert(await page.locator('#synthMenuButton').isVisible(),'The common file menu remains available');
+  for(const id of ['loadAudio','loadVab','loadPsf','loadPsfFolder','loadPreset','savePreset','spuProjectImportButton','spuProjectExportButton'])
+    assert(await page.locator('#'+id).evaluate(node=>Boolean(node.closest('#synthMenuPanel'))),'Common file action remains in the global menu: '+id);
+  if(checkMenu) {
+    // Exercise menu opening before audio. During a pointer-held chord this
+    // assertion must not inject a second mouse click into the captured key.
+    const wasOpen=await page.locator('#synthMenu').evaluate(node=>node.open);
+    await setMenuOpen(page,true);
+    for(const id of ['loadAudio','loadVab','loadPsf','loadPsfFolder','loadPreset','savePreset','spuProjectImportButton','spuProjectExportButton'])
+      assert(await page.locator('#'+id).isVisible(),'Common menu action is available in every settings tab: '+id);
+    if(!wasOpen)await setMenuOpen(page,false);
+  }
 }
-async function editorTab(page, name) {
+async function editorTab(page, name, {checkMenu = false} = {}) {
   const button = page.locator(`[data-spu-editor-tab="${name}"]`);
   if (await button.getAttribute('aria-selected') !== 'true') await button.click();
-  await assertEditorTab(page, name);
+  await assertEditorTab(page, name, {checkMenu});
 }
 async function shape(page, name) {await editorTab(page, 'pcm'); await page.locator(action(`wave-${name}`)).click();}
-async function navigateEditorTabs(page) {
-  for (const name of editorNames) await editorTab(page, name);
+async function navigateEditorTabs(page, {checkMenu = false} = {}) {
+  for (const name of editorNames) await editorTab(page, name, {checkMenu});
   await page.locator('[data-spu-editor-tab="pcm"]').focus();
   const navigation = [['ArrowRight', 'adsr'], ['ArrowRight', 'fx'], ['ArrowRight', 'audio'], ['ArrowRight', 'bank'], ['ArrowRight', 'pcm'], ['ArrowLeft', 'bank'], ['Home', 'pcm'], ['End', 'bank']];
-  for (const [key, name] of navigation) {await page.keyboard.press(key); await assertEditorTab(page, name, {focused:true});}
+  for (const [key, name] of navigation) {await page.keyboard.press(key); await assertEditorTab(page, name, {focused:true,checkMenu});}
   await editorTab(page, 'pcm');
   return navigation;
 }
 async function checkEditorTabsBeforeAudio(page) {
   console.log('CHECK settings tabs: default PCM / accessible navigation / audio-lazy selection');
   assert.deepEqual(await page.locator('[data-spu-editor-tab]').allTextContents(), ['PCM', 'ADSR', 'FX', 'Audio', 'PSF / VAB']);
-  await assertEditorTab(page, 'pcm');
+  await assertEditorTab(page, 'pcm', {checkMenu:true});
   const commands = await page.evaluate(() => __spuSynthAudit.commands.length);
-  const navigation = await navigateEditorTabs(page);
+  const navigation = await navigateEditorTabs(page, {checkMenu:true});
   assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 0, 'Settings tab clicks and keyboard navigation never create an AudioContext');
   assert.equal(await page.evaluate(() => __spuSynthAudit.commands.length), commands, 'Settings tabs send no audio commands before Enable audio');
-  return {default:'pcm', names:editorNames, navigation, audioLazy:true, commonFilesAlwaysVisible:true};
+  return {default:'pcm', names:editorNames, navigation, audioLazy:true, commonFilesAvailableFromMenu:true};
 }
 async function checkEditorTabsDuringSound(page, keyboardHz) {
   console.log('CHECK settings tabs: held-note ownership / instrument and audio isolation');
@@ -487,7 +509,7 @@ async function checkPmon(page, keyboardHz, name) {
   }
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('#instrumentName').fill('PMON Bell');
-  const downloadPromise=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const downloadPromise=page.waitForEvent('download');await menuClick(page,'#savePreset');
   const bytes=await fs.readFile(await (await downloadPromise).path()),preset=JSON.parse(bytes);
   assert.deepEqual(preset.pmon,{enabled:true,ratio:3,depth:.8,decayMs:740,waveform:'square'});
   await set('enabled',false);assert.equal((await current(page)).auditions.length,0);
@@ -527,7 +549,7 @@ async function checkLongAudio(page) {
   assert.match(await page.locator('#sampleName').textContent(),/Software audio/);
   await hold(page);const pcm=await audible(page,'20 MiB software recording');await release(page);await silent(page,'Long audio release');
   await page.locator('#instrumentName').fill('Long recording');
-  const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const download=page.waitForEvent('download');await menuClick(page,'#savePreset');
   const saved=await download,bytes=await fs.readFile(await saved.path());
   const preset=JSON.parse(bytes);assert.equal(preset.version,2);assert(preset.sample.pcm16Base64.length>20*1024*1024);
   await page.locator('#resetPreset').click();await settled(page);
@@ -573,7 +595,7 @@ async function checkLoopRepeatVab(page, keyboardHz) {
     assertPcm(await capture(page,8192),'VAB loop warm-up beyond original END');
     const pcm=await audible(page,'Flag4-only VAB tail beyond original END',expectedHz);
     await page.keyboard.up('y');await settled(page);const released=await silent(page,'Flag4-only VAB key-up release');
-    const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const download=page.waitForEvent('download');await menuClick(page,'#savePreset');
     const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
     assert.deepEqual(preset.sample.adpcm,Array.from(fixture.adpcm),'Saving retains every original ADPCM byte, including flag4 without flag2');
     assert.equal(preset.sample.loopStartSamples,fixture.loopStartSamples);assert.equal(preset.sample.baseFrequencyHz,fixture.baseFrequencyHz);
@@ -616,7 +638,7 @@ async function checkVab(page, keyboardHz) {
   await page.locator('#loadVabTone').click();
   await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Loaded original.vab'));
   assert.equal((await settled(page)).nextAddress,nextAddress,'Reloading a Tone reuses its sample RAM');
-  const download=page.waitForEvent('download'); await page.locator('#savePreset').click();
+  const download=page.waitForEvent('download'); await menuClick(page,'#savePreset');
   const bytes=await fs.readFile(await (await download).path()), preset=JSON.parse(bytes);
   const {createPs1InitSample}=await import("../tetorica_src/runtime/ps1synth.js");
   assert.deepEqual(preset.sample.adpcm,Array.from(createPs1InitSample().adpcm));
@@ -690,7 +712,7 @@ async function checkPsf(page,keyboardHz) {
   await page.locator('#vabBank').selectOption('0');await page.locator('#vabBank').selectOption('1');
   await page.locator('#vabTone').selectOption('1');await load();
   assert.equal((await current(page)).nextAddress,nextAddress,'Switching banks preserves sample cache');
-  const downloaded=page.waitForEvent('download'); await page.locator('#savePreset').click();
+  const downloaded=page.waitForEvent('download'); await menuClick(page,'#savePreset');
   const presetBytes=await fs.readFile(await (await downloaded).path()),preset=JSON.parse(presetBytes);
   const {createPs1InitSample}=await import("../tetorica_src/runtime/ps1synth.js");
   assert.deepEqual(preset.sample.adpcm,Array.from(createPs1InitSample().adpcm));
@@ -832,7 +854,7 @@ async function checkNoise(page,name) {
   }
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('#instrumentName').fill('Noise Drum');
-  const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const download=page.waitForEvent('download');await menuClick(page,'#savePreset');
   const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
   assert.deepEqual(preset.noise,{enabled:true,clock:63});assert(!preset.pmon.enabled);
   await source('sample');assert.deepEqual((await current(page)).channels[0].waveform,original,'Noise keeps authored PCM');
@@ -958,7 +980,7 @@ async function checkMorph(page,name) {
   }
   await page.setViewportSize({width:1440,height:1100});
   await set('amount',.37);await page.locator('#instrumentName').fill('Software Morph');
-  const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const download=page.waitForEvent('download');await menuClick(page,'#savePreset');
   const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
   assert(preset.morph.enabled);assert.equal(preset.morph.amount,.37);
   await editorTab(page,'pcm');await settled(page);
@@ -1311,7 +1333,7 @@ async function runCase(browser, name, origin) {
     assert.equal(imported.samples.find(sample => sample.id === imported.channels[0].sample).rootFrequencyHz, 440, 'Imported sample retains the chosen root note');
     await hold(page); const importedPcm = await audible(page, 'Imported WAV', keyboardHz); await release(page); await silent(page, 'Imported WAV release');
     await page.locator('#instrumentName').fill('Browser round trip');
-    const downloadPromise = page.waitForEvent('download'); await page.locator('#savePreset').click(); const download = await downloadPromise;
+    const downloadPromise = page.waitForEvent('download'); await menuClick(page,'#savePreset'); const download = await downloadPromise;
     const presetBytes = await fs.readFile(await download.path()), preset = JSON.parse(presetBytes.toString());
     assert.equal(preset.schema, 'tetorica-spu-synth.instrument'); assert.equal(preset.version, 1);
     await field(page, 'release-rate', 15); await applied(page, 'state.channels.every(channel=>channel.envelopeParameters.releaseRate===15)');

@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-click-guard-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-menu-1">
   </head>
   <body>
     <main>
@@ -35,6 +35,36 @@
           </div>
           <div class="audio-toolbar">
             <div class="transport-actions">
+              <details id="synthMenu" class="synth-menu">
+                <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
+                <div id="synthMenuPanel" class="synth-menu-panel">
+                  <section class="synth-menu-section">
+                    <h2>Import</h2>
+                    <div class="synth-menu-actions">
+                      <button id="loadVab" type="button" data-spu-open-panel="bank" data-close-synth-menu>VAB / VH + VB…</button>
+                      <input id="vabFileInput" class="file-input" type="file" accept=".vab,.vh,.vb" multiple aria-label="Choose a VAB or matching VH and VB files">
+                      <button id="loadPsf" type="button" data-spu-open-panel="bank" data-close-synth-menu>PSF set…</button>
+                      <input id="psfFileInput" class="file-input" type="file" accept=".psf,.psf1,.minipsf,.minipsf1,.psflib,.psf1lib" multiple aria-label="Choose PSF and related PSFLib files together">
+                      <button id="loadPsfFolder" type="button" data-spu-open-panel="bank" data-close-synth-menu>PSF folder…</button>
+                      <input id="psfFolderInput" class="file-input" type="file" multiple webkitdirectory aria-label="Choose a folder containing a PSF set">
+                      <button id="loadAudio" type="button" data-spu-open-panel="audio" data-close-synth-menu>Audio sample…</button>
+                      <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
+                      <button id="loadPreset" type="button" data-spu-restore-editor data-close-synth-menu>Instrument · SPU JSON…</button>
+                      <input id="presetFileInput" class="file-input" type="file" accept="application/json,.json" aria-label="Choose an SPU preset">
+                      <div id="spuMenuProjectImport"></div>
+                      <div id="spuMenuFilesImport"></div>
+                    </div>
+                  </section>
+                  <section class="synth-menu-section">
+                    <h2>Export</h2>
+                    <div class="synth-menu-actions">
+                      <button id="savePreset" type="button" data-close-synth-menu>Instrument · SPU JSON</button>
+                      <div id="spuMenuProjectExport"></div>
+                      <div id="spuMenuFileExport"></div>
+                    </div>
+                  </section>
+                </div>
+              </details>
               <button id="startAudio" class="primary" type="button">Enable audio</button>
               <button id="stopAudio" type="button">Stop all sound</button>
               <button id="spuFilesToggle" type="button" aria-expanded="false" aria-controls="spuFilesPanel">Files</button>
@@ -104,8 +134,6 @@
             <h3>Audio sample</h3>
             <p class="subtext">Load a recording or sound file to play it as an instrument. Up to 32 MiB / 30 minutes. Long recordings use Software audio beyond the PS1 RAM limit, with SPU pitch, ADSR and effects. Loading audio replaces the PCM cycle.</p>
             <div class="sample-actions">
-              <button id="loadAudio" type="button">Load audio…</button>
-              <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
               <span id="sampleName" class="sample-name">Built-in sine cycle</span>
             </div>
             <p id="sampleLoadStatus" class="subtext" role="status" aria-live="polite">Choose a file, then play the keyboard.</p>
@@ -118,14 +146,6 @@
           <section id="instrumentPanel-bank" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-bank" hidden>
             <h3>PS1 sound bank</h3>
             <p class="subtext">Open a standard Sony VAB (version 6 or 7), matching VH + VB files, or a PSF1 / MiniPSF set with all its PSFLib files. Opening or extracting a bank keeps the current instrument.</p>
-            <div class="sample-actions">
-              <button id="loadVab" type="button">Open VAB / VH + VB…</button>
-              <input id="vabFileInput" class="file-input" type="file" accept=".vab,.vh,.vb" multiple aria-label="Choose a VAB or matching VH and VB files">
-              <button id="loadPsf" type="button">Open PSF set…</button>
-              <input id="psfFileInput" class="file-input" type="file" accept=".psf,.psf1,.minipsf,.minipsf1,.psflib,.psf1lib" multiple aria-label="Choose PSF and related PSFLib files together">
-              <button id="loadPsfFolder" type="button">Open PSF folder…</button>
-              <input id="psfFolderInput" class="file-input" type="file" multiple webkitdirectory aria-label="Choose a folder containing a PSF set">
-            </div>
             <div class="sample-settings">
               <label>PSF entry <select id="psfEntry" aria-label="PSF entry" disabled></select></label>
               <button id="extractPsf" type="button" disabled>Extract VAB banks</button>
@@ -146,9 +166,6 @@
         <section class="instrument-toolbar" aria-label="Instrument files">
           <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
           <div class="preset-actions">
-            <button id="loadPreset" type="button">Load preset…</button>
-            <input id="presetFileInput" class="file-input" type="file" accept="application/json,.json" aria-label="Choose an SPU preset">
-            <button id="savePreset" type="button">Save preset…</button>
             <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
           </div>
         </section>
@@ -209,6 +226,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-click-guard-1"></script>
+    <script type="module" src="./synth.js?v=spu-menu-1"></script>
   </body>
 </html>

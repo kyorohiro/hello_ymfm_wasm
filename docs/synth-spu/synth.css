@@ -357,3 +357,16 @@ footer a { color: #4a5e74; }
 .spu-code-help summary { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border:1px solid var(--line); border-radius:50%; cursor:pointer; font-weight:750; }
 .spu-code-help p { max-width:80ch; line-height:1.6; }
 #spuVoicePanel[data-observing="true"] { outline:1px solid #679bc6; outline-offset:3px; border-radius:10px; }
+
+/* The shared FM2612 menu remains outside the expandable Code workspace. */
+.synth-menu { position:relative; }
+.synth-icon-button { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; border:1px solid #9ca7b0; border-radius:50%; background:linear-gradient(#edf0f2,#d0d6db); color:var(--ink); cursor:pointer; list-style:none; }
+.synth-icon-button::-webkit-details-marker { display:none; }
+.synth-icon-button svg { width:19px; height:19px; }
+.synth-icon-button:hover { background:#f7f9fa; border-color:#768ca0; }
+.synth-menu-panel { position:absolute; top:calc(100% + 8px); left:0; z-index:50; width:min(320px,calc(100vw - 76px)); max-height:min(70vh,520px); overflow-y:auto; box-sizing:border-box; padding:14px; border:1px solid var(--line); border-radius:14px; background:#edf0f2; box-shadow:0 12px 32px #30353b50; }
+.synth-menu-section + .synth-menu-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+.synth-menu-section h2 { margin:0 0 8px; color:var(--muted); font-size:.72rem; }
+.synth-menu-actions { display:grid; gap:6px; }
+.synth-menu-actions button { width:100%; text-align:left; padding:8px 10px; min-height:32px; }
+.synth-menu-actions > div:empty { display:none; }
