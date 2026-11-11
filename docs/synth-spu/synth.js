@@ -449,18 +449,22 @@ function download(name, contents) {
   const link = document.createElement('a'); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
-let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null;
+let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false;
 const vabStatus = (message, error=false) => { $('vabStatus').textContent=message; $('vabStatus').dataset.error=String(error); };
 function updatePsfPlayback(next) {
   if(disposed)return;
-  $('psfPlaySong').disabled=!next.canPlay||Boolean(bankReadController);
+  $('psfSongPlayer').hidden=!psfSet;
+  $('psfPlaySong').disabled=!psfHasSongs||!next.canPlay||Boolean(bankReadController);
   $('psfPauseSong').disabled=!(next.canPause||next.canResume);
   $('psfPauseSong').textContent=next.paused||next.resuming?'Resume':'Pause';
   $('psfStopSong').disabled=!next.canStop;
   const seconds=Math.floor(next.positionSeconds);
   $('psfSongPosition').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   $('psfSongPosition').dataset.seconds=String(next.positionSeconds);
-  $('psfPlaybackStatus').textContent=next.message;
+  const message=psfSet&&!psfHasSongs?'PSF libraries only · use PSF / VAB to extract a bank.':next.message;
+  $('psfPlaybackStatus').textContent=message;
+  $('psfPlaybackStatus').title=message;
+  $('psfEntry').title=$('psfEntry').value;
   $('psfPlaybackStatus').dataset.error=String(next.error);
   visualizer.setRunning(next.playing||Boolean(codeHost?.isRunning())||(state?.auditions?.length??0)>0);
   if(next.playing)visualizer.wake();
@@ -522,6 +526,24 @@ $('vabTone').addEventListener('change',()=>{beginAssetOperation();updateBankCont
 $('psfEntry').addEventListener('change',()=>{beginAssetOperation();if(psfSet)psfSong.setSource(psfSet,$('psfEntry').value);});
 $('loadPsf').addEventListener('click',()=>$('psfFileInput').click());
 $('loadPsfFolder').addEventListener('click',()=>$('psfFolderInput').click());
+function showPsfSongs(set,isFolder) {
+  const songs=set.entries.filter(entry=>!/\.(?:psflib|psf1lib)$/i.test(entry.path));
+  psfHasSongs=songs.length>0;
+  // A library-only set retains the importer's extraction fallback. It is
+  // explicitly labelled as libraries and cannot start a song from this UI.
+  const entries=psfHasSongs?songs:set.entries;
+  const paths=[...set.records.keys()],root=paths[0].split('/')[0];
+  const folder=isFolder&&paths.every(path=>path.startsWith(root+'/'))?root:'';
+  $('psfSongFolder').hidden=!folder;
+  $('psfSongFolder').textContent=folder;
+  $('psfSongFolder').title=folder;
+  $('psfSongLabel').textContent=psfHasSongs?'PSF':'Library';
+  $('psfEntry').replaceChildren(...entries.map(entry=>{
+    const path=folder?entry.path.slice(folder.length+1):entry.path;
+    const option=new Option(`${path}${entry.title?` · ${entry.title}`:''}`,entry.path);
+    option.title=entry.path;return option;
+  }));
+}
 async function openPsf(input,isFolder) {
   const selected=[...input.files]; input.value=''; if (!selected.length) return;
   const operation=beginAssetOperation(); preparation?.cancel();
@@ -531,7 +553,7 @@ async function openPsf(input,isFolder) {
     const next=await readPsfFileSet(isFolder?selected.filter(file=>PSF_FILES.test(file.name)):selected,{signal});
     if (operation!==assetEpoch) return;
     psfSet=next;
-    $('psfEntry').replaceChildren(...next.entries.map(entry=>new Option(`${entry.path}${entry.title?` · ${entry.title}`:''}`,entry.path)));
+    showPsfSongs(next,isFolder);
     psfSong.setSource(next,$('psfEntry').value);
     vabStatus(`Opened ${next.records.size} PSF/library files. Choose an entry to play the song or Extract VAB banks. Current instrument is kept.`);
   } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}

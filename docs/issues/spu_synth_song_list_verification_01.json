@@ -1,0 +1,1014 @@
+{
+  "schemaVersion": 1,
+  "feature": "SPU Synth PSF folder song list above the monitor",
+  "passed": true,
+  "verifiedDate": "2026-11-11",
+  "timezone": "Asia/Tokyo",
+  "sourceBaseCommit": "0fced33ef6edc7b51fb8021972acc7c714220a22",
+  "behavior": {
+    "singleSelection": "psfEntry",
+    "placement": "before Envelope / Waveform / Spectrum inside spu-main",
+    "hiddenUntilPsfSetOpened": true,
+    "folderNameAndRelativePaths": true,
+    "normalSongListExcludesPsfLibraries": true,
+    "librariesKeptForLocalDependencies": true,
+    "bankExtractionUsesSameSelection": true,
+    "selectionDoesNotAutoplay": true,
+    "libraryOnlySet": "label Library; song Play disabled; extraction remains available",
+    "transportUnchanged": [
+      "Play song",
+      "Pause",
+      "Resume",
+      "Stop song"
+    ]
+  },
+  "nodeTests": {
+    "passed": 140,
+    "failed": 0,
+    "log": "/private/tmp/spu-song-list-node-20261111.log"
+  },
+  "browser": {
+    "songList": {
+      "report": "/private/tmp/spu-song-list-browser-20261111.json",
+      "passed": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+            "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+            "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+            "Pause stops output and scheduling; Resume advances from the retained playback position",
+            "Stop keeps the authored instrument and the independent VAB extraction controls",
+            "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+            "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+            "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+            "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+          ],
+          "measurements": {
+            "playing": {
+              "peak": 0.0037104515358805656,
+              "rms": 0.0026230612832627235,
+              "finite": true,
+              "muted": true
+            },
+            "resumed": {
+              "peak": 0.0037104515358805656,
+              "rms": 0.0026204812400574154,
+              "finite": true,
+              "muted": true
+            },
+            "afterCode": {
+              "peak": 0.0037104515358805656,
+              "rms": 0.0026240472667540624,
+              "finite": true,
+              "muted": true
+            }
+          },
+          "layouts": [
+            {
+              "viewport": 1240,
+              "document": 1240,
+              "player": {
+                "left": 47,
+                "right": 1193,
+                "top": 320.234375,
+                "bottom": 385.71875
+              },
+              "monitorTop": 397.71875,
+              "selectors": 1
+            },
+            {
+              "viewport": 390,
+              "document": 390,
+              "player": {
+                "left": 23,
+                "right": 367,
+                "top": 393.40625,
+                "bottom": 492.890625
+              },
+              "monitorTop": 504.890625,
+              "selectors": 1
+            }
+          ],
+          "folderEntries": [
+            {
+              "value": "Songs/standalone.psf",
+              "text": "standalone.psf · Tetorica original PSF test"
+            },
+            {
+              "value": "Songs/Demo/track.minipsf",
+              "text": "Demo/track.minipsf · MiniPSF fixture"
+            }
+          ],
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 50,
+            "bufferStops": 30,
+            "monitorStrokes": 546,
+            "stopDelays": 1
+          },
+          "errors": [],
+          "consoleErrors": [],
+          "expectedFallbackConsole": [
+            "Failed to load resource: net::ERR_FAILED"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+            "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+            "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+            "Pause stops output and scheduling; Resume advances from the retained playback position",
+            "Stop keeps the authored instrument and the independent VAB extraction controls",
+            "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+            "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+            "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+            "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+          ],
+          "measurements": {
+            "playing": {
+              "peak": 0.0037104515358805656,
+              "rms": 0.0026222392436351482,
+              "finite": true,
+              "muted": true
+            },
+            "resumed": {
+              "peak": 0.0037104515358805656,
+              "rms": 0.0026272169495791435,
+              "finite": true,
+              "muted": true
+            },
+            "afterCode": {
+              "peak": 0.0037104515358805656,
+              "rms": 0.002623443287459341,
+              "finite": true,
+              "muted": true
+            }
+          },
+          "layouts": [
+            {
+              "viewport": 1240,
+              "document": 1240,
+              "player": {
+                "left": 47,
+                "right": 1193,
+                "top": 320.234375,
+                "bottom": 383.6875
+              },
+              "monitorTop": 395.6875,
+              "selectors": 1
+            },
+            {
+              "viewport": 390,
+              "document": 390,
+              "player": {
+                "left": 23,
+                "right": 367,
+                "top": 394.34375,
+                "bottom": 491.796875
+              },
+              "monitorTop": 503.796875,
+              "selectors": 1
+            }
+          ],
+          "folderEntries": [
+            {
+              "value": "Songs/Demo/track.minipsf",
+              "text": "Demo/track.minipsf · MiniPSF fixture"
+            },
+            {
+              "value": "Songs/standalone.psf",
+              "text": "standalone.psf · Tetorica original PSF test"
+            }
+          ],
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 50,
+            "bufferStops": 30,
+            "monitorStrokes": 426,
+            "stopDelays": 1
+          },
+          "errors": [],
+          "consoleErrors": [],
+          "expectedFallbackConsole": []
+        }
+      ]
+    },
+    "importAndFocus": {
+      "report": "/private/tmp/spu-song-list-import-browser-20261111.json",
+      "passed": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "scope": "VAB and PSF import",
+          "vab": {
+            "fixture": "original synthetic VAB (no game data)",
+            "combined": true,
+            "split": true,
+            "originalAdpcm": true,
+            "positiveFineTune": true,
+            "ramReused": true,
+            "focusedSelectPlayable": true,
+            "presetRoundTrip": true,
+            "invalidBankKeepsHeldNote": true,
+            "pcm": {
+              "frames": 16384,
+              "sampleRate": 48000,
+              "channels": [
+                {
+                  "pcmFingerprint": 155815120,
+                  "peak": 0.03635012358427048,
+                  "rms": 0.025680944194937706,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797571396596
+                },
+                {
+                  "pcmFingerprint": 155815120,
+                  "peak": 0.03635012358427048,
+                  "rms": 0.025680944194937706,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797571396596
+                }
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 1,
+                "firstSample": 0,
+                "lastSample": 0.0009765028953552246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 78848,
+                "lastFrame": 95104,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "frameGaps": 0,
+              "physicalOutputMuted": true
+            },
+            "roundTrip": {
+              "frames": 16384,
+              "sampleRate": 48000,
+              "channels": [
+                {
+                  "pcmFingerprint": 1020385037,
+                  "peak": 0.03635041415691376,
+                  "rms": 0.025665166075993392,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.579706508226
+                },
+                {
+                  "pcmFingerprint": 1020385037,
+                  "peak": 0.03635041415691376,
+                  "rms": 0.025665166075993392,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.579706508226
+                }
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.002471923828125,
+                "lastSample": 0.0034484267234802246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 120320,
+                "lastFrame": 136576,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "frameGaps": 0,
+              "physicalOutputMuted": true
+            }
+          },
+          "psf": {
+            "fixture": "original synthetic PSF; no game data distributed",
+            "standalone": true,
+            "miniPsfFolder": true,
+            "multipleBanks": true,
+            "originalAdpcm": true,
+            "fineTuneOverlay": true,
+            "bankCacheReused": true,
+            "presetRoundTrip": true,
+            "focused": [
+              {
+                "control": "psfEntry",
+                "pcm": {
+                  "frames": 16384,
+                  "sampleRate": 48000,
+                  "channels": [
+                    {
+                      "pcmFingerprint": 4217266447,
+                      "peak": 0.036350641399621964,
+                      "rms": 0.02568117828797228,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.57970527748233
+                    },
+                    {
+                      "pcmFingerprint": 4217266447,
+                      "peak": 0.036350641399621964,
+                      "rms": 0.02568117828797228,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.57970527748233
+                    }
+                  ],
+                  "pilot": {
+                    "continuous": true,
+                    "period": 16777216,
+                    "expectedFrames": 16384,
+                    "frames": 16384,
+                    "receivedFrames": 16384,
+                    "complete": true,
+                    "nonFinite": 0,
+                    "invalidSamples": 0,
+                    "sampleGapCount": 0,
+                    "sampleGaps": [],
+                    "zeroSamples": 0,
+                    "firstSample": 0.0069122314453125,
+                    "lastSample": 0.007888734340667725
+                  },
+                  "clock": {
+                    "continuous": true,
+                    "measurementValid": true,
+                    "rowCount": 128,
+                    "firstFrame": 194816,
+                    "lastFrame": 211072,
+                    "frames": 16384,
+                    "gapCount": 0,
+                    "gaps": [],
+                    "unstableReadCount": 0,
+                    "unstableReads": [],
+                    "malformedRowCount": 0,
+                    "malformedRows": []
+                  },
+                  "frameGaps": 0,
+                  "physicalOutputMuted": true
+                }
+              },
+              {
+                "control": "vabBank",
+                "pcm": {
+                  "frames": 16384,
+                  "sampleRate": 48000,
+                  "channels": [
+                    {
+                      "pcmFingerprint": 3384800742,
+                      "peak": 0.03635012358427048,
+                      "rms": 0.025691277346088216,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.57966871029254
+                    },
+                    {
+                      "pcmFingerprint": 3384800742,
+                      "peak": 0.03635012358427048,
+                      "rms": 0.025691277346088216,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.57966871029254
+                    }
+                  ],
+                  "pilot": {
+                    "continuous": true,
+                    "period": 16777216,
+                    "expectedFrames": 16384,
+                    "frames": 16384,
+                    "receivedFrames": 16384,
+                    "complete": true,
+                    "nonFinite": 0,
+                    "invalidSamples": 0,
+                    "sampleGapCount": 0,
+                    "sampleGaps": [],
+                    "zeroSamples": 0,
+                    "firstSample": 0.0084228515625,
+                    "lastSample": 0.009399354457855225
+                  },
+                  "clock": {
+                    "continuous": true,
+                    "measurementValid": true,
+                    "rowCount": 128,
+                    "firstFrame": 220160,
+                    "lastFrame": 236416,
+                    "frames": 16384,
+                    "gapCount": 0,
+                    "gaps": [],
+                    "unstableReadCount": 0,
+                    "unstableReads": [],
+                    "malformedRowCount": 0,
+                    "malformedRows": []
+                  },
+                  "frameGaps": 0,
+                  "physicalOutputMuted": true
+                }
+              },
+              {
+                "control": "vabTone",
+                "pcm": {
+                  "frames": 16384,
+                  "sampleRate": 48000,
+                  "channels": [
+                    {
+                      "pcmFingerprint": 1497696861,
+                      "peak": 0.03635081276297569,
+                      "rms": 0.025665113293841198,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.57968886684336
+                    },
+                    {
+                      "pcmFingerprint": 1497696861,
+                      "peak": 0.03635081276297569,
+                      "rms": 0.025665113293841198,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.57968886684336
+                    }
+                  ],
+                  "pilot": {
+                    "continuous": true,
+                    "period": 16777216,
+                    "expectedFrames": 16384,
+                    "frames": 16384,
+                    "receivedFrames": 16384,
+                    "complete": true,
+                    "nonFinite": 0,
+                    "invalidSamples": 0,
+                    "sampleGapCount": 0,
+                    "sampleGaps": [],
+                    "zeroSamples": 0,
+                    "firstSample": 0.0098724365234375,
+                    "lastSample": 0.010848939418792725
+                  },
+                  "clock": {
+                    "continuous": true,
+                    "measurementValid": true,
+                    "rowCount": 128,
+                    "firstFrame": 244480,
+                    "lastFrame": 260736,
+                    "frames": 16384,
+                    "gapCount": 0,
+                    "gaps": [],
+                    "unstableReadCount": 0,
+                    "unstableReads": [],
+                    "malformedRowCount": 0,
+                    "malformedRows": []
+                  },
+                  "frameGaps": 0,
+                  "physicalOutputMuted": true
+                }
+              }
+            ],
+            "roundTrip": {
+              "frames": 16384,
+              "sampleRate": 48000,
+              "channels": [
+                {
+                  "pcmFingerprint": 2363128205,
+                  "peak": 0.03635081276297569,
+                  "rms": 0.025674756055572352,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797314717163
+                },
+                {
+                  "pcmFingerprint": 2363128205,
+                  "peak": 0.03635081276297569,
+                  "rms": 0.025674756055572352,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797314717163
+                }
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.01312255859375,
+                "lastSample": 0.014099061489105225
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 299008,
+                "lastFrame": 315264,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "frameGaps": 0,
+              "physicalOutputMuted": true
+            },
+            "conflictDiagnostics": [
+              {
+                "kind": "seq",
+                "status": "No standard VAB found in ambiguous-seq.psf. Separate VH/VB layouts, custom or runtime-packed banks need further support. Skipped 1 VAB candidate(s): 0x80010000: assumed sample body contains a structured SEQ header at 0x80010ea0; VH/VB mapping is uncertain. Previous bank is kept."
+              },
+              {
+                "kind": "vab",
+                "status": "Extracted 1 VAB banks from ambiguous-vab.psf (1 program overlays). Choose a bank and Tone, then load it. Skipped 1 VAB candidate(s): 0x80010000: assumed sample body contains another VAB header at 0x80010ea0; VH/VB mapping is uncertain."
+              }
+            ],
+            "invalidImportsKeepHeldNote": true,
+            "readCancelledByReset": true,
+            "extractionCancelledByReset": true,
+            "layouts": [
+              {
+                "viewport": 1440,
+                "document": 1440
+              },
+              {
+                "viewport": 390,
+                "document": 390
+              }
+            ],
+            "real": null
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "pcmContinuous": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "scope": "VAB and PSF import",
+          "vab": {
+            "fixture": "original synthetic VAB (no game data)",
+            "combined": true,
+            "split": true,
+            "originalAdpcm": true,
+            "positiveFineTune": true,
+            "ramReused": true,
+            "focusedSelectPlayable": true,
+            "presetRoundTrip": true,
+            "invalidBankKeepsHeldNote": true,
+            "pcm": {
+              "frames": 16384,
+              "sampleRate": 48000,
+              "channels": [
+                {
+                  "pcmFingerprint": 4229250670,
+                  "peak": 0.036350641399621964,
+                  "rms": 0.025692239537010997,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797095760621
+                },
+                {
+                  "pcmFingerprint": 4229250670,
+                  "peak": 0.036350641399621964,
+                  "rms": 0.025692239537010997,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797095760621
+                }
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 1,
+                "firstSample": 0,
+                "lastSample": 0.0009765028953552246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 46080,
+                "lastFrame": 62336,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "frameGaps": 0,
+              "physicalOutputMuted": true
+            },
+            "roundTrip": {
+              "frames": 16384,
+              "sampleRate": 48000,
+              "channels": [
+                {
+                  "pcmFingerprint": 133576426,
+                  "peak": 0.03635081276297569,
+                  "rms": 0.025665064483277863,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5796642050688
+                },
+                {
+                  "pcmFingerprint": 133576426,
+                  "peak": 0.03635081276297569,
+                  "rms": 0.025665064483277863,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5796642050688
+                }
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.00238800048828125,
+                "lastSample": 0.0033645033836364746
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 86144,
+                "lastFrame": 102400,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "frameGaps": 0,
+              "physicalOutputMuted": true
+            }
+          },
+          "psf": {
+            "fixture": "original synthetic PSF; no game data distributed",
+            "standalone": true,
+            "miniPsfFolder": true,
+            "multipleBanks": true,
+            "originalAdpcm": true,
+            "fineTuneOverlay": true,
+            "bankCacheReused": true,
+            "presetRoundTrip": true,
+            "focused": [
+              {
+                "control": "psfEntry",
+                "pcm": {
+                  "frames": 16384,
+                  "sampleRate": 48000,
+                  "channels": [
+                    {
+                      "pcmFingerprint": 728972923,
+                      "peak": 0.036350641399621964,
+                      "rms": 0.025669640141143955,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.5797921968172
+                    },
+                    {
+                      "pcmFingerprint": 728972923,
+                      "peak": 0.036350641399621964,
+                      "rms": 0.025669640141143955,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.5797921968172
+                    }
+                  ],
+                  "pilot": {
+                    "continuous": true,
+                    "period": 16777216,
+                    "expectedFrames": 16384,
+                    "frames": 16384,
+                    "receivedFrames": 16384,
+                    "complete": true,
+                    "nonFinite": 0,
+                    "invalidSamples": 0,
+                    "sampleGapCount": 0,
+                    "sampleGaps": [],
+                    "zeroSamples": 0,
+                    "firstSample": 0.00661468505859375,
+                    "lastSample": 0.007591187953948975
+                  },
+                  "clock": {
+                    "continuous": true,
+                    "measurementValid": true,
+                    "rowCount": 128,
+                    "firstFrame": 157056,
+                    "lastFrame": 173312,
+                    "frames": 16384,
+                    "gapCount": 0,
+                    "gaps": [],
+                    "unstableReadCount": 0,
+                    "unstableReads": [],
+                    "malformedRowCount": 0,
+                    "malformedRows": []
+                  },
+                  "frameGaps": 0,
+                  "physicalOutputMuted": true
+                }
+              },
+              {
+                "control": "vabBank",
+                "pcm": {
+                  "frames": 16384,
+                  "sampleRate": 48000,
+                  "channels": [
+                    {
+                      "pcmFingerprint": 155815120,
+                      "peak": 0.03635012358427048,
+                      "rms": 0.025680944194937706,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.5797571396596
+                    },
+                    {
+                      "pcmFingerprint": 155815120,
+                      "peak": 0.03635012358427048,
+                      "rms": 0.025680944194937706,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.5797571396596
+                    }
+                  ],
+                  "pilot": {
+                    "continuous": true,
+                    "period": 16777216,
+                    "expectedFrames": 16384,
+                    "frames": 16384,
+                    "receivedFrames": 16384,
+                    "complete": true,
+                    "nonFinite": 0,
+                    "invalidSamples": 0,
+                    "sampleGapCount": 0,
+                    "sampleGaps": [],
+                    "zeroSamples": 0,
+                    "firstSample": 0.0081024169921875,
+                    "lastSample": 0.009078919887542725
+                  },
+                  "clock": {
+                    "continuous": true,
+                    "measurementValid": true,
+                    "rowCount": 128,
+                    "firstFrame": 182016,
+                    "lastFrame": 198272,
+                    "frames": 16384,
+                    "gapCount": 0,
+                    "gaps": [],
+                    "unstableReadCount": 0,
+                    "unstableReads": [],
+                    "malformedRowCount": 0,
+                    "malformedRows": []
+                  },
+                  "frameGaps": 0,
+                  "physicalOutputMuted": true
+                }
+              },
+              {
+                "control": "vabTone",
+                "pcm": {
+                  "frames": 16384,
+                  "sampleRate": 48000,
+                  "channels": [
+                    {
+                      "pcmFingerprint": 1843030994,
+                      "peak": 0.036350641399621964,
+                      "rms": 0.025685858271177264,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.5796307143716
+                    },
+                    {
+                      "pcmFingerprint": 1843030994,
+                      "peak": 0.036350641399621964,
+                      "rms": 0.025685858271177264,
+                      "nonFinite": 0,
+                      "nonZero": 16384,
+                      "hz": 303.5796307143716
+                    }
+                  ],
+                  "pilot": {
+                    "continuous": true,
+                    "period": 16777216,
+                    "expectedFrames": 16384,
+                    "frames": 16384,
+                    "receivedFrames": 16384,
+                    "complete": true,
+                    "nonFinite": 0,
+                    "invalidSamples": 0,
+                    "sampleGapCount": 0,
+                    "sampleGaps": [],
+                    "zeroSamples": 0,
+                    "firstSample": 0.00958251953125,
+                    "lastSample": 0.010559022426605225
+                  },
+                  "clock": {
+                    "continuous": true,
+                    "measurementValid": true,
+                    "rowCount": 128,
+                    "firstFrame": 206848,
+                    "lastFrame": 223104,
+                    "frames": 16384,
+                    "gapCount": 0,
+                    "gaps": [],
+                    "unstableReadCount": 0,
+                    "unstableReads": [],
+                    "malformedRowCount": 0,
+                    "malformedRows": []
+                  },
+                  "frameGaps": 0,
+                  "physicalOutputMuted": true
+                }
+              }
+            ],
+            "roundTrip": {
+              "frames": 16384,
+              "sampleRate": 48000,
+              "channels": [
+                {
+                  "pcmFingerprint": 150258738,
+                  "peak": 0.03635041415691376,
+                  "rms": 0.025680709264665317,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797930029454
+                },
+                {
+                  "pcmFingerprint": 150258738,
+                  "peak": 0.03635041415691376,
+                  "rms": 0.025680709264665317,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 303.5797930029454
+                }
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.011962890625,
+                "lastSample": 0.012939393520355225
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 246784,
+                "lastFrame": 263040,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "frameGaps": 0,
+              "physicalOutputMuted": true
+            },
+            "conflictDiagnostics": [
+              {
+                "kind": "seq",
+                "status": "No standard VAB found in ambiguous-seq.psf. Separate VH/VB layouts, custom or runtime-packed banks need further support. Skipped 1 VAB candidate(s): 0x80010000: assumed sample body contains a structured SEQ header at 0x80010ea0; VH/VB mapping is uncertain. Previous bank is kept."
+              },
+              {
+                "kind": "vab",
+                "status": "Extracted 1 VAB banks from ambiguous-vab.psf (1 program overlays). Choose a bank and Tone, then load it. Skipped 1 VAB candidate(s): 0x80010000: assumed sample body contains another VAB header at 0x80010ea0; VH/VB mapping is uncertain."
+              }
+            ],
+            "invalidImportsKeepHeldNote": true,
+            "readCancelledByReset": true,
+            "extractionCancelledByReset": true,
+            "layouts": [
+              {
+                "viewport": 1440,
+                "document": 1440
+              },
+              {
+                "viewport": 390,
+                "document": 390
+              }
+            ],
+            "real": null
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "pcmContinuous": true
+        }
+      ]
+    }
+  },
+  "visualInspection": {
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshots": "/private/tmp/spu-song-list-browser-20261111",
+    "overlapOrHorizontalOverflow": false
+  },
+  "safety": {
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "ordinaryBrowserOrNativeAppUsed": false,
+    "osVolumeChanged": false
+  },
+  "distribution": {
+    "stage": "release/itch_spu_synth_psf-song-list-20261111-qWMaa5",
+    "archive": "release/tetorica_spu_synth_psf-song-list-20261111_itch.zip",
+    "bytes": 6759136,
+    "sha256": "0347dbdbfd26c99312889238ab3e5a7de07306ffa58893379ac0d4389b8ea5f5",
+    "files": 314,
+    "originalInputsVerified": 276,
+    "servedAssetsVerified": 85,
+    "minify": false,
+    "bundle": false,
+    "psfEngineUnchanged": true
+  },
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "release": false
+  }
+}

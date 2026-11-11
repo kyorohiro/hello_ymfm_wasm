@@ -196,7 +196,10 @@ keyboard. **Menu → Export → Instrument · SPU JSON** stores the imported sam
 
 For **PSF1 / MiniPSF**, choose **Menu → Import → PSF set…** and select the song and all
 referenced PSFLib files together, or use **PSF folder…** in the same menu to retain library
-subdirectories. Extract ZIP archives first. Select a **PSF entry** and choose
+subdirectories. Extract ZIP archives first. The **PSF song list** appears above
+**Envelope / Waveform / Spectrum**, with the selected folder name and relative
+song paths. PSF / MiniPSF songs are listed; their PSFLib dependencies stay in
+the loaded set. Selecting a song does not play it. Select a **PSF entry** and choose
 **Play song** to hear its original driver execute. **Pause** changes to
 **Resume** and retains the unplayed samples; **Stop song** returns to the
 beginning. File selection never starts audio. Master and the output monitor
@@ -214,13 +217,15 @@ still controls the final bus. These are song-player limitations, not changes
 to the existing keyboard SPU or its supported effects. Treat this as a preview,
 not an exact PS1 recording reference.
 
-To extract an instrument instead, choose
-**Extract VAB banks**, then select a **Sound bank** and **Tone** and choose
+To extract an instrument instead, open **PSF / VAB** and choose
+**Extract VAB banks** for the same song selected above the monitor, then select a **Sound bank** and **Tone** and choose
 **Load selected Tone**. This shares Playground's local PSF parser: CRC and
 zlib validation, library resolution and RAM overlays precede standard VAB
 detection. Opening files or extracting banks leaves the current instrument
 and sounding notes in place. Missing dependencies and malformed input show an
 error; finding no standard bank is a separate result and keeps the previous bank.
+If only PSFLib files are selected, the row is labelled **Library** and supports
+bank extraction; **Play song** is disabled until a song is opened.
 
 Unavailable Tones are disabled with a reason in their option title, and the
 first playable Tone is selected automatically. This matters for banks with

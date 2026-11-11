@@ -78,9 +78,26 @@ async function play(page){
   },'PSF starts');await until(async()=>await position(page)>.05,'PSF position progresses');
 }
 async function stopped(page){await until(()=>page.locator('#psfPlaySong').isEnabled(),'PSF stops');assert.equal(await page.locator('#psfPauseSong').isEnabled(),false);}
+async function songLayout(page,name,width){
+  await page.setViewportSize({width,height:1050});
+  const player=page.locator('#psfSongPlayer');await player.scrollIntoViewIfNeeded();
+  const layout=await page.evaluate(()=>{
+    const player=document.getElementById('psfSongPlayer'),monitor=document.getElementById('spuMonitor');
+    const row=player.getBoundingClientRect(),plot=monitor.getBoundingClientRect();
+    return {viewport:innerWidth,document:document.documentElement.scrollWidth,
+      player:{left:row.left,right:row.right,top:row.top,bottom:row.bottom},monitorTop:plot.top,
+      selectors:document.querySelectorAll('#psfEntry').length};
+  });
+  assert.equal(layout.selectors,1,'one shared PSF selector drives song playback and VAB extraction');
+  assert(layout.player.bottom<=layout.monitorTop+1,'the song list is above Envelope / Waveform / Spectrum');
+  assert(layout.document<=layout.viewport+1,`${width}px document fits the viewport`);
+  assert(layout.player.left>=-1&&layout.player.right<=layout.viewport+1,`${width}px song list fits the viewport`);
+  await player.screenshot({path:path.join(config.screenshots,`${name}-psf-song-list-${width}.png`)});
+  return layout;
+}
 async function check(browser,name,origin,fixture){
   const page=await browser.newPage({viewport:{width:1240,height:1050},serviceWorkers:'block'});page.setDefaultTimeout(25000);
-  const checks=[],errors=[],consoleErrors=[],expectedConsole=[],measurements={};let stage='startup';
+  const checks=[],errors=[],consoleErrors=[],expectedConsole=[],measurements={},layouts=[];let stage='startup';
   page.on('pageerror',error=>errors.push(error.stack??error.message));
   page.on('console',message=>{if(message.type()!=='error')return;const value=message.text(),url=message.location().url;
     if(/cdnjs\.cloudflare\.com/.test(value+' '+url)||/^Failed to load resource/.test(value)&&blockedMonaco.length)expectedConsole.push(value);else consoleErrors.push(value);});
@@ -91,15 +108,26 @@ async function check(browser,name,origin,fixture){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
     await page.goto(origin+config.entry);await until(()=>page.locator('#spuFileImportButton').isEnabled(),'Files initialization');
+    assert.equal(await page.locator('#psfSongPlayer').count(),1);assert(await page.locator('#psfSongPlayer').isHidden(),'the song list does not take space before a PSF set is accepted');
     step('Public PSF import lists executable entries without starting audio and preserves the existing VAB selection');
     await choose(page,'#loadVab','vabFileInput',path.join(repo,'docs/playground/samples/spu-import/spu-synth-demo.vab'));
     await until(()=>page.locator('#loadVabTone').isEnabled(),'VAB parsed');
+    assert(await page.locator('#psfSongPlayer').isHidden(),'opening a VAB bank alone does not show song controls');
     const banks=await page.locator('#vabBank').innerHTML(),tones=await page.locator('#vabTone').innerHTML();
     await choose(page,'#loadPsf','psfFileInput',fixture.files);
     await until(async()=>await page.locator('#psfEntry option').count()===2&&await page.locator('#psfPlaySong').isEnabled(),'PSF entries accepted');
     const initial=await graph(page);assert.equal(initial.contexts,0);assert.equal(initial.bufferStarts,0);assert.equal(initial.destinationConnections,0);assert(initial.muted);
     assert.equal(await page.locator('#vabBank').innerHTML(),banks);assert.equal(await page.locator('#vabTone').innerHTML(),tones);
     assert.equal(await page.locator('#instrumentTab-bank').getAttribute('aria-selected'),'true');
+    step('One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths');
+    for(const tab of ['pcm','adsr','fx','audio','bank']){
+      await page.locator(`[data-spu-editor-tab="${tab}"]`).click();
+      assert(await page.locator('#psfSongPlayer').isVisible(),`song controls remain visible in ${tab}`);
+      const order=await page.evaluate(()=>document.getElementById('psfSongPlayer').getBoundingClientRect().bottom<=document.getElementById('spuMonitor').getBoundingClientRect().top+1);
+      assert(order,`${tab}: song list precedes the monitor`);
+    }
+    for(const width of [1240,390])layouts.push(await songLayout(page,name,width));
+    await page.setViewportSize({width:1240,height:1050});
     await page.locator('#startAudio').click();await until(()=>page.locator('#startAudio').textContent().then(value=>value==='Audio ready'),'editor audio enabled');
     const authored=await instrument(page),before=await graph(page);await silent(page);
     step('Play schedules real stereo PSF PCM on the editor output and wakes its monitor');
@@ -142,8 +170,27 @@ async function check(browser,name,origin,fixture){
     await play(page);await until(()=>page.locator('#synthCodeState').textContent().then(value=>/Stopped|Idle/.test(value)),'song stops Code');
     measurements.afterCode=await sounding(page);assert.deepEqual(await instrument(page),authored);
     await page.locator('#stopAudio').click();await stopped(page);await silent(page);assert.deepEqual(await instrument(page),authored);
+    step('Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction');
+    await choose(page,'#loadPsfFolder','psfFolderInput',fixture.folder);
+    await until(async()=>await page.locator('#psfEntry option').count()===2&&await page.locator('#psfSongFolder').textContent().then(value=>value.trim()==='Songs'),'folder songs and folder name');
+    const entries=await page.locator('#psfEntry option').evaluateAll(options=>options.map(option=>({value:option.value,text:option.textContent})));
+    assert(entries.every(entry=>!/\.(?:psflib|psf1lib)(?:$|\s)/i.test(entry.value)),'PSFLib dependencies are not listed as songs');
+    assert(entries.some(entry=>/standalone\.psf$/i.test(entry.value)),'standalone PSF appears');
+    const bankEntry=entries.find(entry=>/track\.minipsf$/i.test(entry.value));assert(bankEntry,'MiniPSF appears');
+    await page.locator('#psfEntry').selectOption(bankEntry.value);
+    await page.locator('[data-spu-editor-tab="bank"]').click();await page.locator('#extractPsf').click();
+    await until(()=>page.locator('#vabStatus').textContent().then(value=>value.startsWith('Extracted 2 VAB banks')),'selected MiniPSF drives bank extraction');
+    assert.equal(await page.locator('#vabBank option').count(),2);assert(await page.locator('#loadVabTone').isEnabled());
+    assert.equal(await page.locator('#psfEntry').inputValue(),bankEntry.value);assert.deepEqual(await instrument(page),authored);
+    await silent(page);
+    await choose(page,'#loadPsf','psfFileInput',fixture.library);
+    await until(()=>page.locator('#psfSongLabel').textContent().then(value=>value==='Library'),'library-only selection is identified');
+    assert.equal(await page.locator('#psfEntry option').count(),1);assert.equal(await page.locator('#psfPlaySong').isEnabled(),false,'a PSFLib alone cannot be played as a song');
+    assert(await page.locator('#extractPsf').isEnabled(),'library-only sets retain static extraction');
+    await page.locator('#extractPsf').click();await until(()=>page.locator('#vabStatus').textContent().then(value=>value.startsWith('Extracted 2 VAB banks')),'library-only bank extraction');
+    assert.deepEqual(await instrument(page),authored);await silent(page);
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);const final=await graph(page);assert(final.muted);assert.equal(final.contexts,1);
-    return {browser:name,passed:true,checks,measurements,graph:final,errors,consoleErrors,expectedFallbackConsole:expectedConsole};
+    return {browser:name,passed:true,checks,measurements,layouts,folderEntries:entries,graph:final,errors,consoleErrors,expectedFallbackConsole:expectedConsole};
   }catch(error){error.receipt={browser:name,stage,checks,errors,consoleErrors,body:await page.locator('body').innerText().catch(()=>''),graph:await graph(page).catch(()=>null),pcm:await page.evaluate(()=>__spuPsfAudit.output()).catch(()=>null)};throw error;}
   finally{await page.close();}
 }
@@ -158,9 +205,15 @@ const server=http.createServer(async(request,response)=>{
 (async()=>{
   await fs.mkdir(config.screenshots,{recursive:true});
   const {createPsfPlaybackFixture}=await import(pathToFileURL(path.join(repo,'test/helpers/spu_psf_playback_fixture.mjs')).href);
+  const {createPsfFixture}=await import(pathToFileURL(path.join(repo,'test/helpers/spu_psf_fixture.mjs')).href);
   const first=createPsfPlaybackFixture(),second=createPsfPlaybackFixture({pitch:0x1800}),broken=Buffer.from(first.standalone);broken[16]^=1;
+  const temporary=await fs.mkdtemp(path.join(tmpdir(),'tetorica-psf-song-list-')),folder=path.join(temporary,'Songs');
+  await fs.mkdir(folder,{recursive:true});await fs.writeFile(path.join(folder,'standalone.psf'),first.standalone);
+  for(const file of createPsfFixture().files){const target=path.join(folder,file.webkitRelativePath||file.name);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,Buffer.from(await file.arrayBuffer()));}
+  await fs.writeFile(path.join(folder,'README.txt'),'Original synthetic fixtures only. Not a PSF dependency.\n');
   const fixture={files:[{name:'first.psf',mimeType:'application/octet-stream',buffer:Buffer.from(first.standalone)},
-    {name:'second.psf',mimeType:'application/octet-stream',buffer:Buffer.from(second.standalone)}],broken};
+    {name:'second.psf',mimeType:'application/octet-stream',buffer:Buffer.from(second.standalone)}],broken,folder,
+    library:{name:'Bank.psflib',mimeType:'application/octet-stream',buffer:Buffer.from(createPsfFixture().library)}};
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin=`http://127.0.0.1:${server.address().port}`;
   try{
     for(const name of engines){const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push(await check(browser,name,origin,fixture));}finally{await browser.close();}}
@@ -169,5 +222,5 @@ const server=http.createServer(async(request,response)=>{
       fixture:{authored:true,gameAssets:false,firstSha256:hash(fixture.files[0].buffer),secondSha256:hash(fixture.files[1].buffer)},
       results,missing,external,httpErrors,expectedBlockedMonaco:blockedMonaco,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))};
     await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log('PASS receipt '+config.out);
-  }finally{await new Promise(resolve=>server.close(resolve));}
+  }finally{await new Promise(resolve=>server.close(resolve));await fs.rm(temporary,{recursive:true,force:true});}
 })().catch(error=>{console.error(error.stack??error);if(error.receipt)console.error(JSON.stringify(error.receipt,null,2));process.exitCode=1;});

@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-psf-playback-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-psf-song-list-1">
   </head>
   <body>
     <main>
@@ -86,6 +86,20 @@
         <div id="synthWorkspace" class="spu-code-workspace">
         <aside id="spuFilesPanel" class="spu-files-panel" hidden aria-label="SPU project files"></aside>
         <div class="spu-main">
+        <section id="psfSongPlayer" class="psf-song-player" aria-label="Original PSF reference performance" hidden>
+          <div class="psf-song-transport" aria-label="PSF song playback">
+            <label id="psfSongLabel" for="psfEntry">PSF</label>
+            <span id="psfSongFolder" class="psf-song-folder" hidden></span>
+            <select id="psfEntry" aria-label="PSF entry" disabled></select>
+            <button id="psfPlaySong" type="button" disabled>Play song</button>
+            <button id="psfPauseSong" type="button" disabled>Pause</button>
+            <button id="psfStopSong" type="button" disabled>Stop song</button>
+            <output id="psfSongPosition" aria-label="PSF playback position">0:00</output>
+            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. This Preview renders basic ADPCM / ADSR / reverb; song Noise, PMON and hardware main / reverb output-volume registers are not reproduced yet. Master still works. Song CH Live / Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
+          </div>
+          <p id="psfPlaybackStatus" class="subtext" role="status" aria-live="polite">Open a PSF set and choose an entry to play.</p>
+        </section>
+
         <section id="spuMonitor" class="spu-monitor" aria-label="Instrument display">
           <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
             <button type="button" data-spu-visual-mode="envelope" aria-pressed="true">Envelope</button>
@@ -147,17 +161,10 @@
             <h3>PS1 sound bank</h3>
             <p class="subtext">Open a standard Sony VAB (version 6 or 7), matching VH + VB files, or a PSF1 / MiniPSF set with all its PSFLib files. Opening or extracting a bank keeps the current instrument.</p>
             <div class="sample-settings">
-              <label>PSF entry <select id="psfEntry" aria-label="PSF entry" disabled></select></label>
               <button id="extractPsf" type="button" disabled>Extract VAB banks</button>
+              <span class="subtext">Uses the PSF selected above the monitor.</span>
             </div>
-            <div class="psf-song-transport" aria-label="PSF song playback">
-              <button id="psfPlaySong" type="button" disabled>Play song</button>
-              <button id="psfPauseSong" type="button" disabled>Pause</button>
-              <button id="psfStopSong" type="button" disabled>Stop song</button>
-              <output id="psfSongPosition" aria-label="PSF playback position">0:00</output>
-              <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. This Preview renders basic ADPCM / ADSR / reverb; song Noise, PMON and hardware main / reverb output-volume registers are not reproduced yet. Master still works. Song CH Live / Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
-            </div>
-            <p id="psfPlaybackStatus" class="subtext" role="status" aria-live="polite">Open a PSF set and choose an entry to play.</p>
+
             <div class="sample-settings">
               <label>Sound bank <select id="vabBank" aria-label="Sound bank" disabled></select></label>
             </div>
@@ -234,6 +241,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-psf-playback-1"></script>
+    <script type="module" src="./synth.js?v=spu-psf-song-list-1"></script>
   </body>
 </html>
