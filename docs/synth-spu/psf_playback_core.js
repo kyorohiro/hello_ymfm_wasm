@@ -5,6 +5,7 @@ import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-l
 import {readPsfLiveSnapshot} from './psf_live_snapshot.js?v=psf-live-spu-1';
 
 const RAM_BYTES=2*1024*1024;
+const SPU_RAM_BYTES=512*1024;
 const backend=Object.freeze({abi:3,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
 const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-live-spu-1',import.meta.url).href;
 const abort=signal=>signal?.throwIfAborted();
@@ -35,7 +36,7 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
   abort(signal);
   if(module._psf_abi_version?.()!==backend.abi||module._psf_spu_model?.()!==1)
     throw new Error('PSF playback components are out of date. Reload the page to load the matching MAME SPU player.');
-  let source=0,mask=0,handle=0,output=0,observationBuffer=0,closed=false,position=0;
+  let source=0,mask=0,handle=0,output=0,observationBuffer=0,captureBuffer=0,closed=false,position=0;
   const error=()=>new Error(`PSF playback: ${module.UTF8ToString(module._psf_last_error())||'machine failed'}`);
   try {
     source=module._malloc(RAM_BYTES);mask=module._malloc(RAM_BYTES);
@@ -58,6 +59,19 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
     backend,
     sampleRate:44100,
     get position(){return position;},
+    /** Detached, exact SPU RAM at the current native boundary. Capture history
+     * owns its copies; normal observe() retains its 64-byte-per-start bound. */
+    copySpuRam() {
+      if(closed)throw new Error('PSF playback core is disposed.');
+      abort(signal);
+      if(!captureBuffer) {
+        captureBuffer=module._malloc(SPU_RAM_BYTES);
+        if(!captureBuffer)throw new Error('PSF Capture could not allocate its RAM copy buffer.');
+      }
+      if(!module._psf_spu_read_ram(handle,0,captureBuffer,SPU_RAM_BYTES))
+        throw new Error('PSF Capture could not copy SPU RAM.');
+      return module.HEAPU8.slice(captureBuffer,captureBuffer+SPU_RAM_BYTES);
+    },
     observe() {
       if(closed)throw new Error('PSF playback core is disposed.');
       abort(signal);
@@ -86,7 +100,8 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
       if(closed)return;
       closed=true;
       module._psf_destroy(handle);module._free(output);module._free(observationBuffer);
-      handle=0;output=0;observationBuffer=0;
+      if(captureBuffer)module._free(captureBuffer);
+      handle=0;output=0;observationBuffer=0;captureBuffer=0;
     },
   };
 }

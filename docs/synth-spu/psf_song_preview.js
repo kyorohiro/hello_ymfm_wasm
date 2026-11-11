@@ -8,6 +8,7 @@ const isAbort=error=>error?.name==='AbortError';
 const nativeSchedule=(callback,delay)=>setTimeout(callback,delay);
 const nativeCancel=timer=>clearTimeout(timer);
 const LIVE_INTERVAL_FRAMES=2205; // 44,100 Hz / 20; independent of AudioBuffer size.
+const SPU_RAM_BYTES=512*1024;
 
 function detachedObservation(value,frame) {
   if(!value||typeof value!=='object'||value.nativeFrames!==frame||!Array.isArray(value.channels)||value.channels.length!==24)
@@ -36,6 +37,10 @@ function selectedSource(set,entry) {
  * An optional synchronous observe() supplies all 24 voices and nativeFrames.
  * Live captures at most 20 states per emulated second, before rendering their
  * samples, and exposes only the immutable state at/before the audible cursor.
+ * Optional copySpuRam() returns a detached 512 KiB Uint8Array at that same
+ * boundary. RAM stays private and is copied out only by explicit paused
+ * Capture. Default lookahead retains at most seven RAM images (3.5 MiB), plus
+ * at most one frozen paused image; larger configured lookahead scales the bound.
  *
  * Already rendered buffers survive Pause. Resume schedules their unconsumed
  * samples before asking the machine for new PCM, retaining the exact machine
@@ -73,6 +78,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   function read() {
     const playing=run?.phase==='playing',paused=run?.phase==='paused',resuming=run?.phase==='resuming';
     const liveState=liveEnabled&&run?audibleObservation(run):null,liveError=liveEnabled?run?.liveError??'':'';
+    const capture=captureStatus(),retained=run?retainedObservations(run):[];
     return {selection:source?{entry:source.entry,title:source.title}:null,name:source?.entry??'',
       playing,paused,resuming,starting:Boolean(starting),busy:Boolean(starting||resuming),
       positionSeconds:run?position()/run.rate:0,message,error,
@@ -80,8 +86,9 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       canStop:Boolean(starting||run),liveKind:'psf',liveEnabled,liveVoice,liveState,
       liveActive:Boolean(run&&liveEnabled&&liveState&&!liveError),
       liveWaiting:Boolean(run&&liveEnabled&&!liveState&&!liveError),liveError:Boolean(liveError),liveMessage:liveError,
-      liveFrame:liveState?.nativeFrames??null,liveBufferedSnapshots:run?run.liveHistory.length+
-        Number(Boolean(run.livePaused&&!run.liveHistory.some(value=>value.state===run.livePaused))):0,
+      liveFrame:liveState?.nativeFrames??null,liveBufferedSnapshots:retained.length,
+      canCapture:capture.ready,captureMessage:capture.message,captureFrame:capture.observed?.frame??null,
+      captureBufferedBytes:retained.reduce((bytes,value)=>bytes+(value.ram?.byteLength??0),0),
       liveSource:{name:source?.title??'PSF',entry:source?.entry??''}};
   }
   function emit(){if(!disposed)onUpdate(read());}
@@ -131,11 +138,31 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   function clearLive(item,keepPaused=false) {
     item.liveHistory=[];if(!keepPaused)item.livePaused=null;item.liveError='';item.nextLiveFrame=item.rendered;
   }
-  function audibleObservation(item) {
+  function retainedObservations(item) {
+    return item.livePaused&&!item.liveHistory.includes(item.livePaused)?[...item.liveHistory,item.livePaused]:item.liveHistory;
+  }
+  function audibleEntry(item) {
     if(item.phase==='paused'||item.phase==='resuming')return item.livePaused;
     const frame=position(item);let snapshot=null;
-    for(const observed of item.liveHistory){if(observed.frame>frame)break;snapshot=observed.state;}
+    for(const observed of item.liveHistory){if(observed.frame>frame)break;snapshot=observed;}
     return snapshot;
+  }
+  function audibleObservation(item){return audibleEntry(item)?.state??null;}
+  function captureStatus() {
+    if(!run)return {ready:false,observed:null,message:'Play and pause a PSF song to capture its selected channel.'};
+    if(run.phase!=='paused')return {ready:false,observed:null,message:'Pause the PSF song before capturing its selected channel.'};
+    if(!liveEnabled)return {ready:false,observed:null,message:'Turn PSF Live on to capture the paused channel.'};
+    const observed=audibleEntry(run);
+    if(!observed)return {ready:false,observed:null,message:'No matching audible PSF snapshot is available. Resume with Live on, then pause again.'};
+    if(!observed.ram)return {ready:false,observed,message:observed.captureError||'PSF Capture RAM is unavailable for this snapshot.'};
+    return {ready:true,observed,message:`Capture paused CH ${liveVoice+1} at native frame ${observed.frame}.`};
+  }
+  function capturePaused() {
+    const capture=captureStatus();
+    if(!capture.ready)throw new Error(capture.message);
+    const observed=capture.observed;
+    return {state:observed.state,ram:new Uint8Array(observed.ram),voice:liveVoice,frame:observed.frame,
+      source:{entry:run.source.entry,title:run.source.title}};
   }
   function trimLive(item) {
     const frame=position(item),history=item.liveHistory;
@@ -151,8 +178,18 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     try {
       if(typeof item.core.observe!=='function')throw new Error('this PSF engine does not expose voice observation');
       const state=detachedObservation(item.core.observe(),frame);
+      let ram=null,captureError='';
+      try {
+        if(typeof item.core.copySpuRam!=='function')throw new Error('this PSF engine does not expose RAM snapshots');
+        const value=item.core.copySpuRam();
+        if(!(value instanceof Uint8Array)||value.byteLength!==SPU_RAM_BYTES)
+          throw new TypeError('the RAM snapshot must be a Uint8Array containing exactly 512 KiB');
+        // copySpuRam's contract transfers a detached owned image. Keep it out
+        // of the frozen/public Live state and never expose this private view.
+        ram=value.byteOffset===0&&value.buffer.byteLength===SPU_RAM_BYTES?value:new Uint8Array(value);
+      }catch(cause){captureError=`PSF Capture is unavailable: ${cause?.message??String(cause)}`;}
       if(run!==item||!current(item)||!liveEnabled)return;
-      item.liveHistory.push({frame,state});item.liveError='';trimLive(item);
+      item.liveHistory.push({frame,state,ram,captureError});item.liveError='';trimLive(item);
     }catch(cause) {
       if(run===item&&current(item)&&liveEnabled)
         item.liveError=`PSF Live observation failed: ${cause?.message??String(cause)}`;
@@ -236,7 +273,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   }
   function pause() {
     const item=run;if(!item||item.phase!=='playing')return false;
-    trim(item);item.livePaused=liveEnabled?audibleObservation(item):null;
+    trim(item);item.livePaused=liveEnabled?audibleEntry(item):null;
     cancelRefill(item);stopNodes(item);item.phase='paused';
     say(`Paused ${source.title}.`);return true;
   }
@@ -266,7 +303,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       // snapshot may survive so On can compare channels without advancing the
       // machine. Off while playing never keeps a stale/future observation.
       clearLive(run,run.phase==='paused'||run.phase==='resuming');
-      if(value&&run.livePaused)run.liveHistory.push({frame:run.livePaused.nativeFrames,state:run.livePaused});
+      if(value&&run.livePaused)run.liveHistory.push(run.livePaused);
     }
     emit();return read();
   }
@@ -279,5 +316,5 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     if(disposed)return;
     disposed=true;await stop();source=null;
   }
-  return {read,setSource,play,pause,resume,stop,dispose,setLiveEnabled,setLiveVoice};
+  return {read,setSource,play,pause,resume,stop,dispose,setLiveEnabled,setLiveVoice,capturePaused};
 }

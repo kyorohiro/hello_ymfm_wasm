@@ -354,6 +354,9 @@ footer a { color: #4a5e74; }
 .spu-code-live-tools { margin:0 0 14px; border:1px solid var(--line); border-radius:9px; padding:10px 12px; background:#edf0f2; }
 .spu-code-live-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; }
 .spu-code-live-row label { display:flex; align-items:center; gap:7px; font-size:.75rem; color:var(--muted); }
+.spu-psf-capture-tools { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.spu-psf-capture-tools select { padding:5px; border:1px solid var(--line); border-radius:6px; background:#f7f9fa; color:var(--ink); }
+.spu-psf-capture-tools button { padding:6px 10px; font-size:.75rem; }
 #spuLiveChannel { max-width:100%; padding:5px; border:1px solid var(--line); border-radius:6px; background:#f7f9fa; color:var(--ink); }
 #spuLiveStatus,#spuLiveReadout,.spu-code-caption { margin:7px 0; font-size:.73rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; }
 .spu-code-help { font-size:.73rem; color:var(--muted); margin:8px 0; }

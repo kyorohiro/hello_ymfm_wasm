@@ -219,7 +219,7 @@ changing the song or the edited instrument. Observations follow the output
 position, up to 20 updates/s. Pause freezes all channels; choosing another CH
 while paused inspects that same moment. Live Off restores the editable instrument
 while the song continues. Editing it then stops the song first. Stop also returns
-to the editor. Song Capture and seeking are not provided. PSF2 is not supported. Compatibility depends on the HLE
+to the editor. Pause and choose **Capture to Synth** to edit or save an ordinary ADPCM channel. Seeking and PSF2 are not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
 The active song SPU uses the same fixed MAME-derived DSP sources as the
 keyboard Synth: ADPCM, four-point Gaussian interpolation, ADSR, Noise, PMON,
@@ -239,8 +239,29 @@ selected voice's hardware flags; the Noise clock, main volumes and reverb are
 shared. Software PMON waveform / ratio / depth / decay helpers cannot be inferred
 from a song, so those controls are hidden in PSF Live. Unrecognized reverb
 registers are labelled **Custom**, preserving the actual shared returns and send
-flag. Instrument saves are disabled in PSF Live; turn Live Off to save your edited
-instrument. Capture is a separate future feature.
+flag. Instrument saves are disabled in PSF Live; Capture first, or turn Live Off to save your edited
+instrument.
+
+**Capture to Synth** copies the paused channel’s original ADPCM bytes through
+its END packet, loop, ADSR, voice volumes and reverb-send flag from the matching
+historical SPU RAM snapshot. It does not re-encode that ADPCM. Choose a
+**Reference key** (C4 by default): that key reproduces the captured raw PITCH
+code, rather than estimating the sample’s original root. Capture creates a
+normal instrument for a fresh key press; it does not freeze the current sample
+cursor, envelope stage or the rest of the song. Your editor’s shared reverb is
+kept; song master volume and custom shared effects are not copied. Software
+morph, Noise and PMON are disabled in the captured instrument.
+
+Capture requires **Pause**, **Live On**, an available same-time RAM snapshot
+and an ordinary ADPCM voice with nonzero Pitch. Noise and PMON carriers,
+missing END packets and unsupported or noncontiguous loop layouts are rejected
+before stopping the song or changing the edited instrument. Successful Capture
+stops the song and opens editable Synth mode without playing a note. Use the
+keyboard to try it, then **Save to presets** or export **Instrument · SPU JSON**.
+Repeated captures with identical bytes and tuning reuse the existing sample.
+Live keeps a bounded history of 512-KiB RAM copies with its observations
+(about 3.5 MiB at the default settings); Live Off releases that history, keeping
+at most the frozen paused snapshot needed to restore the same point.
 
 CPU execution still uses Play! HLE and basic-block timing; it is not cycle-exact
 PS1 emulation. Volume sweeps, voice start / repeat addresses aligned only to

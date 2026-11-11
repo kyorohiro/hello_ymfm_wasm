@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {createPsfSongPreview} from './psf_song_preview.js';
 
 const RATE=44100;
+const RAM_BYTES=512*1024;
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 function source(entry='song.psf',title='Original test song') {
   return {records:new Map([[entry,{tags:new Map([['title',title]])}]]),entries:[{path:entry,title}]};
@@ -41,7 +42,7 @@ function observedCore() {
   const machine=core(),observations=[];
   machine.observations=observations;
   machine.observe=()=>{
-    const frame=machine.nativeFrames,state={sampleRate:RATE,nativeSampleRate:RATE,nativeFrames:frame,
+    const frame=machine.nativeFrames,state={sampleRate:RATE,nativeSampleRate:RATE,nativeFrames:frame,observation:{kind:'psf',nativeFrames:frame},
       channels:Array.from({length:24},(_,channel)=>({channel,pitch:frame+channel,envelope:frame,
         gate:Boolean(channel&1),waveform:{pcm:[frame,channel]}})),
       samples:[{id:0,startAddress:0x2000,byteLength:64}],noise:{clock:40},pmon:{mask:0},reverb:{preset:'room'}};
@@ -52,6 +53,23 @@ function observedCore() {
 function liveHarness(options={}) {
   const machine=observedCore(),h=harness({chunkFrames:2048,lookaheadSeconds:8192/RATE,createCore:async()=>machine,...options});
   h.machine=machine;return h;
+}
+function capturingCore() {
+  const machine=observedCore(),render=machine.render,ram=new Uint8Array(RAM_BYTES),copies=[];
+  const mark=()=>{new DataView(ram.buffer).setUint32(0,machine.nativeFrames,true);ram[0x2000]=(machine.nativeFrames*7+3)&255;};
+  mark();machine.ram=ram;machine.ramCopies=copies;
+  machine.render=frames=>{const pcm=render(frames);mark();return pcm;};
+  machine.copySpuRam=()=>{copies.push(machine.nativeFrames);return ram.slice();};
+  return machine;
+}
+function captureHarness(options={}) {
+  const machine=capturingCore(),h=harness({chunkFrames:2048,lookaheadSeconds:8192/RATE,createCore:async()=>machine,...options});
+  h.machine=machine;return h;
+}
+const ramFrame=ram=>new DataView(ram.buffer,ram.byteOffset,ram.byteLength).getUint32(0,true);
+function assertNoBinary(value) {
+  assert.equal(value instanceof ArrayBuffer||ArrayBuffer.isView(value),false,'public transport state never contains private RAM');
+  if(value&&typeof value==='object')for(const child of Object.values(value))assertNoBinary(child);
 }
 
 test('PSF selection is silent and an invalid entry preserves the accepted source and playback',async()=>{
@@ -327,4 +345,126 @@ test('Stop, source replacement, disposal and stale initialization clear Live own
   late.controller.setSource(source(),'song.psf');const playing=late.controller.play();await late.controller.stop();pending.resolve(machine);
   assert.equal(await playing,false);assert.equal(machine.observations.length,0);assert.equal(late.controller.read().liveState,null);
   assert.equal(late.audioReads,0);await late.controller.dispose();
+});
+
+test('paused Capture uses the audible pre-render RAM, never the newer emulation lookahead',async()=>{
+  const h=captureHarness();h.controller.setSource(source('folder/track.minipsf','RAM timing test'),'folder/track.minipsf');await h.controller.play();
+  assert.deepEqual(h.machine.ramCopies,[0,2205,4410,6615]);
+  assert.equal(ramFrame(h.machine.ram),8192,'the driver has already overwritten RAM at its later machine position');
+  h.advance(3000);h.controller.pause();let view=h.controller.read();
+  assert.equal(view.canCapture,true);assert.equal(view.captureFrame,2205);assert.match(view.captureMessage,/CH 1.*2205/);
+  assertNoBinary(view);
+  const renders=h.machine.renders.length,observes=h.machine.observations.length,copies=h.machine.ramCopies.length,starts=h.starts.length;
+  const captured=h.controller.capturePaused();
+  assert.equal(captured.state.nativeFrames,2205);assert.equal(captured.state.observation.nativeFrames,2205);assert.equal(captured.frame,2205);
+  assert.equal(ramFrame(captured.ram),2205);assert.equal(captured.ram[0x2000],(2205*7+3)&255);
+  assert.equal(captured.ram.length,RAM_BYTES);assert.equal(captured.voice,0);
+  assert.deepEqual(captured.source,{entry:'folder/track.minipsf',title:'RAM timing test'});
+  assert.equal(captured.state,view.liveState,'Capture and Live are the same coherent frozen register snapshot');
+  h.machine.ram.fill(0xee);h.advance(RATE*10);h.controller.setLiveVoice(23);
+  const other=h.controller.capturePaused();assert.equal(other.frame,2205);assert.equal(other.voice,23);assert.equal(ramFrame(other.ram),2205);
+  assert.equal(other.state.channels[23].pitch,2228);assert.equal(other.state,captured.state);
+  captured.ram.fill(0);captured.source.entry='changed.psf';
+  const again=h.controller.capturePaused();assert.equal(ramFrame(again.ram),2205);assert.equal(again.source.entry,'folder/track.minipsf');
+  assert.notEqual(again.ram,captured.ram,'each explicit Capture returns its own mutable RAM copy');
+  assert.equal(h.machine.renders.length,renders);assert.equal(h.machine.observations.length,observes);assert.equal(h.machine.ramCopies.length,copies);
+  assert.equal(h.starts.length,starts);assert.equal(h.audioReads,1);assert.equal(h.beforeCalls,1);assert.equal(h.outputs.length,1);assert.equal(h.machine.disposals,0);
+  await h.controller.dispose();
+});
+
+test('Capture requires Pause and Live On, reuses one frozen RAM image across paused Off/On',async()=>{
+  const h=captureHarness();assert.equal(h.controller.read().canCapture,false);assert.equal(h.controller.read().captureBufferedBytes,0);
+  assert.throws(()=>h.controller.capturePaused(),/Play and pause/);
+  h.controller.setSource(source(),'song.psf');await h.controller.play();
+  assert.equal(h.controller.read().canCapture,false);assert.throws(()=>h.controller.capturePaused(),/Pause the PSF song/);
+  h.advance(3000);h.controller.pause();const first=h.controller.capturePaused(),copies=h.machine.ramCopies.length;
+  h.controller.setLiveEnabled(false);let view=h.controller.read();
+  assert.equal(view.canCapture,false);assert.equal(view.captureFrame,null);assert.equal(view.captureBufferedBytes,RAM_BYTES);
+  assert.throws(()=>h.controller.capturePaused(),/Turn PSF Live on/);
+  h.controller.setLiveVoice(17);h.controller.setLiveEnabled(true);view=h.controller.read();
+  assert.equal(view.canCapture,true);assert.equal(view.captureBufferedBytes,RAM_BYTES);assert.equal(view.captureFrame,2205);
+  const again=h.controller.capturePaused();assert.equal(again.state,first.state);assert.deepEqual(again.ram,first.ram);assert.equal(again.voice,17);
+  assert.equal(h.machine.ramCopies.length,copies,'Off/On, channel selection and Capture cannot ask the advanced core for new RAM');
+  await h.controller.resume();assert.equal(h.controller.read().canCapture,false);assert.throws(()=>h.controller.capturePaused(),/Pause the PSF song/);
+  await h.controller.stop();assert.equal(h.controller.read().captureBufferedBytes,0);assert.equal(h.controller.read().canCapture,false);
+  assert.throws(()=>h.controller.capturePaused(),/Play and pause/);await h.controller.dispose();
+});
+
+test('Live Off copies no RAM, and an On snapshot cannot be captured before its samples are audible',async()=>{
+  const h=captureHarness();h.controller.setLiveEnabled(false);h.controller.setSource(source(),'song.psf');await h.controller.play();
+  h.advance(100);h.refill();assert.equal(h.machine.ramCopies.length,0);assert.equal(h.controller.read().captureBufferedBytes,0);
+  h.controller.pause();h.controller.setLiveEnabled(true);let view=h.controller.read();
+  assert.equal(view.canCapture,false);assert.equal(view.captureFrame,null);assert.match(view.captureMessage,/No matching audible/);
+  assert.throws(()=>h.controller.capturePaused(),/No matching audible/);assert.equal(h.machine.ramCopies.length,0);
+  await h.controller.resume();h.advance(2205);h.refill();
+  assert.ok(h.machine.ramCopies.length>0);const next=h.machine.ramCopies[0];
+  h.controller.pause();view=h.controller.read();assert.equal(view.canCapture,false,'a future-only RAM image cannot be captured at the paused cursor');
+  assert.ok(next>Math.round(view.positionSeconds*RATE));
+  await h.controller.resume();h.advance(next-Math.round(h.controller.read().positionSeconds*RATE));h.controller.pause();
+  assert.equal(h.controller.read().canCapture,true);assert.equal(h.controller.capturePaused().frame,next);
+  await h.controller.dispose();
+});
+
+test('RAM snapshot failures and unsupported cores disable Capture without affecting Live or audio',async()=>{
+  const invalid=[
+    {copy:undefined,reason:/does not expose RAM snapshots/},
+    {copy:()=>{throw new Error('RAM copy failed');},reason:/RAM copy failed/},
+    {copy:()=>new Uint8Array(RAM_BYTES-1),reason:/exactly 512 KiB/},
+    {copy:()=>new Uint8Array(RAM_BYTES+1),reason:/exactly 512 KiB/},
+    {copy:()=>new Uint16Array(RAM_BYTES/2),reason:/Uint8Array/},
+    {copy:()=>new ArrayBuffer(RAM_BYTES),reason:/Uint8Array/},
+    {copy:()=>Promise.resolve(new Uint8Array(RAM_BYTES)),reason:/Uint8Array/},
+  ];
+  for(const {copy,reason} of invalid) {
+    const h=captureHarness();h.machine.copySpuRam=copy;h.controller.setSource(source(),'song.psf');
+    assert.equal(await h.controller.play(),true);h.advance(3000);h.controller.pause();const view=h.controller.read();
+    assert.equal(view.canCapture,false);assert.equal(view.captureFrame,2205);assert.match(view.captureMessage,reason);
+    assert.throws(()=>h.controller.capturePaused(),reason);assert.equal(view.captureBufferedBytes,0);
+    assert.equal(view.liveActive,true);assert.equal(view.liveError,false);assert.equal(view.error,false);assert.equal(h.machine.disposals,0);
+    assert.equal(view.liveState.nativeFrames,2205);assertNoBinary(view);await h.controller.dispose();
+  }
+});
+
+test('Capture availability follows each audible RAM image, not a later RAM-copy error',async()=>{
+  const h=captureHarness(),copy=h.machine.copySpuRam;
+  h.machine.copySpuRam=()=>{if(h.machine.nativeFrames>=4410)throw new Error('future snapshot failed');return copy();};
+  h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  assert.equal(h.controller.read().canCapture,true);assert.equal(h.controller.capturePaused().frame,2205);
+  await h.controller.resume();h.advance(1500);h.controller.pause();const view=h.controller.read();
+  assert.equal(view.captureFrame,4410);assert.equal(view.liveFrame,4410);assert.equal(view.canCapture,false);
+  assert.match(view.captureMessage,/future snapshot failed/);assert.equal(view.liveError,false);assert.equal(view.liveActive,true);
+  await h.controller.dispose();
+});
+
+test('private Capture RAM retention is bounded by lookahead and released by Off, source replacement and disposal',async()=>{
+  const h=captureHarness({lookaheadSeconds:.2,onUpdate:()=>{}}),bound=(Math.ceil((.2*RATE+2048)/2205)+3)*RAM_BYTES;
+  assert.equal(bound,4*1024*1024,'default retention including one paused predecessor is at most 4 MiB');
+  h.controller.setSource(source(),'song.psf');await h.controller.play();
+  for(let step=0;step<60;step++) {
+    const view=h.controller.read();assert.ok(view.captureBufferedBytes<=bound);assert.equal(view.captureBufferedBytes%RAM_BYTES,0);
+    assert.ok(view.captureBufferedBytes<=view.liveBufferedSnapshots*RAM_BYTES);
+    h.advance(4410);h.refill();
+  }
+  assert.ok(h.machine.ramCopies.length>100);h.controller.pause();assert.ok(h.controller.read().captureBufferedBytes<=bound);
+  h.controller.setLiveEnabled(false);assert.equal(h.controller.read().captureBufferedBytes,RAM_BYTES,'paused Off retains only its already-audible image');
+  h.controller.setSource(source('new.psf'),'new.psf');assert.equal(h.controller.read().captureBufferedBytes,0);assert.equal(h.controller.read().canCapture,false);
+  assert.throws(()=>h.controller.capturePaused(),/Play and pause/);await h.controller.dispose();assert.equal(h.controller.read().captureBufferedBytes,0);
+
+  const large=captureHarness({chunkFrames:32768,lookaheadSeconds:1,onUpdate:()=>{}}),largeBound=(Math.ceil((RATE+32768)/2205)+3)*RAM_BYTES;
+  large.controller.setSource(source(),'song.psf');await large.controller.play();assert.ok(large.controller.read().captureBufferedBytes<=largeBound);
+  large.controller.setLiveEnabled(false);assert.equal(large.controller.read().captureBufferedBytes,0);await large.controller.dispose();
+});
+
+test('oversized RAM backing buffers are normalized to the bounded image and stale initialization never captures RAM',async()=>{
+  const h=captureHarness();h.machine.copySpuRam=()=>{
+    const backing=new Uint8Array(RAM_BYTES*3),view=backing.subarray(RAM_BYTES,RAM_BYTES*2);
+    new DataView(view.buffer,view.byteOffset,view.byteLength).setUint32(0,h.machine.nativeFrames,true);return view;
+  };
+  h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  const captured=h.controller.capturePaused();assert.equal(ramFrame(captured.ram),2205);assert.equal(captured.ram.buffer.byteLength,RAM_BYTES);
+  assert.equal(h.controller.read().captureBufferedBytes,h.controller.read().liveBufferedSnapshots*RAM_BYTES);await h.controller.dispose();
+  const pending=deferred(),machine=capturingCore(),late=captureHarness({createCore:()=>pending.promise});
+  late.controller.setSource(source(),'song.psf');const playing=late.controller.play();await late.controller.stop();pending.resolve(machine);
+  assert.equal(await playing,false);assert.equal(machine.ramCopies.length,0);assert.equal(late.controller.read().captureBufferedBytes,0);
+  assert.equal(late.controller.read().canCapture,false);assert.throws(()=>late.controller.capturePaused(),/Play and pause/);await late.controller.dispose();
 });
