@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 // Synchronous PSF1 machine rendering, independent of browser audio scheduling.
-import createPsfPlayerModule from '../generated/psf-player/psf_player.js';
+import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-mame-spu-1';
 
 const RAM_BYTES=2*1024*1024;
+const backend=Object.freeze({abi:2,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-mame-spu-1',import.meta.url).href;
 const abort=signal=>signal?.throwIfAborted();
 function validateImage(image) {
   if(!image||!(image.ram instanceof Uint8Array)||image.ram.byteLength!==RAM_BYTES||
@@ -25,8 +27,13 @@ function validateImage(image) {
  */
 export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptions={}}={}) {
   abort(signal);validateImage(image);
-  const module=await createPsfPlayerModule({...moduleOptions,...(wasmBinary?{wasmBinary}:{}),print:()=>{},printErr:()=>{}});
+  const module=await createPsfPlayerModule({
+    locateFile:path=>path.endsWith('.wasm')?wasmUrl:new URL(path,import.meta.url).href,
+    ...moduleOptions,...(wasmBinary?{wasmBinary}:{}),print:()=>{},printErr:()=>{},
+  });
   abort(signal);
+  if(module._psf_abi_version?.()!==backend.abi||module._psf_spu_model?.()!==1)
+    throw new Error('PSF playback components are out of date. Reload the page to load the matching MAME SPU player.');
   let source=0,mask=0,handle=0,output=0,closed=false,position=0;
   const error=()=>new Error(`PSF playback: ${module.UTF8ToString(module._psf_last_error())||'machine failed'}`);
   try {
@@ -44,6 +51,7 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
     throw e;
   } finally {if(source)module._free(source);if(mask)module._free(mask);}
   return {
+    backend,
     sampleRate:44100,
     get position(){return position;},
     render(frames) {

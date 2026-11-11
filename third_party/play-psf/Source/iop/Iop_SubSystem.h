@@ -33,6 +33,9 @@ namespace Iop
 		void NotifyVBlankStart();
 		void NotifyVBlankEnd();
 
+		// Optional PS1 host SPU. Keep dormant Play! cores out of IRQ polling.
+		std::function<bool()> m_externalSpuIrqPending;
+
 		void SaveState(Framework::CZipArchiveWriter&);
 		void LoadState(Framework::CZipArchiveReader&);
 

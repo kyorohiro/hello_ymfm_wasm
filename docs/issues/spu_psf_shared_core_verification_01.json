@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11",
+  "scope": "PSF1 CPU/HLE uses Play!; active SPU bus and DSP use the fixed MAME-derived core shared with SPU Synth/Code.",
+  "passed": true,
+  "authorization": {
+    "todo": "docs/issues/todo_spu_psf_shared_core_01.md",
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "backend": {
+    "abi": 2,
+    "spuModel": 1,
+    "engine": "play-hle+mame-ps1-spu",
+    "sampleRate": 44100,
+    "cpuTicksPerSample": 768,
+    "fixedSdkUnchanged": true,
+    "audioPath": "One MAME SPU instance receives CPU registers, PIO/DMA4 and generates stereo PCM; dormant Play! SPU does not mix or own IRQ.",
+    "timing": "Play! executes basic blocks; overshoot is carried as CPU debt. Not cycle-exact PS1 emulation.",
+    "songSoftwareHeadroom": false,
+    "songClickGuard": false,
+    "externalBios": false,
+    "sharedArrayBufferRequired": false,
+    "explicitLimits": [
+      "volume sweeps",
+      "ADPCM start/repeat addresses aligned to 8 instead of 16 bytes",
+      "nonstandard RAM-control modes",
+      "non-request or decrementing DMA4",
+      "inconsistent DMA direction/transfer mode",
+      "stopped PIO FIFO overflow",
+      "bounded DMA callback size"
+    ],
+    "inheritedLimits": [
+      "subset HLE BIOS",
+      "approximate ADSR/reverb of the fixed SPU core",
+      "no song CH Live/Capture or seeking in this task",
+      "PSF2 unsupported"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "docs/generated/psf-player/psf_player.js",
+      "bytes": 57015,
+      "sha256": "2f35b94c0353ecdba775fbef837e7fb5669e253c8d2aac20315dd73b1c9c37cf"
+    },
+    {
+      "path": "docs/generated/psf-player/psf_player.wasm",
+      "bytes": 454280,
+      "sha256": "33289709d42538a0940f33e77008062f4dfa9d338a91e08f2a146527d283025c"
+    },
+    {
+      "path": "docs/generated/psf-player/NOTICE.txt",
+      "bytes": 6085,
+      "sha256": "1c4e73ef0cfccf310160f4dba8955377da28d1b67264eb2539ce16370bc5875d"
+    },
+    {
+      "path": "docs/synth-spu/psf_playback_core.js",
+      "bytes": 3946,
+      "sha256": "d3343539195f9088edd3a8a280c4653067e60129ea9b7e5be82e35c7824ac60b"
+    },
+    {
+      "path": "tetorica_src/wasm/psf_player/psf_player.cpp",
+      "bytes": 13739,
+      "sha256": "7355b8415132d83e5769ea36f6fc59e2f210675e9004c223e302af1fb85e774d"
+    },
+    {
+      "path": "scripts/build_psf_player.mjs",
+      "bytes": 2981,
+      "sha256": "5dda6641fef7fbed0a779b44e92c6f3ae7b12916a7d98af27be4672e4145e262"
+    }
+  ],
+  "numericTests": {
+    "passed": true,
+    "relatedTests": 395,
+    "coreTests": 16,
+    "calibrationTests": 145,
+    "commands": [
+      "node --test --test-concurrency=1 docs/synth-spu/*.test.mjs docs/playground/playground_ps1_psf.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs scripts/inspect_psf_banks.test.mjs scripts/package_itch_spu_synth.test.mjs test/runtime/*ps1*.test.mjs",
+      "node --test --test-concurrency=1 scripts/mixer_calibration_ps1_import_revision.test.mjs scripts/mixer_calibration_ps1_starter.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs scripts/ps1_mixer_calibration.test.mjs",
+      "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+      "node scripts/generate_soundchip_mixer_presets.mjs --check"
+    ],
+    "evidence": [
+      "original MIPS register writes and little-endian transfer addresses independently asserted",
+      "PIO and DMA4 CPU-to-SPU-to-CPU roundtrip",
+      "sample-exact stereo PCM and full 512 KiB RAM equality with ordinary Ps1Spu",
+      "main volume scaling, dynamic mute and restore",
+      "Noise shared clock and pitch independence",
+      "PMON carriers in both register masks, including CH23 to CH24",
+      "Room reverb tails, return scaling and main mute",
+      "SPUSTAT source and independent sticky I_STAT IRQ9 lifecycle",
+      "even/odd SB, LBU/LHU/LW/SW and ordinary RAM byte semantics",
+      "stopped manual FIFO waits for mode entry",
+      "render subdivision, independent machines, disposal and Abort",
+      "wrong/missing ABI, invalid supplied WASM without fallback, explicit failure latching"
+    ]
+  },
+  "previousWasmRejection": {
+    "passed": true,
+    "audioDeviceAccess": false,
+    "previousWasm": {
+      "bytes": 412681,
+      "sha256": "cecb76415ed7752252decaca2229ff4a9556808eaad7bc256da6d16d82ac54e0"
+    },
+    "allocations": 0,
+    "error": "PSF playback components are out of date. Reload the page to load the matching MAME SPU player."
+  },
+  "localRealPsf": {
+    "listeningPerformed": false,
+    "audioDeviceAccess": false,
+    "files": [
+      {
+        "name": "30 - Alatos.minipsf",
+        "bytes": 59962,
+        "sha256": "de4f5b647c6a6af80a325a666732bc8f1c815e1b389ba1a673038c0eeaec9fe0"
+      },
+      {
+        "name": "Arc_The_Lad_psf_driver.psflib",
+        "bytes": 216795,
+        "sha256": "a68bcb16b46ec7870836f7f91890d83eaf11ae6528f58c0c25650405ae44c1d8"
+      }
+    ],
+    "backend": {
+      "abi": 2,
+      "engine": "play-hle+mame-ps1-spu",
+      "sampleRate": 44100
+    },
+    "passed": true,
+    "seconds": 4,
+    "peak": 0.3161733150482178,
+    "rms": 0.06051904859341169,
+    "pcmSha256": "6e83c6e90db58f963d003100e61fb2e5b58f0f185da5394a5563a199f78dce21"
+  },
+  "browsers": {
+    "psfPlayback": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "checkerSha256": null,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+            "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+            "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+            "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+            "Pause stops output and scheduling; Resume advances from the retained playback position",
+            "Stop keeps the authored instrument and the independent VAB extraction controls",
+            "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+            "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+            "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+            "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+          ],
+          "errors": [],
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 50,
+            "bufferStops": 30,
+            "monitorStrokes": 540,
+            "stopDelays": 1
+          },
+          "physicalOutputMuted": true,
+          "processorErrors": [],
+          "captureContinuity": null
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+            "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+            "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+            "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+            "Pause stops output and scheduling; Resume advances from the retained playback position",
+            "Stop keeps the authored instrument and the independent VAB extraction controls",
+            "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+            "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+            "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+            "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+          ],
+          "errors": [],
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 51,
+            "bufferStops": 32,
+            "monitorStrokes": 420,
+            "stopDelays": 1
+          },
+          "physicalOutputMuted": true,
+          "processorErrors": [],
+          "captureContinuity": null
+        }
+      ],
+      "missing": [],
+      "external": [],
+      "httpErrors": []
+    },
+    "synth": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "checkerSha256": "8a5a273d749427acc08ac5190d8007778c4c6392b392e2d53313a6d5763edbeb",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": null,
+          "errors": [],
+          "graph": {
+            "before": {
+              "attackRate": 32,
+              "attackExponential": false,
+              "decayRate": 4,
+              "sustainLevel": 8,
+              "sustainRate": 0,
+              "sustainDecrease": false,
+              "sustainExponential": false,
+              "releaseRate": 8,
+              "releaseExponential": false
+            },
+            "after": {
+              "attackRate": 96,
+              "attackExponential": false,
+              "decayRate": 4,
+              "sustainLevel": 8,
+              "sustainRate": 0,
+              "sustainDecrease": false,
+              "sustainExponential": false,
+              "releaseRate": 8,
+              "releaseExponential": false
+            },
+            "allVoicesUpdated": true
+          },
+          "physicalOutputMuted": true,
+          "processorErrors": [],
+          "captureContinuity": {
+            "captures": 125,
+            "frames": 1437696,
+            "pcmContinuous": true,
+            "clockAnomalies": []
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": null,
+          "errors": [],
+          "graph": {
+            "before": {
+              "attackRate": 32,
+              "attackExponential": false,
+              "decayRate": 4,
+              "sustainLevel": 8,
+              "sustainRate": 0,
+              "sustainDecrease": false,
+              "sustainExponential": false,
+              "releaseRate": 8,
+              "releaseExponential": false
+            },
+            "after": {
+              "attackRate": 96,
+              "attackExponential": false,
+              "decayRate": 4,
+              "sustainLevel": 8,
+              "sustainRate": 0,
+              "sustainDecrease": false,
+              "sustainExponential": false,
+              "releaseRate": 8,
+              "releaseExponential": false
+            },
+            "allVoicesUpdated": true
+          },
+          "physicalOutputMuted": true,
+          "processorErrors": [],
+          "captureContinuity": {
+            "captures": 126,
+            "frames": 1441792,
+            "pcmContinuous": true,
+            "clockAnomalies": []
+          }
+        }
+      ],
+      "missing": [],
+      "external": [],
+      "httpErrors": []
+    },
+    "code": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "checkerSha256": null,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ],
+          "errors": [],
+          "graph": null,
+          "physicalOutputMuted": true,
+          "processorErrors": [],
+          "captureContinuity": null
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ],
+          "errors": [],
+          "graph": null,
+          "physicalOutputMuted": true,
+          "processorErrors": [],
+          "captureContinuity": null
+        }
+      ],
+      "missing": [],
+      "external": [],
+      "httpErrors": []
+    }
+  },
+  "cache": {
+    "version": "psf-mame-spu-1",
+    "allLayersVersioned": [
+      "application entry",
+      "PSF core wrapper",
+      "generated JS factory",
+      "WASM URL"
+    ],
+    "beforeMachineAllocation": true
+  },
+  "sourceKit": {
+    "stage": "itch_spu_synth_psf-shared-core-20261111-a-POaEh8",
+    "playProvenance": {
+      "files": 158,
+      "pass": true,
+      "mismatches": []
+    },
+    "stagedFixedSdk": {
+      "files": 17,
+      "pass": true,
+      "mismatches": []
+    },
+    "repositoryFixedSdk": {
+      "files": 476,
+      "pass": true,
+      "command": "python3 scripts/import_soundchip_sdk.py --check"
+    },
+    "commands": [
+      "EM_CACHE=/private/tmp/psf_spu_test_emcache node sources/psf-player/scripts/build_psf_player.mjs --out-dir=/private/tmp/spu-shared-core-sourcekit-rebuild",
+      "python3 scripts/import_soundchip_sdk.py --check"
+    ],
+    "audioOutput": false,
+    "rebuild": {
+      "exitCode": 0,
+      "outputs": {
+        "psf_player.js": {
+          "stageBytes": 57015,
+          "rebuiltBytes": 57015,
+          "stageSha256": "2f35b94c0353ecdba775fbef837e7fb5669e253c8d2aac20315dd73b1c9c37cf",
+          "rebuiltSha256": "2f35b94c0353ecdba775fbef837e7fb5669e253c8d2aac20315dd73b1c9c37cf",
+          "byteExact": true
+        },
+        "psf_player.wasm": {
+          "stageBytes": 454280,
+          "rebuiltBytes": 454280,
+          "stageSha256": "33289709d42538a0940f33e77008062f4dfa9d338a91e08f2a146527d283025c",
+          "rebuiltSha256": "33289709d42538a0940f33e77008062f4dfa9d338a91e08f2a146527d283025c",
+          "byteExact": true
+        }
+      },
+      "pass": true
+    },
+    "pass": true
+  },
+  "distribution": {
+    "stage": "release/itch_spu_synth_psf-shared-core-20261111-a-POaEh8",
+    "archive": "release/tetorica_spu_synth_psf-shared-core-20261111-a_itch.zip",
+    "files": 331,
+    "bytes": 6952401,
+    "sha256": "a96dd6bf4b87469310eaf7a50c09e94057fe6515bc8f89010d87dfb3d33d755a",
+    "readableBrowserSources": true,
+    "bundled": false,
+    "minified": false,
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    }
+  },
+  "manualRemaining": [
+    "real listening and long-running real-game compatibility",
+    "optional future song CH1-24 Live/Capture"
+  ],
+  "gameAssetsAdded": false
+}

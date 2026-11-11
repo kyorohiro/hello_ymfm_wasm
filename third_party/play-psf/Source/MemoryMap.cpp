@@ -4,6 +4,17 @@
 
 #define LOG_NAME "MemoryMap"
 
+void CMemoryMap::SetSpuBusCallbacks(const SpuBusReadFunction& read, const SpuBusWriteFunction& write)
+{
+	m_spuBusRead = read;
+	m_spuBusWrite = write;
+}
+
+bool CMemoryMap::IsSpuBusAddress(uint32 address, uint32 width)
+{
+	return address >= 0x1F801C00 && address <= 0x1F801FFF && width <= 0x1F802000 - address;
+}
+
 void CMemoryMap::InsertReadMap(uint32 start, uint32 end, void* pointer, unsigned char key)
 {
 	assert(GetReadMap(start) == nullptr);
@@ -90,6 +101,8 @@ const CMemoryMap::MEMORYMAPELEMENT* CMemoryMap::GetMap(const MemoryMapListType& 
 
 uint8 CMemoryMap::GetByte(uint32 nAddress)
 {
+	if(m_spuBusRead && IsSpuBusAddress(nAddress, 1))
+		return static_cast<uint8>(m_spuBusRead(nAddress, 1));
 	const auto e = GetMap(m_readMap, nAddress);
 	if(!e)
 	{
@@ -111,8 +124,23 @@ uint8 CMemoryMap::GetByte(uint32 nAddress)
 	}
 }
 
+void CMemoryMap::SetByteFromRegister(uint32 address, uint32 value)
+{
+	if(m_spuBusWrite && IsSpuBusAddress(address, 1))
+	{
+		m_spuBusWrite(address, value, 1);
+		return;
+	}
+	SetByte(address, static_cast<uint8>(value));
+}
+
 void CMemoryMap::SetByte(uint32 nAddress, uint8 nValue)
 {
+	if(m_spuBusWrite && IsSpuBusAddress(nAddress, 1))
+	{
+		m_spuBusWrite(nAddress, nValue, 1);
+		return;
+	}
 	const auto e = GetMap(m_writeMap, nAddress);
 	if(!e)
 	{
@@ -140,6 +168,8 @@ void CMemoryMap::SetByte(uint32 nAddress, uint8 nValue)
 uint16 CMemoryMap_LSBF::GetHalf(uint32 nAddress)
 {
 	assert((nAddress & 0x01) == 0);
+	if(m_spuBusRead && IsSpuBusAddress(nAddress, 2))
+		return static_cast<uint16>(m_spuBusRead(nAddress, 2));
 	const auto e = GetMap(m_readMap, nAddress);
 	if(!e)
 	{
@@ -160,6 +190,8 @@ uint16 CMemoryMap_LSBF::GetHalf(uint32 nAddress)
 uint32 CMemoryMap_LSBF::GetWord(uint32 nAddress)
 {
 	assert((nAddress & 0x03) == 0);
+	if(m_spuBusRead && IsSpuBusAddress(nAddress, 4))
+		return static_cast<uint32>(m_spuBusRead(nAddress, 4));
 	const auto e = GetMap(m_readMap, nAddress);
 	if(!e)
 	{
@@ -201,6 +233,11 @@ uint32 CMemoryMap_LSBF::GetInstruction(uint32 address)
 void CMemoryMap_LSBF::SetHalf(uint32 nAddress, uint16 nValue)
 {
 	assert((nAddress & 0x01) == 0);
+	if(m_spuBusWrite && IsSpuBusAddress(nAddress, 2))
+	{
+		m_spuBusWrite(nAddress, nValue, 2);
+		return;
+	}
 	const auto e = GetMap(m_writeMap, nAddress);
 	if(!e)
 	{
@@ -224,6 +261,11 @@ void CMemoryMap_LSBF::SetHalf(uint32 nAddress, uint16 nValue)
 void CMemoryMap_LSBF::SetWord(uint32 nAddress, uint32 nValue)
 {
 	assert((nAddress & 0x03) == 0);
+	if(m_spuBusWrite && IsSpuBusAddress(nAddress, 4))
+	{
+		m_spuBusWrite(nAddress, nValue, 4);
+		return;
+	}
 	const auto e = GetMap(m_writeMap, nAddress);
 	if(!e)
 	{

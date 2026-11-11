@@ -381,14 +381,13 @@ void CSubSystem::CountTicks(int ticks)
 	m_spuIrqUpdateTicks += ticks;
 	if(m_spuIrqUpdateTicks >= g_spuIrqCheckDelay)
 	{
-		bool irqPending = false;
-		irqPending |= m_spuCore0.GetIrqPending();
-		irqPending |= m_spuCore1.GetIrqPending();
+		bool irqPending = m_externalSpuIrqPending ? m_externalSpuIrqPending() :
+		    (m_spuCore0.GetIrqPending() || m_spuCore1.GetIrqPending());
 		if(irqPending)
 		{
 			m_intc.AssertLine(CIntc::LINE_SPU2);
 		}
-		else
+		else if(!m_externalSpuIrqPending)
 		{
 			m_intc.ClearLine(CIntc::LINE_SPU2);
 		}

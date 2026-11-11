@@ -16,7 +16,7 @@ import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createPsfSongPreview} from './psf_song_preview.js?v=spu-psf-playback-1';
 import {preparePsfSongSource} from './psf_song_source.js?v=spu-psf-playback-1';
-import {createPsfPlaybackCore} from './psf_playback_core.js?v=spu-psf-playback-1';
+import {createPsfPlaybackCore} from './psf_playback_core.js?v=psf-mame-spu-1';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };

@@ -56,11 +56,23 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
       'synth-spu/psf_song_preview.js','synth-spu/psf_song_source.js','synth-spu/psf_playback_core.js',
       'sources/psf-player/third_party/play-psf/provenance.json','sources/psf-player/third_party/play-psf/Source/psx/PsxBios.cpp',
       'sources/psf-player/tetorica_src/wasm/psf_player/psf_player.cpp','sources/psf-player/scripts/build_psf_player.mjs',
+      ...['spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h','standalone_support.h','LICENSE'].map(name=>'sources/psf-player/third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/'+name),
       'licenses/play-psf/License.txt','licenses/play-psf/Framework-License.txt','licenses/play-psf/CodeGen-License.txt'])assert(info.names.includes(path),path);
     for(const name of ['psf_player.js','psf_player.wasm'])assert.deepEqual(await readFile(join(result.stage,'generated/psf-player',name)),await readFile(new URL('../docs/generated/psf-player/'+name,import.meta.url)));
     assert.equal(info.browser.psfPlayer.sourceRoot,'sources/psf-player');
     assert.equal(info.browser.psfPlayer.artifact.sha256,hash(await readFile(join(result.stage,'generated/psf-player/psf_player.wasm'))));
     assert.equal(info.browser.psfPlayer.provenance.license,'BSD-2-Clause');
+    assert.equal(info.browser.psfPlayer.engine,'Play! PSF1 HLE + MAME PS1 SPU');
+    assert.equal(info.browser.psfPlayer.abi,2);
+    assert.equal(info.browser.psfPlayer.spu.license,'BSD-3-Clause');
+    assert.equal(info.browser.psfPlayer.spu.sdkVersion,info.browser.sdk.version);
+    for(const file of info.browser.psfPlayer.spu.files) {
+      const path='third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/'+file.path;
+      const bytes=await readFile(new URL('../'+path,import.meta.url));
+      assert.deepEqual(await readFile(join(result.stage,info.browser.psfPlayer.spu.sourceRoot,file.path)),bytes);
+      assert.equal(file.sha256,hash(bytes));assert.equal(file.bytes,bytes.length);
+      assert(info.browser.originalInputs.some(input=>input.path===path&&input.sha256===file.sha256));
+    }
     assert.match(await readFile(join(result.stage,'sources/code-effects/README.md'),'utf8'),/host software after the SPU/);
     assert(!info.names.includes('favicon.ico'), 'The SPU icon replaces the website-wide favicon');
     const icon = await readFile(new URL('../docs/synth-spu/icon.png', import.meta.url));

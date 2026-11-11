@@ -216,12 +216,22 @@ Selecting a different accepted entry also stops the old song. Failed imports
 keep the previous selection. This first version has no song CH Live display,
 Capture or seeking. PSF2 is not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
-The initial player supports basic ADPCM, ADSR and reverb. Its Play! SPU does
-not reproduce Noise, PMON or the hardware main / reverb output-volume registers;
-those parts of a song can sound different or be missing. The Synth's Master
-still controls the final bus. These are song-player limitations, not changes
-to the existing keyboard SPU or its supported effects. Treat this as a preview,
-not an exact PS1 recording reference.
+The active song SPU uses the same fixed MAME-derived DSP sources as the
+keyboard Synth: ADPCM, four-point Gaussian interpolation, ADSR, Noise, PMON,
+hardware main / reverb output volumes and shared reverb. The CPU's SPU register
+accesses, RAM transfers and IRQ use this same instance; the old Play! SPU does
+not contribute audio. Song output retains hardware mixing, without the
+keyboard's software headroom or click guard. The Synth's Master controls the
+final bus.
+
+CPU execution still uses Play! HLE and basic-block timing; it is not cycle-exact
+PS1 emulation. Volume sweeps, voice start / repeat addresses aligned only to
+8 bytes rather than 16, and unsupported RAM transfer modes fail explicitly.
+Those limitations can prevent some game drivers from playing. Treat this as a
+preview, not an exact PS1 recording reference. The player checks its WASM ABI
+before creating a machine, so an older cached player cannot silently fall back
+to the previous SPU. Readable sources, both licenses and a standalone rebuild
+recipe are included in the distribution's `sources/psf-player/`.
 
 To extract an instrument, choose **Extract VAB** beside **Play / Pause / Stop**
 for the selected song. This opens **PSF / VAB** and shows progress and the bank

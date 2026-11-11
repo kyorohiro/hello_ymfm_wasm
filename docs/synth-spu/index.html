@@ -96,7 +96,7 @@
             <button id="psfStopSong" type="button" disabled>Stop song</button>
             <button id="extractPsf" type="button" title="Extract VAB banks from the selected PSF and show its Bank / Tone list." disabled>Extract VAB</button>
             <output id="psfSongPosition" aria-label="PSF playback position">0:00</output>
-            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. This Preview renders basic ADPCM / ADSR / reverb; song Noise, PMON and hardware main / reverb output-volume registers are not reproduced yet. Master still works. Song CH Live / Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
+            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. Keyboard, Code or instrument edits stop the song. The song uses the Synth’s MAME-derived SPU DSP for ADPCM, ADSR, Noise, PMON, main / reverb volumes and reverb, with hardware mixing. CPU timing remains HLE, not cycle-exact. Unsupported volume sweeps, 8-byte-only voice addresses and transfer modes report an error. Master still works. Song CH Live / Capture and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
           </div>
           <p id="psfPlaybackStatus" class="subtext" role="status" aria-live="polite">Open a PSF set and choose an entry to play.</p>
         </section>
@@ -245,6 +245,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-split-vab-1"></script>
+    <script type="module" src="./synth.js?v=spu-psf-mame-1"></script>
   </body>
 </html>

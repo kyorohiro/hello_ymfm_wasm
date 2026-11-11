@@ -264,6 +264,9 @@ function findWasmBinary() {
 }
 
 function getBinarySync(file) {
+  if (file == wasmBinaryFile && wasmBinary) {
+    return new Uint8Array(wasmBinary);
+  }
   if (readBinary) {
     return readBinary(file);
   }
@@ -505,6 +508,20 @@ var findMatchingCatch = args => {
 var ___cxa_find_matching_catch_2 = () => findMatchingCatch([]);
 
 var ___cxa_find_matching_catch_3 = arg0 => findMatchingCatch([ arg0 ]);
+
+var ___cxa_rethrow = () => {
+  if (!exceptionCaught.length) {
+    abort("no exception to throw");
+  }
+  var info = exceptionCaught.at(-1);
+  var ptr = info.excPtr;
+  info.set_rethrown(true);
+  info.set_caught(false);
+  uncaughtExceptionCount++;
+  ___cxa_increment_exception_refcount(ptr);
+  exceptionLast = new CppException(ptr);
+  throw exceptionLast;
+};
 
 var ___cxa_throw = (ptr, type, destructor) => {
   var info = new ExceptionInfo(ptr);
@@ -1359,6 +1376,7 @@ var removeFunction = index => {
   if (Module["noExitRuntime"]) noExitRuntime = Module["noExitRuntime"];
   if (Module["print"]) out = Module["print"];
   if (Module["printErr"]) err = Module["printErr"];
+  if (Module["wasmBinary"]) wasmBinary = Module["wasmBinary"];
   // End ATMODULES hooks
   if (Module["arguments"]) programArgs = Module["arguments"];
   if (Module["thisProgram"]) thisProgram = Module["thisProgram"];
@@ -1426,7 +1444,7 @@ function WasmCreateModule(code, size) {
 }
 
 // Imports from the Wasm binary.
-var _EmptyBlockHandler, _MemoryUtils_GetByteProxy, _MemoryUtils_GetHalfProxy, _MemoryUtils_GetWordProxy, _MemoryUtils_SetByteProxy, _MemoryUtils_SetHalfProxy, _MemoryUtils_SetWordProxy, _LWL_Proxy, _LWR_Proxy, _SWL_Proxy, _SWR_Proxy, _malloc, _free, _psf_last_error, _psf_create, _psf_render, _psf_destroy, ___getTypeName, _setThrew, __emscripten_tempret_set, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, ___cxa_decrement_exception_refcount, ___cxa_increment_exception_refcount, ___cxa_can_catch, ___cxa_get_exception_ptr, memory, __indirect_function_table, wasmMemory, wasmTable;
+var _EmptyBlockHandler, _MemoryUtils_GetByteProxy, _MemoryUtils_GetHalfProxy, _MemoryUtils_GetWordProxy, _MemoryUtils_SetByteProxy, _MemoryUtils_SetHalfProxy, _MemoryUtils_SetWordProxy, _LWL_Proxy, _LWR_Proxy, _SWL_Proxy, _SWR_Proxy, _malloc, _free, _psf_abi_version, _psf_spu_model, _psf_last_error, _psf_create, _psf_render, _psf_spu_read, _psf_spu_frames, _psf_spu_read_ram, _psf_cpu_read_ram, _psf_trace_start, _psf_trace_count, _psf_trace_read, _psf_trace_overflow, _psf_destroy, ___getTypeName, _setThrew, __emscripten_tempret_set, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, ___cxa_decrement_exception_refcount, ___cxa_increment_exception_refcount, ___cxa_can_catch, ___cxa_get_exception_ptr, memory, __indirect_function_table, wasmMemory, wasmTable;
 
 function assignWasmExports(wasmExports) {
   _EmptyBlockHandler = Module["_EmptyBlockHandler"] = wasmExports["EmptyBlockHandler"];
@@ -1442,9 +1460,19 @@ function assignWasmExports(wasmExports) {
   _SWR_Proxy = Module["_SWR_Proxy"] = wasmExports["SWR_Proxy"];
   _malloc = Module["_malloc"] = wasmExports["malloc"];
   _free = Module["_free"] = wasmExports["free"];
+  _psf_abi_version = Module["_psf_abi_version"] = wasmExports["psf_abi_version"];
+  _psf_spu_model = Module["_psf_spu_model"] = wasmExports["psf_spu_model"];
   _psf_last_error = Module["_psf_last_error"] = wasmExports["psf_last_error"];
   _psf_create = Module["_psf_create"] = wasmExports["psf_create"];
   _psf_render = Module["_psf_render"] = wasmExports["psf_render"];
+  _psf_spu_read = Module["_psf_spu_read"] = wasmExports["psf_spu_read"];
+  _psf_spu_frames = Module["_psf_spu_frames"] = wasmExports["psf_spu_frames"];
+  _psf_spu_read_ram = Module["_psf_spu_read_ram"] = wasmExports["psf_spu_read_ram"];
+  _psf_cpu_read_ram = Module["_psf_cpu_read_ram"] = wasmExports["psf_cpu_read_ram"];
+  _psf_trace_start = Module["_psf_trace_start"] = wasmExports["psf_trace_start"];
+  _psf_trace_count = Module["_psf_trace_count"] = wasmExports["psf_trace_count"];
+  _psf_trace_read = Module["_psf_trace_read"] = wasmExports["psf_trace_read"];
+  _psf_trace_overflow = Module["_psf_trace_overflow"] = wasmExports["psf_trace_overflow"];
   _psf_destroy = Module["_psf_destroy"] = wasmExports["psf_destroy"];
   ___getTypeName = wasmExports["__getTypeName"];
   _setThrew = wasmExports["setThrew"];
@@ -1469,6 +1497,7 @@ var wasmImports = {
   /** @export */ __cxa_end_catch: ___cxa_end_catch,
   /** @export */ __cxa_find_matching_catch_2: ___cxa_find_matching_catch_2,
   /** @export */ __cxa_find_matching_catch_3: ___cxa_find_matching_catch_3,
+  /** @export */ __cxa_rethrow: ___cxa_rethrow,
   /** @export */ __cxa_throw: ___cxa_throw,
   /** @export */ __resumeException: ___resumeException,
   /** @export */ _abort_js: __abort_js,

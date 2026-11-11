@@ -1,7 +1,8 @@
 # Play! PSF1 machine subset
 
 This directory contains the readable source subset used by Tetorica's independent
-PSF song-preview renderer. The existing Tetorica keyboard SPU is unchanged.
+PSF song-preview CPU and HLE BIOS. Audio now uses the same fixed MAME-derived
+SPU as Tetorica's keyboard and Code modes, without modifying that DSP source.
 Play!, Framework and CodeGen are licensed under BSD-2-Clause; their original
 license texts are included in the corresponding directories.
 
@@ -31,8 +32,16 @@ Local changes to upstream:
 
 - `Source/Ps2Const.h`: select the PS1 2 MiB RAM size, retaining its four RAM mirrors.
 
-- `Source/iop/Iop_SubSystem.cpp`: remove the PS2 `IopBios.h` dependency and reject
-  PS2 construction; omit two unrelated PS2 SIO2 DMA callbacks. Only PSF1 is exposed.
+- `Source/iop/Iop_SubSystem.{h,cpp}`: remove the PS2 `IopBios.h` dependency and reject
+  PS2 construction; omit two unrelated PS2 SIO2 DMA callbacks. Add an optional
+  external SPU IRQ source so inactive Play! SPU objects cannot clear its line.
+  Only PSF1 is exposed.
+- `Source/MemoryMap.{h,cpp}` and `Source/MemoryUtils.cpp`: add optional width-aware
+  PS1 SPU bus callbacks for
+  byte, halfword and word reads/writes. The old generic function handler does not
+  carry access width. Preserve the full CPU register value for even byte stores
+  (the SPU drives its low 16 bits); odd byte stores are ignored by the host.
+  Other mappings and users without callbacks are unchanged.
 
 PSF2, PSP PSF, RAR, native sound output, networking and the emulator GUI are not
 part of this subset.
@@ -41,12 +50,50 @@ part of this subset.
 
 This is a PSF1 reference-preview engine, not full PlayStation emulation. Its HLE
 BIOS implements a subset of PS1 services; some game drivers may fail or differ.
-The Play! SPU renderer is separate from the MAME-derived SPU used by Tetorica's
-keyboard and Code modes. In this upstream renderer:
+The CPU/HLE remains Play!, but its SPU renderer is inactive. The audio core is
+`third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/`, built from the same
+fixed BSD-3-Clause source as the Synth. PMON, Noise, main-output and reverb-return
+volumes therefore use that core instead of Play!'s ignored-register paths.
 
-- PMON and Noise register writes are ignored.
-- PS1 main-output and reverb-return volume register writes are ignored.
-- Voice ADSR and reverb are the Play! approximations and may sound different.
+The private host adapter routes the full `0x1f801c00..0x1f801fff` register range,
+DMA4 both ways, and the latched SPU IRQ status into PS1 interrupt line 9. It
+advances at 768 CPU cycles per 44.1-kHz frame, carrying executor overshoot into
+the next frame. Play!'s CPU executes basic blocks: this is bounded sample-level
+synchronization, not cycle-exact CPU/SPU timing. Transfer IRQs are checked
+against the accessed RAM word; exact sub-sample transfer IRQ timing is not
+claimed. The standalone core's FIFO has
+no CPU timer, so the host drains it when full, before transfer-mode/address
+changes, or at the next sample boundary, only while manual transfer is enabled.
+Words queued while stopped remain queued until manual transfer is enabled.
+DMA retains Play!'s bounded progression (at most 256 write or 16 read blocks
+per callback, resumed by its 10,000-tick DMA service). There is no Play! SPU double mix,
+software mixer headroom, audition/click guard, host PCM bank, or software
+release smoothing in song playback.
+
+Inherited core restrictions fail explicitly with a register address/value:
+volume sweeps, nonstandard RAM-control modes, and sample start/repeat addresses
+that are only eight-byte aligned. The Play! DMA channel supports incrementing
+request-mode DMA4; manual, linked and decrementing transfers fail explicitly
+rather than silently moving the wrong data. CPU data-port reads retain the core's
+nondestructive register readback; no undocumented manual RAM-read operation is
+invented. Overflowing a stopped manual FIFO fails explicitly.
+The fixed core still has approximate ADSR and
+preset reverb; unrecognized reverb register configurations are not guaranteed
+to match hardware. This does not add a full PlayStation BIOS or CPU environment.
+
+## Private numerical diagnostics
+
+The backend reports ABI 2 (`psf_abi_version`) and core model 1 (`psf_spu_model`,
+fixed MAME-derived SPU). Read-only `psf_spu_read`, `psf_spu_read_ram`,
+`psf_cpu_read_ram` and `psf_spu_frames` support fixtures without another audio
+path. Optional `psf_trace_start(handle,maxEvents)` enables a bounded trace
+(maximum 262,144 events; zero disables it). `psf_trace_count`, `psf_trace_read`
+and `psf_trace_overflow` expose four little-endian uint32 fields per event:
+`{frame,kind,address,value}`. Kind 1 is a 16-bit register write (byte offset),
+kind 2 an actual PIO/DMA 16-bit physical RAM write, and kind 3 a transfer read.
+Events occur before the named frame is rendered. DSP replay skips kind-1
+writes to FIFO data `0x1a8` and loads kind-2 RAM words directly, avoiding duplicate
+FIFO transfers. Tracing is disabled by default and overflow is explicit.
 
 The application Master control still scales preview playback. Sample/ADSR/reverb
 settings in the Synth editor do not rewrite the running game driver. PSF2 is not

@@ -16,6 +16,7 @@ config.root=path.resolve(config.root);assert(config.entry.startsWith('/')&&!/[?#
 const engines=config.engines.split(',');assert(engines.length&&engines.every(name=>['chromium','webkit'].includes(name)));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex'),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const served=new Map(),missing=[],external=[],blockedMonaco=[],httpErrors=[],results=[];
+const psfRequests=[];
 const mime={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.wasm':'application/wasm','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.ico':'image/x-icon'};
 async function until(fn,label,ms=25000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await wait(30);}throw Error('Timeout: '+label);}
 
@@ -109,6 +110,28 @@ async function check(browser,name,origin,fixture){
   try{
     await page.goto(origin+config.entry);await until(()=>page.locator('#spuFileImportButton').isEnabled(),'Files initialization');
     assert.equal(await page.locator('#psfSongPlayer').count(),1);assert(await page.locator('#psfSongPlayer').isHidden(),'the song list does not take space before a PSF set is accepted');
+    step('The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation');
+    measurements.backend=await page.evaluate(async text=>{
+      const script=document.querySelector('script[src*="synth.js"]');
+      const url=new URL('./psf_playback_core.js?v=psf-mame-spu-1',new URL(script.src,location.href));
+      const {createPsfPlaybackCore}=await import(url.href),bytes=Uint8Array.from(atob(text),value=>value.charCodeAt(0));
+      const ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length);
+      ram.set(bytes,0x10000);coverage.fill(1,0x10000,0x10000+bytes.length);
+      const image={ram,coverage,pc:0x80010000,gp:0x80020000,sp:0x801fff00,refresh:60};
+      const core=await createPsfPlaybackCore({image});let measured;
+      try{const pcm=core.render(8820);measured={backend:core.backend,frozen:Object.isFrozen(core.backend),finite:pcm.every(Number.isFinite),peak:pcm.reduce((a,b)=>Math.max(a,Math.abs(b)),0)};}
+      finally{core.dispose();}
+      let allocations=0,error='';
+      try{await createPsfPlaybackCore({image,moduleOptions:{onRuntimeInitialized(){
+        this._psf_abi_version=()=>1;const malloc=this._malloc;
+        this._malloc=(...args)=>{allocations++;return malloc(...args);};
+      }}});}catch(reason){error=reason.message;}
+      return {...measured,staleAbi:{allocations,error}};
+    },fixture.textBase64);
+    assert.deepEqual(measurements.backend.backend,{abi:2,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert(measurements.backend.frozen&&measurements.backend.finite&&measurements.backend.peak>.001);
+    assert.equal(measurements.backend.staleAbi.allocations,0);assert.match(measurements.backend.staleAbi.error,/out of date/);
+    assert.equal((await graph(page)).contexts,0,'numeric core checks do not open an audio device');
     step('Public PSF import lists executable entries without starting audio and preserves the existing VAB selection');
     await choose(page,'#loadVab','vabFileInput',path.join(repo,'docs/playground/samples/spu-import/spu-synth-demo.vab'));
     await until(()=>page.locator('#loadVabTone').isEnabled(),'VAB parsed');
@@ -197,6 +220,7 @@ async function check(browser,name,origin,fixture){
 const server=http.createServer(async(request,response)=>{
   try{
     const pathname=new URL(request.url,'http://localhost').pathname;if(pathname==='/favicon.ico'){response.writeHead(204).end();return;}
+    if(/psf[_-](?:player|playback_core)\.(?:js|wasm)$/.test(pathname))psfRequests.push(request.url);
     const filename=path.resolve(config.root,'.'+decodeURIComponent(pathname));assert(filename.startsWith(config.root+path.sep),'outside root');
     const bytes=await fs.readFile(filename),relative=path.relative(config.root,filename).split(path.sep).join('/'),record={bytes:bytes.length,sha256:hash(bytes)};
     if(served.has(relative))assert.deepEqual(served.get(relative),record,'source changed');served.set(relative,record);response.writeHead(200,{'Content-Type':mime[path.extname(filename)]??'application/octet-stream'}).end(bytes);
@@ -211,16 +235,20 @@ const server=http.createServer(async(request,response)=>{
   await fs.mkdir(folder,{recursive:true});await fs.writeFile(path.join(folder,'standalone.psf'),first.standalone);
   for(const file of createPsfFixture().files){const target=path.join(folder,file.webkitRelativePath||file.name);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,Buffer.from(await file.arrayBuffer()));}
   await fs.writeFile(path.join(folder,'README.txt'),'Original synthetic fixtures only. Not a PSF dependency.\n');
-  const fixture={files:[{name:'first.psf',mimeType:'application/octet-stream',buffer:Buffer.from(first.standalone)},
+  const fixture={textBase64:Buffer.from(first.text).toString('base64'),files:[{name:'first.psf',mimeType:'application/octet-stream',buffer:Buffer.from(first.standalone)},
     {name:'second.psf',mimeType:'application/octet-stream',buffer:Buffer.from(second.standalone)}],broken,folder,
     library:{name:'Bank.psflib',mimeType:'application/octet-stream',buffer:Buffer.from(createPsfFixture().library)}};
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin=`http://127.0.0.1:${server.address().port}`;
   try{
     for(const name of engines){const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push(await check(browser,name,origin,fixture));}finally{await browser.close();}}
     assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert.deepEqual(httpErrors,[]);
+    for(const asset of ['psf_playback_core.js','psf_player.js','psf_player.wasm']) {
+      const urls=psfRequests.filter(url=>new URL(url,origin).pathname.endsWith('/'+asset));
+      assert(urls.length,asset+' was fetched locally');assert(urls.every(url=>new URL(url,origin).searchParams.get('v')==='psf-mame-spu-1'),asset+' has the matching cache identity');
+    }
     const report={schemaVersion:1,passed:true,root:config.root,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,
       fixture:{authored:true,gameAssets:false,firstSha256:hash(fixture.files[0].buffer),secondSha256:hash(fixture.files[1].buffer)},
-      results,missing,external,httpErrors,expectedBlockedMonaco:blockedMonaco,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))};
+      results,missing,external,httpErrors,psfRequests,expectedBlockedMonaco:blockedMonaco,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))};
     await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log('PASS receipt '+config.out);
   }finally{await new Promise(resolve=>server.close(resolve));await fs.rm(temporary,{recursive:true,force:true});}
 })().catch(error=>{console.error(error.stack??error);if(error.receipt)console.error(JSON.stringify(error.receipt,null,2));process.exitCode=1;});

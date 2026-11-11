@@ -86,7 +86,7 @@ uint128 MemoryUtils_GetQuadProxy(CMIPS* context, uint32 vAddress)
 void MemoryUtils_SetByteProxy(CMIPS* context, uint32 value, uint32 vAddress)
 {
 	uint32 address = context->m_pAddrTranslator(context, vAddress);
-	context->m_pMemoryMap->SetByte(address, static_cast<uint8>(value));
+	context->m_pMemoryMap->SetByteFromRegister(address, value);
 }
 
 void MemoryUtils_SetHalfProxy(CMIPS* context, uint32 value, uint32 vAddress)
