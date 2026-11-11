@@ -101,6 +101,21 @@
           <p id="psfPlaybackStatus" class="subtext" role="status" aria-live="polite">Open a PSF set and choose an entry to play.</p>
         </section>
 
+        <section id="spuCodeLiveTools" class="spu-code-live-tools" aria-label="Code observations" hidden>
+          <div class="spu-code-live-row">
+            <label><span id="spuLiveSourceLabel">Code view</span> <select id="spuLiveChannel" aria-label="Code channel to observe"></select></label>
+            <label class="check-control"><input id="spuLiveEnabled" type="checkbox" checked> <span id="spuLiveEnabledLabel">Live from Code</span></label>
+            <div id="spuPsfCaptureTools" class="spu-psf-capture-tools" hidden>
+              <label>Reference key <select id="spuPsfReferenceKey" aria-label="PSF audition and capture reference key" title="This key will reproduce the selected PSF PITCH code for paused keyboard audition and Capture. It does not infer the sample’s original root note."><option>C2</option><option>C3</option><option selected>C4</option><option>C5</option><option>C6</option></select></label>
+              <button id="spuPsfCapture" type="button" disabled aria-describedby="spuPsfCaptureHint">Capture to Synth</button>
+              <span id="spuPsfCaptureHint" class="spu-sr-only">Pause with Live enabled to capture ordinary ADPCM into the edited instrument.</span>
+            </div>
+            <details class="spu-code-help"><summary id="spuLiveHelpLabel" aria-label="About Code Live">?</summary><p id="spuLiveHelpText">Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.</p></details>
+          </div>
+          <p id="spuLiveStatus" role="status">Run Code to observe its channels.</p>
+          <p id="spuLiveReadout"></p>
+        </section>
+
         <section id="spuMonitor" class="spu-monitor" aria-label="Instrument display">
           <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
             <button type="button" data-spu-visual-mode="envelope" aria-pressed="true">Envelope</button>
@@ -124,21 +139,6 @@
               <output data-morph-performance-output for="morphAmount">Off</output>
             </label>
           </div>
-        </section>
-
-        <section id="spuCodeLiveTools" class="spu-code-live-tools" aria-label="Code observations" hidden>
-          <div class="spu-code-live-row">
-            <label><span id="spuLiveSourceLabel">Code view</span> <select id="spuLiveChannel" aria-label="Code channel to observe"></select></label>
-            <label class="check-control"><input id="spuLiveEnabled" type="checkbox" checked> <span id="spuLiveEnabledLabel">Live from Code</span></label>
-            <div id="spuPsfCaptureTools" class="spu-psf-capture-tools" hidden>
-              <label>Reference key <select id="spuPsfReferenceKey" aria-label="PSF audition and capture reference key" title="This key will reproduce the selected PSF PITCH code for paused keyboard audition and Capture. It does not infer the sample’s original root note."><option>C2</option><option>C3</option><option selected>C4</option><option>C5</option><option>C6</option></select></label>
-              <button id="spuPsfCapture" type="button" disabled aria-describedby="spuPsfCaptureHint">Capture to Synth</button>
-              <span id="spuPsfCaptureHint" class="spu-sr-only">Pause with Live enabled to capture ordinary ADPCM into the edited instrument.</span>
-            </div>
-            <details class="spu-code-help"><summary id="spuLiveHelpLabel" aria-label="About Code Live">?</summary><p id="spuLiveHelpText">Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.</p></details>
-          </div>
-          <p id="spuLiveStatus" role="status">Run Code to observe its channels.</p>
-          <p id="spuLiveReadout"></p>
         </section>
 
         <section class="instrument-workspace" aria-label="Instrument editor">
