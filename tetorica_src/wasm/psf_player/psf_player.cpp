@@ -2,6 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 // Play! supplies the PS1 CPU/HLE; the fixed Tetorica MAME port supplies all SPU audio.
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <functional>
 #include <stdexcept>
@@ -32,11 +33,37 @@ static_assert(sizeof(BusEvent) == 16, "Diagnostic trace ABI");
 // Only the CPU bus wiring is added here. Gaussian interpolation, decoding,
 // envelopes, mixing, PMON, Noise and reverb remain in the unchanged fixed core.
 class PsfSpu final : public spu_device {
+  // A build-only, read-only callback in generate_voice fills this optional
+  // per-instance sink. The SDK source and its normal mixer remain unchanged.
+  std::array<int32_t,48> dryVoiceFrame{};
+  std::array<int32_t,48>* dryVoiceSink=nullptr;
 public:
   std::function<void(uint32_t,uint32_t,uint32_t)> transferEvent;
   uint32_t transferAddress() const { return taddr >> 2; } // standard RAM mode
   uint32_t activeMask() const { return m_voice_active & 0xffffff; }
   bool irqPending() { return (read(0x1ae/2) & 0x40) != 0; }
+  void captureVoice(unsigned int channel,unsigned int frame,int sample,int left,int right) noexcept {
+    if(!dryVoiceSink || channel>=24 || frame!=0)return;
+    // The isolated voice enters an empty int16 bus. In particular, the
+    // (-32768 * -32768) corner saturates 32768 to 32767 like the real mixer.
+    (*dryVoiceSink)[channel*2]=std::clamp((sample*left)>>15,-32768,32767);
+    (*dryVoiceSink)[channel*2+1]=std::clamp((sample*right)>>15,-32768,32767);
+  }
+  void renderFrame(float* full,float* stems) {
+    if(!stems){spu_device::render(full,full+1,1);return;}
+    dryVoiceFrame.fill(0);
+    struct SinkGuard {
+      std::array<int32_t,48>*& sink;
+      SinkGuard(std::array<int32_t,48>*& value,std::array<int32_t,48>& frame):sink(value){sink=&frame;}
+      ~SinkGuard(){sink=nullptr;}
+    } guard(dryVoiceSink,dryVoiceFrame);
+    // Always generate the ordinary full mix, capture RAM, PMON, shared Noise,
+    // envelopes and reverb, even when the caller listens to just one dry stem.
+    spu_device::render(full,full+1,1);
+    const bool enabled=(spureg.ctrl&0xc000)==0xc000;
+    for(unsigned int channel=0;channel<24;channel++)for(unsigned int side=0;side<2;side++)
+      stems[channel*2+side]=enabled ? float(dryVoiceFrame[channel*2+side])*float(spureg.mvolx[side])/1073741824.0f : 0.0f;
+  }
   void transferIrq(uint32_t address) {
     if ((spureg.ctrl & 0x40) && address == uint32_t(spureg.irq_addr)*8)
       spureg.status |= 0x40;
@@ -92,6 +119,15 @@ public:
     }
   }
 };
+}
+
+// Only the temporary build overlay calls this. One native sample is rendered
+// at a time, so generate_voice's local frame index is always zero. No global
+// selected channel, native register, decoder history or sample RAM is written.
+extern "C" void psf_spu_voice_tap(const void* instance,unsigned int channel,unsigned int frame,
+  int sample,int left,int right) noexcept {
+  auto* core=static_cast<PsfSpu*>(static_cast<spu_device*>(const_cast<void*>(instance)));
+  core->captureVoice(channel,frame,sample,left,right);
 }
 
 struct PsfPlayer {
@@ -205,7 +241,7 @@ static void registerFunctions() {
   R::RegisterFunction(reinterpret_cast<uintptr_t>(&SWR_Proxy), "_SWR_Proxy", "viii");
   ready = true;
 }
-extern "C" uint32_t psf_abi_version() { return 3; }
+extern "C" uint32_t psf_abi_version() { return 4; }
 extern "C" uint32_t psf_spu_model() { return 1; } // fixed MAME-derived Tetorica SPU
 extern "C" const char* psf_last_error() { return lastError.c_str(); }
 extern "C" PsfPlayer* psf_create(const uint8_t* ram, const uint8_t* coverage, uint32_t pc, uint32_t gp, uint32_t sp, uint32_t refresh) {
@@ -238,8 +274,13 @@ extern "C" PsfPlayer* psf_create(const uint8_t* ram, const uint8_t* coverage, ui
     return player.release();
   } catch (const std::exception& error) { lastError=error.what(); return nullptr; }
 }
-extern "C" int psf_render(PsfPlayer* player, float* output, uint32_t frames) {
-  if (!player || !output || frames>44100) return -1;
+static int renderPsf(PsfPlayer* player,float* output,float* stems,uint32_t frames) {
+  if (!player || !output || frames>44100) {lastError="Invalid PSF render buffers or size.";return -1;}
+  if(stems) {
+    const auto fullAt=reinterpret_cast<uintptr_t>(output),stemAt=reinterpret_cast<uintptr_t>(stems);
+    const uintptr_t fullBytes=uintptr_t(frames)*2*sizeof(float),stemBytes=uintptr_t(frames)*48*sizeof(float);
+    if(fullAt<stemAt+stemBytes && stemAt<fullAt+fullBytes) {lastError="PSF full mix and stem buffers must not overlap.";return -1;}
+  }
   lastError.clear();
   try {
     if (!player->failure.empty()) throw std::runtime_error(player->failure);
@@ -259,7 +300,7 @@ extern "C" int psf_render(PsfPlayer* player, float* output, uint32_t frames) {
         }
       }
       player->spu.flushPio();
-      player->spu.render(output+at*2,output+at*2+1,1);
+      player->spu.renderFrame(output+at*2,stems ? stems+at*48 : nullptr);
       ++player->renderedFrames;
       player->syncIrq();
     }
@@ -268,6 +309,13 @@ extern "C" int psf_render(PsfPlayer* player, float* output, uint32_t frames) {
     player->failure=lastError=error.what();
     return -1;
   }
+}
+extern "C" int psf_render(PsfPlayer* player,float* output,uint32_t frames) {
+  return renderPsf(player,output,nullptr,frames);
+}
+extern "C" int psf_render_stems(PsfPlayer* player,float* output,float* stems,uint32_t frames) {
+  if(!stems){lastError="PSF stem output buffer is required.";return -1;}
+  return renderPsf(player,output,stems,frames);
 }
 // Private, read-only numerical diagnostics. No additional audio path is exposed.
 extern "C" uint32_t psf_spu_read(PsfPlayer* p,uint32_t offset) {

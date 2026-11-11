@@ -55,6 +55,28 @@ test('an old fade callback cannot mute a reopened program or settle a newer Stop
   f.advance(10);assert.equal(await second,true);assert.equal(f.timers.size,0);
 });
 
+test('a scheduled input stays muted until its audio start, including a suspended clock',async()=>{
+  for(const state of ['running','suspended']) {
+    const f=fixture({state}),stopping=f.output.fadeOut();f.advance(10);await stopping;
+    const now=f.context.currentTime,inputStart=now+.02;
+    f.output.open({notBefore:inputStart});
+    assert.deepEqual(f.events.slice(-4),[['cancel',now],['set',0,now],['set',0,inputStart],['ramp',1,inputStart+.004]]);
+    const count=f.events.length;f.output.open({notBefore:inputStart+.1});
+    assert.equal(f.events.length,count,'a repeated open cannot move the existing fade-in');
+    f.output.dispose();
+  }
+});
+
+test('a replacement scheduled input reanchors the ramp after an interrupted opening',async()=>{
+  const f=fixture(),stopping=f.output.fadeOut();f.advance(10);await stopping;
+  f.output.open({notBefore:f.context.currentTime+.01,freshInput:true});
+  f.advance(1);const now=f.context.currentTime,nextInput=now+.02;
+  f.output.open({notBefore:nextInput,freshInput:true});
+  assert.deepEqual(f.events.slice(-4),[['cancel',now],['set',0,now],['set',0,nextInput],['ramp',1,nextInput+.004]]);
+  const count=f.events.length;f.output.open();assert.equal(f.events.length,count,'ordinary Apply still preserves the replacement ramp');
+  f.output.dispose();
+});
+
 test('initial Keyboard output and missing routes need no extra gain automation',async()=>{
   const f=fixture();f.output.open();assert.deepEqual(f.events,[]);
   const missing=createSynthCodeOutput({getContext:()=>null,getGain:()=>null});

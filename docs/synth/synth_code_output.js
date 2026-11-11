@@ -40,15 +40,20 @@ export function createSynthCodeOutput({getContext,getGain,setTimer=nativeSetTime
     if(pending!==task)return;
     pending=null;if(task.timer!==null)clearTimer(task.timer);task.resolve(result);
   }
-  function open() {
+  function open(options={}) {
     if(disposed)return;
+    const notBefore=options?.notBefore??0;
+    if(!Number.isFinite(notBefore)||notBefore<0)throw RangeError('Code output start must be a finite nonnegative audio time');
     // An older Stop must never close a route opened by a newer performance.
     if(pending)settle(pending,false);
-    const owner=current();if(!owner||owner.mode==='open'||owner.mode==='opening')return;
+    const owner=current();if(!owner||!options?.freshInput&&(owner.mode==='open'||owner.mode==='opening'))return;
     const at=time(owner.context),parameter=owner.gain.gain;
-    if(owner.context.state!=='running'){setImmediate(owner,1);return;}
+    if(owner.context.state!=='running'&&notBefore<=at){setImmediate(owner,1);return;}
     // Let the queued chip reset reach the worklet before revealing its output.
-    const start=at+128/(owner.context.sampleRate||44100),end=start+OPEN_FADE_SECONDS;
+    // A fresh scheduled input can replace an earlier opening ramp. A retained
+    // AudioBuffer may start later; fade in with that input rather
+    // than opening fully during the silent gap preceding it.
+    const start=Math.max(at+128/(owner.context.sampleRate||44100),notBefore),end=start+OPEN_FADE_SECONDS;
     parameter.cancelScheduledValues(at);parameter.setValueAtTime(0,at);
     parameter.setValueAtTime(0,start);parameter.linearRampToValueAtTime(1,end);
     Object.assign(owner,{mode:'opening',from:0,to:1,start,end});

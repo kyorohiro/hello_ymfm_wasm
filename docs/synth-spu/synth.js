@@ -14,9 +14,9 @@ import {setupSpuCodeHost} from './code_host.js?v=spu-split-vab-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {createPsfSongPreview} from './psf_song_preview.js?v=spu-psf-capture-1';
+import {createPsfSongPreview} from './psf_song_preview.js?v=spu-psf-channel-monitor-1';
 import {preparePsfSongSource} from './psf_song_source.js?v=spu-psf-playback-1';
-import {createPsfPlaybackCore} from './psf_playback_core.js?v=psf-capture-1';
+import {createPsfPlaybackCore} from './psf_playback_core.js?v=psf-channel-monitor-1';
 import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-capture-1';
 import {createPsfPausedAudition} from './psf_paused_audition.js?v=psf-paused-audition-1';
 import {createPsfChannelActivity} from './psf_channel_activity.js?v=psf-channel-activity-1';
@@ -123,10 +123,14 @@ function updateCodeDisplay() {
   $('spuLiveChannel').setAttribute('aria-label',`${source} channel to observe`);
   $('spuLiveHelpLabel').setAttribute('aria-label',`About ${source} Live`);
   $('spuLiveHelpText').textContent=fromPsf?
-    "Read-only observations aligned with the song output, up to 20 updates/s. Choose CH 1–24 without changing its sound. The numbered buttons show sampled Core active / ENV, not output level; a silent modulator with zero voice volume can still light. Click a number to select its CH. The underline shows ENV, amber when Gate is Off but the core remains active. Live Off or an unavailable observation clears the indicators. Pause freezes all channels and their indicators. With Live On, the keyboard temporarily auditions the selected ADPCM channel at the Reference key tuning; the song, frozen display and edited sound are kept. CH / Reference changes end that audition. Resume restores the editor before continuing the same song position. With Live Off, the keyboard auditions your edited instrument while the song stays paused. Editing an instrument stops the song. Capture makes the selection permanent. The PCM graph is a bounded ADPCM preview from programmed Start with zero history, not the audible waveform or a full extraction. Reference key reproduces PITCH without inferring the original root. New notes restart the envelope. Start / Repeat are programmed addresses, not cursors. Gate is the last CPU KON / KOFF request; ENDX also marks loops. Intermediate changes can be missed.":
+    "Read-only observations aligned with the song output, up to 20 updates/s. Choose CH 1–24 without changing its sound. The numbered buttons show sampled Core active / ENV, not output level; a silent modulator with zero voice volume can still light. Click a number to select its CH. Selected CH only is a Tetorica software listening helper: it plays that channel’s Dry output with its voice and main volumes. All 24 voices, PMON sources, shared Noise and the song’s reverb keep running. Off restores the original full mix and shared reverb return. Monitoring works independently of Live; it does not change the captured sound or pause audition. Switching briefly fades the output while retaining the same song position. The underline shows ENV, amber when Gate is Off but the core remains active. Live Off or an unavailable observation clears the indicators. Pause freezes all channels and their indicators. With Live On, the keyboard temporarily auditions the selected ADPCM channel at the Reference key tuning; the song, frozen display and edited sound are kept. CH / Reference changes end that audition. Resume restores the editor before continuing the same song position. With Live Off, the keyboard auditions your edited instrument while the song stays paused. Editing an instrument stops the song. Capture makes the selection permanent. The PCM graph is a bounded ADPCM preview from programmed Start with zero history, not the audible waveform or a full extraction. Reference key reproduces PITCH without inferring the original root. New notes restart the envelope. Start / Repeat are programmed addresses, not cursors. Gate is the last CPU KON / KOFF request; ENDX also marks loops. Intermediate changes can be missed.":
     'Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.';
   $('spuLiveEnabled').checked=live.liveEnabled;
   $('spuLiveChannel').value=String(live.liveVoice);
+  $('spuPsfMonitorTools').hidden=!fromPsf;
+  $('spuPsfMonitorEnabled').checked=Boolean(fromPsf&&live.monitorEnabled);
+  $('spuPsfMonitorEnabled').disabled=Boolean(capturePending)||Boolean(fromPsf&&!live.monitorAvailable&&!live.monitorEnabled);
+  $('spuPsfMonitorTools').title='Tetorica listening helper: selected-channel dry output, with all voices and the shared reverb still running. Off restores the original full mix and reverb.';
   psfChannelActivity.update({visible:fromPsf,voice:live.liveVoice,liveState:observing?live.liveState:null,
     waiting:!live.liveEnabled||live.liveWaiting,error:live.liveError});
   $('spuPsfCaptureTools').hidden=!fromPsf;
@@ -182,6 +186,11 @@ function updateCodeDisplay() {
     }
   }
   $('spuLiveStatus').textContent=!running?'Performance stopped · edited instrument restored.':!live.liveEnabled?`Live off · ${source} continues${live.paused?' paused':''}. Editing the instrument stops ${source} first.`:live.liveError?live.liveMessage:live.liveWaiting?`Waiting for the current ${source} observation…`:`${live.paused?'Paused · frozen':'Live'} · ${source} CH ${live.liveVoice+1} · read-only PCM / ADSR / FX`;
+  if(fromPsf) {
+    const monitor=live.monitorError?live.monitorMessage:live.monitorSwitching?'Switching listening output…':live.monitorEnabled?`Listening to CH ${live.liveVoice+1} · Dry`:'';
+    if(monitor)$('spuLiveStatus').textContent+=` · ${monitor}`;
+  }
+  $('spuLiveStatus').dataset.error=String(Boolean(fromPsf&&live.monitorError));
 }
 function codeActivity() {
   if (disposed) return;
@@ -303,6 +312,10 @@ function selectLiveVoice(voice) {
   if(fromPsf)psfSong.setLiveVoice(voice);else codeLive.setVoice(voice);
 }
 $('spuLiveChannel').addEventListener('change',()=>{selectLiveVoice(Number($('spuLiveChannel').value));$('spuLiveChannel').blur();});
+$('spuPsfMonitorEnabled').addEventListener('change',()=>{
+  const enabled=$('spuPsfMonitorEnabled').checked;$('spuPsfMonitorEnabled').blur();
+  if(psfOwnsLiveView())void psfSong.setMonitorEnabled(enabled).catch(report);
+});
 $('spuLiveEnabled').addEventListener('change',()=>{cancelPendingCapture();void stopPausedKeyboard({releaseEdited:true}).catch(report);const enabled=$('spuLiveEnabled').checked;if(psfOwnsLiveView())psfSong.setLiveEnabled(enabled);else codeLive.setEnabled(enabled);$('spuLiveEnabled').blur();});
 $('spuPsfReferenceKey').addEventListener('change',()=>{cancelPendingCapture();void stopPausedKeyboard({releaseEdited:true}).catch(report);$('spuPsfReferenceKey').blur();});
 $('spuPsfCapture').addEventListener('click',()=>{$('spuPsfCapture').blur();void capturePsfVoice();});
@@ -630,6 +643,9 @@ function updatePsfPlayback(next) {
   $('psfPlaybackStatus').title=message;
   $('psfEntry').title=$('psfEntry').value;
   $('psfPlaybackStatus').dataset.error=String(next.error);
+  $('psfPlaybackStatus').dataset.monitorEnabled=String(Boolean(next.monitorEnabled));
+  $('psfPlaybackStatus').dataset.monitorSwitching=String(Boolean(next.monitorSwitching));
+  $('psfPlaybackStatus').dataset.monitorVoice=Number.isInteger(next.monitorVoice)?String(next.monitorVoice):'full';
   visualizer.setRunning(performanceRunning());
   if(next.playing)visualizer.wake();
   updateCodeDisplay();

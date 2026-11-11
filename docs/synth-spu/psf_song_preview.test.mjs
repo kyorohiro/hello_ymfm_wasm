@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPsfSongPreview} from './psf_song_preview.js';
+import {createSynthCodeOutput} from '../synth/synth_code_output.js';
 
 const RATE=44100;
 const RAM_BYTES=512*1024;
@@ -19,7 +20,7 @@ function harness(options={}) {
   const timers=new Map(),starts=[],outputs=[],updates=[];let nextTimer=0,audioReads=0,beforeCalls=0,contextCloses=0;
   const destination={editor:true},context={currentTime:0,state:'running',
     close(){contextCloses++;},
-    createGain(){const output={gain:{value:1},connected:null,disconnected:false,
+    createGain(){const output={gain:{value:1,events:[],cancelScheduledValues(at){this.events.push(['cancel',at]);},setValueAtTime(value,at){this.value=value;this.events.push(['set',value,at]);},linearRampToValueAtTime(value,at){this.value=value;this.events.push(['ramp',value,at]);}},connected:null,disconnected:false,
       connect(node){this.connected=node;},disconnect(){this.disconnected=true;}};outputs.push(output);return output;},
     createBuffer(channels,frames,rate){const data=Array.from({length:channels},()=>new Float32Array(frames));return {sampleRate:rate,length:frames,getChannelData:channel=>data[channel]};},
     createBufferSource(){const node={buffer:null,stopped:false,disconnected:false,
@@ -66,6 +67,35 @@ function captureHarness(options={}) {
   const machine=capturingCore(),h=harness({chunkFrames:2048,lookaheadSeconds:8192/RATE,createCore:async()=>machine,...options});
   h.machine=machine;return h;
 }
+function monitoredCore() {
+  const machine=capturingCore(),parts=[];
+  machine.voiceParts=parts;
+  machine.renderWithVoices=frames=>{
+    const start=machine.nativeFrames,pcm=machine.render(frames),voices=new Float32Array(frames*48);
+    for(let frame=0;frame<frames;frame++)for(let channel=0;channel<24;channel++) {
+      const value=(channel+1)*100000+start+frame,at=frame*48+channel*2;voices[at]=value;voices[at+1]=-value;
+    }
+    parts.push({start,frames,voices});return {pcm,voices};
+  };
+  return machine;
+}
+function monitorHarness(options={}) {
+  const machine=monitoredCore(),fadeTimers=new Map(),faders=[];let serial=0,h;
+  h=harness({chunkFrames:2048,lookaheadSeconds:8192/RATE,createCore:async()=>machine,
+    createOutput:hooks=>{
+      const output=createSynthCodeOutput({...hooks,setTimer(callback){const id=++serial;fadeTimers.set(id,callback);return id;},
+        clearTimer:id=>fadeTimers.delete(id),nowMs:()=>h.audio.context.currentTime*1000});
+      faders.push({...hooks,output});return output;
+    },...options});
+  h.machine=machine;h.fadeTimers=fadeTimers;h.faders=faders;
+  h.finishFade=async(frames=441)=>{
+    h.advance(frames);
+    for(const [id,callback]of [...fadeTimers]){fadeTimers.delete(id);callback();}
+    // Settle the fader, route switch and any Resume waiting on that switch.
+    for(let i=0;i<8;i++)await Promise.resolve();
+  };
+  return h;
+}
 const ramFrame=ram=>new DataView(ram.buffer,ram.byteOffset,ram.byteLength).getUint32(0,true);
 function assertNoBinary(value) {
   assert.equal(value instanceof ArrayBuffer||ArrayBuffer.isView(value),false,'public transport state never contains private RAM');
@@ -104,10 +134,10 @@ test('Pause and Resume retain unconsumed PCM instead of rerendering or skipping 
 
 test('song output borrows the final editor bus and removes its software mixing headroom',async()=>{
   const h=harness();h.controller.setSource(source(),'song.psf');await h.controller.play();
-  assert.equal(h.outputs.length,1);assert.equal(h.outputs[0].gain.value,.25);
-  assert.equal(h.outputs[0].connected,h.audio.gain);assert.equal(h.starts[0].node.output,h.outputs[0]);
+  assert.equal(h.outputs.length,2);assert.equal(h.outputs[0].gain.value,.25);assert.equal(h.outputs[1].gain.value,1);
+  assert.equal(h.outputs[0].connected,h.audio.gain);assert.equal(h.outputs[1].connected,h.outputs[0]);assert.equal(h.starts[0].node.output,h.outputs[1]);
   await h.controller.stop();
-  assert.ok(h.outputs[0].disconnected);assert.ok(h.starts.every(item=>item.node.stopped));
+  assert.ok(h.outputs.every(output=>output.disconnected));assert.ok(h.starts.every(item=>item.node.stopped));
   assert.equal(h.machine.disposals,1);assert.equal(h.contextCloses,0);assert.equal(h.timers.size,0);
   assert.equal(h.controller.read().name,'song.psf');assert.equal(h.controller.read().canPlay,true);
   await h.controller.dispose();assert.equal(h.machine.disposals,1);
@@ -234,7 +264,7 @@ test('Live shows pre-render state only when its native sample reaches the audibl
   h.controller.setLiveVoice(23);view=h.controller.read();assert.equal(view.liveState,snapshot,'channel selection reuses one coherent all-voice snapshot');
   assert.equal(view.liveState.channels[23].pitch,2205+23);assert.equal(view.liveVoice,23);
   assert.equal(h.machine.observations.length,observations);assert.equal(h.machine.renders.length,renders);assert.equal(h.starts.length,starts);
-  assert.equal(h.audioReads,1);assert.equal(h.beforeCalls,1);assert.equal(h.outputs.length,1);assert.equal(h.contextCloses,0);
+  assert.equal(h.audioReads,1);assert.equal(h.beforeCalls,1);assert.equal(h.outputs.length,2);assert.equal(h.contextCloses,0);
   h.machine.observations[1].state.channels[23].pitch=999;
   assert.equal(h.controller.read().liveState.channels[23].pitch,2205+23,'core-returned mutable data is detached at capture');
   assert.ok(Object.isFrozen(snapshot)&&Object.isFrozen(snapshot.channels[23].waveform.pcm));
@@ -262,7 +292,7 @@ test('Pause freezes the audible all-voice snapshot and Resume retains lookahead 
   assert.equal(h.controller.read().liveState.channels[12].pitch,2217);assert.equal(h.controller.read().liveFrame,2205);
   assert.equal(h.machine.renders.length,renders);assert.equal(h.machine.observations.length,observations);
   assert.equal(await h.controller.resume(),true);assert.equal(h.controller.read().liveFrame,2205);
-  assert.equal(h.beforeCalls,1);assert.equal(h.audioReads,1);assert.equal(h.outputs.length,1);
+  assert.equal(h.beforeCalls,1);assert.equal(h.audioReads,1);assert.equal(h.outputs.length,2);
   h.advance(1410);assert.equal(h.controller.read().liveFrame,4410,'already-rendered resumed PCM retains its matching future observation');
   await h.controller.dispose();
 });
@@ -368,7 +398,7 @@ test('paused Capture uses the audible pre-render RAM, never the newer emulation 
   const again=h.controller.capturePaused();assert.equal(ramFrame(again.ram),2205);assert.equal(again.source.entry,'folder/track.minipsf');
   assert.notEqual(again.ram,captured.ram,'each explicit Capture returns its own mutable RAM copy');
   assert.equal(h.machine.renders.length,renders);assert.equal(h.machine.observations.length,observes);assert.equal(h.machine.ramCopies.length,copies);
-  assert.equal(h.starts.length,starts);assert.equal(h.audioReads,1);assert.equal(h.beforeCalls,1);assert.equal(h.outputs.length,1);assert.equal(h.machine.disposals,0);
+  assert.equal(h.starts.length,starts);assert.equal(h.audioReads,1);assert.equal(h.beforeCalls,1);assert.equal(h.outputs.length,2);assert.equal(h.machine.disposals,0);
   await h.controller.dispose();
 });
 
@@ -467,4 +497,192 @@ test('oversized RAM backing buffers are normalized to the bounded image and stal
   late.controller.setSource(source(),'song.psf');const playing=late.controller.play();await late.controller.stop();pending.resolve(machine);
   assert.equal(await playing,false);assert.equal(machine.ramCopies.length,0);assert.equal(late.controller.read().captureBufferedBytes,0);
   assert.equal(late.controller.read().canCapture,false);assert.throws(()=>late.controller.capturePaused(),/Play and pause/);await late.controller.dispose();
+});
+
+test('selected-channel monitor defaults Off, captures all stems in one pass and retains its desired mode across sources',async()=>{
+  const h=monitorHarness();assert.equal(h.controller.read().monitorEnabled,false);assert.equal(h.controller.read().monitorAvailable,false);
+  await h.controller.setMonitorEnabled(true);h.controller.setLiveVoice(23);
+  assert.equal(h.audioReads,0);assert.equal(h.starts.length,0);
+  h.controller.setSource(source(),'song.psf');await h.controller.play();
+  const view=h.controller.read();assert.equal(view.monitorEnabled,true);assert.equal(view.monitorAvailable,true);assert.equal(view.monitorVoice,23);
+  assert.equal(view.monitorSwitching,false);assert.equal(h.outputs.length,2);
+  assert.deepEqual(scheduledPcm(h.starts[0]).slice(0,4),[2400000,2400001,2400002,2400003]);
+  assert.equal(h.machine.voiceParts.reduce((frames,part)=>frames+part.frames,0),h.machine.nativeFrames,'there is one native rendering pass, including Live subdivisions');
+  assert.equal(h.machine.renders.length,h.machine.voiceParts.length);
+  await h.controller.stop();assert.equal(h.controller.read().monitorEnabled,true);assert.equal(h.controller.read().monitorBufferedBytes,0);
+  h.controller.setSource(source('next.psf'),'next.psf');assert.equal(h.controller.read().monitorEnabled,true);
+  await h.controller.dispose();
+});
+
+test('monitor switching retains the exact first unconsumed frame, original full mix and shared Live state',async()=>{
+  const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);
+  const before=h.controller.read(),starts=h.starts.length,original=h.starts[1].node.buffer;
+  const switching=h.controller.setMonitorEnabled(true);assert.equal(h.controller.read().playing,true);assert.equal(h.controller.read().monitorSwitching,true);
+  await h.finishFade();assert.equal(await switching,true);
+  let view=h.controller.read();assert.equal(view.positionSeconds,3441/RATE);assert.equal(view.liveFrame,2205);
+  assert.equal(view.liveState,before.liveState);assert.equal(view.monitorVoice,0);assert.equal(view.monitorSwitching,false);
+  assert.equal(h.starts[starts].offset,1393/RATE);assert.equal(scheduledPcm(h.starts[starts])[0],103441);
+  assert.notEqual(h.starts[starts].node.buffer,original);assert.equal(h.starts[1].node.stopped,true);
+  const selectedStarts=h.starts.length,full=h.controller.setMonitorEnabled(false);await h.finishFade();assert.equal(await full,true);
+  view=h.controller.read();assert.equal(view.positionSeconds,3882/RATE);assert.equal(view.monitorVoice,null);
+  assert.equal(h.starts[selectedStarts].node.buffer,original,'Off reuses the original full song AudioBuffer, including its wet mix');
+  assert.equal(scheduledPcm(h.starts[selectedStarts])[0],3882);
+  assert.equal(h.audioReads,1);assert.equal(h.beforeCalls,1);assert.equal(h.machine.disposals,0);await h.controller.dispose();
+});
+
+test('rapid monitor On/Off and channel changes coalesce to the latest desired channel without moving a paused source',async()=>{
+  const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  const frozen=h.controller.read(),native=h.machine.nativeFrames,starts=h.starts.length;
+  const first=h.controller.setMonitorEnabled(true);h.controller.setLiveVoice(7);
+  const off=h.controller.setMonitorEnabled(false);h.controller.setLiveVoice(17);const last=h.controller.setMonitorEnabled(true);h.controller.setLiveVoice(23);
+  await h.finishFade();assert.equal(await first,true);assert.equal(await off,true);assert.equal(await last,true);
+  const view=h.controller.read();assert.equal(view.paused,true);assert.equal(view.monitorVoice,23);assert.equal(view.monitorSwitching,false);
+  assert.equal(view.positionSeconds,frozen.positionSeconds);assert.equal(view.liveState,frozen.liveState);assert.equal(view.captureFrame,frozen.captureFrame);
+  assert.equal(h.machine.nativeFrames,native);assert.equal(h.starts.length,starts);
+  await h.controller.resume();assert.equal(scheduledPcm(h.starts[starts])[0],2403000);
+  await h.controller.dispose();
+});
+
+test('On then Off before a fade settles reschedules the next original full-mix frame without applying a stale channel',async()=>{
+  const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);
+  const count=h.starts.length,first=h.controller.setMonitorEnabled(true),last=h.controller.setMonitorEnabled(false);
+  await h.finishFade();assert.equal(await first,true);assert.equal(await last,true);
+  const view=h.controller.read();assert.equal(view.monitorEnabled,false);assert.equal(view.monitorVoice,null);assert.equal(view.monitorSwitching,false);
+  assert.equal(scheduledPcm(h.starts[count])[0],3441);assert.equal(view.positionSeconds,3441/RATE);
+  assert.equal(view.monitorBufferedBytes% (2048*48*4),0,'no selected stereo cache was allocated for an abandoned request');await h.controller.dispose();
+});
+
+test('Pause during a pending fade freezes position and Resume awaits the latest selected route',async()=>{
+  const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);
+  const switching=h.controller.setMonitorEnabled(true);h.advance(50);h.controller.pause();const paused=h.controller.read();
+  h.controller.setLiveVoice(5);const count=h.starts.length,resuming=h.controller.resume();
+  assert.equal(h.controller.read().resuming,true);assert.equal(h.starts.length,count);
+  await h.finishFade();assert.equal(await switching,true);assert.equal(await resuming,true);
+  const view=h.controller.read();assert.equal(view.playing,true);assert.equal(view.monitorVoice,5);assert.equal(view.positionSeconds,paused.positionSeconds);
+  assert.equal(scheduledPcm(h.starts[count])[0],603050);assert.equal(view.liveFrame,paused.liveFrame);await h.controller.dispose();
+});
+
+test('Stop while Resume awaits a selected-route fade cannot schedule any stale retained PCM',async()=>{
+  const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  const switching=h.controller.setMonitorEnabled(true),resuming=h.controller.resume(),count=h.starts.length;
+  assert.equal(h.controller.read().resuming,true);await h.controller.stop();
+  assert.equal(await switching,false);assert.equal(await resuming,false);await h.finishFade();
+  assert.equal(h.starts.length,count);assert.equal(h.controller.read().playing,false);assert.equal(h.machine.disposals,1);await h.controller.dispose();
+});
+
+test('changing selected channel replaces one cached stereo buffer and repeating the same channel is a no-op',async()=>{
+  const h=monitorHarness();await h.controller.setMonitorEnabled(true);h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  const originalCount=h.starts.length,native=h.machine.nativeFrames,bytes=h.controller.read().monitorBufferedBytes;
+  h.controller.setLiveVoice(0);assert.equal(h.controller.read().monitorSwitching,false);assert.equal(h.fadeTimers.size,0);
+  h.controller.setLiveVoice(3);await h.finishFade();assert.equal(h.controller.read().monitorVoice,3);
+  assert.equal(h.machine.nativeFrames,native);assert.equal(h.starts.length,originalCount);
+  await h.controller.resume();assert.equal(scheduledPcm(h.starts[originalCount])[0],403000);
+  assert.ok(h.controller.read().monitorBufferedBytes<=bytes+4096*(48*4+8),'CH selection replaces its cache instead of retaining 24 stereo AudioBuffers');
+  assert.equal(h.outputs.length,2);await h.controller.dispose();
+});
+
+test('monitor switching never reads mutable reused native stem memory after a chunk is accepted',async()=>{
+  const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  for(const part of h.machine.voiceParts)part.voices.fill(-999);
+  h.controller.setLiveVoice(2);const switching=h.controller.setMonitorEnabled(true);await h.finishFade();await switching;
+  const count=h.starts.length;await h.controller.resume();assert.equal(scheduledPcm(h.starts[count])[0],303000);
+  await h.controller.dispose();
+});
+
+test('Live Off only disables observations and does not disable selected-channel listening',async()=>{
+  const h=monitorHarness();await h.controller.setMonitorEnabled(true);h.controller.setSource(source(),'song.psf');await h.controller.play();
+  h.controller.setLiveEnabled(false);const observations=h.machine.observations.length;
+  h.advance(3000);h.refill();assert.equal(h.machine.observations.length,observations);
+  assert.equal(h.controller.read().monitorVoice,0);assert.equal(h.controller.read().monitorEnabled,true);assert.equal(h.controller.read().liveState,null);
+  h.controller.pause();h.controller.setLiveVoice(12);await h.finishFade();const count=h.starts.length;await h.controller.resume();
+  assert.equal(scheduledPcm(h.starts[count])[0],1303000);await h.controller.dispose();
+});
+
+test('legacy render-only engines keep full song playback when selected listening is requested',async()=>{
+  const h=monitorHarness({createCore:async()=>core()});await h.controller.setMonitorEnabled(true);h.controller.setSource(source(),'song.psf');
+  assert.equal(await h.controller.play(),true);let view=h.controller.read();
+  assert.equal(view.monitorEnabled,true);assert.equal(view.monitorAvailable,false);assert.equal(view.monitorVoice,null);assert.equal(view.monitorError,true);
+  assert.match(view.monitorMessage,/unavailable/);assert.equal(view.error,false);assert.equal(view.playing,true);assert.equal(view.monitorBufferedBytes,0);
+  assert.deepEqual(scheduledPcm(h.starts[0]).slice(0,4),[0,1,2,3]);await h.controller.setMonitorEnabled(false);
+  view=h.controller.read();assert.equal(view.monitorError,false);assert.equal(view.playing,true);await h.controller.dispose();
+});
+
+test('invalid stem length or nonfinite samples disable only selected listening, preserving valid full PCM',async()=>{
+  for(const invalid of [new Float32Array(1),new Float32Array(2048*48).fill(NaN)]) {
+    const h=monitorHarness(),render=h.machine.renderWithVoices;
+    h.machine.renderWithVoices=frames=>({...render(frames),voices:invalid});
+    h.controller.setSource(source(),'song.psf');assert.equal(await h.controller.play(),true);
+    let view=h.controller.read();assert.equal(view.playing,true);assert.equal(view.error,false);assert.equal(view.monitorError,true);assert.equal(view.monitorAvailable,false);
+    assert.equal(view.monitorBufferedBytes,0);assert.deepEqual(scheduledPcm(h.starts[0]).slice(0,4),[0,1,2,3]);
+    await h.controller.setMonitorEnabled(true);view=h.controller.read();assert.equal(view.monitorVoice,null);assert.equal(view.playing,true);await h.controller.dispose();
+  }
+});
+
+test('Stop/source/dispose invalidate an old fader before a later song can acquire the shared bus',async()=>{
+  for(const action of ['stop','source','dispose']) {
+    const h=monitorHarness();h.controller.setSource(source(),'song.psf');await h.controller.play();
+    const old=h.faders[0],oldGate=h.outputs[1],switching=h.controller.setMonitorEnabled(true);
+    if(action==='stop')await h.controller.stop();
+    else if(action==='source')h.controller.setSource(source('new.psf'),'new.psf');
+    else await h.controller.dispose();
+    assert.equal(old.getContext(),null);assert.equal(old.getGain(),null);assert.equal(await switching,false);
+    assert.equal(h.controller.read().monitorSwitching,false);assert.equal(h.controller.read().monitorBufferedBytes,0);assert.ok(oldGate.disconnected);
+    if(action!=='dispose') {
+      if(action==='stop')h.controller.setSource(source('new.psf'),'new.psf');
+      await h.controller.play();const newest=h.outputs.at(-1),events=newest.gain.events.length,count=h.starts.length;
+      old.output.open();old.output.dispose();await h.finishFade();
+      assert.equal(newest.gain.events.length,events,'stale fader cannot automate the newer run');assert.equal(h.starts.length,count);
+    }
+    await h.controller.dispose();
+  }
+});
+
+test('retained all24 stems and one selected buffer stay bounded by lookahead, not song duration',async()=>{
+  const h=monitorHarness();await h.controller.setMonitorEnabled(true);h.controller.setSource(source(),'song.psf');await h.controller.play();
+  const bound=(8192+2048*2)*(48*4+8);
+  for(let step=0;step<70;step++) {
+    assert.ok(h.controller.read().monitorBufferedBytes>0);assert.ok(h.controller.read().monitorBufferedBytes<=bound);
+    h.advance(3000);h.refill();
+  }
+  assert.equal(h.outputs.length,2);await h.controller.stop();assert.equal(h.controller.read().monitorBufferedBytes,0);
+  await h.controller.dispose();
+});
+
+test('selected listening uses the existing 8ms close and 4ms open fader without automating Master',async()=>{
+  const h=monitorHarness({startDelaySeconds:.01});h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);
+  const at=h.audio.context.currentTime,count=h.starts.length,switched=h.controller.setMonitorEnabled(true),events=h.outputs[1].gain.events;
+  assert.deepEqual(events.slice(0,3),[['cancel',at],['set',1,at],['ramp',0,at+.008]]);
+  assert.equal(h.outputs[0].gain.events.length,0);await h.finishFade();await switched;
+  const ramp=events.at(-1);assert.equal(ramp[0],'ramp');assert.equal(ramp[1],1);
+  const firstAt=h.starts[count].at,openStart=events.at(-2);
+  assert.ok(firstAt>=h.audio.context.currentTime+.01-1e-12);assert.deepEqual(openStart,['set',0,firstAt]);
+  assert.ok(Math.abs(ramp[2]-(firstAt+.004))<1e-12,'the new source starts at gain zero, then ramps for four milliseconds');
+  assert.equal(h.outputs[0].gain.value,.25);assert.equal(h.contextCloses,0);await h.controller.dispose();
+  await assert.rejects(h.controller.setMonitorEnabled(1),TypeError);
+});
+
+test('Resume after a paused monitor switch anchors its gate fade to retained PCM scheduling, including slow refill',async()=>{
+  const h=monitorHarness({startDelaySeconds:.01});h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);h.controller.pause();
+  const switching=h.controller.setMonitorEnabled(true);await h.finishFade();await switching;
+  const count=h.starts.length,render=h.machine.renderWithVoices;
+  h.machine.renderWithVoices=frames=>{const result=render(frames);h.advance(1000);return result;};
+  const before=h.audio.context.currentTime;await h.controller.resume();
+  assert.ok(h.audio.context.currentTime>before,'slow native generation advances the host clock before sources are scheduled');
+  const firstAt=h.starts[count].at,events=h.outputs[1].gain.events;
+  assert.ok(firstAt>=h.audio.context.currentTime+.01-1e-12);assert.deepEqual(events.at(-2),['set',0,firstAt]);
+  assert.deepEqual(events.at(-1),['ramp',1,firstAt+.004]);assert.equal(h.outputs[0].gain.events.length,0);await h.controller.dispose();
+});
+
+test('Pause before a selected source onset then Resume reanchors an already-opening gate to the fresh source',async()=>{
+  const h=monitorHarness({startDelaySeconds:.01});h.controller.setSource(source(),'song.psf');await h.controller.play();h.advance(3000);
+  const count=h.starts.length,switching=h.controller.setMonitorEnabled(true);await h.finishFade();await switching;
+  const old=h.starts[count],events=h.outputs[1].gain.events;
+  assert.ok(h.audio.context.currentTime<old.at,'the old source and its gate ramp have not started yet');
+  assert.deepEqual(events.at(-2),['set',0,old.at]);h.controller.pause();const paused=h.controller.read(),native=h.machine.nativeFrames;
+  h.advance(88);assert.ok(h.audio.context.currentTime<old.at,'the gate remains in its opening state');
+  const next=h.starts.length;await h.controller.resume();const fresh=h.starts[next];
+  assert.equal(old.node.stopped,true);assert.ok(fresh.at>old.at);assert.equal(h.controller.read().positionSeconds,paused.positionSeconds);
+  assert.equal(h.machine.nativeFrames,native,'Resume reuses the exact retained PCM');
+  assert.deepEqual(events.at(-2),['set',0,fresh.at]);assert.deepEqual(events.at(-1),['ramp',1,fresh.at+.004]);
+  assert.equal(h.outputs[0].gain.events.length,0);await h.controller.dispose();
 });

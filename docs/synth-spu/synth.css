@@ -371,6 +371,7 @@ footer a { color: #4a5e74; }
 .spu-psf-capture-tools button { padding:6px 10px; font-size:.75rem; }
 #spuLiveChannel { max-width:100%; padding:5px; border:1px solid var(--line); border-radius:6px; background:#f7f9fa; color:var(--ink); }
 #spuLiveStatus,#spuLiveReadout,.spu-code-caption { margin:7px 0; font-size:.73rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; }
+#spuLiveStatus[data-error="true"] { color:var(--error,#b33631); }
 .spu-code-help { font-size:.73rem; color:var(--muted); margin:8px 0; }
 .spu-code-help summary { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border:1px solid var(--line); border-radius:50%; cursor:pointer; font-weight:750; }
 .spu-code-help p { max-width:80ch; line-height:1.6; }

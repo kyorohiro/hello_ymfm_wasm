@@ -69,12 +69,17 @@ async function check(browser,name,origin,fixture){
     document.addEventListener('change',event=>{if(event.target.id!=='spuLiveEnabled')return;const group=document.getElementById('spuPsfChannelActivity');window.__spuActivityTransitions.push({enabled:event.target.checked,ready:group.dataset.ready,channels:[...group.querySelectorAll('[data-psf-channel]')].map(button=>({...button.dataset}))});});});
   const view=()=>page.evaluate(()=>({inert:document.getElementById('spuVoicePanel').inert,...document.getElementById('spuVoicePanel').dataset,status:document.getElementById('spuLiveStatus').textContent,seconds:Number(document.getElementById('psfSongPosition').dataset.seconds)}));
   const authored=()=>page.evaluate(()=>__spuPsfAudit.instrument());
+  const monitor=()=>page.evaluate(()=>({...document.getElementById('psfPlaybackStatus').dataset}));
+  const monitorMeasurements={};
+  async function monitorSettled(enabled,voice){await until(async()=>{const value=await monitor();return value.monitorEnabled===String(enabled)&&value.monitorSwitching==='false'&&value.monitorVoice===(enabled?String(voice):'full');},'selected dry mode settled '+enabled+'/'+voice);}
+  async function measuredSound(audible){let value;await until(async()=>{value=await page.evaluate(()=>__spuPsfAudit.output());return value.muted&&value.finite&&(audible?value.rms>.00001:value.peak===0);},audible?'nonzero retained PSF PCM':'silent selected dry stem after analyser window');return value;}
+
   const activity=()=>page.evaluate(()=>{const group=document.getElementById('spuPsfChannelActivity');return {ready:group.dataset.ready,visible:group.getClientRects().length>0,channels:[...group.querySelectorAll('[data-psf-channel]')].map(button=>({channel:Number(button.dataset.psfChannel),available:button.dataset.available,active:button.dataset.active,lit:button.dataset.lit,gate:button.dataset.gate,env:Number(button.dataset.env),selected:button.getAttribute('aria-pressed'),disabled:button.disabled}))};});
   const channelData=value=>value.channels.map(({selected,...channel})=>channel);
   const assertCleared=value=>{assert.equal(value.ready,'false');assert(value.channels.every(channel=>channel.available==='false'&&channel.active==='false'&&channel.lit==='false'&&channel.gate==='false'&&channel.env===0),'unavailable activity is cleared rather than claiming current silence');};
   try{
     await page.goto(origin+config.entry);await until(()=>page.locator('#spuFileImportButton').isEnabled(),'Files ready');
-    assert(await page.locator('#spuCodeLiveTools').isHidden());
+    assert(await page.locator('#spuCodeLiveTools').isHidden());assert(await page.locator('#spuPsfMonitorTools').isHidden());assert.equal(await page.locator('#spuPsfMonitorEnabled').isChecked(),false);
     assert(await page.locator('#spuPsfChannelActivity').isHidden());assert.equal((await activity()).channels.length,24);
     await page.evaluate(()=>{window.__spuActivityButtons=[...document.querySelectorAll('#spuPsfChannelActivity [data-psf-channel]')];});
     await page.locator('#startAudio').click();await until(()=>page.locator('#startAudio').textContent().then(text=>text==='Audio ready'),'audio ready');
@@ -84,15 +89,36 @@ async function check(browser,name,origin,fixture){
     await page.locator('#psfPlaySong').click();await until(async()=>{const v=await view();return v.observationKind==='psf'&&Number(v.observationFrame)>=2205;},'PSF observation');
     let playing=await view();assert(playing.inert);assert(Number(playing.observationFrame)<=Math.floor(playing.seconds*44100));
     await until(async()=>(await activity()).ready==='true','24-channel activity ready');
-    await page.locator('#spuLiveEnabled').uncheck();assertCleared(await activity());await page.locator('#spuLiveEnabled').check();
+    // Listen numerically before the physical gain-zero gate. CH1 is a live
+    // PMON source with L/R=0; its dry stem must exclude the shared wet return.
+    monitorMeasurements.full=await measuredSound(true);const monitorCommandsBefore=await page.evaluate(()=>__spuPsfAudit.commands().length);
+    const monitorActivity=channelData(await activity());await page.locator('#spuPsfMonitorEnabled').check();await monitorSettled(true,0);
+    assert.equal(await page.locator('#spuPsfMonitorEnabled').evaluate(input=>input===document.activeElement),false,'monitor checkbox returns performance focus');
+    monitorMeasurements.silentSource=await measuredSound(false);
+    await page.locator('#spuPsfChannelActivity [data-psf-channel="1"]').click({delay:5});await monitorSettled(true,1);
+    monitorMeasurements.carrier=await measuredSound(true);assert.deepEqual(channelData(await activity()),monitorActivity,'dry selection does not change running native voices or ENV');
+    await page.locator('#spuLiveEnabled').uncheck();assertCleared(await activity());await monitorSettled(true,1);monitorMeasurements.liveOffCarrier=await measuredSound(true);
+    await page.locator('#spuPsfChannelActivity [data-psf-channel="0"]').click({delay:5});await monitorSettled(true,0);monitorMeasurements.liveOffSilentSource=await measuredSound(false);assertCleared(await activity());
+    const monitorCommands=await page.evaluate(()=>__spuPsfAudit.commands());assert(!monitorCommands.slice(monitorCommandsBefore).some(entry=>/^setInstrument|^instrumentNote|^load|^code$|^beginCode$|^observeCode$/.test(entry.method)),'selected dry playback neither edits voice/RAM nor takes Code ownership');
+    await page.locator('#spuLiveEnabled').check();
     const waiting=await page.evaluate(()=>__spuActivityTransitions.at(-1));assert.equal(waiting.enabled,true);assert.equal(waiting.ready,'false');assert(waiting.channels.every(channel=>channel.available==='false'&&channel.active==='false'&&channel.env==='0'),'On waits for the audible boundary before lighting activity');
-    await until(async()=>(await activity()).ready==='true','activity after audible waiting boundary');
+    await until(async()=>(await activity()).ready==='true','activity after audible waiting boundary');await page.locator('#spuPsfMonitorEnabled').uncheck();await monitorSettled(false,null);monitorMeasurements.restoredFull=await measuredSound(true);
     await page.locator('#psfEntry').selectOption('other-live-fixture.psf');await until(()=>page.locator('#psfPlaySong').isEnabled(),'source replacement ready');assertCleared(await activity());
     await page.locator('#psfEntry').selectOption('live-fixture.psf');await page.locator('#psfPlaySong').click();
     await until(async()=>Number((await view()).observationFrame)>=2205&&(await activity()).ready==='true','new source activity');playing=await view();
     assert(await page.locator('#spuLiveEnabled').isChecked());assert.equal(await page.locator('#spuLiveChannel option').count(),24);assert.equal(await page.locator('#spuLiveSourceLabel').textContent(),'PSF view');
     assert.equal(await page.locator('#spuLiveEnabledLabel').textContent(),'Live from PSF');
     await page.locator('#psfPauseSong').click();await until(()=>page.locator('#psfPauseSong').textContent().then(text=>text==='Resume'),'paused');
+    // Changing the desired buffer while paused must not schedule a source or
+    // advance either the audible cursor or the frozen all-channel snapshot.
+    const monitorPaused=await view(),pausedStarts=(await page.evaluate(()=>__spuPsfAudit.graph())).bufferStarts;
+    await page.locator('#spuPsfMonitorEnabled').check();await monitorSettled(true,0);
+    await page.locator('#spuPsfChannelActivity [data-psf-channel="1"]').click({delay:5});await monitorSettled(true,1);
+    assert.equal((await view()).observationFrame,monitorPaused.observationFrame);assert.equal((await view()).seconds,monitorPaused.seconds);assert.equal((await page.evaluate(()=>__spuPsfAudit.graph())).bufferStarts,pausedStarts);
+    await page.locator('#psfPauseSong').click({delay:5});await until(()=>page.locator('#psfPauseSong').textContent().then(text=>text==='Pause'),'selected dry resumed');await monitorSettled(true,1);
+    monitorMeasurements.resumedCarrier=await measuredSound(true);
+    await page.locator('#psfPauseSong').click({delay:5});await until(()=>page.locator('#psfPauseSong').textContent().then(text=>text==='Resume'),'selected dry paused again');
+    await page.locator('#spuPsfMonitorEnabled').uncheck();await monitorSettled(false,null);await page.locator('#spuPsfChannelActivity [data-psf-channel="0"]').click({delay:5});
     // Genuine pointer clicks must survive repeated Live updates. In WebKit,
     // rewriting unchanged caption text used to cancel clicks across a tick.
     const pauseResumeCycles=name==='webkit'?30:0;
@@ -101,7 +127,7 @@ async function check(browser,name,origin,fixture){
       await page.locator('#psfPauseSong').click({delay:5});await until(()=>page.locator('#psfPauseSong').textContent().then(text=>text==='Resume'),'stress pause '+cycle);
     }
     const pauseClicks=await page.evaluate(()=>__spuLiveInput.filter(event=>event.type==='click'&&event.button==='psfPauseSong'));
-    assert.equal(pauseClicks.length,1+pauseResumeCycles*2);assert(pauseClicks.every(event=>event.trusted));
+    assert.equal(pauseClicks.length,3+pauseResumeCycles*2);assert(pauseClicks.every(event=>event.trusted));
     const paused=await view();await wait(150);assert.equal((await view()).observationFrame,paused.observationFrame);
     assert.match(paused.status,/Paused.*frozen/);
     const pausedActivity=await activity();assert.equal(pausedActivity.ready,'true');assert.equal(pausedActivity.channels.length,24);
@@ -173,12 +199,12 @@ async function check(browser,name,origin,fixture){
     await until(()=>page.locator('.spu-morph').isHidden(),'authored Noise hides Software morph');
     await page.locator('[data-noise="source"]').selectOption('sample');await until(()=>page.locator('.spu-morph').isVisible(),'authored Sample restores Software morph');
     await page.locator('[data-chip-action="ps1-wave-triangle"]').click();
-    assert(await page.locator('#spuCodeLiveTools').isHidden());assert.equal((await view()).inert,false);
+    assert(await page.locator('#spuCodeLiveTools').isHidden());assert(await page.locator('#spuPsfMonitorTools').isHidden());assert.equal(await page.locator('#spuPsfMonitorEnabled').isChecked(),false);assert.equal((await view()).inert,false);
     assertCleared(await activity());assert(await page.locator('#spuPsfChannelActivity').isHidden());
     const graph=await page.evaluate(()=>__spuPsfAudit.graph());assert(graph.muted);assert.equal(graph.contexts,1);assert.equal(graph.destinationConnections,1);
     assert.deepEqual(errors,[]);
-    return {browser:name,passed:true,playing,paused,graph,pauseResumeCycles,trustedPauseClicks:pauseClicks.length,pausedActivity,zeroEnvActivityProbe,inactiveHover,activityLayouts,checks:['default-on physical CH1–24','audible-time snapshot','Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles','24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting','passive activity selection; Off/waiting/source/Stop clearing','actual Noise / PMON flags','custom shared reverb and returns','bounded source preview labels','readonly authored state and saves','Off restores editor; edit stops PSF; authored Noise hides Morph','compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility'],errors};
-  }catch(error){error.receipt={browser:name,view:await view().catch(()=>null),input:await page.evaluate(()=>__spuLiveInput.slice(-12)).catch(()=>null),pauseMutations:await page.evaluate(()=>__spuLivePauseMutations).catch(()=>null),pauseButton:await page.locator('#psfPauseSong').boundingBox().catch(()=>null),errors,body:await page.locator('body').innerText().catch(()=>'' )};throw error;}finally{await page.close();}
+    return {browser:name,passed:true,playing,paused,graph,monitorMeasurements,pauseResumeCycles,trustedPauseClicks:pauseClicks.length,pausedActivity,zeroEnvActivityProbe,inactiveHover,activityLayouts,checks:['selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output','default-on physical CH1–24','audible-time snapshot','Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles','24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting','passive activity selection; Off/waiting/source/Stop clearing','actual Noise / PMON flags','custom shared reverb and returns','bounded source preview labels','readonly authored state and saves','Off restores editor; edit stops PSF; authored Noise hides Morph','compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility'],errors};
+  }catch(error){error.receipt={browser:name,view:await view().catch(()=>null),monitor:await monitor().catch(()=>null),output:await page.evaluate(()=>__spuPsfAudit.output()).catch(()=>null),input:await page.evaluate(()=>__spuLiveInput.slice(-12)).catch(()=>null),pauseMutations:await page.evaluate(()=>__spuLivePauseMutations).catch(()=>null),pauseButton:await page.locator('#psfPauseSong').boundingBox().catch(()=>null),errors,body:await page.locator('body').innerText().catch(()=>'' )};throw error;}finally{await page.close();}
 }
 (async()=>{
  await fs.rm(config.out,{force:true});

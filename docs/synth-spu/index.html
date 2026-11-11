@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-psf-channel-activity-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-psf-channel-monitor-1">
   </head>
   <body>
     <main>
@@ -104,6 +104,7 @@
         <section id="spuCodeLiveTools" class="spu-code-live-tools" aria-label="Code observations" hidden>
           <div class="spu-code-live-row">
             <label><span id="spuLiveSourceLabel">Code view</span> <select id="spuLiveChannel" aria-label="Code channel to observe"></select></label>
+            <label id="spuPsfMonitorTools" class="check-control" hidden><input id="spuPsfMonitorEnabled" type="checkbox" aria-describedby="spuLiveHelpText"> Selected CH only · Dry</label>
             <label class="check-control"><input id="spuLiveEnabled" type="checkbox" checked> <span id="spuLiveEnabledLabel">Live from Code</span></label>
             <div id="spuPsfCaptureTools" class="spu-psf-capture-tools" hidden>
               <label>Reference key <select id="spuPsfReferenceKey" aria-label="PSF audition and capture reference key" title="This key will reproduce the selected PSF PITCH code for paused keyboard audition and Capture. It does not infer the sample’s original root note."><option>C2</option><option>C3</option><option selected>C4</option><option>C5</option><option>C6</option></select></label>
@@ -251,6 +252,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-psf-channel-activity-1"></script>
+    <script type="module" src="./synth.js?v=spu-psf-channel-monitor-1"></script>
   </body>
 </html>

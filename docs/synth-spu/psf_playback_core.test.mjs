@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {createPsfPlaybackCore} from './psf_playback_core.js';
 import {preparePsfSongSource} from './psf_song_source.js';
 import {readPsfFileSet} from '../playground/playground_ps1_psf.js';
@@ -28,7 +29,7 @@ test('original PSF MIPS program executes and produces finite stereo PCM',async()
   const core=await create();
   try {
     assert.equal(core.sampleRate,44100);
-    assert.deepEqual(core.backend,{abi:3,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert.deepEqual(core.backend,{abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
     assert.ok(Object.isFrozen(core.backend),'the backend identity is read-only metadata');
     const samples=core.render(8820);
     assert.equal(samples.length,17640);
@@ -74,9 +75,11 @@ test('machine validates RAM, entry point, timing, render sizes and disposal',asy
   await assert.rejects(create({...standalone,refresh:55}),/refresh/);
   const core=await create();
   for(const frames of [0,-1,1.5,44101])assert.throws(()=>core.render(frames),/render size/);
+  for(const frames of [0,-1,1.5,44101])assert.throws(()=>core.renderWithVoices(frames),/render size/);
   assert.equal(core.render(1).length,2);
   core.dispose();core.dispose();
   assert.throws(()=>core.render(1),/disposed/);
+  assert.throws(()=>core.renderWithVoices(1),/disposed/);
 });
 
 test('abort cancels creation and further rendering without an audio device',async()=>{
@@ -85,6 +88,7 @@ test('abort cancels creation and further rendering without an audio device',asyn
   const late=new AbortController(),core=await create(standalone,{signal:late.signal});
   late.abort();
   assert.throws(()=>core.render(1),{name:'AbortError'});
+  assert.throws(()=>core.renderWithVoices(1),{name:'AbortError'});
   core.dispose();
 });
 
@@ -92,7 +96,8 @@ test('stale or mismatched CPU/SPU WASM is rejected before a machine is created',
   for(const replacement of [
     {abi:1,model:1},
     {abi:2,model:1},
-    {abi:3,model:0},
+    {abi:3,model:1},
+    {abi:4,model:0},
     {abi:undefined,model:1},
   ]) {
     let allocationAttempt=false;
@@ -118,7 +123,7 @@ const featureImage=async fixture=>preparePsfSongSource(await readPsfFileSet(fixt
 async function nativeMachine(fixture,{traceLimit=4096}={}) {
   const image=await featureImage(fixture);
   const module=await createPsfPlayerModule({wasmBinary,print:()=>{},printErr:()=>{}});
-  assert.equal(module._psf_abi_version(),3,'PSF sound bridge ABI must identify the unified fixed core');
+  assert.equal(module._psf_abi_version(),4,'PSF sound bridge ABI must identify the unified fixed core');
   assert.equal(module._psf_spu_model(),1,'CPU playback must use the same MAME-derived SPU as Synth');
   const input=module._malloc(image.ram.length),coverage=module._malloc(image.coverage.length);
   let handle;
@@ -128,7 +133,7 @@ async function nativeMachine(fixture,{traceLimit=4096}={}) {
   } finally {module._free(input);module._free(coverage);}
   assert.ok(handle,`PSF machine creation: ${module.UTF8ToString(module._psf_last_error())}`);
   assert.equal(module._psf_trace_start(handle,traceLimit),1);
-  const output=module._malloc(44100*2*4),scratch=module._malloc(16);
+  const output=module._malloc(44100*2*4),scratch=module._malloc(16);let stems=0,stemFrames=0;
   const readMemory=(reader,address,length)=>{
     const ptr=module._malloc(length);
     try {assert.equal(reader(handle,address,ptr,length),1);return module.HEAPU8.slice(ptr,ptr+length);}
@@ -139,6 +144,14 @@ async function nativeMachine(fixture,{traceLimit=4096}={}) {
     render(frames) {
       assert.equal(module._psf_render(handle,output,frames),frames,module.UTF8ToString(module._psf_last_error()));
       return module.HEAPF32.slice(output/4,output/4+frames*2);
+    },
+    renderWithVoices(frames) {
+      if(frames>stemFrames) {
+        if(stems)module._free(stems);stems=module._malloc(frames*48*4);stemFrames=frames;
+        assert.ok(stems,'voice capture output allocation');
+      }
+      assert.equal(module._psf_render_stems(handle,output,stems,frames),frames,module.UTF8ToString(module._psf_last_error()));
+      return {pcm:module.HEAPF32.slice(output/4,output/4+frames*2),voices:module.HEAPF32.slice(stems/4,stems/4+frames*48)};
     },
     trace() {
       assert.equal(module._psf_trace_overflow(handle),0,'conformance trace must be complete');
@@ -151,10 +164,13 @@ async function nativeMachine(fixture,{traceLimit=4096}={}) {
       return events;
     },
     read:offset=>module._psf_spu_read(handle,offset)>>>0,
+    registers:()=>Uint16Array.from({length:512},(_,index)=>module._psf_spu_read(handle,index*2)),
+    gates:()=>module._psf_spu_key_gates(handle)>>>0,
+    active:()=>module._psf_spu_active_mask(handle)>>>0,
     spuRam:(address,length)=>readMemory(module._psf_spu_read_ram,address,length),
     cpuRam:(address,length)=>readMemory(module._psf_cpu_read_ram,address,length),
     get frames(){return module._psf_spu_frames(handle);},
-    dispose(){module._psf_destroy(handle);module._free(output);module._free(scratch);},
+    dispose(){module._psf_destroy(handle);module._free(output);module._free(scratch);if(stems)module._free(stems);},
   };
 }
 
@@ -335,4 +351,162 @@ test('SPU sample-fetch IRQ reaches CPU I_STAT without being consumed by HLE',asy
   assert.ok(mailbox.getUint32(12,true)&0x200,'disabling SPUCNT IRQ leaves CPU I_STAT latched');
   assert.equal(mailbox.getUint32(16,true)&0x40,0,'disabling SPUCNT IRQ clears the SPU source');
   assert.equal(mailbox.getUint32(20,true)&0x200,0,'only the CPU I_STAT acknowledgement clears its latch');
+});
+
+const voiceSamples=(voices,channel)=>{
+  const output=new Float32Array(voices.length/24);
+  for(let frame=0;frame<voices.length/48;frame++){output[frame*2]=voices[frame*48+channel*2];output[frame*2+1]=voices[frame*48+channel*2+1];}
+  return output;
+};
+const clamp16=value=>Math.max(-32768,Math.min(32767,value));
+const mainGain=0x7ffe/1073741824;
+
+function allVoiceFixture({saturating=false}={}) {
+  const writes=[];
+  for(let channel=0;channel<24;channel++) {
+    const volume=saturating?(channel<12?0x3fff:0x4001):0x0100;
+    const pitch=saturating?0x1000:0x0600+channel*0x0080;
+    for(const [offset,value]of [[0,volume],[2,saturating?volume:0x0080],[4,pitch],[6,PSF_FIXTURE_SPU_ADDRESS/8],
+      [8,0x000f],[10,0x1fc0],[14,PSF_FIXTURE_SPU_ADDRESS/8]])writes.push([channel*16+offset,value]);
+  }
+  writes.push([0x188,0xffff],[0x18a,0xff]);
+  return createPsfSpuFeatureFixture({steps:[{delay:4096,writes}]});
+}
+
+/** Tap collection must leave the whole machine identical, not merely audible. */
+async function compareVoiceTap(fixture,frames=4096) {
+  const normal=await nativeMachine(fixture),tapped=await nativeMachine(fixture);
+  try {
+    const pcm=normal.render(frames),result=tapped.renderWithVoices(frames);
+    assert.deepEqual(result.pcm,pcm,'observing voices cannot change full-song PCM');
+    assert.equal(result.voices.length,frames*48);assert.ok(result.voices.every(Number.isFinite));
+    assert.deepEqual(tapped.registers(),normal.registers(),'all 512 register views remain identical');
+    assert.deepEqual(tapped.spuRam(0,0x80000),normal.spuRam(0,0x80000),'sample and decoded-capture RAM remain identical');
+    assert.deepEqual(tapped.cpuRam(0,0x200000),normal.cpuRam(0,0x200000),'CPU RAM and IRQ/DMA mailbox state remain identical');
+    assert.deepEqual(tapped.trace(),normal.trace(),'CPU SPU writes and transfer events remain at the same native frames');
+    assert.equal(tapped.gates(),normal.gates());assert.equal(tapped.active(),normal.active());assert.equal(tapped.frames,normal.frames);
+    const registers=tapped.registers(),active=tapped.active(),gates=tapped.gates(),events=tapped.trace();
+    assert.deepEqual(tapped.renderWithVoices(257).pcm,normal.render(257),'continued CPU/DSP playback stays identical after a tap read');
+    return {...result,registers,active,gates,events};
+  } finally {normal.dispose();tapped.dispose();}
+}
+
+test('24 simultaneous dry voice outputs reconstruct the unclipped full mix while every voice continues',async()=>{
+  const result=await compareVoiceTap(allVoiceFixture(),8192);
+  assert.equal(result.active,0xffffff);assert.equal(result.gates,0xffffff);
+  for(let channel=0;channel<24;channel++) {
+    assert.equal(result.registers[(channel*16+12)/2],32767);
+    assert.ok(peak(voiceSamples(result.voices,channel))>1e-4,`CH${channel+1} has a distinct running output`);
+  }
+  for(let frame=0;frame<result.pcm.length/2;frame++)for(let side=0;side<2;side++) {
+    let integerSum=0;
+    for(let channel=0;channel<24;channel++)integerSum+=Math.round(result.voices[frame*48+channel*2+side]/mainGain);
+    assert.ok(integerSum>=-32768&&integerSum<=32767,'the low-volume fixture avoids mixed-bus saturation');
+    assert.equal(result.pcm[frame*2+side],Math.fround(integerSum*mainGain));
+  }
+});
+
+test('dry taps precede mixed-bus saturation, whose voice-order clamp is preserved in the full mix',async()=>{
+  const result=await compareVoiceTap(allVoiceFixture({saturating:true}),4096);let saturationWitness=false;
+  assert.equal(result.active,0xffffff);
+  for(let frame=0;frame<result.pcm.length/2;frame++)for(let side=0;side<2;side++) {
+    let ordered=0,sum=0;
+    for(let channel=0;channel<24;channel++) {
+      const contribution=Math.round(result.voices[frame*48+channel*2+side]/mainGain);
+      sum+=contribution;ordered=clamp16(ordered+contribution);
+    }
+    if(Math.abs(ordered-clamp16(sum))>=1024)saturationWitness=true;
+    assert.equal(result.pcm[frame*2+side],Math.fround(ordered*mainGain));
+  }
+  assert.ok(saturationWitness,'positive voices before negative voices expose why a tap cannot be a difference of clipped buses');
+});
+
+test('PMON sources retain their silent dry volume while modulating carriers in both masks',async()=>{
+  for(const carrier of [1,23]) {
+    const dry=await compareVoiceTap(createPsfSpuFeatureFixture({pair:true,pmon:false,carrier}));
+    const modulated=await compareVoiceTap(createPsfSpuFeatureFixture({pair:true,pmon:true,carrier}));
+    assert.equal(peak(voiceSamples(modulated.voices,carrier-1)),0,'a zero-L/R PMON source has no direct dry output');
+    const before=voiceSamples(dry.voices,carrier),after=voiceSamples(modulated.voices,carrier);
+    assert.ok(rms(Float32Array.from(before,(value,index)=>value-after[index]))>.001,'the dry carrier includes live PMON pitch modulation');
+    assert.deepEqual(after,modulated.pcm,'one audible carrier without reverb matches its full-song output');
+  }
+});
+
+test('Noise dry taps use the same shared generator and change clock without retriggering',async()=>{
+  const writes=[[0x194,3],[0x010,0x2000],[0x012,0x1000],[0x014,0x2800],[0x016,PSF_FIXTURE_SPU_ADDRESS/8],
+    [0x018,0x000f],[0x01a,0x1fc0],[0x01e,PSF_FIXTURE_SPU_ADDRESS/8],[0x188,3]];
+  const result=await compareVoiceTap(createPsfSpuFeatureFixture({noise:true,noiseClock:8,steps:[
+    {delay:4096,writes},{delay:65535,writes:[[0x1aa,0xc000|(48<<8)]]},
+  ]}));
+  const first=voiceSamples(result.voices,0),second=voiceSamples(result.voices,1);
+  const together=result.events.findLast(event=>event.kind===1&&event.address===0x188&&event.value===3).frame;
+  assert.deepEqual(first.subarray((together+2)*2),second.subarray((together+2)*2),'Noise is shared even with different sample PITCH registers');
+  const changed=result.events.find(event=>event.kind===1&&event.address===0x1aa&&event.value===(0xc000|(48<<8))).frame;
+  assert.ok(crossings(first.subarray((changed+2)*2))>crossings(first.subarray((together+2)*2,changed*2)),'faster shared Noise clock reaches both dry taps');
+});
+
+test('selected dry outputs omit shared reverb but the full wet tail and hardware processing continue',async()=>{
+  const result=await compareVoiceTap(createPsfSpuFeatureFixture({reverb:true,oneShot:true,returnLeft:0x4000,returnRight:0x2000}),22050);
+  const voice=voiceSamples(result.voices,0),tail=2048*2;
+  assert.ok(peak(voice)>.001,'a voice sent to reverb still has its own dry contribution');
+  assert.equal(peak(voice.subarray(tail)),0,'the ended one-shot has no selected dry tail');
+  assert.equal(peak(voiceSamples(result.voices,23)),0,'an inactive selection cannot leak another voice or shared wet output');
+  assert.ok(peak(result.pcm.subarray(tail))>1e-5,'the original shared reverb keeps processing its full-song tail');
+  const muted=await compareVoiceTap(createPsfSpuFeatureFixture({reverb:true,mainLeft:0,mainRight:0}));
+  assert.equal(peak(muted.voices),0);assert.equal(peak(muted.pcm),0,'main volume also gates the dry monitor');
+});
+
+test('dry monitor follows main gain and output-enable changes without modifying envelopes',async()=>{
+  const full=await compareVoiceTap(createPsfSpuFeatureFixture());
+  const quarter=await compareVoiceTap(createPsfSpuFeatureFixture({mainLeft:0x1000,mainRight:0x1000}));
+  const ratio=rms(quarter.voices)/rms(full.voices);assert.ok(ratio>.24&&ratio<.26);
+  const result=await compareVoiceTap(createPsfSpuFeatureFixture({steps:[
+    {delay:65535,writes:[[0x1aa,0x8000]]},{delay:65535,writes:[[0x1aa,0xc000]]},
+  ]}));
+  const control=result.events.filter(event=>event.kind===1&&event.address===0x1aa),off=control.find(event=>event.value===0x8000),on=control.find(event=>event.frame>off.frame&&event.value===0xc000);
+  assert.equal(peak(result.voices.subarray((off.frame+2)*48,on.frame*48)),0,'SPUCNT mute reaches every dry output at the same frame');
+  assert.ok(peak(result.voices.subarray((on.frame+2)*48))>.001);assert.equal(result.registers[0x00c/2],32767);
+});
+
+test('public dry rendering is chunk-exact, returns owned arrays, and keeps legacy rendering cheap',async()=>{
+  const calls={full:0,voices:0},whole=await create(standalone,{moduleOptions:{onRuntimeInitialized(){
+    const full=this._psf_render,voices=this._psf_render_stems;
+    this._psf_render=(...args)=>{calls.full++;return full(...args);};this._psf_render_stems=(...args)=>{calls.voices++;return voices(...args);};
+  }}}),split=await create();
+  try {
+    const expected=whole.renderWithVoices(8193),pcm=new Float32Array(8193*2),voices=new Float32Array(8193*48);
+    let frames=0;while(frames<8193){const count=Math.min(127,8193-frames),part=split.renderWithVoices(count);pcm.set(part.pcm,frames*2);voices.set(part.voices,frames*48);frames+=count;}
+    assert.deepEqual(pcm,expected.pcm);assert.deepEqual(voices,expected.voices);assert.equal(whole.position,8193/44100);
+    assert.equal(calls.full,0);assert.equal(calls.voices,1);const frozenPcm=expected.pcm.slice(),frozenVoices=expected.voices.slice();
+    assert.deepEqual(whole.render(257),split.render(257));assert.equal(calls.full,1);assert.equal(calls.voices,1,'legacy render does not collect unused stems');
+    assert.deepEqual(expected.pcm,frozenPcm);assert.deepEqual(expected.voices,frozenVoices);
+    expected.pcm.fill(0);expected.voices.fill(0);assert.deepEqual(whole.renderWithVoices(128),split.renderWithVoices(128),'caller edits cannot change native state');
+  } finally {whole.dispose();split.dispose();}
+});
+
+test('overlapping native full/stem destinations are rejected before CPU or DSP advancement',async()=>{
+  const machine=await nativeMachine(createPsfSpuFeatureFixture()),module=machine.module,buffer=module._malloc(8*48*4+32);
+  try {
+    assert.equal(module._psf_render_stems(machine.handle,buffer,buffer,8),-1);assert.equal(machine.frames,0);
+    assert.equal(module._psf_render_stems(machine.handle,buffer,buffer+4,8),-1);assert.equal(machine.frames,0);
+    assert.equal(module._psf_render_stems(machine.handle,buffer,0,8),-1);assert.equal(machine.frames,0);
+    assert.equal(machine.renderWithVoices(8).voices.length,8*48,'invalid destination arguments do not poison an otherwise valid machine');
+  } finally {module._free(buffer);machine.dispose();}
+});
+
+test('the passive build overlay is deterministic, hash-pinned and leaves fixed SDK files unchanged',async()=>{
+  const {createPsfSpuTapSource,PSF_SPU_TAP_INPUT_SHA256}=await import('../../scripts/build_psf_player.mjs');
+  const vendor=new URL('../../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/',import.meta.url),input=await readFile(new URL('spu.cpp',vendor)),before=input.slice();
+  const sha=bytes=>createHash('sha256').update(bytes).digest('hex');assert.equal(sha(input),PSF_SPU_TAP_INPUT_SHA256);
+  const overlay=createPsfSpuTapSource(input);assert.equal(overlay,createPsfSpuTapSource(input));assert.deepEqual(input,before);
+  assert.equal((overlay.match(/psf_spu_voice_tap/g)??[]).length,2,'only a declaration and one read-only observation call are inserted');
+  const restored=overlay.replace(/\n\n\/\/ Generated build-only[^\n]+\nextern "C" void psf_spu_voice_tap\([^;]+;/,'')
+    .replace(/\n\t\tpsf_spu_voice_tap\(this,v,frame,sample,vol\[0\],vol\[1\]\);/,'');
+  assert.equal(restored,input.toString('utf8'),'all original DSP arithmetic and ordering remain byte-identical');
+  assert.throws(()=>createPsfSpuTapSource(new Uint8Array()),/anchor/);assert.throws(()=>createPsfSpuTapSource(Buffer.concat([input,input])),/anchor/);
+  assert.throws(()=>createPsfSpuTapSource(Buffer.concat([input,Buffer.from('\n')])),/hash changed/);
+  assert.deepEqual(await readFile(new URL('spu.cpp',vendor)),before);
+  const manifest=JSON.parse(await readFile(new URL('../../third_party/tetorica-soundchip-native/RELEASE-MANIFEST.json',import.meta.url),'utf8'));
+  const pinned=Object.entries(manifest.files).filter(([name])=>name.startsWith('vendor/mame-ps1-spu/'));assert.equal(pinned.length,17);
+  for(const [name,record]of pinned)assert.equal(sha(await readFile(new URL('../../third_party/tetorica-soundchip-native/'+name,import.meta.url))),record.sha256,name);
 });

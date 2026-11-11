@@ -113,7 +113,7 @@ async function check(browser,name,origin,fixture){
     step('The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation');
     measurements.backend=await page.evaluate(async text=>{
       const script=document.querySelector('script[src*="synth.js"]');
-      const url=new URL('./psf_playback_core.js?v=psf-capture-1',new URL(script.src,location.href));
+      const url=new URL('./psf_playback_core.js?v=psf-channel-monitor-1',new URL(script.src,location.href));
       const {createPsfPlaybackCore}=await import(url.href),bytes=Uint8Array.from(atob(text),value=>value.charCodeAt(0));
       const ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length);
       ram.set(bytes,0x10000);coverage.fill(1,0x10000,0x10000+bytes.length);
@@ -128,7 +128,7 @@ async function check(browser,name,origin,fixture){
       }}});}catch(reason){error=reason.message;}
       return {...measured,staleAbi:{allocations,error}};
     },fixture.textBase64);
-    assert.deepEqual(measurements.backend.backend,{abi:3,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert.deepEqual(measurements.backend.backend,{abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
     assert(measurements.backend.frozen&&measurements.backend.finite&&measurements.backend.peak>.001);
     assert.equal(measurements.backend.staleAbi.allocations,0);assert.match(measurements.backend.staleAbi.error,/out of date/);
     assert.equal((await graph(page)).contexts,0,'numeric core checks do not open an audio device');
@@ -242,7 +242,7 @@ const server=http.createServer(async(request,response)=>{
   try{
     for(const name of engines){const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push(await check(browser,name,origin,fixture));}finally{await browser.close();}}
     assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert.deepEqual(httpErrors,[]);
-    for(const [asset,version] of [['psf_playback_core.js','psf-capture-1'],['psf_player.js','psf-live-spu-1'],['psf_player.wasm','psf-live-spu-1']]) {
+    for(const [asset,version] of [['psf_playback_core.js','psf-channel-monitor-1'],['psf_player.js','psf-monitor-spu-1'],['psf_player.wasm','psf-monitor-spu-1']]) {
       const urls=psfRequests.filter(url=>new URL(url,origin).pathname.endsWith('/'+asset));
       assert(urls.length,asset+' was fetched locally');assert(urls.every(url=>new URL(url,origin).searchParams.get('v')===version),asset+' has the matching cache identity');
     }

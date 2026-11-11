@@ -63,7 +63,8 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert.equal(info.browser.psfPlayer.artifact.sha256,hash(await readFile(join(result.stage,'generated/psf-player/psf_player.wasm'))));
     assert.equal(info.browser.psfPlayer.provenance.license,'BSD-2-Clause');
     assert.equal(info.browser.psfPlayer.engine,'Play! PSF1 HLE + MAME PS1 SPU');
-    assert.equal(info.browser.psfPlayer.abi,3);
+    assert.equal(info.browser.psfPlayer.abi,4);
+    assert.deepEqual(info.browser.psfPlayer.selectedChannelMonitor,{defaultEnabled:false,mode:'dry',voiceCount:24,frameMajorFloats:48,sharedReverb:'full-mix-only',retainsFullMix:true,buildOnlyTap:true});
     assert.deepEqual(info.browser.psfPlayer.pausedAudition,{source:'synth-spu/psf_paused_audition.js',checkpoint:'editor',sourceStateUnchanged:true,ordinaryAdpcmOnly:true});
     assert.deepEqual(info.browser.psfPlayer.capture,{source:'synth-spu/psf_capture.js',sameFrameRam:true,ramBytes:524288,intervalFrames:2205,referenceKey:'C4',rewritesAdpcm:false});
     assert.equal(info.browser.psfPlayer.spu.license,'BSD-3-Clause');

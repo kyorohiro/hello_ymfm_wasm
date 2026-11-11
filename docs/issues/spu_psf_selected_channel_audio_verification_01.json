@@ -1,0 +1,1053 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "PSF selected-channel Dry listening, preserving all voice processing and the original full mix.",
+  "todo": "docs/issues/todo_spu_psf_selected_channel_audio_01.md",
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "behavior": {
+    "control": "Selected CH only · Dry checkbox beside the existing CH selector; default Off. Numbered activity buttons and the dropdown share the same selection.",
+    "softwareFeature": true,
+    "selectedOutput": "One physical voice, post-ADSR/PMON/Noise and voice volume, saturated into an isolated empty int16 bus, then the original main volume and SPUCNT mute.",
+    "sharedReverb": "Excluded from selected Dry output. Original shared reverb processes all voices and RAM normally and is heard again when Off returns to the full mix.",
+    "preserved": [
+      "all 24 voice processing",
+      "PMON source oscillators even with zero direct volume",
+      "shared Noise state",
+      "ADSR/decoder timing",
+      "CPU and SPU RAM",
+      "registers/IRQs/transfers",
+      "original full stereo mix",
+      "audible Live/Capture snapshots",
+      "editor instrument"
+    ],
+    "independence": "Listening mode works with Live Off and does not change paused keyboard audition or permanent Capture.",
+    "retention": "Full stereo and frame-major 24x stereo Dry PCM retained only in bounded lookahead; approximately 2 MiB extra with default settings. One selected AudioBuffer per segment, not 24 audio routes.",
+    "switching": "Coalesced short fade, trim at the exact consumed cursor, and reschedule only retained unplayed frames. No source rerender or forward seek.",
+    "fade": {
+      "closeSeconds": 0.008,
+      "openSeconds": 0.004,
+      "start": "Aligned to the first new BufferSource start. freshInput reanchors an interrupted opening, including Pause followed immediately by Resume. Default Code open behavior remains unchanged."
+    }
+  },
+  "implementation": {
+    "abi": 4,
+    "spuModel": 1,
+    "fixedSdkVersion": "0.1.7",
+    "fixedSdkFilesUnchanged": true,
+    "tap": "SHA-guarded and uniquely anchored build-only read callback in a temporary copy of fixed spu.cpp. No DSP expression is replaced; no pinned vendor file is edited.",
+    "nativeApi": "psf_render_stems(player, fullStereo, frameMajor24Stereo, frames)",
+    "jsApi": "renderWithVoices(frames) -> {pcm: Float32Array(2N), voices: Float32Array(48N)}; render(frames) retains the normal full-only native path.",
+    "transportApi": "setMonitorEnabled(boolean); read monitorEnabled/monitorVoice/monitorSwitching/monitorAvailable/monitorBufferedBytes/monitorError/monitorMessage.",
+    "caches": {
+      "entry": "spu-psf-channel-monitor-1",
+      "wrapper": "psf-channel-monitor-1",
+      "factoryAndWasm": "psf-monitor-spu-1",
+      "transport": "spu-psf-channel-monitor-1",
+      "fader": "scheduled-input-1"
+    }
+  },
+  "tests": {
+    "relatedNode": 478,
+    "nodeLog": {
+      "path": "/private/tmp/spu-psf-selected-channel-final-regressions.log",
+      "bytes": 51820,
+      "sha256": "301ee7b6cc3aba77cbed2c7f37643677afd56b516b298c4fd3a488f2f4b80b96"
+    },
+    "nativeCoreTests": 25,
+    "transportTests": 44,
+    "sharedFaderTests": 9,
+    "subcountsIncludedInRelatedNode": true,
+    "calibrationGeneratorChecks": true,
+    "browserFamilies": [
+      {
+        "family": "playback",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-selected-channel-playback-browser.json",
+          "bytes": 21892,
+          "sha256": "c15b07fd7f59b62dc7a5361744b936c0ed13e3de672155d1009fc9c5dcaadaae"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+              "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+              "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+              "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+              "Pause stops output and scheduling; Resume advances from the retained playback position",
+              "Stop keeps the authored instrument and the independent VAB extraction controls",
+              "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+              "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+              "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+              "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 51,
+              "bufferStops": 31,
+              "monitorStrokes": 606,
+              "stopDelays": 1
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+              "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+              "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+              "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+              "Pause stops output and scheduling; Resume advances from the retained playback position",
+              "Stop keeps the authored instrument and the independent VAB extraction controls",
+              "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+              "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+              "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+              "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 51,
+              "bufferStops": 30,
+              "monitorStrokes": 426,
+              "stopDelays": 1
+            }
+          }
+        ]
+      },
+      {
+        "family": "live",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-selected-channel-live-browser.json",
+          "bytes": 28697,
+          "sha256": "4f041bcc56af5d4ca24a22fcf99a5cbf2a0bbcd08b46c32516f0072e3ad2dd97"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+              "passive activity selection; Off/waiting/source/Stop clearing",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 52,
+              "bufferStops": 32,
+              "monitorStrokes": 342,
+              "stopDelays": 0
+            },
+            "monitorMeasurements": {
+              "full": {
+                "peak": 0.008063729852437973,
+                "rms": 0.005061688360267323,
+                "finite": true,
+                "muted": true
+              },
+              "silentSource": {
+                "peak": 0,
+                "rms": 0,
+                "finite": true,
+                "muted": true
+              },
+              "carrier": {
+                "peak": 0.007400783244520426,
+                "rms": 0.0010882376687891672,
+                "finite": true,
+                "muted": true
+              },
+              "liveOffCarrier": {
+                "peak": 0.007401111535727978,
+                "rms": 0.0036679790690895375,
+                "finite": true,
+                "muted": true
+              },
+              "liveOffSilentSource": {
+                "peak": 0,
+                "rms": 0,
+                "finite": true,
+                "muted": true
+              },
+              "restoredFull": {
+                "peak": 0.0077459923923015594,
+                "rms": 0.0010405569409911552,
+                "finite": true,
+                "muted": true
+              },
+              "resumedCarrier": {
+                "peak": 0.001078250934369862,
+                "rms": 5.4785879962032655e-05,
+                "finite": true,
+                "muted": true
+              }
+            },
+            "activityLayouts": [
+              {
+                "width": 1240,
+                "filesOpen": false,
+                "height": 30,
+                "bottom": 486.71875,
+                "monitorTop": 568.78125,
+                "rows": 1,
+                "buttonHeights": [
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30
+                ],
+                "buttonWidths": [
+                  42.828125,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125
+                ],
+                "overlap": false
+              },
+              {
+                "width": 800,
+                "filesOpen": true,
+                "height": 64,
+                "bottom": 594.71875,
+                "monitorTop": 694.3125,
+                "rows": 2,
+                "buttonHeights": [
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30
+                ],
+                "buttonWidths": [
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5
+                ],
+                "overlap": false
+              },
+              {
+                "width": 390,
+                "filesOpen": false,
+                "height": 63,
+                "bottom": 649.890625,
+                "monitorTop": 767.015625,
+                "rows": 2,
+                "buttonHeights": [
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30
+                ],
+                "buttonWidths": [
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75
+                ],
+                "overlap": false
+              }
+            ],
+            "trustedPauseClicks": 3
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+              "passive activity selection; Off/waiting/source/Stop clearing",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 235,
+              "bufferStops": 185,
+              "monitorStrokes": 852,
+              "stopDelays": 0
+            },
+            "monitorMeasurements": {
+              "full": {
+                "peak": 0.008063729852437973,
+                "rms": 0.004534950781311551,
+                "finite": true,
+                "muted": true
+              },
+              "silentSource": {
+                "peak": 0,
+                "rms": 0,
+                "finite": true,
+                "muted": true
+              },
+              "carrier": {
+                "peak": 0.007400489877909422,
+                "rms": 0.0021359689140519784,
+                "finite": true,
+                "muted": true
+              },
+              "liveOffCarrier": {
+                "peak": 0.007401111535727978,
+                "rms": 0.004677387245727711,
+                "finite": true,
+                "muted": true
+              },
+              "liveOffSilentSource": {
+                "peak": 0,
+                "rms": 0,
+                "finite": true,
+                "muted": true
+              },
+              "restoredFull": {
+                "peak": 0.00767088308930397,
+                "rms": 0.001991350329332933,
+                "finite": true,
+                "muted": true
+              },
+              "resumedCarrier": {
+                "peak": 0.007401102688163519,
+                "rms": 0.0026026383061283262,
+                "finite": true,
+                "muted": true
+              }
+            },
+            "activityLayouts": [
+              {
+                "width": 1240,
+                "filesOpen": false,
+                "height": 30,
+                "bottom": 484.6875,
+                "monitorTop": 566.6875,
+                "rows": 1,
+                "buttonHeights": [
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30
+                ],
+                "buttonWidths": [
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375,
+                  42.828125,
+                  42.828125,
+                  42.84375
+                ],
+                "overlap": false
+              },
+              {
+                "width": 800,
+                "filesOpen": true,
+                "height": 64,
+                "bottom": 583.6875,
+                "monitorTop": 683.1875,
+                "rows": 2,
+                "buttonHeights": [
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30
+                ],
+                "buttonWidths": [
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5,
+                  32.5
+                ],
+                "overlap": false
+              },
+              {
+                "width": 390,
+                "filesOpen": false,
+                "height": 63,
+                "bottom": 639.796875,
+                "monitorTop": 756.796875,
+                "rows": 2,
+                "buttonHeights": [
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30,
+                  30
+                ],
+                "buttonWidths": [
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75,
+                  23.75
+                ],
+                "overlap": false
+              }
+            ],
+            "trustedPauseClicks": 63
+          }
+        ]
+      },
+      {
+        "family": "paused",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-selected-channel-paused-browser.json",
+          "bytes": 38082,
+          "sha256": "70467472be558d4cf38ba6fa0dc53a984e42ae74b308e73275bcf2f4a5d7c92b"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 49,
+              "bufferStops": 28
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 46,
+              "bufferStops": 30
+            }
+          }
+        ]
+      }
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "layoutImagesReviewed": [
+      "WebKit 1240px",
+      "WebKit 390px"
+    ]
+  },
+  "oldNewNativeEquivalence": {
+    "passed": true,
+    "oldAbi": 3,
+    "newAbi": 4,
+    "baseline": [
+      {
+        "source": "docs/generated/psf-player/psf_player.js",
+        "path": "/private/tmp/spu-psf-monitor-baseline/psf_player.mjs",
+        "sha256": "e8c3449898a3b2d2ab8931f19882ca32f6b9144ca0495249b27a69a4269e651a"
+      },
+      {
+        "source": "docs/generated/psf-player/psf_player.wasm",
+        "path": "/private/tmp/spu-psf-monitor-baseline/psf_player.wasm",
+        "sha256": "28870b89a8be0011bcaa1c693682a1ca7b4292d6db5b7d7fb6c3b91d0dae086d"
+      }
+    ],
+    "newArtifacts": {
+      "jsSha256": "455b51757246d10fdb622a76c8cdd86c7359c26104a891e21eb555fe6ec4ab23",
+      "wasmSha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab"
+    },
+    "comparisons": [
+      "full PCM bytes",
+      "2 MiB CPU RAM",
+      "512 KiB SPU RAM including decoded buffers",
+      "all 512 register views",
+      "CPU register/transfer event trace",
+      "gate mask",
+      "native active mask",
+      "native frames"
+    ],
+    "results": [
+      {
+        "name": "pio",
+        "frames": 4096,
+        "passed": true,
+        "pcmSha256": "785c6e633c9ea100aa08630655a99d271c85727005c95414198ab5da3edbf59a",
+        "cpuRamSha256": "0b374e8bc5fee34d539b132de34aa4052af385cf7aa38ab9ddc4b581bda55c59",
+        "spuRamSha256": "4f95dab1eecd646cb145284c4293d12a4591941bb0b4c2695b2f127fcf47b7ee",
+        "registersSha256": "5b54cab5cc33f3fd93e4a6449f8928c31f675a378d2137ac8f9a56c009c3275c",
+        "traceSha256": "1f8c8883f0dd318e2a2b7a32be3a7317c2cea3bc872502678402738051d59e23",
+        "gates": 1,
+        "active": 1,
+        "traceEvents": 87
+      },
+      {
+        "name": "dma4-roundtrip",
+        "frames": 4096,
+        "passed": true,
+        "pcmSha256": "1296b866bc2710d702f30ded9a78b0b24f5c2f4495444c3fd602746c3178784e",
+        "cpuRamSha256": "2e2e5c387887635d987877c0043efc6260b8cd0a4effee342e5479e01a3f1c40",
+        "spuRamSha256": "4f95dab1eecd646cb145284c4293d12a4591941bb0b4c2695b2f127fcf47b7ee",
+        "registersSha256": "6765501d5fcadccbff73fa3762949138e24ee3ab2cd1eb2997544cdd24e402cf",
+        "traceSha256": "9012e8b5fe59beede2305fa9d2b9cabdf7e50348e6b72144a5e0cc2d4cd91644",
+        "gates": 1,
+        "active": 1,
+        "traceEvents": 89
+      },
+      {
+        "name": "pmon-ch1-2",
+        "frames": 8192,
+        "passed": true,
+        "pcmSha256": "d793ac211073bb2dc4e05a9ca18d6e83c5af8c9103b6c1f5982101174984bcd6",
+        "cpuRamSha256": "976be99601d05b3905e654965b1879794ffa5b1b4841c61f817d062d6dd8874b",
+        "spuRamSha256": "926ffd28be743c4ead834db15935f36e2592fce7d6961917c5114eba12605b2f",
+        "registersSha256": "45892bb61629aa00b998ae186eeb70cedb9b4bbdf36cee1df5c7f15ecc3ff916",
+        "traceSha256": "fd65171782747a0b9f0722608df4449952a9773808046238d72ff550dbe6c795",
+        "gates": 3,
+        "active": 3,
+        "traceEvents": 94
+      },
+      {
+        "name": "pmon-ch23-24",
+        "frames": 8192,
+        "passed": true,
+        "pcmSha256": "d793ac211073bb2dc4e05a9ca18d6e83c5af8c9103b6c1f5982101174984bcd6",
+        "cpuRamSha256": "69f8ea0ce4e8431ac01a11a74987348fb7e32b2059950fe5b40b1c81baa40be2",
+        "spuRamSha256": "4f95dab1eecd646cb145284c4293d12a4591941bb0b4c2695b2f127fcf47b7ee",
+        "registersSha256": "38d2667bcc81c108af95530de4837ddbb4679fe1aa338978c08810bad42e2271",
+        "traceSha256": "d3f7a16276cef3e7cb79f2754db6a0ad1320fce0f230fa5aa2ac357fb5b237c0",
+        "gates": 12582912,
+        "active": 12582912,
+        "traceEvents": 94
+      },
+      {
+        "name": "noise-clock-change",
+        "frames": 8192,
+        "passed": true,
+        "pcmSha256": "f769dd0d4649eb3cefa88bb7be81e0c36d7aba93813b8364805c362b4fe88172",
+        "cpuRamSha256": "163fd913eb76bcab6849e96921336835e6697716a091cc4e7e1bc2ac8b008eb4",
+        "spuRamSha256": "4f95dab1eecd646cb145284c4293d12a4591941bb0b4c2695b2f127fcf47b7ee",
+        "registersSha256": "395328ccb4836677b1138163848c059908373b6671f176f46ffef2a57a35db4d",
+        "traceSha256": "ed03808920a7e7714b6afa763289c7e5d2819d35156dbb31669ccbda321b0b12",
+        "gates": 1,
+        "active": 1,
+        "traceEvents": 88
+      },
+      {
+        "name": "room-one-shot-tail",
+        "frames": 22050,
+        "passed": true,
+        "pcmSha256": "916f52ee190144d51e446fe370f4d8ff7a4ac9f71ef348687a82708a5d5926ef",
+        "cpuRamSha256": "7264206c000e164217b88c75b7c1b1fc8a6fac6bfb6095d33f3139d5cd249679",
+        "spuRamSha256": "783ec2e947a1f23ae2a54004016614382f4a7b33310e245d0c8eaf5a566b3c51",
+        "registersSha256": "77f275d1127b8393069327aa4889f0bb37470eef4c8622ba3d98b8751b5324d4",
+        "traceSha256": "7cd0a0d90cab799e4c264d4133baad0f0076a986c7715e35d2d3efc954e3611a",
+        "gates": 1,
+        "active": 0,
+        "traceEvents": 119
+      },
+      {
+        "name": "24-voices-low",
+        "frames": 8192,
+        "passed": true,
+        "pcmSha256": "ea29816e0db8bcb301eb583c45d9baa5a555a1aefd4b9986656fb516993afecc",
+        "cpuRamSha256": "8af663deb89c4a81b9b6e481e5bcce52ce99823839f61ac07a776fe00d4af85e",
+        "spuRamSha256": "55bdae234fea4a3c9e14ee6d628f4ee1786b26ba373b1d2bdc598863cf33dc49",
+        "registersSha256": "7e024b127aa55085103d2608e10ebe6eee3544bf24bd3d13b7f3aa2c044617ef",
+        "traceSha256": "dd2e167d5b141d2049d3cd3299c9456639e8c6d1a609661c2de425d900eb9767",
+        "gates": 16777215,
+        "active": 16777215,
+        "traceEvents": 257
+      },
+      {
+        "name": "24-voices-signed-saturation",
+        "frames": 8192,
+        "passed": true,
+        "pcmSha256": "aede2b63e0a513fc975ac000188356b36086207783baac961245dff82c71d088",
+        "cpuRamSha256": "5548de473e7ae55015929bda75a66372457657e6c7a30ed4af4da0ed661b4d0b",
+        "spuRamSha256": "01e5b8e0606fab51d05bb216dd3341375317935d74794ec51c1d8467374732e3",
+        "registersSha256": "890dbae964f92bfa796652ac4d17d5a7dd865284f6e6112f927ee1015f5d594d",
+        "traceSha256": "5fc0baf6e69985109c106e480c0bc48f841c80a5232262b1cfa15319b14800d0",
+        "gates": 16777215,
+        "active": 16777215,
+        "traceEvents": 257
+      },
+      {
+        "name": "irq-lifecycle",
+        "frames": 4096,
+        "passed": true,
+        "pcmSha256": "785c6e633c9ea100aa08630655a99d271c85727005c95414198ab5da3edbf59a",
+        "cpuRamSha256": "62a02eb310382a3b8428d499a772b8aff803de688c20a883d4092fbedf73ef2d",
+        "spuRamSha256": "4f95dab1eecd646cb145284c4293d12a4591941bb0b4c2695b2f127fcf47b7ee",
+        "registersSha256": "63c4491f834a40d00a20e52c335756cb2f2194b6dc923be5c23b8c6e5671b7bf",
+        "traceSha256": "216ddd2eb09e8347206e625c06ff7a68aa53a3b7b7f1c36023e6aa975ff0efa9",
+        "gates": 1,
+        "active": 1,
+        "traceEvents": 89
+      },
+      {
+        "name": "held-ram-rewrite",
+        "frames": 8192,
+        "passed": true,
+        "pcmSha256": "02a68f0471f23af5958b1d008711c36d3bb08b2c61b9cab51eaa1d778e863c81",
+        "cpuRamSha256": "0234e55845bd184f05ae24c2e8a4e9b72e0a2642b6d78da4f671d061af4834ec",
+        "spuRamSha256": "3d8402310b9d767dbf22a7fb9d6bfdcf05a6062ff46c1f5b7601c7c82fdff931",
+        "registersSha256": "910fbf748ab6947139cef75922006efbd1fa0f69774a4b3fafc58d6ecf03c048",
+        "traceSha256": "a818a1feeb71195de9fc28aa2b28caaf2739e04bbfdae8265ccd85d6a0a4a5de",
+        "gates": 1,
+        "active": 1,
+        "traceEvents": 154
+      }
+    ],
+    "receipt": {
+      "path": "/private/tmp/spu-psf-monitor-native-equivalence.json",
+      "bytes": 7209,
+      "sha256": "967859208e922755565cc9e4a5fcafcafa0b90c321b81e5f39c2f39416bd6b46"
+    }
+  },
+  "sourcekit": {
+    "rebuild": {
+      "status": "passed",
+      "output": "/private/tmp/spu-psf-selected-channel-sourcekit-rebuild",
+      "files": [
+        {
+          "file": "psf_player.js",
+          "bytes": 57343,
+          "sha256": "455b51757246d10fdb622a76c8cdd86c7359c26104a891e21eb555fe6ec4ab23",
+          "rebuiltSha256": "455b51757246d10fdb622a76c8cdd86c7359c26104a891e21eb555fe6ec4ab23",
+          "byteIdentical": true
+        },
+        {
+          "file": "psf_player.wasm",
+          "bytes": 455304,
+          "sha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab",
+          "rebuiltSha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab",
+          "byteIdentical": true
+        }
+      ]
+    },
+    "sdk": {
+      "files": 476,
+      "mismatches": [],
+      "manifestMatchesPin": true
+    },
+    "playProvenance": {
+      "files": 158,
+      "mismatches": []
+    },
+    "stagedSpu": {
+      "files": 17,
+      "mismatches": []
+    },
+    "passiveTap": {
+      "inputSha256": "057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661",
+      "expectedInputSha256": "057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661",
+      "pinMatches": true,
+      "buildScriptPinsHash": true,
+      "sampleAnchorCount": 1,
+      "includeAnchorCount": 1,
+      "fixedInputHasNoHook": true
+    },
+    "finalSourcekitMatchesRebuiltStageA": true
+  },
+  "distribution": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_psf-selected-channel-20261112-b-BVm6Dt",
+    "archive": {
+      "path": "release/tetorica_spu_synth_psf-selected-channel-20261112-b_itch.zip",
+      "bytes": 7014497,
+      "sha256": "115358401083319b54ef51d8b579fb4cbbebe90a4cf604110283651229e0c54e",
+      "files": 335
+    },
+    "sourcekitIdenticalToRebuiltStageA": true,
+    "sourcekitFiles": 182,
+    "allZipBytesMatchStage": true,
+    "readableModulesMatchAuthoredSources": true,
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    }
+  },
+  "artifacts": [
+    {
+      "path": "tetorica_src/wasm/psf_player/psf_player.cpp",
+      "bytes": 17122,
+      "sha256": "3e7b622d35bee00aff8009104cf241cf5b687ffc533965beba1ca18f83b97ac3"
+    },
+    {
+      "path": "scripts/build_psf_player.mjs",
+      "bytes": 5093,
+      "sha256": "f3fe540b9cf4bc026f9612084001761ebb107759a1ce9944c0aadbdd9e1a606e"
+    },
+    {
+      "path": "docs/generated/psf-player/psf_player.js",
+      "bytes": 57343,
+      "sha256": "455b51757246d10fdb622a76c8cdd86c7359c26104a891e21eb555fe6ec4ab23"
+    },
+    {
+      "path": "docs/generated/psf-player/psf_player.wasm",
+      "bytes": 455304,
+      "sha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab"
+    },
+    {
+      "path": "docs/generated/psf-player/NOTICE.txt",
+      "bytes": 6316,
+      "sha256": "0094c9b2fb8bdbed4932061e5bfddb8fc7c9c00aac295edbf6878e84a3f0e9cc"
+    },
+    {
+      "path": "docs/synth-spu/psf_playback_core.js",
+      "bytes": 6947,
+      "sha256": "7b595dd1d5912207eb3448ce5f11cb7253aade8fb2d0ab7e7ed476489dd1e471"
+    },
+    {
+      "path": "docs/synth-spu/psf_playback_core.test.mjs",
+      "bytes": 33921,
+      "sha256": "ffb3c8041f4633b81a31c17649e7ea04e5bf68f3ba36c4fc99f332202a0cda62"
+    },
+    {
+      "path": "docs/synth-spu/psf_song_preview.js",
+      "bytes": 25130,
+      "sha256": "36a507a4e2136c4ceb5b8630f54635e6d8ee069c57af8a9fabbc03d3258cfc67"
+    },
+    {
+      "path": "docs/synth-spu/psf_song_preview.test.mjs",
+      "bytes": 54249,
+      "sha256": "be0fffda6c3aac1354e4f0b745c7b8ab0f3698cf11c8e4234c4af03e425f6caf"
+    },
+    {
+      "path": "docs/synth/synth_code_output.js",
+      "bytes": 4973,
+      "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+    },
+    {
+      "path": "docs/synth/synth_code_output.test.mjs",
+      "bytes": 6590,
+      "sha256": "90c43b6747f9f2bc771cbb00ec250bfc8785ff2d5d2b70881cf2bbdb1229c22a"
+    },
+    {
+      "path": "docs/synth-spu/synth.js",
+      "bytes": 65596,
+      "sha256": "2b1d09fc31f14a3fd0f631ca8cf007917573a978d21752c30133bd8d747ec261"
+    },
+    {
+      "path": "docs/synth-spu/index.html",
+      "bytes": 23787,
+      "sha256": "68a295d8dcf6f9d73c591ba5ac93173ef48f7a24df1983e99ac566fdd3a1fd68"
+    },
+    {
+      "path": "docs/synth-spu/synth.css",
+      "bytes": 33523,
+      "sha256": "7b453ca26c67f22613ad2b0f82c5e34be8239f801938dbf06557b2f2c0d8a98f"
+    },
+    {
+      "path": "docs/synth-spu/README.md",
+      "bytes": 26281,
+      "sha256": "86fa96424a59c4214176240e5fcba6fdefe0bc3d0516ffdf82f7cdefaf612c03"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.mjs",
+      "bytes": 24463,
+      "sha256": "fc59fff7962a5fb642c9c2464eb08ebf0946577e11ad831b6b3986fbfd88f359"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.test.mjs",
+      "bytes": 12794,
+      "sha256": "deff4fc3a36f603b55a063520f9f2a7d034e540dfee27b679f480cbf5ebcca09"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_playback_browser.cjs",
+      "bytes": 26549,
+      "sha256": "64cd31c2700c091ba8e12f34ccd1a558499363e266bf4bba242028d6fe233e9d"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_live_browser.cjs",
+      "bytes": 31455,
+      "sha256": "e956a577dc3af46238d3fac2626624d3178455b4cbfd96d5ee255345b905419c"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_paused_audition_browser.cjs",
+      "bytes": 32828,
+      "sha256": "b3575eaa5654e9563bf7b9a30d191be5634330e2e325dec2f8c4f8e638f075a6"
+    }
+  ]
+}

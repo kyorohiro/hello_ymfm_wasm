@@ -242,6 +242,18 @@ not contribute audio. Song output retains hardware mixing, without the
 keyboard's software headroom or click guard. The Synth's Master controls the
 final bus.
 
+**Selected CH only · Dry** is a Tetorica software listening helper, initially
+Off. It auditions the selected channel's dry output, including its voice and
+main volumes. Every voice, PMON source, the shared Noise generator and the
+original shared reverb continue processing. The shared reverb return belongs
+to the complete song and is heard in the normal full mix; it is excluded from
+the single-channel Dry output. Off restores that original full mix and reverb.
+This mode is independent of Live, does not rewrite voice registers and does
+not change Capture or paused keyboard audition. Channel or mode changes use
+a short fade and the same retained song position. Full PCM and all 24 dry
+stems are retained only for the bounded lookahead (about 2 MiB of additional
+dry PCM with the default settings); only the selected stem needs an AudioBuffer.
+
 The Live PCM graph is a read-only preview of up to 112 ADPCM samples from the
 programmed Start address, decoded with zero initial history. It is not the
 currently audible waveform, a full sample extraction or an inferred root note.

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 // Synchronous PSF1 machine rendering, independent of browser audio scheduling.
-import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-live-spu-1';
+import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-monitor-spu-1';
 import {readPsfLiveSnapshot} from './psf_live_snapshot.js?v=psf-live-spu-1';
 
 const RAM_BYTES=2*1024*1024;
 const SPU_RAM_BYTES=512*1024;
-const backend=Object.freeze({abi:3,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
-const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-live-spu-1',import.meta.url).href;
+const backend=Object.freeze({abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-monitor-spu-1',import.meta.url).href;
 const abort=signal=>signal?.throwIfAborted();
 function validateImage(image) {
   if(!image||!(image.ram instanceof Uint8Array)||image.ram.byteLength!==RAM_BYTES||
@@ -34,9 +34,9 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
     ...moduleOptions,...(wasmBinary?{wasmBinary}:{}),print:()=>{},printErr:()=>{},
   });
   abort(signal);
-  if(module._psf_abi_version?.()!==backend.abi||module._psf_spu_model?.()!==1)
+  if(module._psf_abi_version?.()!==backend.abi||module._psf_spu_model?.()!==1||typeof module._psf_render_stems!=='function')
     throw new Error('PSF playback components are out of date. Reload the page to load the matching MAME SPU player.');
-  let source=0,mask=0,handle=0,output=0,observationBuffer=0,captureBuffer=0,closed=false,position=0;
+  let source=0,mask=0,handle=0,output=0,observationBuffer=0,captureBuffer=0,voiceOutput=0,voiceCapacity=0,closed=false,position=0;
   const error=()=>new Error(`PSF playback: ${module.UTF8ToString(module._psf_last_error())||'machine failed'}`);
   try {
     source=module._malloc(RAM_BYTES);mask=module._malloc(RAM_BYTES);
@@ -55,6 +55,26 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
     if(observationBuffer)module._free(observationBuffer);
     throw e;
   } finally {if(source)module._free(source);if(mask)module._free(mask);}
+  function renderFrames(frames,withVoices) {
+    if(closed)throw new Error('PSF playback core is disposed.');
+    abort(signal);
+    if(!Number.isSafeInteger(frames)||frames<1||frames>44100)
+      throw new RangeError('PSF render size must be 1–44100 stereo frames.');
+    if(withVoices&&frames>voiceCapacity) {
+      // Reuse a bounded buffer; allocate before rendering or releasing the
+      // previous one so allocation failure cannot advance the machine.
+      const next=module._malloc(frames*24*2*4);
+      if(!next)throw new Error('PSF monitoring could not allocate its dry voice buffer.');
+      if(voiceOutput)module._free(voiceOutput);
+      voiceOutput=next;voiceCapacity=frames;
+    }
+    const count=withVoices?module._psf_render_stems(handle,output,voiceOutput,frames):module._psf_render(handle,output,frames);
+    if(count!==frames)throw error();
+    const pcm=module.HEAPF32.slice(output/4,output/4+frames*2);
+    position+=frames/44100;
+    if(!withVoices)return pcm;
+    return {pcm,voices:module.HEAPF32.slice(voiceOutput/4,voiceOutput/4+frames*24*2)};
+  }
   return {
     backend,
     sampleRate:44100,
@@ -85,23 +105,19 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
         },
       });
     },
-    render(frames) {
-      if(closed)throw new Error('PSF playback core is disposed.');
-      abort(signal);
-      if(!Number.isSafeInteger(frames)||frames<1||frames>44100)
-        throw new RangeError('PSF render size must be 1–44100 stereo frames.');
-      const count=module._psf_render(handle,output,frames);
-      if(count!==frames)throw error();
-      const samples=module.HEAPF32.slice(output/4,output/4+frames*2);
-      position+=frames/44100;
-      return samples;
-    },
+    render(frames) {return renderFrames(frames,false);},
+    /** One native pass: original full stereo mix plus frame-major 24x stereo
+     * dry voice contributions. Main volume/mute apply; shared reverb is kept
+     * in pcm only. The stems precede the full bus's saturation and cannot be
+     * summed to reconstruct an already clipped mix. Both arrays are owned. */
+    renderWithVoices(frames) {return renderFrames(frames,true);},
     dispose() {
       if(closed)return;
       closed=true;
       module._psf_destroy(handle);module._free(output);module._free(observationBuffer);
       if(captureBuffer)module._free(captureBuffer);
-      handle=0;output=0;observationBuffer=0;captureBuffer=0;
+      if(voiceOutput)module._free(voiceOutput);
+      handle=0;output=0;observationBuffer=0;captureBuffer=0;voiceOutput=0;voiceCapacity=0;
     },
   };
 }

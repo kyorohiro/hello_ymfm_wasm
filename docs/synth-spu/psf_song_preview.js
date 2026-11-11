@@ -2,6 +2,7 @@
 // PSF song transport. The disposable player borrows the editor's final bus;
 // it never replaces the authored instrument or owns its AudioContext.
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
+import {createSynthCodeOutput} from '../synth/synth_code_output.js?v=scheduled-input-1';
 
 const abortError=()=>new DOMException('PSF playback was cancelled','AbortError');
 const isAbort=error=>error?.name==='AbortError';
@@ -35,6 +36,9 @@ function selectedSource(set,entry) {
  * machine with sampleRate:44100 and synchronous render(frames), producing
  * interleaved stereo Float32Array. File selection itself allocates no audio.
  * An optional synchronous observe() supplies all 24 voices and nativeFrames.
+ * Optional renderWithVoices(frames) advances that same machine once and returns
+ * {pcm:stereo, voices:frame-major CH1 L/R ... CH24 L/R}. Bounded lookahead owns
+ * both, so the listening helper can switch its unplayed route without seeking.
  * Live captures at most 20 states per emulated second, before rendering their
  * samples, and exposes only the immutable state at/before the audible cursor.
  * Optional copySpuRam() returns a detached 512 KiB Uint8Array at that same
@@ -48,13 +52,13 @@ function selectedSource(set,entry) {
  */
 export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{},createCore,
   schedule=nativeSchedule,cancel=nativeCancel,lookaheadSeconds=.2,chunkFrames=2048,
-  refillMilliseconds=25,startDelaySeconds=.01}={}) {
-  for(const fn of [getAudio,beforePlay,onUpdate,createCore,schedule,cancel])if(typeof fn!=='function')throw new TypeError('PSF preview needs host callbacks');
+  refillMilliseconds=25,startDelaySeconds=.01,createOutput=createSynthCodeOutput}={}) {
+  for(const fn of [getAudio,beforePlay,onUpdate,createCore,schedule,cancel,createOutput])if(typeof fn!=='function')throw new TypeError('PSF preview needs host callbacks');
   if(!Number.isInteger(chunkFrames)||chunkFrames<1||chunkFrames>32768)throw new RangeError('PSF preview chunks must be 1..32768 frames');
   if(!Number.isFinite(lookaheadSeconds)||lookaheadSeconds<=0||lookaheadSeconds>1)throw new RangeError('PSF lookahead must be greater than zero and at most one second');
   if(!Number.isFinite(refillMilliseconds)||refillMilliseconds<1||refillMilliseconds>1000)throw new RangeError('Invalid PSF refill interval');
   if(!Number.isFinite(startDelaySeconds)||startDelaySeconds<0||startDelaySeconds>1)throw new RangeError('Invalid PSF startup delay');
-  let source=null,starting=null,run=null,generation=0,disposed=false,liveEnabled=true,liveVoice=0;
+  let source=null,starting=null,run=null,generation=0,disposed=false,liveEnabled=true,liveVoice=0,monitorEnabled=false;
   let message='Open a PSF set and choose an entry to play.',error=false;
   const disposals=new WeakMap(),closing=new Set();
   // One audible predecessor plus the bounded rendering lookahead and at most
@@ -89,6 +93,9 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       liveFrame:liveState?.nativeFrames??null,liveBufferedSnapshots:retained.length,
       canCapture:capture.ready,captureMessage:capture.message,captureFrame:capture.observed?.frame??null,
       captureBufferedBytes:retained.reduce((bytes,value)=>bytes+(value.ram?.byteLength??0),0),
+      monitorEnabled,monitorSwitching:Boolean(run?.monitorSwitching),monitorVoice:run?.monitorVoice??null,
+      monitorAvailable:Boolean(run?.monitorAvailable),monitorError:Boolean(run?.monitorError),monitorMessage:run?.monitorError??'',
+      monitorBufferedBytes:run?run.segments.reduce((bytes,value)=>bytes+(value.voices?.byteLength??0)+(value.selectedBuffer?value.selectedBuffer.length*8:0),0):0,
       liveSource:{name:source?.title??'PSF',entry:source?.entry??''}};
   }
   function emit(){if(!disposed)onUpdate(read());}
@@ -112,7 +119,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   function retire(item) {
     if(!item)return Promise.resolve();
     cancelRefill(item);stopNodes(item);item.controller.abort();item.phase='stopped';
-    item.segments=[];clearLive(item);try{item.output.disconnect();}catch{}
+    item.segments=[];clearLive(item);item.monitorOutput.dispose();try{item.monitorGate.disconnect();}catch{}try{item.output.disconnect();}catch{}
     return disposeCore(item.core);
   }
   function stop() {
@@ -195,26 +202,90 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
         item.liveError=`PSF Live observation failed: ${cause?.message??String(cause)}`;
     }
   }
+  function renderPart(item,frames) {
+    // A single native pass advances all 24 voices, the CPU and shared effects.
+    // Stems are passive pre-shared-reverb taps; changing the listening route
+    // never rerenders a sample or changes any chip register.
+    const rendered=item.monitorAvailable?item.core.renderWithVoices(frames):{pcm:item.core.render(frames),voices:null};
+    const pcm=rendered?.pcm;
+    if(!(pcm instanceof Float32Array)||pcm.length!==frames*2||pcm.some(value=>!Number.isFinite(value)))
+      throw new Error('PSF engine returned invalid stereo PCM');
+    let voices=null;
+    if(item.monitorAvailable) {
+      const value=rendered?.voices;
+      if(!(value instanceof Float32Array)||value.length!==frames*48||value.some(sample=>!Number.isFinite(sample))) {
+        item.monitorAvailable=false;item.monitorError='Selected-channel listening is unavailable: the PSF engine returned invalid voice PCM. Full song playback is kept.';
+      }else voices=value;
+    }
+    return {pcm,voices};
+  }
   function renderChunk(item) {
-    if(!liveEnabled)return item.core.render(chunkFrames);
-    const end=item.rendered+chunkFrames,pcm=new Float32Array(chunkFrames*2);let at=item.rendered;
+    const end=item.rendered+chunkFrames,pcm=new Float32Array(chunkFrames*2),voices=item.monitorAvailable?new Float32Array(chunkFrames*48):null;let at=item.rendered;
     while(at<end) {
       // A snapshot belongs to the sample about to be generated, not to the
       // later machine state at the end of a lookahead buffer.
       if(liveEnabled&&at>=item.nextLiveFrame)captureLive(item,at);
       const frames=liveEnabled?Math.min(end-at,item.nextLiveFrame-at):end-at;
-      const part=item.core.render(frames);
-      if(!(part instanceof Float32Array)||part.length!==frames*2||part.some(value=>!Number.isFinite(value)))
-        throw new Error('PSF engine returned invalid stereo PCM');
-      pcm.set(part,(at-item.rendered)*2);at+=frames;
+      const part=renderPart(item,frames);
+      pcm.set(part.pcm,(at-item.rendered)*2);if(part.voices)voices.set(part.voices,(at-item.rendered)*48);at+=frames;
     }
-    return pcm;
+    return {pcm,voices:item.monitorAvailable?voices:null};
+  }
+  function effectiveMonitorVoice(item){return monitorEnabled&&item.monitorAvailable?liveVoice:null;}
+  function segmentBuffer(item,segment) {
+    if(item.monitorVoice===null)return segment.buffer;
+    if(!segment.voices)throw new Error('Selected-channel PCM is unavailable for retained PSF audio');
+    if(segment.selectedVoice!==item.monitorVoice) {
+      const buffer=item.context.createBuffer(2,segment.end-segment.start,item.rate),left=buffer.getChannelData(0),right=buffer.getChannelData(1);
+      for(let frame=0;frame<buffer.length;frame++) {
+        const offset=frame*48+item.monitorVoice*2;left[frame]=segment.voices[offset];right[frame]=segment.voices[offset+1];
+      }
+      // At most one selected stereo buffer accompanies each full buffer.
+      segment.selectedBuffer=buffer;segment.selectedVoice=item.monitorVoice;
+    }
+    return segment.selectedBuffer;
+  }
+  function openScheduledMonitor(item) {
+    if(run!==item||!current(item)||item.phase!=='playing')return;
+    const first=item.segments.find(segment=>segment.node);
+    // Generation and Web Audio scheduling can take longer than the fade-in.
+    // Anchor the ramp to the actual new source, rather than the earlier time
+    // at which we started preparing its retained audio.
+    if(first)item.monitorOutput.open({notBefore:first.at,freshInput:true});
+  }
+  function requestMonitorSwitch(item) {
+    if(run!==item||!current(item))return Promise.resolve(false);
+    if(item.monitorTask)return item.monitorTask;
+    if(effectiveMonitorVoice(item)===item.monitorVoice)return Promise.resolve(true);
+    cancelRefill(item);item.monitorSwitching=true;emit();
+    const task=(async()=>{
+      do {
+        await item.monitorOutput.fadeOut();
+        if(run!==item||!current(item))return false;
+        // Include the samples consumed during the fade, then retain the exact
+        // next frame. Only Web Audio nodes/routes change; the core stays put.
+        trim(item);cancelRefill(item);stopNodes(item);
+        item.monitorVoice=effectiveMonitorVoice(item);
+        if(item.phase==='playing') {refill(item,true);openScheduledMonitor(item);}
+        else emit();
+      }while(run===item&&current(item)&&effectiveMonitorVoice(item)!==item.monitorVoice);
+      return run===item&&current(item);
+    })().catch(cause=>{fail(item,cause);return false;}).finally(()=>{
+      if(item.monitorTask===task){item.monitorTask=null;item.monitorSwitching=false;}
+      if(run===item&&current(item)){
+        // A request arriving between the worker's final check and this Promise
+        // reaction must also settle before callers/Resume consider it ready.
+        if(effectiveMonitorVoice(item)!==item.monitorVoice)return requestMonitorSwitch(item);
+        emit();queue(item);
+      }
+    });
+    item.monitorTask=task;return task;
   }
   function scheduleSegment(item,segment) {
     const offset=Math.max(0,item.consumed-segment.start),frames=segment.end-segment.start-offset;
     if(frames<=0||segment.node)return;
-    const node=item.context.createBufferSource();segment.node=node;node.buffer=segment.buffer;
-    node.connect(item.output);
+    const node=item.context.createBufferSource();segment.node=node;node.buffer=segmentBuffer(item,segment);
+    node.connect(item.monitorGate);
     // This clock is read after generation, not before a potentially expensive
     // first JIT/render. Existing future nodes keep their times; only a newly
     // scheduled chunk can move forward across an underrun gap.
@@ -223,25 +294,25 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     item.nextTime=segment.until;node.start(at,offset/item.rate,frames/item.rate);
   }
   function queue(item) {
-    if(run!==item||!current(item)||item.phase!=='playing'||item.timer!==null)return;
+    if(run!==item||!current(item)||item.phase!=='playing'||item.timer!==null||item.monitorSwitching)return;
     item.timer=schedule(()=>{item.timer=null;refill(item);},refillMilliseconds);item.timer?.unref?.();
   }
-  function refill(item) {
-    if(run!==item||!current(item)||item.phase!=='playing')return;
+  function refill(item,fromMonitor=false) {
+    if(run!==item||!current(item)||item.phase!=='playing'||item.monitorSwitching&&!fromMonitor)return;
     try {
       trim(item);
       const target=item.consumed+Math.ceil(lookaheadSeconds*item.rate);
       while(item.rendered<target) {
-        const pcm=renderChunk(item);
-        if(!(pcm instanceof Float32Array)||pcm.length!==chunkFrames*2||pcm.some(value=>!Number.isFinite(value)))throw new Error('PSF engine returned invalid stereo PCM');
+        const {pcm,voices}=renderChunk(item);
         const buffer=item.context.createBuffer(2,chunkFrames,item.rate),left=buffer.getChannelData(0),right=buffer.getChannelData(1);
         for(let frame=0;frame<chunkFrames;frame++){left[frame]=pcm[frame*2];right[frame]=pcm[frame*2+1];}
-        item.segments.push({start:item.rendered,end:item.rendered+chunkFrames,buffer,node:null});item.rendered+=chunkFrames;
+        item.segments.push({start:item.rendered,end:item.rendered+chunkFrames,buffer,voices,selectedVoice:null,selectedBuffer:null,node:null});item.rendered+=chunkFrames;
       }
       // AudioContext time continues advancing while synchronous emulation is
       // busy. Retire only genuinely played old nodes, retaining every newly
       // rendered, not-yet-scheduled sample for the next source.
       trim(item);
+      if(effectiveMonitorVoice(item)!==item.monitorVoice){void requestMonitorSwitch(item);return;}
       for(const segment of item.segments)scheduleSegment(item,segment);
       emit();queue(item);
     }catch(cause){fail(item,cause);}
@@ -262,8 +333,14 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       const context=audio?.context;
       if(!context||context.state==='closed'||!audio.gain)throw new Error('SPU editor audio is unavailable');
       const output=context.createGain();output.gain.value=1/SPU_SYNTH_MIX_HEADROOM;output.connect(audio.gain);
-      const item={...owner,audio,context,output,rate:44100,segments:[],rendered:0,consumed:0,
+      const monitorGate=context.createGain();monitorGate.gain.value=1;monitorGate.connect(output);
+      const monitorAvailable=typeof owner.core.renderWithVoices==='function';
+      const item={...owner,audio,context,output,monitorGate,rate:44100,segments:[],rendered:0,consumed:0,
+        monitorAvailable,monitorVoice:monitorEnabled&&monitorAvailable?liveVoice:null,monitorSwitching:false,monitorTask:null,
+        monitorError:monitorEnabled&&!monitorAvailable?'Selected-channel listening is unavailable in this PSF engine. Full song playback is kept.':'',
         nextTime:null,phase:'playing',timer:null,liveHistory:[],livePaused:null,liveError:'',nextLiveFrame:0};
+      item.monitorOutput=createOutput({getContext:()=>run===item&&current(item)?item.context:null,
+        getGain:()=>run===item&&current(item)?item.monitorGate:null});
       run=item;starting=null;say(`Playing ${source.title}.`);refill(item);return run===item;
     }catch(cause) {
       const accepted=current(owner)&&starting===owner;
@@ -281,10 +358,13 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     const item=run;if(!item||item.phase!=='paused')return false;
     item.phase='resuming';say(`Resuming ${source.title}…`);
     try {
+      while(item.monitorTask)await item.monitorTask;
+      if(run!==item||!current(item)||item.phase!=='resuming')return false;
       if(typeof item.audio.resume==='function')await item.audio.resume();
+      while(item.monitorTask)await item.monitorTask;
       if(run!==item||!current(item)||item.phase!=='resuming')return false;
       item.phase='playing';item.livePaused=null;
-      say(`Playing ${source.title}.`);refill(item);return run===item;
+      say(`Playing ${source.title}.`);refill(item);openScheduledMonitor(item);return run===item;
     }catch(cause){fail(item,cause);return false;}
   }
   function setSource(set,entry) {
@@ -310,11 +390,22 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   function setLiveVoice(value) {
     if(!Number.isInteger(value)||value<0||value>23)throw new RangeError('PSF Live channel must be an integer 0..23');
     if(disposed||liveVoice===value)return read();
-    liveVoice=value;emit();return read();
+    liveVoice=value;if(run&&monitorEnabled)void requestMonitorSwitch(run);emit();return read();
+  }
+  async function setMonitorEnabled(value) {
+    if(typeof value!=='boolean')throw new TypeError('PSF selected-channel listening must be boolean');
+    if(disposed)return false;
+    monitorEnabled=value;
+    const item=run;
+    if(item) {
+      item.monitorError=value&&!item.monitorAvailable?'Selected-channel listening is unavailable in this PSF engine. Full song playback is kept.':'';
+      const done=requestMonitorSwitch(item);emit();return done;
+    }
+    emit();return true;
   }
   async function dispose() {
     if(disposed)return;
     disposed=true;await stop();source=null;
   }
-  return {read,setSource,play,pause,resume,stop,dispose,setLiveEnabled,setLiveVoice,capturePaused};
+  return {read,setSource,play,pause,resume,stop,dispose,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused};
 }
