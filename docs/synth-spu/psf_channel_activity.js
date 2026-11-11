@@ -13,7 +13,7 @@ export function createPsfChannelActivity({element,onSelect}={}) {
   const attribute=(node,name,value)=>{if(node.getAttribute(name)!==value)node.setAttribute(name,value);};
   const data=(node,name,value)=>{if(node.dataset[name]!==value)node.dataset[name]=value;};
   function select(voice) {
-    selected=Number.isInteger(voice)&&voice>=0&&voice<24?voice:0;
+    selected=Number.isInteger(voice)&&voice>=0&&voice<24?voice:null;
     for(let index=0;index<24;index++)attribute(buttons[index],'aria-pressed',String(index===selected));
   }
   for(let index=0;index<24;index++) {

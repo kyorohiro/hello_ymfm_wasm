@@ -18,6 +18,7 @@ import {readNoise} from './spu_synth_noise.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {validateHostPcm} from './spu_synth_long_audio.js';
+import {createSpuAdpcmPreviewCache} from './spu_adpcm_preview.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
@@ -178,6 +179,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {readMorph, morphPcm} from ${url('./spu_synth_morph.js')};
     import {SPU_SYNTH_MIX_HEADROOM} from ${url('./spu_synth_levels.js')};
     import {validateHostPcm} from ${url('./spu_synth_long_audio.js')};
+    import {createSpuAdpcmPreviewCache} from ${url('./spu_adpcm_preview.js')};
     import {noteToHz} from ${url('../js/soundchip_pitch.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
@@ -185,7 +187,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -216,7 +218,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -240,6 +242,65 @@ async function setup(rate = 48000) {
     close() {processor.dispose();},
   };
 }
+
+test('imported ADPCM has a separate read-only preview without RAM reads, saved-data edits or audio changes',async t=>{
+  const observed=await setup(44100),control=await setup(44100);t.after(()=>{observed.close();control.close();});
+  const adpcm=sine().adpcm;
+  for(const p of [observed,control]) {
+    const sample=p.command('loadADPCM',[adpcm,{baseFrequencyHz:440,loopStartSamples:0}]);
+    p.command('setInstrumentPreset',[{sample,adsr1:0x000f,adsr2:0x1fc0}]);
+    p.command('instrumentNoteOn',[69,'preview-test']);
+  }
+  const saved=observed.command('getInstrument',[0]),core=observed.processor.synth.core;
+  const ram=core.readRam(),frames=core.nativeFrames,readRam=core.readRam;
+  core.readRam=()=>{throw Error('A display preview must not read SPU RAM');};
+  try {
+    for(let i=0;i<10;i++) {
+      const voice=observed.command('inspect').channels[0];
+      assert.equal(voice.waveform,null);assert.equal(voice.adpcmPreview.sample,voice.sample);
+      assert.equal(voice.adpcmPreview.decodedFrames,112);assert.equal(voice.adpcmPreview.packetCount,4);
+      assert.equal(voice.adpcmPreview.source,'sample-start');assert.equal(voice.adpcmPreview.history,'zero-at-sample-start');
+      assert.equal(voice.adpcmPreviewUnavailable,null);
+    }
+    assert.deepEqual(observed.command('getInstrument',[0]),saved,'portable instrument contains only the original sample and editor metadata');
+  }finally{core.readRam=readRam;}
+  assert.equal(core.nativeFrames,frames);assert.deepEqual(core.readRam(),ram);
+  assert.deepEqual(saved.sample.adpcm,adpcm);assert.equal(saved.waveform,null);assert.equal(saved.adpcmPreview,undefined);
+  const actual=observed.render(2048),expected=control.render(2048);
+  assert.deepEqual(actual.left,expected.left);assert.deepEqual(actual.right,expected.right);assert(peak(actual.left)>0);
+});
+
+test('editable cycles, Noise and software host recordings never masquerade as source ADPCM previews',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  let state=p.command('inspect');assert(state.channels[0].waveform);assert.equal(state.channels[0].adpcmPreview,null);
+  const sample=p.command('loadADPCM',[sine().adpcm,{baseFrequencyHz:440,loopStartSamples:0}]);
+  p.command('setInstrumentPreset',[{sample}]);assert(p.command('inspect').channels[0].adpcmPreview);
+  p.command('setInstrumentNoise',[{enabled:true,clock:37}]);state=p.command('inspect');
+  assert.equal(state.channels[0].adpcmPreview,null);assert.equal(state.channels[0].waveform,null);
+  p.command('setInstrumentNoise',[{enabled:false}]);
+  p.command('loadHostPCM',[new Int16Array([0,1000,0,-1000]),{baseFrequencyHz:440,loop:true}]);state=p.command('inspect');
+  assert.equal(state.channels[0].adpcmPreview,null);assert.equal(state.hostAudio.frames,4);
+});
+
+test('a preview decoder failure keeps a valid imported instrument and Code sample selection intact',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  const adpcm=sine().adpcm,sample=p.command('loadADPCM',[adpcm,{baseFrequencyHz:440,loopStartSamples:0}]);
+  p.processor.adpcmPreviews=createSpuAdpcmPreviewCache({decode(){throw Error('Preview fixture unavailable');}});
+  p.command('setInstrumentPreset',[{sample}]);
+  const state=p.command('inspect');assert.equal(state.channels[0].adpcmPreview,null);
+  assert.match(state.channels[0].adpcmPreviewUnavailable,/Preview fixture unavailable/);
+  assert.deepEqual(p.command('getInstrument',[0]).sample.adpcm,adpcm);
+  p.processor.adpcmPreviews=createSpuAdpcmPreviewCache();
+  const session=p.command('beginCode').session;
+  p.command('code',[session,'reset',[{clearRam:true}]]);
+  const codeSample=p.command('code',[session,'loadADPCM',[adpcm,{baseFrequencyHz:220,loopStartSamples:0}]]);
+  p.command('code',[session,'setPreset',[2,{sample:codeSample}]]);
+  const voice=p.command('observeCode').channels[2];
+  assert.equal(voice.waveform,null);assert.equal(voice.adpcmPreview.sample,codeSample.id);
+  assert.equal(voice.adpcmPreview.decodedFrames,112);
+  p.command('stop');assert.deepEqual(p.command('getInstrument',[0]).sample.adpcm,adpcm);
+  assert.equal(p.command('inspect').channels[0].adpcmPreview.sample,sample.id);
+});
 
 test('resident immutable ADPCM lookup reuses two large saved samples without allocating or stopping notes',async t=>{
   const p=await setup(44100);t.after(()=>p.close());

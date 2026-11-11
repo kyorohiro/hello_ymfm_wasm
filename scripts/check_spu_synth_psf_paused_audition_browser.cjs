@@ -149,7 +149,7 @@ async function check(browser,name,origin,authored){
   const graph=()=>page.evaluate(()=>__pausedAuditionAudit.graph());
   const view=()=>page.evaluate(()=>({bar:!document.getElementById('spuCodeLiveTools').hidden,songBar:!document.getElementById('psfSongPlayer').hidden,
     pause:document.getElementById('psfPauseSong').textContent,position:document.getElementById('psfSongPosition').dataset.seconds,
-    frame:document.getElementById('spuVoicePanel').dataset.observationFrame,voice:document.getElementById('spuLiveChannel').value,
+    frame:document.getElementById('spuVoicePanel').dataset.observationFrame,voice:document.getElementById('spuLiveChannel').value,nativeVoice:document.getElementById('spuCodeLiveTools').dataset.psfVoice,display:document.getElementById('spuCodeLiveTools').dataset.psfView,
     monitor:{...document.getElementById('psfPlaybackStatus').dataset},audition:{...document.getElementById('spuCodeLiveTools').dataset},status:document.getElementById('audioStatus').textContent,
     activity:{ready:document.getElementById('spuPsfChannelActivity').dataset.ready,
       channels:[...document.querySelectorAll('#spuPsfChannelActivity [data-psf-channel]')].map(button=>({channel:Number(button.dataset.psfChannel),
@@ -157,7 +157,9 @@ async function check(browser,name,origin,authored){
   async function monitorSettled(voice){await until(async()=>{const value=(await view()).monitor;return value.monitorEnabled==='true'&&value.monitorSwitching==='false'&&value.monitorVoice===String(voice);},'paused selected dry mode '+voice);}
   async function menu(id){if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();await page.locator(id).click();}
   async function paused(){await page.locator('#psfPauseSong').click({delay:5});await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Resume'),'PSF paused');}
-  async function playPaused(){await page.locator('#psfPlaySong').click({delay:5});await until(async()=>Number((await view()).frame)>=2205,'audible PSF snapshot');await paused();await until(()=>page.locator('#spuPsfCapture').isEnabled(),'paused ordinary channel');}
+  async function playPaused(){if(await page.locator('#psfPlaySong').isEnabled()){await page.locator('#psfPlaySong').click({delay:5});await until(async()=>await page.locator('#spuCodeLiveTools').getAttribute('data-live-kind')==='psf'&&await page.locator('#psfPauseSong').isEnabled(),'PSF owns its toolbar');}
+    if(!await page.locator('#spuLiveEnabled').isChecked())await page.locator('#spuLiveEnabled').check();if(await page.locator('#spuLiveChannel').inputValue()==='synth')await page.locator('#spuLiveChannel').selectOption(await page.locator('#spuCodeLiveTools').getAttribute('data-psf-voice'));await until(async()=>Number((await view()).frame)>=2205,'audible PSF snapshot');
+    if(await page.locator('#psfPauseSong').textContent()==='Pause')await paused();await until(()=>page.locator('#spuPsfCapture').isEnabled(),'paused ordinary channel');}
   async function assertPaused(before){const after=await view();assert(after.bar&&after.songBar,'PSF and CH controls stay visible');assert.equal(after.pause,'Resume');assert.equal(after.frame,before.frame);assert.equal(after.position,before.position);
     assert.equal(after.monitor.monitorEnabled,before.monitor.monitorEnabled,'temporary audition preserves selected-dry preference');assert.equal(after.activity.ready,'true');assert.deepEqual(after.activity.channels.map(({selected,...channel})=>channel),before.activity.channels.map(({selected,...channel})=>channel),'temporary keyboard output cannot change the frozen PSF activity');return after;}
   async function keyFor(note){const key=page.locator('#keyboardKeys .key').filter({hasText:new RegExp('\\b'+note+'\\b')}).first();assert(await key.count(),'keyboard has '+note);const letter=await key.getAttribute('data-key');assert(letter);return letter;}
@@ -257,8 +259,11 @@ async function check(browser,name,origin,authored){
     await page.locator('#synthInputKeyboardTab').click();await noPreviewKeys();
     step('Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning');
     await playPaused();await page.locator('#spuLiveChannel').selectOption('1');await page.locator('#spuPsfReferenceKey').selectOption('C5');
-    await monitorSettled(1);assert(await page.locator('#spuPsfMonitorEnabled').isChecked());await page.keyboard.down(c4);await held(authored.b,authored.pitches[1]/2);const captureStart=(await commands()).length;
+    await monitorSettled(1);assert(await page.locator('#spuPsfMonitorEnabled').isChecked());await page.keyboard.down(c4);await held(authored.b,authored.pitches[1]/2);const captureFrozen=await view(),captureGraph=await graph(),captureStart=(await commands()).length;
     await page.locator('#spuPsfCapture').click({delay:5});await until(()=>page.locator('#audioStatus').textContent().then(value=>value.startsWith('Captured CH 2')),'permanent Capture');await page.keyboard.up(c4);
+    const afterCapture=await view();assert(afterCapture.bar&&afterCapture.songBar);assert.equal(afterCapture.pause,'Resume');assert.equal(afterCapture.position,captureFrozen.position);assert.equal(afterCapture.voice,'synth');assert.equal(afterCapture.nativeVoice,captureFrozen.nativeVoice);assert.equal(afterCapture.display,'synth');assert.equal(afterCapture.monitor.monitorEnabled,'true');assert.equal(await page.locator('#spuLiveEnabled').isChecked(),true);assert.equal(afterCapture.activity.ready,'true');assert(afterCapture.activity.channels.every(channel=>channel.selected==='false'));assert.deepEqual(afterCapture.activity.channels.map(({selected,...channel})=>channel),captureFrozen.activity.channels.map(({selected,...channel})=>channel));
+    assert.equal((await graph()).bufferStarts,captureGraph.bufferStarts);assert.equal((await graph()).bufferStops,captureGraph.bufferStops);
+    await page.locator(`#spuPsfChannelActivity [data-psf-channel="${captureFrozen.nativeVoice}"]`).click({delay:5});assert.equal((await view()).frame,captureFrozen.frame);assert.equal((await view()).voice,captureFrozen.nativeVoice);await page.locator('#spuLiveChannel').selectOption('synth');
     const captured=await instrument(),captureCommands=(await commands()).slice(captureStart),lookup=captureCommands.findIndex(value=>value.method==='findADPCM'),restore=captureCommands.findIndex(value=>value.method==='stop');
     assert(restore>=0&&lookup>restore,'temporary checkpoint restoration precedes authored sample/capacity lookup');
     assert.deepEqual(Array.from(captured.sample.adpcm),authored.b,'retained PSF source bytes survive all temporary preview writes');
@@ -268,7 +273,10 @@ async function check(browser,name,origin,authored){
     await page.keyboard.down(c4);await until(async()=>(await read()).auditions.length===1,'captured ordinary Synth key');
     const permanent=await read();assert.equal(permanent.channels[permanent.auditions[0].channel].pitch,authored.pitches[1]/2);
     await until(async()=>{const output=await page.evaluate(()=>__pausedAuditionAudit.output());return output.muted&&output.finite&&output.rms>.00001;},'permanent Capture output after temporary preview');
-    await page.keyboard.up(c4);await page.locator('#allNotesOff').click();
+    await page.keyboard.up(c4);await page.locator('#allNotesOff').click();assert.equal((await view()).position,captureFrozen.position);
+    const editedCapture=await instrument();assert.equal((await view()).voice,'synth');assert(await page.locator('#spuLiveEnabled').isChecked());await page.locator('#psfPauseSong').click({delay:5});await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Pause'),'captured source Resume');
+    await until(async()=>Number((await view()).position)>Number(captureFrozen.position)+.02,'captured source retains and advances its old position');assert.deepEqual(await instrument(),editedCapture);measurements.captureResume={before:captureFrozen.position,after:(await view()).position,voice:(await view()).nativeVoice};assert.equal((await view()).voice,'synth');assert.equal((await view()).display,'synth');
+    await paused();
     const download=page.waitForEvent('download');await menu('#savePreset');const item=await download,saved=JSON.parse(await fs.readFile(await item.path(),'utf8'));
     step('A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound');
     const length=Math.floor((524288-capturedBank.nextAddress-32)/16)*16,adpcm=Array(length).fill(0);for(let at=0;at<length;at+=16)adpcm[at]=12;adpcm[length-15]=1;

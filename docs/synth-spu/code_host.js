@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?spu-code=1
 import {selectSpuCodeDeclarations} from './code_declarations.js?spu-click-guard=1';
 import {createSpuCodeAudio} from './code_audio.js?spu-code=1';
 import {createSpuCodeProject} from './code_project.js?spu-split-vab=1';
-import {setupSpuCodeFiles} from './code_files.js?spu-split-vab=1';
+import {setupSpuCodeFiles} from './code_files.js?spu-files-capture-resume=1';
 
 export const SPU_STARTER_CODE=`const ps1 = await useSoundChip("ps1");
 setBpm(120);

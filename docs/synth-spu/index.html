@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-psf-channel-monitor-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-files-capture-resume-1">
   </head>
   <body>
     <main>
@@ -96,14 +96,14 @@
             <button id="psfStopSong" type="button" disabled>Stop song</button>
             <button id="extractPsf" type="button" title="Extract VAB banks from the selected PSF and show its Bank / Tone list." disabled>Extract VAB</button>
             <output id="psfSongPosition" aria-label="PSF playback position">0:00</output>
-            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. During playback, keyboard, Code or instrument edits stop the song. While paused, Live On auditions the selected ADPCM or Noise channel temporarily; Live Off auditions your edited instrument. Neither keyboard mode leaves Pause. CH / Reference changes release the temporary notes, and Resume restores the editor before continuing the song. The song uses the Synth’s MAME-derived SPU DSP for ADPCM, ADSR, Noise, PMON, main / reverb volumes and reverb, with hardware mixing. CPU timing remains HLE, not cycle-exact. Unsupported volume sweeps, 8-byte-only voice addresses and transfer modes report an error. Master still works. Live shows the selected song channel in the PCM / ADSR / FX panels; Pause freezes that observation. Pause to Capture an ADPCM or Noise channel into Synth. Noise copies Clock, ADSR, voice levels and send; keys trigger envelopes rather than changing Noise pitch. Running Noise phase is not copied. Reference key reproduces its PITCH code without inferring a root note; a new key press starts a fresh envelope. PMON carriers, including Noise with PMON, and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
+            <details class="spu-code-help"><summary aria-label="About PSF playback">?</summary><p>Preview the selected PSF1 / MiniPSF using a separate Play! HLE engine, with no external BIOS. Pause keeps the exact position; Stop returns to the beginning. Your edited instrument is kept. During playback, keyboard, Code or instrument edits stop the song. View / keyboard explicitly selects a PSF CH or Synth · edit and play. While paused, PSF CH view auditions that channel temporarily; Synth auditions your edited instrument. Capture copies one CH into Synth and selects that view, keeping the original song paused and its CH activity visible. Choose a PSF CH to return to source observation or audition. Save to presets keeps the copied instrument in Files. Neither keyboard mode leaves Pause. CH / Reference changes release the temporary notes, and Resume restores the editor before continuing the song. The song uses the Synth’s MAME-derived SPU DSP for ADPCM, ADSR, Noise, PMON, main / reverb volumes and reverb, with hardware mixing. CPU timing remains HLE, not cycle-exact. Unsupported volume sweeps, 8-byte-only voice addresses and transfer modes report an error. Master still works. Live shows the selected song channel in the PCM / ADSR / FX panels; Pause freezes that observation. Pause to Capture an ADPCM or Noise channel into Synth. Noise copies Clock, ADSR, voice levels and send; keys trigger envelopes rather than changing Noise pitch. Running Noise phase is not copied. Reference key reproduces its PITCH code without inferring a root note; a new key press starts a fresh envelope. PMON carriers, including Noise with PMON, and PSF2 are not supported. VAB files contain instruments, not songs.</p></details>
           </div>
           <p id="psfPlaybackStatus" class="subtext" role="status" aria-live="polite">Open a PSF set and choose an entry to play.</p>
         </section>
 
         <section id="spuCodeLiveTools" class="spu-code-live-tools" aria-label="Code observations" hidden>
           <div class="spu-code-live-row">
-            <label><span id="spuLiveSourceLabel">Code view</span> <select id="spuLiveChannel" aria-label="Code channel to observe"></select></label>
+            <label><span id="spuLiveSourceLabel">Code view</span> <select id="spuLiveChannel" aria-label="Code channel to observe"><option id="spuLiveSynthOption" value="synth" hidden disabled>Synth · edit and play</option></select></label>
             <label id="spuPsfMonitorTools" class="check-control" hidden><input id="spuPsfMonitorEnabled" type="checkbox" aria-describedby="spuLiveHelpText"> Selected CH only · Dry</label>
             <label class="check-control"><input id="spuLiveEnabled" type="checkbox" checked> <span id="spuLiveEnabledLabel">Live from Code</span></label>
             <div id="spuPsfCaptureTools" class="spu-psf-capture-tools" hidden>
@@ -252,6 +252,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-psf-noise-capture-1"></script>
+    <script type="module" src="./synth.js?v=spu-psf-synth-view-2"></script>
   </body>
 </html>

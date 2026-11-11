@@ -12,6 +12,7 @@ import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
+import {createSpuAdpcmPreviewCache} from './spu_adpcm_preview.js';
 
 import {validateHostPcm} from './spu_synth_long_audio.js';
 
@@ -46,6 +47,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.codeCheckpoint = null;
     this.codeNoiseSample = null;
     this.codeGates = new Set();
+    this.adpcmPreviews = createSpuAdpcmPreviewCache();
     this.voices = new SpuRoundRobinVoices();
     this.port.onmessage = ({data}) => {
       if (data?.method === 'dispose') {this.dispose(); return;}
@@ -448,7 +450,8 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         :sample&&this.pmonSample?.id===sample.id&&this.pmonWaveform?{sample:sample.id,pcm:this.pmonWaveform.slice()}:null;
       return {...voice,sample:sample?.id??null,volumeLeft:volume(rawRegisters[0]),volumeRight:volume(rawRegisters[1]),pitch:rawRegisters[2]&0x3fff,
         adsr1:rawRegisters[4],adsr2:rawRegisters[5],envelopeParameters:decodePs1Envelope(rawRegisters[4],rawRegisters[5]),
-        reverb:Boolean(send[ch>=16?1:0]&(1<<(ch%16))),gate:this.codeGates.has(ch),active:this.codeGates.has(ch),waveform,rawRegisters};
+        reverb:Boolean(send[ch>=16?1:0]&(1<<(ch%16))),gate:this.codeGates.has(ch),active:this.codeGates.has(ch),waveform,rawRegisters,
+        ...this.readAdpcmPreview(sample,waveform)};
     })};
   }
 
@@ -459,7 +462,19 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.hostAudio=null;
   }
 
-  readState() {return {...this.inspector.read(), clickGuard:this.clickGuard, hostAudio:this.hostAudio ? {frames:this.hostAudio.pcm.length,duration:this.hostAudio.pcm.length/44100,loop:this.hostAudio.loop} : null, pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
+  readAdpcmPreview(sample,waveform) {
+    if(!sample||waveform||this.noise.enabled||sample.editorChannel!==undefined||sample.id===this.hostSlot?.id||sample.id===this.pmonSample?.id)
+      return {adpcmPreview:null,adpcmPreviewUnavailable:null};
+    const {preview,unavailableReason}=this.adpcmPreviews.read(this.synth.sampleBytes[sample.id]);
+    return {adpcmPreview:preview?{sample:sample.id,...preview}:null,adpcmPreviewUnavailable:unavailableReason};
+  }
+
+  readState() {
+    const state=this.inspector.read();
+    return {...state,channels:state.channels.map(voice=>({...voice,...this.readAdpcmPreview(this.synth.samples[voice.sample],voice.waveform)})),
+      clickGuard:this.clickGuard,hostAudio:this.hostAudio?{frames:this.hostAudio.pcm.length,duration:this.hostAudio.pcm.length/44100,loop:this.hostAudio.loop}:null,
+      pmon:{...this.pmon},noise:{...this.noise},morph:readMorph(this.morph),pmonSampleReserved:Boolean(this.pmonSample),polyphony:this.pmon.enabled?12:24};
+  }
   voiceKey(ch,on,smooth) {
     return this.synth[smooth?(on?'_auditionKeyOn':'_auditionKeyOff'):(on?'keyOn':'keyOff')](ch);
   }

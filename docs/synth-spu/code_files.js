@@ -33,16 +33,22 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   let code=null,busy=true,disposed=false,restoring=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),textPath=null,visibilityTouched=false;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
-  const toolbar=make('div');toolbar.className='spu-files-toolbar';
+  const heading=make('div');heading.className='spu-files-heading';
+  const title=make('h2',null,'FILES');
+  const toolbar=make('div');toolbar.className='spu-files-toolbar';toolbar.setAttribute('role','group');toolbar.setAttribute('aria-label','Create project files');
+  heading.append(title,toolbar);
+  const actions=make('div');actions.className='spu-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
-  for(const[id,label]of [['spuFileNewButton','New…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileSaveSoundButton','Save sound'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
-    const button=make('button',id,label);button.type='button';toolbar.append(button);buttons.set(id,button);
+  for(const[id,label]of [['spuFileNewButton','New JS'],['spuFileSaveSoundButton','Save sound'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
+    const button=make('button',id,label);button.type='button';
+    (id==='spuFileNewButton'||id==='spuFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
+    if(id==='spuFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
     const destination={spuProjectImportButton:['spuMenuProjectImport','Project · ZIP…'],spuProjectExportButton:['spuMenuProjectExport','Project · ZIP'],spuFileImportButton:['spuMenuFilesImport','Project files…'],spuFileExportButton:['spuMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();doc.activeElement?.blur?.();}});
   }
-  const selected=make('p','spuFilesSelected','Project /');selected.className='spu-files-path';
+  const selected=make('p','spuFilesSelected','');selected.className='spu-files-path spu-sr-only';selected.setAttribute('role','status');
   const tree=make('div','spuFilesTree');tree.setAttribute('aria-label','SPU project files');
   const editor=make('textarea','spuFileTextEditor');editor.hidden=true;editor.spellcheck=false;editor.setAttribute('aria-label','Selected text file; edits save automatically');
   const info=make('p','spuFilesStatus','Code and text edits save locally. Importing a project never runs it.');info.className='spu-files-status';info.setAttribute('role','status');
@@ -50,13 +56,14 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   const projectInput=make('input','spuProjectFileInput');projectInput.type='file';projectInput.accept='.zip,application/zip';projectInput.hidden=true;
   const dialog=make('dialog','spuFileNameDialog'),form=make('form'),label=make('label','spuFileNameLabel','File path'),nameInput=make('input','spuFileNameInput');
   label.htmlFor=nameInput.id;const confirm=make('button','spuFileNameConfirm','Create'),cancel=make('button','spuFileNameCancel','Cancel');confirm.type='submit';cancel.type='button';form.append(label,nameInput,confirm,cancel);dialog.append(form);
-  panel.append(toolbar,selected,tree,editor,info,fileInput,projectInput,dialog);
+  panel.append(heading,tree,actions,selected,editor,info,fileInput,projectInput,dialog);
   let dialogAction=null;
   const say=message=>{if(!disposed){info.textContent=message;setStatus(message);}};
   const report=error=>{if(error?.name!=='AbortError')say(`Files: ${error?.message??error}`);};
   const allowed=path=>{path=normalizeVirtualPath(path);if(path==='/'||path===SPU_PROJECT_MANIFEST||isCheckpointPath(path))throw Error('That path is reserved.');return path;};
   function render(){
-    if(disposed)return;selected.textContent=project.selectedPath??'Project /';
+    if(disposed)return;const selectedPath=project.selectedPath??'';if(selected.textContent!==selectedPath)selected.textContent=selectedPath;
+    panel.setAttribute('aria-busy',String(busy));
     renderFileTree(tree,[...project.fs.list().filter(file=>!isCheckpointPath(file.path)),...project.fs.listDirectories().filter(path=>path!=='/'&&!isCheckpointPath(path)).map(path=>({path,type:'directory'}))],{
       selectedPath:project.selectedPath,expanded,onOpen:path=>void selectFile(path).catch(report),
       onImport:files=>void importFiles(files).catch(report),onTransfer:(source,destination,copy)=>void move(source,destination,copy).catch(report)});

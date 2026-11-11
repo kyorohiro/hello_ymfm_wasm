@@ -3,6 +3,7 @@
 import {readMorph, morphPcm, morphShape, morphShapeName, MORPH_SHAPES} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
+import {appliedSpuAdpcmPreview} from './spu_adpcm_preview.js';
 import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
 
 /** Reuse the PCM/ADSR/FX editors with one instrument for all keyboard voices.
@@ -71,6 +72,10 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const initialWaveNotes=new Map([...sections[0].querySelectorAll('p')].map(node=>[node,node.textContent]));
   function observationLabels() {
     const observing=morphUiState?.observation?.kind==='psf';
+    const voice=morphUiState?.channels?.[0],noise=Boolean(morphUiState?.noise?.enabled);
+    const preview=!observing&&!noise&&!morphDraft.enabled&&!voice?.waveform?appliedSpuAdpcmPreview(voice):null;
+    pcmCanvas.dataset.waveformView=noise?'noise':observing?'psf-adpcm-preview':preview?'adpcm-preview':morphDraft.enabled?'morph-pcm':voice?.waveform?'editable-pcm':'unavailable';
+    pcmCanvas.dataset.readonly=String(observing||Boolean(preview)||noise||!voice?.waveform&&!morphDraft.enabled);
     customReverb.hidden=!observing;
     morph.hidden=observing||Boolean(morphUiState?.noise?.enabled);
     reverbState.hidden=!observing;
@@ -86,8 +91,26 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
       for(const [node]of initialWaveNotes)if(node!==info)node.hidden=true;
       const reverb=morphUiState.reverb??{},main=morphUiState.main;
       reverbState.textContent=`Shared reverb ${reverb.enabled?'enabled':'disabled'} · ${reverb.preset==='custom'?'Custom register configuration':reverb.preset??'Unknown configuration'}${Number.isInteger(reverb.baseAddress)?` · RAM base 0x${reverb.baseAddress.toString(16).toUpperCase()}`:''}${main?` · Main L ${main.volumeLeft.toFixed(3)} / R ${main.volumeRight.toFixed(3)}`:''}. Selected CH send and shared returns are shown above.`;
+    } else if(preview) {
+      pcmHeading.textContent='ADPCM preview · sample Start · read-only';
+      pcmCanvas.setAttribute('aria-label',`Read-only ADPCM sample-start preview, ${preview.decodedFrames} decoded samples with zero predictor history. Not editable PCM or the current audible waveform.`);
+      const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
+      if(info)info.textContent=`Read-only ADPCM preview · ${preview.decodedFrames} decoded samples / ${preview.packetCount} packet(s) from sample Start · zero initial predictor history. Not the complete sample, current audible waveform or editable 112-sample PCM. Choose a shape or enable Software morph to replace it with an editable cycle.`;
+      for(const [node]of initialWaveNotes)if(node!==info)node.hidden=true;
+      if(visible&&activeSection==='pcm')drawAdpcmPreview(preview);
     } else {
       for(const [node]of initialWaveNotes)node.hidden=Boolean(morphUiState?.noise?.enabled);
+      if(!morphDraft.enabled&&!noise&&!waveform) {
+        const message=voice?.adpcmPreviewUnavailable?'ADPCM preview unavailable; original sound is unchanged.':morphUiState?.hostAudio?'Software audio sample · no editable PCM cycle.':'Choose a shape to create editable PCM for this instrument.';
+        pcmCanvas.setAttribute('aria-label',message);
+        // The shared editor caches pcm=null. Clear any preview we drew over
+        // its placeholder even when the next source also has no editable PCM.
+        if(visible&&activeSection==='pcm')drawAdpcmPreview(null,message);
+      }
+      if(!observing&&!morphDraft.enabled&&!noise&&voice?.adpcmPreviewUnavailable) {
+        const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
+        if(info)info.textContent=`ADPCM preview unavailable: ${voice.adpcmPreviewUnavailable} Original sound and saved ADPCM are unchanged.`;
+      }
     }
     if(label)label.textContent=observing?'Selected CH reverb send':'Enable reverb';
     adsrCanvas.setAttribute('aria-label',observing?'Read-only song ADSR settings. Stage widths are illustrative, not the current envelope stage.':adsrCanvasLabel);
@@ -99,6 +122,20 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     pmonNotes[1].hidden=observing;
     sourceNotes.forEach(node=>{node.hidden=observing;});
     source.querySelector('[data-noise-info]').textContent=observing?'This CH uses the shared hardware Noise clock. Noise replaces ADPCM output; PITCH does not set its frequency.':'Noise clock is shared by all 24 voices. Keys trigger the ADSR envelope, not a musical pitch. Use ADSR to shape drums and effects. Your PCM/audio sample is kept. Noise and PMON switch each other off.';
+  }
+  function drawAdpcmPreview(preview,message) {
+    const ctx=pcmCanvas.getContext('2d');if(!ctx)return;
+    const {width:w,height:h}=pcmCanvas,y=value=>8+(1-value)*(h-16)/2;
+    ctx.clearRect(0,0,w,h);ctx.fillStyle='#101820';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#34444e';ctx.lineWidth=1;
+    for(const value of [-1,0,1]){ctx.beginPath();ctx.moveTo(0,y(value));ctx.lineTo(w,y(value));ctx.stroke();}
+    if(!preview){ctx.fillStyle='#b5c2cc';ctx.font='13px sans-serif';ctx.fillText(message,12,25);return;}
+    ctx.strokeStyle='#7bbcf7';ctx.lineWidth=2;ctx.beginPath();
+    // Exclude the decoder's padded frames: END never invents a silent tail.
+    for(let i=0;i<preview.decodedFrames;i++) {
+      const x=i*w/Math.max(1,preview.decodedFrames-1);
+      if(i)ctx.lineTo(x,y(preview.pcm[i]));else ctx.moveTo(x,y(preview.pcm[i]));
+    }
+    ctx.stroke();
   }
   let morphStroke=null;
   const morphListeners=[];

@@ -164,6 +164,18 @@ async function check(browser,name,origin,loadCassette){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
     await page.goto(origin+config.entry);await files(page);
+    step('Files uses compact file rows and one visible project root, with actions below the tree');
+    measurements.files=await page.evaluate(()=>{
+      const tree=document.getElementById('spuFilesTree'),row=tree.querySelector('.file-entry'),style=getComputedStyle(row),
+        bounds=row.getBoundingClientRect(),actions=document.querySelector('.spu-files-actions');
+      return{rowHeight:bounds.height,rowShadow:style.boxShadow,rowFont:parseFloat(style.fontSize),
+        roots:[...document.querySelectorAll('#spuFilesPanel p,#spuFilesTree .file-tree-root')].filter(node=>node.textContent==='Project /'&&node.getClientRects().length).length,
+        actionsBelowTree:actions?.getBoundingClientRect().top>=tree.getBoundingClientRect().bottom};
+    });
+    assert(measurements.files.rowHeight<=34);assert.equal(measurements.files.rowShadow,'none');
+    assert(measurements.files.rowFont<=13);assert.equal(measurements.files.roots,1);assert.equal(measurements.files.actionsBelowTree,true);
+    await fs.mkdir(config.screenshots,{recursive:true});
+    await page.locator('#spuFilesPanel').screenshot({path:path.join(config.screenshots,`${name}-spu-files.png`)});
     step('Code/Files start without audio; local modules and JSON share a visible fallback editor');
     assert.equal((await page.evaluate(()=>__spuCodeAudit.graph())).contexts,0);
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
