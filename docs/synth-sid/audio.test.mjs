@@ -114,9 +114,20 @@ test('SID command posts preserve FIFO preset contents and rejected edits keep th
   f.mode('reply'); assert.equal((await audio.read()).method, 'read'); await audio.dispose();
 });
 
+test('Code observation RPC stays passive and does not acquire or invalidate a physical Code client',async()=>{
+  const f=fixture(),audio=await f.create();
+  assert.equal((await audio.command('observeCode')).method,'observeCode');
+  assert.equal(f.messages.some(message=>message.method==='beginCode'),false);
+  const sid=await audio.getSidClient(),count=f.messages.length;f.blockTimers();
+  await audio.command('observeCode');await sid.noteOn(0,'C4');
+  assert.deepEqual(f.messages.slice(count).map(message=>message.method),['observeCode','code']);
+  assert.equal(f.messages.filter(message=>message.method==='beginCode').length,1);
+  await audio.dispose();
+});
+
 test('channel settings use the paired processor revision and preserve FIFO request data',async()=>{
   const f=fixture(),audio=await f.create(),setup={format:'tetorica-sid-channels',version:1,target:2,channels:[1,2,3]};
-  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1'));
+  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1'));
   const begin=f.messages.length;
   const replies=await Promise.all([audio.command('loadChannelSettings',[setup]),audio.command('setChannelSettings',[setup]),audio.read()]);
   assert.deepEqual(f.messages.slice(begin).map(value=>value.method),['loadChannelSettings','setChannelSettings','read']);

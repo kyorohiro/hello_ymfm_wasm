@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // DOM-only view for the owned SID preview/capture controller.
-export function createSidImportPanel({root,liveRoot,getController}) {
+export function createSidImportPanel({root,liveRoot,getController,onLiveChange=()=>false}) {
   let selectionToken=null;
   const $=id=>root.querySelector('#'+id),listeners=[];
   const listen=(node,event,fn)=>{node.addEventListener(event,fn);listeners.push(()=>node.removeEventListener(event,fn));};
@@ -27,7 +27,7 @@ export function createSidImportPanel({root,liveRoot,getController}) {
   for(const button of root.querySelectorAll('[data-sid-import-model]'))act(button,()=>getController().setModel(button.dataset.sidImportModel));
   for(const button of root.querySelectorAll('[data-sid-import-voice]'))act(button,()=>getController().selectVoice(Number(button.dataset.sidImportVoice)));
   const follow=liveRoot.querySelector('#sidLiveEnabled');
-  listen(follow,'change',()=>{getController().setLiveEnabled(follow.checked);follow.blur();});
+  listen(follow,'change',()=>{if(onLiveChange(follow.checked)!==true)getController().setLiveEnabled(follow.checked);follow.blur();});
   // Opening/closing a disclosure with the pointer must not retain performance focus.
   listen(root.querySelector('summary'),'click',event=>{if(event.detail)event.currentTarget.blur();});
   return {

@@ -31,7 +31,7 @@ export class SidInstrument{
     if(!['6581','8580'].includes(core.model)||core.clockHz!==SID_PAL_CLOCK)throw new RangeError('SID Synth requires model 6581 or 8580 at PAL 985248 Hz');
     this.core=core;this.synth=new SidSynth({core});this.preset=createDefaultPreset({model:core.model});
     this.disposed=false;this.pitch=0;this.cursor=0;this.sequence=0;this.voices=new Map();this.slots=Array(3).fill(null);
-    this.codeEpoch=0;this.codeActive=false;
+    this.codeEpoch=0;this.codeActive=false;this.codeFrames=0;
     this._replace(createChannelSettings(this.preset));
   }
   _open(){if(this.disposed)throw new Error('SID instrument is disposed');}
@@ -167,8 +167,20 @@ export class SidInstrument{
    * Loads, topology changes and Stop invalidate every earlier session token.
    */
   beginCode(){
-    this._open();this.stop();this.codeActive=true;
+    this._open();this.stop();this.codeActive=true;this.codeFrames=0;
     return {session:this.codeEpoch,clock:this.synth.clock,model:this.core.model,channels:3};
+  }
+  /** One coherent, non-clocking observation of the applied Code state. This
+   * never replaces the saved preset or acquires/restarts a Code session. */
+  observeCode(...args){
+    this._open();if(args.length)throw new TypeError('SID Code observation takes no arguments');
+    if(!this.codeActive)return null;
+    const state=this.core.getState();
+    return {model:this.core.model,clockHz:this.core.clockHz,sampleRate:this.core.sampleRate,positionFrames:this.codeFrames,
+      registers:Array.from(state.registers),voices:Array.from({length:3},(_,channel)=>{
+        const envelope=state.voices?.[channel]?.envelope;
+        return {envelope:Number.isInteger(envelope)&&envelope>=0&&envelope<=255?envelope:null};
+      })};
   }
   code(session,method,args=[]){
     this._open();
@@ -185,6 +197,6 @@ export class SidInstrument{
     return this.synth[method](...args);
   }
   stop(){this._open();this._replace(this.channelSettings);return this.read();}
-  renderInto(output){this._open();if(!(output instanceof Float32Array))throw new TypeError('SID output must be Float32Array');return this.core.renderInto(output);}
+  renderInto(output){this._open();if(!(output instanceof Float32Array))throw new TypeError('SID output must be Float32Array');const result=this.core.renderInto(output);if(this.codeActive)this.codeFrames+=output.length;return result;}
   dispose(){if(this.disposed)return;this.voices.clear();this.slots.fill(null);try{this.synth.dispose();}finally{this.disposed=true;this.core.dispose();}}
 }

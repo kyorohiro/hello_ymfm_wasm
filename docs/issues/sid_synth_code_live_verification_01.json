@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 1,
+  "product": "Tetorica SID Synth",
+  "feature": "Observe Code in the existing Your sound controls",
+  "passed": true,
+  "verifiedAt": "2026-11-10T19:28:30.625738+00:00",
+  "sourceBaseCommit": "826e5ca1cc3351d667910addcde408298d59122a",
+  "behavior": {
+    "defaultLiveEnabled": true,
+    "readOnlyAppliedHardwareState": true,
+    "observedChannels": [
+      1,
+      2,
+      3
+    ],
+    "minimumIntervalMs": 50,
+    "maximumInFlightRequests": 1,
+    "savedChannelSettingsPreserved": true,
+    "liveOffKeepsCodeRunning": true,
+    "stopRestoresAuthoredDisplay": true,
+    "staleResponsesRetired": true,
+    "models": [
+      "6581",
+      "8580"
+    ],
+    "unavailable8580EnvelopeRemainsUnavailable": true,
+    "songMixedChannelNoticePreserved": true
+  },
+  "scope": {
+    "privateSynthObservation": true,
+    "newPublicNpmApi": false,
+    "npmVersionChanged": false,
+    "npmPublished": false,
+    "gitCommitPushTagPerformed": false
+  },
+  "audio": {
+    "physicalOutputMuted": true,
+    "preApplicationDestinationGain": 0,
+    "chromiumMuteAudio": true,
+    "headlessOnly": true,
+    "listeningPerformed": false
+  },
+  "nodeTests": {
+    "command": "node --test --test-concurrency=1 docs/synth-sid/*.test.mjs scripts/package_itch_sid_synth.test.mjs",
+    "passed": 222,
+    "failed": 0,
+    "log": "/private/tmp/sid-code-live-regression-final-20261111.log"
+  },
+  "browserChecks": {
+    "codeLive": {
+      "script": "scripts/check_sid_synth_code_live_browser.cjs",
+      "reportPath": "/private/tmp/sid-code-live-fixed-final-20261111.json",
+      "reportRecord": {
+        "bytes": 15623,
+        "sha256": "bc2ab1bdb4d7947b0bef655a302f2e9a13cf537d75e052fd0796daebc3f7f834"
+      },
+      "servedAssets": 83,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "6581: Code register mutations are shown in the same read-only controls without applying a preset",
+            "6581: Live Off stops polling and restores the authored editor while Code continues; On reads the latest hardware",
+            "6581: delayed prior observation cannot revive after Stop and the exact authored settings return",
+            "8580: Code register mutations are shown in the same read-only controls without applying a preset",
+            "8580: Live Off stops polling and restores the authored editor while Code continues; On reads the latest hardware",
+            "8580: delayed prior observation cannot revive after Stop and the exact authored settings return",
+            "Apply and returning to Keyboard preserve live state ownership and stop observing"
+          ],
+          "models": [
+            {
+              "model": "6581",
+              "pollingSamplesIn250ms": 5,
+              "authoredSetupPreserved": true,
+              "staleResponseRetired": true
+            },
+            {
+              "model": "8580",
+              "pollingSamplesIn250ms": 5,
+              "authoredSetupPreserved": true,
+              "staleResponseRetired": true
+            }
+          ],
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "physicalOutputMuted": true,
+            "destinationConnections": 1
+          },
+          "errors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "6581: Code register mutations are shown in the same read-only controls without applying a preset",
+            "6581: Live Off stops polling and restores the authored editor while Code continues; On reads the latest hardware",
+            "6581: delayed prior observation cannot revive after Stop and the exact authored settings return",
+            "8580: Code register mutations are shown in the same read-only controls without applying a preset",
+            "8580: Live Off stops polling and restores the authored editor while Code continues; On reads the latest hardware",
+            "8580: delayed prior observation cannot revive after Stop and the exact authored settings return",
+            "Apply and returning to Keyboard preserve live state ownership and stop observing"
+          ],
+          "models": [
+            {
+              "model": "6581",
+              "pollingSamplesIn250ms": 5,
+              "authoredSetupPreserved": true,
+              "staleResponseRetired": true
+            },
+            {
+              "model": "8580",
+              "pollingSamplesIn250ms": 5,
+              "authoredSetupPreserved": true,
+              "staleResponseRetired": true
+            }
+          ],
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "physicalOutputMuted": true,
+            "destinationConnections": 1
+          },
+          "errors": [],
+          "consoleErrors": []
+        }
+      ]
+    },
+    "monaco": {
+      "script": "scripts/check_sid_synth_code_monaco_browser.cjs",
+      "reportPath": "/private/tmp/sid-code-live-monaco-fixed-final-20261111.json",
+      "reportRecord": {
+        "bytes": 41260,
+        "sha256": "cb7935ec25050a547ea78d280de9ca599d4ac054326939f3f773a752b81f5bdc"
+      },
+      "servedAssets": 72,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH4, channel 3, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared SID",
+            "Public Go to Definition and View implementation open readable Code runtime and SID sources"
+          ],
+          "actualMonaco": true,
+          "noUserCodeExecuted": true,
+          "syntaxErrors": [],
+          "semanticErrors": [],
+          "literalChipCompletions": [
+            "sid"
+          ],
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          },
+          "fallback": {
+            "browser": "chromium",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH4, channel 3, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared SID",
+            "Public Go to Definition and View implementation open readable Code runtime and SID sources"
+          ],
+          "actualMonaco": true,
+          "noUserCodeExecuted": true,
+          "syntaxErrors": [],
+          "semanticErrors": [],
+          "literalChipCompletions": [
+            "sid"
+          ],
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          },
+          "fallback": {
+            "browser": "webkit",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        }
+      ]
+    },
+    "sidSong": {
+      "script": "scripts/check_sid_synth_import_browser.cjs",
+      "reportPath": "/private/tmp/sid-code-live-song-fixed-final-20261111.json",
+      "reportRecord": {
+        "bytes": 41802,
+        "sha256": "b312267b321e578b0bf6762a760c14a6d524783a312f0c39d9f2ab7f9fdb41ea"
+      },
+      "servedAssets": 79,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "direct SID import is discoverable without allocating audio, and opening it keeps the current Synth preset",
+            "question-mark explanations are closed by default and open without folding the card or starting audio",
+            "question-mark help opens a closed section, and closing help leaves that section open",
+            "file preflight preserves the current instrument and creates no AudioContext",
+            "starting a SID preview stops held Synth voices without replacing the instrument",
+            "the shared Master changes actual preview output while every physical sink stays muted",
+            "changing octave during song preview keeps the monitor drawing live audio",
+            "6581 captures a real no-wave Sync+Ring source and applies it directly in the same Synth",
+            "8580 captures a real no-wave Sync+Ring source and applies it directly in the same Synth",
+            "bad and cancelled SID selection preserve the current instrument, accepted file and capture",
+            "an obsolete file read cannot overwrite a newer accepted SID",
+            "subtune controls select the actual CIA song and return pointer focus to performance keys",
+            "Stop fences a delayed actual capture reply and keeps the previously accepted snapshot",
+            "a keyboard note stops the song preview and auditions the retained Synth instrument",
+            "known-model mismatch keeps the accepted SID and current Synth sound",
+            "ROM-free authored RSID hardware interrupts preview and capture through the same direct import panel",
+            "combined carrier waveforms capture, import, save, reload and export in both SID models",
+            "a carrier holding TEST retains its rejection reason and cannot replace the current instrument",
+            "Stop during delayed preview WASM startup cannot create a stale playing context",
+            "editing the Synth while a captured Voice selection waits for disposal cancels the late replacement",
+            "fixed CH selection retains three independent patches and both keyboard attacks use the selected physical channel",
+            "Round robin preserves distinct patches, shares the filter and broadcasts only the field that was edited",
+            "channel setup save and load restore distinct patches, the shared filter and the selected physical target",
+            "all fifteen waveform flag combinations and manual Off reach the selected real Worklet channel",
+            "Live and edit reuse the same control nodes and preserve their relative layout",
+            "Auto update follows real changing registers in the selected CH bank with one read in flight",
+            "the shared Live controls are read-only while question-mark help and folds remain usable through polling",
+            "fixed CH selection observes and automatically adopts the combined waveform into the same playable channel",
+            "inactive Live pulse width and frequency ratio stay observable while the same rows are visibly dimmed",
+            "disabling Auto update freezes observations, restores editable settings and leaves every CH target available",
+            "a captured voice with no oscillator waveform remains unavailable without changing the adopted combined patch",
+            "Stop fences a delayed observer reply and leaves a visibly frozen last CH frame",
+            "8580 live observation uses its real preview model and labels unavailable envelope observation",
+            "holding Pause across real Live updates preserves its text node and delivers Pause/Resume with the same engine",
+            "Auto update adopts the paused physical CH settings for keyboard audition and Round robin broadcasts the remembered song CH",
+            "6581 VBI Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "6581 CIA Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "6581 RSID Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "8580 VBI Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "paused CH switching and Live toggling inspect the fixed ACK without advancing the song or unmuting on Master changes",
+            "cancelled and invalid file selection retain the accepted paused instance and exact stopped state",
+            "selecting a supported Voice captured while paused closes its preview and imports that fixed instrument",
+            "Stop fences a delayed Pause ACK and cannot leave a stale paused or playing context",
+            "Stop fences a delayed Resume ACK and an explicit new Play owns the next preview",
+            "a keyboard attack retires a paused preview before the authored Synth note sounds",
+            "desktop/mobile import controls stay in one page without horizontal overflow or remote assets"
+          ],
+          "errors": [],
+          "consoleErrors": [],
+          "failures": [],
+          "external": [],
+          "allPhysicalOutputsMuted": true
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "direct SID import is discoverable without allocating audio, and opening it keeps the current Synth preset",
+            "question-mark explanations are closed by default and open without folding the card or starting audio",
+            "question-mark help opens a closed section, and closing help leaves that section open",
+            "file preflight preserves the current instrument and creates no AudioContext",
+            "starting a SID preview stops held Synth voices without replacing the instrument",
+            "the shared Master changes actual preview output while every physical sink stays muted",
+            "changing octave during song preview keeps the monitor drawing live audio",
+            "6581 captures a real no-wave Sync+Ring source and applies it directly in the same Synth",
+            "8580 captures a real no-wave Sync+Ring source and applies it directly in the same Synth",
+            "bad and cancelled SID selection preserve the current instrument, accepted file and capture",
+            "an obsolete file read cannot overwrite a newer accepted SID",
+            "subtune controls select the actual CIA song and return pointer focus to performance keys",
+            "Stop fences a delayed actual capture reply and keeps the previously accepted snapshot",
+            "a keyboard note stops the song preview and auditions the retained Synth instrument",
+            "known-model mismatch keeps the accepted SID and current Synth sound",
+            "ROM-free authored RSID hardware interrupts preview and capture through the same direct import panel",
+            "combined carrier waveforms capture, import, save, reload and export in both SID models",
+            "a carrier holding TEST retains its rejection reason and cannot replace the current instrument",
+            "Stop during delayed preview WASM startup cannot create a stale playing context",
+            "editing the Synth while a captured Voice selection waits for disposal cancels the late replacement",
+            "fixed CH selection retains three independent patches and both keyboard attacks use the selected physical channel",
+            "Round robin preserves distinct patches, shares the filter and broadcasts only the field that was edited",
+            "channel setup save and load restore distinct patches, the shared filter and the selected physical target",
+            "all fifteen waveform flag combinations and manual Off reach the selected real Worklet channel",
+            "Live and edit reuse the same control nodes and preserve their relative layout",
+            "Auto update follows real changing registers in the selected CH bank with one read in flight",
+            "the shared Live controls are read-only while question-mark help and folds remain usable through polling",
+            "fixed CH selection observes and automatically adopts the combined waveform into the same playable channel",
+            "inactive Live pulse width and frequency ratio stay observable while the same rows are visibly dimmed",
+            "disabling Auto update freezes observations, restores editable settings and leaves every CH target available",
+            "a captured voice with no oscillator waveform remains unavailable without changing the adopted combined patch",
+            "Stop fences a delayed observer reply and leaves a visibly frozen last CH frame",
+            "8580 live observation uses its real preview model and labels unavailable envelope observation",
+            "holding Pause across real Live updates preserves its text node and delivers Pause/Resume with the same engine",
+            "Auto update adopts the paused physical CH settings for keyboard audition and Round robin broadcasts the remembered song CH",
+            "6581 VBI Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "6581 CIA Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "6581 RSID Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "8580 VBI Pause freezes the real CPU/SID state for Capture and Resume continues the same engine",
+            "paused CH switching and Live toggling inspect the fixed ACK without advancing the song or unmuting on Master changes",
+            "cancelled and invalid file selection retain the accepted paused instance and exact stopped state",
+            "selecting a supported Voice captured while paused closes its preview and imports that fixed instrument",
+            "Stop fences a delayed Pause ACK and cannot leave a stale paused or playing context",
+            "Stop fences a delayed Resume ACK and an explicit new Play owns the next preview",
+            "a keyboard attack retires a paused preview before the authored Synth note sounds",
+            "desktop/mobile import controls stay in one page without horizontal overflow or remote assets"
+          ],
+          "errors": [],
+          "consoleErrors": [],
+          "failures": [],
+          "external": [],
+          "allPhysicalOutputsMuted": true
+        }
+      ]
+    }
+  },
+  "artifact": {
+    "passed": true,
+    "archive": "release/tetorica_sid_synth_sid-code-live-final-20261111_itch.zip",
+    "bytes": 3428260,
+    "sha256": "8b02815ec3d103992cf98dcfb5f6d15ed3c2314c2ac50c1b35045caa63fd267a",
+    "zipMatchesStageFiles": 330,
+    "sourceArchiveMatchesRepoInputs": 261,
+    "minify": false,
+    "bundle": false,
+    "stage": "release/itch_sid_synth_sid-code-live-final-20261111-oZwfBo",
+    "sourceReceipt": "sources/sid-synth-browser.json",
+    "sourceReceiptRecord": {
+      "bytes": 74615,
+      "sha256": "975bf676dcde4b572034a0a1aa2c7ef80dd53f8a6aa3c2958c87423ca3e90584"
+    },
+    "allServedBytesMatchArtifact": true
+  },
+  "servedAssets": {
+    "generated/sid/sid.wasm": {
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
+    },
+    "generated/sid8580-machine/sid8580-endpoint.wasm": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "index.html": {
+      "bytes": 17793,
+      "sha256": "3621e1bc28268206c8bcc16062980591934041977e4b979b074988e8783f1cf2"
+    },
+    "js/custom_fx.js": {
+      "bytes": 5764,
+      "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+    },
+    "js/megasynth-fm-presets.js": {
+      "bytes": 6954,
+      "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+    },
+    "js/native_audio_effect.wasm": {
+      "bytes": 48297,
+      "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+    },
+    "js/native_fx_engine.js": {
+      "bytes": 7061,
+      "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+    },
+    "js/native_fx_graph.js": {
+      "bytes": 3612,
+      "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+    },
+    "js/native_fx_rack.js": {
+      "bytes": 2128,
+      "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+    },
+    "js/native_fx.js": {
+      "bytes": 7922,
+      "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+    },
+    "js/native_noise.js": {
+      "bytes": 4209,
+      "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+    },
+    "js/native_sample_processor.js": {
+      "bytes": 4443,
+      "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+    },
+    "js/native_sample.js": {
+      "bytes": 3645,
+      "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+    },
+    "js/native-fx-worklet.js": {
+      "bytes": 8783,
+      "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+    },
+    "js/pitch.js": {
+      "bytes": 1888,
+      "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+    },
+    "js/playground_async_tasks.js": {
+      "bytes": 2223,
+      "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+    },
+    "js/playground_clock.js": {
+      "bytes": 19367,
+      "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+    },
+    "js/playground_code_runtime.js": {
+      "bytes": 21158,
+      "sha256": "79c8c745a2bd718fc9c2c1cc5f8efb2f1e6b1191a9a19c680149948ffe0694d1"
+    },
+    "js/playground_duration.js": {
+      "bytes": 2009,
+      "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+    },
+    "js/playground_execution.js": {
+      "bytes": 8875,
+      "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+    },
+    "js/playground_live.js": {
+      "bytes": 14734,
+      "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+    },
+    "js/playground_log.js": {
+      "bytes": 842,
+      "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+    },
+    "js/playground_music.js": {
+      "bytes": 11300,
+      "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+    },
+    "js/playground_performance_queue.js": {
+      "bytes": 9950,
+      "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+    },
+    "js/sid_psid.js": {
+      "bytes": 11445,
+      "sha256": "0e88cc343c295507c18db9a591c9f320f6bc0e47ae87f71ffb9a6853d6de2fff"
+    },
+    "js/sid_rsid.js": {
+      "bytes": 9114,
+      "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+    },
+    "js/sid_waveforms.js": {
+      "bytes": 2012,
+      "sha256": "5ef93ebfff79ae1c7cddd8e2463ed4818752f4428ad3014e644c2cc90722b393"
+    },
+    "js/sid.js": {
+      "bytes": 4846,
+      "sha256": "62225755b0b01471b85313be7992a464f8b501e5ad81a6c86c1ce425c941d870"
+    },
+    "js/sid8580.js": {
+      "bytes": 7629,
+      "sha256": "1d9297630c3f06c733c987b9c15338d8b645271157bf26f2d6171643d247638a"
+    },
+    "js/sidsynth.js": {
+      "bytes": 14845,
+      "sha256": "c1172f4d7b8681a49cb7ca3a1d834e6b5b17d89817eb2cfae80b7513bfde771d"
+    },
+    "js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "js/tetorica_virtual_files/filesystem.js": {
+      "bytes": 20206,
+      "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+    },
+    "js/tetorica_virtual_files/path.js": {
+      "bytes": 1112,
+      "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+    },
+    "js/tetorica_virtual_files/reader.js": {
+      "bytes": 1404,
+      "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+    },
+    "js/tetorica_virtual_files/sync.js": {
+      "bytes": 5701,
+      "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+    },
+    "playground/playground_cassette.js": {
+      "bytes": 14751,
+      "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+    },
+    "playground/playground_declarations.js": {
+      "bytes": 2945,
+      "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+    },
+    "playground/playground_example_order.js": {
+      "bytes": 315,
+      "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+    },
+    "playground/playground_file_tree.js": {
+      "bytes": 4862,
+      "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+    },
+    "playground/playground_monaco_completion.js": {
+      "bytes": 45033,
+      "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+    },
+    "playground/playground_monaco_definitions.js": {
+      "bytes": 18681,
+      "sha256": "6ac975e07d8b5bbaebdf300444bfd56b68144d381f04d33733f7c9deffad30eb"
+    },
+    "playground/playground_monaco.js": {
+      "bytes": 23164,
+      "sha256": "337a282d1f2b56bba770ad53d5d60ad937f9802af38419876ae4be387bafd4af"
+    },
+    "playground/playground_virtual_files.js": {
+      "bytes": 5205,
+      "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+    },
+    "playground/vendor/fflate.js": {
+      "bytes": 90922,
+      "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+    },
+    "sid-player/audio.js": {
+      "bytes": 8801,
+      "sha256": "9b738f6fd6903d358a1923f9399e994227cced922a4f1c5356cf766f64d77017"
+    },
+    "sid-player/core.js": {
+      "bytes": 7432,
+      "sha256": "5de26ddf095d1d50473e369e2a6c6f132dfe12f454d6308a0138a84c1f90c865"
+    },
+    "sid-player/core8580.js": {
+      "bytes": 2729,
+      "sha256": "75f53e8215b6368ff7e0784b780beffa4037545fe9118345694a54a046987942"
+    },
+    "sid-player/model_policy.js": {
+      "bytes": 4220,
+      "sha256": "8534913a609fdceb3e6e288cfe5395d330cc59c88b990f2208f6aadafe9bf75f"
+    },
+    "sid-player/models.js": {
+      "bytes": 2302,
+      "sha256": "876bda5bdf4429be0eec29725072e5b8b0101ddb244b34426da4f73ef371b398"
+    },
+    "sid-player/roms.js": {
+      "bytes": 1869,
+      "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+    },
+    "sid-player/rsid_core.js": {
+      "bytes": 10462,
+      "sha256": "3af43c1ba3c71951dcdf4f318d80c0b6812355a7e0a0317462f5de43b50e99c5"
+    },
+    "sid-player/voice_capture.js": {
+      "bytes": 2413,
+      "sha256": "56b21588a28acc7bff2b743aaad447fe13bef1765ae6e589b4613bff6425c42b"
+    },
+    "sid-player/voice_snapshot.js": {
+      "bytes": 8362,
+      "sha256": "ca57679a4e23f87004dcf381d84b97cdc1851bc406f8276a79e2b5dc6a7c8bf6"
+    },
+    "sid8580-lab/core.js": {
+      "bytes": 9248,
+      "sha256": "b640da2230f2e2c13776b77e13773125508a291c356bc2f9f08b2740a4dcb0b2"
+    },
+    "sid8580-lab/parser.js": {
+      "bytes": 2789,
+      "sha256": "96df3c5c8d593ce6a92cea9b48ca1bf252a4a9dede116154e7f28cabff127b17"
+    },
+    "sid8580-lab/psid_structure.js": {
+      "bytes": 11616,
+      "sha256": "78049365ea0ce2a8302317814d124e91e9aa445e938e1e5624d65b036232b63c"
+    },
+    "synth-sid/audio.js": {
+      "bytes": 11400,
+      "sha256": "2f01c65c242af2dbf3056023c7f635c74c81200857706595246aed3281688a61"
+    },
+    "synth-sid/channel_settings.js": {
+      "bytes": 12076,
+      "sha256": "483329866fdfb4b7fd273f5ef448a6ac341627551899f22a104ab39bf0b4d0c3"
+    },
+    "synth-sid/code_audio.js": {
+      "bytes": 4987,
+      "sha256": "59ef7d85256d20c09773ab55b2b6df46c817217411f5338738d64a0c27e61dec"
+    },
+    "synth-sid/code_declarations.js": {
+      "bytes": 2280,
+      "sha256": "38b8050a513b102942bc9e4d69793f32eada56bfb65ddb9d636cfa91ab6d9aaf"
+    },
+    "synth-sid/code_files.js": {
+      "bytes": 16422,
+      "sha256": "cb0e4d71d25498319be5d367b6b656f6055029c76d0ddfe022c4fcedbe38dbd4"
+    },
+    "synth-sid/code_host.js": {
+      "bytes": 4325,
+      "sha256": "75272bc9c7f13f3234e7108b1de2e0ec50276cd3d5dc2334722b2dfb58f8068f"
+    },
+    "synth-sid/code_live.js": {
+      "bytes": 3782,
+      "sha256": "468f76037f0c0da3fe81b8059a0814e9b7e23a26faf7ee1dd1f874ecf5d91e4d"
+    },
+    "synth-sid/code_project.js": {
+      "bytes": 9007,
+      "sha256": "0ebe3df2ea0cf6e0f0e3e1d9cd34097ebbf721271dbecc62d6a4d85682d9f049"
+    },
+    "synth-sid/editor.js": {
+      "bytes": 20229,
+      "sha256": "707c48292e93fe164682b98bc44fc11a72ace93aedd18e18819326107be807f8"
+    },
+    "synth-sid/handoff.js": {
+      "bytes": 5705,
+      "sha256": "fe0df72dceb1a4a93570a57408e1784c2d25eee0804d6087ef67381ac41cd12c"
+    },
+    "synth-sid/instrument.js": {
+      "bytes": 14412,
+      "sha256": "e209f24a47fac5ad3e95dfdc8431a67f4b3e05c538510d7f9ddeef6ca6f51596"
+    },
+    "synth-sid/preset.js": {
+      "bytes": 8497,
+      "sha256": "9ca82b0a6102a735d3e57d250874062e767d06b97d152bcba5651dc018c1fa13"
+    },
+    "synth-sid/processor.js": {
+      "bytes": 6329,
+      "sha256": "35643fcdaea45559ff404417323c5c28bdb83e12a7a603f8cc6970b26aae10f4"
+    },
+    "synth-sid/sid_import_panel.js": {
+      "bytes": 7048,
+      "sha256": "0f0a9b5c9c0bb4001fa457a04d87a1fdf468cc811b98ef7907ecb87c7ba2cc76"
+    },
+    "synth-sid/sid_import.js": {
+      "bytes": 22657,
+      "sha256": "7f41c5cbdffd37c2a4f58c9d5f58cdfd8852c0c8cfe8eaf712f5c2115597fdc1"
+    },
+    "synth-sid/sid_live_view.js": {
+      "bytes": 13853,
+      "sha256": "19898ad333d44aabbb39e18e329f271703ed476b70e651265c9b018a89b3bb08"
+    },
+    "synth-sid/synth.css": {
+      "bytes": 15268,
+      "sha256": "23e3e7cda254436f6c95e453cd4a7abe230c6328438c0de9a253dc5a0f7cc7d4"
+    },
+    "synth-sid/synth.js": {
+      "bytes": 35715,
+      "sha256": "c5e05fd12db8bb2976261c76f3a977716b2d650fd10fd0afc179b7403caca801"
+    },
+    "synth-spu/spu_synth_visualizer.js": {
+      "bytes": 10421,
+      "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+    },
+    "synth-spu/synth.css": {
+      "bytes": 23333,
+      "sha256": "8e45689b279e52db21c5ed6b29e26bd5d10896abcd8c834a1d77bc6950dcd0ad"
+    },
+    "synth/synth_code_controls.js": {
+      "bytes": 15875,
+      "sha256": "4e91f8950e55db2bdeb9080c101e3ce38717f23fa8cea97e2e58e7998bed6e8d"
+    },
+    "synth/synth_code_declarations.js": {
+      "bytes": 7401,
+      "sha256": "c105451789e8a0e8891aa8d78a75c890a80d7c9956e0ca9deb4842321fdf0749"
+    },
+    "synth/synth_code_output.js": {
+      "bytes": 4526,
+      "sha256": "d64a1feb9e8aa1f9afbf48d22cf2adb2b439f09168b279da0be138b155172312"
+    },
+    "synth/synth_code_project.js": {
+      "bytes": 1467,
+      "sha256": "c308a01985c32b493a273c4d0d4d8f9842b79cc37a52133c0cdbe7215db3b4f4"
+    },
+    "synth/synth_controls.js": {
+      "bytes": 11276,
+      "sha256": "2316f603e46c3b58314759bf59385827202ec5eabbaed0b6c550ad0451877349"
+    },
+    "synth/synth_keyboard.js": {
+      "bytes": 10010,
+      "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+    },
+    "tetorica_sid_synth.webp": {
+      "bytes": 544322,
+      "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+    },
+    "playground/tetorica-playground-globals.d.ts": {
+      "bytes": 140459,
+      "sha256": "ff4be7c042f61b129eceb2e36cd8dba8b66163bcd89a2a7c0b316ad6590396b7"
+    },
+    "generated/sid-rsid/sid-rsid.wasm": {
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+    },
+    "sid-player/processor.js": {
+      "bytes": 5388,
+      "sha256": "fa65c46d1fbf9bf1178dc44d353b7fb0127a825f7222b4fca27506ca4b5bb9c1"
+    },
+    "generated/sid8580-machine/sid8580-machine.wasm": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    }
+  },
+  "limitations": [
+    "Observation is limited to 20 updates/s; intermediate register writes can be missed.",
+    "8580 Envelope state is unavailable in the existing model.",
+    "No listening or native app test was performed."
+  ]
+}

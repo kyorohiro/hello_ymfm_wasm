@@ -10,12 +10,67 @@ import {setupSidCodeFiles} from './code_files.js?sid-code=1';
 export const SID_STARTER_CODE=`const sid = await useSoundChip("sid");
 setBpm(120);
 
+await sid.setVoice(CH1, {
+  waveform: "saw",
+  sync: true,
+  ring: true,
+  test: false,
+});
+
+// CH1の変調源はCH3。音は直接出さず、発振器を使います。
+await sid.setVoice(CH3, {
+  waveform: "triangle",
+  sync: false,
+  ring: false,
+  test: false,
+});
+await sid.noteOff(CH3);
+
+await sid.setFilter({
+  mode: "lowpass+bandpass",
+  routing: 1,          // CH1をFilterへ
+  cutoff: 100,
+  voice3off: true,     // CH3の直接出力を消す
+});
+
+// 各ループが共有する状態。Applyでも保持します。
+const motion = await livePrepare("sid-motion", () => ({
+  hz: 110,
+  ratio: 0.2,
+}));
+
+// メロディ：0.25拍ごとに次の音へ
 liveLoop("melody", async () => {
-  const notes = scale("E3", "minorPentatonic", 2);
-  await sid.noteOn(CH1, choose(notes));
-  await sleep(0.12);
+  const notes = scale("E2", "minorPentatonic", 1);
+  motion.hz = await sid.setNote(CH1, choose(notes));
+
+  // 新しい音程へ、現在の変調比を反映
+  await sid.setFrequency(CH3, motion.hz * motion.ratio);
+  await sid.keyOn(CH1);
+
+  await beat(0.2);
   await sid.noteOff(CH1);
-  await beat(0.5);
+  await beat(0.05);
+});
+
+// 変調比：2秒で 0.2 → 0.8 → 0.2
+liveLoop("modulation", async () => {
+  await tween(2, async (p) => {
+    const wave = (1 - Math.cos(p * Math.PI * 2)) / 2;
+    motion.ratio = 0.2 + 0.6 * wave;
+
+    await sid.setFrequency(CH3, motion.hz * motion.ratio);
+  });
+});
+
+// Filter：4秒で 100 → 600 → 100
+liveLoop("filter", async () => {
+  await tween(4, async (p) => {
+    const wave = (1 - Math.cos(p * Math.PI * 2)) / 2;
+    await sid.setFilter({
+      cutoff: Math.round(100 + 500 * wave),
+    });
+  });
 });
 `;
 const aborted=()=>new DOMException('SID Code stopped','AbortError');

@@ -228,3 +228,56 @@ test('Pause labels the held coherent frame and CH selection inspects it without 
   assert.equal(f.root.dataset.state,'resuming');assert.equal(f.root.dataset.livePaused,'false');
   assert.match(f.status(),/^Resuming/);
 });
+
+test('Code observations use the same decoded hardware state without song-capture instructions', () => {
+  const f=fixture(),raw=playerState(),before=structuredClone(raw);
+  raw.registers[4]=0x71;raw.registers[23]=0x97;raw.registers[24]=0x78;
+  const edited=structuredClone(raw);
+  const observed=f.view.update({liveKind:'code',liveEnabled:true,liveActive:true,liveVoice:0,liveState:raw,
+    liveSource:{name:'Previous song',subtune:2},paused:true,resuming:true});
+  assert.equal(f.root.dataset.liveKind,'code');assert.equal(f.root.dataset.state,'live');assert.equal(f.root.dataset.livePaused,'false');
+  assert.deepEqual(observed,readSidLiveVoice(raw,0));
+  assert.deepEqual(observed.waveforms,['Triangle','Saw','Pulse']);
+  assert.deepEqual(observed.filter.outputs,['LP','BP','HP']);assert.equal(observed.filter.resonance,9);
+  assert.equal(f.field('frequencyRegister').dataset.value,'7000');assert.equal(f.field('envelope').dataset.value,'123');
+  const importRow=walk(f.root).find(node=>node.children.includes(f.field('import')));
+  assert.equal(importRow.hidden,true,'Code does not offer song capture as a way to replace the saved patch');
+  assert.match(f.status(),/Live.*Code.*saved sound is unchanged/);
+  assert.doesNotMatch(f.status(),/song|Previous song|Capture|Resume/);
+  assert.equal(f.root.dataset.liveSourceName,'');assert.equal(f.root.dataset.liveSourceSubtune,'');
+  const heading=walk(f.root).find(node=>node.className==='sid-live-heading');assert.match(heading.textContent,/^Code · Live CH 1/);
+  const help=walk(f.root).find(node=>node.className==='sid-live-help');
+  assert.match(help.children[1].textContent,/Read-only Code observations.*20 updates\/s.*Fast writes/);
+  assert.deepEqual(raw,edited,'rendering does not alter the observation');assert.notDeepEqual(raw,before,'the test changed actual hardware values');
+});
+
+test('Code channel changes and return to song keep nodes, focus and help while showing Off and unavailable 8580 values', () => {
+  const f=fixture(),raw=playerState({model:'8580'});raw.voices=[];raw.registers[4]=0;raw.registers[11]=0x71;
+  const nodes=walk(f.root),help=nodes.find(node=>node.className==='sid-live-help'),summary=help.children[0];
+  help.open=true;summary.focus();
+  let observed=f.view.update({liveKind:'code',liveEnabled:true,liveActive:true,liveVoice:0,liveState:raw});
+  assert.deepEqual(observed.waveforms,[]);assert.equal(observed.gate,false);
+  assert.equal(f.field('envelope').dataset.value,'unavailable');assert.match(f.field('envelope').textContent,/Unavailable/);
+  observed=f.view.update({liveKind:'code',liveEnabled:true,liveActive:true,liveVoice:1,liveState:raw});
+  assert.deepEqual(observed.waveforms,['Triangle','Saw','Pulse']);assert.equal(f.field('frequencyRegister').dataset.value,'8000');
+  assert.equal(f.field('frequencyRegister').dataset.changed,'true');assert.equal(help.open,true);assert.equal(f.doc.activeElement,summary);
+  f.view.update({liveEnabled:true,liveActive:true,liveVoice:1,liveState:raw,liveSource:{name:'Tune',subtune:1}});
+  const importRow=walk(f.root).find(node=>node.children.includes(f.field('import')));
+  assert.equal(importRow.hidden,false);assert.equal(f.root.dataset.liveKind,'song');assert.match(f.status(),/playing SID from Tune/);
+  assert.match(help.children[1].textContent,/Read-only Player observations/);assert.doesNotMatch(help.children[1].textContent,/Code/);
+  assert.deepEqual(walk(f.root),nodes);assert.equal(help.open,true);assert.equal(f.doc.activeElement,summary);
+});
+
+test('Code waiting, Live off and malformed samples retain contextual readouts without song commands', () => {
+  const f=fixture(),raw=playerState(),state={liveKind:'code',liveEnabled:true,liveActive:false,liveVoice:2,liveState:raw};
+  f.view.update({...state,liveWaiting:true});assert.equal(f.root.dataset.state,'waiting');
+  assert.match(f.status(),/^Waiting for current Code observation.*Previous Code observation/);
+  assert.doesNotMatch(f.status(),/playback|Capture|Resume|song/);
+  f.view.update({...state,liveEnabled:false});assert.equal(f.root.dataset.state,'frozen');
+  assert.match(f.status(),/Code Live off.*saved sound.*Code keeps running/);
+  const value=f.field('frequencyRegister').dataset.value;
+  f.view.update({...state,liveState:{...raw,registers:[]}});assert.equal(f.root.dataset.state,'error');
+  assert.equal(f.field('frequencyRegister').dataset.value,value);assert.match(f.status(),/^Code Live display.*Previous display kept/);
+  f.view.update({...state,liveState:null,liveError:true});assert.match(f.status(),/^Code Live observation failed/);
+  f.view.update({...state,liveState:null});assert.match(f.status(),/^Run Code/);assert.equal(f.field('frequencyRegister').dataset.value,'');
+});

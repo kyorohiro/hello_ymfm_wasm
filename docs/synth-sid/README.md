@@ -53,6 +53,13 @@ The lower **Keyboard / Code** tabs share this Synth's one SID and its selected
 channels explicitly; keyboard round robin and Legato remain keyboard features.
 These scheduling and project tools are software features, beyond SID registers.
 
+New projects start with three independent loops: an E2 minor-pentatonic melody
+every 0.25 beat, a 2-second Sync modulator ratio sweep from 0.2 to 0.8 and back,
+and a 4-second LP + BP cutoff sweep from 100 to 600 and back. CH3 modulates CH1
+without a direct output. Shared motion state survives Apply through
+`livePrepare()`. Ring is enabled but only affects Triangle, not the starter's
+Saw. Existing saved code is retained. A minimal melody example is:
+
 ```js
 const sid = await useSoundChip("sid");
 setBpm(120);
@@ -73,6 +80,17 @@ after the chip in host software. There is no implicit `play()` or independent
 chip factory here; acquire the SID through `useSoundChip("sid")` and await its
 acknowledged controls. Existing **Copy JavaScript** still targets the full C64
 Playground separately. Maximize Code places the same editor beside Files.
+
+While Code runs, **Live from Code** is On by default. The existing **Your sound**
+controls show the selected Code channel's applied waveform flags, Pulse width,
+hardware ADSR and shared filter, with the same change highlights as song Live.
+These observations are read-only. The **CH 1 / CH 2 / CH 3** buttons select the
+channel to inspect without stopping Code, changing its notes or replacing the
+keyboard's saved channel target. Turn Live off to edit the authored sound while
+Code continues. Stop or return to Keyboard to restore the authored display.
+Observation never replaces a saved preset or Files sound. Updates are limited
+to 20/s, so register writes between observations can be missed; 8580 continues
+to show its unavailable Envelope as unavailable.
 
 **Files** keeps `/index.js`, local modules, text/JSON and opaque binary files.
 Create or select a `.js` / `.mjs` file to edit it in Code. Use dynamic local

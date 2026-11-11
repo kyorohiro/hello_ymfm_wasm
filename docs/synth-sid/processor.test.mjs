@@ -223,6 +223,7 @@ test('real Code RPC shares physical SID voices, preserves authoring edits and re
     for(const model of ['6581','8580']){
       const processor=new Constructor({processorOptions:{model,wasmBinary,wasm8580Binary}});await processor.ready;
       let serial=0;const command=async(method,args=[])=>{const id=++serial;processor.receive({id,method,args});await processor.commands;return processor.messages.find(message=>message.id===id);};
+      assert.equal((await command('observeCode')).value,null,'a private observation must not begin Code');
       const session=(await command('beginCode')).value.session;
       assert.equal((await command('code',[session,'noteOn',[2,'C4']])).error,undefined);
       const state=(await command('code',[session,'getState',[]])).value;
@@ -230,13 +231,16 @@ test('real Code RPC shares physical SID voices, preserves authoring edits and re
       assert(Math.abs(state.channels[2].frequency-261.625565)<.1);
       const left=new Float32Array(8192),right=new Float32Array(8192);processor.process([],[[left,right]]);
       assert(left.some(value=>Math.abs(value)>.005));assert.deepEqual(left,right);
+      const hardware=processor.instrument.core.getState(),observed=(await command('observeCode')).value;
+      assert.equal(observed.positionFrames,8192);assert.equal(observed.sampleRate,48000);assert.equal(observed.model,model);
+      assert.deepEqual(observed.registers,hardware.registers);assert.deepEqual(processor.instrument.core.getState(),hardware);
       const invalid=await command('code',[session,'noteOn',[3,'C4']]);assert.equal(invalid.name,'RangeError');
       assert.equal((await command('code',[session,'constructor',[]])).error,'Unknown SID Code method');
       const authored=(await command('read')).value.channelSettings;
       for(const preset of authored.channels){preset.filter.enabled=true;preset.filter.mode='notch';preset.filter.cutoff=1234;}
       await command('setChannelSettings',[authored]);
       const live=(await command('code',[session,'getState',[]])).value;assert.equal(live.filter.cutoff,1234);assert.equal(live.channels[2].gate,true);
-      await command('stop');assert.equal((await command('code',[session,'keyOn',[0]])).name,'AbortError');
+      await command('stop');assert.equal((await command('observeCode')).value,null);assert.equal((await command('code',[session,'keyOn',[0]])).name,'AbortError');
       const fresh=(await command('beginCode')).value.session;assert.notEqual(fresh,session);
       assert.equal((await command('code',[fresh,'noteOn',[0,69]])).error,undefined);
       const next=(await command('read')).value.channelSettings;

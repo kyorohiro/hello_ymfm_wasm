@@ -135,6 +135,9 @@ async function check(browser,name,origin,loadCassette,tune){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
     await page.goto(origin+config.entry);await files(page);
+    // Configure song-follow while no Code session owns the shared checkbox.
+    // Code has a separate, default-On Live choice and does not change this.
+    if(await page.locator('#sidLiveEnabled').isChecked())await page.locator('#sidLiveEnabled').uncheck();
     step('Code and Files mount without audio or autorun; local editor fallback and modules/data share the project');
     assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,0);
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
@@ -171,6 +174,10 @@ log('files-ready',context.marker);`);
     assert.deepEqual(await savedSound(page),initialSound,'temporary voice/filter edits stay outside authoring JSON');
     await range(page,'masterVolume',1);const full=await output(page);await range(page,'masterVolume',.5);const half=await output(page);
     assert(Math.abs(half.rms/full.rms-.5)<.08,'Master applies once');await range(page,'masterVolume',1);
+    // Live uses the same controls read-only. Turn it off before deliberately
+    // editing the authored sound, keeping the running Code session unchanged.
+    if(await page.locator('#sidLiveEnabled').isChecked())await page.locator('#sidLiveEnabled').uncheck();
+    await until(()=>page.locator('#voiceEditor').getAttribute('data-observing').then(value=>value==='false'),'Code Live returns to authoring');
     if(!await page.locator('#filterEnabled').isChecked())await page.locator('#filterEnabled').check();
     await range(page,'filterCutoffRange',1234);state=await stateIs(page,value=>(value.registers[21]&7|value.registers[22]<<3)===1234,'upper cutoff reaches Code SID');
     assert(gate(state,0),'upper non-topology edits preserve the Code gate');assert.match(await page.locator('#synthCodeState').textContent(),/Running/);
@@ -199,6 +206,8 @@ await new Promise(resolve=>globalThis.__sidLateRelease=resolve);try{await sid.no
     await stop(page);await page.evaluate(()=>__sidLateRelease());await until(()=>page.evaluate(()=>__sidLateBlocked),'late handle blocked');await silent(page);
     for(const model of ['8580','6581']){
       await source(page,HOLD);await execute(page);await sounding(page);
+      if(await page.locator('#sidLiveEnabled').isChecked())await page.locator('#sidLiveEnabled').uncheck();
+      await until(()=>page.locator('#voiceEditor').getAttribute('data-observing').then(value=>value==='false'),'authoring before model change');
       await page.locator(`[data-choice-for="sidModel"][data-value="${model}"]`).click();await stateIs(page,value=>value.model===model&&!gate(value,0),'model change '+model);await stopped(page);
       assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,1);
     }
@@ -218,6 +227,7 @@ await new Promise(resolve=>globalThis.__sidLateRelease=resolve);try{await sid.no
     await until(()=>page.locator('#sidFilesStatus').textContent().then(value=>/project imported/.test(value)),'project imported');await silent(page);
     assert.equal(await page.evaluate(()=>typeof __sidProjectRan),'undefined');
     await page.reload();await files(page);await until(()=>page.locator('#synthCodeEditor').inputValue().then(value=>value.includes('__sidProjectRan')),'restored Code source');
+    if(await page.locator('#sidLiveEnabled').isChecked())await page.locator('#sidLiveEnabled').uncheck();
     assert.equal(await page.evaluate(()=>typeof __sidProjectRan),'undefined');assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,0);
     await selectFile(page,'/notes.json');assert.equal(await page.locator('#sidFileTextEditor').inputValue(),data);await selectFile(page,'/index.js');
     const restored=await savedSound(page);assert.deepEqual(restored,authored);

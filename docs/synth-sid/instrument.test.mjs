@@ -26,6 +26,36 @@ async function setup8580(t,rate=48000){
 }
 const render=(instrument,frames=4096)=>instrument.renderInto(new Float32Array(frames));
 
+test('Code observations read actual hardware coherently without clocks, writes, audio changes or authoring mutation',async t=>{
+  for(const model of ['6581','8580']){
+    const setupModel=model==='6581'?setup:setup8580;
+    const {instrument,core}=await setupModel(t),{instrument:reference}=await setupModel(t);
+    assert.equal(instrument.observeCode(),null,'observation never starts a Code session');
+    const authored=instrument.read().channelSettings,token=instrument.beginCode(),other=reference.beginCode();
+    for(const [method,args]of [['setVoice',[1,{waveform:'pulse+triangle',pulseWidth:3456,attack:3,decay:4,sustain:5,release:6}]],
+      ['setFilter',[{mode:'lowpass+highpass',cutoff:1234,resonance:9,routing:2,volume:11}]],['noteOn',[1,'A4']]]){
+      // The public canonical spelling for LP+HP is notch.
+      if(method==='setFilter')args[0].mode='notch';
+      instrument.code(token.session,method,args);reference.code(other.session,method,args);
+    }
+    exact(render(instrument,513),render(reference,513));
+    const before=core.getState(),observation=instrument.observeCode();
+    assert.deepEqual(core.getState(),before,'observation neither clocks nor modifies the core');
+    assert.deepEqual(observation.registers,before.registers);assert.equal(observation.model,model);
+    assert.equal(observation.clockHz,SID_PAL_CLOCK);assert.equal(observation.sampleRate,48000);assert.equal(observation.positionFrames,513);
+    assert.equal(observation.registers[9]|observation.registers[10]<<8,3456);
+    assert.equal(observation.voices[1].envelope,model==='8580'?null:before.voices[1].envelope);
+    observation.registers[11]=0;observation.voices[1].envelope=0;
+    assert.equal(instrument.observeCode().registers[11],before.registers[11],'the reply owns its byte array');
+    assert.deepEqual(instrument.read().channelSettings,authored,'observed Code settings never become the saved sound');
+    exact(render(instrument,257),render(reference,257),'passive observation leaves every future sample unchanged');
+    assert.equal(instrument.observeCode().positionFrames,770);
+    assert.throws(()=>instrument.observeCode('invalid'),TypeError);
+    instrument.stop();assert.equal(instrument.observeCode(),null);
+    instrument.beginCode();assert.equal(instrument.observeCode().positionFrames,0,'a new Run begins a new observation clock');
+  }
+});
+
 test('physical Code voices share the authored SID and match direct raw writes in both real models',async t=>{
   for(const model of ['6581','8580']){
     const setupModel=model==='6581'?setup:setup8580;

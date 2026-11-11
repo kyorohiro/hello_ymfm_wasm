@@ -10,7 +10,7 @@
   <title>Tetorica SID Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sid_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sid_synth.webp">
-  <link rel="stylesheet" href="./synth.css?sid-code=2">
+  <link rel="stylesheet" href="./synth.css?sid-code=2&amp;sid-code-live=1">
 </head>
 <body>
 <main>
@@ -78,12 +78,13 @@
             <span id="sidKeyboardModeLabel" class="sid-live-channel-label">Keyboard · software</span>
             <div class="sid-choice-group"><button type="button" data-sid-keyboard-mode="retrigger" aria-pressed="true" disabled>Retrigger</button><button type="button" data-sid-keyboard-mode="legato" aria-pressed="false" disabled>Legato</button></div>
           </div>
-          <label class="sid-check"><input id="sidLiveEnabled" type="checkbox" checked> Auto update from song</label>
+          <label class="sid-check"><input id="sidLiveEnabled" type="checkbox" checked> <span id="sidLiveEnabledLabel">Auto update from song</span></label>
         </div>
         <p id="sidChannelState" class="sid-help" hidden>CH settings differ · edits apply to all.</p>
         <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About channel selection and automatic updates">?</summary><div class="sid-help-panel">
           <p class="sid-help">CH 1 / 2 / 3 selects both the settings to edit and the physical channel played by the keyboard. Round robin keeps each channel's sound and allocates keys between them. When values differ, editing uses CH 1 as a reference. Changing a setting applies that setting to all three channels. Loading a voice preset replaces the complete sound on all three. Filter and model are shared hardware settings.</p>
           <p class="sid-help">Auto update follows the selected SID song channel during playback or Pause. Playable settings are also kept for this keyboard; turn Auto update off to edit them. Round robin follows the last explicitly selected song CH and applies its playable settings to all three channels. Unsupported raw settings remain visible without replacing the last playable sound.</p>
+          <p class="sid-help">During Code playback, the same checkbox becomes Live from Code. CH buttons then select only the channel to observe, without stopping Code or changing your saved sound. Live is read-only; turn it off to edit the original sound while Code continues. Stop returns to the edited sound.</p>
           <p class="sid-help">Keyboard mode is a software performance setting for fixed CHs. Retrigger lowers and raises Gate for each new note. Legato keeps Gate high while keys overlap and returns to the last key still held; ADSR does not restart. Round robin uses Retrigger and retains your fixed-CH choice. No software envelope reset is added: very fast retriggers at Sustain 15 keep the SID hardware's envelope timing behavior.</p>
         </div></details>
       </div>
@@ -132,6 +133,6 @@
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>
-<script type="module" src="./synth.js?sid-transport=2&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1"></script>
+<script type="module" src="./synth.js?sid-transport=2&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2"></script>
 </body>
 </html>

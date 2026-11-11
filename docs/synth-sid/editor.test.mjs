@@ -292,7 +292,13 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:selector==='[data-sid-keyboard-mode]'?keyboardModes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
   const visualEvents=[];
   const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
-  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0};
+  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0},observations=[];
+  const codeLive={state:{liveKind:'code',liveEnabled:true,liveVoice:0,liveActive:false,liveWaiting:false,liveState:null},
+    read(){return {...this.state};},
+    sync(){if(!this.hooks.isRunning())Object.assign(this.state,{liveState:null,liveActive:false,liveWaiting:false});},
+    setEnabled(value){Object.assign(this.state,{liveEnabled:value,liveState:null,liveActive:false});this.hooks.onUpdate();},
+    setVoice(value){this.state.liveVoice=value;this.hooks.onUpdate();},
+    emit(value){Object.assign(this.state,value);this.hooks.onUpdate();},dispose(){this.disposed=true;}};
   if(desktop){win.top=win;win.location={protocol:'tauri:',hostname:'localhost'};win.__TAURI_INTERNALS__={};win.dispatchEvent=event=>{desktopEvents.push(event.type);return true;};}
   let isStalled=stall,engineCount=0;
   const makeEngine=model=>{
@@ -325,16 +331,35 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
   const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,
-    setupSidCodeHost:()=>({ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,
-      async stop(){code.running=false;code.stops++;await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}}),
-    createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
-    createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
+    setupSidCodeHost:hooks=>{code.activity=hooks.onActivity;return{ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,
+      async stop(){code.running=false;code.stops++;code.activity();await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}};},
+    createSidCodeLive:hooks=>{codeLive.hooks=hooks;return codeLive;},
+    createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active});},dispose(){}}),
+    createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:hooks=>{importer.panelHooks=hooks;return{update(){},dispose(){}};},createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,Event,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
   vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,updateKeys,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
+  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,codeLive,observations,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
 }
+
+test('Code Live selects only an observed physical channel and never adopts its raw settings into the authored sound',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();const before=readChannelSettings(f.ui.getSettings()),writes=f.calls.length,dirty=f.code.dirty;
+  f.code.mode=true;f.code.running=true;f.code.activity();
+  const raw={model:'6581',clockHz:985248,sampleRate:48000,positionFrames:128,registers:new Array(32).fill(0),voices:[{envelope:80},{envelope:90},{envelope:100}]};
+  raw.registers[4]=0x41;raw.registers[6]=0xf2;raw.registers[2]=37;raw.registers[11]=0x11;raw.registers[9]=86;
+  f.codeLive.emit({liveState:raw,liveActive:true,liveWaiting:false});
+  assert.equal(f.observations.at(-1).value.pulseWidth,37);assert.equal(f.observations.at(-1).active,true);
+  assert.equal(f.doc.getElementById('sidLiveEnabledLabel').textContent,'Live from Code');
+  assert.equal(f.doc.getElementById('sidLiveChannelLabel').textContent,'Code view');
+  await f.ui.chooseChannel(1);assert.equal(f.observations.at(-1).value.pulseWidth,86);
+  assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.calls.length,writes);assert.equal(f.code.dirty,dirty);assert.equal(f.code.stops,0);
+  assert.equal(f.importer.panelHooks.onLiveChange(false),true);assert.equal(f.observations.at(-1).active,false);assert.equal(f.code.running,true);
+  assert.equal(f.importer.state.liveEnabled,undefined,'Code checkbox does not change the song Auto preference');
+  f.code.running=false;f.code.activity();assert.equal(f.doc.getElementById('sidLiveEnabledLabel').textContent,'Auto update from song');
+  assert.equal(f.doc.getElementById('sidLiveChannelLabel').textContent,'Edit & play');assert.equal(f.observations.at(-1).active,false);
+  assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.importer.panelHooks.onLiveChange(true),false);
+});
 
 test('Code mode keeps typing out of the keyboard allocator and background blur leaves its program running',async()=>{
   const f=appFixture();await f.ui.ensureAudio();f.code.mode=true;f.code.running=true;f.ui.updateKeys();
@@ -554,8 +579,10 @@ test('selecting Round robin under Auto does not reapply the same settings from P
   f.importer.hooks.onUpdate(frame);const before=f.ui.getSettings().channels;
   assert.notDeepEqual(before[0].voice,before[1].voice);
   await f.ui.chooseChannel('round-robin');f.importer.hooks.onUpdate(frame);assert.deepEqual(f.ui.getSettings().channels,before);
+  assert.equal(f.doc.getElementById('sidChannelState').hidden,false,'the paused song still explains that channel settings differ');
   f.importer.hooks.onUpdate({...frame,paused:false,playing:true,liveActive:true,liveState:{...liveState,positionFrames:12000}});
   assert.deepEqual(f.ui.getSettings().channels,before,'time advancing alone cannot overwrite the saved CH values');
+  assert.equal(f.doc.getElementById('sidChannelState').hidden,false,'song Live must keep the mixed-channel notice visible');
 });
 
 test('an explicit setup file wins over Auto observations while its text is being read',async()=>{

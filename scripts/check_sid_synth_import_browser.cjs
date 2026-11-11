@@ -129,7 +129,7 @@ function instrument(){
 }
 
 async function checkBrowser(name,engine,origin,helpers){
-  const browser=await engine.launch({headless:true}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
+  const browser=await engine.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
   await context.addInitScript(instrument);
   const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[],pauseObservations=[],pointerHoldObservations=[],channelObservations=[];
   let page,stage='startup',holdNextPlayerWasm=false,releaseWasm;

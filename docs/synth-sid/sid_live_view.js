@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// A passive view of one coherent Player observation. Reading this view never
-// clocks a chip, changes the tune, or applies a keyboard instrument.
+// A passive view of one coherent song or Code observation. Reading this view
+// never clocks a chip, changes the performance, or applies an instrument.
 import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
 
 const waveformFlags = [[0x10, 'Triangle'], [0x20, 'Saw'], [0x40, 'Pulse'], [0x80, 'Noise']];
@@ -32,7 +32,7 @@ function nearestNote(frequencyHz) {
  */
 export function readSidLiveVoice(state, voice) {
   integer(voice, 2, 'Live SID voice');
-  if (!state || typeof state !== 'object') throw new TypeError('Live SID view needs a Player state');
+  if (!state || typeof state !== 'object') throw new TypeError('Live SID view needs an applied SID state');
   if (!['6581', '8580'].includes(state.model)) throw new RangeError('Live SID model must be 6581 or 8580');
   if (!Number.isFinite(state.clockHz) || state.clockHz <= 0) throw new RangeError('Live SID clock must be positive');
   const positionFrames = integer(state.positionFrames, Number.MAX_SAFE_INTEGER, 'Live SID position');
@@ -92,7 +92,7 @@ const onOff = value => value ? 'On' : 'Off';
  * Polling never rebuilds controls, changes focus or reopens the help disclosure.
  */
 export function createSidLiveView({root}) {
-  const doc = root.ownerDocument, fields = new Map();
+  const doc = root.ownerDocument, fields = new Map(), fieldRows = new Map();
   let disposed = false;
   const make = (tag, className, text) => {
     const node = doc.createElement(tag);
@@ -113,6 +113,7 @@ export function createSidLiveView({root}) {
     field.append(make('dt', '', label), value);
     list.append(field);
     fields.set(key, value);
+    fieldRows.set(key, field);
   }
   const help = make('details', 'sid-live-help');
   help.open = false;
@@ -142,16 +143,25 @@ export function createSidLiveView({root}) {
   }
   function update(state) {
     if (disposed) return null;
+    const code = state.liveKind === 'code';
     const voice = Number.isInteger(state.liveVoice) && state.liveVoice >= 0 && state.liveVoice <= 2 ? state.liveVoice : 0;
     const enabled = state.liveEnabled !== false;
     const waiting = Boolean(state.liveWaiting && enabled);
-    const paused = Boolean(state.paused && !state.resuming);
+    const pausing = !code && state.pausing, resuming = !code && state.resuming;
+    const paused = Boolean(!code && state.paused && !resuming);
     const active = Boolean(state.liveActive && enabled && !waiting);
+    root.dataset.liveKind = code ? 'code' : 'song';
     root.dataset.liveEnabled = String(enabled);
     root.dataset.liveVoice = String(voice);
     root.dataset.liveActive = String(active);
     root.dataset.liveWaiting = String(waiting);
     root.dataset.livePaused = String(paused);
+    // Song capture remains in its existing row. Code is observational and does
+    // not offer a second path for replacing the authored keyboard patch.
+    fieldRows.get('import').hidden = code;
+    notice.textContent = code
+      ? 'Read-only Code observations · up to 20 updates/s. Fast writes between observations may be missed. Position counts rendered Code frames. Frequency is oscillator tuning, not necessarily the sound’s perceived pitch. Observing never changes the saved sound.'
+      : 'Read-only Player observations · up to 20 updates/s. Fast writes between observations may be missed. Frequency is the oscillator tuning, not necessarily the sound’s perceived pitch.';
     let observation = null;
     try {
       if (state.liveState) observation = readSidLiveVoice(state.liveState, voice);
@@ -159,22 +169,29 @@ export function createSidLiveView({root}) {
       root.dataset.liveActive = 'false';
       root.dataset.liveWaiting = 'false';
       root.dataset.state = 'error';
-      status.textContent = `Live display could not read this observation: ${cause.message}. Previous display kept.`;
+      status.textContent = `${code ? 'Code Live' : 'Live'} display could not read this observation: ${cause.message}. Previous display kept.`;
       return null;
     }
-    const liveSource = state.liveSource;
+    const liveSource = code ? null : state.liveSource;
     const sourceLabel = liveSource && typeof liveSource.name === 'string'
       ? ` from ${liveSource.name}${Number.isInteger(liveSource.subtune) ? ` · subtune ${liveSource.subtune}` : ''}` : '';
-    heading.textContent = `${paused ? 'Paused ' : active ? 'Live ' : ''}CH ${voice + 1}${observation ? ` · ${waiting ? 'last observed ' : ''}${observation.model}${observation.model === '8580' ? ' Preview' : ''}` : ''}`;
+    heading.textContent = `${code ? 'Code · ' : ''}${paused ? 'Paused ' : active ? 'Live ' : ''}CH ${voice + 1}${observation ? ` · ${waiting ? 'last observed ' : ''}${observation.model}${observation.model === '8580' ? ' Preview' : ''}` : ''}`;
     root.dataset.liveFrames = observation ? String(observation.positionFrames) : '';
     root.dataset.liveModel = observation?.model ?? '';
     root.dataset.liveSourceName = observation && liveSource ? String(liveSource.name ?? '') : '';
     root.dataset.liveSourceSubtune = observation && Number.isInteger(liveSource?.subtune) ? String(liveSource.subtune) : '';
-    root.dataset.state = state.liveError ? 'error' : state.pausing ? 'pausing' : state.resuming ? 'resuming' : paused && observation ? 'paused' : waiting ? 'waiting' : active && observation ? 'live' : observation ? 'frozen' : 'idle';
-    status.textContent = state.liveError
+    root.dataset.state = state.liveError ? 'error' : pausing ? 'pausing' : resuming ? 'resuming' : paused && observation ? 'paused' : waiting ? 'waiting' : active && observation ? 'live' : observation ? 'frozen' : 'idle';
+    status.textContent = code ? state.liveError
+      ? state.liveMessage || 'Code Live observation failed. Last display kept.'
+      : waiting ? `Waiting for current Code observation.${observation ? ' Previous Code observation remains shown.' : ''}`
+      : active && observation ? 'Live · selected CH follows Code. Display only; your saved sound is unchanged.'
+      : !enabled ? 'Code Live off · the editor shows your saved sound. Code keeps running.'
+      : observation ? 'Code observation stopped. Last observed values are shown.'
+      : 'Run Code to observe its selected CH.'
+      : state.liveError
       ? state.liveMessage || 'Live observation failed. Last display kept.'
-      : state.pausing ? 'Pausing the song. Waiting for its held channel state…'
-      : state.resuming ? 'Resuming the same song position…'
+      : pausing ? 'Pausing the song. Waiting for its held channel state…'
+      : resuming ? 'Resuming the same song position…'
       : paused && observation ? `Paused · channel state${sourceLabel} is held. Inspect channels, Capture voices or Resume.`
       : waiting ? `Waiting for current playback observation.${observation ? ` Previous observation${sourceLabel} remains shown.` : ''}`
       : active && observation ? `Live · selected CH follows the playing SID${sourceLabel}.`

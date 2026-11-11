@@ -88,6 +88,7 @@ button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
 .sid-live-channels .sid-choice-group { flex:1 1 250px; }
 .sid-keyboard-mode { display:flex; flex:0 1 255px; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
 .sid-keyboard-mode .sid-choice-group { flex:1 1 155px; }
+.sid-keyboard-mode[hidden],.sid-choice-group button[hidden] { display:none; }
 #sidLiveView { margin-top:12px; min-width:0; }
 #sidLiveView[hidden] { display:none; }
 .sid-editor[data-observing="true"] button:disabled,.sid-editor[data-observing="true"] input:disabled { opacity:1; cursor:default; }

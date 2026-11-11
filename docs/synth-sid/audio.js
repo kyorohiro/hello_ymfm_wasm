@@ -6,7 +6,7 @@ const nativeSetTimer=globalThis.setTimeout.bind(globalThis);
 const nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 export const SID_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 const CODE_METHODS=['setNote','setFrequency','noteOn','noteOff','keyOn','keyOff','allNotesOff',
   'setVoice','setFilter','writeRegister','readRegister','getRegisterSnapshot','getState','initialize','reset','setClock'];
 const codeCancelled=()=>new DOMException('SID Code session was stopped or its instrument changed','AbortError');
@@ -90,7 +90,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });

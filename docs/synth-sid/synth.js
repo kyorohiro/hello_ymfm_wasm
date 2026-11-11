@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1';
+import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1';
 import {createEditor} from './editor.js?sid-waves=1&sid-keys=1';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js?sid-waves=1';
 import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
-import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2';
-import {createSidLiveView} from './sid_live_view.js?sid-waves=1';
-import {setupSidCodeHost} from './code_host.js?sid-code=1';
+import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
+import {createSidLiveView} from './sid_live_view.js?sid-waves=1&sid-code-live=1';
+import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2';
+import {createSidCodeLive} from './code_live.js?sid-code-live=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';
@@ -22,7 +23,7 @@ let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
 let sidImporter=null,previewEngine=null;
 let switchingAudioOutput=false,desktopOutputHandler=null;
 let adoptedObservation=null;
-let codeHost=null;
+let codeHost=null,codeLive=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
 const visualizer=createSpuOutputVisualizer({canvas:$('outputCanvas')});visualizer.setMode('waveform');
@@ -72,6 +73,33 @@ function readVoices(state){
   for(const[source,note]of notes)if(note.started&&!owners.has(note.id))notes.delete(source);
   updateKeys();
 }
+function updateLiveDisplay(song=sidImporter?.read()??{}){
+  if(disposed)return null;
+  const coding=Boolean(codeHost?.isRunning()),state=coding?codeLive.read():song;
+  const observing=coding?state.liveEnabled: Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
+  const observation=sidLiveView.update(state);
+  editor.observe(observing?observation:null,{active:observing});
+  $('instrumentName').disabled=observing;
+  $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
+  $('sidLiveEnabled').checked=coding?state.liveEnabled:state.liveEnabled!==false;
+  const label=$('sidLiveEnabledLabel'),labelText=coding?'Live from Code':'Auto update from song';
+  if(label.textContent!==labelText)label.textContent=labelText;
+  const channelLabel=$('sidLiveChannelLabel'),channelText=coding?'Code view':'Edit & play';
+  if(channelLabel.textContent!==channelText)channelLabel.textContent=channelText;
+  $('sidKeyboardMode').hidden=coding;
+  for(const button of document.querySelectorAll('[data-sid-live-voice]')){
+    button.hidden=coding&&button.dataset.sidLiveVoice==='round-robin';
+    button.setAttribute('aria-pressed',String(button.dataset.sidLiveVoice===String(coding?state.liveVoice:channelSettings.target)));
+  }
+  const mixed=channelSettings.target==='round-robin'&&channelSettings.channels.some(value=>JSON.stringify([value.voice,value.modulation])!==JSON.stringify([preset.voice,preset.modulation]));
+  $('sidChannelState').hidden=coding&&observing||!mixed;
+  const editingHeading=channelSettings.target==='round-robin'?'Your sound · Round robin':`Your sound · CH ${channelSettings.target+1}`;
+  $('voiceHeading').textContent=observing
+    ?coding?`Your sound · Code Live CH ${state.liveVoice+1}`:`Your sound · ${state.paused?'Paused':'Live'} CH ${(state.liveVoice??0)+1}`
+    :editingHeading;
+  return observation;
+}
+function codeActivity(){if(disposed)return;updateKeys();visualizer.wake();codeLive?.sync();updateLiveDisplay();}
 function updatePresetUi(){
   editor.update(preset);if(document.activeElement!==$('instrumentName'))$('instrumentName').value=preset.name;
   $('sidModelBadge').textContent=preset.model;
@@ -89,7 +117,7 @@ function updatePresetUi(){
   $('sidChannelState').hidden=!mixed;
   const song=sidImporter?.read();
   if(!song?.liveEnabled||!(song.playing||song.paused||song.pausing||song.resuming))$('voiceHeading').textContent=channelSettings.target==='round-robin'?'Your sound · Round robin':`Your sound · CH ${channelSettings.target+1}`;
-  updateCapacity();refreshPlayableKeys();
+  updateCapacity();refreshPlayableKeys();updateLiveDisplay();
 }
 function audioFailed(error,owner){
   if(disposed||owner!==audio&&owner!==opening?.engine&&owner!==opening)return;
@@ -172,13 +200,19 @@ function applySettings(value,{load=false,message,fromSong=false}={}){
 }
 const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onError:report});
 const sidLiveView=createSidLiveView({root:$('sidLiveView')});
-const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),liveRoot:$('sidLiveTools'),getController:()=>sidImporter});
+codeLive=createSidCodeLive({getAudio:()=>audio,
+  isRunning:()=>Boolean(codeHost?.isCodeMode()&&codeHost?.isRunning()&&!document.hidden),
+  onUpdate:()=>updateLiveDisplay(),
+});
+const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),liveRoot:$('sidLiveTools'),getController:()=>sidImporter,
+  onLiveChange(enabled){if(!codeHost?.isRunning())return false;codeLive.setEnabled(enabled);return true;},
+});
 sidImporter=createSidImport({
   getVolume:()=>Number($('masterVolume').value),
   getInstrumentRevision:()=>`${revision}/${importSequence}`,
   onUpdate(state){
-    sidImportPanel.update(state);const observation=sidLiveView.update(state);
-    const observing=Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
+    sidImportPanel.update(state);const observation=updateLiveDisplay(state);
+    const observing=!codeHost?.isRunning()&&Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
     const fresh=state.liveActive||state.paused&&!state.loading&&!state.starting&&!state.choosingFile&&!state.applying&&!state.liveError&&!state.liveWaiting&&!state.pausing&&!state.resuming;
     if(!state.liveEnabled||state.starting||!state.playing&&!state.paused&&!state.pausing&&!state.resuming)adoptedObservation=null;
     if(observing&&fresh&&observation?.importable.available&&state.liveState){
@@ -186,11 +220,6 @@ sidImporter=createSidImport({
       const observationKey=JSON.stringify([state.liveSource,state.liveVoice,candidate?.preset]);
       if(candidate?.available&&observationKey!==adoptedObservation){adoptedObservation=observationKey;void applySettings(applyChannelPreset(channelSettings,candidate.preset),{fromSong:true}).catch(report);}
     }
-    editor.observe(observing?observation:null,{active:observing});
-    $('instrumentName').disabled=observing;
-    $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
-    $('voiceHeading').textContent=observing?`Your sound · ${state.paused?'Paused':'Live'} CH ${(state.liveVoice??0)+1}`
-      :channelSettings.target==='round-robin'?'Your sound · Round robin':`Your sound · CH ${channelSettings.target+1}`;
     if(previewEngine)visualizer.setRunning(Boolean(state.playing));
   },
   async onPreviewStart(engine,{isCurrent=()=>true}={}){
@@ -212,6 +241,10 @@ sidImporter=createSidImport({
   onUsePreset(value){importSequence++;return applyPreset(value,{load:true,message:'SID voice imported · play this keyboard, edit it or save a preset.'});},
 });
 function chooseChannel(target){
+  if(codeHost?.isRunning()){
+    if(target!=='round-robin')codeLive.setVoice(target);
+    return Promise.resolve();
+  }
   const changed=applySettings(selectChannelTarget(channelSettings,target),{message:target==='round-robin'?'Round robin · channel settings kept. Edits apply to all three.':`CH ${target+1} · edit and play this channel.`});
   if(target!=='round-robin')sidImporter.setLiveVoice(target);
   return changed;
@@ -312,7 +345,7 @@ window.addEventListener('keydown',event=>{
 });
 window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLowerCase()}`));
 window.addEventListener('blur',()=>{if(!codeHost?.isRunning())void stopNotes();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&!codeHost?.isRunning())void stopNotes();});
+document.addEventListener('visibilitychange',()=>{codeLive.sync();if(document.hidden&&!codeHost?.isRunning())void stopNotes();});
 function setPitch(value){
   if(disposed)return;const request=++pitchIntent,epoch=noteEpoch;setPitchUi(value);refreshPlayableKeys();const target=audio;
   if(target)void enqueue(async()=>{
@@ -354,7 +387,7 @@ $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();try{const code=channelSettingsToCode(channelSettings);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void stopPerformances().catch(report);return;}void codeHost?.dispose().catch(()=>{});disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
+  if(event.persisted){void stopPerformances().catch(report);return;}codeLive.dispose();void codeHost?.dispose().catch(()=>{});disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
 });
 function receivePlayerSnapshot(){
   const fragment=window.location?.hash;
@@ -381,7 +414,7 @@ codeHost=setupSidCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readCh
   },
   stopKeyboard:()=>stopNotes(),stopSong:()=>stopSongForKeyboard(),beforeRun:()=>queue,
   prepareOutput:(engine,isCurrent)=>prepareDesktopOutput(engine,isCurrent),
-  onActivity(){if(!disposed){updateKeys();visualizer.wake();}},setStatus:message=>status(message),
+  onActivity:codeActivity,setStatus:message=>status(message),
 });
 void codeHost.ready.then(()=>{if(!disposed)receivePlayerSnapshot();}).catch(report);
 
