@@ -146,8 +146,20 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
             (!Number.isInteger(args[0])||args[0]<0||args[0]>23))throw new RangeError('PS1 SPU channel must be 0..23');
           return command('code',[metadata.session,method,args]).then(value=>{check();return value;});
         };
+        // A temporary performer may borrow the existing Code output gate.
+        // After its own acknowledged Stop it may reopen only the neutral
+        // route it restored, never a newer Code lease or editor operation.
+        let releasedGeneration=null;
+        client.ownsOutput=()=>{
+          try {assertOpen();}catch{return false;}
+          return codeOwner===owner&&owner.generation===codeGeneration ||
+            releasedGeneration!==null&&codeOwner===null&&codeGeneration===releasedGeneration;
+        };
         // The borrowed chip and context belong to the editor, not user Code.
-        client.dispose=()=>{check();return command('stop');};return client;
+        client.dispose=()=>{
+          check();const pending=command('stop'),generation=codeGeneration;
+          return pending.then(value=>{releasedGeneration=generation;return value;});
+        };return client;
       }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
       return owner.promise;
     }

@@ -1,0 +1,566 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11",
+  "passed": true,
+  "scope": "Temporarily audition the selected ordinary ADPCM channel while keeping the PSF paused, its Live view frozen, and the authored editor bank intact.",
+  "todo": "docs/issues/todo_spu_psf_paused_audition_01.md",
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "behavior": {
+    "pausedLiveOn": "Keyboard uses selected CH and Reference key, without Capture or PSF Stop. CH and Reference changes retire the previous trial.",
+    "pausedLiveOff": "Keyboard uses the authored editor instrument while the PSF remains paused. Normal keyboard notes update physical PITCH normally.",
+    "resume": "Fade and release the temporary trial, restore the editor checkpoint, and continue the retained song position.",
+    "playingKeyboard": "Existing keyboard behavior still stops a running song before playing the editor instrument.",
+    "capture": "Explicit Capture remains permanent; restore the authored bank before sample-cache/capacity preflight.",
+    "voiceRules": "Same-frame ADPCM bytes, ADSR, voice volumes and send, plus Reference-key tuning reuse the existing Capture helper. Each key starts a fresh envelope.",
+    "sharedEffects": "Editor shared reverb and Master are retained; custom song-wide reverb and song main volumes are not copied.",
+    "unsupported": [
+      "Noise",
+      "PMON carriers",
+      "zero or unrepresentable PITCH",
+      "invalid or unsupported ADPCM layouts"
+    ],
+    "failure": "Report the reason while retaining the paused source and authored sound; never fall back silently to another instrument."
+  },
+  "ownership": {
+    "editorSpus": 1,
+    "audioContexts": 1,
+    "physicalOutputConnections": 1,
+    "checkpoint": "Existing getPs1Client temporary bank; original RAM, sample identities, software waveform/morph, host PCM, ADSR and FX restore through its checkpoint.",
+    "sourceMachine": "Temporary trials do not write the PSF CPU/RAM, schedule source buffers, stop source buffers, or advance its frozen position.",
+    "guard": "Private readonly ownsOutput fences fade/cleanup against newer clients, editor writes and replacement engines.",
+    "releaseRaces": [
+      "keyup before setup",
+      "keyup after KON before acknowledgement",
+      "voice stealing",
+      "sustain/all-notes-off",
+      "blur",
+      "CH/reference/source changes",
+      "Resume/Stop",
+      "Code Run",
+      "Capture",
+      "pagehide/dispose"
+    ],
+    "fadeSeconds": 0.008
+  },
+  "additionalFix": {
+    "trigger": "Code used earlier, then Capture while already in Keyboard mode.",
+    "cause": "Redundant setMode(keyboard) stopped an existing runtime and closed the shared Code output gate; unchanged mode skipped its reopen callback.",
+    "fix": "Only request the mode change when currently in Code mode.",
+    "validation": "Both engines produce finite nonzero permanent-Capture PCM behind the mandatory physical mute."
+  },
+  "runtime": {
+    "nativeAbi": 3,
+    "fixedSdkVersion": "0.1.7",
+    "nativeAndWasmUnchanged": true,
+    "entryCache": "spu-psf-paused-audition-1",
+    "audioCache": "spu-paused-audition-1",
+    "auditionCache": "psf-paused-audition-1"
+  },
+  "tests": {
+    "relatedNode": {
+      "tests": 444,
+      "pass": 444,
+      "fail": 0,
+      "log": {
+        "path": "/private/tmp/spu-paused-audition-regressions.log",
+        "bytes": 48172,
+        "sha256": "572e7d26909a1b39794d4058eb95da1fcb07000298ff1ce7d083d02e534f7d96"
+      }
+    },
+    "calibrationNode": {
+      "tests": 145,
+      "pass": 145,
+      "fail": 0,
+      "log": {
+        "path": "/private/tmp/spu-paused-audition-calibration.log",
+        "bytes": 10961,
+        "sha256": "0af9ec427d9552d11a911336cac4dbdb815595f3fe22dfb0f08ad530bf66e9d2"
+      }
+    },
+    "newControllerTests": 16,
+    "additionalReadOnlyAuditTests": 96,
+    "auditCountsOverlapRelated": true,
+    "browserFamilies": [
+      {
+        "family": "pausedAudition",
+        "receipt": {
+          "path": "/private/tmp/spu-paused-audition-browser.json",
+          "bytes": 25166,
+          "sha256": "fae6f5de61e8666e87dd19a63e0cd1d259939d932b9e64fa23b150f41a52c988"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "CH and reference-key selection change preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 48,
+              "bufferStops": 29
+            },
+            "trustedKeyEvents": 30,
+            "sourceSampleBytesPreserved": true,
+            "capacityRemaining": 32
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "CH and reference-key selection change preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 48,
+              "bufferStops": 29
+            },
+            "trustedKeyEvents": 30,
+            "sourceSampleBytesPreserved": true,
+            "capacityRemaining": 32
+          }
+        ]
+      },
+      {
+        "family": "transport",
+        "receipt": {
+          "path": "/private/tmp/spu-paused-transport.json",
+          "bytes": 21671,
+          "sha256": "b48691bf0fb0dd48b4395458b995faa753ec39ecb22bdbfafb4ec1a1cea624ab"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+              "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+              "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+              "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+              "Pause stops output and scheduling; Resume advances from the retained playback position",
+              "Stop keeps the authored instrument and the independent VAB extraction controls",
+              "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+              "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+              "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+              "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 49,
+              "bufferStops": 30,
+              "monitorStrokes": 540,
+              "stopDelays": 1
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+              "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+              "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+              "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+              "Pause stops output and scheduling; Resume advances from the retained playback position",
+              "Stop keeps the authored instrument and the independent VAB extraction controls",
+              "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+              "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+              "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+              "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 50,
+              "bufferStops": 32,
+              "monitorStrokes": 414,
+              "stopDelays": 1
+            }
+          }
+        ]
+      },
+      {
+        "family": "live",
+        "receipt": {
+          "path": "/private/tmp/spu-paused-live.json",
+          "bytes": 4754,
+          "sha256": "c77c94393e10d1387ee762dc539eca06ac1dab505cd87229d7a2e3e64d98bc65"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "desktop / mobile layout"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 7,
+              "bufferStops": 5,
+              "monitorStrokes": 138,
+              "stopDelays": 0
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "desktop / mobile layout"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 178,
+              "bufferStops": 149,
+              "monitorStrokes": 564,
+              "stopDelays": 0
+            }
+          }
+        ]
+      },
+      {
+        "family": "capture",
+        "receipt": {
+          "path": "/private/tmp/spu-paused-capture.json",
+          "bytes": 4611,
+          "sha256": "07f11b548a18bc310939e0c593d92f32878716fc75af9ef4b31c017e0ac7e974"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+              "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+              "Resume during readonly preflight cancels Capture before any Stop or editor write",
+              "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+              "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+              "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+              "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+              "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 40,
+              "bufferStops": 20,
+              "monitorStrokes": 546,
+              "stopDelays": 0
+            },
+            "capacityRemaining": 32
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+              "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+              "Resume during readonly preflight cancels Capture before any Stop or editor write",
+              "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+              "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+              "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+              "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+              "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 39,
+              "bufferStops": 20,
+              "monitorStrokes": 420,
+              "stopDelays": 0
+            },
+            "capacityRemaining": 32
+          }
+        ]
+      },
+      {
+        "family": "code",
+        "receipt": {
+          "path": "/private/tmp/spu-paused-code.json",
+          "bytes": 18582,
+          "sha256": "f40018ca1b54e45ed11b136df26ace307a5ffb2b3c5860fb0fbcbd5cf069e890"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+              "Code Live follows applied CH values, is read-only and preserves authored sample data",
+              "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+              "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+              "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+              "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+              "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+            ]
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+              "Code Live follows applied CH values, is read-only and preserves authored sample data",
+              "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+              "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+              "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+              "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+              "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+            ]
+          }
+        ]
+      },
+      {
+        "family": "generalSynth",
+        "receipt": {
+          "path": "/private/tmp/spu-paused-general.json",
+          "bytes": 278095,
+          "sha256": "99c1116482da07351372ab04bfe4a9f647c10763f850719e39ba96767674fe30"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "graph": {
+              "before": {
+                "attackRate": 32,
+                "attackExponential": false,
+                "decayRate": 4,
+                "sustainLevel": 8,
+                "sustainRate": 0,
+                "sustainDecrease": false,
+                "sustainExponential": false,
+                "releaseRate": 8,
+                "releaseExponential": false
+              },
+              "after": {
+                "attackRate": 96,
+                "attackExponential": false,
+                "decayRate": 4,
+                "sustainLevel": 8,
+                "sustainRate": 0,
+                "sustainDecrease": false,
+                "sustainExponential": false,
+                "releaseRate": 8,
+                "releaseExponential": false
+              },
+              "allVoicesUpdated": true
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "graph": {
+              "before": {
+                "attackRate": 32,
+                "attackExponential": false,
+                "decayRate": 4,
+                "sustainLevel": 8,
+                "sustainRate": 0,
+                "sustainDecrease": false,
+                "sustainExponential": false,
+                "releaseRate": 8,
+                "releaseExponential": false
+              },
+              "after": {
+                "attackRate": 96,
+                "attackExponential": false,
+                "decayRate": 4,
+                "sustainLevel": 8,
+                "sustainRate": 0,
+                "sustainDecrease": false,
+                "sustainExponential": false,
+                "releaseRate": 8,
+                "releaseExponential": false
+              },
+              "allVoicesUpdated": true
+            }
+          }
+        ]
+      }
+    ],
+    "fixture": {
+      "original": true,
+      "gameData": false,
+      "sha256": "bcc7a2bbfa12b4bd5e6a646a86343035c4326031be5214ae2a94994c60c6eac9",
+      "voicePitches": [
+        6144,
+        3072
+      ],
+      "sampleSha256": [
+        "a0f487b06f298e6ed9efb44bf9f078076e7e1bfa0abbcc5d3206bdd1922df5f5",
+        "a546385cf94f33444211ad3930aae92b34ce842c5129c97f33c7439248d39bfa"
+      ]
+    },
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "layoutWidths": [
+      1240,
+      390
+    ],
+    "webkitLayoutImageReviewed": true
+  },
+  "distribution": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_psf-paused-audition-20261111-c-dWKIz1",
+    "archive": {
+      "path": "release/tetorica_spu_synth_psf-paused-audition-20261111-c_itch.zip",
+      "bytes": 6997079,
+      "sha256": "c2b1bfd299acbd4a55e896f36c761f99a10d863cd1f773145ee20c6beddef7aa",
+      "files": 334
+    },
+    "standaloneSourcekitIdenticalToRebuiltStageA": true,
+    "sourcekitFiles": 182,
+    "fixedSdkVersion": "0.1.7",
+    "newReadableModuleIncluded": true,
+    "allZipBytesMatchStage": true,
+    "psfWasm": {
+      "bytes": 454529,
+      "sha256": "28870b89a8be0011bcaa1c693682a1ca7b4292d6db5b7d7fb6c3b91d0dae086d"
+    },
+    "psfFactory": {
+      "bytes": 57239,
+      "sha256": "e8c3449898a3b2d2ab8931f19882ca32f6b9144ca0495249b27a69a4269e651a"
+    }
+  },
+  "sourcekit": {
+    "standaloneRebuild": {
+      "status": "passed",
+      "output": "/private/tmp/spu-paused-audition-sourcekit-rebuild",
+      "files": [
+        {
+          "file": "psf_player.js",
+          "bytes": 57239,
+          "sha256": "e8c3449898a3b2d2ab8931f19882ca32f6b9144ca0495249b27a69a4269e651a",
+          "rebuiltSha256": "e8c3449898a3b2d2ab8931f19882ca32f6b9144ca0495249b27a69a4269e651a",
+          "byteIdentical": true
+        },
+        {
+          "file": "psf_player.wasm",
+          "bytes": 454529,
+          "sha256": "28870b89a8be0011bcaa1c693682a1ca7b4292d6db5b7d7fb6c3b91d0dae086d",
+          "rebuiltSha256": "28870b89a8be0011bcaa1c693682a1ca7b4292d6db5b7d7fb6c3b91d0dae086d",
+          "byteIdentical": true
+        }
+      ]
+    },
+    "playProvenance": {
+      "files": 158,
+      "mismatches": []
+    },
+    "stagedSpu": {
+      "files": 17,
+      "mismatches": []
+    },
+    "sdk": {
+      "files": 476,
+      "manifestEntries": 475,
+      "manifestMatchesPin": true,
+      "mismatches": []
+    },
+    "finalStageSourcekitByteIdenticalToRebuiltInputs": true
+  },
+  "artifacts": [
+    {
+      "path": "docs/synth-spu/psf_paused_audition.js",
+      "bytes": 9941,
+      "sha256": "63132916791be764b2a55f1176df16374b0d9703021632d097d6a5fdd951dfac"
+    },
+    {
+      "path": "docs/synth-spu/psf_paused_audition.test.mjs",
+      "bytes": 15144,
+      "sha256": "e89a95e416c9a11cb49badeec688f838cbb264f5c2f681350efb3181a1151591"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_audio.js",
+      "bytes": 11080,
+      "sha256": "24462deff56dfeb2eaaf313894ccd95b6b59da85aa68dd97d697c33019b2fadf"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_audio.test.mjs",
+      "bytes": 83094,
+      "sha256": "6e417ec29e61c586739644057c1dbecef9c294abcfcb02b7d12d134eb1f51273"
+    },
+    {
+      "path": "docs/synth-spu/synth.js",
+      "bytes": 62889,
+      "sha256": "31da42ea4a53ccc8a7f0afbaceee6e52b7846337a6412f20b21470dbda8efe35"
+    },
+    {
+      "path": "docs/synth-spu/index.html",
+      "bytes": 23444,
+      "sha256": "267030647e4b59c4597164b0ea3994ab4a6e4cfb992c4bfebc30bbb0ac16fc9e"
+    },
+    {
+      "path": "docs/synth-spu/README.md",
+      "bytes": 25130,
+      "sha256": "c5baeae33c91fc99e69fea6efe0e99430c041feccf44638b87ceeda50f5e4f15"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_paused_audition_browser.cjs",
+      "bytes": 30425,
+      "sha256": "1c12866999a66de348d1f5b11b09656f811d0becc58df32377076813a2df5572"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.mjs",
+      "bytes": 22801,
+      "sha256": "5538e0c3786bc2e78e50e0ba1ddb002436b5b2e565df6bbb8c8f6340e06a7563"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.test.mjs",
+      "bytes": 12554,
+      "sha256": "c1dbc1b089c9ccddc6a32c442ae87de0ac2f01a6db90d1b3b02f4895d56ae94d"
+    }
+  ]
+}

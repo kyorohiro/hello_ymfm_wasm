@@ -210,8 +210,17 @@ the loaded set. Selecting a song does not play it. Select a **PSF entry** and ch
 **Resume** and retains the unplayed samples; **Stop song** returns to the
 beginning. File selection never starts audio. Master and the output monitor
 also apply to the song. The separate Play! HLE player needs no external BIOS;
-it keeps the edited SPU sample and settings intact. Playing the keyboard,
+it keeps the edited SPU sample and settings intact. Playing the keyboard while the song is running,
 editing the instrument, running Code or **Stop all sound** stops the preview.
+While paused with **Live On**, the keyboard temporarily auditions the selected
+CH using the same ADPCM / Reference key rules as Capture, keeping the song,
+frozen source display and edited instrument. With **Live Off**, the keyboard
+plays your edited instrument and still keeps the song paused. Changing CH or
+Reference key releases the previous temporary notes. Resume silences the
+audition and restores the authored editor bank before continuing the same song
+position. Normal ADPCM only is supported; Noise and PMON carriers show a reason
+without leaving Pause. Temporary audition does not save or replace a preset;
+choose Capture to make that sound editable and permanent.
 Selecting a different accepted entry also stops the old song. Failed imports
 keep the previous selection. **Live from PSF** is on by default. Choose **CH 1–24**
 to observe that physical voice in the existing **PCM / ADSR / FX** panels without

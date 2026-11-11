@@ -95,7 +95,7 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
 
 test('main-thread Code client borrows one SPU route and fences delayed acknowledgements after Stop',async t=>{
   const audioSource=await readFile(new URL('./spu_synth_audio.js',import.meta.url),'utf8');
-  const requests=[],published=[],gains=[];let createAudio,node,session=0,hold=false,finishHeld;
+  const requests=[],published=[],gains=[];let createAudio,node,session=0,hold=false,finishHeld,holdStop=false,finishStop;
   const authored={channels:[],marker:'authored'};
   class Context {
     constructor(){this.currentTime=0;this.sampleRate=48000;this.state='suspended';this.destination={};this.audioWorklet={addModule:async()=>{}};}
@@ -109,7 +109,9 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
         value:request.method==='beginCode'?{session:++session,sampleRate:48000,nativeSampleRate:44100,channelCount:24}
           :request.method==='inspect'||request.method==='code'&&request.args[1]==='getState'?{marker:'code'}:true,
         ...(request.method==='stop'?{state:authored}:{})}});
-      if(hold&&request.method==='code'){hold=false;finishHeld=reply;}else queueMicrotask(reply);
+      if(hold&&request.method==='code'){hold=false;finishHeld=reply;}
+      else if(holdStop&&request.method==='stop'){holdStop=false;finishStop=reply;}
+      else queueMicrotask(reply);
     }};queueMicrotask(()=>this.port.onmessage?.({data:{ready:true,state:authored}}));}
     connect(target){this.connections.push(target);}disconnect(){}
   }
@@ -123,6 +125,7 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
   assert.deepEqual(node.connections,[engine.codeFadeNode]);assert.deepEqual(engine.codeFadeNode.connections,[engine.gain]);assert.deepEqual(engine.gain.connections,[engine.context.destination]);
   const promise=engine.getPs1Client();assert.equal(engine.getPs1Client(),promise);
   const client=await promise;assert.equal(client.chip,'ps1');assert.equal(client.sampleRate,48000);assert.equal(client.channelCount,24);
+  assert.equal(client.ownsOutput(),true);
   await client.noteOn(23,'A4');assert.equal(requests.at(-1).method,'code');assert.deepEqual(Array.from(requests.at(-1).args[2]),[23,'A4']);
   const count=requests.length;assert.throws(()=>client.noteOn(24,'A4'),/0\.\.23/);assert.equal(requests.length,count);
   await client.getState();await engine.inspect();assert.equal(published.length,1,'Code inspection never publishes over authored editor state');
@@ -131,10 +134,18 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
   await client.noteOn(0,60);assert.equal(published.length,1,'sample lookup never publishes an editor state');
   hold=true;const pending=client.setEnvelope(0,{attackRate:1}),retired=assert.rejects(pending,{name:'AbortError'});
   await engine.stop();finishHeld();await retired;assert.equal(published.length,2);assert.equal(engine.context.state,'suspended');
+  assert.equal(client.ownsOutput(),false,'an external Stop never grants old output ownership');
   assert.throws(()=>client.noteOn(0,60),{name:'AbortError'});
   const next=await engine.getPs1Client();assert.notEqual(next,client);await next.noteOn(0,60);
   await next.dispose();assert.equal(engine.context.state,'suspended','disposing a borrowed client cannot close the shared context');
+  assert.equal(next.ownsOutput(),true,'an acknowledged own Stop may reopen its restored neutral route');
   assert.throws(()=>next.noteOff(0),{name:'AbortError'});
+  const third=await engine.getPs1Client();assert.equal(next.ownsOutput(),false,'a newer lease revokes neutral-route ownership');
+  holdStop=true;const closing=third.dispose();assert.equal(third.ownsOutput(),false,'pending Stop acknowledgement grants no neutral route');
+  const fourth=await engine.getPs1Client();finishStop();await closing;
+  assert.equal(third.ownsOutput(),false,'late Stop acknowledgement cannot claim a newer output owner');
+  assert.equal(fourth.ownsOutput(),true);await fourth.dispose();assert.equal(fourth.ownsOutput(),true);
+  await engine.command('setInstrumentNoise',[{enabled:false}]);assert.equal(fourth.ownsOutput(),false,'a later editor write also revokes the old neutral route');
 });
 
 test('standalone actual WASM initializes and renders without URL or Node globals like AudioWorkletGlobalScope', () => {

@@ -53,7 +53,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert.equal(info.browser.codeEffects.sourceRoot,'sources/code-effects');
     assert.equal(info.browser.codeEffects.recipe,'sources/code-effects/scripts/build_native_audio_effect.sh');
     for(const path of ['generated/psf-player/psf_player.js','generated/psf-player/psf_player.wasm',
-      'synth-spu/psf_song_preview.js','synth-spu/psf_song_source.js','synth-spu/psf_playback_core.js','synth-spu/psf_live_snapshot.js','synth-spu/psf_capture.js',
+      'synth-spu/psf_song_preview.js','synth-spu/psf_song_source.js','synth-spu/psf_playback_core.js','synth-spu/psf_live_snapshot.js','synth-spu/psf_capture.js','synth-spu/psf_paused_audition.js',
       'sources/psf-player/third_party/play-psf/provenance.json','sources/psf-player/third_party/play-psf/Source/psx/PsxBios.cpp',
       'sources/psf-player/tetorica_src/wasm/psf_player/psf_player.cpp','sources/psf-player/scripts/build_psf_player.mjs',
       ...['spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h','standalone_support.h','LICENSE'].map(name=>'sources/psf-player/third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/'+name),
@@ -64,6 +64,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert.equal(info.browser.psfPlayer.provenance.license,'BSD-2-Clause');
     assert.equal(info.browser.psfPlayer.engine,'Play! PSF1 HLE + MAME PS1 SPU');
     assert.equal(info.browser.psfPlayer.abi,3);
+    assert.deepEqual(info.browser.psfPlayer.pausedAudition,{source:'synth-spu/psf_paused_audition.js',checkpoint:'editor',sourceStateUnchanged:true,ordinaryAdpcmOnly:true});
     assert.deepEqual(info.browser.psfPlayer.capture,{source:'synth-spu/psf_capture.js',sameFrameRam:true,ramBytes:524288,intervalFrames:2205,referenceKey:'C4',rewritesAdpcm:false});
     assert.equal(info.browser.psfPlayer.spu.license,'BSD-3-Clause');
     assert.equal(info.browser.psfPlayer.spu.sdkVersion,info.browser.sdk.version);
