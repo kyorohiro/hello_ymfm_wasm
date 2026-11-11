@@ -216,14 +216,15 @@ the loaded set. Selecting a song does not play it. Select a **PSF entry** and ch
 **Resume** and retains the unplayed samples; **Stop song** returns to the
 beginning. File selection never starts audio. Master and the output monitor
 also apply to the song. The separate Play! HLE player needs no external BIOS;
-it keeps the edited SPU sample and settings intact. Playing the keyboard while the song is running,
-editing the instrument, running Code or **Stop all sound** stops the preview.
+it keeps the edited SPU sample and settings intact. While the song is running,
+playing the keyboard or editing the instrument stops the preview. Loading another
+instrument, **Reset instrument**, running Code or **Stop all sound** also stops it.
 While paused in **PSF CH** view with **Live On**, the keyboard temporarily auditions the selected
 CH using the same ADPCM / Reference key or Noise Clock rules as Capture, keeping the song,
 frozen source display and edited instrument. Choose **Synth · edit and play**
-to play your edited instrument while keeping the song paused. Changing CH or
+to play and edit your instrument while keeping the song paused. Changing CH or
 Reference key releases the previous temporary notes. Resume silences the
-audition and restores the authored editor bank before continuing the same song
+audition and restores the latest edited instrument bank before continuing the same song
 position. Normal ADPCM and Noise are supported. PMON carriers, including
 Noise with PMON, show a reason without leaving Pause. Temporary audition does not save or replace a preset;
 choose Capture to make that sound editable and permanent.
@@ -242,8 +243,13 @@ without changing Live or the song's activity indicators; no numbered CH is
 highlighted in this view. Clicking any CH number, including the last selected
 one, returns to that PSF channel's display and paused audition. Selecting a PSF
 CH enables Live if it was Off. Turning Live Off selects Synth and stops acquiring
-observations; turning it On returns to the remembered PSF CH. Editing the Synth
-instrument stops the song first. Stop also returns
+observations; turning it On returns to the remembered PSF CH. While paused in
+**Synth · edit and play**, PCM, ADSR, Reverb, Morph, Noise and PMON controls change
+only the edited instrument, keeping the original song position and frozen CH state.
+Switch to a PSF CH to compare its original sound, then back to Synth to continue
+with your latest edits. **Resume** continues the original song from the paused position.
+Edits during song playback and loading another preset, VAB Tone or audio sample
+still stop the song. Stop also returns
 to the editor. Pause and choose **Capture to Synth** to edit or save an ADPCM or Noise channel. Seeking and PSF2 are not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
 The active song SPU uses the same fixed MAME-derived DSP sources as the
@@ -276,8 +282,8 @@ selected voice's hardware flags; the Noise clock, main volumes and reverb are
 shared. Software PMON waveform / ratio / depth / decay helpers cannot be inferred
 from a song, so those controls are hidden in PSF Live. Unrecognized reverb
 registers are labelled **Custom**, preserving the actual shared returns and send
-flag. Instrument saves are disabled in PSF Live; Capture first, or turn Live Off to save your edited
-instrument.
+flag. Instrument saves are disabled in PSF CH view; Capture first, or choose
+**Synth · edit and play** to save your edited instrument.
 
 For ADPCM, **Capture to Synth** copies the paused channel’s original bytes through
 its END packet, loop, ADSR, voice volumes and reverb-send flag from the matching
@@ -298,7 +304,8 @@ position and channel, selects **Synth · edit and play** and opens editable Synt
 playing a note. Use the keyboard to try the captured instrument, then **Resume**
 to continue the original song. Live stays On and the frozen CH activity remains
 visible; choose a PSF CH to inspect or audition the original sound again.
-An actual instrument edit or another instrument load still stops the song.
+Continue editing in Synth while keeping Pause, or switch to a PSF CH to compare
+the source. Loading another instrument or **Reset instrument** still stops the song.
 Use **Save to presets** or export **Instrument · SPU JSON** to keep the capture.
 For Noise, Capture copies the shared **Noise Clock**, ADSR, left/right voice
 levels and reverb send. **Reference key** is disabled: every key triggers the

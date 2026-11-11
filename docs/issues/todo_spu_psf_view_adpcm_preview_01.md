@@ -13,3 +13,5 @@
 通常Load selected Tone、Capture、preset再読込の先頭ADPCM previewを実canvasへ表示し、dragで原音色を書き換えないことを確認。preview→Code未割当→作者bank復元では実pixelの青線が消去／再表示され、shape選択後は編集PCMへ戻って描画できた。音・保存・RAM・native frameの不変も確認済み。通常browser／native appは操作せず、物理出力gain 0・実聴なし。
 
 検証記録：[spu_psf_view_adpcm_preview_verification_01.json](spu_psf_view_adpcm_preview_verification_01.json)。配布ZIP：`release/tetorica_spu_synth_psf-view-preview-20261112-a_itch.zip`（336 files、SHA-256 `df91f0f9c059be93891d62ef05106fc866bb770970a164e7869c369eb1c37131`）。原本JSをbyte一致で含み、全ZIPエントリーとCRCを確認した。Native／WASM変更なし。commit／push／公開なし。
+
+後続：[Pause中の音色編集](todo_spu_psf_paused_edit_01.md)で、Synth表示中の通常PCM／ADSR／FX編集でもPauseを保持するようにした。別音色読み込み・Code開始・再生中編集などの停止条件は維持する。上記検証は当時の配布ZIPについての記録。

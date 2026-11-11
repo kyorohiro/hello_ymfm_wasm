@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "Keep PSF paused while editing the authored Synth instrument and comparing its source channel.",
+  "todo": "docs/issues/todo_spu_psf_paused_edit_01.md",
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "behavior": {
+    "requires": [
+      "PSF paused",
+      "Synth view",
+      "normal UI instrument setter"
+    ],
+    "supportedEdits": [
+      "PCM shape and drawing",
+      "ADSR including held live edits",
+      "Reverb preset / returns / send",
+      "Software morph and both performance sliders",
+      "Noise and Noise Clock",
+      "PMON settings / topology"
+    ],
+    "preserved": [
+      "PSF position",
+      "selected source channel",
+      "frozen source frame and all CH activity",
+      "source playback buffers",
+      "latest authored edits across temporary source audition and Resume"
+    ],
+    "stillStops": [
+      "instrument edit while the song is playing",
+      "another preset / VAB Tone / audio load",
+      "Reset instrument",
+      "Code start",
+      "explicit Stop"
+    ],
+    "heldNotes": "Ordinary edits do not stop the editor on every RPC. Noise/PMON topology retains its validated stop behavior. Reconcile only started, actually submitted note IDs present before the edit RPC; preserve later presses and remove leases stopped by host-PCM to cycle changes.",
+    "ownership": "Recheck asset, PSF/action/view generation, source entry, paused Synth mode and Code ownership after awaited checkpoint restoration. Resume/Stop/view changes cancel unsent edits. Expected cancellation is hidden in both top-level and shared editor status."
+  },
+  "node": {
+    "command": "node --test docs/synth-spu/*.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "passed": 240,
+    "failed": 0,
+    "log": "/private/tmp/spu-psf-paused-edit-node.log"
+  },
+  "browser": {
+    "live": {
+      "report": "/private/tmp/spu-psf-paused-edit-live-browser.json",
+      "record": {
+        "bytes": 29766,
+        "sha256": "a5d040f9337eae8ac6ad20109c218997ed8c2c55aec796cf9a2925dbe1d5831b"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+            "default-on physical CH1–24",
+            "audible-time snapshot",
+            "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+            "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+            "Synth view keeps Live activity and native CH; same-number click returns source; Off clears activity and CH selection reenables Live",
+            "actual Noise / PMON flags",
+            "custom shared reverb and returns",
+            "bounded source preview labels",
+            "readonly authored state and saves",
+            "paused Synth PCM/ADSR/Reverb/Morph/Noise/PMON edits retain source; native CH compare and Resume; playing edit stops PSF",
+            "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+            "default-on physical CH1–24",
+            "audible-time snapshot",
+            "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+            "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+            "Synth view keeps Live activity and native CH; same-number click returns source; Off clears activity and CH selection reenables Live",
+            "actual Noise / PMON flags",
+            "custom shared reverb and returns",
+            "bounded source preview labels",
+            "readonly authored state and saves",
+            "paused Synth PCM/ADSR/Reverb/Morph/Noise/PMON edits retain source; native CH compare and Resume; playing edit stops PSF",
+            "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+          ]
+        }
+      ]
+    },
+    "paused": {
+      "report": "/private/tmp/spu-psf-paused-edit-paused-browser.json",
+      "record": {
+        "bytes": 49172,
+        "sha256": "4e8f8743f71d3b143fc8bd1131eab5ac89c44c1dc1a62ce5244d0c8a9f5d11d5"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+            "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+            "Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch",
+            "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+            "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+            "Resume cancels a Synth edit awaiting temporary preview restoration without writing or surfacing AbortError",
+            "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+            "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+            "Paused Synth edits survive an original CH trial and checkpoint restoration",
+            "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+            "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+            "Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch",
+            "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+            "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+            "Resume cancels a Synth edit awaiting temporary preview restoration without writing or surfacing AbortError",
+            "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+            "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+            "Paused Synth edits survive an original CH trial and checkpoint restoration",
+            "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+          ]
+        }
+      ]
+    },
+    "capture": {
+      "report": "/private/tmp/spu-psf-paused-edit-capture-browser.json",
+      "record": {
+        "bytes": 8844,
+        "sha256": "284f1e7435730dd1c9d4d7c94282cf744a3b591cf4d06dd5acb88069743d46e4"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone uses the same bounded read-only ADPCM preview without changing its saved source",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone uses the same bounded read-only ADPCM preview without changing its saved source",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        }
+      ]
+    },
+    "code": {
+      "report": "/private/tmp/spu-psf-paused-edit-code-browser.json",
+      "record": {
+        "bytes": 19437,
+        "sha256": "9f4e5e1e2146764fc095f427280252f3070dbbeb9e6f33ea4b4bf4f7537bd9cb"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        }
+      ]
+    }
+  },
+  "safety": {
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "ordinaryBrowserOrNativeAppUsed": false,
+    "osVolumeChanged": false,
+    "method": "Destination intercepted before application scripts through gain 0, with Chromium --mute-audio."
+  },
+  "visualInspection": "/private/tmp/spu-psf-paused-edit-live-browser/chromium-paused-edited-synth.png",
+  "distribution": {
+    "stage": "release/itch_spu_synth_psf-paused-edit-20261112-FSTlQ0",
+    "archive": "release/tetorica_spu_synth_psf-paused-edit-20261112_itch.zip",
+    "files": 336,
+    "archiveRecord": {
+      "bytes": 7028820,
+      "sha256": "16f2388d54de1f63913624d988024fdec65c5df707b109ada505d9fbf8c41666"
+    },
+    "crcPassed": true,
+    "allEntriesMatchStage": true,
+    "authoredJavaScriptCopiedByteForByte": true,
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    },
+    "nativeOrWasmChanged": false,
+    "psfAbi": 4
+  },
+  "sourceFiles": {
+    "docs/synth-spu/synth.js": {
+      "bytes": 71626,
+      "sha256": "f3ea5dcb129b60504f8843c1c5fd668b187512eb2bbddc1e494239920ceaef89"
+    },
+    "docs/synth-spu/spu_synth_panel.js": {
+      "bytes": 30320,
+      "sha256": "f45ce3a6eee69f54dd1fd32ae7bafee4c7669287f8e58e56d5a41582efcc9b2d"
+    },
+    "docs/synth-spu/index.html": {
+      "bytes": 24653,
+      "sha256": "35a456917daccc0c6df6a432c4a8d0b7f6400cb1f7786af7cfac83c27e42086e"
+    },
+    "docs/synth-spu/README.md": {
+      "bytes": 28845,
+      "sha256": "02336ae9f519b4286b8b3609484937a679990acae19004e0811bb29434b1d923"
+    },
+    "scripts/package_itch_spu_synth.mjs": {
+      "bytes": 26226,
+      "sha256": "63adabf5a447fac6a35c8583e0bccf8cf0def9fed8e581e46549079460a991b3"
+    }
+  }
+}

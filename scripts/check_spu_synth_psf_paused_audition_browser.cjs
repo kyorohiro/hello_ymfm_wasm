@@ -20,7 +20,7 @@ function installSilentAudit(){
     connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,
     createGain=BaseAudioContext.prototype.createGain,sourceStart=AudioBufferSourceNode.prototype.start,sourceStop=AudioBufferSourceNode.prototype.stop,timer=setTimeout.bind(window);
   const contexts=[],nodes=[],meters=[],gains=[],edges=[],commands=[],keys=[],pointer=[],starts=[],stops=[],pending=new WeakMap();
-  let sequence=0,session=null,delay=null,delays=0;
+  let sequence=0,session=null,delay=null,delays=0,restoreDelay=0,restoreDelays=0;
   window.AudioContext=class extends Context{constructor(...args){super(...args);contexts.push(this);}};
   if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext;
   BaseAudioContext.prototype.createGain=function(...args){const gain=createGain.apply(this,args);gains.push(gain);return gain;};
@@ -52,6 +52,7 @@ function installSilentAudit(){
     if(message?.method){
       commands.push({at:performance.now(),method:message.method,args:summarize(message.args??[])});
       let requests=pending.get(this);if(!requests)pending.set(this,requests=new Map());requests.set(message.id,{method:message.method});
+      if(restoreDelay&&message.method==='stop'){const ms=restoreDelay;restoreDelay=0;restoreDelays++;timer(()=>post.call(this,message,...args),ms);return;}
       if(delay&&message.method==='code'&&message.args?.[1]===delay.method){const ms=delay.ms;delay=null;delays++;timer(()=>post.call(this,message,...args),ms);return;}
     }
     return post.call(this,message,...args);
@@ -101,7 +102,7 @@ function installSilentAudit(){
     graph:()=>({contexts:contexts.length,editorWorklets:nodes.filter(value=>value.name==='tetorica-spu-synth').length,
       destinationConnections:meters.length,muted:meters.every(value=>value.mute.gain.value===0),bufferStarts:starts.length,bufferStops:stops.length}),
     gains:()=>({values:gains.map((gain,index)=>({index,value:gain.gain.value})),edges:edges.slice()}),
-    commands:()=>commands.slice(),keys:()=>keys.slice(),pointer:()=>pointer.slice(),armPreparationDelay(ms=300){delay={method:'loadADPCM',ms};},delays:()=>delays};
+    commands:()=>commands.slice(),keys:()=>keys.slice(),pointer:()=>pointer.slice(),armPreparationDelay(ms=300){delay={method:'loadADPCM',ms};},delays:()=>delays,armRestoreDelay(ms=1000){restoreDelay=ms;},restoreDelays:()=>restoreDelays};
 }
 
 async function fixture(){
@@ -248,6 +249,9 @@ async function check(browser,name,origin,authored){
     await page.locator('#psfEntry').selectOption('audition-fixture.psf');await playPaused();await page.locator('#spuLiveChannel').selectOption('1');
     await preparationRace(async()=>{await page.locator('#psfStopSong').click();});await until(()=>page.locator('#psfPlaySong').isEnabled(),'PSF stopped');
     assert.deepEqual(await instrument(),original);const restored=await read();assert.deepEqual(restored.samples,originalBank.samples);assert.equal(restored.nextAddress,originalBank.nextAddress);
+    step('Resume cancels a Synth edit awaiting temporary preview restoration without writing or surfacing AbortError');
+    await playPaused();await page.locator('#spuLiveChannel').selectOption('0');await page.keyboard.down(c4);await held(authored.a,authored.pitches[0]);const raceAuthor=await instrument(),racePosition=(await view()).position,raceCommands=(await commands()).length,restoreCount=await page.evaluate(()=>__pausedAuditionAudit.restoreDelays());await page.evaluate(()=>__pausedAuditionAudit.armRestoreDelay());await page.locator('#spuLiveChannel').selectOption('synth');await until(async()=>await page.evaluate(()=>__pausedAuditionAudit.restoreDelays())>restoreCount,'delayed preview checkpoint restoration');
+    await page.locator('[data-spu-editor-tab="adsr"]').click();const pendingRelease=page.locator('[data-chip-control="ps1-release-rate"]');await pendingRelease.fill('12');await pendingRelease.dispatchEvent('change');await pendingRelease.blur();await page.locator('#psfPauseSong').click({delay:5});await page.keyboard.up(c4);await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Pause'),'Resume supersedes queued Synth edit');await until(async()=>Number((await view()).position)>Number(racePosition)+.02,'source continues after cancelled Synth edit');await noPreviewKeys();assert.deepEqual(await instrument(),raceAuthor);assert(!(await commands()).slice(raceCommands).some(command=>command.method==='setInstrumentEnvelope'),'cancelled edit never writes its queued release rate');assert.doesNotMatch((await view()).status,/Abort|superseded|cancelled|failed/i);await paused();
     step('Code Run retires preview ownership; a stale keyboard release cannot stop its new session');
     await playPaused();await page.locator('#spuLiveChannel').selectOption('0');await page.keyboard.down(c4);await held(authored.a,authored.pitches[0]);
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
@@ -270,6 +274,11 @@ async function check(browser,name,origin,authored){
     assert.equal(captured.preset.pitch,authored.pitches[1]);const referenceHz=440*2**((72-69)/12);
     assert(Math.abs(captured.sample.baseFrequencyHz-referenceHz*4096/authored.pitches[1])<1e-8);assert.deepEqual(captured.reverb,original.reverb);
     const capturedBank=await read();assert(capturedBank.nextAddress>=originalBank.nextAddress);assert.equal(capturedBank.auditions.length,0);
+    step('Paused Synth edits survive an original CH trial and checkpoint restoration');
+    await page.locator('[data-spu-editor-tab="fx"]').click();const returnLeft=page.locator('[data-chip-control="ps1-reverb-left"]');await returnLeft.fill('.41');await returnLeft.dispatchEvent('change');await returnLeft.blur();await until(async()=>(await instrument()).reverb.volumeLeft===.41,'paused captured reverb edit');
+    await page.locator('[data-spu-editor-tab="adsr"]').click();const release=page.locator('[data-chip-control="ps1-release-rate"]');await release.fill('10');await release.dispatchEvent('change');await release.blur();await until(async()=>(await read()).channels.every(channel=>channel.envelopeParameters.releaseRate===10),'paused captured ADSR edit');
+    const editedTrial=await instrument();assert.equal((await view()).position,captureFrozen.position);assert.equal((await view()).pause,'Resume');assert.equal((await view()).voice,'synth');
+    await page.locator('#spuPsfChannelActivity [data-psf-channel="0"]').click({delay:5});assert.equal((await view()).frame,captureFrozen.frame);await page.keyboard.down(c4);const originalTrial=await held(authored.a,authored.pitches[0]/2);assert.equal(originalTrial.active[0].adsr2,0x1fc0,'original CH retains its source envelope');assert.deepEqual(await instrument(),editedTrial,'temporary original CH audition keeps the edited author checkpoint');await page.keyboard.up(c4);await noPreviewKeys();await page.locator('#spuLiveChannel').selectOption('synth');assert.deepEqual(await instrument(),editedTrial);assert.equal((await view()).position,captureFrozen.position);measurements.editedCheckpoint={releaseRate:10,reverbLeft:.41,originalTrialPitch:authored.pitches[0]/2};
     await page.keyboard.down(c4);await until(async()=>(await read()).auditions.length===1,'captured ordinary Synth key');
     const permanent=await read();assert.equal(permanent.channels[permanent.auditions[0].channel].pitch,authored.pitches[1]/2);
     await until(async()=>{const output=await page.evaluate(()=>__pausedAuditionAudit.output());return output.muted&&output.finite&&output.rms>.00001;},'permanent Capture output after temporary preview');

@@ -10,7 +10,12 @@ import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_
  * Physical-channel inspection and audition controls belong to Playground. */
 export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invoke, ...options}) {
   let selectedMorphEndpoint='a',morphUiState=null;
-  const panel = createPlaygroundPs1VoicePanel({root, ...options, invoke(method, args = []) {
+  const panel = createPlaygroundPs1VoicePanel({root, ...options, onError(error) {
+    if(error?.name==='AbortError') {
+      const status=root.querySelector('.chip-editor-status');
+      if(status){status.textContent='';delete status.dataset.error;}
+    } else options.onError?.(error);
+  }, invoke(method, args = []) {
     if (method === 'setPreset' || method === 'setChannel') return invoke('setInstrumentPreset', args.slice(1));
     if (method === 'setEnvelope') return invoke('setInstrumentEnvelope', args.slice(1));
     if (method === 'setWaveform') return morphDraft.enabled ? changeMorph({[selectedMorphEndpoint]:args[1]}) : invoke('setInstrumentWaveform', args.slice(1));
