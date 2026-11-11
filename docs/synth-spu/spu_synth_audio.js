@@ -9,6 +9,9 @@ import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 export const SPU_SYNTH_CALIBRATED_GAIN = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(entry => entry.name === 'ps1').volume;
 export const SPU_SYNTH_OUTPUT_GAIN = SPU_SYNTH_CALIBRATED_GAIN * SPU_SYNTH_MIX_HEADROOM;
 const initialWaveform = () => preparePs1Waveform(Array.from({length:112}, (_, i) => .65 * Math.sin(2 * Math.PI * i / 112)));
+const CODE_METHODS=['loadADPCM','getPreset','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','snapshot'];
+const READ_METHODS=new Set(['inspect','getState','getPreset','getInstrument','snapshot']);
+const codeCancelled=()=>{const error=new Error('SPU Code session stopped');error.name='AbortError';return error;};
 
 /** A standalone Web Audio instrument. Startup creates a suspended context;
  * call resume() from a user gesture before playing. Failed initialization
@@ -22,7 +25,9 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
-  let node = null, gain = null, disposed = false, fatalError = null, nextId = 0, rejectReady, readyTimer;
+  let node = null, gain = null, codeFade = null, disposed = false, fatalError = null, nextId = 0, rejectReady, readyTimer;
+  let codeOwner=null,codeGeneration=0;
+  const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
   const pending = new Map();
   let state = null;
   const failPending = error => {for (const {reject,timer} of pending.values()) {clearTimeout(timer);reject(error);} pending.clear();};
@@ -32,6 +37,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
   const dispose = async () => {
     if (disposed) return;
     disposed = true;
+    invalidateCode();
     clearTimeout(readyTimer);
     context.removeEventListener('statechange', stateChanged);
     failPending(new Error('SPU synth was disposed'));
@@ -44,6 +50,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
       node.port.close();
     }
     gain?.disconnect();
+    codeFade?.disconnect();
     if (context.state !== 'closed') await context.close();
   };
   const fail = error => {
@@ -67,7 +74,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-morph-default-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-code-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -96,7 +103,8 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     assertOpen();
     gain = context.createGain();
     gain.gain.value = volume * SPU_SYNTH_OUTPUT_GAIN;
-    node.connect(gain);
+    codeFade = context.createGain();codeFade.gain.value=1;
+    node.connect(codeFade);codeFade.connect(gain);
     gain.connect(context.destination);
     publish(metadata.state);
     const request = (method, args = [], transfer = []) => {
@@ -108,28 +116,49 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         try {node.port.postMessage({id, method, args}, transfer);} catch (error) {pending.delete(id);clearTimeout(timer);reject(error);}
       });
     };
+    async function command(method,args=[]) {
+      if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
+      if(!['beginCode','code','observeCode'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
+      // The encoder must not run in the real-time audio processor.
+      if (method === 'setWaveform') args = [args[0], preparePs1Waveform(args[1]), args[2]];
+      else if (method === 'setInstrumentWaveform') args = [preparePs1Waveform(args[0]), args[1]];
+      else if (method === 'setInstrumentMorph') {
+        const settings=readMorph(args[0]);
+        args=[settings,settings.enabled ? preparePs1Waveform(morphPcm(settings)) : undefined];
+      }
+      else if (method === 'setInstrumentPmon') {
+        const settings=readPmon(args[0]);
+        const needsWaveform=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);
+        args=[settings, needsWaveform ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined];
+      }
+      return request(method,args,method==='loadHostPCM'?[args[0].buffer]:[]);
+    }
+    function getPs1Client() {
+      assertOpen();if(codeOwner)return codeOwner.promise;
+      const owner={generation:codeGeneration,promise:null};codeOwner=owner;
+      const check=()=>{assertOpen();if(codeOwner!==owner||owner.generation!==codeGeneration)throw codeCancelled();};
+      owner.promise=command('beginCode').then(metadata=>{
+        check();if(!Number.isSafeInteger(metadata?.session)||metadata.nativeSampleRate!==44100||metadata.channelCount!==24)throw new Error('Invalid SPU Code session');
+        const client={id:'ps1:synth',chip:'ps1',channelCount:24,nativeSampleRate:44100,sampleRate:context.sampleRate};
+        for(const method of CODE_METHODS)client[method]=(...args)=>{
+          check();
+          if(['getPreset','setPreset','setChannel','setEnvelope','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff'].includes(method)&&
+            (!Number.isInteger(args[0])||args[0]<0||args[0]>23))throw new RangeError('PS1 SPU channel must be 0..23');
+          return command('code',[metadata.session,method,args]).then(value=>{check();return value;});
+        };
+        // The borrowed chip and context belong to the editor, not user Code.
+        client.dispose=()=>{check();return command('stop');};return client;
+      }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
+      return owner.promise;
+    }
     return {
       context, node, gain, calibratedGain:SPU_SYNTH_CALIBRATED_GAIN,
+      codeInputNode:node,codeOutputNode:codeFade,codeFadeNode:codeFade,getPs1Client,
       get state() {return state;},
-      async inspect() {const value = await request('inspect'); publish(value); return value;},
-      async command(method, args = []) {
-        if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
-        // The encoder must not run in the real-time audio processor.
-        if (method === 'setWaveform') args = [args[0], preparePs1Waveform(args[1]), args[2]];
-        else if (method === 'setInstrumentWaveform') args = [preparePs1Waveform(args[0]), args[1]];
-        else if (method === 'setInstrumentMorph') {
-          const settings=readMorph(args[0]);
-          args=[settings,settings.enabled ? preparePs1Waveform(morphPcm(settings)) : undefined];
-        }
-        else if (method === 'setInstrumentPmon') {
-          const settings=readPmon(args[0]);
-          const needsWaveform=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);
-          args=[settings, needsWaveform ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined];
-        }
-        return request(method, args, method==='loadHostPCM' ? [args[0].buffer] : []);
-      },
+      async inspect() {const value = await request('inspect'); if(!codeOwner)publish(value); return value;},
+      command,
       async resume() {assertOpen(); await context.resume(); assertOpen();},
-      stop() {return request('stop');},
+      stop() {return command('stop');},
       setVolume(value) {
         assertOpen(); validateVolume(value); volume = value;
         const parameter = gain.gain, now = context.currentTime;

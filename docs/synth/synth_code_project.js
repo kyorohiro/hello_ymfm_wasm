@@ -16,9 +16,11 @@ export function createSynthCodeProject(project) {
       const files=createVirtualFileSystem();files.restore(project.fs.snapshot());
       const resolved=resolveVirtualDynamicImports(files,source,path,(text,modulePath)=>
         `data:text/javascript;charset=utf-8,${encodeURIComponent(createVirtualFileRuntimeSource(files,modulePath)+'\n'+text)}`);
-      // file is block-local, like Playground's injected reader. It may shadow
-      // an optional host binding while imports share the installed snapshot.
-      return `{\n${createVirtualFileRuntimeSource(files,path,{install:true})}\n${resolved}\n}`;
+      // Install optional host adapters outside the user's lexical scope.
+      // A natural `const sample = await ps1.loadADPCM(...)` (or `const midi`)
+      // must not put those adapters' typeof checks in a temporal dead zone.
+      // The user block still inherits this snapshot's relative file reader.
+      return `{\n${createVirtualFileRuntimeSource(files,path,{install:true})}\n{\n${resolved}\n}\n}`;
     },
   };
 }

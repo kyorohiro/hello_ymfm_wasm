@@ -45,7 +45,67 @@ releasing keys that are still held.
 
 **Release notes** follows the programmed release stage. **Stop all sound** also
 clears infinite releases and reverb tails, preserving samples and settings.
-Leaving the page releases keyboard notes.
+Leaving the page releases keyboard notes and stops Code.
+
+## Play from Code and keep project files
+
+The lower **Keyboard / Code** tabs share this Synth's existing SPU, sample bank,
+Master and output monitor. Choose Code, then Run:
+
+```js
+const ps1 = await useSoundChip("ps1");
+setBpm(120);
+const state = await ps1.getState();
+const channel = state.pmon.enabled ? CH2 : CH1;
+
+liveLoop("melody", async () => {
+  await ps1.noteOn(channel, choose(scale("E3", "minorPentatonic", 2)));
+  await sleep(0.12);
+  await ps1.noteOff(channel);
+  await beat(0.5);
+});
+```
+
+Await the existing PS1 methods, including `setPreset()`, `setEnvelope()`,
+`setFrequency()`, `setReverb()` and `loadADPCM()`. Code uses physical channels
+0–23: CH1 is 0, CH2 is 1, through CH6; use numeric indexes for the remaining
+voices. Keyboard round robin is separate. The existing sample's declared root
+pitch determines `setNote()` tuning. Noise retains its shared clock instead of
+musical pitch. With PMON enabled, the even indexes are silent modulators and
+the odd indexes are carriers; the starter chooses CH2 as the first carrier.
+
+**Run** starts a fresh context; **Apply** retains `context`, named preparations
+and loops. **Stop** fades the software output and restores the edited instrument,
+sample bank, Noise, PMON and Software audio. Returning to Keyboard stops Code.
+Code uploads and raw changes are temporary; they do not overwrite the edited
+instrument. Selecting another instrument or editing its controls stops Code
+first. Master stays available during Code. Shortcuts are Ctrl/Cmd+Enter for Run
+and Ctrl/Cmd+Shift+Enter for Apply. Maximize Code places the editor beside Files.
+
+`liveLoop()`, `livePrepare()`, `tween()` and `liveFx()` are software features.
+The hardware SPU still produces the notes and its shared reverb. `liveFx` runs
+after the SPU, before the Stop fade and Master. There is no implicit `play()` or
+independent chip factory here. Monaco provides PS1-specific types, completion
+and navigation to readable API sources; a textarea remains available when its
+CDN cannot load.
+
+**Live from Code** is On by default. Choose CH1–CH24 to observe that channel's
+applied PCM, ADSR and shared FX in the same controls. Observation is read-only,
+does not allocate another voice and is limited to 20 updates/s; intermediate
+register writes can be missed. Turn Live off to show the edited instrument
+while Code continues. Changing that instrument then stops Code first. Stop
+returns to the authored display. Software morph appears only when its blend
+still matches the observed PCM; imported ADPCM does not have an editable
+112-point source waveform.
+
+**Files** stores `/index.js`, local modules, text/JSON and binary data separately
+from other Synths. Code and text edits save locally. Use relative `await import()`
+and `await file()` for project resources. **Save sound** writes the edited sound,
+including its sample, to `/presets/current.spu.json`; select that JSON to apply
+it. **Export project / Import project** retains Files and the selected Code
+file. Restoring files never runs Code, creates audio or automatically loads an
+instrument. Project ZIPs and their expanded contents are limited to 16 MiB;
+use the existing Save preset command for larger Software audio instruments.
 
 ## Instrument display
 
@@ -82,8 +142,9 @@ validates the complete instrument before applying it to all 24 voices.
 Loading audio, loading a preset or resetting the instrument first stops the
 current notes. New keyboard notes then use the updated instrument.
 
-The current session is in memory. Save instruments before reloading or closing
-the page. A rejected PMON or Noise mode change keeps held notes releasable.
+The current instrument is in memory. Save instruments before reloading or
+closing the page; Code and Files have their own local storage. A rejected PMON
+or Noise mode change keeps held notes releasable.
 If the audio engine stops responding, the page reports an error; select
 **Enable audio** to restart. An explicit restart after an audio-engine failure also starts a fresh
 sine instrument. This standalone version provides audio-file import and short
@@ -164,9 +225,10 @@ python3 -m http.server 8877 --directory docs
 ```
 
 The application uses the existing generated PS1 WASM and JavaScript modules;
-there is no second chip implementation. The new worklet has no UI polling or
-per-audio-block state messages. UI snapshots follow explicit edits and notes
-and are coalesced into browser animation frames.
+there is no second chip implementation. Audio blocks send no state messages.
+Normal UI snapshots follow explicit edits and notes. While Code Live is enabled,
+one passive observation request at a time runs at up to 20 updates/s, with stale
+responses discarded after Stop, Live Off or an engine replacement.
 
 ```sh
 npm run test:spu-synth

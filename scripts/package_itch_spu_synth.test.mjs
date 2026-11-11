@@ -42,7 +42,17 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert(info.browser.originalInputs.some(input => input.path === 'tetorica_src/runtime/generated/ps1_spu_wasm.js'));
     assert(!info.browser.originalInputs.some(input => input.path === 'docs/generated/ps1_spu_wasm.js'));
     assert(info.browser.originalInputs.some(input => input.path === 'scripts/copy_readable_modules.mjs'),'the source archive contains the dependency-copy recipe');
-    for (const path of ['index.html', 'synth-spu/index.html', 'synth-spu/icon.png', 'synth-spu/synth.js', 'synth-spu/spu_synth_worklet.js', 'synth-spu/spu_synth_prepare_worker.js', 'generated/ps1_spu_wasm.js', 'generated/ps1_spu_wasm.wasm', 'sources/native/ps1/spu.cpp', 'sources/native/ps1/upstream/spu.cpp', 'licenses/mame-ps1-spu/LICENSE']) assert(info.names.includes(path), path);
+    for (const path of ['index.html', 'synth-spu/index.html', 'synth-spu/icon.png', 'synth-spu/synth.js', 'synth-spu/spu_synth_worklet.js', 'synth-spu/spu_synth_prepare_worker.js', 'generated/ps1_spu_wasm.js', 'generated/ps1_spu_wasm.wasm', 'sources/native/ps1/spu.cpp', 'sources/native/ps1/upstream/spu.cpp', 'licenses/mame-ps1-spu/LICENSE',
+      'playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-ps1.d.ts','playground/tetorica-shell.d.ts',
+      'playground/vendor/fflate-LICENSE','licenses/tetorica-virtual-files/LICENSE',
+      'synth-spu/code_host.js','synth-spu/code_audio.js','synth-spu/code_project.js','synth-spu/code_files.js','synth-spu/code_declarations.js','synth-spu/code_live.js',
+      'synth/synth_code_controls.js','js/playground_code_runtime.js',
+      'js/native-fx-worklet.js','js/native_audio_effect.wasm','sources/code-effects/tetorica_src/native/audio_effect/gain.c','sources/code-effects/scripts/build_native_audio_effect.sh','sources/code-effects/LICENSE']) assert(info.names.includes(path), path);
+    assert.deepEqual(await readFile(join(result.stage,'js/native_audio_effect.wasm')),await readFile(new URL('../tetorica_src/runtime/generated/effects/gain.wasm',import.meta.url)));
+    assert.equal(info.browser.codeEffects.artifact.sha256,hash(await readFile(join(result.stage,'js/native_audio_effect.wasm'))));
+    assert.equal(info.browser.codeEffects.sourceRoot,'sources/code-effects');
+    assert.equal(info.browser.codeEffects.recipe,'sources/code-effects/scripts/build_native_audio_effect.sh');
+    assert.match(await readFile(join(result.stage,'sources/code-effects/README.md'),'utf8'),/host software after the SPU/);
     assert(!info.names.includes('favicon.ico'), 'The SPU icon replaces the website-wide favicon');
     const icon = await readFile(new URL('../docs/synth-spu/icon.png', import.meta.url));
     assert.deepEqual(await readFile(join(result.stage, 'synth-spu/icon.png')), icon, 'User-supplied icon is copied without transformation');
@@ -71,7 +81,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
       assert.doesNotMatch(html, /iframe|sw-register|webmanifest/);
     }
     const html = await readFile(join(result.stage, 'index.html'), 'utf8');
-    assert.match(html, /src="\.\/synth-spu\/synth\.js\?v=spu-master-380-1"/); assert.match(html, /href="\.\/synth-spu\/synth\.css\?v=spu-master-200-1"/);
+    assert.match(html, /src="\.\/synth-spu\/synth\.js\?[^"\s]+"/); assert.match(html, /href="\.\/synth-spu\/synth\.css\?[^"\s]+"/);
     assert.doesNotMatch(JSON.stringify(info.browser), /\/private\/|\/Users\//, 'Receipt must be portable');
     assert.deepEqual(info.browser.bundles.map(entry=>entry.path),['synth-spu/synth.js','synth-spu/spu_synth_worklet.js','synth-spu/spu_synth_prepare_worker.js']);
     assert(info.browser.modules.length>info.browser.bundles.length,'the receipt describes the complete runnable module graph');

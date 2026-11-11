@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-master-380-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-code-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-keyboard-wheels-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -10,6 +10,9 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js';
+import {setupSpuCodeHost} from './code_host.js?v=spu-code-1';
+import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
+import {morphPcm} from './spu_synth_morph.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
@@ -19,23 +22,65 @@ let audio = null, opening = null, state = null, stateFrame = null, epoch = 0, as
 const notes = new Map();
 let instrumentName = 'Sine';
 let noteSequence = 0, topologyPending = 0, switchingAudioOutput = false;
+let codeHost = null, codeLive = null, disposed = false, liveReadOnly = false;
 const rmsCanvas = document.createElement('canvas');
 rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 240;
 rmsCanvas.setAttribute('role', 'img'); rmsCanvas.setAttribute('aria-label', 'Measured SPU output RMS history');
 const visualizer = createSpuOutputVisualizer({canvas:$('outputCanvas'), envelopeCanvas:rmsCanvas});
 
+function updateSampleName(next=state,channel=0,fromCode=false) {
+  if(!next)return;
+  const sample=next.samples?.find(item=>item.id===next.channels[channel]?.sample);
+  const host=next.hostAudio&&(!fromCode||next.hostAudio.sampleId===sample?.id);
+  const name=fromCode?`Code CH ${channel+1} · Sample ${sample?.id??'—'}`:instrumentName;
+  $('sampleName').textContent=host?`${name} · Software audio · ${next.hostAudio.duration.toFixed(1)} s · ${next.hostAudio.loop?'loop':'one shot'}`:`${name}${sample?` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop?'loop':'one shot'}`:''}`;
+}
 function applyState(next) {
   state = next;
-  visualizer.setRunning((next.auditions?.length ?? 0) > 0);
+  visualizer.setRunning(Boolean(codeHost?.isRunning()) || (next.auditions?.length ?? 0) > 0);
   if (stateFrame !== null) return;
   stateFrame = requestAnimationFrame(() => {
     stateFrame = null;
     panel.update(state);
-    const sample = state.samples?.find(item => item.id === state.channels[0].sample);
-    $('sampleName').textContent = state.hostAudio ? `${instrumentName} · Software audio · ${state.hostAudio.duration.toFixed(1)} s · ${state.hostAudio.loop ? 'loop' : 'one shot'}` : `${instrumentName}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
+    updateSampleName();
     $('voiceAllocationStatus').textContent = `${state.noise?.enabled ? '24 voices · Noise · shared clock' : state.pmon?.enabled ? '12 notes · paired PMON' : '24 voices · round robin'} · ${state.auditions?.length ?? 0} held`;
+    updateCodeDisplay();
   });
 }
+function updateCodeDisplay() {
+  if (disposed || !codeLive) return;
+  const running=Boolean(codeHost?.isRunning()), live=codeLive.read(), observing=running&&live.liveEnabled;
+  $('spuCodeLiveTools').hidden=!running;
+  $('spuLiveEnabled').checked=live.liveEnabled;
+  $('spuLiveChannel').value=String(live.liveVoice);
+  const root=$('spuVoicePanel');root.dataset.observing=String(observing);root.dataset.observationChannel=String(live.liveVoice);root.inert=observing;
+  if (liveReadOnly!==observing) {liveReadOnly=observing;panel.setConnected(Boolean(audio)&&!observing);}
+  let displayed=state;
+  if (observing&&live.liveState) {
+    const snapshot=live.liveState, voice=snapshot.channels?.[live.liveVoice];
+    if (voice) {
+      // The standalone editor has one instrument slot. Map only its display
+      // to the selected physical voice; no preset or sample is applied.
+      const matchesMorph=snapshot.morph?.enabled&&voice.waveform?.pcm&&morphPcm(snapshot.morph).every((value,i)=>value===voice.waveform.pcm[i]);
+      displayed={...snapshot,channels:snapshot.channels.map((value,i)=>i===0?{...voice,channel:0}:value),
+        morph:snapshot.morph?{...snapshot.morph,enabled:Boolean(matchesMorph)}:undefined};
+      updateSampleName(snapshot,live.liveVoice,true);
+      $('spuLiveReadout').textContent=`CH ${live.liveVoice+1} · Gate ${voice.gate?'On':'Off'} · ENV ${voice.envelope??'—'} · PITCH ${voice.pitch} · Sample ${voice.sample??'—'}`;
+    }
+  } else {$('spuLiveReadout').textContent='';updateSampleName();}
+  if (displayed) panel.update(displayed);
+  for (const id of ['pitchBend','keyboardPitchBend']) $(id).disabled=running;
+  if (running) for (const input of document.querySelectorAll('[data-morph-performance-amount]')) input.disabled=true;
+  $('instrumentName').disabled=observing;
+  $('spuLiveStatus').textContent=!running?'Code stopped · edited instrument restored.':!live.liveEnabled?'Live off · Code continues. Editing the instrument stops Code first.':live.liveError?live.liveMessage:live.liveWaiting?'Waiting for the current Code observation…':`Live · CH ${live.liveVoice+1} · read-only PCM / ADSR / FX`;
+}
+function codeActivity() {
+  if (disposed) return;
+  codeLive?.sync();updateCodeDisplay();
+  visualizer.setRunning(Boolean(codeHost?.isRunning()) || (state?.auditions?.length??0)>0);
+  visualizer.wake();
+}
+async function stopCodeForEdit() {if(codeHost?.isRunning())await codeHost.stop();}
 function audioFailed(error) {
   const failed = audio; epoch++; notes.clear(); updateKeys();
   // Release handlers must see the failed engine, rather than implicitly
@@ -43,6 +88,7 @@ function audioFailed(error) {
   panel.setConnected(false); $('startAudio').textContent = 'Enable audio';
   visualizer.disconnect();
   audio = null;
+  void codeHost?.stop().catch(()=>{});codeLive?.sync();updateCodeDisplay();
   if (failed) void failed.dispose().catch(() => {});
   report(error);
 }
@@ -74,6 +120,7 @@ async function ensureAudio() {
   return audio;
 }
 async function invoke(method, args = []) {
+  if(codeHost?.isRunning())await stopCodeForEdit();
   // Note owners have already awaited resume and checked their press token.
   // Do not yield again here: an Off/Stop must never overtake its pending On.
   const engine = audio ?? await ensureAudio();
@@ -91,11 +138,16 @@ async function invoke(method, args = []) {
   // A live edit may expose a release/reverb tail after the display slept.
   // Monitoring remains passive, and an intervening Stop cancels this wake.
   if (method.startsWith('set') && commandEpoch === epoch) visualizer.wake();
+  if (method.startsWith('set')) codeHost?.markSoundDirty();
   return result;
 }
 const panel = createSpuInstrumentPanel({
   root:$('spuVoicePanel'), morphPerformanceRoot:document, invoke, ensureAudioReady:ensureAudio, onError:report,
 });
+codeLive=createSpuCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isCodeMode()&&codeHost?.isRunning()&&!document.hidden),onUpdate:updateCodeDisplay});
+for(let ch=0;ch<24;ch++)$('spuLiveChannel').append(new Option(`CH ${ch+1}`,String(ch)));
+$('spuLiveChannel').addEventListener('change',()=>{codeLive.setVoice(Number($('spuLiveChannel').value));$('spuLiveChannel').blur();});
+$('spuLiveEnabled').addEventListener('change',()=>{codeLive.setEnabled($('spuLiveEnabled').checked);$('spuLiveEnabled').blur();});
 $('monitorEnvelopeMount').append(rmsCanvas);
 const editorTabs = [...document.querySelectorAll('[data-spu-editor-tab]')];
 function selectEditorTab(name, focus = false) {
@@ -186,7 +238,7 @@ function updateKeys() {
   }
 }
 async function press(source, entry) {
-  if (topologyPending || switchingAudioOutput) return;
+  if (codeHost?.isCodeMode() || topologyPending || switchingAudioOutput) return;
   if (notes.get(source)?.released) release(source, true);
   if (notes.has(source)) return;
   const note = {key:entry.key, midi:entry.midi, channel:null, id:`spu-synth:${++noteSequence}`, epoch, started:false};
@@ -242,6 +294,7 @@ document.addEventListener('keydown', event => {
   const entryField=event.target?.closest?.('input[type=number],input[type=text]');
   if (event.key === 'Enter' && entryField) {event.preventDefault();entryField.blur();return;}
   if (event.key === 'Escape') {void stop().catch(report); return;}
+  if (codeHost?.isCodeMode()) return;
   if (event.ctrlKey || event.metaKey || event.altKey || editing(event.target)) return;
   const entry = layout.entries.find(value => value.key === event.key.toLowerCase()); if (!entry) return;
   // Capture musical keys before a focused select can use type-ahead. Keep
@@ -251,9 +304,10 @@ document.addEventListener('keydown', event => {
   if (!event.repeat) void press(`key:${event.code}`, {...entry, midi:entry.midi + octave * 12}).catch(report);
 }, {capture:true});
 document.addEventListener('keyup', event => release(`key:${event.code}`));
-window.addEventListener('blur', () => {releaseKeyboard(true); resetBend();});
+window.addEventListener('blur', () => {if(!codeHost?.isRunning()){releaseKeyboard(true); resetBend();}});
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {releaseKeyboard(true); panel.setVisible(false); resetBend();}
+  codeLive.sync();
+  if (document.hidden) {if(!codeHost?.isRunning()){releaseKeyboard(true);resetBend();}panel.setVisible(false);}
   else panel.setVisible(true);
   visualizer.setVisible(!document.hidden);
 });
@@ -280,10 +334,12 @@ async function stop() {
   epoch++; notes.clear(); updateKeys(); panel.releaseAll();
   visualizer.stop();
   $('sustainToggle').checked = false;
+  await codeHost?.stop();
   if (opening) {try {await opening;} catch {return;}}
   if (audio) await audio.stop();
   visualizer.stop();
   status('Stopped. Samples and settings are kept.');
+  codeLive.sync();updateCodeDisplay();
 }
 $('stopAudio').addEventListener('click', () => {void stop().catch(report);});
 $('allNotesOff').addEventListener('click', () => {
@@ -323,6 +379,7 @@ $('audioFileInput').addEventListener('change', async () => {
   try {
     if (!Number.isInteger(rootNote) || rootNote < 0 || rootNote > 127) throw new RangeError('Root MIDI note must be 0–127');
     if (file.size > MAX_AUDIO_FILE_BYTES) throw new RangeError('Choose an audio file smaller than 32 MiB');
+    await stopCodeForEdit();
     sampleStatus('Opening audio…');
     const engine = await ensureAudio(); sampleStatus('Decoding audio…');
     const buffer = await decodeAudio(await file.arrayBuffer());
@@ -454,6 +511,7 @@ $('loadVabTone').addEventListener('click', async () => {
   const operation=beginAssetOperation(), bank=vabBank, cache=vabSamples, name=vabName, index=Number($('vabTone').value);
   preparation?.cancel();
   try {
+    await stopCodeForEdit();
     // Validate bytes/tuning before stopping or changing the current sound.
     const prepared=prepareVabTone(bank,index), engine=await ensureAudio();
     if (operation!==assetEpoch) return;
@@ -488,8 +546,8 @@ $('loadVabTone').addEventListener('click', async () => {
 });
 $('savePreset').addEventListener('click', async () => {
   try {
-    const engine = await ensureAudio(), name = $('instrumentName').value.trim() || 'Untitled';
-    const instrument = writeSpuInstrument(name, await engine.command('getInstrument', [0]));
+    const name = $('instrumentName').value.trim() || 'Untitled';
+    const instrument = await getInstrumentDocument();
     download(`${name.replace(/[^\p{L}\p{N}_. -]/gu, '_')}.spu.json`, JSON.stringify(instrument));
     status(`Saved ${name}, including its sample, ADSR, PMON, Noise, Software morph and shared reverb settings.`);
   } catch (error) {report(error);}
@@ -501,35 +559,42 @@ $('presetFileInput').addEventListener('change', async () => {
   preparation?.cancel();
   try {
     if (file.size > MAX_INSTRUMENT_BYTES) throw new RangeError('Instrument file exceeds 224 MiB');
-    const instrument = readSpuInstrument(JSON.parse(await file.text()));
+    const instrument = JSON.parse(await file.text());
     if (operation !== assetEpoch) return;
-    const engine = await ensureAudio();
-    if (operation !== assetEpoch) return;
-    const bank = await engine.inspect();
-    if (operation !== assetEpoch) return;
-    const requiredBytes=(instrument.waveform || instrument.version===2 ? 0 : instrument.sample.adpcm.length)+(instrument.pmon.enabled && !bank.pmonSampleReserved ? 64 : 0);
-    if (requiredBytes > 524288 - bank.nextAddress) throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
-    await stop();
-    if (operation !== assetEpoch) return;
-    let sample;
-    if (instrument.waveform) await engine.command('setInstrumentWaveform', [instrument.waveform]);
-    else if (instrument.version===2) {const {pcm,...options}=instrument.sample;await engine.command('loadHostPCM',[pcm,options]);}
-    else {const {adpcm, ...options} = instrument.sample; sample = await engine.command('loadADPCM', [adpcm, options]);}
-    if (operation !== assetEpoch) return;
-    await engine.command('setInstrumentPreset', [{...instrument.preset, ...(sample ? {sample} : {})}]);
-    if (operation !== assetEpoch) return;
-    await engine.command('setReverb', [instrument.reverb]);
-    await engine.command('setInstrumentNoise', [instrument.noise]);
-    await engine.command('setInstrumentPmon', [instrument.pmon]);
-    await engine.command('setInstrumentMorph', [instrument.morph]);
-    if (operation !== assetEpoch) return;
-    instrumentName = instrument.name; $('instrumentName').value = instrumentName;
-    status(`Loaded ${instrument.name}.`); applyState(await engine.inspect());
+    await applyInstrumentDocument(instrument,{isCurrent:()=>operation===assetEpoch});
   } catch (error) {if (operation === assetEpoch) report(error);}
 });
+async function getInstrumentDocument() {
+  const engine=await ensureAudio();
+  return writeSpuInstrument($('instrumentName').value.trim()||'Untitled',await engine.command('getInstrument',[0]));
+}
+async function applyInstrumentDocument(value,{isCurrent=()=>true}={}) {
+  const instrument=readSpuInstrument(value),operation=assetEpoch;
+  const current=()=>!disposed&&operation===assetEpoch&&isCurrent();
+  if(!current())return false;
+  await stopCodeForEdit();if(!current())return false;
+  const engine=await ensureAudio();if(!current())return false;
+  const bank=await engine.inspect();if(!current())return false;
+  const requiredBytes=(instrument.waveform||instrument.version===2?0:instrument.sample.adpcm.length)+(instrument.pmon.enabled&&!bank.pmonSampleReserved?64:0);
+  if(requiredBytes>524288-bank.nextAddress)throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
+  await stop();if(!current())return false;
+  let sample;
+  if(instrument.waveform)await engine.command('setInstrumentWaveform',[instrument.waveform]);
+  else if(instrument.version===2){const {pcm,...options}=instrument.sample;await engine.command('loadHostPCM',[pcm,options]);}
+  else{const {adpcm,...options}=instrument.sample;sample=await engine.command('loadADPCM',[adpcm,options]);}
+  if(!current())return false;
+  await engine.command('setInstrumentPreset',[{...instrument.preset,...(sample?{sample}:{})}]);
+  if(!current())return false;
+  for(const [method,args]of [['setReverb',[instrument.reverb]],['setInstrumentNoise',[instrument.noise]],['setInstrumentPmon',[instrument.pmon]],['setInstrumentMorph',[instrument.morph]]]){
+    await engine.command(method,args);if(!current())return false;
+  }
+  instrumentName=instrument.name;$('instrumentName').value=instrumentName;
+  status(`Loaded ${instrument.name}.`);applyState(await engine.inspect());codeHost?.markSoundDirty();return true;
+}
 $('resetPreset').addEventListener('click', async () => {
   const operation = beginAssetOperation(); preparation?.cancel();
   try {
+    await stopCodeForEdit();
     const engine = await ensureAudio();
     if (operation !== assetEpoch) return;
     await stop();
@@ -547,11 +612,26 @@ $('resetPreset').addEventListener('click', async () => {
   } catch (error) {report(error);}
 });
 window.addEventListener('pagehide', event => {
+  if(!event.persisted){disposed=true;codeLive.dispose();void codeHost?.dispose().catch(()=>{});}
+  else void codeHost?.stop().catch(()=>{});
   epoch++; beginAssetOperation(); preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
   if (event.persisted) visualizer.stop(); else visualizer.dispose();
   if (audio) void audio.stop().catch(() => {});
 });
 renderKeyboard();
+
+codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getInstrumentDocument,
+  async applyInstrument(value,options){beginAssetOperation();preparation?.cancel();return applyInstrumentDocument(value,options);},
+  async stopKeyboard(){
+    epoch++;notes.clear();updateKeys();panel.releaseAll();$('sustainToggle').checked=false;
+    if(bendFrame!==null){cancelAnimationFrame(bendFrame);bendFrame=null;}
+    bend=0;for(const id of ['pitchBend','keyboardPitchBend'])$(id).value='0';for(const id of ['pitchValue','keyboardPitchValue'])$(id).textContent='0.00 st';
+    if(audio){await audio.command('instrumentAllNotesOff');await audio.command('setInstrumentPitchBend',[0]);}
+  },
+  beforeRun(){beginAssetOperation();preparation?.cancel();},
+  onActivity:codeActivity,setStatus:message=>status(message),
+});
+void codeHost.ready.catch(report);
 
 // Desktop adapters reroute only the final bus. SPU rendering and monitoring
 // stay in the same Web Audio graph, with no desktop API on ordinary websites.

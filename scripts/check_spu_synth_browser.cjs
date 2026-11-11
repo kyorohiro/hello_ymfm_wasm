@@ -1420,7 +1420,7 @@ async function runCase(browser, name, origin) {
     await new Promise((resolve, reject) => {server.once('error', reject); server.listen(0, '127.0.0.1', resolve);});
     const results = [], origin = `http://127.0.0.1:${server.address().port}`;
     for (const name of config.engines) {
-      const browser = await ({chromium, webkit})[name].launch({headless:true, ...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
+      const browser = await ({chromium, webkit})[name].launch({headless:true, ...(name === 'chromium' ? {args:['--mute-audio','--autoplay-policy=no-user-gesture-required']} : {})});
       try {results.push(await runCase(browser, name, origin)); console.log(`PASS ${name}: standalone SPU Synth.`);} finally {await browser.close();}
     }
     for (const [name, entry] of served) assert.equal(hash(await fs.readFile(path.join(config.root, name))), entry.sha256, 'Source remained frozen: ' + name);

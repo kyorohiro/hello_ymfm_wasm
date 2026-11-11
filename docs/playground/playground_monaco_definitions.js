@@ -36,6 +36,7 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (owner === 'PlaygroundSecondsTimeline') return {file:'playground_clock.js',symbol};
   if (['hzToBlockFnum', 'createPitchFromMidi'].includes(symbol)) return {file:'pitch.js', symbol};
   if (['noteToBlockFnum', 'play', 'scale', 'chord', 'noteLerp'].includes(symbol)) return {file:'playground_music.js', symbol};
+  if (/^Playground(?:Primary)?Ps1/.test(owner)||owner==='SpuCodeClient') return {file:'ps1synth.js',symbol:/^(?:Playground|SpuCodeClient)/.test(symbol)?'Ps1Synth':symbol};
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};
   if (/^PlaygroundGameboy$/.test(owner)) return {file:'gameboysynth.js', symbol};
   if (/^PlaygroundYm2151$/.test(owner)) return {file:'playground_ym2151.js', symbol};

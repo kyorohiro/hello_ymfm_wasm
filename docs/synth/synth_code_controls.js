@@ -1,6 +1,6 @@
 // Compact Code input for Synth. The editor and runtime remain independent so
 // a CDN/editor failure cannot prevent editing or running a local Cassette.
-import {initializePlaygroundMonaco} from '../playground/playground_monaco.js?v=synth-code-types-1';
+import {initializePlaygroundMonaco} from '../playground/playground_monaco.js?v=synth-code-types-1&ps1-source=1';
 import {selectSynthCodeDeclarations} from './synth_code_declarations.js?v=shared-pcm-notes-1';
 const JOURNAL_KEY='tetorica-fm2612-synth-pending-code';
 const MAX_CODE_LENGTH=2*1024*1024;

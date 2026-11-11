@@ -11,13 +11,14 @@ import {Ps1Synth} from '../../tetorica_src/runtime/ps1synth.js';
 import {Ps1Resampler} from '../../tetorica_src/runtime/ps1_resampler.js';
 import {Ps1VoiceInspector} from '../../tetorica_src/runtime/playground_ps1_inspector.js';
 import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
-import {patchPs1Envelope} from '../../tetorica_src/runtime/ps1_parameters.js';
+import {patchPs1Envelope,decodePs1Envelope} from '../../tetorica_src/runtime/ps1_parameters.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js';
 import {readPmon, pmonAdsr, pmonPcm} from './spu_synth_pmon.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {validateHostPcm} from './spu_synth_long_audio.js';
+import {noteToHz} from '../js/soundchip_pitch.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
@@ -88,7 +89,49 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
   await audio.command('setInstrumentMorph',[{...config,enabled:false}]);
   assert.equal(encodes,encodedBefore+1,'turning morph Off does not encode or upload');
   const boosted=await createAudio({volume:3.8});t.after(()=>boosted.dispose());
-  assert.equal(gainParameters[1].value,3.8*.128832*SPU_SYNTH_MIX_HEADROOM,'380% is also valid at engine initialization');
+  assert.equal(gainParameters[1].value,1,'the independent Code Stop gate starts at unity');
+  assert.equal(gainParameters[2].value,3.8*.128832*SPU_SYNTH_MIX_HEADROOM,'380% is also valid at engine initialization');
+});
+
+test('main-thread Code client borrows one SPU route and fences delayed acknowledgements after Stop',async t=>{
+  const audioSource=await readFile(new URL('./spu_synth_audio.js',import.meta.url),'utf8');
+  const requests=[],published=[],gains=[];let createAudio,node,session=0,hold=false,finishHeld;
+  const authored={channels:[],marker:'authored'};
+  class Context {
+    constructor(){this.currentTime=0;this.sampleRate=48000;this.state='suspended';this.destination={};this.audioWorklet={addModule:async()=>{}};}
+    addEventListener(){}removeEventListener(){}async resume(){this.state='running';}async close(){this.state='closed';}
+    createGain(){const gain={gain:{value:1},connections:[],connect(target){this.connections.push(target);},disconnect(){}};gains.push(gain);return gain;}
+  }
+  class WorkletNode {
+    constructor(){node=this;this.connections=[];this.port={close(){},postMessage:request=>{
+      if(request.id===undefined)return;requests.push(request);
+      const reply=()=>this.port.onmessage?.({data:{id:request.id,
+        value:request.method==='beginCode'?{session:++session,sampleRate:48000,nativeSampleRate:44100,channelCount:24}
+          :request.method==='inspect'||request.method==='code'&&request.args[1]==='getState'?{marker:'code'}:true,
+        ...(request.method==='stop'?{state:authored}:{})}});
+      if(hold&&request.method==='code'){hold=false;finishHeld=reply;}else queueMicrotask(reply);
+    }};queueMicrotask(()=>this.port.onmessage?.({data:{ready:true,state:authored}}));}
+    connect(target){this.connections.push(target);}disconnect(){}
+  }
+  vm.runInNewContext(audioSource.replace(/^import .*;\n/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(new URL('./spu_synth_audio.js',import.meta.url).href))+'\nprovide(createSpuAudio);',{
+    readPmon,pmonPcm,readMorph,morphPcm,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
+    SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1',volume:.128832}]}}},URL,fetch:async()=>({ok:true,arrayBuffer:async()=>wasmBinary.buffer}),
+    setTimeout,clearTimeout,provide:value=>{createAudio=value;},
+  });
+  const engine=await createAudio({onState:value=>published.push(value)});t.after(()=>engine.dispose());
+  assert.equal(engine.codeInputNode,node);assert.equal(engine.codeOutputNode,engine.codeFadeNode);assert.equal(engine.codeOutputNode.gain.value,1);
+  assert.deepEqual(node.connections,[engine.codeFadeNode]);assert.deepEqual(engine.codeFadeNode.connections,[engine.gain]);assert.deepEqual(engine.gain.connections,[engine.context.destination]);
+  const promise=engine.getPs1Client();assert.equal(engine.getPs1Client(),promise);
+  const client=await promise;assert.equal(client.chip,'ps1');assert.equal(client.sampleRate,48000);assert.equal(client.channelCount,24);
+  await client.noteOn(23,'A4');assert.equal(requests.at(-1).method,'code');assert.deepEqual(Array.from(requests.at(-1).args[2]),[23,'A4']);
+  const count=requests.length;assert.throws(()=>client.noteOn(24,'A4'),/0\.\.23/);assert.equal(requests.length,count);
+  await client.getState();await engine.inspect();assert.equal(published.length,1,'Code inspection never publishes over authored editor state');
+  hold=true;const pending=client.setEnvelope(0,{attackRate:1}),retired=assert.rejects(pending,{name:'AbortError'});
+  await engine.stop();finishHeld();await retired;assert.equal(published.length,2);assert.equal(engine.context.state,'suspended');
+  assert.throws(()=>client.noteOn(0,60),{name:'AbortError'});
+  const next=await engine.getPs1Client();assert.notEqual(next,client);await next.noteOn(0,60);
+  await next.dispose();assert.equal(engine.context.state,'suspended','disposing a borrowed client cannot close the shared context');
+  assert.throws(()=>next.noteOff(0),{name:'AbortError'});
 });
 
 test('standalone actual WASM initializes and renders without URL or Node globals like AudioWorkletGlobalScope', () => {
@@ -106,20 +149,21 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {Ps1Resampler} from ${url('../../tetorica_src/runtime/ps1_resampler.js')};
     import {Ps1VoiceInspector} from ${url('../../tetorica_src/runtime/playground_ps1_inspector.js')};
     import {preparePs1Waveform} from ${url('../../tetorica_src/runtime/ps1_waveform.js')};
-    import {patchPs1Envelope} from ${url('../../tetorica_src/runtime/ps1_parameters.js')};
+    import {patchPs1Envelope,decodePs1Envelope} from ${url('../../tetorica_src/runtime/ps1_parameters.js')};
     import {SpuRoundRobinVoices} from ${url('./spu_synth_voices.js')};
     import {readPmon, pmonAdsr} from ${url('./spu_synth_pmon.js')};
     import {readNoise} from ${url('./spu_synth_noise.js')};
     import {readMorph, morphPcm} from ${url('./spu_synth_morph.js')};
     import {SPU_SYNTH_MIX_HEADROOM} from ${url('./spu_synth_levels.js')};
     import {validateHostPcm} from ${url('./spu_synth_long_audio.js')};
+    import {noteToHz} from ${url('../js/soundchip_pitch.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
     const initialWaveform = preparePs1Waveform(Array.from({length:112}, (_,i)=>.65*Math.sin(2*Math.PI*i/112)));
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -150,7 +194,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -225,6 +269,97 @@ test('standalone manual leases ignore stale release, Stop retains instruments an
   assert.equal(peak(p.render(8192).left), 0, 'Stop clears decoder and shared reverb tails');
   p.command('auditionOn', [23, 64, 'after-stop']);
   assert(peak(p.render(1024).left) > .001, 'retained instrument plays again');
+});
+
+test('Code checkpoints preserve authored RAM, sample IDs, PCM and reverb across uploads and a cleared bank',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  p.command('setInstrumentPreset',[{volumeLeft:.4,volumeRight:-.3,adsr1:0x100f}]);
+  p.command('setInstrumentReverbPreset',[{preset:'room'}]);
+  const authored=p.command('getInstrument',[0]),before=p.command('inspect'),ram=p.processor.synth.core.readRam();
+  const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);
+  assert.equal(p.messages.at(-1).state,undefined,'Code start never replaces the upper editor state');
+  const frames=p.processor.synth.core.nativeFrames;
+  const observation=p.command('observeCode');
+  assert.equal(p.processor.synth.core.nativeFrames,frames,'passive Code reads never render');
+  assert.equal(observation.channels.length,24);assert.equal(observation.codeActive,true);
+  observation.channels[0].waveform.pcm[0]=99;
+  assert.notEqual(p.command('observeCode').channels[0].waveform.pcm[0],99,'observed PCM is detached');
+  const snapshot=call('snapshot');assert.equal(snapshot.ram.length,524288);assert.equal(snapshot.registers.length,512);
+  snapshot.ram.fill(255);assert.deepEqual(p.processor.synth.core.readRam(),ram,'explicit snapshots are detached inspection copies');
+  call('setEnvelope',0,{attackRate:12,sustainLevel:15,sustainRate:127});
+  call('setReverb',{preset:'hall',volumeLeft:.5});
+  const uploaded=call('loadADPCM',sine().adpcm,{baseFrequencyHz:440,loopStartSamples:0});
+  call('setPreset',0,{sample:uploaded,volumeLeft:.9,reverb:true});
+  assert.equal(p.messages.at(-1).state,undefined,'Code writes do not publish normal editor snapshots');
+  assert.deepEqual(p.command('getInstrument',[0]),authored,'Save sound still reads the authored instrument');
+  call('reset',{clearRam:true});
+  const fresh=call('loadADPCM',sine().adpcm,{rootNote:'A4',loopStartSamples:0});
+  assert.equal(fresh.id,0);call('setPreset',0,{sample:fresh});call('noteOn',0,'A4');
+  assert(p.command('observeCode').channels[0].gate);assert(peak(p.render(4096).left)>.001);
+  p.command('stop');
+  assert.equal(p.command('observeCode'),null);assert.deepEqual(p.command('getInstrument',[0]),authored);
+  const restored=p.command('inspect');assert.deepEqual(restored.samples,before.samples);assert.equal(restored.nextAddress,before.nextAddress);
+  assert(restored.channels.every(value=>!value.gate));assert.deepEqual(p.processor.synth.core.readRam(),ram);
+  assert.equal(peak(p.render(8192).left),0,'restoration cannot resume held Code notes or old reverb tails');
+  assert.throws(()=>call('noteOn',0,60),/session stopped/);
+  const next=p.command('beginCode').session;assert.notEqual(next,session);
+  assert.throws(()=>call('setReverb',{preset:'off'}),/session stopped/);
+  p.command('code',[next,'noteOn',[0,60]]);assert(peak(p.render(4096).left)>.001);
+  p.command('setInstrumentPreset',[{volumeLeft:.2}]);
+  assert.equal(p.command('observeCode'),null,'an explicit editor mutation retires Code atomically');
+  assert.throws(()=>p.command('code',[next,'noteOn',[0,60]]),/session stopped/);
+});
+
+test('Code observes and plays physical PMON carriers without exposing authored source shadows',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  pmonSettings(p,{enabled:true,ratio:.5,depth:.8,decayMs:0});
+  const authored=p.command('getInstrument',[0]),session=p.command('beginCode').session;
+  const call=(method,...args)=>p.command('code',[session,method,args]);
+  call('noteOn',1,'A4');
+  const observed=p.command('observeCode'),source=observed.channels[0],carrier=observed.channels[1];
+  assert.equal(source.volumeLeft,0);assert.equal(source.volumeRight,0);assert.equal(source.gate,true);assert.equal(carrier.gate,true);
+  assert.equal(source.sample,p.processor.pmonSample.id);assert.equal(source.pitch,Math.round(4096*440*.5/(44100/112)));
+  assert.deepEqual(source.waveform.pcm,pmonPcm(.8,'sine').map(Math.fround));assert.notEqual(source.sample,authored.preset.sample);
+  assert.equal(source.adsr1,p.processor.synth.core.read(8));assert.deepEqual(source.envelopeParameters,decodePs1Envelope(source.adsr1,source.adsr2));
+  assert(peak(p.render(4096).left)>.001);
+  call('setFrequency',1,660);assert.equal(p.command('observeCode').channels[0].pitch,Math.round(4096*660*.5/(44100/112)));
+  call('noteOff',1);const released=p.command('observeCode');assert.equal(released.channels[0].gate,false);assert.equal(released.channels[1].gate,false);
+  call('reset',{clearRam:true});assert.equal(p.command('observeCode').pmon.enabled,false);assert.equal(p.processor.pmonSample,null);
+  const cleared=call('loadADPCM',sine().adpcm,{rootNote:'A4',loopStartSamples:0});assert.equal(cleared.id,0);
+  call('setPreset',0,{sample:cleared});call('noteOn',0,'A4');assert(peak(p.render(4096).left)>.001,'the cleared bank plays its actual physical CH1, without a stale modulator');
+  p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),authored);
+  assert.equal(p.command('instrumentNoteOn',[60,'keyboard-after-code']).channel,1);assert(peak(p.render(4096).left)>.001);
+});
+
+test('Code preserves Noise and long host audio while reset and Stop retain the edited instrument',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  const pcm=Int16Array.from({length:44100},(_,i)=>Math.round(18000*Math.sin(2*Math.PI*440*i/44100)));
+  p.command('loadHostPCM',[pcm,{baseFrequencyHz:440,loop:true}]);
+  const host=p.processor.hostAudio,authored=p.command('getInstrument',[0]);
+  let session=p.command('beginCode').session;
+  p.command('code',[session,'noteOn',[0,'A4']]);assert(peak(p.render(8192).left)>.1);
+  p.command('code',[session,'reset',[{clearRam:true}]]);
+  const scratch=p.command('code',[session,'loadADPCM',[preparePs1Waveform(Array(112).fill(0)).adpcm,{rootNote:'A4',loopStartSamples:0}]]);
+  p.command('code',[session,'setPreset',[0,{sample:scratch}]]);
+  assert.equal(scratch.id,0);assert.equal(p.command('observeCode').hostAudio,null,'a new sample ID cannot inherit the cleared host binding');
+  p.command('code',[session,'noteOn',[0,'A4']]);assert.equal(peak(p.render(8192).left),0,'the new silent ADPCM must not play the old host recording');
+  p.command('stop');assert.equal(p.processor.hostAudio,host,'Code checkpoints do not copy or replace recording-sized host PCM');
+  assert.deepEqual(p.command('getInstrument',[0]),authored);
+  p.command('instrumentNoteOn',[69,'host-after-code']);assert(peak(p.render(8192).left)>.1);
+  p.command('stop');
+  const one=sine().adpcm.slice();one[1]=0;one[49]=1;
+  const sample=p.command('loadADPCM',[one,{baseFrequencyHz:10}]);p.command('setInstrumentPreset',[{sample}]);
+  p.command('setInstrumentNoise',[{enabled:true,clock:48}]);
+  const noise=p.command('getInstrument',[0]);session=p.command('beginCode').session;
+  p.command('code',[session,'noteOn',[0,'G9']]);assert(peak(p.render(8192).left)>.001,'Noise ignores the imported sample root pitch');
+  p.command('code',[session,'setEnvelope',[0,{sustainLevel:15}]]);assert(peak(p.render(8192).left)>.001);
+  assert.throws(()=>p.command('code',[session,'setNote',[0,'wrong']]),/note name/);
+  p.command('code',[session,'reset',[{clearRam:true}]]);
+  assert.equal(p.command('observeCode').noise.enabled,false,'a cleared bank has no stale Noise loop placeholder');
+  const cleared=p.command('code',[session,'loadADPCM',[sine().adpcm,{rootNote:'A4',loopStartSamples:0}]]);
+  p.command('code',[session,'setPreset',[0,{sample:cleared}]]);p.command('code',[session,'noteOn',[0,'A4']]);assert(peak(p.render(8192).left)>.001);
+  p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),noise);assert(p.command('inspect').noise.enabled);
+  p.command('instrumentNoteOn',[60,'noise-after-code']);assert(peak(p.render(8192).left)>.001);
 });
 
 test('standalone edits retain shared live/deferred ADSR behavior and invalid commands remain recoverable', async t => {
