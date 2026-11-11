@@ -324,6 +324,8 @@ footer a { color: #4a5e74; }
 .spu-input-tabs > button[aria-selected="true"] { background:#dce7f1; border-bottom-color:#dce7f1; color:#24538d; }
 .spu-input-tabs .spu-code-expand { margin-left:auto; padding:5px 9px; }
 .spu-input-tabs .spu-code-expand[hidden] { display:none; }
+.spu-input-options { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 12px; color:var(--muted); font-size:.73rem; }
+.spu-input-options .check-control { display:flex; align-items:center; gap:7px; }
 .spu-code-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
 .spu-code-toolbar button { min-height:32px; padding:6px 14px; }
 #synthCodeState { font-size:.72rem; color:var(--muted); margin-left:auto; }

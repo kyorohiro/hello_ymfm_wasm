@@ -47,6 +47,15 @@ releasing keys that are still held.
 clears infinite releases and reverb tails, preserving samples and settings.
 Leaving the page releases keyboard notes and stops Code.
 
+**Click guard · Software** starts On for keyboard and Code's `noteOn()` /
+`noteOff()`. This is a Tetorica software feature, not a PS1 register setting.
+It uses the existing per-voice transition ramp and gives very fast releases
+a minimum of about 3 ms. It does not change ADSR codes, shorten long or infinite
+releases, or fade other voices and the shared effect bus. Turn it Off to use
+raw gate transitions. Changing it affects subsequent gate operations and keeps
+the current notes, sample bank and Code session in place. The switch is a Synth
+preference, separate from portable instrument and project files.
+
 ## Play from Code and keep project files
 
 The lower **Keyboard / Code** tabs share this Synth's existing SPU, sample bank,
@@ -73,6 +82,21 @@ voices. Keyboard round robin is separate. The existing sample's declared root
 pitch determines `setNote()` tuning. Noise retains its shared clock instead of
 musical pitch. With PMON enabled, the even indexes are silent modulators and
 the odd indexes are carriers; the starter chooses CH2 as the first carrier.
+
+`keyOn()` / `keyOff()` always bypass Click guard, including when the switch is
+On. For raw KON / KOFF, write:
+
+```js
+await ps1.setNote(channel, "E3");
+await ps1.keyOn(channel);
+await beat(1.12);
+await ps1.keyOff(channel);
+```
+
+Raw KOFF still follows the programmed ADSR release; it is not an immediate
+transport Stop. `noteOn()` / `noteOff()` follow the app's Click guard preference
+only in this Synth. The ordinary Playground / npm API retains its existing raw
+behavior.
 
 **Run** starts a fresh context; **Apply** retains `context`, named preparations
 and loops. **Stop** fades the software output and restores the edited instrument,

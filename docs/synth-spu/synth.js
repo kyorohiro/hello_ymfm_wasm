@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-code-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-click-guard-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-keyboard-wheels-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -10,7 +10,7 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js';
-import {setupSpuCodeHost} from './code_host.js?v=spu-code-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-click-guard-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 
@@ -23,6 +23,7 @@ const notes = new Map();
 let instrumentName = 'Sine';
 let noteSequence = 0, topologyPending = 0, switchingAudioOutput = false;
 let codeHost = null, codeLive = null, disposed = false, liveReadOnly = false;
+let clickGuardIntent = 0, clickGuardApplied = true;
 const rmsCanvas = document.createElement('canvas');
 rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 240;
 rmsCanvas.setAttribute('role', 'img'); rmsCanvas.setAttribute('aria-label', 'Measured SPU output RMS history');
@@ -98,8 +99,11 @@ async function ensureAudio() {
       const restarting = state !== null;
       $('startAudio').disabled = true;
       status('Preparing SPU…');
-      opening = createSpuAudio({onState:applyState, onError:audioFailed}).then(value => {
+      opening = createSpuAudio({onState:applyState, onError:audioFailed}).then(async value => {
         audio = value;
+        clickGuardApplied=value.state?.clickGuard!==false;
+        try {await applyClickGuard(value);}
+        catch(error){if(audio===value){audio=null;await value.dispose();}throw error;}
         instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
         audio.setVolume(Number($('masterVolume').value));
         visualizer.connect(audio.context, audio.gain);
@@ -119,6 +123,19 @@ async function ensureAudio() {
   await audio.resume();
   return audio;
 }
+async function applyClickGuard(engine=audio) {
+  const desired=$('spuClickGuard').checked,request=++clickGuardIntent;
+  if(!engine)return;
+  try {
+    const accepted=await engine.command('setClickGuard',[desired]);
+    if(typeof accepted!=='boolean')throw new TypeError('SPU click guard did not acknowledge its setting');
+    if(audio===engine&&request===clickGuardIntent){clickGuardApplied=accepted;$('spuClickGuard').checked=accepted;}
+  } catch(error) {
+    if(audio===engine&&request===clickGuardIntent)$('spuClickGuard').checked=clickGuardApplied;
+    throw error;
+  }
+}
+$('spuClickGuard').addEventListener('change',()=>{void applyClickGuard().catch(report);$('spuClickGuard').blur();});
 async function invoke(method, args = []) {
   if(codeHost?.isRunning())await stopCodeForEdit();
   // Note owners have already awaited resume and checked their press token.

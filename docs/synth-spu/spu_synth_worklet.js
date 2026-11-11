@@ -33,6 +33,8 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.lastMidi = Array(24).fill(null);
     this.lastBend = Array(24).fill(null);
     this.instrumentBend = 0;
+    // Host preference, separate from portable sound data and Code checkpoints.
+    this.clickGuard = true;
     this.pmon = readPmon();
     this.noise = readNoise();
     this.morph = readMorph({enabled:true});
@@ -63,7 +65,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         const sample = this.synth._setWaveformPrepared(ch, processorOptions.initialWaveform);
         this.synth.setPreset(ch, {sample});
       }
-      this.inspector = new Ps1VoiceInspector(this.synth, {sampleRate});
+      this.inspector = new Ps1VoiceInspector(this.synth, {sampleRate,dispatch:command=>{
+        if(command.method==='_auditionKeyOn'||command.method==='_auditionKeyOff')
+          return this.voiceKey(command.args[0],command.method==='_auditionKeyOn',this.clickGuard);
+        return this.synth[command.method](...(command.args??[]));
+      }});
       this.resampler = new Ps1Resampler(this.synth, sampleRate);
       this.syncModulators();
       this.port.postMessage({ready:true, sampleRate, nativeSampleRate:44100, state:this.readState()});
@@ -77,7 +83,8 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
       let value;
       const codeRequest=['beginCode','code','observeCode'].includes(method);
-      if(this.codeCheckpoint&&!codeRequest&&!READ_METHODS.has(method))this.endCode();
+      const configuration=method==='setClickGuard';
+      if(this.codeCheckpoint&&!codeRequest&&!configuration&&!READ_METHODS.has(method))this.endCode();
       if (method === 'beginCode') {
         if(args.length)throw new TypeError('SPU Code start takes no arguments');
         value=this.beginCode();
@@ -86,6 +93,12 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       else if(method==='observeCode') {
         if(args.length)throw new TypeError('SPU Code observation takes no arguments');
         value=this.observeCode();
+      }
+      else if(configuration) {
+        if(args.length!==1||typeof args[0]!=='boolean')throw new TypeError('SPU Click guard must be boolean');
+        // Apply only to the next gate operation; this transaction must not
+        // touch a held note, its envelope, sample cursor or Code session.
+        this.clickGuard=args[0];value=this.clickGuard;
       }
       else if (method === 'inspect' || method === 'getState') value = this.readState();
       else if (method === 'loadHostPCM') {
@@ -132,10 +145,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
           // path, without the shared sample inspector's tuning validation.
           this.inspector.auditions.set(channel,identity);
           this.inspector.beginAudition(channel,`voice-editor:${identity}`);
-          this.synth._auditionKeyOn(channel);
+          this.voiceKey(channel,true,this.clickGuard);
         } else this.inspector.invoke('auditionOn', [channel, midi, identity]);
         this.synth.setPitch(channel, pitch);
-        if (this.pmon.enabled) {this.configureModulator(channel-1, midi, bend); this.synth.core.auditionKey(channel-1, true);}
+        if (this.pmon.enabled) {this.configureModulator(channel-1, midi, bend); this.physicalKey(channel-1,true,this.clickGuard);}
         this.lastMidi[channel] = midi;
         this.lastBend[channel] = bend;
         value = {channel, stolenId:allocation.stolen?.id ?? null};
@@ -281,11 +294,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       } else if (EDITOR_METHODS.has(method)) value = this.inspector.invoke(method, args);
       else if (SYNTH_METHODS.has(method)) value = this.synth[method](...args);
       else throw new Error(`Unknown SPU synth command: ${method}`);
-      if (!codeRequest&&!READ_METHODS.has(method)) this.syncModulators();
+      if (!codeRequest&&!configuration&&!READ_METHODS.has(method)) this.syncModulators();
       const reply = {id, value};
       // Snapshots are sent only after explicit requests or completed edits.
       // Audio blocks never send level/state updates to the UI.
-      if (!codeRequest&&!READ_METHODS.has(method)) reply.state = this.readState();
+      if (!codeRequest&&!configuration&&!READ_METHODS.has(method)) reply.state = this.readState();
       this.port.postMessage(reply);
     } catch (error) {
       this.port.postMessage({id, error:String(error?.message ?? error), name:error?.name ?? 'Error'});
@@ -345,7 +358,13 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         if(!Number.isFinite(args[1])||args[1]<=0)throw new RangeError('frequency must be positive finite Hz');
       }else if(method!=='noteOn'||args[1]!==undefined)noteToHz(args[1]);
       // Noise uses one global clock, not a sample's declared root pitch.
-      if(method==='noteOn')result=this.synth.keyOn(ch);
+      if(method==='noteOn')result=this.voiceKey(ch,true,this.clickGuard);
+    }else if(method==='noteOn') {
+      if(args[1]!==undefined)this.synth.setNote(ch,args[1]);
+      result=this.voiceKey(ch,true,this.clickGuard);
+    }else if(method==='noteOff')result=this.voiceKey(ch,false,this.clickGuard);
+    else if(method==='allNotesOff'&&this.clickGuard) {
+      for(let voice=0;voice<24;voice++)this.voiceKey(voice,false,true);
     }else result=this.synth[method](...args);
     if(method==='reset') {
       this.codeGates.clear();this.lastMidi.fill(null);this.lastBend.fill(null);this.voices.reset();
@@ -360,12 +379,12 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       this.resampler.reset(this.synth.core.nativeFrames);this.syncModulators();
     }else if(['keyOn','noteOn'].includes(method)) {
       this.codeGates.add(ch);
-      if(this.pmon.enabled&&ch%2===1){this.configureCodeModulator(ch);this.synth.core.auditionKey(ch-1,true);this.codeGates.add(ch-1);}
+      if(this.pmon.enabled&&ch%2===1){this.configureCodeModulator(ch);this.physicalKey(ch-1,true,method==='noteOn'&&this.clickGuard);this.codeGates.add(ch-1);}
     }else if(['keyOff','noteOff'].includes(method)) {
       this.codeGates.delete(ch);
-      if(this.pmon.enabled&&ch%2===1){this.synth.core.auditionKey(ch-1,false);this.codeGates.delete(ch-1);}
+      if(this.pmon.enabled&&ch%2===1){this.physicalKey(ch-1,false,method==='noteOff'&&this.clickGuard);this.codeGates.delete(ch-1);}
     }else if(method==='allNotesOff') {
-      this.codeGates.clear();if(this.pmon.enabled)for(let source=0;source<24;source+=2)this.synth.core.auditionKey(source,false);
+      this.codeGates.clear();
     }else if(this.pmon.enabled&&ch%2===1&&['setFrequency','setNote','setPitch','setPreset','setChannel'].includes(method))this.configureCodeModulator(ch);
     if(['setPreset','setChannel','reset'].includes(method))this.syncHostMask();
     if(this.noise.enabled&&['setPreset','setChannel'].includes(method))this.syncModulators();
@@ -403,7 +422,16 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.hostAudio=null;
   }
 
-  readState() {return {...this.inspector.read(), hostAudio:this.hostAudio ? {frames:this.hostAudio.pcm.length,duration:this.hostAudio.pcm.length/44100,loop:this.hostAudio.loop} : null, pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
+  readState() {return {...this.inspector.read(), clickGuard:this.clickGuard, hostAudio:this.hostAudio ? {frames:this.hostAudio.pcm.length,duration:this.hostAudio.pcm.length/44100,loop:this.hostAudio.loop} : null, pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
+  voiceKey(ch,on,smooth) {
+    return this.synth[smooth?(on?'_auditionKeyOn':'_auditionKeyOff'):(on?'keyOn':'keyOff')](ch);
+  }
+  physicalKey(ch,on,smooth) {
+    // PMON sources have physical register patches instead of authored voice
+    // presets. Do not overwrite their send/sample words via a Synth key call.
+    if(smooth)return this.synth.core.auditionKey(ch,on);
+    return this.synth.core.write((on?0x188:0x18c)+(ch>=16?2:0),1<<(ch%16));
+  }
   carrierChannel(slot) {return this.pmon.enabled ? slot*2+1 : slot;}
   authorChannel(ch, apply) {
     if (!this.pmon.enabled || ch%2) return apply();
@@ -451,7 +479,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   }
   releaseInstrumentNote(ch, id) {
     const released=this.inspector.invoke('auditionOff',[ch,id]);
-    if (released && this.pmon.enabled) this.synth.core.auditionKey(ch-1,false);
+    if (released && this.pmon.enabled) this.physicalKey(ch-1,false,this.clickGuard);
     return released;
   }
   stopInstrument() {

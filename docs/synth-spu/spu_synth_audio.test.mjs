@@ -362,6 +362,112 @@ test('Code preserves Noise and long host audio while reset and Stop retain the e
   p.command('instrumentNoteOn',[60,'noise-after-code']);assert(peak(p.render(8192).left)>.001);
 });
 
+const maximumStep=(previous,values)=>{
+  let maximum=0;
+  for(const value of values){maximum=Math.max(maximum,Math.abs(value-previous));previous=value;}
+  return maximum;
+};
+
+test('Code Click guard reduces fast Sine release and retrigger steps without changing ADSR or its saved sound',async t=>{
+  const raw=await setup(44100),smooth=await setup(44100);t.after(()=>{raw.close();smooth.close();});
+  raw.command('setClickGuard',[false]);
+  assert.equal(smooth.command('inspect').clickGuard,true,'the Synth defaults to the keyboard guard');
+  const authored=smooth.command('getInstrument',[0]);
+  let rawRelease=0,smoothRelease=0,rawRestart=0,smoothRestart=0;
+  for(const held of [257,503,1001,1777,24700]){
+    for(const restart of [false,true]){
+      const captures=[];
+      for(const p of [raw,smooth]){
+        p.command('stop');const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);
+        call('noteOn',0,'E3');const before=p.render(held).left;
+        call(restart?'noteOn':'noteOff',0,...(restart?['E3']:[]));
+        const after=p.render(512).left;
+        captures.push(maximumStep(before.at(-1),after));
+        assert.equal(call('getPreset',0).adsr1,authored.preset.adsr1);
+        assert.equal(call('getPreset',0).adsr2,authored.preset.adsr2);
+        if(!restart)assert.equal(peak(after.subarray(384)),0,'a fast guarded Release does not leave a tail running');
+      }
+      if(restart){rawRestart=Math.max(rawRestart,captures[0]);smoothRestart=Math.max(smoothRestart,captures[1]);}
+      else{rawRelease=Math.max(rawRelease,captures[0]);smoothRelease=Math.max(smoothRelease,captures[1]);}
+    }
+  }
+  assert(rawRelease>8*smoothRelease,`release step ${rawRelease} / ${smoothRelease}`);
+  assert(rawRestart>8*smoothRestart,`retrigger step ${rawRestart} / ${smoothRestart}`);
+  smooth.command('stop');assert.deepEqual(smooth.command('getInstrument',[0]),authored);
+  t.diagnostic(JSON.stringify({rawRelease,smoothRelease,rawRestart,smoothRestart,releaseReduction:rawRelease/smoothRelease,retriggerReduction:rawRestart/smoothRestart}));
+});
+
+test('Click guard Off Code notes are bit-exact raw notes and raw keys bypass the preference in either position',async t=>{
+  const code=await setup(44100),raw=await setup(44100);t.after(()=>{code.close();raw.close();});
+  code.command('setClickGuard',[false]);const session=code.command('beginCode').session,call=(method,...args)=>code.command('code',[session,method,args]);
+  for(const [method,args]of [['noteOn',[0,'E3']],['noteOff',[0]],['noteOn',[0,'G3']],['noteOn',[0,'E4']],['allNotesOff',[]]]){
+    call(method,...args);raw.command(method,args);
+    for(const frames of [1,127,53,256]){
+      const a=code.render(frames),b=raw.render(frames);assert.deepEqual(a.left,b.left,method);assert.deepEqual(a.right,b.right,method);
+    }
+  }
+  for(const p of [code,raw])p.command('stop');
+  code.command('setClickGuard',[true]);raw.command('setClickGuard',[false]);
+  const a=code.command('beginCode').session,b=raw.command('beginCode').session;
+  for(const [method,args]of [['setNote',[0,'E3']],['keyOn',[0]],['keyOn',[0]],['keyOff',[0]]]){
+    code.command('code',[a,method,args]);raw.command('code',[b,method,args]);
+    for(const frames of [1,127,401]){
+      const x=code.render(frames),y=raw.render(frames);assert.deepEqual(x.left,y.left,method);assert.deepEqual(x.right,y.right,method);
+    }
+  }
+});
+
+test('Click guard changes only the next gate, retaining active Code ownership and the other stereo voice',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});
+  const sessions=[a,b].map(p=>p.command('beginCode').session),call=(p,i,method,...args)=>p.command('code',[sessions[i],method,args]);
+  for(const [i,p]of [a,b].entries()){
+    call(p,i,'setPreset',0,{volumeLeft:.75,volumeRight:0});call(p,i,'setPreset',23,{volumeLeft:0,volumeRight:.6});
+    call(p,i,'noteOn',0,'E3');call(p,i,'noteOn',23,'A4');p.render(1777);
+  }
+  const before=b.processor.synth.snapshot(),frames=b.processor.synth.core.nativeFrames,epoch=b.processor.codeEpoch;
+  assert.equal(b.command('setClickGuard',[false]),false);
+  assert.equal(b.messages.at(-1).state,undefined,'a host preference never paints temporary Code state into the editor');
+  assert.equal(b.processor.codeEpoch,epoch);assert.equal(b.processor.synth.core.nativeFrames,frames);
+  assert.deepEqual(b.processor.synth.snapshot(),before,'toggling never writes registers, RAM or gates');
+  for(const value of [undefined,0,'true',null])assert.throws(()=>b.command('setClickGuard',[value]),/boolean/);
+  assert.equal(b.processor.codeEpoch,epoch,'a rejected preference never retires the current Code session');
+  for(const [i,p]of [a,b].entries())call(p,i,'noteOff',0);
+  const left=a.render(512),right=b.render(512);assert.deepEqual(left.right,right.right,'the continuing opposite-panned voice is bit-exact');
+  assert.notDeepEqual(left.left,right.left,'only the released voice receives the guard');
+  assert.equal(a.command('observeCode').channels[23].gate,true);assert.equal(b.command('observeCode').channels[23].gate,true);
+  b.command('stop');assert.equal(b.command('inspect').clickGuard,false);
+  b.command('beginCode');assert.equal(b.command('observeCode').clickGuard,false,'host preference survives Stop and a new Run');
+});
+
+test('Click guard preserves long and infinite Releases and works for keyboard leases, PMON and Noise',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});
+  for(const rate of [16,31]){
+    for(const [i,p]of [a,b].entries()){
+      p.command('stop');p.command('setClickGuard',[i===0]);p.command('setInstrumentEnvelope',[{releaseRate:rate}]);
+      const session=p.command('beginCode').session;p.command('code',[session,'noteOn',[0,'E3']]);p.render(1024);
+      p.command('code',[session,'noteOff',[0]]);
+    }
+    const x=a.render(4096),y=b.render(4096);assert.deepEqual(x.left,y.left,`Release ${rate} remains the programmed duration`);
+    assert(peak(x.left.subarray(2048))>.001,`Release ${rate} must not be truncated by a short fade`);
+  }
+  const p=a;p.command('stop');p.command('setInstrumentEnvelope',[{releaseRate:0}]);
+  for(const enabled of [true,false]){
+    p.command('setClickGuard',[enabled]);
+    p.command('auditionOn',[0,60,'old']);p.render(512);p.command('auditionOn',[0,64,'new']);
+    assert.equal(p.command('auditionOff',[0,'old']),false);assert.equal(p.command('inspect').channels[0].gate,true);
+    p.command('auditionOff',[0,'new']);p.render(1024);assert.equal(peak(p.render(512).left),0);p.command('stop');
+    pmonSettings(p,{enabled:true,ratio:.5,depth:.8,decayMs:0});
+    const session=p.command('beginCode').session;p.command('code',[session,'noteOn',[1,'E3']]);p.render(1024);
+    assert.deepEqual(p.command('observeCode').channels.slice(0,2).map(v=>v.gate),[true,true]);
+    p.command('code',[session,'noteOff',[1]]);p.render(1024);assert.equal(peak(p.render(512).left),0);
+    assert.deepEqual(p.command('observeCode').channels.slice(0,2).map(v=>v.gate),[false,false]);p.command('stop');
+    pmonSettings(p,{enabled:false});p.command('setInstrumentNoise',[{enabled:true,clock:48}]);
+    p.command('instrumentNoteOn',[60,'noise']);assert(peak(p.render(1024).left)>.001);
+    p.command('instrumentNoteOff',['noise']);p.render(1024);assert.equal(peak(p.render(512).left),0);
+    p.command('stop');p.command('setInstrumentNoise',[{enabled:false}]);
+  }
+});
+
 test('standalone edits retain shared live/deferred ADSR behavior and invalid commands remain recoverable', async t => {
   const p = await setup(); t.after(() => p.close());
   p.command('setEnvelope', [0, {releaseRate:31}, {live:false}]);
