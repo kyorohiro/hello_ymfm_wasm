@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-// PSF1 static extraction only; no CPU/driver execution or network file access.
+// Bounded local PSF1 container / overlay loader; no CPU or network file access.
 // https://gist.github.com/SaxxonPike/11618bd321a45a70c01febae43ff564e
 import {MAX_VAB_FILE_BYTES,readVab,prepareVabTone} from './playground_ps1_vab.js';
 
@@ -94,7 +94,7 @@ async function inflateProgram(compressed,signal) {
 }
 
 function exeSegment(exe) {
-  if(!exe.length)return {address:0,data:exe};
+  if(!exe.length)return {address:0,data:exe,registers:null,region:''};
   if(exe.length<0x800||!signature(exe,0,'PS-X EXE'))fail('program is not a PS-X EXE');
   const view=new DataView(exe.buffer,exe.byteOffset,exe.byteLength),address=view.getUint32(0x18,true),size=view.getUint32(0x1c,true);
   if(size>exe.length-0x800)fail('truncated PS-X EXE text section');
@@ -103,14 +103,16 @@ function exeSegment(exe) {
   if(!((address<0x800000)||(address>=0x80000000&&address<0x80800000)||(address>=0xa0000000&&address<0xa0800000))||physical>=0x800000)fail('EXE load address is outside PS1 RAM');
   const offset=physical&0x1fffff;
   if(offset+size>RAM_BYTES)fail('EXE text crosses the end of the 2 MiB RAM image');
-  return {address:offset,data:exe.slice(0x800,0x800+size)};
+  return {address:offset,data:exe.slice(0x800,0x800+size),
+    registers:{pc:view.getUint32(0x10,true),gp:view.getUint32(0x14,true),sp:view.getUint32(0x30,true)},
+    region:text(exe.subarray(0x4c,0x100))};
 }
 
 /** _lib -> own text -> _lib2, _lib3... (stop at the first absent number). */
 export async function composePsfRam(set,entryPath,{signal}={}) {
   if(!set.records.has(entryPath))fail('choose a PSF entry');
   const ram=new Uint8Array(RAM_BYTES),coverage=new Uint8Array(RAM_BYTES),cache=new Map(),loadedFiles=[];
-  let expanded=0,visits=0;
+  let expanded=0,visits=0,refreshOverride=null;
   async function segment(record) {
     if(cache.has(record.path))return cache.get(record.path);
     const exe=await inflateProgram(record.compressed,signal);expanded+=exe.length;
@@ -129,13 +131,20 @@ export async function composePsfRam(set,entryPath,{signal}={}) {
     check(signal);
     if(stack.includes(record.path))fail(`cyclic library reference: ${[...stack,record.path].join(' → ')}`);
     if(stack.length>=10||++visits>256)fail('library depth/visit limit exceeded');
+    if(refreshOverride===null&&record.tags.has('_refresh')) {
+      const value=record.tags.get('_refresh');
+      if(value==='50'||value==='60')refreshOverride=Number(value);
+    }
     const next=[...stack,record.path];
-    if(record.tags.has('_lib'))await load(library(record,record.tags.get('_lib')),next);
-    const {address,data}=await segment(record);check(signal);ram.set(data,address);coverage.fill(1,address,address+data.length);loadedFiles.push(record.path);
+    const primary=record.tags.has('_lib')?await load(library(record,record.tags.get('_lib')),next):null;
+    const own=await segment(record),{address,data}=own;check(signal);ram.set(data,address);coverage.fill(1,address,address+data.length);loadedFiles.push(record.path);
     for(let index=2;record.tags.has(`_lib${index}`);index++)await load(library(record,record.tags.get(`_lib${index}`)),next);
+    // Auxiliary libraries overlay RAM but never replace the entry PC/SP.
+    return {registers:primary?.registers??own.registers,region:own.region};
   }
-  await load(set.records.get(entryPath));
-  return {ram,coverage,loadedFiles,expandedBytes:expanded,entryPath};
+  const boot=await load(set.records.get(entryPath));
+  return {ram,coverage,loadedFiles,expandedBytes:expanded,entryPath,
+    registers:boot.registers,refresh:refreshOverride??(/Europe/i.test(boot.region)?50:60)};
 }
 
 const ramAddress=at=>`0x${(0x80000000+at).toString(16)}`;

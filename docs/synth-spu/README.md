@@ -196,7 +196,25 @@ keyboard. **Menu → Export → Instrument · SPU JSON** stores the imported sam
 
 For **PSF1 / MiniPSF**, choose **Menu → Import → PSF set…** and select the song and all
 referenced PSFLib files together, or use **PSF folder…** in the same menu to retain library
-subdirectories. Extract ZIP archives first. Select a **PSF entry**, choose
+subdirectories. Extract ZIP archives first. Select a **PSF entry** and choose
+**Play song** to hear its original driver execute. **Pause** changes to
+**Resume** and retains the unplayed samples; **Stop song** returns to the
+beginning. File selection never starts audio. Master and the output monitor
+also apply to the song. The separate Play! HLE player needs no external BIOS;
+it keeps the edited SPU sample and settings intact. Playing the keyboard,
+editing the instrument, running Code or **Stop all sound** stops the preview.
+Selecting a different accepted entry also stops the old song. Failed imports
+keep the previous selection. This first version has no song CH Live display,
+Capture or seeking. PSF2 is not supported. Compatibility depends on the HLE
+driver environment, so not every game's PSF is guaranteed to play correctly.
+The initial player supports basic ADPCM, ADSR and reverb. Its Play! SPU does
+not reproduce Noise, PMON or the hardware main / reverb output-volume registers;
+those parts of a song can sound different or be missing. The Synth's Master
+still controls the final bus. These are song-player limitations, not changes
+to the existing keyboard SPU or its supported effects. Treat this as a preview,
+not an exact PS1 recording reference.
+
+To extract an instrument instead, choose
 **Extract VAB banks**, then select a **Sound bank** and **Tone** and choose
 **Load selected Tone**. This shares Playground's local PSF parser: CRC and
 zlib validation, library resolution and RAM overlays precede standard VAB
@@ -209,9 +227,13 @@ first playable Tone is selected automatically. This matters for banks with
 unassigned samples or unsupported ADPCM packets. PSF input is limited to 512
 files, 4 MiB per file and 64 MiB total, with bounded expansion and dependencies.
 Extraction runs locally without executing game code or fetching libraries.
-PSF2, song playback, separate VH/VB layouts inside PSF, custom formats and
+Separate VH/VB layouts inside PSF, custom formats and
 runtime-packed banks are outside this static extraction path. It cannot
 recover every game's instruments.
+
+The bank-extraction demo PSFs contain VAB data but no runnable song program;
+they cannot be used to test song playback. The playback regression fixtures
+contain an original, commented MIPS program instead of game assets.
 
 The importer keeps the original SPU ADPCM payload, ADSR registers and loop
 position. Bytes after the first END packet are excluded; unsupported packet

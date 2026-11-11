@@ -1,0 +1,1287 @@
+{
+  "schema": 1,
+  "license": "BSD-2-Clause",
+  "repositories": [
+    {
+      "name": "Play!",
+      "url": "https://github.com/jpd002/Play-",
+      "commit": "1f27232772e484bfb79364b751b84f41f4c87481"
+    },
+    {
+      "name": "Framework",
+      "url": "https://github.com/jpd002/Play--Framework",
+      "commit": "587f278917acc0026bf5fc34b39f995fc26bd015"
+    },
+    {
+      "name": "CodeGen",
+      "url": "https://github.com/jpd002/Play--CodeGen",
+      "commit": "a5009f7dca062695b8e5aebbd71e67b4ddfa9251"
+    }
+  ],
+  "files": [
+    {
+      "path": "License.txt",
+      "repository": "Play!",
+      "upstreamPath": "License.txt",
+      "upstreamSha256": "e9089da5950600267bb657503aba6eb59cb679b455c2997d341d83144144daab",
+      "sha256": "e9089da5950600267bb657503aba6eb59cb679b455c2997d341d83144144daab",
+      "modified": false
+    },
+    {
+      "path": "Source/BasicBlock.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/BasicBlock.cpp",
+      "upstreamSha256": "9aeec84a93218e5294ed1592ab125ae86cc77fed33b4161c1e3d9ab4e4ef2c55",
+      "sha256": "9aeec84a93218e5294ed1592ab125ae86cc77fed33b4161c1e3d9ab4e4ef2c55",
+      "modified": false
+    },
+    {
+      "path": "Source/BasicBlock.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/BasicBlock.h",
+      "upstreamSha256": "3abb96a5e0e5af2a9a369df7af23f54dcf1c8b48f222fa722bbfaff3a99fc0e4",
+      "sha256": "3abb96a5e0e5af2a9a369df7af23f54dcf1c8b48f222fa722bbfaff3a99fc0e4",
+      "modified": false
+    },
+    {
+      "path": "Source/BiosDebugInfoProvider.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/BiosDebugInfoProvider.h",
+      "upstreamSha256": "4f26f5d4b8d1910defa324da1ea8ffde28131f6ffc8fafc468fd9b6ec9df4dbf",
+      "sha256": "4f26f5d4b8d1910defa324da1ea8ffde28131f6ffc8fafc468fd9b6ec9df4dbf",
+      "modified": false
+    },
+    {
+      "path": "Source/BlockLookupOneWay.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/BlockLookupOneWay.h",
+      "upstreamSha256": "73b35750ada5d17acb08361668f7c0bd035017dccda813f735993947b76e91de",
+      "sha256": "73b35750ada5d17acb08361668f7c0bd035017dccda813f735993947b76e91de",
+      "modified": false
+    },
+    {
+      "path": "Source/BlockLookupTwoWay.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/BlockLookupTwoWay.h",
+      "upstreamSha256": "947cb047248322e5df610191b7f2a8de2072b74a5908ba665d071fbe30e0686f",
+      "sha256": "947cb047248322e5df610191b7f2a8de2072b74a5908ba665d071fbe30e0686f",
+      "modified": false
+    },
+    {
+      "path": "Source/COP_SCU.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/COP_SCU.cpp",
+      "upstreamSha256": "e97d2635df32c0ed62a0e339981e0ccf7b4c30d36c83f81a3f38b9be8be0119d",
+      "sha256": "e97d2635df32c0ed62a0e339981e0ccf7b4c30d36c83f81a3f38b9be8be0119d",
+      "modified": false
+    },
+    {
+      "path": "Source/COP_SCU.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/COP_SCU.h",
+      "upstreamSha256": "bec3184d10b9a240564175d9d9c78873439fda9f946743f354047c7c19bfe912",
+      "sha256": "bec3184d10b9a240564175d9d9c78873439fda9f946743f354047c7c19bfe912",
+      "modified": false
+    },
+    {
+      "path": "Source/COP_SCU_Reflection.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/COP_SCU_Reflection.cpp",
+      "upstreamSha256": "228ab0f6169663c09b1bfcf6c52f58fa7ecb2d93aefada3154f017109ce062b2",
+      "sha256": "228ab0f6169663c09b1bfcf6c52f58fa7ecb2d93aefada3154f017109ce062b2",
+      "modified": false
+    },
+    {
+      "path": "Source/ControllerInfo.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/ControllerInfo.h",
+      "upstreamSha256": "231bf903399b84265288f4d5575f414b76b78e8d61fad2b72bb0ddc0a3979899",
+      "sha256": "231bf903399b84265288f4d5575f414b76b78e8d61fad2b72bb0ddc0a3979899",
+      "modified": false
+    },
+    {
+      "path": "Source/GenericMipsExecutor.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/GenericMipsExecutor.h",
+      "upstreamSha256": "395d28100e18bf49d09669680d248e04065d1ab8d4fc71def6439b0b6637b337",
+      "sha256": "395d28100e18bf49d09669680d248e04065d1ab8d4fc71def6439b0b6637b337",
+      "modified": false
+    },
+    {
+      "path": "Source/Integer64.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/Integer64.h",
+      "upstreamSha256": "c25f567d96645c7a14fc1e9560162b013220cd7bdcba1a20651ca7f5183d87de",
+      "sha256": "c25f567d96645c7a14fc1e9560162b013220cd7bdcba1a20651ca7f5183d87de",
+      "modified": false
+    },
+    {
+      "path": "Source/MA_MIPSIV.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MA_MIPSIV.cpp",
+      "upstreamSha256": "cab287c93c5d32a99bdb8092a40ae2419c36bb15cfe0113ddb6c34cad435326d",
+      "sha256": "cab287c93c5d32a99bdb8092a40ae2419c36bb15cfe0113ddb6c34cad435326d",
+      "modified": false
+    },
+    {
+      "path": "Source/MA_MIPSIV.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MA_MIPSIV.h",
+      "upstreamSha256": "e1ab142bbb6829ccbca3bcc3fc24c9a9970f1ca80386d86027a5c998e9a0ac01",
+      "sha256": "e1ab142bbb6829ccbca3bcc3fc24c9a9970f1ca80386d86027a5c998e9a0ac01",
+      "modified": false
+    },
+    {
+      "path": "Source/MA_MIPSIV_Reflection.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MA_MIPSIV_Reflection.cpp",
+      "upstreamSha256": "eecbc9535708af9cf2580d951b9726aea17a353ff92ecc09347b8dea1299badf",
+      "sha256": "eecbc9535708af9cf2580d951b9726aea17a353ff92ecc09347b8dea1299badf",
+      "modified": false
+    },
+    {
+      "path": "Source/MA_MIPSIV_Templates.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MA_MIPSIV_Templates.cpp",
+      "upstreamSha256": "af834fada09daeb6c3f1fa3f6aa2474c91d4763d9cd4a14010206ddc232eb701",
+      "sha256": "af834fada09daeb6c3f1fa3f6aa2474c91d4763d9cd4a14010206ddc232eb701",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPS.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPS.cpp",
+      "upstreamSha256": "c41e80b3ec2a3c2b9b75fdd889eb26f56de0368ff805f04cdfff978c912cd0fb",
+      "sha256": "c41e80b3ec2a3c2b9b75fdd889eb26f56de0368ff805f04cdfff978c912cd0fb",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPS.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPS.h",
+      "upstreamSha256": "61358a36d68121f22ea49544bd36cb4a380000ae106c5966c6504968829a9e1e",
+      "sha256": "61358a36d68121f22ea49544bd36cb4a380000ae106c5966c6504968829a9e1e",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSAnalysis.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSAnalysis.cpp",
+      "upstreamSha256": "6eadd2bfea6c87ea92d7ea732f20aeb0ca0bc4e64437a99b9e1b2c85676ad86d",
+      "sha256": "6eadd2bfea6c87ea92d7ea732f20aeb0ca0bc4e64437a99b9e1b2c85676ad86d",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSAnalysis.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSAnalysis.h",
+      "upstreamSha256": "604fa013e663e3e05aa3f1c82c4049fa9627f7006061c763834f965af50a44e2",
+      "sha256": "604fa013e663e3e05aa3f1c82c4049fa9627f7006061c763834f965af50a44e2",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSArchitecture.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSArchitecture.cpp",
+      "upstreamSha256": "ad4730a153f606ba614d5cc3f6f762fe75626eed2a8b2ee913e297358ed16d8e",
+      "sha256": "ad4730a153f606ba614d5cc3f6f762fe75626eed2a8b2ee913e297358ed16d8e",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSArchitecture.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSArchitecture.h",
+      "upstreamSha256": "a78b5604b7360bb6171c750ac2aec10696ab63609b1a57459247723ec1d8af19",
+      "sha256": "a78b5604b7360bb6171c750ac2aec10696ab63609b1a57459247723ec1d8af19",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSAssembler.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSAssembler.cpp",
+      "upstreamSha256": "b214a51b2a7c474abbb7985fbdf260bbc5d56c2adad99c14a428b970ac851856",
+      "sha256": "b214a51b2a7c474abbb7985fbdf260bbc5d56c2adad99c14a428b970ac851856",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSAssembler.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSAssembler.h",
+      "upstreamSha256": "900fdc102c27d75f70a96f2e7bc86e19ce6eefbff33bddaf29375e7d2098ac86",
+      "sha256": "900fdc102c27d75f70a96f2e7bc86e19ce6eefbff33bddaf29375e7d2098ac86",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSCoprocessor.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSCoprocessor.cpp",
+      "upstreamSha256": "46e0ad3e68c54448bf1e8ba9f6d6a452c2d62f914c44372bac6fa9ce0c10c367",
+      "sha256": "46e0ad3e68c54448bf1e8ba9f6d6a452c2d62f914c44372bac6fa9ce0c10c367",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSCoprocessor.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSCoprocessor.h",
+      "upstreamSha256": "e61642003f11c4107c7d88f1497dc44334b47df82f45c9fcec45296b09afcb74",
+      "sha256": "e61642003f11c4107c7d88f1497dc44334b47df82f45c9fcec45296b09afcb74",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSInstructionFactory.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSInstructionFactory.cpp",
+      "upstreamSha256": "0406324fdc931a5c297bd6afe73f90b3effed28aec6fd9e5b6755fa74ef67e8f",
+      "sha256": "0406324fdc931a5c297bd6afe73f90b3effed28aec6fd9e5b6755fa74ef67e8f",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSInstructionFactory.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSInstructionFactory.h",
+      "upstreamSha256": "5ce2a439d19a0d50d5850c33e15fe0abdd7c58a97bc21046201817cb3244ee4c",
+      "sha256": "5ce2a439d19a0d50d5850c33e15fe0abdd7c58a97bc21046201817cb3244ee4c",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSReflection.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSReflection.cpp",
+      "upstreamSha256": "5c2182ceb4efd4a2aabae1d35e771adc2f534450493841f2ee08b33862f0223d",
+      "sha256": "5c2182ceb4efd4a2aabae1d35e771adc2f534450493841f2ee08b33862f0223d",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSReflection.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSReflection.h",
+      "upstreamSha256": "53f26a6adc8fa92524017d39f5d7363a4968e2fe4a34293b8b43865d6c7fc32f",
+      "sha256": "53f26a6adc8fa92524017d39f5d7363a4968e2fe4a34293b8b43865d6c7fc32f",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSTags.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSTags.cpp",
+      "upstreamSha256": "fd626dfc7fe37602e7a6f39fa5a2ffb0e32e51cba144e5823e051ae043620592",
+      "sha256": "fd626dfc7fe37602e7a6f39fa5a2ffb0e32e51cba144e5823e051ae043620592",
+      "modified": false
+    },
+    {
+      "path": "Source/MIPSTags.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MIPSTags.h",
+      "upstreamSha256": "936f9d4abdb21b4781116eeac2b14696e0785fb1e4a75a0110c81ec264f5bcaf",
+      "sha256": "936f9d4abdb21b4781116eeac2b14696e0785fb1e4a75a0110c81ec264f5bcaf",
+      "modified": false
+    },
+    {
+      "path": "Source/MemoryMap.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MemoryMap.cpp",
+      "upstreamSha256": "be3fc888bcc127ed75467e6ba6d5dbbdcea09e01ce0e42530b0a8c8bda63a61c",
+      "sha256": "be3fc888bcc127ed75467e6ba6d5dbbdcea09e01ce0e42530b0a8c8bda63a61c",
+      "modified": false
+    },
+    {
+      "path": "Source/MemoryMap.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MemoryMap.h",
+      "upstreamSha256": "1e691a38653be73beb31ade50fd2151ad83cf1e2abc88a8be807c9730ac7ae3f",
+      "sha256": "1e691a38653be73beb31ade50fd2151ad83cf1e2abc88a8be807c9730ac7ae3f",
+      "modified": false
+    },
+    {
+      "path": "Source/MemoryUtils.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MemoryUtils.cpp",
+      "upstreamSha256": "ad7890df5a18e9b78843635aae931f7dd48e1a1c831b0c5e725ac8743d2f5f81",
+      "sha256": "ad7890df5a18e9b78843635aae931f7dd48e1a1c831b0c5e725ac8743d2f5f81",
+      "modified": false
+    },
+    {
+      "path": "Source/MemoryUtils.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MemoryUtils.h",
+      "upstreamSha256": "f199e2cceed333a56fa4bd3687288f196b89897916421cb0224b63be5128ad62",
+      "sha256": "f199e2cceed333a56fa4bd3687288f196b89897916421cb0224b63be5128ad62",
+      "modified": false
+    },
+    {
+      "path": "Source/MipsExecutor.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MipsExecutor.h",
+      "upstreamSha256": "e630f5e1c6cbec4ce51d62ccea2f4e61b606f102a7b890163f634a280257be1b",
+      "sha256": "e630f5e1c6cbec4ce51d62ccea2f4e61b606f102a7b890163f634a280257be1b",
+      "modified": false
+    },
+    {
+      "path": "Source/MipsJitter.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/MipsJitter.cpp",
+      "upstreamSha256": "23dccca86dc7e36012a466d411adcf354f9bf743e9c6c787644dbfb2a3bf595e",
+      "sha256": "23dccca86dc7e36012a466d411adcf354f9bf743e9c6c787644dbfb2a3bf595e",
+      "modified": false
+    },
+    {
+      "path": "Source/MipsJitter.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/MipsJitter.h",
+      "upstreamSha256": "d5b8de250d40e796cec21206eb6b7a42984e9d38c5fb05b3044bc1f443720630",
+      "sha256": "d5b8de250d40e796cec21206eb6b7a42984e9d38c5fb05b3044bc1f443720630",
+      "modified": false
+    },
+    {
+      "path": "Source/OsStructManager.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/OsStructManager.h",
+      "upstreamSha256": "a41456bdf1354915d6eaf0398245d2183e337b3a1292bb33668e60d5a15d1aee",
+      "sha256": "a41456bdf1354915d6eaf0398245d2183e337b3a1292bb33668e60d5a15d1aee",
+      "modified": false
+    },
+    {
+      "path": "Source/OsVariableWrapper.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/OsVariableWrapper.h",
+      "upstreamSha256": "99a6f699f0b0ed7370cc7da26a94c9dcbe39d2b906727cd781104ea659c96488",
+      "sha256": "99a6f699f0b0ed7370cc7da26a94c9dcbe39d2b906727cd781104ea659c96488",
+      "modified": false
+    },
+    {
+      "path": "Source/PadInterface.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/PadInterface.h",
+      "upstreamSha256": "723bfbcc9f6d164dadd53176690f42e7bec6341fb19d429dfbdaf2a22e30e3fa",
+      "sha256": "723bfbcc9f6d164dadd53176690f42e7bec6341fb19d429dfbdaf2a22e30e3fa",
+      "modified": false
+    },
+    {
+      "path": "Source/Ps2Const.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/Ps2Const.h",
+      "upstreamSha256": "9b7ddf42f5b7047a47af06755f8965dfbd82a102122f2828b6a419e553ee8cb9",
+      "sha256": "0be623d3815dbaf4b6f48253fef1de0dcefa35bc2424cc6642c84dde930174bc",
+      "modified": true
+    },
+    {
+      "path": "Source/app_shared/Log.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/app_shared/Log.h",
+      "upstreamSha256": "97221e71d7e38ca80650878a53a68660981422bbf036a694b5637e893806c4bf",
+      "sha256": "97221e71d7e38ca80650878a53a68660981422bbf036a694b5637e893806c4bf",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_BiosBase.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_BiosBase.h",
+      "upstreamSha256": "e177021fdcec8628c0b676cd7ae9e449613e0563d22163109a0432fe7b18de42",
+      "sha256": "e177021fdcec8628c0b676cd7ae9e449613e0563d22163109a0432fe7b18de42",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Dev9.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Dev9.cpp",
+      "upstreamSha256": "4502f18ea701fc715fbbb3b31eb328cdf5ab3dd9edaa102f73eb32a86b56644c",
+      "sha256": "4502f18ea701fc715fbbb3b31eb328cdf5ab3dd9edaa102f73eb32a86b56644c",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Dev9.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Dev9.h",
+      "upstreamSha256": "012f8e0bf376265b36dc651626862cd9736bc75cff6f5d5f3f56eaa08b0fbbf5",
+      "sha256": "012f8e0bf376265b36dc651626862cd9736bc75cff6f5d5f3f56eaa08b0fbbf5",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Dmac.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Dmac.cpp",
+      "upstreamSha256": "f5e7a06132354fed7c77ca5c62eee8657f74be133f740f699f57956fd6fea07a",
+      "sha256": "f5e7a06132354fed7c77ca5c62eee8657f74be133f740f699f57956fd6fea07a",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Dmac.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Dmac.h",
+      "upstreamSha256": "4906f7e4d2b290504038a3df2338c6de2379d628e674c2ad879a6c6956b6e80a",
+      "sha256": "4906f7e4d2b290504038a3df2338c6de2379d628e674c2ad879a6c6956b6e80a",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_DmacChannel.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_DmacChannel.cpp",
+      "upstreamSha256": "655ef0ac213915d2893394066c4a7ddf2118b8be8cd6ccc1ba35cd934f4e4489",
+      "sha256": "655ef0ac213915d2893394066c4a7ddf2118b8be8cd6ccc1ba35cd934f4e4489",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_DmacChannel.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_DmacChannel.h",
+      "upstreamSha256": "24b5f91525add0b1dd50bd467d69334be3c4a42c2f1197ca3aaad370e1cdf215",
+      "sha256": "24b5f91525add0b1dd50bd467d69334be3c4a42c2f1197ca3aaad370e1cdf215",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Ilink.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Ilink.cpp",
+      "upstreamSha256": "8a4d655c543b8a7aaa1fcfde786bbe4bcad08351743c11be369c6c3cd11f9659",
+      "sha256": "8a4d655c543b8a7aaa1fcfde786bbe4bcad08351743c11be369c6c3cd11f9659",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Ilink.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Ilink.h",
+      "upstreamSha256": "f709528baf2456312a2b12a9bc3de33c36f759ae490af5cf42080fd33f735a3c",
+      "sha256": "f709528baf2456312a2b12a9bc3de33c36f759ae490af5cf42080fd33f735a3c",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Intc.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Intc.cpp",
+      "upstreamSha256": "e286b593c1c1517f6cd8f60016f671ed5c27506f826619f08511776b670bc0bf",
+      "sha256": "e286b593c1c1517f6cd8f60016f671ed5c27506f826619f08511776b670bc0bf",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Intc.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Intc.h",
+      "upstreamSha256": "44a5b67b0032721f2fa68f81444c5eb31e99b317f64e8bbf78e3385ad88c90dc",
+      "sha256": "44a5b67b0032721f2fa68f81444c5eb31e99b317f64e8bbf78e3385ad88c90dc",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_RootCounters.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_RootCounters.cpp",
+      "upstreamSha256": "b422f3bd0ff0acb85e92de13fb21914fb8451df7a0acd39be796c5521056a2ea",
+      "sha256": "b422f3bd0ff0acb85e92de13fb21914fb8451df7a0acd39be796c5521056a2ea",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_RootCounters.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_RootCounters.h",
+      "upstreamSha256": "9a22880a485d6a1b2972fdab2871eb8524bd6e3a674fbda6f99724620a09e1ad",
+      "sha256": "9a22880a485d6a1b2972fdab2871eb8524bd6e3a674fbda6f99724620a09e1ad",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Sio2.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Sio2.h",
+      "upstreamSha256": "28b923fe36e725ebd53d2ae448232b074fe8f04925e3757d9b539277299ea3cd",
+      "sha256": "28b923fe36e725ebd53d2ae448232b074fe8f04925e3757d9b539277299ea3cd",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Speed.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Speed.cpp",
+      "upstreamSha256": "9d127081cd56242bea1a279a9fd02934a45c9b6f595b992895609ff2c0d076ec",
+      "sha256": "9d127081cd56242bea1a279a9fd02934a45c9b6f595b992895609ff2c0d076ec",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Speed.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Speed.h",
+      "upstreamSha256": "d7b3ccc208c3d1d1e3c8a6af5ef00a21fea386248519c9a767123759ca3e23ab",
+      "sha256": "d7b3ccc208c3d1d1e3c8a6af5ef00a21fea386248519c9a767123759ca3e23ab",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Spu.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Spu.cpp",
+      "upstreamSha256": "f6463ec30f8023723b4921b38d2710c536644128abc3331d4da2adeb6e84f445",
+      "sha256": "f6463ec30f8023723b4921b38d2710c536644128abc3331d4da2adeb6e84f445",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Spu.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Spu.h",
+      "upstreamSha256": "65969228f6a89b7fdf82d2c7c5421af5f1c0f4df36e23f4a4b6c911333e8bf90",
+      "sha256": "65969228f6a89b7fdf82d2c7c5421af5f1c0f4df36e23f4a4b6c911333e8bf90",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Spu2.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Spu2.cpp",
+      "upstreamSha256": "522575831238509ae20610c9973e1a86d3a36ae84a96e8c9cac669a536ec3416",
+      "sha256": "522575831238509ae20610c9973e1a86d3a36ae84a96e8c9cac669a536ec3416",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Spu2.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Spu2.h",
+      "upstreamSha256": "c9baa318885d73115a6a0026f3053cbc0faaacce72d89e5a5559d421a3e84860",
+      "sha256": "c9baa318885d73115a6a0026f3053cbc0faaacce72d89e5a5559d421a3e84860",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Spu2_Core.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Spu2_Core.h",
+      "upstreamSha256": "ae4d961a7c54bf1e69bdd051dbf1f7a88c5d52a249fbdf4526c93aa240abd3ac",
+      "sha256": "ae4d961a7c54bf1e69bdd051dbf1f7a88c5d52a249fbdf4526c93aa240abd3ac",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_SpuBase.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_SpuBase.cpp",
+      "upstreamSha256": "4ffd8c1b81573c280f4fd687ed740d046841a5452aa504412ba6b6a78a510e67",
+      "sha256": "4ffd8c1b81573c280f4fd687ed740d046841a5452aa504412ba6b6a78a510e67",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_SpuBase.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_SpuBase.h",
+      "upstreamSha256": "26953236a4d1111f6596340f6dbdf7cf4b99bd47f55215f6e9a59365afd1d556",
+      "sha256": "26953236a4d1111f6596340f6dbdf7cf4b99bd47f55215f6e9a59365afd1d556",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_SubSystem.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_SubSystem.cpp",
+      "upstreamSha256": "0ba8e792161a25f20d3a4838bb1bcd80b51662790a8c1cf140b065d316bd3137",
+      "sha256": "85c093d10a5a9db607b67ccb8ee5a32bfb2fef62fb1747123dca199472577d13",
+      "modified": true
+    },
+    {
+      "path": "Source/iop/Iop_SubSystem.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_SubSystem.h",
+      "upstreamSha256": "5e3de1bd530ec1bc236b5c0033a08b5056a8f4437841ecaf5c9ab2fc3b7a9cfd",
+      "sha256": "5e3de1bd530ec1bc236b5c0033a08b5056a8f4437841ecaf5c9ab2fc3b7a9cfd",
+      "modified": false
+    },
+    {
+      "path": "Source/psx/PsxBios.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/psx/PsxBios.cpp",
+      "upstreamSha256": "2919b5db1eddba00ccf9432ebd035d2673e151bc867233495961599eb29009dc",
+      "sha256": "2919b5db1eddba00ccf9432ebd035d2673e151bc867233495961599eb29009dc",
+      "modified": false
+    },
+    {
+      "path": "Source/psx/PsxBios.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/psx/PsxBios.h",
+      "upstreamSha256": "d3d7c87ae6a877e1f4e9a1ebad512e47a061ebc6f1f625e50923f347a9711391",
+      "sha256": "d3d7c87ae6a877e1f4e9a1ebad512e47a061ebc6f1f625e50923f347a9711391",
+      "modified": false
+    },
+    {
+      "path": "Source/states/MemoryStateFile.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/states/MemoryStateFile.h",
+      "upstreamSha256": "4fc5a3e1e0a151d7edf369caeb2ecc397558f7eee68021e59977974de5cb3561",
+      "sha256": "4fc5a3e1e0a151d7edf369caeb2ecc397558f7eee68021e59977974de5cb3561",
+      "modified": false
+    },
+    {
+      "path": "Source/states/RegisterState.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/states/RegisterState.h",
+      "upstreamSha256": "2f7470b7ecfb2397eb7f63da51278ef9fde50446d9689ad3bb01b6d830b6977c",
+      "sha256": "2f7470b7ecfb2397eb7f63da51278ef9fde50446d9689ad3bb01b6d830b6977c",
+      "modified": false
+    },
+    {
+      "path": "Source/states/RegisterStateCollectionFile.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/states/RegisterStateCollectionFile.h",
+      "upstreamSha256": "617dc384df2ef6fa0f490fd39a7c3b9bcc1203db72e790cb1b992003f583b3cf",
+      "sha256": "617dc384df2ef6fa0f490fd39a7c3b9bcc1203db72e790cb1b992003f583b3cf",
+      "modified": false
+    },
+    {
+      "path": "Source/states/RegisterStateFile.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/states/RegisterStateFile.h",
+      "upstreamSha256": "3977b5c129375cc4d5ba1db0d4c9298b249ffdb0291dd8f733fdb4628779df4f",
+      "sha256": "3977b5c129375cc4d5ba1db0d4c9298b249ffdb0291dd8f733fdb4628779df4f",
+      "modified": false
+    },
+    {
+      "path": "Source/states/RegisterStateUtils.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/states/RegisterStateUtils.h",
+      "upstreamSha256": "42f78c13cee56c5cd93dc0a6c9307b65b559525ff9f169005b97df888605e8d5",
+      "sha256": "42f78c13cee56c5cd93dc0a6c9307b65b559525ff9f169005b97df888605e8d5",
+      "modified": false
+    },
+    {
+      "path": "Source/uint128.h",
+      "repository": "Play!",
+      "upstreamPath": "Source/uint128.h",
+      "upstreamSha256": "a0654a8b993519171df7d249888b628e3aa261ddc12cad00c99d072b0b4479ff",
+      "sha256": "a0654a8b993519171df7d249888b628e3aa261ddc12cad00c99d072b0b4479ff",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/License.txt",
+      "repository": "CodeGen",
+      "upstreamPath": "License.txt",
+      "upstreamSha256": "0ed1494d406def5805562b15067536e8e77dd8a164c5931b672a6dc9a18a646d",
+      "sha256": "0ed1494d406def5805562b15067536e8e77dd8a164c5931b672a6dc9a18a646d",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/AArch32Assembler.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/AArch32Assembler.h",
+      "upstreamSha256": "74cbab37e3fe16ee5b130104ec70aeeddf36f7e975f9bbe981b5ffa270e1a93d",
+      "sha256": "74cbab37e3fe16ee5b130104ec70aeeddf36f7e975f9bbe981b5ffa270e1a93d",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/AArch64Assembler.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/AArch64Assembler.h",
+      "upstreamSha256": "b0bee958b06975ad91346efa30ff52733d40167fff047af2c509009d10d49273",
+      "sha256": "b0bee958b06975ad91346efa30ff52733d40167fff047af2c509009d10d49273",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/ArrayStack.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/ArrayStack.h",
+      "upstreamSha256": "bc659dbff4f5455a7d3db0b8fbd9feec14b695c8be7e65df3b1727e7072c1ff5",
+      "sha256": "bc659dbff4f5455a7d3db0b8fbd9feec14b695c8be7e65df3b1727e7072c1ff5",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter.h",
+      "upstreamSha256": "3fd4700a8039306eece2801f0439dfb7b9a57f874b69d8af6cea8de6afff0a00",
+      "sha256": "3fd4700a8039306eece2801f0439dfb7b9a57f874b69d8af6cea8de6afff0a00",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen.h",
+      "upstreamSha256": "23e63f6fca9facb574ca0e3043dcde0c78aec06365433d8c4485495c022e70e2",
+      "sha256": "23e63f6fca9facb574ca0e3043dcde0c78aec06365433d8c4485495c022e70e2",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGenFactory.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGenFactory.h",
+      "upstreamSha256": "a9186a66b36950bf55da7dfcb005a0fd493c6f515bbfa16149014b5f8ff53f4d",
+      "sha256": "a9186a66b36950bf55da7dfcb005a0fd493c6f515bbfa16149014b5f8ff53f4d",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen_AArch32.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen_AArch32.h",
+      "upstreamSha256": "e1a1a28aad74b5c20d1f1da156d3d80b06029aa17d314c534cd301379937724b",
+      "sha256": "e1a1a28aad74b5c20d1f1da156d3d80b06029aa17d314c534cd301379937724b",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen_AArch64.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen_AArch64.h",
+      "upstreamSha256": "57c82a9e8c47a386c7580575f97780d0c762615a7cc77928f49eb86d5f50fff7",
+      "sha256": "57c82a9e8c47a386c7580575f97780d0c762615a7cc77928f49eb86d5f50fff7",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen_Wasm.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen_Wasm.h",
+      "upstreamSha256": "d61cbfd7c4f213f09b21050453a9e21ca9c8e1afb54dd86e1a21fd33a1a89159",
+      "sha256": "d61cbfd7c4f213f09b21050453a9e21ca9c8e1afb54dd86e1a21fd33a1a89159",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen_x86.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen_x86.h",
+      "upstreamSha256": "d11b2721cfce2e634cd061ecc485c956bf8344825ed2885069a2a0ef464c0e26",
+      "sha256": "d11b2721cfce2e634cd061ecc485c956bf8344825ed2885069a2a0ef464c0e26",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen_x86_32.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen_x86_32.h",
+      "upstreamSha256": "921f47ba5ec2ff1565ad4f97db46f31cf8bb09b1f7dfd3fb7626b470ba40749e",
+      "sha256": "921f47ba5ec2ff1565ad4f97db46f31cf8bb09b1f7dfd3fb7626b470ba40749e",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_CodeGen_x86_64.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_CodeGen_x86_64.h",
+      "upstreamSha256": "4fe306f19d288a6a41702633fcba412e500388ae33f039772ba012b3bba0a5ff",
+      "sha256": "4fe306f19d288a6a41702633fcba412e500388ae33f039772ba012b3bba0a5ff",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_Statement.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_Statement.h",
+      "upstreamSha256": "7cc9308d4b50ed395c0fb519f5d434428e259e7bb4c6121968e49480c82e9ba0",
+      "sha256": "7cc9308d4b50ed395c0fb519f5d434428e259e7bb4c6121968e49480c82e9ba0",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_Symbol.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_Symbol.h",
+      "upstreamSha256": "51b6d2d38bf0154b10bd207de9b2909b2efe4f8d6b795e20e0befbc0d387afdf",
+      "sha256": "51b6d2d38bf0154b10bd207de9b2909b2efe4f8d6b795e20e0befbc0d387afdf",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_SymbolRef.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_SymbolRef.h",
+      "upstreamSha256": "3b61f8b4a9d7d137b9dd8efeda1df73876f29093179b46640f0f3828b93984ed",
+      "sha256": "3b61f8b4a9d7d137b9dd8efeda1df73876f29093179b46640f0f3828b93984ed",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Jitter_SymbolTable.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Jitter_SymbolTable.h",
+      "upstreamSha256": "9606adba3012acf7cacbefdd9ad9cdfb1875a2bb5d57464c2375ff4f09d92ed7",
+      "sha256": "9606adba3012acf7cacbefdd9ad9cdfb1875a2bb5d57464c2375ff4f09d92ed7",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/Literal128.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/Literal128.h",
+      "upstreamSha256": "b6ee0f6dccc944c4b6a3182667fcf34dfa91a65cb1a53d93569f58ae9b496d6b",
+      "sha256": "b6ee0f6dccc944c4b6a3182667fcf34dfa91a65cb1a53d93569f58ae9b496d6b",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/LiteralPool.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/LiteralPool.h",
+      "upstreamSha256": "c2c03c6a789619ba49ddfb258cc113109551a62146719b51c542cc965f5b8af2",
+      "sha256": "c2c03c6a789619ba49ddfb258cc113109551a62146719b51c542cc965f5b8af2",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/MemoryFunction.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/MemoryFunction.h",
+      "upstreamSha256": "17f56607020c96323bff9b137b032b4e8ccb0e180b004233f103826756548f5b",
+      "sha256": "17f56607020c96323bff9b137b032b4e8ccb0e180b004233f103826756548f5b",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/WasmDefs.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/WasmDefs.h",
+      "upstreamSha256": "782b8f2f8feadc9f17f5a09457f2485bb7cd5f830b127a9a920832c87fd1d761",
+      "sha256": "782b8f2f8feadc9f17f5a09457f2485bb7cd5f830b127a9a920832c87fd1d761",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/WasmModuleBuilder.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/WasmModuleBuilder.h",
+      "upstreamSha256": "f74dc29bbfcac6428e04d602e26a6128b50c7ffd7827097c2f0f8a5e696ed306",
+      "sha256": "f74dc29bbfcac6428e04d602e26a6128b50c7ffd7827097c2f0f8a5e696ed306",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/X86Assembler.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/X86Assembler.h",
+      "upstreamSha256": "893cf599b27bad042bbf4d2471826e6400055de39613e1f611743717724f0ff2",
+      "sha256": "893cf599b27bad042bbf4d2471826e6400055de39613e1f611743717724f0ff2",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/include/X86CpuFeatures.h",
+      "repository": "CodeGen",
+      "upstreamPath": "include/X86CpuFeatures.h",
+      "upstreamSha256": "3e7c8a3ef4929976be470674e3b4de3add8cd4e6d0bcdb1f11ffd2c4dc7be822",
+      "sha256": "3e7c8a3ef4929976be470674e3b4de3add8cd4e6d0bcdb1f11ffd2c4dc7be822",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter.cpp",
+      "upstreamSha256": "b13118e645c07304ccbcb6dd7937af7493fa9e4fbfed486636fa82c21d7f5494",
+      "sha256": "b13118e645c07304ccbcb6dd7937af7493fa9e4fbfed486636fa82c21d7f5494",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGen.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGen.cpp",
+      "upstreamSha256": "eacb17c14cf2ea31a840b430c86e992142f03d6ca780cbaee795108d7480fe68",
+      "sha256": "eacb17c14cf2ea31a840b430c86e992142f03d6ca780cbaee795108d7480fe68",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGenFactory.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGenFactory.cpp",
+      "upstreamSha256": "5a824db8c8aadb195aa945c545ab88539cba0c2d7444917e0da6ef6f315a330a",
+      "sha256": "5a824db8c8aadb195aa945c545ab88539cba0c2d7444917e0da6ef6f315a330a",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGen_Wasm.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGen_Wasm.cpp",
+      "upstreamSha256": "94b3926c7e852569c31d0c6f7c6db08aceedfcad938356a4f08eda9079aba65a",
+      "sha256": "94b3926c7e852569c31d0c6f7c6db08aceedfcad938356a4f08eda9079aba65a",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGen_Wasm_64.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGen_Wasm_64.cpp",
+      "upstreamSha256": "58d640719c9053b6e543ea8d4fabb91345a79683922aa9534469bb9fe4f3c025",
+      "sha256": "58d640719c9053b6e543ea8d4fabb91345a79683922aa9534469bb9fe4f3c025",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGen_Wasm_Fpu.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGen_Wasm_Fpu.cpp",
+      "upstreamSha256": "b1b6df0f94eee8ad44927bb0ed2f0bb203a07581df5d90a4333740ce868bcf7d",
+      "sha256": "b1b6df0f94eee8ad44927bb0ed2f0bb203a07581df5d90a4333740ce868bcf7d",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGen_Wasm_LoadStore.h",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGen_Wasm_LoadStore.h",
+      "upstreamSha256": "1a93fa7660124434e14d92d30ee97b7e49d671138a8b67e15fbde47e6b963fcb",
+      "sha256": "1a93fa7660124434e14d92d30ee97b7e49d671138a8b67e15fbde47e6b963fcb",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_CodeGen_Wasm_Md.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_CodeGen_Wasm_Md.cpp",
+      "upstreamSha256": "2b95f7cea0ba4537c92424e1f495f9bbd35d1a18049dc188e12130592e4071f1",
+      "sha256": "2b95f7cea0ba4537c92424e1f495f9bbd35d1a18049dc188e12130592e4071f1",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_Optimize.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_Optimize.cpp",
+      "upstreamSha256": "1b33ca4ee2731cb546c6cb1a899c51910220144e6131daf06ed14a5e521a024b",
+      "sha256": "1b33ca4ee2731cb546c6cb1a899c51910220144e6131daf06ed14a5e521a024b",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_RegAlloc.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_RegAlloc.cpp",
+      "upstreamSha256": "19e8d6ac6c202caa99e82ea72d1fecd91d3e80cb3bb0efa282d54ed77b918eaa",
+      "sha256": "19e8d6ac6c202caa99e82ea72d1fecd91d3e80cb3bb0efa282d54ed77b918eaa",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_Statement.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_Statement.cpp",
+      "upstreamSha256": "af3b1a96121f9a1bfb7ad01dc2b9766fc3df481989e7f21c9f138a7677ee533b",
+      "sha256": "af3b1a96121f9a1bfb7ad01dc2b9766fc3df481989e7f21c9f138a7677ee533b",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/Jitter_SymbolTable.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/Jitter_SymbolTable.cpp",
+      "upstreamSha256": "396bdc02109cac01eca34b3fe61140988e93051d37c32d9cbc8552fcd95974da",
+      "sha256": "396bdc02109cac01eca34b3fe61140988e93051d37c32d9cbc8552fcd95974da",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/LiteralPool.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/LiteralPool.cpp",
+      "upstreamSha256": "b45622eedc68a2327394f0453732cedbc040f70d66b7fd2ab9710f88709d380c",
+      "sha256": "b45622eedc68a2327394f0453732cedbc040f70d66b7fd2ab9710f88709d380c",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/MemoryFunction.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/MemoryFunction.cpp",
+      "upstreamSha256": "103f75217e8cc6ee4ffa78cbd5dc7bd07f846a70c0959d3ae44169c75e4e2a9b",
+      "sha256": "103f75217e8cc6ee4ffa78cbd5dc7bd07f846a70c0959d3ae44169c75e4e2a9b",
+      "modified": false
+    },
+    {
+      "path": "deps/CodeGen/src/WasmModuleBuilder.cpp",
+      "repository": "CodeGen",
+      "upstreamPath": "src/WasmModuleBuilder.cpp",
+      "upstreamSha256": "30b63b2f9c60f3cb3c1b5dc36561bb31a639f451133783b3c200923899bfba5a",
+      "sha256": "65baf11b191a503960e4e0a28b30047a8cc710127f6224bfaf01d04a2c6992e5",
+      "modified": true
+    },
+    {
+      "path": "deps/Framework/License.txt",
+      "repository": "Framework",
+      "upstreamPath": "License.txt",
+      "upstreamSha256": "e9089da5950600267bb657503aba6eb59cb679b455c2997d341d83144144daab",
+      "sha256": "e9089da5950600267bb657503aba6eb59cb679b455c2997d341d83144144daab",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/AlignedAlloc.h",
+      "repository": "Framework",
+      "upstreamPath": "include/AlignedAlloc.h",
+      "upstreamSha256": "03719c35659a9b03506a08743eb797d401297e58bc8d0f6cc59c7b41347db637",
+      "sha256": "03719c35659a9b03506a08743eb797d401297e58bc8d0f6cc59c7b41347db637",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/BasicUnion.h",
+      "repository": "Framework",
+      "upstreamPath": "include/BasicUnion.h",
+      "upstreamSha256": "cf1f0a7745f3ffcb7a14822653bc481a302f5ef686b17bbc5b47c6d344e2f46a",
+      "sha256": "cf1f0a7745f3ffcb7a14822653bc481a302f5ef686b17bbc5b47c6d344e2f46a",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/BitManip.h",
+      "repository": "Framework",
+      "upstreamPath": "include/BitManip.h",
+      "upstreamSha256": "cc3ede2943775f63bbf77af1549eb4ad15a1ede39eda061e0047b3e0a041e4e7",
+      "sha256": "cc3ede2943775f63bbf77af1549eb4ad15a1ede39eda061e0047b3e0a041e4e7",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/Convertible.h",
+      "repository": "Framework",
+      "upstreamPath": "include/Convertible.h",
+      "upstreamSha256": "e2eb44eea41a85a410f3fea178e725b830614b6671a8f4743194c0ed967fa6da",
+      "sha256": "e2eb44eea41a85a410f3fea178e725b830614b6671a8f4743194c0ed967fa6da",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/MemStream.h",
+      "repository": "Framework",
+      "upstreamPath": "include/MemStream.h",
+      "upstreamSha256": "192d4b0d5f4f278b02f6db10053808dfee33e0fb8305fc37a90029f66a790044",
+      "sha256": "192d4b0d5f4f278b02f6db10053808dfee33e0fb8305fc37a90029f66a790044",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/PtrMacro.h",
+      "repository": "Framework",
+      "upstreamPath": "include/PtrMacro.h",
+      "upstreamSha256": "3f4c3a117961ea9edcbdce334dc3c6541db7faedc7cdfda2360ed0c8a3298aea",
+      "sha256": "3f4c3a117961ea9edcbdce334dc3c6541db7faedc7cdfda2360ed0c8a3298aea",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/PtrStream.h",
+      "repository": "Framework",
+      "upstreamPath": "include/PtrStream.h",
+      "upstreamSha256": "a760a7738760ac979e7c997372b01f86bcdd6144e7ee29e3b866d7e1ee28526e",
+      "sha256": "a760a7738760ac979e7c997372b01f86bcdd6144e7ee29e3b866d7e1ee28526e",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/Singleton.h",
+      "repository": "Framework",
+      "upstreamPath": "include/Singleton.h",
+      "upstreamSha256": "9b9a877499b6f97cb7546d9c9b021fa754342196740c4ce4077ea3ff83b4ce3c",
+      "sha256": "9b9a877499b6f97cb7546d9c9b021fa754342196740c4ce4077ea3ff83b4ce3c",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/StdStream.h",
+      "repository": "Framework",
+      "upstreamPath": "include/StdStream.h",
+      "upstreamSha256": "2441430ad5dbd38b3e2dde22289ee2e3d74cfcc750a68cc84e9a2dfbb525bd7d",
+      "sha256": "2441430ad5dbd38b3e2dde22289ee2e3d74cfcc750a68cc84e9a2dfbb525bd7d",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/StdStreamUtils.h",
+      "repository": "Framework",
+      "upstreamPath": "include/StdStreamUtils.h",
+      "upstreamSha256": "6bfe443172c60b338809c0295127629ba78ec30732a5e2d82e478fcb8f80c141",
+      "sha256": "6bfe443172c60b338809c0295127629ba78ec30732a5e2d82e478fcb8f80c141",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/Stream.h",
+      "repository": "Framework",
+      "upstreamPath": "include/Stream.h",
+      "upstreamSha256": "8e426bbc244056373c823c55a501211ee5231c7d96211d21143568fa346ff0c5",
+      "sha256": "8e426bbc244056373c823c55a501211ee5231c7d96211d21143568fa346ff0c5",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/StringUtils.h",
+      "repository": "Framework",
+      "upstreamPath": "include/StringUtils.h",
+      "upstreamSha256": "9eeefbebb10c1c6a7244a6349ae3402329b3d214ea734db19147c4cb3bb1d61b",
+      "sha256": "9eeefbebb10c1c6a7244a6349ae3402329b3d214ea734db19147c4cb3bb1d61b",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/Types.h",
+      "repository": "Framework",
+      "upstreamPath": "include/Types.h",
+      "upstreamSha256": "9ab1cfc79e7a58abf35ad4b3265aff7112d42bda0bdf9c2dc0cf43630b637fec",
+      "sha256": "9ab1cfc79e7a58abf35ad4b3265aff7112d42bda0bdf9c2dc0cf43630b637fec",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/Utf8.h",
+      "repository": "Framework",
+      "upstreamPath": "include/Utf8.h",
+      "upstreamSha256": "fd18fb4e81af71cb746e4401f0ff93ce8a4eb6859efbc2b3f5cbde9660f98479",
+      "sha256": "fd18fb4e81af71cb746e4401f0ff93ce8a4eb6859efbc2b3f5cbde9660f98479",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/alloca_def.h",
+      "repository": "Framework",
+      "upstreamPath": "include/alloca_def.h",
+      "upstreamSha256": "748f453db9a0ee8bc6b94926df97ecbc3d4fab24d9541c9894e062e98f5e2783",
+      "sha256": "748f453db9a0ee8bc6b94926df97ecbc3d4fab24d9541c9894e062e98f5e2783",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/filesystem_def.h",
+      "repository": "Framework",
+      "upstreamPath": "include/filesystem_def.h",
+      "upstreamSha256": "b29ba0363409c0ae7339c08fedc6267053571e50d3aff9ff4b5598d3810aa2ba",
+      "sha256": "b29ba0363409c0ae7339c08fedc6267053571e50d3aff9ff4b5598d3810aa2ba",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/lexical_cast_ex.h",
+      "repository": "Framework",
+      "upstreamPath": "include/lexical_cast_ex.h",
+      "upstreamSha256": "99aa17f7f2dd9408a835b6aa8eef9baef66918e9e26dde5e1ff8c2aa3d7e5a73",
+      "sha256": "99aa17f7f2dd9408a835b6aa8eef9baef66918e9e26dde5e1ff8c2aa3d7e5a73",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/make_unique.h",
+      "repository": "Framework",
+      "upstreamPath": "include/make_unique.h",
+      "upstreamSha256": "8bd67aec625c8697ca170d68ae6da0f376642a2d8b3e6fa52ec540aa2c96936c",
+      "sha256": "8bd67aec625c8697ca170d68ae6da0f376642a2d8b3e6fa52ec540aa2c96936c",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/maybe_unused.h",
+      "repository": "Framework",
+      "upstreamPath": "include/maybe_unused.h",
+      "upstreamSha256": "4fd114d051ecf8206f0fbe4f60e495c8dc2fe28e9d2a1b7bddc8d062c163f3bc",
+      "sha256": "4fd114d051ecf8206f0fbe4f60e495c8dc2fe28e9d2a1b7bddc8d062c163f3bc",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/nodiscard.h",
+      "repository": "Framework",
+      "upstreamPath": "include/nodiscard.h",
+      "upstreamSha256": "9c0e8eaa27b8de554d7d715ec33cf97c1dc2ae8cfc62b1628ef41135c444a781",
+      "sha256": "9c0e8eaa27b8de554d7d715ec33cf97c1dc2ae8cfc62b1628ef41135c444a781",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/offsetof_def.h",
+      "repository": "Framework",
+      "upstreamPath": "include/offsetof_def.h",
+      "upstreamSha256": "0f731a2f8b1626844aa383d7dcf46c036ca97595783d769b55da37a638bd6237",
+      "sha256": "0f731a2f8b1626844aa383d7dcf46c036ca97595783d769b55da37a638bd6237",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/placeholder_def.h",
+      "repository": "Framework",
+      "upstreamPath": "include/placeholder_def.h",
+      "upstreamSha256": "4d39c8dbe1baabb439397c44d857133db93795d9b7d5ca982d211fad0febd630",
+      "sha256": "4d39c8dbe1baabb439397c44d857133db93795d9b7d5ca982d211fad0febd630",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/signal/Signal.h",
+      "repository": "Framework",
+      "upstreamPath": "include/signal/Signal.h",
+      "upstreamSha256": "a8fc2c2121fb00c679fa51649d15292f1d8a6ce6f619922ac19b96954c4e3eff",
+      "sha256": "a8fc2c2121fb00c679fa51649d15292f1d8a6ce6f619922ac19b96954c4e3eff",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/stricmp.h",
+      "repository": "Framework",
+      "upstreamPath": "include/stricmp.h",
+      "upstreamSha256": "b4370a0d67556acc0444bf576ec695f30d1e22d298be7115067ba8760bc5240c",
+      "sha256": "b4370a0d67556acc0444bf576ec695f30d1e22d298be7115067ba8760bc5240c",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/string_format.h",
+      "repository": "Framework",
+      "upstreamPath": "include/string_format.h",
+      "upstreamSha256": "a0b9ab5966734a1779c57f4ed97085124286a761423e094978938f6b75f88db6",
+      "sha256": "a0b9ab5966734a1779c57f4ed97085124286a761423e094978938f6b75f88db6",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/xml/FilteringNodeIterator.h",
+      "repository": "Framework",
+      "upstreamPath": "include/xml/FilteringNodeIterator.h",
+      "upstreamSha256": "c943cc56a0258513e7b738351736551ab9458db9a565d8d3247642638f876f94",
+      "sha256": "c943cc56a0258513e7b738351736551ab9458db9a565d8d3247642638f876f94",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/xml/Node.h",
+      "repository": "Framework",
+      "upstreamPath": "include/xml/Node.h",
+      "upstreamSha256": "97e44d7b7ec1e7d8f211a35e1b4ab4502bc9a975bdb0ecda6a8f0857290497fa",
+      "sha256": "97e44d7b7ec1e7d8f211a35e1b4ab4502bc9a975bdb0ecda6a8f0857290497fa",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/xml/Writer.h",
+      "repository": "Framework",
+      "upstreamPath": "include/xml/Writer.h",
+      "upstreamSha256": "1f8a742f6e9d90eea8caf7b8321137e982ec3607e59133d9ea4410d26067fddc",
+      "sha256": "1f8a742f6e9d90eea8caf7b8321137e982ec3607e59133d9ea4410d26067fddc",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/zip/ZipArchiveReader.h",
+      "repository": "Framework",
+      "upstreamPath": "include/zip/ZipArchiveReader.h",
+      "upstreamSha256": "4c1f91168f989768b132036dd06cadc2d4e0a66e9557db5a1a07cc3e8fec4139",
+      "sha256": "4c1f91168f989768b132036dd06cadc2d4e0a66e9557db5a1a07cc3e8fec4139",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/zip/ZipArchiveWriter.h",
+      "repository": "Framework",
+      "upstreamPath": "include/zip/ZipArchiveWriter.h",
+      "upstreamSha256": "7fbb0ce812d3e94aa8c036887aa0e6fd58218b008caa3c84c3adce1466e7bf97",
+      "sha256": "7fbb0ce812d3e94aa8c036887aa0e6fd58218b008caa3c84c3adce1466e7bf97",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/zip/ZipDefs.h",
+      "repository": "Framework",
+      "upstreamPath": "include/zip/ZipDefs.h",
+      "upstreamSha256": "3777730c69ece037be5c256d55863a811d605a398bfac0b96847f5da22b79817",
+      "sha256": "3777730c69ece037be5c256d55863a811d605a398bfac0b96847f5da22b79817",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/include/zip/ZipFile.h",
+      "repository": "Framework",
+      "upstreamPath": "include/zip/ZipFile.h",
+      "upstreamSha256": "22db8d6cf8c8edeb2e238fff48f5d946728e8552c60767e0652bc4f27b3c1af8",
+      "sha256": "22db8d6cf8c8edeb2e238fff48f5d946728e8552c60767e0652bc4f27b3c1af8",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/MemStream.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/MemStream.cpp",
+      "upstreamSha256": "e9b32671393f139658081e8df276e8d8dc8b2d71a724bfba80fc5cf2ae64bf70",
+      "sha256": "e9b32671393f139658081e8df276e8d8dc8b2d71a724bfba80fc5cf2ae64bf70",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/PtrStream.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/PtrStream.cpp",
+      "upstreamSha256": "a3444bd9223801e1da5e77ee96990dfebd741c9c57879137d2837f632eb2e714",
+      "sha256": "a3444bd9223801e1da5e77ee96990dfebd741c9c57879137d2837f632eb2e714",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/StdStream.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/StdStream.cpp",
+      "upstreamSha256": "6efdaef1e221caf1900330b7410063b7edcffc4fcc66fb9994f8dc49051bc933",
+      "sha256": "6efdaef1e221caf1900330b7410063b7edcffc4fcc66fb9994f8dc49051bc933",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/Stream.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/Stream.cpp",
+      "upstreamSha256": "7c857355718f642905de6b16e740652e19c5722f6fbf94f7132f71576d8ab1b5",
+      "sha256": "7c857355718f642905de6b16e740652e19c5722f6fbf94f7132f71576d8ab1b5",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/StringUtils.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/StringUtils.cpp",
+      "upstreamSha256": "deb567110b022b490699e69bfd3199168b32320e285cae8ed33b4f4929d3a219",
+      "sha256": "deb567110b022b490699e69bfd3199168b32320e285cae8ed33b4f4929d3a219",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/Utf8.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/Utf8.cpp",
+      "upstreamSha256": "5662bfca88e45b499e2b43d8a8949f73e16cc56ace029d11d440d0ccafacbabc",
+      "sha256": "5662bfca88e45b499e2b43d8a8949f73e16cc56ace029d11d440d0ccafacbabc",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/xml/FilteringNodeIterator.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/xml/FilteringNodeIterator.cpp",
+      "upstreamSha256": "dcb7a262deaa59759041a899da8deefd2243a2fb89fd903591ff31c8b2a2722b",
+      "sha256": "dcb7a262deaa59759041a899da8deefd2243a2fb89fd903591ff31c8b2a2722b",
+      "modified": false
+    },
+    {
+      "path": "deps/Framework/src/xml/Node.cpp",
+      "repository": "Framework",
+      "upstreamPath": "src/xml/Node.cpp",
+      "upstreamSha256": "b2f90a74cf0825b7bce50539c51b7b9e707b55b689ec8f9820df160f524d9ca3",
+      "sha256": "b2f90a74cf0825b7bce50539c51b7b9e707b55b689ec8f9820df160f524d9ca3",
+      "modified": false
+    },
+    {
+      "path": "Source/iop/Iop_Spu2_Core.cpp",
+      "repository": "Play!",
+      "upstreamPath": "Source/iop/Iop_Spu2_Core.cpp",
+      "upstreamSha256": "6c9c41ab667133a4c1ab239636de447fff378d7fa763b6a921c100ad10dd0d98",
+      "sha256": "6c9c41ab667133a4c1ab239636de447fff378d7fa763b6a921c100ad10dd0d98",
+      "modified": false
+    }
+  ]
+}

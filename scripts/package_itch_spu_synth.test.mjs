@@ -52,6 +52,15 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert.equal(info.browser.codeEffects.artifact.sha256,hash(await readFile(join(result.stage,'js/native_audio_effect.wasm'))));
     assert.equal(info.browser.codeEffects.sourceRoot,'sources/code-effects');
     assert.equal(info.browser.codeEffects.recipe,'sources/code-effects/scripts/build_native_audio_effect.sh');
+    for(const path of ['generated/psf-player/psf_player.js','generated/psf-player/psf_player.wasm',
+      'synth-spu/psf_song_preview.js','synth-spu/psf_song_source.js','synth-spu/psf_playback_core.js',
+      'sources/psf-player/third_party/play-psf/provenance.json','sources/psf-player/third_party/play-psf/Source/psx/PsxBios.cpp',
+      'sources/psf-player/tetorica_src/wasm/psf_player/psf_player.cpp','sources/psf-player/scripts/build_psf_player.mjs',
+      'licenses/play-psf/License.txt','licenses/play-psf/Framework-License.txt','licenses/play-psf/CodeGen-License.txt'])assert(info.names.includes(path),path);
+    for(const name of ['psf_player.js','psf_player.wasm'])assert.deepEqual(await readFile(join(result.stage,'generated/psf-player',name)),await readFile(new URL('../docs/generated/psf-player/'+name,import.meta.url)));
+    assert.equal(info.browser.psfPlayer.sourceRoot,'sources/psf-player');
+    assert.equal(info.browser.psfPlayer.artifact.sha256,hash(await readFile(join(result.stage,'generated/psf-player/psf_player.wasm'))));
+    assert.equal(info.browser.psfPlayer.provenance.license,'BSD-2-Clause');
     assert.match(await readFile(join(result.stage,'sources/code-effects/README.md'),'utf8'),/host software after the SPU/);
     assert(!info.names.includes('favicon.ico'), 'The SPU icon replaces the website-wide favicon');
     const icon = await readFile(new URL('../docs/synth-spu/icon.png', import.meta.url));

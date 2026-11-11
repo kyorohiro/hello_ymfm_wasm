@@ -370,3 +370,8 @@ footer a { color: #4a5e74; }
 .synth-menu-actions { display:grid; gap:6px; }
 .synth-menu-actions button { width:100%; text-align:left; padding:8px 10px; min-height:32px; }
 .synth-menu-actions > div:empty { display:none; }
+/* PSF song preview uses the same compact controls as the bank selector. */
+.psf-song-transport {display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;margin:.65rem 0;}
+.psf-song-transport output {font-variant-numeric:tabular-nums;min-width:3.5em;text-align:center;}
+.psf-song-transport .spu-code-help {margin-left:auto;}
+#psfPlaybackStatus[data-error="true"] {color:var(--error, #b33631);}
