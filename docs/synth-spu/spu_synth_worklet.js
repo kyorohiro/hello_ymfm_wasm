@@ -18,7 +18,7 @@ import {validateHostPcm} from './spu_synth_long_audio.js';
 const EDITOR_METHODS = new Set(['auditionOn', 'auditionOff', 'auditionAllOff', 'setWaveform', 'setPreset', 'setChannel', 'setEnvelope', 'setReverb', 'setPitch', 'setFrequency', 'setNote']);
 const SYNTH_METHODS = new Set(['loadADPCM', 'getPreset', 'snapshot', 'noteOn', 'noteOff', 'keyOn', 'keyOff', 'allNotesOff', '_auditionKeyOn', '_auditionKeyOff', '_refreshEnvelope']);
 const READ_METHODS = new Set(['inspect', 'getState', 'getPreset', 'getInstrument', 'snapshot', 'findADPCM']);
-const CODE_METHODS = new Set(['loadADPCM','getPreset','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','snapshot']);
+const CODE_METHODS = new Set(['loadADPCM','getPreset','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','snapshot','_setAuditionNoise']);
 const codeCancelled=()=>{const error=new Error('SPU Code session stopped');error.name='AbortError';return error;};
 
 /** One SPU and its fixed-rate resampler. Rendering has no UI polling, script
@@ -44,6 +44,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.pmonWaveform = null;
     this.codeEpoch = 0;
     this.codeCheckpoint = null;
+    this.codeNoiseSample = null;
     this.codeGates = new Set();
     this.voices = new SpuRoundRobinVoices();
     this.port.onmessage = ({data}) => {
@@ -353,6 +354,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
 
   endCode() {
     const saved=this.codeCheckpoint;this.codeCheckpoint=null;this.codeEpoch++;this.codeGates.clear();
+    this.codeNoiseSample=null;
     if(!saved)return false;
     this.inspector.resetAuditions();
     const synth=this.synth;
@@ -370,6 +372,22 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     if(!CODE_METHODS.has(method)||!Array.isArray(args))throw new TypeError('Unsupported SPU Code operation');
     if(method==='getState')return this.observeCode();
     if(method==='snapshot')return {...this.observeCode(),ram:this.synth.core.readRam(),registers:Uint16Array.from({length:512},(_,at)=>this.synth.core.read(at*2))};
+    if(method==='_setAuditionNoise') {
+      if(args.length!==2)throw new TypeError('Temporary Noise needs settings and a loaded loop sample ID');
+      const next=readNoise(args[0]),sampleId=args[1];let sample=null;
+      if(next.enabled) {
+        if(this.pmon.enabled)throw new Error('Temporary Noise cannot use a PMON carrier');
+        if(!Number.isInteger(sampleId)||sampleId<0||sampleId>=this.synth.samples.length)
+          throw new RangeError('Temporary Noise needs an existing immutable loop sample');
+        sample=this.synth.samples[sampleId];
+        if(!sample.loop||sample.editorChannel!==undefined||sample.id===this.hostSlot?.id||sample.id===this.pmonSample?.id)
+          throw new TypeError('Temporary Noise needs an existing immutable loop sample');
+      }else if(sampleId!==null)throw new TypeError('Disabled temporary Noise takes a null sample ID');
+      // Reset(clearRam) has no per-voice editor waveforms. Bind this one
+      // already-validated immutable loop to the current lease, not to a
+      // reusable numeric sample ID or the author's private waveform slots.
+      this.codeNoiseSample=sample;this.noise=next;this.syncModulators();return {...next};
+    }
     const ch=args[0];let result;
     if(this.noise.enabled&&['setNote','setFrequency','noteOn'].includes(method)) {
       if(!Number.isInteger(ch)||ch<0||ch>23)throw new RangeError('PS1 SPU channel must be 0..23');
@@ -392,7 +410,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         // to the old bank instead of mistaking its new sample 0 for a host
         // recording or a PMON source. The authored checkpoint owns the old
         // immutable host PCM and restores its binding on Stop.
-        this.hostAudio=null;this.hostSlot=null;this.pmonSample=null;this.pmonWaveform=null;
+        this.hostAudio=null;this.hostSlot=null;this.pmonSample=null;this.pmonWaveform=null;this.codeNoiseSample=null;
         this.pmon={...this.pmon,enabled:false};this.noise={...this.noise,enabled:false};this.morph={...this.morph,enabled:false};
       }
       this.resampler.reset(this.synth.core.nativeFrames);this.syncModulators();
@@ -476,16 +494,27 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   }
   syncModulators() {
     const core=this.synth.core;
+    // Resolve every Noise loop before touching mode/mask words. A missing
+    // editor slot or an obsolete temporary binding must not leave partial
+    // NON/clock writes behind when validation fails.
+    let noiseSamples=null;
+    if(this.noise.enabled) {
+      const bound=this.codeNoiseSample;
+      if(bound&&(!this.codeCheckpoint||this.synth.samples[bound.id]!==bound||!bound.loop))
+        throw new Error('Temporary Noise loop belongs to an expired sample bank');
+      noiseSamples=Array.from({length:24},(_,ch)=>bound??this.synth.samples[this.synth.editorWaveforms[ch]?.sample]);
+      if(noiseSamples.some(sample=>!sample?.loop))throw new Error('Noise needs valid looping voice samples');
+    }
     this.syncHostMask();
     core.write(0x194,this.noise.enabled ? 0xffff : 0);
     core.write(0x196,this.noise.enabled ? 0xff : 0);
     core.write(0x1aa,(core.read(0x1aa)&~0x3f00)|((this.noise.enabled ? this.noise.clock : 0)<<8));
     if (this.noise.enabled) {
       core.write(0x190,0);core.write(0x192,0);
-      // Preserve the authored PCM/audio sample. Noise uses the existing
-      // private looping slot so a one-shot recording cannot end a noise note.
+      // Preserve the authored PCM/audio sample. Use an editor's private loop
+      // or the temporary lease's support loop, never a one-shot recording.
       for(let ch=0;ch<24;ch++) {
-        const sample=this.synth.samples[this.synth.editorWaveforms[ch].sample];
+        const sample=noiseSamples[ch];
         core.write(ch*16+6,sample.startAddress>>3);
         core.write(ch*16+14,sample.repeatAddress>>3);
         core.write(ch*16+4,4096);
@@ -549,7 +578,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   dispose() {
     if (this.dead) return;
     this.dead = true;
-    this.codeCheckpoint=null;this.codeEpoch++;this.codeGates.clear();
+    this.codeCheckpoint=null;this.codeNoiseSample=null;this.codeEpoch++;this.codeGates.clear();
     this.inspector?.resetAuditions();
     this.synth?.dispose();
     this.synth = null;

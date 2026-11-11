@@ -213,13 +213,13 @@ also apply to the song. The separate Play! HLE player needs no external BIOS;
 it keeps the edited SPU sample and settings intact. Playing the keyboard while the song is running,
 editing the instrument, running Code or **Stop all sound** stops the preview.
 While paused with **Live On**, the keyboard temporarily auditions the selected
-CH using the same ADPCM / Reference key rules as Capture, keeping the song,
+CH using the same ADPCM / Reference key or Noise Clock rules as Capture, keeping the song,
 frozen source display and edited instrument. With **Live Off**, the keyboard
 plays your edited instrument and still keeps the song paused. Changing CH or
 Reference key releases the previous temporary notes. Resume silences the
 audition and restores the authored editor bank before continuing the same song
-position. Normal ADPCM only is supported; Noise and PMON carriers show a reason
-without leaving Pause. Temporary audition does not save or replace a preset;
+position. Normal ADPCM and Noise are supported. PMON carriers, including
+Noise with PMON, show a reason without leaving Pause. Temporary audition does not save or replace a preset;
 choose Capture to make that sound editable and permanent.
 Selecting a different accepted entry also stops the old song. Failed imports
 keep the previous selection. **Live from PSF** is on by default. Choose **CH 1–24**
@@ -232,7 +232,7 @@ The underline shows ENV and turns amber when Gate is Off while the voice remains
 active. Pause freezes all channels; choosing another CH
 while paused inspects that same moment. Live Off restores the editable instrument
 while the song continues. Editing it then stops the song first. Stop also returns
-to the editor. Pause and choose **Capture to Synth** to edit or save an ordinary ADPCM channel. Seeking and PSF2 are not supported. Compatibility depends on the HLE
+to the editor. Pause and choose **Capture to Synth** to edit or save an ADPCM or Noise channel. Seeking and PSF2 are not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
 The active song SPU uses the same fixed MAME-derived DSP sources as the
 keyboard Synth: ADPCM, four-point Gaussian interpolation, ADSR, Noise, PMON,
@@ -267,7 +267,7 @@ registers are labelled **Custom**, preserving the actual shared returns and send
 flag. Instrument saves are disabled in PSF Live; Capture first, or turn Live Off to save your edited
 instrument.
 
-**Capture to Synth** copies the paused channel’s original ADPCM bytes through
+For ADPCM, **Capture to Synth** copies the paused channel’s original bytes through
 its END packet, loop, ADSR, voice volumes and reverb-send flag from the matching
 historical SPU RAM snapshot. It does not re-encode that ADPCM. Choose a
 **Reference key** (C4 by default): that key reproduces the captured raw PITCH
@@ -275,14 +275,24 @@ code, rather than estimating the sample’s original root. Capture creates a
 normal instrument for a fresh key press; it does not freeze the current sample
 cursor, envelope stage or the rest of the song. Your editor’s shared reverb is
 kept; song master volume and custom shared effects are not copied. Software
-morph, Noise and PMON are disabled in the captured instrument.
+morph and PMON are disabled in the captured instrument. ADPCM captures also
+disable Noise; Noise captures enable it.
 
-Capture requires **Pause**, **Live On**, an available same-time RAM snapshot
-and an ordinary ADPCM voice with nonzero Pitch. Noise and PMON carriers,
-missing END packets and unsupported or noncontiguous loop layouts are rejected
-before stopping the song or changing the edited instrument. Successful Capture
+Capture requires **Pause**, **Live On** and an available same-time RAM snapshot.
+ADPCM needs nonzero Pitch, a valid END packet and a supported contiguous loop.
+PMON carriers (including Noise with PMON) are rejected before stopping the song
+or changing the edited instrument. Successful Capture
 stops the song and opens editable Synth mode without playing a note. Use the
 keyboard to try it, then **Save to presets** or export **Instrument · SPU JSON**.
+For Noise, Capture copies the shared **Noise Clock**, ADSR, left/right voice
+levels and reverb send. **Reference key** is disabled: every key triggers the
+envelope with the same Clock, rather than assigning a note pitch. The portable
+preset contains a fixed 64-byte silent loop solely to support Noise playback;
+no source ADPCM is extracted, and source PITCH / Start / Repeat do not set its
+noise character. A new note starts a fresh envelope; the running Noise LFSR
+phase is not copied. The editor’s shared reverb is retained. PMON carriers
+remain unsupported, including Noise voices with PMON enabled.
+
 Repeated captures with identical bytes and tuning reuse the existing sample.
 Live keeps a bounded history of 512-KiB RAM copies with its observations
 (about 3.5 MiB at the default settings); Live Off releases that history, keeping

@@ -16,6 +16,12 @@ function payload(pitch=0x1800) {
     nativeFrames:frame,keyGateMask:1,activeMask:1});
   return {state,ram,frame,voice:0,source:{entry:'fixture.psf',title:'Original fixture'}};
 }
+function noisePayload(clock=48) {
+  const value=payload(0),voice=value.state.channels[0];
+  value.state.noise={enabled:true,clock};value.state.observation.noiseMask=1;value.state.observation.control=0xc000|(clock<<8);
+  voice.noise=true;voice.rawRegisters[3]=0;voice.rawRegisters[7]=0;voice.startAddress=0;voice.repeatAddress=0;voice.sample=null;voice.waveform=null;
+  return value;
+}
 function harness({pitch=0x1800}={}) {
   const original={name:'Authored instrument',ram:Uint8Array.of(1,2,3),hostPcm:Int16Array.of(-1234,2345),
     channels:[{sample:17,pitch:4096}],reverb:{preset:'room',volumeLeft:.3,volumeRight:.2}};
@@ -38,12 +44,13 @@ function harness({pitch=0x1800}={}) {
       ownsOutput:()=>current(token)||releasedGeneration!==null&&owner===null&&generation===releasedGeneration,
       reset:options=>command(token,'reset',[options],()=>{bank={channels:[],samples:[],reverb:null};gates.clear();}),
       loadADPCM:(bytes,options)=>command(token,'loadADPCM',[bytes,options],()=>{const sample={id:0,startAddress:0x1000};bank.samples=[{...sample,bytes:bytes.slice(),...options}];return sample;}),
+      _setAuditionNoise:(settings,sampleId)=>command(token,'_setAuditionNoise',[settings,sampleId],()=>{assert.equal(sampleId,0);bank.noise=structuredClone(settings);}),
       setReverb:value=>command(token,'setReverb',[value],()=>{bank.reverb=structuredClone(value);}),
       setPreset:(ch,preset)=>command(token,'setPreset',[ch,preset],()=>{bank.channels[ch]=structuredClone(preset);}),
       noteOn:(ch,midi)=>command(token,'noteOn',[ch,midi],()=>{
         assert.equal(gain.gain.value,1,'existing Code gate must be open before KON');
         const sample=bank.samples[bank.channels[ch].sample.id];
-        bank.channels[ch].pitch=Math.round(4096*440*2**((midi-69)/12)/sample.baseFrequencyHz);
+        bank.channels[ch].pitch=bank.noise?.enabled?4096:Math.round(4096*440*2**((midi-69)/12)/sample.baseFrequencyHz);
         gates.set(ch,{midi,sequence:events.filter(value=>value.name==='noteOn').length});
       }),
       noteOff:ch=>command(token,'noteOff',[ch],()=>{gates.delete(ch);}),
@@ -157,10 +164,45 @@ test('a high unrepresentable key rejects only that note and preserves another he
 });
 
 test('unsupported selected sources fail before acquiring or changing the editor SPU',async()=>{
-  const h=harness();h.image.state.observation.noiseMask=1;h.image.state.channels[0].noise=true;
-  await assert.rejects(h.audition.noteOn('noise',60),/Noise/);assert.equal(h.acquires,0);assert.equal(h.gates.size,0);
+  const h=harness();h.image.voice=1;h.image.state.observation.pmonMask=2;h.image.state.channels[1].hardwarePmon=true;h.image.state.pmon.enabled=true;
+  await assert.rejects(h.audition.noteOn('pmon',60),/PMON/);assert.equal(h.acquires,0);assert.equal(h.gates.size,0);
   assert.deepEqual(h.bank,h.original);assert.equal(h.audition.read().error,true);
   await h.audition.stop();assert.equal(h.audition.read().state,'idle');
+});
+
+test('Noise preview loads one bounded support loop, ignores key pitch and restores the original editor checkpoint',async()=>{
+  const h=harness();h.image=noisePayload(51);
+  assert.deepEqual(await h.audition.noteOn('lowest',0),{channel:0,stolenId:null});
+  assert.deepEqual(await h.audition.noteOn('highest',127),{channel:1,stolenId:null});
+  assert.equal(h.acquires,1);assert.equal(h.payloadCalls,1);assert.equal(h.bank.samples.length,1);
+  assert.equal(h.bank.samples[0].bytes.length,64);assert.equal(h.bank.samples[0].baseFrequencyHz,44100/112);
+  assert.deepEqual(Array.from(h.bank.samples[0].bytes.filter((_value,index)=>index%16===0)),[12,12,12,12]);
+  assert.deepEqual(Array.from(h.bank.samples[0].bytes.filter((_value,index)=>index%16===1)),[6,0,0,3]);
+  assert.equal(h.bank.channels[0].pitch,4096);assert.equal(h.bank.channels[1].pitch,4096);
+  assert.deepEqual(h.bank.noise,{enabled:true,clock:51});assert.equal(h.audition.read().referenceNote,null);
+  assert.equal(h.audition.read().sourceVoice,0);assert.equal(h.audition.read().heldCount,2);
+  const load=h.events.findIndex(event=>event.name==='loadADPCM'),config=h.events.findIndex(event=>event.name==='_setAuditionNoise'),on=h.events.findIndex(event=>event.name==='noteOn');
+  assert(load<config&&config<on);assert.equal(h.events.filter(event=>event.name==='_setAuditionNoise').length,1);
+  await h.audition.allNotesOff();assert.equal(h.gates.size,0);await h.audition.stop();assert.deepEqual(h.bank,h.original);assert.equal(h.gain.gain.value,1);
+  assert.throws(()=>h.audition.noteOn('invalid-key',128),/0\.\.127/);await h.audition.dispose();
+});
+
+test('Noise keyup during temporary configuration cancels KON and restores its authored bank',async()=>{
+  const h=harness();h.image=noisePayload();const gate=h.hold('_setAuditionNoise'),on=h.audition.noteOn('tap',127);
+  await until(()=>h.events.some(event=>event.name==='_setAuditionNoise'));const off=h.audition.noteOff('tap');gate.resolve();
+  assert.equal(await on,null);await off;assert.equal(h.events.some(event=>event.name==='noteOn'),false);
+  assert.deepEqual(h.bank,h.original);assert.equal(h.audition.read().active,false);await h.audition.dispose();
+});
+
+test('late Noise configuration cannot gate or overwrite a newer selection lease',async()=>{
+  const h=harness();h.image=noisePayload();const gate=h.hold('_setAuditionNoise'),old=h.audition.noteOn('old-noise',0);
+  await until(()=>h.events.some(event=>event.name==='_setAuditionNoise'));
+  const stopped=h.audition.stop();h.selection={...h.selection,key:'next-ADPCM-selection'};h.image=payload();
+  const next=h.audition.noteOn('new-adpcm',60);gate.resolve();assert.equal(await old,null);await stopped;
+  assert.deepEqual(await next,{channel:0,stolenId:null});assert.equal(h.bank.noise,undefined);assert.equal(h.bank.channels[0].pitch,0x1800);
+  assert.equal(h.events.filter(event=>event.name==='noteOn').length,1);assert.equal(h.audition.read().referenceNote,'C4');
+  const dispose=h.events.findIndex(event=>event.name==='dispose'),acquire=h.events.findIndex(event=>event.name==='acquire'&&event.lease===2);
+  assert(dispose<acquire);await h.audition.stop();assert.deepEqual(h.bank,h.original);
 });
 
 test('an external newer owner survives stale KON completion and cleanup without a Stop or output write',async()=>{

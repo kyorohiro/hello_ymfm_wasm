@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "Capture and temporarily audition a paused PSF Noise-only voice using the existing Synth Noise mode.",
+  "todo": "docs/issues/todo_spu_psf_noise_capture_01.md",
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "behavior": {
+    "requires": [
+      "Pause",
+      "Live On",
+      "same-frame register/RAM payload",
+      "selected NON flag and mask agreement",
+      "valid shared Noise Clock/control register",
+      "no PMON carrier"
+    ],
+    "copied": [
+      "shared 6-bit Noise Clock",
+      "raw ADSR words",
+      "normalized left/right voice volumes",
+      "voice reverb-send flag"
+    ],
+    "noisePitch": "All MIDI keys trigger the envelope at fixed support-sample PITCH4096. Noise Clock changes noise character; Reference key is disabled and ignored for Noise captures.",
+    "supportSample": {
+      "bytes": 64,
+      "decodedFrames": 112,
+      "silent": true,
+      "loop": true,
+      "loopStartSamples": 0,
+      "baseFrequencyHz": 393.75,
+      "sourceAdpcmExtracted": false,
+      "sourceBytesCaptured": 0
+    },
+    "ignoredNoiseSampleFields": [
+      "source sample descriptor",
+      "PITCH zero/nonzero",
+      "programmed Start/Repeat region or alignment",
+      "source ADPCM contents",
+      "Reference key tuning"
+    ],
+    "preserved": "Editor shared reverb; original PSF CPU/RAM and frozen Live position; editor checkpoint during temporary audition.",
+    "notCopied": [
+      "running Noise LFSR phase",
+      "running envelope stage",
+      "song main volume",
+      "custom song shared reverb"
+    ],
+    "portablePreset": "Existing instrument v1 with Noise enabled and Morph/PMON disabled; save/reimport retains Clock, ADSR, voice settings and support loop.",
+    "unsupported": "PMON carriers, including Noise with PMON. Same-frame full RAM payload remains required by the existing transport contract."
+  },
+  "temporaryClient": {
+    "method": "_setAuditionNoise(settings,sampleId)",
+    "visibility": "Private borrowed-client method; no public npm/type API changed.",
+    "binding": "Bind the exact immutable looping sample object to the current Code lease, separate from reusable numeric IDs and authored private waveform slots.",
+    "validation": "Validate settings and sample identity/loop/private/host/PMON restrictions before mode writes; resolve all24 loops before NON/Clock writes.",
+    "lifecycle": "Clear binding on clearRam reset, end/new Code and dispose. Keep ownership fences, late keyup/stealing/source switch cleanup and exact authored-bank restoration.",
+    "extraAudioNodes": 0,
+    "extraContexts": 0,
+    "encoderInWorklet": false
+  },
+  "runtime": {
+    "nativeAbi": 4,
+    "nativeArtifactsUnchanged": true,
+    "fixedSdkVersion": "0.1.7",
+    "entryCache": "spu-psf-noise-capture-1",
+    "captureCache": "psf-noise-capture-1",
+    "auditionCache": "psf-noise-audition-1",
+    "audioAndWorkletCache": "spu-psf-noise-audition-1"
+  },
+  "tests": {
+    "relatedNode": 488,
+    "nodeLog": {
+      "path": "/private/tmp/spu-psf-noise-capture-regressions.log",
+      "bytes": 53063,
+      "sha256": "70884cb469992397aad452d9f9ef6b16c690d5a4c06e6f1a4ce9888b53918a40"
+    },
+    "captureHelperTests": 12,
+    "pausedControllerTests": 19,
+    "audioActualWasmTests": 47,
+    "subcountsIncludedInRelatedNode": true,
+    "calibrationGeneratorChecks": true,
+    "browserFamilies": [
+      {
+        "family": "capture",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-noise-capture-capture-browser.json",
+          "bytes": 5883,
+          "sha256": "d27db2bdda63833f2f823973ef0e9f7511647f5f2bbdfefe97387861439c242f"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+              "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+              "Resume during readonly preflight cancels Capture before any Stop or editor write",
+              "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+              "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+              "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+              "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+              "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+              "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 45,
+              "bufferStops": 23,
+              "monitorStrokes": 738,
+              "stopDelays": 0
+            },
+            "noiseKeys": [
+              {
+                "note": "C2",
+                "channel": 0,
+                "pitch": 4096,
+                "noise": {
+                  "enabled": true,
+                  "clock": 37
+                },
+                "clock": 37,
+                "mask": 16777215
+              },
+              {
+                "note": "C5",
+                "channel": 0,
+                "pitch": 4096,
+                "noise": {
+                  "enabled": true,
+                  "clock": 37
+                },
+                "clock": 37,
+                "mask": 16777215
+              }
+            ],
+            "noisePlaceholderBytes": 64
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+              "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+              "Resume during readonly preflight cancels Capture before any Stop or editor write",
+              "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+              "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+              "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+              "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+              "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+              "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 44,
+              "bufferStops": 24,
+              "monitorStrokes": 600,
+              "stopDelays": 0
+            },
+            "noiseKeys": [
+              {
+                "note": "C2",
+                "channel": 0,
+                "pitch": 4096,
+                "noise": {
+                  "enabled": true,
+                  "clock": 37
+                },
+                "clock": 37,
+                "mask": 16777215
+              },
+              {
+                "note": "C5",
+                "channel": 0,
+                "pitch": 4096,
+                "noise": {
+                  "enabled": true,
+                  "clock": 37
+                },
+                "clock": 37,
+                "mask": 16777215
+              }
+            ],
+            "noisePlaceholderBytes": 64
+          }
+        ]
+      },
+      {
+        "family": "live",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-noise-capture-live-browser.json",
+          "bytes": 28689,
+          "sha256": "9ba700f066bc011f55b058e16cf620355f77bc5bebf7750cec31866a147e9266"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+              "passive activity selection; Off/waiting/source/Stop clearing",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 56,
+              "bufferStops": 35,
+              "monitorStrokes": 372,
+              "stopDelays": 0
+            },
+            "trustedPauseClicks": 3
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+              "passive activity selection; Off/waiting/source/Stop clearing",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 239,
+              "bufferStops": 181,
+              "monitorStrokes": 852,
+              "stopDelays": 0
+            },
+            "trustedPauseClicks": 63
+          }
+        ]
+      },
+      {
+        "family": "paused",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-noise-capture-paused-browser.json",
+          "bytes": 47818,
+          "sha256": "f5ec3f2260d9d87c8b37f8fe70e9ed5e9887a18f93ae17f1ae9a6aacf7bb5d66"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 47,
+              "bufferStops": 28
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 46,
+              "bufferStops": 29
+            }
+          }
+        ]
+      }
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "evidence": [
+      "Original Noise fixture has source PITCH/Start/Repeat zero but valid Noise output at Clock37.",
+      "Actual captured keyboard C2/C5 both use PITCH4096, NON0xffffff and Clock37, with finite nonzero PCM.",
+      "Noise Clock37/38 changes actual PCM; source PITCH0/0x3fff does not change fresh Noise PCM.",
+      "ADSR release reaches silence and the fixed support loop alone decodes to silence.",
+      "Temporary Noise supports null editor waveform slots, low/high MIDI, chords, cancellation and authored Noise restoration.",
+      "Same-frame source and authored bank remain unchanged across paused Noise audition; permanent Capture and JSON roundtrip retain settings.",
+      "PMON+Noise remains rejected; ADPCM tuning, capacity failure, Code preflight and selected-channel Dry monitoring still pass."
+    ]
+  },
+  "distribution": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_psf-noise-capture-20261112-a-ZmmCoc",
+    "archive": {
+      "path": "release/tetorica_spu_synth_psf-noise-capture-20261112-a_itch.zip",
+      "bytes": 7019176,
+      "sha256": "6d6bf551adc6a6d08994cad15d61dde54c52504425e61125dc3abba033ea2fac",
+      "files": 335
+    },
+    "allZipBytesMatchStage": true,
+    "readableModulesMatchAuthoredSources": true,
+    "nativeArtifacts": [
+      {
+        "path": "docs/generated/psf-player/psf_player.js",
+        "bytes": 57343,
+        "sha256": "455b51757246d10fdb622a76c8cdd86c7359c26104a891e21eb555fe6ec4ab23",
+        "unchangedFromHead": true
+      },
+      {
+        "path": "docs/generated/psf-player/psf_player.wasm",
+        "bytes": 455304,
+        "sha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab",
+        "unchangedFromHead": true
+      },
+      {
+        "path": "tetorica_src/runtime/generated/ps1_spu_wasm.js",
+        "bytes": 17985,
+        "sha256": "1bce9139f84bc05662a3b8bcb1dfc6da44bebb90c104aa08dd904df3c5821b5b",
+        "unchangedFromHead": true
+      },
+      {
+        "path": "tetorica_src/runtime/generated/ps1_spu_wasm.wasm",
+        "bytes": 52082,
+        "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f",
+        "unchangedFromHead": true
+      }
+    ],
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    }
+  },
+  "artifacts": [
+    {
+      "path": "docs/synth-spu/psf_capture.js",
+      "bytes": 9591,
+      "sha256": "702d65c7a7b807dcf08ccc9f3bd6be33cd38adbef49ce477312d77588a440b4c"
+    },
+    {
+      "path": "docs/synth-spu/psf_capture.test.mjs",
+      "bytes": 20383,
+      "sha256": "552eb1c8417af73a9d3512680417d1e9584ae0348cf47356f4eeece1a3ae1c7d"
+    },
+    {
+      "path": "docs/synth-spu/psf_paused_audition.js",
+      "bytes": 10293,
+      "sha256": "c0e064583b47e35a039487e9faa795d92eeda975a05a37a5188232d60e8bf485"
+    },
+    {
+      "path": "docs/synth-spu/psf_paused_audition.test.mjs",
+      "bytes": 18954,
+      "sha256": "994bab65193180a7fec7dafe125034d8d9ac1a0e10636791d1335463ca0c9316"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_audio.js",
+      "bytes": 11109,
+      "sha256": "e2d443c4391b1ac9f8dde1f40c7830885426c332a134bfb93df340d0687d1fdc"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_audio.test.mjs",
+      "bytes": 91066,
+      "sha256": "1bd017bebab03af3232bff64addf7d0b9ddfd3e2dce6f295959c552a1c4c6469"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_worklet.js",
+      "bytes": 36391,
+      "sha256": "075dbfd0bb74386ff82b0382b4e4c27f35561d57aedf75ca7fdc21f29be0afc0"
+    },
+    {
+      "path": "docs/synth-spu/synth.js",
+      "bytes": 66692,
+      "sha256": "70402cc1a4334a6459110ae80782f2ec24c97a75bf68b534be6660451d0f90fa"
+    },
+    {
+      "path": "docs/synth-spu/index.html",
+      "bytes": 23951,
+      "sha256": "7ee7dc27444d4a956d5300d181e04672a1a33cd753c993b9b0a13f6370252029"
+    },
+    {
+      "path": "docs/synth-spu/README.md",
+      "bytes": 26972,
+      "sha256": "31954aa21a6d8d5f61ff03696fee538e08b26d0998271d4a6a624b98681ffeaa"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.mjs",
+      "bytes": 25001,
+      "sha256": "f4c9e290017a472b3789932df9f9ea93ff1e928c47b1fa15863fb7f831a17ec3"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.test.mjs",
+      "bytes": 12970,
+      "sha256": "92a4697647e919dd858d6406fff7862b71d57e8c191b6b305da6254d8c9e1882"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_capture_browser.cjs",
+      "bytes": 26112,
+      "sha256": "05ce935aa09a67c8d47c9085d8bab92ac0560e4fff857de4312c4e13b78524e2"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_live_browser.cjs",
+      "bytes": 31656,
+      "sha256": "6e039ac881e5e43bddde06655e312d865b300e99612506dddb87d5e05b59c47b"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_paused_audition_browser.cjs",
+      "bytes": 35157,
+      "sha256": "2d7ff3bb635385654244d3c59c655be337243e28866c5f8204c79bb6a44880a0"
+    }
+  ]
+}

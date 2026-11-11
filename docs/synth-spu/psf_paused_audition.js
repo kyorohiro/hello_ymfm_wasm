@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 // A temporary performance in the editor's existing SPU/checkpoint/output.
-import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-capture-1';
+import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-noise-capture-1';
 import {readSpuInstrument} from './spu_synth_instrument.js?v=spu-split-vab-1';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
@@ -29,7 +29,7 @@ export function createPsfPausedAudition({getAudio,getSelection,getCapturePayload
     const active=Boolean(lease||pendingTasks||notes.size),state=stopping||lease?.retiring?'stopping':
       lease?.ready?'ready':active?'preparing':lastError?'error':'idle';
     return {state,active,heldCount:notes.size,soundingCount:lease?.voices.entries().filter(value=>notes.get(value.id)?.gated).length??0,
-      sourceVoice:lease?.capture?.voice??null,referenceNote:lease?.selection.referenceNote??null,
+      sourceVoice:lease?.capture?.voice??null,referenceNote:lease?.instrument.noise.enabled?null:lease?.selection.referenceNote??null,
       error:Boolean(lastError),message:lastError|| (state==='ready'?`Paused PSF CH ${lease.capture.voice+1} audition · ${notes.size} held`:
         state==='preparing'?'Preparing the paused PSF voice…':state==='stopping'?'Restoring the edited instrument…':'Paused PSF audition stopped.')};
   }
@@ -99,6 +99,10 @@ export function createPsfPausedAudition({getAudio,getSelection,getCapturePayload
       await item.client.reset({clearRam:true});check(item);
       const {adpcm,...options}=instrument.sample;
       item.sample=await item.client.loadADPCM(adpcm,options);check(item);
+      if(instrument.noise.enabled) {
+        if(typeof item.client._setAuditionNoise!=='function')throw new Error('Paused Noise audition needs the temporary Noise SPU client');
+        await item.client._setAuditionNoise(instrument.noise,item.sample.id);check(item);
+      }
       await item.client.setReverb(instrument.reverb);check(item);
       item.ready=true;item.output.open();emit();return item;
     } catch(error) {await retire(item);throw error;}
@@ -131,7 +135,7 @@ export function createPsfPausedAudition({getAudio,getSelection,getCapturePayload
         if(!noteCurrent(note)){forget(note);if(!notes.size)await retire(item);return null;}
         check(item);
         const pitch=Math.round(4096*440*2**((midi-69)/12)/item.instrument.sample.baseFrequencyHz);
-        if(pitch<1||pitch>0x3fff) {
+        if(!item.instrument.noise.enabled&&(pitch<1||pitch>0x3fff)) {
           const error=new RangeError('Frequency is outside PS1 SPU PITCH range');error.noteOnly=true;throw error;
         }
         const allocated=item.voices.allocate(id);note.channel=allocated.channel;

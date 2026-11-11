@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-paused-audition-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-psf-noise-audition-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-psf-live-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -17,8 +17,8 @@ import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createPsfSongPreview} from './psf_song_preview.js?v=spu-psf-channel-monitor-1';
 import {preparePsfSongSource} from './psf_song_source.js?v=spu-psf-playback-1';
 import {createPsfPlaybackCore} from './psf_playback_core.js?v=psf-channel-monitor-1';
-import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-capture-1';
-import {createPsfPausedAudition} from './psf_paused_audition.js?v=psf-paused-audition-1';
+import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-noise-capture-1';
+import {createPsfPausedAudition} from './psf_paused_audition.js?v=psf-noise-audition-1';
 import {createPsfChannelActivity} from './psf_channel_activity.js?v=psf-channel-activity-1';
 
 const $ = id => document.getElementById(id);
@@ -105,8 +105,8 @@ function captureUnavailable(live) {
   if(!live.liveEnabled)return 'Enable Live to capture the paused channel.';
   if(!live.canCapture)return live.captureMessage||'Waiting for the matching paused SPU RAM snapshot.';
   const voice=live.liveState?.channels?.[live.liveVoice];
-  if(voice?.noise)return 'Noise capture is not supported; choose an ordinary ADPCM channel.';
-  if(voice?.hardwarePmon)return 'PMON carrier capture is not supported; choose an ordinary ADPCM channel.';
+  if(voice?.hardwarePmon)return 'PMON carrier capture is not supported; choose an ADPCM or Noise channel without PMON.';
+  if(voice?.noise)return '';
   if(!voice||voice.pitch<=0)return 'The selected channel needs a nonzero PITCH code.';
   return '';
 }
@@ -123,7 +123,7 @@ function updateCodeDisplay() {
   $('spuLiveChannel').setAttribute('aria-label',`${source} channel to observe`);
   $('spuLiveHelpLabel').setAttribute('aria-label',`About ${source} Live`);
   $('spuLiveHelpText').textContent=fromPsf?
-    "Read-only observations aligned with the song output, up to 20 updates/s. Choose CH 1–24 without changing its sound. The numbered buttons show sampled Core active / ENV, not output level; a silent modulator with zero voice volume can still light. Click a number to select its CH. Selected CH only is a Tetorica software listening helper: it plays that channel’s Dry output with its voice and main volumes. All 24 voices, PMON sources, shared Noise and the song’s reverb keep running. Off restores the original full mix and shared reverb return. Monitoring works independently of Live; it does not change the captured sound or pause audition. Switching briefly fades the output while retaining the same song position. The underline shows ENV, amber when Gate is Off but the core remains active. Live Off or an unavailable observation clears the indicators. Pause freezes all channels and their indicators. With Live On, the keyboard temporarily auditions the selected ADPCM channel at the Reference key tuning; the song, frozen display and edited sound are kept. CH / Reference changes end that audition. Resume restores the editor before continuing the same song position. With Live Off, the keyboard auditions your edited instrument while the song stays paused. Editing an instrument stops the song. Capture makes the selection permanent. The PCM graph is a bounded ADPCM preview from programmed Start with zero history, not the audible waveform or a full extraction. Reference key reproduces PITCH without inferring the original root. New notes restart the envelope. Start / Repeat are programmed addresses, not cursors. Gate is the last CPU KON / KOFF request; ENDX also marks loops. Intermediate changes can be missed.":
+    "Read-only observations aligned with the song output, up to 20 updates/s. Choose CH 1–24 without changing its sound. The numbered buttons show sampled Core active / ENV, not output level; a silent modulator with zero voice volume can still light. Click a number to select its CH. Selected CH only is a Tetorica software listening helper: it plays that channel’s Dry output with its voice and main volumes. All 24 voices, PMON sources, shared Noise and the song’s reverb keep running. Off restores the original full mix and shared reverb return. Monitoring works independently of Live; it does not change the captured sound or pause audition. Switching briefly fades the output while retaining the same song position. The underline shows ENV, amber when Gate is Off but the core remains active. Live Off or an unavailable observation clears the indicators. Pause freezes all channels and their indicators. With Live On, the keyboard temporarily auditions the selected ADPCM or Noise channel; ADPCM uses the Reference key tuning, while Noise keeps its shared Clock and keys trigger envelopes; the song, frozen display and edited sound are kept. CH / Reference changes end that audition. Resume restores the editor before continuing the same song position. With Live Off, the keyboard auditions your edited instrument while the song stays paused. Editing an instrument stops the song. Capture makes the selection permanent. Noise Capture keeps Clock, ADSR, voice levels and send, using a fixed silent support loop rather than extracting ADPCM. Running Noise phase is not copied. PMON carriers, including Noise with PMON, still need a paired capture and remain unavailable. The PCM graph is a bounded ADPCM preview from programmed Start with zero history, not the audible waveform or a full extraction. Reference key reproduces PITCH without inferring the original root. New notes restart the envelope. Start / Repeat are programmed addresses, not cursors. Gate is the last CPU KON / KOFF request; ENDX also marks loops. Intermediate changes can be missed.":
     'Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.';
   $('spuLiveEnabled').checked=live.liveEnabled;
   $('spuLiveChannel').value=String(live.liveVoice);
@@ -136,9 +136,11 @@ function updateCodeDisplay() {
   $('spuPsfCaptureTools').hidden=!fromPsf;
   const captureReason=fromPsf?captureUnavailable(live):'Play a PSF song to capture a channel.';
   $('spuPsfCapture').disabled=!fromPsf||Boolean(captureReason);
-  $('spuPsfReferenceKey').disabled=Boolean(capturePending);
+  const noiseVoice=fromPsf&&Boolean(live.liveState?.channels?.[live.liveVoice]?.noise);
+  $('spuPsfReferenceKey').disabled=Boolean(capturePending)||noiseVoice;
+  $('spuPsfReferenceKey').title=noiseVoice?'Noise uses the shared Clock; Reference key does not apply.':'This key reproduces the selected ADPCM PITCH code; it does not infer the original root note.';
   setText('spuPsfCapture',capturePending?'Preparing…':'Capture to Synth');
-  const captureHint=captureReason||'Copy the paused ADPCM, loop, ADSR, voice volumes and send. The Reference key preserves this PITCH; a new key press restarts the envelope. Your edited shared reverb is kept.';
+  const captureHint=captureReason||(noiseVoice?'Copy Noise Clock, ADSR, voice volumes and send. Keys trigger the envelope; Clock changes the noise character. The running Noise phase is not copied. Your edited shared reverb is kept.':'Copy the paused ADPCM, loop, ADSR, voice volumes and send. The Reference key preserves this PITCH; a new key press restarts the envelope. Your edited shared reverb is kept.');
   $('spuPsfCapture').title=captureHint;setText('spuPsfCaptureHint',captureHint);
   const root=$('spuVoicePanel');root.dataset.observing=String(observing);root.dataset.observationChannel=String(live.liveVoice);root.dataset.observationKind=observing?source.toLowerCase():'';root.dataset.observationWaiting=String(fromPsf&&observing&&(!live.liveState||live.liveWaiting||live.liveError));root.inert=observing;
   delete root.dataset.observationFrame;
@@ -903,7 +905,8 @@ async function capturePsfVoice() {
     // preparation nor the later capacity/cache queries stop the paused song.
     payload=transport.capturePaused();
     const baseName=(payload.source?.title||payload.source?.entry?.split('/').pop()||'PSF').slice(0,60);
-    const prepared=preparePsfVoiceCapture(payload,{referenceNote,name:`${baseName} CH ${payload.voice+1}`,
+    const noiseCapture=Boolean(payload.state.channels[payload.voice]?.noise);
+    const prepared=preparePsfVoiceCapture(payload,{referenceNote,name:`${baseName}${noiseCapture?' Noise':''} CH ${payload.voice+1}`,
       reverb:{preset:state.reverb.preset,volumeLeft:state.reverb.volumeLeft,volumeRight:state.reverb.volumeRight}});
     readSpuInstrument(prepared.instrument);
     if(!current())return;
@@ -919,7 +922,8 @@ async function capturePsfVoice() {
     if(codeHost?.isCodeMode())await codeHost.controls.setMode('keyboard');if(!current())return;
     selectEditorTab('pcm');
     const captured=prepared.capture;
-    status(`Captured CH ${payload.voice+1} · ${captured.byteLength.toLocaleString()} ADPCM bytes. ${referenceNote} reproduces PITCH ${captured.rawPitch}; play a new note to start its envelope. Shared editor reverb kept.${captured.warnings?.length?' '+captured.warnings.join(' '):''}`);
+    if(captured.kind==='noise')status(`Captured Noise CH ${payload.voice+1} · Clock ${captured.noiseClock}. Keys trigger the envelope; Clock changes the noise character. Shared editor reverb kept.`);
+    else status(`Captured CH ${payload.voice+1} · ${captured.byteLength.toLocaleString()} ADPCM bytes. ${referenceNote} reproduces PITCH ${captured.rawPitch}; play a new note to start its envelope. Shared editor reverb kept.${captured.warnings?.length?' '+captured.warnings.join(' '):''}`);
   } catch(error) {
     if(!disposed&&capturePending===request&&!request.cancelled&&operation===assetEpoch)report(error);
   } finally {

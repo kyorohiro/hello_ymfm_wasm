@@ -23,6 +23,7 @@ import {noteToHz} from '../js/soundchip_pitch.js';
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
 const sine = () => preparePs1Waveform(Array.from({length:112}, (_, i) => .65 * Math.sin(2 * Math.PI * i / 112)));
+const noiseLoop = () => {const bytes=new Uint8Array(64);for(let at=0;at<64;at+=16)bytes[at]=12;bytes[1]=6;bytes[49]=3;return bytes;};
 const peak = values => values.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
 
 test('main thread encodes one instrument wave once and sends no per-key sample uploads', async t => {
@@ -132,6 +133,9 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
   await engine.command('findADPCM',[sine().adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0}]);
   assert.equal(engine.getPs1Client(),promise,'private sample lookup does not retire the borrowed Code client');
   await client.noteOn(0,60);assert.equal(published.length,1,'sample lookup never publishes an editor state');
+  await client._setAuditionNoise({enabled:true,clock:31},17);
+  assert.equal(requests.at(-1).method,'code');assert.equal(requests.at(-1).args[1],'_setAuditionNoise');
+  assert.deepEqual(Array.from(requests.at(-1).args[2]),[{enabled:true,clock:31},17]);assert.equal(published.length,1);
   hold=true;const pending=client.setEnvelope(0,{attackRate:1}),retired=assert.rejects(pending,{name:'AbortError'});
   await engine.stop();finishHeld();await retired;assert.equal(published.length,2);assert.equal(engine.context.state,'suspended');
   assert.equal(client.ownsOutput(),false,'an external Stop never grants old output ownership');
@@ -146,6 +150,10 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
   assert.equal(third.ownsOutput(),false,'late Stop acknowledgement cannot claim a newer output owner');
   assert.equal(fourth.ownsOutput(),true);await fourth.dispose();assert.equal(fourth.ownsOutput(),true);
   await engine.command('setInstrumentNoise',[{enabled:false}]);assert.equal(fourth.ownsOutput(),false,'a later editor write also revokes the old neutral route');
+  const fifth=await engine.getPs1Client();hold=true;
+  const pendingNoise=fifth._setAuditionNoise({enabled:true,clock:48},0),staleNoise=assert.rejects(pendingNoise,{name:'AbortError'});
+  await engine.stop();finishHeld();await staleNoise;
+  assert.throws(()=>fifth._setAuditionNoise({enabled:true,clock:48},0),{name:'AbortError'});
 });
 
 test('standalone actual WASM initializes and renders without URL or Node globals like AudioWorkletGlobalScope', () => {
@@ -445,6 +453,78 @@ test('Code preserves Noise and long host audio while reset and Stop retain the e
   p.command('code',[session,'setPreset',[0,{sample:cleared}]]);p.command('code',[session,'noteOn',[0,'A4']]);assert(peak(p.render(8192).left)>.001);
   p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),noise);assert(p.command('inspect').noise.enabled);
   p.command('instrumentNoteOn',[60,'noise-after-code']);assert(peak(p.render(8192).left)>.001);
+});
+
+test('temporary Noise uses one immutable loop after clearRam with null editor slots and keeps every key at PITCH4096',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const authored=p.command('getInstrument',[0]),session=p.command('beginCode').session;
+  const call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  assert(p.processor.synth.editorWaveforms.every(value=>value===null));
+  const sample=call('loadADPCM',noiseLoop(),{baseFrequencyHz:44100/112,loopStartSamples:0});
+  call('_setAuditionNoise',{enabled:true,clock:48},sample.id);
+  const core=p.processor.synth.core;assert.equal(core.read(0x194),0xffff);assert.equal(core.read(0x196)&255,255);assert.equal((core.read(0x1aa)>>8)&63,48);
+  assert.equal(core.read(0x190),0);assert.equal(core.read(0x192),0);
+  for(const ch of [0,23])call('setPreset',ch,{sample,adsr1:15,adsr2:0x1fc0,volumeLeft:.6,volumeRight:.4,pitch:1234});
+  call('noteOn',0,0);call('noteOn',23,127);call('setNote',0,127);call('setFrequency',23,20000);
+  const observed=p.command('observeCode');assert.equal(observed.noise.enabled,true);assert.equal(observed.noise.clock,48);
+  for(const ch of [0,23]){assert.equal(core.read(ch*16+4),4096);assert.equal(observed.channels[ch].pitch,4096);assert.equal(observed.channels[ch].gate,true);}
+  for(let ch=0;ch<24;ch++){assert.equal(core.read(ch*16+6),sample.startAddress>>3);assert.equal(core.read(ch*16+14),sample.repeatAddress>>3);}
+  assert(peak(p.render(8192).left)>.001,'the silent support ADPCM is replaced by native shared-clock Noise');
+  call('noteOff',0);call('noteOff',23);assert.equal(p.command('observeCode').channels[0].gate,false);assert.equal(p.command('observeCode').channels[23].gate,false);
+  p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),authored);assert.equal(p.processor.codeNoiseSample,null);
+  assert.equal(peak(p.render(8192).left),0);p.command('instrumentNoteOn',[60,'restored-key']);assert(peak(p.render(4096).left)>.001);
+});
+
+test('temporary Noise clock changes are live and invalid modes or bindings leave masks, gates, RAM and envelope unchanged',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});const calls=[];
+  for(const p of [a,b]) {
+    const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);calls.push(call);
+    call('reset',{clearRam:true});const loop=call('loadADPCM',noiseLoop(),{baseFrequencyHz:44100/112,loopStartSamples:0});
+    call('_setAuditionNoise',{enabled:true,clock:48},loop.id);call('setPreset',0,{sample:loop,adsr1:15,adsr2:0x1fc0});call('noteOn',0,60);
+  }
+  assert.deepEqual(a.render(4096).left,b.render(4096).left);
+  const before=a.command('observeCode'),core=a.processor.synth.core,ram=core.readRam(),address=a.processor.synth.nextAddress,frames=core.nativeFrames;
+  calls[0]('_setAuditionNoise',{enabled:true,clock:32},0);const changed=a.command('observeCode');
+  assert.equal(core.nativeFrames,frames);assert.equal(changed.channels[0].envelope,before.channels[0].envelope);assert.equal(changed.channels[0].gate,true);
+  assert.equal(changed.channels[0].pitch,4096);assert.equal(a.processor.synth.nextAddress,address);assert.deepEqual(core.readRam(),ram);
+  assert.equal(changed.noise.clock,32);assert.equal(core.read(0x194),0xffff);
+  const snapshot=()=>Array.from({length:512},(_,at)=>core.read(at*2));
+  for(const args of [[{enabled:true,clock:64},0],[{enabled:true,clock:32,unknown:true},0],[{enabled:true,clock:32},999],[{enabled:false,clock:32},0]]) {
+    const registers=snapshot();assert.throws(()=>calls[0]('_setAuditionNoise',...args),/Noise|noise|clock/);
+    assert.deepEqual(snapshot(),registers);assert.deepEqual(core.readRam(),ram);assert.equal(a.command('observeCode').channels[0].gate,true);
+  }
+  const next=a.render(8192).left,unchanged=b.render(8192).left;
+  assert(peak(next)>.001);assert.notDeepEqual(next,unchanged,'a clock change alters native LFSR texture without keying off');
+});
+
+test('temporary Noise binding cannot outlive reset, ID reuse, Code replacement or authored Noise restoration',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());p.command('setInstrumentNoise',[{enabled:true,clock:51}]);
+  const authored=p.command('getInstrument',[0]),ram=p.processor.synth.core.readRam(),session=p.command('beginCode').session;
+  const call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  const sample=call('loadADPCM',noiseLoop(),{baseFrequencyHz:44100/112,loopStartSamples:0});call('_setAuditionNoise',{enabled:true,clock:32},sample.id);
+  call('setPreset',0,{sample,adsr1:15,adsr2:0x1fc0});call('noteOn',0,127);assert(peak(p.render(4096).left)>.001);
+  call('reset',{clearRam:true});assert.equal(p.processor.codeNoiseSample,null);assert.equal(p.processor.noise.enabled,false);
+  assert.equal(p.processor.synth.core.read(0x194),0);assert.equal(p.processor.synth.core.read(0x196),0);
+  const fresh=call('loadADPCM',sine().adpcm,{baseFrequencyHz:440,loopStartSamples:0});assert.equal(fresh.id,sample.id);
+  call('setPreset',0,{sample:fresh});call('noteOn',0,69);assert(peak(p.render(4096).left)>.001);assert.equal(p.processor.noise.enabled,false);
+  p.command('stop');assert.equal(p.processor.codeNoiseSample,null);assert.deepEqual(p.command('getInstrument',[0]),authored);assert.deepEqual(p.processor.synth.core.readRam(),ram);
+  assert.equal(p.processor.noise.clock,51);assert.equal(p.processor.synth.core.read(0x194),0xffff);
+  const next=p.command('beginCode').session;assert.equal(p.processor.codeNoiseSample,null);
+  assert.throws(()=>call('_setAuditionNoise',{enabled:true,clock:32},fresh.id),/session stopped/);
+  p.command('code',[next,'noteOn',[0,127]]);assert(peak(p.render(4096).left)>.001,'the new session uses restored author private loops, not temporary sample 0');
+  p.close();assert.equal(p.processor.codeNoiseSample,null);
+});
+
+test('temporary Noise rejects one-shot, private waveform and PMON sample bindings before changing native registers',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());let session=p.command('beginCode').session;
+  let call=(method,...args)=>p.command('code',[session,method,args]);const core=p.processor.synth.core;
+  const snapshot=()=>Array.from({length:512},(_,at)=>core.read(at*2));
+  let before=snapshot();assert.throws(()=>call('_setAuditionNoise',{enabled:true,clock:48},0),/immutable loop/);assert.deepEqual(snapshot(),before);
+  call('reset',{clearRam:true});const one=new Uint8Array(16);one[0]=12;one[1]=1;
+  const sample=call('loadADPCM',one,{baseFrequencyHz:440});before=snapshot();
+  assert.throws(()=>call('_setAuditionNoise',{enabled:true,clock:48},sample.id),/immutable loop/);assert.deepEqual(snapshot(),before);assert.equal(p.processor.noise.enabled,false);
+  p.command('stop');pmonSettings(p,{enabled:true,ratio:.5,depth:.8,decayMs:0});session=p.command('beginCode').session;
+  const loop=call('loadADPCM',noiseLoop(),{baseFrequencyHz:44100/112,loopStartSamples:0});before=snapshot();
+  assert.throws(()=>call('_setAuditionNoise',{enabled:true,clock:48},loop.id),/PMON/);assert.deepEqual(snapshot(),before);assert.equal(p.processor.pmon.enabled,true);
 });
 
 const maximumStep=(previous,values)=>{

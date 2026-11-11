@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {preparePsfVoiceCapture} from './psf_capture.js';
+import {preparePsfVoiceCapture,PSF_NOISE_SUPPORT_ADPCM,PSF_NOISE_SUPPORT_BASE_HZ} from './psf_capture.js';
 import {readPsfLiveSnapshot} from './psf_live_snapshot.js';
 import {readSpuInstrument} from './spu_synth_instrument.js';
 import {createPsfPlaybackCore} from './psf_playback_core.js';
@@ -41,6 +41,7 @@ test('capture preserves original ADPCM, voice parameters and reference tuning in
   const input=fixture({voice:23,loopPacket:1}),before=structuredClone(input),result=prepare(input,{referenceNote:'D4',name:'Captured voice'});
   const instrument=readSpuInstrument(JSON.parse(JSON.stringify(result.instrument))),channel=input.state.channels[23];
   assert.equal(result.instrument.version,1);assert(Array.isArray(result.instrument.sample.adpcm));
+  assert.equal(result.capture.kind,'adpcm');
   assert.deepEqual(instrument.sample.adpcm,input.adpcm);assert.equal(instrument.sample.loopStartSamples,28);
   assert.equal(instrument.sample.baseFrequencyHz,noteToHz('D4')*4096/channel.pitch);
   assert.deepEqual(instrument.preset,{volumeLeft:channel.volumeLeft,volumeRight:channel.volumeRight,adsr1:channel.adsr1,
@@ -106,6 +107,69 @@ test('PMON source is captured independently and the physical CH1 ignored PMON bi
   assert.equal(prepare(first).capture.voice,0);
 });
 
+function noiseFixture({voice=2,clock=37}={}) {
+  const input=fixture({voice}),channel=input.state.channels[voice];
+  input.ram.fill(0xff);channel.sample=null;
+  // Deliberately unusable ADPCM settings: Noise must not inspect them.
+  channel.rawRegisters[2]=0;channel.pitch=0;
+  channel.rawRegisters[3]=0xffff;channel.startAddress=0xffff*8;
+  channel.rawRegisters[7]=1;channel.repeatAddress=8;
+  channel.noise=true;input.state.observation.noiseMask=1<<voice;
+  input.state.noise={enabled:true,clock};
+  input.state.observation.control=(input.state.observation.control&~0x3f00)|(clock<<8);
+  return input;
+}
+
+test('Noise capture ignores unusable source ADPCM, PITCH and reference key while retaining voice/clock settings',()=>{
+  class NoAdpcmExtraction extends Uint8Array {slice(){assert.fail('Noise capture must not extract source ADPCM');}}
+  const input=noiseFixture(),channel=input.state.channels[input.voice];input.ram=new NoAdpcmExtraction(input.ram);
+  const before=structuredClone(input),result=prepare(input,{referenceNote:'not a musical note'});
+  const parsed=readSpuInstrument(JSON.parse(JSON.stringify(result.instrument)));
+  assert.equal(result.capture.kind,'noise');assert.equal(result.capture.noiseClock,37);
+  assert.equal(result.capture.byteLength,0);assert.equal(result.capture.placeholderByteLength,64);
+  assert.equal(result.capture.referenceNote,null);assert.equal(result.capture.referenceFrequencyHz,null);
+  assert.equal(result.capture.baseFrequencyHz,null);assert.equal(result.capture.rawPitch,0);
+  assert.equal(result.capture.tuning,'noise-clock');assert.equal(result.capture.lfsrPhaseCaptured,false);
+  assert.equal(result.capture.envelopeStateCaptured,false);assert.equal(result.capture.loop,null);
+  assert.deepEqual(parsed.noise,{enabled:true,clock:37});assert.equal(parsed.preset.pitch,4096);
+  assert.equal(parsed.preset.volumeLeft,channel.volumeLeft);assert.equal(parsed.preset.volumeRight,channel.volumeRight);
+  assert.equal(parsed.preset.adsr1,channel.adsr1);assert.equal(parsed.preset.adsr2,channel.adsr2);assert.equal(parsed.preset.reverb,true);
+  assert.deepEqual(parsed.reverb,editorReverb);assert.equal(parsed.waveform,null);
+  assert.equal(parsed.pmon.enabled,false);assert.equal(parsed.morph.enabled,false);
+  assert.equal(parsed.sample.baseFrequencyHz,44100/112);assert.equal(parsed.sample.loopStartSamples,0);
+  assert.deepEqual(parsed.sample.adpcm,Uint8Array.from(PSF_NOISE_SUPPORT_ADPCM));
+  assert.deepEqual([1,17,33,49].map(at=>parsed.sample.adpcm[at]),[6,0,0,3]);
+  assert([0,16,32,48].every(at=>parsed.sample.adpcm[at]===0x0c));
+  assert.deepEqual(structuredClone(input),before);
+  result.instrument.sample.adpcm[2]=123;result.capture.source.title='changed';
+  assert.equal(PSF_NOISE_SUPPORT_ADPCM[2],0);assert.equal(prepare(input).instrument.sample.adpcm[2],0);
+  assert.deepEqual(structuredClone(input),before,'source state and fixed support data remain detached');
+});
+
+test('Noise capture accepts capture-buffer/unaligned addresses and all clocks but rejects inconsistent snapshots and PMON carriers',()=>{
+  for(const clock of [0,37,63]) {
+    const input=noiseFixture({clock});rawAddress(input,{start:0,repeat:8});
+    assert.equal(prepare(input,{referenceNote:null}).capture.noiseClock,clock);
+  }
+  const cases=[
+    [value=>value.state.channels[value.voice].noise=false,/Noise flag/],
+    [value=>value.state.observation.noiseMask=0,/Noise flag/],
+    [value=>value.state.noise.clock=64,/Noise clock/],
+    [value=>value.state.noise.clock=-1,/Noise clock/],
+    [value=>value.state.noise.clock=.5,/Noise clock/],
+    [value=>value.state.noise.clock=38,/shared Noise clock/],
+    [value=>value.state.noise.enabled=false,/shared Noise clock/],
+    [value=>delete value.state.observation.control,/SPU control/],
+    [value=>value.state.channels[value.voice].volumeLeft=.5,/volumes.*raw register/],
+    [value=>{value.state.observation.pmonMask=1<<value.voice;value.state.channels[value.voice].hardwarePmon=true;},/PMON carriers/],
+    [value=>value.ram=new Uint8Array(16),/512 KiB/],
+    [value=>value.frame++,/same PSF observation frame/],
+  ];
+  for(const [change,message]of cases){const input=noiseFixture();change(input);const before=structuredClone(input);assert.throws(()=>prepare(input),message);assert.deepEqual(input,before);}
+  const adpcm=fixture();adpcm.state.observation.noiseMask=4;adpcm.state.noise={enabled:true,clock:37};
+  assert.equal(prepare(adpcm).capture.kind,'adpcm','another channel using Noise does not change ADPCM capture');
+});
+
 test('capture handles the full remaining sample-RAM capacity and never follows a wrapped sample',()=>{
   const input=fixture();input.ram.fill(0);rawAddress(input,{start:0x1000,repeat:0x1000});
   input.ram[RAM_BYTES-15]=1;
@@ -136,6 +200,39 @@ test('playing the chosen reference key reproduces the original raw PITCH and act
       assert.deepEqual(actualL,expectedL);assert.deepEqual(actualR,expectedR);
     } finally {original.dispose();synth.dispose();}
   }
+});
+
+test('captured Noise runs through real SPU registers with clock/pitch independence, fresh ADSR and silent support data',async()=>{
+  const render=async({clock=37,pitch=4096,release=false,silence=false}={})=>{
+    const parsed=readSpuInstrument(prepare(noiseFixture({clock}),{referenceNote:'ignored'}).instrument);
+    const core=await nativeSpu(),synth=new Ps1Synth({core});
+    try {
+      const sample=synth.loadADPCM(parsed.sample.adpcm,{baseFrequencyHz:parsed.sample.baseFrequencyHz,loopStartSamples:0});
+      synth.setPreset(0,{...parsed.preset,sample});synth.setReverb(parsed.reverb);
+      core.write(0x194,1);core.write(0x196,0);core.write(0x1aa,(core.read(0x1aa)&~0x3f00)|(parsed.noise.clock<<8));
+      core.write(4,pitch);
+      assert.equal(core.read(12),0,'capture never writes the old live envelope level');
+      synth.keyOn(0);
+      const left=new Float32Array(4096),right=new Float32Array(4096);synth.renderInto(left,right);
+      assert.equal(core.read(0x194),1);assert.equal((core.read(0x1aa)>>8)&63,clock);
+      assert.equal(core.read(4),pitch);assert.equal(core.read(0),0x2345);assert.equal(core.read(2),0x7000);
+      assert.equal(core.read(8),parsed.preset.adsr1);assert.equal(core.read(10),parsed.preset.adsr2);
+      assert(core.read(12)>0,'captured ADSR starts a new sounding Noise voice');
+      assert(left.some(value=>Math.abs(value)>.001));
+      if(release||silence) {
+        if(release)synth.keyOff(0);else core.write(0x194,0);
+        const tail=new Float32Array(8192),other=new Float32Array(8192);synth.renderInto(tail,other);
+        assert((release?tail.subarray(4096):tail).every(value=>value===0),release?'captured ADSR release reaches silence':'support ADPCM loop itself is silent');
+        if(release)assert.equal(core.read(12),0);else assert(core.read(12)>0);
+      }
+      assert.equal(parsed.sample.baseFrequencyHz,PSF_NOISE_SUPPORT_BASE_HZ);
+      return left;
+    } finally {synth.dispose();}
+  };
+  const a=await render({pitch:0}),b=await render({pitch:0x3fff});
+  assert.deepEqual(a,b,'fresh same-clock Noise does not depend on the sample PITCH');
+  assert.notDeepEqual(await render({clock:38}),a,'shared Noise clock changes the generated texture');
+  await render({release:true});await render({silence:true});
 });
 
 const psfWasm=await readFile(new URL('../generated/psf-player/psf_player.wasm',import.meta.url));

@@ -159,7 +159,7 @@ async function check(browser,name,origin,fixture){
     assert.equal(await page.locator('#spuPsfChannelActivity [data-psf-channel="1"]').evaluate(button=>button===document.activeElement),false,'channel button returns keyboard focus');
     assert.deepEqual(channelData(await activity()),channelData(pausedActivity),'Pause freezes every activity value while selection changes');
     assert.equal((await view()).observationFrame,paused.observationFrame);
-    assert.equal(await page.locator('[data-noise="source"]').inputValue(),'noise');assert(await page.locator('[data-pmon="enabled"]').isChecked());
+    assert.equal(await page.locator('[data-noise="source"]').inputValue(),'noise');assert(await page.locator('[data-pmon="enabled"]').isChecked());assert(await page.locator('#spuPsfCapture').isDisabled());assert.match(await page.locator('#spuPsfCapture').getAttribute('title'),/PMON/i,'Noise does not make a PMON carrier independently capturable');
     assert(await page.locator('.pmon-fields').isHidden());
     await page.locator('[data-spu-editor-tab="fx"]').click();assert.equal(await page.locator('[data-chip-control="ps1-reverb-preset"]').inputValue(),'custom');
     assert.match(await page.locator('[data-psf-reverb-state]').textContent(),/Custom register configuration.*Main L/);

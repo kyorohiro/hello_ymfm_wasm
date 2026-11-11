@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// PSF ordinary ADPCM Capture checks. Every destination is intercepted before application
+// PSF ordinary ADPCM and hardware Noise Capture checks. Every destination is intercepted before application
 // scripts and held at gain zero. Chromium is additionally launched mute-audio.
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto');
@@ -77,6 +77,7 @@ async function check(browser,name,origin,fixture){
   async function menu(id){if(!await page.locator('#synthMenu').evaluate(n=>n.open))await page.locator('#synthMenuButton').click();await page.locator(id).click();}
   async function pause(){await page.locator('#psfPauseSong').click({delay:5});await until(()=>page.locator('#psfPauseSong').textContent().then(t=>t==='Resume'),'Pause');}
   async function playPaused(){await page.locator('#psfPlaySong').click({delay:5});await until(async()=>Number((await view()).observationFrame)>=2205,'audible Live snapshot');await pause();await until(()=>page.locator('#spuPsfCapture').isEnabled(),'Capture ready');}
+  async function keyboardOctave(target){const current=Number(await page.locator('#octaveValue').textContent());for(let value=current;value!==target;value+=target>current?1:-1)await page.locator(target>current?'#octaveUp':'#octaveDown').click();assert.equal(Number(await page.locator('#octaveValue').textContent()),target);}
   async function importDocument(doc){await page.locator('#presetFileInput').setInputFiles({name:'capture-roundtrip.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(doc))});await until(()=>page.locator('#audioStatus').textContent().then(t=>t===`Loaded ${doc.name}.`),'instrument import');}
   try{
     await page.goto(origin+config.entry);await until(()=>page.locator('#spuFileImportButton').isEnabled(),'Files ready');
@@ -133,22 +134,46 @@ async function check(browser,name,origin,fixture){
     assert.equal((await inspect()).samples[0].id,0);commandStart=await page.evaluate(()=>__spuPsfAudit.commands().length);await importDocument(saved);
     commands=(await page.evaluate(()=>__spuPsfAudit.commands())).slice(commandStart);const lookup=commands.findIndex(c=>c.method==='findADPCM'),stop=commands.findIndex(c=>c.method==='stop');assert(stop>=0&&lookup>stop,'Code Stop precedes sample lookup in ordinary imports');
     assert.deepEqual(Array.from((await instrument()).sample.adpcm),Array.from(fixture.adpcm));assert.equal((await inspect()).nextAddress,firstBank.nextAddress);
+    step('Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb');
+    await playPaused();await page.locator('#spuPsfChannelActivity [data-psf-channel="1"]').click({delay:5});
+    assert(await page.locator('#spuPsfReferenceKey').isDisabled());assert(await page.locator('#spuPsfCapture').isEnabled());
+    await page.locator('#spuPsfMonitorEnabled').check();await until(()=>page.locator('#psfPlaybackStatus').getAttribute('data-monitor-switching').then(value=>value==='false'),'selected Noise dry monitor');
+    const beforeNoise=await instrument();await page.locator('#spuPsfCapture').click({delay:5});await until(()=>page.locator('#audioStatus').textContent().then(value=>value.startsWith('Captured Noise CH 2')),'Noise Capture');
+    const noise=await instrument(),placeholder=Array(64).fill(0);for(let at=0;at<64;at+=16)placeholder[at]=12;placeholder[1]=6;placeholder[49]=3;
+    assert.deepEqual(noise.noise,{enabled:true,clock:37});assert.equal(noise.preset.pitch,4096);assert.equal(noise.preset.adsr1,15);assert.equal(noise.preset.adsr2,0x1fc0);assert.equal(noise.preset.reverb,true);
+    assert.equal(noise.preset.volumeLeft,0x1400/0x3fff);assert.equal(noise.preset.volumeRight,0x0c00/0x3fff);assert.deepEqual(noise.reverb,beforeNoise.reverb);
+    assert.equal(noise.pmon.enabled,false);assert.equal(noise.morph.enabled,false);assert.equal(noise.waveform,null);assert.deepEqual(Array.from(noise.sample.adpcm),placeholder);assert.equal(noise.sample.baseFrequencyHz,44100/112);assert.equal(noise.sample.loopStartSamples,0);assert.equal((await inspect()).auditions.length,0);
+    assert.match((await view()).status,/Noise.*37/i);const noiseKeys=[];
+    // The compact guitar keyboard spans fewer than three octaves. Move its
+    // real octave controls separately for the two widely spaced notes.
+    for(const [note,octave] of [['C2',-1],['C5',2]]){await keyboardOctave(octave);
+      const noteKey=page.locator('#keyboardKeys .key').filter({hasText:new RegExp('\\b'+note+'\\b')}).first();assert(await noteKey.count());await noteKey.scrollIntoViewIfNeeded();const rect=await noteKey.boundingBox();assert(rect);
+      await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(async()=>(await inspect()).auditions.length===1,'captured Noise '+note);
+      const raw=await page.evaluate(async()=>{const state=await __spuPsfAudit.read('inspect'),snapshot=await __spuPsfAudit.read('snapshot'),channel=state.auditions[0].channel;return {channel,pitch:snapshot.registers[(channel*16+4)/2],noise:state.noise,clock:(snapshot.registers[0x1aa/2]>>>8)&63,mask:snapshot.registers[0x194/2]|snapshot.registers[0x196/2]<<16};});
+      assert.equal(raw.pitch,4096);assert.equal(raw.clock,37);assert(raw.mask&(1<<raw.channel));assert.deepEqual(raw.noise,{enabled:true,clock:37});noiseKeys.push({note,...raw});
+      await until(async()=>{const value=await page.evaluate(()=>__spuPsfAudit.output());return value.muted&&value.finite&&value.rms>.00001;},'real captured Noise PCM '+note);await page.mouse.up();await page.locator('#allNotesOff').click();await until(async()=>(await inspect()).auditions.length===0,'Noise key released');
+    }
+    await page.locator('#saveSoundToFiles').click();await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>value.includes('saved to /presets/')),'Noise saved to presets');
+    const noiseDownload=page.waitForEvent('download');await menu('#savePreset');const noiseFile=await noiseDownload,noiseSaved=JSON.parse(await fs.readFile(await noiseFile.path(),'utf8'));
+    assert.deepEqual(noiseSaved.noise,{enabled:true,clock:37});assert.deepEqual(noiseSaved.sample.adpcm,placeholder);await importDocument(noiseSaved);
+    const noiseImported=await instrument();assert.deepEqual(noiseImported.noise,noise.noise);assert.deepEqual(noiseImported.preset,noise.preset);assert.deepEqual(noiseImported.reverb,noise.reverb);assert.deepEqual(Array.from(noiseImported.sample.adpcm),placeholder);
     step('Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument');
     const capacity=await inspect(),length=Math.floor((524288-capacity.nextAddress-32)/16)*16,adpcm=Array(length).fill(0);for(let at=0;at<length;at+=16)adpcm[at]=12;adpcm[length-15]=1;
     const filler={...saved,name:'Capacity guard fixture',preset:{...saved.preset,pitch:4096,reverb:false},sample:{adpcm,baseFrequencyHz:440},waveform:null};
     await importDocument(filler);const full=await inspect(),fullSource=await instrument();assert.equal(524288-full.nextAddress,32);
-    await playPaused();await page.locator('#spuPsfReferenceKey').selectOption('C4');const frameBefore=(await view()).observationFrame;
+    await playPaused();await page.locator('#spuLiveChannel').selectOption('0');await page.locator('#spuPsfReferenceKey').selectOption('C4');const frameBefore=(await view()).observationFrame;
     await page.locator('#spuPsfCapture').click({delay:5});await until(()=>page.locator('#audioStatus').textContent().then(t=>t.includes('free SPU sample RAM')),'capacity error');
     assert.equal(await page.locator('#psfPauseSong').textContent(),'Resume');assert.equal((await view()).observationFrame,frameBefore);assert.deepEqual(await instrument(),fullSource);assert.equal((await inspect()).nextAddress,full.nextAddress);
     for(const width of [1240,390]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.join(config.screenshots,`${name}-paused-capture-${width}.png`),fullPage:true});}
     await page.locator('#psfStopSong').click();const graph=await page.evaluate(()=>__spuPsfAudit.graph());assert(graph.muted);assert.equal(graph.contexts,1);assert.equal(graph.destinationConnections,1);assert.deepEqual(errors,[]);
-    return {browser:name,passed:true,checks,referenceNote:'C5',rawPitch:0x1800,adpcmBytes:fixture.adpcm.length,firstNextAddress:firstBank.nextAddress,secondNextAddress:secondBank.nextAddress,capacityRemaining:32,graph,errors};
+    return {browser:name,passed:true,checks,referenceNote:'C5',rawPitch:0x1800,adpcmBytes:fixture.adpcm.length,firstNextAddress:firstBank.nextAddress,secondNextAddress:secondBank.nextAddress,capacityRemaining:32,noiseKeys,noisePlaceholderBytes:64,graph,errors};
   }catch(error){error.receipt={browser:name,checks,view:await view().catch(()=>null),errors,body:await page.locator('body').innerText().catch(()=>'' )};throw error;}finally{await page.close();}
 }
 (async()=>{
  await fs.rm(config.out,{force:true});await fs.mkdir(config.screenshots,{recursive:true});
  const {createPsfSpuFeatureFixture}=await import(pathToFileURL(path.join(repo,'test/helpers/spu_psf_playback_fixture.mjs')).href);
- const fixture=createPsfSpuFeatureFixture({pitch:0x1800,reverb:true,steps:[{delay:10000,writes:[[0x1c0,0x1234]]}]});
+ const noiseWrites=[[0x10,0x1400],[0x12,0x0c00],[0x14,0],[0x16,0],[0x18,0x000f],[0x1a,0x1fc0],[0x1e,0],[0x194,2],[0x198,3],[0x188,3]];
+ const fixture=createPsfSpuFeatureFixture({pitch:0x1800,reverb:true,noiseClock:37,steps:[{delay:4096,writes:noiseWrites},{delay:10000,writes:[[0x1c0,0x1234]]}]});
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin='http://127.0.0.1:'+server.address().port;
  try{for(const name of config.engines.split(',')){assert(['chromium','webkit'].includes(name));const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push(await check(browser,name,origin,fixture));}finally{await browser.close();}}
  assert.deepEqual(missing,[]);assert.deepEqual(external,[]);await fs.writeFile(config.out,JSON.stringify({...await runMetadata(),passed:true,physicalOutputMuted:true,listeningPerformed:false,results,missing,external},null,2)+'\n');console.log('PASS '+config.out);

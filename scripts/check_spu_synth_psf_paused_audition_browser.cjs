@@ -92,7 +92,7 @@ function installSilentAudit(){
       if(!voices.length)return {active:[],nativeFrames:observed.nativeFrames};
       if(session===null)throw Error('Preview has no observed Code session');
       const snapshot=await read('code',[session,'snapshot',[]]);
-      return {active:voices.map(voice=>{
+      return {noise:observed.noise,noiseMask:snapshot.registers[0x194/2]|snapshot.registers[0x196/2]<<16,noiseClock:(snapshot.registers[0x1aa/2]>>>8)&63,pmonMask:snapshot.registers[0x190/2]|snapshot.registers[0x192/2]<<16,active:voices.map(voice=>{
         const sample=snapshot.samples.find(value=>value.id===voice.sample);if(!sample)throw Error('Active preview sample missing');
         return {channel:voice.channel,pitch:voice.pitch,adsr1:voice.adsr1,adsr2:voice.adsr2,sample:{...sample},
           adpcm:Array.from(snapshot.ram.slice(sample.startAddress,sample.startAddress+sample.byteLength))};
@@ -114,12 +114,13 @@ async function fixture(){
   }
   const data=new DataView(b.buffer),writes=[[0x1aa,0xc010],[0x1a6,0x3000/8]];
   for(let at=0;at<b.length;at+=2)writes.push([0x1a8,data.getUint16(at,true)]);
-  writes.push([0x1aa,0xc000]);
+  writes.push([0x1aa,0xc000|(37<<8)]);
   for(const [at,value]of [[0,0x2000],[2,0x1000],[4,0x0c00],[6,0x3000/8],[8,0x000f],[10,0x1fc0],[14,0x3000/8]])writes.push([0x10+at,value]);
-  // CH3 is deliberately Noise: unsupported preview must not retire the song.
-  for(const [at,value]of [[0,0x0800],[2,0x0800],[4,0x1000],[6,0x3000/8],[8,0x000f],[10,0x1fc0],[14,0x3000/8]])writes.push([0x20+at,value]);
+  // Noise does not need a sample address or PITCH; capture/preview must not
+  // accidentally validate or decode these zero ADPCM registers.
+  for(const [at,value]of [[0,0x0800],[2,0x0800],[4,0],[6,0],[8,0x000f],[10,0x1fc0],[14,0]])writes.push([0x20+at,value]);
   writes.push([0x194,4],[0x188,7]);
-  const authored=createPsfSpuFeatureFixture({pitch:0x1800,steps:[{delay:4096,writes}]});
+  const authored=createPsfSpuFeatureFixture({pitch:0x1800,noiseClock:37,steps:[{delay:4096,writes}]});
   return {...authored,a:Array.from(a),b:Array.from(b),pitches:[0x1800,0x0c00]};
 }
 
@@ -164,6 +165,11 @@ async function check(browser,name,origin,authored){
     assert.equal(value.active[0].pitch,expectedPitch);assert.deepEqual(value.active[0].adpcm,expectedBytes);
     await until(async()=>{const output=await page.evaluate(()=>__pausedAuditionAudit.output());return output.finite&&output.muted&&output.rms>.00001;},'upstream preview PCM behind physical gain zero');return value;
   }
+  async function heldNoise(){let value;await until(async()=>{value=await preview();return value?.active.length===1;},'temporary Noise key');
+    const voice=value.active[0];assert.equal(voice.pitch,4096);assert.deepEqual(value.noise,{enabled:true,clock:37});assert.equal(value.noiseClock,37);assert(value.noiseMask&(1<<voice.channel));assert.equal(value.pmonMask,0);
+    await until(async()=>{const output=await page.evaluate(()=>__pausedAuditionAudit.output());return output.muted&&output.finite&&output.rms>.00001;},'actual temporary Noise output behind physical gain zero');return value;}
+  async function keyboardOctave(target){const current=Number(await page.locator('#octaveValue').textContent());for(let value=current;value!==target;value+=target>current?1:-1)await page.locator(target>current?'#octaveUp':'#octaveDown').click();assert.equal(Number(await page.locator('#octaveValue').textContent()),target);}
+  async function pointerNote(note,on){const key=page.locator('#keyboardKeys .key').filter({hasText:new RegExp('\\b'+note+'\\b')}).first();assert(await key.count(),'onscreen keyboard has '+note);await key.scrollIntoViewIfNeeded();const box=await key.boundingBox();assert(box);await page.mouse.move(box.x+box.width/2,box.y+box.height/2);if(on)await page.mouse.down();else await page.mouse.up();}
   async function noPreviewKeys(){await until(async()=>{const value=await preview();return !value||value.active.length===0;},'no orphaned preview gate');}
   async function importDocument(document){await page.locator('#presetFileInput').setInputFiles({name:'audition-author.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(document))});
     await until(()=>page.locator('#audioStatus').textContent().then(value=>value===`Loaded ${document.name}.`),'authored instrument import');}
@@ -203,13 +209,18 @@ async function check(browser,name,origin,authored){
     await assertPaused(frozen);await page.keyboard.up(c4);await noPreviewKeys();
     await page.locator('#spuPsfReferenceKey').selectOption('C5');await page.keyboard.down(c4);await held(authored.b,authored.pitches[1]/2);
     await page.keyboard.up(c4);await noPreviewKeys();await assertPaused(frozen);
-    step('Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop');
+    step('Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch');
     await page.locator('#spuLiveChannel').selectOption('0');const commandStart=(await commands()).length;
     await preparationRace(async()=>{});await assertPaused(frozen);
     assert(!(await commands()).slice(commandStart).some(value=>value.method==='code'&&value.args[1]==='noteOn'),'released pending key never posts a late note-on');
-    await page.locator('#spuLiveChannel').selectOption('2');await page.keyboard.down(c4);
-    await until(async()=>/Noise|ordinary ADPCM|cannot|not supported/i.test((await view()).status),'unsupported Noise preview rejected');
-    await page.keyboard.up(c4);await noPreviewKeys();await assertPaused(frozen);
+    await page.locator('#spuPsfChannelActivity [data-psf-channel="2"]').click({delay:5});await monitorSettled(2);
+    assert(await page.locator('#spuPsfCapture').isEnabled());assert(await page.locator('#spuPsfReferenceKey').isDisabled());
+    assert.equal(await page.locator('#spuPsfChannelActivity [data-psf-channel="2"]').evaluate(button=>button===document.activeElement),false);
+    measurements.noise=[];
+    for(const [note,octave] of [['C2',-1],['C5',2]]){await keyboardOctave(octave);await pointerNote(note,true);measurements.noise.push(await heldNoise());await assertPaused(frozen);assert.deepEqual(await instrument(),original);await pointerNote(note,false);await noPreviewKeys();}
+    await keyboardOctave(0);assert.deepEqual(await instrument(),original);
+    await page.keyboard.down(c4);await heldNoise();await page.locator('#spuPsfChannelActivity [data-psf-channel="0"]').click({delay:5});await page.keyboard.up(c4);await noPreviewKeys();await assertPaused(frozen);
+    assert(await page.locator('#spuPsfReferenceKey').isEnabled());
     await page.locator('#spuLiveChannel').selectOption('0');await page.locator('#spuPsfReferenceKey').selectOption('C4');
     step('Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song');
     await page.locator('#sustainToggle').check();await page.keyboard.down(c4);await held(authored.a,authored.pitches[0]);await page.keyboard.up(c4);
@@ -226,7 +237,7 @@ async function check(browser,name,origin,authored){
     const playedBank=await read();assert.deepEqual(playedBank.samples,originalBank.samples);assert.equal(playedBank.nextAddress,originalBank.nextAddress);
     original=playedEditor;
     step('Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank');
-    await page.locator('#spuLiveChannel').selectOption('1');await preparationRace(async()=>{await page.locator('#psfPauseSong').click({delay:5});});
+    await page.locator('#spuLiveChannel').selectOption('2');await preparationRace(async()=>{await page.locator('#psfPauseSong').click({delay:5});});
     await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Pause'),'resumed source');
     await until(async()=>Number((await view()).position)>Number(frozen.position),'resumed source consumes later PCM');
     assert((await graph()).bufferStarts>sourceGraph.bufferStarts);assert.deepEqual(await instrument(),original);await paused();
