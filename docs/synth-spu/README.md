@@ -225,7 +225,11 @@ Selecting a different accepted entry also stops the old song. Failed imports
 keep the previous selection. **Live from PSF** is on by default. Choose **CH 1–24**
 to observe that physical voice in the existing **PCM / ADSR / FX** panels without
 changing the song or the edited instrument. Observations follow the output
-position, up to 20 updates/s. Pause freezes all channels; choosing another CH
+position, up to 20 updates/s. A compact row of 24 numbered buttons shows sampled
+Core active / ENV; click one to select that channel. These are activity indicators,
+not output meters: even a silent modulator with zero voice volume can light.
+The underline shows ENV and turns amber when Gate is Off while the voice remains
+active. Pause freezes all channels; choosing another CH
 while paused inspects that same moment. Live Off restores the editable instrument
 while the song continues. Editing it then stops the song first. Stop also returns
 to the editor. Pause and choose **Capture to Synth** to edit or save an ordinary ADPCM channel. Seeking and PSF2 are not supported. Compatibility depends on the HLE

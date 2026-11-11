@@ -354,6 +354,18 @@ footer a { color: #4a5e74; }
 .spu-code-live-tools { margin:0 0 14px; border:1px solid var(--line); border-radius:9px; padding:10px 12px; background:#edf0f2; }
 .spu-code-live-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; }
 .spu-code-live-row label { display:flex; align-items:center; gap:7px; font-size:.75rem; color:var(--muted); }
+.spu-psf-channel-activity { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); gap:4px; margin:8px 0; }
+/* Keep selection separate from the shared pressed-button fill. */
+.spu-psf-channel[aria-pressed] { position:relative; min-width:0; min-height:30px; padding:4px 1px 7px; border:1px solid #bdc6cd; border-radius:5px; background:#e4e9ed; color:#62717c; box-shadow:none; font-size:.68rem; font-weight:700; font-variant-numeric:tabular-nums; line-height:1; }
+.spu-psf-channel::after { content:""; position:absolute; left:3px; right:3px; bottom:3px; height:3px; border-radius:2px; background:#b7c2ca; }
+.spu-psf-channel[data-lit="true"] { background:#d9eaf7; color:#205a85; }
+.spu-psf-channel[data-lit="true"]::after { right:auto; width:calc((100% - 6px)*var(--spu-channel-env,0)); min-width:2px; background:#3685bd; }
+.spu-psf-channel[data-lit="true"][data-gate="false"]::after { background:#af8733; }
+.spu-psf-channel[data-available="false"] { color:#89939b; background:#e9edef; }
+.spu-psf-channel[aria-pressed="true"] { border-color:#325f86; outline:2px solid #325f86; outline-offset:-1px; }
+.spu-psf-channel:hover,.spu-psf-channel:focus-visible { border-color:#2b70a4; background:#f7fbff; }
+@media(max-width:760px) { .spu-psf-channel-activity { grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; }.spu-psf-channel { min-height:30px; font-size:.65rem; } }
+@media(min-width:761px) and (max-width:1000px) { .spu-code-workspace.has-files .spu-psf-channel-activity { grid-template-columns:repeat(12,minmax(0,1fr)); } }
 .spu-psf-capture-tools { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
 .spu-psf-capture-tools select { padding:5px; border:1px solid var(--line); border-radius:6px; background:#f7f9fa; color:var(--ink); }
 .spu-psf-capture-tools button { padding:6px 10px; font-size:.75rem; }

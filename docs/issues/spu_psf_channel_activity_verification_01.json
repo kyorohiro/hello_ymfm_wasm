@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11",
+  "passed": true,
+  "scope": "Compact PSF 24-channel activity display using the existing audible-frame Live snapshots.",
+  "todo": "docs/issues/todo_spu_psf_channel_activity_01.md",
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "behavior": {
+    "channels": 24,
+    "physicalIndex": "0-23; labels 1-24",
+    "selection": "Click a numbered button to select the same existing PSF Live channel; button blurs for keyboard play. Clicking the already selected CH preserves held audition notes.",
+    "nativeActive": "Retain the native Core active flag independently of ENV, including active voices whose ENV is still zero.",
+    "indicator": "Light only when native Core active and ENV > 0; underline uses clamp(ENV / 32767, 0, 1). Amber means Gate Off while the indicator is lit, without claiming an exact release stage.",
+    "notOutputLevel": "A silent modulator with zero left/right voice volume may remain lit. Gate is the last CPU KON/KOFF request.",
+    "timing": "Use the existing at-most-20-Hz, audible-position-aligned PSF snapshot; no new timer, poll, RAM copy, audio client or source-machine write.",
+    "pause": "All indicators remain frozen with the same source frame during CH selection and temporary keyboard audition.",
+    "offWaitingErrorStop": "Clear unavailable activity rather than show stale values. Off/waiting buttons can still select a channel; source replacement and Stop clear the display.",
+    "layout": "Below PSF transport and above Envelope/Waveform/Spectrum. Normally 24 columns; narrow viewport or intermediate-width Files panel uses 12 columns. PSF only; explanations stay behind the existing help control.",
+    "dom": "Create 24 stable button/text nodes once; only changed attributes/styles update. Selection uses aria-pressed, independently of native activity."
+  },
+  "tests": {
+    "relatedNode": 51,
+    "finalPackageTests": 2,
+    "packageCountsOverlap": true,
+    "nodeCommand": "node --test --test-concurrency=1 docs/synth-spu/code_live.test.mjs docs/synth-spu/psf_song_preview.test.mjs docs/synth-spu/psf_paused_audition.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "nodeLog": {
+      "path": "/private/tmp/spu-psf-channel-activity-node.log",
+      "bytes": 5306,
+      "sha256": "d771285e686d96f2d622f95dbac243121f1a67f0aa71bf792ed380d96d34c793"
+    },
+    "finalPackageLog": {
+      "path": "/private/tmp/spu-psf-channel-activity-final-package-tests.log",
+      "bytes": 307,
+      "sha256": "82843c3170c4b53f589f6d109a51e5b1363760f246c32181c4358b3aa11b2784"
+    },
+    "browserFamilies": [
+      {
+        "family": "live",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-channel-activity-live-browser.json",
+          "bytes": 26068,
+          "sha256": "c1fe4c2ffd734d23c457ddbdb518c454f6c0a2ad4faaaeb19bda05066773ac50"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+              "passive activity selection; Off/waiting/source/Stop clearing",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 21,
+              "bufferStops": 10,
+              "monitorStrokes": 240,
+              "stopDelays": 0
+            },
+            "activityLayouts": [
+              {
+                "width": 1240,
+                "filesOpen": false,
+                "height": 30,
+                "rows": 1,
+                "overlap": false,
+                "minButtonWidth": 42.828125
+              },
+              {
+                "width": 800,
+                "filesOpen": true,
+                "height": 64,
+                "rows": 2,
+                "overlap": false,
+                "minButtonWidth": 32.5
+              },
+              {
+                "width": 390,
+                "filesOpen": false,
+                "height": 63,
+                "rows": 2,
+                "overlap": false,
+                "minButtonWidth": 23.75
+              }
+            ],
+            "zeroEnvNativeActiveProbe": {
+              "ready": "true",
+              "psfChannel": "0",
+              "available": "true",
+              "active": "true",
+              "lit": "false",
+              "gate": "false",
+              "env": "0",
+              "label": "CH 1 · Gate Off · Core active Yes · ENV 0"
+            },
+            "trustedPauseClicks": 1
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "default-on physical CH1–24",
+              "audible-time snapshot",
+              "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+              "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+              "passive activity selection; Off/waiting/source/Stop clearing",
+              "actual Noise / PMON flags",
+              "custom shared reverb and returns",
+              "bounded source preview labels",
+              "readonly authored state and saves",
+              "Off restores editor; edit stops PSF; authored Noise hides Morph",
+              "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 194,
+              "bufferStops": 157,
+              "monitorStrokes": 672,
+              "stopDelays": 0
+            },
+            "activityLayouts": [
+              {
+                "width": 1240,
+                "filesOpen": false,
+                "height": 30,
+                "rows": 1,
+                "overlap": false,
+                "minButtonWidth": 42.828125
+              },
+              {
+                "width": 800,
+                "filesOpen": true,
+                "height": 64,
+                "rows": 2,
+                "overlap": false,
+                "minButtonWidth": 32.5
+              },
+              {
+                "width": 390,
+                "filesOpen": false,
+                "height": 63,
+                "rows": 2,
+                "overlap": false,
+                "minButtonWidth": 23.75
+              }
+            ],
+            "zeroEnvNativeActiveProbe": {
+              "ready": "true",
+              "psfChannel": "0",
+              "available": "true",
+              "active": "true",
+              "lit": "false",
+              "gate": "false",
+              "env": "0",
+              "label": "CH 1 · Gate Off · Core active Yes · ENV 0"
+            },
+            "trustedPauseClicks": 61
+          }
+        ]
+      },
+      {
+        "family": "paused",
+        "receipt": {
+          "path": "/private/tmp/spu-psf-channel-activity-paused-browser.json",
+          "bytes": 37364,
+          "sha256": "b11cd4922ba79079b63453abe1695ecb15f995a3cb3234502102fed6b1170e4b"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "CH and reference-key selection change preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 50,
+              "bufferStops": 30
+            }
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": [
+              "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+              "CH and reference-key selection change preview bytes/PITCH while retaining the same frozen all-channel frame",
+              "Rapid key-up during delayed setup and unsupported Noise selection leave no late note or PSF Stop",
+              "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+              "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+              "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+              "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+              "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+            ],
+            "graph": {
+              "contexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferStarts": 49,
+              "bufferStops": 31
+            }
+          }
+        ]
+      }
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "layoutImageReview": [
+      "WebKit 1240px",
+      "WebKit 800px with Files"
+    ],
+    "fixture": "Original PSF fixtures, including a running PMON source with zero direct output volume. The zero-ENV edge is a detached display-only probe cloned from observed fields, with no source/audio mutation."
+  },
+  "distribution": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_psf-channel-activity-20261111-c-JsVO84",
+    "archive": {
+      "path": "release/tetorica_spu_synth_psf-channel-activity-20261111-c_itch.zip",
+      "bytes": 7002399,
+      "sha256": "83f9a5542581ac9b5217095457d4a6a9fd060cd563c578c6fc868c767657ebb0",
+      "files": 335
+    },
+    "readableActivityModuleExact": true,
+    "allZipBytesMatchStage": true,
+    "fixedArtifacts": [
+      {
+        "path": "docs/generated/psf-player/psf_player.js",
+        "bytes": 57239,
+        "sha256": "e8c3449898a3b2d2ab8931f19882ca32f6b9144ca0495249b27a69a4269e651a",
+        "unchangedFromHead": true
+      },
+      {
+        "path": "docs/generated/psf-player/psf_player.wasm",
+        "bytes": 454529,
+        "sha256": "28870b89a8be0011bcaa1c693682a1ca7b4292d6db5b7d7fb6c3b91d0dae086d",
+        "unchangedFromHead": true
+      },
+      {
+        "path": "tetorica_src/runtime/generated/ps1_spu_wasm.js",
+        "bytes": 17985,
+        "sha256": "1bce9139f84bc05662a3b8bcb1dfc6da44bebb90c104aa08dd904df3c5821b5b",
+        "unchangedFromHead": true
+      },
+      {
+        "path": "tetorica_src/runtime/generated/ps1_spu_wasm.wasm",
+        "bytes": 52082,
+        "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f",
+        "unchangedFromHead": true
+      }
+    ],
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    }
+  },
+  "artifacts": [
+    {
+      "path": "docs/synth-spu/psf_channel_activity.js",
+      "bytes": 3650,
+      "sha256": "e73a04111d7a73275b25d9ef98a606876a840e314dfabfc9d95edcb9b7c7ccc3"
+    },
+    {
+      "path": "docs/synth-spu/synth.js",
+      "bytes": 63844,
+      "sha256": "f3495c1968d5c1c33ddccd86527aa2ceee0276ba3800bb0adedc0d41c3ec8ea5"
+    },
+    {
+      "path": "docs/synth-spu/index.html",
+      "bytes": 23600,
+      "sha256": "51801130d765aac04c981eca8085ab47f1bc22761fe4988d88890fefc3c086e7"
+    },
+    {
+      "path": "docs/synth-spu/synth.css",
+      "bytes": 33457,
+      "sha256": "f11cb2209abfda6d2c9c5591e22dcd79ceeb118f3d76205ede049e8023928eb3"
+    },
+    {
+      "path": "docs/synth-spu/README.md",
+      "bytes": 25431,
+      "sha256": "5ff0cd1fddd27c2ad75e9fb16c6cbe5fa672ed2e0d3e7a9f1fdbf8d2b4f77d6b"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.mjs",
+      "bytes": 23150,
+      "sha256": "7775fbf0cfd1c1be2c8df98cf66cedfa72441785feef14b84ecfc1f9a1fd363a"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.test.mjs",
+      "bytes": 12590,
+      "sha256": "33e1e86481455b83bc20b02bc0a626dfd6f53cfe44a19d6713da2286be90087f"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_live_browser.cjs",
+      "bytes": 27102,
+      "sha256": "191ea246200222fa313a0c9db067d653db6c2aec75b62fc295174d881d58eb65"
+    },
+    {
+      "path": "scripts/check_spu_synth_psf_paused_audition_browser.cjs",
+      "bytes": 31868,
+      "sha256": "68ef9ed51dfed21d7bc4c1a01cda0589d541a533ab0cdb0b67bf4e8d08afd61a"
+    }
+  ]
+}

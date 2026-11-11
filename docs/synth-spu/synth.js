@@ -19,8 +19,10 @@ import {preparePsfSongSource} from './psf_song_source.js?v=spu-psf-playback-1';
 import {createPsfPlaybackCore} from './psf_playback_core.js?v=psf-capture-1';
 import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-capture-1';
 import {createPsfPausedAudition} from './psf_paused_audition.js?v=psf-paused-audition-1';
+import {createPsfChannelActivity} from './psf_channel_activity.js?v=psf-channel-activity-1';
 
 const $ = id => document.getElementById(id);
+const psfChannelActivity=createPsfChannelActivity({element:$('spuPsfChannelActivity'),onSelect:selectLiveVoice});
 // Replacing even an unchanged button/label text node can cancel a trusted
 // WebKit click between pointerdown and pointerup during Live's 20-Hz updates.
 const setText = (id,value) => {const node=$(id);if(node.textContent!==value)node.textContent=value;};
@@ -121,10 +123,12 @@ function updateCodeDisplay() {
   $('spuLiveChannel').setAttribute('aria-label',`${source} channel to observe`);
   $('spuLiveHelpLabel').setAttribute('aria-label',`About ${source} Live`);
   $('spuLiveHelpText').textContent=fromPsf?
-    "Read-only observations aligned with the song output, up to 20 updates/s. Choose CH 1–24 without changing its sound. Pause freezes all channels. With Live On, the keyboard temporarily auditions the selected ADPCM channel at the Reference key tuning; the song, frozen display and edited sound are kept. CH / Reference changes end that audition. Resume restores the editor before continuing the same song position. With Live Off, the keyboard auditions your edited instrument while the song stays paused. Editing an instrument stops the song. Capture makes the selection permanent. The PCM graph is a bounded ADPCM preview from programmed Start with zero history, not the audible waveform or a full extraction. Reference key reproduces PITCH without inferring the original root. New notes restart the envelope. Start / Repeat are programmed addresses, not cursors. Gate is the last CPU KON / KOFF request; ENDX also marks loops. Intermediate changes can be missed.":
+    "Read-only observations aligned with the song output, up to 20 updates/s. Choose CH 1–24 without changing its sound. The numbered buttons show sampled Core active / ENV, not output level; a silent modulator with zero voice volume can still light. Click a number to select its CH. The underline shows ENV, amber when Gate is Off but the core remains active. Live Off or an unavailable observation clears the indicators. Pause freezes all channels and their indicators. With Live On, the keyboard temporarily auditions the selected ADPCM channel at the Reference key tuning; the song, frozen display and edited sound are kept. CH / Reference changes end that audition. Resume restores the editor before continuing the same song position. With Live Off, the keyboard auditions your edited instrument while the song stays paused. Editing an instrument stops the song. Capture makes the selection permanent. The PCM graph is a bounded ADPCM preview from programmed Start with zero history, not the audible waveform or a full extraction. Reference key reproduces PITCH without inferring the original root. New notes restart the envelope. Start / Repeat are programmed addresses, not cursors. Gate is the last CPU KON / KOFF request; ENDX also marks loops. Intermediate changes can be missed.":
     'Read-only observations of the same physical SPU, up to 20 updates/s. Choose a channel to inspect without changing its sound. Live Off restores the edited instrument display while Code continues. Editing that instrument stops Code first. Stop restores your samples and settings. Intermediate register writes can be missed.';
   $('spuLiveEnabled').checked=live.liveEnabled;
   $('spuLiveChannel').value=String(live.liveVoice);
+  psfChannelActivity.update({visible:fromPsf,voice:live.liveVoice,liveState:observing?live.liveState:null,
+    waiting:!live.liveEnabled||live.liveWaiting,error:live.liveError});
   $('spuPsfCaptureTools').hidden=!fromPsf;
   const captureReason=fromPsf?captureUnavailable(live):'Play a PSF song to capture a channel.';
   $('spuPsfCapture').disabled=!fromPsf||Boolean(captureReason);
@@ -291,7 +295,14 @@ $('synthMenuPanel').addEventListener('click',event=>{
 }, {capture:true});
 codeLive=createSpuCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isCodeMode()&&codeHost?.isRunning()&&!document.hidden),onUpdate:updateCodeDisplay});
 for(let ch=0;ch<24;ch++)$('spuLiveChannel').append(new Option(`CH ${ch+1}`,String(ch)));
-$('spuLiveChannel').addEventListener('change',()=>{cancelPendingCapture();void stopPausedKeyboard({releaseEdited:true}).catch(report);const voice=Number($('spuLiveChannel').value);if(psfOwnsLiveView())psfSong.setLiveVoice(voice);else codeLive.setVoice(voice);$('spuLiveChannel').blur();});
+function selectLiveVoice(voice) {
+  if(!Number.isInteger(voice)||voice<0||voice>23)return;
+  const fromPsf=psfOwnsLiveView(),live=fromPsf?psfSong.read():codeLive?.read();
+  if(!live||live.liveVoice===voice)return;
+  cancelPendingCapture();void stopPausedKeyboard({releaseEdited:true}).catch(report);
+  if(fromPsf)psfSong.setLiveVoice(voice);else codeLive.setVoice(voice);
+}
+$('spuLiveChannel').addEventListener('change',()=>{selectLiveVoice(Number($('spuLiveChannel').value));$('spuLiveChannel').blur();});
 $('spuLiveEnabled').addEventListener('change',()=>{cancelPendingCapture();void stopPausedKeyboard({releaseEdited:true}).catch(report);const enabled=$('spuLiveEnabled').checked;if(psfOwnsLiveView())psfSong.setLiveEnabled(enabled);else codeLive.setEnabled(enabled);$('spuLiveEnabled').blur();});
 $('spuPsfReferenceKey').addEventListener('change',()=>{cancelPendingCapture();void stopPausedKeyboard({releaseEdited:true}).catch(report);$('spuPsfReferenceKey').blur();});
 $('spuPsfCapture').addEventListener('click',()=>{$('spuPsfCapture').blur();void capturePsfVoice();});
@@ -959,7 +970,7 @@ $('resetPreset').addEventListener('click', async () => {
   } catch (error) {report(error);}
 });
 window.addEventListener('pagehide', event => {
-  if(!event.persisted){disposed=true;codeLive.dispose();}
+  if(!event.persisted){disposed=true;codeLive.dispose();psfChannelActivity.dispose();}
   epoch++; beginAssetOperation(); preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
   if (event.persisted) visualizer.stop(); else visualizer.dispose();
   void (async()=>{
