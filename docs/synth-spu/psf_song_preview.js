@@ -8,8 +8,20 @@ const abortError=()=>new DOMException('PSF playback was cancelled','AbortError')
 const isAbort=error=>error?.name==='AbortError';
 const nativeSchedule=(callback,delay)=>setTimeout(callback,delay);
 const nativeCancel=timer=>clearTimeout(timer);
+const nativeNow=globalThis.performance?.now.bind(globalThis.performance)??Date.now.bind(Date);
+const nativeYield=()=>new Promise(resolve=>nativeSchedule(resolve,0));
 const LIVE_INTERVAL_FRAMES=2205; // 44,100 Hz / 20; independent of AudioBuffer size.
 const SPU_RAM_BYTES=512*1024;
+
+function abortable(value,signal) {
+  return new Promise((resolve,reject)=>{
+    const aborted=()=>{signal.removeEventListener('abort',aborted);reject(signal.reason??abortError());};
+    if(signal.aborted){Promise.resolve(value).catch(()=>{});aborted();return;}
+    signal.addEventListener('abort',aborted,{once:true});
+    Promise.resolve(value).then(result=>{signal.removeEventListener('abort',aborted);resolve(result);},
+      cause=>{signal.removeEventListener('abort',aborted);reject(cause);});
+  });
+}
 
 function detachedObservation(value,frame) {
   if(!value||typeof value!=='object'||value.nativeFrames!==frame||!Array.isArray(value.channels)||value.channels.length!==24)
@@ -49,18 +61,30 @@ function selectedSource(set,entry) {
  * Already rendered buffers survive Pause. Resume schedules their unconsumed
  * samples before asking the machine for new PCM, retaining the exact machine
  * position without rerunning initialization or dropping lookahead audio.
+ *
+ * seek(seconds) initializes one candidate, discards bounded stereo renders
+ * from its beginning and yields after every slice. Only a successful candidate
+ * replaces the retained run. Paused/stopped seeks stay paused; a playing seek
+ * resumes. Cancel/failure restores the old route and position. The wall-time
+ * limit is checked between native calls; one synchronous render cannot be
+ * interrupted. No long PCM/checkpoint cache is created by seeking.
  */
-export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{},createCore,
+export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=beforePlay,onUpdate=()=>{},createCore,
   schedule=nativeSchedule,cancel=nativeCancel,lookaheadSeconds=.2,chunkFrames=2048,
-  refillMilliseconds=25,startDelaySeconds=.01,createOutput=createSynthCodeOutput}={}) {
-  for(const fn of [getAudio,beforePlay,onUpdate,createCore,schedule,cancel,createOutput])if(typeof fn!=='function')throw new TypeError('PSF preview needs host callbacks');
+  refillMilliseconds=25,startDelaySeconds=.01,createOutput=createSynthCodeOutput,
+  yieldSeek=nativeYield,seekNowMs=nativeNow,seekChunkFrames=2048,seekMaxSeconds=1800,seekTimeoutMilliseconds=30000}={}) {
+  for(const fn of [getAudio,beforePlay,beforeSeek,onUpdate,createCore,schedule,cancel,createOutput,yieldSeek,seekNowMs])if(typeof fn!=='function')throw new TypeError('PSF preview needs host callbacks');
   if(!Number.isInteger(chunkFrames)||chunkFrames<1||chunkFrames>32768)throw new RangeError('PSF preview chunks must be 1..32768 frames');
   if(!Number.isFinite(lookaheadSeconds)||lookaheadSeconds<=0||lookaheadSeconds>1)throw new RangeError('PSF lookahead must be greater than zero and at most one second');
   if(!Number.isFinite(refillMilliseconds)||refillMilliseconds<1||refillMilliseconds>1000)throw new RangeError('Invalid PSF refill interval');
   if(!Number.isFinite(startDelaySeconds)||startDelaySeconds<0||startDelaySeconds>1)throw new RangeError('Invalid PSF startup delay');
+  if(!Number.isInteger(seekChunkFrames)||seekChunkFrames<1||seekChunkFrames>2048)throw new RangeError('PSF seek slices must be 1..2048 frames');
+  if(!Number.isFinite(seekMaxSeconds)||seekMaxSeconds<=0||seekMaxSeconds>1800)throw new RangeError('PSF seek range must be greater than zero and at most 1800 seconds');
+  if(!Number.isFinite(seekTimeoutMilliseconds)||seekTimeoutMilliseconds<1||seekTimeoutMilliseconds>120000)throw new RangeError('PSF seek timeout must be 1..120000 milliseconds');
   let source=null,starting=null,run=null,generation=0,disposed=false,liveEnabled=true,liveVoice=0,monitorEnabled=false;
+  let seeking=null,seekMessage='',seekCleanup=Promise.resolve(),seekCleanupPending=0;
   let message='Open a PSF set and choose an entry to play.',error=false;
-  const disposals=new WeakMap(),closing=new Set();
+  const disposals=new WeakMap(),closing=new Set(),seekPreparations=new Set();
   // One audible predecessor plus the bounded rendering lookahead and at most
   // one overhanging AudioBuffer. No history is retained for the whole song.
   const liveHistoryLimit=Math.ceil((lookaheadSeconds*44100+chunkFrames)/LIVE_INTERVAL_FRAMES)+2;
@@ -81,13 +105,17 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   }
   function read() {
     const playing=run?.phase==='playing',paused=run?.phase==='paused',resuming=run?.phase==='resuming';
+    const seekPreparing=seekPreparations.size>0;
     const liveState=liveEnabled&&run?audibleObservation(run):null,liveError=liveEnabled?run?.liveError??'':'';
     const capture=captureStatus(),retained=run?retainedObservations(run):[];
     return {selection:source?{entry:source.entry,title:source.title}:null,name:source?.entry??'',
-      playing,paused,resuming,starting:Boolean(starting),busy:Boolean(starting||resuming),
+      playing,paused,resuming,starting:Boolean(starting),busy:Boolean(starting||resuming||seeking||seekPreparing),
       positionSeconds:run?position()/run.rate:0,message,error,
-      canPlay:Boolean(source&&!starting&&!run&&!disposed),canPause:Boolean(playing),canResume:Boolean(paused),
-      canStop:Boolean(starting||run),liveKind:'psf',liveEnabled,liveVoice,liveState,
+      canPlay:Boolean(source&&!starting&&!run&&!seeking&&!seekPreparing&&!disposed),canPause:Boolean(playing&&!seeking&&!seekPreparing),canResume:Boolean(paused&&!seeking&&!seekPreparing),
+      canStop:Boolean(starting||run||seeking||seekPreparing),seeking:Boolean(seeking),seekPreparing,canSeek:Boolean(source&&!starting&&!resuming&&!seeking&&!seekPreparing&&!disposed),
+      canCancelSeek:Boolean(seeking&&!seeking.controller.signal.aborted),seekMaxSeconds,
+      seekTargetSeconds:seeking?seeking.targetFrame/44100:null,seekProgressSeconds:seeking?seeking.progressFrame/44100:0,seekMessage,
+      liveKind:'psf',liveEnabled,liveVoice,liveState,
       liveActive:Boolean(run&&liveEnabled&&liveState&&!liveError),
       liveWaiting:Boolean(run&&liveEnabled&&!liveState&&!liveError),liveError:Boolean(liveError),liveMessage:liveError,
       liveFrame:liveState?.nativeFrames??null,liveBufferedSnapshots:retained.length,
@@ -123,9 +151,10 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     return disposeCore(item.core);
   }
   function stop() {
-    generation++;const pending=starting,previous=run;starting=null;run=null;
+    generation++;const pending=starting,previous=run,pendingSeek=seeking;starting=null;run=null;seeking=null;
     pending?.controller.abort();
-    const tasks=[...closing];if(pending?.core)tasks.push(disposeCore(pending.core));if(previous)tasks.push(retire(previous));
+    pendingSeek?.controller.abort();if(pendingSeek&&pendingSeek.deadline!==null)nativeCancel(pendingSeek.deadline);seekMessage='';
+    const tasks=[...closing,...[...seekPreparations].map(task=>task.catch(()=>{}))];if(pending?.core)tasks.push(disposeCore(pending.core));if(previous)tasks.push(retire(previous));
     say(source?'Stopped. PSF selection and edited instrument kept.':'Stopped. Open a PSF set to play.');
     return Promise.all(tasks).then(()=>undefined);
   }
@@ -156,6 +185,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
   }
   function audibleObservation(item){return audibleEntry(item)?.state??null;}
   function captureStatus() {
+    if(seeking||seekPreparations.size)return {ready:false,observed:null,message:'Wait for PSF seeking to finish before capturing a channel.'};
     if(!run)return {ready:false,observed:null,message:'Play and pause a PSF song to capture its selected channel.'};
     if(run.phase!=='paused')return {ready:false,observed:null,message:'Pause the PSF song before capturing its selected channel.'};
     if(!liveEnabled)return {ready:false,observed:null,message:'Turn PSF Live on to capture the paused channel.'};
@@ -317,8 +347,144 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       emit();queue(item);
     }catch(cause){fail(item,cause);}
   }
+  function validateCore(core) {
+    if(core?.sampleRate!==44100||typeof core.render!=='function'||typeof core.dispose!=='function')
+      throw new Error('PSF engine must render 44,100 Hz stereo PCM');
+  }
+  function makeRun(owner,audio,phase='playing',frame=0) {
+    const context=audio?.context;
+    if(!context||context.state==='closed'||!audio.gain)throw new Error('SPU editor audio is unavailable');
+    let output,monitorGate;
+    try {
+      output=context.createGain();output.gain.value=1/SPU_SYNTH_MIX_HEADROOM;output.connect(audio.gain);
+      monitorGate=context.createGain();monitorGate.gain.value=1;monitorGate.connect(output);
+      const monitorAvailable=typeof owner.core.renderWithVoices==='function';
+      const item={generation:owner.generation,source:owner.source,controller:owner.controller,core:owner.core,
+        audio,context,output,monitorGate,rate:44100,segments:[],rendered:frame,consumed:frame,
+        monitorAvailable,monitorVoice:monitorEnabled&&monitorAvailable?liveVoice:null,monitorSwitching:false,monitorTask:null,
+        monitorError:monitorEnabled&&!monitorAvailable?'Selected-channel listening is unavailable in this PSF engine. Full song playback is kept.':'',
+        nextTime:null,phase,timer:null,liveHistory:[],livePaused:null,liveError:'',nextLiveFrame:frame};
+      item.monitorOutput=createOutput({getContext:()=>run===item&&current(item)?item.context:null,
+        getGain:()=>run===item&&current(item)?item.monitorGate:null});
+      return item;
+    }catch(cause){try{monitorGate?.disconnect();}catch{}try{output?.disconnect();}catch{}throw cause;}
+  }
+  function seekClock() {
+    const value=seekNowMs();if(!Number.isFinite(value))throw new Error('PSF seek clock must be finite');return value;
+  }
+  function checkSeek(owner) {
+    if(seeking!==owner||!current(owner)||owner.controller.signal.aborted)throw owner.controller.signal.reason??abortError();
+    if(seekClock()-owner.startedAt>=seekTimeoutMilliseconds)throw new Error('PSF seek exceeded its processing-time limit.');
+  }
+  async function performSeek(owner,previousCleanup) {
+    let candidate=null;
+    try {
+      // An aborted initializer may still be completing its WASM allocation.
+      // Never start a second candidate until that core has been disposed.
+      await abortable(previousCleanup,owner.controller.signal);checkSeek(owner);
+      const original=owner.original;
+      if(original) {
+        while(original.monitorTask)await abortable(original.monitorTask,owner.controller.signal);
+        checkSeek(owner);
+        if(original.phase==='playing') {
+          owner.fadedOriginal=true;
+          await abortable(original.monitorOutput.fadeOut(),owner.controller.signal);checkSeek(owner);
+          pauseRun(original);
+        }
+      }
+      owner.preparation=Promise.resolve(beforeSeek({signal:owner.controller.signal,isCurrent:()=>seeking===owner&&current(owner)&&!owner.controller.signal.aborted}));
+      seekPreparations.add(owner.preparation);
+      const prepared=()=>{seekPreparations.delete(owner.preparation);emit();};
+      void owner.preparation.then(prepared,prepared);emit();
+      await abortable(owner.preparation,owner.controller.signal);checkSeek(owner);
+      owner.initialization=Promise.resolve(createCore({set:owner.source.set,entry:owner.source.entry,signal:owner.controller.signal})).then(core=>{owner.core=core;return core;});
+      const core=await abortable(owner.initialization,owner.controller.signal);checkSeek(owner);validateCore(core);
+      let slice=Math.min(256,seekChunkFrames),lastUpdate=owner.startedAt;
+      while(owner.progressFrame<owner.targetFrame) {
+        checkSeek(owner);
+        const frames=Math.min(slice,owner.targetFrame-owner.progressFrame),started=seekClock();
+        // No stems, AudioBuffers, RAM snapshots or accumulated PCM during
+        // seeking. A native slice cannot be interrupted; yield after each.
+        const pcm=core.render(frames);
+        if(!(pcm instanceof Float32Array)||pcm.length!==frames*2||pcm.some(value=>!Number.isFinite(value)))
+          throw new Error('PSF engine returned invalid stereo PCM while seeking');
+        owner.progressFrame+=frames;
+        const now=seekClock(),elapsed=Math.max(.25,now-started);
+        slice=Math.max(1,Math.min(seekChunkFrames,Math.ceil(frames*2),Math.floor(frames*10/elapsed)));
+        if(now-lastUpdate>=50||owner.progressFrame===owner.targetFrame) {
+          lastUpdate=now;seekMessage=`Seeking ${owner.source.title}: ${(owner.progressFrame/44100).toFixed(2)} / ${(owner.targetFrame/44100).toFixed(2)} s…`;emit();
+        }
+        await abortable(yieldSeek(),owner.controller.signal);checkSeek(owner);
+      }
+      const audio=owner.original?.audio??await abortable(getAudio(),owner.controller.signal);checkSeek(owner);
+      candidate=makeRun(owner,audio,'paused',owner.targetFrame);checkSeek(owner);
+      // Commit only now. The original run, its unconsumed PCM and frozen
+      // observation remain intact until the candidate reaches the exact frame.
+      const previous=run;run=candidate;owner.committed=true;seeking=null;
+      if(owner.deadline!==null){nativeCancel(owner.deadline);owner.deadline=null;}
+      if(liveEnabled){captureLive(candidate,owner.targetFrame);candidate.livePaused=candidate.liveHistory.at(-1)??null;}
+      if(previous)owner.retirement=retire(previous).catch(()=>{});
+      seekMessage=`Seek complete at ${(owner.targetFrame/44100).toFixed(2)} s.`;
+      say(`Paused ${source.title} at ${(owner.targetFrame/44100).toFixed(2)} s.`);
+      if(owner.restorePlaying)return await abortable(resume(),owner.controller.signal);
+      return run===candidate&&current(candidate);
+    }catch(cause) {
+      // Host preparation may already be mutating the authored bank. Unlike
+      // an isolated WASM initializer, it cannot safely finish after Cancel
+      // re-enables editing or a replacement performance takes ownership.
+      if(seeking===owner&&current(owner))await Promise.resolve(owner.preparation).catch(()=>{});
+      const accepted=seeking===owner&&current(owner);
+      if(accepted) {
+        seeking=null;
+        if(candidate)await retire(candidate).catch(()=>{});
+        const previous=owner.original;
+        if(previous&&run===previous&&current(previous)&&owner.restorePlaying&&(previous.phase!=='playing'||owner.fadedOriginal)) {
+          // Cancellation can interrupt a fade before Pause. Rebuild only the
+          // scheduled route at its true audible cursor, never the machine.
+          if(previous.phase==='playing')pauseRun(previous);
+          await abortable(resume(),previous.controller.signal).catch(()=>{});
+        }
+        if(!disposed&&generation===owner.generation&&source===owner.source&&!seeking) {
+          const cancelled=isAbort(cause)||owner.cancelled;
+          seekMessage=cancelled?'Seek cancelled. Previous song position kept.':`PSF seek failed: ${cause?.message??String(cause)}. Previous song position kept.`;
+          say(seekMessage,!cancelled);
+        }
+      }else if(candidate&&!owner.committed)await retire(candidate).catch(()=>{});
+      return false;
+    }finally {
+      if(owner.deadline!==null)nativeCancel(owner.deadline);
+      // Cancelling is responsive even while an initializer ignores its signal.
+      // Its eventual core still belongs to this cleanup tail, which the next
+      // seek/Play waits for before allocating another machine.
+      void Promise.all([Promise.resolve(owner.initialization).catch(()=>{}),Promise.resolve(owner.preparation).catch(()=>{}),owner.retirement]).then(()=>owner.committed?undefined:disposeCore(owner.core)).catch(()=>{}).then(()=>{
+        seekCleanupPending--;owner.releaseCleanup();
+      });
+    }
+  }
+  async function seek(seconds) {
+    if(disposed)throw new Error('PSF preview is disposed');
+    if(!Number.isFinite(seconds)||seconds<0||seconds>seekMaxSeconds)throw new RangeError(`PSF seek position must be 0..${seekMaxSeconds} seconds`);
+    if(!source)throw new Error('Choose a PSF entry first');
+    if(starting||run?.phase==='resuming')return false;
+    const previous=seeking,previousCleanup=seekCleanup;
+    const owner={generation,source,controller:new AbortController(),core:null,initialization:null,preparation:null,retirement:null,committed:false,cancelled:false,fadedOriginal:Boolean(previous?.fadedOriginal),
+      original:previous?.original??run,restorePlaying:previous?.restorePlaying??run?.phase==='playing',
+      targetFrame:Math.round(seconds*44100),progressFrame:0,startedAt:seekClock(),deadline:null,releaseCleanup:null,task:null};
+    previous?.controller.abort();if(previous&&previous.deadline!==null)nativeCancel(previous.deadline);
+    seekCleanupPending++;seekCleanup=new Promise(resolve=>{owner.releaseCleanup=resolve;});seeking=owner;
+    owner.deadline=nativeSchedule(()=>owner.controller.abort(new Error('PSF seek exceeded its processing-time limit.')),seekTimeoutMilliseconds);
+    seekMessage=`Preparing seek to ${(owner.targetFrame/44100).toFixed(2)} s…`;
+    owner.task=Promise.resolve().then(()=>performSeek(owner,previousCleanup));say(seekMessage);
+    return owner.task;
+  }
+  async function cancelSeek() {
+    const owner=seeking;if(!owner)return false;
+    owner.cancelled=true;owner.controller.abort();if(owner.deadline!==null)nativeCancel(owner.deadline);
+    await owner.task;return true;
+  }
   async function play() {
     if(disposed)throw new Error('PSF preview is disposed');
+    if(seeking)return false;
     if(run?.phase==='paused')return resume();
     if(starting||run)return false;
     if(!source)throw new Error('Choose a PSF entry first');
@@ -326,21 +492,12 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     const check=()=>{if(!current(owner)||starting!==owner)throw abortError();};
     say(`Preparing ${source.title}…`);
     try {
+      if(seekCleanupPending)await abortable(seekCleanup,owner.controller.signal);check();
       owner.core=await createCore({set:owner.source.set,entry:owner.source.entry,signal:owner.controller.signal});check();
-      if(owner.core?.sampleRate!==44100||typeof owner.core.render!=='function'||typeof owner.core.dispose!=='function')throw new Error('PSF engine must render 44,100 Hz stereo PCM');
+      validateCore(owner.core);
       await beforePlay({signal:owner.controller.signal,isCurrent:()=>current(owner)&&starting===owner});check();
       const audio=await getAudio();check();
-      const context=audio?.context;
-      if(!context||context.state==='closed'||!audio.gain)throw new Error('SPU editor audio is unavailable');
-      const output=context.createGain();output.gain.value=1/SPU_SYNTH_MIX_HEADROOM;output.connect(audio.gain);
-      const monitorGate=context.createGain();monitorGate.gain.value=1;monitorGate.connect(output);
-      const monitorAvailable=typeof owner.core.renderWithVoices==='function';
-      const item={...owner,audio,context,output,monitorGate,rate:44100,segments:[],rendered:0,consumed:0,
-        monitorAvailable,monitorVoice:monitorEnabled&&monitorAvailable?liveVoice:null,monitorSwitching:false,monitorTask:null,
-        monitorError:monitorEnabled&&!monitorAvailable?'Selected-channel listening is unavailable in this PSF engine. Full song playback is kept.':'',
-        nextTime:null,phase:'playing',timer:null,liveHistory:[],livePaused:null,liveError:'',nextLiveFrame:0};
-      item.monitorOutput=createOutput({getContext:()=>run===item&&current(item)?item.context:null,
-        getGain:()=>run===item&&current(item)?item.monitorGate:null});
+      const item=makeRun(owner,audio);
       run=item;starting=null;say(`Playing ${source.title}.`);refill(item);return run===item;
     }catch(cause) {
       const accepted=current(owner)&&starting===owner;
@@ -348,13 +505,15 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       await disposeCore(owner.core).catch(()=>{});return false;
     }
   }
-  function pause() {
-    const item=run;if(!item||item.phase!=='playing')return false;
+  function pauseRun(item) {
+    if(run!==item||!current(item)||item.phase!=='playing')return false;
     trim(item);item.livePaused=liveEnabled?audibleEntry(item):null;
     cancelRefill(item);stopNodes(item);item.phase='paused';
     say(`Paused ${source.title}.`);return true;
   }
+  function pause() {return !seeking&&run?pauseRun(run):false;}
   async function resume() {
+    if(seeking)return false;
     const item=run;if(!item||item.phase!=='paused')return false;
     item.phase='resuming';say(`Resuming ${source.title}…`);
     try {
@@ -384,6 +543,9 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
       // machine. Off while playing never keeps a stale/future observation.
       clearLive(run,run.phase==='paused'||run.phase==='resuming');
       if(value&&run.livePaused)run.liveHistory.push(run.livePaused);
+      else if(value&&run.phase==='paused'&&run.rendered===run.consumed) {
+        captureLive(run,run.rendered);run.livePaused=run.liveHistory.at(-1)??null;
+      }
     }
     emit();return read();
   }
@@ -407,5 +569,5 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},onUpdate=()=>{}
     if(disposed)return;
     disposed=true;await stop();source=null;
   }
-  return {read,setSource,play,pause,resume,stop,dispose,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused};
+  return {read,setSource,play,pause,resume,stop,dispose,seek,cancelSeek,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused};
 }

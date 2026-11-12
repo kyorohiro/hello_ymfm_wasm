@@ -406,7 +406,9 @@ footer a { color: #4a5e74; }
 .psf-song-folder {max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);}
 .psf-song-transport select {flex:1 1 180px;width:220px;min-width:0;max-width:100%;padding:5px 8px;border:1px solid #a0adb7;border-radius:999px;background:#f7f9fa;color:var(--ink);font:inherit;}
 .psf-song-transport button {min-height:28px;padding:4px 10px;font:inherit;font-weight:650;}
-.psf-song-transport output {font-variant-numeric:tabular-nums;min-width:3.5em;text-align:center;}
+.psf-song-transport output {font-variant-numeric:tabular-nums;min-width:3.5em;text-align:center;white-space:nowrap;}
+#psfSongSeek {flex:1 1 130px;width:140px;min-width:90px;max-width:260px;margin:0;}
+#psfSeekProgress {width:75px;max-width:100%;height:12px;}
 .psf-song-transport .spu-code-help {margin:0 0 0 auto;}
 .psf-song-player #psfPlaybackStatus {margin:6px 0 0;font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #psfPlaybackStatus[data-error="true"] {color:var(--error, #b33631);}

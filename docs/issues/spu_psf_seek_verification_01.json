@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "PSF seek through bounded silent forward execution in a disposable candidate machine.",
+  "todo": "docs/issues/todo_spu_psf_seek_01.md",
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "behavior": {
+    "commit": "Prepare a separate core from frame zero; discard rendered stereo PCM and yield after each slice. Commit only at the rounded 44100 Hz target frame.",
+    "limits": {
+      "targetSeconds": 1800,
+      "processingMilliseconds": 30000,
+      "initialSliceFrames": 256,
+      "maximumSliceFrames": 2048,
+      "adaptiveSliceTargetMilliseconds": 10,
+      "hardNativeCallPreemption": false
+    },
+    "oldRun": "Retain its core, unconsumed buffers, frozen source state and original playing/paused intent until success. Cancel/failure returns to that state. Stopped-entry seeking prepares Pause; playing seeks resume; paused seeks stay paused.",
+    "ownership": "One candidate at a time. Serialize late initialization/disposal, mutable beforeSeek cleanup, Stop/source/reseek/dispose and monitor fades. seekPreparing fences keyboard/editor/Capture while noninterruptible author cleanup finishes, even after Stop.",
+    "data": "No long seek PCM/checkpoint cache, stems or Live/RAM history are collected during discard. Capture the exact target observation/RAM only after committing. Keep selected CH, Live/Dry, view and authored instrument.",
+    "ui": "Draft only during input; commit on release/change or arrow-key release. Arrow=1s, Shift=10s. Cancel seek/Escape restores the previous position. Native actual cursor stays separate from the draft.",
+    "metadata": "Strict seconds/mm:ss/hh:mm:ss parser. Unambiguous length plus valid fade is only a range hint; invalid fade is ignored. Missing/ambiguous length shows ? and an expanding five-minute window. No automatic end/fade."
+  },
+  "node": {
+    "command": "node --test docs/synth-spu/*.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "passed": 267,
+    "failed": 0,
+    "log": "/private/tmp/spu-psf-seek-node.log",
+    "seekFakeTests": 18,
+    "seekControlsTests": 6,
+    "seekRealWasmTests": 3
+  },
+  "nativeConformance": {
+    "source": "docs/synth-spu/psf_seek_conformance.test.mjs",
+    "originalFixturesOnly": true,
+    "comparedFrames": [
+      0,
+      1,
+      2205,
+      12345,
+      44101
+    ],
+    "exact": [
+      "full stereo PCM",
+      "24 dry stems",
+      "all 24 voice observations",
+      "512 SPU register words",
+      "2 MiB CPU RAM",
+      "512 KiB SPU RAM",
+      "trace/gates/active/nativeFrames",
+      "future 4096-frame PCM and stems after the target"
+    ],
+    "notDirectlyExposed": "CPU GPR snapshot is not available in this ABI; CPU RAM/trace and subsequent PCM/stems continuation are compared instead."
+  },
+  "browser": {
+    "seek": {
+      "report": "/private/tmp/spu-psf-seek-browser.json",
+      "record": {
+        "bytes": 16165,
+        "sha256": "ad8a3f2ef5768dfb6f44576f583a9cb6a69322f8cc38dfb2110f091867cd4e73"
+      },
+      "testedStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Slider input is a draft; stopped seek commits a paused target without scheduling discard PCM",
+            "Escape abandons a slider draft without stopping or moving the paused source",
+            "The destination CH supports exact frozen audition and Capture while preserving the edited bank",
+            "Backward and playing seeks keep the author, native CH and selected Dry preference",
+            "Cancel during progress restores the same paused position, CH and snapshot without creating audio buffers",
+            "Candidate loading failure keeps the accepted core and position; later seeks still work",
+            "Source replacement and explicit Stop retire pending candidates and prevent late commits",
+            "Unknown duration uses a five-minute window; Escape cancels without stopping the paused source"
+          ],
+          "measurements": {
+            "cancel": {
+              "position": 1.5539909297052155,
+              "frame": 68355
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Slider input is a draft; stopped seek commits a paused target without scheduling discard PCM",
+            "Escape abandons a slider draft without stopping or moving the paused source",
+            "The destination CH supports exact frozen audition and Capture while preserving the edited bank",
+            "Backward and playing seeks keep the author, native CH and selected Dry preference",
+            "Cancel during progress restores the same paused position, CH and snapshot without creating audio buffers",
+            "Candidate loading failure keeps the accepted core and position; later seeks still work",
+            "Source replacement and explicit Stop retire pending candidates and prevent late commits",
+            "Unknown duration uses a five-minute window; Escape cancels without stopping the paused source"
+          ],
+          "measurements": {
+            "cancel": {
+              "position": 1.57,
+              "frame": 68355
+            }
+          }
+        }
+      ]
+    },
+    "playback": {
+      "report": "/private/tmp/spu-psf-seek-psf_playback-browser.json",
+      "record": {
+        "bytes": 22179,
+        "sha256": "b0da1d529c59f79ba01b059df1c6fc082406a2b029eac07bb11c5d13589f5086"
+      },
+      "testedStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+            "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+            "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+            "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+            "Pause stops output and scheduling; Resume advances from the retained playback position",
+            "Stop keeps the authored instrument and the independent VAB extraction controls",
+            "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+            "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+            "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+            "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation",
+            "Public PSF import lists executable entries without starting audio and preserves the existing VAB selection",
+            "One compact song list stays above the monitor in every instrument tab and at desktop / mobile widths",
+            "Play schedules real stereo PSF PCM on the editor output and wakes its monitor",
+            "Pause stops output and scheduling; Resume advances from the retained playback position",
+            "Stop keeps the authored instrument and the independent VAB extraction controls",
+            "Changing the PSF entry stops its old preview; malformed imports retain the accepted entry and instrument",
+            "A quick keyboard release while song Stop is pending never leaves an orphaned note",
+            "Code Run retires the song; starting another song stops Code and returns its authored instrument",
+            "Folder import lists PSF / MiniPSF songs with its physical folder name and shares selection with VAB extraction"
+          ]
+        }
+      ]
+    },
+    "live": {
+      "report": "/private/tmp/spu-psf-seek-psf_live-browser.json",
+      "record": {
+        "bytes": 29753,
+        "sha256": "105dd16160d6a667543b2e12ddfa978042e3b9454208779c34e174c380c34f56"
+      },
+      "testedStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+            "default-on physical CH1–24",
+            "audible-time snapshot",
+            "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+            "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+            "Synth view keeps Live activity and native CH; same-number click returns source; Off clears activity and CH selection reenables Live",
+            "actual Noise / PMON flags",
+            "custom shared reverb and returns",
+            "bounded source preview labels",
+            "readonly authored state and saves",
+            "paused Synth PCM/ADSR/Reverb/Morph/Noise/PMON edits retain source; native CH compare and Resume; playing edit stops PSF",
+            "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "selected dry mode isolates silent PMON source from full wet song; carrier nonzero; Live Off independent; no register/RAM writes; paused switch and Resume retain desired output",
+            "default-on physical CH1–24",
+            "audible-time snapshot",
+            "Pause frozen with CH switching; 30 WebKit Pause/Resume click cycles",
+            "24 stable activity buttons; native ENV including muted-direct PMON source; zero ENV retains native active without lighting",
+            "Synth view keeps Live activity and native CH; same-number click returns source; Off clears activity and CH selection reenables Live",
+            "actual Noise / PMON flags",
+            "custom shared reverb and returns",
+            "bounded source preview labels",
+            "readonly authored state and saves",
+            "paused Synth PCM/ADSR/Reverb/Morph/Noise/PMON edits retain source; native CH compare and Resume; playing edit stops PSF",
+            "compact activity above monitor; desktop / mobile and 800px Files layout; inactive selected hover legibility"
+          ]
+        }
+      ]
+    },
+    "paused": {
+      "report": "/private/tmp/spu-psf-seek-psf_paused_audition-browser.json",
+      "record": {
+        "bytes": 49314,
+        "sha256": "4b48defc61440a032fdd7f941924f3d8e9873fe1f3be4f539ceff4ceef9438d6"
+      },
+      "testedStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+            "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+            "Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch",
+            "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+            "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+            "Resume cancels a Synth edit awaiting temporary preview restoration without writing or surfacing AbortError",
+            "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+            "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+            "Paused Synth edits survive an original CH trial and checkpoint restoration",
+            "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "A genuine paused keyboard key plays selected CH1 without stopping or advancing the PSF",
+            "Selected dry mode and genuine CH/reference selection preserve preview bytes/PITCH while retaining the same frozen all-channel frame",
+            "Rapid key-up and real Noise-only preview preserve Pause; Noise follows clock rather than keyboard pitch",
+            "Sustain, Release notes, blur and Live Off do not strand notes or remove the paused song",
+            "Resume, source replacement and Stop fence pending preview setup and restore the exact authored bank",
+            "Resume cancels a Synth edit awaiting temporary preview restoration without writing or surfacing AbortError",
+            "Code Run retires preview ownership; a stale keyboard release cannot stop its new session",
+            "Capture after temporary preview preflights the authored bank and keeps original PSF bytes and reference tuning",
+            "Paused Synth edits survive an original CH trial and checkpoint restoration",
+            "A full authored RAM bank rejects Capture after preview without losing the paused PSF or authored sound"
+          ]
+        }
+      ]
+    },
+    "capture": {
+      "report": "/private/tmp/spu-psf-seek-psf_capture-browser.json",
+      "record": {
+        "bytes": 8811,
+        "sha256": "64050473226e18fadd55acdbecd4f6600cdd83a305d2becd00f4a675d325478d"
+      },
+      "testedStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone uses the same bounded read-only ADPCM preview without changing its saved source",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone uses the same bounded read-only ADPCM preview without changing its saved source",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        }
+      ]
+    },
+    "code": {
+      "report": "/private/tmp/spu-psf-seek-code-browser.json",
+      "record": {
+        "bytes": 19579,
+        "sha256": "5af6e25f9e964e05541a051a43ef69cd858e0ee873ffafa797453f31655484bd"
+      },
+      "testedStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        }
+      ]
+    }
+  },
+  "safety": {
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "ordinaryBrowserOrNativeAppUsed": false,
+    "osVolumeChanged": false,
+    "method": "Destination intercepted before application scripts through gain 0; Chromium additionally uses --mute-audio."
+  },
+  "visualInspection": [
+    "/private/tmp/spu-psf-seek-browser/chromium-paused-seek-1240.png",
+    "/private/tmp/spu-psf-seek-browser/webkit-paused-seek-390.png"
+  ],
+  "distribution": {
+    "stage": "release/itch_spu_synth_psf-seek-20261112-a-WP8nzp",
+    "archive": "release/tetorica_spu_synth_psf-seek-20261112-a_itch.zip",
+    "files": 337,
+    "archiveRecord": {
+      "bytes": 7043938,
+      "sha256": "f798e02eb32b07153a7cf7be14141a6fd8baa0fc10c46a5f7c7c9e4397755137"
+    },
+    "crcPassed": true,
+    "allEntriesMatchStage": true,
+    "authoredJavaScriptCopiedByteForByte": true,
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    },
+    "nativeOrWasmChanged": false,
+    "psfAbi": 4,
+    "documentationOnlyFinalization": {
+      "baselineStage": "release/itch_spu_synth_psf-seek-20261112-emjPJh",
+      "changedPaths": [
+        "sources/spu-synth-browser-inputs.zip",
+        "sources/spu-synth-browser.json",
+        "synth-spu/README.md"
+      ],
+      "reason": "Clarify that an ambiguous length tag makes duration unknown; an invalid fade alone is ignored.",
+      "allBrowserServedAssetsStillMatch": true,
+      "allApplicationRuntimeFilesByteIdentical": true
+    }
+  },
+  "sourceFiles": {
+    "docs/synth-spu/synth.js": {
+      "bytes": 74234,
+      "sha256": "c3d6d06688fa73ad7e5539ac00566bc2816305bc5ea66f4acf76ce3ef440f43a"
+    },
+    "docs/synth-spu/psf_song_preview.js": {
+      "bytes": 36457,
+      "sha256": "3827843fbc64e4eca7460b9b04a98430b3d9ab2f4597dd8fb2d34f62930088a8"
+    },
+    "docs/synth-spu/psf_seek_controls.js": {
+      "bytes": 6326,
+      "sha256": "3ff06fc9ab93aaffd0a570add1da016ca816caa4f4461c489c0e3c329fa4fffd"
+    },
+    "docs/synth-spu/index.html": {
+      "bytes": 25654,
+      "sha256": "251c84918e553f1b9d5b8e13f911db7a2a3a43304b435f9a2adad08f27eb95ac"
+    },
+    "docs/synth-spu/synth.css": {
+      "bytes": 34530,
+      "sha256": "c1a7c09f84cbcd0abf96fb4240e00e256ef6afac6273136f94b8a82342a1cba6"
+    },
+    "docs/synth-spu/README.md": {
+      "bytes": 30457,
+      "sha256": "b6ddecd14011c20d8c56a440a3a1f874b8b8692eef5cc2d3491ab4d04b497306"
+    },
+    "scripts/package_itch_spu_synth.mjs": {
+      "bytes": 27308,
+      "sha256": "1ffa2061488a783e931e2c8ac0f72f6f331d381338187998af147a02a77e6ace"
+    }
+  }
+}

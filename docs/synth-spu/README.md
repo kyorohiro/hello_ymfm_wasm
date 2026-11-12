@@ -250,7 +250,7 @@ Switch to a PSF CH to compare its original sound, then back to Synth to continue
 with your latest edits. **Resume** continues the original song from the paused position.
 Edits during song playback and loading another preset, VAB Tone or audio sample
 still stop the song. Stop also returns
-to the editor. Pause and choose **Capture to Synth** to edit or save an ADPCM or Noise channel. Seeking and PSF2 are not supported. Compatibility depends on the HLE
+to the editor. Pause and choose **Capture to Synth** to edit or save an ADPCM or Noise channel. PSF2 is not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
 The active song SPU uses the same fixed MAME-derived DSP sources as the
 keyboard Synth: ADPCM, four-point Gaussian interpolation, ADSR, Noise, PMON,
@@ -259,6 +259,30 @@ accesses, RAM transfers and IRQ use this same instance; the old Play! SPU does
 not contribute audio. Song output retains hardware mixing, without the
 keyboard's software headroom or click guard. The Synth's Master controls the
 final bus.
+
+The **seek bar** moves only when you release it (or release an arrow key).
+Arrows move the draft by one second; Shift uses ten seconds. The player starts
+a separate candidate machine from the beginning and silently renders through
+the requested time, keeping the original position until the candidate is ready.
+Seeking from Pause remains paused; seeking while playing continues playback
+from the new position. Seeking an entry that is stopped prepares it at the
+requested position in Pause. Use **Cancel seek** or Escape while seeking to
+return to the previous position and playback state. Stop and source changes
+discard the candidate. Failure also keeps the original position and instrument.
+
+Progress is displayed while advancing. The first version supports target
+positions up to 30 minutes and a 30-second processing budget, checked between
+small native render slices; a native slice itself cannot be interrupted.
+Early PCM is discarded without scheduling audio, retaining a full-song buffer
+or collecting Live/RAM history along the way. Only one candidate is prepared
+at a time. This is forward execution from the beginning, with no seek checkpoint
+cache. The regular bounded playback lookahead is kept after arrival.
+
+`length` plus `fade` tags provide a **reference range**, not an enforced end or
+fade. Missing or ambiguous length tags show **?** and use an expanding five-minute
+slider window, within the seek limit. The current playback time stays separate
+from a dragged draft. At arrival, Live and Capture use the exact new frame;
+the selected CH, Dry listening preference, view and edited Synth sound are kept.
 
 **Selected CH only · Dry** is a Tetorica software listening helper, initially
 Off. It auditions the selected channel's dry output, including its voice and
