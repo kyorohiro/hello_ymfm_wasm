@@ -54,3 +54,30 @@ test('SPU local storage round-trips binary files under its own key',async()=>{
   assert.equal(await store.read(),null);await store.write(project.snapshot());assert(values.has(SPU_PROJECT_STORAGE_KEY));const restored=createSpuCodeProject({snapshot:await store.read()});
   assert.deepEqual(restored.fs.get('/sample.bin').data,Uint8Array.of(3,255));assert.equal(values.get('tetorica-sid-synth-project-v1'),'SID kept');
 });
+
+test('SPU JSON and text editor path/mode survive local snapshots and ZIP without applying or executing them',async()=>{
+  for(const mode of ['keyboard','code']) {
+    const project=createSpuCodeProject({starterCode:'// retained JS'}),json=JSON.stringify(soundFixture())+'\n';
+    project.importFiles([{path:'/presets/saved.spu.json',data:json},{path:'/notes.txt',data:'plain notes'}]);
+    project.select('/presets/saved.spu.json');project.setCodeState({mode,path:'/presets/saved.spu.json'});
+    const restored=createSpuCodeProject({snapshot:project.snapshot()});assert.deepEqual(restored.getCodeState(),{mode,path:'/presets/saved.spu.json'});
+    const zipCopy=createSpuCodeProject();zipCopy.restore(await zipCopy.prepareImport(project.exportProject()));
+    assert.deepEqual(zipCopy.getCodeState(),{mode,path:'/presets/saved.spu.json'});assert.equal(zipCopy.fs.get('/presets/saved.spu.json').data,json);
+    zipCopy.setCodeState({mode,path:'/notes.txt'});assert.equal(zipCopy.getCodeState().path,'/notes.txt');
+    zipCopy.importFiles([{path:'/data.bin',type:'binary',data:Uint8Array.of(1)}]);
+    assert.throws(()=>zipCopy.setCodeState({mode,path:'/data.bin'}),/selection/);
+    assert.throws(()=>zipCopy.setCodeState({mode,path:'/missing.json'}),/selection/);
+  }
+});
+
+test('SPU editor writes accept large presets while preserving JavaScript and total-byte limits atomically',()=>{
+  const project=createSpuCodeProject({starterCode:'// JS'}),large='{"sample":"'+'a'.repeat(2*1024*1024)+'"}';
+  project.importFiles([{path:'/presets/large.json',data:large}]);project.writeEditorText('/presets/large.json',large+'\n');
+  assert.equal(project.fs.get('/presets/large.json').data,large+'\n');
+  assert.throws(()=>project.writeEditorText('/index.js','x'.repeat(2*1024*1024+1)),/2 MiB/);assert.equal(project.fs.get('/index.js').data,'// JS');
+  const bytes=new TextEncoder().encode(large+'\n').length+new TextEncoder().encode('// JS').length;
+  project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(SPU_PROJECT_FILE_BYTES-bytes-64)}]);
+  assert.throws(()=>project.writeEditorText('/presets/large.json',large+'\n'+'漢'.repeat(22)),/16 MiB cassette limit/);
+  assert.equal(project.fs.get('/presets/large.json').data,large+'\n','UTF-8 growth exceeding the shared budget is rejected before writing');
+  assert.throws(()=>project.writeEditorText('/padding.bin','do not replace binary'),/text file/);
+});

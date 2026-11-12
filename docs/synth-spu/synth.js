@@ -10,7 +10,7 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js?v=spu-split-vab-1';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=psf-split-vab-1';
-import {setupSpuCodeHost} from './code_host.js?v=spu-files-capture-resume-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-json-code-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -932,7 +932,7 @@ $('savePreset').addEventListener('click', async () => {
   } catch (error) {report(error);}
 });
 $('saveSoundToFiles').addEventListener('pointerdown',event=>{
-  if(event.button===0){event.preventDefault();document.activeElement?.blur?.();}
+  if(event.button===0){event.preventDefault();if(!codeHost?.isCodeMode())document.activeElement?.blur?.();}
 });
 $('saveSoundToFiles').addEventListener('click',async()=>{
   try {await codeHost.ready;await codeHost.files.saveSound();}

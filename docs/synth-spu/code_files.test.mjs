@@ -18,10 +18,11 @@ function fixture(t,options={}){
   const main=new Element(doc);main.id='test-main';doc.append(main);doc.querySelector=selector=>selector==='.spu-main'?main:null;
   for(const id of ['spuFilesPanel','spuFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='spuFilesPanel';doc.append(node);}
   const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
-  const project=options.project??createSpuCodeProject({starterCode:'kept'}),writes=[],calls=[],statuses=[];
+  const project=options.project??createSpuCodeProject({starterCode:'kept'}),writes=[],calls=[],statuses=[],opened=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
   const files=setupSpuCodeFiles({project,document:doc,store,getInstrument:async()=>{calls.push(['capture']);return soundFixture();},applyInstrument:async value=>calls.push(['instrument',value]),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:text=>statuses.push(text),...options});
-  t.after(()=>files.dispose());return{files,project,doc,writes,calls,statuses};
+  files.setCodeControls({flush:async()=>true,openFile:async(path,options)=>{opened.push({path,options});return true;},setBusy(){}});
+  t.after(()=>files.dispose());return{files,project,doc,writes,calls,statuses,opened};
 }
 
 function soundFixture(){return {schema:'tetorica-spu-synth.instrument',version:1,name:'Saved PCM',
@@ -33,7 +34,8 @@ test('SPU Files selection, autosave and rename/delete share the Code controls wi
   f.files.setCodeControls({activePath:null,flush:async()=>true,openFile:async path=>opened.push(path),pathChanged:(...args)=>changed.push(args),setBusy(){}});
   await f.files.createFile('/lib/notes.js');assert.deepEqual(opened,['/lib/notes.js']);
   f.project.importFiles([{path:'/data/note.json',data:'{"note":"A4"}'}]);await f.files.selectFile('/data/note.json');
-  const editor=f.doc.getElementById('spuFileTextEditor');editor.value='{"note":"E4"}';await editor.fire('input');await f.files.persistCode();
+  assert.equal(f.doc.getElementById('spuFileTextEditor'),undefined);assert.equal(opened.at(-1),'/data/note.json');
+  f.project.writeEditorText('/data/note.json','{"note":"E4"}');await f.files.persistCode();
   assert.equal(f.project.fs.get('/data/note.json').data,'{"note":"E4"}');assert(f.writes.length);assert.equal(f.calls.length,0);
   await f.files.move('/lib/notes.js','/lib/melody.js');assert(f.project.fs.has('/lib/melody.js'));assert.deepEqual(changed.at(-1),['/lib/notes.js','/lib/melody.js']);
   await f.files.remove('/lib/melody.js');assert(!f.project.fs.has('/lib/melody.js'));assert.deepEqual(changed.at(-1),['/lib/melody.js',null]);
@@ -64,13 +66,14 @@ test('only Save sound captures the authored sample; selecting valid JSON applies
   assert.deepEqual(JSON.parse(f.project.fs.get(path).data),soundFixture());
   await f.files.selectFile(path);assert.deepEqual(f.calls.map(call=>call[0]),['capture','before','instrument']);assert.deepEqual(f.calls.at(-1)[1],soundFixture());
   const count=f.calls.length;f.project.importFiles([{path:'/presets/unfinished.spu.json',data:'{"preset":'}]);await f.files.selectFile('/presets/unfinished.spu.json');
-  assert.equal(f.calls.length,count);assert.equal(f.doc.getElementById('spuFileTextEditor').value,'{"preset":');assert.match(f.statuses.at(-1),/current sound kept/);
+  assert.equal(f.calls.length,count);assert.equal(f.opened.at(-1).path,'/presets/unfinished.spu.json');assert.match(f.statuses.at(-1),/current sound kept/);
 });
 
 test('named saves retain multiple instruments, reveal presets and do not stop or apply audio',async t=>{
   let instrument={...soundFixture(),name:'Piano'};
   const f=fixture(t,{getInstrument:async()=>instrument});await f.files.ready;
-  f.files.setCodeControls({flush:async()=>true,setBusy(){},stop(){assert.fail('Saving must not stop Code');},workspaceReplaced(){assert.fail('Saving must not replace the Code workspace');}});
+  const opened=[];
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},openFile:async(path,options)=>opened.push({path,options}),stop(){assert.fail('Saving must not stop Code');},workspaceReplaced(){assert.fail('Saving must not replace the Code workspace');}});
   const first=await f.files.saveSound(),firstBytes=f.project.fs.get(first).data;
   const folder=walk(f.doc).find(node=>node.tagName==='DETAILS'&&node.children[0]?.getAttribute('data-file-path')==='/presets');
   folder.open=false;await folder.fire('toggle');f.files.setVisible(false);
@@ -82,7 +85,7 @@ test('named saves retain multiple instruments, reveal presets and do not stop or
   assert.equal(f.project.fs.get(first).data,firstBytes,'a later save never overwrites the earlier Piano');
   assert.equal(JSON.parse(f.project.fs.get(second).data).preset.adsr1,0x1234);
   assert.equal(JSON.parse(f.project.fs.get(third).data).preset.adsr1,0x5678);
-  assert.equal(f.project.selectedPath,third);assert.equal(f.doc.getElementById('spuFileTextEditor').value,f.project.fs.get(third).data);
+  assert.equal(f.project.selectedPath,third);assert.deepEqual(opened,[first,second,third].map(path=>({path,options:{show:false}})));
   assert.equal(f.doc.getElementById('spuFilesPanel').hidden,false);
   assert(walk(f.doc).find(node=>node.tagName==='DETAILS'&&node.children[0]?.getAttribute('data-file-path')==='/presets').open);
   assert.equal(f.writes.at(-1).filesVisible,true);assert.equal(f.writes.at(-1).selectedPath,third);
@@ -167,6 +170,22 @@ test('moving a code folder preserves the active JavaScript file without stopping
   const code={activePath:'/lib/notes.js',flush:async()=>true,setBusy(){},workspaceReplaced:async()=>{assert.fail('Renaming a code folder must not stop it');},pathChanged(source,destination){code.activePath=destination+code.activePath.slice(source.length);f.project.setCodeState({mode:'code',path:code.activePath});}};
   f.files.setCodeControls(code);assert.equal(await f.files.move('/lib','/modules'),true);assert.equal(code.activePath,'/modules/notes.js');assert.equal(f.project.selectedPath,code.activePath);
   assert.equal(f.project.fs.get(code.activePath).data,'kept module');assert.deepEqual(f.files.getCodeState(),{mode:'code',path:code.activePath});
+});
+
+test('a file selection cancels pending execution before waiting for editor persistence',async t=>{
+  const f=fixture(t);await f.files.ready;f.project.importFiles([{path:'/inspection.json',data:'{}'}]);
+  const gate=deferred(),events=[];
+  f.files.setCodeControls({cancelPendingExecution(){events.push('cancel');},flush:async()=>{events.push('flush');await gate.promise;},openFile:async()=>events.push('open'),setBusy(){}});
+  const pending=f.files.selectFile('/inspection.json');assert.deepEqual(events,['cancel']);
+  await Promise.resolve();assert.deepEqual(events,['cancel','flush']);gate.resolve();await pending;assert.deepEqual(events,['cancel','flush','open']);
+});
+
+test('renaming large JSON or binary data to JavaScript fails before changing the project',async t=>{
+  const f=fixture(t);await f.files.ready;
+  f.project.importFiles([{path:'/large.json',data:' '.repeat(2*1024*1024+1)},{path:'/sample.bin',type:'binary',data:Uint8Array.of(0,255)}]);
+  for(const path of ['/large.json','/sample.bin']){
+    const before=f.project.snapshot();await assert.rejects(f.files.move(path,'/renamed.js'),/UTF-8 text no larger than 2 MiB/);assert.deepEqual(f.project.snapshot(),before);
+  }
 });
 
 test('disposing during a delayed workspace Stop cannot replace a later project',async t=>{

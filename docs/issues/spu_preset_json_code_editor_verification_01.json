@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "SPU presets and other project text use the shared Code editor.",
+  "todo": "docs/issues/todo_spu_preset_json_code_editor_01.md",
+  "agentCommitted": false,
+  "agentPushed": false,
+  "published": false,
+  "behavior": {
+    "selection": "Select a valid preset JSON to apply its sound and open Code. Other text opens without applying an instrument.",
+    "editing": "Text edits autosave to Files; select a valid sound JSON again to apply changes. Run/Apply/shortcuts never execute text.",
+    "saveSound": "Write a collision-safe named preset; prepare its Code path without changing Keyboard/Code mode, focus or an active performance.",
+    "ownership": "Keep actual executing JS path separate from displayed JSON for Stop, rename/delete/import. Cancel stale Run preparation at file-selection intent, including initial editor setup.",
+    "limits": "JavaScript retains its existing 2 MiB character bound. Non-JS text uses the 16 MiB project byte budget; rejected edits or JS renames keep existing files.",
+    "monaco": "For mixed JS/text hosts only, disable optional word-occurrence highlighting at initialization. This avoids Monaco 0.52.2 WordHighlighter Delayer cancellation rejections on rapid model changes. Completion, hover, definitions and readable implementation remain available; FM/SID defaults are unchanged."
+  },
+  "node": {
+    "command": "node --test docs/synth-spu/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "passed": 295,
+    "failed": 0,
+    "log": "/private/tmp/spu-json-code-node.log",
+    "record": {
+      "bytes": 31966,
+      "sha256": "9018de7a775ddda2f2311a487a703995b308b90ad4ffe30bc44ec9c8a92079ee"
+    }
+  },
+  "browser": {
+    "code": {
+      "report": "/private/tmp/spu-json-code-code-final.json",
+      "record": {
+        "bytes": 20287,
+        "sha256": "7b841ef17619e43acb336c797c12baba5c35370de8f76ecea6f31f1a150f715f"
+      },
+      "testedStage": "release/itch_spu_synth_preset-json-code-20261112-xkfox6",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Explicit JSON selection uses the shared text editor; shortcuts cannot run JSON and edits persist through rename/delete",
+            "Preset JSON editing does not apply audio until that valid preset is explicitly selected again",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Explicit JSON selection uses the shared text editor; shortcuts cannot run JSON and edits persist through rename/delete",
+            "Preset JSON editing does not apply audio until that valid preset is explicitly selected again",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        }
+      ]
+    },
+    "monaco": {
+      "report": "/private/tmp/spu-json-code-monaco-final.json",
+      "record": {
+        "bytes": 50248,
+        "sha256": "62281b385d3d8aa82b06d7da24ad837f9e54a95c81c26ad4c6f220a72e1227d6"
+      },
+      "testedStage": "release/itch_spu_synth_preset-json-code-20261112-k8B709",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH7, channel 24, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared SPU",
+            "Public Go to Definition and View implementation open readable Code runtime and SPU sources",
+            "Three genuine prepared-model JSON selections directly after JavaScript focus produce no word-highlighter cancellation",
+            "The same visible Monaco edits JSON with JSON language, blocks Run/Apply/shortcuts, preserves edits through rename/delete and returns to JavaScript without executing either"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH7, channel 24, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared SPU",
+            "Public Go to Definition and View implementation open readable Code runtime and SPU sources",
+            "Three genuine prepared-model JSON selections directly after JavaScript focus produce no word-highlighter cancellation",
+            "The same visible Monaco edits JSON with JSON language, blocks Run/Apply/shortcuts, preserves edits through rename/delete and returns to JavaScript without executing either"
+          ]
+        }
+      ]
+    },
+    "capture": {
+      "report": "/private/tmp/spu-json-code-capture.json",
+      "record": {
+        "bytes": 8817,
+        "sha256": "e1b11d4e51e2028fd621a43a0aa28c79d8b341237e9ec9d74e0b1aae288bfa95"
+      },
+      "testedStage": "release/itch_spu_synth_preset-json-code-20261112-xkfox6",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone uses the same bounded read-only ADPCM preview without changing its saved source",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone uses the same bounded read-only ADPCM preview without changing its saved source",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        }
+      ]
+    },
+    "extract": {
+      "report": "/private/tmp/spu-json-code-extract.json",
+      "record": {
+        "bytes": 22119,
+        "sha256": "ca93984093e5aad1c2c4bb767d82f8f2719a8b57e391f3e41d32b09e7e50627a"
+      },
+      "testedStage": "release/itch_spu_synth_preset-json-code-20261112-edyNKU",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "The song-row Extract VAB opens its bank results from other tabs without creating audio or saving every Tone",
+            "Two chosen Tones save as separate named presets and the Files list is revealed",
+            "Selecting each saved file restores its original ADPCM, envelope, tuning and instrument name",
+            "Repeated saves and a manually edited name retain previous files and add safe unique names",
+            "Cancelled imports and failed / empty extraction keep the accepted bank, saved files and current instrument",
+            "Project ZIP and local reload retain all named presets without automatically starting audio",
+            "Recalling two 200 KiB presets reuses their existing SPU samples without consuming more RAM"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "The song-row Extract VAB opens its bank results from other tabs without creating audio or saving every Tone",
+            "Two chosen Tones save as separate named presets and the Files list is revealed",
+            "Selecting each saved file restores its original ADPCM, envelope, tuning and instrument name",
+            "Repeated saves and a manually edited name retain previous files and add safe unique names",
+            "Cancelled imports and failed / empty extraction keep the accepted bank, saved files and current instrument",
+            "Project ZIP and local reload retain all named presets without automatically starting audio",
+            "Recalling two 200 KiB presets reuses their existing SPU samples without consuming more RAM"
+          ]
+        }
+      ]
+    },
+    "splitVab": {
+      "report": "/private/tmp/spu-json-code-split-vab.json",
+      "record": {
+        "bytes": 19862,
+        "sha256": "3b00427cf3c485e0795ebda0143a9fe3e2e19bcbb935aad9ca6089dd1e0d3221"
+      },
+      "testedStage": "release/itch_spu_synth_preset-json-code-20261112-edyNKU",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Unique separated VH / VB resolves all synthetic Tones without creating audio",
+            "Loaded split-bank packets match their authored source and one-shot LOOP START reaches hardware END",
+            "One-shot preset saving and Files recall preserve its original flags, envelope and tuning",
+            "Ambiguous or missing separated bodies retain the accepted bank and edited instrument",
+            "Unavailable Tones expose their reason in the picker and an expandable bank summary",
+            "The split-bank workflow fits desktop and mobile layouts"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Unique separated VH / VB resolves all synthetic Tones without creating audio",
+            "Loaded split-bank packets match their authored source and one-shot LOOP START reaches hardware END",
+            "One-shot preset saving and Files recall preserve its original flags, envelope and tuning",
+            "Ambiguous or missing separated bodies retain the accepted bank and edited instrument",
+            "Unavailable Tones expose their reason in the picker and an expandable bank summary",
+            "The split-bank workflow fits desktop and mobile layouts"
+          ]
+        }
+      ]
+    }
+  },
+  "silentVerification": {
+    "headlessOnly": true,
+    "destinationInterceptedBeforeApplication": true,
+    "physicalOutputGain": 0,
+    "chromiumMuteAudio": true,
+    "ordinaryBrowserOrNativeAppUsed": false,
+    "osVolumeChanged": false,
+    "listeningPerformed": false
+  },
+  "package": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_preset-json-code-20261112-k8B709",
+    "archive": "release/tetorica_spu_synth_preset-json-code-20261112_itch.zip",
+    "files": 337,
+    "bundles": 3,
+    "archiveRecord": {
+      "bytes": 7047159,
+      "sha256": "5e5a713189ae966ab564087cdc1e9ff81552c1e6be509fe6fe8a5a124ba265b6"
+    },
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    }
+  },
+  "finalRevisionComparedWithCodeAndCaptureStage": {
+    "zipCrcAndStageBytesMatch": true,
+    "beforeStage": "release/itch_spu_synth_preset-json-code-20261112-xkfox6",
+    "afterStage": "release/itch_spu_synth_preset-json-code-20261112-k8B709",
+    "changedFiles": [
+      "sources/spu-synth-browser-inputs.zip",
+      "sources/spu-synth-browser.json",
+      "synth/synth_code_controls.js"
+    ],
+    "runtimeChange": "For allowTextFiles only, turn Monaco occurrencesHighlight off once before editor source attachment; fallback runtime and PSF implementation unchanged."
+  },
+  "regressionStages": "Code and Capture passed on xkfox6; the final revision changes only the opt-in MonacoReady highlight setting and corresponding source archives. Extract and Split VAB passed on edyNKU before later selection-race guards and the Monaco-only fix. All final product source is covered by the final 295 Node tests; real Monaco is checked on the final k8B709 stage.",
+  "visualInspection": {
+    "jsonScreenshot": "/private/tmp/spu-json-code-monaco-final-chromium-json.png",
+    "checked": "JSON appears with syntax colors in Code; Files has no separate text editor; text Run/Apply are disabled."
+  },
+  "nativeRebuilt": false
+}

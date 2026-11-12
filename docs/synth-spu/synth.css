@@ -355,7 +355,6 @@ footer a { color: #4a5e74; }
 .spu-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 #spuFileNameDialog { width:min(420px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--paper,#edf0f2); color:inherit; padding:18px; }
 #spuFileNameDialog input { box-sizing:border-box; width:100%; margin:8px 0 14px; padding:8px; }
-#spuFileTextEditor { box-sizing:border-box; width:100%; min-height:170px; padding:8px; resize:vertical; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
 @media(max-width:760px) { .spu-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.spu-code-workspace.has-files.is-code-expanded .spu-expanded-code { grid-column:1; }#spuFilesTree { max-height:240px; }.spu-code-editor { font-size:12px; } }
 
 

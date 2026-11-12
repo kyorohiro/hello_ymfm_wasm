@@ -4,7 +4,8 @@ import {initializePlaygroundMonaco} from '../playground/playground_monaco.js?v=s
 import {selectSynthCodeDeclarations} from './synth_code_declarations.js?v=shared-pcm-notes-1';
 const JOURNAL_KEY='tetorica-fm2612-synth-pending-code';
 const MAX_CODE_LENGTH=2*1024*1024;
-const codePath=path=>typeof path==='string'&&path.startsWith('/')&&/\.m?js$/i.test(path)&&!path.split('/').some(part=>['..','.git','.tet.ss'].includes(part));
+const editorPath=path=>typeof path==='string'&&path.startsWith('/')&&!path.split('/').some(part=>['..','.git','.tet.ss'].includes(part));
+const codePath=path=>editorPath(path)&&/\.m?js$/i.test(path);
 const within=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const DEFAULT_CODE=`const fm = await useSoundChip("ym2612");
 setBpm(120);
@@ -18,18 +19,20 @@ liveLoop("melody", async () => {
 });
 `;
 
-function textFile(project,path) {
+function textFile(project,path,allowTextFiles=false) {
   const file=project.fs.get(path);
-  if(!file||!codePath(path))throw Error('Choose a JavaScript file in Files.');
+  if(!file||!codePath(path)&&!(allowTextFiles&&editorPath(path)&&file.type==='text'))throw Error(allowTextFiles?'Choose a text or JavaScript file in Files.':'Choose a JavaScript file in Files.');
   return typeof file.data==='string'?file.data:new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(file.data);
 }
 
 export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=async()=>{},onModeChange=()=>{},setStatus=()=>{},getStarterCode=()=>DEFAULT_CODE,
   editorChip='ym2612',transformDeclarations=selectSynthCodeDeclarations,journalKey=JOURNAL_KEY,definitionRuntimeFile='playground_code_runtime.js',
+  allowTextFiles=false,maxTextLength=MAX_CODE_LENGTH,writeText=(path,source)=>project.fs.writeText(path,source),
   loadEditor=async()=>({initializePlaygroundMonaco})}={}) {
   if(!project?.fs||typeof getRuntime!=='function')throw TypeError('Code input needs a project and runtime factory.');
   if(typeof editorChip!=='string'||!editorChip||typeof journalKey!=='string'||!journalKey||
     typeof definitionRuntimeFile!=='string'||!definitionRuntimeFile||typeof transformDeclarations!=='function')throw TypeError('Code input needs editor and recovery settings.');
+  if(typeof allowTextFiles!=='boolean'||!Number.isSafeInteger(maxTextLength)||maxTextLength<1||typeof writeText!=='function')throw TypeError('Code input needs valid text editing settings.');
   const byId=id=>document.getElementById(id),section=byId('synthInputSection');
   const keyboardTab=byId('synthInputKeyboardTab'),codeTab=byId('synthInputCodeTab');
   const keyboardPanel=byId('synthKeyboardPanel'),codePanel=byId('synthCodePanel');
@@ -42,7 +45,8 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   section.parentNode.insertBefore(homeAnchor,section);
   const listeners=[];
   let mode='keyboard',activePath=null,disposed=false,changing=false,fileBusy=false,pending=false,operation=0,expanded=false,workspaceOperation=0;
-  let runtime=null,runtimeLoading=null,monacoLoading=null,monacoEditor=null;
+  let opening=null;
+  let runtime=null,runtimeLoading=null,monacoLoading=null,monacoEditor=null,monacoApi=null,executionPath=null;
   let runtimeState={state:'idle',loopNames:[]};
   let adapter={kind:'textarea',getValue:()=>textarea.value,setValue:value=>{textarea.value=value;},focus:()=>textarea.focus(),setReadOnly:value=>{textarea.readOnly=value;}};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
@@ -59,9 +63,12 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   }
   function update() {
     const state=runtimeState.state??runtimeState.playback??'idle';
-    runButton.disabled=fileBusy||pending;applyButton.disabled=fileBusy||pending||!runtime;
+    const runnable=!activePath||codePath(activePath);
+    codePanel.dataset.editorKind=activePath?(runnable?'javascript':'text'):'none';codePanel.dataset.runnable=String(runnable);
+    runButton.disabled=fileBusy||pending||Boolean(opening)||!runnable;applyButton.disabled=fileBusy||pending||Boolean(opening)||!runtime||!runnable;
+    runButton.title=applyButton.title=runnable?'':'Text files are edited and saved here; only JavaScript files can run.';
     stopButton.disabled=!pending&&!runtime&&!runtimeState.running&&!runtimeState.busy;
-    stateLabel.textContent=pending?'Preparing…':state==='running'?(runtimeState.loopNames?.length?`Playing · ${runtimeState.loopNames.length} loop(s)`:'Running'):state.charAt(0).toUpperCase()+state.slice(1);
+    stateLabel.textContent=(runnable?'':'Text · ')+(pending?'Preparing…':state==='running'?(runtimeState.loopNames?.length?`Playing · ${runtimeState.loopNames.length} loop(s)`:'Running'):state.charAt(0).toUpperCase()+state.slice(1));
     adapter.setReadOnly?.(fileBusy||!activePath);textarea.readOnly=fileBusy||!activePath;
   }
   function rememberState() {files?.rememberCodeState?.(captureState());}
@@ -100,10 +107,21 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   function writeCurrent() {
     if(disposed||changing||!activePath)return;
     const source=adapter.getValue();
-    if(source.length>MAX_CODE_LENGTH)throw Error('JavaScript file exceeds 2 MiB.');
-    if(textFile(project,activePath)!==source)project.fs.writeText(activePath,source);
+    validateSource(activePath,source);
+    if(textFile(project,activePath,allowTextFiles)!==source)writeText(activePath,source);
     try {localStorage.setItem(journalKey,JSON.stringify({workspaceId:files?.workspaceId,path:activePath,source}));}
     catch(error){setStatus(`Code recovery unavailable: ${error.message}. Export Cassette to keep your work.`);}
+  }
+  function validateSource(path,source) {
+    if(source.length>(codePath(path)?MAX_CODE_LENGTH:maxTextLength))throw Error(codePath(path)?'JavaScript file exceeds 2 MiB.':'Text file exceeds the editor size limit.');
+  }
+  function setEditorSource(path,source) {
+    changing=true;
+    try {
+      if(adapter.openVirtualFile)adapter.openVirtualFile(path,source);else adapter.setValue(source);
+      const model=monacoEditor?.getModel?.();
+      if(model)monacoApi?.editor?.setModelLanguage?.(model,codePath(path)?'javascript':/\.json$/i.test(path)?'json':'plaintext');
+    }finally{changing=false;}
   }
   async function flush() {
     if(disposed)return false;
@@ -118,6 +136,10 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     return true;
   }
   function changeSource() {try{writeCurrent();}catch(error){report(error);}}
+  function cancelPendingExecution() {
+    if(disposed||!pending)return false;
+    operation++;pending=false;update();return true;
+  }
   async function loadMonaco() {
     if(monacoLoading||disposed)return monacoLoading;
     monacoLoading=Promise.resolve().then(()=>loadEditor()).then(({initializePlaygroundMonaco})=>{
@@ -132,36 +154,56 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
         setEditorAdapter(next){if(disposed)return;adapter=next;update();},
         onMonacoEditorReady({monaco,monacoEditor:editor}) {
           if(disposed){editor.dispose();return;}
-          monacoEditor=editor;
+          monacoEditor=editor;monacoApi=monaco;
+          // Monaco 0.52's word-occurrence Delayer can reject unhandled when
+          // mixed JS/text models switch. Disable this optional feature once,
+          // before focus/model edits, only for hosts opting into text files.
+          if(allowTextFiles)editor.updateOptions?.({occurrencesHighlight:'off'});
           editor.onDidChangeModelContent(changeSource);
           // Let the Code toolbar own execution shortcuts before Monaco treats
           // Ctrl/Cmd+Enter as an editor action such as inserting a new line.
           editor.addCommand(monaco.KeyMod.CtrlCmd|monaco.KeyCode.Enter,()=>void execute(false));
           editor.addCommand(monaco.KeyMod.CtrlCmd|monaco.KeyMod.Shift|monaco.KeyCode.Enter,()=>void execute(true));
-          if(activePath)adapter.openVirtualFile?.(activePath,textFile(project,activePath));
+          if(activePath)setEditorSource(activePath,textFile(project,activePath,allowTextFiles));
         },
       });
     }).catch(error=>{if(!disposed){note.textContent='Code editor unavailable. Plain text editing remains active.';appendLog(error.message);}});
     return monacoLoading;
   }
-  async function openFile(path) {
-    workspaceOperation++;
-    await files?.ready;
+  async function openPath(path,{show=true}={},initializing=false) {
+    if(typeof show!=='boolean')throw TypeError('File visibility must be boolean.');
     if(disposed)return false;
-    await flush();const source=textFile(project,path);
-    if(disposed)return false;
-    changing=true;activePath=path;
-    try {if(adapter.openVirtualFile)adapter.openVirtualFile(path,source);else adapter.setValue(source);}
-    finally{changing=false;}
-    showMode('code');adapter.focus();void loadMonaco();return true;
+    const request=++workspaceOperation;
+    if(!initializing) {
+      // Selection intent fences an older Run before either operation waits
+      // on storage. A slow JSON flush must not let old JS stop the song first.
+      if(activePath!==path||!codePath(path))cancelPendingExecution();
+      opening=request;update();
+    }
+    try {
+      await files?.ready;
+      if(disposed||request!==workspaceOperation)return false;
+      await flush();if(disposed||request!==workspaceOperation)return false;
+      const source=textFile(project,path,allowTextFiles);validateSource(path,source);
+      if(activePath&&activePath!==path){operation++;pending=false;}
+      activePath=path;setEditorSource(path,source);
+      if(show){showMode('code');adapter.focus();void loadMonaco();}
+      else {rememberState();update();}
+      return true;
+    }finally{if(opening===request){opening=null;if(!disposed)update();}}
   }
-  async function ensureFile() {
+  const openFile=(path,options)=>openPath(path,options);
+  async function ensureFile(isCurrent=()=>true) {
+    const request=workspaceOperation;
     await files?.ready;
-    if(disposed)return null;
+    if(disposed||request!==workspaceOperation||!isCurrent())return null;
     if(activePath&&project.fs.has(activePath))return activePath;
     const path='/index.js';
-    if(!project.fs.has(path))project.fs.writeText(path,getStarterCode());
-    await openFile(path);return path;
+    if(!project.fs.has(path)) {
+      const source=getStarterCode();if(typeof source!=='string')throw TypeError('Starter code must be text.');
+      validateSource(path,source);writeText(path,source);
+    }
+    return await openPath(path,undefined,true)?path:null;
   }
   async function obtainRuntime() {
     if(runtime)return runtime;
@@ -170,14 +212,16 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     finally {runtimeLoading=null;}
   }
   async function execute(apply=false) {
-    if(disposed||fileBusy||pending)return;
+    if(disposed||fileBusy||pending||opening||activePath&&!codePath(activePath))return;
     const epoch=++operation;pending=true;errorLog.textContent='';update();
     try {
-      await ensureFile();await flush();
-      if(epoch!==operation||disposed)return;
+      if(!await ensureFile(()=>epoch===operation))return;
+      await flush();
+      if(epoch!==operation||disposed||!codePath(activePath))return;
       const source=adapter.getValue(),path=activePath;
-      await onBeforeRun({apply});if(epoch!==operation||disposed)return;
-      const host=await obtainRuntime();if(epoch!==operation||disposed)return;
+      await onBeforeRun({apply});if(epoch!==operation||disposed||activePath!==path||!codePath(path))return;
+      const host=await obtainRuntime();if(epoch!==operation||disposed||activePath!==path||!codePath(path))return;
+      executionPath=path;
       await host[apply?'apply':'run'](source,{path});
       if(epoch===operation&&!disposed){runtimeState=host.getState();setStatus(apply?'Code applied.':'Code running.');}
     }catch(error){if(epoch===operation&&!disposed)report(error);}
@@ -188,13 +232,13 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     let stopped=true;
     if(runtime){try{await runtime.stop();}catch(error){stopped=false;if(epoch===operation)report(error);}}
     else runtimeLoading?.then(host=>{if(epoch===operation&&!disposed)return host.stop();}).catch(error=>{if(epoch===operation&&!disposed)report(error);});
-    if(epoch===operation&&!disposed){update();setStatus('Code stopped.');}
+    if(epoch===operation&&!disposed){if(stopped){executionPath=null;setStatus('Code stopped.');}update();}
     return stopped&&epoch===operation&&!disposed;
   }
   async function setMode(next) {
     if(disposed)return false;
     const request=++workspaceOperation;
-    if(next==='code'){await ensureFile();showMode('code');adapter.focus();void loadMonaco();}
+    if(next==='code'){if(!await ensureFile())return false;showMode('code');adapter.focus();void loadMonaco();}
     else {
       await flush();if(disposed||request!==workspaceOperation)return false;
       if(!await stop()||disposed||request!==workspaceOperation)return false;
@@ -216,21 +260,37 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   async function restoreState(state) {
     if(disposed)return false;
     workspaceOperation++;
-    if(state?.path&&codePath(state.path)&&project.fs.has(state.path)) {
-      const source=textFile(project,state.path);changing=true;activePath=state.path;
-      try{if(adapter.openVirtualFile)adapter.openVirtualFile(activePath,source);else adapter.setValue(source);}
-      finally{changing=false;}
+    if(state?.path&&(codePath(state.path)||allowTextFiles&&editorPath(state.path)&&project.fs.get(state.path)?.type==='text')&&project.fs.has(state.path)) {
+      const source=textFile(project,state.path,allowTextFiles);validateSource(state.path,source);
+      if(activePath&&activePath!==state.path){operation++;pending=false;}
+      activePath=state.path;setEditorSource(activePath,source);
       showMode(state.mode==='code'?'code':'keyboard');if(state.mode==='code')void loadMonaco();
     }else if(state?.mode==='code')await setMode('code');
   }
   function pathChanged(source,destination) {
-    if(!within(activePath,source))return;
-    workspaceOperation++;
-    if(destination){activePath=destination+activePath.slice(source.length);changing=true;try{adapter.openVirtualFile?.(activePath,textFile(project,activePath));}finally{changing=false;}rememberState();}
-    else {void stop();activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}rememberState();update();}
+    const executing=within(executionPath,source);let stopExecution=false;
+    if(executing) {
+      const next=destination?destination+executionPath.slice(source.length):null;
+      if(next&&codePath(next))executionPath=next;else stopExecution=true;
+    }
+    if(!within(activePath,source)){if(stopExecution)void stop();return;}
+    workspaceOperation++;operation++;pending=false;
+    if(destination){
+      activePath=destination+activePath.slice(source.length);
+      try{setEditorSource(activePath,textFile(project,activePath,allowTextFiles));}
+      catch(error){activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}report(error);}
+      rememberState();update();
+    }
+    else {
+      if(!executionPath&&codePath(activePath)&&!executing)stopExecution=true;
+      activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}rememberState();update();
+    }
+    // Start the physical Stop after updating editor ownership so the path
+    // change itself cannot invalidate that cleanup's completion token.
+    if(stopExecution)void stop();
   }
-  const controls={openFile,flush,stop,setMode,setExpanded,restoreState,workspaceReplaced,pathChanged,captureState,appendLog,
-    isCodeMode:()=>mode==='code',get activePath(){return activePath;},
+  const controls={openFile,flush,stop,cancelPendingExecution,setMode,setExpanded,restoreState,workspaceReplaced,pathChanged,captureState,appendLog,
+    isCodeMode:()=>mode==='code',get activePath(){return activePath;},get executionPath(){return executionPath;},
     isExpanded:()=>expanded,
     setBusy(value){fileBusy=Boolean(value);update();},
     setRuntimeState(value){if(disposed)return;runtimeState={...value};update();},
@@ -261,7 +321,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(disposed)return;
     try {
       const entry=JSON.parse(localStorage.getItem(journalKey)||'null');
-      if(entry?.workspaceId===files?.workspaceId&&codePath(entry.path)&&typeof entry.source==='string'&&entry.source.length<=MAX_CODE_LENGTH)project.fs.writeText(entry.path,entry.source);
+      if(entry?.workspaceId===files?.workspaceId&&(codePath(entry.path)||allowTextFiles&&editorPath(entry.path)&&project.fs.get(entry.path)?.type==='text')&&typeof entry.source==='string') {
+        validateSource(entry.path,entry.source);writeText(entry.path,entry.source);
+      }
     }catch(error){setStatus(`Could not recover the last code edit: ${error.message}`);}
     await restoreState(files?.getCodeState?.());
   }).catch(report);

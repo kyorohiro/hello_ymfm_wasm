@@ -10,16 +10,18 @@ export const SPU_PROJECT_MANIFEST='/spu-synth.project.json';
 export const SPU_PROJECT_STORAGE_KEY='tetorica-spu-synth-project-v1';
 // Shared cassette ZIPs are bounded to 16 MiB, including their manifest.
 export const SPU_PROJECT_FILE_BYTES=16*1024*1024-65536;
-const MAX_TEXT=2*1024*1024;
+export const SPU_PROJECT_CODE_LENGTH=2*1024*1024;
+const MAX_TEXT=SPU_PROJECT_CODE_LENGTH;
 const clone=value=>structuredClone(value);
 export const isSpuCodePath=path=>typeof path==='string'&&/\.m?js$/i.test(path)&&!path.split('/').some(part=>['.git','.tet.ss'].includes(part));
 export const isSpuTextPath=path=>/\.(?:m?js|json|txt|md|css|html|csv|ya?ml|glsl)$/i.test(path);
 const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const text=data=>typeof data==='string'?data:decoder.decode(data);
 const name=value=>{if(typeof value!=='string'||!value.trim()||value.length>120||/[\u0000-\u001f/\\]/.test(value))throw Error('Project name must be 1–120 characters without slashes.');return value.trim();};
+const editorPath=(path,fs)=>typeof path==='string'&&path.startsWith('/')&&!path.split('/').some(part=>['..','.git','.tet.ss'].includes(part))&&fs.get(path)?.type==='text';
 function codeState(value,fs){
   if(value==null)return{mode:'keyboard',path:null};
-  if(!value||!['keyboard','code'].includes(value.mode)||value.path!==null&&(!isSpuCodePath(value.path)||!fs.has(value.path)))throw Error('Invalid SPU Code selection.');
+  if(!value||!['keyboard','code'].includes(value.mode)||value.path!==null&&!editorPath(value.path,fs))throw Error('Invalid SPU Code selection.');
   return{mode:value.mode,path:value.path};
 }
 function selectedPath(value,fs){if(value===null||value===undefined)return null;const path=normalizeVirtualPath(value);if(!fs.stat(path))throw Error('Selected project file is missing.');return path;}
@@ -49,6 +51,15 @@ export function createSpuCodeProject({snapshot,starterCode,getStarterCode}={}){
   const project={fs,onDidChange(listener){listeners.add(listener);return()=>listeners.delete(listener);},
     get selectedPath(){return selected;},get cassetteName(){return projectName;},
     select(path){const next=selectedPath(path,fs);if(next!==selected){selected=next;notify();}return selected;},
+    writeEditorText(path,source){
+      path=pathForUser(path);if(typeof source!=='string')throw TypeError('Editor content must be text.');
+      if(!editorPath(path,fs)&&!(isSpuCodePath(path)&&!fs.has(path)))throw Error('Choose a project text file.');
+      if(isSpuCodePath(path)&&source.length>MAX_TEXT)throw Error('JavaScript files must be UTF-8 text no larger than 2 MiB.');
+      const encoder=new TextEncoder();let total=encoder.encode(source).byteLength;
+      for(const file of fs.list())if(file.path!==path)total+=file.type==='text'?encoder.encode(file.data).byteLength:file.data.byteLength;
+      if(total>SPU_PROJECT_FILE_BYTES)throw Error('Code project files exceed the 16 MiB cassette limit. Use Save preset for a larger audio instrument.');
+      fs.writeText(path,source);
+    },
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
     snapshot(){return{format:SPU_PROJECT_FORMAT,version:1,name:projectName,selectedPath:selected,codeState:clone(state),filesystem:fs.snapshot()};},
     restore(value){

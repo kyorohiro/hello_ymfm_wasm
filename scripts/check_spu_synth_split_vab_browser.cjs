@@ -76,7 +76,7 @@ async function loadTone(page,index){
 async function saveSound(page){
   const before=await page.locator('#spuFilesSelected').textContent();await page.locator('#saveSoundToFiles').click();
   await until(async()=>await page.locator('#spuFilesPanel').isVisible()&&await page.locator('#spuFilesSelected').textContent()!==before&&await page.locator('#spuFilesStatus').textContent().then(value=>value.startsWith('Current SPU instrument')&&value.includes('saved')),'preset saved');
-  return{path:await page.locator('#spuFilesSelected').textContent(),sound:JSON.parse(await page.locator('#spuFileTextEditor').inputValue())};
+  return{path:await page.locator('#spuFilesSelected').textContent(),sound:JSON.parse(await page.locator('#synthCodeEditor').inputValue())};
 }
 async function selectPreset(page,filename){
   if(await page.locator('#spuFilesPanel').isHidden())await page.locator('#spuFilesToggle').click();

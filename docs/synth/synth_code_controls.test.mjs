@@ -17,7 +17,7 @@ class Element {
   addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);}
   removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);}
   setAttribute(name,value){this.attributes[name]=String(value);}
-  focus(){this.focused=true;}
+  focus(){this.focused=true;this.focusCount=(this.focusCount??0)+1;}
   fire(type,extra={}){const event={key:'',code:'',prevented:false,preventDefault(){this.prevented=true;},stopPropagation(){},stopImmediatePropagation(){},...extra};for(const fn of this.listeners.get(type)??[])fn(event);return event;}
 }
 function fixture({source,storedState=null,journal=new Map(),factory,before,save=true,project=createSynthProject(),monaco=false,stopRuntime=async()=>{},hostOptions={}}={}) {
@@ -255,4 +255,215 @@ test('a delayed workspace reset cannot close a newer Code file or touch a dispos
       }
     }finally{fade.resolve();f.cleanup();}
   }
+});
+
+test('non-JavaScript editing is opt-in and hidden JSON opening changes no mode, focus, editor startup or runtime',async()=>{
+  const defaultHost=fixture({source:'// existing JS'});
+  try {
+    await defaultHost.controls.ready;defaultHost.project.fs.writeText('/preset.json','{"volume":1}');
+    await assert.rejects(defaultHost.controls.openFile('/preset.json'),/JavaScript/);assert.equal(defaultHost.calls.factories,0);
+  }finally{defaultHost.cleanup();}
+  let preparations=0;
+  const f=fixture({source:'// retained JS',before:()=>{preparations++;},hostOptions:{allowTextFiles:true,maxTextLength:16*1024*1024}});
+  try {
+    await f.controls.ready;f.project.fs.writeText('/preset.json','{"volume":1}');
+    await f.controls.openFile('/preset.json',{show:false});
+    assert.equal(f.controls.isCodeMode(),false);assert.deepEqual(f.controls.captureState(),{mode:'keyboard',path:'/preset.json'});
+    assert.equal(f.byId('synthCodeEditor').value,'{"volume":1}');assert.equal(f.byId('synthCodeEditor').focusCount,undefined);
+    assert.equal(f.calls.editors,0);assert.deepEqual(f.calls.modes,[]);
+    assert.equal(f.byId('synthCodePanel').dataset.editorKind,'text');assert.equal(f.byId('synthCodePanel').dataset.runnable,'false');
+    assert.equal(f.byId('synthCodeRunButton').disabled,true);assert.equal(f.byId('synthCodeApplyButton').disabled,true);
+    f.byId('synthCodeRunButton').fire('click');f.byId('synthCodeApplyButton').fire('click');
+    f.byId('synthCodePanel').fire('keydown',{metaKey:true,key:'Enter'});for(let i=0;i<10;i++)await turn();
+    assert.equal(f.calls.factories,0);assert.equal(preparations,0);
+    f.byId('synthCodeEditor').value='{"volume":2}';f.byId('synthCodeEditor').fire('input');
+    assert.equal(f.project.fs.get('/preset.json').data,'{"volume":2}');
+    await f.controls.setMode('code');assert.equal(f.byId('synthCodeEditor').value,'{"volume":2}');
+    await f.controls.openFile('/index.js');assert.equal(f.byId('synthCodeRunButton').disabled,false);
+    f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1);assert.equal(preparations,1);
+  }finally{f.cleanup();}
+});
+
+test('JSON display and autosave leave a running JS performance independent, including hidden saves and text deletion',async()=>{
+  const f=fixture({source:'// running source',hostOptions:{allowTextFiles:true}});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1);
+    const focus=f.byId('synthCodeEditor').focusCount,context=f.runtime.getContext(),modes=[...f.calls.modes];
+    f.project.fs.writeText('/presets/saved.json','{"saved":true}');await f.controls.openFile('/presets/saved.json',{show:false});
+    assert.equal(f.controls.activePath,'/presets/saved.json');assert.equal(f.controls.executionPath,'/index.js');
+    assert.equal(f.byId('synthCodeEditor').focusCount,focus);assert.deepEqual(f.calls.modes,modes);
+    assert.equal(f.calls.stops,0);assert.equal(f.runtime.getContext(),context);assert.equal(f.byId('synthCodeStopButton').disabled,false);
+    f.byId('synthCodeEditor').value='{"saved":"edited"}';f.byId('synthCodeEditor').fire('input');await f.controls.flush();
+    assert.equal(f.project.fs.get('/presets/saved.json').data,'{"saved":"edited"}');assert.equal(f.calls.applies.length,0);
+    f.project.fs.remove('/presets/saved.json');f.controls.pathChanged('/presets/saved.json',null);
+    assert.equal(f.controls.activePath,null);assert.equal(f.controls.executionPath,'/index.js');assert.equal(f.calls.stops,0);
+    f.project.fs.writeText('/renamed.mjs',f.project.fs.get('/index.js').data);f.project.fs.remove('/index.js');f.controls.pathChanged('/index.js','/renamed.mjs');
+    assert.equal(f.controls.executionPath,'/renamed.mjs');assert.equal(f.calls.stops,0);
+    f.project.fs.writeText('/renamed.json',f.project.fs.get('/renamed.mjs').data);f.project.fs.remove('/renamed.mjs');f.controls.pathChanged('/renamed.mjs','/renamed.json');
+    await until(()=>f.calls.stops===1&&f.controls.executionPath===null);
+  }finally{f.cleanup();}
+});
+
+test('switching pending Run preparation to JSON cancels that execution without creating a runtime',async()=>{
+  const before=deferred(),f=fixture({source:'globalThis.mustNotRun=true;',before:()=>before.promise,hostOptions:{allowTextFiles:true}});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');f.project.fs.writeText('/text.json','globalThis.mustNotRun=true;');
+    f.byId('synthCodeRunButton').fire('click');await until(()=>f.byId('synthCodeStopButton').disabled===false);
+    await f.controls.openFile('/text.json');before.resolve();for(let i=0;i<20;i++)await turn();
+    assert.equal(f.calls.factories,0);assert.equal(f.calls.runs.length,0);assert.equal(f.calls.applies.length,0);assert.equal(globalThis.mustNotRun,undefined);
+    assert.equal(f.byId('synthCodeRunButton').disabled,true);assert.equal(f.byId('synthCodeApplyButton').disabled,true);
+  }finally{before.resolve();f.cleanup();}
+});
+
+test('large JSON source and recovery use the opt-in text bound while JavaScript retains its 2 MiB limit',async()=>{
+  const text='{"sample":"'+'a'.repeat(2*1024*1024)+'"}',journal=new Map();
+  const project=createSynthProject();project.fs.writeText('/sample.json',text);
+  const f=fixture({project,journal,save:false,hostOptions:{allowTextFiles:true,maxTextLength:16*1024*1024}});let state;
+  try {
+    await f.controls.ready;await f.controls.openFile('/sample.json',{show:false});
+    f.byId('synthCodeEditor').value=text+'\n';f.byId('synthCodeEditor').fire('input');state=f.controls.captureState();
+    assert.equal(project.fs.get('/sample.json').data,text+'\n');assert(journal.size);
+    project.fs.writeText('/large.js','x'.repeat(2*1024*1024+1));
+    await assert.rejects(f.controls.openFile('/large.js'),/JavaScript file exceeds 2 MiB/);
+    assert.equal(f.controls.activePath,'/sample.json');assert.equal(f.calls.factories,0);
+  }finally{f.cleanup();}
+  const restored=createSynthProject();restored.fs.writeText('/sample.json',text);
+  const next=fixture({project:restored,journal,storedState:state,hostOptions:{allowTextFiles:true,maxTextLength:16*1024*1024}});
+  try {
+    await next.controls.ready;assert.equal(next.controls.isCodeMode(),false);assert.equal(next.controls.activePath,'/sample.json');
+    assert.equal(next.byId('synthCodeEditor').value,text+'\n');assert.equal(next.calls.factories,0);assert.equal(next.calls.editors,0);
+  }finally{next.cleanup();}
+});
+
+test('Monaco JSON/text models and rename paths keep explicit non-executable languages, including uppercase JSON',async()=>{
+  let model={path:'',source:'',language:'javascript'},changed=()=>{};const language=[];
+  const editor={getModel:()=>model,layout(){},dispose(){},onDidChangeModelContent(fn){changed=fn;},addCommand(){}};
+  const f=fixture({source:'// JS',hostOptions:{allowTextFiles:true,loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
+    options.setEditorAdapter({getValue:()=>model.source,setValue:value=>{model.source=value;changed();},
+      openVirtualFile(path,source){model={path,source,language:'javascript'};changed();},focus(){},setReadOnly(){},syncVirtualFiles(){}});
+    options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4},editor:{setModelLanguage(target,value){target.language=value;language.push(value);}}},monacoEditor:editor});
+  }})}});
+  try {
+    await f.controls.ready;f.project.fs.writeText('/saved.JSON','{"valid":true}');await f.controls.openFile('/saved.JSON');
+    await until(()=>model.path==='/saved.JSON'&&model.language==='json');assert.equal(f.calls.factories,0);
+    model.source='{"valid":"edited"}';changed();assert.equal(f.project.fs.get('/saved.JSON').data,model.source);
+    f.project.fs.writeText('/renamed.txt',model.source);f.project.fs.remove('/saved.JSON');f.controls.pathChanged('/saved.JSON','/renamed.txt');
+    assert.equal(model.path,'/renamed.txt');assert.equal(model.language,'plaintext');assert.equal(f.byId('synthCodeRunButton').disabled,true);
+    f.project.fs.writeText('/renamed.js',model.source);f.project.fs.remove('/renamed.txt');f.controls.pathChanged('/renamed.txt','/renamed.js');
+    assert.equal(model.language,'javascript');assert.equal(f.byId('synthCodeRunButton').disabled,false);
+    assert(language.includes('json'));assert(language.includes('plaintext'));assert.equal(f.calls.stops,0);
+  }finally{f.cleanup();}
+});
+
+test('renaming the active running JS to text stops its execution while retaining the renamed editable document',async()=>{
+  const fade=deferred(),f=fixture({source:'// borrowed JS',stopRuntime:()=>fade.promise,hostOptions:{allowTextFiles:true}});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1);
+    f.project.fs.writeText('/renamed.json',f.project.fs.get('/index.js').data);f.project.fs.remove('/index.js');
+    f.controls.pathChanged('/index.js','/renamed.json');assert.equal(f.calls.stops,1);
+    assert.equal(f.controls.activePath,'/renamed.json');assert.equal(f.controls.executionPath,'/index.js');assert.equal(f.byId('synthCodeRunButton').disabled,true);
+    fade.resolve();await until(()=>f.controls.executionPath===null);assert.equal(f.byId('synthCodeEditor').value,'// borrowed JS');
+  }finally{fade.resolve();f.cleanup();}
+});
+
+test('JSON selection intent cancels an older Run even when its storage flush finishes before the JSON flush',async()=>{
+  for(const show of [true,false]) {
+    const runFlush=deferred(),jsonFlush=deferred();let preparations=0,saves=0;
+    const f=fixture({source:'// old JS must not start',before:()=>{preparations++;},hostOptions:{allowTextFiles:true}});
+    try {
+      await f.controls.ready;await f.controls.setMode('code');f.project.fs.writeText('/next.json','{"selected":true}');
+      f.files.persistCode=()=>++saves===1?runFlush.promise:saves===2?jsonFlush.promise:Promise.resolve(true);
+      f.byId('synthCodeRunButton').fire('click');await until(()=>saves===1);
+      const selection=f.controls.openFile('/next.json',{show});await until(()=>saves===2);
+      assert.equal(f.controls.activePath,'/index.js','the JSON document has not loaded yet');
+      assert.equal(f.byId('synthCodeRunButton').disabled,true);
+      runFlush.resolve(true);for(let i=0;i<20;i++)await turn();
+      assert.equal(preparations,0);assert.equal(f.calls.factories,0);assert.equal(f.calls.runs.length,0);
+      f.byId('synthCodePanel').fire('keydown',{metaKey:true,key:'Enter'});for(let i=0;i<10;i++)await turn();
+      assert.equal(preparations,0,'execution remains blocked while the newer file open is pending');
+      jsonFlush.resolve(true);assert.equal(await selection,true);assert.equal(f.controls.activePath,'/next.json');
+      assert.equal(f.byId('synthCodeRunButton').disabled,true);assert.equal(f.calls.factories,0);
+    }finally{runFlush.resolve(true);jsonFlush.resolve(true);f.cleanup();}
+  }
+});
+
+test('Files can cancel pending execution at click intent before its own flush reaches openFile',async()=>{
+  const runFlush=deferred(),fileFlush=deferred();let preparations=0,saves=0;
+  const f=fixture({source:'// must not stop PSF',before:()=>{preparations++;},hostOptions:{allowTextFiles:true}});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');f.project.fs.writeText('/preset.json','{"preset":true}');
+    f.files.persistCode=()=>++saves===1?runFlush.promise:saves===2?fileFlush.promise:Promise.resolve(true);
+    f.byId('synthCodeRunButton').fire('click');await until(()=>saves===1);
+    assert.equal(f.controls.cancelPendingExecution(),true);
+    const adapterFlush=f.controls.flush();await until(()=>saves===2);
+    runFlush.resolve(true);for(let i=0;i<20;i++)await turn();
+    assert.equal(f.controls.activePath,'/index.js','Files is still awaiting storage and has not called openFile');
+    assert.equal(preparations,0);assert.equal(f.calls.factories,0);assert.equal(f.calls.stops,0);
+    fileFlush.resolve(true);await adapterFlush;await f.controls.openFile('/preset.json');
+    assert.equal(f.controls.activePath,'/preset.json');assert.equal(f.calls.runs.length,0);
+    assert.equal(f.controls.cancelPendingExecution(),false);
+  }finally{runFlush.resolve(true);fileFlush.resolve(true);f.cleanup();}
+});
+
+test('Run may still initialize its own first JavaScript document without cancelling that execution',async()=>{
+  const f=fixture();
+  try {
+    await f.controls.ready;f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1);
+    assert.equal(f.controls.activePath,'/index.js');assert.equal(f.calls.runs[0].options.path,'/index.js');
+    assert.match(f.calls.runs[0].text,/useSoundChip\("ym2612"\)/);assert.equal(f.calls.factories,1);
+  }finally{f.cleanup();}
+});
+
+test('a JSON selection in the same tick as initial Run cannot be replaced by its stale private JavaScript initialization',async()=>{
+  for(const show of [true,false]) {
+    const f=fixture({hostOptions:{allowTextFiles:true}});
+    try {
+      await f.controls.ready;f.project.fs.writeText('/preset.json','{"latest":"JSON"}');
+      f.byId('synthCodeRunButton').fire('click');
+      assert.equal(await f.controls.openFile('/preset.json',{show}),true);
+      for(let i=0;i<20;i++)await turn();
+      assert.equal(f.controls.activePath,'/preset.json');assert.equal(f.byId('synthCodeEditor').value,'{"latest":"JSON"}');
+      assert.equal(f.project.fs.has('/index.js'),false,'the cancelled Run cannot create a replacement JS file');
+      assert.equal(f.calls.factories,0);assert.equal(f.calls.runs.length,0);assert.equal(f.controls.isCodeMode(),show);
+      assert.equal(f.byId('synthCodeEditor').focusCount??0,show?1:0);
+    }finally{f.cleanup();}
+  }
+});
+
+test('a stale first Code-tab request cannot reveal or focus its editor after a newer hidden JSON selection',async()=>{
+  const f=fixture({hostOptions:{allowTextFiles:true}});
+  try {
+    await f.controls.ready;f.project.fs.writeText('/preset.json','{"latest":true}');
+    const openingCode=f.controls.setMode('code'),openingJson=f.controls.openFile('/preset.json',{show:false});
+    assert.equal(await openingCode,false);assert.equal(await openingJson,true);
+    assert.equal(f.controls.activePath,'/preset.json');assert.equal(f.controls.isCodeMode(),false);
+    assert.equal(f.byId('synthCodeEditor').focusCount,undefined);assert.equal(f.project.fs.has('/index.js'),false);
+  }finally{f.cleanup();}
+});
+
+test('mixed JS/text Monaco disables occurrences once before attachment while default hosts remain unchanged',async()=>{
+  const events=[];let model={path:'',source:''},option='multiFile';
+  const editor={getModel:()=>model,getOption:id=>{assert.equal(id,78);events.push(['read',option]);return option;},
+    updateOptions(value){option=value.occurrencesHighlight;events.push(['option',option]);},layout(){},dispose(){},onDidChangeModelContent(){},addCommand(){}};
+  const project=createSynthProject();project.fs.writeText('/saved.json','{"restored":true}');project.fs.writeText('/index.js','// JS');
+  const f=fixture({project,storedState:{mode:'code',path:'/saved.json'},hostOptions:{allowTextFiles:true,
+    loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
+      options.setEditorAdapter({getValue:()=>model.source,setValue:source=>{model.source=source;},setReadOnly(){},focus(){},
+        openVirtualFile(path,source){events.push(['attach',path,option]);model={path,source};}});
+      options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4},editor:{EditorOption:{occurrencesHighlight:78},setModelLanguage(){}}},monacoEditor:editor});
+    }})}});
+  try {
+    await f.controls.ready;await until(()=>model.path==='/saved.json');
+    assert.deepEqual(events.slice(0,2),[['option','off'],['attach','/saved.json','off']]);
+    await f.controls.openFile('/index.js');assert.deepEqual(events.at(-1),['attach','/index.js','off']);
+    await f.controls.openFile('/saved.json');assert.deepEqual(events.at(-1),['attach','/saved.json','off']);
+    assert.equal(events.filter(event=>event[0]==='option').length,1);assert.equal(events.filter(event=>event[0]==='read').length,0);assert.equal(f.calls.factories,0);
+  }finally{f.cleanup();}
+  const untouched=[];
+  const defaults=fixture({source:'// default host',monaco:true,hostOptions:{loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
+    options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4},editor:{EditorOption:{occurrencesHighlight:78}}},
+      monacoEditor:{layout(){},dispose(){},onDidChangeModelContent(){},addCommand(){},getOption(){untouched.push('read');},updateOptions(){untouched.push('write');}}});
+  }})}});
+  try{await defaults.controls.ready;await defaults.controls.setMode('code');await until(()=>defaults.byId('synthCodeEditorNote').textContent!==undefined);for(let i=0;i<10;i++)await turn();assert.deepEqual(untouched,[]);}
+  finally{defaults.cleanup();}
 });

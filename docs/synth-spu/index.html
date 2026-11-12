@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-psf-seek-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-json-code-1">
   </head>
   <body>
     <main>
@@ -237,7 +237,7 @@
             <div class="spu-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
             <p class="spu-code-caption">Software performance · the same SPU and samples as the controls above. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
             <div id="synthCodeEditorHost" class="spu-code-editor-host"></div>
-            <textarea id="synthCodeEditor" class="spu-code-editor" spellcheck="false" aria-label="SPU performance JavaScript" rows="12" readonly></textarea>
+            <textarea id="synthCodeEditor" class="spu-code-editor" spellcheck="false" aria-label="SPU project file contents" rows="12" readonly></textarea>
             <p id="synthCodeEditorNote" class="subtext">Code is saved in Files. Loading a project never runs it automatically.</p>
             <pre id="synthCodeError" class="spu-code-error" role="alert"></pre>
             <details class="spu-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
@@ -255,6 +255,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-psf-seek-1"></script>
+    <script type="module" src="./synth.js?v=spu-json-code-1"></script>
   </body>
 </html>

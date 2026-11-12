@@ -72,6 +72,11 @@ const server = http.createServer(async (request, response) => {
 });
 
 function muteDestinations() {
+  window.__jsonEditorErrors=[];window.__jsonEditorPhase='startup';
+  const errorValue=value=>({type:typeof value,name:value?.name,message:value?.message,stack:value?.stack,string:String(value)});
+  function errorContext(){const host=document.getElementById('synthCodeEditorHost'),editor=window.monaco?.editor?.getEditors().find(item=>host?.contains(item.getDomNode()));return {phase:window.__jsonEditorPhase,path:editor?.getModel()?.uri.path,language:editor?.getModel()?.getLanguageId(),selected:document.getElementById('spuFilesSelected')?.textContent,at:performance.now()};}
+  window.addEventListener('error',event=>window.__jsonEditorErrors.push({...errorContext(),event:'error',message:event.message,filename:event.filename,line:event.lineno,column:event.colno,error:errorValue(event.error)}),true);
+  window.addEventListener('unhandledrejection',event=>window.__jsonEditorErrors.push({...errorContext(),event:'unhandledrejection',reason:errorValue(event.reason)}));
   const gates = [], connect = AudioNode.prototype.connect;
   AudioNode.prototype.connect = function(destination, ...ports) {
     if (destination !== this.context.destination) return connect.call(this, destination, ...ports);
@@ -270,7 +275,7 @@ async function run(browser, name, origin) {
   const context = await browser.newContext({viewport: {width: 1240, height: 1100}, serviceWorkers: 'block'});
   const page = await context.newPage(), pageErrors = [], consoleErrors = [], cdnFailures = [];
   page.setDefaultTimeout(30000);
-  page.on('pageerror', error => pageErrors.push(error.stack ?? error.message));
+  page.on('pageerror', error => pageErrors.push({name:error.name,message:error.message,stack:error.stack,string:String(error),properties:Object.getOwnPropertyNames(error)}));
   page.on('console', message => {
     if (message.type() === 'error') consoleErrors.push({text: message.text(), url: message.location().url});
   });
@@ -393,6 +398,43 @@ async function run(browser, name, origin) {
       {needle: 'ps1.setPreset', symbol: 'setPreset', file: 'ps1synth.js'},
     ]) result.implementations.push(await bounded(definition(page, target), 'Go to Definition / ' + target.file, 60000));
     result.steps.push('Public Go to Definition and View implementation open readable Code runtime and SPU sources');
+    // JSON shares this same real Monaco editor, but never the JS runtime.
+    async function selectFile(filename){if(await page.locator('#spuFilesPanel').isHidden())await page.locator('#spuFilesToggle').click();for(let i=0;i<10;i++){const closed=page.locator('#spuFilesTree details:not([open]) > summary');if(!await closed.count())break;await closed.first().click();}await page.locator('#spuFilesTree button.file-entry').locator(`xpath=self::*[@data-file-path=${JSON.stringify(filename)}]`).click();await page.waitForFunction(filename=>{const host=document.getElementById('synthCodeEditorHost'),editor=monaco.editor.getEditors().find(item=>host.contains(item.getDomNode()));return document.getElementById('spuFilesSelected').textContent===filename&&editor.getModel()?.uri.path==='/project'+filename;},filename);}
+    async function editorModel(){return page.evaluate(()=>{const host=document.getElementById('synthCodeEditorHost'),editor=monaco.editor.getEditors().find(item=>host.contains(item.getDomNode())),model=editor.getModel();return {language:model.getLanguageId(),path:model.uri.path,text:model.getValue(),occurrencesHighlight:editor.getOption(monaco.editor.EditorOption.occurrencesHighlight),kind:document.getElementById('synthCodePanel').dataset.editorKind,runnable:document.getElementById('synthCodePanel').dataset.runnable};});}
+    result.javascriptOccurrences=(await editorModel()).occurrencesHighlight;assert.equal(result.javascriptOccurrences,'off','SPU text-file sessions disable only word occurrence highlighting for every model');await page.evaluate(()=>window.__jsonEditorPhase='JSON import/select');const json='{"marker":"real-monaco-json"}\n';await page.locator('#spuFilesInput').setInputFiles({name:'inspection.json',mimeType:'application/json',buffer:Buffer.from(json)});await page.waitForFunction(()=>/Added 1 file/.test(document.getElementById('spuFilesStatus').textContent));await page.locator('#synthInputKeyboardTab').click();await page.waitForFunction(()=>document.getElementById('synthInputSection').dataset.inputMode==='keyboard');await selectFile('/inspection.json');await page.locator('#synthCodeEditorHost').waitFor({state:'visible'});result.json=await editorModel();assert.deepEqual(result.json,{language:'json',path:'/project/inspection.json',text:json,occurrencesHighlight:'off',kind:'text',runnable:'false'});assert(await page.locator('#synthCodeEditor').isHidden());assert(await page.locator('#synthCodeRunButton').isDisabled());assert(await page.locator('#synthCodeApplyButton').isDisabled());assert.equal(await page.locator('#spuFileTextEditor').count(),0);
+    // Both models now exist. Focus JS immediately before a genuine pointer click
+    // back to JSON, without sleeping through Monaco's former 50 ms Delayer.
+    result.rapidFocusedTransitions=[];
+    for(let index=0;index<3;index++) {
+      await selectFile('/index.js');
+      const target=page.locator('#spuFilesTree button[data-file-path="/inspection.json"]');
+      await target.scrollIntoViewIfNeeded();
+      const box=await target.boundingBox();assert(box,'Prepared JSON file is visible');
+      await page.evaluate(()=>{
+        window.__jsonEditorPhase='rapid focused JavaScript to JSON';
+        const host=document.getElementById('synthCodeEditorHost');
+        const editor=monaco.editor.getEditors().find(item=>host.contains(item.getDomNode()));
+        editor.focus();window.__rapidJsonFocusAt=performance.now();
+        window.__rapidJsonClickedAt=null;
+        document.getElementById('spuFilesTree').addEventListener('pointerdown',()=>{
+          window.__rapidJsonClickedAt=performance.now();
+        },{once:true,capture:true});
+      });
+      await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
+      await page.waitForFunction(()=>{
+        const host=document.getElementById('synthCodeEditorHost');
+        return monaco.editor.getEditors().find(item=>host.contains(item.getDomNode()))?.getModel()?.uri.path==='/project/inspection.json';
+      });
+      const timing=await page.evaluate(()=>({focusToPointerMilliseconds:__rapidJsonClickedAt-__rapidJsonFocusAt}));
+      assert(Number.isFinite(timing.focusToPointerMilliseconds)&&timing.focusToPointerMilliseconds>=0);
+      const current=await editorModel();assert.equal(current.language,'json');assert.equal(current.occurrencesHighlight,'off');
+      result.rapidFocusedTransitions.push({...timing,language:current.language,occurrencesHighlight:current.occurrencesHighlight});
+    }
+    result.steps.push('Three genuine prepared-model JSON selections directly after JavaScript focus produce no word-highlighter cancellation');
+    result.jsonScreenshot=path.join(path.dirname(config.out),path.basename(config.out,'.json')+'-'+name+'-json.png');await fs.mkdir(path.dirname(result.jsonScreenshot),{recursive:true});await page.locator('#synthCodeEditorHost').scrollIntoViewIfNeeded();await page.screenshot({path:result.jsonScreenshot,fullPage:true});
+    await page.evaluate(()=>{window.__jsonEditorPhase='JSON shortcuts';const host=document.getElementById('synthCodeEditorHost');monaco.editor.getEditors().find(item=>host.contains(item.getDomNode())).focus();});await page.keyboard.press('Control+Enter');await page.keyboard.press('Control+Shift+Enter');assert.match(await page.locator('#synthCodeState').textContent(),/Idle|Stopped/i);assert.equal(await page.locator('#synthCodeError').textContent(),'');const editedJson='{"marker":"edited-json","enabled":true}\n';await setSource(page,editedJson);await page.evaluate(()=>window.__jsonEditorPhase='JSON rename');
+    await page.locator('#spuFileRenameButton').click();await page.locator('#spuFileNameInput').fill('/renamed-inspection.json');await page.locator('#spuFileNameConfirm').click();await page.waitForFunction(()=>document.getElementById('spuFilesSelected').textContent==='/renamed-inspection.json');result.renamedJson=await editorModel();assert.equal(result.renamedJson.language,'json');assert.equal(result.renamedJson.occurrencesHighlight,'off');assert.equal(result.renamedJson.path,'/project/renamed-inspection.json');assert.equal(result.renamedJson.text,editedJson);await page.evaluate(()=>window.__jsonEditorPhase='JSON delete');await page.locator('#spuFileDeleteButton').click();await page.locator('#spuFileNameConfirm').click();await page.waitForFunction(()=>!document.querySelector('#spuFilesTree [data-file-path="/renamed-inspection.json"]'));assert.equal((await editorModel()).text,'');assert.equal((await editorModel()).kind,'none');assert.match(await page.locator('#synthCodeState').textContent(),/Idle|Stopped/i);
+    await page.evaluate(()=>window.__jsonEditorPhase='JSON return to JavaScript');await selectFile('/index.js');result.javascriptReturned=await editorModel();assert.equal(result.javascriptReturned.language,'javascript');assert.equal(result.javascriptReturned.occurrencesHighlight,result.javascriptOccurrences,'SPU JavaScript keeps occurrence highlighting off when returning from text');assert.equal(result.javascriptReturned.path,'/project/index.js');assert.equal(result.javascriptReturned.text,GOOD_SOURCE);assert.equal(result.javascriptReturned.runnable,'true');assert(await page.locator('#synthCodeRunButton').isEnabled());assert.deepEqual(await diagnostics(page),{syntax:[],semantic:[]});result.steps.push('The same visible Monaco edits JSON with JSON language, blocks Run/Apply/shortcuts, preserves edits through rename/delete and returns to JavaScript without executing either');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), '1240px layout has no horizontal overflow');
     result.audio = await page.evaluate(() => __synthCodeMonacoAudioAudit());
     assert(result.audio.physicallyMuted, 'Every physical output remains gain zero');
@@ -400,7 +442,7 @@ async function run(browser, name, origin) {
     assert.equal(await page.locator('#keyboardKeys .key.is-active').count(), 0, 'No performance key was played');
     assert.deepEqual(missing, [], 'No packaged type or source asset returns 404');
     assert.deepEqual(blocked, [], 'Only local package and pinned Monaco CDN URLs are requested');
-    assert.deepEqual(pageErrors, [], 'No JavaScript page errors');
+    result.windowErrors=await page.evaluate(()=>__jsonEditorErrors);assert.deepEqual(pageErrors, [], 'No JavaScript page errors');assert.deepEqual(result.windowErrors,[],'No window errors or unhandled promise rejections');
     assert.deepEqual(consoleErrors, [], 'No browser console errors');
     result.screenshot = path.join(path.dirname(config.out), path.basename(config.out, '.json') + '-' + name + '.png');
     await fs.mkdir(path.dirname(result.screenshot), {recursive: true});
@@ -413,7 +455,7 @@ async function run(browser, name, origin) {
     result.status = error instanceof CdnUnavailableError ? 'cdn-unavailable' : 'failed';
     result.error = error.stack ?? error.message;
     result.cdnFailures = cdnFailures;
-    result.pageErrors = pageErrors;
+    result.windowErrors=await page.evaluate(()=>__jsonEditorErrors).catch(()=>[]);result.pageErrors = pageErrors;
     result.consoleErrors = consoleErrors;
     results.push(result);
     throw error;

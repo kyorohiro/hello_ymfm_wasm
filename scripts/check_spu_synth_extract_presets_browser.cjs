@@ -60,7 +60,7 @@ async function saveSound(page){
   const filename=await page.locator('#spuFilesSelected').textContent();
   await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>/Current SPU instrument.*saved/.test(value)&&value.includes(filename)),'named preset persistence completes');
   assert(filename.startsWith('/presets/')&&filename.endsWith('.spu.json'));assert.equal(filename.split('/').length,3,'saved name is one path component');
-  return{path:filename,sound:JSON.parse(await page.locator('#spuFileTextEditor').inputValue())};
+  return{path:filename,sound:JSON.parse(await page.locator('#synthCodeEditor').inputValue())};
 }
 async function presetPaths(page){return page.locator('#spuFilesTree button.file-entry').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-file-path')).filter(value=>value?.startsWith('/presets/')&&value.endsWith('.spu.json')));}
 async function selectPreset(page,filename){

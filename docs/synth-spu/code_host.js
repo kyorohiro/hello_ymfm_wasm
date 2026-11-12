@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared software scheduler/editor over the upper instrument's existing SPU.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?spu-code=1';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?spu-code=1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?spu-json-code=1';
 import {selectSpuCodeDeclarations} from './code_declarations.js?spu-click-guard=1';
 import {createSpuCodeAudio} from './code_audio.js?spu-code=1';
-import {createSpuCodeProject} from './code_project.js?spu-split-vab=1';
-import {setupSpuCodeFiles} from './code_files.js?spu-files-capture-resume=1';
+import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
+import {setupSpuCodeFiles} from './code_files.js?spu-json-code=1';
 
 export const SPU_STARTER_CODE=`const ps1 = await useSoundChip("ps1");
 setBpm(120);
@@ -58,6 +58,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
+    allowTextFiles:true,maxTextLength:SPU_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'ps1',transformDeclarations:selectSpuCodeDeclarations,
     journalKey:'tetorica-spu-synth-pending-code',getStarterCode:()=>SPU_STARTER_CODE,
     async onBeforeRun(){
