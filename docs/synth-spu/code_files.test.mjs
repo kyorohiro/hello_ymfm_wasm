@@ -4,8 +4,8 @@ import {setupSpuCodeFiles} from './code_files.js';
 import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js';
 
 class Element{
-  constructor(doc,tag='div'){Object.assign(this,{ownerDocument:doc,tagName:tag.toUpperCase(),children:[],listeners:new Map(),attributes:{},dataset:{},hidden:false,value:'',disabled:false});const names=new Set();this.classList={toggle:(name,on)=>on?names.add(name):names.delete(name),contains:name=>names.has(name),add:name=>names.add(name),remove:name=>names.delete(name)};}
-  append(...nodes){this.children.push(...nodes);}appendChild(node){this.append(node);return node;}replaceChildren(...nodes){this.children=nodes;}
+  constructor(doc,tag='div'){Object.assign(this,{ownerDocument:doc,tagName:tag.toUpperCase(),children:[],listeners:new Map(),attributes:{},dataset:{},style:{},parentNode:null,hidden:false,value:'',disabled:false});const names=new Set();this.classList={toggle:(name,on)=>on?names.add(name):names.delete(name),contains:name=>names.has(name),add:name=>names.add(name),remove:name=>names.delete(name)};}
+  append(...nodes){for(const node of nodes){node.parentNode=this;this.children.push(node);}}appendChild(node){this.append(node);return node;}replaceChildren(...nodes){for(const node of this.children)node.parentNode=null;this.children=[];this.append(...nodes);}remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(node=>node!==this);this.parentNode=null;}
   setAttribute(key,value){this.attributes[key]=String(value);}getAttribute(key){return this.attributes[key]??null;}
   addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);}removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);}
   querySelectorAll(selector){return walk(this).filter(node=>selector==='button'&&node.tagName==='BUTTON');}
@@ -14,7 +14,7 @@ class Element{
 }
 const walk=node=>[node,...node.children.flatMap(walk)],deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 function fixture(t,options={}){
-  const doc=new Element(null,'document');doc.ownerDocument=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
+  const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);main.id='test-main';doc.append(main);doc.querySelector=selector=>selector==='.spu-main'?main:null;
   for(const id of ['spuFilesPanel','spuFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='spuFilesPanel';doc.append(node);}
   const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
@@ -178,6 +178,41 @@ test('a file selection cancels pending execution before waiting for editor persi
   f.files.setCodeControls({cancelPendingExecution(){events.push('cancel');},flush:async()=>{events.push('flush');await gate.promise;},openFile:async()=>events.push('open'),setBusy(){}});
   const pending=f.files.selectFile('/inspection.json');assert.deepEqual(events,['cancel']);
   await Promise.resolve();assert.deepEqual(events,['cancel','flush']);gate.resolve();await pending;assert.deepEqual(events,['cancel','flush','open']);
+});
+
+test('file selection updates the editor without changing Keyboard or Code mode',async t=>{
+  const f=fixture(t);await f.files.ready;let mode='keyboard';const opened=[];
+  f.files.setCodeControls({flush:async()=>true,isCodeMode:()=>mode==='code',setBusy(){},openFile:async(path,options)=>opened.push({path,...options})});
+  f.project.importFiles([{path:'/notes.json',data:'{}'},{path:'/presets/test.spu.json',data:JSON.stringify(soundFixture())}]);
+  for(const path of ['/index.js','/notes.json','/presets/test.spu.json'])await f.files.selectFile(path);
+  assert(opened.every(value=>value.show===false));assert.equal(mode,'keyboard');assert.equal(f.calls.filter(value=>value[0]==='instrument').length,1);
+  mode='code';await f.files.selectFile('/notes.json');assert.deepEqual(opened.at(-1),{path:'/notes.json',show:true});assert.equal(mode,'code');
+});
+
+test('Duplicate preserves data, empty folders, executing JS and mode without applying a sound',async t=>{
+  const f=fixture(t);await f.files.ready;const opened=[];
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',flush:async()=>true,isCodeMode:()=>false,setBusy(){},openFile:async(path,options)=>opened.push({path,...options}),stop(){assert.fail('Copying never stops executing JS');},workspaceReplaced(){assert.fail('Copying never replaces the runtime');}});
+  f.project.importFiles([{path:'/set/nested/sound.spu.json',data:JSON.stringify(soundFixture())},{path:'/set/nested/data.bin',type:'binary',data:Uint8Array.of(0,128,255)}]);f.project.fs.mkdir('/set/empty');
+  assert.equal(await f.files.duplicate('/index.js'),'/index-copy.js');assert.equal(f.project.fs.get('/index-copy.js').data,'kept');assert.deepEqual(opened.at(-1),{path:'/index-copy.js',show:false});
+  assert.equal(await f.files.duplicate('/set'),'/set-copy');assert.equal(f.project.fs.stat('/set-copy/empty').type,'directory');assert.deepEqual(f.project.fs.get('/set-copy/nested/data.bin').data,Uint8Array.of(0,128,255));
+  assert.equal(await f.files.duplicate('/set/nested/sound.spu.json'),'/set/nested/sound-copy.spu.json');
+  f.project.fs.mkdir('/INDEX-COPY-2.JS');assert.equal(await f.files.duplicate('/index.js'),'/index-copy-3.js');
+  assert.equal(f.calls.length,0);assert.equal(f.project.selectedPath,'/index-copy-3.js');
+  const restored=createSpuCodeProject({snapshot:f.project.snapshot()});assert.equal(restored.fs.stat('/set-copy/empty').type,'directory');
+});
+
+test('copy size failures are atomic and keep the source, selection and sound',async t=>{
+  const f=fixture(t);await f.files.ready;f.project.importFiles([{path:'/large.bin',type:'binary',data:new Uint8Array(9*1024*1024)}]);f.project.select('/index.js');const before=f.project.snapshot();
+  await assert.rejects(f.files.duplicate('/large.bin'),/16 MiB cassette limit/);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.calls.length,0);
+});
+
+test('new instrument creates a named copy without applying it or overwriting files and folders',async t=>{
+  const authored=soundFixture(),f=fixture(t,{getInstrument:async()=>authored});await f.files.ready;
+  const path=await f.files.saveSound({path:'/presets/custom/New voice.spu.json'});assert.equal(path,'/presets/custom/New voice.spu.json');assert.equal(JSON.parse(f.project.fs.get(path).data).name,'New voice');assert.equal(authored.name,'Saved PCM');assert.equal(f.calls.length,0);
+  assert.deepEqual(f.opened.at(-1),{path,options:{show:false}});
+  const before=f.project.snapshot();await assert.rejects(f.files.saveSound({path:'/PRESETS/custom/new VOICE.spu.json'}),/already exists/);assert.deepEqual(f.project.snapshot(),before);
+  f.project.fs.mkdir('/presets/folder.spu.json');await assert.rejects(f.files.saveSound({path:'/presets/folder.spu.json'}),/already exists/);
+  await assert.rejects(f.files.saveSound({path:'/presets/not-js.js'}),/\.spu\.json/);
 });
 
 test('renaming large JSON or binary data to JavaScript fails before changing the project',async t=>{

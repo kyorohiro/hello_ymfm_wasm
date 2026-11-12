@@ -115,7 +115,10 @@ async function files(page){if(await page.locator('#spuFilesPanel').isHidden())aw
 async function selectFile(page,filename){
   await files(page);for(let i=0;i<10;i++){const closed=page.locator('#spuFilesTree details:not([open]) > summary');if(!await closed.count())break;await closed.first().click();}
   await page.locator('#spuFilesTree button.file-entry').locator(`xpath=self::*[@data-file-path=${JSON.stringify(filename)}]`).click();
-  await until(async()=>await page.locator('#spuFilesSelected').textContent()===filename&&await page.locator('#synthInputSection').getAttribute('data-input-mode')==='code'&&await page.locator('#synthCodePanel').getAttribute('data-editor-kind')===(/\.m?js$/i.test(filename)?'javascript':'text')&&(!/\.json$/i.test(filename)||/^(SPU sound loaded\.|JSON was not applied;|Text edits save)/.test(await page.locator('#spuFilesStatus').textContent())),'shared editor opens '+filename);
+  await until(async()=>await page.locator('#spuFilesSelected').textContent()===filename&&await page.locator('#synthCodePanel').getAttribute('data-editor-kind')===(/\.m?js$/i.test(filename)?'javascript':'text')&&(!/\.json$/i.test(filename)||/^(SPU sound loaded\.|JSON was not applied;|Text edits save)/.test(await page.locator('#spuFilesStatus').textContent())),'shared editor selects '+filename);
+  // Files selection preserves Keyboard; this helper intentionally inspects Code.
+  await page.locator('#synthInputCodeTab').click();
+  await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='code'),'explicit Code mode for '+filename);
 }
 async function download(page,id){if(await page.locator(id).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();const task=page.waitForEvent('download');await page.locator(id).click();const item=await task,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{bytes:Buffer.concat(chunks),name:item.suggestedFilename()};}
 async function savedSound(page){

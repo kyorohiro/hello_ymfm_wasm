@@ -143,10 +143,19 @@ name, or **Save sound** in Files, writes the current edited sound and its sample
 to `/presets/<instrument name>.spu.json`. Change **Instrument name** before saving
 to choose a name. Existing files are kept; repeated names get `(2)`, `(3)`, etc.
 Saving opens Files and selects the new preset without changing Keyboard / Code
-mode, editor focus or the current performance. Select a saved JSON to apply it
-and open its text in the shared **Code** editor. JSON and other text files save
-locally as you edit; **Run / Apply** are available only for JavaScript. Select a
-sound JSON again to apply its updated settings.
+mode, editor focus or the current performance. Selecting a file also keeps the
+current mode: choose **Code** when you want to see or edit its text. Selecting a
+saved sound JSON applies it, and its text is prepared in the shared editor. JSON
+and other text edits save locally; **Run / Apply** are available only for
+JavaScript. Select a sound JSON again to apply its updated settings.
+
+Right-click a file, folder or the Files background for **Duplicate**, **Rename**,
+**Delete**, **New instrument**, **New JavaScript file** and **New folder**.
+Shift+F10 or the Context Menu key also opens these actions. Duplicate keeps
+nested files and empty folders, uses a free `-copy` name, and keeps the current
+sound and performance. New instrument saves the current edited sound under the
+chosen `.spu.json` path. Opening the menu itself does not load or play anything.
+Escape or an outside click closes it.
 Recalling an identical loaded ADPCM sample reuses it, including its tuning and
 loop settings, so switching saved sounds does not keep consuming SPU RAM.
 Only explicitly saved sounds become preset files; opening a bank does not

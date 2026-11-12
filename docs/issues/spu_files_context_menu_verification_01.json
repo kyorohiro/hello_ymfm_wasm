@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "SPU Files keeps Keyboard/Code mode and exposes basic file actions from a context menu.",
+  "todo": "docs/issues/todo_spu_files_context_menu_01.md",
+  "agentCommitted": false,
+  "agentPushed": false,
+  "published": false,
+  "behavior": {
+    "selection": "Selecting JS or text prepares the editor with show=current Code mode. It never changes Keyboard into Code. Explicit preset JSON selection still applies its sound.",
+    "menu": "Duplicate, Rename, Delete, New instrument, New JavaScript file and New folder. Right-click only selects the target for actions; it never applies or opens its content. Actions keep the captured target path.",
+    "duplicate": "Copy working data and empty folders to an unoccupied NFC/case-fold-aware -copy path. Validate a candidate project before changing the original. Duplicating JS or JSON does not run or apply it, and keeps an existing performance.",
+    "newInstrument": "Read the current authored sound and save a named .spu.json copy at the chosen free path without applying, resetting or playing it.",
+    "keyboard": "Window capture intercepts menu keydown before the Synth document listener. Menu Escape closes only the menu; musical keys do not create auditions. Keyup still reaches the existing release handler. Open naming dialogs use native Escape and Enter without invoking global Stop.",
+    "dismiss": "Escape, outside pointer, scroll, resize and window blur close the menu. Keyboard ContextMenu/Shift+F10 and arrow/Home/End/Enter/Space navigation are supported; coordinates are clamped inside the viewport."
+  },
+  "node": {
+    "command": "node --test docs/synth-spu/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "passed": 306,
+    "failed": 0,
+    "log": "/private/tmp/spu-files-menu-node.log",
+    "record": {
+      "bytes": 33088,
+      "sha256": "593bad1844d1625ea957379e16ce54b80e7b91ba9ed0ce7c2d540c7ae8071268"
+    }
+  },
+  "browser": {
+    "menu": {
+      "report": "/private/tmp/spu-files-menu-menu-final.json",
+      "record": {
+        "bytes": 17587,
+        "sha256": "b0e93d4c810a745c58e241926bfa6b89da46e7152927b2ba2a097b72145c2e2b"
+      },
+      "testedStage": "release/itch_spu_synth_files-menu-20261112-lzBnMc",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Keyboard selection updates hidden JS/JSON without switching mode or starting audio",
+            "Right click presents exactly six actions without applying a targeted instrument",
+            "Explicit sound selection still applies the portable preset while Keyboard stays visible",
+            "Menu keyboard interception precedes global musical keys and Escape stop handling",
+            "Duplicate preserves file bytes, creates collision-safe siblings and copies nested/empty folders",
+            "Context Rename/Delete use the targeted path; Cancel keeps data and editors unchanged",
+            "New JavaScript, folder and instrument respect contextual directory and preserve Keyboard",
+            "Escape, outside pointer, scroll and keyboard navigation dismiss a clamped narrow menu",
+            "Duplicating running JS preserves its actual voice and never stops or reruns the script",
+            "Filesystem copies survive reload without executing JavaScript or losing Keyboard selection"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Keyboard selection updates hidden JS/JSON without switching mode or starting audio",
+            "Right click presents exactly six actions without applying a targeted instrument",
+            "Explicit sound selection still applies the portable preset while Keyboard stays visible",
+            "Menu keyboard interception precedes global musical keys and Escape stop handling",
+            "Duplicate preserves file bytes, creates collision-safe siblings and copies nested/empty folders",
+            "Context Rename/Delete use the targeted path; Cancel keeps data and editors unchanged",
+            "New JavaScript, folder and instrument respect contextual directory and preserve Keyboard",
+            "Escape, outside pointer, scroll and keyboard navigation dismiss a clamped narrow menu",
+            "Duplicating running JS preserves its actual voice and never stops or reruns the script",
+            "Filesystem copies survive reload without executing JavaScript or losing Keyboard selection"
+          ]
+        }
+      ]
+    },
+    "code": {
+      "report": "/private/tmp/spu-files-menu-code.json",
+      "record": {
+        "bytes": 20432,
+        "sha256": "0e2c25ae22eb9efc5423ddbfad4749efeef737c568be023e02866532ec5145dc"
+      },
+      "testedStage": "release/itch_spu_synth_files-menu-20261112-pzZwiX",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Explicit JSON selection uses the shared text editor; shortcuts cannot run JSON and edits persist through rename/delete",
+            "Preset JSON editing does not apply audio until that valid preset is explicitly selected again",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Files uses compact file rows and one visible project root, with actions below the tree",
+            "Code/Files start without audio; local modules and JSON share a visible fallback editor",
+            "Explicit JSON selection uses the shared text editor; shortcuts cannot run JSON and edits persist through rename/delete",
+            "Preset JSON editing does not apply audio until that valid preset is explicitly selected again",
+            "Code Live follows applied CH values, is read-only and preserves authored sample data",
+            "liveFx processes the shared SPU PCM once and Master retains its calibrated single route",
+            "Apply preserves context/named loops, and Stop fades PCM then retires every old Code client",
+            "Code RAM reset/upload is temporary; keyboard returns to the exact authored bank and instrument",
+            "Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code",
+            "Code maximizes beside Files at 1240/390px and pagehide stops its held notes"
+          ]
+        }
+      ]
+    },
+    "monaco": {
+      "report": "/private/tmp/spu-files-menu-monaco.json",
+      "record": {
+        "bytes": 50375,
+        "sha256": "e4aa676f91b571b64b9a9121ae934a52061387dd61af6f3061715f1970c2820f"
+      },
+      "testedStage": "release/itch_spu_synth_files-menu-20261112-pzZwiX",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH7, channel 24, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared SPU",
+            "Public Go to Definition and View implementation open readable Code runtime and SPU sources",
+            "Three genuine prepared-model JSON selections directly after JavaScript focus produce no word-highlighter cancellation",
+            "The same visible Monaco edits JSON with JSON language, blocks Run/Apply/shortcuts, preserves edits through rename/delete and returns to JavaScript without executing either"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH7, channel 24, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared SPU",
+            "Public Go to Definition and View implementation open readable Code runtime and SPU sources",
+            "Three genuine prepared-model JSON selections directly after JavaScript focus produce no word-highlighter cancellation",
+            "The same visible Monaco edits JSON with JSON language, blocks Run/Apply/shortcuts, preserves edits through rename/delete and returns to JavaScript without executing either"
+          ]
+        }
+      ]
+    }
+  },
+  "physicalAudio": {
+    "headlessOnly": true,
+    "destinationInterceptedBeforeApplication": true,
+    "gain": 0,
+    "chromiumMuteAudio": true,
+    "ordinaryBrowserOrNativeAppUsed": false,
+    "osVolumeChanged": false,
+    "listeningPerformed": false
+  },
+  "package": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_files-menu-20261112-lzBnMc",
+    "archive": "release/tetorica_spu_synth_files-menu-20261112_itch.zip",
+    "files": 338,
+    "bundles": 3,
+    "archiveRecord": {
+      "bytes": 7054934,
+      "sha256": "072df38cd27e2b563231124507906d4dde90eed21dd1458068197cd62658afc2"
+    },
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    }
+  },
+  "finalRevisionComparedWithCodeAndMonacoStage": {
+    "zipCrcAndStageBytesMatch": true,
+    "beforeStage": "release/itch_spu_synth_files-menu-20261112-pzZwiX",
+    "afterStage": "release/itch_spu_synth_files-menu-20261112-lzBnMc",
+    "changedFiles": [
+      "sources/spu-synth-browser-inputs.zip",
+      "sources/spu-synth-browser.json",
+      "synth-spu/file_context_menu.js",
+      "synth-spu/synth.js"
+    ],
+    "runtimeChange": "Menu keydown is intercepted at window capture before the Synth document listener; open Files naming dialog skips Synth keydown so native Escape/Enter works. Other Code/Monaco behavior unchanged."
+  },
+  "regressionStages": "Code and Monaco passed on pzZwiX. Only menu keydown capture and the Files naming-dialog guard changed afterward; all final menu and audio-key regression checks passed on lzBnMc. The archive and final stage match byte-for-byte.",
+  "visualInspection": {
+    "screenshot": "/private/tmp/spu-files-menu-menu-final/chromium-narrow-files-menu.png",
+    "checked": "All six actions remain visible within a 390 by 650 viewport, using the existing SPU palette and compact Files tree."
+  },
+  "nativeRebuilt": false
+}
