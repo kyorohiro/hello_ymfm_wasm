@@ -21,6 +21,8 @@
 - PC Engine: 32点Waveだけの変更は保持音・software envelopeの進行・鍵盤所有者を維持し、既存hardware wave upload後に必要なchannelの出力を復帰する。wave index／発振位相のresetは明記する。出力のGate再有効化と、論理Note On／envelopeのやり直しを区別する。LFO波形・後続Key Up・失敗時も検証する。
 - SPU／S-DSP、共有runtime・npm・WASMへの変更は今回の対象外。
 
+後続対応: [SPU／S-DSPの保持音継続](todo_spu_sdsp_wave_edit_held_notes_01.md)で、SPU full-sample ADPCMとS-DSPの描画Waveへも展開済み。上記はFM2612／HuC6280対応時点の範囲を残したもの。
+
 配布確認で既存のFM Synth ZIPに共通Code runtimeのVAB helper依存が不足することが判明したため、純粋JSの`ps1_vab`とその3依存moduleを同梱リストへ追加する。SPU DSP／WASMを追加・起動する変更ではない。既存の配布module graph検証で解消を確認する。
 
 完了: [検証記録](pcm_wave_edit_held_notes_verification_01.json)。FM2612 Node522件、HuC6280 Node128件、両SynthのChromium／WebKit全チェック成功。元のKey UpによるRelease、FMの遅延RAM ACK後の非再発音、HuCのMain／LFO波形・shape編集と既存Noise／DDAも確認済み。実聴・音声出力は行っていない。

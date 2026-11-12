@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {createDefaultPreset,createDefaultEcho,createDefaultNoise,createDefaultPmon,readPreset,waveShape,envelopeRegisters,modulatorEnvelopeRegisters,presetToCode,echoOptions,ECHO_BRR_MAX_BYTES,PMON_MODULATOR_BYTES,pmonActive,pmonSampleBytes,sampleBudget,presetBankKey} from './preset.js';
+import {createDefaultPreset,createDefaultEcho,createDefaultNoise,createDefaultPmon,readPreset,waveShape,envelopeRegisters,modulatorEnvelopeRegisters,presetToCode,echoOptions,ECHO_BRR_MAX_BYTES,PMON_MODULATOR_BYTES,pmonActive,pmonSampleBytes,sampleBudget,presetBankKey,isWaveOnlyEdit} from './preset.js';
 import {encodeBase64} from './sample.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 
@@ -51,6 +51,23 @@ test('shapes return independent normalized 128-frame cycles',()=>{
     values[0]=9;assert.notEqual(waveShape(shape)[0],9);
   }
   assert.throws(()=>waveShape('noise'));
+});
+
+test('Wave-only edits exclude source, topology, tuning, effects and other authoring changes',()=>{
+  const original=createDefaultPreset();
+  assert.equal(isWaveOnlyEdit(original,original),false);
+  for(const target of ['carrier','modulator','both']){
+    const next=readPreset(original);
+    if(target!=='modulator')next.wave=waveShape('triangle');
+    if(target!=='carrier')next.pmon.wave=waveShape('square');
+    assert.equal(isWaveOnlyEdit(original,next),true);
+    for(const change of [p=>p.source='noise',p=>p.pmon.enabled=true,p=>p.pmon.ratio=2,p=>p.echo.enabled=true,
+      p=>p.echo.feedback++,p=>p.volume.left++,p=>p.envelope.attack--,p=>p.brr.rootNote++,p=>p.name='Other']){
+      const combined=readPreset(next);change(combined);assert.equal(isWaveOnlyEdit(original,combined),false);
+    }
+  }
+  const invalid=readPreset(original);invalid.wave[0]=NaN;assert.throws(()=>isWaveOnlyEdit(original,invalid));
+  assert.deepEqual(original,createDefaultPreset(),'classification does not mutate caller arrays');
 });
 
 test('copied JavaScript uses the initialized SNES API and explicit raw BRR tuning',async()=>{

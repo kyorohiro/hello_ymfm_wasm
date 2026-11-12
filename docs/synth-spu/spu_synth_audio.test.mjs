@@ -281,7 +281,7 @@ test('full imported sample reads own all packets and preserve held PCM, authored
   p.command('stop');assert.equal(p.command('getInstrumentSample',[0]).token,author.token);
 });
 
-test('full sample edits copy original ADPCM once, preserve every voice setting and export ordinary portable data',async t=>{
+test('full sample edits preserve live addresses, immutable logical originals and every held voice setting',async t=>{
   const p=await setup(44100);t.after(()=>p.close());
   const bytes=fullSample(),original=p.command('loadADPCM',[bytes,fullSampleOptions]);
   p.command('setInstrumentPreset',[{sample:original}]);
@@ -289,23 +289,30 @@ test('full sample edits copy original ADPCM once, preserve every voice setting a
   for(let ch=0;ch<24;ch++)p.command('setPreset',[ch,{pitch:1000+ch*83,volumeLeft:.1+ch*.01,volumeRight:-.1-ch*.01,adsr1:0x000f+ch*16,adsr2:0x1fc0+ch,reverb:ch%2===1}]);
   p.command('instrumentNoteOn',[61,'first']);p.command('instrumentNoteOn',[64,'second']);p.render(512);
   const before=p.processor.synth.channels.map(value=>({...value})),reverb={...p.processor.synth.reverb},source=p.command('getInstrumentSample',[0]);
+  const auditions=p.command('inspect').auditions,core=p.processor.synth.core,frame=core.nativeFrames;
+  const registers=Array.from({length:512},(_,index)=>core.read(index*2));
   const edited=source.adpcm.slice();edited[17+2]^=0x22;
   const result=p.command('setInstrumentSample',[editSample(source,edited)]),state=p.command('inspect');
   assert.notEqual(result.sampleId,original.id);assert.notEqual(result.token,source.token);
-  assert.equal(state.nextAddress,original.startAddress+bytes.length*2);assert.equal(state.auditions.length,0);
+  assert.equal(state.nextAddress,original.startAddress+bytes.length*2);assert.deepEqual(state.auditions,auditions);
+  assert.equal(core.nativeFrames,frame);assert.deepEqual(Array.from({length:512},(_,index)=>core.read(index*2)),registers);
   assert(p.processor.synth.channels.every(voice=>voice.sample===result.sampleId));
   assert.deepEqual(p.processor.synth.channels.map(withoutSample),before.map(withoutSample));
   assert.deepEqual(p.processor.synth.reverb,reverb);
   assert.deepEqual(p.processor.synth.sampleBytes[original.id],bytes);
-  assert.deepEqual(p.processor.synth.core.readRam(original.startAddress,bytes.length),bytes,'the original RAM interval stays immutable');
+  const immutable=p.processor.synth.samples[original.id];assert.notEqual(immutable.startAddress,original.startAddress);
+  assert.deepEqual(core.readRam(immutable.startAddress,bytes.length),bytes,'the original logical ID still owns its immutable source bytes');
   const slot=p.processor.synth.samples[result.sampleId];
   assert.equal(slot.samplePcmEditable,true);assert.equal(slot.byteLength,160);assert.equal(slot.decodedFrames,280);
+  assert.equal(slot.startAddress,original.startAddress,'the live physical sample stays at A');
+  assert.deepEqual(core.readRam(slot.startAddress,bytes.length),edited);
   assert.equal(slot.repeatAddress-slot.startAddress,32);assert.equal(slot.rootFrequencyHz,fullSampleOptions.baseFrequencyHz);
   const saved=p.command('getInstrument',[0]);assert.deepEqual(saved.sample.adpcm,edited);assert.equal(saved.sample.loopStartSamples,56);
   assert.equal(saved.sample.baseFrequencyHz,fullSampleOptions.baseFrequencyHz);assert.equal(saved.waveform,null);assert.equal(saved.samplePcmSource,undefined);
   assert.equal(p.command('findADPCM',[edited,fullSampleOptions]),null,'mutable full samples are never returned as immutable preset cache hits');
   assert.equal(p.command('findADPCM',[bytes,fullSampleOptions]).id,original.id);
-  assert.equal(peak(p.render(512).left),0,'committing an edit stops held notes');
+  assert(peak(p.render(512).left)>0,'committing an edit keeps held notes playing');
+  p.command('instrumentNoteOff',['first']);p.command('instrumentNoteOff',['second']);p.command('stop');
   p.command('instrumentNoteOn',[61,'trial']);assert(peak(p.render(1024).left)>0,'the edited full sample remains playable');
 });
 
@@ -313,6 +320,7 @@ test('repeated full edits reuse one slot and old tokens or changed length/loop f
   const p=await setup(44100);t.after(()=>p.close());
   const original=p.command('loadADPCM',[fullSample(),fullSampleOptions]);p.command('setInstrumentPreset',[{sample:original}]);
   let source=p.command('getInstrumentSample',[0]),slot,next;
+  p.command('instrumentNoteOn',[60,'held']);p.render(128);
   for(let index=0;index<12;index++) {
     const prior=source,bytes=source.adpcm.slice();bytes[2]=(index+1)*3;
     const result=p.command('setInstrumentSample',[editSample(source,bytes)]);
@@ -320,7 +328,7 @@ test('repeated full edits reuse one slot and old tokens or changed length/loop f
     if(index===0){slot=result.sampleId;next=p.command('inspect').nextAddress;}
     assert.equal(result.sampleId,slot);assert.equal(source.token,result.token);assert.notEqual(source.token,prior.token);
     assert.equal(p.command('inspect').nextAddress,next);
-    p.command('instrumentNoteOn',[60,'held']);p.render(128);
+    assert.deepEqual(p.command('inspect').auditions.map(value=>value.id),['held']);p.render(128);
     const state=p.command('inspect'),ram=p.processor.synth.core.readRam(),frame=p.processor.synth.core.nativeFrames;
     assert.throws(()=>p.command('setInstrumentSample',[editSample(prior)]),/sample changed/);
     assert.deepEqual(p.command('inspect').auditions,state.auditions);assert.deepEqual(p.processor.synth.core.readRam(),ram);assert.equal(p.processor.synth.core.nativeFrames,frame);
@@ -385,6 +393,104 @@ test('full imported samples under PMON retain their canonical settings and separ
   assert.equal(core.read(6)<<3,p.processor.pmonSample.startAddress,'physical even voice remains the dedicated PMON waveform');
   assert.equal(core.read(22)<<3,p.processor.synth.samples[result.sampleId].startAddress,'physical carrier uses the edited full sample');
   p.command('instrumentNoteOn',[60,'trial']);assert(peak(p.render(2048).left)>0);
+});
+
+test('long-sample first and repeated edits match direct ongoing RAM updates with PMON, reverb and host resampling',async t=>{
+  for(const [rate,paired]of [[44100,false],[48000,true]]) {
+    const hosts=await Promise.all([setup(rate),setup(rate),setup(rate)]);for(const host of hosts)t.after(()=>host.close());
+    const bytes=fullSample(100),config=readPmon({enabled:paired,depth:.55,ratio:.75}),originals=[];
+    for(const host of hosts) {
+      host.command('setClickGuard',[false]);
+      const sample=host.command('loadADPCM',[bytes,fullSampleOptions]);originals.push(sample);
+      host.command('setInstrumentPreset',[{sample,adsr1:0x000f,adsr2:0x1fc0,volumeLeft:.4,volumeRight:-.3,reverb:true}]);
+      host.command('setReverb',[{preset:'room',volumeLeft:.31,volumeRight:.27}]);
+      if(paired)host.command('setInstrumentPmon',[config,preparePs1Waveform(pmonPcm(config.depth,config.waveform))]);
+      host.command('instrumentNoteOn',[61,'lower']);host.command('instrumentNoteOn',[67,'upper']);
+      host.command('setInstrumentPitchBend',[.5]);host.render(13017);
+    }
+    const [host,reference,restarted]=hosts,core=host.processor.synth.core;
+    let source=host.command('getInstrumentSample',[0]),privateId,allocated;
+    for(let pass=0;pass<2;pass++) {
+      const edited=source.adpcm.slice();for(let at=0;at<edited.length;at++)if(at%16>=2)edited[at]^=pass?0x11:0x22;
+      const auditions=host.command('inspect').auditions,frame=core.nativeFrames,gates=host.processor.synth.gates.slice();
+      const registers=Array.from({length:512},(_,index)=>core.read(index*2)),writes=[],write=core.write;
+      core.write=(...args)=>{writes.push(args);return write.apply(core,args);};
+      let result;try{result=host.command('setInstrumentSample',[editSample(source,edited)]);}finally{core.write=write;}
+      assert.deepEqual(writes,[],'neither carrier nor PMON source receives any key, repeat, ADSR or mode write');
+      assert.equal(core.nativeFrames,frame);assert.deepEqual(host.processor.synth.gates,gates);
+      assert.deepEqual(Array.from({length:512},(_,index)=>core.read(index*2)),registers);
+      assert.deepEqual(host.command('inspect').auditions,auditions);
+      const sample=host.processor.synth.samples[result.sampleId];assert.equal(sample.startAddress,originals[0].startAddress);
+      if(pass===0){privateId=result.sampleId;allocated=host.command('inspect').nextAddress;}
+      else {assert.equal(result.sampleId,privateId);assert.equal(host.command('inspect').nextAddress,allocated);}
+      reference.processor.synth.core.loadRam(edited,originals[1].startAddress);
+      restarted.processor.synth.core.loadRam(edited,originals[2].startAddress);
+      restarted.processor.synth.core.write(0x188,paired?15:3);
+      const actual=host.render(4096),expected=reference.render(4096),wrong=restarted.render(4096);
+      assert.deepEqual(actual,expected,'editor output equals a direct RAM patch with the previous native cursors/history');
+      assert.notDeepEqual(actual.left,wrong.left,'updating the sample is not a fresh Key On');assert(peak(actual.left)>.001);
+      assert.deepEqual(core.readRam(host.processor.synth.samples[originals[0].id].startAddress,bytes.length),bytes);
+      source=host.command('getInstrumentSample',[0]);
+    }
+    for(const id of ['lower','upper'])host.command('instrumentNoteOff',[id]);host.render(4096);
+    assert.deepEqual(host.command('inspect').auditions,[]);assert(core.read((paired?1:0)*16+12)===0);
+    host.command('stop');assert.equal(peak(host.render(512).left),0,'explicit Stop still clears all output');
+  }
+});
+
+test('first full-sample editing retains an existing native release envelope and later Stop without retrigger',async t=>{
+  const hosts=await Promise.all([setup(44100),setup(44100)]);for(const host of hosts)t.after(()=>host.close());
+  const bytes=fullSample(100),originals=[];
+  for(const host of hosts) {
+    host.command('setClickGuard',[false]);const sample=host.command('loadADPCM',[bytes,fullSampleOptions]);originals.push(sample);
+    host.command('setInstrumentPreset',[{sample,adsr1:0x000f,adsr2:0x1fd4}]);
+    host.command('instrumentNoteOn',[61,'release']);host.render(2048);host.command('instrumentNoteOff',['release']);host.render(64);
+  }
+  const [host,reference]=hosts,core=host.processor.synth.core,level=core.read(12),frame=core.nativeFrames;
+  assert(level>0,'the fixture is still in its native release');
+  const source=host.command('getInstrumentSample',[0]),edited=source.adpcm.slice();edited[333]^=0x11;
+  host.command('setInstrumentSample',[editSample(source,edited)]);reference.processor.synth.core.loadRam(edited,originals[1].startAddress);
+  assert.equal(core.read(12),level);assert.equal(core.nativeFrames,frame);assert.equal(host.processor.synth.gates[0],false);
+  assert.deepEqual(host.render(4096),reference.render(4096));assert(core.read(12)<level,'the existing Release advances rather than restarting');
+  host.command('stop');assert.equal(peak(host.render(512).left),0);
+});
+
+test('spare reuse requires silence and cannot overwrite an old decoder hidden behind a newly programmed Start',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  const bytes=fullSample(100),original=p.command('loadADPCM',[bytes,fullSampleOptions]);p.command('setInstrumentPreset',[{sample:original}]);
+  const first=p.command('setInstrumentSample',[editSample(p.command('getInstrumentSample',[0]))]),spare=p.processor.synth.samples[first.sampleId];
+  const spareAddress=spare.startAddress,spareBytes=p.processor.synth.core.readRam(spareAddress,bytes.length);
+  p.command('instrumentNoteOn',[61,'old']);p.render(800);
+  const other=bytes.slice();other[123]^=0x11;const second=p.command('loadADPCM',[other,fullSampleOptions]);
+  p.command('setInstrumentPreset',[{sample:second}]);
+  assert.equal(p.processor.synth.core.read(6)*8,second.startAddress,'only the programmed next-key address has changed');
+  const before=p.command('inspect'),result=p.command('setInstrumentSample',[editSample(p.command('getInstrumentSample',[0]))]);
+  assert.notEqual(result.sampleId,first.sampleId,'a spare whose old decoder may still play is not reused');
+  assert.equal(p.command('inspect').nextAddress,before.nextAddress+bytes.length);
+  assert.deepEqual(p.processor.synth.core.readRam(spareAddress,bytes.length),spareBytes);
+  assert.deepEqual(p.command('inspect').auditions,before.auditions);assert(peak(p.render(1024).left)>0);
+  p.command('instrumentNoteOff',['old']);p.command('stop');
+  const third=p.command('loadADPCM',[bytes,fullSampleOptions]);p.command('setInstrumentPreset',[{sample:third}]);
+  const next=p.command('inspect').nextAddress,priorPrivate=result.sampleId;
+  const reused=p.command('setInstrumentSample',[editSample(p.command('getInstrumentSample',[0]))]);
+  assert.equal(reused.sampleId,priorPrivate);assert.equal(p.command('inspect').nextAddress,next,'an unreferenced silent spare is reused');
+});
+
+test('a failed live upload restores bytes/bookkeeping and does not lose held owners or their original PCM',async t=>{
+  const hosts=await Promise.all([setup(44100),setup(44100)]);for(const host of hosts)t.after(()=>host.close());
+  for(const host of hosts){const sample=host.command('loadADPCM',[fullSample(100),fullSampleOptions]);host.command('setInstrumentPreset',[{sample}]);host.command('instrumentNoteOn',[61,'held']);host.render(1000);}
+  const [host,reference]=hosts,core=host.processor.synth.core,source=host.command('getInstrumentSample',[0]),before=host.command('inspect');
+  const ram=core.readRam(),frame=core.nativeFrames,load=core.loadRam;let rejected=false;
+  const edited=source.adpcm.slice();edited[37]^=0x22;
+  core.loadRam=function(bytes,address) {
+    if(!rejected&&address===host.processor.synth.samples[source.sampleId].startAddress){rejected=true;throw new Error('Injected live upload failure');}
+    return load.call(this,bytes,address);
+  };
+  try {assert.throws(()=>host.command('setInstrumentSample',[editSample(source,edited)]),/Injected/);}finally{core.loadRam=load;}
+  assert.equal(core.nativeFrames,frame);assert.deepEqual(core.readRam(),ram);
+  assert.deepEqual(host.command('inspect').auditions,before.auditions);assert.equal(host.command('inspect').nextAddress,before.nextAddress);
+  assert.deepEqual(host.command('getInstrumentSample',[0]),source);assert.deepEqual(host.render(1024),reference.render(1024));
+  host.command('instrumentNoteOff',['held']);host.command('stop');
 });
 
 test('imported ADPCM has a separate read-only preview without RAM reads, saved-data edits or audio changes',async t=>{

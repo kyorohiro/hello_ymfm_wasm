@@ -318,7 +318,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       }
       else if (SYNTH_METHODS.has(method)) value = this.synth[method](...args);
       else throw new Error(`Unknown SPU synth command: ${method}`);
-      if (!codeRequest&&!configuration&&!READ_METHODS.has(method)) this.syncModulators();
+      if (!codeRequest&&!configuration&&!READ_METHODS.has(method)&&method!=='setInstrumentSample') this.syncModulators();
       const reply = {id, value};
       // Snapshots are sent only after explicit requests or completed edits.
       // Audio blocks never send level/state updates to the UI.
@@ -375,10 +375,30 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     const found=this.instrumentSampleSource(ch);
     if(!found)throw new Error('Select an imported ADPCM sample before editing its full waveform');
     const {source,sample,bytes,token}=found;
-    const slotId=this.codeCheckpoint?source.samplePcmSlotId:this.samplePcmState().slotId,slot=source.samples[slotId];
-    const availableEditBytes=slot?.samplePcmEditable&&slot.byteLength===sample.byteLength?slot.byteLength:524288-source.nextAddress;
+    const slot=this.reusableSampleBackup(source,sample);
+    const availableEditBytes=sample.samplePcmEditable||slot?sample.byteLength:524288-source.nextAddress;
     return {sampleId:sample.id,token,adpcm:bytes.slice(),byteLength:sample.byteLength,availableEditBytes,baseFrequencyHz:sample.rootFrequencyHz,
       ...(sample.loop?{loopStartSamples:sample.loopStartSamples}:{})};
+  }
+
+  reusableSampleBackup(source,sample) {
+    const slotId=this.codeCheckpoint?source.samplePcmSlotId:this.samplePcmState().slotId,candidate=source.samples[slotId];
+    if(!candidate?.samplePcmEditable||candidate.id===sample.id||candidate.byteLength!==sample.byteLength||
+      source.channels.some(voice=>voice.sample===candidate.id))return null;
+    // A saved author bank has no running voices (beginCode stops them first).
+    // In the live bank, reject any programmed pointer into the spare slot,
+    // including an unrelated voice or a separately configured PMON source.
+    if(!this.codeCheckpoint)for(let ch=0;ch<24;ch++) {
+      // Programmed Start can already describe the next key while the decoder
+      // still runs the previous slot. Without a cursor API, any held/releasing
+      // voice prevents spare reuse, even when the visible pointers moved away.
+      if(this.synth.gates[ch]||this.synth.core.read(ch*16+12)>0)return null;
+      for(const offset of [6,14]) {
+        const address=this.synth.core.read(ch*16+offset)*8;
+        if(address>=candidate.startAddress&&address<candidate.startAddress+candidate.byteLength)return null;
+      }
+    }
+    return candidate;
   }
 
   prepareInstrumentSampleEdit(args) {
@@ -391,29 +411,54 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     const prepared=preparePs1ADPCM(edit.adpcm,options);
     if(prepared.adpcm.length!==sample.byteLength||prepared.loop!==sample.loop||prepared.loopStartSamples!==sample.loopStartSamples||prepared.rootFrequencyHz!==sample.rootFrequencyHz)
       throw new RangeError('A full-sample edit must preserve its length, tuning and loop');
-    const slotId=this.codeCheckpoint?source.samplePcmSlotId:this.samplePcmState().slotId;
-    const candidate=source.samples[slotId],slot=candidate?.samplePcmEditable&&candidate.byteLength===sample.byteLength?candidate:null;
-    if(!slot&&source.nextAddress+prepared.adpcm.length>524288)throw new RangeError('No sample RAM available for a private full-sample edit');
-    return {prepared,original:{...sample},slotId:slot?.id??null};
+    const backup=this.reusableSampleBackup(source,sample);
+    if(!sample.samplePcmEditable&&!backup&&source.nextAddress+prepared.adpcm.length>524288)
+      throw new RangeError('No sample RAM available for a private full-sample edit');
+    return {prepared,original:{...sample},backupId:backup?.id??null};
   }
 
-  applyInstrumentSampleEdit({prepared,original,slotId}) {
-    // Every failure above precedes this first audible mutation. No encoder or
-    // decoder runs here; the preparation worker supplies complete packets.
-    this.stopInstrument();
-    let slot=slotId===null?null:this.synth.samples[slotId];
-    if(!slot) {
-      const loaded=this.synth.loadADPCM(prepared.adpcm,{baseFrequencyHz:prepared.rootFrequencyHz,...(prepared.loop?{loopStartSamples:prepared.loopStartSamples}:{})});
-      slot=this.synth.samples[loaded.id];
+  applyInstrumentSampleEdit({prepared,original,backupId}) {
+    // Inverted copy-on-write: live decoders keep physical address A. Preserve
+    // the immutable original ID at backup B, then let a private ID own A.
+    // No voice/register/owner, envelope, resampler or output history is reset.
+    // Code edits retain their existing checkpoint restoration before this call.
+    const synth=this.synth,core=synth.core,current=synth.samples[original.id],oldBytes=synth.sampleBytes[original.id];
+    let slot=current;
+    if(!original.samplePcmEditable) {
+      const backup=backupId===null?null:synth.samples[backupId],address=backup?.startAddress??synth.nextAddress;
+      const backupBytes=core.readRam(address,prepared.adpcm.length),count=synth.samples.length,nextAddress=synth.nextAddress;
+      let storage=backup;
+      try {
+        if(storage)core.loadRam(oldBytes,address);
+        else {
+          const loaded=synth.loadADPCM(oldBytes,{baseFrequencyHz:original.rootFrequencyHz,...(original.loop?{loopStartSamples:original.loopStartSamples}:{})});
+          storage=synth.samples[loaded.id];
+        }
+        core.loadRam(prepared.adpcm,original.startAddress);
+      }catch(error) {
+        // Native allocation/upload failures must not publish moved IDs or
+        // consume a new logical slot. Restore bytes when the core still accepts
+        // transfers; a terminal engine failure is handled by the audio host.
+        try{core.loadRam(oldBytes,original.startAddress);core.loadRam(backupBytes,address);}catch{}
+        synth.samples.length=count;synth.sampleBytes.length=count;synth.nextAddress=nextAddress;
+        throw error;
+      }
+      const repeatOffset=original.repeatAddress-original.startAddress;
+      Object.assign(current,{startAddress:address,repeatAddress:address+repeatOffset});
+      Object.assign(storage,{...original,id:storage.id,startAddress:original.startAddress,repeatAddress:original.repeatAddress,samplePcmEditable:true});
+      slot=storage;
+      // The raw Start/Repeat already point at A. Only change the logical
+      // descriptor binding; writing unchanged Repeat would force a live loop.
+      for(const voice of synth.channels)if(voice.sample===original.id)voice.sample=slot.id;
     }else {
-      this.synth.core.loadRam(prepared.adpcm,slot.startAddress);
-      this.synth.sampleBytes[slot.id]=prepared.adpcm;
+      try {core.loadRam(prepared.adpcm,slot.startAddress);}
+      catch(error) {try{core.loadRam(oldBytes,slot.startAddress);}catch{}throw error;}
     }
+    synth.sampleBytes[slot.id]=prepared.adpcm;
     Object.assign(slot,{rootNote:original.rootNote,rootFrequencyHz:prepared.rootFrequencyHz,basePitch:original.basePitch,
       loop:prepared.loop,loopStartSamples:prepared.loopStartSamples,decodedFrames:prepared.decodedFrames,
       repeatAddress:slot.startAddress+(prepared.loopStartSamples??0)/28*16,samplePcmEditable:true});
     this.samplePcmState().slotId=slot.id;
-    for(let ch=0;ch<24;ch++)this.authorChannel(ch,()=>this.inspector.invoke('setPreset',[ch,{sample:slot}]));
     this.reviseInstrumentSample();
     const {sample,token}=this.instrumentSampleSource();return {sampleId:sample.id,token};
   }

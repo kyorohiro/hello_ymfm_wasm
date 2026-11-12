@@ -46,6 +46,13 @@ export function presetBankKey(p) {
     p.source==='wave'?p.wave:p.source==='brr'?[p.brr.data,p.brr.loopStartSamples]:null,
     active?[p.pmon.source,p.pmon.source==='brr'?[p.pmon.brr.data,p.pmon.brr.loopStartSamples]:p.pmon.wave]:null]);
 }
+/** Only the two authored Wave arrays change; source, routing and tuning stay fixed. */
+export function isWaveOnlyEdit(previous,next) {
+  const a=readPreset(previous),b=readPreset(next);
+  if(JSON.stringify([a.wave,a.pmon.wave])===JSON.stringify([b.wave,b.pmon.wave]))return false;
+  a.wave=b.wave=[];a.pmon.wave=b.pmon.wave=[];
+  return JSON.stringify(a)===JSON.stringify(b);
+}
 /** A valid silent DSP fetch loop; the hardware NON route supplies the sound. */
 export function createNoiseCarrier() {return Uint8Array.of(3,0,0,0,0,0,0,0,0);}
 function readNoise(value) {

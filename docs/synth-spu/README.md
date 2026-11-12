@@ -40,11 +40,17 @@ are kept; this view is source PCM rather than the current playback cursor.
 
 Full-sample editing is a Tetorica software editor. A completed stroke or numeric
 change encodes the whole sample back to SPU ADPCM in a preparation Worker, then
-stops held notes and applies the result. Re-encoding adds ADPCM quantization.
-The original bank sample is kept, and repeated edits reuse a private RAM slot
-of the same size. The first edit needs enough free SPU RAM for that copy; a
+updates its playing RAM without restarting held notes or release envelopes.
+Re-encoding adds ADPCM quantization. The first edit keeps the live address in
+place and copies the original bank sample to backup RAM under its original
+sample ID. The editor owns the live slot; repeated same-size edits reuse it.
+Saved physical-address snapshots can therefore become historical, while sample
+IDs continue to resolve the original bank sound. The first edit needs enough free SPU RAM for that copy; a
 rejected or cancelled preparation keeps the current sound. Save to presets or
 export an SPU instrument to retain the edited ADPCM and its tuning.
+An older editing slot is reused as backup only when no running voice could
+still refer to it; editing another sound while notes remain active can require
+additional free RAM.
 
 Software morph remains a **112-sample cycle** feature. Its enable control is
 disabled for a full sample, so it cannot silently replace the imported sound
@@ -526,7 +532,9 @@ Sustain Level is the Decay target. With the option off, the running note keeps
 its ADSR through release, and the next Note On reads the latest instrument
 settings. Short-cycle PCM edits update the common cycle. With the option on,
 held keyboard notes restart with the edited waveform; with it off, they are
-not retriggered. Full-sample edits stop held notes when the prepared ADPCM is applied.
+not retriggered. Full-sample edits update the current RAM without retriggering
+when the prepared ADPCM is applied; the decoder keeps its play offset and
+envelope, and may briefly bridge its already-decoded lookahead.
 Because the sample RAM is shared, this does not preserve the old waveform for
 notes that are already playing.
 

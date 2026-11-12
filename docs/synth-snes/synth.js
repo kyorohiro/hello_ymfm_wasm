@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js';
-import {createEditor} from './editor.js';
-import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey} from './preset.js';
+import {createAudio} from './audio.js?v=sdsp-live-wave-1';
+import {createEditor} from './editor.js?v=sdsp-live-wave-1';
+import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
-import {parseSpcVoices,MAX_SPC_BYTES} from './spc_import.js';
+import {parseSpcVoices,MAX_SPC_BYTES} from './spc_import.js?v=sdsp-live-wave-1';
 import {createSpcBrowser} from './spc_browser.js';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
@@ -115,7 +115,8 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const next = readPreset(value);
   if(!fromSpc) spcBrowser?.clearSelection();
   const previous = preset;
-  const replacesVoices = load || presetBankKey(previous) !== presetBankKey(next);
+  const waveEdit = !load && isWaveOnlyEdit(previous,next);
+  const replacesVoices = load || !waveEdit && presetBankKey(previous) !== presetBankKey(next);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
   const editRevision = revision;
@@ -132,7 +133,9 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
       if (audio !== engine) return;
       readVoices(state);
       visualizer.wake();
-      if (revision === editRevision) status(message ?? (replacesVoices
+      if (revision === editRevision) status(message ?? (waveEdit
+        ? 'Wave updated · held notes, release tails and Echo keep playing.'
+        : replacesVoices
         ? 'Sample, PMON or Echo layout updated · previous notes and tails stopped. Play the keyboard.'
         : 'Instrument updated · hardware volume, envelopes, tuning, PMON ratio, Noise clock and Echo settings apply live.'));
     } catch (error) {

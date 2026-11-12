@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-full-sample-edit-1';
-import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-full-sample-edit-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-live-sample-1';
+import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-live-sample-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';

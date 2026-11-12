@@ -3,7 +3,7 @@
 // Snapshot inspection only: no SPC700 execution, audio device or driver scan.
 import {parseSpcFile} from '../js/spc_file.js';
 import {readSnesVoices, extractBrrSamples} from '../js/snes_brr.js';
-import {createDefaultPreset, readPreset, ECHO_BRR_MAX_BYTES} from './preset.js';
+import {createDefaultPreset, readPreset, ECHO_BRR_MAX_BYTES} from './preset.js?v=sdsp-live-wave-1';
 import {MAX_BRR_BYTES, encodeBase64} from './sample.js';
 
 export const MAX_SPC_BYTES = 16 * 1024 * 1024;

@@ -3,7 +3,7 @@
 import {SnesSynth} from '../js/snessynth.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 import {decodeBase64} from './sample.js';
-import {createDefaultPreset,readPreset,envelopeRegisters,modulatorEnvelopeRegisters,echoOptions,createNoiseCarrier,pmonActive,sampleBudget,presetBankKey} from './preset.js';
+import {createDefaultPreset,readPreset,envelopeRegisters,modulatorEnvelopeRegisters,echoOptions,createNoiseCarrier,pmonActive,sampleBudget,presetBankKey,isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 
 const noteHz=midi=>440*2**((midi-69)/12);
 const clampPitch=value=>Math.max(1,Math.min(0x3fff,Math.round(value)));
@@ -46,6 +46,24 @@ export class SnesInstrument {
     this.modulatorSample=prepared.modulator?.bytes.length?this.synth.loadBRR(prepared.modulator.bytes,prepared.modulator.options):null;
     this.voices.clear();this.slots.fill(null);this.cursor=0;this.generation++;
     this.preset=p;if(p.source==='noise')this.pitch=0;this._applyChannels();
+  }
+  _editWaves(next) {
+    const edits=[],changed=(a,b)=>a.some((value,index)=>value!==b[index]);
+    const prepare=(sample,wave)=>{
+      const bytes=encodeBrr(Float32Array.from(wave),{loopStartSamples:0}).brr;
+      const stored=sample&&this.synth.samples[sample.id];
+      if(!stored||bytes.length!==72||sample.byteLength!==bytes.length||stored.startAddress!==sample.startAddress||
+        stored.frames!==128||!stored.loop||stored.loopStartSamples!==0||stored.rootFrequencyHz!==250||stored.basePitch!==4096)
+        throw new Error('Drawn Wave no longer matches its allocated BRR loop');
+      edits.push({sample,bytes});
+    };
+    if(next.source==='wave'&&changed(this.preset.wave,next.wave))prepare(this.sample,next.wave);
+    if(pmonActive(next)&&next.pmon.source==='wave'&&changed(this.preset.pmon.wave,next.pmon.wave))prepare(this.modulatorSample,next.pmon.wave);
+    // The native decoder consumes new BRR at its next block fetch. Keep its
+    // predictor/interpolation history, hardware envelope and Echo ring intact.
+    // Prepare both arrays before writing either; dormant Wave drafts touch no RAM.
+    for(const {sample,bytes}of edits){this.core.loadRam(bytes,sample.startAddress);this.synth.sampleBytes[sample.id]=bytes;}
+    this.preset=next;
   }
   _pitch(midi,p=this.preset,pitch=this.pitch) {
     if(p.source==='noise')return 4096;
@@ -100,7 +118,8 @@ export class SnesInstrument {
   }
   setPreset(value) {
     this._open();const next=readPreset(value);
-    if(this._sampleKey(next)!==this._sampleKey(this.preset)) {
+    if(isWaveOnlyEdit(this.preset,next))this._editWaves(next);
+    else if(this._sampleKey(next)!==this._sampleKey(this.preset)) {
       const prepared=this._prepare(next);this._replace(next,prepared);
     } else {this.preset=next;this._applyChannels();}
     return this.read();

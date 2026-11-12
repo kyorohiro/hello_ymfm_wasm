@@ -57,11 +57,11 @@ test('live level, envelope, tuning and Pitch changes preserve owners and native 
   const pcm=render(instrument,512);assert(pcm.left.some((value,index)=>value!==pcm.right[index]));
 });
 
-test('sample replacement and Stop reclaim RAM, silence all voices and invalidate buffered output generations',async t=>{
+test('explicit sample loading and Stop reclaim RAM, silence all voices and invalidate buffered output generations',async t=>{
   const {instrument,core}=await setup(t);instrument.noteOn('old',60);render(instrument,256);
   let generation=instrument.generation;
   for(let i=0;i<40;i++) {
-    const p=instrument.read().preset;p.wave=waveShape(i%2?'triangle':'square');instrument.setPreset(p);
+    const p=instrument.read().preset;p.wave=waveShape(i%2?'triangle':'square');instrument.loadPreset(p);
     assert(instrument.generation>generation);generation=instrument.generation;
     assert.equal(instrument.read().voices.length,0);assert.equal(instrument.synth.samples.length,1);
     assert.equal(instrument.synth.nextAddress,1024+72);assert.equal(core.nativeFrames,0);
@@ -385,7 +385,7 @@ test('Noise remembers inactive PMON drafts without resets and restores paired al
   assert(state.generation>noise.generation);assert.equal(state.voices.length,0);assert.equal(state.capacity,4);assert.equal(state.pmonRegisters.mask,0xaa);
   assert.equal(state.pmon.ratio,4);assert.equal(instrument.synth.samples.length,2);
   instrument.noteOn('wave',60);render(instrument,512);const paired=instrument.read();
-  p.pmon.wave=waveShape('triangle');instrument.setPreset(p);state=instrument.read();assert(state.generation>paired.generation);assert.equal(state.voices.length,0);
+  p.pmon.wave=waveShape('triangle');instrument.setPreset(p);state=instrument.read();assert.equal(state.generation,paired.generation);assert.deepEqual(state.voices,paired.voices);assert.equal(state.nativeFrames,paired.nativeFrames);
   p.pmon.enabled=false;instrument.setPreset(p);state=instrument.read();assert.equal(state.capacity,8);assert.equal(state.pmonRegisters.mask,0);assert.equal(state.modulatorSample,null);
   instrument.noteOn('plain',60);render(instrument,512);const plain=instrument.read();p.pmon.wave=waveShape('saw');instrument.setPreset(p);
   assert.equal(instrument.generation,plain.generation);assert.deepEqual(instrument.read().voices,plain.voices);

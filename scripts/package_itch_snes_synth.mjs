@@ -95,7 +95,7 @@ export async function packageSnesSynth({version='dev',releaseDir=join(root,'rele
     ?'href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/tetorica_src/runtime/snessynth.js"'
     :`href="${new URL(path,home+'synth-snes/').href}"`);
   await writeFile(join(stage,'synth-snes/index.html'),html);
-  await writeFile(join(stage,'index.html'),html.replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g,'$1="./synth-snes/$2"').replaceAll('../'+icon,'./'+icon));
+  await writeFile(join(stage,'index.html'),html.replace(/\b(href|src)="\.\/(synth\.(?:css|js))([?#][^"]*)?"/g,'$1="./synth-snes/$2$3"').replaceAll('../'+icon,'./'+icon));
   await copyFile(join(root,'docs',icon),join(stage,icon));
   await copyRuntimeArtifacts({root,destination:join(stage,'generated'),ids:['spc'],includeMetadata:false});
   await copySpcSources(stage);

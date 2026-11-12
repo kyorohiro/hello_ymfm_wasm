@@ -82,7 +82,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
         if (!response.ok) throw new Error(`S-DSP WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=sdsp-live-wave-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();

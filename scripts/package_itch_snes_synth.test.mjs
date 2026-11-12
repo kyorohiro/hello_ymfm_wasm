@@ -66,7 +66,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for(const name of ['preset.js','instrument.js','sample.js','audio_import.js','editor.js','spc_import.js','spc_browser.js'])assert(info.receipt.modules.some(module=>module.path==='synth-snes/'+name));
   for(const name of ['snessynth.js','spc.js','spc_resampler.js','snes_brr.js','snes_brr_encoder.js'])assert(info.receipt.modules.some(module=>module.path==='js/'+name));
   const main=await readFile(join(a.stage,'synth-snes/synth.js'),'utf8');assert(main.split('\n').length>100);
-  assert.match(main,/import \{createAudio\} from '\.\/audio\.js'/);
+  assert.match(main,/import \{createAudio\} from '\.\/audio\.js(?:\?v=[A-Za-z0-9._-]+)?'/);
   assert.match(await readFile(join(a.stage,'synth-snes/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
   for(const name of ['spc_wasm.js','spc_wasm.wasm'])assert.deepEqual(await readFile(join(a.stage,'generated',name)),await readFile(new URL('tetorica_src/runtime/generated/'+name,root)));

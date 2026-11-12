@@ -95,8 +95,8 @@ const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.wa
   '.json':'application/json','.webp':'image/webp','.png':'image/png'};
 
 async function checkEngine(name, engine, origin) {
-  const browser = await engine.launch({headless:true});
-  const errors = [], failed = [], external = [], checks = [];
+  const browser = await engine.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})});
+  const errors = [], failed = [], external = [], checks = [], heldWaveEdits = [];
   let stage = 'startup';
   try {
     if(config.screenshots)await fs.mkdir(config.screenshots,{recursive:true});
@@ -110,9 +110,10 @@ async function checkEngine(name, engine, origin) {
       external.push(url.href); return route.abort();
     });
     await page.addInitScript(() => {
-      const audit = window.audit = {contexts:[],worklets:[],analysers:[],nextId:0,presetMessages:[]};
+      const audit = window.audit = {contexts:[],worklets:[],analysers:[],mutes:[],nextId:0,presetMessages:[],noteCommands:[]};
       const post=MessagePort.prototype.postMessage;
       MessagePort.prototype.postMessage=function(data,...args) {
+        if(['noteOn','noteOff','stop','loadPreset','setPreset'].includes(data?.method)) audit.noteCommands.push({method:data.method,id:typeof data.args?.[0]==='string'?data.args[0]:null});
         if(['setPreset','loadPreset'].includes(data?.method)) audit.presetMessages.push({method:data.method,
           dataLength:data.args?.[0]?.brr?.data?.length??0,elided:data.brrDataUnchanged===true,
           modDataLength:data.args?.[0]?.pmon?.brr?.data?.length??0,modElided:data.modBrrDataUnchanged===true});
@@ -132,6 +133,7 @@ async function checkEngine(name, engine, origin) {
         if (destination === this.context.destination) {
           const analyser = this.context.createAnalyser(); analyser.fftSize = 4096;
           const mute = this.context.createGain(); mute.gain.value = 0;
+          audit.mutes.push(mute);
           audit.analysers.push(analyser);
           connect.call(this, analyser);connect.call(analyser, mute);connect.call(mute, destination);
           return destination;
@@ -169,6 +171,15 @@ async function checkEngine(name, engine, origin) {
     const sound = () => page.waitForFunction(() => {const s=window.audit.sample();return s.finite&&s.rms>.0001;});
     const silent = () => page.waitForFunction(() => window.audit.sample().rms<.000001);
     const radio = (id,value) => page.locator(`#${id} [role="radio"][data-choice-value="${value}"]`);
+    const retainedWave = (before,after) => {
+      assert.deepEqual(after.voices,before.voices,'Wave editing retains the original physical note owner');
+      assert.equal(after.generation,before.generation,'Wave editing does not replace the DSP generation');
+      assert(after.nativeFrames>before.nativeFrames,'The existing DSP clock continues through editing');
+      assert.deepEqual(after.sample,before.sample);assert.deepEqual(after.modulatorSample,before.modulatorSample);
+      assert.deepEqual(after.echoRegisters,before.echoRegisters,'Wave editing retains shared Echo configuration');
+      for(const voice of before.voices)for(const channel of [voice.channel,voice.modulatorChannel].filter(value=>value!==undefined))
+        assert.equal(after.registers[channel][8],before.registers[channel][8],'Settled direct-GAIN ENVX is retained');
+    };
 
     await page.goto(origin+config.entry);
     await page.waitForFunction(()=>document.querySelector('#voiceEditor canvas'));
@@ -356,7 +367,9 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);await page.waitForTimeout(120);
     assert((await page.evaluate(()=>audit.sample())).rms>.000001,'only carrier voices feed the real Echo path');
     check('one canvas switches carrier / modulator editing, target changes are passive and cancelled strokes preserve the pair');
+    await radio('envelopeMode','gain').click();await radio('gainMode','direct').click();
     await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const canvasOwner=state.voices[0].id,canvasGeneration=state.generation;
+    state=await wait(s=>s.registers[s.voices[0].channel][8]===s.preset.envelope.gainLevel&&s.registers[s.voices[0].modulatorChannel][8]===s.preset.pmon.envelope.gainLevel);
     const originalCarrier=state.preset.wave,originalModulator=state.preset.pmon.wave;
     await radio('waveTarget','modulator').click();state=await read();
     assert.equal(state.voices[0].id,canvasOwner);assert.equal(state.generation,canvasGeneration);
@@ -379,14 +392,18 @@ async function checkEngine(name, engine, origin) {
     assert.equal(state.voices[0].id,canvasOwner);assert.equal(state.generation,canvasGeneration);
     await radio('waveTarget','modulator').click();await page.locator('#waveCanvas').scrollIntoViewIfNeeded();
     pmonBox=await page.locator('#waveCanvas').boundingBox();assert(pmonBox);
+    const heldPair=await read(),pairCommandStart=await page.evaluate(()=>audit.noteCommands.length);
     await page.mouse.move(pmonBox.x+pmonBox.width*.25,pmonBox.y+pmonBox.height*.3);await page.mouse.down();
     await page.mouse.move(pmonBox.x+pmonBox.width*.5,pmonBox.y+pmonBox.height*.7);await page.mouse.up();
-    state=await wait(s=>s.generation>canvasGeneration);assert.notDeepEqual(state.preset.pmon.wave,originalModulator);
-    assert.deepEqual(state.preset.wave,originalCarrier);assert.equal(state.voices.length,0);
-    const drawnGeneration=state.generation;
-    await page.locator('[data-wave-shape="triangle"]').click();state=await wait(s=>s.generation>drawnGeneration);
-    assert.notDeepEqual(state.preset.pmon.wave,originalModulator);assert.deepEqual(state.preset.wave,originalCarrier);assert.equal(state.voices.length,0);
-    await page.keyboard.up(keys[0]);await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);await sound();
+    state=await wait(s=>JSON.stringify(s.preset.pmon.wave)!==JSON.stringify(originalModulator));retainedWave(heldPair,state);await sound();
+    assert.deepEqual(state.preset.wave,originalCarrier);const drawnModulator=state.preset.pmon.wave;
+    await page.locator('[data-wave-shape="triangle"]').click();state=await wait(s=>JSON.stringify(s.preset.pmon.wave)!==JSON.stringify(drawnModulator));retainedWave(heldPair,state);
+    assert.notDeepEqual(state.preset.pmon.wave,originalModulator);assert.deepEqual(state.preset.wave,originalCarrier);
+    const retainedModulator=state.preset.pmon.wave;await radio('waveTarget','carrier').click();
+    await page.locator('[data-wave-shape="saw"]').click();state=await wait(s=>JSON.stringify(s.preset.wave)!==JSON.stringify(originalCarrier));retainedWave(heldPair,state);assert.deepEqual(state.preset.pmon.wave,retainedModulator);await sound();
+    const pairCommands=await page.evaluate(from=>audit.noteCommands.slice(from),pairCommandStart);assert(!pairCommands.some(command=>['noteOn','noteOff','stop','loadPreset'].includes(command.method)),'Wave edits do not restart or release the PMON pair');
+    heldWaveEdits.push({target:'carrier-and-pmon',owner:heldPair.voices[0],generation:heldPair.generation,nativeFramesBefore:heldPair.nativeFrames,nativeFramesAfter:state.nativeFrames,echoEnabled:state.preset.echo.enabled,commands:pairCommands,keyUpReleased:true});
+    await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);await sound();
     const targetOwner=state.voices[0].id,targetGeneration=state.generation;
     await radio('waveTarget','carrier').click();state=await read();assert.equal(state.voices[0].id,targetOwner);assert.equal(state.generation,targetGeneration);
     await radio('source','noise').click();state=await wait(s=>s.preset.source==='noise'&&s.capacity===8);
@@ -536,19 +553,24 @@ async function checkEngine(name, engine, origin) {
     await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('self-authored.spc'));
     await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&!s.pmon.active);await silent();
     await radio('conversionRate','16000').click();
-    check('wave drawing applies on release; cancelled strokes preserve held sound');
+    check('wave drawing and shapes retain a held note; cancelled strokes and later key-up retain ownership');
+    await radio('envelopeMode','gain').click();await radio('gainMode','direct').click();
     await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const drawOwner=state.voices[0].id;
+    state=await wait(s=>s.registers[s.voices[0].channel][8]===s.preset.envelope.gainLevel);
     await page.locator('#waveCanvas').scrollIntoViewIfNeeded();
     const before=state.preset.wave,box=await page.locator('#waveCanvas').boundingBox();assert(box);
     await page.mouse.move(box.x+30,box.y+20);await page.mouse.down();await page.mouse.move(box.x+100,box.y+30);
     await page.locator('#waveCanvas').dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();
     state=await read();assert.deepEqual(state.preset.wave,before);assert.equal(state.voices[0].id,drawOwner);
-    await page.keyboard.up(keys[0]);await silent();
+    const heldCarrier=await read(),carrierCommandStart=await page.evaluate(()=>audit.noteCommands.length);
     await page.mouse.move(box.x+50,box.y+30);await page.mouse.down();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.8,{steps:9});await page.mouse.up();
     state=await wait(s=>JSON.stringify(s.preset.wave)!==JSON.stringify(before));assert.equal(state.preset.wave.length,128);
-    assert(state.preset.wave.every(v=>Number.isFinite(v)&&v>=-1&&v<=1));assert.equal(state.voices.length,0);
+    assert(state.preset.wave.every(v=>Number.isFinite(v)&&v>=-1&&v<=1));retainedWave(heldCarrier,state);await sound();
     await page.locator('[data-wave-shape="triangle"]').click();
-    state=await wait(s=>s.preset.wave[0]===-.75);const authored=state.preset;
+    state=await wait(s=>s.preset.wave[0]===-.75);retainedWave(heldCarrier,state);const authored=state.preset;
+    const carrierCommands=await page.evaluate(from=>audit.noteCommands.slice(from),carrierCommandStart);assert(!carrierCommands.some(command=>['noteOn','noteOff','stop','loadPreset'].includes(command.method)));
+    heldWaveEdits.push({target:'carrier',owner:heldCarrier.voices[0],generation:heldCarrier.generation,nativeFramesBefore:heldCarrier.nativeFrames,nativeFramesAfter:state.nativeFrames,commands:carrierCommands,keyUpReleased:true});
+    await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);await silent();
     const saved=page.waitForEvent('download');await page.locator('#savePreset').click();
     assert.deepEqual(JSON.parse(await fs.readFile(await(await saved).path(),'utf8')),authored);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/useSoundChip\('snes'\)/);
@@ -805,7 +827,8 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
     if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-390.png`),fullPage:true});
     assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);assert.deepEqual(external,[]);
-    return {engine:name,ok:true,checks,errors,failed,external,sample:await page.evaluate(()=>audit.sample())};
+    assert(await page.evaluate(()=>audit.mutes.length>0&&audit.mutes.every(node=>node.gain.value===0)));
+    return {engine:name,ok:true,checks,heldWaveEdits,physicalOutputMuted:true,listeningPerformed:false,errors,failed,external,sample:await page.evaluate(()=>audit.sample())};
   }catch(error){throw new Error(`${name} (${stage}): ${error.message}`,{cause:error});}
   finally{await browser.close();}
 }

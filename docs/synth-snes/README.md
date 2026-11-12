@@ -34,6 +34,9 @@ Draw on the same canvas; releasing the stroke applies it, and an interrupted
 stroke is discarded. The source is converted to a looping BRR sample in
 software. The declared cycle frequency is 32,000 / 128 Hz at hardware
 `PITCH=4096`; keyboard notes use the hardware PITCH register to transpose it.
+Drawing or choosing a shape updates the existing BRR RAM while keeping held
+notes, release envelopes, playback positions and Echo history. The decoder
+uses the edited bytes at its next block fetch; it does not restart the note.
 
 When a BRR sample is selected, this canvas displays its decoded waveform as a
 preview. Use Wave to author a cycle. With PMON enabled, choose **Carrier** or
@@ -43,9 +46,9 @@ editable 128-point Wave or a BRR sample. A modulator BRR appears as a read-only
 decoded preview with its own Root / base PITCH and loop controls. **Load audio…**
 and **Load BRR…** replace the selected Carrier / Modulator target; the file action
 and conversion hint name that target. Switching targets alone changes no sound.
-Sample replacement, loop edits, active modulator-source / wave edits and Echo / PMON
+Sample replacement, loop edits, active modulator-source changes and Echo / PMON
 On / Off rebuild the bank, stopping held notes and old Echo tails. Repeated
-edits reuse sample RAM. Volume, envelope, Root / base PITCH, Pitch wheels and
+drawn Wave edits reuse their existing RAM without rebuilding the bank. Volume, envelope, Root / base PITCH, Pitch wheels and
 Echo parameters other than Enable apply to held voices.
 
 BRR compression is lossy. The S-DSP core then performs Gaussian interpolation,
@@ -101,7 +104,8 @@ audio and BRR loads target whichever sample is selected. An empty BRR modulator
 is a valid draft, but keys and JavaScript audition require a loaded sample.
 BRR encoding and keyboard pair allocation
 are software authoring tools; PMON and both envelopes run in the actual S-DSP.
-Changing the active wave or PMON On / Off rebuilds the bank and stops held
+Editing only the Carrier / Modulator Wave keeps both voices and Echo running.
+Changing PMON On / Off or its sample source rebuilds the bank and stops held
 notes and Echo tails. Ratio, Envelope / GAIN and Pitch edits retain their owners.
 Noise temporarily pauses PMON because Noise output is not tuned by sample PITCH;
 returning to Wave / BRR restores the remembered setting.

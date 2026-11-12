@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {createDefaultPreset, readPreset, waveShape, envelopeRegisters,
-  modulatorEnvelopeRegisters, pmonActive, pmonSampleBytes, sampleBudget, presetBankKey} from './preset.js';
+  modulatorEnvelopeRegisters, pmonActive, pmonSampleBytes, sampleBudget, presetBankKey} from './preset.js?v=sdsp-live-wave-1';
 import {decodeBase64, encodeBase64} from './sample.js';
 import {decodeBrr} from '../js/snes_brr.js';
 
@@ -246,7 +246,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const canvas = make('canvas'); canvas.id = 'waveCanvas'; canvas.width = 900; canvas.height = 210; canvas.setAttribute('role', 'img');
   sampleCard.content.append(canvas);
   const waveReadout = make('p', 'sdsp-wave-readout'); waveReadout.id = 'waveReadout'; waveReadout.setAttribute('aria-live', 'polite'); sampleCard.content.append(waveReadout);
-  const drawingHint = help(sampleCard.content, 'Draw one 128-point cycle here. Releasing a stroke or choosing a shape prepares a new BRR loop and stops held notes. Drawing / encoding are software tools; the output monitor shows the S-DSP result after BRR decoding and Gaussian interpolation.');
+  const drawingHint = help(sampleCard.content, 'Draw one 128-point cycle here. Releasing a stroke or choosing a shape updates its BRR loop while held notes and release tails keep playing. Drawing / encoding are software tools; the output monitor shows the S-DSP result after BRR decoding and Gaussian interpolation.');
 
   const tuning = section(sampleCard.content, 'BRR reference pitch & loop'), tuningFields = group(tuning);
   number(tuningFields, 'Root MIDI note', 'rootNote', 0, 127, value => value.brr.rootNote, (value, note) => {value.brr.rootNote = note;});
@@ -552,8 +552,8 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     shapeActions.hidden=!target;drawingHint.hidden=!target;tuning.hidden=!isBrr||isModulator;
     pmonTuning.hidden=!isModulator||!modBrr;
     drawingHint.textContent=isModulator
-      ?'Draw the modulator’s 128-point cycle here. Shape buttons change this selected wave. Releasing a stroke prepares its BRR loop and stops held notes / Echo tails. Audio / BRR file loads replace this selected modulator. Switch to Carrier to preview or edit its wave.'
-      :'Draw the carrier’s 128-point cycle here. Releasing a stroke or choosing a shape prepares a new BRR loop and stops held notes / Echo tails. Drawing / encoding are software tools; the output monitor shows the hardware result after BRR decoding, interpolation and modulation.';
+      ?'Draw the modulator’s 128-point cycle here. Shape buttons update this selected BRR loop without restarting notes, envelopes or Echo. Audio / BRR file loads replace this selected modulator and stop notes. Switch to Carrier to preview or edit its wave.'
+      :'Draw the carrier’s 128-point cycle here. Releasing a stroke or choosing a shape updates its BRR loop without restarting notes, envelopes or Echo. Drawing / encoding are software tools; the output monitor shows the hardware result after BRR decoding, interpolation and modulation.';
     canvas.dataset.editable=String(Boolean(target));canvas.dataset.waveTarget=isModulator?'modulator':'carrier';
     canvas.setAttribute('aria-label',isNoise?'Waveform editor inactive for hardware Noise':target?'Editable 128-point '+target+' waveform, normalized minus one to plus one':'Decoded BRR '+displayedTarget+' waveform overview');
     loopBrr.disabled=!isBrr||isModulator||!hasBrr;loopStart.setDisabled(!isBrr||isModulator||!hasBrr||preset.brr.loopStartSamples===null);

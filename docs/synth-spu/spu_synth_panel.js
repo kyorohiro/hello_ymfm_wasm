@@ -4,7 +4,7 @@ import {readMorph, morphPcm, morphShape, morphShapeName, MORPH_SHAPES} from './s
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
 import {appliedSpuAdpcmPreview} from './spu_adpcm_preview.js';
-import {createSpuSamplePcmEditor} from './sample_pcm_editor.js';
+import {createSpuSamplePcmEditor} from './sample_pcm_editor.js?v=spu-live-sample-1';
 import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
 
 /** Reuse the PCM/ADSR/FX editors with one instrument for all keyboard voices.

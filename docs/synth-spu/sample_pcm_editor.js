@@ -48,7 +48,7 @@ export function createSpuSamplePcmEditor({element,canvas,readSample,prepareSampl
   const view=row('spu-sample-pcm-view');number(view,'start','View start',0,0);number(view,'span','Visible samples',1,1);
   button(view,'zoom-in','Zoom +');button(view,'zoom-out','Zoom −');button(view,'full','Full sample');button(view,'cancel','Cancel edit');
   const status=make('output');status.dataset.samplePcmStatus='';status.setAttribute('role','status');element.append(status);
-  const note=make('p','Software sample editor · ADPCM quantization is lossy. Applying stops held notes; length, loop, tuning and ADSR are kept.');note.className='subtext';element.append(note);
+  const note=make('p','Software sample editor · ADPCM quantization is lossy. Held notes continue at their current positions; length, loop, tuning and ADSR are kept.');note.className='subtext';element.append(note);
   const busy=()=>phase==='loading'||phase==='encoding'||phase==='applying';
   const data=()=>draft??pcm,peakData=()=>draftPeaks??peaks;
   function read(){return {active,phase,ready:active&&phase==='ready'&&Boolean(pcm),frames:pcm?.length??0,

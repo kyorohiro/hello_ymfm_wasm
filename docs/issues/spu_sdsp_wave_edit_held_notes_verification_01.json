@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "status": "passed",
+  "sourceCommitBeforeChanges": "51f493348812aca68b40ea10a4ada8c2376d100d",
+  "todo": "docs/issues/todo_spu_sdsp_wave_edit_held_notes_01.md",
+  "scope": [
+    "SPU imported/captured full-sample ADPCM editing",
+    "S-DSP drawn 128-point Carrier/PMON Modulator Wave editing"
+  ],
+  "behavior": {
+    "spu": {
+      "firstEdit": "Inverted copy-on-write: preserve running physical address A, back up original ADPCM to B under its immutable original ID, and bind a private editor ID to A using JS metadata only.",
+      "repeatedEdit": "Overwrite the same private live slot; no KON/KOFF, Start/Repeat/ADSR rewrite, output/resampler reset or note-owner change.",
+      "spareReuse": "A same-length spare is reused only if no logical/raw pointer and no native ENV/software gate could still reference it. This protects decoders whose programmed Start already describes the next note.",
+      "originalSound": "Original bytes/tuning/immutable ID remain reusable by VAB cached .id objects and findADPCM. Previous raw physical address snapshots are historical.",
+      "code": "Authoring keeps the existing Code Stop/checkpoint-restore policy; malformed/stale/over-budget preflight does not retire a Code checkpoint."
+    },
+    "sdsp": {
+      "waveEdit": "Encode the active 128-point Wave to 72 BRR bytes and overwrite its existing sample address; prepare both carrier/modulator edits before writing either.",
+      "preserved": [
+        "logical held/release owners",
+        "sample metadata and tuning",
+        "nativeFrames and generation",
+        "BRR decoder/interpolation history",
+        "hardware envelopes",
+        "PMON and Echo RAM/history"
+      ],
+      "dormantDrafts": "Wave drafts under Noise/BRR or inactive PMON do not write native RAM or registers.",
+      "replacement": "Explicit preset/audio/BRR loading, source/loop/topology/Echo-layout changes retain their existing bank replacement behavior."
+    }
+  },
+  "tests": {
+    "spu": {
+      "command": "npm run test:spu-synth",
+      "passed": 326,
+      "failed": 0,
+      "focusedActualWasmAudioTests": 60
+    },
+    "sdsp": {
+      "command": "npm run test:snes-synth",
+      "passed": 110,
+      "failed": 0,
+      "focusedActualWasmAndPresetTests": 56
+    },
+    "numericProof": [
+      "SPU first/repeated 44100/48000Hz edits with PMON+Room match continuing direct-RAM patches sample-exactly and differ from fresh KON.",
+      "SPU edit commits preserve all 1024 register bytes, ENV/gates/nativeFrames and owners with zero register writes.",
+      "SPU native Release, stale tokens, capacity rejection, hidden old decoder, safe spare reuse and injected upload rollback preserve the intended old sound.",
+      "S-DSP held/releasing Wave edits match direct BRR RAM updates, retaining PMON carrier/modulator/both, Echo history, clocks and allocation generation.",
+      "S-DSP expired/zero-ENV voices stay silent, invalid edits fail atomically, dormant drafts touch no native state and explicit loads still replace."
+    ],
+    "browserCommands": [
+      "node scripts/check_spu_synth_sample_pcm_browser.cjs --out=/private/tmp/spu-sample-held-browser.json",
+      "node scripts/check_snes_synth_browser.cjs --out /private/tmp/sdsp-wave-held-browser.json",
+      "node scripts/check_spu_synth_psf_capture_browser.cjs --out=/private/tmp/spu-held-psf-capture-browser.json"
+    ],
+    "browsers": {
+      "spu": [
+        {
+          "browser": "chromium",
+          "checks": 9,
+          "heldEditing": {
+            "owner": {
+              "channel": 0,
+              "id": "spu-synth:1"
+            },
+            "nativeFramesBefore": 9174,
+            "nativeFramesAfter": 23757,
+            "physicalAddress": 5664,
+            "firstEditSample": 27,
+            "repeatedEditSample": 27,
+            "originalBankRetained": true,
+            "keyUpReleased": true
+          },
+          "graph": {
+            "contexts": 1,
+            "worklets": 1,
+            "destinations": 1,
+            "muted": true
+          }
+        },
+        {
+          "browser": "webkit",
+          "checks": 9,
+          "heldEditing": {
+            "owner": {
+              "channel": 0,
+              "id": "spu-synth:1"
+            },
+            "nativeFramesBefore": 10350,
+            "nativeFramesAfter": 18465,
+            "physicalAddress": 5664,
+            "firstEditSample": 27,
+            "repeatedEditSample": 27,
+            "originalBankRetained": true,
+            "keyUpReleased": true
+          },
+          "graph": {
+            "contexts": 1,
+            "worklets": 1,
+            "destinations": 1,
+            "muted": true
+          }
+        }
+      ],
+      "sdsp": [
+        {
+          "browser": "chromium",
+          "checks": 25,
+          "heldWaveEdits": [
+            {
+              "target": "carrier-and-pmon",
+              "owner": {
+                "id": "sdsp-synth:22",
+                "midi": 55,
+                "channel": 3,
+                "modulatorChannel": 2
+              },
+              "generation": 15,
+              "nativeFramesBefore": 24919,
+              "nativeFramesAfter": 30380,
+              "echoEnabled": true,
+              "commands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "keyUpReleased": true
+            },
+            {
+              "target": "carrier",
+              "owner": {
+                "id": "sdsp-synth:31",
+                "midi": 55,
+                "channel": 0
+              },
+              "generation": 32,
+              "nativeFramesBefore": 6658,
+              "nativeFramesAfter": 13655,
+              "commands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "keyUpReleased": true
+            }
+          ],
+          "errors": [],
+          "failed": [],
+          "external": []
+        },
+        {
+          "browser": "webkit",
+          "checks": 25,
+          "heldWaveEdits": [
+            {
+              "target": "carrier-and-pmon",
+              "owner": {
+                "id": "sdsp-synth:22",
+                "midi": 55,
+                "channel": 3,
+                "modulatorChannel": 2
+              },
+              "generation": 15,
+              "nativeFramesBefore": 28588,
+              "nativeFramesAfter": 32940,
+              "echoEnabled": true,
+              "commands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "keyUpReleased": true
+            },
+            {
+              "target": "carrier",
+              "owner": {
+                "id": "sdsp-synth:31",
+                "midi": 55,
+                "channel": 0
+              },
+              "generation": 32,
+              "nativeFramesBefore": 6914,
+              "nativeFramesAfter": 8535,
+              "commands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "keyUpReleased": true
+            }
+          ],
+          "errors": [],
+          "failed": [],
+          "external": []
+        }
+      ],
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "psfPauseCapture": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 11,
+          "pausedFullSampleCheck": "A captured full-sample edit preserves the paused source and edited Synth across CH inspection and Resume",
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 68,
+            "bufferStops": 39,
+            "monitorStrokes": 1044,
+            "stopDelays": 0
+          },
+          "errors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 11,
+          "pausedFullSampleCheck": "A captured full-sample edit preserves the paused source and edited Synth across CH inspection and Resume",
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 68,
+            "bufferStops": 40,
+            "monitorStrokes": 810,
+            "stopDelays": 0
+          },
+          "errors": []
+        }
+      ]
+    },
+    "remoteActionsRun": false
+  },
+  "distribution": {
+    "spu": {
+      "archive": "release/tetorica_spu_synth_wave-held-20261112_itch.zip",
+      "files": 342,
+      "bytes": 7100663,
+      "sha256": "5647bc2f54f2d4b1c51e024dad880aba5c5893734cadb814b868e328866ffc2a",
+      "sourceCheck": {
+        "passed": true,
+        "sourceInputs": 24,
+        "bundleFiles": 28,
+        "fixedSdkArtifact": true,
+        "sdkVersion": "0.1.7",
+        "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+        "rebuilt": null
+      },
+      "cacheRevision": "spu-live-sample-1"
+    },
+    "sdsp": {
+      "archive": "release/tetorica_sdsp_synth_wave-held-20261112_itch.zip",
+      "files": 62,
+      "bytes": 955878,
+      "sha256": "16bc33f7a00ea9e8da40f0096c6cfc5f4423885bf5c906a8ba8481ff46638b73",
+      "sourceCheck": {
+        "inputs": 27,
+        "sdkVersion": "0.1.7"
+      },
+      "cacheRevision": "sdsp-live-wave-1"
+    },
+    "changedReadableModuleCount": 12,
+    "moduleByteIdentity": true,
+    "sdspEntryRewrite": "Preserves JS/CSS cache query while mapping root entry into synth-snes/"
+  },
+  "sourceRecords": {
+    "docs/synth-snes/audio.js": {
+      "bytes": 9214,
+      "sha256": "f06cbe801566115403348de0d2f9d419fe02f3df97adee2a57bd950b109d6e48"
+    },
+    "docs/synth-snes/editor.js": {
+      "bytes": 49664,
+      "sha256": "c3f592341764787e7d1fcc3ccaa9a3330dab0eac8ce0373749947edb6d71625b"
+    },
+    "docs/synth-snes/index.html": {
+      "bytes": 7682,
+      "sha256": "44571ca1bb200071fed3aa43fc2a1cd04d21c1c5ce3e29a62a60cdf343a961ba"
+    },
+    "docs/synth-snes/instrument.js": {
+      "bytes": 12119,
+      "sha256": "ada8031db4eebef4e098b1de22772874ff80ca5134d62290bc094b5ebe80b679"
+    },
+    "docs/synth-snes/instrument.test.mjs": {
+      "bytes": 44611,
+      "sha256": "2d55243cc8b5362c3372ac1c98dce36f70bd268782f953c58dc5a54a76490bb8"
+    },
+    "docs/synth-snes/preset.js": {
+      "bytes": 14313,
+      "sha256": "38b2683c64b692f1e24627b776067c05974bb8dbd1cfa3433e4c823569113807"
+    },
+    "docs/synth-snes/preset.test.mjs": {
+      "bytes": 22823,
+      "sha256": "5689f74526c37fb9b19a76b867b1d01ad0164022164c2544d0e9297d4a37efd1"
+    },
+    "docs/synth-snes/processor.js": {
+      "bytes": 4115,
+      "sha256": "4410386bd4140e2b7ec106201c17f549803f750aea992e1ab1b5566639c93594"
+    },
+    "docs/synth-snes/spc_import.js": {
+      "bytes": 13298,
+      "sha256": "dc4f293fc7f077b91be259d35621c34d35941bd22d430bd929a4b2aa8cad7832"
+    },
+    "docs/synth-snes/synth.js": {
+      "bytes": 22946,
+      "sha256": "88236601b166aceb4840d18440a7cd7bd35cba28a082e00ece6f2353cae53a80"
+    },
+    "docs/synth-spu/index.html": {
+      "bytes": 27929,
+      "sha256": "cd4743b0d2960236166cbb0773236579d4435d23f7462a9fe17d3ef6dc053f8d"
+    },
+    "docs/synth-spu/sample_pcm_editor.js": {
+      "bytes": 14990,
+      "sha256": "c632456359085ec1a32ff26e6e861bee4c5a49cf8c8fcf36dc393b64085385b4"
+    },
+    "docs/synth-spu/spu_synth_audio.js": {
+      "bytes": 11124,
+      "sha256": "d86430c843d094c3950dcf11af942f9d1ba04f307436ded1a8cac0bf4d54b678"
+    },
+    "docs/synth-spu/spu_synth_audio.test.mjs": {
+      "bytes": 116209,
+      "sha256": "74956da5f128f9d1d3cd3a63f1e465492853beb788301639e6b625f96643098b"
+    },
+    "docs/synth-spu/spu_synth_panel.js": {
+      "bytes": 33435,
+      "sha256": "13c4380b1ea81bf671a16cd839e8c68615f6966037b48a0f8fafb8aa929ac69c"
+    },
+    "docs/synth-spu/spu_synth_worklet.js": {
+      "bytes": 46301,
+      "sha256": "99be964d9b5198539b5113cebcfa814cc4fb1f0e2debe0fba5a161798cb28238"
+    },
+    "docs/synth-spu/synth.js": {
+      "bytes": 79227,
+      "sha256": "682a258b7ea874dcc0b9b471c785cd9c2d1d898665716ca2de69c37e772beee5"
+    },
+    "scripts/check_snes_synth_browser.cjs": {
+      "bytes": 83043,
+      "sha256": "5f45394365fc6a8f6c8af91de820fc02b82c120ea2faff553158a14754ea1cb3"
+    },
+    "scripts/check_spu_synth_sample_pcm_browser.cjs": {
+      "bytes": 29220,
+      "sha256": "f259a071d7a39f637123f2eeefe1f4655ddcc793795939e86dcde713c9abfee8"
+    },
+    "scripts/package_itch_snes_synth.mjs": {
+      "bytes": 9120,
+      "sha256": "0e542ef8e732bb75ab479fd301a91f966522fe97a87f2eac8a80486a361cef89"
+    },
+    "scripts/package_itch_snes_synth.test.mjs": {
+      "bytes": 8421,
+      "sha256": "0ca83602c0e73f7ebc75f9302f694cc915a520111f3d52ca56a9a90267d4b94c"
+    },
+    "docs/synth-snes/wave_edit.test.mjs": {
+      "bytes": 8845,
+      "sha256": "fc4b0970e8e772e671011275d9f05dde574c51f9d30b388a3b2010d861352121"
+    },
+    "scripts/check_spu_synth_psf_capture_browser.cjs": {
+      "bytes": 41649,
+      "sha256": "8a3acdda4a404b520a5cd477a27a648feb332bc2daa3347a18be3c29d9da5048"
+    }
+  },
+  "unchangedRuntimeAndWasm": {
+    "tetorica_src/runtime/ps1synth.js": {
+      "bytes": 21654,
+      "sha256": "444e2dfa2de24bf4ad987396564fb0117a845a345e91e1a98f83bed4a2469bbd"
+    },
+    "tetorica_src/runtime/ps1_spu.js": {
+      "bytes": 10826,
+      "sha256": "a032c4f68e28c44ec062ba38ae341e01a901e52ff9cf75c38095ffb55442d549"
+    },
+    "tetorica_src/runtime/snessynth.js": {
+      "bytes": 17289,
+      "sha256": "2c3ee1d092eeb1c66942864f05593654f1182d0cd456744a4ee90e31d54a5f7c"
+    },
+    "tetorica_src/runtime/spc.js": {
+      "bytes": 16728,
+      "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+    },
+    "docs/generated/ps1_spu_wasm.wasm": {
+      "bytes": 52082,
+      "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f"
+    },
+    "docs/generated/spc_wasm.wasm": {
+      "bytes": 63074,
+      "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+    }
+  },
+  "limits": [
+    "ADPCM re-encoding remains lossy; already decoded lookahead can bridge old and new data. This is live RAM editing, not a fresh-note decoder reset.",
+    "SPU backup RAM is required for the first edit; another source may require more free RAM while voices remain active.",
+    "SPU Code continuity is not changed by this authoring feature.",
+    "Imported S-DSP BRR remains a read-only waveform preview; this does not add a full-BRR drawing editor.",
+    "No live hardware listening or physical audio output was used."
+  ],
+  "rawGameAssetsUsed": false,
+  "wasmRebuilt": false,
+  "npmPublished": false,
+  "commitPushPerformed": false,
+  "released": false
+}
