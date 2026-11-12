@@ -220,6 +220,39 @@ async function check(browser,name,origin,loadCassette){
     assert(project.files.has('dmg-synth.project.json'));measurements.projectBytes=projectDownload.bytes.length;
     await stop(page);
 
+    step('Selecting Pulse / Wave / Noise presets keeps Run, context, prepared state, FX and the same Code client');
+    const sounds=['pulse','wave','noise'].map(source=>{const value=structuredClone(author.preset);value.source=source;value.name='Live '+source;
+      if(source==='wave')value.wave.samples=Array.from({length:32},(_,i)=>i<16?3:12);
+      return {name:'Live '+source+'.dmg.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))};});
+    sounds.push({name:'Invalid.dmg.json',mimeType:'application/json',buffer:Buffer.from('{"kind":"invalid"}')});
+    await page.locator('#dmgFilesInput').setInputFiles(sounds);
+    await until(()=>page.locator('#dmgFilesStatus').textContent().then(value=>/Added 4/.test(value)),'live preset imports');
+    await source(page,`const gb=await useSoundChip('gameboy');
+context.boots=(context.boots??0)+1;
+const prepared=await livePrepare('preset-check',()=>({visits:0}));
+globalThis.__livePreset={gb,context,prepared,ticks:0,source:null};
+liveFx('preset-level',{context:{gain:.25},process(input,output,state,context){for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.gain;}});
+liveLoop('preset-melody',async()=>{const p=globalThis.__livePreset,source=(await gb.getState()).editorSource;p.source=source;p.ticks++;prepared.visits++;
+if(source==='noise')await gb.noise.keyOn();else if(source==='wave')await gb.wave.noteOn('A3');else await gb.pulse.noteOn(0,'A3');
+await sleep(.12);if(source==='noise')await gb.noise.keyOff();else if(source==='wave')await gb.wave.keyOff();else await gb.pulse.keyOff(0);await sleep(.04);});`);
+    await execute(page);await pcm(page);await page.evaluate(()=>{window.__liveIdentity=__livePreset;__dmgCodeAudit.drain();});
+    const presetSignals=[];
+    for(const expected of ['pulse','wave','noise']){
+      const before=await page.evaluate(()=>__livePreset.ticks);
+      await selectFile(page,'/Live '+expected+'.dmg.json');
+      await until(()=>page.evaluate(({expected,before})=>__livePreset.source===expected&&__livePreset.ticks>before,{expected,before}),'loop follows '+expected);
+      assert.match(await page.locator('#synthCodeState').textContent(),/Playing|Running/);assert(await page.locator('#synthCodeStopButton').isEnabled());
+      assert(await page.evaluate(()=>__livePreset===__liveIdentity&&__livePreset.context.boots===1&&__livePreset.prepared.visits===__livePreset.ticks&&__livePreset.gb.isCurrent()));
+      assert.equal((await read(page)).preset.source,expected);presetSignals.push({source:expected,signal:await pcm(page)});
+    }
+    await selectFile(page,'/Invalid.dmg.json');const beforeInvalid=await page.evaluate(()=>__livePreset.ticks);
+    await until(()=>page.evaluate(before=>__livePreset.ticks>before,beforeInvalid),'invalid JSON keeps loop');assert.equal((await read(page)).preset.source,'noise');
+    const liveCommands=await page.evaluate(()=>__dmgCodeAudit.drain());
+    assert.equal(liveCommands.filter(command=>command.method==='applyCodePreset').length,3);
+    assert(!liveCommands.some(command=>['stop','beginCode','loadPreset','setPreset'].includes(command.method)),'Preset selection must not replace Code ownership');
+    await stop(page);assert.equal((await read(page)).preset.source,'noise');assert.equal(await read(page,'observeCode'),null);
+    measurements.livePresets=presetSignals;
+
     step('Software Stop fades the real output to silence and reaches the physical restore fence');
     await source(page,FADE);await execute(page);await pcm(page);await wait(130);
     await page.evaluate(()=>__dmgCodeAudit.beginCapture());await wait(100);

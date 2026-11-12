@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-channels-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-channels-1';
-import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-channels-1';
-import {createEditor} from './editor.js?v=dmg-channels-1';
-import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-channels-1';
+import {createAudio} from './audio.js?v=dmg-live-preset-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-live-preset-1';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-live-preset-1';
+import {createEditor} from './editor.js?v=dmg-live-preset-1';
+import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-live-preset-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {setupGameboySongControls} from './song_controls.js?v=dmg-channels-1';
-import {createGameboySongAudition} from './song_audition.js?v=dmg-channels-1';
-import {prepareGameboySongVoice} from './song_voice.js?v=dmg-channels-1';
+import {setupGameboySongControls} from './song_controls.js?v=dmg-live-preset-1';
+import {createGameboySongAudition} from './song_audition.js?v=dmg-live-preset-1';
+import {prepareGameboySongVoice} from './song_voice.js?v=dmg-live-preset-1';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -117,27 +117,44 @@ async function applyPreset(value, {load = false, message, isCurrent = () => true
   if(isSongActive()&&!retainPause&&!keepSongPaused)songControls?.stop();
   if(audition?.isRunning())await stopAudition();
   if(disposed||request!==applySequence||!isCurrent())return false;
-  if(codeHost?.isRunning() || codeHost?.isCodeMode()&&!keepSongPaused) await codeHost.stop();
-  if(disposed || request!==applySequence || !isCurrent())return false;
+  // Sound selection changes the existing Code chip. Only workspace/song/Stop
+  // actions retire its runtime; retain this lease across the queued edit.
+  const engineAtSelection=audio,keepCode=Boolean(engineAtSelection&&codeHost?.isRunning());
+  const codeClient=keepCode?engineAtSelection.getGameboyClient():null;
+  void codeClient?.catch(()=>{});
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source || previous.pulse.sweep.enabled !== next.pulse.sweep.enabled
     || JSON.stringify(previous.wave.samples) !== JSON.stringify(next.wave.samples);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
-  preset = next; revision++;
-  if(load || previous.source!==next.source)codeLive?.setVoice(next.source==='wave'?2:next.source==='noise'?3:0);
-  const editRevision = revision;
-  if (load || previous.source !== next.source) setPitchUi(0);
-  updatePresetUi();
-  codeHost?.markSoundDirty();
+  let editRevision=revision;
+  function publish(value){
+    preset=readPreset(value);revision++;editRevision=revision;
+    if(load||previous.source!==preset.source){codeLive?.setVoice(preset.source==='wave'?2:preset.source==='noise'?3:0);setPitchUi(0);}
+    updatePresetUi();codeHost?.markSoundDirty();
+  }
+  // During initial audio preparation ensureAudio adopts this latest draft.
+  // An existing Code lease publishes only after its atomic sound commit.
+  if(!keepCode)publish(next);
   if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return true;}
   return enqueue(async () => {
     const engine = audio;
-    const current=()=>!disposed&&request===applySequence&&isCurrent()&&audio===engine&&revision===editRevision;
-    if (!engine||!current()) return false;
+    let client;
+    const selected=()=>!disposed&&request===applySequence&&isCurrent()&&audio===engine&&revision===editRevision;
+    const current=()=>!disposed&&request===applySequence&&isCurrent()&&audio===engine&&revision===editRevision
+      &&(keepCode?engine===engineAtSelection&&codeHost?.isRunning()&&client?.isCurrent():!codeHost?.isRunning());
+    async function reconcile(){
+      if(!engine||!selected())return;
+      const state=await engine.read();
+      if(selected()){publish(state.preset);readVoices(state);}
+    }
     try {
-      await engine.command(load ? 'loadPreset' : 'setPreset', [next]);
-      if(!current())return false;
-      if (load || previous.source !== next.source) await engine.command('setPitch', [0]);
+      client=codeClient?await codeClient:null;
+      if (!engine||!current()) return false;
+      if(keepCode)await engine.applyCodePreset(next,{isCurrent:current});
+      else await engine.command(load ? 'loadPreset' : 'setPreset', [next]);
+      if(!current()){if(keepCode)await reconcile();return false;}
+      if(keepCode)publish(next);
+      if (!keepCode&&(load || previous.source !== next.source)) await engine.command('setPitch', [0]);
       if(!current())return false;
       const state = await engine.read();
       if (!current()) return false;
@@ -146,10 +163,8 @@ async function applyPreset(value, {load = false, message, isCurrent = () => true
       status(message ?? 'Instrument updated · play a new note to hear envelope and Sweep edits.');
       return true;
     } catch (error) {
-      if (current()) {
-        const state=await engine.read();
-        if(current()){preset=state.preset;updatePresetUi();}
-      }
+      await reconcile();
+      if(error.name==='AbortError')return false;
       throw error;
     }
   });
@@ -504,7 +519,7 @@ function syncCodeActivity() {
   updateKeys();
 }
 codeHost=setupGameboyCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
-  applySettings:(value,options={})=>applyPreset(value,{load:true,message:'DMG preset loaded from Files · play the keyboard.',...options}),
+  applySettings:(value,options={})=>applyPreset(value,{load:true,message:'DMG preset loaded from Files.',...options}),
   stopKeyboard:()=>stopNotes(),stopSong:async()=>{songControls?.stop();await songControls?.whenIdle();await captureWork?.catch(()=>{});await stopAudition();},beforeRun:async()=>{
     await queue;
     setPitchUi(0);

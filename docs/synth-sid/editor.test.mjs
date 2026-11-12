@@ -302,7 +302,8 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
   if(desktop){win.top=win;win.location={protocol:'tauri:',hostname:'localhost'};win.__TAURI_INTERNALS__={};win.dispatchEvent=event=>{desktopEvents.push(event.type);return true;};}
   let isStalled=stall,engineCount=0;
   const makeEngine=model=>{
-    let settings=createChannelSettings(createDefaultPreset({model})),value=selectedChannelPreset(settings),pitch=0,voices=new Map(),cursor=0;const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,reads:0,
+    let settings=createChannelSettings(createDefaultPreset({model})),value=selectedChannelPreset(settings),pitch=0,voices=new Map(),cursor=0;const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,reads:0,ownerEpoch:0,
+      captureSoundEditGuard(){const epoch=this.ownerEpoch;return()=>this.ownerEpoch===epoch&&!this.disposed;},
       async resume(){},setVolume(){},async dispose(){this.disposed=true;},
       async read(){engine.reads++;return{preset:readPreset(value),channelSettings:readChannelSettings(settings),pitch,capacity:channelPlaybackPlan(settings).channels.length,voices:[...voices.values()]};},
       async command(method,args=[]){calls.push([engine.id,method,...args]);
@@ -371,13 +372,31 @@ test('Code mode keeps typing out of the keyboard allocator and background blur l
   f.code.mode=false;f.code.running=false;f.ui.updateKeys();assert.equal(f.doc.getElementById('pitchBend').disabled,false);
 });
 
-test('ordinary authoring edits stay live in Code while model changes await its retirement before replacing the core',async()=>{
-  let retire;const f=appFixture({codeStop:()=>new Promise(resolve=>{retire=resolve;})});await f.ui.ensureAudio();f.code.running=true;
+test('ordinary edits, sound loads and model changes preserve the running Code host',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.code.running=true;
   const live=readPreset(f.ui.getPreset());live.filter.cutoff++;
   await f.ui.applyPreset(live);assert.equal(f.code.stops,0);assert.equal(f.ui.getPreset().filter.cutoff,live.filter.cutoff);
   const before=f.calls.length,next=readPreset(live);next.model='8580';const changing=f.ui.applyPreset(next);
-  await flush();assert.equal(f.code.stops,1);assert.equal(f.calls.length,before,'A model swap must wait until the Code output has faded');
-  retire();await changing;assert.equal(f.ui.getPreset().model,'8580');assert.equal(f.code.running,false);
+  await changing;assert.equal(f.code.stops,0);assert.equal(f.calls.length,before+1);assert.equal(f.ui.getPreset().model,'8580');assert.equal(f.code.running,true);
+  await f.ui.applyPreset({...next,name:'Loaded while running'},{load:true});assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
+});
+
+test('a queued sound intent cannot enter a newer Run and reconciles the actual author bank instead of leaving an unapplied draft',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.code.running=true;
+  let release;const engine=f.engines[0],gate=new Promise(resolve=>release=resolve);engine.holdNext=gate;
+  const first=readPreset(f.ui.getPreset());first.filter.cutoff=711;const older=f.ui.applyPreset(first);await flush();
+  const next=readPreset(first);next.name='Must not reach next Run';next.voice.waveform='pulse';const pending=f.ui.applyPreset(next,{load:true});
+  engine.ownerEpoch++;release();await older;assert.equal(await pending,false);
+  assert.equal(f.code.stops,0);assert(f.code.running);assert.equal(f.ui.getPreset().name,first.name);assert.equal(f.ui.getPreset().filter.cutoff,711);
+  assert(!f.calls.some(call=>call[1]==='loadChannelSettings'&&call[2]?.channels[0].name===next.name));
+});
+
+test('an ACK after ownership changes reconciles committed settings without marking a stale selection successful',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.code.running=true;
+  let release;const engine=f.engines[0],gate=new Promise(resolve=>release=resolve);engine.holdNext=gate;
+  const next=readPreset(f.ui.getPreset());next.name='Committed before Stop';next.voice.waveform='pulse';
+  const pending=f.ui.applyPreset(next,{load:true});await flush();engine.ownerEpoch++;release();assert.equal(await pending,false);
+  assert.equal(f.ui.getPreset().name,next.name);assert.equal(f.ui.getPreset().voice.waveform,'pulse');assert(f.code.running);assert.equal(f.code.stops,0);
 });
 
 test('song preview waits for Code retirement before taking the monitor and desktop output',async()=>{

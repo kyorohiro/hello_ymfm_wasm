@@ -63,11 +63,11 @@ test('local restoration retains Files and Code mode without an audio capture or 
   assert.deepEqual(f.files.getCodeState(),{mode:'code',path:'/index.js'});assert.equal(f.doc.getElementById('spuFilesPanel').hidden,false);assert.deepEqual(f.calls.map(call=>call[0]),['before']);
 });
 
-test('only Save sound captures the authored sample; selecting valid JSON applies it after stopping Code',async t=>{
+test('only Save sound captures the authored sample; selecting valid JSON applies without replacing the Code workspace',async t=>{
   const f=fixture(t);await f.files.ready;await f.files.persistCode();assert.equal(f.calls.length,0);
   const path=await f.files.saveSound();assert.equal(path,'/presets/Saved PCM.spu.json');assert.deepEqual(f.calls.map(call=>call[0]),['capture']);
   assert.deepEqual(JSON.parse(f.project.fs.get(path).data),soundFixture());
-  await f.files.selectFile(path);assert.deepEqual(f.calls.map(call=>call[0]),['capture','before','instrument']);assert.deepEqual(f.calls.at(-1)[1],soundFixture());
+  await f.files.selectFile(path);assert.deepEqual(f.calls.map(call=>call[0]),['capture','instrument']);assert.deepEqual(f.calls.at(-1)[1],soundFixture());
   const count=f.calls.length;f.project.importFiles([{path:'/presets/unfinished.spu.json',data:'{"preset":'}]);await f.files.selectFile('/presets/unfinished.spu.json');
   assert.equal(f.calls.length,count);assert.equal(f.opened.at(-1).path,'/presets/unfinished.spu.json');assert.match(f.statuses.at(-1),/current sound kept/);
 });
@@ -166,6 +166,16 @@ test('failed sound application and malformed project imports retain Files and th
   f.project.importFiles([{path:'/presets/sound.spu.json',data:JSON.stringify(soundFixture())}]);const before=f.project.snapshot();
   await assert.rejects(f.files.selectFile('/presets/sound.spu.json'),/Host rejected/);assert.deepEqual(f.project.snapshot(),before);
   await assert.rejects(f.files.importProject(Uint8Array.of(1,2,3)));assert.deepEqual(f.project.snapshot(),before);
+});
+
+test('a cancelled sound or VAB application does not commit Files selection or claim a loaded preset',async t=>{
+  const f=fixture(t,{presetPicker:true,applyInstrument:async()=>false,applyVabTone:async()=>false});await f.files.ready;
+  f.project.importFiles([{path:'/presets/cancel.spu.json',data:JSON.stringify(soundFixture())},{path:'/presets/cancel.vab',type:'binary',data:createVabFixture().vab}]);
+  const before=f.project.snapshot();
+  assert.equal(await f.files.selectFile('/presets/cancel.spu.json'),false);assert.deepEqual(f.project.snapshot(),before);
+  const picker=f.doc.getElementById('spuPresetSelect');picker.value='vab:'+encodeURIComponent('/presets/cancel.vab')+'#0';
+  await picker.fire('change');await until(()=>!f.doc.querySelector('.spu-main').inert);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(picker.value,'');assert.deepEqual(f.calls,[],'sound selection never uses workspace Stop');
 });
 
 test('moving a code folder preserves the active JavaScript file without stopping the performance',async t=>{

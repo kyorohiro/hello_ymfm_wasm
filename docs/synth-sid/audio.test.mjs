@@ -42,7 +42,7 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
           if (mode === 'error') this.port.onmessage?.({data: {id: message.id, error: 'Invalid preset', name: 'RangeError'}});
           else this.port.onmessage?.({data: {id: message.id, value: message.method==='beginCode'
             ?{session:++codeSession,clock:985248,model:options.processorOptions.model,channels:3}
-            :{method: message.method, args: message.args}}});
+            :{method: message.method, args: message.args,...(['6581','8580'].includes(message.args?.[0]?.model)?{model:message.args[0].model}:{})}}});
         });
       }, close() { this.closed = true; }};
       if (ready) queueMicrotask(() => this.port.onmessage?.({data: {ready: true}}));
@@ -127,7 +127,7 @@ test('Code observation RPC stays passive and does not acquire or invalidate a ph
 
 test('channel settings use the paired processor revision and preserve FIFO request data',async()=>{
   const f=fixture(),audio=await f.create(),setup={format:'tetorica-sid-channels',version:1,target:2,channels:[1,2,3]};
-  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1'));
+  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1'));
   const begin=f.messages.length;
   const replies=await Promise.all([audio.command('loadChannelSettings',[setup]),audio.command('setChannelSettings',[setup]),audio.read()]);
   assert.deepEqual(f.messages.slice(begin).map(value=>value.method),['loadChannelSettings','setChannelSettings','read']);
@@ -189,7 +189,11 @@ test('Code clients address physical channels through one explicit session and va
   assert.equal(f.messages.length,before,'invalid notes never enter RPC or take loop ownership');
   await audio.command('stop');assert.throws(()=>sid.noteOn(0,'C4'),{name:'AbortError'});
   const fresh=await audio.getSidClient();assert.notEqual(fresh,sid);await fresh.noteOn(0,60);
-  await audio.command('loadChannelSettings',[{}]);assert.throws(()=>fresh.keyOn(0),{name:'AbortError'});
+  await audio.command('loadChannelSettings',[{}]);await fresh.keyOn(0);
+  await audio.command('loadPreset',[{model:'6581'}]);assert.equal(fresh.model,'6581');
+  assert.equal(await audio.getSidClient(),fresh,'model changes retain the existing Code facade');
+  await fresh.noteOn(1,'E4');
+  f.mode('error');await assert.rejects(audio.command('loadPreset',[{}]),{name:'RangeError'});f.mode('reply');await fresh.keyOff(1);
   await audio.dispose();assert.equal(f.context.closeCount,1);
 });
 
@@ -206,4 +210,15 @@ test('Stop and disposal reject late Code session or mutation ACKs without revivi
     const fresh=await audio.getSidClient();await fresh.noteOff(1);
     await audio.dispose();assert.throws(()=>fresh.keyOn(1),/closed/);assert.equal(f.timers.size,0);
   }
+});
+
+test('sound-edit intent guards fence Stop/new Run and an old preset ACK cannot update a newer client model',async()=>{
+  const f=fixture(),audio=await f.create(),idle=audio.captureSoundEditGuard();assert(idle());
+  const first=await audio.getSidClient();assert(!idle(),'a new Code owner invalidates an idle edit intent');
+  const running=audio.captureSoundEditGuard();await audio.command('loadPreset',[{model:'8580'}]);assert(running());assert.equal(first.model,'8580');
+  f.mode('drop');const pending=audio.command('loadPreset',[{model:'8580'}]),old=f.messages.at(-1);
+  f.mode('reply');await audio.command('stop');assert(!running());const fresh=await audio.getSidClient();assert.equal(fresh.model,'6581');
+  f.node.port.onmessage({data:{id:old.id,value:{model:'8580'}}});await pending;
+  assert.equal(fresh.model,'6581','the late reply belongs to the retired request owner');
+  await fresh.noteOn(0,'C4');await audio.dispose();
 });

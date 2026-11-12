@@ -19,6 +19,8 @@ import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {validateHostPcm} from './spu_synth_long_audio.js';
 import {createSpuAdpcmPreviewCache} from './spu_adpcm_preview.js';
+import {planSpuInstrument} from './spu_instrument_plan.js';
+import {readSpuInstrument} from './spu_synth_instrument.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
@@ -53,7 +55,7 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
     disconnect() {}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm, '').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./spu_synth_audio.js', import.meta.url).href)) + '\nprovide(createSpuAudio);', {
-    readPmon, pmonPcm, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
+    readPmon, pmonPcm, readMorph, morphPcm, readSpuInstrument, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
     preparePs1Waveform:pcm => {encodes++; return preparePs1Waveform(pcm);},
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1', volume:.128832}]}}},
     URL, fetch:async () => ({ok:true, arrayBuffer:async () => wasmBinary.buffer}),
@@ -118,7 +120,7 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
     connect(target){this.connections.push(target);}disconnect(){}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(new URL('./spu_synth_audio.js',import.meta.url).href))+'\nprovide(createSpuAudio);',{
-    readPmon,pmonPcm,readMorph,morphPcm,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
+    readPmon,pmonPcm,readMorph,morphPcm,readSpuInstrument,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1',volume:.128832}]}}},URL,fetch:async()=>({ok:true,arrayBuffer:async()=>wasmBinary.buffer}),
     setTimeout,clearTimeout,provide:value=>{createAudio=value;},
   });
@@ -135,6 +137,14 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
   await engine.command('getInstrumentSample',[0]);
   assert.equal(engine.getPs1Client(),promise,'private sample lookup does not retire the borrowed Code client');
   await client.noteOn(0,60);assert.equal(published.length,1,'sample lookup never publishes an editor state');
+  const sound={schema:'tetorica-spu-synth.instrument',version:1,name:'Live sound',
+    preset:{volumeLeft:.5,volumeRight:.6,adsr1:15,adsr2:0,pitch:4096,reverb:false},
+    sample:{adpcm:Array.from(sine().adpcm),baseFrequencyHz:44100/112,loopStartSamples:0},
+    reverb:{preset:'off',volumeLeft:.2,volumeRight:.3},waveform:null};
+  await engine.command('applyInstrument',[sound]);assert.equal(engine.getPs1Client(),promise);
+  assert.equal(client.ownsOutput(),true);await client.noteOn(0,60);
+  await assert.rejects(engine.command('applyInstrument',[{...sound,preset:{...sound.preset,pitch:-1}}]),/pitch/);
+  assert.equal(engine.getPs1Client(),promise,'invalid selection retains the exact client and output lease');
   await client._setAuditionNoise({enabled:true,clock:31},17);
   assert.equal(requests.at(-1).method,'code');assert.equal(requests.at(-1).args[1],'_setAuditionNoise');
   assert.deepEqual(Array.from(requests.at(-1).args[2]),[{enabled:true,clock:31},17]);assert.equal(published.length,1);
@@ -181,6 +191,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {SPU_SYNTH_MIX_HEADROOM} from ${url('./spu_synth_levels.js')};
     import {validateHostPcm} from ${url('./spu_synth_long_audio.js')};
     import {createSpuAdpcmPreviewCache} from ${url('./spu_adpcm_preview.js')};
+    import {planSpuInstrument} from ${url('./spu_instrument_plan.js')};
     import {noteToHz} from ${url('../js/soundchip_pitch.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
@@ -188,7 +199,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -219,7 +230,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -243,6 +254,106 @@ async function setup(rate = 48000) {
     close() {processor.dispose();},
   };
 }
+
+function selectedSound(p,{wave=sine(),cycle=false,pmon={enabled:false},noise={enabled:false},hostAudio=null}={}) {
+  const old=p.command('getInstrument',[0]),{sample:ignored,...preset}=old.preset;
+  return {preset:{...preset,adsr1:0x000f,adsr2:0,reverb:true},reverb:{preset:'room',volumeLeft:.2,volumeRight:.3},
+    sample:hostAudio?null:{adpcm:wave.adpcm,baseFrequencyHz:44100/112,loopStartSamples:0},hostAudio,
+    waveform:cycle?wave:null,morph:readMorph({enabled:false}),pmon:readPmon(pmon),noise:readNoise(noise),
+    pmonWaveform:pmon.enabled?preparePs1Waveform(pmonPcm(pmon.depth??.5,pmon.waveform??'sine')):null,
+    noiseWaveform:noise.enabled?preparePs1Waveform(Array(112).fill(0)):null};
+}
+
+test('sound selection preserves a cleared Code lease and custom sample IDs, then Stop restores the NEW authored instrument',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session;
+  const call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  const custom=call('loadADPCM',sine().adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});
+  call('setPreset',3,{sample:custom});call('noteOn',3,60);p.render(256);
+  const epoch=p.processor.codeEpoch,oldBytes=p.processor.synth.core.readRam(custom.startAddress,custom.byteLength);
+  const saw=preparePs1Waveform(Array.from({length:112},(_,i)=>Math.fround(.5*(2*i/112-1)))),selection=selectedSound(p,{wave:saw});
+  p.command('applyInstrument',[selection,session]);
+  assert.equal(p.processor.codeEpoch,epoch);assert.equal(p.processor.codeCheckpoint!==null,true);
+  assert.deepEqual(p.processor.synth.core.readRam(custom.startAddress,custom.byteLength),oldBytes,'Code-held sample address and bytes survive');
+  const selected=p.command('getInstrument',[0]);assert.deepEqual(selected.sample.adpcm,saw.adpcm);assert.equal(selected.reverb.preset,'room');
+  const selectedId=call('getPreset',0).sample;assert.notEqual(selectedId,custom.id);
+  call('noteOn',0,60);assert(peak(p.render(2048).left)>.001,'same client produces actual PCM with the selected sample');
+  call('noteOff',0);call('setPreset',3,{sample:custom});call('noteOn',3,60);
+  assert.equal(call('getPreset',3).sample,custom.id,'a handle retained in livePrepare remains usable');
+  p.command('stop');assert.equal(p.command('observeCode'),null);
+  assert.deepEqual(p.command('getInstrument',[0]),selected,'Stop keeps latest author sample, ADSR and shared reverb');
+  p.command('instrumentNoteOn',[60,'after-stop']);assert(peak(p.render(2048).left)>.001);
+});
+
+test('Code sound selection recreates private cycles, PMON and Noise after clearRam, without replacing the session',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session;
+  const call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  const triangle=preparePs1Waveform(Array.from({length:112},(_,i)=>.5*2/Math.PI*Math.asin(Math.sin(2*Math.PI*i/112))));
+  p.command('applyInstrument',[selectedSound(p,{wave:triangle,cycle:true,pmon:{enabled:true,depth:.3,ratio:.5}}),session]);
+  assert.equal(p.processor.synth.editorWaveforms.length,24);assert(p.processor.synth.editorWaveforms.every(Boolean));
+  assert.equal(p.command('observeCode').pmon.enabled,true);call('noteOn',1,60);assert(peak(p.render(4096).left)>.001);
+  call('noteOff',1);const next=p.processor.synth.nextAddress;
+  p.command('applyInstrument',[selectedSound(p,{wave:triangle,cycle:true}),session]);assert.equal(p.processor.synth.nextAddress,next,'private cycles reuse their own slots');
+  assert.equal(p.processor.synth.core.read(0x190),0,'previous PMON routing is cleared');
+  p.command('applyInstrument',[selectedSound(p,{noise:{enabled:true,clock:49}}),session]);
+  assert.equal(p.processor.synth.core.read(0x194),65535);assert.equal(p.processor.synth.core.read(0x196),255);
+  call('noteOn',0,60);assert(peak(p.render(4096).left)>.001);call('noteOff',0);
+  const latest=p.command('getInstrument',[0]);p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),latest);
+});
+
+test('sound selection preflights BOTH RAM banks and malformed presets before stopping voices or changing a Code lease',async t=>{
+  for(const fullBank of ['author','code']) {
+    const p=await setup(44100);t.after(()=>p.close());
+    if(fullBank==='author') {
+      const bytes=new Uint8Array(524288-p.processor.synth.nextAddress);for(let at=0;at<bytes.length;at+=16)bytes[at]=12;bytes[bytes.length-15]=1;
+      p.command('loadADPCM',[bytes,{baseFrequencyHz:440}]);
+    }
+    const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);
+    call('reset',{clearRam:true});
+    const custom=call('loadADPCM',sine().adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});call('setPreset',0,{sample:custom});call('noteOn',0,60);
+    if(fullBank==='code') {
+      const bytes=new Uint8Array(524288-p.processor.synth.nextAddress);for(let at=0;at<bytes.length;at+=16)bytes[at]=12;bytes[bytes.length-15]=1;
+      call('loadADPCM',bytes,{baseFrequencyHz:440});
+    }
+    p.render(128);const core=p.processor.synth.core,ram=core.readRam(),registers=Array.from({length:256},(_,index)=>core.read(index*2));
+    const before=p.command('getInstrument',[0]),epoch=p.processor.codeEpoch;
+    const wave=preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?.4:-.4));
+    assert.throws(()=>p.command('applyInstrument',[selectedSound(p,{wave,cycle:fullBank==='code'}),session]),/RAM is full/);
+    assert.equal(p.processor.codeEpoch,epoch);assert.deepEqual(core.readRam(),ram);assert.deepEqual(Array.from({length:256},(_,index)=>core.read(index*2)),registers);
+    assert.deepEqual(p.command('getInstrument',[0]),before);assert.equal(call('getPreset',0).sample,custom.id);
+    const malformed=selectedSound(p);malformed.preset.pitch=-1;
+    assert.throws(()=>p.command('applyInstrument',[malformed,session]),/RAM is full|pitch/);assert.deepEqual(core.readRam(),ram);
+    call('noteOff',0);
+  }
+});
+
+test('stale sound selection and a failed RAM transfer preserve the current Code bank and exact held PCM',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});
+  const sessions=[a,b].map(p=>p.command('beginCode').session);
+  for(const [index,p]of[a,b].entries())p.command('code',[sessions[index],'noteOn',[0,60]]);
+  assert.deepEqual(a.render(256).left,b.render(256).left);
+  const core=a.processor.synth.core,ram=core.readRam(),registers=Array.from({length:256},(_,index)=>core.read(index*2)),saved=a.processor.codeCheckpoint;
+  const selection=selectedSound(a,{wave:preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?.3:-.3)),cycle:true});
+  const load=core.loadRam;let calls=0;core.loadRam=function(...args){if(++calls===2)throw Error('Injected transfer allocation failure');return load.apply(this,args);};
+  try{assert.throws(()=>a.command('applyInstrument',[selection,sessions[0]]),/transfer allocation failure/);}finally{core.loadRam=load;}
+  assert.equal(a.processor.codeCheckpoint,saved);assert.deepEqual(core.readRam(),ram);assert.deepEqual(Array.from({length:256},(_,index)=>core.read(index*2)),registers);
+  assert.deepEqual(a.render(2048),b.render(2048),'failed transfer leaves the real decoder, envelope and reverb history audible-identical');
+  a.command('stop');const newer=a.command('beginCode').session;
+  const current=a.command('getInstrument',[0]),newRam=core.readRam();
+  assert.throws(()=>a.command('applyInstrument',[selection,sessions[0]]),/session stopped/);
+  assert.equal(a.processor.codeEpoch,newer);assert.deepEqual(a.command('getInstrument',[0]),current);assert.deepEqual(core.readRam(),newRam);
+  a.command('code',[newer,'noteOn',[0,60]]);assert(peak(a.render(512).left)>.001);
+});
+
+test('software audio sound selection remains on the same Code client and Stop keeps its exact PCM and tuning',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session;
+  p.command('code',[session,'reset',[{clearRam:true}]]);
+  const pcm=Int16Array.from({length:560},(_,index)=>Math.round(12000*Math.sin(index*Math.PI*2/112)));
+  p.command('applyInstrument',[selectedSound(p,{hostAudio:{pcm,baseFrequencyHz:44100/112,loop:true}}),session]);
+  const selected=p.command('getInstrument',[0]);assert.deepEqual(selected.sample.pcm,pcm);
+  p.command('code',[session,'noteOn',[0,60]]);assert(peak(p.render(2048).left)>.001);
+  p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),selected);
+  p.command('instrumentNoteOn',[60,'host-after-stop']);assert(peak(p.render(2048).left)>.001);
+});
 
 // Ten packets deliberately differ from the fixed four-packet cycle editor.
 // Its loop begins after two packets and its explicit tuning is not 44100/112.

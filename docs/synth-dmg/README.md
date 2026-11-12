@@ -22,6 +22,14 @@ Import a VGM / VGZ there to keep its original file and extracted sounds in
 Files. Importing an instrument JSON also adds it to Files without applying it;
 select the sound file when you want to replace the edited instrument.
 
+Selecting a sound while Code is running applies it to the same APU without
+restarting live loops, context, `livePrepare()` or software FX. The starter
+reads the selected Pulse / Wave / Noise source for each new note. Other Code
+continues to address its explicitly chosen physical channels. Uploading new
+Wave RAM stops a held Wave note; the loop continues and can trigger it again.
+Explicit Stop retains the latest selected preset. Importing a project or
+starting a VGM song still stops Code before transferring ownership.
+
 Opening the page or editing a source does not start an audio device. Playing
 a key can also initialize audio. All keyboard keys play the selected source;
 there is no split by keyboard region.
@@ -65,7 +73,8 @@ starts a fresh performance, **Apply** updates named loops while preserving
 `context` and `livePrepare`, and **Stop** fades the software output and restores
 your edited instrument and Wave RAM. Switching back to Keyboard also stops Code.
 Code borrows the same APU, Master and output display; it does not create extra
-hardware voices. Editing an instrument or loading a preset stops Code first.
+hardware voices. Instrument edits and preset selection keep Code running on
+this APU; a Wave RAM replacement can release a held Wave note.
 
 The starter uses the current sound: CH1 for Pulse, CH3 for Wave, CH4 for Noise.
 Use `await` for chip operations. You can also address all four physical channels:
@@ -98,7 +107,7 @@ read-only sent/configured register values, including the configured initial
 volume, Wave RAM and base pitch. They are not measurements of the current
 hardware envelope volume or Sweep frequency. Observation is capped at 20 Hz,
 with only one request at a time. Live Off returns to the editable instrument
-while Code continues; the next instrument edit stops Code. Live never rewrites
+while Code continues; instrument edits apply to the same APU. Live never rewrites
 the stored preset. `liveLoop`, `beat`, `tween`, `context`, scheduling and `liveFx`
 are software facilities, separate from APU Envelope / Sweep.
 

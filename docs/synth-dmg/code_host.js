@@ -5,15 +5,14 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js';
 import {selectGameboyCodeDeclarations} from './code_declarations.js';
 import {createGameboyCodeAudio} from './code_audio.js';
 import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js';
-import {setupGameboyCodeFiles} from './code_files.js';
+import {setupGameboyCodeFiles} from './code_files.js?v=dmg-live-preset-1';
 
 export const GAMEBOY_STARTER_CODE=`const gb = await useSoundChip("gameboy");
 setBpm(120);
 
-// Keep the current editor sound. Code addresses the four physical channels.
-const source = (await gb.getState()).editorSource;
-
+// Follow the selected sound on the next note, using physical channels.
 liveLoop("melody", async () => {
+  const source = (await gb.getState()).editorSource;
   const note = choose(scale("E3", "minorPentatonic", 2));
   if (source === "noise") await gb.noise.keyOn();       // CH4
   else if (source === "wave") await gb.wave.noteOn(note); // CH3
@@ -40,6 +39,7 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySett
     onActivity();
   }
   files=setupGameboyCodeFiles({project,getSettings,applySettings,setStatus,
+    async onBeforeSoundApply(){await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();}});
   function getRuntime(){
     if(runtime)return runtime;

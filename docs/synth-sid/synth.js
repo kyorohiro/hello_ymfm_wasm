@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1';
+import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1&sid-live-preset=2';
 import {createEditor} from './editor.js?sid-waves=1&sid-keys=1';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
@@ -8,7 +8,7 @@ import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.j
 import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
 import {createSidLiveView} from './sid_live_view.js?sid-waves=1&sid-code-live=1';
-import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2&ps1-vab-api=1';
+import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2&ps1-vab-api=1&sid-live-preset=2';
 import {createSidCodeLive} from './code_live.js?sid-code-live=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
@@ -160,32 +160,41 @@ function topology(value){return `${value.model}/${value.modulation.sync}/${value
 function applyPreset(value,{load=false,message}={}){
   return applySettings((load?applyChannelPreset:editChannelPreset)(channelSettings,readPreset(value)),{load,message});
 }
-function applySettings(value,{load=false,message,fromSong=false}={}){
+function applySettings(value,{load=false,message,fromSong=false,isCurrent=()=>true}={}){
+  if(disposed||!isCurrent())return Promise.resolve(false);
+  const editOwner=audio?.captureSoundEditGuard?.()??(()=>true);
   const nextSettings=readChannelSettings(value),next=selectedChannelPreset(nextSettings),previous=preset;
-  if(!load&&JSON.stringify(nextSettings)===JSON.stringify(channelSettings))return Promise.resolve();
+  if(!load&&JSON.stringify(nextSettings)===JSON.stringify(channelSettings))return Promise.resolve(true);
   const changedTopology=load||channelSettings.target!==nextSettings.target||channelSettings.keyboardMode!==nextSettings.keyboardMode||topology(previous)!==topology(next);
-  const codeStopped=changedTopology&&codeHost?.isRunning()?codeHost.stop():Promise.resolve();
   if(changedTopology){clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
   if(!fromSong)manualRevision++;
   channelSettings=nextSettings;preset=next;const editRevision=++revision;updatePresetUi();
-  if(!fromSong)codeHost?.markSoundDirty();
-  if(!audio){if(!fromSong){patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return codeStopped;}
+  if(!audio){if(!fromSong){codeHost?.markSoundDirty();patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return Promise.resolve(true);}
   const target=audio;if(!fromSong)patchStatus('Applying latest edit…',true);
-  return enqueue(async()=>{
-    await codeStopped;
+  async function reconcile(){
     if(disposed||audio!==target||editRevision!==revision)return;
+    const state=await target.read().catch(()=>null);
+    if(disposed||audio!==target||editRevision!==revision||!state)return;
+    appliedChannelSettings=readChannelSettings(state.channelSettings??applyChannelPreset(appliedChannelSettings,state.preset??appliedPreset));
+    appliedPreset=selectedChannelPreset(appliedChannelSettings);channelSettings=readChannelSettings(appliedChannelSettings);preset=selectedChannelPreset(channelSettings);
+    appliedResetIntent=resetIntent;revision++;acceptPitch(state,++commandSequence,pitchIntent);readVoices(state);updatePresetUi();
+    if(!fromSong)codeHost?.markSoundDirty();patchStatus('Current applied sound kept.');
+  }
+  return enqueue(async()=>{
+    if(disposed||audio!==target||editRevision!==revision||!isCurrent()||!editOwner()){await reconcile();return false;}
     try{
       // Coalescing a draft must preserve any earlier load/topology reset.
       const hardReset=resetIntent>appliedResetIntent,resetAtDispatch=resetIntent;
       const pitchAtDispatch=resetPitchIntent,order=++commandSequence;
       const state=await target.command(hardReset?'loadChannelSettings':'setChannelSettings',[nextSettings]);
-      if(disposed||audio!==target)return;
+      if(disposed||audio!==target||editRevision!==revision||!isCurrent()||!editOwner()){await reconcile();return false;}
       if(hardReset)appliedResetIntent=Math.max(appliedResetIntent,resetAtDispatch);
       appliedChannelSettings=readChannelSettings(state?.channelSettings??nextSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
+      if(!fromSong)codeHost?.markSoundDirty();
       if(editRevision===revision&&!fromSong){patchStatus('Applied · edits are live.');status(message??(hardReset?'Instrument updated · held notes and Pitch reset.':'Instrument updated · changes are live.'));}
+      return true;
     }catch(error){
-      // A failed model allocation may already have stopped the previous core.
-      // Recover its actual Pitch/owners rather than restoring the pre-swap bend.
+      // Recover the actual applied bank after a rejected or cancelled edit.
       const recoveryOrder=++commandSequence,recoveryIntent=pitchIntent;
       const current=await target.read().catch(()=>null);
       if(audio===target&&current){
@@ -193,7 +202,7 @@ function applySettings(value,{load=false,message,fromSong=false}={}){
         appliedPreset=selectedChannelPreset(appliedChannelSettings);
         acceptPitch(current,recoveryOrder,recoveryIntent);readVoices(current);
       }
-      if(audio===target&&editRevision===revision){channelSettings=readChannelSettings(appliedChannelSettings);preset=selectedChannelPreset(channelSettings);revision++;updatePresetUi();patchStatus('Edit rejected · previous settings kept.');}
+      if(audio===target&&editRevision===revision){channelSettings=readChannelSettings(appliedChannelSettings);preset=selectedChannelPreset(channelSettings);revision++;updatePresetUi();if(!fromSong)codeHost?.markSoundDirty();patchStatus('Edit rejected · previous settings kept.');}
       throw error;
     }
   });
@@ -408,7 +417,7 @@ renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);
 codeHost=setupSidCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readChannelSettings(channelSettings),
   async applySettings(value,{isCurrent=()=>true}={}){
     if(disposed||!isCurrent())throw new DOMException('SID project selection cancelled','AbortError');
-    await applySettings(value,{load:true,message:'SID project sound loaded · play or run Code.'});
+    if(await applySettings(value,{load:true,isCurrent,message:'SID project sound loaded · play or run Code.'})===false)return false;
     if(disposed||!isCurrent()||JSON.stringify(readChannelSettings(channelSettings))!==JSON.stringify(readChannelSettings(value)))
       throw new DOMException('SID project selection changed','AbortError');
   },

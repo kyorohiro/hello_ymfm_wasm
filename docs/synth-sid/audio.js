@@ -90,7 +90,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -118,13 +118,20 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
       if (!COMMANDS.has(method)) throw new Error(`Unknown SID command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('SID command arguments must be an array');
       if(method==='stop'&&args.length)throw new TypeError('SID Stop takes no arguments');
-      if(['stop','loadPreset','loadChannelSettings'].includes(method))invalidateCode();
+      if(method==='stop')invalidateCode();
+      const requestOwner=codeOwner,requestGeneration=codeGeneration;
       const id = ++nextId;
       return new Promise((resolve, reject) => {
         const timer = nativeSetTimer(() => fail(new Error(`SID command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
         pending.set(id, {resolve, reject, timer});
         try { node.port.postMessage({id, method, args}); }
         catch (error) { pending.delete(id); nativeClearTimer(timer); reject(error); }
+      }).then(value=>{
+        const nextModel=value?.model??value?.preset?.model;
+        if(['setPreset','loadPreset','setChannelSettings','loadChannelSettings'].includes(method)&&
+          codeOwner===requestOwner&&codeGeneration===requestGeneration&&requestOwner?.metadata&&
+          ['6581','8580'].includes(nextModel))requestOwner.metadata.model=nextModel;
+        return value;
       });
     }
     function getSidClient() {
@@ -137,6 +144,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
       owner.promise=command('beginCode').then(metadata=>{
         check();
         if(!Number.isSafeInteger(metadata?.session)||!['6581','8580'].includes(metadata.model)||!Number.isFinite(metadata.clock))throw new Error('Invalid SID Code session');
+        owner.metadata=metadata;
         const client={id:'sid:synth',chip:'sid',channels:3};
         Object.defineProperties(client,{clock:{enumerable:true,get:()=>metadata.clock},model:{enumerable:true,get:()=>metadata.model}});
         for(const method of CODE_METHODS)client[method]=(...args)=>{
@@ -163,6 +171,10 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
     return {
       context, outputNode: master, codeInputNode:balance, codeOutputNode:codeFade, codeFadeNode:codeFade,
       sampleRate: context.sampleRate, command, read: () => command('read'),getSidClient,
+      captureSoundEditGuard(){
+        assertOpen();const owner=codeOwner,generation=codeGeneration;
+        return ()=>!disposed&&!fatalError&&context.state!=='closed'&&codeOwner===owner&&codeGeneration===generation;
+      },
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); } catch (error) { fail(error); throw error; }

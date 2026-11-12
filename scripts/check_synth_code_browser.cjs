@@ -7,7 +7,7 @@ const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{t
 const {chromium,webkit}=require('playwright');
 const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth/index.html',engines:'chromium,webkit',checks:'all',out:path.join(tmpdir(),'fm2612-synth-code-browser.json'),screenshots:path.join(tmpdir(),'fm2612-synth-code-browser')};
 for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|checks|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown argument '+arg);config[m[1]]=m[2];}config.root=path.resolve(config.root);
-assert(['all','stop','baseline-stop','mixer','pcm-notes'].includes(config.checks));
+assert(['all','stop','baseline-stop','mixer','pcm-notes','live-presets'].includes(config.checks));
 assert(config.entry.startsWith('/'));assert(config.engines.split(',').every(name=>['chromium','webkit'].includes(name)));
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),hash=b=>createHash('sha256').update(b).digest('hex');
 async function bounded(task,label,ms=30000){let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Timeout '+label)),ms);})]);}finally{clearTimeout(timer);}}
@@ -106,7 +106,7 @@ async function download(page,id){await menu(page);const waiting=page.waitForEven
 async function choose(page,file){if(!await page.locator('#synthFilesPanel').isVisible())await page.locator('#synthFilesToggle').click();
   for(let i=0;i<20;i++){const closed=page.locator('#synthFilesTree details:not([open]) > summary[data-file-path]');if(!await closed.count())break;await closed.first().click();}
   await page.locator('#synthFilesTree button.file-entry').locator(`xpath=self::*[@data-file-path=${JSON.stringify(file)}]`).click();await ready(page);
-  await until(()=>page.locator('#synthActiveFilePath').textContent().then(v=>v===file),'Files selects '+file);
+  await until(async()=>await page.locator('#synthActiveFilePath').textContent()===file||await page.locator('#synthFileSelectionInfo').textContent()===file,'Files selects '+file);
 }
 function authoredVgm(){const c=[0x52,0xb0,7,0x52,0xb4,0xc0,0x52,0xa4,0x22,0x52,0xa0,0x44];for(let i=0;i<8;i++)c.push(0x61,0x44,0xac);c.push(0x66);const b=Buffer.alloc(256+c.length),v=new DataView(b.buffer,b.byteOffset,b.byteLength);b.write('Vgm ');v.setUint32(4,b.length-4,true);v.setUint32(8,0x171,true);v.setUint32(0x34,204,true);v.setUint32(0x18,8*44100,true);v.setUint32(0x2c,7670454,true);b.set(c,256);return b;}
 const KEEP_FM=`const fm = await useSoundChip('ym2612');\nfm.noteOn(2, 5, 644);\nliveLoop('hold', async () => { await sleep(1); });\n`;
@@ -125,7 +125,7 @@ for(let i=0;i<Math.ceil(seconds*rate);i++){const t=i/rate,fade=Math.min(1,t/.02,
 entries.push({frame:Math.round(seconds*sampleRate),register:4,value:Math.round(cycle/2)});
 liveLoop('pwm',async()=>{await pwm.scheduleWrites(entries);await sleep(1.1);await pwm.reset();});
 `;
-let loadCassette,mixerDefaults;
+let loadCassette,mixerDefaults,livePresetFiles;
 async function mixerVolume(page,id,value) {
   await range(page,`#synthSongGroupVolume-${id}`,value);
   assert.equal(Number(await page.locator(`#synthSongGroupVolume-${id}`).inputValue()),value);
@@ -333,8 +333,34 @@ async function pcmNoteChecks(page,name) {
   assert(await evaluate(page,()=>__synthCodeAudit.muted()));result.steps.push('The requested scale/choose melody runs on RF5C164 CH1 and Stop produces silence');
   return result;
 }
+async function livePresetChecks(page,name){
+  const result={browser:name,steps:[],signals:[]};
+  await page.locator('#tfiFile').setInputFiles(livePresetFiles);await ready(page);
+  await chip(page,'fm');await page.locator('#presetSelect').selectOption('sine');await ready(page);
+  await code(page,`const fm=await useSoundChip('ym2612'),psg=await useSoundChip('segapsg'),pcm=await useSoundChip('rf5c164');
+context.boots=(context.boots??0)+1;const prepared=await livePrepare('preset-check',()=>({visits:0}));
+globalThis.__livePreset={context,prepared,ticks:0,fm,psg,pcm};
+liveFx('preset-level',{context:{gain:.25},process(input,output,state,context){for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.gain;}});
+liveLoop('preset-melody',async()=>{const p=__livePreset;p.ticks++;prepared.visits++;fm.noteOn(0,'A3');psg.tone(0,{note:'C4'});pcm.noteOn(0,'E4');await sleep(.12);fm.noteOff(0);psg.keyOff(0);pcm.noteOff(0);await sleep(.04);});`);
+  await execute(page);await sounding(page);await evaluate(page,()=>{window.__liveIdentity=__livePreset;__synthCodeAudit.drain();});
+  for(const file of livePresetFiles){
+    const before=await evaluate(page,()=>__livePreset.ticks);
+    await choose(page,`/presets/${file.name.replace(/\.(vgi|psg\.json|pcm\.json)$/i,'')}/${file.name}`);
+    await until(()=>evaluate(page,before=>__livePreset.ticks>before,before),'Code keeps playing after '+file.name);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    assert(await evaluate(page,()=>__livePreset===__liveIdentity&&__livePreset.context.boots===1&&__livePreset.prepared.visits===__livePreset.ticks));
+    result.signals.push({file:file.name,signal:await sounding(page)});
+  }
+  await chip(page,'fm');await page.locator('#presetSelect').selectOption('sine');await ready(page);await sounding(page);
+  assert(await evaluate(page,()=>__livePreset===__liveIdentity&&__livePreset.context.boots===1));
+  const commands=await evaluate(page,()=>__synthCodeAudit.drain());
+  assert(!commands.some(command=>command.op==='live-fx'&&command.action==='dispose'),'Presets keep the same FX graph');
+  await stop(page);result.steps.push('FM / PSG / PCM Files presets and the FM preset dropdown preserve Run, context, livePrepare and software FX; explicit Stop still silences output');
+  assert(await evaluate(page,()=>__synthCodeAudit.muted()));return result;
+}
 async function run(browser,name,origin){const {page,errors}=await open(browser,origin),steps=[],result={browser:name,steps};
   try{
+    if(config.checks==='live-presets'){const checked=await livePresetChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks==='mixer'){const checked=await mixerChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks==='pcm-notes'){const checked=await pcmNoteChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks!=='all'){
@@ -430,12 +456,19 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     await choose(page,'/index.js');assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'),'Cassette import keeps its index.js instead of seeding the starter');
     await page.locator('#synthFileRenameButton').click();await page.locator('#synthFileNameInput').fill('main.js');await page.locator('[data-file-name-confirm]').click();await ready(page);assert.equal(await page.locator('#synthActiveFilePath').textContent(),'/main.js');assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'));
     steps.push('Files JS import / selection, dynamic modules / file(), Cmd/Ctrl+S, local draft recovery, Cassette round trip and code rename preserve independent text and tone state');
+    result.livePresets=await livePresetChecks(page,name);
     await fs.mkdir(config.screenshots,{recursive:true});
     for(const width of [1240,390]){await page.setViewportSize({width,height:1100});await page.locator('#synthInputCodeTab').scrollIntoViewIfNeeded();await pause(120);assert(await evaluate(page,()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow '+width);await page.screenshot({path:path.join(config.screenshots,`${name}-synth-code-${width}.png`)});}
     assert(await evaluate(page,()=>__synthCodeAudit.muted()));assert.deepEqual(errors,[]);result.expectedCdnFallback=true;return result;
   }finally{await page.close();}
 }
 (async()=>{({loadPlaygroundCassette:loadCassette}=await import(pathToFileURL(path.join(repo,'docs/playground/playground_cassette.js')).href));
+  const {createSynthProject}=await import(pathToFileURL(path.join(repo,'docs/synth/synth_project.js')).href);
+  const {createPsgPreset}=await import(pathToFileURL(path.join(repo,'docs/synth/synth_psg_preset.js')).href);
+  const {createPcmBuiltinPreset}=await import(pathToFileURL(path.join(repo,'docs/synth/synth_pcm.js')).href);
+  const project=createSynthProject(),fm={algorithm:7,feedback:2,operators:Array.from({length:4},(_,i)=>({dt:0,multi:1,tl:i===3?16:127,rs:0,ar:31,am:false,d1r:0,d2r:0,sl:0,rr:15,ssg:0}))};
+  project.writeTone('/Live FM.vgi',fm);project.writeTone('/Live PSG.psg.json',createPsgPreset({attenuation:5}));project.writeTone('/Live PCM.pcm.json',createPcmBuiltinPreset('triangle'));
+  livePresetFiles=project.fs.list().filter(file=>/^\/Live .+\.(vgi|psg\.json|pcm\.json)$/.test(file.path)).map(file=>({name:path.basename(file.path),mimeType:'application/octet-stream',buffer:Buffer.from(file.data)}));
   ({SYNTH_SONG_MIX_DEFAULTS:mixerDefaults}=await import(pathToFileURL(path.join(repo,'docs/synth/synth_song_mix_defaults.js')).href));
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin=`http://127.0.0.1:${server.address().port}`,results=[];
   try{for(const name of config.engines.split(',')){const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);try{results.push(await run(browser,name,origin));console.log('PASS '+name+': Synth Code, actual muted PCM, shared UI chips, FX, files and lifecycle');}finally{await browser.close();}}}

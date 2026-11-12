@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?sid-code=1
 import {selectSidCodeDeclarations} from './code_declarations.js?sid-code=1';
 import {createSidCodeAudio} from './code_audio.js?sid-code=1';
 import {createSidCodeProject} from './code_project.js?sid-code=1';
-import {setupSidCodeFiles} from './code_files.js?sid-code=1';
+import {setupSidCodeFiles} from './code_files.js?sid-code=1&sid-live-preset=2';
 
 export const SID_STARTER_CODE=`const sid = await useSoundChip("sid");
 setBpm(120);
@@ -90,6 +90,7 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
     onActivity();
   }
   files=setupSidCodeFiles({project,getSettings,applySettings,setStatus,
+    async onBeforeSoundApply(){await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await stop();await stopSong();await stopKeyboard();}});
   function getRuntime() {
     if(runtime)return runtime;

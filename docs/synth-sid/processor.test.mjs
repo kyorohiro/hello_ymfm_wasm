@@ -34,8 +34,9 @@ function fixture({model='6581'}={}) {
     loadPreset(value) { this.calls.push(['loadPreset', value.value]); return this.setPreset(value); }
     setChannelSettings(value) { this.calls.push(['setChannelSettings',value.target]);this.channelSettings=value;this.preset=value.channels[value.target==='round-robin'?0:value.target];return this.read(); }
     loadChannelSettings(value) { this.calls.push(['loadChannelSettings',value.target]);return this.setChannelSettings(value); }
-    stop() { this.calls.push(['stop']);this.voices=[];return this.read(); }
-    beginCode(){this.stop();return {session:1,clock:985248,model:this.core.model,channels:3};}
+    stop() { this.calls.push(['stop']);this.voices=[];this.codeActive=false;return this.read(); }
+    beginCode(){this.stop();this.codeActive=true;return {session:1,clock:985248,model:this.core.model,channels:3};}
+    adoptCode(previous){assert(previous.codeActive);this.codeActive=true;return{session:1,clock:985248,model:this.core.model,channels:3};}
     code(session,method,args){this.calls.push(['code',session,method,...args]);return 'code-result';}
     renderInto(output) { output.fill(.125); }
     dispose() { this.core.dispose(); }
@@ -115,6 +116,27 @@ test('model replacement commits a prepared instrument and failure preserves the 
   f.processor.receive({id:4,method:'loadPreset',args:[{value:4,model:'6581'}]});await flush();f.resolveNext();await f.processor.commands;
   assert.equal(f.processor.instrument.preset.model,'6581');assert.equal(chip8580.disposed,1);
   f.processor.dispose();assert.equal(f.requests[3].core.disposed,1);
+});
+
+test('a live Code model candidate keeps the old performance on failure and transfers the same public session only at commit',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  f.processor.receive({id:1,method:'beginCode'});await f.processor.commands;
+  const original=f.processor.instrument,owner=f.processor.codeOwner,session=f.messages.find(message=>message.id===1).value.session;
+  const stops=original.calls.filter(call=>call[0]==='stop').length;
+  f.processor.receive({id:2,method:'loadPreset',args:[{value:3,model:'8580'}]});await flush();
+  assert.equal(original.calls.filter(call=>call[0]==='stop').length,stops,'preparing a model never resets the running Code chip');
+  assert.equal(original.codeActive,true);assert.equal(f.processor.codeOwner,owner);
+  const pcm=outputs();f.processor.process([],pcm);assert(pcm[0][0].every(value=>value===.125));
+  f.rejectNext(Error('Candidate failed'));await f.processor.commands;
+  assert.equal(f.processor.instrument,original);assert.equal(f.processor.codeOwner,owner);assert.equal(f.core.disposed,0);
+  f.processor.receive({id:3,method:'code',args:[session,'noteOn',[0,'A3']]});await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===3).value,'code-result');
+  f.processor.receive({id:4,method:'loadPreset',args:[{value:4,model:'8580'}]});await flush();f.resolveNext();await f.processor.commands;
+  assert.equal(f.processor.codeOwner,owner);assert.equal(owner.session,session);assert.equal(owner.instrument,f.processor.instrument);
+  assert.equal(f.core.disposed,1);assert.equal(f.processor.instrument.codeActive,true);
+  f.processor.receive({id:5,method:'code',args:[session,'noteOn',[2,'E4']]});await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===5).value,'code-result');
+  f.processor.dispose();
 });
 
 test('Stop preempts a pending model change, disposes its stale candidate and accepts a fresh note',async()=>{
@@ -211,7 +233,7 @@ test('queued Code begin and physical writes cannot overtake Stop during startup'
   f.processor.dispose();
 });
 
-test('real Code RPC shares physical SID voices, preserves authoring edits and rejects sessions across both model swaps',()=>{
+test('real Code RPC shares physical SID voices and preserves the same session through both preset model swaps',()=>{
   const script=`
     import assert from 'node:assert/strict';
     import {readFile} from 'node:fs/promises';
@@ -243,13 +265,17 @@ test('real Code RPC shares physical SID voices, preserves authoring edits and re
       await command('stop');assert.equal((await command('observeCode')).value,null);assert.equal((await command('code',[session,'keyOn',[0]])).name,'AbortError');
       const fresh=(await command('beginCode')).value.session;assert.notEqual(fresh,session);
       assert.equal((await command('code',[fresh,'noteOn',[0,69]])).error,undefined);
+      processor.process([],[[left,right]]);assert.equal(processor.instrument.codeFrames,8192);
       const next=(await command('read')).value.channelSettings;
       for(const preset of next.channels)preset.model=model==='6581'?'8580':'6581';
+      const framesBefore=processor.instrument.codeFrames;
       await command('loadChannelSettings',[next]);
-      assert.equal((await command('code',[fresh,'keyOn',[1]])).name,'AbortError');
-      const replacement=(await command('beginCode')).value;assert.notEqual(replacement.session,fresh);assert.notEqual(replacement.model,model);
-      assert.equal((await command('code',[replacement.session,'noteOn',[1,'E4']])).error,undefined);
-      assert.equal((await command('code',[fresh,'noteOff',[1]])).name,'AbortError','old model handles cannot cut off a new model voice');
+      assert.notEqual(processor.instrument.core.model,model);assert.equal(processor.instrument.codeFrames,framesBefore);
+      assert.equal((await command('code',[fresh,'noteOn',[1,'E4']])).error,undefined);
+      assert.equal((await command('code',[session,'noteOff',[1]])).name,'AbortError','an explicitly stopped older Run stays retired');
+      processor.process([],[[left,right]]);assert(left.some(value=>Math.abs(value)>.001));
+      await command('stop');assert.equal((await command('code',[fresh,'keyOn',[1]])).name,'AbortError');
+      assert.equal((await command('read')).value.preset.model,next.channels[0].model);
       processor.dispose();
     }
   `;

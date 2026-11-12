@@ -137,8 +137,14 @@ behavior.
 and loops. **Stop** fades the software output and restores the edited instrument,
 sample bank, Noise, PMON and Software audio. Returning to Keyboard stops Code.
 Code uploads and raw changes are temporary; they do not overwrite the edited
-instrument. Selecting another instrument or editing its controls stops Code
-first. Master stays available during Code. Shortcuts are Ctrl/Cmd+Enter for Run
+instrument. Selecting a sound JSON, saved VAB Tone, **Load selected Tone** or
+**Reset to Sine** keeps Run, `context`, named preparations, loops and software
+FX. The next note uses the new sound; replacing sample data can end held notes.
+Stop keeps that newly selected editor sound. Code-uploaded samples retain
+their existing IDs until Stop, even if Code cleared its own RAM bank. Invalid
+sounds and insufficient RAM leave both banks and Run untouched. Ordinary
+control edits still stop Code first. Master stays available during Code.
+Shortcuts are Ctrl/Cmd+Enter for Run
 and Ctrl/Cmd+Shift+Enter for Apply. Maximize Code places the editor beside Files.
 
 `liveLoop()`, `livePrepare()`, `tween()` and `liveFx()` are software features.
@@ -152,7 +158,8 @@ CDN cannot load.
 applied PCM, ADSR and shared FX in the same controls. Observation is read-only,
 does not allocate another voice and is limited to 20 updates/s; intermediate
 register writes can be missed. Turn Live off to show the edited instrument
-while Code continues. Changing that instrument then stops Code first. Stop
+while Code continues. Editing its controls then stops Code first; selecting
+another saved instrument keeps Run. Stop
 returns to the authored display. Software morph appears only when its blend
 still matches the observed PCM; imported ADPCM does not have an editable
 112-point source waveform.

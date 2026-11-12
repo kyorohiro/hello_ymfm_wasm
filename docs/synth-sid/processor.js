@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {SidCore} from '../js/sid.js';
 import {Sid8580Core} from '../js/sid8580.js';
-import {SidInstrument} from './instrument.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1';
+import {SidInstrument} from './instrument.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1';
 import {readPreset} from './preset.js?sid-waves=1';
 import {readChannelSettings,applyChannelPreset,editChannelPreset} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 
@@ -44,11 +44,16 @@ class SidSynthProcessor extends AudioWorkletProcessor {
     const channelReplacement=channels||Boolean(previous.channelSettings);
     // A requested model change is a hard note/Pitch reset. Keep the old patch
     // available if allocation fails, but do not leave its old Gate sounding.
-    previous.stop();
+    const owner=this.codeOwner,keepCode=Boolean(previous.codeActive&&owner?.instrument===previous);
+    if(!keepCode)previous.stop();
     let candidate;
     try{
       candidate=await this.createInstrument(model,replacement,channelReplacement);
       if(this.dead||epoch!==this.modelEpoch)throw cancelled('SID model change cancelled');
+      if(keepCode){
+        if(this.codeOwner!==owner)throw cancelled('SID Code model change cancelled');
+        const metadata=candidate.adoptCode(previous);owner.instrument=candidate;owner.token=metadata.session;
+      }
       this.instrument=candidate;candidate=null;previous.dispose();
       return this.instrument.read();
     }finally{candidate?.dispose();}

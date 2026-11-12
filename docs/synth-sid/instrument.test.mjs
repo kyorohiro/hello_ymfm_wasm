@@ -91,7 +91,7 @@ test('physical Code voices share the authored SID and match direct raw writes in
   }
 });
 
-test('Code resets restore the latest authored bank without losing its session; topology and loads retire it',async t=>{
+test('Code resets, sound loads and topology edits retain their session; explicit Stop retires it',async t=>{
   const {instrument}=await setup(t),token=instrument.beginCode();
   const latest=instrument.read().preset;latest.voice.pulseWidth=733;latest.filter.cutoff=1200;
   instrument.setPreset(latest);instrument.code(token.session,'setVoice',[0,{pulseWidth:99}]);
@@ -100,10 +100,31 @@ test('Code resets restore the latest authored bank without losing its session; t
   assert.equal(reset.channels[0].pulseWidth,733);assert.equal(reset.channels[0].gate,false);assert.equal(reset.filter.cutoff,1200);
   instrument.code(token.session,'initialize');instrument.code(token.session,'noteOn',[2,'E4']);
   instrument.setChannelSettings(selectChannelTarget(instrument.read().channelSettings,2));
-  assert.throws(()=>instrument.code(token.session,'keyOn',[0]),{name:'AbortError'});
-  const next=instrument.beginCode();assert.notEqual(next.session,token.session);
   instrument.loadChannelSettings(instrument.read().channelSettings);
-  assert.throws(()=>instrument.code(next.session,'setVoice',[0,{waveform:'noise'}]),{name:'AbortError'});
+  instrument.code(token.session,'setVoice',[0,{waveform:'noise'}]);
+  assert.equal(instrument.code(token.session,'getState').channels[0].waveform,'noise');
+  instrument.stop();assert.throws(()=>instrument.code(token.session,'keyOn',[0]),{name:'AbortError'});
+  const next=instrument.beginCode();assert.notEqual(next.session,token.session);
+});
+
+test('sound loads preserve the real Code lease and observation clock, update subsequent PCM and become the Stop-restored author bank',async t=>{
+  for(const model of ['6581','8580']){
+    const setupModel=model==='6581'?setup:setup8580;
+    const {instrument,core}=await setupModel(t),{instrument:reference}=await setupModel(t),token=instrument.beginCode();
+    instrument.code(token.session,'noteOn',[0,'A3']);render(instrument,4096);
+    const next=instrument.read().preset;next.name='Live pulse';Object.assign(next.voice,{waveform:'pulse',pulseWidth:911,attack:0,decay:0,sustain:15,release:4});
+    Object.assign(next.filter,{enabled:true,mode:'bandpass',cutoff:777,resonance:5});
+    instrument.loadPreset(next);reference.loadPreset(next);const other=reference.beginCode();
+    assert.equal(instrument.observeCode().positionFrames,4096,'a sound selection is not another Run');
+    instrument.code(token.session,'noteOn',[1,'C4']);reference.code(other.session,'noteOn',[1,'C4']);
+    exact(render(instrument,8192),render(reference,8192),'the next note uses the new sound in the same real SID');
+    assert(peak(render(instrument,1024))>.0001);const before=core.getState();
+    assert.throws(()=>instrument.loadPreset({...next,voice:{...next.voice,attack:16}}));
+    assert.deepEqual(core.getState(),before,'rejected settings preserve the running native performance');
+    instrument.code(token.session,'setVoice',[1,{waveform:'noise'}]);instrument.stop();
+    assert.deepEqual(instrument.read().preset,next);assert.equal(instrument.read().registers[11]>>4,4,'Stop restores Pulse rather than the pre-Run Saw');
+    assert.throws(()=>instrument.code(token.session,'keyOn',[1]),{name:'AbortError'});
+  }
 });
 
 // Independent raw-register reference. It follows the documented initialization

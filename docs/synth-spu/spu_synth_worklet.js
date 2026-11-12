@@ -13,6 +13,7 @@ import {readNoise} from './spu_synth_noise.js';
 import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
 import {createSpuAdpcmPreviewCache} from './spu_adpcm_preview.js';
+import {planSpuInstrument} from './spu_instrument_plan.js?v=spu-live-presets-1';
 
 import {validateHostPcm} from './spu_synth_long_audio.js';
 
@@ -90,10 +91,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       let value;
       const codeRequest=['beginCode','code','observeCode'].includes(method);
       const configuration=method==='setClickGuard';
+      const soundSelection=method==='applyInstrument';
       // In particular a failed full-sample edit must not retire a borrowed
       // Code checkpoint, release notes or touch sample RAM.
       const sampleEdit=method==='setInstrumentSample'?this.prepareInstrumentSampleEdit(args):null;
-      if(this.codeCheckpoint&&!codeRequest&&!configuration&&!READ_METHODS.has(method))this.endCode();
+      if(this.codeCheckpoint&&!codeRequest&&!configuration&&!soundSelection&&!READ_METHODS.has(method))this.endCode();
       if (method === 'beginCode') {
         if(args.length)throw new TypeError('SPU Code start takes no arguments');
         value=this.beginCode();
@@ -102,6 +104,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       else if(method==='observeCode') {
         if(args.length)throw new TypeError('SPU Code observation takes no arguments');
         value=this.observeCode();
+      }
+      else if(soundSelection) {
+        if(args.length!==2)throw new TypeError('SPU instrument selection needs a prepared sound and its owner');
+        if(args[1] !== (this.codeCheckpoint?this.codeEpoch:null))throw codeCancelled();
+        value=this.applyPreparedInstrument(args[0]);
       }
       else if(configuration) {
         if(args.length!==1||typeof args[0]!=='boolean')throw new TypeError('SPU Click guard must be boolean');
@@ -474,6 +481,52 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     if(sample.loop&&!tuning.pcm)tuning.loopStartSamples=sample.loopStartSamples;
     const editor=source.editorWaveforms[ch],settings=this.codeCheckpoint??this;
     return {preset,sample:tuning,pmon:{...settings.pmon},noise:{...settings.noise},morph:readMorph(settings.morph),reverb:{...source.reverb},waveform:editor?.sample===sample.id?editor.pcm.slice():null};
+  }
+
+  applyPreparedInstrument(value) {
+    const saved=this.codeCheckpoint,synth=this.synth;
+    const live=planSpuInstrument({...synth,pmon:this.pmon,noise:this.noise,morph:this.morph,
+      pmonSampleId:this.pmonSample?.id??null,pmonWaveform:this.pmonWaveform,hostAudio:this.hostAudio,hostSlotId:this.hostSlot?.id??null},value);
+    // A script's temporary bank can be smaller OR larger than the authored
+    // bank. Validate both before releasing even one held voice.
+    const authored=saved?planSpuInstrument(saved,value):null;
+    const core=synth.core,m=core.module;
+    // Reserve native transfer memory / old bytes before changing voices. A
+    // failed RAM upload restores touched bytes without retiring the client,
+    // advancing the core, or replacing either bank's metadata.
+    const oldRam=live.writes.length?core.readRam():null;
+    let hostPtr=0;
+    if(live.hostAudio) {
+      if(typeof m._ps1_spu_set_host_pcm!=='function'||typeof m._ps1_spu_set_host_mask!=='function')throw new Error('Software audio is unavailable');
+      hostPtr=m._malloc(live.hostAudio.pcm.byteLength);
+      if(!hostPtr)throw new Error('Not enough memory for software audio');
+    }
+    try {
+      for(const {address,bytes}of live.writes)core.loadRam(bytes,address);
+      if(live.hostAudio) {
+        const pcm=live.hostAudio.pcm;
+        m.HEAPU8.set(new Uint8Array(pcm.buffer,pcm.byteOffset,pcm.byteLength),hostPtr);
+        if(!m._ps1_spu_set_host_pcm(core.handle,hostPtr,pcm.length,Number(live.hostAudio.loop)))throw new Error('Not enough memory for software audio');
+      }
+    } catch(error) {
+      if(oldRam)core.loadRam(oldRam,0);
+      throw error;
+    } finally {if(hostPtr)m._free(hostPtr);}
+    this.stopInstrument();this.codeGates.clear();this.codeNoiseSample=null;
+    for(const key of ['samples','sampleBytes','editorWaveforms','channels','nextAddress'])synth[key]=live[key];
+    this.pmon=live.pmon;this.noise=live.noise;this.morph=live.morph;
+    this.pmonSample=live.pmonSampleId===null?null:synth.samples[live.pmonSampleId];this.pmonWaveform=live.pmonWaveform;
+    this.hostAudio=live.hostAudio;this.hostSlot=live.hostSlotId===null?null:synth.samples[live.hostSlotId];
+    this.voices=new SpuRoundRobinVoices(live.pmon.enabled?12:24);this.instrumentBend=0;
+    core.write(0x190,0);core.write(0x192,0);
+    for(let ch=0;ch<24;ch++)synth.setPreset(ch,live.channels[ch]);
+    synth.setReverb(live.reverb);this.syncModulators();this.reviseInstrumentSample();
+    this.samplePcmState().slotId=null;
+    if(authored) {
+      const {writes:ignored,...bank}=authored;
+      this.codeCheckpoint={...saved,...bank,samplePcmRevision:this.samplePcmState().revision,samplePcmSlotId:null};
+    }
+    return true;
   }
 
   beginCode() {

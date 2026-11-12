@@ -72,6 +72,52 @@ export class GameboyInstrument {
     this.stop(); this._apply(this.preset, next); this.preset = next; this.pitch = 0;
     return this.read();
   }
+  /** Replace editor settings without retiring the borrowed Code APU. Native
+   * checkpoint work is synchronous; no audio frames are generated between
+   * saving the live machine, preparing Stop's new editor state and restoring it. */
+  applyCodePreset(session, value) {
+    this._open();
+    if (!this.codeActive || session !== this.codeEpoch) throw gameboyCodeCancelled();
+    const next = readPreset(value), previous = this.preset, checkpoint = this.codeCheckpoint;
+    const native = this.core.saveState(), shadow = this.synth._getState(), pitch = this.pitch;
+    try {
+      this.core.loadState(checkpoint.native); this.synth._adoptState(checkpoint.synth);
+      this._apply(null, next);
+      for (let channel = 0; channel < 4; channel++) this.synth.keyOff(channel);
+      const restored = {native:this.core.saveState(),synth:this.synth._getState(),pitch:0};
+      this.core.loadState(native); this.synth._adoptState(shadow);
+      if (!shadow.initialized) this.synth.initialize();
+      const live = this.synth._getState();
+      const {duty,volume,envelope,sweep} = next.pulse;
+      const env = (volume<<4)|(envelope.direction==='up'?8:0)|envelope.period;
+      for (let channel = 0; channel < 2; channel++) {
+        const base=channel*5,patch={};
+        if([.125,.25,.5,.75][live.voice[base+1]>>6]!==duty)patch.duty=duty;
+        if(live.voice[base+2]!==env){patch.volume=volume;patch.envelope=envelope;}
+        if(Object.keys(patch).length)this.synth.pulse.setVoice(channel,patch);
+      }
+      const sweepBits=sweep.enabled?(sweep.period<<4)|(sweep.direction==='down'?8:0)|sweep.shift:0;
+      if(live.voice[0]!==sweepBits)this.synth.pulse.setSweep(sweep.enabled ? {direction:sweep.direction,period:sweep.period,shift:sweep.shift} : {direction:'up',period:0,shift:0});
+      const wave = next.wave.samples;
+      const packed = Array.from({length:16},(_,index)=>(wave[index*2]<<4)|wave[index*2+1]);
+      if (!equal(live.registers.slice(32,48),packed)) this.synth.wave.stopAndSetWaveform(wave);
+      if([0,1,.5,.25][(live.voice[12]>>5)&3]!==next.wave.level)this.synth.wave.setLevel(next.wave.level);
+      const noise={},noiseEnv=(next.noise.volume<<4)|(next.noise.envelope.direction==='up'?8:0)|next.noise.envelope.period;
+      if(live.voice[17]!==noiseEnv){noise.volume=next.noise.volume;noise.envelope=next.noise.envelope;}
+      const noiseBits=(next.noise.shift<<4)|(next.noise.width===7?8:0)|next.noise.divisor;
+      if(live.voice[18]!==noiseBits)Object.assign(noise,{divisor:next.noise.divisor,shift:next.noise.shift,width:next.noise.width});
+      if(Object.keys(noise).length)this.synth.noise.setVoice(noise);
+      for (let channel = 0; channel < 4; channel++) {
+        if(Boolean(live.voice[21]&(16<<channel))!==next.pan.left||Boolean(live.voice[21]&(1<<channel))!==next.pan.right)this.synth.setPan(channel,next.pan.left,next.pan.right);
+      }
+      this.preset = next; this.pitch = 0; this.codeCheckpoint = restored;
+      return this.read();
+    } catch (error) {
+      this.core.loadState(native); this.synth._adoptState(shadow);
+      this.preset = previous; this.pitch = pitch; this.codeCheckpoint = checkpoint;
+      throw error;
+    }
+  }
   noteOn(id, midi) {
     this._open();
     if (this.codeActive) throw gameboyCodeCancelled();

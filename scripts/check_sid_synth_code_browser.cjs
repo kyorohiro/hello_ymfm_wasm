@@ -208,7 +208,8 @@ await new Promise(resolve=>globalThis.__sidLateRelease=resolve);try{await sid.no
       await source(page,HOLD);await execute(page);await sounding(page);
       if(await page.locator('#sidLiveEnabled').isChecked())await page.locator('#sidLiveEnabled').uncheck();
       await until(()=>page.locator('#voiceEditor').getAttribute('data-observing').then(value=>value==='false'),'authoring before model change');
-      await page.locator(`[data-choice-for="sidModel"][data-value="${model}"]`).click();await stateIs(page,value=>value.model===model&&!gate(value,0),'model change '+model);await stopped(page);
+      await page.locator(`[data-choice-for="sidModel"][data-value="${model}"]`).click();await stateIs(page,value=>value.model===model&&!gate(value,0),'model change '+model);
+      assert.match(await page.locator('#synthCodeState').textContent(),/Running/,'model changes keep the Code host');await stop(page);
       assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,1);
     }
     await source(page,HOLD);await execute(page);await page.locator('#synthInputKeyboardTab').click();await silent(page);

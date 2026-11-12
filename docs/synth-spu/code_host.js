@@ -5,17 +5,17 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?spu-json-c
 import {selectSpuCodeDeclarations} from './code_declarations.js?spu-click-guard=1';
 import {createSpuCodeAudio} from './code_audio.js?spu-code=1';
 import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
-import {setupSpuCodeFiles} from './code_files.js?ps1-vab-api=1';
+import {setupSpuCodeFiles} from './code_files.js?spu-live-presets=1';
 
 export const SPU_STARTER_CODE=`const ps1 = await useSoundChip("ps1");
 setBpm(120);
 
 // Use the current sample, ADSR and shared reverb from the controls above.
-// PMON pairs CH1 -> CH2, so choose its carrier when pairing is enabled.
-const state = await ps1.getState();
-const channel = state.pmon.enabled ? CH2 : CH1;
-
 liveLoop("melody", async () => {
+  // Follow sound selections without replacing this loop or its context.
+  // PMON pairs CH1 -> CH2, so choose its carrier when pairing is enabled.
+  const state = await ps1.getState();
+  const channel = state.pmon.enabled ? CH2 : CH1;
   const notes = scale("E3", "minorPentatonic", 2);
   await ps1.noteOn(channel, choose(notes));
   await sleep(0.12);

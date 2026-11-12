@@ -102,7 +102,7 @@ export class SidInstrument{
   setChannelSettings(value){
     this._open();const next=readChannelSettings(value),preset=selected(next);
     if(preset.model!==this.core.model)throw new RangeError('SID preset model must match its core; replace the instrument to change model');
-    if(topology(next)!==topology(this.channelSettings)){this._replace(next);return this.read();}
+    if(topology(next)!==topology(this.channelSettings)){this._replace(next,this.codeActive);return this.read();}
     const tuning=this._prepareTuning(next),previous=this.channelSettings,plan=channelPlaybackPlan(next);
     this.channelSettings=next;this.preset=preset;this._apply(previous);
     for(const item of tuning)if(item.tuning.source!==null&&previous.channels[item.voice.channel].modulation.ratio!==next.channels[item.voice.channel].modulation.ratio)
@@ -110,7 +110,7 @@ export class SidInstrument{
     return this.read();
   }
   loadPreset(value){this._open();return this.loadChannelSettings(applyChannelPreset(this.channelSettings,readPreset(value)));}
-  loadChannelSettings(value){this._open();const next=readChannelSettings(value);this._replace(next);return this.read();}
+  loadChannelSettings(value){this._open();const next=readChannelSettings(value);this._replace(next,this.codeActive);return this.read();}
   noteOn(id,midi){
     this._open();
     if(this.codeActive)throw new Error('SID Code owns the physical channels; stop Code before playing the keyboard');
@@ -164,10 +164,20 @@ export class SidInstrument{
   }
   /** Code borrows this same chip, but owns physical voices rather than key IDs.
    * Starting the session clears the keyboard allocator and restores its patch.
-   * Loads, topology changes and Stop invalidate every earlier session token.
+   * Sound loads may restart hardware notes, while retaining this Code token.
+   * Explicit Stop invalidates every earlier session token.
    */
   beginCode(){
     this._open();this.stop();this.codeActive=true;this.codeFrames=0;
+    return {session:this.codeEpoch,clock:this.synth.clock,model:this.core.model,channels:3};
+  }
+  /** Internal same-Worklet handoff after a model candidate is ready. The
+   * processor keeps its public session; this instrument owns its new token. */
+  adoptCode(previous){
+    this._open();
+    if(!previous?.codeActive||!Number.isSafeInteger(previous.codeFrames)||previous.codeFrames<0)
+      throw new TypeError('Expected an active SID Code owner');
+    this.codeActive=true;this.codeFrames=previous.codeFrames;
     return {session:this.codeEpoch,clock:this.synth.clock,model:this.core.model,channels:3};
   }
   /** One coherent, non-clocking observation of the applied Code state. This

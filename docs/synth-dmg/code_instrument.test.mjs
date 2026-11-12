@@ -126,3 +126,45 @@ test('disposing the borrowed client restores the author, rejects old calls and p
   const pcm = instrument.generateStereo(2000); assert(pcm.right.some(value => Math.abs(value) > .0001));
   assert.equal(core.handle,handle);
 });
+
+test('a live Code preset preserves the client/session, physical pitches and elapsed frames, then Stop keeps the newest editor sound',async t=>{
+  const {core,instrument,preset}=await fixture(t,'pulse'),metadata=instrument.beginCode(),client=createClient(instrument,metadata),handle=core.handle;
+  await client.pulse.noteOn(0,'C4');await client.pulse.noteOn(1,'E4');await client.wave.noteOn('G3');await client.noise.keyOn();instrument.generateStereo(3000);
+  const before=await client.getState(),next=structuredClone(preset);next.name='Live selected Wave';next.source='wave';next.pulse.duty=.75;next.pulse.volume=11;next.noise.width=15;next.pan={left:true,right:true};
+  const epoch=instrument.codeEpoch,frames=instrument.codeFrames;instrument.applyCodePreset(metadata.session,next);
+  assert.equal(core.handle,handle);assert.equal(instrument.codeEpoch,epoch);assert.equal(instrument.codeFrames,frames);assert(client.isCurrent());
+  const live=await client.getState();assert.equal(live.editorSource,'wave');for(const index of [3,4,8,9,13,14])assert.equal(live.registers[index],before.registers[index],'preserve programmed frequency/trigger register '+index);
+  assert.equal(live.registers[10]&128,128,'unchanged Wave RAM keeps its live DAC gate');assert.equal(live.voice[1]>>6,3);assert.equal(live.voice[2]>>4,11);
+  assert.deepEqual(instrument.read().preset,next);audible(instrument.generateStereo(2048));
+  await client.pulse.noteOn(0,'D4');assert(client.isCurrent());instrument.stop();assert.deepEqual(instrument.read().preset,next);assert.equal(instrument.read().pitch,0);
+  assert.deepEqual(instrument.synth._getState().registers.slice(32,48),Array.from({length:16},(_,i)=>(next.wave.samples[i*2]<<4)|next.wave.samples[i*2+1]));
+  instrument.noteOn('after-stop',60);audible(instrument.generateStereo(2048));
+});
+
+test('live Wave replacement may release Wave without retiring Code; failure restores exact native PCM, shadow and old Stop checkpoint',async t=>{
+  const {core,instrument,preset,writes}=await fixture(t),metadata=instrument.beginCode(),client=createClient(instrument,metadata);
+  await client.wave.noteOn('C4');await client.pulse.noteOn(0,'E4');instrument.generateStereo(1000);
+  const next=structuredClone(preset);next.name='New Wave';next.wave.samples=waveShape('saw');next.pan={left:true,right:true};
+  instrument.applyCodePreset(metadata.session,next);assert(client.isCurrent());assert.equal((await client.getState()).registers[10]&128,0);
+  await client.wave.keyOn();audible(instrument.generateStereo(1000));
+  const before=await client.getState(),beforePreset=instrument.read().preset,checkpoint=instrument.codeCheckpoint,frames=instrument.codeFrames;
+  const native=core.saveState(),expected=core.generateStereo(2048);core.loadState(native);
+  const originalWrite=core.writeRegister,originalLoad=core.loadState;let loads=0,liveWrites=0;
+  core.loadState=function(...args){loads++;return originalLoad.apply(this,args);};
+  core.writeRegister=function(...args){if(loads===2&&++liveWrites===2)throw Error('Injected live patch failure');return originalWrite.apply(this,args);};
+  const failing=structuredClone(next);failing.pulse.duty=.25;
+  try{assert.throws(()=>instrument.applyCodePreset(metadata.session,failing),/Injected live patch failure/);}finally{core.writeRegister=originalWrite;core.loadState=originalLoad;}
+  assert.deepEqual(await client.getState(),before);assert.deepEqual(instrument.read().preset,beforePreset);assert.equal(instrument.codeCheckpoint,checkpoint);assert.equal(instrument.codeFrames,frames);assert.deepEqual(instrument.generateStereo(2048),expected);
+  const invalid=structuredClone(next);invalid.wave.samples[0]=16;const count=writes.length;assert.throws(()=>instrument.applyCodePreset(metadata.session,invalid));assert.equal(writes.length,count);
+  instrument.stop();assert.deepEqual(instrument.read().preset,next);assert.throws(()=>instrument.applyCodePreset(metadata.session,preset),{name:'AbortError'});
+});
+
+test('reselecting identical Code voice settings preserves native envelope/oscillator history sample-exactly',async t=>{
+  const {core,instrument,preset}=await fixture(t,'pulse'),metadata=instrument.beginCode(),client=createClient(instrument,metadata);
+  await client.pulse.noteOn(0,'C4');await client.noise.keyOn();instrument.generateStereo(4567);
+  const native=core.saveState(),expected=core.generateStereo(4096);core.loadState(native);
+  const selected=structuredClone(preset);selected.name='Only the editor name changes';
+  instrument.applyCodePreset(metadata.session,selected);
+  assert.deepEqual(instrument.generateStereo(4096),expected,'checkpoint preparation must not advance or retrigger the running APU');
+  assert(client.isCurrent());assert.equal((await client.getState()).positionFrames,8663);instrument.stop();assert.equal(instrument.read().preset.name,selected.name);
+});

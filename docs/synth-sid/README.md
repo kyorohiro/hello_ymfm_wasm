@@ -81,6 +81,16 @@ chip factory here; acquire the SID through `useSoundChip("sid")` and await its
 acknowledged controls. Existing **Copy JavaScript** still targets the full C64
 Playground separately. Maximize Code places the same editor beside Files.
 
+Selecting a sound JSON in **Files**, loading a preset or changing its voice
+settings keeps the current Run, loops, `context`, preparations and software FX.
+The shared SID adopts the new authored settings; loads and topology changes
+clear held hardware notes, so the next Code note uses the new sound. Presets
+can also switch 6581 / 8580 within this same audio graph and Code client. A
+failed model preparation keeps the old chip running. Explicit Stop restores
+the latest selected sound; project replacement and starting a SID song still
+stop Code. Code that sets its own waveform / filter again can overwrite those
+particular settings on its next iteration.
+
 While Code runs, **Live from Code** is On by default. The existing **Your sound**
 controls show the selected Code channel's applied waveform flags, Pulse width,
 hardware ADSR and shared filter, with the same change highlights as song Live.

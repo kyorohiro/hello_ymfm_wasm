@@ -6,7 +6,7 @@ import {GAMEBOY_STARTER_CODE} from './code_host.js';
 import {resolveGameboyCodeNoteTarget} from './code_audio.js';
 
 const turn=()=>new Promise(resolve=>setTimeout(resolve,0));
-async function until(fn){for(let index=0;index<200;index++){if(fn())return;await turn();}throw Error('Runtime did not reach expected gate');}
+async function until(fn){const end=performance.now()+2000;while(performance.now()<end){if(fn())return;await turn();}throw Error('Runtime did not reach expected gate');}
 function fixture(source='pulse'){
   const calls=[];
   const tone=kind=>({noteOn:async(...args)=>{calls.push([kind,'noteOn',...args]);},keyOn:async(...args)=>{calls.push([kind,'keyOn',...args]);},keyOff:async(...args)=>{calls.push([kind,'keyOff',...args]);}});
@@ -16,8 +16,19 @@ function fixture(source='pulse'){
   const runtime=createPlaygroundCodeRuntime({ensureReady:async()=>{},now:()=>performance.now()/1000,supportedSoundChips:['gameboy'],useSoundChip:async()=>client,
     resolveNoteTarget:(...args)=>resolveGameboyCodeNoteTarget(client,...args),
     stopSoundChips:async()=>{calls.push(['host','stop']);},guardExecution:false,createTaskChannel:()=>null});
-  return{runtime,calls};
+  return{runtime,calls,setSource(value){source=value;}};
 }
+test('DMG starter follows newly selected sounds without restarting its live loop',async()=>{
+  const f=fixture('pulse');
+  try{
+    await f.runtime.run(GAMEBOY_STARTER_CODE);
+    await until(()=>f.calls.some(call=>call[0]==='pulse'&&call[1]==='noteOn'));
+    f.setSource('wave');await until(()=>f.calls.some(call=>call[0]==='wave'&&call[1]==='noteOn'));
+    f.setSource('noise');await until(()=>f.calls.some(call=>call[0]==='noise'&&call[1]==='keyOn'));
+    assert(f.runtime.getState().running);assert.deepEqual(f.runtime.getState().loopNames,['melody']);
+    assert.equal(f.calls.filter(call=>call[0]==='host').length,1,'Only the initial Run retires the previous session');
+  }finally{await f.runtime.stop();}
+});
 test('DMG default index uses the current selected physical source without initializing over its sound',async()=>{
   for(const source of ['pulse','wave','noise']){
     const f=fixture(source);

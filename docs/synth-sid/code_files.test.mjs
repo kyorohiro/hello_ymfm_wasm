@@ -62,6 +62,40 @@ test('unfinished SID JSON stays editable without applying or discarding the curr
   assert.equal(f.doc.getElementById('sidFileTextEditor').value,'{"voice":');assert.equal(f.doc.getElementById('sidFileTextEditor').hidden,false);assert.deepEqual(f.project.settings,settings);assert.equal(f.calls.length,0);assert.match(f.statuses.at(-1),/current sound kept/);
 });
 
+test('selecting a sound uses the dedicated apply hook and preserves the executing Code path and mode',async t=>{
+  const events=[],f=fixture(t,{onBeforeWorkspaceReplace:()=>assert.fail('A sound is not a workspace replacement'),
+    onBeforeSoundApply:async()=>events.push('sound'),applySettings:async(value,{isCurrent})=>{assert(isCurrent());events.push(['apply',value]);}});
+  await f.files.ready;f.project.setCodeState({mode:'code',path:'/index.js'});
+  const next=f.project.settings;for(const sound of next.channels){sound.name='Selected pulse';sound.voice.waveform='pulse';sound.voice.pulseWidth=901;}
+  f.project.importFiles([{path:'/presets/pulse.json',data:JSON.stringify(next)}]);
+  f.files.setCodeControls({activePath:'/index.js',flush:async()=>true,setBusy(){},
+    openFile:()=>assert.fail('A sound selection must not open or rerun Code'),stop:()=>assert.fail('A sound selection must not stop Code'),
+    workspaceReplaced:()=>assert.fail('A sound selection must not replace the workspace')});
+  assert(await f.files.selectFile('/presets/pulse.json'));assert.deepEqual(events.map(value=>Array.isArray(value)?value[0]:value),['sound','apply']);
+  assert.deepEqual(f.project.settings,next);assert.deepEqual(f.project.getCodeState(),{mode:'code',path:'/index.js'});
+  assert.equal(f.project.fs.get('/index.js').data,'kept');assert.equal(f.project.selectedPath,'/presets/pulse.json');
+});
+
+test('failed or disposed sound selection keeps authored settings and never reaches the workspace replacement hook',async t=>{
+  const gate=deferred();let fail=true,applies=0;
+  const f=fixture(t,{onBeforeWorkspaceReplace:()=>assert.fail('Sound must not replace Code'),onBeforeSoundApply:async()=>{if(fail)throw Error('Sound unavailable');await gate.promise;},applySettings:async()=>{applies++;}});
+  await f.files.ready;const before=f.project.settings,next=structuredClone(before);next.channels[0].name='Incoming';
+  f.project.importFiles([{path:'/presets/incoming.json',data:JSON.stringify(next)}]);
+  await assert.rejects(f.files.selectFile('/presets/incoming.json'),/Sound unavailable/);
+  assert.deepEqual(f.project.settings,before);assert.equal(applies,0);assert.equal(f.doc.querySelector('.sid-main').inert,false);
+  fail=false;const pending=f.files.selectFile('/presets/incoming.json');await Promise.resolve();await Promise.resolve();
+  await f.files.dispose();gate.resolve();assert.equal(await pending,false);assert.deepEqual(f.project.settings,before);assert.equal(applies,0);
+});
+
+test('a cancelled sound selection honors false and persists the reconciled actual sound after its busy apply settles',async t=>{
+  let current;
+  const f=fixture(t,{getSettings:()=>current,applySettings:async(value)=>{current=structuredClone(value);return false;}});
+  current=f.project.settings;await f.files.ready;const incoming=structuredClone(current);incoming.channels[0].name='Native committed before cancellation';
+  f.project.importFiles([{path:'/presets/incoming.json',data:JSON.stringify(incoming)}]);const selected=f.project.selectedPath;
+  assert.equal(await f.files.selectFile('/presets/incoming.json'),false);assert.equal(f.project.selectedPath,selected);
+  assert.deepEqual(f.project.settings,incoming);await f.files.persistCode();assert.deepEqual(f.writes.at(-1).settings,incoming);
+});
+
 test('moving a code folder preserves its active JavaScript file without stopping the performance',async t=>{
   const f=fixture(t);await f.files.ready;f.project.importFiles([{path:'/lib/notes.js',data:'kept module'}]);f.project.select('/lib/notes.js');f.project.setCodeState({mode:'code',path:'/lib/notes.js'});
   const code={activePath:'/lib/notes.js',flush:async()=>true,setBusy(){},workspaceReplaced:async()=>{assert.fail('Renaming a code folder must not stop it');},pathChanged(source,destination){code.activePath=destination+code.activePath.slice(source.length);f.project.setCodeState({mode:'code',path:code.activePath});}};

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
+import {createDefaultPreset,readPreset} from './preset.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -53,7 +54,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
   }
   const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   const realm = {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled, readPreset,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
@@ -206,4 +207,18 @@ test('startup AbortSignal closes pending audio silently and trusted command dead
   const f = fixture(), audio = await f.create(); f.blockTimers();
   const client = await audio.getGameboyClient(); await client.pulse.noteOn(0,'C4');
   await audio.command('stop'); assert.equal(f.timers.size,0); await audio.dispose();
+});
+
+test('live preset RPC keeps the exact cached Code owner and validates before dispatch',async()=>{
+  const f=fixture(),audio=await f.create(),client=await audio.getGameboyClient(),preset=createDefaultPreset();preset.source='wave';
+  await audio.applyCodePreset(preset);assert(client.isCurrent());assert.equal(await audio.getGameboyClient(),client);
+  const request=f.messages.find(message=>message.method==='applyCodePreset');assert.equal(request.args[0],1);assert.deepEqual(request.args[1],preset);
+  const count=f.messages.length;await assert.rejects(audio.applyCodePreset({...preset,source:'invalid'}));await assert.rejects(audio.applyCodePreset(preset,{isCurrent:()=>false}),{name:'AbortError'});assert.equal(f.messages.length,count);
+  await client.wave.keyOn();assert.equal(f.messages.filter(message=>message.method==='beginCode').length,1);await audio.dispose();
+});
+
+test('Stop or a newer lease invalidates pending preset dispatch/ACK without touching that newer owner',async()=>{
+  const f=fixture(),audio=await f.create(),client=await audio.getGameboyClient(),preset=createDefaultPreset();
+  f.mode('hold');const old=audio.applyCodePreset(preset);await Promise.resolve();await Promise.resolve();assert(f.messages.some(message=>message.method==='applyCodePreset'));
+  f.mode('reply');await audio.command('stop');const next=await audio.getGameboyClient();f.release();await assert.rejects(old,{name:'AbortError'});assert(!client.isCurrent());assert(next.isCurrent());await next.pulse.noteOn(0,'C4');await audio.dispose();
 });

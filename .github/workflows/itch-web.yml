@@ -96,6 +96,13 @@ jobs:
             --out="$RUNNER_TEMP/itch-web/synth-browser.json" \
             --images="$RUNNER_TEMP/itch-web/synth-images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-browser.log"
+      - name: Keep Code running through FM, PSG and PCM preset selection
+        run: |
+          python3 -m zipfile -e release/hello_ymfm_wasm_dev_itch_synth.zip "$RUNNER_TEMP/itch-web/synth-live-presets"
+          node scripts/check_synth_code_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html --checks=live-presets \
+            --out="$RUNNER_TEMP/itch-web/synth-live-presets.json" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-live-presets.log"
       - name: Test the packaged Playground in Chromium and WebKit
         run: |
           node scripts/check_itch_playground_bundle_browser.cjs \

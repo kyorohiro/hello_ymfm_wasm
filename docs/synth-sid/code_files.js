@@ -9,7 +9,7 @@ const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastI
 const workspaceId=()=>globalThis.crypto?.randomUUID?.()??`sid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 export function setupSidCodeFiles({project=createSidCodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
-  onBeforeWorkspaceReplace=async()=>{},setStatus=()=>{},store=createSidProjectStore(),document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},setStatus=()=>{},store=createSidProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('sidFilesPanel'),toggle=doc.getElementById('sidFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   if(!panel||!toggle||!workspace)throw Error('SID Files mount is missing.');
   const win=doc.defaultView??globalThis,main=doc.querySelector?.('.sid-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
@@ -61,7 +61,7 @@ export function setupSidCodeFiles({project=createSidCodeProject(),getSettings=()
     if(isSidCodePath(path)){project.select(path);showText(path);render();return await code?.openFile?.(path);}
     let sound=null,soundError=null;
     if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readSidProjectSound(file.data,getSettings());}catch(error){soundError=error;}}
-    if(sound){setBusy(true);try{await onBeforeWorkspaceReplace();if(disposed||token!==operation)return false;await applySettings(sound,{isCurrent:()=>!disposed&&token===operation});if(disposed||token!==operation)return false;project.setSettings(sound);}finally{if(!disposed)setBusy(false);}}
+    if(sound){setBusy(true);try{await onBeforeSoundApply();if(disposed||token!==operation)return false;if(await applySettings(sound,{isCurrent:()=>!disposed&&token===operation})===false||disposed||token!==operation)return false;project.setSettings(sound);}finally{if(!disposed){setBusy(false);project.setSettings(getSettings());schedule();}}}
     project.select(path);showText(path);render();schedule();
     say(sound?'SID sound loaded. Its JSON stays editable in Files.':soundError?`JSON was not applied; current sound kept. Edit this text to finish it: ${soundError.message}`:file.type==='text'?'Text edits save to Files; select a SID sound JSON again to apply it.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
   }

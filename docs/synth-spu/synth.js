@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-live-sample-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-live-presets-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-live-sample-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -10,11 +10,12 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone,exportVab} from './spu_synth_vab.js?v=ps1-vab-api-1';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=ps1-vab-api-1';
-import {setupSpuCodeHost} from './code_host.js?v=ps1-vab-api-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-live-presets-1';
 import {SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
-import {prepareVabTonePreset,prepareVabBankPresets,vabTonePresetName} from './spu_bank_presets.js?v=ps1-vab-api-1';
+import {prepareVabTonePreset,prepareVabBankPresets} from './spu_bank_presets.js?v=ps1-vab-api-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
+import {createPs1InitSample} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createPsfSongPreview} from './psf_song_preview.js?v=spu-psf-seek-1';
 import {setupPsfSeekControls} from './psf_seek_controls.js?v=spu-psf-seek-1';
@@ -705,7 +706,7 @@ function download(name, contents) {
   const link = document.createElement('a'); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
-let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false, extractingPsf = false, bankSaveRequest = null;
+let vabBank = null, vabName = '', bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false, extractingPsf = false, bankSaveRequest = null;
 const vabStatus = (message, error=false) => { $('vabStatus').textContent=message; $('vabStatus').dataset.error=String(error); };
 function updatePsfPlayback(next) {
   if(disposed)return;
@@ -800,7 +801,7 @@ function beginAssetOperation() {
 }
 function chooseBank(index) {
   const choice=bankChoices[index]; if (!choice) return;
-  vabBank=choice.bank; vabName=choice.name; vabSamples=choice.samples;
+  vabBank=choice.bank; vabName=choice.name;
   const availability=new Map(),reasons=new Map(); let first=null,playable=0;
   $('vabTone').replaceChildren(...vabBank.tones.map((tone,index)=>{
     if (!availability.has(tone.sample)) {
@@ -938,42 +939,17 @@ $('vabFileInput').addEventListener('change', async () => {
 });
 $('loadVabTone').addEventListener('click', async () => {
   if (!vabBank || bankReadController || $('vabTone').value==='') return;
-  const operation=beginAssetOperation(), bank=vabBank, cache=vabSamples, name=vabName, index=Number($('vabTone').value);
+  const operation=beginAssetOperation(),bank=vabBank,name=vabName,index=Number($('vabTone').value);
   preparation?.cancel();
   try {
-    await stopCodeForEdit();
-    // Validate bytes/tuning before stopping or changing the current sound.
-    const prepared=prepareVabTone(bank,index), engine=await ensureAudio();
-    if (operation!==assetEpoch) return;
-    const current=await engine.inspect();
-    if (operation!==assetEpoch) return;
-    const key=`${prepared.tone.sample}:${prepared.options.baseFrequencyHz}`;
-    const cached=cache.get(key);
-    let sample=cached?.engine===engine ? cached.sample : null;
-    if (!sample && prepared.adpcm.length > 524288-current.nextAddress) throw new RangeError('Tone exceeds free SPU sample RAM. Reload the page for a fresh bank.');
-    await stop();
-    if (operation!==assetEpoch) return;
-    if (!sample) {
-      sample=await engine.command('loadADPCM',[prepared.adpcm,prepared.options]);
-      cache.set(key,{engine,sample});
-      if (operation!==assetEpoch) return;
-    }
-    // Check the asset generation between messages, so a newer load/reset wins.
-    for (const [method,args] of [
-      ['setInstrumentPmon',[{enabled:false}]],
-      ['setInstrumentNoise',[{enabled:false}]],
-      ['setInstrumentMorph',[{enabled:false}]],
-      ['setInstrumentPreset',[{...prepared.preset,sample}]],
-    ]) {
-      await engine.command(method,args);
-      if (operation!==assetEpoch) return;
-    }
-    instrumentName=vabTonePresetName(name,prepared.tone);
-    codeHost?.markSoundDirty();
-    $('instrumentName').value=instrumentName;
-    const message=`Loaded ${instrumentName} · ${sample.byteLength} ADPCM bytes${prepared.trimmedBytes ? ` · ignored ${prepared.trimmedBytes} bytes after END` : ''}. Play the keyboard or use Save to presets.`;
-    vabStatus(message); status(message); applyState(await engine.inspect());
-  } catch (error) {if (operation===assetEpoch) {vabStatus(error.message,true); report(error);}}
+    // Parse/tune the Tone before changing either the author or the Code bank.
+    const prepared=prepareVabTone(bank,index);
+    const reverb=state?{preset:state.reverb.preset,volumeLeft:state.reverb.volumeLeft,volumeRight:state.reverb.volumeRight}:{preset:'off',volumeLeft:.25,volumeRight:.25};
+    const instrument=prepareVabTonePreset(bank,index,{name,reverb});
+    if(!await applyInstrumentDocument(instrument,{isCurrent:()=>operation===assetEpoch}))return;
+    const message=`Loaded ${instrument.name} · ${prepared.adpcm.length} ADPCM bytes${prepared.trimmedBytes ? ` · ignored ${prepared.trimmedBytes} bytes after END` : ''}. Play the keyboard or use Save to presets.`;
+    vabStatus(message);status(message);
+  } catch(error){if(operation===assetEpoch){vabStatus(error.message,true);report(error);}}
 });
 $('savePreset').addEventListener('click', async () => {
   try {
@@ -1053,16 +1029,34 @@ async function capturePsfVoice() {
   }
 }
 async function applyInstrumentDocument(value,{isCurrent=()=>true,beforeStop=()=>true,deferStopForPreflight=false,preservePausedPsf=false}={}) {
-  const instrument=readSpuInstrument(value),operation=assetEpoch;
-  const current=()=>!disposed&&operation===assetEpoch&&isCurrent();
+  const instrument=readSpuInstrument(value),operation=assetEpoch,codeAtStart=Boolean(codeHost?.isRunning());
+  const current=()=>!disposed&&operation===assetEpoch&&isCurrent()&&(codeAtStart||!codeHost?.isRunning());
   if(!current())return false;
   if(preservePausedPsf&&(!deferStopForPreflight||!psfSong?.read().paused))return false;
+  if(codeHost?.isRunning()) {
+    const session=audio?.codeSession;
+    if(!beforeStop())return false;
+    const engine=await ensureAudio();if(!current())return false;
+    if(!Number.isSafeInteger(session)||engine.codeSession!==session||!codeHost.isRunning())return false;
+    // One transaction validates the authored checkpoint AND the resident Code
+    // bank. Keep runtime/context/FX and client ownership; only held sample
+    // voices may stop. Explicit Stop later restores this latest editor sound.
+    await engine.command('applyInstrument',[value,session]);if(!current())return false;
+    const snapshot=await engine.inspect();if(!current()||audio!==engine)return false;
+    // Stop can win after the DSP committed but before its acknowledgement.
+    // Reconcile the committed author name/state without restarting that owner
+    // or claiming the cancelled Files selection as applied.
+    instrumentName=instrument.name;$('instrumentName').value=instrumentName;
+    applyState(snapshot);codeHost.markSoundDirty();
+    if(engine.codeSession!==session||!codeHost.isRunning())return false;
+    status(`Loaded ${instrument.name}. Code continues.`);return true;
+  }
   // Code may own a temporary RAM bank. Ordinary imports must restore the
   // authored bank before looking up sample IDs or inspecting its capacity.
   // Only paused PSF Capture, whose editor bank is already resident, defers it.
   if(!deferStopForPreflight) {
     if(!beforeStop())return false;
-    await stopCodeForEdit();if(!current())return false;
+    await stopCodeForEdit({isCurrent:current});if(!current())return false;
   }
   if(deferStopForPreflight){await stopPausedKeyboard();if(!current())return false;}
   const engine=await ensureAudio();if(!current())return false;
@@ -1077,7 +1071,7 @@ async function applyInstrumentDocument(value,{isCurrent=()=>true,beforeStop=()=>
   if(requiredBytes>524288-bank.nextAddress)throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
   if(deferStopForPreflight) {
     if(!current()||!beforeStop())return false;
-    if(!preservePausedPsf)await stopCodeForEdit();
+    if(!preservePausedPsf)await stopCodeForEdit({isCurrent:current});
     if(!current())return false;
   }
   await stop({preservePausedPsf});if(!current())return false;
@@ -1096,6 +1090,12 @@ async function applyInstrumentDocument(value,{isCurrent=()=>true,beforeStop=()=>
 $('resetPreset').addEventListener('click', async () => {
   const operation = beginAssetOperation(); preparation?.cancel();
   try {
+    if(codeHost?.isRunning()) {
+      const instrument=writeSpuInstrument('Sine',{preset:{volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:0,pitch:4096,reverb:false},
+        sample:createPs1InitSample(),reverb:state?.reverb??{preset:'off',volumeLeft:.25,volumeRight:.25},waveform:morphPcm({enabled:true}),
+        morph:{enabled:true},noise:{enabled:false},pmon:{enabled:false}});
+      await applyInstrumentDocument(instrument,{isCurrent:()=>operation===assetEpoch});return;
+    }
     await stopCodeForEdit();
     const engine = await ensureAudio();
     if (operation !== assetEpoch) return;

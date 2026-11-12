@@ -37,7 +37,7 @@ function copyPath(project,path){
   return result;
 }
 export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
-  onBeforeWorkspaceReplace=async()=>{},setStatus=()=>{},store=createGameboyProjectStore(),document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},setStatus=()=>{},store=createGameboyProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('dmgFilesPanel'),toggle=doc.getElementById('dmgFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const presetSelect=doc.getElementById('dmgPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('Game Boy Files mount is missing.');
@@ -129,7 +129,22 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
     if(isGameboyCodePath(path)){project.select(path);render();return await openInCurrentMode(path);}
     let sound=null,soundError=null;
     if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readGameboyProjectSound(file.data);}catch(error){soundError=error;}}
-    if(sound){setBusy(true);try{await onBeforeWorkspaceReplace();if(disposed||token!==operation)return false;await applySettings(sound,{isCurrent:()=>!disposed&&token===operation});if(disposed||token!==operation)return false;}finally{if(!disposed)setBusy(false);}}
+    if(sound){
+      setBusy(true);
+      try{
+        await onBeforeSoundApply();if(disposed||token!==operation)return false;
+        const applied=await applySettings(sound,{isCurrent:()=>!disposed&&token===operation});
+        if(applied===false||disposed||token!==operation)return false;
+      }finally{
+        if(!disposed){
+          // A Stop can arrive after the chip committed but before its reply.
+          // Persist the host's reconciled sound without marking a failed file
+          // selection as the applied preset.
+          if(token===operation)project.setSettings(getSettings());
+          setBusy(false);if(token===operation)schedule();
+        }
+      }
+    }
     if(sound){project.setSettings(sound);appliedPreset={kind:'json',path,data:file.data};}
     project.select(path);render();schedule();
     if(file.type==='text')await openInCurrentMode(path);

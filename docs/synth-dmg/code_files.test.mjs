@@ -22,7 +22,7 @@ function fixture(t,options={}){
   const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
   let settings=readPreset(options.settings??createDefaultPreset());const project=options.project??createGameboyCodeProject({settings,starterCode:'// kept'}),writes=[],calls=[],opened=[],statuses=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
-  const files=setupGameboyCodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
+  const files=setupGameboyCodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
   files.setCodeControls({flush:async()=>true,openFile:async(path,options)=>{opened.push({path,options});return true;},setBusy(){}});
   t.after(()=>files.dispose());return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
 }
@@ -41,7 +41,7 @@ test('DMG file selection preserves mode, text edits do not apply, explicit valid
   f.files.setCodeControls({flush:async()=>true,isCodeMode:()=>mode,openFile:async(path,options)=>f.opened.push({path,options}),setBusy(){}});
   f.project.importFiles([{path:'/notes.json',data:'{}'},{path:'/presets/Pulse.dmg.json',data:JSON.stringify(createDefaultPreset())},{path:'/unfinished.json',data:'{unfinished'}]);
   for(const path of ['/index.js','/notes.json','/presets/Pulse.dmg.json','/unfinished.json'])await f.files.selectFile(path);
-  assert(f.opened.every(entry=>entry.options.show===false));assert.deepEqual(f.calls.map(entry=>entry[0]),['before','apply']);assert.match(f.statuses.at(-1),/current sound kept/);
+  assert(f.opened.every(entry=>entry.options.show===false));assert.deepEqual(f.calls.map(entry=>entry[0]),['sound','apply']);assert.match(f.statuses.at(-1),/current sound kept/);
   mode=true;await f.files.selectFile('/notes.json');assert.equal(f.opened.at(-1).options.show,true);f.project.writeEditorText('/notes.json','{"unfinished":');await f.files.persistCode();assert.equal(f.calls.length,2);
 });
 
@@ -49,6 +49,27 @@ test('DMG JSON selection cancels pending execution before waiting for flush',asy
   const f=fixture(t);await f.files.ready;f.project.importFiles([{path:'/notes.json',data:'{}'}]);const gate=deferred(),events=[];
   f.files.setCodeControls({cancelPendingExecution(){events.push('cancel');},flush:async()=>{events.push('flush');await gate.promise;},openFile:async()=>events.push('open'),setBusy(){}});
   const pending=f.files.selectFile('/notes.json');assert.deepEqual(events,['cancel']);await Promise.resolve();assert.deepEqual(events,['cancel','flush']);gate.resolve();await pending;assert.deepEqual(events,['cancel','flush','open']);
+});
+
+test('DMG sound selection has a separate hook and failed/cancelled apply never marks a preset loaded',async t=>{
+  let result=false,settings=createDefaultPreset();
+  const f=fixture(t,{getSettings:()=>settings,applySettings:async value=>{if(result instanceof Error)throw result;if(result)settings=value;return result;},onBeforeWorkspaceReplace:()=>assert.fail('A sound is not a workspace replacement')});
+  await f.files.ready;const next=createDefaultPreset();next.source='wave';
+  f.project.importFiles([{path:'/Selected.dmg.json',data:JSON.stringify(next)}]);const previous=f.project.settings;
+  const initialSelection=f.project.selectedPath;
+  assert.equal(await f.files.selectFile('/Selected.dmg.json'),false);assert.deepEqual(f.project.settings,previous);assert.equal(f.project.selectedPath,initialSelection);
+  result=Error('upload failed');await assert.rejects(f.files.selectFile('/Selected.dmg.json'),/upload failed/);assert.deepEqual(f.project.settings,previous);
+  assert.equal(f.doc.getElementById('dmgPresetSelect').value,'');assert.deepEqual(f.calls.map(call=>call[0]),['sound','sound']);
+  result=true;assert.equal(await f.files.selectFile('/Selected.dmg.json'),true);assert.deepEqual(f.project.settings,next);
+});
+
+test('a Stop after sound commit persists the reconciled host sound without marking the cancelled selection applied',async t=>{
+  let settings=createDefaultPreset();const next=structuredClone(settings);next.source='noise';
+  const f=fixture(t,{getSettings:()=>settings,applySettings:async()=>{settings=next;return false;}});await f.files.ready;
+  f.project.importFiles([{path:'/Selected.dmg.json',data:JSON.stringify(next)}]);const selected=f.project.selectedPath;
+  assert.equal(await f.files.selectFile('/Selected.dmg.json'),false);
+  assert.deepEqual(f.project.settings,next);assert.equal(f.project.selectedPath,selected);assert.equal(f.doc.getElementById('dmgPresetSelect').value,'');
+  await f.files.persistCode();assert.deepEqual(f.writes.at(-1).settings,next);
 });
 
 test('DMG duplicate/rename/delete preserve binary data and stop only the executed JS path',async t=>{

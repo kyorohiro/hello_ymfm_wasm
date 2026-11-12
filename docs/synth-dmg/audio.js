@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
+import {readPreset} from './preset.js';
 
 const nativeSetTimer = globalThis.setTimeout.bind(globalThis);
 const nativeClearTimer = globalThis.clearTimeout.bind(globalThis);
 
 export const GAMEBOY_SYNTH_BALANCE = .28;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'applyCodePreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('Game Boy Master must be from 0 to 3.8');
@@ -95,7 +96,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
         if (!response.ok) throw new Error(`Game Boy WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=dmg-live-preset-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();
@@ -156,6 +157,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
       const check = () => {assertOpen(); if (!current()) throw gameboyCodeCancelled();};
       owner.promise = command('beginCode').then(metadata => {
         check();
+        owner.session = metadata.session;
         return createGameboyCodeClient({metadata,isCurrent:current,
           ownsOutput:()=>current() || !disposed&&!fatalError&&codeOwner===null&&owner.releasedGeneration===codeGeneration,
           invoke(method,args) {check(); return command('code',[metadata.session,method,args]);},
@@ -171,9 +173,17 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
       }).catch(error => {if (codeOwner === owner) codeOwner = null;throw error;});
       return owner.promise;
     }
+    async function applyCodePreset(value,{isCurrent=()=>true}={}) {
+      assertOpen();const next=readPreset(value);
+      if(typeof isCurrent!=='function')throw new TypeError('Game Boy preset ownership must be a function');
+      const owner=codeOwner;
+      const check=()=>{assertOpen();if(!owner||codeOwner!==owner||owner.closed||owner.generation!==codeGeneration||!isCurrent())throw gameboyCodeCancelled();};
+      check();await owner.promise;check();
+      const result=await command('applyCodePreset',[owner.session,next]);check();return result;
+    }
     return {
       context, outputNode:master, codeInputNode:balance, codeOutputNode:codeFade, codeFadeNode:codeFade, songInputNode:songInput,
-      sampleRate:context.sampleRate, command, read:() => command('read'), getGameboyClient,
+      sampleRate:context.sampleRate, command, read:() => command('read'), getGameboyClient, applyCodePreset,
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); }

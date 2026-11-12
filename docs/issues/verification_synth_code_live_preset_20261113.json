@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "passed": true,
+  "scope": "Code対応Synthの音色選択中にRunを維持する。",
+  "behavior": [
+    "DMG・SID・SPUの音色選択をRun停止から分離。FM2612既存動作も回帰検証。",
+    "liveLoop・context・livePrepare・liveFxと既存chip clientを維持。",
+    "Stop後は最新の作者音色へ戻る。古い音色選択や遅延応答は新しいRunへ適用しない。",
+    "無効な音色・RAM容量不足・転送失敗では演奏を維持。project置換・明示Stop・曲再生の所有権切替は継続。"
+  ],
+  "limits": [
+    "サンプル／Wave RAM差し替えやSIDモデル変更では保持中のhardware noteが終了することがある。ループは継続する。",
+    "SPUの通常コントロール編集は従来どおりCode停止。今回の対象はJSON／VAB Tone／プリセットの音色読み込み。"
+  ],
+  "nodeSuites": [
+    {
+      "synth": "FM2612",
+      "passed": 522,
+      "failed": 0,
+      "log": "build/verification/synth-code-live-presets-20261113/fm-live-presets-all-node.log"
+    },
+    {
+      "synth": "DMG",
+      "passed": 190,
+      "failed": 0,
+      "log": "build/verification/synth-code-live-presets-20261113/dmg-live-presets-node-final.log"
+    },
+    {
+      "synth": "SID",
+      "passed": 230,
+      "failed": 0,
+      "log": "build/verification/synth-code-live-presets-20261113/sid-live-preset-full-node-b.log"
+    },
+    {
+      "synth": "SPU",
+      "passed": 332,
+      "failed": 0,
+      "log": "build/verification/synth-code-live-presets-20261113/spu-live-preset-all-node.log"
+    }
+  ],
+  "nodeTestsPassed": 1274,
+  "browserChecks": [
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/fm-packaged-live-presets.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/dmg-code-live-presets.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/dmg-live-presets-capture-regression.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/sid-live-presets-browser-b.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/sid-live-presets-code-browser-b.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/spu-live-presets-browser.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-live-presets-20261113/spu-live-presets-code-browser.json",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    }
+  ],
+  "packages": [
+    {
+      "synth": "FM2612",
+      "archive": "release/hello_ymfm_wasm_synth-live-presets-20261113_itch_synth.zip",
+      "stage": "release/itch_synth_synth-live-presets-20261113",
+      "bytes": 1089174,
+      "sha256": "7b4d93ae5f040a680b9a9704ea1571db0b9c4cecca69ed7732173eeaea18cfcb",
+      "readableOriginalModules": true
+    },
+    {
+      "synth": "DMG",
+      "archive": "release/tetorica_dmg_synth_dmg-live-presets-20261113c_itch.zip",
+      "stage": "release/itch_dmg_synth_dmg-live-presets-20261113c-R6Ee0v",
+      "bytes": 1844721,
+      "sha256": "e8e17e432b2216219d90111bdc398ca4cfd996e22aee66d7131e3395f72dd262",
+      "readableOriginalModules": true
+    },
+    {
+      "synth": "SID",
+      "archive": "release/tetorica_sid_synth_sid-live-presets-20261113-b_itch.zip",
+      "stage": "release/itch_sid_synth_sid-live-presets-20261113-b-ACz7x4",
+      "bytes": 3481254,
+      "sha256": "2924b0db74b9d641cbf31ed7ea90630515b9d099f0fd5c1d7ab8e10fa4cffab7",
+      "readableOriginalModules": true
+    },
+    {
+      "synth": "SPU",
+      "archive": "release/tetorica_spu_synth_spu-live-presets-20261113_itch.zip",
+      "stage": "release/itch_spu_synth_spu-live-presets-20261113-mBAOb4",
+      "bytes": 7108437,
+      "sha256": "0b5381f36902f89685fc859a05a9ed3b14b46f50a0794a1bb4a2f488caf9c4a9",
+      "readableOriginalModules": true
+    }
+  ],
+  "dmgFinalPackageNote": "READMEの旧説明を修正した最終C package。Code・Pause/Capture検証済みBと82個のJS/HTML/CSS/WASMファイルがbyte一致。",
+  "sourceEqualityReceipt": "build/verification/synth-code-live-presets-20261113/package-source-equality.json",
+  "sharedChipApiChanged": false,
+  "wasmOrNativeChanged": false,
+  "normalBrowserOrNativeAppOperated": false,
+  "listeningPerformed": false,
+  "committed": false,
+  "pushed": false,
+  "published": false
+}

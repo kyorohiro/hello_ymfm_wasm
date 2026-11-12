@@ -5,6 +5,7 @@ import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readPmon, pmonPcm} from './spu_synth_pmon.js';
 import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
+import {readSpuInstrument} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 export const SPU_SYNTH_CALIBRATED_GAIN = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(entry => entry.name === 'ps1').volume;
 export const SPU_SYNTH_OUTPUT_GAIN = SPU_SYNTH_CALIBRATED_GAIN * SPU_SYNTH_MIX_HEADROOM;
@@ -74,7 +75,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-live-sample-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-live-presets-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -118,9 +119,19 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     };
     async function command(method,args=[]) {
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
-      if(!['beginCode','code','observeCode','setClickGuard'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
+      if(!['beginCode','code','observeCode','setClickGuard','applyInstrument'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
       // The encoder must not run in the real-time audio processor.
-      if (method === 'setWaveform') args = [args[0], preparePs1Waveform(args[1]), args[2]];
+      if(method==='applyInstrument') {
+        const session=args.length>1?args[1]:codeOwner?.session??null;
+        if(session!==null&&!Number.isSafeInteger(session)||session!==(codeOwner?.session??null))throw codeCancelled();
+        const instrument=readSpuInstrument(args[0]);
+        args=[{preset:instrument.preset,reverb:instrument.reverb,pmon:instrument.pmon,noise:instrument.noise,morph:instrument.morph,
+          sample:instrument.version===1?instrument.sample:null,hostAudio:instrument.version===2?instrument.sample:null,
+          waveform:instrument.waveform?preparePs1Waveform(instrument.waveform):null,
+          pmonWaveform:instrument.pmon.enabled?preparePs1Waveform(pmonPcm(instrument.pmon.depth,instrument.pmon.waveform)):null,
+          noiseWaveform:instrument.noise.enabled?preparePs1Waveform(Array(112).fill(0)):null},session];
+      }
+      else if (method === 'setWaveform') args = [args[0], preparePs1Waveform(args[1]), args[2]];
       else if (method === 'setInstrumentWaveform') args = [preparePs1Waveform(args[0]), args[1]];
       else if (method === 'setInstrumentMorph') {
         const settings=readMorph(args[0]);
@@ -139,6 +150,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
       const check=()=>{assertOpen();if(codeOwner!==owner||owner.generation!==codeGeneration)throw codeCancelled();};
       owner.promise=command('beginCode').then(metadata=>{
         check();if(!Number.isSafeInteger(metadata?.session)||metadata.nativeSampleRate!==44100||metadata.channelCount!==24)throw new Error('Invalid SPU Code session');
+        owner.session=metadata.session;
         const client={id:'ps1:synth',chip:'ps1',channelCount:24,nativeSampleRate:44100,sampleRate:context.sampleRate};
         for(const method of CODE_METHODS)client[method]=(...args)=>{
           check();
@@ -166,6 +178,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     return {
       context, node, gain, calibratedGain:SPU_SYNTH_CALIBRATED_GAIN,
       codeInputNode:node,codeOutputNode:codeFade,codeFadeNode:codeFade,getPs1Client,
+      get codeSession(){return codeOwner?.session??null;},
       get state() {return state;},
       async inspect() {const value = await request('inspect'); if(!codeOwner)publish(value); return value;},
       command,

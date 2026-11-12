@@ -155,7 +155,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     if(isSpuCodePath(path)){project.select(path);render();return await openInCurrentMode(path);}
     let sound=null,soundError=null;
     if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readSpuProjectSound(file.data);}catch(error){soundError=error;}}
-    if(sound){setBusy(true);try{await onBeforeWorkspaceReplace();if(disposed||token!==operation)return false;await applyInstrument(sound,{isCurrent:()=>!disposed&&token===operation});if(disposed||token!==operation)return false;}finally{if(!disposed)setBusy(false);}}
+    if(sound){setBusy(true);try{if(disposed||token!==operation)return false;if(await applyInstrument(sound,{isCurrent:()=>!disposed&&token===operation})===false)return false;if(disposed||token!==operation)return false;}finally{if(!disposed)setBusy(false);}}
     if(sound)appliedPreset={kind:'json',path,data:file.data};
     project.select(path);render();schedule();
     if(file.type==='text')await openInCurrentMode(path);
@@ -171,8 +171,8 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     const saved=vabPreset(file);if(!saved.bank)throw Error('This VAB bank is unavailable.');
     prepareVabTone(saved.bank,toneNumber);const tone=saved.bank.tones[toneNumber];setBusy(true);
     try {
-      await onBeforeWorkspaceReplace();if(!current())return false;
-      await applyVabTone({bank:saved.bank,toneNumber,path,name:basename(path)},{isCurrent:current});if(!current())return false;
+      if(!current())return false;
+      if(await applyVabTone({bank:saved.bank,toneNumber,path,name:basename(path)},{isCurrent:current})===false)return false;if(!current())return false;
       appliedPreset={kind:'vab',path,data:saved.data,toneNumber};project.select(path);render();schedule();
       say(`Loaded ${basename(path)} · Program ${tone.program} · Tone ${tone.index}.`);return true;
     }finally{if(!disposed)setBusy(false);}

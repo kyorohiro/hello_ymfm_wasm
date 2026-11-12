@@ -15,6 +15,7 @@ function fixture() {
     noteOn(...args) { this.calls.push(args); return {channel:0,stolenId:null}; }
     stop() {this.stopCount++;this.codeActive=false;this.codeEpoch++;return this.read();}
     beginCode() {this.stop();this.codeActive=true;return {session:this.codeEpoch,clock:4194304,channels:4,editorSource:'pulse'};}
+    applyCodePreset(session,value) {if(!this.codeActive||session!==this.codeEpoch){const error=new Error('stale');error.name='AbortError';throw error;}this.calls.push(['applyCodePreset',value]);return {preset:value};}
     observeCode() {return this.codeActive ? {clock:4194304,registers:Array(48).fill(0),voice:Array(48).fill(0)} : null;}
     code(session,method,args) {
       if (!this.codeActive || session !== this.codeEpoch) {const error = new Error('stale');error.name='AbortError';throw error;}
@@ -142,4 +143,20 @@ test('an immediate physical Stop failure becomes one fatal processor error inste
   assert.equal(f.messages.filter(message => message.fatal).length,1);
   assert.match(f.messages.find(message => message.fatal).error,/restore failed/);
   assert.equal(f.processor.dead,true);
+});
+
+test('preset updates use the current public/native session without retiring its Code owner, and old sessions are rejected',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;f.processor.receive({id:1,method:'beginCode'});await f.processor.commands;
+  const session=f.messages.find(message=>message.id===1).value.session,owner=f.processor.codeOwner;
+  f.processor.receive({id:2,method:'applyCodePreset',args:[session,{source:'wave'}]});await f.processor.commands;
+  assert.equal(f.processor.codeOwner,owner);assert.equal(f.processor.instrument.codeActive,true);assert.deepEqual(f.processor.instrument.calls,[['applyCodePreset',{source:'wave'}]]);
+  f.processor.receive({id:3,method:'beginCode'});await f.processor.commands;f.processor.receive({id:4,method:'applyCodePreset',args:[session,{source:'noise'}]});await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===4).name,'AbortError');assert.equal(f.processor.instrument.calls.length,1);f.processor.dispose();
+});
+
+test('Stop preempts a pending live-preset ACK and cannot publish a stale successful owner',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;f.processor.receive({id:1,method:'beginCode'});await f.processor.commands;
+  const session=f.messages.find(message=>message.id===1).value.session;let finish;f.processor.instrument.applyCodePreset=()=>new Promise(resolve=>finish=resolve);
+  f.processor.receive({id:2,method:'applyCodePreset',args:[session,{}]});await Promise.resolve();assert.equal(typeof finish,'function');
+  f.processor.receive({id:3,method:'stop'});finish({});await f.processor.commands;assert.equal(f.messages.find(message=>message.id===2).name,'AbortError');assert.equal(f.processor.codeOwner,null);f.processor.dispose();
 });
