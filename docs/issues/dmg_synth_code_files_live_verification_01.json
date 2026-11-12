@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "feature": "DMG Synth Code / Files / Live",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": {
+    "apuCount": 1,
+    "codeChip": "gameboy",
+    "channels": {
+      "CH1": "Pulse",
+      "CH2": "Pulse",
+      "CH3": "Wave",
+      "CH4": "Noise"
+    },
+    "sharedRuntimeChange": "Optional resolveNoteTarget maps nested/root aliases to a canonical physical channel; existing hosts retain the default behavior.",
+    "wasmAndGameboySynthUnchanged": true,
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "node": {
+    "dmgTestsPassed": 83,
+    "sharedRuntimeAndExistingSidSpuAudioTestsPassed": 31,
+    "totalPassed": 114,
+    "commands": [
+      "npm run test:dmg-synth",
+      "node --test scripts/playground_code_runtime.test.mjs docs/synth-spu/code_audio.test.mjs docs/synth-sid/code_audio.test.mjs",
+      "node scripts/sync_runtime_artifacts.mjs --check"
+    ],
+    "runtimeArtifacts": {
+      "sdkBuilds": 33,
+      "outputs": 68,
+      "mirrors": 75
+    }
+  },
+  "browser": {
+    "baseline": {
+      "passed": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "coverage": [
+        "existing keyboard / stealing / release",
+        "Pitch / Master / hardware bounds",
+        "wave drawing",
+        "preset / VGM / VGZ / cancelled or invalid import",
+        "390px layout / explicit audio recovery"
+      ]
+    },
+    "code": {
+      "passed": true,
+      "engines": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "measurements": {
+            "preRunPitch": 1.5,
+            "fourChannels": {
+              "rms": 0.07155679061338814,
+              "peak": 0.09799999743700027,
+              "finite": true,
+              "muted": true
+            },
+            "observationCommands": 4,
+            "projectBytes": 1981,
+            "stopFade": {
+              "frames": 23296,
+              "sampleRate": 48000,
+              "beforePeak": 0.02449999935925007,
+              "beforeJump": 0.006510804407298565,
+              "maxJump": 0.006531538907438517,
+              "normalizedJump": 0.26659343176564243,
+              "tailPeak": 0,
+              "lastNonzeroAfterStopMs": 13.3125,
+              "muted": true
+            }
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "measurements": {
+            "preRunPitch": 1.5,
+            "fourChannels": {
+              "rms": 0.07104980628607238,
+              "peak": 0.09799999743700027,
+              "finite": true,
+              "muted": true
+            },
+            "observationCommands": 4,
+            "projectBytes": 1981,
+            "stopFade": {
+              "frames": 23040,
+              "sampleRate": 48000,
+              "beforePeak": 0.02449999935925007,
+              "beforeJump": 0.006531538907438517,
+              "maxJump": 0.006447002291679382,
+              "normalizedJump": 0.2631429575627843,
+              "tailPeak": 0,
+              "lastNonzeroAfterStopMs": 10.645833333333334,
+              "muted": true
+            }
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "servedAssets": 74
+    },
+    "monaco": {
+      "passed": true,
+      "engines": [
+        {
+          "browser": "chromium",
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH5, invalid Duty/Level, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared DMG",
+            "Public Go to Definition and View implementation open readable Code runtime and DMG sources"
+          ],
+          "implementations": [
+            {
+              "file": "playground_code_runtime.js",
+              "symbol": "useSoundChip",
+              "bytes": 22127,
+              "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480",
+              "line": 271,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "gameboysynth.js",
+              "symbol": "setVoice",
+              "bytes": 13943,
+              "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af",
+              "line": 52,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            }
+          ],
+          "fallback": {
+            "browser": "chromium",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "steps": [
+            "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+            "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+            "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH5, invalid Duty/Level, independent factories and implicit play",
+            "useSoundChip literal completion offers only the shared DMG",
+            "Public Go to Definition and View implementation open readable Code runtime and DMG sources"
+          ],
+          "implementations": [
+            {
+              "file": "playground_code_runtime.js",
+              "symbol": "useSoundChip",
+              "bytes": 22127,
+              "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480",
+              "line": 271,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            },
+            {
+              "file": "gameboysynth.js",
+              "symbol": "setVoice",
+              "bytes": 13943,
+              "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af",
+              "line": 52,
+              "readOnly": true,
+              "navigation": {
+                "dispatch": "editor.trigger",
+                "relatedActions": [
+                  "editor.action.showDefinitionPreviewHover"
+                ]
+              }
+            }
+          ],
+          "fallback": {
+            "browser": "webkit",
+            "passed": true,
+            "cdnIntentionallyBlocked": true,
+            "audio": {
+              "destinationConnections": 0,
+              "physicallyMuted": true
+            }
+          }
+        }
+      ],
+      "servedAssets": 63
+    }
+  },
+  "archive": {
+    "path": "release/tetorica_dmg_synth_dmg-code-files-live-final-20261112_itch.zip",
+    "stage": "release/itch_dmg_synth_dmg-code-files-live-final-20261112-sOByi1",
+    "bytes": 1764871,
+    "sha256": "4e0ba15e7619efbec0c6c32e9df94febfd803013bafc775c9d68988da544f4d0",
+    "files": 118,
+    "readableModules": 69,
+    "sourceModulesMatchWorkspace": true,
+    "minified": false,
+    "bundled": false,
+    "nativeSdkVersion": "0.1.7"
+  },
+  "visualReview": [
+    "Chromium / WebKit real Monaco",
+    "expanded Code / Files at 1240px and 390px",
+    "normal Live CH3 read-only view"
+  ],
+  "limits": [
+    "Live displays sent/configured registers, not current hardware Envelope or Sweep progress.",
+    "Standalone Code keeps the existing 4194304 Hz DMG clock."
+  ],
+  "rawReports": [
+    {
+      "path": "build/verification/dmg-code-files-live-20261112/baseline-browser.json",
+      "sha256": "bab2774fb07de7626b7f88266a37e11ee3cf68ddf023ebb00531d1912f8345ca"
+    },
+    {
+      "path": "build/verification/dmg-code-files-live-20261112/code-browser.json",
+      "sha256": "55a9f58a0bbbd4f859ddbae2edd23653645a30ae11a83d47c2d6add8d92da1a3"
+    },
+    {
+      "path": "build/verification/dmg-code-files-live-20261112/monaco-browser.json",
+      "sha256": "adee410b5e831c6a873aea9ca36db23c753e14460b6d5d9f2ec4630ce06f9b5e"
+    }
+  ]
+}

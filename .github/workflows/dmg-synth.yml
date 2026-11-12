@@ -8,6 +8,11 @@ on:
       - 'docs/synth-gameboy/**'
       - 'docs/tetorica_dmg_synth.webp'
       - 'docs/js/gameboy*'
+      - 'docs/js/playground_*'
+      - 'docs/js/native*fx*'
+      - 'docs/js/tetorica_virtual_files/**'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'docs/playground/playground_monaco*'
       - 'docs/js/ym2612vgm.js'
       - 'docs/js/opn_fm_vgm.js'
       - 'docs/js/vgm_file.js'
@@ -15,6 +20,7 @@ on:
       - 'docs/vgm_analyzer/gameboy_waves.js'
       - 'docs/generated/gameboy*'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_code*'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/gameboy*'
@@ -37,6 +43,7 @@ on:
       - 'docs/vgm_analyzer/gameboy_waves.js'
       - 'docs/generated/**'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_code*'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
@@ -66,6 +73,15 @@ jobs:
           sh scripts/package_itch_dmg_synth.sh ci
           python3 -m zipfile -e release/tetorica_dmg_synth_ci_itch.zip release/dmg-synth-browser
           node scripts/check_dmg_synth_browser.cjs --root release/dmg-synth-browser --entry /index.html --out release/dmg-synth-browser.json --screenshots release/dmg-synth-images
+          node scripts/check_dmg_synth_code_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-code-browser.json --screenshots=release/dmg-synth-code-images
+      - name: Check real Code Monaco when its pinned CDN is available
+        run: |
+          if node scripts/check_dmg_synth_code_monaco_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --engines=chromium,webkit --out=release/dmg-synth-code-monaco-browser.json; then
+            true
+          else
+            result=$?
+            test "$result" -eq 2
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -74,4 +90,8 @@ jobs:
             release/tetorica_dmg_synth_ci_itch.zip
             release/dmg-synth-browser.json
             release/dmg-synth-images/
+            release/dmg-synth-code-browser.json
+            release/dmg-synth-code-images/
+            release/dmg-synth-code-monaco-browser.json
+            release/dmg-synth-code-monaco-browser-*.png
           if-no-files-found: ignore

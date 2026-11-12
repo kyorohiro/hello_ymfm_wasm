@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js';
-import {createEditor} from './editor.js';
+import {createAudio} from './audio.js?v=dmg-code-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-code-1';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-code-1';
+import {createEditor} from './editor.js?v=dmg-code-1';
 import {createVgmLibrary} from './vgm_library.js';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
@@ -16,7 +18,7 @@ const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
-let vgmLibrary = null;
+let vgmLibrary = null, codeHost = null, codeLive = null, applySequence = 0, liveSignature = null;
 const notes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -34,7 +36,7 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0);
+  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning()));
   updateCapacity();
 }
 function readVoices(state) {
@@ -44,12 +46,13 @@ function readVoices(state) {
   updateCapacity();
 }
 function updateCapacity() {
+  if(codeHost?.isRunning()){ $('voiceCapacity').textContent='Code · physical CH1 / CH2 Pulse · CH3 Wave · CH4 Noise'; return; }
   const description = preset.source === 'pulse' ? preset.pulse.sweep.enabled ? 'Pulse · CH1 Sweep' : 'Pulse · CH1 / CH2'
     : preset.source === 'wave' ? 'Wave · CH3' : 'Noise · CH4 · keys trigger the same noise';
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
 }
 function updatePresetUi() {
-  editor.update(preset);
+  if(!codeLive?.read().liveActive) editor.update(preset);
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
   for (const [wheel] of pitchWheels) wheel.disabled = preset.source === 'noise';
@@ -59,6 +62,7 @@ function updatePresetUi() {
 }
 function audioFailed(error) {
   epoch++;
+  void codeHost?.stop();
   notes.clear(); updateKeys();
   const failed = audio; audio = null;
   visualizer.disconnect();
@@ -95,17 +99,22 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
-  const next = readPreset(value);
+async function applyPreset(value, {load = false, message, fromVgm = false, isCurrent = () => true} = {}) {
+  const next = readPreset(value), request=++applySequence;
+  if(!isCurrent())return;
+  if(codeHost?.isCodeMode() || codeHost?.isRunning()) await codeHost.stop();
+  if(disposed || request!==applySequence || !isCurrent())return;
   if (!fromVgm) vgmLibrary?.clearSelection();
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source || previous.pulse.sweep.enabled !== next.pulse.sweep.enabled
     || JSON.stringify(previous.wave.samples) !== JSON.stringify(next.wave.samples);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
+  if(load || previous.source!==next.source)codeLive?.setVoice(next.source==='wave'?2:next.source==='noise'?3:0);
   const editRevision = revision;
   if (load || previous.source !== next.source) setPitchUi(0);
   updatePresetUi();
+  codeHost?.markSoundDirty();
   if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return Promise.resolve();}
   return enqueue(async () => {
     const engine = audio;
@@ -177,7 +186,7 @@ function canPlay(midi) {
   return midi>=0 && midi<=127 && (preset.source==='noise' || hz>=(preset.source==='wave'?32:64));
 }
 function press(source, entry) {
-  if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
+  if (switchingAudioOutput||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi)) return;
   const note = {id:`gameboy-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
   notes.set(source,note); updateKeys();
   void enqueue(async () => {
@@ -202,16 +211,17 @@ function release(source) {
 }
 function stopNotes(message) {
   epoch++; notes.clear(); updateKeys();
-  return enqueue(async()=>{if(audio) await audio.command('stop'); visualizer.stop();if(message) status(message);});
+  return enqueue(async()=>{if(audio&&!codeHost?.isRunning()) await audio.command('stop'); if(!codeHost?.isRunning())visualizer.stop();if(message) status(message);});
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();stopNotes('Stopped · instrument retained. Play to resume.');});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopAll('Stopped · instrument retained. Play to resume.').catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');return control&&!control.matches?.('input[type="range"]');}
 window.addEventListener('keydown',event=>{
-  if(event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
+  if(document.getElementById('spuFileContextMenu')?.hidden===false)return;
+  if(codeHost?.isCodeMode()||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);
   if(!entry) return;
   event.preventDefault(); if(!event.repeat) press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
@@ -228,7 +238,7 @@ function setPitchUi(value) {
 }
 function setPitch(value) {
   const previous=pitch;setPitchUi(value);
-  if(audio) void enqueue(async()=>{
+  if(audio&&!codeHost?.isRunning()) void enqueue(async()=>{
     try{await audio?.command('setPitch',[value]);visualizer.wake();}
     catch(error){if(pitch===value) setPitchUi(previous);throw error;}
   });
@@ -259,7 +269,10 @@ const monitorResize = new ResizeObserver(() => {
   visualizer.setMode(document.querySelector('[data-visual-mode][aria-pressed="true"]').dataset.visualMode);
 });
 monitorResize.observe($('outputCanvas'));
-function commitName() {void applyPreset({...preset,name:$('instrumentName').value}).catch(report);$('instrumentName').blur();}
+function commitName() {
+  if($('instrumentName').readOnly)return;
+  void applyPreset({...preset,name:$('instrumentName').value}).catch(report);$('instrumentName').blur();
+}
 $('instrumentName').addEventListener('change',commitName);
 $('instrumentName').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();commitName();}});
 function saveFile(name, text) {
@@ -292,10 +305,60 @@ $('copyCode').addEventListener('click',async()=>{
   }catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
+  if(event.persisted){void stopAll();return;}
+  disposed=true;epoch++;applySequence++;notes.clear();codeLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();
+  const closing=audio;
+  void Promise.resolve(codeHost?.dispose()).catch(()=>{}).finally(()=>closing?.dispose()).catch(()=>{});
+  audio=null;
 });
-updatePresetUi();setVolume();setPitchUi(0);
+async function stopAll(message) {
+  await codeHost?.stop();
+  await stopNotes(message);
+  syncCodeActivity();
+}
+function renderCodeLive(state) {
+  if(disposed)return;
+  const running=Boolean(codeHost?.isRunning()),readonly=running&&state.liveEnabled;
+  $('dmgCodeLiveTools').hidden=!codeHost?.isCodeMode()&&!running;
+  $('dmgLiveEnabled').checked=state.liveEnabled;
+  $('dmgLiveChannel').value=String(state.liveVoice);
+  $('voiceEditor').inert=readonly;
+  $('voiceEditor').dataset.readonly=String(readonly);
+  $('voiceEditor').setAttribute('aria-label',readonly?'Read-only Code channel settings':'Instrument editor');
+  $('instrumentName').readOnly=readonly;
+  for(const [wheel] of pitchWheels)wheel.disabled=running||preset.source==='noise';
+  let view=null;
+  if(state.liveActive){
+    try{view=gameboyCodeLiveView(state.liveState,state.liveVoice,preset);}
+    catch(error){$('dmgLiveStatus').textContent=`Code Live: ${error.message}`;return;}
+  }
+  const signature=JSON.stringify(view?.preset??preset)+':'+(view?.channel??'edit');
+  if(signature!==liveSignature){editor.update(view?.preset??preset,{channel:view?.channel??null});liveSignature=signature;}
+  $('dmgLiveStatus').textContent=state.liveError?state.liveMessage:!running?'Code stopped · edit your sound.':
+    !state.liveEnabled?'Live Off · your edited sound. Editing stops Code.':state.liveWaiting?'Waiting for Code channel settings…':
+    `Live · Code CH ${state.liveVoice+1} · read-only sent / configured settings`;
+  $('dmgLiveReadout').textContent=view?.readout??'';
+}
+function syncCodeActivity() {
+  if(disposed)return;
+  codeLive?.sync();
+  if(codeLive)renderCodeLive(codeLive.read());
+  updateKeys();
+}
+codeHost=setupGameboyCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
+  applySettings:(value,options={})=>applyPreset(value,{load:true,message:'DMG preset loaded from Files · play the keyboard.',...options}),
+  stopKeyboard:()=>stopNotes(),beforeRun:async()=>{
+    setPitchUi(0);
+    // Clear the keyboard bend before the APU checkpoint is borrowed. Apply
+    // keeps its existing Code lease and must not send a keyboard-only edit.
+    if(audio&&!codeHost?.isRunning())await audio.command('setPitch',[0]);
+  },
+  onActivity:syncCodeActivity,setStatus:status});
+codeLive=createGameboyCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isRunning()),onUpdate:renderCodeLive});
+$('dmgLiveEnabled').addEventListener('change',()=>{codeLive.setEnabled($('dmgLiveEnabled').checked);$('dmgLiveEnabled').blur();});
+$('dmgLiveChannel').addEventListener('change',()=>{codeLive.setVoice(Number($('dmgLiveChannel').value));$('dmgLiveChannel').blur();});
+void codeHost.ready.then(()=>{if(!disposed)syncCodeActivity();}).catch(report);
+updatePresetUi();setVolume();setPitchUi(0);syncCodeActivity();
 
 // Desktop adapters change only the final Master bus. The DMG APU, allocator
 // and output monitor keep using the same graph; ordinary sites expose no API.
@@ -307,7 +370,7 @@ if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
-      await stopNotes();
+      await stopAll();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});

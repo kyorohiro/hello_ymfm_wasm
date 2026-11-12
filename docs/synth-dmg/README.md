@@ -49,8 +49,67 @@ output display and to the left of the keyboard stay synchronized. At the hardwar
 unavailable bend is rejected while the previous valid pitch is kept.
 
 **Stop all sound** stops notes while retaining the instrument. Leaving the
-page, switching away from its window or hiding the page also stops notes. If
+page, switching away from its window or hiding the page also releases keyboard
+notes. Code has its own Stop control; leaving the page stops it too. If
 the audio engine fails, select **Enable audio** to reconnect.
+
+## Keyboard / Code, Files and Live
+
+Select **Code** beside Keyboard to edit `/index.js` in the same Synth. **Run**
+starts a fresh performance, **Apply** updates named loops while preserving
+`context` and `livePrepare`, and **Stop** fades the software output and restores
+your edited instrument and Wave RAM. Switching back to Keyboard also stops Code.
+Code borrows the same APU, Master and output display; it does not create extra
+hardware voices. Editing an instrument or loading a preset stops Code first.
+
+The starter uses the current sound: CH1 for Pulse, CH3 for Wave, CH4 for Noise.
+Use `await` for chip operations. You can also address all four physical channels:
+
+```js
+const gb = await useSoundChip("gameboy");
+setBpm(120);
+
+liveLoop("four-channels", async () => {
+  await gb.pulse.noteOn(CH1, "E4");
+  await gb.pulse.noteOn(CH2, "B3");
+  await gb.wave.noteOn("E2");
+  await gb.noise.keyOn();
+  await beat(0.25);
+  for (const channel of [CH1, CH2, CH3, CH4]) await gb.keyOff(channel);
+  await beat(0.75);
+});
+```
+
+CH constants are zero-based: CH1 is 0 and CH4 is 3. Noise uses `keyOn` /
+`keyOff`; it has no musical note pitch. Wave uploads stop CH3, just as in the
+existing API; trigger it again after changing Wave RAM. `initialize()` and
+`reset()` retain their public chip meanings and can replace current register
+settings; omit them when keeping the upper editor sound. `setClock` accepts
+only the fixed DMG clock in this standalone Synth.
+
+**Live from Code** is On by default. Select CH1–4 above the output display to
+view that channel in the existing Pulse / Wave / Noise controls. These are
+read-only sent/configured register values, including the configured initial
+volume, Wave RAM and base pitch. They are not measurements of the current
+hardware envelope volume or Sweep frequency. Observation is capped at 20 Hz,
+with only one request at a time. Live Off returns to the editable instrument
+while Code continues; the next instrument edit stops Code. Live never rewrites
+the stored preset. `liveLoop`, `beat`, `tween`, `context`, scheduling and `liveFx`
+are software facilities, separate from APU Envelope / Sweep.
+
+**Files** opens the project tree. Add code, local modules or data; right-click
+for Duplicate, Rename, Delete, new JavaScript / sound / folder and file/project
+import/export. **Save sound** creates a readable JSON preset under `/presets`.
+Selecting a valid sound JSON loads it; text and JSON are edited in Code. File
+selection leaves Keyboard selected when Code is hidden. The maximize button
+moves Code beside Files; restoring it returns to the controls.
+
+Files, code and edited presets save locally, without automatically running code
+or starting audio when restored. Export project to keep a portable Cassette ZIP;
+the shared 16 MiB project limit applies. Master, octave and temporary Pitch are
+not instrument settings. Code completion and source navigation use the existing
+Game Boy API declarations and readable modules. Timing runs on the browser's
+JavaScript clock and does not promise sample-accurate or background execution.
 
 ## Hardware controls and the waveform editor
 
@@ -131,9 +190,9 @@ part of that single-voice snippet. Master volume and the temporary Pitch wheel
 are not included. The generated code is also shown on the page
 for manual copying if clipboard access is unavailable.
 
-The current session stays in memory; save instruments before closing or
-reloading. Analyzer-exported voice JSON and audio recordings are not imported
-directly. The existing Analyzer and Playground provide separate extraction /
+Use **Save sound** / **Export project** for the local Files project, or
+**Save preset** for an individual instrument download. Analyzer-exported voice
+JSON and audio recordings are not imported directly. The existing Analyzer and Playground provide separate extraction /
 Sample Editor workflows.
 GBS song playback and full Game Boy emulation are outside this APU Synth.
 
@@ -156,6 +215,8 @@ From the repository root:
 ```sh
 npm run test:dmg-synth
 npm run test:dmg-synth:browser
+npm run test:dmg-synth:code-browser
+npm run test:dmg-synth:code-monaco
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

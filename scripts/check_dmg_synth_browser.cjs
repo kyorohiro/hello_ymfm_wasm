@@ -53,7 +53,7 @@ const mime = {'.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascr
   '.wasm':'application/wasm', '.json':'application/json', '.png':'image/png', '.webp':'image/webp', '.svg':'image/svg+xml'};
 
 async function runEngine(name, engine, origin) {
-  const browser = await engine.launch({headless:true});
+  const browser = await engine.launch({headless:true,args:name==='chromium'?['--mute-audio']:[]});
   let page, stage = 'startup';
   let initialWasmSeen = false, releaseInitialWasm;
   const initialWasmGate = new Promise(resolve => {releaseInitialWasm = resolve;});

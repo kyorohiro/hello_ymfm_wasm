@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
+
+const nativeSetTimer = globalThis.setTimeout.bind(globalThis);
+const nativeClearTimer = globalThis.clearTimeout.bind(globalThis);
 
 export const GAMEBOY_SYNTH_BALANCE = .28;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('Game Boy Master must be from 0 to 3.8');
@@ -14,13 +18,16 @@ function validateVolume(value) {
  * there as passive branches, without connecting them to destination again.
  * @param {{volume?:number,onError?:(error:Error)=>void}} [options]
  */
-export async function createAudio({volume = .7, onError = () => {}} = {}) {
+export async function createAudio({volume = .7, onError = () => {}, signal} = {}) {
   validateVolume(volume);
+  signal?.throwIfAborted();
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
   const controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, master = null, disposed = false, closing = null;
+  let node = null, balance = null, codeFade = null, master = null, disposed = false, closing = null;
+  let codeGeneration = 0, codeOwner = null;
+  const invalidateCode = () => { codeGeneration++; codeOwner = null; };
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   // A fatal error can also occur after startup has returned to the UI.
@@ -28,7 +35,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
 
   const report = error => { try { onError(error); } catch {} };
   function rejectPending(error) {
-    for (const {reject, timer} of pending.values()) { clearTimeout(timer); reject(error); }
+    for (const {reject, timer} of pending.values()) { nativeClearTimer(timer); reject(error); }
     pending.clear();
   }
   function assertOpen() {
@@ -37,8 +44,8 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   }
   function dispose() {
     if (closing) return closing;
-    disposed = true;
-    clearTimeout(startupTimer);
+    disposed = true; invalidateCode();
+    nativeClearTimer(startupTimer);
     controller.abort();
     context.removeEventListener('statechange', stateChanged);
     rejectPending(fatalError ?? new Error('Game Boy audio was disposed'));
@@ -51,6 +58,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       node.port.close();
     }
     balance?.disconnect();
+    codeFade?.disconnect();
     master?.disconnect();
     closing = (async () => { if (context.state !== 'closed') await context.close(); })();
     return closing;
@@ -67,11 +75,17 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     if (context.state === 'closed' && !disposed) fail(new Error('Game Boy AudioContext was closed. Enable audio to restart.'));
   }
   context.addEventListener('statechange', stateChanged);
+  const cancelled = () => {
+    rejectStartup(new DOMException('Game Boy audio startup cancelled','AbortError'));
+    void dispose().catch(() => {});
+  };
+  signal?.addEventListener('abort',cancelled,{once:true});
   const boundedStartup = task => Promise.race([task, startupFailure]);
 
   try {
     if (!context.audioWorklet) throw new Error('DMG Synth needs AudioWorklet. Open it over HTTPS or localhost.');
-    startupTimer = setTimeout(() => fail(new Error('Game Boy audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
+    signal?.throwIfAborted();
+    startupTimer = nativeSetTimer(() => fail(new Error('Game Boy audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
     // Invoke resume before awaiting fetch/addModule so a pointer gesture can
     // authorize playback on browsers that require transient activation.
     const resumed = context.resume();
@@ -95,32 +109,64 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       if (data?.ready) { readyResolve(); return; }
       const request = pending.get(data?.id);
       if (!request) return;
-      pending.delete(data.id); clearTimeout(request.timer);
+      pending.delete(data.id); nativeClearTimer(request.timer);
       if (data.error) {
         const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error);
       } else request.resolve(data.value);
     };
     await boundedStartup(ready);
     assertOpen();
-    clearTimeout(startupTimer);
+    nativeClearTimer(startupTimer);
     balance = context.createGain(); balance.gain.value = GAMEBOY_SYNTH_BALANCE;
+    codeFade = context.createGain(); codeFade.gain.value = 1;
     master = context.createGain(); master.gain.value = volume;
-    node.connect(balance); balance.connect(master); master.connect(context.destination);
+    node.connect(balance); balance.connect(codeFade); codeFade.connect(master); master.connect(context.destination);
 
     async function command(method, args = []) {
       assertOpen();
       if (!COMMANDS.has(method)) throw new Error(`Unknown Game Boy command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('Game Boy command arguments must be an array');
+      if (method === 'stop') {
+        if (args.length) throw new TypeError('Game Boy Stop takes no arguments');
+        invalidateCode();
+      }
       const id = ++nextId;
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => fail(new Error(`Game Boy command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
+        const timer = nativeSetTimer(() => fail(new Error(`Game Boy command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
         pending.set(id, {resolve, reject, timer});
         try { node.port.postMessage({id, method, args}); }
-        catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
+        catch (error) { pending.delete(id); nativeClearTimer(timer); reject(error); }
+      }).then(value => {
+        if (method === 'setPreset' || method === 'loadPreset') invalidateCode();
+        return value;
       });
     }
+    function getGameboyClient() {
+      assertOpen();
+      if (codeOwner?.closed) return codeOwner.ending.then(() => getGameboyClient());
+      if (codeOwner) return codeOwner.promise;
+      const owner = {generation:codeGeneration,promise:null,closed:false,ending:null};
+      codeOwner = owner;
+      const current = () => !disposed && !fatalError && codeOwner === owner && owner.generation === codeGeneration && !owner.closed;
+      const check = () => {assertOpen(); if (!current()) throw gameboyCodeCancelled();};
+      owner.promise = command('beginCode').then(metadata => {
+        check();
+        return createGameboyCodeClient({metadata,isCurrent:current,
+          invoke(method,args) {check(); return command('code',[metadata.session,method,args]);},
+          dispose() {
+            check(); owner.closed = true;
+            owner.ending = command('code',[metadata.session,'dispose',[]]).finally(() => {
+              if (codeOwner === owner) invalidateCode();
+            });
+            return owner.ending;
+          },
+        });
+      }).catch(error => {if (codeOwner === owner) codeOwner = null;throw error;});
+      return owner.promise;
+    }
     return {
-      context, outputNode:master, command, read:() => command('read'),
+      context, outputNode:master, codeInputNode:balance, codeOutputNode:codeFade, codeFadeNode:codeFade,
+      sampleRate:context.sampleRate, command, read:() => command('read'), getGameboyClient,
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); }
@@ -136,8 +182,9 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       dispose,
     };
   } catch (error) {
-    fail(error);
+    if (signal?.aborted && !fatalError) error = new DOMException('Game Boy audio startup cancelled','AbortError');
+    if (error?.name !== 'AbortError') fail(error);
     await dispose().catch(() => {});
     throw error;
-  } finally { clearTimeout(startupTimer); }
+  } finally { nativeClearTimer(startupTimer); signal?.removeEventListener('abort',cancelled); }
 }

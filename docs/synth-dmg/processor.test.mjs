@@ -10,9 +10,16 @@ function fixture() {
   const messages = [], core = {disposed:0,dispose(){this.disposed++;}}, options = [];
   const initialization = new Promise((yes,no) => {resolve = yes; reject = no;});
   class Instrument {
-    constructor(chip) { this.chip = chip; this.calls = []; }
+    constructor(chip) { this.chip = chip; this.calls = []; this.codeEpoch = 0; this.codeActive = false; this.stopCount = 0; }
     read() { return {voices:[]}; }
     noteOn(...args) { this.calls.push(args); return {channel:0,stolenId:null}; }
+    stop() {this.stopCount++;this.codeActive=false;this.codeEpoch++;return this.read();}
+    beginCode() {this.stop();this.codeActive=true;return {session:this.codeEpoch,clock:4194304,channels:4,editorSource:'pulse'};}
+    observeCode() {return this.codeActive ? {clock:4194304,registers:Array(48).fill(0),voice:Array(48).fill(0)} : null;}
+    code(session,method,args) {
+      if (!this.codeActive || session !== this.codeEpoch) {const error = new Error('stale');error.name='AbortError';throw error;}
+      return {method,args};
+    }
     dispose() { this.chip.dispose(); }
     generateStereo(frames) { return {left:new Float32Array(frames).fill(.1),right:new Float32Array(frames).fill(.2)}; }
   }
@@ -32,11 +39,11 @@ test('Game Boy processor starts silent, renders host-rate stereo, preserves comm
   assert.equal(f.processor.process([],before),true); assert(before[0].every(row => row.every(value => value === 0)));
   f.processor.receive({id:1,method:'noteOn',args:['a',60]});
   f.processor.receive({id:2,method:'noteOn',args:['b',64]});
-  f.resolve(); await f.processor.ready; await new Promise(resolve => queueMicrotask(resolve));
+  f.resolve(); await f.processor.ready; await f.processor.commands;
   assert.equal(f.options[0].sampleRate,48000); assert.equal(f.options[0].moduleOptions.wasmBinary[0],0);
   assert.equal(f.messages[0].ready,true); assert.deepEqual(f.processor.instrument.calls,[['a',60],['b',64]]);
   const after = outputs(); assert.equal(f.processor.process([],after),true); assert(after[0][0].every(value => value > .09)); assert(after[0][1].every(value => value > .19));
-  f.processor.receive({id:3,method:'constructor',args:[]}); await new Promise(resolve => queueMicrotask(resolve));
+  f.processor.receive({id:3,method:'constructor',args:[]}); await f.processor.commands;
   assert.match(f.messages.find(item => item.id === 3).error,/Unknown/); assert.equal(f.processor.dead,false);
   f.processor.receive({method:'dispose'}); assert.equal(f.core.disposed,1); assert.equal(f.processor.process([],outputs()),false);
 });
@@ -80,4 +87,59 @@ test('Actual Game Boy worklet imports and renders WASM without URL or Node globa
   `;
   const child = spawnSync(process.execPath,['--input-type=module','-e',script],{encoding:'utf8',timeout:20000});
   assert.equal(child.status,0,child.stderr || child.stdout);
+});
+
+test('Stop received during initialization cancels older keyboard/Code work before it can touch the eventual APU', async () => {
+  const f = fixture();
+  f.processor.receive({id:1,method:'noteOn',args:['old',60]});
+  f.processor.receive({id:2,method:'beginCode'});
+  f.processor.receive({id:3,method:'stop'});
+  f.processor.receive({id:4,method:'noteOn',args:['new',64]});
+  f.resolve(); await f.processor.commands;
+  for (const id of [1,2]) assert.equal(f.messages.find(message => message.id === id).name,'AbortError');
+  assert.deepEqual(f.processor.instrument.calls,[['new',64]]);
+  assert.equal(f.processor.instrument.stopCount,1);
+  assert(!f.messages.find(message => message.id === 3).error);
+});
+
+test('Code leases are monotonic, observations never acquire a lease, and malformed Stop does not retire the current owner', async () => {
+  const f = fixture(); f.resolve(); await f.processor.ready;
+  f.processor.receive({id:1,method:'observeCode'}); await f.processor.commands;
+  assert.equal(f.messages.find(message => message.id === 1).value,null);
+  f.processor.receive({id:2,method:'beginCode'}); await f.processor.commands;
+  const first = f.messages.find(message => message.id === 2).value;
+  f.processor.receive({id:3,method:'stop',args:[1]}); await f.processor.commands;
+  assert.equal(f.messages.find(message => message.id === 3).name,'TypeError');
+  f.processor.receive({id:4,method:'code',args:[first.session,'pulse.keyOn',[0]]}); await f.processor.commands;
+  assert(!f.messages.find(message => message.id === 4).error);
+  f.processor.receive({id:5,method:'beginCode'}); await f.processor.commands;
+  const next = f.messages.find(message => message.id === 5).value; assert(next.session > first.session);
+  f.processor.receive({id:6,method:'code',args:[first.session,'reset',[]]}); await f.processor.commands;
+  assert.equal(f.messages.find(message => message.id === 6).name,'AbortError');
+  f.processor.receive({method:'dispose'});
+});
+
+test('Stop preempts a pending Code result and no stale ACK can claim that the retired owner remains current', async () => {
+  const f = fixture(); f.resolve(); await f.processor.ready;
+  f.processor.receive({id:1,method:'beginCode'}); await f.processor.commands;
+  const metadata = f.messages.find(message => message.id === 1).value;
+  let release;
+  f.processor.instrument.code = () => new Promise(resolve => {release = resolve;});
+  f.processor.receive({id:2,method:'code',args:[metadata.session,'pulse.keyOn',[0]]});
+  await Promise.resolve(); assert.equal(typeof release,'function');
+  f.processor.receive({id:3,method:'stop'});
+  assert.equal(f.processor.instrument.codeActive,false,'physical Stop runs before the pending reply settles');
+  release(true); await f.processor.commands;
+  assert.equal(f.messages.find(message => message.id === 2).name,'AbortError');
+  assert(!f.messages.find(message => message.id === 3).error);
+  f.processor.receive({method:'dispose'});
+});
+
+test('an immediate physical Stop failure becomes one fatal processor error instead of escaping the message callback', async () => {
+  const f = fixture(); f.resolve(); await f.processor.ready;
+  f.processor.instrument.stop = () => {throw new Error('Native state restore failed');};
+  assert.doesNotThrow(() => f.processor.receive({id:1,method:'stop'}));
+  assert.equal(f.messages.filter(message => message.fatal).length,1);
+  assert.match(f.messages.find(message => message.fatal).error,/restore failed/);
+  assert.equal(f.processor.dead,true);
 });

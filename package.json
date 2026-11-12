@@ -81,6 +81,8 @@
     "test:dmg-synth": "node --test docs/synth-dmg/*.test.mjs scripts/package_itch_dmg_synth.test.mjs",
     "test:gameboy-synth": "npm run test:dmg-synth",
     "test:dmg-synth:browser": "node scripts/check_dmg_synth_browser.cjs",
+    "test:dmg-synth:code-browser": "node scripts/check_dmg_synth_code_browser.cjs",
+    "test:dmg-synth:code-monaco": "node scripts/check_dmg_synth_code_monaco_browser.cjs",
     "test:gameboy-synth:browser": "npm run test:dmg-synth:browser",
     "pack:dmg-synth": "sh scripts/package_itch_dmg_synth.sh",
     "pack:gameboy-synth": "npm run pack:dmg-synth --",

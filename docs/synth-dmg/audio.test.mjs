@@ -2,15 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
 function fixture({resumeError = false, fetchFailure = false, stalledFetch = false} = {}) {
-  let createAudio, context, node, timerId = 0, mode = 'reply';
-  const timers = new Map(), errors = [], events = [];
+  let createAudio, context, node, timerId = 0, mode = 'reply', codeSession = 0;
+  const timers = new Map(), errors = [], events = [], messages = [], releases = [];
   class Context {
     constructor() {
-      context = this; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
+      context = this; this.sampleRate = 48000; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
       this.destination = {}; this.listeners = new Map(); this.closeCount = 0;
       this.audioWorklet = {addModule:async () => { events.push('module'); }};
     }
@@ -34,26 +35,34 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     constructor() {
       node = this; this.connections = []; this.disposed = 0;
       this.port = {postMessage:message => {
+        messages.push(message);
         if (message.method === 'dispose') { this.disposed++; return; }
         if (mode === 'throw') throw new Error('Cannot clone');
         if (mode === 'drop') return;
-        queueMicrotask(() => this.port.onmessage?.({data:{id:message.id,
-          ...(mode === 'error' ? {error:'Invalid preset', name:'RangeError'} : {value:message.method === 'read' ? {voices:[]} : true})}}));
+        const replyingMode = mode;
+        const reply = () => queueMicrotask(() => this.port.onmessage?.({data:{id:message.id,
+          ...(replyingMode === 'error' ? {error:'Invalid preset', name:'RangeError'} : {value:message.method === 'read' ? {voices:[]}
+            : message.method === 'beginCode' ? {session:++codeSession,clock:4194304,channels:4,editorSource:'pulse'}
+              : message.method === 'code' ? {method:message.args[1],args:message.args[2]} : true})}}));
+        if (mode === 'hold') releases.push(reply); else reply();
       }, close(){this.closed = true;}};
       queueMicrotask(() => this.port.onmessage?.({data:{ready:true}}));
     }
     connect(value) { this.connections.push(value); }
     disconnect() { this.disconnected = true; }
   }
-  const transformed = source.replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
-  vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,
+  const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
+  const realm = {
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
-  });
+  };
+  vm.runInNewContext(`${transformed}\nprovide(createAudio);`,realm);
   return {create:options => createAudio({onError:error => errors.push(error), ...options}),
-    get context(){return context;}, get node(){return node;}, errors, timers, events,
+    get context(){return context;}, get node(){return node;}, errors, timers, events, messages,
+    release(){for (const reply of releases.splice(0)) reply();},
+    blockTimers(){realm.setTimeout=realm.clearTimeout=()=>{throw new Error('Edited timer');};},
     mode(value){mode = value;}, expire(){const [id, timer] = timers.entries().next().value; assert.equal(timer.ms,15000);timers.delete(id);timer.fn();}};
 }
 
@@ -61,10 +70,11 @@ test('Game Boy audio is lazy and routes one fixed balance before the user Master
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
-  const [balance, master] = f.context.gains;
+  const [balance, fade, master] = f.context.gains;
   assert.equal(balance.gain.value,.28); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.equal(fade.gain.value,1); assert.equal(audio.codeInputNode,balance); assert.equal(audio.codeOutputNode,fade); assert.equal(audio.codeFadeNode,fade);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]); assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,.28);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
@@ -75,12 +85,12 @@ test('Game Boy audio is lazy and routes one fixed balance before the user Master
 
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
   const f = fixture(), audio = await f.create({volume:.7});
-  const [balance, master] = f.context.gains, monitor = {}, desktopTap = {};
+  const [balance, fade, master] = f.context.gains, monitor = {}, desktopTap = {};
   master.connect(monitor);
   audio.outputNode.disconnect(audio.context.destination);
   audio.outputNode.connect(desktopTap);
   assert.deepEqual(master.connections,[monitor, desktopTap]);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]); assert.deepEqual(fade.connections,[master]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
   await audio.command('stop'); await audio.command('setPitch',[0]);
   audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);
@@ -132,4 +142,55 @@ test('Game Boy initialization failures and stalled loading release contexts and 
     assert.match(settled.reason.message,options.resumeError ? /Resume denied/ : options.fetchFailure ? /HTTP 503/ : /initialization timed out/);
   }
   const invalid = fixture(); await assert.rejects(invalid.create({volume:4}),/Master/); assert.equal(invalid.context,undefined);
+});
+
+test('Code acquisition is cached, nested APIs use the same engine RPC and invalid channels cannot claim a Gate', async () => {
+  const f = fixture(), audio = await f.create();
+  const first = audio.getGameboyClient(); assert.equal(audio.getGameboyClient(),first);
+  const client = await first;
+  assert.equal(client.chip,'gameboy'); assert.equal(client.clock,4194304); assert.equal(client.channels,4); assert(client.isCurrent());
+  await client.pulse.setVoice(0,{duty:.25,volume:7});
+  await client.pulse.noteOn(1,'C4'); await client.wave.noteOn('G3'); await client.noise.keyOn();
+  await client.getState(); await client.setClock(4194304);
+  const methodPaths = f.messages.filter(message => message.method === 'code').map(message => message.args[1]);
+  assert.deepEqual(methodPaths,['pulse.setVoice','pulse.noteOn','wave.noteOn','noise.keyOn','getState','setClock']);
+  assert.equal(f.messages.filter(message => message.method === 'beginCode').length,1);
+  const count = f.messages.length;
+  for (const invoke of [() => client.pulse.noteOn(2,'C4'),() => client.noteOn(3,'C4'),() => client.noteOn(0,'C0'),
+    () => client.setClock(1),() => client.wave.keyOn(2)]) assert.throws(invoke);
+  assert.equal(f.messages.length,count); assert.equal(f.context.gains.length,3); assert.equal(f.context.closeCount,0);
+  await audio.dispose(); assert(!client.isCurrent()); assert.throws(() => client.keyOn(0),{name:'AbortError'});
+});
+
+test('Stop invalidates pending nested calls immediately, rejects late replies, and a fresh lease cannot be closed by the old client', async () => {
+  const f = fixture(), audio = await f.create(), old = await audio.getGameboyClient();
+  f.mode('hold'); const pending = old.pulse.noteOn(0,'C4');
+  f.mode('reply'); const stopping = audio.command('stop');
+  assert(!old.isCurrent()); assert.throws(() => old.wave.keyOn(),{name:'AbortError'});
+  await stopping;
+  const current = await audio.getGameboyClient(); assert(current.isCurrent());
+  f.release(); await assert.rejects(pending,{name:'AbortError'});
+  assert.throws(() => old.dispose(),{name:'AbortError'}); assert(current.isCurrent());
+  await current.noise.keyOn(); assert.equal(f.context.closeCount,0); await audio.dispose();
+});
+
+test('disposing a borrowed client leaves the context alive, permits another lease and keeps rejected preset edits non-destructive', async () => {
+  const f = fixture(), audio = await f.create(), client = await audio.getGameboyClient();
+  f.mode('error'); await assert.rejects(audio.command('setPreset',[{}]),/Invalid preset/); assert(client.isCurrent());
+  f.mode('reply'); await client.wave.keyOn();
+  const disposed = client.dispose(); assert.equal(client.dispose(),disposed); assert(!client.isCurrent());
+  await disposed; assert.equal(f.node.disposed,0); assert.equal(f.context.closeCount,0);
+  const next = await audio.getGameboyClient(); assert(next.isCurrent()); await next.noise.keyOn();
+  await audio.command('loadPreset',[{}]); assert(!next.isCurrent());
+  await audio.dispose();
+});
+
+test('startup AbortSignal closes pending audio silently and trusted command deadlines survive edited global timers', async () => {
+  const loading = fixture({stalledFetch:true}), controller = new AbortController();
+  const pending = loading.create({signal:controller.signal}); controller.abort();
+  await assert.rejects(pending,{name:'AbortError'}); assert.equal(loading.context.state,'closed');
+  assert.equal(loading.errors.length,0); assert.equal(loading.timers.size,0);
+  const f = fixture(), audio = await f.create(); f.blockTimers();
+  const client = await audio.getGameboyClient(); await client.pulse.noteOn(0,'C4');
+  await audio.command('stop'); assert.equal(f.timers.size,0); await audio.dispose();
 });

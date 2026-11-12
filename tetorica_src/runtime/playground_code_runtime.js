@@ -39,6 +39,7 @@ const stopped=()=>new DOMException('Run stopped','AbortError');
  * @property {()=>number} now Audio clock in seconds.
  * @property {(name:ChipName)=>object|Promise<object>} useSoundChip Borrow a supported chip client.
  * @property {readonly ChipName[]} [supportedSoundChips] Host-owned chip IDs; defaults to the four Genesis instruments.
+ * @property {(target:object,method:string,args:unknown[])=>{target:object,channel:number}|null} [resolveNoteTarget] Map nested/aliased Gate methods to one physical channel owner.
  * @property {()=>object|null} [getFm] Current FM compatibility client.
  * @property {object} [fx] Effect factories and live-effect controls owned by the host.
  * @property {(path:string,options:object,entry:{path:string})=>unknown} [readFile] Read a virtual file; may return a promise.
@@ -61,11 +62,12 @@ const stopped=()=>new DOMException('Run stopped','AbortError');
  * @param {PlaygroundCodeRuntimeOptions<ChipName>} options
  */
 export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,supportedSoundChips=CODE_SOUND_CHIPS,getFm=()=>null,fx={},
+  resolveNoteTarget=(target,_method,args)=>Number.isInteger(args[0])?{target,channel:args[0]}:null,
   readFile=()=>{throw Error('Virtual files are unavailable');},prepareSource=source=>source,
   onLog=()=>{},onState=()=>{},beforeStopSoundChips=()=>{},stopSoundChips=()=>{},guardExecution=true,realm=globalThis,
   setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id),createTaskChannel,
 }={}) {
-  for(const fn of [ensureReady,now,useSoundChip,getFm,readFile,prepareSource,onLog,onState,beforeStopSoundChips,stopSoundChips,setTimer,clearTimer]) {
+  for(const fn of [ensureReady,now,useSoundChip,getFm,resolveNoteTarget,readFile,prepareSource,onLog,onState,beforeStopSoundChips,stopSoundChips,setTimer,clearTimer]) {
     if(typeof fn!=='function')throw TypeError('Code runtime needs host callbacks');
   }
   const configuredChips=Array.isArray(supportedSoundChips)?Array.from(supportedSoundChips):[];
@@ -192,10 +194,18 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
         if(typeof member!=='function')return guarded(member,owner);
         const method=(...args)=>{
           const caller=scopeFor(scope);check(caller);
+          // A host may expose one physical voice through both a root API and
+          // a monophonic child (for example wave.keyOn()). Canonical ownership
+          // keeps Stop Loop from releasing a newer Gate through another alias.
+          const noteTarget=['noteOn','keyOn','noteOff','keyOff','releaseNote'].includes(key)?resolveNoteTarget(target,key,args):null;
+          if(noteTarget&&(!noteTarget.target||!Number.isInteger(noteTarget.channel)))throw TypeError('Invalid Code note target');
           const result=Reflect.apply(member,target,args.map(value=>unwrap(value)));
-          if(['noteOn','keyOn'].includes(key)&&Number.isInteger(args[0])) {
-            if(!ownedNotes.has(target))ownedNotes.set(target,new Map());ownedNotes.get(target).set(args[0],caller);
-          } else if(['noteOff','keyOff','releaseNote'].includes(key))ownedNotes.get(target)?.delete(args[0]);
+          if(noteTarget){
+            const {target:physical,channel}=noteTarget;
+            if(['noteOn','keyOn'].includes(key)) {
+              if(!ownedNotes.has(physical))ownedNotes.set(physical,new Map());ownedNotes.get(physical).set(channel,caller);
+            }else ownedNotes.get(physical)?.delete(channel);
+          }
           if(result&&typeof result.then==='function')return waitForScope(result,caller).then(next=>{
             currentLoop=caller.loop??null;check(caller);return guarded(next,caller);
           });

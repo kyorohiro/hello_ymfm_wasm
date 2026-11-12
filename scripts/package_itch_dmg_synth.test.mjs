@@ -19,7 +19,7 @@ test('DMG ZIP runs original editable modules with standalone deterministic runti
   const directory=await mkdtemp(join(tmpdir(),'dmg-synth-package-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const a=await packageDmgSynth({version:'test',releaseDir:join(directory,'a')});
   const b=await packageDmgSynth({version:'test',releaseDir:join(directory,'b')});
-  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,3);
+  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
   const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -41,6 +41,12 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert(info.receipt.originalInputs.some(input=>input.path==='docs/tetorica_dmg_synth.webp'));
   assert.deepEqual(await readFile(join(a.stage,'tetorica_dmg_synth.webp')),await readFile(new URL('../docs/tetorica_dmg_synth.webp',import.meta.url)));
   for(const name of ['gameboy_apu_wasm.js','gameboy_apu_wasm.wasm']) assert.deepEqual(await readFile(join(a.stage,'generated',name)),await readFile(new URL('../tetorica_src/runtime/generated/'+name,import.meta.url)));
+  assert.deepEqual(info.names.filter(name=>name.endsWith('.wasm')).sort(),['generated/gameboy_apu_wasm.wasm','js/native_audio_effect.wasm'],'ship only the APU and host effects binaries');
+  assert.deepEqual(await readFile(join(a.stage,'js/native_audio_effect.wasm')),await readFile(new URL('../tetorica_src/runtime/generated/effects/gain.wasm',import.meta.url)));
+  for(const name of ['tetorica-playground-globals.d.ts','tetorica-playground-gameboy.d.ts','tetorica-shell.d.ts'])assert.deepEqual(await readFile(join(a.stage,'playground',name)),await readFile(new URL('../docs/playground/'+name,import.meta.url)));
+  for(const name of ['playground_code_runtime.js','native-fx-worklet.js'])assert(info.names.some(path=>path.endsWith(name)));
+  assert(info.names.includes('licenses/tetorica-virtual-files/LICENSE'));assert(info.names.includes('playground/vendor/fflate-LICENSE'));
+  assert(info.names.includes('sources/code-effects/scripts/build_native_audio_effect.sh'));
   const native=JSON.parse(await readFile(join(a.stage,'sources/GameBoy.json')));
   for(const entry of native.inputs){const bytes=await readFile(join(a.stage,entry.path));assert.equal(bytes.length,entry.bytes);assert.equal(sha(bytes),entry.sha256);}
   for(const [name,entry] of Object.entries(native.generated)) assert.equal(sha(await readFile(join(a.stage,'generated',name))),entry.sha256);
@@ -69,8 +75,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for(const entry of info.receipt.bundles) assert.deepEqual(entry,info.receipt.modules.find(module=>module.path===entry.path));
   const main=await readFile(join(a.stage,'synth-dmg/synth.js'),'utf8');
   assert(main.split('\n').length>100);assert.match(main,/^\/\/ SPDX-License-Identifier: BSD-3-Clause\n/);
-  assert.match(main,/import \{createAudio\} from '\.\/audio\.js'/);
-  assert.match(await readFile(join(a.stage,'synth-dmg/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
+  assert.match(main,/import \{createAudio\} from '\.\/audio\.js(?:\?[^']*)?'/);
+  assert.match(await readFile(join(a.stage,'synth-dmg/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css(?:\?[^']*)?'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
   for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs']) assert(info.receipt.originalInputs.some(input=>input.path===path));
   for(const entry of ['index.html','synth-dmg/index.html']) {

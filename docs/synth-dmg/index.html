@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css">
+  <link rel="stylesheet" href="./synth.css?v=dmg-code-1">
 </head>
 <body>
   <main>
@@ -39,6 +39,7 @@
           <div class="transport-actions">
             <button id="startAudio" class="primary" type="button">Enable audio</button>
             <button id="stopAudio" type="button">Stop all sound</button>
+            <button id="dmgFilesToggle" type="button" aria-expanded="false" aria-controls="dmgFilesPanel">Files</button>
           </div>
           <label class="master-control" for="masterVolume"><span>Master</span>
             <input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent">
@@ -47,6 +48,19 @@
         </div>
         <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
       </header>
+
+      <div id="synthWorkspace" class="dmg-code-workspace">
+        <aside id="dmgFilesPanel" class="dmg-files-panel" aria-label="Project files" hidden></aside>
+        <div id="dmgSynthMain" class="dmg-main">
+      <section id="dmgCodeLiveTools" class="dmg-code-live-tools" aria-label="Code channel view" hidden>
+        <div class="dmg-live-controls">
+          <label for="dmgLiveChannel">Code view <select id="dmgLiveChannel"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
+          <label><input id="dmgLiveEnabled" type="checkbox" checked> Live from Code</label>
+          <details class="dmg-inline-help"><summary aria-label="About Code Live">?</summary><p>Live shows the selected physical channel in the same controls below. Values are sent register settings, not measured hardware envelope volume or Sweep position. Live Off returns to your edited sound; editing stops Code. Observation does not change saved presets.</p></details>
+        </div>
+        <p id="dmgLiveStatus" role="status">Code stopped · edit your sound.</p>
+        <p id="dmgLiveReadout"></p>
+      </section>
 
       <section class="spu-monitor gb-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
@@ -108,8 +122,15 @@
         <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
       </section>
 
-      <section class="keyboard-section" aria-labelledby="keyboardHeading">
-        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays the selected source. No keyboard split.</p></div>
+      <section id="synthInputSection" class="keyboard-section dmg-input-section" aria-labelledby="keyboardHeading" data-input-mode="keyboard">
+        <h2 id="keyboardHeading" class="dmg-sr-only">Performance input</h2>
+        <div class="dmg-input-tabs" role="tablist" aria-label="Performance input">
+          <button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+          <button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+          <button id="synthCodeExpandButton" class="dmg-code-expand" type="button" aria-label="Maximize Code" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+        </div>
+        <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
+        <p class="subtext">Every key plays the selected source. No keyboard split.</p>
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
@@ -127,7 +148,21 @@
           </label>
           <div id="keyboard" class="keyboard-mount"></div>
         </div>
+        </div>
+        <div id="synthCodePanel" class="dmg-code-panel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+          <div class="dmg-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
+          <p class="gb-help dmg-code-caption">Software performance · the same DMG APU as the controls above. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
+          <div id="synthCodeEditorHost" class="dmg-code-editor-host"></div>
+          <textarea id="synthCodeEditor" class="dmg-code-editor" spellcheck="false" aria-label="DMG performance JavaScript" rows="12" readonly></textarea>
+          <p id="synthCodeEditorNote" class="gb-help">Code is saved in Files. Loading a project never runs it automatically.</p>
+          <pre id="synthCodeError" class="dmg-code-error" role="alert"></pre>
+          <details class="dmg-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
+          <details class="dmg-inline-help"><summary aria-label="About DMG Code">?</summary><p>Use <code>const dmg = await useSoundChip("gameboy")</code> and await its methods. CH1 / CH2 are Pulse, CH3 is Wave, CH4 is Noise. Use <code>dmg.keyOn(CH4)</code> for Noise, which has no musical note pitch. Run starts fresh; Apply keeps context and named loops. Stop fades the software output and restores your edited sound and Wave RAM. Wave uploads stop CH3; trigger it again afterward. Timing, keyboard allocation, Pitch and liveFx are software features. Hardware Envelope and Sweep remain APU features.</p></details>
+        </div>
       </section>
+        </div>
+        <div id="synthExpandedCodeSlot" class="dmg-expanded-code" hidden></div>
+      </div>
       <footer>
         <p>One Game Boy APU: two Pulse channels, one Wave and one Noise. Pulse Sweep uses CH1 only. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Hardware Envelope and Sweep are configured for the next trigger. GBS song playback is not included.</p>
         <div><a href="../playground/index.html?mode=gameboy">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/gameboysynth.js">JavaScript source</a></div>
@@ -135,6 +170,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js"></script>
+  <script type="module" src="./synth.js?v=dmg-code-1"></script>
 </body>
 </html>

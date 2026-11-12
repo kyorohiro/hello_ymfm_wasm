@@ -6,7 +6,7 @@ import {createDefaultPreset, readPreset, waveShape} from './preset.js';
 export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
-  let preset = createDefaultPreset(), disposed = false, stroke = null;
+  let preset = createDefaultPreset(), disposed = false, stroke = null, liveChannel = null;
   const make = (tag, className, text) => {
     const element = doc.createElement(tag);
     if (className) element.className = className;
@@ -301,6 +301,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
       else input.disabled = !preset.pulse.sweep.enabled;
     }
     sourceHint.textContent = preset.source === 'pulse' ? (preset.pulse.sweep.enabled ? 'CH1 · one voice with hardware Sweep.' : 'CH1 + CH2 · two voices in round robin.') : preset.source === 'wave' ? 'CH3 · one voice, with your own Wave RAM.' : 'CH4 · one noise voice. Keys trigger; they do not change pitch.';
+    if(liveChannel!==null)sourceHint.textContent=`Code CH ${liveChannel+1} · read-only sent / configured ${preset.source} settings.`;
     const high = preset.pulse.duty * 80; let path = '';
     for (let index = 0; index < 4; index++) {const x = index * 80; path += `${index ? 'L' : 'M'}${x} 10 L${x + high} 10 L${x + high} 36 L${x + 80} 36 `;}
     pulsePath.setAttribute('d', path); resizeWave(); drawWave(stroke?.samples);
@@ -308,11 +309,11 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   }
   render();
   return {
-    update(value) {
+    update(value, {channel = null} = {}) {
       if (disposed) return;
       const next = readPreset(value);
       if (stroke && (next.source !== preset.source || next.wave.samples.some((sample, index) => sample !== preset.wave.samples[index]))) stroke = null;
-      preset = next; render();
+      preset = next; liveChannel = channel; render();
     },
     dispose() {if (disposed) return; disposed = true; stroke = null; for (const cleanup of cleanups) cleanup(); body.remove();},
   };
