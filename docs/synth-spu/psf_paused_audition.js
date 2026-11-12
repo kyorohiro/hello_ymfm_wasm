@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 // A temporary performance in the editor's existing SPU/checkpoint/output.
-import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-noise-capture-1';
+import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-marker-capture-1';
 import {readSpuInstrument} from './spu_synth_instrument.js?v=spu-split-vab-1';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';

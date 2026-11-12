@@ -125,6 +125,89 @@ async function fixture(){
   return {...authored,a:Array.from(a),b:Array.from(b),pitches:[0x1800,0x0c00]};
 }
 
+/** Original source with a delayed encoded Loop Start. At frame 4410 its
+ * decoder has not reached packet 3, so the raw Repeat still names an old
+ * external address. A fresh key-on resolves the internal marker, unchanged. */
+async function createStaleRepeatFixture(){
+  const {playbackAdpcm,playbackExe}=await import(pathToFileURL(path.join(repo,'test/helpers/spu_psf_playback_fixture.mjs')).href);
+  const {psfFromExe,psfFile}=await import(pathToFileURL(path.join(repo,'test/helpers/spu_psf_fixture.mjs')).href);
+  const adpcm=playbackAdpcm();adpcm[1]=0;adpcm[49]=7;
+  const startAddress=0x4000,repeatAddress=0x3000,markerAddress=0x4030,pitch=0x10,frame=4410;
+  const words=[],emit=word=>words.push(word>>>0),ori=(rt,rs,value)=>emit((0x0d<<26)|(rs<<21)|(rt<<16)|(value&0xffff));
+  const write=(offset,value)=>{ori(9,0,value);emit((0x29<<26)|(8<<21)|(9<<16)|(offset&0xffff));};
+  emit((0x0f<<26)|(8<<16)|0x1f80);ori(8,8,0x1c00);
+  write(0x1ac,4);write(0x1aa,0xc010);write(0x1a6,startAddress/8);
+  const view=new DataView(adpcm.buffer);for(let at=0;at<adpcm.length;at+=2)write(0x1a8,view.getUint16(at,true));
+  ori(10,0,4096);emit((0x09<<26)|(10<<21)|(10<<16)|0xffff);emit((0x05<<26)|(10<<21)|0xfffe);emit(0);
+  write(0x1aa,0xc000);write(0x180,0x3fff);write(0x182,0x3fff);
+  for(const [offset,value]of [[0,0x2000],[2,0x1000],[4,pitch],[6,startAddress/8],[8,0x000f],[10,0x1fc0],[14,repeatAddress/8]])write(offset,value);
+  write(0x188,1);emit(0x1000ffff);emit(0);
+  const text=new Uint8Array(words.length*4),code=new DataView(text.buffer);words.forEach((word,index)=>code.setUint32(index*4,word,true));
+  const standalone=psfFromExe(playbackExe(text),'title=Original delayed ADPCM Loop Start\nlength=0:04\nfade=0:00\n');
+  // The oracle uses actual CPU/SPU state and the same-boundary RAM, rather
+  // than fabricating a snapshot that a browser could never observe.
+  const {readPsfFileSet}=await import(pathToFileURL(path.join(repo,'docs/playground/playground_ps1_psf.js')).href);
+  const {preparePsfSongSource}=await import(pathToFileURL(path.join(repo,'docs/synth-spu/psf_song_source.js')).href);
+  const {createPsfPlaybackCore}=await import(pathToFileURL(path.join(repo,'docs/synth-spu/psf_playback_core.js')).href);
+  const {preparePsfVoiceCapture}=await import(pathToFileURL(path.join(repo,'docs/synth-spu/psf_capture.js')).href);
+  const set=await readPsfFileSet([psfFile('marker-stale.psf',standalone)]),image=await preparePsfSongSource(set,'marker-stale.psf');
+  const wasmBinary=new Uint8Array(await fs.readFile(path.join(repo,'docs/generated/psf-player/psf_player.wasm'))),core=await createPsfPlaybackCore({image,wasmBinary});
+  let oracle;
+  try{core.render(frame);const state=core.observe(),ram=core.copySpuRam();assert.equal(state.channels[0].startAddress,startAddress);assert.equal(state.channels[0].repeatAddress,repeatAddress);
+    const prepared=preparePsfVoiceCapture({state,ram,voice:0,frame,source:{entry:'marker-stale.psf'}},{referenceNote:'C4',reverb:{preset:'off',volumeLeft:0,volumeRight:0}});
+    oracle=prepared.capture;assert.equal(oracle.repeatAddress,repeatAddress);assert.equal(oracle.loopSource,'adpcm-marker');assert.equal(oracle.resolvedLoopAddress,markerAddress);assert.equal(oracle.loopStartSamples,84);
+    assert.deepEqual(prepared.instrument.sample.adpcm,Array.from(adpcm));
+  }finally{core.dispose();}
+  return{standalone,adpcm:Array.from(adpcm),startAddress,repeatAddress,markerAddress,pitch,frame,oracle};
+}
+
+async function checkStaleRepeatCapture(browser,name,origin,{entry='/synth-spu/index.html',screenshots=tmpdir()}={}){
+  const authored=await createStaleRepeatFixture(),page=await browser.newPage({viewport:{width:1240,height:1050},serviceWorkers:'block',acceptDownloads:true}),errors=[],checks=[];
+  page.setDefaultTimeout(25000);page.on('pageerror',error=>errors.push(error.stack??error.message));
+  await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname==='cdnjs.cloudflare.com')return route.abort();if(url.origin!==origin&&!['data:','blob:'].includes(url.protocol))return route.abort();return route.continue();});
+  await page.addInitScript(installSilentAudit);
+  const read=()=>page.evaluate(()=>__pausedAuditionAudit.read()),instrument=()=>page.evaluate(()=>__pausedAuditionAudit.instrument()),preview=()=>page.evaluate(()=>__pausedAuditionAudit.preview());
+  const point=()=>page.evaluate(()=>({frame:Number(document.getElementById('spuVoicePanel').dataset.observationFrame),position:document.getElementById('psfSongPosition').dataset.seconds,
+    pause:document.getElementById('psfPauseSong').textContent,view:document.getElementById('spuCodeLiveTools').dataset.psfView,voice:document.getElementById('spuLiveChannel').value,
+    activity:[...document.querySelectorAll('#spuPsfChannelActivity button')].map(button=>({...button.dataset,selected:button.getAttribute('aria-pressed')}))}));
+  async function menu(id){if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();await page.locator(id).click();}
+  const step=label=>{checks.push(label);console.log('CHECK '+name+': '+label);};
+  try{
+    await page.goto(origin+entry);await until(()=>page.locator('#spuFileImportButton').isEnabled(),'marker Files ready');await page.locator('#startAudio').click();await until(()=>page.locator('#startAudio').textContent().then(value=>value==='Audio ready'),'marker editor audio');
+    const original=await instrument();await page.locator('#psfFileInput').setInputFiles({name:'marker-stale.psf',mimeType:'application/octet-stream',buffer:Buffer.from(authored.standalone)});
+    await until(()=>page.locator('#psfPlaySong').isEnabled(),'marker PSF imported');await page.locator('[data-spu-editor-tab="pcm"]').click();
+    step('A real paused PSF has stale external raw Repeat and one internal ADPCM marker');
+    await page.locator('#psfSongSeek').evaluate(node=>{node.value='.1';node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));});
+    await until(async()=>{const p=await point();return p.pause==='Resume'&&p.frame===authored.frame;},'exact marker paused frame');
+    await page.locator('#spuLiveChannel').selectOption('0');await until(()=>page.locator('#spuPsfCapture').isEnabled(),'marker Capture ready');const frozen=await point();assert.equal(Number(frozen.position),0.1);
+    step('Genuine paused keyboard audition preserves original bytes and resolves Loop Start to sample 84');
+    const key=page.locator('#keyboardKeys .key').filter({hasText:/\bC4\b/}).first(),letter=await key.getAttribute('data-key');assert(letter);await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.down(letter);
+    let temporary;await until(async()=>{temporary=await preview();return temporary?.active.length===1;},'marker temporary key');
+    assert.equal(temporary.active[0].pitch,authored.pitch);assert.deepEqual(temporary.active[0].adpcm,authored.adpcm);assert.equal(temporary.active[0].sample.loopStartSamples,84);
+    await until(async()=>{const output=await page.evaluate(()=>__pausedAuditionAudit.output());return output.muted&&output.finite&&output.rms>.00001;},'marker actual temporary PCM');
+    assert.deepEqual(await instrument(),original);await page.keyboard.up(letter);await until(async()=>!(await preview())?.active.length,'marker key released');assert.deepEqual(await point(),frozen);
+    step('Capture retains Pause and the raw source while its saved instrument keeps resolved loop metadata');
+    await page.locator('#spuPsfCapture').click({delay:5});await until(()=>page.locator('#audioStatus').textContent().then(value=>value.startsWith('Captured CH 1')),'marker Capture applied');
+    const captured=await instrument(),after=await point();assert.equal(after.pause,'Resume');assert.equal(after.position,frozen.position);assert.equal(after.voice,'synth');
+    assert.deepEqual(Array.from(captured.sample.adpcm),authored.adpcm);assert.equal(captured.sample.loopStartSamples,84);assert.equal(captured.preset.pitch,authored.pitch);
+    assert(Math.abs(captured.sample.baseFrequencyHz-(440*2**((60-69)/12))*4096/authored.pitch)<1e-7);assert.deepEqual(captured.reverb,original.reverb);
+    assert.match(after.view,/synth/);await page.locator('#spuPsfChannelActivity [data-psf-channel="0"]').click({delay:5});assert.equal((await point()).frame,frozen.frame);assert.equal((await point()).position,frozen.position);await page.locator('#spuLiveChannel').selectOption('synth');assert.deepEqual(await instrument(),captured);
+    await page.locator('#saveSoundToFiles').click();await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>value.includes('saved to /presets/')),'marker preset saved');
+    const download=page.waitForEvent('download');await menu('#savePreset');const item=await download,saved=JSON.parse(await fs.readFile(await item.path(),'utf8'));
+    assert.deepEqual(saved.sample.adpcm,authored.adpcm);assert.equal(saved.sample.loopStartSamples,84);assert.equal(saved.preset.pitch,authored.pitch);
+    await page.locator('#presetFileInput').setInputFiles({name:'marker-roundtrip.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
+    await until(()=>page.locator('#audioStatus').textContent().then(value=>value===`Loaded ${saved.name}.`),'marker preset reload');
+    const restored=await instrument();assert.deepEqual(Array.from(restored.sample.adpcm),authored.adpcm);assert.equal(restored.sample.loopStartSamples,84);assert.equal(restored.sample.baseFrequencyHz,captured.sample.baseFrequencyHz);
+    const current=await read();assert.equal(current.samples.find(sample=>sample.id===current.channels[0].sample).loopStartSamples,84);
+    await fs.mkdir(screenshots,{recursive:true});const screenshot=path.join(screenshots,name+'-capture-stale-repeat.png');await page.screenshot({path:screenshot,fullPage:true});
+    const graph=await page.evaluate(()=>__pausedAuditionAudit.graph());assert(graph.muted);assert.equal(graph.contexts,1);assert.equal(graph.editorWorklets,1);assert.deepEqual(errors,[]);
+    return{browser:name,passed:true,checks,oracle:{frame:authored.frame,startAddress:authored.startAddress,repeatAddress:authored.oracle.repeatAddress,markerAddress:authored.markerAddress,
+      loopSource:authored.oracle.loopSource,resolvedLoopAddress:authored.oracle.resolvedLoopAddress,loopStartSamples:authored.oracle.loopStartSamples},temporaryPitch:temporary.active[0].pitch,
+      sourceBytes:authored.adpcm.length,sourceSha256:hash(Buffer.from(authored.adpcm)),saveReloadLoopStartSamples:restored.sample.loopStartSamples,graph,screenshot};
+  }catch(error){error.receipt={browser:name,checks,point:await point().catch(()=>null),preview:await preview().catch(()=>null),errors,status:await page.locator('#audioStatus').textContent().catch(()=>null)};throw error;}
+  finally{await page.close();}
+}
+
 const mime={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.wasm':'application/wasm',
   '.json':'application/json','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml'};
 const server=http.createServer(async(request,response)=>{try{
@@ -329,5 +412,5 @@ async function main(){
     assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),...(failure?{error:failure.stack}:{})};
   await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');if(failure)throw failure;console.log('PASS '+config.out);
 }
-module.exports={createPausedAuditionFixture:fixture};
+module.exports={createPausedAuditionFixture:fixture,createStaleRepeatFixture,checkStaleRepeatCapture};
 if(require.main===module)void main().catch(error=>{console.error(error.stack??error);process.exitCode=1;});

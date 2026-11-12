@@ -42,6 +42,7 @@ test('capture preserves original ADPCM, voice parameters and reference tuning in
   const instrument=readSpuInstrument(JSON.parse(JSON.stringify(result.instrument))),channel=input.state.channels[23];
   assert.equal(result.instrument.version,1);assert(Array.isArray(result.instrument.sample.adpcm));
   assert.equal(result.capture.kind,'adpcm');
+  assert.equal(result.capture.loopSource,'adpcm-marker');assert.equal(result.capture.resolvedLoopAddress,START+16);
   assert.deepEqual(instrument.sample.adpcm,input.adpcm);assert.equal(instrument.sample.loopStartSamples,28);
   assert.equal(instrument.sample.baseFrequencyHz,noteToHz('D4')*4096/channel.pitch);
   assert.deepEqual(instrument.preset,{volumeLeft:channel.volumeLeft,volumeRight:channel.volumeRight,adsr1:channel.adsr1,
@@ -61,9 +62,30 @@ test('one-shot Loop Start flags remain unchanged and external in-sample repeat t
   const single=prepare(oneShot),parsed=readSpuInstrument(single.instrument);
   assert.deepEqual(parsed.sample.adpcm,oneShot.adpcm);assert.equal(parsed.sample.adpcm[1],4);
   assert.equal(Object.hasOwn(parsed.sample,'loopStartSamples'),false);assert.equal(single.capture.loop,false);
+  assert.equal(single.capture.loopSource,null);assert.equal(single.capture.resolvedLoopAddress,null);
   const external=fixture({loopPacket:2,marker:false}),loop=prepare(external);
   assert.equal(loop.capture.loopStartSamples,56);assert.equal(loop.capture.markerAddress,null);
+  assert.equal(loop.capture.loopSource,'repeat-register');assert.equal(loop.capture.resolvedLoopAddress,START+32);
   assert.deepEqual(readSpuInstrument(loop.instrument).sample.adpcm,external.adpcm);
+});
+
+test('a fresh-key capture prefers its unique encoded marker while preserving differing raw Repeat provenance',()=>{
+  for(const repeat of [0,START-16,START+64,START+8,START+32]) {
+    const input=fixture({loopPacket:1});rawAddress(input,{repeat});const before=structuredClone(input);
+    const result=prepare(input,{referenceNote:'F3'}),instrument=readSpuInstrument(JSON.parse(JSON.stringify(result.instrument)));
+    assert.equal(result.capture.repeatAddress,repeat,'observed Repeat is never rewritten');
+    assert.equal(result.capture.loopSource,'adpcm-marker');assert.equal(result.capture.resolvedLoopAddress,START+16);
+    assert.equal(result.capture.markerAddress,START+16);assert.equal(result.capture.loopStartSamples,28);
+    assert.equal(instrument.sample.loopStartSamples,28);assert.deepEqual(instrument.sample.adpcm,input.adpcm);
+    assert.equal(instrument.sample.baseFrequencyHz,noteToHz('F3')*4096/input.state.channels[0].pitch);
+    assert.equal(instrument.preset.pitch,input.state.channels[0].pitch);
+    assert(result.capture.notes.some(note=>/fresh key-on.*encoded Loop Start.*differing captured Repeat/.test(note)));
+    assert.deepEqual(result.capture.warnings,['Internal Loop Start chosen for a new key-on; observed Repeat retained as provenance.']);
+    assert.deepEqual(input,before,'neither current registers nor encoded flags/bytes change');
+  }
+  const same=prepare(fixture({loopPacket:1}));
+  assert.equal(same.capture.notes.some(note=>/differing captured Repeat/.test(note)),false);
+  assert.deepEqual(same.capture.warnings,[]);
 });
 
 test('unsupported or mismatched captures reject locally without rewriting any source state',()=>{
@@ -82,10 +104,9 @@ test('unsupported or mismatched captures reject locally without rewriting any so
     [input=>input.ram[START]=13,'predictor/shift'],
     [input=>input.ram[START+1]=0x80,'flags'],
     [input=>input.ram[START+17]=4,'Multiple'],
-    [input=>rawAddress(input,{repeat:START-16}),'discontiguous'],
-    [input=>rawAddress(input,{repeat:START+64}),'discontiguous'],
-    [input=>rawAddress(input,{repeat:START+8}),'16-byte-aligned'],
-    [input=>rawAddress(input,{repeat:START+16}),'disagree'],
+    [input=>{input.ram[START+1]=0;rawAddress(input,{repeat:START-16});},'discontiguous'],
+    [input=>{input.ram[START+1]=0;rawAddress(input,{repeat:START+64});},'discontiguous'],
+    [input=>{input.ram[START+1]=0;rawAddress(input,{repeat:START+8});},'16-byte-aligned'],
     [input=>input.ram[START+49]=0,'No ADPCM END'],
     [input=>input.state.channels[0].pitch++,'raw register snapshot'],
     [input=>input.state.channels[0].reverb=false,'reverb send'],
@@ -131,6 +152,7 @@ test('Noise capture ignores unusable source ADPCM, PITCH and reference key while
   assert.equal(result.capture.baseFrequencyHz,null);assert.equal(result.capture.rawPitch,0);
   assert.equal(result.capture.tuning,'noise-clock');assert.equal(result.capture.lfsrPhaseCaptured,false);
   assert.equal(result.capture.envelopeStateCaptured,false);assert.equal(result.capture.loop,null);
+  assert.equal(result.capture.loopSource,null);assert.equal(result.capture.resolvedLoopAddress,null);
   assert.deepEqual(parsed.noise,{enabled:true,clock:37});assert.equal(parsed.preset.pitch,4096);
   assert.equal(parsed.preset.volumeLeft,channel.volumeLeft);assert.equal(parsed.preset.volumeRight,channel.volumeRight);
   assert.equal(parsed.preset.adsr1,channel.adsr1);assert.equal(parsed.preset.adsr2,channel.adsr2);assert.equal(parsed.preset.reverb,true);

@@ -20,8 +20,8 @@ import {createPsfSongPreview} from './psf_song_preview.js?v=spu-psf-seek-1';
 import {setupPsfSeekControls} from './psf_seek_controls.js?v=spu-psf-seek-1';
 import {preparePsfSongSource} from './psf_song_source.js?v=spu-psf-playback-1';
 import {createPsfPlaybackCore} from './psf_playback_core.js?v=psf-channel-monitor-1';
-import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-noise-capture-1';
-import {createPsfPausedAudition} from './psf_paused_audition.js?v=psf-noise-audition-1';
+import {preparePsfVoiceCapture} from './psf_capture.js?v=psf-marker-capture-1';
+import {createPsfPausedAudition} from './psf_paused_audition.js?v=psf-marker-audition-1';
 import {createPsfChannelActivity} from './psf_channel_activity.js?v=psf-synth-view-1';
 
 const $ = id => document.getElementById(id);
@@ -167,7 +167,7 @@ function updateCodeDisplay() {
   $('spuPsfReferenceKey').disabled=seeking||Boolean(capturePending)||noiseVoice||(fromPsf&&psfView==='synth');
   $('spuPsfReferenceKey').title=noiseVoice?'Noise uses the shared Clock; Reference key does not apply.':'This key reproduces the selected ADPCM PITCH code; it does not infer the original root note.';
   setText('spuPsfCapture',capturePending?'Preparing…':'Capture to Synth');
-  const captureHint=captureReason||(noiseVoice?'Copy Noise Clock, ADSR, voice volumes and send. Keys trigger the envelope; Clock changes the noise character. The running Noise phase is not copied. Your edited shared reverb is kept.':'Copy the paused ADPCM, loop, ADSR, voice volumes and send. The Reference key preserves this PITCH; a new key press restarts the envelope. Your edited shared reverb is kept.');
+  const captureHint=captureReason||(noiseVoice?'Copy Noise Clock, ADSR, voice volumes and send. Keys trigger the envelope; Clock changes the noise character. The running Noise phase is not copied. Your edited shared reverb is kept.':'Copy the paused ADPCM, loop, ADSR, voice volumes and send. A new key press restarts the envelope; looping samples use their internal Loop Start marker when present. The Reference key preserves this PITCH. Your edited shared reverb is kept.');
   $('spuPsfCapture').title=captureHint;setText('spuPsfCaptureHint',captureHint);
   const root=$('spuVoicePanel');root.dataset.observing=String(observing);root.dataset.observationChannel=String(live.liveVoice);root.dataset.observationKind=observing?source.toLowerCase():'';root.dataset.observationWaiting=String(fromPsf&&observing&&(seeking||!live.liveState||live.liveWaiting||live.liveError));root.inert=inputBlocked;
   delete root.dataset.observationFrame;

@@ -71,6 +71,7 @@ export function preparePsfVoiceCapture({state,ram,voice,frame,source}={},
     return {instrument,capture:{kind:'noise',voice,frame,source:sourceInfo(source),noiseClock:clock,
       startAddress,repeatAddress,rawPitch,pitchRegister:raw[2],rawVolumeLeft:raw[0],rawVolumeRight:raw[1],
       byteLength:0,placeholderByteLength:64,packetCount:0,decodedFrames:0,loop:null,loopStartSamples:null,markerAddress:null,
+      loopSource:null,resolvedLoopAddress:null,
       supportSample:{kind:'silent-loop',byteLength:64,decodedFrames:112,loop:true,loopStartSamples:0,baseFrequencyHz:sample.baseFrequencyHz},
       referenceNote:null,referenceFrequencyHz:null,baseFrequencyHz:null,tuning:'noise-clock',rootNoteInferred:false,
       sharedReverb:'editor-preserved',envelopeStateCaptured:false,lfsrPhaseCaptured:false,
@@ -99,13 +100,21 @@ export function preparePsfVoiceCapture({state,ram,voice,frame,source}={},
   }
   if(endAddress===null)fail('No ADPCM END packet exists before the RAM boundary; wrapped or unterminated samples are not captured.');
   const loop=Boolean(endFlags&2);
-  let loopStartSamples=null;
+  let loopStartSamples=null,loopSource=null,resolvedLoopAddress=null;
   if(loop) {
-    if(repeatAddress<startAddress||repeatAddress>=endAddress||repeatAddress%PACKET_BYTES)
-      fail('The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.');
-    if(markerAddress!==null&&markerAddress!==repeatAddress)
-      fail('The Loop Start marker and current repeat address disagree.');
-    loopStartSamples=(repeatAddress-startAddress)/PACKET_BYTES*28;
+    // Capture is for a fresh key-on, not continuation of the paused decoder.
+    // The core clears forced repeat at key-on and prefers the encoded marker.
+    // The observed Repeat register may still describe the preceding note or
+    // a running driver override, so preserve it as provenance rather than
+    // making it invalidate an otherwise self-contained encoded sample.
+    if(markerAddress!==null) {
+      resolvedLoopAddress=markerAddress;loopSource='adpcm-marker';
+    } else {
+      if(repeatAddress<startAddress||repeatAddress>=endAddress||repeatAddress%PACKET_BYTES)
+        fail('The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.');
+      resolvedLoopAddress=repeatAddress;loopSource='repeat-register';
+    }
+    loopStartSamples=(resolvedLoopAddress-startAddress)/PACKET_BYTES*28;
   }
   const adpcm=ram.slice(startAddress,endAddress),sample={adpcm,baseFrequencyHz};
   if(loop)sample.loopStartSamples=loopStartSamples;
@@ -114,12 +123,18 @@ export function preparePsfVoiceCapture({state,ram,voice,frame,source}={},
   const preset={volumeLeft:channel.volumeLeft,volumeRight:channel.volumeRight,adsr1:raw[4],adsr2:raw[5],pitch:rawPitch,reverb:voiceReverb};
   const instrument=writeSpuInstrument(name??`PSF CH ${voice+1} capture`,{preset,sample,
     reverb:{...reverb},waveform:null,pmon:{enabled:false},noise:{enabled:false},morph:{enabled:false}});
+  const notes=['Original ADPCM bytes; new key-on envelope, not a frozen running note.',
+    'Reference key is user-selected, not an inferred sample root.',
+    'Song main volume and shared reverb are not copied.'];
+  const warnings=[];
+  if(loopSource==='adpcm-marker'&&repeatAddress!==resolvedLoopAddress) {
+    notes.push('For a fresh key-on, the loop target comes from the encoded Loop Start marker rather than the differing captured Repeat register.');
+    warnings.push('Internal Loop Start chosen for a new key-on; observed Repeat retained as provenance.');
+  }
   return {instrument,capture:{kind:'adpcm',voice,frame,source:sourceMetadata,startAddress,repeatAddress,
     byteLength:adpcm.length,packetCount:adpcm.length/PACKET_BYTES,decodedFrames:prepared.decodedFrames,
-    loop,loopStartSamples,markerAddress,rawPitch,pitchRegister:raw[2],
+    loop,loopStartSamples,markerAddress,loopSource,resolvedLoopAddress,rawPitch,pitchRegister:raw[2],
     referenceNote,referenceFrequencyHz,baseFrequencyHz,tuning:'reference-key',rootNoteInferred:false,
     rawVolumeLeft:raw[0],rawVolumeRight:raw[1],sharedReverb:'editor-preserved',
-    envelopeStateCaptured:false,notes:['Original ADPCM bytes; new key-on envelope, not a frozen running note.',
-      'Reference key is user-selected, not an inferred sample root.',
-      'Song main volume and shared reverb are not copied.']}};
+    envelopeStateCaptured:false,notes,warnings}};
 }

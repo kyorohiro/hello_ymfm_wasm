@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "status": "passed",
+  "sourceCommitBeforeChanges": "370f82a1c1ec2aa618baebc1f52aca26d5c86153",
+  "todo": "docs/issues/todo_psf_capture_loop_layout_01.md",
+  "scope": "Fresh-key ADPCM Capture and paused audition prefer the unique encoded internal Loop Start. This is not continuation of the running decoder or future song-driver execution.",
+  "loopResolution": {
+    "loopingWithMarker": "adpcm-marker",
+    "loopingWithoutMarker": "repeat-register; must be aligned and inside the contiguous captured sample",
+    "oneShotOrNoise": null,
+    "metadata": [
+      "repeatAddress (unchanged observed value)",
+      "loopSource",
+      "resolvedLoopAddress"
+    ],
+    "provenanceLocation": "preparePsfVoiceCapture return diagnostics; not added to the v1 preset schema",
+    "originalAdpcmBytesPreserved": true,
+    "presetSchemaChanged": false
+  },
+  "tests": {
+    "spuSynth": {
+      "command": "npm run test:spu-synth",
+      "passed": 322,
+      "failed": 0
+    },
+    "fixedWasmNumeric": {
+      "command": "npm run test:psf-capture-loop",
+      "passed": true,
+      "scope": "Fresh key-on instrument capture; continuing decoder/envelope state is not captured",
+      "frames": 4096,
+      "source": {
+        "start": 8192,
+        "marker": 8224,
+        "externalRepeat": 12288,
+        "bytes": 64,
+        "sha256": "653a7d581047e2fc6594249d36b86216d1bb553e5af6d12536cf6d2f0177d2f5"
+      },
+      "cases": [
+        {
+          "name": "marker-before-playback",
+          "rawRepeat": 12288,
+          "loopSource": "adpcm-marker",
+          "resolvedLoopAddress": 8224,
+          "loopStartSamples": 56,
+          "pcmSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4",
+          "sampleExact": true,
+          "warnings": [
+            "Internal Loop Start chosen for a new key-on; observed Repeat retained as provenance."
+          ]
+        },
+        {
+          "name": "markerless-internal-repeat",
+          "rawRepeat": 8208,
+          "loopSource": "repeat-register",
+          "resolvedLoopAddress": 8208,
+          "loopStartSamples": 28,
+          "pcmSha256": "78c93ae202f143298dd39ed4bed11aca538626ac5971ce886532093a5879f69d",
+          "sampleExact": true,
+          "warnings": []
+        },
+        {
+          "name": "one-shot-marker",
+          "rawRepeat": 12288,
+          "loopSource": null,
+          "resolvedLoopAddress": null,
+          "loopStartSamples": null,
+          "pcmSha256": "fcad4a1cea0e08424d2292ce38f7dcef62b24f5b3e15a3b0c975f15cf2764665",
+          "sampleExact": true,
+          "warnings": []
+        },
+        {
+          "name": "forced-after-marker",
+          "rawRepeat": 12288,
+          "loopSource": "adpcm-marker",
+          "resolvedLoopAddress": 8224,
+          "first32FramesEqual": true,
+          "continuationDifferences": 7471,
+          "freshRestartSampleExact": true,
+          "restartSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4",
+          "warnings": [
+            "Internal Loop Start chosen for a new key-on; observed Repeat retained as provenance."
+          ]
+        },
+        {
+          "name": "programmed-start-for-next-key",
+          "rawRepeat": 12288,
+          "resolvedLoopAddress": 8224,
+          "freshRestartSampleExact": true,
+          "pcmSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4"
+        },
+        {
+          "name": "markerless-external-repeat",
+          "rejected": true,
+          "first112FramesEqual": true,
+          "fabricatedStartDifferences": 7651,
+          "externalLoopPcmSha256": "d4a4f604ddeb12ee1e2c92f69f166b9611f16c521b378d10a98ff3300e11a4b7"
+        }
+      ],
+      "physicalOutputUsed": false
+    },
+    "browsers": {
+      "command": "node scripts/check_spu_synth_psf_capture_browser.cjs --out=/private/tmp/spu-capture-marker-browser.json --screenshots=/private/tmp/spu-capture-marker-screens",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "existingChecks": 11,
+          "markerChecks": 3,
+          "oracle": {
+            "frame": 4410,
+            "startAddress": 16384,
+            "repeatAddress": 12288,
+            "markerAddress": 16432,
+            "loopSource": "adpcm-marker",
+            "resolvedLoopAddress": 16432,
+            "loopStartSamples": 84
+          },
+          "sourceBytes": 64,
+          "sourceSha256": "23dfebd1c2fe886a96d6467e8586fa46a33130b5e62da59c1afba510ddad4851",
+          "saveReloadLoopStartSamples": 84,
+          "physicalOutputMuted": true,
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 0,
+            "bufferStops": 0
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "existingChecks": 11,
+          "markerChecks": 3,
+          "oracle": {
+            "frame": 4410,
+            "startAddress": 16384,
+            "repeatAddress": 12288,
+            "markerAddress": 16432,
+            "loopSource": "adpcm-marker",
+            "resolvedLoopAddress": 16432,
+            "loopStartSamples": 84
+          },
+          "sourceBytes": 64,
+          "sourceSha256": "23dfebd1c2fe886a96d6467e8586fa46a33130b5e62da59c1afba510ddad4851",
+          "saveReloadLoopStartSamples": 84,
+          "physicalOutputMuted": true,
+          "graph": {
+            "contexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferStarts": 0,
+            "bufferStops": 0
+          }
+        }
+      ],
+      "missing": [],
+      "external": [],
+      "listeningPerformed": false
+    },
+    "workflowYamlParsed": true,
+    "remoteActionsRun": false
+  },
+  "localPsfRecheck": {
+    "label": "Previously provided Arc the Lad set",
+    "entries": 40,
+    "secondsPerEntry": 2,
+    "samplingSeconds": 0.25,
+    "status": "complete",
+    "workers": {
+      "rendered": 40,
+      "errors": 0,
+      "timeouts": 0,
+      "crashes": 0,
+      "aborted": 0,
+      "silent": 0,
+      "remaining": 0
+    },
+    "before": {
+      "observedVoices": 2201,
+      "captureSuccess": 1748,
+      "captureFailure": 453,
+      "skippedNoise": 0,
+      "skippedPmon": 0,
+      "findingsOmitted": 0
+    },
+    "after": {
+      "observedVoices": 2201,
+      "captureSuccess": 2201,
+      "captureFailure": 0,
+      "skippedNoise": 0,
+      "skippedPmon": 0,
+      "findingsOmitted": 0,
+      "markerOverrides": 453
+    },
+    "alatosFine": {
+      "seconds": 2.1,
+      "samplingSeconds": 0.01,
+      "totals": {
+        "observedVoices": 153,
+        "captureSuccess": 153,
+        "captureFailure": 0,
+        "skippedNoise": 0,
+        "skippedPmon": 0,
+        "findingsOmitted": 0,
+        "markerOverrides": 9
+      },
+      "channel2At1_80": {
+        "frame": 79380,
+        "seconds": 1.8,
+        "voice": 1,
+        "gate": true,
+        "envelope": 32767,
+        "kind": "repeat-outside-with-internal-marker",
+        "startAddress": 57328,
+        "repeatAddress": 16288,
+        "startAligned16": true,
+        "repeatAligned16": true,
+        "repeatRelation": "before-start",
+        "endPacket": 57872,
+        "endExclusive": 57888,
+        "endFlags": 3,
+        "markerCount": 1,
+        "markerAddresses": [
+          57664
+        ],
+        "packets": 35,
+        "flagCounts": [
+          1,
+          0,
+          32,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "bad": null,
+        "capture": "success",
+        "loopSource": "adpcm-marker",
+        "resolvedLoopAddress": 57664
+      }
+    },
+    "metadataReportRecords": {
+      "arc40.json": {
+        "bytes": 935519,
+        "sha256": "d9959fc9ece5a99b4174248e1d8c198dd84a38e030e7f698fe7cf47af36d9ac7"
+      },
+      "alatos-fine.json": {
+        "bytes": 70566,
+        "sha256": "5b4fddbcbf67ced532d925d93fa63d5e149c171d4d11f666705492c69e2db804"
+      }
+    },
+    "userOriginalErrorFileIdentified": false,
+    "gamePayloadIncluded": false
+  },
+  "distribution": {
+    "command": "sh scripts/package_itch_spu_synth.sh capture-loop-20261112",
+    "archive": "release/tetorica_spu_synth_capture-loop-20261112_itch.zip",
+    "files": 342,
+    "bytes": 7098463,
+    "sha256": "960ffbe1df21761d1a3b01bf5516e60218a08b49d65542bf341c6282f2e583a0",
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    },
+    "changedReadableModulesByteIdentical": true,
+    "cacheEntryVersion": "psf-marker-capture-1",
+    "cacheAuditionVersion": "psf-marker-audition-1"
+  },
+  "sourceRecords": {
+    "docs/synth-spu/psf_capture.js": {
+      "bytes": 10528,
+      "sha256": "957069d22f05495c208710e9dd0e55957d1e13929e02438b2e6de7f49a532190"
+    },
+    "docs/synth-spu/psf_capture.test.mjs": {
+      "bytes": 22391,
+      "sha256": "5149c4677d2332937907dbaaf5b7dcabf83ccf9b3d6690da25fe0ee36736f62c"
+    },
+    "docs/synth-spu/psf_paused_audition.js": {
+      "bytes": 10294,
+      "sha256": "27ea95e801249c01b5a1d69c7ed13727351b8e9f7f4f16e32050ce1f061fbe77"
+    },
+    "docs/synth-spu/synth.js": {
+      "bytes": 79237,
+      "sha256": "29f1e8d0910a1c47e58a61b6fa151c1d091ad115410c8d0e0a489bc71e4b58a8"
+    },
+    "docs/synth-spu/index.html": {
+      "bytes": 27932,
+      "sha256": "6063d660a5b59dc074af230d69fc70756957297e1810faa0a4ba56d07a1ba443"
+    },
+    "scripts/check_psf_capture_loop_layout.mjs": {
+      "bytes": 8677,
+      "sha256": "17dcff7433c8df15dd7345ebc2c1b4b1bf7fb4e4d9a228faa9d92c7ea17fbb1a"
+    },
+    "scripts/check_spu_synth_psf_capture_browser.cjs": {
+      "bytes": 41649,
+      "sha256": "8a3acdda4a404b520a5cd477a27a648feb332bc2daa3347a18be3c29d9da5048"
+    },
+    "scripts/check_spu_synth_psf_paused_audition_browser.cjs": {
+      "bytes": 52453,
+      "sha256": "f1451cccd9902e884b9bfb1f0a42f00296e7ff0596ece7920aac5fc858e3351c"
+    },
+    ".github/workflows/spu-synth.yml": {
+      "bytes": 4555,
+      "sha256": "89f6c3784cc0fd51cce67cfb5064647fb45b02587c65430c478308c025c9f728"
+    },
+    "package.json": {
+      "bytes": 7150,
+      "sha256": "32cace4da91d48e935bb3cb6071b9f10d5e3b86033dec6bd161cc320bb3bd95b"
+    }
+  },
+  "unchangedCoreRecords": {
+    "tetorica_src/runtime/ps1synth.js": {
+      "bytes": 21654,
+      "sha256": "444e2dfa2de24bf4ad987396564fb0117a845a345e91e1a98f83bed4a2469bbd"
+    },
+    "docs/synth-spu/spu_synth_instrument.js": {
+      "bytes": 7233,
+      "sha256": "ab9197460279fa580cf83943e563d9078695df0361d2976a5c4fbd4c562f6d6e"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/spu.cpp": {
+      "bytes": 78550,
+      "sha256": "057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661"
+    },
+    "docs/generated/ps1_spu_wasm.wasm": {
+      "bytes": 52082,
+      "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f"
+    },
+    "docs/generated/psf-player/psf_player.wasm": {
+      "bytes": 455304,
+      "sha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab"
+    }
+  },
+  "limits": [
+    "Markerless external loops remain unsupported; no fabricated loop target or packet rewrite.",
+    "Multiple Loop Start markers, wrapping/unterminated samples and PMON carriers remain unsupported.",
+    "Real-set verification covers the first two seconds of 40 entries; it is not an all-game or long-duration guarantee.",
+    "No listening or physical audio-device output was performed."
+  ],
+  "wasmRebuilt": false,
+  "commitPushPerformed": false,
+  "published": false
+}

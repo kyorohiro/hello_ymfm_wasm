@@ -20,8 +20,13 @@ activity indicators. In Pause, the keyboard can temporarily audition a selected
 ordinary ADPCM or Noise voice without replacing the edited instrument. Capture
 creates an editable instrument and keeps the original song paused; choose Synth
 view to edit it, or a PSF CH to inspect and audition the original voice again.
-Capture preserves original ADPCM bytes and supported loops. Its Reference key
-maps the raw PITCH code, not an inferred sample root. Noise captures preserve
+Capture preserves original ADPCM bytes and supported loops. Fresh-key capture
+and paused audition prefer a unique internal Loop Start marker; raw Repeat is
+retained as diagnostic provenance with `loopSource` / `resolvedLoopAddress`,
+not rewritten into the original bytes. Markerless external loops remain
+unsupported; this does not restore running forced-Repeat overrides or future
+driver writes. Its Reference key maps the raw PITCH code, not an inferred sample
+root. Noise captures preserve
 Clock, not the running LFSR phase. PMON carriers are not captured or auditioned.
 Live's bounded Start-address waveform preview is read-only and is not the
 current audible waveform. Imported / captured ADPCM instead has a full-sample

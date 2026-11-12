@@ -4,6 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto');
 const {pathToFileURL}=require('node:url'),{tmpdir}=require('node:os'),{chromium,webkit}=require('playwright');
+const {checkStaleRepeatCapture}=require('./check_spu_synth_psf_paused_audition_browser.cjs');
 const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth-spu/index.html',engines:'chromium,webkit',out:path.join(tmpdir(),'spu-synth-psf-capture-browser.json'),screenshots:path.join(tmpdir(),'spu-psf-capture-screenshots')};
 for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown option '+arg);config[m[1]]=m[2];}
 config.root=path.resolve(config.root);
@@ -54,7 +55,8 @@ function silentAudit(){
 const missing=[],external=[],results=[];
 async function runMetadata(){
   const hashes={};for(const relative of [config.entry.slice(1),'synth-spu/synth.js','synth-spu/spu_synth_panel.js','synth-spu/synth.css','synth-spu/psf_song_preview.js','synth-spu/psf_playback_core.js','synth-spu/psf_live_snapshot.js','synth-spu/psf_capture.js','generated/psf-player/psf_player.js','generated/psf-player/psf_player.wasm']){const bytes=await fs.readFile(path.join(config.root,relative));hashes[relative]={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')};}
-  return {root:config.root,entry:config.entry,checkerSha256:createHash('sha256').update(await fs.readFile(__filename)).digest('hex'),assets:hashes};
+  return {root:config.root,entry:config.entry,checkerSha256:createHash('sha256').update(await fs.readFile(__filename)).digest('hex'),
+    pausedAuditionSupportSha256:createHash('sha256').update(await fs.readFile(require.resolve('./check_spu_synth_psf_paused_audition_browser.cjs'))).digest('hex'),assets:hashes};
 }
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.svg':'image/svg+xml'};
 const server=http.createServer(async(req,res)=>{try{const pathname=new URL(req.url,'http://localhost').pathname;if(pathname==='/favicon.ico'){res.writeHead(204).end();return;}
@@ -222,7 +224,7 @@ async function check(browser,name,origin,fixture){
  const noiseWrites=[[0x10,0x1400],[0x12,0x0c00],[0x14,0],[0x16,0],[0x18,0x000f],[0x1a,0x1fc0],[0x1e,0],[0x194,2],[0x198,3],[0x188,3]];
  const fixture={...createPsfSpuFeatureFixture({pitch:0x1800,reverb:true,noiseClock:37,steps:[{delay:4096,writes:noiseWrites},{delay:10000,writes:[[0x1c0,0x1234]]}]}),vab:createVabFixture().vab};
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin='http://127.0.0.1:'+server.address().port;
- try{for(const name of config.engines.split(',')){assert(['chromium','webkit'].includes(name));const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push(await check(browser,name,origin,fixture));}finally{await browser.close();}}
+ try{for(const name of config.engines.split(',')){assert(['chromium','webkit'].includes(name));const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push({...await check(browser,name,origin,fixture),staleRepeat:await checkStaleRepeatCapture(browser,name,origin,{entry:config.entry,screenshots:config.screenshots})});}finally{await browser.close();}}
  assert.deepEqual(missing,[]);assert.deepEqual(external,[]);await fs.writeFile(config.out,JSON.stringify({...await runMetadata(),passed:true,physicalOutputMuted:true,listeningPerformed:false,results,missing,external},null,2)+'\n');console.log('PASS '+config.out);
  }finally{await new Promise(resolve=>server.close(resolve));}
 })().catch(async error=>{console.error(error.stack??error);if(error.receipt)console.error(JSON.stringify(error.receipt,null,2));const metadata=await runMetadata().catch(()=>({root:config.root,entry:config.entry}));await fs.writeFile(config.out,JSON.stringify({...metadata,passed:false,error:error.message,receipt:error.receipt??null,results,missing,external},null,2)+'\n').catch(cause=>console.error(cause.message));process.exitCode=1;});

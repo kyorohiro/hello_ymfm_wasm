@@ -10,9 +10,11 @@ on:
       - 'test/runtime/playground_sample_ps1*.test.mjs'
       - 'test/runtime/native_genesis_ps1.test.mjs'
       - 'test/helpers/ps1_loop_repeat_fixture.mjs'
+      - 'test/helpers/spu_psf_playback_fixture.mjs'
       - 'scripts/check_ps1_spu_browser.cjs'
       - 'scripts/check_playground_ps1_browser.cjs'
       - 'scripts/*psf_batch*'
+      - 'scripts/check_psf_capture_loop_layout.mjs'
       - 'tetorica_src/runtime/playground_ps1_inspector.js'
       - 'tetorica_src/runtime/soundchip_pitch.js'
       - 'docs/js/ps1*.js'
@@ -41,9 +43,11 @@ on:
       - 'test/runtime/playground_sample_ps1*.test.mjs'
       - 'test/runtime/native_genesis_ps1.test.mjs'
       - 'test/helpers/ps1_loop_repeat_fixture.mjs'
+      - 'test/helpers/spu_psf_playback_fixture.mjs'
       - 'scripts/check_ps1_spu_browser.cjs'
       - 'scripts/check_playground_ps1_browser.cjs'
       - 'scripts/*psf_batch*'
+      - 'scripts/check_psf_capture_loop_layout.mjs'
       - 'tetorica_src/runtime/playground_ps1_inspector.js'
       - 'tetorica_src/runtime/soundchip_pitch.js'
       - 'docs/js/ps1*.js'
@@ -96,6 +100,7 @@ jobs:
         run: |
           npm run test:spu-synth
           npm run test:psf-batch
+          npm run test:psf-capture-loop
           node --test test/runtime/ps1_loop_repeat.test.mjs
       - name: Build the standalone itch.io ZIP
         run: sh scripts/package_itch_spu_synth.sh ci

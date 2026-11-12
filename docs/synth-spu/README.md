@@ -420,6 +420,15 @@ kept; song master volume and custom shared effects are not copied. Software
 morph and PMON are disabled in the captured instrument. ADPCM captures also
 disable Noise; Noise captures enable it.
 
+For a looping ADPCM sample, Capture and paused keyboard audition use its single
+internal **Loop Start** marker for the new key press. The song's Repeat register
+can still contain an older address before playback reaches that marker. Its raw
+value remains in Capture diagnostics alongside the resolved loop address and
+source; the original ADPCM bytes are unchanged. If there is no marker, Repeat
+must identify an aligned packet inside the captured Start-to-END range. A true
+external loop without an internal marker remains unsupported. Capture does not
+restore a running note's forced Repeat override or future driver writes.
+
 Capture requires **Pause**, **Live On** and an available same-time RAM snapshot.
 ADPCM needs nonzero Pitch, a valid END packet and a supported contiguous loop.
 PMON carriers (including Noise with PMON) are rejected before changing the song
