@@ -303,8 +303,8 @@ browser compatibility module `synth-spu/spu_synth_vab.js` exposes the same
 functions. `loadADPCM` / `setPreset` accept the prepared result in direct and
 asynchronous SPU clients. Public types include `Ps1VabBank`, `Ps1VabTone` and
 `Ps1VabPreparedTone`. Parsing and exporting do not create an audio device,
-fetch files or execute a PSF driver. The npm registry release is a separate
-publication step; use a package build that includes this API.
+fetch files or execute a PSF driver. These APIs are available in
+`tetorica-fm2612@0.2.40` and later.
 
 For **PSF1 / MiniPSF**, choose **Menu → Import → PSF set…** and select the song and all
 referenced PSFLib files together, or use **PSF folder…** in the same menu to retain library

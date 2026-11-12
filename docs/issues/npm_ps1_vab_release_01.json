@@ -2,21 +2,17 @@
   "schemaVersion": 1,
   "package": "tetorica-fm2612",
   "version": "0.2.40",
-  "status": "npm publish exited0; awaiting public registry visibility",
-  "published": false,
+  "status": "published and public registry tarball verified",
+  "published": true,
   "tarball": {
-    "package": "tetorica-fm2612",
-    "version": "0.2.40",
-    "path": "build/npm-vab-release-20261112/tetorica-fm2612-0.2.40.tgz",
+    "url": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.40.tgz",
     "bytes": 2821471,
-    "files": 1253,
-    "unpackedBytes": 11422458,
     "sha256": "37ec63230722361b2a9ac0e35c73e7d4289d7f57343c31b7a051296c9b5ca60c",
     "shasum": "f537b73e28361d85cec1a82c042b1b514e816b92",
     "integrity": "sha512-hh2GsrUBpaf2Cyn2ll3+aUrxEjsFCty8/mfpC+/VhOjQmPGN41RACL+SOnOaTNMf23DnkvGbUC4AIDXhwOe4eg==",
-    "verifiedTarballCopiedExact": true,
-    "installedValidationLog": "/private/tmp/npm-vab-release-final-installed.log",
-    "published": false
+    "fileCount": 1253,
+    "unpackedSize": 11422458,
+    "path": "build/npm-vab-release-20261112/registry/tetorica-fm2612-0.2.40.tgz"
   },
   "candidateValidation": {
     "vabRootJsExtensionlessIdentity": true,
@@ -59,9 +55,9 @@
   ],
   "publishHttpStatus": 202,
   "registryVisibility": {
-    "checkedAt": "2026-11-12T07:29:24.376656+00:00",
-    "versionAvailable": false,
-    "latest": "0.2.39"
+    "checkedAt": "2026-11-12T07:30:29.381Z",
+    "versionAvailable": true,
+    "latest": "0.2.40"
   },
   "releaseWorkingTreeRecords": {
     "packages/fm2612/package.json": {
@@ -80,5 +76,19 @@
       "bytes": 4618,
       "sha256": "71383b353caa4eaa2bc4528676c50d07b73adb4fdde38ceb4efdf480201d52d4"
     }
+  },
+  "registry": "https://registry.npmjs.org/",
+  "distTags": {
+    "latest": "0.2.40"
+  },
+  "publishedAt": "2026-11-12T07:29:43.896Z",
+  "verifiedAt": "2026-11-12T07:30:29.381Z",
+  "verifiedCandidateBytesIdentical": true,
+  "packagePage": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.40",
+  "registryVerification": "build/npm-vab-release-20261112/registry-verification.json",
+  "candidateInstalledReceipt": {
+    "path": "/private/tmp/npm-vab-release-final-installed.json",
+    "bytes": 2495,
+    "sha256": "874815a9fc3746d50fc63928e915e1ac9a990a23411085240842cc23a44112cc"
   }
 }

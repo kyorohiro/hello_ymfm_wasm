@@ -11,3 +11,5 @@
 通常browser／native app／OS音量は操作しない。実PCMはメモリー／ファイルで検証し、headlessはアプリ起動前からdestinationをgain 0へ遮断、Chromiumはmuteを併用する。既存の固定WASM／Native SDKは再ビルドしない。
 
 検証記録: [ps1_vab_public_api_verification_01.json](ps1_vab_public_api_verification_01.json)。npmはローカル配布候補（0.2.39表記）の検証までで、registryへの公開は未実施。Playground／SPU SynthのZIPもローカル作成・検証済み。
+
+追記（2026-11-12）: 後続作業で`tetorica-fm2612@0.2.40`をnpm公開済み。registryのlatest・再取得tarballの全byte／SHA1／SHA512一致まで確認。[公開記録](npm_ps1_vab_release_01.md)を参照。
