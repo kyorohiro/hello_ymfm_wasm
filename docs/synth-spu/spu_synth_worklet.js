@@ -18,7 +18,7 @@ import {validateHostPcm} from './spu_synth_long_audio.js';
 
 const EDITOR_METHODS = new Set(['auditionOn', 'auditionOff', 'auditionAllOff', 'setWaveform', 'setPreset', 'setChannel', 'setEnvelope', 'setReverb', 'setPitch', 'setFrequency', 'setNote']);
 const SYNTH_METHODS = new Set(['loadADPCM', 'getPreset', 'snapshot', 'noteOn', 'noteOff', 'keyOn', 'keyOff', 'allNotesOff', '_auditionKeyOn', '_auditionKeyOff', '_refreshEnvelope']);
-const READ_METHODS = new Set(['inspect', 'getState', 'getPreset', 'getInstrument', 'snapshot', 'findADPCM']);
+const READ_METHODS = new Set(['inspect', 'getState', 'getPreset', 'getInstrument', 'getInstrumentSample', 'snapshot', 'findADPCM']);
 const CODE_METHODS = new Set(['loadADPCM','getPreset','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','snapshot','_setAuditionNoise']);
 const codeCancelled=()=>{const error=new Error('SPU Code session stopped');error.name='AbortError';return error;};
 
@@ -48,6 +48,9 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.codeNoiseSample = null;
     this.codeGates = new Set();
     this.adpcmPreviews = createSpuAdpcmPreviewCache();
+    // Full imported-sample edits own one private slot. Identity tokens are
+    // independent of reusable numeric sample IDs and temporary Code banks.
+    this.samplePcm = {sequence:0,revision:0,byteSequence:0,bytes:new WeakMap(),slotId:null};
     this.voices = new SpuRoundRobinVoices();
     this.port.onmessage = ({data}) => {
       if (data?.method === 'dispose') {this.dispose(); return;}
@@ -87,6 +90,9 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       let value;
       const codeRequest=['beginCode','code','observeCode'].includes(method);
       const configuration=method==='setClickGuard';
+      // In particular a failed full-sample edit must not retire a borrowed
+      // Code checkpoint, release notes or touch sample RAM.
+      const sampleEdit=method==='setInstrumentSample'?this.prepareInstrumentSampleEdit(args):null;
       if(this.codeCheckpoint&&!codeRequest&&!configuration&&!READ_METHODS.has(method))this.endCode();
       if (method === 'beginCode') {
         if(args.length)throw new TypeError('SPU Code start takes no arguments');
@@ -108,6 +114,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         if(args.length!==2)throw new TypeError('SPU sample lookup needs ADPCM bytes and tuning options');
         value=this.findADPCM(args[0],args[1]);
       }
+      else if (method === 'getInstrumentSample') {
+        if(args.length!==1)throw new TypeError('SPU sample read needs one channel');
+        value=this.readInstrumentSample(args[0]);
+      }
+      else if (method === 'setInstrumentSample') value=this.applyInstrumentSampleEdit(sampleEdit);
       else if (method === 'loadHostPCM') {
         const pcm=validateHostPcm(args[0]),options=args[1];
         if (!options || typeof options.loop!=='boolean' || !Number.isFinite(options.baseFrequencyHz) || options.baseFrequencyHz<=0 || options.baseFrequencyHz>1000000) throw new TypeError('Invalid software audio tuning');
@@ -134,6 +145,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         this.hostAudio={pcm,baseFrequencyHz:options.baseFrequencyHz,loop:options.loop};
         for (let ch=0;ch<24;ch++) this.authorChannel(ch,()=>this.inspector.invoke('setPreset',[ch,{sample:slot}]));
         this.morph={...this.morph,enabled:false};
+        this.reviseInstrumentSample();
         value={frames:pcm.length,duration:pcm.length/44100};
       }
       else if (method === 'instrumentNoteOn') {
@@ -245,6 +257,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         if (method==='setInstrumentPreset' && patch.sample!==undefined) {
           this.morph={...this.morph,enabled:false};
           if (this.hostAudio && this.synth.getPreset(0).sample!==this.hostSlot.id) this.clearHostAudio();
+          this.reviseInstrumentSample();
         }
         value = true;
       } else if (method === 'setInstrumentWaveform' || method === 'setInstrumentMorph') {
@@ -278,6 +291,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
           this.lastMidi = notes;
           for (let ch = 0; ch < 24; ch++) if (notes[ch] === null) this.lastBend[ch] = null;
           this.morph=nextMorph ?? {...this.morph,enabled:false};
+          this.reviseInstrumentSample();
           if(nextMorph)value={...this.morph};
         }
       }
@@ -298,7 +312,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       else if (method === 'stop' || method === 'stopVoices') {
         this.stopInstrument();
         value = true;
-      } else if (EDITOR_METHODS.has(method)) value = this.inspector.invoke(method, args);
+      } else if (EDITOR_METHODS.has(method)) {
+        value = this.inspector.invoke(method, args);
+        if(method==='setWaveform'||['setPreset','setChannel'].includes(method)&&args[1]?.sample!==undefined)this.reviseInstrumentSample();
+      }
       else if (SYNTH_METHODS.has(method)) value = this.synth[method](...args);
       else throw new Error(`Unknown SPU synth command: ${method}`);
       if (!codeRequest&&!configuration&&!READ_METHODS.has(method)) this.syncModulators();
@@ -318,13 +335,87 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   findADPCM(input,options) {
     const prepared=preparePs1ADPCM(input,options);
     for(const sample of this.synth.samples) {
-      if(sample.editorChannel!==undefined||sample.id===this.pmonSample?.id||sample.id===this.hostSlot?.id||
+      if(sample.editorChannel!==undefined||sample.samplePcmEditable||sample.id===this.pmonSample?.id||sample.id===this.hostSlot?.id||
         sample.byteLength!==prepared.adpcm.length||sample.rootFrequencyHz!==prepared.rootFrequencyHz||
         sample.basePitch!==prepared.basePitch||sample.loop!==prepared.loop||sample.loopStartSamples!==prepared.loopStartSamples)continue;
       const bytes=this.synth.sampleBytes[sample.id];
       if(bytes?.length===prepared.adpcm.length&&bytes.every((value,index)=>value===prepared.adpcm[index]))return {...sample};
     }
     return null;
+  }
+
+  samplePcmState() {
+    // Also supports hosts which construct the processor before the optional
+    // editor is used. Counters never rewind when a temporary bank is restored.
+    return this.samplePcm??= {sequence:0,revision:0,byteSequence:0,bytes:new WeakMap(),slotId:null};
+  }
+
+  reviseInstrumentSample() {
+    const state=this.samplePcmState();state.revision=++state.sequence;
+  }
+
+  sampleByteToken(bytes) {
+    const state=this.samplePcmState();let token=state.bytes.get(bytes);
+    if(token===undefined){token=++state.byteSequence;state.bytes.set(bytes,token);}
+    return token;
+  }
+
+  instrumentSampleSource(ch=0) {
+    if(!Number.isInteger(ch)||ch<0||ch>23)throw new RangeError('PS1 SPU channel must be 0..23');
+    const source=this.codeCheckpoint??this.synth,settings=this.codeCheckpoint??this;
+    const sample=source.samples[source.channels[ch]?.sample],bytes=sample&&source.sampleBytes[sample.id];
+    const hostId=this.codeCheckpoint?source.hostSlotId:this.hostSlot?.id;
+    const pmonId=this.codeCheckpoint?source.pmonSampleId:this.pmonSample?.id;
+    if(!sample||!bytes||settings.noise.enabled||sample.editorChannel!==undefined||sample.id===hostId||sample.id===pmonId||source.editorWaveforms[ch]?.sample===sample.id)return null;
+    const revision=this.codeCheckpoint?source.samplePcmRevision:this.samplePcmState().revision;
+    return {source,sample,bytes,token:`${revision}:${sample.id}:${this.sampleByteToken(bytes)}`};
+  }
+
+  readInstrumentSample(ch) {
+    const found=this.instrumentSampleSource(ch);
+    if(!found)throw new Error('Select an imported ADPCM sample before editing its full waveform');
+    const {source,sample,bytes,token}=found;
+    const slotId=this.codeCheckpoint?source.samplePcmSlotId:this.samplePcmState().slotId,slot=source.samples[slotId];
+    const availableEditBytes=slot?.samplePcmEditable&&slot.byteLength===sample.byteLength?slot.byteLength:524288-source.nextAddress;
+    return {sampleId:sample.id,token,adpcm:bytes.slice(),byteLength:sample.byteLength,availableEditBytes,baseFrequencyHz:sample.rootFrequencyHz,
+      ...(sample.loop?{loopStartSamples:sample.loopStartSamples}:{})};
+  }
+
+  prepareInstrumentSampleEdit(args) {
+    const edit=args[0];
+    if(args.length!==1||!edit||typeof edit!=='object'||Array.isArray(edit)||
+      Reflect.ownKeys(edit).some(key=>!['sourceSampleId','sourceToken','adpcm'].includes(key)))throw new TypeError('SPU sample edit needs sourceSampleId, sourceToken and ADPCM bytes');
+    const found=this.instrumentSampleSource();
+    if(!found||edit.sourceSampleId!==found.sample.id||edit.sourceToken!==found.token)throw new Error('SPU sample changed; reopen its waveform before applying this edit');
+    const {source,sample}=found,options={baseFrequencyHz:sample.rootFrequencyHz,...(sample.loop?{loopStartSamples:sample.loopStartSamples}:{})};
+    const prepared=preparePs1ADPCM(edit.adpcm,options);
+    if(prepared.adpcm.length!==sample.byteLength||prepared.loop!==sample.loop||prepared.loopStartSamples!==sample.loopStartSamples||prepared.rootFrequencyHz!==sample.rootFrequencyHz)
+      throw new RangeError('A full-sample edit must preserve its length, tuning and loop');
+    const slotId=this.codeCheckpoint?source.samplePcmSlotId:this.samplePcmState().slotId;
+    const candidate=source.samples[slotId],slot=candidate?.samplePcmEditable&&candidate.byteLength===sample.byteLength?candidate:null;
+    if(!slot&&source.nextAddress+prepared.adpcm.length>524288)throw new RangeError('No sample RAM available for a private full-sample edit');
+    return {prepared,original:{...sample},slotId:slot?.id??null};
+  }
+
+  applyInstrumentSampleEdit({prepared,original,slotId}) {
+    // Every failure above precedes this first audible mutation. No encoder or
+    // decoder runs here; the preparation worker supplies complete packets.
+    this.stopInstrument();
+    let slot=slotId===null?null:this.synth.samples[slotId];
+    if(!slot) {
+      const loaded=this.synth.loadADPCM(prepared.adpcm,{baseFrequencyHz:prepared.rootFrequencyHz,...(prepared.loop?{loopStartSamples:prepared.loopStartSamples}:{})});
+      slot=this.synth.samples[loaded.id];
+    }else {
+      this.synth.core.loadRam(prepared.adpcm,slot.startAddress);
+      this.synth.sampleBytes[slot.id]=prepared.adpcm;
+    }
+    Object.assign(slot,{rootNote:original.rootNote,rootFrequencyHz:prepared.rootFrequencyHz,basePitch:original.basePitch,
+      loop:prepared.loop,loopStartSamples:prepared.loopStartSamples,decodedFrames:prepared.decodedFrames,
+      repeatAddress:slot.startAddress+(prepared.loopStartSamples??0)/28*16,samplePcmEditable:true});
+    this.samplePcmState().slotId=slot.id;
+    for(let ch=0;ch<24;ch++)this.authorChannel(ch,()=>this.inspector.invoke('setPreset',[ch,{sample:slot}]));
+    this.reviseInstrumentSample();
+    const {sample,token}=this.instrumentSampleSource();return {sampleId:sample.id,token};
   }
 
   readInstrument(ch) {
@@ -345,11 +436,13 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     const synth=this.synth;
     // One bounded checkpoint per Run. Host PCM is immutable through the raw
     // PS1 API and remains shared; no recording-sized copy enters this path.
+    const samplePcm=this.samplePcmState();
     this.codeCheckpoint={ram:synth.core.readRam(),samples:synth.samples.map(value=>({...value})),
-      sampleBytes:synth.sampleBytes.map(value=>value.slice()),editorWaveforms:synth.editorWaveforms.map(value=>value?{sample:value.sample,pcm:value.pcm.slice()}:null),
+      sampleBytes:synth.sampleBytes.map(value=>{const copy=value.slice();samplePcm.bytes.set(copy,this.sampleByteToken(value));return copy;}),editorWaveforms:synth.editorWaveforms.map(value=>value?{sample:value.sample,pcm:value.pcm.slice()}:null),
       channels:synth.channels.map(value=>({...value})),reverb:{...synth.reverb},nextAddress:synth.nextAddress,
       pmon:{...this.pmon},noise:{...this.noise},morph:readMorph(this.morph),pmonSampleId:this.pmonSample?.id??null,
-      pmonWaveform:this.pmonWaveform?.slice()??null,hostAudio:this.hostAudio,hostSlotId:this.hostSlot?.id??null};
+      pmonWaveform:this.pmonWaveform?.slice()??null,hostAudio:this.hostAudio,hostSlotId:this.hostSlot?.id??null,
+      samplePcmRevision:samplePcm.revision,samplePcmSlotId:samplePcm.slotId};
     this.codeEpoch++;this.codeGates.clear();
     return {session:this.codeEpoch,sampleRate,nativeSampleRate:44100,channelCount:24};
   }
@@ -366,6 +459,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.pmon=saved.pmon;this.noise=saved.noise;this.morph=saved.morph;this.pmonWaveform=saved.pmonWaveform;
     this.pmonSample=saved.pmonSampleId===null?null:synth.samples[saved.pmonSampleId];
     this.hostAudio=saved.hostAudio;this.hostSlot=saved.hostSlotId===null?null:synth.samples[saved.hostSlotId];
+    Object.assign(this.samplePcmState(),{revision:saved.samplePcmRevision,slotId:saved.samplePcmSlotId});
     this.stopInstrument();this.syncModulators();return true;
   }
 
@@ -412,7 +506,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         // to the old bank instead of mistaking its new sample 0 for a host
         // recording or a PMON source. The authored checkpoint owns the old
         // immutable host PCM and restores its binding on Stop.
-        this.hostAudio=null;this.hostSlot=null;this.pmonSample=null;this.pmonWaveform=null;this.codeNoiseSample=null;
+        this.hostAudio=null;this.hostSlot=null;this.pmonSample=null;this.pmonWaveform=null;this.codeNoiseSample=null;this.samplePcmState().slotId=null;
         this.pmon={...this.pmon,enabled:false};this.noise={...this.noise,enabled:false};this.morph={...this.morph,enabled:false};
       }
       this.resampler.reset(this.synth.core.nativeFrames);this.syncModulators();
@@ -470,10 +564,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   }
 
   readState() {
-    const state=this.inspector.read();
+    const state=this.inspector.read(),samplePcm=this.instrumentSampleSource();
     return {...state,channels:state.channels.map(voice=>({...voice,...this.readAdpcmPreview(this.synth.samples[voice.sample],voice.waveform)})),
       clickGuard:this.clickGuard,hostAudio:this.hostAudio?{frames:this.hostAudio.pcm.length,duration:this.hostAudio.pcm.length/44100,loop:this.hostAudio.loop}:null,
-      pmon:{...this.pmon},noise:{...this.noise},morph:readMorph(this.morph),pmonSampleReserved:Boolean(this.pmonSample),polyphony:this.pmon.enabled?12:24};
+      pmon:{...this.pmon},noise:{...this.noise},morph:readMorph(this.morph),pmonSampleReserved:Boolean(this.pmonSample),polyphony:this.pmon.enabled?12:24,
+      samplePcmSource:samplePcm?{sampleId:samplePcm.sample.id,token:samplePcm.token}:null};
   }
   voiceKey(ch,on,smooth) {
     return this.synth[smooth?(on?'_auditionKeyOn':'_auditionKeyOff'):(on?'keyOn':'keyOff')](ch);

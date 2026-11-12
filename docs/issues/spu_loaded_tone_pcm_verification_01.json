@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "Edit an entire imported SPU ADPCM sample while retaining its length, tuning and loop metadata.",
+  "todo": "docs/issues/todo_spu_loaded_tone_pcm_morph_01.md",
+  "agentCommitted": false,
+  "agentPushed": false,
+  "published": false,
+  "behavior": {
+    "source": "Decode all validated ADPCM packets with signed-short wrapping and continuous predictor history. No truncation to the 112-point preview, resampling, normalization or inferred period.",
+    "ui": "The same PCM canvas supports full overview, min/max transient display, frame-range zoom, numeric index/value and drag-release edits. Source PCM stays outside periodic state messages.",
+    "preparation": "Use a cancellable preparation Worker to re-encode full PCM. Applying stops held notes. Cancellation and stale source/view/owner changes cannot commit old work.",
+    "storage": "Keep immutable original bank bytes and RAM. Use one reusable private full-size slot for equal-size edits. Preserve source frame count, loop flag/start, base frequency, all 24 preset PITCH/ADSR/vol/send values and shared effect settings.",
+    "capacity": "The first private copy needs free SPU RAM. Main preflight rejects known insufficient capacity before encoding; the processor independently validates token, complete length, loop and capacity before ending Code or stopping voices.",
+    "ownership": "Source tokens include assignment revision and byte identity, survive Code/temporary-audition checkpoint restoration, and refresh on every edit. Mutable copies are excluded from immutable ADPCM lookup.",
+    "morph": "Full imported samples disable the 112-sample Morph enable control with an explanation. Choosing a shape explicitly returns to the separate short-cycle/Morph editor.",
+    "persistence": "Existing version-1 instrument JSON stores edited ADPCM and unchanged tuning/loop data; no new preset schema or host-PCM substitution.",
+    "pausedPsf": "Full-sample edits in paused Synth view keep the source position, frozen frame and original CH state. CH view stays read-only. Resume retains the edited author instrument."
+  },
+  "limitations": [
+    "ADPCM re-encoding is lossy.",
+    "Full-sample Morph, changing sample length/loop positions and editing Software audio host-memory recordings are outside this change.",
+    "PSF/Code Live display remains a bounded read-only observation; full editing is for the authored instrument."
+  ],
+  "node": {
+    "command": "node --test docs/synth-spu/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "passed": 326,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/private/tmp/spu-full-sample-node.log",
+    "record": {
+      "bytes": 35381,
+      "sha256": "abe47b5a8bcf5992fee8afc94d6fb5c20c76d0b36f4edff1e84e4f73873bf322"
+    }
+  },
+  "nativeReference": {
+    "test": "docs/synth-spu/spu_sample_pcm.test.mjs",
+    "reference": "test/helpers/ps1_adpcm_decode_reference.cpp",
+    "streams": 4,
+    "exactDecodedFrames": 914004,
+    "largestAdpcmBytes": 520192,
+    "largestDecodedFrames": 910336,
+    "covers": [
+      "all predictor/shift combinations",
+      "LSB-first signed nibbles",
+      "signed-short overflow",
+      "history beyond 112 frames",
+      "loop intro and history",
+      "full allowed byte length"
+    ]
+  },
+  "browser": {
+    "fullSample": {
+      "report": "/private/tmp/spu-full-sample-browser.json",
+      "record": {
+        "bytes": 16406,
+        "sha256": "376fba28002e248ade0fbee87fe4b9dc8ad40aff91f94fb994fba350927305e7"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Default Sine retains its 112-sample Morph editor before any sample import",
+            "Loading an original one-packet VAB Tone opens all 28 editable samples without a Sine replacement",
+            "Numeric and pointer edits use a private slot and retain source metadata, length and original VAB bytes",
+            "A long looped sample retains its full overview, arbitrary root frequency and edits beyond frame 112",
+            "Save and reimport retain the edited complete ADPCM in a normal version-1 portable preset",
+            "Canceling an in-flight encode leaves sustained notes, original bytes and audio ownership untouched",
+            "Replacing the source during a slow encode cancels its late write and restores the new sample editor",
+            "An explicit shape returns to the original 112-cycle editor and makes Software morph available"
+          ],
+          "measurements": {
+            "toneBluePixels": 925,
+            "overview": {
+              "width": 800,
+              "height": 180,
+              "firstBlue": 18,
+              "lastBlue": 171
+            },
+            "zoomBluePixels": 974,
+            "heldOutput": {
+              "peak": 0.021926147863268852,
+              "finite": true,
+              "muted": true
+            },
+            "graph": {
+              "contexts": 1,
+              "worklets": 1,
+              "destinations": 1,
+              "muted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Default Sine retains its 112-sample Morph editor before any sample import",
+            "Loading an original one-packet VAB Tone opens all 28 editable samples without a Sine replacement",
+            "Numeric and pointer edits use a private slot and retain source metadata, length and original VAB bytes",
+            "A long looped sample retains its full overview, arbitrary root frequency and edits beyond frame 112",
+            "Save and reimport retain the edited complete ADPCM in a normal version-1 portable preset",
+            "Canceling an in-flight encode leaves sustained notes, original bytes and audio ownership untouched",
+            "Replacing the source during a slow encode cancels its late write and restores the new sample editor",
+            "An explicit shape returns to the original 112-cycle editor and makes Software morph available"
+          ],
+          "measurements": {
+            "toneBluePixels": 927,
+            "overview": {
+              "width": 800,
+              "height": 180,
+              "firstBlue": 18,
+              "lastBlue": 171
+            },
+            "zoomBluePixels": 979,
+            "heldOutput": {
+              "peak": 0.022293327376246452,
+              "finite": true,
+              "muted": true
+            },
+            "graph": {
+              "contexts": 1,
+              "worklets": 1,
+              "destinations": 1,
+              "muted": true
+            }
+          }
+        }
+      ]
+    },
+    "captureAndPausedEdit": {
+      "report": "/private/tmp/spu-full-sample-capture.json",
+      "record": {
+        "bytes": 11688,
+        "sha256": "f8721b8e1ee6b3e40dd18dbce4707ffb98001f6e8133f7a88bf9149a8a12aa2c"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "A captured full-sample edit preserves the paused source and edited Synth across CH inspection and Resume",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone opens its full software PCM editor while native inspection stays a bounded ADPCM preview and saved source remains unchanged",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Capture requires Pause and Live; reference key is explicit and defaults to C4",
+            "Changing CH during readonly preflight cancels Capture and preserves the paused song and editor",
+            "Resume during readonly preflight cancels Capture before any Stop or editor write",
+            "Genuine Capture copies original ADPCM, loops, ADSR and sends, keeps editor reverb, and never starts a note",
+            "Keyboard C5 reproduces the captured raw PITCH through the real SPU, upstream of gain zero",
+            "Save to presets and exported SPU JSON preserve bytes and tuning; repeated Capture reuses immutable sample RAM",
+            "Normal preset import stops Code temporary RAM ownership before resolving cached sample IDs",
+            "A captured full-sample edit preserves the paused source and edited Synth across CH inspection and Resume",
+            "Noise-only Capture ignores zero PITCH/start and preserves clock, ADSR, voice/send and editor reverb",
+            "A normal VAB Tone opens its full software PCM editor while native inspection stays a bounded ADPCM preview and saved source remains unchanged",
+            "Actual editor RAM exhaustion fails preflight without stopping the paused PSF or replacing its instrument"
+          ]
+        }
+      ]
+    },
+    "mobile": {
+      "report": "/private/tmp/spu-full-sample-mobile.json",
+      "record": {
+        "bytes": 3755,
+        "sha256": "f43cdee01f49a9baba0c41fceb7ce9c77bea741170cba90006d865234937b803"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "passed": true
+        }
+      ]
+    }
+  },
+  "physicalAudio": {
+    "headlessOnly": true,
+    "destinationInterceptedBeforeApplication": true,
+    "gain": 0,
+    "chromiumMuteAudio": true,
+    "ordinaryBrowserOrNativeAppUsed": false,
+    "osVolumeChanged": false,
+    "listeningPerformed": false
+  },
+  "package": {
+    "passed": true,
+    "stage": "release/itch_spu_synth_full-sample-20261112-YosOih",
+    "archive": "release/tetorica_spu_synth_full-sample-20261112_itch.zip",
+    "files": 340,
+    "bundles": 3,
+    "archiveRecord": {
+      "bytes": 7074301,
+      "sha256": "efef0c9c77ee4160e585cd28890fd132335b82024c2d9ccefe47a165f056bb09"
+    },
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    },
+    "zipCrcAndStageBytesMatch": true
+  },
+  "visualInspection": {
+    "desktop": "/private/tmp/spu-full-sample-browser/chromium-long-edited-sample.png",
+    "mobile": "/private/tmp/spu-full-sample-mobile-chromium.png",
+    "checked": "Full data graph, loop/index markers, complete sample count, numeric/zoom controls and disabled short-cycle Morph. Mobile has no horizontal overflow."
+  },
+  "shippedWasmRebuilt": false
+}

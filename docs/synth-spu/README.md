@@ -29,14 +29,29 @@ Software morph starts enabled, with Wave A = Sine, Wave B = Saw and amount 0%
 (Sine only). Reset instrument restores this setup. Imported audio and bank Tones
 disable morph; loaded presets restore their saved setting.
 
-**PCM** draws a short repeating waveform. **ADSR** contains the envelope
-parameters and draggable A / D / S / R guide. **FX** controls SPU reverb.
-Imported ADPCM from Capture, a VAB Tone or a preset also appears in PCM as a
-read-only preview of the first up to four packets (112 decoded samples).
-It uses zero predictor history at sample start, shows only that short portion
-and does not show the current playback cursor. It does not convert the sample
-into an editable cycle or change its original bytes. Drawn PCM and Morph keep
-their existing editable canvas; Noise does not display its silent support loop.
+**PCM** edits a short repeating waveform or an imported ADPCM sample. **ADSR**
+contains the envelope parameters and draggable A / D / S / R guide. **FX**
+controls SPU reverb. Imported ADPCM from Capture, a VAB Tone or a preset opens
+the **full sample PCM** editor on the same canvas. Its overview includes the
+entire sample; zoom or choose a visible frame range for detailed drawing, or
+set an individual sample by index and value. The loop-start marker remains at
+its original source frame. Length, loop boundaries and declared root tuning
+are kept; this view is source PCM rather than the current playback cursor.
+
+Full-sample editing is a Tetorica software editor. A completed stroke or numeric
+change encodes the whole sample back to SPU ADPCM in a preparation Worker, then
+stops held notes and applies the result. Re-encoding adds ADPCM quantization.
+The original bank sample is kept, and repeated edits reuse a private RAM slot
+of the same size. The first edit needs enough free SPU RAM for that copy; a
+rejected or cancelled preparation keeps the current sound. Save to presets or
+export an SPU instrument to retain the edited ADPCM and its tuning.
+
+Software morph remains a **112-sample cycle** feature. Its enable control is
+disabled for a full sample, so it cannot silently replace the imported sound
+with Sine. Choosing a shape explicitly creates a new short cycle and restores
+cycle drawing and Morph. PSF / Code Live observations remain read-only; PSF
+Live previews still use only the first four packets. Noise does not display
+its silent support loop.
 **Audio** sets the root note and looping option for recordings loaded from
 Menu. **PSF / VAB** lists opened PlayStation sound banks and extracts supported
 banks from PSF sets. Tab changes keep sounding notes and the current settings.
@@ -427,8 +442,9 @@ each sounding note's current envelope stage without resetting its level or
 sample position. Attack changes do not restart a note already in Sustain;
 Sustain Level is the Decay target. With the option off, the running note keeps
 its ADSR through release, and the next Note On reads the latest instrument
-settings. PCM edits update the common cycle. With the option on, held keyboard
-notes restart with the edited waveform; with it off, they are not retriggered.
+settings. Short-cycle PCM edits update the common cycle. With the option on,
+held keyboard notes restart with the edited waveform; with it off, they are
+not retriggered. Full-sample edits stop held notes when the prepared ADPCM is applied.
 Because the sample RAM is shared, this does not preserve the old waveform for
 notes that are already playing.
 

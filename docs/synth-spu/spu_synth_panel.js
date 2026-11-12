@@ -4,12 +4,13 @@ import {readMorph, morphPcm, morphShape, morphShapeName, MORPH_SHAPES} from './s
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
 import {appliedSpuAdpcmPreview} from './spu_adpcm_preview.js';
+import {createSpuSamplePcmEditor} from './sample_pcm_editor.js';
 import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
 
 /** Reuse the PCM/ADSR/FX editors with one instrument for all keyboard voices.
  * Physical-channel inspection and audition controls belong to Playground. */
-export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invoke, ...options}) {
-  let selectedMorphEndpoint='a',morphUiState=null;
+export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invoke, readSample,prepareSampleEdit,...options}) {
+  let selectedMorphEndpoint='a',morphUiState=null,panelConnected=false;
   const panel = createPlaygroundPs1VoicePanel({root, ...options, onError(error) {
     if(error?.name==='AbortError') {
       const status=root.querySelector('.chip-editor-status');
@@ -67,6 +68,13 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const performanceControls=[...(morphPerformanceRoot?.querySelectorAll('[data-morph-performance-amount]')??[])].map(input=>({input,output:input.closest('label').querySelector('[data-morph-performance-output]')}));
   let lastMorph=readMorph({enabled:true}),morphDraft=readMorph({enabled:true}),morphInFlight=0,currentPcm=null;
   const pcmCanvas=sections[0].querySelector('[data-chip-control="ps1-waveform"]');
+  const pcmFields=sections[0].querySelector('[data-chip-control="ps1-wave-index"]').closest('.chip-fields');
+  const fullRoot=root.ownerDocument.createElement('div');pcmCanvas.after(fullRoot);
+  const fullCallbacks=typeof readSample==='function'&&typeof prepareSampleEdit==='function';
+  const fullEditor=createSpuSamplePcmEditor({element:fullRoot,canvas:pcmCanvas,
+    readSample:readSample??(async()=>{throw Error('Full sample reading is unavailable.');}),
+    prepareSampleEdit:prepareSampleEdit??(async()=>{throw Error('Full sample editing is unavailable.');}),
+    applySample:prepared=>invoke('setInstrumentSample',[prepared]),onError:error=>options.onError?.(error),onChange:()=>observationLabels()});
   const pcmHeading=sections[0].querySelector('h3'),pcmHeadingText=pcmHeading.textContent;
   const pcmCanvasLabel=pcmCanvas.getAttribute('aria-label');
   const adsrCanvas=root.querySelector('[data-chip-control="ps1-envelope"]'),adsrCanvasLabel=adsrCanvas.getAttribute('aria-label');
@@ -74,13 +82,23 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const customReverb=root.ownerDocument.createElement('option');customReverb.value='custom';customReverb.textContent='Custom · song register settings';customReverb.disabled=true;customReverb.hidden=true;reverbPreset.append(customReverb);
   const reverbState=root.ownerDocument.createElement('p');reverbState.className='subtext';reverbState.dataset.psfReverbState='';reverbState.hidden=true;sections[2].append(reverbState);
   const sourceNotes=[];
-  const initialWaveNotes=new Map([...sections[0].querySelectorAll('p')].map(node=>[node,node.textContent]));
+  const initialWaveNotes=new Map([...sections[0].querySelectorAll('p')].filter(node=>!fullRoot.contains(node)).map(node=>[node,node.textContent]));
+  const morphSampleReason=root.ownerDocument.createElement('p');morphSampleReason.className='subtext';morphSampleReason.dataset.sampleMorphReason='';morphSampleReason.hidden=true;
+  morphSampleReason.textContent='112-sample cycles only. This sample keeps its full length; choose a shape to replace it with a short cycle.';morph.append(morphSampleReason);
+  function hasFullSampleSource(){return Boolean(morphUiState?.samplePcmSource&&!morphUiState.channels?.[0]?.waveform&&!morphUiState.hostAudio&&!morphUiState.noise?.enabled);}
+  function syncFullSample() {
+    const voice=morphUiState?.channels?.[0];
+    fullEditor.update({source:morphUiState?.samplePcmSource,active:Boolean(fullCallbacks&&panelConnected&&visible&&activeSection==='pcm'&&
+      !morphUiState?.observation&&!morphUiState?.codeActive&&!morphUiState?.noise?.enabled&&!morphDraft.enabled&&!voice?.waveform&&!morphUiState?.hostAudio)});
+  }
   function observationLabels() {
     const observing=morphUiState?.observation?.kind==='psf';
     const voice=morphUiState?.channels?.[0],noise=Boolean(morphUiState?.noise?.enabled);
-    const preview=!observing&&!noise&&!morphDraft.enabled&&!voice?.waveform?appliedSpuAdpcmPreview(voice):null;
-    pcmCanvas.dataset.waveformView=noise?'noise':observing?'psf-adpcm-preview':preview?'adpcm-preview':morphDraft.enabled?'morph-pcm':voice?.waveform?'editable-pcm':'unavailable';
-    pcmCanvas.dataset.readonly=String(observing||Boolean(preview)||noise||!voice?.waveform&&!morphDraft.enabled);
+    const full=fullEditor.read(),preview=!observing&&!noise&&!morphDraft.enabled&&!voice?.waveform?appliedSpuAdpcmPreview(voice):null;
+    pcmCanvas.dataset.waveformView=noise?'noise':observing?'psf-adpcm-preview':full.active?'sample-pcm':preview?'adpcm-preview':morphDraft.enabled?'morph-pcm':voice?.waveform?'editable-pcm':'unavailable';
+    pcmCanvas.dataset.readonly=String(full.active?!full.ready:observing||Boolean(preview)||noise||!voice?.waveform&&!morphDraft.enabled);
+    pcmFields.hidden=full.active;
+    morphControls.enabled.disabled=hasFullSampleSource();morphSampleReason.hidden=!hasFullSampleSource();
     customReverb.hidden=!observing;
     morph.hidden=observing||Boolean(morphUiState?.noise?.enabled);
     reverbState.hidden=!observing;
@@ -96,6 +114,13 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
       for(const [node]of initialWaveNotes)if(node!==info)node.hidden=true;
       const reverb=morphUiState.reverb??{},main=morphUiState.main;
       reverbState.textContent=`Shared reverb ${reverb.enabled?'enabled':'disabled'} · ${reverb.preset==='custom'?'Custom register configuration':reverb.preset??'Unknown configuration'}${Number.isInteger(reverb.baseAddress)?` · RAM base 0x${reverb.baseAddress.toString(16).toUpperCase()}`:''}${main?` · Main L ${main.volumeLeft.toFixed(3)} / R ${main.volumeRight.toFixed(3)}`:''}. Selected CH send and shared returns are shown above.`;
+    } else if(full.active) {
+      pcmHeading.textContent='Sample PCM · Software editor';
+      pcmCanvas.setAttribute('aria-label',`Full sample PCM editor. ${full.frames||'Loading'} samples; view ${full.viewStart} through ${full.viewStart+full.viewSpan-1}. Drag to draw; apply on release.`);
+      const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
+      if(info)info.textContent='Complete decoded source PCM, before interpolation, ADSR and effects. This software edit re-encodes the sample; original length, loop and tuning are preserved.';
+      for(const [node]of initialWaveNotes)if(node!==info&&!fullRoot.contains(node))node.hidden=true;
+      fullEditor.draw();
     } else if(preview) {
       pcmHeading.textContent='ADPCM preview · sample Start · read-only';
       pcmCanvas.setAttribute('aria-label',`Read-only ADPCM sample-start preview, ${preview.decodedFrames} decoded samples with zero predictor history. Not editable PCM or the current audible waveform.`);
@@ -146,7 +171,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const morphListeners=[];
   function syncPcmEditor() {
     if(!morphUiState)return;
-    const editing=morphDraft.enabled;
+    const editing=morphDraft.enabled;syncFullSample();
     if(morphStroke && (!editing || morphUiState.noise?.enabled || morphStroke.key!==selectedMorphEndpoint || morphStroke.identity!==JSON.stringify(morphDraft[selectedMorphEndpoint])))cancelMorphStroke();
     const mount=morph.querySelector('[data-morph-editor-mount]');
     for(const {node,anchor} of editorNodes) {
@@ -160,6 +185,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
     if(editing&&info)info.textContent=`Editing Wave ${selectedMorphEndpoint.toUpperCase()} · A (blue), B (pink), Result (gold). Draw on this canvas or set individual samples. A completed stroke updates the blend without retriggering notes.`;
     if(editing)drawMorphCanvas();
+    fullEditor.draw(true);
     observationLabels();
   }
   function drawMorphCanvas() {
@@ -247,6 +273,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     syncPcmEditor();
   }
   async function changeMorph(patch) {
+    if(patch.enabled===true&&hasFullSampleSource()){displayMorph();return;}
     morphDraft=readMorph({...morphDraft,...patch});displayMorph();morphInFlight++;
     try {
       // The audio reply can arrive before the coalesced UI snapshot is drawn.
@@ -333,18 +360,24 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     // ownership belongs to the standalone controller and is unaffected.
     cancelMorphStroke();panel.setVisible(false);
     activeSection = name;
+    syncFullSample();
     root.hidden = !sectionNames.includes(name);
     sections.forEach((section, index) => {section.hidden = sectionNames[index] !== name;});
     panel.setVisible(visible && sectionNames.includes(name));
     if(visible&&name==='pcm')drawMorphCanvas();
+    fullEditor.draw(true);
     observationLabels();
   }, setVisible(value) {
     visible = Boolean(value);
+    syncFullSample();
     if(!visible)cancelMorphStroke();
     panel.setVisible(visible && sectionNames.includes(activeSection));
     if(visible&&activeSection==='pcm')drawMorphCanvas();
+    fullEditor.draw(true);
     observationLabels();
-  }, dispose() {cancelMorphStroke();for(const remove of morphListeners)remove();panel.dispose();}, update(state) {
+  }, setConnected(value) {
+    panelConnected=Boolean(value);if(!panelConnected)fullEditor.clear();panel.setConnected(value);syncFullSample();fullEditor.draw(true);observationLabels();
+  }, dispose() {fullEditor.dispose();cancelMorphStroke();for(const remove of morphListeners)remove();panel.dispose();}, update(state) {
     const observing=state.observation?.kind==='psf',voice=state.channels?.[0];
     // Song masks are physical per-voice flags, independent of the Synth's
     // helper parameters. Never infer its software PMON waveform or depth.

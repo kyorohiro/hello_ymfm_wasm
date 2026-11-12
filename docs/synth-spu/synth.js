@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-import-preview-1';
-import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-psf-paused-edit-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-full-sample-edit-1';
+import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-full-sample-edit-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
@@ -44,7 +44,7 @@ let capturePending=null;
 let pausedAudition=null,pausedStopFence=Promise.resolve(),pausedStopping=0,pausedEditorAudition=false,psfActionEpoch=0;
 const auditionAudioIds=new WeakMap();let auditionAudioSequence=0;
 const observedSaveButtons=new Map();
-const pausedEditorMethods=new Set(['setInstrumentPreset','setInstrumentEnvelope','setInstrumentWaveform','setInstrumentMorph',
+const pausedEditorMethods=new Set(['setInstrumentPreset','setInstrumentEnvelope','setInstrumentWaveform','setInstrumentMorph','setInstrumentSample',
   'setInstrumentNoise','setInstrumentPmon','setInstrumentReverbPreset','setReverb','setInstrumentPitchBend']);
 const rmsCanvas = document.createElement('canvas');
 rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 240;
@@ -332,6 +332,21 @@ async function invoke(method, args = []) {
 }
 const panel = createSpuInstrumentPanel({
   root:$('spuVoicePanel'), morphPerformanceRoot:document, invoke, ensureAudioReady:ensureAudio, onError:report,
+  async readSample(){
+    const owner=audio;if(!owner)throw new DOMException('Audio is unavailable','AbortError');
+    const source=await owner.command('getInstrumentSample',[0]);
+    if(disposed||audio!==owner)throw new DOMException('Sample owner changed','AbortError');
+    return source;
+  },
+  async prepareSampleEdit(source,pcm,{signal}={}){
+    const owner=audio,operation=assetEpoch;
+    if(!owner||signal?.aborted)throw new DOMException('Sample edit cancelled','AbortError');
+    if(!(pcm instanceof Float32Array)||pcm.length!==source.adpcm.byteLength/16*28)throw new RangeError('Sample editing must preserve the complete source length.');
+    if(Number.isSafeInteger(source.availableEditBytes)&&source.availableEditBytes<source.adpcm.byteLength)throw new RangeError('Not enough free SPU RAM for an edited copy. Save the instrument and reload to free the sample bank.');
+    const encoded=await encodeInWorker(pcm.slice(),{loopStartSamples:source.loopStartSamples??null,maxBytes:source.adpcm.byteLength},{signal});
+    if(disposed||audio!==owner||operation!==assetEpoch||signal?.aborted)throw new DOMException('Sample edit was superseded','AbortError');
+    return {sourceSampleId:source.sampleId,sourceToken:source.token,adpcm:encoded.adpcm};
+  },
 });
 setupSynthMenu({document,window});
 $('synthMenuPanel').addEventListener('click',event=>{
@@ -629,15 +644,20 @@ $('instrumentName').addEventListener('change', () => {
 
 const decodeAudio = createOfflineAudioDecoder({getSampleRate:() => 44100});
 let preparation = null;
-function encodeInWorker(pcm, options) {
+function encodeInWorker(pcm, options, {signal}={}) {
+  if(signal?.aborted)return Promise.reject(new DOMException('Sample preparation cancelled','AbortError'));
   preparation?.cancel();
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./spu_synth_prepare_worker.js', import.meta.url), {type:'module'});
-    const complete = (error, result) => {worker.terminate(); if (preparation?.worker === worker) preparation = null; error ? reject(error) : resolve(result);};
+    let settled=false;
+    const abort=()=>complete(new DOMException('Sample preparation cancelled','AbortError'));
+    const complete = (error, result) => {if(settled)return;settled=true;signal?.removeEventListener('abort',abort);worker.terminate(); if (preparation?.worker === worker) preparation = null; error ? reject(error) : resolve(result);};
     preparation = {worker, cancel:() => complete(new DOMException('Sample preparation cancelled', 'AbortError'))};
+    signal?.addEventListener('abort',abort,{once:true});
     worker.onmessage = ({data}) => complete(data.error ? new Error(data.error) : null, data.result);
     worker.onerror = event => complete(new Error(event.message || 'Sample encoding failed'));
-    worker.postMessage({pcm, options}, [pcm.buffer]);
+    try {worker.postMessage({pcm, options}, [pcm.buffer]);}
+    catch(error){complete(error);}
   });
 }
 $('loadAudio').addEventListener('click', () => $('audioFileInput').click());
