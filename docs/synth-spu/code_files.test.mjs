@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setupSpuCodeFiles} from './code_files.js';
 import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js';
+import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
+import {readVab} from './spu_synth_vab.js';
 
 class Element{
   constructor(doc,tag='div'){Object.assign(this,{ownerDocument:doc,tagName:tag.toUpperCase(),children:[],listeners:new Map(),attributes:{},dataset:{},style:{},parentNode:null,hidden:false,value:'',disabled:false});const names=new Set();this.classList={toggle:(name,on)=>on?names.add(name):names.delete(name),contains:name=>names.has(name),add:name=>names.add(name),remove:name=>names.delete(name)};}
@@ -17,6 +19,7 @@ function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);main.id='test-main';doc.append(main);doc.querySelector=selector=>selector==='.spu-main'?main:null;
   for(const id of ['spuFilesPanel','spuFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='spuFilesPanel';doc.append(node);}
+  if(options.presetPicker){const select=new Element(doc,'select');select.id='spuPresetSelect';doc.append(select);}
   const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
   const project=options.project??createSpuCodeProject({starterCode:'kept'}),writes=[],calls=[],statuses=[],opened=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
@@ -229,4 +232,113 @@ test('disposing during a delayed workspace Stop cannot replace a later project',
   const incoming=createSpuCodeProject({starterCode:'replacement'}),before=f.project.snapshot(),pending=f.files.importProject(incoming.exportProject());
   for(let count=0;count<100&&!stopping;count++)await new Promise(resolve=>setTimeout(resolve,5));assert(stopping);await f.files.dispose();gate.resolve();
   assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.calls.length,0);
+});
+
+const pickerOptions=f=>walk(f.doc.getElementById('spuPresetSelect')).filter(node=>node.tagName==='OPTION'&&node.value);
+async function until(predicate){for(let i=0;i<200;i++){if(predicate())return;await Promise.resolve();}throw Error('Files fixture did not settle');}
+
+test('bank saves atomically retain exact VAB and JSON, flush uncommitted Code and persist once without audio or mode changes',async t=>{
+  const f=fixture(t,{presetPicker:true,getInstrument(){assert.fail('Bank saving must not inspect audio');},applyInstrument(){assert.fail('Bank saving must not apply audio');},applyVabTone(){assert.fail('Bank saving must not apply a VAB Tone');},onBeforeWorkspaceReplace(){assert.fail('Bank saving must not stop a workspace');}});await f.files.ready;
+  const code={activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,setBusy(){},
+    async flush(){if(code.activePath==='/index.js')f.project.fs.writeText('/index.js','unflushed authored Code');await f.files.persistCode();return true;},
+    async openFile(path,options){assert.deepEqual(options,{show:false});await code.flush();code.activePath=path;f.files.rememberCodeState({mode:'code',path});return true;},
+    stop(){assert.fail('No Code Stop');},workspaceReplaced(){assert.fail('No runtime reset');}};
+  f.files.setCodeControls(code);f.project.setCodeState({mode:'code',path:'/index.js'});
+  const docs=[{...soundFixture(),name:'Bank P3 T0'},{...soundFixture(),name:'Bank P3 T1',preset:{...soundFixture().preset,adsr1:1234}}],before=structuredClone(docs),vab=createVabFixture().vab,original=vab.slice();
+  const paths=await f.files.saveInstruments(docs,{assets:[{name:'Bank',data:vab}]});
+  assert.deepEqual(paths,['/presets/Bank P3 T0.spu.json','/presets/Bank P3 T1.spu.json']);
+  assert.deepEqual(f.project.fs.get('/presets/Bank.vab').data,original);assert.equal(readVab(f.project.fs.get('/presets/Bank.vab').data).tones.length,3);
+  assert.deepEqual(paths.map(path=>JSON.parse(f.project.fs.get(path).data)),before);assert.deepEqual(docs,before);assert.deepEqual(vab,original);
+  assert.equal(f.project.fs.get('/index.js').data,'unflushed authored Code');assert.equal(f.writes.length,1);assert.equal(f.writes[0].filesystem.files.find(file=>file.path==='/index.js').data,'unflushed authored Code');
+  assert.deepEqual(f.project.getCodeState(),{mode:'code',path:paths[0]});assert.equal(code.executionPath,'/index.js');
+  assert.equal(f.doc.getElementById('spuPresetSelect').value,'','saved docs were not loaded');assert.equal(f.doc.getElementById('spuFilesPanel').hidden,false);
+  assert.equal(f.doc.querySelector('.spu-main').inert,false);assert.deepEqual(f.calls,[]);assert.match(f.statuses.at(-1),/1 VAB bank and 2 JSON presets/);
+});
+
+test('batch collisions include existing folders, NFC casefold names and all earlier JSON or VAB entries in the batch',async t=>{
+  const f=fixture(t);await f.files.ready;const vab=createVabFixture().vab;
+  f.project.fs.mkdir('/presets');f.project.fs.mkdir('/presets/Café.spu.json');f.project.fs.mkdir('/presets/Bank.vab');
+  f.project.importFiles([{path:'/presets/CAFÉ (2).spu.json',data:'kept user text'},{path:'/presets/BANK (2).vab',type:'binary',data:vab}]);
+  const paths=await f.files.saveInstruments([{...soundFixture(),name:'Cafe\u0301'},{...soundFixture(),name:'café'}],{assets:[{name:'Bank.vab',data:vab},{name:'BANK',data:vab}]});
+  assert.deepEqual(paths,['/presets/Café (3).spu.json','/presets/café (4).spu.json']);
+  assert(f.project.fs.has('/presets/Bank (3).vab'));assert(f.project.fs.has('/presets/BANK (4).vab'));
+  assert.equal(f.project.fs.stat('/presets/Bank.vab').type,'directory');assert.equal(f.project.fs.get('/presets/CAFÉ (2).spu.json').data,'kept user text');assert.deepEqual(f.calls,[]);
+});
+
+test('combined VAB and JSON capacity and document errors leave all preset files and selection unchanged',async t=>{
+  const f=fixture(t,{presetPicker:true});await f.files.ready;const first={...soundFixture(),name:'First'},second={...soundFixture(),name:'Second'},vab=createVabFixture().vab;
+  const size=doc=>new TextEncoder().encode(JSON.stringify(doc,null,2)+'\n').length;
+  const free=size(first)+vab.length+Math.floor(size(second)/2);
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(SPU_PROJECT_FILE_BYTES-4-free)}]);f.project.select('/index.js');const before=f.project.snapshot();
+  await assert.rejects(f.files.saveInstruments([first,second],{assets:[{name:'Bank',data:vab}]}),/16 MiB cassette limit/);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.project.fs.has('/presets/First.spu.json'),false);assert.equal(f.project.fs.has('/presets/Bank.vab'),false);
+  await assert.rejects(f.files.saveInstruments([first,{schema:'invalid'}],{assets:[{name:'Bank',data:vab}]}),/Expected an SPU instrument/);
+  await assert.rejects(f.files.saveInstruments([first],{assets:[{name:'Bad',data:Uint8Array.of(1,2,3)}]}),/VAB/);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.doc.getElementById('spuFilesPanel').hidden,true);assert.deepEqual(f.calls,[]);
+});
+
+test('VAB-only saves retain an all-unavailable standard bank without creating or applying an instrument',async t=>{
+  const f=fixture(t,{presetPicker:true});await f.files.ready;const vab=createVabFixture().vab,view=new DataView(vab.buffer,vab.byteOffset,vab.byteLength);
+  for(const at of [0x820+22,0x820+32+22,0x820+0x200+22])view.setUint16(at,255,true);
+  assert.equal(readVab(vab).tones.length,3);const paths=await f.files.saveInstruments([],{assets:[{name:'Noise only',data:vab}]});
+  assert.deepEqual(paths,[]);assert.deepEqual(f.project.fs.get('/presets/Noise only.vab').data,vab);assert.equal(f.project.selectedPath,'/presets/Noise only.vab');
+  assert.deepEqual(f.opened,[]);assert.deepEqual(f.calls,[]);assert.equal(pickerOptions(f).length,0);
+  const select=f.doc.getElementById('spuPresetSelect');assert.equal(select.disabled,true);assert.match(select.children[0].textContent,/No playable presets/);
+});
+
+test('stale or disposed bank saves cannot add a late batch after flushing',async t=>{
+  for(const action of ['stale','dispose']) {
+    const f=fixture(t),gate=deferred();await f.files.ready;let entered=false,current=true;
+    f.files.setCodeControls({setBusy(){},flush:async()=>{entered=true;await gate.promise;return true;},openFile(){assert.fail('No stale editor open');}});
+    const before=f.project.snapshot(),pending=f.files.saveInstruments([soundFixture()],{isCurrent:()=>current});await until(()=>entered);
+    let disposing;if(action==='stale')current=false;else disposing=f.files.dispose();gate.resolve();assert.equal(await pending,false);if(disposing)await disposing;
+    assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
+  }
+});
+
+test('preset picker lists valid recursive JSON and VAB Tones, applies only explicit selection, and keeps a prior loaded sound during bank saving',async t=>{
+  const applied=[],f=fixture(t,{presetPicker:true,applyVabTone:async(payload,options)=>{assert.equal(options.isCurrent(),true);applied.push(payload);}});await f.files.ready;
+  const bankPath='/presets/sub/Bank #1%.vab',jsonPath='/presets/Json.spu.json';
+  f.project.importFiles([{path:bankPath,type:'binary',data:createVabFixture().vab},{path:jsonPath,data:JSON.stringify(soundFixture())},
+    {path:'/presets/bad.json',data:'{"unfinished":'},{path:'/presets/plain.json',data:'{"not":"an instrument"}'},{path:'/outside.json',data:JSON.stringify(soundFixture())}]);
+  const select=f.doc.getElementById('spuPresetSelect'),options=pickerOptions(f);assert.equal(options.length,4);
+  assert.equal(select.children[1].label,'VAB · Program / Tone');assert.equal(select.children[2].label,'SPU JSON');assert.equal(select.value,'');assert.equal(applied.length,0);assert.deepEqual(f.calls,[]);
+  const value=`vab:${encodeURIComponent(bankPath)}#1`;assert(options.some(option=>option.value===value&&/Program 3 · Tone 1/.test(option.textContent)));
+  select.value=value;select.focus();await select.fire('change');assert.notEqual(f.doc.activeElement,select);await until(()=>applied.length===1&&select.value===value);
+  assert.equal(applied[0].path,bankPath);assert.equal(applied[0].toneNumber,1);assert.equal(applied[0].bank.tones[1].program,3);
+  assert.deepEqual(f.opened,[],'binary Tone selection does not replace the Code document');assert.equal(f.project.selectedPath,bankPath);
+  await f.files.saveInstruments([{...soundFixture(),name:'Another'}],{assets:[{name:'Another bank',data:createVabFixture().vab}]});
+  assert.equal(select.value,value,'a saved but unapplied preset is not presented as loaded');assert.equal(applied.length,1);
+  await f.files.move(bankPath,'/presets/sub/Moved.vab');assert.equal(select.value,`vab:${encodeURIComponent('/presets/sub/Moved.vab')}#1`);
+  await f.files.remove('/presets/sub/Moved.vab');assert.equal(select.value,'');assert(!pickerOptions(f).some(option=>option.value===value));
+  select.value=jsonPath;await select.fire('change');await until(()=>f.calls.some(call=>call[0]==='instrument')&&select.value===jsonPath);
+  f.project.writeEditorText(jsonPath,JSON.stringify({...soundFixture(),name:'Edited but not applied'}));assert.equal(select.value,'');
+  await f.files.selectFile(jsonPath);assert.equal(select.value,jsonPath);f.files.markSoundDirty();assert.equal(select.value,'');
+});
+
+test('picker validity is cached for unchanged JSON and reacts to invalid edits, replacement and project restoration without auto loading',async t=>{
+  const f=fixture(t,{presetPicker:true});await f.files.ready;const path='/presets/cache.spu.json',data=JSON.stringify(soundFixture()),originalParse=JSON.parse;let parses=0;
+  JSON.parse=(value,...args)=>{if(value===data)parses++;return originalParse(value,...args);};
+  try {
+    f.project.importFiles([{path,data}]);assert.equal(parses,1);
+    for(let i=0;i<10;i++)f.project.select(i%2?path:'/index.js');assert.equal(parses,1,'selection redraws do not reparse large sample JSON');
+  }finally{JSON.parse=originalParse;}
+  assert.equal(pickerOptions(f).length,1);f.project.writeEditorText(path,'{"broken":');assert.equal(pickerOptions(f).length,0);
+  f.project.writeEditorText(path,data);assert.equal(pickerOptions(f).length,1);await f.files.selectFile(path);assert.equal(f.doc.getElementById('spuPresetSelect').value,path);
+  const incoming=createSpuCodeProject({snapshot:f.project.snapshot()});await f.files.importProject(incoming.exportProject());
+  assert.equal(pickerOptions(f).length,1);assert.equal(f.doc.getElementById('spuPresetSelect').value,'','restoration lists presets but does not claim to load them');
+});
+
+test('VAB revisions and same-path file replacement refresh Tone options and failed Tone loads keep the old picker selection',async t=>{
+  let reject=false;
+  const f=fixture(t,{presetPicker:true,applyVabTone:async()=>{if(reject)throw Error('Tone load rejected');}});await f.files.ready;
+  const path='/presets/bank.vab',vab=createVabFixture().vab;
+  f.project.importFiles([{path,type:'binary',data:vab}]);await f.files.selectVabTone(path,0);const selected=f.doc.getElementById('spuPresetSelect').value;
+  reject=true;await assert.rejects(f.files.selectVabTone(path,1),/Tone load rejected/);assert.equal(f.doc.getElementById('spuPresetSelect').value,selected);
+  const changed=vab.slice();new DataView(changed.buffer).setUint16(0x820+22,255,true);
+  await f.files.importFiles([{name:'bank.vab',size:changed.length,arrayBuffer:async()=>changed.buffer}]);
+  // Generic Add files uses /bank.vab; replacing the actual preset path is an
+  // ordinary FS write, whose changed revision must invalidate the VAB cache.
+  f.project.fs.writeFile(path,changed);assert.equal(pickerOptions(f).filter(option=>option.value.startsWith('vab:'+encodeURIComponent(path)+'#')).length,2);
+  assert.equal(f.doc.getElementById('spuPresetSelect').value,'');
 });

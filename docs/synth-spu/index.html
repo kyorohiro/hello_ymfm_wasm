@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-full-sample-edit-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-bank-presets-1">
   </head>
   <body>
     <main>
@@ -175,10 +175,12 @@
 
             <div class="sample-settings">
               <label>Sound bank <select id="vabBank" aria-label="Sound bank" disabled></select></label>
+              <button id="saveVabBank" type="button" disabled title="Save the original standard VAB and separate JSONs for its available Tones in Files / presets, keeping the current sound.">Save bank to presets</button>
             </div>
             <div class="sample-settings">
               <label>Tone <select id="vabTone" aria-label="VAB Tone" disabled></select></label>
               <button id="loadVabTone" type="button" disabled>Load selected Tone</button>
+              <button id="saveVabTone" type="button" disabled title="Save this Tone as a one-Tone standard VAB and a JSON in Files / presets, without loading it into the Synth.">Save selected Tone to preset</button>
             </div>
             <p id="vabAvailability" class="subtext" hidden></p>
             <details id="vabUnavailableDetails" class="vab-reasons" hidden>
@@ -186,12 +188,14 @@
               <ul id="vabUnavailableReasons"></ul>
             </details>
             <p id="vabStatus" class="subtext" role="status" aria-live="polite">No sound bank opened.</p>
+            <details class="spu-code-help"><summary aria-label="About saving bank presets">?</summary><p>Both commands save standard VAB and supplemental SPU JSON in Files / presets. Save bank to presets keeps the complete original VAB, plus one JSON per available Tone. Unavailable Tones remain in the original VAB and are skipped only in JSON. Save selected Tone to preset makes a one-Program / one-Tone / one-Sample VAB, with Tone 0 / Sample 1 and the original Program ID, plus its JSON. Original ADPCM and VAB attributes are kept; no audio is re-encoded. Saving keeps your edited sound and song position and does not load SPU RAM. Preset below lists each VAB's available Program / Tone directly, and JSON separately; VAB loading does not need JSON. JSON can also retain Tetorica settings: direct Tone copies use your current shared reverb with PMON, Noise and Morph Off. Existing files are kept. If both formats exceed the 16 MiB project limit, nothing is added; save fewer Tones or use a fresh project.</p></details>
             <p class="subtext">For PSF instruments, choose an entry and extract its banks, then select a bank and Tone. Unavailable Tones show a reason. Static extraction supports contiguous VAB banks and separated VH / VB when the complete sample data has one unambiguous match. Custom or runtime-packed banks may not be found. Song playback is independent of bank extraction. PSF2 is not supported. Extract ZIP archives before selecting their files or folder.</p>
             <p class="subtext">Imports the original ADPCM, loop, ADSR and tuning. One Tone plays across the keyboard; key zones, layers and driver vibrato/portamento are not applied. Volume and pan are approximations. Reverb send uses the current shared reverb settings. Loading a Tone stops notes and turns off PMON, Noise and Software morph.</p>
           </section>
         </section>
 
         <section class="instrument-toolbar" aria-label="Instrument files">
+          <label class="instrument-preset-control" for="spuPresetSelect">Preset <select id="spuPresetSelect" aria-label="Saved SPU preset" disabled><option value="">No playable presets</option></select></label>
           <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
           <div class="preset-actions">
             <button id="saveSoundToFiles" type="button" title="Save the current instrument and its sample in Files / presets. Instrument name sets the file name; existing files are kept.">Save to presets</button>
@@ -255,6 +259,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-full-sample-edit-1"></script>
+    <script type="module" src="./synth.js?v=spu-bank-presets-1"></script>
   </body>
 </html>

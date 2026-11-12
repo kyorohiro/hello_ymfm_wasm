@@ -8,9 +8,11 @@ import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
-import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js?v=spu-split-vab-1';
-import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=psf-split-vab-1';
-import {setupSpuCodeHost} from './code_host.js?v=spu-files-menu-1';
+import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone,exportVab} from './spu_synth_vab.js?v=spu-bank-presets-1';
+import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=psf-vab-export-1';
+import {setupSpuCodeHost} from './code_host.js?v=spu-bank-presets-1';
+import {SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
+import {prepareVabTonePreset,prepareVabBankPresets,vabTonePresetName} from './spu_bank_presets.js?v=spu-bank-presets-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -261,6 +263,7 @@ async function ensureAudio() {
         try {await applyClickGuard(value);}
         catch(error){if(audio===value){audio=null;await value.dispose();}throw error;}
         instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
+        codeHost?.markSoundDirty();
         audio.setVolume(Number($('masterVolume').value));
         visualizer.connect(audio.context, audio.gain);
         panel.setConnected(true);
@@ -639,6 +642,7 @@ $('masterVolume').addEventListener('input', () => {
 });
 $('instrumentName').addEventListener('change', () => {
   instrumentName = $('instrumentName').value.trim() || 'Untitled';
+  codeHost?.markSoundDirty();
   $('instrumentName').value = instrumentName; if (state) applyState(state);
 });
 
@@ -690,6 +694,7 @@ $('audioFileInput').addEventListener('change', async () => {
     }
     if (operation !== assetEpoch) return;
     instrumentName = file.name.slice(0, 80); $('instrumentName').value = instrumentName;
+    codeHost?.markSoundDirty();
     sampleStatus(`Loaded ${file.name} · ${useHost ? 'Software audio · ' : ''}root ${noteName(rootNote)}${prepared.trimmedFrames ? ` · trimmed ${prepared.trimmedFrames} frames for the loop boundary` : ''}.`);
     applyState(await engine.inspect());
   } catch (error) {if (operation === assetEpoch && error.name !== 'AbortError') sampleStatus(error.message,true);}
@@ -700,7 +705,7 @@ function download(name, contents) {
   const link = document.createElement('a'); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
-let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false, extractingPsf = false;
+let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null, psfHasSongs = false, extractingPsf = false, bankSaveRequest = null;
 const vabStatus = (message, error=false) => { $('vabStatus').textContent=message; $('vabStatus').dataset.error=String(error); };
 function updatePsfPlayback(next) {
   if(disposed)return;
@@ -780,6 +785,8 @@ function updateBankControls() {
   $('vabBank').disabled=busy||!bankChoices.length;
   $('vabTone').disabled=busy||!vabBank;
   $('loadVabTone').disabled=busy||!vabBank||$('vabTone').value==='';
+  $('saveVabBank').disabled=busy||Boolean(bankSaveRequest)||!vabBank;
+  $('saveVabTone').disabled=$('saveVabBank').disabled||$('vabTone').value==='';
   if(psfSong)updatePsfPlayback(psfSong.read());
 }
 function beginAssetOperation() {
@@ -824,6 +831,31 @@ function showBanks(choices) {
 }
 $('vabBank').addEventListener('change',()=>{beginAssetOperation();chooseBank(Number($('vabBank').value));});
 $('vabTone').addEventListener('change',()=>{beginAssetOperation();updateBankControls();});
+async function saveVabPresets(all) {
+  if(!vabBank||bankReadController||bankSaveRequest||!all&&$('vabTone').value==='')return;
+  const request={},operation=assetEpoch,bank=vabBank,name=vabName,index=Number($('vabTone').value);
+  // This is the authored Synth state, not the observed PSF channel's FX.
+  const reverb=state?{preset:state.reverb.preset,volumeLeft:state.reverb.volumeLeft,volumeRight:state.reverb.volumeRight}:{preset:'off',volumeLeft:.25,volumeRight:.25};
+  const current=()=>!disposed&&bankSaveRequest===request&&assetEpoch===operation&&vabBank===bank;
+  bankSaveRequest=request;updateBankControls();
+  try {
+    await codeHost.ready;if(!current())return;
+    const used=codeHost.project.fs.list().reduce((total,file)=>total+(file.type==='text'?new TextEncoder().encode(file.data).byteLength:file.data.byteLength),0);
+    const bytes=exportVab(bank,all?{}:{toneNumber:index}),free=SPU_PROJECT_FILE_BYTES-used-bytes.byteLength;
+    if(free<0)throw Error('The VAB exceeds the free space in the 16 MiB project. No presets were saved.');
+    const result=all?prepareVabBankPresets(bank,{name,reverb,maxBytes:free}):{instruments:[prepareVabTonePreset(bank,index,{name,reverb})],unavailable:[]};
+    const assetName=all?name:result.instruments[0].name;
+    const paths=await codeHost.files.saveInstruments(result.instruments,{assets:[{name:assetName,data:bytes}],isCurrent:current});
+    if(!current()||!paths)return;
+    const reasons=new Map();for(const item of result.unavailable)reasons.set(item.reason,(reasons.get(item.reason)??0)+1);
+    vabStatus(`Saved VAB + ${paths.length} Tone JSON${paths.length===1?'':'s'} to Files / presets.${result.unavailable.length?` ${result.unavailable.length} unavailable Tone${result.unavailable.length===1?'':'s'} skipped in JSON: ${[...reasons].map(([reason,count])=>`${count} × ${reason}`).join('; ')}`:''} Choose a VAB Tone or JSON from Preset below to load it.`);
+  }catch(error){if(current()&&error.name!=='AbortError'){vabStatus(error.message,true);report(error);}}
+  finally{if(bankSaveRequest===request){bankSaveRequest=null;updateBankControls();}}
+}
+for(const[id,all]of [['saveVabBank',true],['saveVabTone',false]]) {
+  $(id).addEventListener('pointerdown',event=>{if(event.button===0){event.preventDefault();if(!codeHost?.isCodeMode())document.activeElement?.blur?.();}});
+  $(id).addEventListener('click',()=>void saveVabPresets(all));
+}
 $('psfEntry').addEventListener('change',()=>{beginAssetOperation();if(psfSet)psfSong.setSource(psfSet,$('psfEntry').value);});
 $('loadPsf').addEventListener('click',()=>$('psfFileInput').click());
 $('loadPsfFolder').addEventListener('click',()=>$('psfFolderInput').click());
@@ -937,8 +969,8 @@ $('loadVabTone').addEventListener('click', async () => {
       await engine.command(method,args);
       if (operation!==assetEpoch) return;
     }
-    const toneSuffix=` P${prepared.tone.program} T${prepared.tone.index}`;
-    instrumentName=name.slice(0,80-toneSuffix.length)+toneSuffix;
+    instrumentName=vabTonePresetName(name,prepared.tone);
+    codeHost?.markSoundDirty();
     $('instrumentName').value=instrumentName;
     const message=`Loaded ${instrumentName} · ${sample.byteLength} ADPCM bytes${prepared.trimmedBytes ? ` · ignored ${prepared.trimmedBytes} bytes after END` : ''}. Play the keyboard or use Save to presets.`;
     vabStatus(message); status(message); applyState(await engine.inspect());
@@ -1079,6 +1111,7 @@ $('resetPreset').addEventListener('click', async () => {
     await engine.command('setInstrumentMorph', [{enabled:true}]);
     await engine.command('setInstrumentPmon', [{enabled:false}]);
     instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
+    codeHost?.markSoundDirty();
     status('Instrument reset to Sine.'); applyState(await engine.inspect());
   } catch (error) {report(error);}
 });
@@ -1097,6 +1130,11 @@ renderKeyboard();
 
 codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getInstrumentDocument,
   async applyInstrument(value,options){beginAssetOperation();preparation?.cancel();return applyInstrumentDocument(value,options);},
+  async applyVabTone({bank,toneNumber,name},options){
+    const reverb=state?{preset:state.reverb.preset,volumeLeft:state.reverb.volumeLeft,volumeRight:state.reverb.volumeRight}:{preset:'off',volumeLeft:.25,volumeRight:.25};
+    const instrument=prepareVabTonePreset(bank,toneNumber,{name,reverb});
+    beginAssetOperation();preparation?.cancel();return applyInstrumentDocument(instrument,options);
+  },
   async stopKeyboard(){
     await stopPausedKeyboard({releaseEdited:true});
     epoch++;notes.clear();updateKeys();panel.releaseAll();$('sustainToggle').checked=false;

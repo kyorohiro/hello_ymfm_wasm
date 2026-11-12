@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?spu-json-c
 import {selectSpuCodeDeclarations} from './code_declarations.js?spu-click-guard=1';
 import {createSpuCodeAudio} from './code_audio.js?spu-code=1';
 import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
-import {setupSpuCodeFiles} from './code_files.js?spu-files-menu=1';
+import {setupSpuCodeFiles} from './code_files.js?spu-bank-presets=1';
 
 export const SPU_STARTER_CODE=`const ps1 = await useSoundChip("ps1");
 setBpm(120);
@@ -24,7 +24,7 @@ liveLoop("melody", async () => {
 });
 `;
 const aborted=()=>new DOMException('SPU Code stopped','AbortError');
-export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstrument,stopKeyboard,
+export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstrument,applyVabTone,stopKeyboard,
   beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE});
@@ -36,7 +36,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     if(!disposed&&request===modeEpoch&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  files=setupSpuCodeFiles({project,getInstrument,applyInstrument,setStatus,
+  files=setupSpuCodeFiles({project,getInstrument,applyInstrument,applyVabTone,setStatus,
     async onBeforeWorkspaceReplace(){await stop();await stopKeyboard();}});
   function getRuntime(){
     if(runtime)return runtime;

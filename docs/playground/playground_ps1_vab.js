@@ -16,12 +16,22 @@ const bytesOf = input => {
 };
 const fail = message => {throw new RangeError(`VAB: ${message}`);};
 const midi = (value, name) => {if (value > 127) fail(`${name} must be 0–127`); return value;};
+// Keep raw source bytes private: parser results remain the same enumerable
+// data model used by existing inspectors, snapshots and JSON diagnostics.
+const vabSources = new WeakMap();
+const bankMetadata = bank => {
+  const {samples,...metadata}=bank;
+  return JSON.stringify({...metadata,samples:samples.map(({bytes,...sample})=>({...sample,byteLength:bytes?.byteLength}))});
+};
 
 /** Parse a complete VAB, or a VH header plus its explicitly supplied VB body.
  * Counts are actual counts (not count minus one). Tone tables are packed by
  * nonempty program, while the 128-entry program table may have holes.
  * No file names, code execution or live RAM are involved. */
 export function readVab(headerInput, bodyInput) {
+  return parseVab(headerInput,bodyInput,true);
+}
+function parseVab(headerInput, bodyInput, retainSource) {
   const header = bytesOf(headerInput), split = bodyInput !== undefined;
   if (header.length > MAX_VAB_FILE_BYTES || header.length < 0x820 || String.fromCharCode(...header.subarray(0,4)) !== 'pBAV') fail('expected a standard pBAV header');
   const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
@@ -36,7 +46,7 @@ export function readVab(headerInput, bodyInput) {
   if (body.length > 524288) fail('sample body exceeds 512 KiB');
   const declaredSize = u32(0x0c);
   if (declaredSize !== bodyOffset + body.length || split && header.length !== bodyOffset) fail('declared file size does not match VH + VB (choose the matching pair)');
-  const samples = [];
+  const samples = [], sampleRanges = [];
   // Entry zero is a leading body reservation (usually zero), not sample #1.
   let offset = u16(sizeTable) * 8;
   if (offset > body.length) fail('sample body prefix exceeds VB size');
@@ -44,6 +54,7 @@ export function readVab(headerInput, bodyInput) {
     const size = u16(sizeTable + index * 2) * 8;
     if (size < 16 || offset + size > body.length) fail(`invalid size or boundary for sample ${index}`);
     samples.push({index, bytes:body.slice(offset, offset + size)});
+    sampleRanges.push({offset,size});
     offset += size;
   }
   // Padding after the last sample is allowed; each sample is still bounded by
@@ -70,7 +81,55 @@ export function readVab(headerInput, bodyInput) {
     packed++; programs.push(program);
   }
   if (packed !== programCount || tones.length !== toneCount) fail('program/tone counts disagree with the tables');
-  return {version, id:u32(8), masterVolume, masterPan, programs, tones, samples};
+  const bank={version, id:u32(8), masterVolume, masterPan, programs, tones, samples};
+  if(retainSource)vabSources.set(bank,{header:header.slice(0,bodyOffset),body:body.slice(),sampleRanges});
+  return bank;
+}
+
+/** Export an opened, unchanged standard VAB without an audio core or encoder.
+ * Full-bank output preserves the original VH + VB bytes, including padding.
+ * A selected Tone keeps its original Program number and raw attributes, but
+ * becomes the only Tone (index 0) and references the only sample (number 1).
+ * This exports source banks, not arbitrary edited Synth instruments.
+ * @param {ReturnType<typeof readVab>} bank
+ * @param {{toneNumber?:number}} [options]
+ * @returns {Uint8Array} */
+export function exportVab(bank,options={}) {
+  if(!options||typeof options!=='object'||Array.isArray(options)||Reflect.ownKeys(options).some(key=>key!=='toneNumber'))throw new TypeError('Expected VAB export options {toneNumber?}');
+  const source=vabSources.get(bank);
+  if(!source)fail('export requires the original bank returned by readVab');
+  let unchanged=false;
+  try {
+    // Source comparison is export-only. PSF bank searches do not serialize
+    // metadata or scan every sample again merely to retain an export source.
+    const original=parseVab(source.header,source.body,false);
+    unchanged=bankMetadata(bank)===bankMetadata(original)&&bank.samples.every((sample,index)=>{
+      const range=source.sampleRanges[index],bytes=sample.bytes;
+      return bytes instanceof Uint8Array&&bytes.length===range.size&&bytes.every((value,at)=>value===source.body[range.offset+at]);
+    });
+  }catch{}
+  if(!unchanged)fail('source bank changed; reopen it before exporting its original VAB');
+  if(options.toneNumber===undefined) {
+    const result=new Uint8Array(source.header.length+source.body.length);
+    result.set(source.header);result.set(source.body,source.header.length);return result;
+  }
+  // Availability validation neither trims nor rewrites the raw exported
+  // sample. Bytes after its first END remain inside the original size bound.
+  const {tone}=prepareVabTone(bank,options.toneNumber);
+  const packed=bank.programs.findIndex(program=>program.index===tone.program),range=source.sampleRanges[tone.sample-1];
+  const raw=new DataView(source.header.buffer,source.header.byteOffset,source.header.byteLength);
+  const originalSizeTable=0x820+bank.programs.length*0x200,prefix=raw.getUint16(originalSizeTable,true)*8;
+  const sizeTable=0xa20,bodyOffset=0xc20,result=new Uint8Array(bodyOffset+prefix+range.size),view=new DataView(result.buffer);
+  result.set(source.header.subarray(0,0x20));
+  view.setUint32(0x0c,result.length,true);view.setUint16(0x12,1,true);view.setUint16(0x14,1,true);view.setUint16(0x16,1,true);
+  const programAt=0x20+tone.program*16;
+  result.set(source.header.subarray(programAt,programAt+16),programAt);result[programAt]=1;
+  const toneAt=0x820+packed*0x200+tone.index*32;
+  result.set(source.header.subarray(toneAt,toneAt+32),0x820);view.setUint16(0x820+22,1,true);
+  view.setUint16(sizeTable,prefix/8,true);view.setUint16(sizeTable+2,range.size/8,true);
+  result.set(source.body.subarray(0,prefix),bodyOffset);
+  result.set(source.body.subarray(range.offset,range.offset+range.size),bodyOffset+prefix);
+  return result;
 }
 
 /** Prepare one Tone for the existing Synth/preset API. ADPCM payload is never

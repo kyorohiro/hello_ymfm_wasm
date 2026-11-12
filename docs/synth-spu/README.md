@@ -164,6 +164,15 @@ saved sound JSON applies it, and its text is prepared in the shared editor. JSON
 and other text edits save locally; **Run / Apply** are available only for
 JavaScript. Select a sound JSON again to apply its updated settings.
 
+The **Preset** selector beside Instrument name lists standard VAB Program / Tone
+choices and supplemental SPU JSON under `/presets`, including nested folders.
+VAB choices load directly from the bank, without requiring a JSON copy. Choose
+one to load it without changing Keyboard / Code mode. Files additions, JSON
+edits, rename/delete and project restoration update this list; an invalid draft
+is kept in Files for editing but is not offered as a playable preset. Selection
+releases the control's focus so musical keys work again. Saving alone does not
+mark the new preset as loaded.
+
 Right-click a file, folder or the Files background for **Duplicate**, **Rename**,
 **Delete**, **New instrument**, **New JavaScript file** and **New folder**.
 Shift+F10 or the Context Menu key also opens these actions. Duplicate keeps
@@ -233,6 +242,61 @@ are supported. Opening a bank lists its Tones without changing the current
 instrument. Select a Tone and choose **Load selected Tone**, then play the
 keyboard. **Menu → Export → Instrument · SPU JSON** stores the imported sample and settings in the usual
 `.spu.json` format.
+
+Beside **Sound bank**, **Save bank to presets** keeps the entire original standard
+VAB and supplemental JSONs for its available Tones under Files / presets.
+**Save selected Tone to preset** beside Load selected Tone creates a standard
+VAB containing only that Tone, plus its JSON. Its original Program ID remains;
+the packed Tone and sample are numbered 0 and 1. Neither operation needs an audio
+context or loads samples into SPU RAM: your edited sound, held notes, running
+Code and PSF playback / Pause position are kept. Existing files are never
+overwritten, and you can load the results from the **Preset** selector.
+Full-bank export retains the original header, body prefix, sample padding,
+Program / Tone attributes and unsupported Tones. A split VH + VB becomes one
+combined VAB. A single-Tone VAB copies the original master, Program / Tone
+attributes and complete bounded sample. Neither export re-encodes ADPCM.
+Unavailable Tones are skipped only for JSON, with their reasons.
+
+Direct VAB selection retains the original ADPCM, loop, ADSR and tuning, applying
+the existing volume / pan approximation. Its reverb send uses the current
+Synth shared reverb; VAB has no shared effect configuration. Supplemental JSONs
+capture that shared setting at save time (Off before audio is enabled), with
+PMON, Noise and Software morph Off. The usual Save to presets command still
+keeps the current edited instrument and Tetorica settings as JSON. A bank can
+expand into many JSON copies of a shared sample; if VAB + JSON together exceed
+the 16 MiB project limit, no presets are added. Save individual Tones or start a
+fresh project. Export a saved `.vab` from Files to reuse it outside Tetorica.
+
+### Use a VAB with the SPU API
+
+VAB is an asset format, separate from the chip's register / sample API. The
+shipped browser module exposes `readVab`, `prepareVabTone` and `exportVab`:
+
+In this Synth's **Code** tab, first choose a VAB Tone from **Preset**, then use
+`const ps1 = await useSoundChip("ps1")` and `ps1.noteOn(...)` as usual; Code
+borrows the selected instrument. The following module example is for your own
+application, when it needs to choose and load a Tone programmatically.
+
+```js
+import {readVab, prepareVabTone} from './synth-spu/spu_synth_vab.js';
+
+// ps1 is an existing SPU client or Ps1Synth; no Tetorica JSON is required.
+async function loadVabTone(ps1, bytes, program, tone, channel = 0) {
+  const bank = readVab(bytes);
+  const index = bank.tones.findIndex(t => t.program === program && t.index === tone);
+  const sound = prepareVabTone(bank, index);
+  const sample = await ps1.loadADPCM(sound.adpcm, sound.options);
+  await ps1.setPreset(channel, {...sound.preset, sample});
+  return sample;
+}
+```
+
+Read the VAB bytes from `fetch(...).arrayBuffer()` or your application's files,
+then call `loadVabTone`. `channel` is zero-based; normal `noteOn` / `noteOff`
+methods play it. `exportVab(bank)` preserves the complete original bank, while
+`exportVab(bank, {toneNumber: index})` extracts a one-Tone bank. These helpers
+currently ship with Playground / Synth source; they are **not yet published
+as npm exports**. The npm SPU API already provides `loadADPCM` / `setPreset`.
 
 For **PSF1 / MiniPSF**, choose **Menu → Import → PSF set…** and select the song and all
 referenced PSFLib files together, or use **PSF folder…** in the same menu to retain library
@@ -384,9 +448,10 @@ recipe are included in the distribution's `sources/psf-player/`.
 
 To extract an instrument, choose **Extract VAB** beside **Play / Pause / Stop**
 for the selected song. This opens **PSF / VAB** and shows progress and the bank
-results. Select a **Sound bank** and **Tone**, choose **Load selected Tone**, then
-use **Save to presets** to keep that sound in Files. You can try another Tone
-and return to either saved preset later. This shares Playground's local PSF parser: CRC and
+results. Select a **Sound bank** and **Tone**, then **Load selected Tone** to
+audition it, **Save selected Tone to preset** to keep it directly, or
+**Save bank to presets** to keep every available Tone. The **Preset** selector
+loads saved sounds later. This shares Playground's local PSF parser: CRC and
 zlib validation, library resolution and RAM overlays precede standard VAB
 detection. Opening files or extracting banks leaves the current instrument
 and sounding notes in place. Missing dependencies and malformed input show an

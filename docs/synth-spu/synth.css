@@ -64,13 +64,13 @@ h1 .brand-u { color: #1d60ad; }
 .sample-actions { min-width: 0; flex: 1 1 250px; }
 .sample-name { max-width: 280px; color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
 .sample-settings { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; margin-top: 18px; }
-.sample-settings select { max-width: 100%; min-width: 0; padding: 6px; color: var(--ink); background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; }
+.sample-settings select, .instrument-preset-control select { max-width: 100%; min-width: 0; padding: 6px; color: var(--ink); background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; }
 .sample-settings label { min-width: 0; max-width: 100%; }
 #vabStatus[data-error="true"] { color: #ac302b; }
 .vab-reasons {margin:.5rem 0;color:var(--muted);font-size:.73rem;}
 .vab-reasons summary {cursor:pointer;}
 .vab-reasons li {margin:.3rem 0;overflow-wrap:anywhere;}
-.sample-settings label, .instrument-name-control { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .7rem; }
+.sample-settings label, .instrument-name-control, .instrument-preset-control { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .7rem; }
 .sample-settings input[type="number"], .instrument-name-control input { color: var(--ink); min-height: 32px; background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; padding: 5px 8px; font-size: .75rem; }
 #instrumentName { width: 175px; }
 #sampleRootNote { width: 65px; }
@@ -89,6 +89,10 @@ h1 .brand-u { color: #1d60ad; }
 .audio-panel .subtext { max-width: 72ch; }
 .instrument-toolbar { margin-top: 18px; }
 .instrument-name-control { flex: 0 1 auto; }
+/* WebKit can propagate native select text overflow beyond its measured box. */
+.instrument-preset-control { display: grid; grid-template-columns: auto minmax(0, 1fr); flex: 1 1 230px; min-width: 0; max-width: 100%; overflow: hidden; }
+.instrument-preset-control select { width: 100%; }
+.instrument-preset-control select:focus-visible { outline: 2px solid #477cba; outline-offset: -2px; }
 
 .section-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 16px; margin: 0 5px 14px; }
 .section-heading h2 { margin: 0; color: #3e4850; font-size: .88rem; font-weight: 750; letter-spacing: .035em; }
