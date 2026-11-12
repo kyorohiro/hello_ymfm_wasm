@@ -1,0 +1,411 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "feature": "DMG Synth VGM reference songs / audible CH Live",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": {
+    "source": "Original VGM / VGZ bytes under /vgm; single normal-clock DMG direct register logs.",
+    "transport": [
+      "Play",
+      "Pause",
+      "Resume",
+      "Stop",
+      "EOF"
+    ],
+    "live": "CH1–4 in the same read-only editor, On by default; Off freezes all channels, Pause forces audible-position snapshot.",
+    "audio": "Reference APU borrows one editor AudioContext; unity reference gain -> source balance 0.28 -> one shared Master / monitor.",
+    "wasmAndSharedParserUnchanged": true,
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "node": {
+    "testsPassed": 110,
+    "commands": [
+      "npm run test:dmg-synth"
+    ],
+    "actualWasm": [
+      "Direct-APU event render and VgmPlayer render are sample-exact.",
+      "Duty / Wave RAM / Noise change only at frame 39690, not frame 39689 despite prefetch.",
+      "Pause / CH observation does not advance native state; Resume retains queued PCM."
+    ],
+    "additionalCoverage": [
+      "Source validation / cancellation / old-song preservation",
+      "Late reference engine disposal and Code generation fences",
+      "Wave RAM / trigger / power-off shadow and event bounds",
+      "Files collision-safe raw source save / ZIP round-trip / capacity atomicity",
+      "Legacy extraction retained if source save fails or instrument extraction finds no sound"
+    ]
+  },
+  "browser": {
+    "song": {
+      "passed": true,
+      "servedAssets": 79,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "measurements": {
+            "projectBytes": 1884,
+            "master": {
+              "normal": {
+                "rms": 0.13811789265602573,
+                "peak": 0.19599999487400055,
+                "finite": true,
+                "muted": true
+              },
+              "half": {
+                "rms": 0.0685387320842948,
+                "peak": 0.09799999743700027,
+                "finite": true,
+                "muted": true
+              },
+              "ratio": 0.4962335492258514
+            },
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 60,
+              "liveSources": 5
+            },
+            "layout1240": {
+              "width": 1240,
+              "scroll": 1240,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 341.3125,
+                  "right": 940.890625
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 947.890625,
+                  "right": 1023.21875
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 1030.21875,
+                  "right": 1084.96875
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 367.984375,
+                  "right": 474.984375
+                }
+              ]
+            },
+            "layout390": {
+              "width": 390,
+              "scroll": 390,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 69.3125,
+                  "right": 356
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 34,
+                  "right": 109.328125
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 116.328125,
+                  "right": 171.078125
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 95.984375,
+                  "right": 202.984375
+                }
+              ]
+            }
+          },
+          "audibleLiveBoundary": {
+            "observations": 41,
+            "oldStateDespiteRenderAhead": [
+              {
+                "phase": "playing",
+                "frame": 31075,
+                "rendered": 40202,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only · Stop VGM to edit and play your instrument.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 31075,
+                "rendered": 40202,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only · Stop VGM to edit and play your instrument.",
+                "readonly": "true"
+              }
+            ],
+            "firstChanged": [
+              {
+                "phase": "playing",
+                "frame": 41424,
+                "rendered": 51722,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only · Stop VGM to edit and play your instrument.",
+                "readonly": "true"
+              }
+            ]
+          },
+          "finalGraph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 9,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "measurements": {
+            "projectBytes": 1884,
+            "master": {
+              "normal": {
+                "rms": 0.1385919786160485,
+                "peak": 0.19599999487400055,
+                "finite": true,
+                "muted": true
+              },
+              "half": {
+                "rms": 0.06901826896676884,
+                "peak": 0.09799999743700027,
+                "finite": true,
+                "muted": true
+              },
+              "ratio": 0.4979961297614143
+            },
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 61,
+              "liveSources": 5
+            },
+            "layout1240": {
+              "width": 1240,
+              "scroll": 1240,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 341.3125,
+                  "right": 940.890625
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 947.890625,
+                  "right": 1023.21875
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 1030.21875,
+                  "right": 1084.96875
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 367.984375,
+                  "right": 468.984375
+                }
+              ]
+            },
+            "layout390": {
+              "width": 390,
+              "scroll": 390,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 69.3125,
+                  "right": 356
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 34,
+                  "right": 109.328125
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 116.328125,
+                  "right": 171.078125
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 95.984375,
+                  "right": 196.984375
+                }
+              ]
+            }
+          },
+          "audibleLiveBoundary": {
+            "observations": 40,
+            "oldStateDespiteRenderAhead": [
+              {
+                "phase": "playing",
+                "frame": 31311,
+                "rendered": 41984,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only · Stop VGM to edit and play your instrument.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 31311,
+                "rendered": 41984,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only · Stop VGM to edit and play your instrument.",
+                "readonly": "true"
+              }
+            ],
+            "firstChanged": [
+              {
+                "phase": "playing",
+                "frame": 41424,
+                "rendered": 51978,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only · Stop VGM to edit and play your instrument.",
+                "readonly": "true"
+              }
+            ]
+          },
+          "finalGraph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 5,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "baseline": {
+      "passed": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "coverage": "Existing keyboard, waveform, presets, VGM/VGZ extraction, Pitch, volume, error recovery and 390px."
+    },
+    "code": {
+      "passed": true,
+      "engines": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ]
+    }
+  },
+  "archive": {
+    "path": "release/tetorica_dmg_synth_dmg-vgm-song-live-20261112_itch.zip",
+    "stage": "release/itch_dmg_synth_dmg-vgm-song-live-20261112-f81wbI",
+    "bytes": 1810452,
+    "sha256": "4133b2c9d4f451c0702fc1e78de20c8503ea343054985780d19f950a970e30ac",
+    "files": 123,
+    "readableModules": 74,
+    "sourceModulesMatchWorkspace": true,
+    "minified": false,
+    "bundled": false,
+    "nativeSdkVersion": "0.1.7"
+  },
+  "visualReview": [
+    "Chromium / WebKit desktop and 390px",
+    "Paused Wave uses the same 32-sample editor with recorded data"
+  ],
+  "limits": [
+    "Recorded stream plays once; seek, loop repetition and paused audition / Capture are next-stage work.",
+    "Live reports sent/configured values, not current hardware Envelope volume or Sweep position.",
+    "DAC streams/data blocks are explicitly rejected because shared Game Boy stream target 0x13 is not implemented.",
+    "Files retain the shared 16 MiB project limit; static extraction can continue when the original cannot fit."
+  ],
+  "rawReports": [
+    {
+      "path": "build/verification/dmg-vgm-song-live-20261112/song-browser.json",
+      "sha256": "6ad4f31775bfa7d6f9095d90f3ec58b2d67bbaa0469378264c57d619ebe3b9ed"
+    },
+    {
+      "path": "build/verification/dmg-vgm-song-live-20261112/baseline-browser.json",
+      "sha256": "dfe7ce32abec45ad5c958917c7fe75afb58eb93ca3367585873d38439e9e9fb5"
+    },
+    {
+      "path": "build/verification/dmg-vgm-song-live-20261112/code-browser.json",
+      "sha256": "488799aa96ecb102c956cf03f6824117bf70b660d6c80662f7aaf5baff391be6"
+    }
+  ]
+}

@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=dmg-code-1">
+  <link rel="stylesheet" href="./synth.css?v=dmg-song-1">
 </head>
 <body>
   <main>
@@ -52,6 +52,23 @@
       <div id="synthWorkspace" class="dmg-code-workspace">
         <aside id="dmgFilesPanel" class="dmg-files-panel" aria-label="Project files" hidden></aside>
         <div id="dmgSynthMain" class="dmg-main">
+      <section id="dmgSongPlayer" class="dmg-song-player" aria-label="VGM reference song">
+        <div class="dmg-song-transport">
+          <label for="dmgSongSelect">VGM <select id="dmgSongSelect" aria-label="VGM songs in Files"><option value="">No songs in /vgm</option></select></label>
+          <button id="dmgSongPlayButton" class="primary" type="button" disabled>Play</button>
+          <button id="dmgSongStopButton" type="button" disabled>Stop</button>
+          <output id="dmgSongPosition" aria-label="Song position">0:00</output>
+          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ below, or add it to Files. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Stop returns to your edited sound. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
+        </div>
+        <p id="dmgSongStatus" role="status">Import a VGM / VGZ to keep it in Files and play a reference song.</p>
+        <div class="dmg-live-controls">
+          <label for="dmgSongChannelSelect">VGM view <select id="dmgSongChannelSelect"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
+          <label><input id="dmgSongLiveEnabled" type="checkbox" checked> Live from VGM</label>
+        </div>
+        <p id="dmgSongLiveStatus"></p>
+        <p id="dmgSongReadout"></p>
+      </section>
+
       <section id="dmgCodeLiveTools" class="dmg-code-live-tools" aria-label="Code channel view" hidden>
         <div class="dmg-live-controls">
           <label for="dmgLiveChannel">Code view <select id="dmgLiveChannel"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
@@ -164,12 +181,12 @@
         <div id="synthExpandedCodeSlot" class="dmg-expanded-code" hidden></div>
       </div>
       <footer>
-        <p>One Game Boy APU: two Pulse channels, one Wave and one Noise. Pulse Sweep uses CH1 only. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Hardware Envelope and Sweep are configured for the next trigger. GBS song playback is not included.</p>
+        <p>One Game Boy APU: two Pulse channels, one Wave and one Noise. Pulse Sweep uses CH1 only. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Hardware Envelope and Sweep are configured for the next trigger. Reference VGM playback uses a separate APU through the same Master. GBS song playback is not included.</p>
         <div><a href="../playground/index.html?mode=gameboy">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/gameboysynth.js">JavaScript source</a></div>
       </footer>
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=dmg-code-1"></script>
+  <script type="module" src="./synth.js?v=dmg-song-1"></script>
 </body>
 </html>

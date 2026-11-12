@@ -15,6 +15,8 @@ const MAX_TEXT=GAMEBOY_PROJECT_CODE_LENGTH;
 const clone=value=>structuredClone(value);
 export const isGameboyCodePath=path=>typeof path==='string'&&/\.m?js$/i.test(path)&&!path.split('/').some(part=>['.git','.tet.ss'].includes(part));
 export const isGameboyTextPath=path=>/\.(?:m?js|json|txt|md|css|html|csv|ya?ml|glsl)$/i.test(path);
+export const isGameboySongFilename=name=>typeof name==='string'&&/\.(?:vgm|vgz)$/i.test(name);
+export const isGameboySongPath=path=>typeof path==='string'&&path.startsWith('/vgm/')&&isGameboySongFilename(path);
 const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const text=data=>typeof data==='string'?data:decoder.decode(data);
 const name=value=>{if(typeof value!=='string'||!value.trim()||value.length>120||/[\u0000-\u001f/\\]/.test(value))throw Error('Project name must be 1–120 characters without slashes.');return value.trim();};
@@ -26,6 +28,22 @@ function codeState(value,fs){
 }
 function selectedPath(value,fs){if(value===null||value===undefined)return null;const path=normalizeVirtualPath(value);if(!fs.stat(path))throw Error('Selected project file is missing.');return path;}
 function pathForUser(path){path=normalizeVirtualPath(path);if(path==='/'||path===GAMEBOY_PROJECT_MANIFEST||isCheckpointPath(path))throw Error('That project path is reserved.');return path;}
+/** Keep original log bytes opaque. Parsing and audio are explicit Play actions. */
+export function gameboySongSourceEntries(project,sources){
+  if(!Array.isArray(sources))throw TypeError('Song sources must be an array.');
+  const fold=path=>path.normalize('NFC').toLowerCase(),encoder=new TextEncoder();
+  const used=new Set([...project.fs.list().map(file=>file.path),...project.fs.listDirectories()].map(fold));
+  return sources.map(source=>{
+    if(!source||typeof source.name!=='string'||!(source.bytes instanceof Uint8Array))throw TypeError('A VGM source needs a name and Uint8Array bytes.');
+    let name=source.name.split(/[\\/]/).pop().normalize('NFC').replace(/[\u0000-\u001f\u007f<>:"|?*\ud800-\udfff]/gu,'_').trim().replace(/^\.+|[. ]+$/g,'');
+    if(!isGameboySongFilename(name))throw Error('Use a .vgm or .vgz song file name.');
+    const extension=name.slice(-4);let stem=name.slice(0,-4),bounded='';
+    for(const character of stem){if(encoder.encode(bounded+character).length>200)break;bounded+=character;}
+    stem=bounded.replace(/[. ]+$/g,'')||'Untitled';if(/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(stem.split('.')[0].trimEnd()))stem='_'+stem;
+    let path=`/vgm/${stem}${extension}`,index=1;while(used.has(fold(path)))path=`/vgm/${stem}-${++index}${extension}`;used.add(fold(path));
+    return {path,type:'binary',data:source.bytes};
+  });
+}
 /** Validate a portable sound without rewriting the editable source document.
  * Only explicit sound selection applies this data to the current DMG. */
 export function readGameboyProjectSound(data){
@@ -45,11 +63,15 @@ function validateFiles(fs){
 }
 export function createGameboyCodeProject({settings=createDefaultPreset(),snapshot,starterCode,getStarterCode}={}){
   const fs=createVirtualFileSystem(),listeners=new Set();
-  let current=readPreset(settings),selected=null,state={mode:'keyboard',path:null},projectName='Tetorica DMG',restoring=false;
+  let current=readPreset(settings),selected=null,state={mode:'keyboard',path:null},projectName='Tetorica DMG',restoring=false,entryCache=null;
   const notify=()=>{if(!restoring)for(const listener of listeners)listener();};
-  fs.onDidChange(notify);
+  fs.onDidChange(()=>{entryCache=null;notify();});
   const project={fs,onDidChange(listener){listeners.add(listener);return()=>listeners.delete(listener);},
     get settings(){return readPreset(current);},setSettings(value){const next=readPreset(value);if(JSON.stringify(next)!==JSON.stringify(current)){current=next;notify();}return project.settings;},
+    listEntries(){
+      entryCache??=fs.list().map(file=>({path:file.path,revision:file.revision,type:'file',fileType:file.type,size:file.type==='text'?new TextEncoder().encode(file.data).byteLength:file.data.byteLength}));
+      return entryCache.map(entry=>({...entry}));
+    },
     get selectedPath(){return selected;},get cassetteName(){return projectName;},
     select(path){const next=selectedPath(path,fs);if(next!==selected){selected=next;notify();}return selected;},
     writeEditorText(path,source){
@@ -75,6 +97,7 @@ export function createGameboyCodeProject({settings=createDefaultPreset(),snapsho
       for(const entry of normalized)if(entry.type==='text'&&typeof entry.data!=='string')entry.data=text(entry.data);
       candidate.writeFiles(normalized);validateFiles(candidate);fs.restore(candidate.snapshot());return normalized.map(entry=>entry.path);
     },
+    importSongSources(sources){return project.importFiles(gameboySongSourceEntries(project,sources));},
     async prepareImport(bytes){
       const cassette=await loadPlaygroundCassette(bytes),files=[],manifest=cassette.files.get(GAMEBOY_PROJECT_MANIFEST.slice(1));
       let metadata=null;if(manifest){try{metadata=JSON.parse(text(manifest));}catch{throw Error('Invalid DMG project manifest JSON.');}}

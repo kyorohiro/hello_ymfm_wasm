@@ -86,3 +86,23 @@ test('DMG local Files restoration retains a preset edited while storage was pend
   const edited=createDefaultPreset();edited.source='wave';edited.wave.samples[0]=3;f.setSettings(edited);f.files.markSoundDirty();gate.resolve(old.snapshot());await f.files.ready;
   assert.deepEqual(f.project.settings,edited);assert.deepEqual(f.calls.at(-1),['apply',edited]);assert.equal(f.project.fs.get('/index.js').data,'restored code');
 });
+
+test('DMG Load VGM and Add files retain exact sources under unique /vgm paths without audio or Code mode changes',async t=>{
+  const f=fixture(t);await f.files.ready;let flushes=0;
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,flush:async()=>{flushes++;return true;},setBusy(){},openFile:()=>assert.fail('Song import does not open Code'),workspaceReplaced:()=>assert.fail('Song import does not stop Code')});
+  const data=Uint8Array.of(31,139,8,255),path=await f.files.saveSongSource({name:'Original.VGZ',bytes:data});
+  assert.equal(path,'/vgm/Original.VGZ');assert.deepEqual(f.project.fs.get(path).data,data);assert.equal(f.project.selectedPath,path);
+  const paths=await f.files.importFiles([{name:'Original.VGZ',size:data.length,arrayBuffer:async()=>data.buffer},{name:'invalid.vgm',size:1,arrayBuffer:async()=>Uint8Array.of(0).buffer}]);
+  assert.deepEqual(paths,['/vgm/Original-2.VGZ','/vgm/invalid.vgm']);assert.equal(f.project.selectedPath,'/vgm/invalid.vgm');
+  assert.equal(await f.files.selectFile(path),true);assert.match(f.statuses.at(-1),/Press Play.*instrument is kept/);assert.deepEqual(f.calls,[]);assert(flushes>=3);
+});
+
+test('DMG song save preflights total capacity after flushing and rejects stale/disposed requests',async t=>{
+  const f=fixture(t);await f.files.ready;let current=true;
+  const gate=deferred();f.files.setCodeControls({flush:async()=>{await gate.promise;return true;},setBusy(){}});
+  const pending=f.files.saveSongSource({name:'stale.vgm',bytes:Uint8Array.of(1)},{isCurrent:()=>current});current=false;gate.resolve();assert.equal(await pending,false);assert(!f.project.fs.has('/vgm/stale.vgm'));
+  f.files.setCodeControls({flush:async()=>true,setBusy(){}});
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(GAMEBOY_PROJECT_FILE_BYTES-10)}]);
+  const before=f.project.snapshot();await assert.rejects(f.files.saveSongSource({name:'large.vgm',bytes:new Uint8Array(20)}),/16 MiB/);assert.deepEqual(f.project.snapshot(),before);
+  await f.files.dispose();assert.equal(await f.files.saveSongSource({name:'after.vgm',bytes:Uint8Array.of(1)}),false);
+});

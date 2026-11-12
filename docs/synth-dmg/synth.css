@@ -156,3 +156,17 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #voiceEditor[data-readonly="true"] { outline:1px solid #9986ac; outline-offset:4px; border-radius:8px; }
 .dmg-file-context-menu,.spu-file-context-menu { background:#eeece7; }
 .dmg-file-context-menu button:hover:not(:disabled),.spu-file-context-menu button:hover:not(:disabled) { background:#e4daec; }
+
+/* Reference song transport stays above the same monitor and sound editor. */
+.dmg-song-player { min-width:0; margin:0 0 16px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#eeece7; }
+.dmg-song-player[hidden] { display:none; }
+.dmg-song-transport { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+.dmg-song-transport>label { display:flex; align-items:center; flex:1 1 260px; min-width:0; gap:8px; font-size:.75rem; color:var(--muted); }
+.dmg-song-transport select { flex:1; min-width:0; width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:#faf9f5; color:var(--ink); text-overflow:ellipsis; }
+.dmg-song-transport>button { min-height:32px; padding:6px 12px; }
+.dmg-song-transport .dmg-inline-help { margin:0 0 0 auto; }
+#dmgSongPosition { font-size:.72rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+#dmgSongStatus,#dmgSongLiveStatus,#dmgSongReadout { margin:7px 0; font-size:.72rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+#dmgSongStatus[data-error="true"] { color:#a02f31; }
+#dmgSongLiveStatus:empty,#dmgSongReadout:empty { display:none; }
+@media(max-width:640px) { .dmg-song-transport>label { flex-basis:100%; }.dmg-song-player { padding:10px; } }

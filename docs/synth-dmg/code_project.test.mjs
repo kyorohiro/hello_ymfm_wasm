@@ -57,3 +57,28 @@ test('DMG local store has its own namespace and retains binary snapshots',async(
   assert.equal(await store.read(),null);await store.write(p.snapshot());assert(values.has(GAMEBOY_PROJECT_STORAGE_KEY));
   const copy=createGameboyCodeProject({snapshot:await store.read()});assert.deepEqual(copy.fs.get('/raw.bin').data,Uint8Array.of(3,255));assert.equal(values.get('tetorica-spu-synth-project-v1'),'SPU kept');
 });
+
+test('DMG original VGM/VGZ Files are opaque, collision-safe and survive project ZIP unchanged',async()=>{
+  const project=createGameboyCodeProject({starterCode:'author code'});
+  project.fs.mkdir('/vgm/SONG.vgm',{recursive:true});
+  const original=Uint8Array.of(0x1f,0x8b,8,0,255),paths=project.importSongSources([
+    {name:'Song.vgm',bytes:original},{name:'Song.vgm',bytes:original},{name:'曲.vgz',bytes:original},
+  ]);
+  assert.deepEqual(paths,['/vgm/Song-2.vgm','/vgm/Song-3.vgm','/vgm/曲.vgz']);
+  original[0]=0;assert.equal(project.fs.get(paths[0]).data[0],31);
+  const restored=createGameboyCodeProject({snapshot:await project.prepareImport(project.exportProject())});
+  assert.deepEqual(restored.fs.get(paths[2]).data,Uint8Array.of(31,139,8,0,255));
+  assert.equal(restored.fs.get('/index.js').data,'author code');
+  assert.equal(restored.getCodeState().mode,'keyboard');
+});
+
+test('DMG multi-song capacity failure is atomic and metadata listing does not recopy binary on selections',()=>{
+  const project=createGameboyCodeProject({starterCode:'x'});
+  project.importSongSources([{name:'kept.vgm',bytes:Uint8Array.of(1,2,3)}]);
+  const before=project.snapshot();assert.throws(()=>project.importSongSources([
+    {name:'small.vgm',bytes:Uint8Array.of(4)},{name:'large.vgz',bytes:new Uint8Array(GAMEBOY_PROJECT_FILE_BYTES)},
+  ]),/16 MiB/);assert.deepEqual(project.snapshot(),before);
+  let lists=0;const list=project.fs.list.bind(project.fs);project.fs.list=()=>{lists++;return list();};
+  const first=project.listEntries();project.select('/vgm/kept.vgm');const second=project.listEntries();
+  assert.equal(lists,1);assert.deepEqual(first,second);first[0].path='mutated';assert.notEqual(project.listEntries()[0].path,'mutated');
+});

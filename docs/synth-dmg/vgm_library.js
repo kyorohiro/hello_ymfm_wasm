@@ -2,7 +2,7 @@
 import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
 
 /** File analysis is passive; only an explicit voice choice replaces the instrument. */
-export function createVgmLibrary({root, onSelect}) {
+export function createVgmLibrary({root, onSelect, onSource, extract = extractVgmInstruments}) {
   const $ = id => root.querySelector(`#${id}`);
   const events = new AbortController();
   let library = null, filter = 'all', page = 0, selected = null;
@@ -73,13 +73,29 @@ export function createVgmLibrary({root, onSelect}) {
     status(`Reading ${file.name}…`);
     try {
       if (file.size > MAX_VGM_BYTES) throw new Error('VGM / VGZ files must be at most 64 MiB.');
-      const bytes = await file.arrayBuffer();
+      const bytes = new Uint8Array(await file.arrayBuffer());
       if (disposed || token !== request) return;
-      const result = await extractVgmInstruments(bytes, {signal: controller.signal});
-      if (disposed || token !== request) return;
+      const isCurrent = () => !disposed && token === request && !controller.signal.aborted;
+      // A playable log can contain no static sounds (for example Wave RAM
+      // streams). Keep the original source independently of tone extraction.
+      let result, analysisError, stored = '';
+      try {result = await extract(bytes, {signal: controller.signal});}
+      catch (error) {if (error.name === 'AbortError') throw error; analysisError = error;}
+      if (!isCurrent()) return;
+      if (onSource) {
+        try {
+          const path = await onSource({name: file.name, bytes}, {isCurrent});
+          stored = path ? ` Original source saved to ${path}.` : ' Original source not saved to Files.';
+        } catch (error) {stored = ` Original source not saved to Files: ${error.message}`;}
+      }
+      if (!isCurrent()) return;
+      if (analysisError) {
+        status(`Sound extraction: ${analysisError.message} Current sound and sound list kept.${stored}`, true);
+        return;
+      }
       library = {...result, name: file.name}; filter = 'all'; page = 0; selected = null; selection++;
       render();
-      status(`${result.voices.length} sounds found · choose one to play. Current instrument kept.`);
+      status(`${result.voices.length} sounds found · choose one to play. Current instrument kept.${stored}`);
     } catch (error) {
       if (!disposed && token === request && error.name !== 'AbortError') status(`VGM import failed: ${error.message} Current sound kept.`, true);
     } finally {

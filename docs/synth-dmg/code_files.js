@@ -3,7 +3,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installGameboyFileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
-import {createGameboyCodeProject,createGameboyProjectStore,readGameboyProjectSound,isGameboyCodePath,isGameboyTextPath,GAMEBOY_PROJECT_MANIFEST,GAMEBOY_PROJECT_CODE_LENGTH} from './code_project.js?dmg-json-code=1';
+import {createGameboyCodeProject,createGameboyProjectStore,readGameboyProjectSound,isGameboyCodePath,isGameboyTextPath,isGameboySongFilename,isGameboySongPath,GAMEBOY_PROJECT_MANIFEST,GAMEBOY_PROJECT_CODE_LENGTH} from './code_project.js?dmg-json-code=1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -41,7 +41,7 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
   const panel=doc.getElementById('dmgFilesPanel'),toggle=doc.getElementById('dmgFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const presetSelect=doc.getElementById('dmgPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('Game Boy Files mount is missing.');
-  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.dmg-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
+  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.dmg-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true],['/vgm',true]]);
   let code=null,busy=true,disposed=false,restoring=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
@@ -134,19 +134,31 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
     project.select(path);render();schedule();
     if(file.type==='text')await openInCurrentMode(path);
     if(disposed||token!==operation)return false;
-    say(sound?'Game Boy sound loaded. Edit its JSON in Code; select it again to apply changes.':soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:file.type==='text'?'Text edits save to Files from Code; select a Game Boy sound JSON again to apply it.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
+    say(sound?'Game Boy sound loaded. Edit its JSON in Code; select it again to apply changes.':soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:file.type==='text'?'Text edits save to Files from Code; select a Game Boy sound JSON again to apply it.':isGameboySongPath(path)?'VGM source selected. Press Play in the song list; your instrument is kept.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
   }
   async function importFiles(files){
     await api.ready;if(disposed||busy)return[];const token=++operation;
-    const entries=[];for(const file of files){if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());entries.push({path:'/'+basename(file.name),type:isGameboyTextPath(file.name)?'text':'binary',data:isGameboyTextPath(file.name)?decoder.decode(bytes):bytes});}
+    const entries=[],songs=[];for(const file of files){if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());
+      if(isGameboySongFilename(file.name))songs.push({name:file.name,bytes});else entries.push({path:'/'+basename(file.name),type:isGameboyTextPath(file.name)?'text':'binary',data:isGameboyTextPath(file.name)?decoder.decode(bytes):bytes});}
     if(disposed||token!==operation)return[];await code?.flush?.();if(disposed||token!==operation)return[];
-    const candidate=createGameboyCodeProject({snapshot:project.snapshot()}),paths=candidate.importFiles(entries),replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
+    const candidate=createGameboyCodeProject({snapshot:project.snapshot()}),songPaths=candidate.importSongSources(songs),paths=[...candidate.importFiles(entries),...songPaths],replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
+    if(songPaths.length)candidate.select(songPaths.at(-1));
     setBusy(true);try{
       if(replaceExecution){if(await code.workspaceReplaced()===false||disposed||token!==operation)return[];}
       if(disposed||token!==operation)return[];
       project.restore(candidate.snapshot());
       if(replaceActive||replaceExecution)await code.restoreState(project.getCodeState());
       render();await persistCode();say(`Added ${paths.length} file(s). Code was not run.`);return paths;
+    }finally{if(!disposed)setBusy(false);}
+  }
+  async function saveSongSource(source,{isCurrent=()=>true}={}){
+    await api.ready;if(disposed||busy||!isCurrent())return false;const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
+    if(await code?.flush?.()===false||!current())return false;
+    const candidate=createGameboyCodeProject({snapshot:project.snapshot()}),paths=candidate.importSongSources([source]);if(!current())return false;
+    setBusy(true,{lockMain:false});
+    try{
+      candidate.select(paths[0]);project.restore(candidate.snapshot());reveal(paths[0]);setVisible(true);render();await persistCode();
+      if(!current())return false;say(`Original VGM source saved to ${paths[0]}. Press Play to hear it; current instrument kept.`);return paths[0];
     }finally{if(!disposed)setBusy(false);}
   }
   async function importProject(bytes){
@@ -253,7 +265,7 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveSongSource,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

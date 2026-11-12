@@ -75,12 +75,15 @@ test('Game Boy audio is lazy and routes one fixed balance before the user Master
   assert.equal(audio.outputNode,master);
   assert.equal(fade.gain.value,1); assert.equal(audio.codeInputNode,balance); assert.equal(audio.codeOutputNode,fade); assert.equal(audio.codeFadeNode,fade);
   assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]); assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.equal(audio.songInputNode.gain.value,.28);
+  assert.deepEqual(audio.songInputNode.connections,[master],'VGM has the same single Master without Code FX/fade');
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,.28);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
   assert.deepEqual(await audio.read(),{voices:[]});
   const first = audio.dispose(); assert.equal(audio.dispose(),first); await first;
   assert.equal(f.context.closeCount,1); assert.equal(f.node.disposed,1); assert.equal(f.timers.size,0);
+  assert.equal(audio.songInputNode.disconnected,true);
 });
 
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
@@ -158,7 +161,7 @@ test('Code acquisition is cached, nested APIs use the same engine RPC and invali
   const count = f.messages.length;
   for (const invoke of [() => client.pulse.noteOn(2,'C4'),() => client.noteOn(3,'C4'),() => client.noteOn(0,'C0'),
     () => client.setClock(1),() => client.wave.keyOn(2)]) assert.throws(invoke);
-  assert.equal(f.messages.length,count); assert.equal(f.context.gains.length,3); assert.equal(f.context.closeCount,0);
+  assert.equal(f.messages.length,count); assert.equal(f.context.gains.length,4); assert.equal(f.context.closeCount,0);
   await audio.dispose(); assert(!client.isCurrent()); assert.throws(() => client.keyOn(0),{name:'AbortError'});
 });
 

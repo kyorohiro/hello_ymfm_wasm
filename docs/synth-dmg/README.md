@@ -150,6 +150,45 @@ Master ranges from **0 to 380%** and turns **orange above 100%**. It scales
 the output separately from the chip's authored volume / envelope settings,
 using the existing Game Boy source balance as its reference.
 
+## Reference VGM songs
+
+**Load VGM / VGZ…** also keeps the original file under `/vgm` in Files. You can
+add files through **Files → Add files…**, too. Name collisions create a new file;
+original VGM/VGZ bytes are preserved. Sources without a usable static instrument
+can still be retained independently of sound extraction. The Files project has
+a shared 16 MiB limit. If a source cannot fit, the extraction workflow continues
+and reports that the original was not saved.
+
+Choose a track in the **VGM** list above the monitor, then press **Play**.
+The same button becomes **Pause**, then **Resume**. Pause retains the exact
+unheard PCM position; it does not restart the parser or retrigger the notes.
+**Stop** returns to the start and restores the editable sound view. A file
+selection, import or restored project never starts playback. The original
+instrument and its Wave RAM remain separate from the reference APU.
+
+Select **VGM view CH1–4** to follow recorded Pulse Duty / envelope settings,
+Wave RAM / level, Noise clock and routing in the same sound editor. **Live from
+VGM** is On by default. Off freezes a coherent snapshot of all four channels;
+changing CH shows that same frozen instant. Pause refreshes the snapshot to its
+exact audible position even with Live Off. Live is capped at 20 updates per
+second, and displays consumed audio time rather than the ~200 ms render-ahead
+buffer. The values are sent/configured registers, not measured hardware
+Envelope volume or current Sweep frequency.
+
+The reference uses its own DMG APU, sharing the existing audio context, source
+balance, Master and output monitor. Master affects the song in real time. Starting
+Code stops the reference song. Loading a sound or importing a project also stops
+it. While a song is playing or paused, Stop it before playing the edited
+instrument on the keyboard. Paused-channel audition, Capture, seek and repeated
+VGM loops are later work; this version plays the recorded command stream once.
+
+Playback currently accepts one normal-clock DMG (4,194,304 Hz) with direct
+Game Boy register writes and ordinary VGM waits. Unsupported chip combinations,
+dual/variant chips, different clocks, DAC streams/data blocks and other commands
+are rejected with a reason before acquiring audio. The shared parser does not
+implement Game Boy DAC stream target `0x13`; it is not silently skipped. Invalid
+or cancelled source validation keeps the previous playable song and instrument.
+
 ## Import sounds from VGM
 
 Select **Load VGM / VGZ…** with a Game Boy VGM or gzip-compressed VGZ file.
@@ -164,8 +203,9 @@ Noise clock, LFSR width and envelope. Left / right routing is included when
 recorded. Identical sounds are grouped, with their first time and use count shown.
 Imported sounds remain editable and can be saved as presets or copied as JavaScript.
 
-This is a starting sound for keyboard performance. Original note pitch, hardware
-length counters, song playback and later register changes are not imported.
+This extraction supplies a starting sound for keyboard performance. Original note
+pitch, hardware length counters and later register changes are not imported into
+that sound. Use the separate VGM reference controls to hear the recorded song.
 The page reports missing settings and unsupported input; failed or cancelled
 imports keep the current instrument and previous library. Files and decompressed
 VGM data are limited to 64 MiB. All analysis stays in the browser.
@@ -217,6 +257,7 @@ npm run test:dmg-synth
 npm run test:dmg-synth:browser
 npm run test:dmg-synth:code-browser
 npm run test:dmg-synth:code-monaco
+npm run test:dmg-synth:song-browser
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

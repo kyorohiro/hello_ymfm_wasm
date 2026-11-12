@@ -45,6 +45,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.deepEqual(await readFile(join(a.stage,'js/native_audio_effect.wasm')),await readFile(new URL('../tetorica_src/runtime/generated/effects/gain.wasm',import.meta.url)));
   for(const name of ['tetorica-playground-globals.d.ts','tetorica-playground-gameboy.d.ts','tetorica-shell.d.ts'])assert.deepEqual(await readFile(join(a.stage,'playground',name)),await readFile(new URL('../docs/playground/'+name,import.meta.url)));
   for(const name of ['playground_code_runtime.js','native-fx-worklet.js'])assert(info.names.some(path=>path.endsWith(name)));
+  for(const name of ['synth-dmg/song_preview.js','synth-dmg/song_state.js','synth-dmg/song_controls.js','js/gameboyapuaudioengine.js','js/vgmplayer.js'])
+    assert(info.names.includes(name),`standalone reference-song dependency: ${name}`);
   assert(info.names.includes('licenses/tetorica-virtual-files/LICENSE'));assert(info.names.includes('playground/vendor/fflate-LICENSE'));
   assert(info.names.includes('sources/code-effects/scripts/build_native_audio_effect.sh'));
   const native=JSON.parse(await readFile(join(a.stage,'sources/GameBoy.json')));

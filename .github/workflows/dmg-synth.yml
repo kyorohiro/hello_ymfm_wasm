@@ -27,6 +27,7 @@ on:
       - 'tetorica_src/runtime/generated/**'
       - 'scripts/*gameboy*'
       - 'scripts/*dmg*'
+      - 'test/helpers/dmg_synth_song_fixture.mjs'
       - 'scripts/runtime_artifacts.mjs'
       - 'scripts/wasm_sdk_inventory.mjs'
       - 'third_party/soundchip-sdk.json'
@@ -48,6 +49,7 @@ on:
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
       - 'scripts/**'
+      - 'test/helpers/dmg_synth_song_fixture.mjs'
       - 'third_party/**'
       - 'package*.json'
       - '.github/workflows/dmg-synth.yml'
@@ -74,6 +76,7 @@ jobs:
           python3 -m zipfile -e release/tetorica_dmg_synth_ci_itch.zip release/dmg-synth-browser
           node scripts/check_dmg_synth_browser.cjs --root release/dmg-synth-browser --entry /index.html --out release/dmg-synth-browser.json --screenshots release/dmg-synth-images
           node scripts/check_dmg_synth_code_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-code-browser.json --screenshots=release/dmg-synth-code-images
+          node scripts/check_dmg_synth_song_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-browser.json --screenshots=release/dmg-synth-song-images
       - name: Check real Code Monaco when its pinned CDN is available
         run: |
           if node scripts/check_dmg_synth_code_monaco_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --engines=chromium,webkit --out=release/dmg-synth-code-monaco-browser.json; then
@@ -92,6 +95,8 @@ jobs:
             release/dmg-synth-images/
             release/dmg-synth-code-browser.json
             release/dmg-synth-code-images/
+            release/dmg-synth-song-browser.json
+            release/dmg-synth-song-images/
             release/dmg-synth-code-monaco-browser.json
             release/dmg-synth-code-monaco-browser-*.png
           if-no-files-found: ignore
