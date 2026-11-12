@@ -86,6 +86,7 @@
     "test:dmg-synth:song-browser": "node scripts/check_dmg_synth_song_browser.cjs",
     "test:dmg-synth:song-capture-browser": "node scripts/check_dmg_synth_song_capture_browser.cjs",
     "test:dmg-synth:song-seek-browser": "node scripts/check_dmg_synth_song_seek_browser.cjs",
+    "test:dmg-synth:menu-browser": "node scripts/check_dmg_synth_menu_browser.cjs",
     "test:gameboy-synth:browser": "npm run test:dmg-synth:browser",
     "pack:dmg-synth": "sh scripts/package_itch_dmg_synth.sh",
     "pack:gameboy-synth": "npm run pack:dmg-synth --",

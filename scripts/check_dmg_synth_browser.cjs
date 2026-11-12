@@ -167,6 +167,24 @@ async function runEngine(name, engine, origin) {
         input.value = String(next); input.dispatchEvent(new Event('input', {bubbles:true}));
       }, value);
     };
+    const openMenu = async selector => {
+      if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.click('#synthMenuButton');
+    };
+    const menuClick = async selector => {await openMenu(selector);await page.click(selector);};
+    const presetPaths = () => page.locator('#dmgFilesTree button[data-file-path]').evaluateAll(nodes=>nodes.map(node=>node.dataset.filePath).filter(value=>value.startsWith('/presets/')&&value.endsWith('.dmg.json')));
+    const selectFile = async filename => {
+      if(await page.locator('#dmgFilesPanel').isHidden())await page.click('#dmgFilesToggle');
+      for(let index=0;index<12;index++){const closed=page.locator('#dmgFilesTree details:not([open]) > summary');if(!await closed.count())break;await closed.first().click();}
+      await page.locator('#dmgFilesTree button[data-file-path]').locator(`xpath=self::*[@data-file-path=${JSON.stringify(filename)}]`).click();
+    };
+    const importVgm = async (name,buffer,count) => {
+      const before=new Set(await presetPaths());
+      await page.setInputFiles('#vgmFileInput',{name,mimeType:'application/octet-stream',buffer});
+      await page.waitForFunction(()=>document.querySelector('#vgmImport').dataset.loading==='false'&&/sounds? saved/.test(document.querySelector('#vgmStatus').textContent));
+      let paths=[];
+      for(let attempt=0;attempt<100;attempt++){paths=(await presetPaths()).filter(value=>!before.has(value));if(paths.length===count)return paths;await page.waitForTimeout(25);}
+      assert.equal(paths.length,count,'all extracted sounds are saved to Files');return paths;
+    };
     const pitchWheels = ['#pitchBend','#keyboardPitchBend'];
     const assertPitchUi = async value => {
       const actual=await page.evaluate(()=>({
@@ -225,32 +243,19 @@ async function runEngine(name, engine, origin) {
     await choose('#pulseDuty', .25);
     await page.fill('#instrumentName', 'DMG browser audit'); await page.press('#instrumentName', 'Enter');
     assert.equal(await page.evaluate(() => window.audit.contexts.length), 0);
-    check('VGM library scans without starting audio or replacing the edited instrument');
-    const vgmChooser=page.waitForEvent('filechooser');await page.click('#loadVgm');
+    check('Menu VGM import saves source and all extracted presets without starting audio or replacing the edited instrument');
+    const beforeInitial=new Set(await presetPaths()),vgmChooser=page.waitForEvent('filechooser');await menuClick('#loadVgm');
     await (await vgmChooser).setFiles({name:'self-authored-gameboy.vgm',mimeType:'application/octet-stream',buffer:makeInstrumentVgm()});
-    await page.waitForFunction(() => document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length === 4);
-    assert.equal(await page.isVisible('#vgmLibrary'),true);
+    await page.waitForFunction(()=>document.querySelector('#vgmImport').dataset.loading==='false'&&/4 sounds saved/.test(document.querySelector('#vgmStatus').textContent));
+    assert.equal((await presetPaths()).filter(value=>!beforeInitial.has(value)).length,4);
+    assert.equal(await page.locator('#vgmVoices').count(),0,'the redundant voice-button library is removed');
     assert.equal(await page.evaluate(() => window.audit.contexts.length),0);
     assert.equal(await page.locator('#instrumentName').inputValue(),'DMG browser audit');
     assert.equal(await choiceButton('#pulseDuty',.25).getAttribute('aria-checked'),'true');
-    assert.equal(await page.locator('[data-vgm-voice][aria-pressed=true]').count(),0);
-    await page.click('[data-vgm-filter="pulse"]');assert.equal(await page.locator('[data-vgm-voice]').count(),2);
-    await page.click('[data-vgm-filter="wave"]');assert.equal(await page.locator('[data-vgm-voice]').count(),1);
-    await page.click('[data-vgm-filter="noise"]');assert.equal(await page.locator('[data-vgm-voice]').count(),1);
-    await page.click('[data-vgm-filter="all"]');assert.equal(await page.locator('[data-vgm-voice]').count(),4);
-    await page.click('#closeVgm');assert.equal(await page.isVisible('#vgmLibrary'),false);
-    assert.equal(await page.locator('#instrumentName').inputValue(),'DMG browser audit');
-    assert.equal(await page.evaluate(() => window.audit.contexts.length),0);
-    await page.setInputFiles('#vgmFileInput',{name:'self-authored-thirty-sounds.vgm',mimeType:'application/octet-stream',buffer:makePagedInstrumentVgm()});
-    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===24);
-    assert.match(await page.locator('#vgmPage').textContent(),/1–24 \/ 30 sounds/);
-    assert.equal(await page.isDisabled('#vgmPrevious'),true);assert.equal(await page.isDisabled('#vgmNext'),false);
-    await page.click('#vgmNext');assert.equal(await page.locator('[data-vgm-voice]').count(),6);
-    assert.match(await page.locator('#vgmPage').textContent(),/25–30 \/ 30 sounds/);
-    assert.equal(await page.isDisabled('#vgmNext'),true);
-    await page.click('#vgmPrevious');assert.equal(await page.locator('[data-vgm-voice]').count(),24);
-    assert.equal(await page.isDisabled('[data-vgm-filter="noise"]'),true);
-    await page.click('#closeVgm');assert.equal(await page.isVisible('#vgmLibrary'),false);
+    assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'keyboard');
+    check('all thirty original static sounds are saved without paging or truncation');
+    const thirty=await importVgm('self-authored-thirty-sounds.vgm',makePagedInstrumentVgm(),30);
+    assert.equal(thirty.length,30);assert(thirty.every(value=>value.startsWith('/presets/self-authored-thirty-sounds/')));
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.locator('#keyboard .key').count(), 36);
     await page.click('#startAudio');
@@ -267,7 +272,7 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(() => window.audit.outgoing.filter(message => message.method === 'noteOn').length),0);
     await page.keyboard.down('a'); await waitState(value => value.voices.length === 1); await silent();
     await setMaster(.7); await sound(); await page.keyboard.up('a'); await waitState(value => value.voices.length === 0);
-    await page.click('#resetPreset'); await waitState(value => value.preset.source === 'pulse' && value.capacity === 2);
+    await menuClick('#resetPreset'); await waitState(value => value.preset.source === 'pulse' && value.capacity === 2);
     assert.equal(await page.evaluate(() => window.audit.contexts.length),1);
     assert.equal(await page.evaluate(() => window.audit.analysers.length),1, 'one final destination branch; monitor is passive');
 
@@ -432,92 +437,82 @@ async function runEngine(name, engine, origin) {
       await page.setViewportSize({width:1180,height:940});
     }
 
-    check('portable preset download / real import / invalid preset preserves the held sound');
-    const downloadEvent = page.waitForEvent('download'); await page.click('#savePreset');
+    check('portable preset download / passive JSON import / explicit Files apply / invalid preset preserves held sound');
+    const downloadEvent = page.waitForEvent('download'); await menuClick('#savePreset');
     const download = await downloadEvent, saved = JSON.parse(await fs.readFile(await download.path(),'utf8'));
     assert.equal(saved.format,'tetorica-gameboy-voice'); assert.equal(saved.version,1); assert.equal(saved.source,'noise');
     await choose('#source','pulse'); await waitState(value => value.preset.source === 'pulse');
     await page.setInputFiles('#presetFileInput',{name:'gameboy-roundtrip.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
-    await page.waitForFunction(() => document.querySelector('#audioStatus').textContent.startsWith('Preset loaded'));
+    await page.waitForFunction(()=>document.querySelector('#dmgFilesStatus').textContent.startsWith('Added'));
+    assert.equal((await inspect()).preset.source,'pulse','JSON import only saves the file');
+    await selectFile('/gameboy-roundtrip.json');
     state = await waitState(value => value.preset.source === 'noise'); assert.deepEqual(state.preset,saved); assert.equal(state.voices.length,0);
     await page.keyboard.down('a'); state = await waitState(value => value.voices.length === 1); await sound();
     const intact = structuredClone(state), invalid = structuredClone(saved); invalid.wave.samples[0] = 16;
     await page.setInputFiles('#presetFileInput',{name:'invalid-gameboy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(invalid))});
-    await page.waitForFunction(() => document.querySelector('#audioStatus').dataset.error === 'true');
+    await page.waitForFunction(()=>document.querySelector('#audioStatus').dataset.error==='true');
+    assert.equal(await page.locator('#dmgFilesTree button[data-file-path="/invalid-gameboy.json"]').count(),0,'invalid instrument import is rejected before storage');
     state = await inspect(); assert.deepEqual(state.preset,intact.preset); assert.deepEqual(state.voices,intact.voices); await sound();
     await page.keyboard.up('a'); await stop();
-    await page.click('#copyCode'); await page.waitForFunction(() => !document.querySelector('#codeOutput').hidden && document.querySelector('#codeOutput').value.includes('gameboy.noise.setVoice'));
+    await menuClick('#copyCode'); await page.waitForFunction(() => !document.querySelector('#codeOutput').hidden && document.querySelector('#codeOutput').value.includes('gameboy.noise.setVoice'));
     assert.match(await page.inputValue('#codeOutput'),/gameboy\.noise\.keyOn\(\)/);
 
-    check('VGM/VGZ instrument selection / all four channels / keyboard audition');
+    check('VGM/VGZ saved preset selection / all four physical channels / keyboard audition');
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
-    const beforeVgm=structuredClone(state);
-    await page.setInputFiles('#vgmFileInput',{name:'self-authored-gameboy.vgm',mimeType:'application/octet-stream',buffer:makeInstrumentVgm()});
-    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===4);
+    const beforeVgm=structuredClone(state),imported=await importVgm('self-authored-gameboy.vgm',makeInstrumentVgm(),4);
     state=await inspect();assert.deepEqual(state.preset,beforeVgm.preset);assert.deepEqual(state.voices,beforeVgm.voices);
-    assert.equal(await page.locator('[data-vgm-voice][aria-pressed=true]').count(),0);
-    const importVoice=async(index,predicate)=>{
-      await page.locator('[data-vgm-voice]').nth(index).click();
-      const current=await waitState(value=>predicate(value.preset));
-      assert.equal(current.voices.length,0,'choosing a new instrument releases held voices');
-      assert.equal(await page.locator('[data-vgm-voice]').nth(index).getAttribute('aria-pressed'),'true');
+    const importVoice=async(label,predicate)=>{
+      const filename=imported.find(value=>value.slice(value.lastIndexOf('/')+1).startsWith(label));assert(filename,'saved '+label);
+      await selectFile(filename);const current=await waitState(value=>predicate(value.preset));
+      assert.equal(current.voices.length,0,'choosing a saved instrument releases held voices');
+      assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'keyboard');
       assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input:not([type=range]),select,textarea'))),false);
       await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
-      await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
-      return current;
+      await page.keyboard.up('a');await waitState(value=>value.voices.length===0);return current;
     };
-    state=await importVoice(0,preset=>preset.source==='pulse'&&preset.pulse.volume===10&&preset.pulse.sweep.enabled);
+    state=await importVoice('Pulse CH1',preset=>preset.source==='pulse'&&preset.pulse.volume===10&&preset.pulse.sweep.enabled);
     assert.deepEqual(state.preset.pulse,{duty:.5,volume:10,envelope:{direction:'down',period:0},sweep:{enabled:true,direction:'down',period:2,shift:1}});
     assert.deepEqual(state.preset.pan,{left:true,right:true});assert.equal(state.capacity,1);
-    state=await importVoice(1,preset=>preset.source==='pulse'&&preset.pulse.volume===9&&!preset.pulse.sweep.enabled);
+    state=await importVoice('Pulse CH2',preset=>preset.source==='pulse'&&preset.pulse.volume===9&&!preset.pulse.sweep.enabled);
     assert.equal(state.preset.pulse.duty,.25);assert.equal(state.capacity,2);
-    state=await importVoice(2,preset=>preset.source==='wave'&&preset.wave.level===.5);
-    assert.deepEqual(state.preset.wave.samples,vgmWave);
-    state=await importVoice(3,preset=>preset.source==='noise'&&preset.noise.volume===11);
+    state=await importVoice('Wave CH3',preset=>preset.source==='wave'&&preset.wave.level===.5);assert.deepEqual(state.preset.wave.samples,vgmWave);
+    state=await importVoice('Noise CH4',preset=>preset.source==='noise'&&preset.noise.volume===11);
     assert.deepEqual(state.preset.noise,{volume:11,envelope:{direction:'down',period:0},divisor:3,shift:4,width:7});
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
-    const beforeBadVgm=structuredClone(state), libraryBeforeError=await page.locator('#vgmVoices').innerText();
+    const beforeBadVgm=structuredClone(state),presetsBeforeError=(await presetPaths()).sort();
     for(const [name,buffer] of [['broken.vgm',Buffer.from('not a VGM')],['no-gameboy.vgm',makeInstrumentVgm({gameboy:false})]]) {
       await page.setInputFiles('#vgmFileInput',{name,mimeType:'application/octet-stream',buffer});
-      await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmStatus').dataset.error==='true');
+      await page.waitForFunction(()=>document.querySelector('#vgmImport').dataset.loading==='false'&&document.querySelector('#vgmStatus').dataset.error==='true');
       state=await inspect();assert.deepEqual(state.preset,beforeBadVgm.preset);assert.deepEqual(state.voices,beforeBadVgm.voices);
-      assert.equal(await page.locator('#vgmVoices').innerText(),libraryBeforeError);await sound();
+      assert.deepEqual((await presetPaths()).sort(),presetsBeforeError);await sound();
     }
-    check('cancelled asynchronous VGM read cannot replace the current library or held sound');
+    check('cancelled asynchronous VGM read cannot save late presets or replace a held sound');
     await page.evaluate(()=>{
       const original=File.prototype.arrayBuffer;window.audit.restoreFileRead=()=>{File.prototype.arrayBuffer=original;};
       File.prototype.arrayBuffer=function(...args){
-        const bytes=original.apply(this,args);
-        if(this.name!=='slowfixture.vgm') return bytes;
+        const bytes=original.apply(this,args);if(this.name!=='slowfixture.vgm') return bytes;
         return bytes.then(value=>new Promise(resolve=>{window.audit.releaseSlowVgm=()=>resolve(value);})).finally(()=>{window.audit.slowVgmCompleted=true;});
       };
     });
     await page.setInputFiles('#vgmFileInput',{name:'slowfixture.vgm',mimeType:'application/octet-stream',buffer:makePagedInstrumentVgm()});
     await page.waitForFunction(()=>typeof window.audit.releaseSlowVgm==='function');
-    assert.equal(await page.locator('#vgmLibrary').getAttribute('data-loading'),'true');
-    await page.click('#cancelVgm');
-    await page.evaluate(()=>{window.audit.releaseSlowVgm();window.audit.restoreFileRead();});
-    await page.waitForFunction(()=>window.audit.slowVgmCompleted===true);
-    assert.equal(await page.locator('#vgmLibrary').getAttribute('data-loading'),'false');
-    assert.match(await page.locator('#vgmStatus').textContent(),/cancelled.*Current sound kept/);
-    assert.equal(await page.locator('#vgmVoices').innerText(),libraryBeforeError);
+    assert.equal(await page.locator('#vgmImport').getAttribute('data-loading'),'true');await menuClick('#cancelVgm');
+    await page.evaluate(()=>{window.audit.releaseSlowVgm();window.audit.restoreFileRead();});await page.waitForFunction(()=>window.audit.slowVgmCompleted===true);
+    assert.equal(await page.locator('#vgmImport').getAttribute('data-loading'),'false');assert.match(await page.locator('#vgmStatus').textContent(),/cancelled.*Current instrument kept/);
+    assert.deepEqual((await presetPaths()).sort(),presetsBeforeError);
     state=await inspect();assert.deepEqual(state.preset,beforeBadVgm.preset);assert.deepEqual(state.voices,beforeBadVgm.voices);await sound();
-    await page.setInputFiles('#vgmFileInput',{name:'self-authored-gameboy.vgz',mimeType:'application/gzip',buffer:gzipSync(makeInstrumentVgm())});
-    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-gameboy.vgz'&&document.querySelector('#vgmStatus').dataset.error!=='true'&&document.querySelectorAll('[data-vgm-voice]').length===4);
+    await importVgm('self-authored-gameboy.vgz',gzipSync(makeInstrumentVgm()),4);
     state=await inspect();assert.deepEqual(state.preset,beforeBadVgm.preset);assert.deepEqual(state.voices,beforeBadVgm.voices);
     await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
     if(config.screenshots) {
       await page.setViewportSize({width:390,height:844});
       await page.waitForFunction(()=>{const canvas=document.querySelector('#outputCanvas');return canvas.width===Math.max(240,Math.round(canvas.clientWidth));});
-      assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'VGM library fits a narrow screen');
-      await page.screenshot({path:path.join(config.screenshots,`dmg-${name}-vgm-mobile.png`),fullPage:true});
-      await page.setViewportSize({width:1180,height:940});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'saved VGM presets fit a narrow screen');
+      await page.screenshot({path:path.join(config.screenshots,`dmg-${name}-vgm-mobile.png`),fullPage:true});await page.setViewportSize({width:1180,height:940});
     }
-    await page.click('#closeVgm');assert.equal(await page.isVisible('#vgmLibrary'),false);
-    assert.deepEqual((await inspect()).preset,beforeBadVgm.preset);
 
     check('choice-button keyboard navigation / letters remain playable / blur releases');
-    await page.click('#resetPreset'); await waitState(value => value.preset.source === 'pulse');
+    await menuClick('#resetPreset'); await waitState(value => value.preset.source === 'pulse');
     assert.equal(await page.locator('#source [role=radio][tabindex="0"]').count(),1);
     await choiceButton('#source','pulse').focus();await page.keyboard.press('ArrowRight');
     await waitState(value => value.preset.source === 'wave');
@@ -562,7 +557,7 @@ async function runEngine(name, engine, origin) {
       buttonSteppers:true, heldNoteStepperEdits:true, stepperDrag:true, stepperBounds:true, stepperKeyboardAccess:true,
       noiseIgnoresNotePitch:true, presetRoundTrip:true, invalidPresetAtomic:true, copyJavaScript:true,
       vgmImportSilent:true, vgmFourChannelVoices:true, vgmSelectionKeyboard:true, vgmFailuresKeepSound:true,
-      vgzImport:true, vgmCloseKeepsSound:true, vgmFiltersAndPaging:true, vgmCancelledReadSafe:true,
+      vgzImport:true, vgmSavedPresets:true, vgmBulkPresets:true, vgmCancelledReadSafe:true,
       buttonChoices:true, heldDutyChoiceEdit:true, choiceKeyboardPerformance:true, choiceKeyboardNavigation:true,
       sweepChoiceDisabled:true, blurRelease:true, contextRecovery:true,
       finalDestinationMeasurement:true, physicalOutput:'muted', mobileOverflow:overflow, pageErrors:errors, missingAssets:missing, externalRequests:external};

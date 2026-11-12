@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-seek-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-seek-1';
-import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-seek-1';
-import {createEditor} from './editor.js?v=dmg-seek-1';
-import {createVgmLibrary} from './vgm_library.js?v=dmg-seek-1';
-import {setupGameboySongControls} from './song_controls.js?v=dmg-seek-1';
-import {createGameboySongAudition} from './song_audition.js?v=dmg-seek-1';
-import {prepareGameboySongVoice} from './song_voice.js?v=dmg-seek-1';
+import {createAudio} from './audio.js?v=dmg-menu-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-menu-1';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-menu-1';
+import {createEditor} from './editor.js?v=dmg-menu-1';
+import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-menu-1';
+import {setupSynthMenu} from '../synth/synth_menu.js';
+import {setupGameboySongControls} from './song_controls.js?v=dmg-menu-1';
+import {createGameboySongAudition} from './song_audition.js?v=dmg-menu-1';
+import {prepareGameboySongVoice} from './song_voice.js?v=dmg-menu-1';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -21,7 +22,7 @@ const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve(), captureWork = null;
-let vgmLibrary = null, codeHost = null, codeLive = null, applySequence = 0, liveSignature = null, songControls = null, lastSongState = null, audition = null, auditionSelectionKey = null, pausedVoiceCache = null;
+let vgmImport = null, codeHost = null, codeLive = null, applySequence = 0, liveSignature = null, songControls = null, lastSongState = null, audition = null, auditionSelectionKey = null, pausedVoiceCache = null;
 const notes = new Map(), auditionNotes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -109,7 +110,7 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-async function applyPreset(value, {load = false, message, fromVgm = false, isCurrent = () => true, keepSongPaused = false} = {}) {
+async function applyPreset(value, {load = false, message, isCurrent = () => true, keepSongPaused = false} = {}) {
   const next = readPreset(value), request=++applySequence;
   if(!isCurrent())return false;
   const retainPause=lastSongState?.paused&&(keepSongPaused||!isSongChannelView());
@@ -118,7 +119,6 @@ async function applyPreset(value, {load = false, message, fromVgm = false, isCur
   if(disposed||request!==applySequence||!isCurrent())return false;
   if(codeHost?.isRunning() || codeHost?.isCodeMode()&&!keepSongPaused) await codeHost.stop();
   if(disposed || request!==applySequence || !isCurrent())return false;
-  if (!fromVgm) vgmLibrary?.clearSelection();
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source || previous.pulse.sweep.enabled !== next.pulse.sweep.enabled
     || JSON.stringify(previous.wave.samples) !== JSON.stringify(next.wave.samples);
@@ -155,9 +155,10 @@ async function applyPreset(value, {load = false, message, fromVgm = false, isCur
   });
 }
 const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report});
-vgmLibrary = createVgmLibrary({root: $('vgmImport'), onSelect: value => applyPreset(value, {
-  load: true, fromVgm: true, message: `${value.name} loaded from VGM · play the keyboard.`,
-}),onSource:(source,options)=>codeHost.files.saveSongSource(source,options)});
+setupSynthMenu({document,window});
+vgmImport = setupGameboyVgmImport({root:$('vgmImport'),onStatus:status,
+  onSource:(source,options)=>codeHost.files.saveSongSource(source,options),
+  onSounds:(sounds,options)=>codeHost.files.saveVgmSounds(sounds,options)});
 
 const keyboard = document.createElement('div'); keyboard.className = 'keyboard';
 $('keyboard').append(keyboard);
@@ -319,13 +320,17 @@ $('loadPreset').addEventListener('click',()=>{$('loadPreset').blur();$('presetFi
 $('presetFileInput').addEventListener('change',async()=>{
   const file=$('presetFileInput').files?.[0];$('presetFileInput').value='';$('presetFileInput').blur();
   if(!file) return;
-  const token=++importSequence, draftRevision=revision;
+  const token=++importSequence;
   try {
+    if(!/\.json$/i.test(file.name))throw new Error('Choose a .json file for a DMG instrument.');
     if(file.size>65536) throw new Error('Preset must be at most 64 KiB');
     const next=readPreset(JSON.parse(await file.text()));
-    if(disposed||token!==importSequence||draftRevision!==revision) return;
-    await applyPreset(next,{load:true,message:'Preset loaded · play the keyboard.'});
-  }catch(error){report(error);}
+    if(disposed||token!==importSequence)return;
+    const paths=await codeHost.files.importFiles([file],{isCurrent:()=>!disposed&&token===importSequence});
+    if(disposed||token!==importSequence||!paths.length)return;
+    codeHost.files.setVisible(true);
+    status(`${next.name} added to Files · select its JSON to load it. Current instrument kept.`);
+  }catch(error){if(!disposed&&token===importSequence)report(error);}
 });
 $('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();void applyPreset(createDefaultPreset(),{load:true,message:'Instrument reset · Pulse ready.'}).catch(report);});
 $('copyCode').addEventListener('click',async()=>{
@@ -338,7 +343,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){void stopAll();return;}
-  disposed=true;songControls?.dispose();void audition?.dispose().catch(()=>{});epoch++;applySequence++;notes.clear();codeLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();
+  disposed=true;songControls?.dispose();void audition?.dispose().catch(()=>{});epoch++;applySequence++;notes.clear();codeLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmImport.dispose();
   const closing=audio;
   void Promise.resolve(codeHost?.dispose()).catch(()=>{}).finally(()=>closing?.dispose()).catch(()=>{});
   audio=null;

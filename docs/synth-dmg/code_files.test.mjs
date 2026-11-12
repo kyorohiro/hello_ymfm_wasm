@@ -81,6 +81,39 @@ test('late DMG file reads cannot overwrite a newer edit or a disposed workspace'
   await f.files.dispose();disposedRead.resolve(new TextEncoder().encode('late').buffer);assert.deepEqual(await late,[]);assert(!f.project.fs.has('/after-close.txt'));
 });
 
+test('an external import generation can cancel a pending read without a newer Files operation',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot(),gate=deferred();let current=true,secondReads=0,flushes=0;
+  f.files.setCodeControls({flush:async()=>{flushes++;return true;},setBusy(){}});
+  const pending=f.files.importFiles([
+    {name:'superseded.dmg.json',size:2,arrayBuffer:()=>gate.promise},
+    {name:'never-read.txt',size:1,arrayBuffer:async()=>{secondReads++;return Uint8Array.of(1).buffer;}},
+  ],{isCurrent:()=>current});
+  await Promise.resolve();current=false;gate.resolve(new TextEncoder().encode('{}').buffer);
+  assert.deepEqual(await pending,[]);assert.deepEqual(f.project.snapshot(),before);
+  assert.equal(secondReads,0);assert.equal(flushes,0);assert.deepEqual(f.calls,[]);
+  let reads=0;assert.deepEqual(await f.files.importFiles([{name:'already-old.txt',size:1,arrayBuffer:async()=>{reads++;return new ArrayBuffer(1);}}],{isCurrent:()=>false}),[]);
+  assert.equal(reads,0);
+});
+
+test('an externally superseded import cannot commit after a pending editor flush',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot(),gate=deferred();let current=true,entered;
+  const begun=new Promise(resolve=>entered=resolve);
+  f.files.setCodeControls({flush:async()=>{entered();await gate.promise;return true;},setBusy(){}});
+  const pending=f.files.importFiles([{name:'superseded.json',size:2,arrayBuffer:async()=>new TextEncoder().encode('{}').buffer}],{isCurrent:()=>current});
+  await begun;current=false;gate.resolve();assert.deepEqual(await pending,[]);assert.deepEqual(f.project.snapshot(),before);
+  assert.deepEqual(f.calls,[]);
+});
+
+test('external import invalidation is checked after workspace retirement and before atomic replacement',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot(),gate=deferred();let current=true,entered;
+  const begun=new Promise(resolve=>entered=resolve);
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',flush:async()=>true,setBusy(){},
+    workspaceReplaced:async()=>{entered();await gate.promise;return true;},restoreState:()=>assert.fail('A cancelled replacement must not restore Code')});
+  const pending=f.files.importFiles([{name:'index.js',size:4,arrayBuffer:async()=>new TextEncoder().encode('late').buffer}],{isCurrent:()=>current});
+  await begun;current=false;gate.resolve();assert.deepEqual(await pending,[]);assert.deepEqual(f.project.snapshot(),before);
+  assert.equal(f.doc.querySelector('.dmg-main').inert,false);
+});
+
 test('DMG local Files restoration retains a preset edited while storage was pending',async t=>{
   const gate=deferred(),old=createGameboyCodeProject({starterCode:'restored code'}),f=fixture(t,{store:{read:()=>gate.promise,write:async()=>true,close:async()=>{}}});
   const edited=createDefaultPreset();edited.source='wave';edited.wave.samples[0]=3;f.setSettings(edited);f.files.markSoundDirty();gate.resolve(old.snapshot());await f.files.ready;
@@ -150,4 +183,66 @@ test('DMG committed Capture survives an editor display rejection and still persi
   assert.equal(result.committed,true);assert(f.project.fs.has(result.originalPath));assert(f.project.fs.has(result.path));
   assert.deepEqual(f.project.settings,captured);assert.match(f.statuses.at(-1),/Captured to.*Code display failed: Editor unavailable/);
   assert(f.writes.some(snapshot=>snapshot.settings.source==='wave'));
+});
+
+test('DMG VGM sounds save as a passive folder batch, keeping raw selection, unflushed Code and author settings',async t=>{
+  const f=fixture(t);await f.files.ready;const raw=Uint8Array.of(1,255,0),song=await f.files.saveSongSource({name:'Reference.vgz',bytes:raw}),revision=f.project.fs.getRevision(song);
+  f.project.setCodeState({mode:'code',path:'/index.js'});const original=f.project.settings;
+  const focus=f.doc.createElement('textarea');f.doc.append(focus);focus.focus();let flushes=0;
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,setBusy(){},flush:async()=>{if(flushes++===0)f.project.writeEditorText('/index.js','unflushed performance');return true;},
+    openFile:()=>assert.fail('Batch save must not open Code'),stop:()=>assert.fail('Batch save must not stop Code'),workspaceReplaced:()=>assert.fail('Batch save must not replace Code')});
+  const one=createDefaultPreset(),two=readPreset(one);two.name='Wave';two.source='wave';
+  const result=await f.files.saveVgmSounds({name:'Reference.vgz',voices:[{preset:one},{preset:two}]});
+  assert.deepEqual(result,{paths:['/presets/Reference/Pulse.dmg.json','/presets/Reference/Wave.dmg.json'],directory:'/presets/Reference'});
+  assert.deepEqual(JSON.parse(f.project.fs.get(result.paths[0]).data),one);assert.deepEqual(JSON.parse(f.project.fs.get(result.paths[1]).data),two);
+  assert.equal(f.project.selectedPath,song);assert.equal(f.project.fs.getRevision(song),revision);assert.deepEqual(f.project.fs.get(song).data,raw);
+  assert.deepEqual(f.project.getCodeState(),{mode:'code',path:'/index.js'});assert.equal(f.project.fs.get('/index.js').data,'unflushed performance');assert.deepEqual(f.project.settings,original);
+  assert.equal(f.doc.activeElement,focus);assert.deepEqual(f.calls,[]);assert.equal(f.doc.getElementById('dmgFilesPanel').hidden,false);assert.equal(f.doc.getElementById('dmgPresetSelect').value,'');
+  assert.match(f.statuses.at(-1),/Saved 2 VGM sound\(s\).*Choose a preset/);
+  const restored=createGameboyCodeProject({snapshot:await f.project.prepareImport(f.project.exportProject())});
+  assert.deepEqual(restored.settings,original);assert.deepEqual(restored.fs.get(song).data,raw);assert.deepEqual(JSON.parse(restored.fs.get(result.paths[1]).data),two);
+});
+
+test('DMG VGM folders and batch filenames avoid portable Unicode, casefold, file and directory collisions',async t=>{
+  const f=fixture(t);await f.files.ready;f.project.importFiles([{path:'/presets/CAFÉ',data:'existing file'}]);
+  const one=createDefaultPreset();one.name='e\u0301';const two=readPreset(one);two.name='É';
+  const result=await f.files.saveVgmSounds({name:'cafe\u0301.vgm',voices:[{preset:one},{preset:two}]});
+  assert.deepEqual(result,{directory:'/presets/café (2)',paths:['/presets/café (2)/é.dmg.json','/presets/café (2)/É (2).dmg.json']});
+  const next=await f.files.saveVgmSounds({name:'Café.VGZ',voices:[{preset:one}]});assert.equal(next.directory,'/presets/Café (3)');
+  const reserved=await f.files.saveVgmSounds({name:'CON.vgm',voices:[{preset:one}]});assert.equal(reserved.directory,'/presets/_CON');
+  const portable=await f.files.saveVgmSounds({name:'bad:*?.vgz',voices:[{preset:{...one,name:'A/B:*?'}}]});
+  assert.equal(portable.directory,'/presets/bad___');assert.equal(portable.paths[0],'/presets/bad___/A_B___.dmg.json');
+});
+
+test('DMG VGM sound capacity or invalid voices fail atomically without removing the separately saved raw log',async t=>{
+  const f=fixture(t);await f.files.ready;const source=await f.files.saveSongSource({name:'kept.vgm',bytes:Uint8Array.of(0,255)});
+  const before=f.project.snapshot();await assert.rejects(f.files.saveVgmSounds({name:'bad.vgm',voices:[{preset:createDefaultPreset()},{preset:{}}]}));assert.deepEqual(f.project.snapshot(),before);
+  const total=f.project.listEntries().reduce((sum,file)=>sum+file.size,0);f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(GAMEBOY_PROJECT_FILE_BYTES-total-20)}]);
+  const full=f.project.snapshot();await assert.rejects(f.files.saveVgmSounds({name:'full.vgm',voices:[{preset:createDefaultPreset()}]}),/16 MiB/);
+  assert.deepEqual(f.project.snapshot(),full);assert.deepEqual(f.project.fs.get(source).data,Uint8Array.of(0,255));assert(!f.project.fs.listDirectories().includes('/presets/full'));
+});
+
+test('DMG VGM batch rejects stale flush and disposal before committing any files',async t=>{
+  const f=fixture(t);await f.files.ready;const flush=deferred();let current=true;
+  f.files.setCodeControls({flush:()=>flush.promise,setBusy(){}});
+  const saving=f.files.saveVgmSounds({name:'stale.vgm',voices:[{preset:createDefaultPreset()}]},{isCurrent:()=>current});
+  current=false;flush.resolve();assert.equal(await saving,false);assert(!f.project.fs.has('/presets/stale/Pulse.dmg.json'));
+  await f.files.dispose();assert.equal(await f.files.saveVgmSounds({name:'disposed.vgm',voices:[{preset:createDefaultPreset()}]}),false);
+});
+
+test('DMG committed VGM batch returns success after late cancellation during local persistence',async t=>{
+  const gate=deferred();let block=false;
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>{if(block)await gate.promise;return true;},close:async()=>{}}});await f.files.ready;
+  let current=true;block=true;const saving=f.files.saveVgmSounds({name:'committed.vgm',voices:[{preset:createDefaultPreset()}]},{isCurrent:()=>current});
+  while(!f.project.fs.has('/presets/committed/Pulse.dmg.json'))await Promise.resolve();current=false;gate.resolve();
+  assert.deepEqual(await saving,{directory:'/presets/committed',paths:['/presets/committed/Pulse.dmg.json']});
+});
+
+test('zero extracted DMG voices and plain JSON import remain passive without choosing or applying a sound',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot();let flushed=0;
+  f.files.setCodeControls({flush:async()=>{flushed++;return true;},setBusy(){}});
+  assert.deepEqual(await f.files.saveVgmSounds({name:'silent.vgm',voices:[]}),{paths:[],directory:null});assert.deepEqual(f.project.snapshot(),before);assert.equal(flushed,0);
+  const bytes=new TextEncoder().encode(JSON.stringify(createDefaultPreset()));
+  assert.deepEqual(await f.files.importFiles([{name:'imported.dmg.json',size:bytes.length,arrayBuffer:async()=>bytes.buffer}]),['/imported.dmg.json']);
+  assert.equal(f.project.selectedPath,before.selectedPath);assert.deepEqual(f.calls,[]);assert.deepEqual(f.project.settings,before.settings);assert.match(f.statuses.at(-1),/Code was not run/);
 });

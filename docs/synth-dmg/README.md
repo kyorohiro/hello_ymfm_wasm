@@ -15,7 +15,12 @@ keyboard and output display used by Tetorica's FM2612 / SPU Synths.
 
 1. Select **Enable audio**, then click a key or play the displayed computer keys.
 2. Choose **Pulse**, **Wave** or **Noise** under **Source**.
-3. Change its controls, save the instrument, or select **Copy JavaScript**.
+3. Change its controls, use **Files → Save sound**, or **Menu → Export → Copy JavaScript**.
+
+The hamburger **Menu** beside Enable audio contains Import / Export and Reset.
+Import a VGM / VGZ there to keep its original file and extracted sounds in
+Files. Importing an instrument JSON also adds it to Files without applying it;
+select the sound file when you want to replace the edited instrument.
 
 Opening the page or editing a source does not start an audio device. Playing
 a key can also initialize audio. All keyboard keys play the selected source;
@@ -98,8 +103,9 @@ the stored preset. `liveLoop`, `beat`, `tween`, `context`, scheduling and `liveF
 are software facilities, separate from APU Envelope / Sweep.
 
 **Files** opens the project tree. Add code, local modules or data; right-click
-for Duplicate, Rename, Delete, new JavaScript / sound / folder and file/project
-import/export. **Save sound** creates a readable JSON preset under `/presets`.
+for Duplicate, Rename, Delete and new JavaScript / sound / folder. Use
+**Menu → Import / Export** for external files and project ZIPs.
+**Save sound** creates a readable JSON preset under `/presets`.
 Selecting a valid sound JSON loads it; text and JSON are edited in Code. File
 selection leaves Keyboard selected when Code is hidden. The maximize button
 moves Code beside Files; restoring it returns to the controls.
@@ -152,8 +158,9 @@ using the existing Game Boy source balance as its reference.
 
 ## Reference VGM songs
 
-**Load VGM / VGZ…** also keeps the original file under `/vgm` in Files. You can
-add files through **Files → Add files…**, too. Name collisions create a new file;
+**Menu → Import → VGM / VGZ…** keeps the original file under `/vgm` in Files and
+extracts static sounds into `/presets/<song name>/`. You can add original files
+without extraction through **Menu → Import → Project files…**, too. Name collisions create a new file;
 original VGM/VGZ bytes are preserved. Sources without a usable static instrument
 can still be retained independently of sound extraction. The Files project has
 a shared 16 MiB limit. If a source cannot fit, the extraction workflow continues
@@ -223,37 +230,43 @@ or cancelled source validation keeps the previous playable song and instrument.
 
 ## Import sounds from VGM
 
-Select **Load VGM / VGZ…** with a Game Boy VGM or gzip-compressed VGZ file.
-Analysis lists the Pulse, Wave and Noise sounds without changing the current
-instrument or starting audio. Choose a sound to load it, then play the keyboard.
-Use **All / Pulse / Wave / Noise** to filter the list and **Previous / Next**
-for longer libraries. **Close library** keeps the selected instrument.
+Select **Menu → Import → VGM / VGZ…** with a Game Boy VGM or gzip-compressed
+VGZ file. Analysis writes Pulse, Wave and Noise presets into a uniquely named
+folder under `/presets`, then opens Files. Choose a sound JSON in that folder
+to load it, then play the keyboard. Import alone keeps the current instrument
+and Code mode, and does not start audio. Re-importing a source creates new
+paths rather than overwriting its previously edited sounds.
 
 The import uses initial register settings at each recorded trigger: Pulse Duty,
 volume envelope and CH1 Sweep; complete 32-sample Wave RAM and its output level;
 Noise clock, LFSR width and envelope. Left / right routing is included when
-recorded. Identical sounds are grouped, with their first time and use count shown.
+recorded. Identical sound settings are grouped before saving.
 Imported sounds remain editable and can be saved as presets or copied as JavaScript.
 
 This extraction supplies a starting sound for keyboard performance. Original note
 pitch, hardware length counters and later register changes are not imported into
 that sound. Use the separate VGM reference controls to hear the recorded song.
 The page reports missing settings and unsupported input; failed or cancelled
-imports keep the current instrument and previous library. Files and decompressed
-VGM data are limited to 64 MiB. All analysis stays in the browser.
+imports keep the current instrument and previously saved sounds. Original-file
+storage and preset storage are reported separately: a log can be retained even
+without static sounds, and sound extraction can succeed when the original log
+does not fit. A sound batch is saved in full or not saved. Input files and
+decompressed VGM data are limited to 64 MiB; the shared Files / project limit is
+16 MiB. All analysis stays in the browser.
 
 ## Presets and reusable code
 
-**Save preset** downloads `dmg-voice.json`, containing the instrument name,
+**Menu → Export → Instrument · DMG JSON** downloads `dmg-voice.json`, containing the instrument name,
 selected source, Pulse settings shared by CH1 / CH2, Wave's 32 samples and level, Noise
 settings, and left / right routing. The portable format is
-`tetorica-gameboy-voice`, version 1. Load validates the complete preset before
-changing the instrument; malformed or oversized files preserve the previous
-sound. Loading a valid preset or resetting stops notes. Master, keyboard
+`tetorica-gameboy-voice`, version 1. **Menu → Import → Instrument · DMG JSON…**
+validates the file and adds it to Files; select its JSON there to apply it.
+Malformed or oversized files preserve the previous sound. Selecting a valid
+preset or resetting stops notes. Master, keyboard
 layout, octave and the temporary Pitch wheel position are performance controls
 and are not saved in the instrument preset.
 
-**Copy JavaScript** generates the selected source's setup and a single-channel
+**Menu → Export → Copy JavaScript** generates the selected source's setup and a single-channel
 audition. Open the Playground in **Game Boy** mode, replace its default script
 with the copied code and Run it.
 The snippet uses the initialized `gameboy` API and includes a release command
@@ -262,8 +275,8 @@ part of that single-voice snippet. Master volume and the temporary Pitch wheel
 are not included. The generated code is also shown on the page
 for manual copying if clipboard access is unavailable.
 
-Use **Save sound** / **Export project** for the local Files project, or
-**Save preset** for an individual instrument download. Analyzer-exported voice
+Use **Files → Save sound** / **Menu → Export → Project · ZIP** for the local project,
+or **Menu → Export → Instrument · DMG JSON** for an individual instrument download. Analyzer-exported voice
 JSON and audio recordings are not imported directly. The existing Analyzer and Playground provide separate extraction /
 Sample Editor workflows.
 GBS song playback and full Game Boy emulation are outside this APU Synth.
@@ -292,6 +305,7 @@ npm run test:dmg-synth:code-monaco
 npm run test:dmg-synth:song-browser
 npm run test:dmg-synth:song-capture-browser
 npm run test:dmg-synth:song-seek-browser
+npm run test:dmg-synth:menu-browser
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

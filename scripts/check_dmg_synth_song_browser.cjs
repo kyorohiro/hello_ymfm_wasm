@@ -66,7 +66,7 @@ async function play(page){await page.locator('#dmgSongPlayButton').click();await
 async function pause(page){await page.locator('#dmgSongPlayButton').click();await phase(page,'paused');}
 async function stop(page){await page.locator('#dmgSongStopButton').click();await phase(page,'stopped');await pcm(page,false);}
 async function choose(page,value){await page.locator('#dmgSongSelect').selectOption(value);await until(async()=>!await page.locator('#dmgSongPlayButton').isDisabled()&&await page.locator('#dmgSongSelect').inputValue()===value,'song selected');}
-async function download(page,selector){const event=page.waitForEvent('download');await page.locator(selector).click();const item=await event,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return Buffer.concat(chunks);}
+async function download(page,selector){if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();const event=page.waitForEvent('download');await page.locator(selector).click();const item=await event,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return Buffer.concat(chunks);}
 
 async function check(browser,name,origin,fixture,loadCassette){
   const page=await browser.newPage({viewport:{width:1240,height:1050},acceptDownloads:true,serviceWorkers:'block'});
@@ -97,6 +97,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     await until(()=>page.locator('#vgmStatus').textContent().then(value=>/failed|extraction:/i.test(value)),'invalid input reported');
     assert.equal(await page.locator('#dmgSongSelect').inputValue(),'/vgm/reference.vgm');
     await page.locator('#vgmFileInput').setInputFiles({name:'slow.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
+    if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();
     await page.locator('#cancelVgm').click();await wait(650);assert.equal(await page.locator('#dmgSongSelect option[value="/vgm/slow.vgm"]').count(),0);
     assert.equal((await page.evaluate(()=>__dmgSongAudit.graph())).contexts,0);
     await page.locator('#startAudio').click();await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'author APU');

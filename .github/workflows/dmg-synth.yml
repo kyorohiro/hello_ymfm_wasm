@@ -20,6 +20,7 @@ on:
       - 'docs/vgm_analyzer/gameboy_waves.js'
       - 'docs/generated/gameboy*'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_menu.js'
       - 'docs/synth/synth_code*'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
@@ -44,6 +45,7 @@ on:
       - 'docs/vgm_analyzer/gameboy_waves.js'
       - 'docs/generated/**'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_menu.js'
       - 'docs/synth/synth_code*'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
@@ -75,6 +77,7 @@ jobs:
           sh scripts/package_itch_dmg_synth.sh ci
           python3 -m zipfile -e release/tetorica_dmg_synth_ci_itch.zip release/dmg-synth-browser
           node scripts/check_dmg_synth_browser.cjs --root release/dmg-synth-browser --entry /index.html --out release/dmg-synth-browser.json --screenshots release/dmg-synth-images
+          node scripts/check_dmg_synth_menu_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-menu-browser.json --screenshots=release/dmg-synth-menu-images
           node scripts/check_dmg_synth_code_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-code-browser.json --screenshots=release/dmg-synth-code-images
           node scripts/check_dmg_synth_song_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-browser.json --screenshots=release/dmg-synth-song-images
           node scripts/check_dmg_synth_song_capture_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-capture-browser.json --screenshots=release/dmg-synth-song-capture-images
@@ -95,6 +98,8 @@ jobs:
             release/tetorica_dmg_synth_ci_itch.zip
             release/dmg-synth-browser.json
             release/dmg-synth-images/
+            release/dmg-synth-menu-browser.json
+            release/dmg-synth-menu-images/
             release/dmg-synth-code-browser.json
             release/dmg-synth-code-images/
             release/dmg-synth-song-browser.json

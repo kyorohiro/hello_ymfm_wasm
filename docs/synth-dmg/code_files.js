@@ -3,7 +3,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installGameboyFileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
-import {createGameboyCodeProject,createGameboyProjectStore,readGameboyProjectSound,isGameboyCodePath,isGameboyTextPath,isGameboySongFilename,isGameboySongPath,GAMEBOY_PROJECT_MANIFEST,GAMEBOY_PROJECT_CODE_LENGTH} from './code_project.js?dmg-json-code=1';
+import {createGameboyCodeProject,createGameboyProjectStore,readGameboyProjectSound,isGameboyCodePath,isGameboyTextPath,isGameboySongFilename,isGameboySongPath,GAMEBOY_PROJECT_MANIFEST,GAMEBOY_PROJECT_CODE_LENGTH,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js?dmg-json-code=1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -136,16 +136,17 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
     if(disposed||token!==operation)return false;
     say(sound?'Game Boy sound loaded. Edit its JSON in Code; select it again to apply changes.':soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:file.type==='text'?'Text edits save to Files from Code; select a Game Boy sound JSON again to apply it.':isGameboySongPath(path)?'VGM source selected. Press Play in the song list; your instrument is kept.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
   }
-  async function importFiles(files){
-    await api.ready;if(disposed||busy)return[];const token=++operation;
-    const entries=[],songs=[];for(const file of files){if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());
+  async function importFiles(files,{isCurrent=()=>true}={}){
+    if(disposed||!isCurrent())return[];
+    await api.ready;if(disposed||busy||!isCurrent())return[];const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
+    const entries=[],songs=[];for(const file of files){if(!current())return[];if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());if(!current())return[];
       if(isGameboySongFilename(file.name))songs.push({name:file.name,bytes});else entries.push({path:'/'+basename(file.name),type:isGameboyTextPath(file.name)?'text':'binary',data:isGameboyTextPath(file.name)?decoder.decode(bytes):bytes});}
-    if(disposed||token!==operation)return[];await code?.flush?.();if(disposed||token!==operation)return[];
+    if(!current())return[];await code?.flush?.();if(!current())return[];
     const candidate=createGameboyCodeProject({snapshot:project.snapshot()}),songPaths=candidate.importSongSources(songs),paths=[...candidate.importFiles(entries),...songPaths],replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
     if(songPaths.length)candidate.select(songPaths.at(-1));
     setBusy(true);try{
-      if(replaceExecution){if(await code.workspaceReplaced()===false||disposed||token!==operation)return[];}
-      if(disposed||token!==operation)return[];
+      if(replaceExecution){if(await code.workspaceReplaced()===false||!current())return[];}
+      if(!current())return[];
       project.restore(candidate.snapshot());
       if(replaceActive||replaceExecution)await code.restoreState(project.getCodeState());
       render();await persistCode();say(`Added ${paths.length} file(s). Code was not run.`);return paths;
@@ -159,6 +160,41 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
     try{
       candidate.select(paths[0]);project.restore(candidate.snapshot());reveal(paths[0]);setVisible(true);render();await persistCode();
       if(!current())return false;say(`Original VGM source saved to ${paths[0]}. Press Play to hear it; current instrument kept.`);return paths[0];
+    }finally{if(!disposed)setBusy(false);}
+  }
+  /** Static VGM extraction saves a passive batch, separate from its raw log.
+   * No voice is selected, applied, opened in Code or played by this operation. */
+  async function saveVgmSounds({name,voices},{isCurrent=()=>true}={}){
+    if(disposed||!isCurrent())return false;
+    if(typeof name!=='string'||!Array.isArray(voices))throw TypeError('VGM sounds need a source name and voice array.');
+    if(!voices.length)return {paths:[],directory:null};
+    await api.ready;if(disposed||busy||!isCurrent())return false;
+    const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
+    if(!current()||await code?.flush?.()===false||!current())return false;
+    const metadata=project.listEntries(),used=new Set([...metadata.map(file=>file.path),...project.fs.listDirectories()].map(foldedPath));
+    const stem=soundFileStem(basename(name.replace(/\\/g,'/')),/\.(?:vgm|vgz)$/i);
+    let index=1,directory='/presets/'+stem;
+    while(used.has(foldedPath(directory)))directory=`/presets/${stem} (${++index})`;
+    let total=metadata.reduce((bytes,file)=>bytes+file.size,0);
+    const entries=voices.map(voice=>{
+      const sound=readGameboyProjectSound(voice?.preset);if(!sound)throw Error('Every extracted VGM voice must contain a complete Game Boy preset.');
+      const stem=soundFileStem(sound.name);let index=1,path=`${directory}/${stem}.dmg.json`;
+      while(used.has(foldedPath(path)))path=`${directory}/${stem} (${++index}).dmg.json`;
+      used.add(foldedPath(path));const data=JSON.stringify(sound,null,2)+'\n';total+=encoder.encode(data).byteLength;
+      if(total>GAMEBOY_PROJECT_FILE_BYTES)throw Error('VGM sounds exceed the 16 MiB cassette limit. The original VGM and current instrument are kept.');
+      return {path,type:'text',data};
+    });
+    const candidate=createGameboyCodeProject({snapshot:project.snapshot()});candidate.importFiles(entries);
+    if(!current())return false;
+    setBusy(true,{lockMain:false});
+    try{
+      project.restore(candidate.snapshot());reveal(directory);expanded.set(directory,true);setVisible(true);render();
+      // Once committed, a late cancellation cannot turn this saved batch into
+      // an apparent failure. The importer still fences its own later UI work.
+      const result={paths:entries.map(entry=>entry.path),directory};
+      const persisted=await persistCode();
+      say(`Saved ${entries.length} VGM sound(s) to ${directory}. Choose a preset in Files to load it.`+(persisted===false?' Local save unavailable; export the project to keep the sounds.':''));
+      return result;
     }finally{if(!disposed)setBusy(false);}
   }
   async function importProject(bytes){
@@ -297,7 +333,7 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveSongSource,saveCapturedSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveSongSource,saveVgmSounds,saveCapturedSound,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=dmg-seek-1">
+  <link rel="stylesheet" href="./synth.css?v=dmg-menu-1">
 </head>
 <body>
   <main>
@@ -37,6 +37,39 @@
         </div>
         <div class="audio-toolbar">
           <div class="transport-actions">
+            <details id="synthMenu" class="synth-menu">
+              <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
+              <div id="synthMenuPanel" class="synth-menu-panel">
+                <section class="synth-menu-section">
+                  <h2>Import</h2>
+                  <div class="synth-menu-actions">
+                    <div id="vgmImport" class="dmg-vgm-import">
+                      <button id="loadVgm" type="button" data-close-synth-menu>VGM / VGZ…</button>
+                      <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with Game Boy sound">
+                      <button id="cancelVgm" type="button" hidden>Cancel VGM import</button>
+                      <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Originals go to /vgm; extracted sounds go to /presets. Select a sound in Files to load it.</p>
+                    </div>
+                    <button id="loadPreset" type="button" data-close-synth-menu>Instrument · DMG JSON…</button>
+                    <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a Game Boy instrument preset to add to Files">
+                    <div id="dmgMenuProjectImport"></div>
+                    <div id="dmgMenuFilesImport"></div>
+                  </div>
+                </section>
+                <section class="synth-menu-section">
+                  <h2>Export</h2>
+                  <div class="synth-menu-actions">
+                    <button id="savePreset" type="button" data-close-synth-menu>Instrument · DMG JSON</button>
+                    <div id="dmgMenuProjectExport"></div>
+                    <div id="dmgMenuFileExport"></div>
+                    <button id="copyCode" type="button" data-close-synth-menu>Copy JavaScript</button>
+                  </div>
+                </section>
+                <section class="synth-menu-section">
+                  <h2>Instrument</h2>
+                  <div class="synth-menu-actions"><button id="resetPreset" type="button" data-close-synth-menu>Reset instrument</button></div>
+                </section>
+              </div>
+            </details>
             <button id="startAudio" class="primary" type="button">Enable audio</button>
             <button id="stopAudio" type="button">Stop all sound</button>
             <button id="dmgFilesToggle" type="button" aria-expanded="false" aria-controls="dmgFilesPanel">Files</button>
@@ -58,7 +91,7 @@
           <button id="dmgSongPlayButton" class="primary" type="button" disabled>Play</button>
           <button id="dmgSongStopButton" type="button" disabled>Stop</button>
           <output id="dmgSongPosition" aria-label="Song position">0:00</output>
-          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ below, or add it to Files. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Live Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
+          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ from Menu → Import, or add it to Files. Extracted sounds are saved under /presets; choose one in Files to load it. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Live Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
         </div>
         <div class="dmg-song-seek">
           <input id="dmgSongSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="VGM song position in seconds" disabled>
@@ -103,31 +136,6 @@
         </div>
       </section>
 
-      <section id="vgmImport" class="gb-vgm-import" aria-labelledby="vgmHeading">
-        <div class="section-heading"><h2 id="vgmHeading">Sounds from VGM</h2></div>
-        <div class="gb-vgm-actions">
-          <button id="loadVgm" type="button">Load VGM / VGZ…</button>
-          <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with Game Boy sound">
-          <button id="cancelVgm" type="button" hidden>Cancel import</button>
-          <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Choose a Game Boy VGM, then select a sound to play.</p>
-        </div>
-        <div id="vgmLibrary" hidden>
-          <div class="gb-vgm-actions"><strong id="vgmFileName"></strong><button id="closeVgm" type="button">Close library</button></div>
-          <div class="gb-vgm-filters" role="group" aria-label="Filter VGM sounds">
-            <button type="button" data-vgm-filter="all" aria-pressed="true">All</button>
-            <button type="button" data-vgm-filter="pulse" aria-pressed="false">Pulse</button>
-            <button type="button" data-vgm-filter="wave" aria-pressed="false">Wave</button>
-            <button type="button" data-vgm-filter="noise" aria-pressed="false">Noise</button>
-          </div>
-          <div id="vgmVoices" class="gb-vgm-voices" role="group" aria-label="Extracted VGM sounds"></div>
-          <div class="gb-vgm-actions">
-            <button id="vgmPrevious" type="button">Previous</button><span id="vgmPage" class="subtext"></span><button id="vgmNext" type="button">Next</button>
-          </div>
-          <p id="vgmWarnings" class="subtext" hidden></p>
-        </div>
-        <p class="subtext">Imports initial Pulse / Wave / Noise settings. Song playback and changes during the song are not imported.</p>
-      </section>
-
       <section class="instrument-workspace gb-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Pulse · 2 voices · round robin</p></div>
         <div id="voiceEditor"></div>
@@ -135,13 +143,6 @@
 
       <section class="instrument-toolbar" aria-label="Instrument files">
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Pulse" autocomplete="off"></label>
-        <div class="preset-actions">
-          <button id="loadPreset" type="button">Load preset…</button>
-          <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a Game Boy instrument preset">
-          <button id="savePreset" type="button">Save preset…</button>
-          <button id="copyCode" type="button">Copy JavaScript</button>
-          <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
-        </div>
         <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
       </section>
 
@@ -193,6 +194,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=dmg-seek-1"></script>
+  <script type="module" src="./synth.js?v=dmg-menu-1"></script>
 </body>
 </html>

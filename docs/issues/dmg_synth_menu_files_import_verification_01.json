@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "feature": "DMG Synth hamburger Menu / Files instrument loading",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": {
+    "menu": "Reuse the shared FM2612/SPU hamburger helper for Import / Export / Reset. Original buttons and inputs keep stable IDs; outside click, Escape and action selection close the menu.",
+    "vgm": "Dedicated Menu import saves exact VGM/VGZ bytes under /vgm and validated static presets under a unique /presets/<song>/ folder. No editor apply or autoplay.",
+    "instruments": "Importing a DMG JSON adds it to Files; selecting its JSON is the explicit sound-apply action. Keyboard/Code mode stays unchanged.",
+    "storage": "Bulk sound writes validate all voices and preflight shared 16 MiB capacity before one commit. Portable NFC/case-fold collision-safe names never overwrite existing sounds.",
+    "cancellation": "File reading, analysis, raw storage and sound storage are fenced; superseded JSON reads/flushes cannot commit or publish a late status.",
+    "audioAndChipApiChanged": false,
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "node": {
+    "command": "npm run test:dmg-synth",
+    "testsPassed": 163,
+    "failed": 0,
+    "filesTests": 23,
+    "vgmImporterTests": 10,
+    "coverage": [
+      "Exact original VGZ bytes and independently reported raw/sound storage failures, including zero voices.",
+      "Real extraction of six fixture voices, full-batch validation/capacity atomicity, portable names/collisions, ZIP round-trip.",
+      "Current sound, raw selection/revision, active Code path/mode/focus and pending editor draft stay intact during sound saving.",
+      "External isCurrent fences pending file reads, flush and workspace retirement; committed sound batches remain committed after late cancellation.",
+      "Existing actual-WASM instrument, Pause audition and seek timing checks remain passing."
+    ]
+  },
+  "browser": {
+    "menu": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-menu-files-20261113-XHw8o8",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "One hamburger owns all import / export actions and closes with outside click, Escape and selection",
+            "VGM import stores its exact source and all six original static sounds without applying or playing",
+            "Repeated import is collision-safe; zero static sounds still preserve the raw source",
+            "JSON import is passive; Files selection alone applies the sound and leaves keyboard input available",
+            "A second passive JSON import preserves held notes; explicit Files apply changes the instrument",
+            "Preset / source / selected file exports and project round-trip retain portable editable data",
+            "The opened menu and Files fit 390px, restore safely and return to live keyboard performance"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "One hamburger owns all import / export actions and closes with outside click, Escape and selection",
+            "VGM import stores its exact source and all six original static sounds without applying or playing",
+            "Repeated import is collision-safe; zero static sounds still preserve the raw source",
+            "JSON import is passive; Files selection alone applies the sound and leaves keyboard input available",
+            "A second passive JSON import preserves held notes; explicit Files apply changes the instrument",
+            "Preset / source / selected file exports and project round-trip retain portable editable data",
+            "The opened menu and Files fit 390px, restore safely and return to live keyboard performance"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "baseline": {
+      "passed": true,
+      "engines": [
+        {
+          "browser": "chromium",
+          "pageErrors": [],
+          "missingAssets": [],
+          "mobileOverflow": 0
+        },
+        {
+          "browser": "webkit",
+          "pageErrors": [],
+          "missingAssets": [],
+          "mobileOverflow": 0
+        }
+      ],
+      "coverage": "Existing chip controls and full four-source real-APU audition; four- and thirty-sound imports through Files."
+    },
+    "capture": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-menu-files-20261113-XHw8o8",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "code": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-menu-files-20261113-XHw8o8",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "seek": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-menu-files-20261113-XHw8o8",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "A genuine slider drag previews only; stopped seek lands paused without scheduling audio",
+            "Paused forward / backward seek refreshes every channel at the exact destination even with Live Off",
+            "Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause",
+            "Playing seek resumes from its target; keyboard range commits retain the paused destination",
+            "Latest seek wins; Stop cancels a candidate before it can publish a stale position",
+            "Code and source changes fence pending seek work without touching the captured author",
+            "390px seek controls fit; pagehide cancels pending work and closes all audible routes"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "A genuine slider drag previews only; stopped seek lands paused without scheduling audio",
+            "Paused forward / backward seek refreshes every channel at the exact destination even with Live Off",
+            "Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause",
+            "Playing seek resumes from its target; keyboard range commits retain the paused destination",
+            "Latest seek wins; Stop cancels a candidate before it can publish a stale position",
+            "Code and source changes fence pending seek work without touching the captured author",
+            "390px seek controls fit; pagehide cancels pending work and closes all audible routes"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "song": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-menu-files-20261113-XHw8o8",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    }
+  },
+  "tauri": {
+    "repository": "w/tetorica-dmg-synth-tauri",
+    "nativeIpcMocked": true,
+    "nativeApplicationOrDeviceUsed": false,
+    "distAndReleaseLockUnchanged": true,
+    "nativeBuildPerformed": false,
+    "changes": [
+      {
+        "path": "w/tetorica-dmg-synth-tauri/desktop/desktop-interface.js",
+        "sha256": "f276d18bed45ba643b071fcf580ca7e2347df69f2488f235234a1be61f69e7b7"
+      },
+      {
+        "path": "w/tetorica-dmg-synth-tauri/scripts/check-desktop-browser.cjs",
+        "sha256": "38ca6195e8046191a9850942bca5bbb6a5abfdfe4885dc0c5d62bdb59223f3de"
+      },
+      {
+        "path": "w/tetorica-dmg-synth-tauri/scripts/check-desktop-menu-compat.cjs",
+        "sha256": "354778b50a3694b7eec0a669e49d02c7f7f93197bba6f93ae94aa930fde6e2f5"
+      }
+    ],
+    "menuCompatibility": {
+      "passed": true,
+      "engines": [
+        {
+          "browser": "chromium",
+          "checks": [
+            "one original menu, original inputs and Files actions, one output/reload/Pin",
+            "Pin bound once; shared Escape/outside/file action close once",
+            "legacy fallback still moves original JSON nodes and supplies one VGM proxy"
+          ],
+          "graph": {
+            "contexts": 0,
+            "gates": 0,
+            "muted": true,
+            "calls": [
+              {
+                "command": "window_pin_state",
+                "args": {}
+              },
+              {
+                "command": "set_window_pin",
+                "args": {
+                  "pinned": true
+                }
+              }
+            ]
+          },
+          "errors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "checks": [
+            "one original menu, original inputs and Files actions, one output/reload/Pin",
+            "Pin bound once; shared Escape/outside/file action close once",
+            "legacy fallback still moves original JSON nodes and supplies one VGM proxy"
+          ],
+          "graph": {
+            "contexts": 0,
+            "gates": 0,
+            "muted": true,
+            "calls": [
+              {
+                "command": "window_pin_state",
+                "args": {}
+              },
+              {
+                "command": "set_window_pin",
+                "args": {
+                  "pinned": true
+                }
+              }
+            ]
+          },
+          "errors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": []
+    },
+    "existingDesktopCi": {
+      "passed": true,
+      "rows": [
+        {
+          "engine": "chromium",
+          "desktopToolbar": true,
+          "pin": true,
+          "nativePresetBinarySave": true,
+          "reloadCancel": true,
+          "vgzMenuChooser": true,
+          "presetFileImport": true,
+          "keyboardAfterMenus": true,
+          "nativeCapturePcm": true,
+          "switchPreservesPreset": true,
+          "nativeFailureFallback": true,
+          "switchStopsPulseAndPitch": true,
+          "switchBlocksPerformance": true,
+          "nativeSaveCancel": true,
+          "oneAudioContext": true,
+          "filesImport": true,
+          "passiveJsonImport": true,
+          "mobileOverflow": 0,
+          "nativePackets": 14,
+          "nativePeak": 0.02449999935925007,
+          "nativeFinite": true,
+          "pageErrors": [],
+          "missingAssets": [],
+          "nativeHost": "mocked Tauri IPC; no CPAL device",
+          "physicalOutput": "muted"
+        },
+        {
+          "engine": "webkit",
+          "desktopToolbar": true,
+          "pin": true,
+          "nativePresetBinarySave": true,
+          "reloadCancel": true,
+          "vgzMenuChooser": true,
+          "presetFileImport": true,
+          "keyboardAfterMenus": true,
+          "nativeCapturePcm": true,
+          "switchPreservesPreset": true,
+          "nativeFailureFallback": true,
+          "switchStopsPulseAndPitch": true,
+          "switchBlocksPerformance": true,
+          "nativeSaveCancel": true,
+          "oneAudioContext": true,
+          "filesImport": true,
+          "passiveJsonImport": true,
+          "mobileOverflow": 0,
+          "nativePackets": 10,
+          "nativePeak": 0.02449999935925007,
+          "nativeFinite": true,
+          "pageErrors": [],
+          "missingAssets": [],
+          "nativeHost": "mocked Tauri IPC; no CPAL device",
+          "physicalOutput": "muted"
+        }
+      ]
+    },
+    "coverage": "Reuse the frontend menu without duplicate IDs or event bindings; preserve older frontend fallback. Existing desktop checker supports both workflows and accepts --dist without changing pinned assets."
+  },
+  "archive": {
+    "path": "release/tetorica_dmg_synth_dmg-menu-files-20261113_itch.zip",
+    "stage": "release/itch_dmg_synth_dmg-menu-files-20261113-XHw8o8",
+    "bytes": 1837817,
+    "sha256": "b59eb8c6e70ea354025f198a4aa98c1a8b413ca2226859be16821574a9aa8785",
+    "files": 126,
+    "readableModules": 77,
+    "allOriginalInputsAndModulesMatchWorkspace": true,
+    "minified": false,
+    "bundled": false,
+    "nativeSdkVersion": "0.1.7",
+    "zipIntegrity": true
+  },
+  "visualReview": [
+    "Chromium 1240px and WebKit 390px: one compact header menu, main Sounds from VGM panel removed, instrument loading through Files.",
+    "The SPU-style menu scrolls vertically within the viewport and preserves keyboard performance after dismissal."
+  ],
+  "limits": [
+    "The existing VGM extraction subset and 64 MiB input/decompressed limit remain; Files shares a 16 MiB project limit.",
+    "Raw-source saving and sound-batch saving are independent transactions; a reported partial storage failure does not discard the successful part.",
+    "Tauri adapter/tests were updated; native dist import, signing/build and publishing remain separate release steps."
+  ],
+  "rawReports": [
+    {
+      "path": "build/verification/dmg-menu-files-20261113/menu-browser.json",
+      "sha256": "4269bacd5bdd90e04b208f7cc929e00c8001d38799633be2379383a69569dc58"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/baseline-browser.json",
+      "sha256": "8a3692ce6b76b8c1401a1490379af7637a641df089bc6595bc1d064b52ee14d6"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/capture-browser.json",
+      "sha256": "f7ddc48fe6c326c96a50bfeefca76be3d263cb36103beb95edd407f0ab9a0734"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/code-browser.json",
+      "sha256": "e9e3f6ceb2b49d62048db3898096f0c877dde0f7e7fc96a959ea8d775f9015e8"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/seek-browser.json",
+      "sha256": "3e3c757724ccfb7f515ab080e70b90b333a3b54556cbc46380565c9e4e57add8"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/song-browser.json",
+      "sha256": "30ec465c37fc40cd5e709b14b4d195941b30ecb411b7e6ea5228813bf6a1b10d"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/desktop-menu-compat.json",
+      "sha256": "6431e7bf9a81d2a99dd81190483a70b57c3bb6e501234a0a8cec78edbbbd0105"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/desktop-full-browser.json",
+      "sha256": "ae3d204bf48f0b5a921a975bd2ea4f0c3ed25756f23f5460fe1fb4f6b28f4d30"
+    },
+    {
+      "path": "build/verification/dmg-menu-files-20261113/node-tests.log",
+      "sha256": "960f0df3f9696aee2167c110f2421a499e0f9a590d70720b6092aa92a15fe8e0"
+    }
+  ]
+}
