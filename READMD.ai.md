@@ -820,6 +820,7 @@ Decisions made during the README reorganization on 2026-10-10:
 | What to investigate | Reference |
 | --- | --- |
 | User-facing overview | [README.md](README.md), [README.ja.md](README.ja.md) |
+| Interactive SID hardware-filter introduction (JA / EN) | [English](docs/introductions/tetorica-sid-filter.html), [Japanese](docs/introductions/tetorica-sid-filter_ja.html), [TODO](docs/issues/todo_sid_filter_introduction_01.md). One explicit-start Saw/chord experiment shares patch/settings with editable Playground code and links the existing npm filter example. SID routing/cutoff/resonance are hardware controls; Spectrum, host gain, UI and transport fade are software. Cutoff is a code, not calibrated Hz. |
 | Chip-specific playback, limitations and implementation notes | [Memo.md](Memo.md) (English and Japanese; also preserves the original SN76489 reference links) |
 | Support status by feature | [docs/feature-status.md](docs/feature-status.md) |
 | Analyzer support matrix | [docs/vgm_analyzer/support.html](docs/vgm_analyzer/support.html) |

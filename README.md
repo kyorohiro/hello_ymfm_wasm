@@ -68,6 +68,7 @@ loaders are accompanied by their corresponding sources and rebuild instructions.
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | Playback, chip/channel inspection, supported sample / FM voice extraction and reference transcriptions. |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | A separate macOS MIDI live-coding app; [source and releases](https://github.com/kyorohiro/tetorica-midi-playground). |
 | [YM2612 introduction](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html) | Learn FM synthesis and the chip through JavaScript. |
+| [SID filter introduction](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/tetorica-sid-filter.html) | Hold one Saw note, compare filter outputs and the spectrum, explore shared routing, then reuse the settings as readable JavaScript. |
 
 [Playground screenshot](docs/tetorica_fm2612_playground_screen_shot.png) ·
 [Detailed browser / SPC workflows](docs/browser_workflows.md) ·

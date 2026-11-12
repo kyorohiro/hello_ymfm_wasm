@@ -1,0 +1,29 @@
+/* SID lesson additions. The containing page also loads fx-introduction.css. */
+[data-sid-filter-lesson] { border-top: 5px solid #9b7446; }
+.sid-filter-controls-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 1.5rem; align-items: start; }
+.sid-filter-controls-grid > label { display: flex; flex-direction: column; gap: .45rem; font-weight: 650; min-width: 0; }
+.sid-filter-controls-grid select { max-width: 100%; width: 100%; font: inherit; color: inherit; padding: .45rem .65rem; border: 1px solid #b9ad9a; border-radius: .45rem; background: #fffdf7; }
+.sid-filter-controls-grid input[type="range"] { width: 100%; margin: .25rem 0; accent-color: #8b6237; }
+.sid-filter-controls-grid output { font-variant-numeric: tabular-nums; font-weight: 700; }
+.sid-filter-routing { margin: 1.25rem 0 .5rem; display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; border: 1px solid #b9ad9a; border-radius: .6rem; padding: .8rem 1rem; }
+.sid-filter-routing legend { padding: 0 .4rem; font-weight: 650; }
+.sid-filter-routing label, .sid-filter-chord { display: inline-flex; align-items: center; gap: .45rem; }
+[data-sid-filter-lesson] input[type="checkbox"] { width: 1.15rem; height: 1.15rem; accent-color: #8b6237; flex: 0 0 auto; }
+.sid-filter-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0; }
+.sid-filter-actions button { min-height: 2.75rem; margin: 0; padding: .45rem 1rem; font: inherit; font-weight: 650; color: inherit; background: #efe5d2; border: 1px solid #b9ad9a; border-radius: .5rem; cursor: pointer; }
+.sid-filter-actions button:focus-visible, [data-sid-filter-lesson] :is(select,input):focus-visible { outline: 3px solid #397b89; outline-offset: 3px; }
+.sid-filter-actions button:disabled { opacity: .55; cursor: default; }
+#sid-filter-start { background: #735230; border-color: #735230; color: #fff; }
+#sid-filter-status { min-height: 1.6em; }
+#sid-filter-status[data-error="true"] { color: #a12525; }
+#sid-filter-routing-status { font-size: .94rem; min-height: 2.9em; }
+.sid-filter-spectrum { margin: 1rem 0; }
+#sid-filter-spectrum { display: block; width: 100%; height: auto; border-radius: .45rem; background: #15191c; }
+.sid-filter-spectrum figcaption { margin-top: .4rem; font-size: .88rem; }
+#sid-filter-code { white-space: pre; tab-size: 2; }
+[data-sid-filter-lesson] pre { max-width: 100%; overflow: auto; }
+@media (max-width: 680px) {
+  .sid-filter-controls-grid { grid-template-columns: 1fr; gap: .9rem; }
+  .sid-filter-routing { gap: .7rem 1.1rem; }
+  .sid-filter-actions button { flex: 1 1 auto; }
+}

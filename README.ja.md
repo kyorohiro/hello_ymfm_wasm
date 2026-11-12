@@ -68,6 +68,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
 | [YM2612入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html) | JavaScriptを通じてFM合成とチップを学ぶ。 |
+| [SID Filter入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/tetorica-sid-filter_ja.html) | 同じSaw音でFilter出力とSpectrumを比較し、共有経路を操作。設定を読みやすいJavaScriptへ持ち出す。 |
 
 [Playgroundの画面](docs/tetorica_fm2612_playground_screen_shot.png) ·
 [ブラウザー操作／SPC変換の詳細](docs/browser_workflows.ja.md) ·

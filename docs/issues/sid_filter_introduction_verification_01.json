@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "status": "passed",
+  "sourceCommitBeforeChanges": "94eaa70cbba8c87692504e3c4536f0b43da77442",
+  "todo": "docs/issues/todo_sid_filter_introduction_01.md",
+  "pages": {
+    "en": "docs/introductions/tetorica-sid-filter.html",
+    "ja": "docs/introductions/tetorica-sid-filter_ja.html"
+  },
+  "goal": "Connect an immediately playable experiment to an explanation, editable Playground code and the existing npm embedding example, preserving source readability and primary references.",
+  "scope": [
+    "One original held Saw C3, optional C3/E3/G3 chord; one 6581 PAL approximation at a time.",
+    "Bypass/LP/BP/HP, 11-bit Cutoff code, four-bit Resonance, individual routes into one shared filter.",
+    "Fixed-scale live Spectrum; display/current Playground source and copied JavaScript track controls.",
+    "Explicit user-gesture Start/Stop and cleanup; no autoplay."
+  ],
+  "primaryReferences": [
+    {
+      "title": "Original MOS/Commodore 6581 datasheet scan",
+      "url": "https://myoldcomputer.nl/Files/mos_6581_sid.pdf",
+      "printedPages": [
+        2,
+        5,
+        6
+      ],
+      "claims": [
+        "Shared three-voice signal routing/filter block",
+        "Cutoff and Resonance register fields",
+        "LP/BP/HP outputs and additive mode combinations"
+      ]
+    }
+  ],
+  "importantDistinctions": [
+    "Bypass is mode off with routing0; mode off with routed voices silences those routed outputs.",
+    "Cutoff is a hardware code, not a universal or linear Hz value.",
+    "Output levels are not normalized across modes; Resonance can also change level.",
+    "Chip controls are distinguished from UI/note-name/chord helpers, fixed host gain0.35, transport fade and spectrum analysis.",
+    "The page holds until Stop; copied source runs4seconds then releases0.4seconds and disposes. Host Master/Mixer may differ.",
+    "The Synth link opens a separate editor and does not claim automatic setting transfer."
+  ],
+  "tests": {
+    "node": {
+      "command": "npm run test:introductions",
+      "passed": 61,
+      "failed": 0,
+      "newRealSidLessonTests": 11,
+      "coverage": [
+        "Actual 44100/48000Hz finite nonzero output for all4modes",
+        "Live filter edits touch shared registers only, preserving voice pitch/Gates",
+        "Raw-register output equivalence",
+        "Routing dry/off silence distinction",
+        "Relative harmonic distribution and Resonance changes",
+        "Stop clears tails",
+        "Dirty inherited state resets to original patch",
+        "Published code executes/disposes correctly and both language defaults match"
+      ]
+    },
+    "browser": {
+      "command": "node scripts/check_sid_filter_introduction_browser.cjs --out=/private/tmp/sid-filter-introduction-browser.json --screenshots=/private/tmp/sid-filter-introduction-screens",
+      "results": [
+        {
+          "browser": "chromium",
+          "language": "en",
+          "checks": [
+            "Readable localized lesson and passive controls create no audio or WASM request",
+            "Stop settles while a dynamically imported audio adapter is still pending",
+            "Stop cancels an initialization waiting for WASM without a late key-on",
+            "Explicit keyboard Start creates one SID and holds the original Saw voice",
+            "LP/BP/HP, keyboard Cutoff and Resonance edit only shared filter registers",
+            "All three routing controls use one filter while the same Saw stays held",
+            "The optional chord adds and releases CH2/CH3 without retriggering CH1",
+            "Desktop/mobile layout, current Playground source and internal navigation remain usable",
+            "Keyboard Stop retires the endpoint; Reset is passive and pagehide retires a restarted run"
+          ],
+          "delayedModuleStopMs": 33,
+          "livePcm": {
+            "finite": true,
+            "peak": 0.056027140468358994,
+            "rms": 0.018676530321659855,
+            "muted": true
+          },
+          "cycles": {
+            "before": 10510,
+            "after": 493942
+          },
+          "finalGraph": {
+            "contexts": 4,
+            "activeContexts": 0,
+            "sidWorklets": 2,
+            "activeSidWorklets": 0,
+            "destinations": 3,
+            "contextStates": [
+              "closed",
+              "closed",
+              "closed",
+              "closed"
+            ],
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": [],
+          "failedRequests": [],
+          "externalRequests": []
+        },
+        {
+          "browser": "chromium",
+          "language": "ja",
+          "checks": [
+            "Readable localized lesson and passive controls create no audio or WASM request",
+            "Stop settles while a dynamically imported audio adapter is still pending",
+            "Stop cancels an initialization waiting for WASM without a late key-on",
+            "Explicit keyboard Start creates one SID and holds the original Saw voice",
+            "LP/BP/HP, keyboard Cutoff and Resonance edit only shared filter registers",
+            "All three routing controls use one filter while the same Saw stays held",
+            "The optional chord adds and releases CH2/CH3 without retriggering CH1",
+            "Desktop/mobile layout, current Playground source and internal navigation remain usable",
+            "Keyboard Stop retires the endpoint; Reset is passive and pagehide retires a restarted run"
+          ],
+          "delayedModuleStopMs": 32,
+          "livePcm": {
+            "finite": true,
+            "peak": 0.06274144351482391,
+            "rms": 0.018310700272663863,
+            "muted": true
+          },
+          "cycles": {
+            "before": 5255,
+            "after": 472924
+          },
+          "finalGraph": {
+            "contexts": 4,
+            "activeContexts": 0,
+            "sidWorklets": 2,
+            "activeSidWorklets": 0,
+            "destinations": 3,
+            "contextStates": [
+              "closed",
+              "closed",
+              "closed",
+              "closed"
+            ],
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": [],
+          "failedRequests": [],
+          "externalRequests": []
+        },
+        {
+          "browser": "webkit",
+          "language": "en",
+          "checks": [
+            "Readable localized lesson and passive controls create no audio or WASM request",
+            "Stop settles while a dynamically imported audio adapter is still pending",
+            "Stop cancels an initialization waiting for WASM without a late key-on",
+            "Explicit keyboard Start creates one SID and holds the original Saw voice",
+            "LP/BP/HP, keyboard Cutoff and Resonance edit only shared filter registers",
+            "All three routing controls use one filter while the same Saw stays held",
+            "The optional chord adds and releases CH2/CH3 without retriggering CH1",
+            "Desktop/mobile layout, current Playground source and internal navigation remain usable",
+            "Keyboard Stop retires the endpoint; Reset is passive and pagehide retires a restarted run"
+          ],
+          "delayedModuleStopMs": 32,
+          "livePcm": {
+            "finite": true,
+            "peak": 0.07835561782121658,
+            "rms": 0.01914309413428507,
+            "muted": true
+          },
+          "cycles": {
+            "before": 26274,
+            "after": 341557
+          },
+          "finalGraph": {
+            "contexts": 4,
+            "activeContexts": 0,
+            "sidWorklets": 2,
+            "activeSidWorklets": 0,
+            "destinations": 3,
+            "contextStates": [
+              "closed",
+              "closed",
+              "closed",
+              "closed"
+            ],
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": [],
+          "failedRequests": [],
+          "externalRequests": []
+        },
+        {
+          "browser": "webkit",
+          "language": "ja",
+          "checks": [
+            "Readable localized lesson and passive controls create no audio or WASM request",
+            "Stop settles while a dynamically imported audio adapter is still pending",
+            "Stop cancels an initialization waiting for WASM without a late key-on",
+            "Explicit keyboard Start creates one SID and holds the original Saw voice",
+            "LP/BP/HP, keyboard Cutoff and Resonance edit only shared filter registers",
+            "All three routing controls use one filter while the same Saw stays held",
+            "The optional chord adds and releases CH2/CH3 without retriggering CH1",
+            "Desktop/mobile layout, current Playground source and internal navigation remain usable",
+            "Keyboard Stop retires the endpoint; Reset is passive and pagehide retires a restarted run"
+          ],
+          "delayedModuleStopMs": 32,
+          "livePcm": {
+            "finite": true,
+            "peak": 0.05802108347415924,
+            "rms": 0.01771854126976755,
+            "muted": true
+          },
+          "cycles": {
+            "before": 28901,
+            "after": 346812
+          },
+          "finalGraph": {
+            "contexts": 4,
+            "activeContexts": 0,
+            "sidWorklets": 2,
+            "activeSidWorklets": 0,
+            "destinations": 3,
+            "contextStates": [
+              "closed",
+              "closed",
+              "closed",
+              "closed"
+            ],
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": [],
+          "failedRequests": [],
+          "externalRequests": []
+        }
+      ],
+      "missing": [],
+      "servedAssets": 29,
+      "servedAssetByteIdentity": true,
+      "viewports": [
+        1180,
+        390
+      ],
+      "visualQa": "Desktop and mobile screenshots inspected; readable layout, wrapping controls, code scroll confined to pre, no page overflow.",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false
+    },
+    "webkitRetirement": {
+      "beforeFailure": "A real WebKit context reported running again immediately after close resolved closed, with no late Worklet or voice.",
+      "fix": "Owner-specific retired-context statechange guard serializes re-close requests; a late resume observer only touches the retired context.",
+      "after": "All16contexts in final4paths closed; additional8contexts in boundedWebKitrepeat closed with zero errors.",
+      "guardedSecondCloseObservedAfterFix": false,
+      "beforeDiagnosticRecord": {
+        "bytes": 5542,
+        "sha256": "8859bc152e69d6484c37d7fbbfbcea1dbdcd8461456e77c4914d9634735f8fec"
+      },
+      "repeatRecord": {
+        "bytes": 16789,
+        "sha256": "441d0c85c876f522f72979fbc7865418c4e738ae33d1f14f9afb83a7f32b38e0"
+      }
+    },
+    "workflow": "Interactive introductions: Node examples and muted Chromium/WebKit checks; YAML parsed locally. Remote Actions not triggered."
+  },
+  "sourceRecords": {
+    "docs/introductions/tetorica-sid-filter.html": {
+      "bytes": 13571,
+      "sha256": "d17026e24aaa111c158a3c19fe7c46630636af2d7cd533ea68853a6864927d84"
+    },
+    "docs/introductions/tetorica-sid-filter_ja.html": {
+      "bytes": 14551,
+      "sha256": "ff65603c98e63ce56baf378af79685db3135f9b3fb8fb688b5045abae775f610"
+    },
+    "docs/introductions/sid-filter-ui.js": {
+      "bytes": 11798,
+      "sha256": "a07d1ed09976661a1d38bc92bb2b7c136c7c90e20d5b153f4acd5f62775e07e0"
+    },
+    "docs/introductions/sid-filter-lesson.js": {
+      "bytes": 4777,
+      "sha256": "967b4f20efc1391bff4e65b3029331d387fac792f9c2f41dc0fcb66b7694debe"
+    },
+    "docs/introductions/sid-filter-introduction.css": {
+      "bytes": 2588,
+      "sha256": "4bfd6a0a5c0578c15dc6527d2c59408a6603977a4d32011cf8f6b0b1476450d6"
+    },
+    "docs/introductions/sid-filter-lesson.test.mjs": {
+      "bytes": 11812,
+      "sha256": "4aa35430cfc26762212deb09f72c4fe36c11e74182fd0b6d04fe4cf7938a98f4"
+    },
+    "scripts/check_sid_filter_introduction_browser.cjs": {
+      "bytes": 22323,
+      "sha256": "94cb8e36d38be1ee3e21258ff802bd04bb8683b93191908ebe10d947da33b22c"
+    },
+    "docs/introductions/localization.test.mjs": {
+      "bytes": 3838,
+      "sha256": "eff28eb771a18bc516c7833453003b8a85a9c82c215a5d181a000a07833db633"
+    },
+    ".github/workflows/introductions.yml": {
+      "bytes": 1877,
+      "sha256": "2c9d139176134b25e610f02729125cd928fca2ce07531c9eced14dac915e6218"
+    },
+    "package.json": {
+      "bytes": 7221,
+      "sha256": "79c09d3c99e30194dfc5d3ea088a7e1fb194d4f6ad3fba8db8db96a1f31ac74e"
+    }
+  },
+  "unchangedRuntimeAndWasm": {
+    "tetorica_src/runtime/sidsynth.js": {
+      "bytes": 14845,
+      "sha256": "c1172f4d7b8681a49cb7ca3a1d834e6b5b17d89817eb2cfae80b7513bfde771d"
+    },
+    "tetorica_src/runtime/sid.js": {
+      "bytes": 4846,
+      "sha256": "62225755b0b01471b85313be7992a464f8b501e5ad81a6c86c1ce425c941d870"
+    },
+    "docs/js/sidsynth.js": {
+      "bytes": 14845,
+      "sha256": "c1172f4d7b8681a49cb7ca3a1d834e6b5b17d89817eb2cfae80b7513bfde771d"
+    },
+    "docs/generated/sid/sid.wasm": {
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
+    }
+  },
+  "navigationUpdated": [
+    "README.md",
+    "README.ja.md",
+    "docs/index.html",
+    "docs/index-ja.html",
+    "docs/introductions/index.html",
+    "docs/introductions/index-ja.html",
+    "READMD.ai.md"
+  ],
+  "distribution": "Static docs page and original ES modules; uses existing served SID assets. Existing Synth/Playground itch ZIPs do not contain the introduction pages and need no new dependency copy for this chapter.",
+  "limits": [
+    "6581 digital approximation, not a calibrated analog SID/speaker comparison.",
+    "Hearing/subjective timbre has not been evaluated through physical audio output.",
+    "Model comparison, Sync/Ring and historical game-file investigation are follow-up chapters."
+  ],
+  "rawGameAssetsUsed": false,
+  "audioDeviceOutputUsed": false,
+  "ordinaryAppsOpened": false,
+  "wasmRebuilt": false,
+  "npmPublished": false,
+  "commitPushPerformed": false,
+  "published": false
+}

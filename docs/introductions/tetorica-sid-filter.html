@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Keep one sawtooth note playing. Change what reaches the output, then take the settings into JavaScript.">
+  <title>SID Filter: Change the Brightness of a Sound · Tetorica</title>
+  <link rel="stylesheet" href="./fx-introduction.css">
+  <link rel="stylesheet" href="./sid-filter-introduction.css?v=sid-filter-intro-1">
+  <link rel="alternate" hreflang="en" href="./tetorica-sid-filter.html">
+  <link rel="alternate" hreflang="ja" href="./tetorica-sid-filter_ja.html">
+</head>
+<body>
+<main>
+  <header class="panel">
+    <p class="kicker">SID / FILTER / INTRODUCTION</p>
+    <h1>SID Filter: Change the Brightness of a Sound</h1>
+    <nav class="language-nav" aria-label="Language">
+      <a href="./tetorica-sid-filter.html" lang="en" hreflang="en" aria-current="page">English</a>
+      <a href="./tetorica-sid-filter_ja.html" lang="ja" hreflang="ja">日本語</a>
+    </nav>
+    <p>Keep one sawtooth note playing. Change what reaches the output, then take the settings into JavaScript.</p>
+    <p class="sid-filter-model">MOS 6581 · PAL · Tetorica approximation</p>
+    <nav><a href="../index.html">All introductions</a><a href="./index.html">YM2612 introduction</a><a href="#sid-filter-lab">A small listening experiment</a></nav>
+  </header>
+
+  <section class="panel" id="sid-filter-lab" data-sid-filter-lesson>
+    <h2>A small listening experiment</h2>
+    <p>Start with Bypass and one note. Keep it running while you change the controls. All three voices use the same Saw settings. The optional chord adds two notes; it does not replace CH1. Reset controls restores the initial settings. Stop sound fades the software output and releases the audio engine.</p>
+    <form id="sid-filter-controls">
+      <div class="sid-filter-controls-grid">
+        <label class="sid-filter-modes" for="sid-filter-mode">Filter output
+          <select id="sid-filter-mode" name="mode">
+            <option value="bypass" selected>Bypass · direct sound</option>
+            <option value="lowpass">LP · Low-pass</option>
+            <option value="bandpass">BP · Band-pass</option>
+            <option value="highpass">HP · High-pass</option>
+          </select>
+        </label>
+        <label for="sid-filter-cutoff">Cutoff · hardware code <output id="sid-filter-cutoff-value" for="sid-filter-cutoff">500</output>
+          <input id="sid-filter-cutoff" name="cutoff" type="range" min="0" max="2047" step="1" value="500">
+        </label>
+        <label for="sid-filter-resonance">Resonance · hardware code <output id="sid-filter-resonance-value" for="sid-filter-resonance">5</output>
+          <input id="sid-filter-resonance" name="resonance" type="range" min="0" max="15" step="1" value="5">
+        </label>
+      </div>
+      <fieldset class="sid-filter-routing">
+        <legend>Send to the shared filter</legend>
+        <label><input type="checkbox" name="route1" checked> CH1</label>
+        <label><input type="checkbox" name="route2" checked> CH2</label>
+        <label><input type="checkbox" name="route3" checked> CH3</label>
+      </fieldset>
+      <label class="sid-filter-chord"><input type="checkbox" name="chord"> Add CH2 / CH3 · C3–E3–G3</label>
+      <p id="sid-filter-routing-status">In Bypass every voice is direct. Enable a filter output to hear the routing choices.</p>
+      <div class="sid-filter-actions">
+        <button type="button" id="sid-filter-start">Start sound</button>
+        <button type="button" id="sid-filter-stop" disabled>Stop sound</button>
+        <button type="button" id="sid-filter-reset">Reset controls</button>
+      </div>
+    </form>
+    <p id="sid-filter-status" role="status">Stopped. Sound starts only when you press Start sound.</p>
+    <figure class="sid-filter-spectrum">
+      <canvas id="sid-filter-spectrum" width="960" height="280" role="img" aria-label="Live output spectrum">Live output spectrum</canvas>
+      <figcaption>Fixed −90 to 0 dBFS scale, logarithmic frequency axis from 20 Hz to 20 kHz (limited to half the output sample rate). This measures the browser output after this page’s fixed gain; it is not a calibrated measurement of a physical SID.</figcaption>
+    </figure>
+    <noscript><p>JavaScript is needed for the listening controls. The reading and example source remain available below.</p></noscript>
+  </section>
+
+  <section class="panel">
+    <h2>1. Keep the note. Change the filter output.</h2>
+    <p>A sawtooth contains a fundamental and higher harmonics. A filter changes their balance. The oscillator’s frequency setting stays the same as you switch outputs.</p>
+    <ol class="steps"><li>Press <strong>Start sound</strong> in Bypass. Listen to the original Saw tone and look at its spectrum.</li><li>Select <strong>LP</strong>. Move Cutoff slowly from about 1200 toward 200, then back. Compare the higher-frequency part of the spectrum.</li><li>Keep Cutoff fixed and compare <strong>BP</strong> and <strong>HP</strong>. Ask which parts of the spectrum remain, rather than judging only loudness.</li></ol>
+    <table>
+      <thead><tr><th scope="col">Output</th><th scope="col">What to listen for</th></tr></thead>
+      <tbody>
+          <tr><th scope="row">Bypass</th><td>The voices take the direct path.</td></tr>
+          <tr><th scope="row">LP · Low-pass</th><td>Lower frequencies remain more prominent; frequencies above the cutoff region are reduced.</td></tr>
+          <tr><th scope="row">BP · Band-pass</th><td>A band around the cutoff region remains more prominent.</td></tr>
+          <tr><th scope="row">HP · High-pass</th><td>Higher frequencies remain more prominent; lower frequencies are reduced.</td></tr>
+      </tbody>
+    </table>
+    <p>The same SID volume and page gain are used in every mode. The modes can have different output levels; this experiment does not normalize their loudness. Extreme settings can make a tone very quiet even though its Gate is still on.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Separate Cutoff from Resonance.</h2>
+    <p>Select LP and try Resonance 0 first. Use Cutoff to move the filter’s transition region. Then leave Cutoff around 500 and raise Resonance slowly: inspect the emphasis around that region, and notice any change in level.</p>
+    <p>Cutoff is the SID’s 11-bit setting, <code>0–2047</code>. Resonance is a four-bit setting, <code>0–15</code>. Neither value is a percentage. This page deliberately does not label a cutoff code as an exact frequency in Hz.</p>
+    <p class="hint">The experiment uses Tetorica’s simplified 6581 PAL model. The chip’s filter routing and control fields guide the interface; the generated sound is a digital approximation. Real 6581 units and their external filter components vary. Use the comparison to investigate this model, not to assign one universal Hz value to each code.</p>
+  </section>
+
+  <section class="panel">
+    <h2>3. Three voices share one filter.</h2>
+    <p>Enable <strong>Add CH2 / CH3</strong>, select LP, and leave all three routing boxes checked. One Cutoff and one Resonance setting now shape the combined routed voices.</p>
+    <ol class="steps"><li>Uncheck <strong>CH2</strong>. It now reaches the output directly; CH1 and CH3 still use the filter.</li><li>Move Cutoff. Listen for the direct voice alongside the filtered voices.</li><li>Check CH2 again. All three voices return to the same filter. Unchecking every box makes all voices direct.</li></ol>
+    <table>
+      <thead><tr><th scope="col">Voice on the page</th><th scope="col">Code channel</th><th scope="col">Routing bit</th></tr></thead>
+      <tbody><tr><th scope="row">CH1</th><td>0</td><td>1</td></tr><tr><th scope="row">CH2</th><td>1</td><td>2</td></tr><tr><th scope="row">CH3</th><td>2</td><td>4</td></tr></tbody>
+    </table>
+    <p>The API uses channels <code>0, 1, 2</code> for the page’s CH1, CH2 and CH3. Add routing bits <code>1 + 2 + 4</code> to send all three to the filter. CH1 and CH3 together use <code>routing: 5</code>. Unselected voices remain direct.</p>
+    <p>Bypass here means <code>mode: "off", routing: 0</code>. Setting only <code>mode: "off"</code> while leaving a voice routed removes its filter-output path; that is not a bypass.</p>
+    <p>SID can also add several filter outputs together. LP + HP is its notch combination. This first experiment selects one output at a time; combined modes are available in SID Synth and the API.</p>
+  </section>
+
+  <section class="panel" id="sid-filter-code-section">
+    <h2>4. Read the settings, then change the code.</h2>
+    <p>This example follows the controls above. Open it in the Playground to edit it. Change one value at a time and compare it with this page; stop the current example before starting the other one.</p>
+    <p>The copied example plays for four seconds, allows a short release, then disposes its client. The page continues until Stop sound. Master and mixer settings in the Playground or your own app can change the output level.</p>
+    <div class="sid-filter-actions"><button type="button" id="sid-filter-copy">Copy JavaScript</button></div>
+    <pre><code id="sid-filter-code" tabindex="0">const sid = await useSoundChip('sid');
+try {
+  await sid.initialize();
+  const notes = ['C3', 'E3', 'G3'];
+  for (let ch = 0; ch &lt; 3; ch++) {
+    await sid.setVoice(ch, {
+      waveform: 'saw', pulseWidth: 2048,
+      attack: 2, decay: 6, sustain: 9, release: 4,
+      sync: false, ring: false, test: false,
+    });
+    await sid.setNote(ch, notes[ch]);
+  }
+
+  // One shared hardware filter. Unrouted voices remain dry.
+  // Bypass uses mode 'off' AND routing 0 to keep the voices audible.
+  await sid.setFilter({
+    mode: 'off', cutoff: 500, resonance: 5,
+    routing: 0, volume: 8, voice3off: false,
+  });
+  for (const ch of [0]) await sid.keyOn(ch);
+
+  // JavaScript waiting controls the performance; the SID clock runs in audio.
+  await sleep(4);
+  await sid.allNotesOff();
+  await sleep(0.4);
+} finally {
+  sid.dispose();
+}</code></pre>
+    <script type="text/plain" id="sid-filter-example">
+const sid = await useSoundChip('sid');
+try {
+  await sid.initialize();
+  const notes = ['C3', 'E3', 'G3'];
+  for (let ch = 0; ch < 3; ch++) {
+    await sid.setVoice(ch, {
+      waveform: 'saw', pulseWidth: 2048,
+      attack: 2, decay: 6, sustain: 9, release: 4,
+      sync: false, ring: false, test: false,
+    });
+    await sid.setNote(ch, notes[ch]);
+  }
+
+  // One shared hardware filter. Unrouted voices remain dry.
+  // Bypass uses mode 'off' AND routing 0 to keep the voices audible.
+  await sid.setFilter({
+    mode: 'off', cutoff: 500, resonance: 5,
+    routing: 0, volume: 8, voice3off: false,
+  });
+  for (const ch of [0]) await sid.keyOn(ch);
+
+  // JavaScript waiting controls the performance; the SID clock runs in audio.
+  await sleep(4);
+  await sid.allNotesOff();
+  await sleep(0.4);
+} finally {
+  sid.dispose();
+}
+</script>
+    <nav>
+      <a data-playground-src="sid-filter-example" data-playground-mode="c64" href="../playground/index.html?mode=c64" target="_blank" rel="noopener noreferrer">Edit this code in the Playground ↗</a>
+      <a href="../synth-sid/index.html" target="_blank" rel="noopener noreferrer">Explore the same controls in SID Synth ↗</a>
+    </nav>
+    <h3>From the experiment to your own app</h3>
+    <p>The Playground supplies <code>useSoundChip()</code> and <code>sleep()</code>. In your own browser app, initialize the npm SID client instead. The existing <strong>02-filter</strong> example shows the complete audio setup; its <code>setVoice()</code>, <code>setNote()</code> and <code>setFilter()</code> calls correspond to this experiment. The Synth link opens a separate editor; it does not silently transfer this page’s settings.</p>
+    <nav>
+      <a href="https://kyorohiro.github.io/tetorica-fm2612-examples/">Runnable npm examples</a>
+      <a href="https://github.com/kyorohiro/tetorica-fm2612-examples/tree/main/examples/c64/sid/02-filter">Source of the Web / Node filter example</a>
+      <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#c64-sid-6581-and-8580-preview">SID API and model notes</a>
+    </nav>
+  </section>
+
+  <section class="panel">
+    <h2>What belongs to the chip?</h2>
+    <p>Saw oscillators, voice envelopes, routing, filter outputs, Cutoff and Resonance are SID controls. This page’s sliders, chord selection, note-name conversion, spectrum display, fixed output gain and transport fade are software around the chip. Editing a filter control writes settings to the same running SID; it does not restart the held CH1 note.</p>
+  </section>
+
+  <footer class="panel">
+    <h2>References and readable sources</h2>
+    <p>The MOS 6581 datasheet documents the filter registers on printed pages 5–6 and the shared signal path on page 2. This lesson’s text, tone and code are original. The short instructions describe observations to make; they are not a recording of historical game music.</p>
+    <nav>
+      <a href="https://myoldcomputer.nl/Files/mos_6581_sid.pdf#page=6">Original MOS / Commodore 6581 datasheet (scan)</a>
+      <a href="./sid-filter-lesson.js">Lesson audio and source generator</a>
+      <a href="./sid-filter-ui.js">Lesson UI source</a>
+      <a href="../index.html">All introductions</a>
+    </nav>
+  </footer>
+</main>
+<script src="./playground-embed.js"></script>
+<script type="module" src="./sid-filter-ui.js?v=sid-filter-intro-1"></script>
+</body>
+</html>

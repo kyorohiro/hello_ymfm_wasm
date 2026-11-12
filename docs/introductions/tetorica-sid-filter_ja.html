@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="同じノコギリ波を鳴らしたまま、出てくる音の成分を変える。設定をJavaScriptへ持ち出すところまで試します。">
+  <title>SIDのフィルターで音の明るさを変える · Tetorica</title>
+  <link rel="stylesheet" href="./fx-introduction.css">
+  <link rel="stylesheet" href="./sid-filter-introduction.css?v=sid-filter-intro-1">
+  <link rel="alternate" hreflang="en" href="./tetorica-sid-filter.html">
+  <link rel="alternate" hreflang="ja" href="./tetorica-sid-filter_ja.html">
+</head>
+<body>
+<main>
+  <header class="panel">
+    <p class="kicker">SID / FILTER / INTRODUCTION</p>
+    <h1>SIDのフィルターで音の明るさを変える</h1>
+    <nav class="language-nav" aria-label="言語">
+      <a href="./tetorica-sid-filter.html" lang="en" hreflang="en">English</a>
+      <a href="./tetorica-sid-filter_ja.html" lang="ja" hreflang="ja" aria-current="page">日本語</a>
+    </nav>
+    <p>同じノコギリ波を鳴らしたまま、出てくる音の成分を変える。設定をJavaScriptへ持ち出すところまで試します。</p>
+    <p class="sid-filter-model">MOS 6581 · PAL · Tetorica approximation</p>
+    <nav><a href="../index-ja.html">入門一覧</a><a href="./index-ja.html">YM2612入門</a><a href="#sid-filter-lab">小さな聴き比べの実験</a></nav>
+  </header>
+
+  <section class="panel" id="sid-filter-lab" data-sid-filter-lesson>
+    <h2>小さな聴き比べの実験</h2>
+    <p>まずBypassで単音を鳴らし、そのまま操作します。3CHとも同じSaw設定です。和音のチェックはCH2・CH3を追加し、CH1は鳴らしたままです。「設定を戻す」は初期設定へ戻します。「停止」はソフトウェア側で出力をフェードして音源を解放します。</p>
+    <form id="sid-filter-controls">
+      <div class="sid-filter-controls-grid">
+        <label class="sid-filter-modes" for="sid-filter-mode">Filterの出力
+          <select id="sid-filter-mode" name="mode">
+            <option value="bypass" selected>Bypass · 直接の音</option>
+            <option value="lowpass">LP · ローパス</option>
+            <option value="bandpass">BP · バンドパス</option>
+            <option value="highpass">HP · ハイパス</option>
+          </select>
+        </label>
+        <label for="sid-filter-cutoff">Cutoff · 実機の設定コード <output id="sid-filter-cutoff-value" for="sid-filter-cutoff">500</output>
+          <input id="sid-filter-cutoff" name="cutoff" type="range" min="0" max="2047" step="1" value="500">
+        </label>
+        <label for="sid-filter-resonance">Resonance · 実機の設定コード <output id="sid-filter-resonance-value" for="sid-filter-resonance">5</output>
+          <input id="sid-filter-resonance" name="resonance" type="range" min="0" max="15" step="1" value="5">
+        </label>
+      </div>
+      <fieldset class="sid-filter-routing">
+        <legend>共有Filterへ送るCH</legend>
+        <label><input type="checkbox" name="route1" checked> CH1</label>
+        <label><input type="checkbox" name="route2" checked> CH2</label>
+        <label><input type="checkbox" name="route3" checked> CH3</label>
+      </fieldset>
+      <label class="sid-filter-chord"><input type="checkbox" name="chord"> CH2 / CH3を重ねる · C3–E3–G3</label>
+      <p id="sid-filter-routing-status">Bypass中は全CHが直接出力されます。Filterの出力を選ぶと、チェックしたCHをFilterへ送ります。</p>
+      <div class="sid-filter-actions">
+        <button type="button" id="sid-filter-start">音を鳴らす</button>
+        <button type="button" id="sid-filter-stop" disabled>停止</button>
+        <button type="button" id="sid-filter-reset">設定を戻す</button>
+      </div>
+    </form>
+    <p id="sid-filter-status" role="status">停止中です。「音を鳴らす」を押すまで再生しません。</p>
+    <figure class="sid-filter-spectrum">
+      <canvas id="sid-filter-spectrum" width="960" height="280" role="img" aria-label="出力のSpectrum">出力のSpectrum</canvas>
+      <figcaption>縦軸は−90〜0 dBFSで固定、横軸は20 Hzから最大20 kHzまでの対数目盛です（出力サンプルレートの半分が上限）。このページの固定Gainを通ったブラウザー出力を測ります。実機SIDの校正測定ではありません。</figcaption>
+    </figure>
+    <noscript><p>聴き比べの操作にはJavaScriptが必要です。説明とサンプルコードは下で読めます。</p></noscript>
+  </section>
+
+  <section class="panel">
+    <h2>1. 音符はそのまま、Filterの出力を変える</h2>
+    <p>ノコギリ波には、基音とそれより高い倍音が含まれます。Filterは、その成分のバランスを変えます。出力を切り替えても、発振器に設定した音程は変えていません。</p>
+    <ol class="steps"><li>Bypassのまま<strong>音を鳴らす</strong>を押します。元のSaw音とSpectrumを確かめます。</li><li><strong>LP</strong>を選び、Cutoffを1200付近から200付近へゆっくり下げ、戻します。Spectrumの高い周波数側を見比べてください。</li><li>Cutoffを固定し、<strong>BP</strong>と<strong>HP</strong>も試します。音量だけでなく、どの周波数の成分が残っているかに注目します。</li></ol>
+    <table>
+      <thead><tr><th scope="col">出力</th><th scope="col">聴き比べるところ</th></tr></thead>
+      <tbody>
+          <tr><th scope="row">Bypass</th><td>各CHがFilterを通らず、直接出力へ進みます。</td></tr>
+          <tr><th scope="row">LP · ローパス</th><td>低い周波数側が残りやすく、Cutoff付近より高い成分が減ります。</td></tr>
+          <tr><th scope="row">BP · バンドパス</th><td>Cutoff付近の帯域が残りやすくなります。</td></tr>
+          <tr><th scope="row">HP · ハイパス</th><td>高い周波数側が残りやすく、低い成分が減ります。</td></tr>
+      </tbody>
+    </table>
+    <p>どのモードでもSIDのVolumeとページのGainは同じです。出力の音量はモードによって異なり、自動でそろえていません。極端な設定では、GateがOnのままでも音がとても小さくなることがあります。</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. CutoffとResonanceを分けて試す</h2>
+    <p>LPを選び、まずResonanceを0にします。Cutoffで通し方の変わる境目を動かします。次にCutoffを500付近へ固定し、Resonanceをゆっくり上げてください。その付近の強調と、音量の変化を見比べます。</p>
+    <p>CutoffはSIDの11 bitの設定値で<code>0〜2047</code>、Resonanceは4 bitで<code>0〜15</code>です。どちらも百分率ではありません。このページでは、Cutoffのコードを正確なHzの値として表示しません。</p>
+    <p class="hint">この実験はTetoricaの6581・PAL近似モデルで動きます。経路や設定項目はSIDに対応し、音声はデジタルの近似で生成します。実機の6581には個体や外付けFilter部品による違いがあります。ここでは、このモデルの変化を比較し、一つのコードに共通のHz値を決めつけないようにします。</p>
+  </section>
+
+  <section class="panel">
+    <h2>3. 3CHで一つのFilterを共有する</h2>
+    <p><strong>CH2 / CH3を重ねる</strong>をチェックし、LPで3CHともFilterへ送ります。一つのCutoffと一つのResonanceが、送られた複数の音に共通して働きます。</p>
+    <ol class="steps"><li><strong>CH2</strong>のチェックだけを外します。CH2は直接出力へ、CH1・CH3はFilterへ進みます。</li><li>Cutoffを動かし、直接の音とFilterを通る音が重なる様子を聴きます。</li><li>CH2を戻すと、3CHとも同じFilterへ入ります。全チェックを外すと、すべて直接出力です。</li></ol>
+    <table>
+      <thead><tr><th scope="col">画面のCH</th><th scope="col">コードのchannel</th><th scope="col">経路のbit値</th></tr></thead>
+      <tbody><tr><th scope="row">CH1</th><td>0</td><td>1</td></tr><tr><th scope="row">CH2</th><td>1</td><td>2</td></tr><tr><th scope="row">CH3</th><td>2</td><td>4</td></tr></tbody>
+    </table>
+    <p>画面のCH1・CH2・CH3は、APIでは<code>0・1・2</code>です。経路のbit値を<code>1 + 2 + 4</code>と足すと全CHをFilterへ送れます。CH1とCH3だけなら<code>routing: 5</code>です。選ばないCHは直接出力へ進みます。</p>
+    <p>このページのBypassは<code>mode: "off", routing: 0</code>です。CHをFilterへ送ったまま<code>mode: "off"</code>だけにすると、そのCHが出てくるFilterの経路がなくなります。Bypassとは異なる設定です。</p>
+    <p>SIDは複数のFilter出力を加算することもでき、LP＋HPはNotchの組合せです。この最初の実験では一種類ずつ比較します。組合せはSID SynthやAPIで試せます。</p>
+  </section>
+
+  <section class="panel" id="sid-filter-code-section">
+    <h2>4. 設定をコードで読み、変更する</h2>
+    <p>下の例は上の操作に追従します。Playgroundへ開いて編集できます。一つずつ値を変えてこのページと比べてください。比較するときは、先に鳴っている方を停止します。</p>
+    <p>コピーする例は4秒間鳴らし、短いReleaseを待ってclientを解放します。ページの実験は「停止」まで続きます。Playgroundや自分のアプリでは、MasterやMixerの設定で出力音量が変わります。</p>
+    <div class="sid-filter-actions"><button type="button" id="sid-filter-copy">JavaScriptをコピー</button></div>
+    <pre><code id="sid-filter-code" tabindex="0">const sid = await useSoundChip('sid');
+try {
+  await sid.initialize();
+  const notes = ['C3', 'E3', 'G3'];
+  for (let ch = 0; ch &lt; 3; ch++) {
+    await sid.setVoice(ch, {
+      waveform: 'saw', pulseWidth: 2048,
+      attack: 2, decay: 6, sustain: 9, release: 4,
+      sync: false, ring: false, test: false,
+    });
+    await sid.setNote(ch, notes[ch]);
+  }
+
+  // One shared hardware filter. Unrouted voices remain dry.
+  // Bypass uses mode 'off' AND routing 0 to keep the voices audible.
+  await sid.setFilter({
+    mode: 'off', cutoff: 500, resonance: 5,
+    routing: 0, volume: 8, voice3off: false,
+  });
+  for (const ch of [0]) await sid.keyOn(ch);
+
+  // JavaScript waiting controls the performance; the SID clock runs in audio.
+  await sleep(4);
+  await sid.allNotesOff();
+  await sleep(0.4);
+} finally {
+  sid.dispose();
+}</code></pre>
+    <script type="text/plain" id="sid-filter-example">
+const sid = await useSoundChip('sid');
+try {
+  await sid.initialize();
+  const notes = ['C3', 'E3', 'G3'];
+  for (let ch = 0; ch < 3; ch++) {
+    await sid.setVoice(ch, {
+      waveform: 'saw', pulseWidth: 2048,
+      attack: 2, decay: 6, sustain: 9, release: 4,
+      sync: false, ring: false, test: false,
+    });
+    await sid.setNote(ch, notes[ch]);
+  }
+
+  // One shared hardware filter. Unrouted voices remain dry.
+  // Bypass uses mode 'off' AND routing 0 to keep the voices audible.
+  await sid.setFilter({
+    mode: 'off', cutoff: 500, resonance: 5,
+    routing: 0, volume: 8, voice3off: false,
+  });
+  for (const ch of [0]) await sid.keyOn(ch);
+
+  // JavaScript waiting controls the performance; the SID clock runs in audio.
+  await sleep(4);
+  await sid.allNotesOff();
+  await sleep(0.4);
+} finally {
+  sid.dispose();
+}
+</script>
+    <nav>
+      <a data-playground-src="sid-filter-example" data-playground-mode="c64" href="../playground/index.html?mode=c64" target="_blank" rel="noopener noreferrer">このコードをPlaygroundで編集 ↗</a>
+      <a href="../synth-sid/index.html" target="_blank" rel="noopener noreferrer">SID Synthで同じ種類の操作を試す ↗</a>
+    </nav>
+    <h3>自分のアプリへ持ち出す</h3>
+    <p>Playgroundは<code>useSoundChip()</code>や<code>sleep()</code>を用意しています。自分のWebアプリでは、npmのSID clientを初期化します。既存の<strong>02-filter</strong>例に音声の初期化まで含まれており、<code>setVoice()</code>・<code>setNote()</code>・<code>setFilter()</code>の操作をこの実験と対応づけられます。Synthへのリンクは別の編集画面を開き、このページの設定を自動転送するものではありません。</p>
+    <nav>
+      <a href="https://kyorohiro.github.io/tetorica-fm2612-examples/">動くnpm使用例</a>
+      <a href="https://github.com/kyorohiro/tetorica-fm2612-examples/tree/main/examples/c64/sid/02-filter">FilterのWeb／Node例のソース</a>
+      <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#c64-sid-6581-and-8580-preview">SID APIとモデルの説明</a>
+    </nav>
+  </section>
+
+  <section class="panel">
+    <h2>どこまでがチップの機能？</h2>
+    <p>Sawの発振器、各CHのEnvelope、経路、Filterの出力、Cutoff、ResonanceはSIDの操作です。ページのつまみ、和音の選択、音名の変換、Spectrum、固定の出力Gain、停止時のフェードはソフトウェアです。Filterの操作は鳴っている同じSIDへ設定を書き込み、保持中のCH1を再発音しません。</p>
+  </section>
+
+  <footer class="panel">
+    <h2>参考資料と読みやすいソース</h2>
+    <p>MOS 6581データシートの印刷ページ5〜6にFilterのレジスター、ページ2に共有経路の図があります。文章・音・コードはこの教材用に作りました。短い手順は観察する点を示すもので、過去のゲーム音楽の録音ではありません。</p>
+    <nav>
+      <a href="https://myoldcomputer.nl/Files/mos_6581_sid.pdf#page=6">MOS／Commodore 6581の原データシート（scan）</a>
+      <a href="./sid-filter-lesson.js">音源とコード生成のソース</a>
+      <a href="./sid-filter-ui.js">操作UIのソース</a>
+      <a href="../index-ja.html">入門一覧</a>
+    </nav>
+  </footer>
+</main>
+<script src="./playground-embed.js"></script>
+<script type="module" src="./sid-filter-ui.js?v=sid-filter-intro-1"></script>
+</body>
+</html>
