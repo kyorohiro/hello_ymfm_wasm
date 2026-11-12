@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "package": "tetorica-fm2612",
+  "version": "0.2.40",
+  "status": "npm publish exited0; awaiting public registry visibility",
+  "published": false,
+  "tarball": {
+    "package": "tetorica-fm2612",
+    "version": "0.2.40",
+    "path": "build/npm-vab-release-20261112/tetorica-fm2612-0.2.40.tgz",
+    "bytes": 2821471,
+    "files": 1253,
+    "unpackedBytes": 11422458,
+    "sha256": "37ec63230722361b2a9ac0e35c73e7d4289d7f57343c31b7a051296c9b5ca60c",
+    "shasum": "f537b73e28361d85cec1a82c042b1b514e816b92",
+    "integrity": "sha512-hh2GsrUBpaf2Cyn2ll3+aUrxEjsFCty8/mfpC+/VhOjQmPGN41RACL+SOnOaTNMf23DnkvGbUC4AIDXhwOe4eg==",
+    "verifiedTarballCopiedExact": true,
+    "installedValidationLog": "/private/tmp/npm-vab-release-final-installed.log",
+    "published": false
+  },
+  "candidateValidation": {
+    "vabRootJsExtensionlessIdentity": true,
+    "vabPureAndRealSpuPcm": true,
+    "installedTypeProfiles": [
+      "NodeNext",
+      "Bundler",
+      "browser without Node ambient types"
+    ],
+    "negativeVabTypeCases": 11,
+    "newNoAnyAssertions": [
+      "Ps1Client._getState",
+      "Worklet synth",
+      "Worklet validation"
+    ],
+    "wasmEngines": 28,
+    "chipRenderers": 15,
+    "localAssetReferences": 1172
+  },
+  "typeGeneration": {
+    "normalizesQueriesDuringInferenceOnly": true,
+    "restoresOriginalJsInFinally": true,
+    "runtimeAndSourceFilesUnchangedFromFirstCandidate": 812,
+    "changedFinalPayload": "README.md and14 declaration files only, compared with first0.2.40candidate"
+  },
+  "browserEvidence": "docs/issues/ps1_vab_public_api_verification_01.json",
+  "physicalOutputUsed": false,
+  "authenticationInformationStored": false,
+  "gitCommitPushTagPerformed": false,
+  "examplesRepositoryChanged": false,
+  "sdkOrWasmRebuilt": false,
+  "publishRequestAccepted": true,
+  "npmPublishExitCode": 0,
+  "sourceCommit": "c1015ee4fe776bd0d818faecbbcf1dc93a573f2d",
+  "releaseWorkingTreeFiles": [
+    "packages/fm2612/package.json",
+    "packages/fm2612/README.md",
+    "scripts/build_fm2612_types.mjs",
+    "test/types/fm2612-vab.mts"
+  ],
+  "publishHttpStatus": 202,
+  "registryVisibility": {
+    "checkedAt": "2026-11-12T07:29:24.376656+00:00",
+    "versionAvailable": false,
+    "latest": "0.2.39"
+  },
+  "releaseWorkingTreeRecords": {
+    "packages/fm2612/package.json": {
+      "bytes": 2482,
+      "sha256": "2558161eb6d7e39ecfda20cc6982c27e14f346046a5e9bcc7ee62ae9c8af85fc"
+    },
+    "packages/fm2612/README.md": {
+      "bytes": 113775,
+      "sha256": "b21a109ad211a1cc0d397db34ef5a4a082997f8c0402b1b551b438d78e0b2f2c"
+    },
+    "scripts/build_fm2612_types.mjs": {
+      "bytes": 5159,
+      "sha256": "5a434fcb4feb7d9d9dec19823a0640622de36135db09bc91ee60a05efc6eefc1"
+    },
+    "test/types/fm2612-vab.mts": {
+      "bytes": 4618,
+      "sha256": "71383b353caa4eaa2bc4528676c50d07b73adb4fdde38ceb4efdf480201d52d4"
+    }
+  }
+}

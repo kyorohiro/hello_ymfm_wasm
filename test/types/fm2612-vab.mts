@@ -7,12 +7,17 @@ import type {Ps1VabBank as BareBank} from 'tetorica-fm2612/ps1_vab';
 import type {Ps1VabBank as RootBank} from 'tetorica-fm2612';
 import {Ps1Synth} from 'tetorica-fm2612/ps1synth.js';
 import {createPs1Client} from 'tetorica-fm2612/playground_ps1.js';
+import type {Ps1InstrumentProcessor} from 'tetorica-fm2612/playground_ps1_worklet.js';
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 type Assert<T extends true> = T;
 type BankIsTyped = Assert<IsAny<ReturnType<typeof readVab>> extends false ? true : false>;
 type PreparedIsTyped = Assert<IsAny<ReturnType<typeof prepareVabTone>['preset']> extends false ? true : false>;
 type SampleIsTyped = Assert<IsAny<ReturnType<typeof readVab>['samples'][number]['bytes']> extends false ? true : false>;
+// Cache query strings must not erase the local PS1 module's inferred types.
+type ClientStateIsTyped = Assert<IsAny<ReturnType<ReturnType<typeof createPs1Client>['_getState']>> extends false ? true : false>;
+type WorkletSynthIsTyped = Assert<IsAny<Ps1InstrumentProcessor['synth']> extends false ? true : false>;
+type WorkletValidationIsTyped = Assert<IsAny<Ps1InstrumentProcessor['validation']> extends false ? true : false>;
 
 const readIdentity:typeof readVab = readJs, readBareIdentity:typeof readVab = readBare;
 const prepareIdentity:typeof prepareVabTone = prepareJs, prepareBareIdentity:typeof prepareVabTone = prepareBare;

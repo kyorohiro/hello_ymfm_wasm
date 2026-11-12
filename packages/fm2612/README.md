@@ -270,6 +270,8 @@ and patch serialization remain later work. These additions are not in published
 
 ### Standard PS1 VAB banks
 
+Available from **0.2.40**.
+
 `readVab`, `prepareVabTone` and `exportVab` are pure synchronous APIs for
 standard Sony VAB v6/v7. Import them from the package root or
 `tetorica-fm2612/ps1_vab.js` (the extensionless `ps1_vab` path also works).
@@ -1581,10 +1583,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.39.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.40.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.39.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.40.tgz
 ```
 
 The build pins an unpublished `tetorica-soundchip-native` SDK **0.1.7** source
@@ -1612,6 +1614,20 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.40` exposes standard PS1 VAB v6/v7 helpers at the package root and
+`ps1_vab.js` / `ps1_vab` subpaths: `readVab()`, `prepareVabTone()` and
+`exportVab()`, with six public metadata and result types. Read combined VAB
+or split VH/VB, prepare tuned ADPCM for `Ps1Synth` / its asynchronous client,
+and preserve a complete source bank or extract a one-Tone standard VAB.
+The same pure helpers are available in Playground Main/Worker and Synth Code.
+They do not create an audio device or require intermediate Tetorica JSON.
+Export requires the original unchanged bank; shared effects and song-driver
+behavior remain separate. The existing SPU client declarations also retain
+valid method-return types when inferred through the generic runtime.
+SPU ADPCM preparation also accepts a LOOP START marker in a one-shot sample
+when the final END packet has Repeat disabled. Original bytes and flags are
+preserved; that marker alone does not make the sample loop.
 
 `0.2.39` adds SID to the package-root `createSoundChip()` factory. Select
 6581 or PAL 8580 Preview, generate raw mono PCM directly, or use the generic
