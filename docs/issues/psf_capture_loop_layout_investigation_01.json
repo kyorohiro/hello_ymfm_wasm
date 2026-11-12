@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "status": "investigation complete; capture behavior unchanged",
+  "todo": "docs/issues/todo_psf_capture_loop_layout_01.md",
+  "sourceCommit": "a7b746b3272f338ed63a470f05a1bb9ada675472",
+  "finding": "Current Capture rejects a stale raw Repeat outside Start-to-first-END even when one valid internal Loop Start exists. A later observation of the same source passes once Repeat reaches that marker.",
+  "userOriginalFileIdentified": false,
+  "reproducedSameErrorOnExistingLocalPsf": true,
+  "corpus": {
+    "label": "Previously provided Arc the Lad set",
+    "entries": 40,
+    "secondsPerEntry": 2,
+    "samplingSeconds": 0.25,
+    "observedActiveOrdinaryVoices": 2201,
+    "captureSuccessObservations": 1748,
+    "captureFailureObservations": 453,
+    "entriesWithFailure": 39,
+    "uniqueFindings": 376,
+    "kinds": [
+      "repeat-outside-with-internal-marker"
+    ],
+    "realMisalignmentOrMarkerlessExternalLoopFound": false
+  },
+  "transition": {
+    "entry": "30 - Alatos.minipsf",
+    "channel": 2,
+    "sourceStart": "0xDFF0",
+    "sourceEndPacket": "0xE210",
+    "sourceLoopStartMarker": "0xE140",
+    "endFlags": 3,
+    "trajectory": [
+      {
+        "frame": 78939,
+        "seconds": 1.79,
+        "voice": 1,
+        "gate": true,
+        "envelope": 32767,
+        "kind": "repeat-outside-with-internal-marker",
+        "startAddress": 57328,
+        "repeatAddress": 16288,
+        "startAligned16": true,
+        "repeatAligned16": true,
+        "repeatRelation": "before-start",
+        "endPacket": 57872,
+        "endExclusive": 57888,
+        "endFlags": 3,
+        "markerCount": 1,
+        "markerAddresses": [
+          57664
+        ],
+        "packets": 35,
+        "flagCounts": [
+          1,
+          0,
+          32,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "bad": null,
+        "capture": "failure",
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported."
+      },
+      {
+        "frame": 79380,
+        "seconds": 1.8,
+        "voice": 1,
+        "gate": true,
+        "envelope": 32767,
+        "kind": "repeat-outside-with-internal-marker",
+        "startAddress": 57328,
+        "repeatAddress": 16288,
+        "startAligned16": true,
+        "repeatAligned16": true,
+        "repeatRelation": "before-start",
+        "endPacket": 57872,
+        "endExclusive": 57888,
+        "endFlags": 3,
+        "markerCount": 1,
+        "markerAddresses": [
+          57664
+        ],
+        "packets": 35,
+        "flagCounts": [
+          1,
+          0,
+          32,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "bad": null,
+        "capture": "failure",
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported."
+      },
+      {
+        "frame": 79821,
+        "seconds": 1.81,
+        "voice": 1,
+        "gate": true,
+        "envelope": 32767,
+        "kind": "repeat-and-marker-consistent",
+        "startAddress": 57328,
+        "repeatAddress": 57664,
+        "startAligned16": true,
+        "repeatAligned16": true,
+        "repeatRelation": "inside",
+        "endPacket": 57872,
+        "endExclusive": 57888,
+        "endFlags": 3,
+        "markerCount": 1,
+        "markerAddresses": [
+          57664
+        ],
+        "packets": 35,
+        "flagCounts": [
+          1,
+          0,
+          32,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "bad": null,
+        "capture": "success"
+      },
+      {
+        "frame": 80262,
+        "seconds": 1.82,
+        "voice": 1,
+        "gate": true,
+        "envelope": 32767,
+        "kind": "repeat-and-marker-consistent",
+        "startAddress": 57328,
+        "repeatAddress": 57664,
+        "startAligned16": true,
+        "repeatAligned16": true,
+        "repeatRelation": "inside",
+        "endPacket": 57872,
+        "endExclusive": 57888,
+        "endFlags": 3,
+        "markerCount": 1,
+        "markerAddresses": [
+          57664
+        ],
+        "packets": 35,
+        "flagCounts": [
+          1,
+          0,
+          32,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "bad": null,
+        "capture": "success"
+      }
+    ]
+  },
+  "numericProof": {
+    "passed": true,
+    "frames": 4096,
+    "source": {
+      "start": 8192,
+      "externalAddress": 12288,
+      "markerAddress": 8224,
+      "bytes": 64,
+      "sourceSha256": "653a7d581047e2fc6594249d36b86216d1bb553e5af6d12536cf6d2f0177d2f5"
+    },
+    "fresh": {
+      "marker": true,
+      "writeAfter": null,
+      "advanceBefore": 0,
+      "retrigger": false,
+      "initialOldStart": false,
+      "repeatAtKON": 12288,
+      "beforeRender": 12288,
+      "repeatAfter32": 12288,
+      "repeatAfterAll": 8224,
+      "captureAtKON": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "observation": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "pcmSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4",
+      "equalsPortableSynth": true,
+      "portable": {
+        "loopStartSamples": 56,
+        "pcmSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4"
+      }
+    },
+    "forcedAfterMarker": {
+      "marker": true,
+      "writeAfter": 80,
+      "advanceBefore": 0,
+      "retrigger": false,
+      "initialOldStart": false,
+      "repeatAtKON": 12288,
+      "beforeRender": 12288,
+      "repeatAfter32": 12288,
+      "repeatAfterAll": 12288,
+      "captureAtKON": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "observation": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "pcmSha256": "1b973230072e042ddbcad01a92c081310f3ae642bbf1f4cf70551e681aef0945",
+      "samePositionNormalContinuationSha256": "7e78dd319acb0dd633940fc719a759fd83e8d5eb2add3bb95ab251e022c96db2",
+      "first32FramesEqualNormal": true,
+      "continuationDiffersFromNormal": true,
+      "mismatchedSamples": 7471,
+      "freshKeyOnAfterForcedWriteEqualsPortable": true,
+      "restartSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4"
+    },
+    "noMarker": {
+      "marker": false,
+      "writeAfter": null,
+      "advanceBefore": 0,
+      "retrigger": false,
+      "initialOldStart": false,
+      "repeatAtKON": 12288,
+      "beforeRender": 12288,
+      "repeatAfter32": 12288,
+      "repeatAfterAll": 12288,
+      "captureAtKON": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "observation": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "pcmSha256": "d4a4f604ddeb12ee1e2c92f69f166b9611f16c521b378d10a98ff3300e11a4b7",
+      "fabricatedLoopStart": 0,
+      "mismatchedSamples": 7651,
+      "fallbackChangesPlayback": true
+    },
+    "changedProgrammedStartForNextKey": {
+      "marker": true,
+      "writeAfter": null,
+      "advanceBefore": 0,
+      "retrigger": true,
+      "initialOldStart": true,
+      "repeatAtKON": 12288,
+      "beforeRender": 12288,
+      "repeatAfter32": 12288,
+      "repeatAfterAll": 8224,
+      "captureAtKON": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "observation": {
+        "accepted": false,
+        "error": "PSF Capture: The repeat address must point to a 16-byte-aligned packet inside the captured contiguous sample; discontiguous loops are not supported.",
+        "rawRepeat": 12288
+      },
+      "pcmSha256": "6b0c46eac13ebd4d1876fca206e886e21577a52afcf1f78077585490b58525b4",
+      "equalsPortableSynth": true
+    },
+    "conclusion": {
+      "uniqueInternalMarkerMatchesFreshKeyOn": true,
+      "rawRepeatDoesNotIdentifyCurrentEffectiveLoop": true,
+      "outsideRepeatWithoutMarkerCannotSafelyDefaultToStart": true,
+      "continuingEnvelopeAndDecoderStateNotCaptured": true
+    },
+    "audioDeviceUsed": false,
+    "productModified": false
+  },
+  "recommendedFirstFix": {
+    "mode": "fresh-key-on Capture, not a frozen running-note reconstruction",
+    "condition": "one valid internal Loop Start in a bounded contiguous sample",
+    "loopSource": "derive loopStartSamples from the encoded marker; retain observed rawRepeat as provenance",
+    "sourceAdpcmUnchanged": true,
+    "jsonOrSdkFormatChangeNeeded": false,
+    "normalPreparationValidationRetained": true,
+    "caveat": "Snapshot alone does not expose force-loop history. A live software Repeat override may differ, but a fresh Key On in the current core selects the encoded marker."
+  },
+  "trueExternalLoops": "Without an internal marker, do not replace Repeat with loopStart0 or naïvely concatenate/rewrite END. Supporting external/segmented data needs explicit relocation/sample representation and decoder-history verification.",
+  "evidence": {
+    "capture": "docs/synth-spu/psf_capture.js:85-108",
+    "sampleModel": "tetorica_src/runtime/ps1synth.js:63-68,132-135; docs/synth-spu/spu_synth_instrument.js:52-58",
+    "nativeCore": "vendor/mame-ps1-spu/spu.cpp:1259-1261,1737-1744,1781-1799,2137-2138,2256",
+    "spec": "https://psx-spx.consoledev.net/soundprocessingunitspu/#spu-adpcm-samples"
+  },
+  "privateMetadataReports": {
+    "psf-capture-repeat-alatos.json": {
+      "path": "build/psf-capture-loop-layout-20261112/psf-capture-repeat-alatos.json",
+      "bytes": 16208,
+      "sha256": "aa0d9018b9fe58876a90fd7cfb964e69545a0a330dc20d5aac41323b7c573348"
+    },
+    "psf-capture-repeat-arc40.json": {
+      "path": "build/psf-capture-loop-layout-20261112/psf-capture-repeat-arc40.json",
+      "bytes": 656487,
+      "sha256": "1e62c53df5c8122004b638aa9639fd0f14f0531f081756584f62f82d416ef227"
+    },
+    "psf-capture-repeat-alatos-fine.json": {
+      "path": "build/psf-capture-loop-layout-20261112/psf-capture-repeat-alatos-fine.json",
+      "bytes": 66836,
+      "sha256": "907aedf95649572451cfe24d6e7069f463ba8ab059379e0dc841d24fc199b7cf"
+    },
+    "psf-repeat-loop-investigation.json": {
+      "path": "build/psf-capture-loop-layout-20261112/psf-repeat-loop-investigation.json",
+      "bytes": 4558,
+      "sha256": "e57ef477dee9489c5478a798da0fc17c5c425f0c99c5fa47caaa448c23f273e1"
+    }
+  },
+  "sourceRecords": {
+    "docs/synth-spu/psf_capture.js": {
+      "bytes": 9591,
+      "sha256": "702d65c7a7b807dcf08ccc9f3bd6be33cd38adbef49ce477312d77588a440b4c"
+    },
+    "tetorica_src/runtime/ps1synth.js": {
+      "bytes": 21654,
+      "sha256": "444e2dfa2de24bf4ad987396564fb0117a845a345e91e1a98f83bed4a2469bbd"
+    },
+    "docs/synth-spu/spu_synth_instrument.js": {
+      "bytes": 7233,
+      "sha256": "ab9197460279fa580cf83943e563d9078695df0361d2976a5c4fbd4c562f6d6e"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/spu.cpp": {
+      "bytes": 78550,
+      "sha256": "057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661"
+    },
+    "docs/generated/ps1_spu_wasm.wasm": {
+      "bytes": 52082,
+      "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f"
+    },
+    "docs/generated/psf-player/psf_player.wasm": {
+      "bytes": 455304,
+      "sha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab"
+    }
+  },
+  "productBehaviorChanged": false,
+  "wasmRebuilt": false,
+  "audioDeviceUsed": false,
+  "listeningPerformed": false,
+  "ordinaryAppsOpened": false,
+  "gamePayloadIncluded": false,
+  "gitCommitPushPerformed": false,
+  "published": false
+}
