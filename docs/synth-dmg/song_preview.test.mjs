@@ -224,3 +224,62 @@ test('cancel from a playing seek restores its original audible position and Live
   const after=f.preview.read();assert.equal(after.playback,'playing');assert.equal(after.positionFrames,before.positionFrames);assert.deepEqual(after.liveState,frozen);
   assert.equal(after.liveEnabled,false);assert.equal(f.engines[0].disposed,0);assert.equal(f.engines[1].disposed,1);f.preview.dispose();
 });
+
+function mutingEngine(){
+  const engine=fakeEngine(),reset=engine.reset,process=engine.processFrames;
+  Object.assign(engine,{mask:0,muteCalls:[],renders:[],resets:0,
+    reset(){this.resets++;this.mask=0;return reset.call(this);},
+    setChannelMuted(channel,muted){this.muteCalls.push({channel,muted});this.mask=muted?this.mask|(1<<channel):this.mask&~(1<<channel);},
+    processFrames(frames){this.renders.push({first:this.frames,frames,mask:this.mask});const pcm=process.call(this,frames);const gain=Array.from({length:4},(_,ch)=>this.mask&(1<<ch)?0:ch+1).reduce((a,b)=>a+b,0)/10;for(const side of [pcm.left,pcm.right])for(let i=0;i<side.length;i++)side[i]*=gain;return pcm;},
+  });return engine;
+}
+
+test('reference channel On/Off validates strictly, stays passive and returns a detached persistent session selection',async()=>{
+  const f=setup();assert.deepEqual(f.preview.read().channelEnabled,[true,true,true,true]);
+  const copy=f.preview.read().channelEnabled;copy.fill(false);assert.equal(f.preview.read().channelMuteMask,0);
+  for(const channel of [-1,4,.5,NaN,'0'])assert.throws(()=>f.preview.setChannelEnabled(channel,false),/channel/);
+  for(const enabled of [0,1,null,undefined,'false'])assert.throws(()=>f.preview.setChannelEnabled(0,enabled),/boolean/);
+  assert.deepEqual(f.preview.setChannelEnabled(2,false).channelEnabled,[true,true,false,true]);
+  assert.equal(f.audioRequests,0);assert.equal(f.ownershipRequests,0);assert.equal(f.engines.length,0);
+  await f.preview.load(fixtureVgm(),'one');f.preview.stop();await f.preview.load(fixtureVgm(),'two');
+  assert.deepEqual(f.preview.read().channelEnabled,[true,true,false,true]);assert.equal(f.preview.read().channelMuteMask,4);
+  f.preview.dispose();assert.throws(()=>f.preview.setChannelEnabled(0,false),/disposed/);
+});
+
+test('reference channel mute changes only future mix; generated buffers, phase, register timeline and native cursor are retained',async()=>{
+  const engine=mutingEngine(),f=setup({createEngine:async()=>engine});await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();
+  const before=f.preview.read(),frames=engine.frames,writes=engine.writes.length,resets=engine.resets;
+  const scheduled=f.starts.map(node=>({node,buffer:node.buffer,left:node.buffer.getChannelData(0).slice()}));
+  for(let channel=0;channel<4;channel++)f.preview.setChannelEnabled(channel,false);
+  const muted=f.preview.read();assert.equal(muted.playback,before.playback);assert.equal(muted.positionFrames,before.positionFrames);assert.equal(muted.renderedFrames,before.renderedFrames);
+  assert.deepEqual(muted.liveState,before.liveState);assert.equal(engine.frames,frames);assert.equal(engine.writes.length,writes);assert.equal(engine.resets,resets);
+  assert.equal(f.starts.length,scheduled.length);for(const {node,buffer,left}of scheduled){assert.equal(node.stopped,undefined);assert.equal(node.buffer,buffer);assert.deepEqual(buffer.getChannelData(0),left);}
+  f.advance(.45);assert(engine.renders.some(render=>render.mask===15));
+  const future=f.starts.filter(node=>node.at>.35);assert(future.length>0);assert(future.every(node=>node.buffer.getChannelData(0).every(value=>value===0)));
+  f.preview.pause();const paused=f.preview.read(),native=engine.frames;f.preview.setChannelEnabled(2,true);
+  assert.equal(engine.mask,11);assert.equal(engine.frames,native);assert.equal(f.preview.read().positionFrames,paused.positionFrames);assert.deepEqual(f.preview.read().liveState,paused.liveState);
+  await f.preview.resume();assert.equal(engine.resets,resets);f.preview.dispose();
+});
+
+test('latest channel flags reach asynchronous play and seek initialization and every discard/prefill batch',async()=>{
+  const init=deferred(),engines=[];let started;
+  const beginning=new Promise(resolve=>started=resolve),f=setup({yieldTask:async()=>{},createEngine:async()=>{const engine=mutingEngine();engines.push(engine);if(engines.length===1){started();await init.promise;}return engine;}});
+  await f.preview.load(createDmgSongFixture().bytes);const playing=f.preview.play();await beginning;
+  f.preview.setChannelEnabled(1,false);f.preview.setChannelEnabled(3,false);init.resolve();assert(await playing);
+  assert(engines[0].renders.every(render=>render.mask===10));f.preview.stop();assert.equal(f.preview.read().channelMuteMask,10);
+  let batches=0;const candidate=mutingEngine(),seek=setup({createEngine:async()=>candidate,yieldTask:async()=>{if(++batches===1)seek.preview.setChannelEnabled(0,false);}});
+  await seek.preview.load(createDmgSongFixture().bytes);seek.preview.setChannelEnabled(2,false);assert(await seek.preview.seek(1.1));
+  const switched=candidate.renders.findIndex(render=>render.mask===5);assert(switched>0);assert(candidate.renders.slice(0,switched).every(render=>render.mask===4));assert(candidate.renders.slice(switched).every(render=>render.mask===5));
+  assert.equal(seek.preview.read().channelMuteMask,5);assert.equal(seek.preview.read().positionFrames,48510);assert.equal(seek.preview.read().playback,'paused');
+  assert.equal(candidate.mask,5);seek.preview.dispose();f.preview.dispose();
+});
+
+test('retired engine creation never changes a newer run mask; unsupported engines fail only for requested nondefault mixing',async()=>{
+  const held=deferred(),engines=[];let entered;
+  const started=new Promise(resolve=>entered=resolve),f=setup({createEngine:async()=>{const engine=mutingEngine();engines.push(engine);if(engines.length===1){entered();await held.promise;}return engine;}});
+  await f.preview.load(fixtureVgm());const old=f.preview.play();await started;f.preview.stop();f.preview.setChannelEnabled(3,false);assert(await f.preview.play());
+  const calls=engines[1].muteCalls.length;held.resolve();assert.equal(await old,false);assert.equal(engines[0].disposed,1);assert.equal(engines[0].muteCalls.length,0);assert.equal(engines[1].muteCalls.length,calls);assert.equal(engines[1].mask,8);f.preview.dispose();
+  const legacy=setup();await legacy.preview.load(fixtureVgm());assert(await legacy.preview.play());
+  const before=legacy.preview.read();assert.throws(()=>legacy.preview.setChannelEnabled(0,false),/does not support channel/);assert.deepEqual(legacy.preview.read().channelEnabled,before.channelEnabled);assert.equal(legacy.preview.read().playback,'playing');legacy.preview.dispose();
+  const configured=setup();configured.preview.setChannelEnabled(1,false);await configured.preview.load(fixtureVgm());assert.equal(await configured.preview.play(),false);assert.match(configured.preview.read().errorMessage,/does not support channel/);assert.equal(configured.engines[0].disposed,1);assert.equal(configured.starts.length,0);configured.preview.dispose();
+});

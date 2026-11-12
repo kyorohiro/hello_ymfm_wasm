@@ -101,6 +101,18 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   let source=null,name='',active=null,generation=0,loadGeneration=0,loadController=null,loading=false,disposed=false;
   let playback='stopped',errorMessage='',positionFrames=0,sampleRate=44100,liveEnabled=true,liveVoice=0,liveSnapshot=null;
   let seeking=null,seekCleanup=Promise.resolve(),seekPreparing=0,seekMessage='';
+  let channelMuteMask=0;
+  const appliedChannelMasks=new WeakMap();
+  function applyChannelMask(engine,mask=channelMuteMask,force=false) {
+    const previous=appliedChannelMasks.get(engine);
+    if(previous===mask&&!force)return;
+    if(typeof engine.setChannelMuted!=='function') {
+      if(mask)throw new Error('DMG reference engine does not support channel On/Off.');
+    }else for(let channel=0;channel<4;channel++) {
+      if(force||previous===undefined||((previous^mask)&(1<<channel)))engine.setChannelMuted(channel,Boolean(mask&(1<<channel)));
+    }
+    appliedChannelMasks.set(engine,mask);
+  }
   const current = ticket => !disposed && ticket === generation;
   const position = run => {
     if (!run) return positionFrames;
@@ -117,6 +129,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     observe(); const frame=position(active), present=['playing','paused'].includes(playback);
     return {playback,playing:playback==='playing',paused:playback==='paused',busy:loading||playback==='starting'||Boolean(seeking)||seekPreparing>0,loading,
       hasSource:Boolean(source),name,errorMessage,sampleRate,positionFrames:frame,consumedFrames:frame,positionSeconds:frame/sampleRate,
+      channelEnabled:Array.from({length:4},(_,channel)=>!(channelMuteMask&(1<<channel))),channelMuteMask,
       durationSeconds:(source?.totalSamples??0)/44100,totalSamples:source?.totalSamples??0,metadata:source?.metadata??null,warnings:source?.warnings??[],
       liveKind:'song',liveEnabled,liveVoice,liveActive:Boolean(present&&liveSnapshot),liveWaiting:Boolean(playback==='starting'||present&&!liveSnapshot),
       liveState:liveSnapshot,liveError:false,liveMessage:'',
@@ -195,6 +208,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       for(let chunks=0;!run.eof&&chunks<8&&nowMs()<deadline;chunks++) {
         if((run.renderedFrames-position(run))/run.sampleRate>=LOOKAHEAD)break;
         const left=new Float32Array(CHUNK),right=new Float32Array(CHUNK);
+        applyChannelMask(run.engine);
         const frames=run.player.process(left,right,CHUNK,{budgetMs:4});
         if(!Number.isInteger(frames)||frames<0||frames>CHUNK)throw new Error('Invalid DMG reference render length');
         if(frames) {
@@ -244,6 +258,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       const rate=engine.sampleRate();if(!Number.isInteger(rate)||rate<8000||rate>96000)throw new Error('Invalid DMG reference sample rate');sampleRate=rate;
       timeline=createGameboySongTimeline(engine,selected.header.gameBoyDmgClock);
       const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(selected.bytes,{logger:null});player.reset();
+      applyChannelMask(engine,channelMuteMask,true);
       gain=context.createGain();gain.gain.value=1;gain.connect(output);
       const run={engine,timeline,player,context,output,gain,sampleRate:rate,basePosition:0,renderedFrames:0,clockStart:null,segments:[],timer:null,eof:false,released:false};
       active=run;engine=timeline=gain=null;playback='playing';player.play();pump(run);return playback==='playing'||playback==='ended';
@@ -312,12 +327,14 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       job.rate=rate;job.targetFrame=Math.round(job.targetSeconds*rate);
       timeline=createGameboySongTimeline(engine,job.source.header.gameBoyDmgClock);
       const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(job.source.bytes,{logger:null});player.reset();player.play();
+      applyChannelMask(engine,channelMuteMask,true);
       candidate={engine,timeline,player,context,output,gain:null,sampleRate:rate,basePosition:job.targetFrame,renderedFrames:job.targetFrame,clockStart:null,segments:[],timer:null,eof:false,released:false};
       engine=timeline=null;
       const left=new Float32Array(seekChunkFrames),right=new Float32Array(seekChunkFrames);
       let chunks=0,batchStarted=nowMs();
       while(job.progressFrame<job.targetFrame) {
         check();const requested=Math.min(seekChunkFrames,job.targetFrame-job.progressFrame);
+        applyChannelMask(candidate.engine);
         const frames=player.process(left,right,requested,{budgetMs:4});
         if(!Number.isInteger(frames)||frames<0||frames>requested)throw new Error('Invalid DMG seek render length');
         for(let i=0;i<frames;i++)if(!Number.isFinite(left[i])||!Number.isFinite(right[i]))throw new Error('DMG seek produced non-finite PCM');
@@ -330,7 +347,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       // Pull the target boundary's writes before observing, but retain these
       // future samples. They are never discarded or played during preparation.
       for(;;) {
-        check();const frames=player.process(left,right,seekChunkFrames,{budgetMs:4});
+        check();applyChannelMask(candidate.engine);const frames=player.process(left,right,seekChunkFrames,{budgetMs:4});
         if(!Number.isInteger(frames)||frames<0||frames>seekChunkFrames)throw new Error('Invalid DMG seek prefill length');
         if(frames) {
           for(let i=0;i<frames;i++)if(!Number.isFinite(left[i])||!Number.isFinite(right[i]))throw new Error('DMG seek produced non-finite PCM');
@@ -379,6 +396,18 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     job.controller.abort();emit();await job.promise;return true;
   }
   return {load,clear,play,pause,resume,stop,seek,cancelSeek,whenIdle:()=>seekCleanup,read,getState:read,
+    setChannelEnabled(channel,enabled) {
+      checkOpen();
+      if(!Number.isInteger(channel)||channel<0||channel>3)throw new RangeError('DMG song channel must be an integer 0..3');
+      if(typeof enabled!=='boolean')throw new TypeError('DMG song channel enabled must be boolean');
+      const next=enabled?channelMuteMask&~(1<<channel):channelMuteMask|(1<<channel);
+      if(next===channelMuteMask)return read();
+      // Output-only mixer flags: keep parser, generated/queued PCM, every
+      // oscillator and the observation timeline untouched. The new mix is
+      // audible after the already scheduled/queued samples have drained.
+      if(active&&!active.released)applyChannelMask(active.engine,next);
+      channelMuteMask=next;emit();return read();
+    },
     setLiveEnabled(value){checkOpen();if(typeof value!=='boolean')throw new TypeError('Song Live enabled must be boolean');if(value===liveEnabled)return read();observe(true);liveEnabled=value;emit();return read();},
     setLiveVoice(value){checkOpen();if(!Number.isInteger(value)||value<0||value>3)throw new RangeError('DMG song channel must be 0..3');if(value===liveVoice)return read();liveVoice=value;emit();return read();},
     dispose(){if(disposed)return;stop();disposed=true;source=null;name='';},

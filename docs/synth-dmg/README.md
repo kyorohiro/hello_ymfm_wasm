@@ -214,6 +214,20 @@ Resume continues from the retained song position. Capture recreates configured
 registers for a new trigger; it does not recover game note history, length
 counters or the elapsed Envelope / Sweep phase.
 
+**Song channels · software mute** provides separate On / Off switches for
+CH1 Pulse (+ hardware Sweep), CH2 Pulse, CH3 Wave and CH4 Noise. Leave only the
+channels you want to hear On. This is a reference-playback output control:
+recorded registers, Live observation, keyboard audition, Code and Capture keep
+their original settings. An Off channel can still be selected and auditioned
+while paused, or captured into an editable instrument.
+
+All four channels start On. Switches work before loading a song and stay set
+through Stop, source changes and seeks for the current page session. They are
+not stored in instrument JSON or the Files project. Changes affect newly
+generated PCM; the short pre-rendered buffer retains its old mix until consumed
+(also after Resume). Keeping those samples avoids skipping song time or
+resetting the oscillators, Envelope / Sweep and Noise state.
+
 The reference uses its own DMG APU, sharing the existing audio context, source
 balance, Master and output monitor. Master affects the song in real time. Starting
 Code or importing a project stops the reference song. Loading an instrument in a
@@ -306,6 +320,7 @@ npm run test:dmg-synth:song-browser
 npm run test:dmg-synth:song-capture-browser
 npm run test:dmg-synth:song-seek-browser
 npm run test:dmg-synth:menu-browser
+npm run test:dmg-synth:song-channels-browser
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

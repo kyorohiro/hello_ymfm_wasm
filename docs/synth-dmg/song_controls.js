@@ -26,6 +26,8 @@ export function setupGameboySongControls({project, getAudio, beforePlay,
   const position = $('dmgSongPosition'), listeners = [];
   const capture = $('dmgSongCaptureButton');
   const seek = $('dmgSongSeek'), seekPosition = $('dmgSongSeekPosition');
+  const channelNames=['CH1 · Pulse','CH2 · Pulse','CH3 · Wave','CH4 · Noise'];
+  const channelButtons=channelNames.map((_,index)=>$(`dmgSongChannel${index+1}Toggle`));
   if (!root || !select || !play || !stop || !status || !live || !channel || !liveStatus)
     throw Error('Game Boy song controls mount is missing.');
   let disposed = false, selectedPath = null, selectedRevision = -1;
@@ -57,6 +59,15 @@ export function setupGameboySongControls({project, getAudio, beforePlay,
     root.dataset.seekTargetSeconds=String(state.seekTargetSeconds??0);
     root.dataset.seekProgressSeconds=String(state.seekProgressSeconds??0);
     root.dataset.renderedFrames = String((state.positionFrames ?? 0) + (state.bufferedFrames ?? 0));
+    const channelEnabled=state.channelEnabled??[true,true,true,true];
+    root.dataset.channelMuteMask=String(state.channelMuteMask??channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0));
+    channelButtons.forEach((button,index)=>{
+      if(!button)return;
+      const on=channelEnabled[index]!==false;
+      text(button,`${channelNames[index]} · ${on?'On':'Off'}`);
+      button.setAttribute('aria-pressed',String(on));
+      button.setAttribute('aria-label',`VGM ${channelNames[index]} ${on?'On':'Off'}`);
+    });
     text(play, state.seeking ? 'Seeking…' : state.playing ? 'Pause' : state.paused ? 'Resume' : 'Play');
     play.disabled = capturing || choosing || state.loading || state.busy || !state.hasSource;
     stop.disabled = !(choosing || state.loading || state.canStop || ['starting', 'seeking', 'playing', 'paused'].includes(state.playback));
@@ -173,6 +184,14 @@ export function setupGameboySongControls({project, getAudio, beforePlay,
     else Promise.resolve(state.paused ? preview.resume() : preview.play()).catch(report);
   });
   listen(stop, 'click', () => {stop.blur(); stopCurrent();});
+  channelButtons.forEach((button,index)=>{
+    listen(button,'pointerdown',event=>{if(event.button===0)event.preventDefault();});
+    listen(button,'click',event=>{
+      if(event.detail!==0)button.blur();
+      try{preview.setChannelEnabled(index,preview.read().channelEnabled?.[index]===false);}
+      catch(error){report(error);}
+    });
+  });
   async function seekTo(seconds) {
     const state=preview.read();
     if(disposed||capturing||choosing||state.loading||state.seekPreparing||state.canSeek===false||!state.hasSource)return false;

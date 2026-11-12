@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-menu-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-menu-1';
-import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-menu-1';
-import {createEditor} from './editor.js?v=dmg-menu-1';
-import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-menu-1';
+import {createAudio} from './audio.js?v=dmg-channels-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-channels-1';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-channels-1';
+import {createEditor} from './editor.js?v=dmg-channels-1';
+import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-channels-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {setupGameboySongControls} from './song_controls.js?v=dmg-menu-1';
-import {createGameboySongAudition} from './song_audition.js?v=dmg-menu-1';
-import {prepareGameboySongVoice} from './song_voice.js?v=dmg-menu-1';
+import {setupGameboySongControls} from './song_controls.js?v=dmg-channels-1';
+import {createGameboySongAudition} from './song_audition.js?v=dmg-channels-1';
+import {prepareGameboySongVoice} from './song_voice.js?v=dmg-channels-1';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,

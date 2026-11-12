@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=dmg-menu-1">
+  <link rel="stylesheet" href="./synth.css?v=dmg-channels-1">
 </head>
 <body>
   <main>
@@ -91,13 +91,22 @@
           <button id="dmgSongPlayButton" class="primary" type="button" disabled>Play</button>
           <button id="dmgSongStopButton" type="button" disabled>Stop</button>
           <output id="dmgSongPosition" aria-label="Song position">0:00</output>
-          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ from Menu → Import, or add it to Files. Extracted sounds are saved under /presets; choose one in Files to load it. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Live Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
+          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ from Menu → Import, or add it to Files. Extracted sounds are saved under /presets; choose one in Files to load it. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Song channels On / Off is a software playback mute. It does not change the recorded settings, Live view, keyboard audition or Capture. Changes reach the output after its short pre-rendered audio buffer; already queued sound is retained to keep the song position and APU phase intact. All four switches stay set across Stop, source changes and seeks in this session. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Live Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
         </div>
         <div class="dmg-song-seek">
           <input id="dmgSongSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="VGM song position in seconds" disabled>
           <output id="dmgSongSeekPosition" for="dmgSongSeek">0:00.00</output>
         </div>
         <p id="dmgSongStatus" role="status">Import a VGM / VGZ to keep it in Files and play a reference song.</p>
+        <div class="dmg-song-channels" role="group" aria-label="VGM song channels, software playback mute">
+          <span>Song channels · software mute</span>
+          <div class="dmg-song-channel-buttons">
+            <button id="dmgSongChannel1Toggle" type="button" data-dmg-song-channel="0" aria-pressed="true">CH1 · Pulse · On</button>
+            <button id="dmgSongChannel2Toggle" type="button" data-dmg-song-channel="1" aria-pressed="true">CH2 · Pulse · On</button>
+            <button id="dmgSongChannel3Toggle" type="button" data-dmg-song-channel="2" aria-pressed="true">CH3 · Wave · On</button>
+            <button id="dmgSongChannel4Toggle" type="button" data-dmg-song-channel="3" aria-pressed="true">CH4 · Noise · On</button>
+          </div>
+        </div>
         <div class="dmg-live-controls">
           <label for="dmgSongChannelSelect">VGM view <select id="dmgSongChannelSelect"><option value="synth">Synth · edit and play</option><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
           <label><input id="dmgSongLiveEnabled" type="checkbox" checked> Live from VGM</label>
@@ -194,6 +203,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=dmg-menu-1"></script>
+  <script type="module" src="./synth.js?v=dmg-channels-1"></script>
 </body>
 </html>

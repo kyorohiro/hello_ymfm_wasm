@@ -1,0 +1,674 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "feature": "DMG Synth VGM channel On/Off software monitor",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": {
+    "channels": [
+      "CH1 Pulse + Sweep",
+      "CH2 Pulse",
+      "CH3 Wave",
+      "CH4 Noise"
+    ],
+    "default": "All four On; available before loading/audio creation.",
+    "signal": "Output-only mask on the separate reference APU. No queue clearing, replay/reseek, register writes, retrigger or source-position changes.",
+    "timing": "Already queued/rendered PCM retains its original mix and drains normally; newly generated samples use the latest mask, including after Resume.",
+    "lifecycle": "Flags persist in this page session across Stop, source changes and seek; latest settings reach asynchronously created engines and seek candidates.",
+    "isolation": "Live observation, paused keyboard audition, editable Synth, Code, captured JSON and source VGM bytes keep their original settings. Flags are not serialized.",
+    "publicChipApiAndWasmUnchanged": true,
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "node": {
+    "command": "npm run test:dmg-synth",
+    "testsPassed": 175,
+    "failed": 0,
+    "transportTests": 19,
+    "controlsTests": 15,
+    "independentNativeChannelTests": 5,
+    "actualWasm": [
+      "All 16 channel combinations match an independent direct-APU oracle exactly, with bounded Float32 rounding for solo-channel sums.",
+      "All Off produces exact zero samples; native Envelope/Sweep/oscillator/Noise history continues and unmute matches uninterrupted native PCM.",
+      "Already queued samples keep the previous mix; full → zero → solo changes occur at subsequently generated native-frame boundaries.",
+      "Seek uses the latest mask and exact original register/Wave RAM snapshots; Stop/source changes retain the chosen mask.",
+      "Author APU registers, native phase, next-note PCM and keyboard/Code lease ownership remain untouched by the reference monitor."
+    ],
+    "additionalCoverage": [
+      "Strict index/boolean validation and detached read arrays; passive toggles before source or AudioContext.",
+      "No AudioBuffer identity, transport phase, Live freeze or Capture transaction changes on a toggle.",
+      "Keyboard Space/Enter state and pointer focus; software-muted voices remain capturable, including during an in-flight Capture."
+    ]
+  },
+  "browser": {
+    "channels": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Four accessible channel buttons default On and can be changed before files or audio exist",
+            "The latest mask reaches a delayed reference APU before its first queued audio",
+            "Each physical channel has real finite output; All Off drains to silence without flushing the song queue",
+            "Channel choices persist through Stop, source change, replay and seek",
+            "An Off song channel remains available for paused keyboard audition and Capture",
+            "Code output and authored presets are independent of the all-Off reference monitor",
+            "390px buttons fit; channel monitor settings are session-only and restore defaults without autoplay"
+          ],
+          "measurements": {
+            "isolated": [
+              {
+                "channel": 0,
+                "output": {
+                  "rms": 0.042488897708556794,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 257.8125,
+                  "peak": -47.40028381347656,
+                  "sampleRate": 48000
+                }
+              },
+              {
+                "channel": 1,
+                "output": {
+                  "rms": 0.03644183112108302,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 328.125,
+                  "peak": -47.20948791503906,
+                  "sampleRate": 48000
+                }
+              },
+              {
+                "channel": 2,
+                "output": {
+                  "rms": 0.030103869576145262,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 210.9375,
+                  "peak": -47.32295227050781,
+                  "sampleRate": 48000
+                }
+              },
+              {
+                "channel": 3,
+                "output": {
+                  "rms": 0.04024451647656576,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 539.0625,
+                  "peak": -62.71418762207031,
+                  "sampleRate": 48000
+                }
+              }
+            ],
+            "allOff": {
+              "rms": 0,
+              "peak": 0,
+              "finite": true,
+              "muted": true
+            },
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 102,
+              "stoppedSources": 15,
+              "liveSources": 0
+            },
+            "layout1240": {
+              "width": 1240,
+              "scroll": 1240,
+              "buttons": [
+                {
+                  "id": "dmgSongChannel1Toggle",
+                  "left": 471.65625,
+                  "right": 644.984375,
+                  "width": 173.328125,
+                  "height": 30,
+                  "text": "CH1 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel2Toggle",
+                  "left": 649.984375,
+                  "right": 823.328125,
+                  "width": 173.34375,
+                  "height": 30,
+                  "text": "CH2 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel3Toggle",
+                  "left": 828.328125,
+                  "right": 1001.65625,
+                  "width": 173.328125,
+                  "height": 30,
+                  "text": "CH3 · Wave · Off"
+                },
+                {
+                  "id": "dmgSongChannel4Toggle",
+                  "left": 1006.65625,
+                  "right": 1180,
+                  "width": 173.34375,
+                  "height": 30,
+                  "text": "CH4 · Noise · Off"
+                }
+              ]
+            },
+            "layout390": {
+              "width": 390,
+              "scroll": 390,
+              "buttons": [
+                {
+                  "id": "dmgSongChannel1Toggle",
+                  "left": 34,
+                  "right": 110.75,
+                  "width": 76.75,
+                  "height": 40.9375,
+                  "text": "CH1 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel2Toggle",
+                  "left": 115.75,
+                  "right": 192.5,
+                  "width": 76.75,
+                  "height": 40.9375,
+                  "text": "CH2 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel3Toggle",
+                  "left": 197.5,
+                  "right": 274.25,
+                  "width": 76.75,
+                  "height": 40.9375,
+                  "text": "CH3 · Wave · Off"
+                },
+                {
+                  "id": "dmgSongChannel4Toggle",
+                  "left": 279.25,
+                  "right": 356,
+                  "width": 76.75,
+                  "height": 40.9375,
+                  "text": "CH4 · Noise · Off"
+                }
+              ]
+            }
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Four accessible channel buttons default On and can be changed before files or audio exist",
+            "The latest mask reaches a delayed reference APU before its first queued audio",
+            "Each physical channel has real finite output; All Off drains to silence without flushing the song queue",
+            "Channel choices persist through Stop, source change, replay and seek",
+            "An Off song channel remains available for paused keyboard audition and Capture",
+            "Code output and authored presets are independent of the all-Off reference monitor",
+            "390px buttons fit; channel monitor settings are session-only and restore defaults without autoplay"
+          ],
+          "measurements": {
+            "isolated": [
+              {
+                "channel": 0,
+                "output": {
+                  "rms": 0.042490174473937305,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 257.8125,
+                  "peak": -47.39739227294922,
+                  "sampleRate": 48000
+                }
+              },
+              {
+                "channel": 1,
+                "output": {
+                  "rms": 0.03640643085683565,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 328.125,
+                  "peak": -47.209388732910156,
+                  "sampleRate": 48000
+                }
+              },
+              {
+                "channel": 2,
+                "output": {
+                  "rms": 0.030503843168297635,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 210.9375,
+                  "peak": -47.322792053222656,
+                  "sampleRate": 48000
+                }
+              },
+              {
+                "channel": 3,
+                "output": {
+                  "rms": 0.04050836985269026,
+                  "peak": 0.04899999871850014,
+                  "finite": true,
+                  "muted": true
+                },
+                "spectrum": {
+                  "frequency": 539.0625,
+                  "peak": -63.44263458251953,
+                  "sampleRate": 48000
+                }
+              }
+            ],
+            "allOff": {
+              "rms": 0,
+              "peak": 0,
+              "finite": true,
+              "muted": true
+            },
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 104,
+              "stoppedSources": 15,
+              "liveSources": 0
+            },
+            "layout1240": {
+              "width": 1240,
+              "scroll": 1240,
+              "buttons": [
+                {
+                  "id": "dmgSongChannel1Toggle",
+                  "left": 471.65625,
+                  "right": 644.984375,
+                  "width": 173.328125,
+                  "height": 30,
+                  "text": "CH1 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel2Toggle",
+                  "left": 649.984375,
+                  "right": 823.328125,
+                  "width": 173.34375,
+                  "height": 30,
+                  "text": "CH2 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel3Toggle",
+                  "left": 828.328125,
+                  "right": 1001.65625,
+                  "width": 173.328125,
+                  "height": 30,
+                  "text": "CH3 · Wave · Off"
+                },
+                {
+                  "id": "dmgSongChannel4Toggle",
+                  "left": 1006.65625,
+                  "right": 1180,
+                  "width": 173.34375,
+                  "height": 30,
+                  "text": "CH4 · Noise · Off"
+                }
+              ]
+            },
+            "layout390": {
+              "width": 390,
+              "scroll": 390,
+              "buttons": [
+                {
+                  "id": "dmgSongChannel1Toggle",
+                  "left": 34,
+                  "right": 110.75,
+                  "width": 76.75,
+                  "height": 30,
+                  "text": "CH1 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel2Toggle",
+                  "left": 115.75,
+                  "right": 192.5,
+                  "width": 76.75,
+                  "height": 30,
+                  "text": "CH2 · Pulse · Off"
+                },
+                {
+                  "id": "dmgSongChannel3Toggle",
+                  "left": 197.5,
+                  "right": 274.25,
+                  "width": 76.75,
+                  "height": 30,
+                  "text": "CH3 · Wave · Off"
+                },
+                {
+                  "id": "dmgSongChannel4Toggle",
+                  "left": 279.25,
+                  "right": 356,
+                  "width": 76.75,
+                  "height": 30,
+                  "text": "CH4 · Noise · Off"
+                }
+              ]
+            }
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "song": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "seek": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "A genuine slider drag previews only; stopped seek lands paused without scheduling audio",
+            "Paused forward / backward seek refreshes every channel at the exact destination even with Live Off",
+            "Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause",
+            "Playing seek resumes from its target; keyboard range commits retain the paused destination",
+            "Latest seek wins; Stop cancels a candidate before it can publish a stale position",
+            "Code and source changes fence pending seek work without touching the captured author",
+            "390px seek controls fit; pagehide cancels pending work and closes all audible routes"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "A genuine slider drag previews only; stopped seek lands paused without scheduling audio",
+            "Paused forward / backward seek refreshes every channel at the exact destination even with Live Off",
+            "Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause",
+            "Playing seek resumes from its target; keyboard range commits retain the paused destination",
+            "Latest seek wins; Stop cancels a candidate before it can publish a stale position",
+            "Code and source changes fence pending seek work without touching the captured author",
+            "390px seek controls fit; pagehide cancels pending work and closes all audible routes"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "capture": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "code": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "menu": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "One hamburger owns all import / export actions and closes with outside click, Escape and selection",
+            "VGM import stores its exact source and all six original static sounds without applying or playing",
+            "Repeated import is collision-safe; zero static sounds still preserve the raw source",
+            "JSON import is passive; Files selection alone applies the sound and leaves keyboard input available",
+            "A second passive JSON import preserves held notes; explicit Files apply changes the instrument",
+            "Preset / source / selected file exports and project round-trip retain portable editable data",
+            "The opened menu and Files fit 390px, restore safely and return to live keyboard performance"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "One hamburger owns all import / export actions and closes with outside click, Escape and selection",
+            "VGM import stores its exact source and all six original static sounds without applying or playing",
+            "Repeated import is collision-safe; zero static sounds still preserve the raw source",
+            "JSON import is passive; Files selection alone applies the sound and leaves keyboard input available",
+            "A second passive JSON import preserves held notes; explicit Files apply changes the instrument",
+            "Preset / source / selected file exports and project round-trip retain portable editable data",
+            "The opened menu and Files fit 390px, restore safely and return to live keyboard performance"
+          ],
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "baseline": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+      "engines": [
+        {
+          "browser": "chromium",
+          "pageErrors": [],
+          "missingAssets": [],
+          "mobileOverflow": 0
+        },
+        {
+          "browser": "webkit",
+          "pageErrors": [],
+          "missingAssets": [],
+          "mobileOverflow": 0
+        }
+      ],
+      "coverage": "Existing keyboard, Wave drawing, chip controls, preset/VGM/VGZ import, Pitch, volume and context recovery."
+    }
+  },
+  "archive": {
+    "path": "release/tetorica_dmg_synth_dmg-song-channels-20261113_itch.zip",
+    "stage": "release/itch_dmg_synth_dmg-song-channels-20261113-OgQXN0",
+    "bytes": 1841165,
+    "sha256": "116727711e937661fa10ea2e9a50fafc4221c5f1f98fa9c3bd78891985f82ca8",
+    "files": 126,
+    "readableModules": 77,
+    "allOriginalInputsAndModulesMatchWorkspace": true,
+    "minified": false,
+    "bundled": false,
+    "zipIntegrity": true,
+    "nativeSdkVersion": "0.1.7"
+  },
+  "visualReview": [
+    "Chromium 1240px: compact four-switch row between transport and Live selection, with explicit software mute label.",
+    "WebKit 390px: all four On/Off switches stay visible and fit without horizontal overflow."
+  ],
+  "limits": [
+    "Mute reaches the listener after the short pre-rendered audio buffer; it is not a zero-latency edit of already generated PCM.",
+    "These are reference-song monitor controls; keyboard audition deliberately remains audible even for an Off channel.",
+    "Channel volume, Solo, persistent mixer presets and extra APU voices are outside this change."
+  ],
+  "rawReports": [
+    {
+      "path": "build/verification/dmg-song-channels-20261113/channels-browser.json",
+      "sha256": "645941bfb28e29b672e95a40ef8836ac69a9571a98a0b7295b46cd85309fb7d5"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/song-browser.json",
+      "sha256": "4a0331c9a90a080560d1e5f15932ade5cca7b40da3474f58b12ee40fef401ed2"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/seek-browser.json",
+      "sha256": "4eaeffcdced1e935905b069fa8426b12e257afcb6e9f924da3c64502e8556582"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/capture-browser.json",
+      "sha256": "4852597b92458a5d64a38a190ad1c4a0169110b4bb978d33108c219a208c2553"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/code-browser.json",
+      "sha256": "5e8adbd1c5578340de24a5e4f55cf61f19c1799bce5193ff4d98e677da5dcec8"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/menu-browser.json",
+      "sha256": "6649ac61ace46dd144ad4ead16826dfdeec35358a434318d2a91cde5a8ef4c24"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/baseline-browser.json",
+      "sha256": "e0e7f762c84165f6233ce36d706f3718d3892503aef660bedec0275e6c7f0a14"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/node-tests.log",
+      "sha256": "6639b83fe6e7dd34e664cce83b861d93f1f82f74d4c5f0433b32e5a0d149ec08"
+    },
+    {
+      "path": "build/verification/dmg-song-channels-20261113/native-channels-tests.log",
+      "sha256": "d1c8de3e33de17e33b083af317b3c4799bb61f15fa277ca91c936eda18850287"
+    }
+  ]
+}

@@ -4,20 +4,22 @@ import {setupGameboySongControls} from './song_controls.js';
 import {createGameboyCodeProject} from './code_project.js';
 
 class Element {
-  constructor(){this.listeners=new Map();this.children=[];this.dataset={};this.value='';this.checked=true;this.textContent='';}
+  constructor(){this.listeners=new Map();this.children=[];this.dataset={};this.attributes={};this.value='';this.checked=true;this.textContent='';}
   addEventListener(type,fn){this.listeners.set(type,fn);} removeEventListener(type){this.listeners.delete(type);}
   replaceChildren(...nodes){this.children=nodes;} blur(){this.blurred=true;}
+  setAttribute(key,value){this.attributes[key]=String(value);}getAttribute(key){return this.attributes[key]??null;}
   fire(type,event={}){return this.listeners.get(type)?.(event);}
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(t,{project=createGameboyCodeProject(),load,onCapture}={}){
-  const ids=['Player','Select','PlayButton','StopButton','Status','LiveEnabled','ChannelSelect','LiveStatus','Position','CaptureButton','Seek','SeekPosition'];
+  const ids=['Player','Select','PlayButton','StopButton','Status','LiveEnabled','ChannelSelect','LiveStatus','Position','CaptureButton','Seek','SeekPosition','Channel1Toggle','Channel2Toggle','Channel3Toggle','Channel4Toggle'];
   const nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));nodes.ChannelSelect.value='0';
   const doc={getElementById:id=>nodes[id.slice('dmgSong'.length)],createElement:()=>new Element()};
   const calls=[],states=[],liveViews=[];let notify;
-  let state={playback:'stopped',loading:false,busy:false,hasSource:false,playing:false,paused:false,positionFrames:0,positionSeconds:0,durationSeconds:1,liveEnabled:true,liveVoice:0,liveState:null};
+  let state={playback:'stopped',loading:false,busy:false,hasSource:false,playing:false,paused:false,positionFrames:0,positionSeconds:0,durationSeconds:1,liveEnabled:true,liveVoice:0,liveState:null,channelEnabled:[true,true,true,true]};
   const emit=patch=>{state={...state,...patch};notify?.(state);};
-  const preview={read:()=>({...state}),setLiveEnabled:value=>emit({liveEnabled:value}),setLiveVoice:value=>{if(value!==state.liveVoice)emit({liveVoice:value});return state;},
+  const preview={read:()=>({...state,channelEnabled:state.channelEnabled.slice()}),setLiveEnabled:value=>emit({liveEnabled:value}),setLiveVoice:value=>{if(value!==state.liveVoice)emit({liveVoice:value});return state;},
+    setChannelEnabled(channel,enabled){calls.push(['channel',channel,enabled]);const channels=state.channelEnabled.slice();channels[channel]=enabled;emit({channelEnabled:channels});},
     async load(bytes,name){calls.push(['load',name,bytes.slice()]);emit({loading:true});if(load)await load(bytes,name);emit({loading:false,hasSource:true,name,playback:'stopped',playing:false,paused:false});return true;},
     clear(){calls.push(['clear']);emit({hasSource:false,liveState:null,playback:'stopped'});},
     async play(){calls.push(['play']);emit({playback:'playing',playing:true,paused:false,liveActive:true,liveState:{channels:[{id:1},{id:2},{id:3},{id:4}]}});},
@@ -136,6 +138,44 @@ function pausedSnapshot(frame=4410){
   voice[2]=0x93;voice[7]=0xb2;voice[10]=128;voice[12]=0x20;voice[17]=0x91;voice[18]=0x5d;
   return {clock:4194304,positionFrames:frame,registers,voice};
 }
+
+test('DMG song channel switches are passive before loading and expose readable On/Off and keyboard state',async t=>{
+  const f=fixture(t);
+  for(let ch=1;ch<=4;ch++){
+    const button=f.nodes[`Channel${ch}Toggle`];assert.equal(button.getAttribute('aria-pressed'),'true');assert.match(button.textContent,/On$/);
+  }
+  let prevented=false;f.nodes.Channel3Toggle.fire('pointerdown',{button:0,preventDefault(){prevented=true;}});assert(prevented);
+  f.nodes.Channel3Toggle.fire('click',{detail:0});
+  assert.equal(f.nodes.Channel3Toggle.getAttribute('aria-pressed'),'false');assert.match(f.nodes.Channel3Toggle.textContent,/CH3.*Wave.*Off$/);
+  assert.equal(f.nodes.Channel3Toggle.blurred,undefined,'keyboard activation keeps the switch focus for another toggle');
+  assert.equal(f.nodes.Player.dataset.channelMuteMask,'4');
+  f.nodes.Channel3Toggle.fire('click',{detail:1});assert.equal(f.nodes.Player.dataset.channelMuteMask,'0');assert(f.nodes.Channel3Toggle.blurred);
+  assert.deepEqual(f.calls,[['channel',2,false],['channel',2,true]]);assert.equal(f.controls.getState().hasSource,false);
+});
+
+test('DMG playback channel switches preserve transport and frozen CH selection across Stop/source changes',async t=>{
+  const f=fixture(t);f.project.importSongSources([{name:'one.vgm',bytes:Uint8Array.of(1)}]);await tick();
+  const snapshot=pausedSnapshot(8820);f.emit({playback:'playing',playing:true,paused:false,liveActive:true,liveState:snapshot,liveEnabled:false,liveVoice:2,positionFrames:8820,positionSeconds:.2});
+  f.nodes.Channel1Toggle.fire('click');f.nodes.Channel4Toggle.fire('click');
+  let state=f.controls.getState();assert.equal(state.playback,'playing');assert.equal(state.positionFrames,8820);assert.equal(state.liveState,snapshot);assert.equal(state.liveEnabled,false);assert.equal(state.liveVoice,2);
+  assert.deepEqual(state.channelEnabled,[false,true,true,false]);assert.equal(f.nodes.ChannelSelect.value,'2');
+  f.controls.stop();f.project.importSongSources([{name:'two.vgm',bytes:Uint8Array.of(2)}]);await tick();
+  state=f.controls.getState();assert.equal(state.playback,'stopped');assert.deepEqual(state.channelEnabled,[false,true,true,false]);assert.equal(f.nodes.Player.dataset.channelMuteMask,'9');
+  assert(!f.calls.some(call=>['seek','play','pause','resume'].includes(call[0])));
+});
+
+test('DMG software-muted channels remain capturable and mute does not cancel an in-flight Capture',async t=>{
+  let finish,guard,captured;const wait=new Promise(resolve=>finish=resolve);
+  const f=fixture(t,{onCapture:async(value,{isCurrent})=>{captured=value;guard=isCurrent;await wait;return true;}});
+  f.project.importSongSources([{name:'capture.vgm',bytes:Uint8Array.of(1)}]);await tick();
+  const snapshot=pausedSnapshot();f.emit({playback:'paused',paused:true,playing:false,liveActive:true,liveState:snapshot,liveVoice:2,positionFrames:4410});
+  const original=f.controls.getCapturePayload();assert(original.playable);
+  f.nodes.Channel3Toggle.fire('click');assert.equal(f.nodes.CaptureButton.disabled,false);
+  assert.deepEqual(f.controls.getCapturePayload(),original,'software mute is not written into the captured registers/preset');
+  const pending=f.controls.capture();assert(guard());f.nodes.Channel1Toggle.fire('click');assert(guard());
+  finish();assert.equal(await pending,true);assert.deepEqual(captured,original);
+  assert.equal(f.controls.getState().view,'synth');assert.deepEqual(f.controls.getState().channelEnabled,[false,true,false,true]);assert.equal(f.controls.getState().positionFrames,4410);
+});
 
 test('DMG Capture changes only the view, preserving paused frame, all channels, Live Off and selected physical CH',async t=>{
   const calls=[],f=fixture(t,{onCapture:async(payload,{isCurrent})=>{assert(isCurrent());calls.push(payload);return {path:'/presets/captured.dmg.json'};}});
