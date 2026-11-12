@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=dmg-song-1">
+  <link rel="stylesheet" href="./synth.css?v=dmg-seek-1">
 </head>
 <body>
   <main>
@@ -58,15 +58,21 @@
           <button id="dmgSongPlayButton" class="primary" type="button" disabled>Play</button>
           <button id="dmgSongStopButton" type="button" disabled>Stop</button>
           <output id="dmgSongPosition" aria-label="Song position">0:00</output>
-          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ below, or add it to Files. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Stop returns to your edited sound. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
+          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ below, or add it to Files. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Live Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
+        </div>
+        <div class="dmg-song-seek">
+          <input id="dmgSongSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="VGM song position in seconds" disabled>
+          <output id="dmgSongSeekPosition" for="dmgSongSeek">0:00.00</output>
         </div>
         <p id="dmgSongStatus" role="status">Import a VGM / VGZ to keep it in Files and play a reference song.</p>
         <div class="dmg-live-controls">
-          <label for="dmgSongChannelSelect">VGM view <select id="dmgSongChannelSelect"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
+          <label for="dmgSongChannelSelect">VGM view <select id="dmgSongChannelSelect"><option value="synth">Synth · edit and play</option><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
           <label><input id="dmgSongLiveEnabled" type="checkbox" checked> Live from VGM</label>
+          <button id="dmgSongCaptureButton" type="button" disabled>Capture to Synth</button>
         </div>
         <p id="dmgSongLiveStatus"></p>
         <p id="dmgSongReadout"></p>
+        <p id="dmgSongAuditionStatus" role="status"></p>
       </section>
 
       <section id="dmgCodeLiveTools" class="dmg-code-live-tools" aria-label="Code channel view" hidden>
@@ -147,7 +153,7 @@
           <button id="synthCodeExpandButton" class="dmg-code-expand" type="button" aria-label="Maximize Code" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
         </div>
         <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
-        <p class="subtext">Every key plays the selected source. No keyboard split.</p>
+        <p id="dmgKeyboardHint" class="subtext">Every key plays the selected source. No keyboard split.</p>
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
@@ -187,6 +193,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=dmg-song-1"></script>
+  <script type="module" src="./synth.js?v=dmg-seek-1"></script>
 </body>
 </html>

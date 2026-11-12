@@ -106,3 +106,48 @@ test('DMG song save preflights total capacity after flushing and rejects stale/d
   const before=f.project.snapshot();await assert.rejects(f.files.saveSongSource({name:'large.vgm',bytes:new Uint8Array(20)}),/16 MiB/);assert.deepEqual(f.project.snapshot(),before);
   await f.files.dispose();assert.equal(await f.files.saveSongSource({name:'after.vgm',bytes:Uint8Array.of(1)}),false);
 });
+
+test('DMG Capture atomically keeps old/new presets and untouched song bytes/revision, without changing Code mode',async t=>{
+  const f=fixture(t);await f.files.ready;
+  const raw=Uint8Array.of(0,255,17);f.project.importSongSources([{name:'song.vgm',bytes:raw}]);
+  const sourcePath='/vgm/song.vgm',revision=f.project.fs.getRevision(sourcePath);let flushes=0;
+  f.files.setCodeControls({activePath:'/index.js',executionPath:null,isCodeMode:()=>false,setBusy(){},flush:async()=>{if(flushes++===0)f.project.writeEditorText('/index.js','latest editor draft');return true;},
+    openFile:async(path,options)=>f.opened.push({path,options}),stop:()=>assert.fail('Capture Files never stops a transport'),workspaceReplaced:()=>assert.fail('Capture does not replace Code')});
+  const original=readPreset(createDefaultPreset()),captured=readPreset(original);captured.source='wave';captured.wave.samples[0]=1;
+  const result=await f.files.saveCapturedSound(captured,{apply:async(value,{isCurrent})=>{assert(isCurrent());f.setSettings(value);}});
+  assert.equal(result.originalPath,'/presets/Pulse.dmg.json');assert.equal(result.path,'/presets/Pulse (2).dmg.json');
+  assert.deepEqual(JSON.parse(f.project.fs.get(result.originalPath).data),original);assert.deepEqual(JSON.parse(f.project.fs.get(result.path).data),captured);
+  assert.deepEqual(f.project.settings,captured);assert.equal(f.project.fs.get('/index.js').data,'latest editor draft');
+  assert.equal(f.project.fs.getRevision(sourcePath),revision);assert.deepEqual(f.project.fs.get(sourcePath).data,raw);
+  assert.deepEqual(f.opened,[{path:result.path,options:{show:false}}]);assert.deepEqual(f.calls,[]);assert.equal(flushes,1);
+});
+
+test('DMG Capture preflight/failed/stale apply leaves Files and source selection untouched',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot();
+  await assert.rejects(f.files.saveCapturedSound(createDefaultPreset(),{apply:async()=>{throw Error('apply failed');}}),/apply failed/);assert.deepEqual(f.project.snapshot(),before);
+  let current=true;assert.equal(await f.files.saveCapturedSound(createDefaultPreset(),{isCurrent:()=>current,apply:async()=>{current=false;}}),false);assert.deepEqual(f.project.snapshot(),before);
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(GAMEBOY_PROJECT_FILE_BYTES-20)}]);const full=f.project.snapshot();
+  await assert.rejects(f.files.saveCapturedSound(createDefaultPreset(),{apply:()=>assert.fail('Capacity must be checked before author changes')}),/16 MiB/);assert.deepEqual(f.project.snapshot(),full);
+});
+
+test('DMG committed Capture remains successful if Stop cancels the pending Code display',async t=>{
+  const f=fixture(t);await f.files.ready;const gate=deferred();let current=true;
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},openFile:()=>gate.promise});
+  const captured=createDefaultPreset();captured.name='Committed Capture';captured.source='noise';
+  const saving=f.files.saveCapturedSound(captured,{isCurrent:()=>current,apply:async value=>f.setSettings(value)});
+  while(!f.project.fs.has('/presets/Committed Capture.dmg.json'))await Promise.resolve();
+  current=false;gate.resolve();const result=await saving;
+  assert.equal(result.committed,true);assert.equal(result.path,'/presets/Committed Capture.dmg.json');
+  assert.deepEqual(f.project.settings,captured);assert.deepEqual(JSON.parse(f.project.fs.get(result.path).data),captured);
+  assert(f.writes.some(snapshot=>snapshot.settings.source==='noise'));
+});
+
+test('DMG committed Capture survives an editor display rejection and still persists the two presets',async t=>{
+  const f=fixture(t);await f.files.ready;
+  f.files.setCodeControls({flush:async()=>true,setBusy(){},openFile:async()=>{throw Error('Editor unavailable');}});
+  const captured=createDefaultPreset();captured.name='Saved despite editor';captured.source='wave';
+  const result=await f.files.saveCapturedSound(captured,{apply:async value=>f.setSettings(value)});
+  assert.equal(result.committed,true);assert(f.project.fs.has(result.originalPath));assert(f.project.fs.has(result.path));
+  assert.deepEqual(f.project.settings,captured);assert.match(f.statuses.at(-1),/Captured to.*Code display failed: Editor unavailable/);
+  assert(f.writes.some(snapshot=>snapshot.settings.source==='wave'));
+});

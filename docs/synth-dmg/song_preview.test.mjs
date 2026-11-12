@@ -136,3 +136,91 @@ test('a delayed ownership hook gets an invalidation guard, and failures dispose 
   const nonfinite=setup({createEngine:async()=>({...fakeEngine(),processFrames(frames){return{left:new Float32Array(frames).fill(NaN),right:new Float32Array(frames)};}})});
   await nonfinite.preview.load(fixtureVgm());assert.equal(await nonfinite.preview.play(),false);assert.match(nonfinite.preview.read().errorMessage,/non-finite/);assert.equal(nonfinite.timers.size,0);assert.equal(nonfinite.context.closes,0);nonfinite.preview.dispose();
 });
+
+const turn=()=>new Promise(resolve=>setImmediate(resolve));
+function deferred(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};}
+
+test('seek preserves paused/playing phases, refreshes Live Off at exact boundaries, and starts stopped/ended at Pause',async()=>{
+  const f=setup({yieldTask:async()=>{}});await f.preview.load(createDmgSongFixture().bytes,'seek.vgm');
+  f.preview.setLiveEnabled(false);f.preview.setLiveVoice(3);
+  assert(await f.preview.seek(.9));let state=f.preview.read();
+  assert.equal(state.playback,'paused');assert.equal(state.positionFrames,39690);assert.equal(state.liveState.positionFrames,39690);
+  assert.equal(state.liveState.voice[1]>>6,3);assert.equal(state.liveVoice,3);assert.equal(state.liveEnabled,false);
+  assert.equal(f.starts.length,0,'stopped seek must not create a scheduled audio source');
+  assert(state.renderedFrames>state.positionFrames);assert(f.engines[0].frames>state.positionFrames);
+  const native=f.engines[0].frames;f.advance(10);assert.equal(f.engines[0].frames,native,'paused seek does not continue rendering');
+  assert(await f.preview.resume());f.advance(.12);assert(f.starts.length>0);
+  const old=f.engines[0];assert(await f.preview.seek(.2));state=f.preview.read();assert(state.playing);assert.equal(state.positionFrames,8820);assert.equal(old.disposed,1);
+  f.preview.pause();assert(await f.preview.seek(0));state=f.preview.read();assert(state.paused);assert.equal(state.positionFrames,0);assert.equal(state.liveState.registers[22],128,'frame-zero setup writes are observed');
+  assert(await f.preview.seek(999));state=f.preview.read();assert.equal(state.positionFrames,92610);assert.equal(state.playback,'paused');
+  assert(state.liveState.voice.slice(0,20).every((value,index)=>![2,7,10,17].includes(index)||value===0),'EOF-boundary DAC-off writes are included');
+  await f.preview.resume();assert.equal(f.preview.read().playback,'ended');
+  assert(await f.preview.seek(.1));assert.equal(f.preview.read().playback,'paused');f.preview.dispose();
+});
+
+test('seek validates numeric input before pausing, discards PCM cooperatively and never schedules discarded samples',async()=>{
+  let f,yields=0;f=setup({seekChunkFrames:1000,yieldTask:async()=>{yields++;assert.equal(f.starts.length,0);assert(f.preview.read().seeking);}});
+  await f.preview.load(fixtureVgm());
+  await assert.rejects(f.preview.seek(NaN),/finite/);assert.equal(f.preview.read().playback,'stopped');assert.equal(f.engines.length,0);
+  assert(await f.preview.seek(.25));assert(yields>=2);assert.equal(f.starts.length,0);
+  assert(f.states.some(state=>state.seeking&&state.seekProgressFrames>0&&state.seekProgressFrames<11025));
+  assert.equal(f.preview.read().positionFrames,11025);assert(f.preview.read().canSeek);
+  const resumeCount=f.starts.length;await f.preview.resume();
+  const first=f.starts[resumeCount].buffer.getChannelData(0)[0];
+  assert.equal(first,Math.fround(((11025%1000)/1000-.5)*.1),'first output is the target sample, never a discarded prefix');
+  f.preview.dispose();
+});
+
+test('cancelled or failed candidate restores the old Pause state, PCM queue and frozen snapshot without touching the author context',async()=>{
+  const gate=deferred();let wait=false;
+  const f=setup({yieldTask:()=>wait?gate.promise:Promise.resolve()});await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();
+  f.advance(.14);f.preview.pause();f.preview.setLiveEnabled(false);const original=f.preview.read(),old=f.engines[0],prefix=f.starts.length;
+  wait=true;const seeking=f.preview.seek(1);await turn();assert(f.preview.read().seeking);assert.equal(old.disposed,0);
+  const cancel=f.preview.cancelSeek();gate.resolve();assert.equal(await seeking,false);assert.equal(await cancel,true);
+  const restored=f.preview.read();assert.equal(restored.playback,'paused');assert.equal(restored.positionFrames,original.positionFrames);assert.deepEqual(restored.liveState,original.liveState);assert.equal(old.disposed,0);assert.equal(f.starts.length,prefix);
+  assert.equal(f.engines[1].disposed,1);assert(await f.preview.resume());assert.equal(f.engines.length,2,'Resume reuses the old APU instead of rebuilding');
+  const bad=setup({yieldTask:async()=>{},createEngine:async()=>{throw Error('seek init failed');}});await bad.preview.load(fixtureVgm());
+  assert.equal(await bad.preview.seek(.2),false);assert.equal(bad.preview.read().playback,'stopped');assert.match(bad.preview.read().seekMessage,/seek init failed/);assert.equal(bad.context.closes,0);
+  f.preview.dispose();bad.preview.dispose();
+});
+
+test('latest seek waits for the old candidate and preserves the original playing phase; Stop prevents late commit or rollback',async()=>{
+  const gate=deferred();let creates=0,entered;
+  const entry=new Promise(resolve=>entered=resolve),engines=[];
+  const f=setup({yieldTask:async()=>{},createEngine:async()=>{const engine=fakeEngine();engines.push(engine);if(++creates===2){entered();await gate.promise;}return engine;}});
+  await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+  const one=f.preview.seek(1.1);await entry;const two=f.preview.seek(.4);await turn();assert.equal(creates,2,'second seek cannot initialize a simultaneous candidate');
+  gate.resolve();assert.equal(await one,false);assert.equal(await two,true);assert.equal(f.preview.read().playback,'playing');assert.equal(f.preview.read().positionFrames,17640);assert.equal(engines[1].disposed,1);assert.equal(engines[0].disposed,1);assert.equal(engines[2].disposed,0);
+  f.preview.dispose();assert.equal(engines[2].disposed,1);
+  const held=deferred();let started;
+  const begun=new Promise(resolve=>started=resolve),pending=setup({yieldTask:async()=>{},createEngine:async()=>{started();await held.promise;return fakeEngine();}});
+  await pending.preview.load(fixtureVgm());const old=pending.preview.seek(.2);await begun;pending.preview.stop();held.resolve();assert.equal(await old,false);await pending.preview.whenIdle();assert.equal(pending.preview.read().playback,'stopped');assert.equal(pending.starts.length,0);pending.preview.dispose();
+});
+
+test('Stop keeps mutable host preparation fenced until whenIdle and no old hook can affect a newer owner',async()=>{
+  const gate=deferred(),effects=[];let guard;
+  const f=setup({beforePlay:async({isCurrent})=>{guard=isCurrent;await gate.promise;effects.push('old cleanup settled');},yieldTask:async()=>{}});
+  await f.preview.load(fixtureVgm());const seeking=f.preview.seek(.3);await turn();assert.equal(f.preview.read().seekPreparing,true);assert(guard());
+  f.preview.stop();assert(!guard());assert.equal(f.preview.read().busy,true);assert.equal(f.preview.read().canSeek,false);
+  let idle=false;const waiting=f.preview.whenIdle().then(()=>idle=true);await turn();assert.equal(idle,false);
+  gate.resolve();assert.equal(await seeking,false);await waiting;assert.deepEqual(effects,['old cleanup settled']);assert.equal(f.preview.read().seekPreparing,false);assert.equal(f.preview.read().busy,false);assert.equal(f.engines.length,0);assert.equal(f.preview.read().playback,'stopped');f.preview.dispose();
+});
+
+test('loading another source cancels a seek, and a timeout restores the old phase rather than adopting a partial candidate',async()=>{
+  const gate=deferred();let block=false;
+  const f=setup({yieldTask:()=>block?gate.promise:Promise.resolve()});await f.preview.load(fixtureVgm(),'old');await f.preview.play();f.advance(.1);f.preview.pause();block=true;
+  const seek=f.preview.seek(.6);await turn();const load=f.preview.load(fixtureVgm(),'new');gate.resolve();assert.equal(await seek,false);await load;
+  assert.equal(f.preview.read().name,'new');assert.equal(f.preview.read().playback,'stopped');assert.equal(f.starts.filter(node=>!node.stopped&&!node.disconnected).length,0);f.preview.dispose();
+  let milliseconds=0;const timeout=setup({nowMs:()=>milliseconds,seekTimeoutMilliseconds:5,yieldTask:async()=>{milliseconds+=6;}});await timeout.preview.load(fixtureVgm());
+  assert.equal(await timeout.preview.seek(.3),false);assert.equal(timeout.preview.read().playback,'stopped');assert.match(timeout.preview.read().seekMessage,/timed out/);assert.equal(timeout.engines[0].disposed,1);timeout.preview.dispose();
+});
+
+test('cancel from a playing seek restores its original audible position and Live Off frozen observation',async()=>{
+  const gate=deferred();let blocked=false;
+  const f=setup({yieldTask:()=>blocked?gate.promise:Promise.resolve()});await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();
+  f.advance(.13);const frozen=f.preview.setLiveEnabled(false).liveState;f.advance(.6);const before=f.preview.read();
+  blocked=true;const seeking=f.preview.seek(1.2);await turn();const at=f.preview.read().positionFrames;
+  assert.equal(at,before.positionFrames);const cancellation=f.preview.cancelSeek();gate.resolve();await cancellation;assert.equal(await seeking,false);
+  const after=f.preview.read();assert.equal(after.playback,'playing');assert.equal(after.positionFrames,before.positionFrames);assert.deepEqual(after.liveState,frozen);
+  assert.equal(after.liveEnabled,false);assert.equal(f.engines[0].disposed,0);assert.equal(f.engines[1].disposed,1);f.preview.dispose();
+});

@@ -150,19 +150,21 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
       assertOpen();
       if (codeOwner?.closed) return codeOwner.ending.then(() => getGameboyClient());
       if (codeOwner) return codeOwner.promise;
-      const owner = {generation:codeGeneration,promise:null,closed:false,ending:null};
+      const owner = {generation:codeGeneration,promise:null,closed:false,ending:null,releasedGeneration:null};
       codeOwner = owner;
       const current = () => !disposed && !fatalError && codeOwner === owner && owner.generation === codeGeneration && !owner.closed;
       const check = () => {assertOpen(); if (!current()) throw gameboyCodeCancelled();};
       owner.promise = command('beginCode').then(metadata => {
         check();
         return createGameboyCodeClient({metadata,isCurrent:current,
+          ownsOutput:()=>current() || !disposed&&!fatalError&&codeOwner===null&&owner.releasedGeneration===codeGeneration,
           invoke(method,args) {check(); return command('code',[metadata.session,method,args]);},
           dispose() {
             check(); owner.closed = true;
-            owner.ending = command('code',[metadata.session,'dispose',[]]).finally(() => {
-              if (codeOwner === owner) invalidateCode();
-            });
+            owner.ending = command('code',[metadata.session,'dispose',[]]).then(value => {
+              if (codeOwner === owner) {invalidateCode();owner.releasedGeneration=codeGeneration;}
+              return value;
+            },error => {if (codeOwner === owner) invalidateCode();throw error;});
             return owner.ending;
           },
         });

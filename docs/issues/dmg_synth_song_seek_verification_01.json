@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "feature": "DMG Synth VGM seek / audible channel state at destination",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": {
+    "transport": "Async seek(seconds) keeps Play / Pause; explicit seek from Stop/EOF lands paused. Finite targets are clamped to the validated duration and rounded to the nearest audio frame.",
+    "reconstruction": "Fresh reference APU and parser advance silently from the start, retaining future PCM. No checkpoint cache or shared parser/WASM changes.",
+    "live": "All four destination snapshots refresh once even with Live Off; paused audition and Capture use that instant.",
+    "controls": "Range input previews only until change/release; native Arrow/Home/End navigation, Escape cancellation, progress and 390px layout.",
+    "ownership": "Prior trials retire; latest seek wins. Stop/source/Code/pagehide fence old work, and whenIdle waits pending mutable host preparation and candidate disposal.",
+    "existingUncommittedChangesPreserved": true,
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "node": {
+    "command": "npm run test:dmg-synth",
+    "testsPassed": 147,
+    "failed": 0,
+    "actualWasmSeekTests": 4,
+    "exactPcm": [
+      "Both seek directions and Resume match never-seeked linear playback at the same target frame.",
+      "Targets include 39689 and 39690: the Wave RAM transition at 0.9 seconds occurs at the exact recorded boundary.",
+      "Elapsed Envelope/Sweep/LFSR history matches the linear reference; naive register-only replay produces a different waveform.",
+      "Reference reconstruction does not command, borrow, advance or rewrite the separately held author APU."
+    ],
+    "additionalCoverage": [
+      "Stopped/playing/paused/ended states, target zero and EOF, clamping and malformed input.",
+      "Live Off success refresh and exact frozen observation rollback after cancellation/failure.",
+      "Retained future PCM, no discarded buffers scheduled, bounded 2048-frame process slices and cooperative yields.",
+      "Delayed engine/host preparation, latest request, Stop/load/dispose cancellation, timeout and whenIdle cleanup.",
+      "Range draft/change/cancel behavior and existing Capture transaction regressions."
+    ]
+  },
+  "browser": {
+    "seek": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-seek-20261113-lLxfDk",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "A genuine slider drag previews only; stopped seek lands paused without scheduling audio",
+            "Paused forward / backward seek refreshes every channel at the exact destination even with Live Off",
+            "Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause",
+            "Playing seek resumes from its target; keyboard range commits retain the paused destination",
+            "Latest seek wins; Stop cancels a candidate before it can publish a stale position",
+            "Code and source changes fence pending seek work without touching the captured author",
+            "390px seek controls fit; pagehide cancels pending work and closes all audible routes"
+          ],
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 20,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "A genuine slider drag previews only; stopped seek lands paused without scheduling audio",
+            "Paused forward / backward seek refreshes every channel at the exact destination even with Live Off",
+            "Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause",
+            "Playing seek resumes from its target; keyboard range commits retain the paused destination",
+            "Latest seek wins; Stop cancels a candidate before it can publish a stale position",
+            "Code and source changes fence pending seek work without touching the captured author",
+            "390px seek controls fit; pagehide cancels pending work and closes all audible routes"
+          ],
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 21,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "capture": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-seek-20261113-lLxfDk",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 9,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 10,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "song": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-seek-20261113-lLxfDk",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 9,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 7,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "code": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-seek-20261113-lLxfDk",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "graph": {
+            "contexts": 0,
+            "runningContexts": 0,
+            "editorWorklets": 0,
+            "destinationConnections": 0,
+            "captureBranches": 0,
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "graph": {
+            "contexts": 0,
+            "runningContexts": 0,
+            "editorWorklets": 0,
+            "destinationConnections": 0,
+            "captureBranches": 0,
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "baseline": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-song-seek-20261113-lLxfDk",
+      "engines": [
+        {
+          "browser": "chromium",
+          "pageErrors": [],
+          "missingAssets": [],
+          "physicalOutput": "muted",
+          "mobileOverflow": 0
+        },
+        {
+          "browser": "webkit",
+          "pageErrors": [],
+          "missingAssets": [],
+          "physicalOutput": "muted",
+          "mobileOverflow": 0
+        }
+      ],
+      "coverage": "Existing keyboard/Wave drawing/steppers/preset/VGM/VGZ extraction/Pitch/volume/context recovery."
+    }
+  },
+  "archive": {
+    "path": "release/tetorica_dmg_synth_dmg-song-seek-20261113_itch.zip",
+    "stage": "release/itch_dmg_synth_dmg-song-seek-20261113-lLxfDk",
+    "bytes": 1835211,
+    "sha256": "e3003d922160d0c14c9ca21947b1657f36cfb2f58755f36233dcc41aeb01f1fa",
+    "files": 125,
+    "readableModules": 76,
+    "allOriginalInputsAndModulesMatchWorkspace": true,
+    "minified": false,
+    "bundled": false,
+    "zipIntegrity": true,
+    "nativeSdkVersion": "0.1.7"
+  },
+  "visualReview": [
+    "Chromium 1240px: compact position bar under song list, exact time and existing Live/CH/Capture controls.",
+    "WebKit 390px: bar, time, buttons, Wave editor and keyboard fit without horizontal overflow."
+  ],
+  "limits": [
+    "Each seek reconstructs from the beginning without a checkpoint cache; preparation has a 30-second work deadline and restores the prior position on failure.",
+    "VGM loop repetition remains outside this change; recorded command stream is played once.",
+    "The existing single normal-clock direct-write DMG VGM subset and 16 MiB Files limit remain.",
+    "Live/Capture expose configured registers; captured presets do not retain elapsed native Envelope/Sweep phases or game note history."
+  ],
+  "rawReports": [
+    {
+      "path": "build/verification/dmg-song-seek-20261113/seek-browser.json",
+      "sha256": "6c701fd4e622ec625cbe103db73221565babbedb3334ac2ef3bcd8ddcb7b16fe"
+    },
+    {
+      "path": "build/verification/dmg-song-seek-20261113/capture-browser.json",
+      "sha256": "79dc6b3dc436d1fa5051767465f452435a010f459622f689bd6736765f45bb57"
+    },
+    {
+      "path": "build/verification/dmg-song-seek-20261113/code-browser.json",
+      "sha256": "d6052f0e989b1742a2fe024105077b667e8f4d922084db1ed6fa348e4746059b"
+    },
+    {
+      "path": "build/verification/dmg-song-seek-20261113/song-browser.json",
+      "sha256": "62e1412eb9744e4e63e04d09911bd678c3463100738f19621cd927781f564211"
+    },
+    {
+      "path": "build/verification/dmg-song-seek-20261113/baseline-browser.json",
+      "sha256": "54a062e29b60b6b3127ae700a26b663e68825e5ce83d9894c081a21dfb92e33c"
+    },
+    {
+      "path": "build/verification/dmg-song-seek-20261113/node-tests.log",
+      "sha256": "63c1201a91f877c2a86a41c43bf37814ca8ca33fb642d9c8e2e655891c73ee13"
+    },
+    {
+      "path": "build/verification/dmg-song-seek-20261113/native-seek-tests.log",
+      "sha256": "fc056fff26b098dd3de2e8a811ff21ea8ab77fdb8a795f0ac564ebf3cc23bb71"
+    }
+  ]
+}

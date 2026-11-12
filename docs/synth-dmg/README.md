@@ -166,6 +166,21 @@ unheard PCM position; it does not restart the parser or retrigger the notes.
 selection, import or restored project never starts playback. The original
 instrument and its Wave RAM remain separate from the reference APU.
 
+Drag the **position bar** and release to seek. The exact preview time appears
+beside it; moving the pointer alone does not change playback. Arrow keys and
+Home / End also work. A seek keeps Play / Pause, and seeking from Stop prepares
+the selected position paused. The destination refreshes all four channel
+settings even with Live Off, so keyboard audition and Capture use the new
+position. **Escape** cancels an unfinished drag or a seek; **Stop** resets to
+the start.
+
+Seeking silently rebuilds the reference APU from the beginning in bounded,
+cooperative slices, including elapsed Envelope / Sweep and Noise state. It
+retains future PCM for an exact Resume and never rewrites the editor APU. A
+failed or cancelled seek keeps the old position; Stop, another source or Code
+cannot be overwritten by a late seek. Progress is shown while preparing;
+preparation has a 30-second work limit. Checkpoint caching is not enabled.
+
 Select **VGM view CH1–4** to follow recorded Pulse Duty / envelope settings,
 Wave RAM / level, Noise clock and routing in the same sound editor. **Live from
 VGM** is On by default. Off freezes a coherent snapshot of all four channels;
@@ -175,12 +190,29 @@ second, and displays consumed audio time rather than the ~200 ms render-ahead
 buffer. The values are sent/configured registers, not measured hardware
 Envelope volume or current Sweep frequency.
 
+While paused, choose **CH1–4** and play the keyboard to audition that channel.
+The trial temporarily borrows the editor APU and restores its instrument and
+Wave RAM afterwards. It never changes the paused song APU, position or unheard
+PCM. CH1 / CH2 use their captured Pulse settings, CH3 its 32 Wave samples, and
+CH4 its Noise clock. Noise keys retrigger the same noise without adding pitch;
+hardware Sweep remains CH1-only. Changing CH, resuming, stopping, starting Code
+or changing the song ends the trial. A silent or invalid channel shows a reason
+instead of playing another instrument.
+
+**Capture to Synth** keeps the song paused and switches the view to
+**Synth · edit and play**. Files saves the original instrument and a new captured
+instrument as separate, uniquely named JSON presets. Edit or play the new sound,
+or choose a song CH to return to the frozen registers without losing those edits.
+Resume continues from the retained song position. Capture recreates configured
+registers for a new trigger; it does not recover game note history, length
+counters or the elapsed Envelope / Sweep phase.
+
 The reference uses its own DMG APU, sharing the existing audio context, source
 balance, Master and output monitor. Master affects the song in real time. Starting
-Code stops the reference song. Loading a sound or importing a project also stops
-it. While a song is playing or paused, Stop it before playing the edited
-instrument on the keyboard. Paused-channel audition, Capture, seek and repeated
-VGM loops are later work; this version plays the recorded command stream once.
+Code or importing a project stops the reference song. Loading an instrument in a
+song CH view also stops it; edits in the paused **Synth** view keep the position.
+Repeated VGM loops are later work; this version plays the recorded command
+stream once.
 
 Playback currently accepts one normal-clock DMG (4,194,304 Hz) with direct
 Game Boy register writes and ordinary VGM waits. Unsupported chip combinations,
@@ -258,6 +290,8 @@ npm run test:dmg-synth:browser
 npm run test:dmg-synth:code-browser
 npm run test:dmg-synth:code-monaco
 npm run test:dmg-synth:song-browser
+npm run test:dmg-synth:song-capture-browser
+npm run test:dmg-synth:song-seek-browser
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

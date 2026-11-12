@@ -77,6 +77,8 @@ jobs:
           node scripts/check_dmg_synth_browser.cjs --root release/dmg-synth-browser --entry /index.html --out release/dmg-synth-browser.json --screenshots release/dmg-synth-images
           node scripts/check_dmg_synth_code_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-code-browser.json --screenshots=release/dmg-synth-code-images
           node scripts/check_dmg_synth_song_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-browser.json --screenshots=release/dmg-synth-song-images
+          node scripts/check_dmg_synth_song_capture_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-capture-browser.json --screenshots=release/dmg-synth-song-capture-images
+          node scripts/check_dmg_synth_song_seek_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-seek-browser.json --screenshots=release/dmg-synth-song-seek-images
       - name: Check real Code Monaco when its pinned CDN is available
         run: |
           if node scripts/check_dmg_synth_code_monaco_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --engines=chromium,webkit --out=release/dmg-synth-code-monaco-browser.json; then
@@ -97,6 +99,10 @@ jobs:
             release/dmg-synth-code-images/
             release/dmg-synth-song-browser.json
             release/dmg-synth-song-images/
+            release/dmg-synth-song-capture-browser.json
+            release/dmg-synth-song-capture-images/
+            release/dmg-synth-song-seek-browser.json
+            release/dmg-synth-song-seek-images/
             release/dmg-synth-code-monaco-browser.json
             release/dmg-synth-code-monaco-browser-*.png
           if-no-files-found: ignore

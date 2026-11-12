@@ -41,9 +41,10 @@ export function validateGameboyCodeCall(method, args, clock = 4194304) {
 /** Awaitable public GameboySynth shape over the Synth's existing RPC port.
  * Nested objects remain ordinary objects so the shared runtime can wrap their
  * methods with loop/Run ownership guards. This facade owns no audio device. */
-export function createGameboyCodeClient({metadata, invoke, isCurrent, dispose} = {}) {
+export function createGameboyCodeClient({metadata, invoke, isCurrent, ownsOutput, dispose} = {}) {
   if (!Number.isSafeInteger(metadata?.session) || metadata.session < 1 || metadata.clock !== 4194304 || metadata.channels !== 4) throw new Error('Invalid Game Boy Code session');
   for (const callback of [invoke,isCurrent,dispose]) if (typeof callback !== 'function') throw new TypeError('Game Boy Code client requires ownership callbacks');
+  if (ownsOutput !== undefined && typeof ownsOutput !== 'function') throw new TypeError('Game Boy Code output ownership must be a function');
   let closed = false, closing = null;
   const current = () => !closed && isCurrent();
   const check = () => { if (!current()) throw gameboyCodeCancelled(); };
@@ -61,7 +62,10 @@ export function createGameboyCodeClient({metadata, invoke, isCurrent, dispose} =
     };
   }
   client.isCurrent = current;
-  client.ownsOutput = current;
+  // The audio owner may retain a neutral output lease after this client's own
+  // successful disposal. It must reject that lease as soon as a newer owner
+  // acquires the shared editor APU. Command validity remains stricter.
+  client.ownsOutput = ownsOutput ? () => Boolean(ownsOutput()) : current;
   client.dispose = (...args) => {
     if (closing) return closing;
     check(); validateGameboyCodeCall('dispose',args,metadata.clock); closed = true;

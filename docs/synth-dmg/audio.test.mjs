@@ -188,6 +188,16 @@ test('disposing a borrowed client leaves the context alive, permits another leas
   await audio.dispose();
 });
 
+test('a released audition lease may reopen only its own neutral output, never a newer lease or Stop', async () => {
+  const f=fixture(),audio=await f.create(),old=await audio.getGameboyClient();
+  assert.equal(old.ownsOutput(),true);
+  await old.dispose();assert.equal(old.isCurrent(),false);assert.equal(old.ownsOutput(),true);
+  const fresh=await audio.getGameboyClient();assert.equal(old.ownsOutput(),false);assert.equal(fresh.ownsOutput(),true);
+  await fresh.dispose();assert.equal(fresh.ownsOutput(),true);assert.equal(old.ownsOutput(),false);
+  await audio.command('stop');assert.equal(fresh.ownsOutput(),false);
+  await audio.dispose();assert.equal(old.ownsOutput(),false);assert.equal(fresh.ownsOutput(),false);
+});
+
 test('startup AbortSignal closes pending audio silently and trusted command deadlines survive edited global timers', async () => {
   const loading = fixture({stalledFetch:true}), controller = new AbortController();
   const pending = loading.create({signal:controller.signal}); controller.abort();

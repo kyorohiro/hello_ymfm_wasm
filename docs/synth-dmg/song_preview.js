@@ -93,10 +93,14 @@ const createPreviewEngine = header => GameboyApuAudioEngine.create({moduleFactor
  * songInputNode. This controller never changes/closes the author's chip or
  * context. Retained PCM and its exact offset survive Pause without replay. */
 export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onState=()=>{},onStatus=()=>{},
-  createEngine=createPreviewEngine,schedule=nativeSchedule,cancel=nativeCancel,nowMs=()=>performance.now()}={}) {
-  for (const callback of [getAudio,beforePlay,onState,onStatus,createEngine,schedule,cancel,nowMs]) if (typeof callback !== 'function') throw new TypeError('DMG song preview requires host callbacks');
+  createEngine=createPreviewEngine,schedule=nativeSchedule,cancel=nativeCancel,nowMs=()=>performance.now(),
+  yieldTask=()=>new Promise(resolve=>nativeSchedule(resolve,0)),seekChunkFrames=2048,seekTimeoutMilliseconds=30000}={}) {
+  for (const callback of [getAudio,beforePlay,onState,onStatus,createEngine,schedule,cancel,nowMs,yieldTask]) if (typeof callback !== 'function') throw new TypeError('DMG song preview requires host callbacks');
+  if(!Number.isInteger(seekChunkFrames)||seekChunkFrames<1||seekChunkFrames>2048)throw new RangeError('DMG seek slices must be 1..2048 frames');
+  if(!Number.isFinite(seekTimeoutMilliseconds)||seekTimeoutMilliseconds<1||seekTimeoutMilliseconds>120000)throw new RangeError('DMG seek timeout must be 1..120000 milliseconds');
   let source=null,name='',active=null,generation=0,loadGeneration=0,loadController=null,loading=false,disposed=false;
   let playback='stopped',errorMessage='',positionFrames=0,sampleRate=44100,liveEnabled=true,liveVoice=0,liveSnapshot=null;
+  let seeking=null,seekCleanup=Promise.resolve(),seekPreparing=0,seekMessage='';
   const current = ticket => !disposed && ticket === generation;
   const position = run => {
     if (!run) return positionFrames;
@@ -111,13 +115,17 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   }
   function read() {
     observe(); const frame=position(active), present=['playing','paused'].includes(playback);
-    return {playback,playing:playback==='playing',paused:playback==='paused',busy:loading||playback==='starting',loading,
+    return {playback,playing:playback==='playing',paused:playback==='paused',busy:loading||playback==='starting'||Boolean(seeking)||seekPreparing>0,loading,
       hasSource:Boolean(source),name,errorMessage,sampleRate,positionFrames:frame,consumedFrames:frame,positionSeconds:frame/sampleRate,
       durationSeconds:(source?.totalSamples??0)/44100,totalSamples:source?.totalSamples??0,metadata:source?.metadata??null,warnings:source?.warnings??[],
       liveKind:'song',liveEnabled,liveVoice,liveActive:Boolean(present&&liveSnapshot),liveWaiting:Boolean(playback==='starting'||present&&!liveSnapshot),
       liveState:liveSnapshot,liveError:false,liveMessage:'',
-      canPlay:Boolean(source&&!loading&&playback!=='starting'&&playback!=='playing'),canPause:playback==='playing',
-      canResume:playback==='paused',canStop:Boolean(active||loading||playback==='starting'),
+      canPlay:Boolean(source&&!loading&&!seeking&&!seekPreparing&&playback!=='starting'&&playback!=='playing'),canPause:playback==='playing'&&!seeking,
+      canResume:playback==='paused'&&!seeking&&!seekPreparing,canStop:Boolean(active||loading||playback==='starting'||seeking||seekPreparing),
+      seeking:Boolean(seeking),seekPreparing:seekPreparing>0,canSeek:Boolean(source&&!loading&&playback!=='starting'&&(!seekPreparing||seeking)&&!seeking?.controller.signal.aborted&&!disposed),
+      canCancelSeek:Boolean(seeking&&!seeking.controller.signal.aborted),seekTargetSeconds:seeking?.targetSeconds??null,
+      seekTargetFrames:seeking?.targetFrame??null,seekProgressFrames:seeking?.progressFrame??0,
+      seekProgressSeconds:seeking?(seeking.progressFrame/seeking.rate):0,seekMessage,
       renderedFrames:active?.renderedFrames??positionFrames,
       bufferedFrames:active?Math.max(0,active.renderedFrames-frame):0,pendingEvents:active?.timeline.pendingEvents??0};
   }
@@ -132,9 +140,10 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   }
   function release(run) {
     if(!run||run.released)return;run.released=true;cancelTimer(run);cancelNodes(run);run.segments=[];
-    try{run.gain.disconnect();}finally{try{run.timeline.dispose();}finally{run.engine.dispose();}}
+    try{run.gain?.disconnect();}finally{try{run.timeline.dispose();}finally{run.engine.dispose();}}
   }
   function stop() {
+    seeking?.controller.abort();seeking=null;seekMessage='';
     generation++;loadGeneration++;loadController?.abort();loadController=null;loading=false;
     const old=active;active=null;release(old);positionFrames=0;liveSnapshot=null;playback='stopped';errorMessage='';emit();
     return true;
@@ -143,6 +152,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     checkOpen();const ticket=++loadGeneration;loadController?.abort();
     const controller=loadController=new AbortController();loading=true;emit();
     try {
+      if(seeking){seeking.controller.abort();await seekCleanup;checkAbort(controller.signal);}
       const prepared=await prepareGameboySongSource(bytes,{signal:controller.signal});
       if(disposed||ticket!==loadGeneration)throw aborted();
       generation++;const old=active;active=null;release(old);
@@ -217,6 +227,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   }
   async function play() {
     checkOpen();
+    if(seeking||seekPreparing){onStatus('Wait for the current seek to finish, or Stop it first.');return false;}
     if(loading){onStatus('Wait for VGM validation, then press Play.');return false;}
     if(!source)throw new Error('Choose a valid DMG VGM/VGZ song first');
     if(playback==='paused')return resume();
@@ -248,7 +259,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     run.player.pause();playback='paused';emit();return true;
   }
   async function resume() {
-    checkOpen();const run=active;if(!run||playback!=='paused')return false;
+    checkOpen();const run=active;if(!run||playback!=='paused'||seeking||seekPreparing)return false;
     const ticket=++generation;playback='starting';emit();
     try {
       const [host]=await prepareHost(ticket);if(!current(ticket)||active!==run)return false;
@@ -258,7 +269,116 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       pump(run);return playback==='playing'||playback==='ended';
     }catch(error){if(current(ticket)&&active===run)fail(error,run);return false;}
   }
-  return {load,clear,play,pause,resume,stop,read,getState:read,
+  function freezeRun(run) {
+    const frame=position(run);
+    if(run){run.basePosition=frame;cancelTimer(run);cancelNodes(run);run.segments=run.segments.filter(segment=>segment.firstFrame+segment.frames>frame);run.player.pause();}
+    positionFrames=frame;
+    if(run)liveSnapshot=run.timeline.read(frame);
+    return frame;
+  }
+  function restoreSeek(job) {
+    const previous=job.previous;
+    active=previous.run;positionFrames=previous.position;liveSnapshot=previous.snapshot;errorMessage=previous.error;
+    playback=previous.phase;
+    if(active&&playback==='playing') {
+      active.clockStart=active.context.currentTime+START_DELAY;active.player.resume();
+      for(const segment of active.segments)scheduleSegment(active,segment);
+      pump(active);
+    }else emit();
+  }
+  async function runSeek(job,preceding) {
+    let candidate=null,engine=null,timeline=null;
+    const valid=()=>current(job.ticket)&&seeking===job&&!job.controller.signal.aborted&&source===job.source;
+    const check=()=>{if(!valid())throw aborted();if(nowMs()-job.started>seekTimeoutMilliseconds)throw new Error('DMG seek timed out; the previous song position was kept.');};
+    try {
+      // At most one candidate is initialized/rendered. A cancelled WASM init
+      // and mutable host preparation must settle before its successor starts.
+      await preceding;job.started=nowMs();check();
+      seekPreparing++;emit();
+      let host;
+      try {
+        let audioReady,hostReady;
+        try{audioReady=requestAudio();}catch(error){audioReady=Promise.reject(error);}
+        try{hostReady=beforePlay({isCurrent:valid});}catch(error){hostReady=Promise.reject(error);}
+        const prepared=await Promise.allSettled([audioReady,hostReady]);
+        const failure=prepared.find(item=>item.status==='rejected');if(failure)throw failure.reason;
+        host=prepared[0].value;
+      }finally{seekPreparing--;emit();}
+      check();
+      const context=host?.context,output=host?.songInputNode??host?.output;
+      if(!context||!output||output.context!==context||context.state==='closed')throw new Error('Reference output must belong to the Synth AudioContext');
+      engine=await createEngine(job.source.header);check();
+      const rate=engine.sampleRate();if(!Number.isInteger(rate)||rate<8000||rate>96000)throw new Error('Invalid DMG reference sample rate');
+      job.rate=rate;job.targetFrame=Math.round(job.targetSeconds*rate);
+      timeline=createGameboySongTimeline(engine,job.source.header.gameBoyDmgClock);
+      const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(job.source.bytes,{logger:null});player.reset();player.play();
+      candidate={engine,timeline,player,context,output,gain:null,sampleRate:rate,basePosition:job.targetFrame,renderedFrames:job.targetFrame,clockStart:null,segments:[],timer:null,eof:false,released:false};
+      engine=timeline=null;
+      const left=new Float32Array(seekChunkFrames),right=new Float32Array(seekChunkFrames);
+      let chunks=0,batchStarted=nowMs();
+      while(job.progressFrame<job.targetFrame) {
+        check();const requested=Math.min(seekChunkFrames,job.targetFrame-job.progressFrame);
+        const frames=player.process(left,right,requested,{budgetMs:4});
+        if(!Number.isInteger(frames)||frames<0||frames>requested)throw new Error('Invalid DMG seek render length');
+        for(let i=0;i<frames;i++)if(!Number.isFinite(left[i])||!Number.isFinite(right[i]))throw new Error('DMG seek produced non-finite PCM');
+        job.progressFrame+=frames;candidate.timeline.read(job.progressFrame);
+        if(!frames&&!player.isPlaying()&&!player.queuedFrames)throw new Error('DMG seek ended before its target frame');
+        if(++chunks>=8||nowMs()-batchStarted>=8||job.progressFrame===job.targetFrame) {
+          emit();await yieldTask();chunks=0;batchStarted=nowMs();
+        }
+      }
+      // Pull the target boundary's writes before observing, but retain these
+      // future samples. They are never discarded or played during preparation.
+      for(;;) {
+        check();const frames=player.process(left,right,seekChunkFrames,{budgetMs:4});
+        if(!Number.isInteger(frames)||frames<0||frames>seekChunkFrames)throw new Error('Invalid DMG seek prefill length');
+        if(frames) {
+          for(let i=0;i<frames;i++)if(!Number.isFinite(left[i])||!Number.isFinite(right[i]))throw new Error('DMG seek produced non-finite PCM');
+          const buffer=context.createBuffer(2,frames,rate);buffer.copyToChannel(left.subarray(0,frames),0);buffer.copyToChannel(right.subarray(0,frames),1);
+          candidate.segments.push({buffer,frames,firstFrame:job.targetFrame,node:null});candidate.renderedFrames+=frames;
+        }
+        candidate.eof=!player.isPlaying()&&player.queuedFrames===0;
+        if(frames||candidate.eof)break;
+        await yieldTask();
+      }
+      check();const snapshot=candidate.timeline.read(job.targetFrame);
+      candidate.gain=context.createGain();candidate.gain.gain.value=1;candidate.gain.connect(output);
+      const old=active;active=candidate;candidate=null;release(old);
+      sampleRate=rate;positionFrames=job.targetFrame;liveSnapshot=snapshot;errorMessage='';seekMessage='';seeking=null;
+      playback=job.previous.phase==='playing'?'playing':'paused';
+      if(playback==='playing') {
+        active.player.resume();for(const segment of active.segments)scheduleSegment(active,segment);pump(active);
+      }else{active.player.pause();emit();}
+      return true;
+    }catch(error){
+      if(current(job.ticket)&&seeking===job&&source===job.source) {
+        seeking=null;seekMessage=error?.name==='AbortError'?'Seek cancelled.':`Seek failed: ${error?.message??String(error)}`;
+        restoreSeek(job);if(error?.name!=='AbortError')onStatus(seekMessage);
+      }
+      return false;
+    }finally{
+      if(candidate)release(candidate);else{try{timeline?.dispose();}finally{engine?.dispose();}}
+    }
+  }
+  async function seek(seconds) {
+    checkOpen();if(!Number.isFinite(seconds))throw new TypeError('DMG seek seconds must be finite.');
+    if(!source||loading||playback==='starting')return false;
+    const oldJob=seeking;
+    const previous=oldJob?.previous??{run:active,phase:playback,position:position(active),snapshot:liveSnapshot,error:errorMessage};
+    oldJob?.controller.abort();
+    if(!oldJob){previous.position=freezeRun(active);previous.snapshot??=liveSnapshot;liveSnapshot=previous.snapshot;}
+    const targetSeconds=Math.max(0,Math.min(source.totalSamples/44100,seconds));
+    const job={ticket:++generation,source,previous,targetSeconds,targetFrame:Math.round(targetSeconds*sampleRate),progressFrame:0,rate:sampleRate,controller:new AbortController(),started:nowMs(),promise:null};
+    seeking=job;playback='seeking';seekMessage='Seeking…';
+    job.promise=runSeek(job,seekCleanup);seekCleanup=job.promise.then(()=>undefined,()=>undefined);
+    emit();
+    return job.promise;
+  }
+  async function cancelSeek() {
+    const job=seeking;if(!job){await seekCleanup;return false;}
+    job.controller.abort();emit();await job.promise;return true;
+  }
+  return {load,clear,play,pause,resume,stop,seek,cancelSeek,whenIdle:()=>seekCleanup,read,getState:read,
     setLiveEnabled(value){checkOpen();if(typeof value!=='boolean')throw new TypeError('Song Live enabled must be boolean');if(value===liveEnabled)return read();observe(true);liveEnabled=value;emit();return read();},
     setLiveVoice(value){checkOpen();if(!Number.isInteger(value)||value<0||value>3)throw new RangeError('DMG song channel must be 0..3');if(value===liveVoice)return read();liveVoice=value;emit();return read();},
     dispose(){if(disposed)return;stop();disposed=true;source=null;name='';},

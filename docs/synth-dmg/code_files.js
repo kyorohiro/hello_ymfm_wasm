@@ -235,6 +235,38 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
       say('Current DMG instrument saved to '+path+(persisted===false?' in Files. Local save unavailable; export the project to keep it.':''));return path;
     }finally{if(!disposed)setBusy(false);}
   }
+  /** Capture is a two-preset transaction. Audio ownership stays with the host;
+   * validation and capacity failures happen before its apply callback. */
+  async function saveCapturedSound(value,{isCurrent=()=>true,apply=async()=>{}}={}){
+    await api.ready;if(disposed||busy||!isCurrent())return false;
+    const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
+    setBusy(true,{lockMain:false});
+    try{
+      if(await code?.flush?.()===false||!current())return false;
+      const original=readGameboyProjectSound(getSettings()),captured=readGameboyProjectSound(value);
+      if(!original||!captured)throw Error('Capture requires complete Game Boy instrument presets.');
+      const candidate=createGameboyCodeProject({snapshot:project.snapshot()});
+      const originalPath=newSoundPath(candidate,original.name);
+      candidate.importFiles([{path:originalPath,type:'text',data:JSON.stringify(original,null,2)+'\n'}]);
+      const capturedPath=newSoundPath(candidate,captured.name);
+      candidate.importFiles([{path:capturedPath,type:'text',data:JSON.stringify(captured,null,2)+'\n'}]);
+      candidate.setSettings(captured);candidate.select(capturedPath);
+      if(!current())return false;
+      if(await apply(readGameboyProjectSound(captured),{isCurrent:current})===false||!current())return false;
+      // Host UI is locked until this returns; do not overwrite a stale source.
+      project.restore(candidate.snapshot());appliedPreset=null;
+      reveal(capturedPath);setVisible(true);render();
+      // This is the commit point. A later Stop/Resume must not ask the host to
+      // roll its instrument back while the committed Files contain Capture.
+      const result={path:capturedPath,originalPath,preset:readGameboyProjectSound(captured),committed:true};
+      let editorError='';
+      try{await code?.openFile?.(capturedPath,{show:false});}
+      catch(error){editorError=` Code display failed: ${error?.message??String(error)}`;}
+      const persisted=await persistCode();
+      say(`Captured to ${capturedPath}. Previous sound kept in ${originalPath}.`+editorError+(persisted===false?' Local save unavailable; export the project to keep both sounds.':''));
+      return result;
+    }finally{if(!disposed)setBusy(false);}
+  }
   function download(bytes,filename,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),link=make('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function ask(action,path=project.selectedPath){
     if(disposed||busy)return;dialogAction=action;dialogPath=path;
@@ -265,7 +297,7 @@ export function setupGameboyCodeFiles({project=createGameboyCodeProject(),getSet
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveSongSource,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveSongSource,saveCapturedSound,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

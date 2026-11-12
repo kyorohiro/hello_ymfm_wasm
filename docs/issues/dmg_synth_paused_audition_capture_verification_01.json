@@ -1,0 +1,1377 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "feature": "DMG Synth paused physical-channel audition / Capture to Synth",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": {
+    "audition": "Paused CH1/CH2 Pulse, CH3 Wave and CH4 Noise borrow the editor APU checkpoint; the reference APU and queued PCM stay untouched.",
+    "capture": "Keeps song Pause/frame, saves original and captured JSON presets atomically, switches to editable Synth; numbered CH restores the frozen view without losing edits.",
+    "hardware": "CH1-only Sweep; CH4 Noise ignores note pitch. Initial/configured registers are retriggered rather than elapsed Envelope/Sweep phases.",
+    "ownership": "Source/CH/view changes, Resume, Stop, Code and pagehide retire trials. Capture cancellation/rollback completes before a new owner starts; retry cannot replace that barrier.",
+    "sharedWasmAndPublicChipApiUnchanged": true,
+    "committed": false,
+    "pushed": false,
+    "published": false
+  },
+  "node": {
+    "command": "npm run test:dmg-synth",
+    "testsPassed": 133,
+    "failed": 0,
+    "actualWasm": [
+      "Trials on all four physical channels leave the reference APU registers, generated frame count and author Wave RAM unchanged.",
+      "Resume after trials produces 12,000 stereo frames sample-exact to an untouched paused reference.",
+      "The restored author produces sample-exact next-note PCM compared with an unborrowed editor APU.",
+      "Noise MIDI 0/127 and Pitch do not retune Noise; only CH1 receives Sweep. Invalid low-key bend preserves the original held note."
+    ],
+    "transactions": [
+      "Capacity/validation/stale precommit leave Files unchanged; postcommit cancellation/editor failures retain the committed captured sound.",
+      "Same physical CH selection after Capture repaints the song view; late key-up and delayed begin/configuration cannot affect a newer owner."
+    ]
+  },
+  "browser": {
+    "capture": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-paused-capture-20261112-r2-bWcasK",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "measurements": {
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 8,
+              "liveSources": 0
+            },
+            "cancelledCapture": {
+              "authorRestored": true,
+              "presetsCommitted": 0,
+              "codeWaitedForRollback": true
+            },
+            "savedPresets": [
+              "presets/Pulse.dmg.json",
+              "presets/reference.vgm · CH3.dmg.json"
+            ]
+          },
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 9,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Paused physical CH1–4 audition the configured song sound on the existing editor APU",
+            "Noise ignores keyboard pitch; pointer and overlapping key releases retain one selected-channel owner",
+            "Early key-up cannot leak a late trigger; CH1 alone retains hardware Sweep",
+            "Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets",
+            "Capture preserves Pause and saves both original and captured portable presets without changing song bytes",
+            "Editing the captured Synth preserves the original frozen CH view and Resume continues the original song",
+            "Resume and Code start retire paused trials; old key releases cannot stop the next owner",
+            "Captured JSON round-trips without autoplay; 390px views fit and pagehide disposes a held trial"
+          ],
+          "measurements": {
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 10,
+              "liveSources": 0
+            },
+            "cancelledCapture": {
+              "authorRestored": true,
+              "presetsCommitted": 0,
+              "codeWaitedForRollback": true
+            },
+            "savedPresets": [
+              "presets/Pulse.dmg.json",
+              "presets/reference.vgm · CH3.dmg.json"
+            ]
+          },
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 10,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "song": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-paused-capture-20261112-RXfSfd",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "measurements": {
+            "projectBytes": 1884,
+            "liveBoundary": [
+              {
+                "phase": "playing",
+                "frame": 0,
+                "rendered": 10240,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 499,
+                "rendered": 10240,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 499,
+                "rendered": 10240,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 2851,
+                "rendered": 12288,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 2851,
+                "rendered": 12288,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 5203,
+                "rendered": 14336,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 5203,
+                "rendered": 14336,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 7555,
+                "rendered": 16384,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 7555,
+                "rendered": 16384,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 9907,
+                "rendered": 20480,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 9907,
+                "rendered": 20480,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 12259,
+                "rendered": 22528,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 12259,
+                "rendered": 22528,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 14611,
+                "rendered": 24576,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 14611,
+                "rendered": 24576,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 16963,
+                "rendered": 26624,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 16963,
+                "rendered": 26624,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 19315,
+                "rendered": 28672,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 19315,
+                "rendered": 28672,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 21667,
+                "rendered": 30720,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 21667,
+                "rendered": 30720,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 24019,
+                "rendered": 34816,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 24019,
+                "rendered": 34816,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 26371,
+                "rendered": 36864,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 26371,
+                "rendered": 36864,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 28723,
+                "rendered": 38912,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 31311,
+                "rendered": 40458,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 31311,
+                "rendered": 40458,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 33898,
+                "rendered": 44042,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 33898,
+                "rendered": 44042,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 36485,
+                "rendered": 45834,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 36485,
+                "rendered": 45834,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 38837,
+                "rendered": 47882,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 38837,
+                "rendered": 47882,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 41189,
+                "rendered": 51978,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 41189,
+                "rendered": 51978,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 43541,
+                "rendered": 54026,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 43541,
+                "rendered": 54026,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 45893,
+                "rendered": 56074,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 45893,
+                "rendered": 56074,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 48245,
+                "rendered": 58122,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              }
+            ],
+            "master": {
+              "normal": {
+                "rms": 0.13800928133226723,
+                "peak": 0.19599999487400055,
+                "finite": true,
+                "muted": true
+              },
+              "half": {
+                "rms": 0.06899669286490802,
+                "peak": 0.09799999743700027,
+                "finite": true,
+                "muted": true
+              },
+              "ratio": 0.4999424111106958
+            },
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 60,
+              "liveSources": 4
+            },
+            "layout1240": {
+              "width": 1240,
+              "scroll": 1240,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 341.3125,
+                  "right": 940.890625
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 947.890625,
+                  "right": 1023.21875
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 1030.21875,
+                  "right": 1084.96875
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 367.984375,
+                  "right": 516.984375
+                },
+                {
+                  "id": "dmgSongCaptureButton",
+                  "left": 657.5,
+                  "right": 774.296875
+                }
+              ]
+            },
+            "layout390": {
+              "width": 390,
+              "scroll": 390,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 69.3125,
+                  "right": 356
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 34,
+                  "right": 109.328125
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 116.328125,
+                  "right": 171.078125
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 95.984375,
+                  "right": 244.984375
+                },
+                {
+                  "id": "dmgSongCaptureButton",
+                  "left": 156.515625,
+                  "right": 273.3125
+                }
+              ]
+            }
+          },
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 10,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Original VGM / VGZ sources live in /vgm; import, selection and restore do not start audio",
+            "Invalid and cancelled file reads preserve the selected source and authored sound",
+            "Live follows audible position, not prefetched future writes, through the same editor",
+            "Pause freezes all four channels; CH changes and Live Off / On only change observation",
+            "The reference APU uses one Master / monitor path; keyboard cannot layer over the song",
+            "Code and song ownership are exclusive, including cancelled slow reference initialization",
+            "Project reload remains passive; 390px controls fit and Stop / pagehide retire all song sources"
+          ],
+          "measurements": {
+            "projectBytes": 1884,
+            "liveBoundary": [
+              {
+                "phase": "playing",
+                "frame": 0,
+                "rendered": 7424,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 0,
+                "rendered": 7424,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 2146,
+                "rendered": 11520,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 2146,
+                "rendered": 11520,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 4498,
+                "rendered": 13568,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 4498,
+                "rendered": 13568,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 6967,
+                "rendered": 17664,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 6967,
+                "rendered": 17664,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 9202,
+                "rendered": 19712,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 9202,
+                "rendered": 19712,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 11554,
+                "rendered": 21760,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 11554,
+                "rendered": 21760,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 13906,
+                "rendered": 23808,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 13906,
+                "rendered": 23808,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 16258,
+                "rendered": 25856,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 16258,
+                "rendered": 25856,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 18610,
+                "rendered": 27904,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 18610,
+                "rendered": 27904,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 20962,
+                "rendered": 29952,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 20962,
+                "rendered": 29952,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 23314,
+                "rendered": 34048,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 23314,
+                "rendered": 34048,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 25783,
+                "rendered": 36096,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 25783,
+                "rendered": 36096,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 28253,
+                "rendered": 38144,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 28253,
+                "rendered": 38144,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 30723,
+                "rendered": 40192,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 30723,
+                "rendered": 40192,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 33310,
+                "rendered": 42240,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 33310,
+                "rendered": 42240,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 35779,
+                "rendered": 46336,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 35779,
+                "rendered": 46336,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 38131,
+                "rendered": 48384,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 38131,
+                "rendered": 48384,
+                "duty": "0.25",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 40601,
+                "rendered": 50432,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 40601,
+                "rendered": 50432,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 43071,
+                "rendered": 52480,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 43071,
+                "rendered": 52480,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 43071,
+                "rendered": 52480,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 45658,
+                "rendered": 54528,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 45658,
+                "rendered": 54528,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              },
+              {
+                "phase": "playing",
+                "frame": 48127,
+                "rendered": 58624,
+                "duty": "0.75",
+                "source": "pulse",
+                "status": "Playing.",
+                "live": "Live CH1 · read-only configured settings · Pause to audition this CH.",
+                "readonly": "true"
+              }
+            ],
+            "master": {
+              "normal": {
+                "rms": 0.1385919786160485,
+                "peak": 0.19599999487400055,
+                "finite": true,
+                "muted": true
+              },
+              "half": {
+                "rms": 0.06901826896676884,
+                "peak": 0.09799999743700027,
+                "finite": true,
+                "muted": true
+              },
+              "ratio": 0.4979961297614143
+            },
+            "graph": {
+              "contexts": 1,
+              "runningContexts": 1,
+              "editorWorklets": 1,
+              "destinationConnections": 1,
+              "muted": true,
+              "bufferSources": 61,
+              "liveSources": 5
+            },
+            "layout1240": {
+              "width": 1240,
+              "scroll": 1240,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 341.3125,
+                  "right": 940.890625
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 947.890625,
+                  "right": 1023.21875
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 1030.21875,
+                  "right": 1084.96875
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 367.984375,
+                  "right": 510.984375
+                },
+                {
+                  "id": "dmgSongCaptureButton",
+                  "left": 651.71875,
+                  "right": 768.515625
+                }
+              ]
+            },
+            "layout390": {
+              "width": 390,
+              "scroll": 390,
+              "controls": [
+                {
+                  "id": "dmgSongSelect",
+                  "left": 69.3125,
+                  "right": 356
+                },
+                {
+                  "id": "dmgSongPlayButton",
+                  "left": 34,
+                  "right": 109.328125
+                },
+                {
+                  "id": "dmgSongStopButton",
+                  "left": 116.328125,
+                  "right": 171.078125
+                },
+                {
+                  "id": "dmgSongChannelSelect",
+                  "left": 95.984375,
+                  "right": 238.984375
+                },
+                {
+                  "id": "dmgSongCaptureButton",
+                  "left": 156.734375,
+                  "right": 273.53125
+                }
+              ]
+            }
+          },
+          "graph": {
+            "contexts": 1,
+            "runningContexts": 0,
+            "editorWorklets": 1,
+            "destinationConnections": 1,
+            "muted": true,
+            "bufferSources": 7,
+            "liveSources": 0
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "code": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-paused-capture-20261112-RXfSfd",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "engines": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "measurements": {
+            "preRunPitch": 1.5,
+            "fourChannels": {
+              "rms": 0.05049392636667247,
+              "peak": 0.09799999743700027,
+              "finite": true,
+              "muted": true
+            },
+            "observationCommands": 3,
+            "projectBytes": 1981,
+            "stopFade": {
+              "frames": 23040,
+              "sampleRate": 48000,
+              "beforePeak": 0.02449999935925007,
+              "beforeJump": 0.006482492201030254,
+              "maxJump": 0.0063417283818125725,
+              "normalizedJump": 0.25884606317012937,
+              "tailPeak": 0,
+              "lastNonzeroAfterStopMs": 10.645833333333334,
+              "muted": true
+            }
+          },
+          "graph": {
+            "contexts": 0,
+            "runningContexts": 0,
+            "editorWorklets": 0,
+            "destinationConnections": 0,
+            "captureBranches": 0,
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": [
+            "Code / Files mount lazily with a usable fallback and no audio",
+            "Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU",
+            "Live uses the same read-only controls for all four sent / configured channel views",
+            "Apply retains one Code lease and prepared state; Stop invalidates saved nested clients and restores author Wave RAM",
+            "Save sound preserves running Code and focus, while a JSON selection remains non-runnable",
+            "Software Stop fades the real output to silence and reaches the physical restore fence",
+            "Files restore preserves text and selection without creating audio or executing saved Code",
+            "Maximize and 390px keep one visible Code editor beside Files without horizontal overflow"
+          ],
+          "measurements": {
+            "preRunPitch": 1.5,
+            "fourChannels": {
+              "rms": 0.049574365464391014,
+              "peak": 0.09799999743700027,
+              "finite": true,
+              "muted": true
+            },
+            "observationCommands": 3,
+            "projectBytes": 1981,
+            "stopFade": {
+              "frames": 23296,
+              "sampleRate": 48000,
+              "beforePeak": 0.02449999935925007,
+              "beforeJump": 0.006517382804304361,
+              "maxJump": 0.004902392625808716,
+              "normalizedJump": 0.20009766342944,
+              "tailPeak": 0,
+              "lastNonzeroAfterStopMs": 7.979166666666667,
+              "muted": true
+            }
+          },
+          "graph": {
+            "contexts": 0,
+            "runningContexts": 0,
+            "editorWorklets": 0,
+            "destinationConnections": 0,
+            "captureBranches": 0,
+            "muted": true
+          },
+          "pageErrors": [],
+          "consoleErrors": []
+        }
+      ],
+      "missing": [],
+      "external": []
+    },
+    "baseline": {
+      "passed": true,
+      "testedStage": "release/itch_dmg_synth_dmg-paused-capture-20261112-RXfSfd",
+      "engines": [
+        {
+          "browser": "chromium",
+          "pageErrors": [],
+          "missingAssets": [],
+          "physicalOutput": "muted",
+          "mobileOverflow": 0
+        },
+        {
+          "browser": "webkit",
+          "pageErrors": [],
+          "missingAssets": [],
+          "physicalOutput": "muted",
+          "mobileOverflow": 0
+        }
+      ],
+      "coverage": "Existing keyboard, Wave drawing, preset/VGM/VGZ import, steppers, live Pitch, volume, context recovery and 390px."
+    },
+    "regressionCandidateNote": "Song, Code and baseline ran on the first candidate. The final candidate adds only a guard rejecting overlapping Capture retries; final Capture tests cover cancellation/rollback, Code ownership and successful retry on the final ZIP."
+  },
+  "archive": {
+    "path": "release/tetorica_dmg_synth_dmg-paused-capture-20261112-r2_itch.zip",
+    "stage": "release/itch_dmg_synth_dmg-paused-capture-20261112-r2-bWcasK",
+    "bytes": 1828662,
+    "sha256": "a7d1251e44dbfcff59fcbfed205c4b3fcc1d47df4979df673ffbb2312be079bc",
+    "files": 125,
+    "readableModules": 76,
+    "sourceModulesMatchWorkspace": true,
+    "minified": false,
+    "bundled": false,
+    "nativeSdkVersion": "0.1.7",
+    "zipIntegrity": true
+  },
+  "visualReview": [
+    "Chromium captured Synth: original/new presets, Pause retained and editable 32-point Wave.",
+    "WebKit 390px: song selector, CH/Synth, Capture and keyboard stay within viewport."
+  ],
+  "limits": [
+    "The captured preset contains configured settings, not game note history, hardware length counters or elapsed Envelope/Sweep phase.",
+    "Reference VGM playback remains a single pass; seek and loop repetition are outside this change.",
+    "Existing normal-clock single-DMG/direct-write VGM coverage and the shared 16 MiB project limit remain."
+  ],
+  "rawReports": [
+    {
+      "path": "build/verification/dmg-paused-capture-20261112/capture-browser.json",
+      "sha256": "dad7266a92e1fce41a2e24ddcd560ccfaef5b6fa0a9e65ea47891ca77b9aa90d"
+    },
+    {
+      "path": "build/verification/dmg-paused-capture-20261112/song-browser.json",
+      "sha256": "c5b4d9b810dd1b6f33c9c0e2c03674800af6742cd4e3e90b7906abc8d656c52a"
+    },
+    {
+      "path": "build/verification/dmg-paused-capture-20261112/code-browser.json",
+      "sha256": "465e9057cd383ec8169ffe7e0f4c4bda0490e233e4b5043852e3714bc09bc946"
+    },
+    {
+      "path": "build/verification/dmg-paused-capture-20261112/baseline-browser.json",
+      "sha256": "80522e9a578664e9af006f3963d086b136e62ac578e4b9708d1886b973159a94"
+    },
+    {
+      "path": "build/verification/dmg-paused-capture-20261112/node-tests.log",
+      "sha256": "e79a0d2fd7850adbf2a639fbc165c46d1c19a933d34ab5b77780cbebbb71ea80"
+    },
+    {
+      "path": "build/verification/dmg-paused-capture-20261112/package-tests.log",
+      "sha256": "9d0e6091956d43f76723feac81d75624daed77b7c16226f25173d40381e217f6"
+    }
+  ]
+}

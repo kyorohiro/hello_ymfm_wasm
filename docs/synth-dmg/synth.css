@@ -166,7 +166,14 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .dmg-song-transport>button { min-height:32px; padding:6px 12px; }
 .dmg-song-transport .dmg-inline-help { margin:0 0 0 auto; }
 #dmgSongPosition { font-size:.72rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+.dmg-song-seek { display:flex; align-items:center; gap:10px; margin:6px 0; min-width:0; }
+#dmgSongSeek { flex:1; min-width:0; width:100%; height:20px; accent-color:#69587e; }
+#dmgSongSeekPosition { flex:0 0 auto; min-width:5.5ch; text-align:right; font-size:.7rem; color:var(--muted); font-variant-numeric:tabular-nums; }
 #dmgSongStatus,#dmgSongLiveStatus,#dmgSongReadout { margin:7px 0; font-size:.72rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
 #dmgSongStatus[data-error="true"] { color:#a02f31; }
 #dmgSongLiveStatus:empty,#dmgSongReadout:empty { display:none; }
 @media(max-width:640px) { .dmg-song-transport>label { flex-basis:100%; }.dmg-song-player { padding:10px; } }
+
+#dmgSongCaptureButton { min-height:30px; padding:5px 10px; font-size:.73rem; }
+#dmgSongAuditionStatus { margin:7px 0; font-size:.72rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; }
+#dmgSongAuditionStatus:empty { display:none; }
