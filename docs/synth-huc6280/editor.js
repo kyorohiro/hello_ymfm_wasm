@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createDefaultPreset, readPreset, waveShape} from './preset.js';
+import {createDefaultPreset, readPreset, waveShape} from './preset.js?v=wave-held-1';
 import {decodeDdaData, MAX_AUDIO_FILE_BYTES} from './dda_pcm.js';
 
 /** A passive editor. Editing never creates an audio device. */
@@ -212,7 +212,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const canvas = make('canvas'); canvas.id = 'waveCanvas'; canvas.width = 900; canvas.height = 220;
   canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', 'Editable HuC6280 main waveform, 32 samples from 0 to 31'); wave.append(canvas);
   const waveReadout = make('p', 'huc-wave-readout'); waveReadout.setAttribute('aria-live', 'polite'); wave.append(waveReadout);
-  help(wave, 'Draw either wave on this canvas. Releasing a stroke or choosing a shape applies it automatically and stops held notes. Main wave is copied to the playable channels; LFO wave modulates CH1 when Hardware LFO is enabled.');
+  help(wave, 'Draw either wave on this canvas. Releasing a stroke or choosing a shape keeps held notes and the Software envelope running. Upload resets the edited channels’ wave phase. Main wave is copied to the playable channels; LFO wave modulates CH1 when Hardware LFO is enabled.');
 
   const ddaCard = card('DDA PCM · 5-bit DAC / software playback', 'ddaSection'), dda = ddaCard.content;
   const loadActions = make('div', 'huc-dda-actions'); dda.append(loadActions);
@@ -409,7 +409,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     moveStroke(event); const values = stroke.samples, editTarget = stroke.target; stroke = null;
     if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     commit(value => {if (editTarget === 'main') value.wave = values;else value.lfo.wave = values;});
-    waveReadout.textContent = 'Wave applied · press a key to hear it';
+    waveReadout.textContent = 'Wave applied · held notes continue';
   });
   function cancelStroke(event) {
     if (!stroke || event?.pointerId !== undefined && stroke.id !== event.pointerId) return;

@@ -3,7 +3,7 @@
 import factory from '../generated/huc6280_wasm.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
-import {Huc6280Instrument} from './instrument.js';
+import {Huc6280Instrument} from './instrument.js?v=wave-held-1';
 
 const COMMANDS = new Set(['read','setPreset','loadPreset','noteOn','noteOff','setPitch','stop']);
 

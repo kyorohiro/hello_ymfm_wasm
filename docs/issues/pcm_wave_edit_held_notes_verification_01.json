@@ -1,0 +1,444 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "status": "passed",
+  "sourceCommitBeforeChanges": "944318b792e709e30b2be70aa6b873caca9543a3",
+  "todo": "docs/issues/todo_pcm_wave_edit_held_notes_01.md",
+  "scope": [
+    "FM2612 Synth same-length PCM Draw",
+    "HuC6280 Synth fixed 32-point Main/LFO Wave edits"
+  ],
+  "behavior": {
+    "fm": "Draw updates the same RAM endpoint without Key On/Off, cursor reset or held/release-owner loss. Sample length, metadata, tuning and loop settings stay fixed.",
+    "code": "Shared-editor sample notes and Root overrides persist; custom Code RAM and a pending Stop are fenced before editor mutation.",
+    "recording": "editSample is a nonstopping Event Rec/Looper operation. Playback changes prepared banks without key or register rewrites; Use current sound skips the recorded drawing.",
+    "huc": "Wave-only updates retain logical owners, pitch and software-envelope start/release times. Only previously enabled, still-owned unexpired gates are restored after the hardware upload.",
+    "otherChanges": "Loading a different sample/preset, source/topology changes and FM builtin replacement keep their existing stop semantics."
+  },
+  "limits": [
+    "HuC hardware waveform upload resets the affected wave index/oscillator phase; pre-edit phase is not preserved.",
+    "SPU and S-DSP behavior is outside this change.",
+    "No listening or physical audio output was used."
+  ],
+  "tests": {
+    "fm": {
+      "command": "node --test docs/synth/*.test.mjs",
+      "passed": 522,
+      "failed": 0
+    },
+    "huc": {
+      "command": "npm run test:huc6280-synth",
+      "passed": 128,
+      "failed": 0
+    },
+    "newNumericCoverage": [
+      "Actual RF5C164 eight-cursor output matches direct RAM replacement and differs from retrigger.",
+      "RF5C164 release tails and KeyUp/Stop during delayed upload are retained safely.",
+      "Code shared-sample notes, Root override, pending NoteOn and stale decode handling; custom RAM rejection before mutation.",
+      "Recorded editSample/Use current sound/Looper output, strict shape validation and bank budget.",
+      "HuC multiple held owners, attack progress, release/expired-tail/raw-Off boundaries, LFO pairs and dormant Noise/DDA drafts."
+    ],
+    "browserCommands": [
+      "node scripts/check_synth_pcm_browser.cjs --out=/private/tmp/fm-pcm-held-draw-browser.json --screenshots=/private/tmp/fm-pcm-held-draw-screens",
+      "node scripts/check_huc6280_synth_browser.cjs --out /private/tmp/huc-wave-held-browser.json"
+    ],
+    "browsers": {
+      "fm": [
+        {
+          "browser": "chromium",
+          "checks": 8,
+          "drawing": {
+            "frames": 256,
+            "changedFrames": 61,
+            "strokeUploads": 1,
+            "heldVoicePreserved": true,
+            "keyUpReleasesRetainedVoice": true,
+            "pendingEditKeyUp": {
+              "releasedBeforeAck": true,
+              "commands": [
+                {
+                  "kind": "rf-command",
+                  "method": "releaseNote",
+                  "channel": 1
+                }
+              ]
+            },
+            "cancellation": [
+              "pointercancel",
+              "lostpointercapture",
+              "Escape",
+              "blur",
+              "visual-mode",
+              "tab",
+              "preset"
+            ],
+            "roundTrip": true,
+            "physicalOutputMuted": true
+          }
+        },
+        {
+          "browser": "webkit",
+          "checks": 8,
+          "drawing": {
+            "frames": 256,
+            "changedFrames": 61,
+            "strokeUploads": 1,
+            "heldVoicePreserved": true,
+            "keyUpReleasesRetainedVoice": true,
+            "pendingEditKeyUp": {
+              "releasedBeforeAck": true,
+              "commands": [
+                {
+                  "kind": "rf-command",
+                  "method": "releaseNote",
+                  "channel": 1
+                }
+              ]
+            },
+            "cancellation": [
+              "pointercancel",
+              "lostpointercapture",
+              "Escape",
+              "blur",
+              "visual-mode",
+              "tab",
+              "preset"
+            ],
+            "roundTrip": true,
+            "physicalOutputMuted": true
+          }
+        }
+      ],
+      "huc": [
+        {
+          "browser": "chromium",
+          "checks": 30,
+          "heldWaveEdits": [
+            {
+              "target": "main",
+              "owner": {
+                "id": "huc6280-synth:11",
+                "midi": 55,
+                "channel": 0
+              },
+              "heldLevel": 18,
+              "afterLevel": 18,
+              "editCommands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "keyUpReleased": true
+            },
+            {
+              "target": "lfo-and-carrier",
+              "owner": {
+                "id": "huc6280-synth:13",
+                "midi": 55,
+                "channel": 0
+              },
+              "controls": [
+                152,
+                0
+              ],
+              "editCommands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "generatedShape": true,
+              "keyUpReleased": true
+            }
+          ],
+          "errors": [],
+          "failed": [],
+          "external": []
+        },
+        {
+          "browser": "webkit",
+          "checks": 30,
+          "heldWaveEdits": [
+            {
+              "target": "main",
+              "owner": {
+                "id": "huc6280-synth:11",
+                "midi": 55,
+                "channel": 0
+              },
+              "heldLevel": 18,
+              "afterLevel": 18,
+              "editCommands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "keyUpReleased": true
+            },
+            {
+              "target": "lfo-and-carrier",
+              "owner": {
+                "id": "huc6280-synth:13",
+                "midi": 55,
+                "channel": 0
+              },
+              "controls": [
+                152,
+                0
+              ],
+              "editCommands": [
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                },
+                {
+                  "method": "setPreset",
+                  "id": null
+                }
+              ],
+              "generatedShape": true,
+              "keyUpReleased": true
+            }
+          ],
+          "errors": [],
+          "failed": [],
+          "external": []
+        }
+      ],
+      "physicalOutputMuted": true,
+      "listeningPerformed": false
+    },
+    "existingCiCoverage": [
+      "itch-web.yml: docs/synth/*.test.mjs",
+      "huc6280-synth.yml: npm run test:huc6280-synth"
+    ],
+    "remoteActionsRun": false
+  },
+  "distribution": {
+    "fm": {
+      "command": "sh scripts/package_itch_synth.sh pcm-held-20261112",
+      "archive": "release/hello_ymfm_wasm_pcm-held-20261112_itch_synth.zip",
+      "files": 315,
+      "bytes": 1088710,
+      "sha256": "227ea575c388603033ffb473857b279fea6ac3a52aadfa292618317a3bd791ce",
+      "localModuleAssetReferences": 443,
+      "cacheRevision": "pcm-live-draw-1",
+      "dependencyClosureFix": "Include original ps1_vab.js / ps1synth.js / ps1_spu.js / ps1_parameters.js required by the shared Code runtime. Pure JS only; no PS1 DSP binary added."
+    },
+    "huc": {
+      "command": "sh scripts/package_itch_huc6280_synth.sh pcm-held-20261112a",
+      "archive": "release/tetorica_huc6280_synth_pcm-held-20261112a_itch.zip",
+      "files": 51,
+      "bytes": 1166656,
+      "sha256": "04d5f6a1e0770930fa9ca7fa3df89733642c5e8f5a805b02701803504be59765",
+      "sourceCheck": {
+        "inputs": 12,
+        "files": 18,
+        "sdkVersion": "0.1.7"
+      },
+      "cacheRevision": "wave-held-1",
+      "entryRewrite": "Preserves cache query while mapping the root entry to synth-huc6280/synth.js."
+    },
+    "changedReadableModuleChecks": 27,
+    "identity": "HuC app modules byte-identical; FM app modules preserve source except existing distribution URL-prefix remapping."
+  },
+  "sourceRecords": {
+    "docs/synth-huc6280/audio.js": {
+      "bytes": 8195,
+      "sha256": "9a736cdc5ffb0f7c4c8eafe92522942bcf2f24a92c7f2679f7e19b5476f47843"
+    },
+    "docs/synth-huc6280/editor.js": {
+      "bytes": 35241,
+      "sha256": "947b80b1a88e107678846468502e421c75d6a545025c4a6fcdf7a1c326925627"
+    },
+    "docs/synth-huc6280/index.html": {
+      "bytes": 10211,
+      "sha256": "af3a15dc6ab23fcbf80f18d220368eceb54aa9cc44e9d091e97834f4f52c3d55"
+    },
+    "docs/synth-huc6280/instrument.js": {
+      "bytes": 16259,
+      "sha256": "b75062edaa78000c696b8ba12be0a2c80366b040497dba98fdddc01d1299f0d7"
+    },
+    "docs/synth-huc6280/instrument.test.mjs": {
+      "bytes": 24241,
+      "sha256": "a77307227d4ded9666d4798c8400f0dc2366ff4cbdeeeb1a7ac92ba8df99c7b1"
+    },
+    "docs/synth-huc6280/preset.js": {
+      "bytes": 10250,
+      "sha256": "2d610ea004c679acb9f26f004027e70087437845dd1e6b01f1302dc4179a1100"
+    },
+    "docs/synth-huc6280/preset.test.mjs": {
+      "bytes": 9022,
+      "sha256": "da97116aed6bbe5f3b0c3b63cc4257a049a467fb7bb5c4ab24d892813e3091c0"
+    },
+    "docs/synth-huc6280/processor.js": {
+      "bytes": 3520,
+      "sha256": "2258433fde3519c80d26ad66382b54609feb5dd3218c9295f92ce816532ce897"
+    },
+    "docs/synth-huc6280/synth.js": {
+      "bytes": 19943,
+      "sha256": "c6b0ce214c7e141605236edd4aa09d5d8bc33751e4acbd737c61e755fe697509"
+    },
+    "docs/synth-huc6280/vgm_dac.js": {
+      "bytes": 17027,
+      "sha256": "623e34c970912591798421aa5dce985e348d556c411668cbc530077fd22332fe"
+    },
+    "docs/synth-huc6280/vgm_direct_pcm.js": {
+      "bytes": 13432,
+      "sha256": "c4776629961cbfe03a4c48280a2fcbd5362630d61d22d27a5a635ecf7b8c6621"
+    },
+    "docs/synth-huc6280/vgm_import.js": {
+      "bytes": 22594,
+      "sha256": "03c4f965b1727ba20038da678dc0e7998f5a12e17fc936b530ef70797260001c"
+    },
+    "docs/synth-huc6280/vgm_library.js": {
+      "bytes": 8692,
+      "sha256": "cfbe9282b28c4d2b3f7a7a85b6985ae599e28ef4f134edf5987734492e19767d"
+    },
+    "docs/synth/index.html": {
+      "bytes": 90623,
+      "sha256": "fba7f706f5ec86c503a0afafec9f7560246e3d6cd146e9c896078b67ce5aced3"
+    },
+    "docs/synth/synth.js": {
+      "bytes": 133166,
+      "sha256": "e0f01769b4eb41b765f7e69558adcf4124f4e9a3e81099bfe036fe769372ec31"
+    },
+    "docs/synth/synth_code_audio.js": {
+      "bytes": 24269,
+      "sha256": "b247402d024c4d5651fa605fa7bf7bd8b461ff1b038e37dd87950497a3b37043"
+    },
+    "docs/synth/synth_code_audio.test.mjs": {
+      "bytes": 40472,
+      "sha256": "d8d553cfb0528d8699c9815c0b257f01a849fa3def5a2ec391fcafcc926f90c9"
+    },
+    "docs/synth/synth_files.js": {
+      "bytes": 43230,
+      "sha256": "856c6af620491b21d08b8de73e0129c1c4569b09bdcccc6d498a66975ba91208"
+    },
+    "docs/synth/synth_pcm.js": {
+      "bytes": 16157,
+      "sha256": "c456fd74bbbe0d65bdb151d239ad5e898d1931a31a5ab1ccd325d0f3117725d9"
+    },
+    "docs/synth/synth_pcm_controls.js": {
+      "bytes": 19154,
+      "sha256": "7cd40fbf21aefc246998328142083a073af4c6608960975d097c041249c9c5f4"
+    },
+    "docs/synth/synth_pcm_loop_render.js": {
+      "bytes": 4544,
+      "sha256": "d4ac79f9b35ff07f08d2dc92f8a295f8f4344bda71abce78c3f92151892ff439"
+    },
+    "docs/synth/synth_pcm_looper.js": {
+      "bytes": 1073,
+      "sha256": "6e509313c9fc58a1c50384e360b2b4936a1824102f6864dd0f6328940ff8ab0a"
+    },
+    "docs/synth/synth_pcm_recording.js": {
+      "bytes": 14990,
+      "sha256": "b2caf24ce61561634684abd07c1e914d0600a469fe1397d014080d35faa81331"
+    },
+    "docs/synth/synth_pcm_recording_audio.js": {
+      "bytes": 9824,
+      "sha256": "ef6339aeaf47d48f6d81eca196c31b563bcad96596cb5d2e874d267d09e52449"
+    },
+    "docs/synth/synth_pcm_recording_player.js": {
+      "bytes": 9189,
+      "sha256": "c73f54526d8fe62eb098d740706c5166495378a6217783ab6a52bf17006804d8"
+    },
+    "docs/synth/synth_pcm_recording_prepare.js": {
+      "bytes": 3660,
+      "sha256": "0603b841ca4e5f5ff3cee3ce1808d852e09ca48add0f1704ebb764830d360517"
+    },
+    "docs/synth/synth_pcm_recording_worklet.js": {
+      "bytes": 2951,
+      "sha256": "54c91e7fb1ca21d6fc90af8d35440dc19532d243607e5d11e66675c4c62508f6"
+    },
+    "docs/synth/synth_pcm_wave_edit.js": {
+      "bytes": 3047,
+      "sha256": "848ad1213c11e42d788eb66b5d26fe7e66408a73d61ad184713e4e9b92bd8e17"
+    },
+    "docs/synth/synth_pcm_wave_edit.test.mjs": {
+      "bytes": 7792,
+      "sha256": "6d6329c0b862b3eff6dc1207c56389c7389f3aea30f10d282378b5d070e1c114"
+    },
+    "docs/synth/synth_project.js": {
+      "bytes": 30014,
+      "sha256": "7e45a2a0cd87e0f88b75405741f6dc64cc7bdf6de34aaf890a3a6b3c64a1d743"
+    },
+    "docs/synth/synth_recovery.js": {
+      "bytes": 6087,
+      "sha256": "cebc19748292355ce70be4ec3019482a2f9f5d423aae1c28b54f01c165dd645c"
+    },
+    "docs/synth/synth_song_controls.js": {
+      "bytes": 15219,
+      "sha256": "eb4ed153fad558ea84c510d840bb73dfa1756d766fe97c5b12d0962c0be2d738"
+    },
+    "docs/synth/synth_song_pcm_voice.js": {
+      "bytes": 8113,
+      "sha256": "0fb1510db46af0695fd029118bd18b1a6402187458c762030ff142f4ab5163c5"
+    },
+    "scripts/check_huc6280_synth_browser.cjs": {
+      "bytes": 59157,
+      "sha256": "fc248e644becdf4ea3d57cb0f5aab1a818d3c535048e8696e4c8adf3106c336d"
+    },
+    "scripts/check_synth_pcm_browser.cjs": {
+      "bytes": 51308,
+      "sha256": "2f0e65d77d690df7da2677b703dc83071dfd56fc38881afadd19fa25886f5190"
+    },
+    "scripts/package_itch_huc6280_synth.mjs": {
+      "bytes": 6542,
+      "sha256": "6bc46548d73b8f8ed1c61c22da4de63b044e7ad1c9e94bced5b94a8ac8c8c299"
+    },
+    "scripts/package_itch_huc6280_synth.test.mjs": {
+      "bytes": 7264,
+      "sha256": "8a1f4cf9a4650762c1ae329f614bd685c6ddd25ab0e726f8e5c004119fd52efa"
+    },
+    "scripts/package_itch_synth.sh": {
+      "bytes": 12692,
+      "sha256": "19fe5d4c3bb19d3cde29a4bcbcc55f3e107801132ec05ba94adfbc26f220b908"
+    },
+    "docs/synth/synth_pcm_sample_edit.test.mjs": {
+      "bytes": 15109,
+      "sha256": "dd873098cd407790b4019db8687aba6afb427593b5a8f01f8f156579d5a7c4a5"
+    }
+  },
+  "unchangedRuntimeAndWasm": {
+    "tetorica_src/runtime/rf5c164synth.js": {
+      "bytes": 6252,
+      "sha256": "9b5d8d0b6fb6811a2d126c6bf969ec5aae68acd680f636c2ef793e3603d61a73"
+    },
+    "tetorica_src/runtime/huc6280synth.js": {
+      "bytes": 11417,
+      "sha256": "f46a04311244f011c30a45c381f91af433c1e15c6016106586eb468a6c605a8b"
+    },
+    "tetorica_src/runtime/huc6280audioengine.js": {
+      "bytes": 6235,
+      "sha256": "f15ec898f788104937bb68c61a915390af5aa9ffd22a8afdbc022640493e390d"
+    },
+    "docs/generated/rf5c164_wasm.wasm": {
+      "bytes": 27583,
+      "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+    },
+    "docs/generated/huc6280_wasm.wasm": {
+      "bytes": 8935,
+      "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+    }
+  },
+  "rawGameAssetsUsed": false,
+  "wasmRebuilt": false,
+  "npmPublished": false,
+  "commitPushPerformed": false,
+  "released": false
+}

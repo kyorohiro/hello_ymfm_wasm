@@ -1,6 +1,6 @@
 import {createParamControl} from './synth_controls.js?v=op-gates-1';
-import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.js?v=pcm-live-end-1';
-import {createPcmWaveDraft} from './synth_pcm_wave_edit.js?v=pcm-wave-draw-1';
+import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.js?v=pcm-live-draw-1';
+import {createPcmWaveDraft} from './synth_pcm_wave_edit.js?v=pcm-live-draw-1';
 
 /** Compact RF5C164 authoring controls; writes and file decoding belong to the host. */
 export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=()=>{},onLoad=()=>{},onSampleEdit=()=>{},onVisualModeChange=()=>{}}={}) {
@@ -166,7 +166,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
   }
   function refreshDescription() {
     if(description)description.textContent=visualMode==='sample'?(liveDisplay?'Recorded sample RAM · read-only.':
-      editMode==='draw'?'Draw · software wave editing · release to apply and stop held notes.':'Sample view · drag L / E to set loop start / end.'):
+      editMode==='draw'?'Draw · software wave editing · release to apply; held notes keep playing.':'Sample view · drag L / E to set loop start / end.'):
       visualMode==='waveform'?'Final output waveform · after volume.':'Final output spectrum · after volume · dB.';
   }
   function chooseEditMode(mode) {

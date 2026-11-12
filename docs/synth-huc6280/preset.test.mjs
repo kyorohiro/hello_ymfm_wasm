@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {createDefaultPreset, readPreset, waveShape, presetToCode} from './preset.js';
+import {createDefaultPreset, readPreset, waveShape, presetToCode, isWaveOnlyEdit} from './preset.js';
 import {createDefaultDda, encodeDdaData} from './dda_pcm.js';
 
 test('portable HuC6280 preset owns all waves, routing and software envelope values', () => {
@@ -72,6 +72,24 @@ test('waveform helpers quantize exactly 32 five-bit values without aliasing', ()
   }
   assert.deepEqual(waveShape('square'),Array(16).fill(31).concat(Array(16).fill(0)));
   assert.throws(()=>waveShape('noise'));
+});
+
+test('wave-only edit classification excludes every other setting and includes dormant wave drafts',()=>{
+  for(const source of ['wave','noise','dda']) {
+    const before=createDefaultPreset();before.source=source;
+    assert.equal(isWaveOnlyEdit(before,readPreset(before)),false);
+    for(const target of ['main','lfo']) {
+      const next=readPreset(before);
+      if(target==='main')next.wave=waveShape('square');else next.lfo.wave=waveShape('triangle');
+      assert.equal(isWaveOnlyEdit(before,next),true);
+      for(const change of [p=>p.name='another',p=>p.volume--,p=>p.source=source==='wave'?'noise':'wave',
+        p=>p.envelope.release=.5,p=>p.lfo.enabled=!p.lfo.enabled,p=>p.lfo.output.enabled=true,
+        p=>p.lfo.carrierPeriod++,p=>p.dda.sampleRate++,p=>p.dda.rootNote++,p=>p.dda.loop=!p.dda.loop]) {
+        const combined=readPreset(next);change(combined);assert.equal(isWaveOnlyEdit(before,combined),false);
+      }
+      assert.deepEqual(before.wave,waveShape('sine'),'comparison is read-only');
+    }
+  }
 });
 
 test('DDA presets retain low recorded stream rates without changing audio-conversion limits', () => {

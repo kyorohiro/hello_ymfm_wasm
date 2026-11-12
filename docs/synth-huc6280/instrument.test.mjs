@@ -8,6 +8,7 @@ import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../js/huc6280synth.js';
 import {Huc6280Instrument} from './instrument.js';
 import {waveShape, presetToCode} from './preset.js';
+import {encodeDdaData} from './dda_pcm.js';
 
 const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));
 async function setup(t,rate=48000) {
@@ -82,13 +83,115 @@ test('hardware LFO is CH2 to CH1 with muted modulator, pitch tracking and real P
   preset.source='noise';modulated.instrument.loadPreset(preset);assert.equal(modulated.instrument.read().globals[9],0,'inactive LFO retained in preset but disabled for Noise');
 });
 
-test('live volume/pan/pitch preserve held channels, and wave changes stop them',async t=>{
+test('live volume/pan/pitch preserve held channels, and combined wave/volume replacement still stops them',async t=>{
   const {instrument}=await setup(t);const preset=noEnvelope(instrument);instrument.noteOn('held',60);
   const owners=instrument.read().voices;preset.pan={left:15,right:0};preset.volume=18;instrument.setPreset(preset);instrument.setPitch(2);
   assert.deepEqual(instrument.read().voices,owners);const pcm=instrument.generateStereo(2048);audible(pcm);assert.equal(peak(pcm.right),0);
   preset.volume=0;instrument.setPreset(preset);assert.equal(peak(instrument.generateStereo(1024).left),0);
   preset.volume=24;preset.wave=waveShape('square');instrument.setPreset(preset);assert.deepEqual(instrument.read().voices,[]);
   assert.equal(instrument.noteOff('held'),false);instrument.noteOn('square',60);audible(instrument.generateStereo(1024));
+});
+
+test('32-point wave edits preserve held owners, pitch and running software attack/release in actual WASM',async t=>{
+  const {instrument,writes}=await setup(t),preset=instrument.read().preset;
+  preset.envelope={enabled:true,attack:.1,decay:0,sustain:1,release:.08};instrument.loadPreset(preset);
+  instrument.noteOn('held',60);instrument.noteOn('other',67);instrument.setPitch(2);
+  instrument.generateStereo(2400);const owners=instrument.read().voices;
+  const slots=instrument.slots.slice(),before=slots.map(voice=>voice&&({...voice,envelope:{...voice.envelope}}));
+  const frame=instrument.frame,cursor=instrument.cursor,sequence=instrument.sequence,periods=instrument.read().registers.map(r=>r.slice(2,4));
+  // The original logical noteOn must not be called as an upload workaround.
+  instrument.noteOn=()=>{throw new Error('A wave edit must not create a new logical note');};
+  preset.wave=waveShape('square');writes.length=0;instrument.setPreset(preset);
+  assert.deepEqual(instrument.read().voices,owners);assert.equal(instrument.frame,frame);
+  assert.equal(instrument.cursor,cursor);assert.equal(instrument.sequence,sequence);
+  assert.equal(instrument.pitch,2);assert.deepEqual(instrument.read().registers.map(r=>r.slice(2,4)),periods);
+  for(let channel=0;channel<6;channel++) {
+    assert.equal(instrument.slots[channel],slots[channel]);assert.deepEqual(instrument.slots[channel],before[channel]);
+    assert.equal(instrument.read().registers[channel][4]&128,channel<2?128:0);
+  }
+  assert(!writes.some(([register])=>[2,3,7,8,9].includes(register)),'no retune or Noise/LFO reset');
+  const level=instrument.read().registers[0][4]&31;
+  assert(level>0&&level<31);audible(instrument.generateStereo(4800));
+  assert((instrument.read().registers[0][4]&31)>level,'attack proceeds from the original start time');
+  instrument.noteOff('held');instrument.noteOff('other');instrument.generateStereo(960);
+  const release=instrument.slots.map(voice=>voice&&({...voice,envelope:{...voice.envelope}}));
+  preset.wave=waveShape('triangle');instrument.setPreset(preset);
+  assert.deepEqual(instrument.slots,release,'release age and level are retained');
+  assert.equal(instrument.read().tails.length,2);audible(instrument.generateStereo(960));instrument.generateStereo(4000);
+  assert.equal(instrument.read().tails.length,0);assert.equal(peak(instrument.generateStereo(128).left),0);
+  preset.wave=waveShape('saw');instrument.setPreset(preset);
+  assert.equal(instrument.read().voices.length,0);assert(instrument.read().registers.slice(0,6).every(r=>!(r[4]&128)));
+  assert.equal(peak(instrument.generateStereo(128).left),0,'an edit cannot resurrect completed tails');
+});
+
+test('LFO carrier/modulator wave edits restore only prior pair gates and leave the other waveform channel alone',async t=>{
+  for(const outputEnabled of [false,true]) {
+    const {instrument,writes}=await setup(t),preset=recordedPreset(instrument);
+    preset.envelope={enabled:true,attack:0,decay:0,sustain:.7,release:.04};
+    preset.lfo.output.enabled=outputEnabled;instrument.loadPreset(preset);instrument.noteOn('pair',60);instrument.generateStereo(1024);
+    const owner=instrument.slots[0],before={...owner,envelope:{...owner.envelope}},state=instrument.read();
+    for(const target of ['modulator','carrier']) {
+      if(target==='modulator')preset.lfo.wave=waveShape('square');else preset.wave=waveShape('triangle');
+      const selectedBefore=instrument.synth._getState().selectedChannel;
+      writes.length=0;instrument.setPreset(preset);
+      assert.equal(instrument.slots[0],owner);assert.deepEqual(owner,before);
+      assert.equal(instrument.read().registers[0][4]&128,128);
+      assert.equal(instrument.read().registers[1][4]&128,outputEnabled?128:0);
+      assert.deepEqual(instrument.read().globals.slice(1),state.globals.slice(1));assert.deepEqual(instrument.read().registers.map(r=>r.slice(2,4)),state.registers.map(r=>r.slice(2,4)));
+      let selected=selectedBefore,uploads=[];
+      // Derive upload targets from channel selects before wave-data writes.
+      for(const [register,value] of writes){if(register===0)selected=value&7;else if(register===6)uploads.push(selected);}
+      assert(uploads.length>0);
+      if(target==='modulator')assert(uploads.every(channel=>channel===1));
+      else assert(uploads.every(channel=>channel!==1));
+      audible(instrument.generateStereo(512));
+    }
+    instrument.noteOff('pair');instrument.generateStereo(256);
+    preset.lfo.wave=waveShape('saw');instrument.setPreset(preset);assert.equal(instrument.read().tails.length,1);
+    instrument.generateStereo(3000);assert.equal(instrument.read().tails.length,0);
+    assert.equal(instrument.read().registers[1][4]&128,0);assert.equal(peak(instrument.generateStereo(128).left),0);
+  }
+});
+
+test('dormant wave changes do not touch active Noise or a disabled LFO wave, and invalid edits do not gate held notes',async t=>{
+  for(const source of ['wave','noise']) {
+    const {instrument,writes}=await setup(t),preset=noEnvelope(instrument);preset.source=source;instrument.loadPreset(preset);
+    instrument.noteOn('owner',60);instrument.generateStereo(1024);const voices=instrument.read().voices;
+    preset.lfo.wave=waveShape('square');if(source==='noise')preset.wave=waveShape('triangle');
+    writes.length=0;instrument.setPreset(preset);assert.deepEqual(writes,[]);assert.deepEqual(instrument.read().voices,voices);
+    const before=instrument.read(),invalid=structuredClone(preset);invalid.lfo.wave[2]=32;
+    assert.throws(()=>instrument.setPreset(invalid));assert.deepEqual(instrument.read(),before);assert.deepEqual(writes,[]);
+    instrument.noteOff('owner');assert.equal(peak(instrument.generateStereo(128).left),0);
+  }
+});
+
+test('wave upload does not resurrect an expired release between envelope quanta or a disabled gate',async t=>{
+  const {instrument}=await setup(t),preset=instrument.read().preset;
+  preset.envelope={enabled:true,attack:0,decay:0,sustain:1,release:.001};instrument.loadPreset(preset);
+  instrument.noteOn('short',60);instrument.generateStereo(1);instrument.noteOff('short');instrument.generateStereo(48);
+  assert.equal(instrument.read().tails.length,1,'retirement waits for the next 16-frame envelope quantum');
+  const frame=instrument.frame;preset.wave=waveShape('square');instrument.setPreset(preset);
+  assert.equal(instrument.frame,frame);assert.equal(instrument.read().tails.length,0);
+  assert.equal(instrument.read().registers[0][4]&128,0);assert.equal(peak(instrument.generateStereo(128).left),0);
+  preset.envelope.enabled=false;instrument.loadPreset(preset);instrument.noteOn('disabled',60);instrument.synth.keyOff(0);
+  const owner=instrument.read().voices;preset.wave=waveShape('saw');instrument.setPreset(preset);
+  assert.deepEqual(instrument.read().voices,owner);assert.equal(instrument.read().registers[0][4]&128,0);
+  assert.equal(peak(instrument.generateStereo(128).left),0);assert.equal(instrument.noteOff('disabled'),true);
+});
+
+test('dormant Wave edits retain active DDA position and never restart an ended one-shot',async t=>{
+  const {instrument,writes}=await setup(t),preset=noEnvelope(instrument);
+  preset.source='dda';preset.dda.data=encodeDdaData(Uint8Array.from({length:16},(_,i)=>i&1?31:0));
+  preset.dda.sampleRate=5512.5;preset.dda.loop=true;instrument.loadPreset(preset);instrument.noteOn('pcm',60);
+  instrument.generateStereo(37);const slot=instrument.slots[0],before=structuredClone(slot),frame=instrument.frame;
+  preset.wave=waveShape('triangle');preset.lfo.wave=waveShape('square');writes.length=0;instrument.setPreset(preset);
+  assert.equal(instrument.slots[0],slot);assert.deepEqual(slot,before);assert.equal(instrument.frame,frame);assert.deepEqual(writes,[]);
+  audible(instrument.generateStereo(512));instrument.stop();
+  preset.dda.loop=false;instrument.loadPreset(preset);instrument.noteOn('ended',60);instrument.generateStereo(1000);
+  assert.equal(instrument.read().dda.voices[0].ended,true);const ended=structuredClone(instrument.slots[0]);
+  preset.wave=waveShape('saw');writes.length=0;instrument.setPreset(preset);
+  assert.deepEqual(instrument.slots[0],ended);assert.deepEqual(writes,[]);assert.equal(instrument.read().registers[0][4]&128,0);
+  assert.equal(peak(instrument.generateStereo(128).left),0);assert.equal(instrument.noteOff('ended'),true);
 });
 
 test('software ADSR releases held owners with an audible tail, then reaches exact silence',async t=>{

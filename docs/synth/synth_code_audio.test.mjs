@@ -402,6 +402,54 @@ test('a new author PCM source cancels an older sample decode without stopping ot
   await pcm.loadMemory(Uint8Array.of(128,255));assert(f.events.some(e=>e[0]==='pcm-memory'),'a new explicit Code write after the author choice remains available');await f.audio.dispose();
 });
 
+test('drawing the shared author sample preserves Code notes, channel settings and the Code Root override',async()=>{
+  const f=fixture(),pcm=await f.audio.useSoundChip('rf5c164');pcm.setRootNote('A4');pcm.noteOn(7,'C5');
+  const step=f.events.filter(event=>event[0]==='pcm-channel'&&event[1]===7).at(-1)[2].step;
+  const state=f.audio.getState(),from=f.events.length;f.audio.beforePcmSampleEdit();
+  assert.deepEqual(f.events.slice(from),[],'draw preparation does not write registers or release voices');
+  const next=f.getPreset();next.sample.data=createPcmBuiltinPreset('triangle').sample.data;
+  f.options.getPcmVoice().setPreset(next);
+  assert.deepEqual(f.audio.getState(),state);
+  assert.equal(pcm.setNote(7,'C5'),step,'draw preserves the explicit Code Root rather than restoring UI Root');
+  pcm.noteOff(7);assert.deepEqual(f.events.at(-1),['pcm-release',7]);assert.deepEqual(f.audio.getState().pcmChannels,[]);
+  await f.audio.dispose();
+});
+
+test('drawing rejects custom Code RAM and pending Stop restoration before mutating state; completed Stop releases the guard',async()=>{
+  const f=fixture(),pcm=await f.audio.useSoundChip('rf5c164'),restored=deferred();pcm.setPitch(2,3011);pcm.keyOn(2);
+  await pcm.loadMemory(Uint8Array.of(128,255));const state=f.audio.getState(),author=f.getPreset(),from=f.events.length;
+  assert.throws(()=>f.audio.beforePcmSampleEdit(),/Stop Code.*different PCM RAM/);
+  assert.deepEqual(f.audio.getState(),state);assert.deepEqual(f.getPreset(),author);assert.equal(f.events.length,from);
+  f.options.getPcmVoice().install=()=>restored.promise;
+  const stop=f.audio.stop();assert.throws(()=>f.audio.beforePcmSampleEdit(),/Wait for Code to stop/);
+  restored.resolve();await stop;assert.doesNotThrow(()=>f.audio.beforePcmSampleEdit());
+  await f.audio.dispose();
+});
+
+test('drawing keeps pending Code notes owned and an actual Key Up cancels them while RAM is updating',async()=>{
+  for(const release of [false,true]) {
+    let gate=null,ready=true;const f=fixture({ensureChip:()=>gate?.promise}),pcm=await f.audio.useSoundChip('rf5c164');
+    pcm.setRootNote('A4');f.options.getPcmVoice().isReady=()=>ready;ready=false;gate=deferred();
+    const from=f.events.length,on=pcm.noteOn(4,'E5');await turn();await turn();
+    f.audio.beforePcmSampleEdit();f.audio.beforePcmSampleEdit();
+    if(release)pcm.noteOff(4);
+    ready=true;gate.resolve();await on;
+    assert.equal(f.events.slice(from).filter(event=>event[0]==='pcm-on').length,release?0:1);
+    assert.deepEqual(f.audio.getState().pcmChannels,release?[]:[4]);
+    if(!release){pcm.noteOff(4);assert.deepEqual(f.events.at(-1),['pcm-release',4]);}
+    await f.audio.dispose();
+  }
+});
+
+test('drawing invalidates an older asynchronous Code sample decode without stopping the current performance',async()=>{
+  const f=fixture(),decode=deferred();f.context.decodeAudioData=()=>decode.promise;
+  const pcm=await f.audio.useSoundChip('rf5c164');pcm.noteOn(1,'C4');
+  const loading=pcm.loadSample(new ArrayBuffer(8)),rejected=assert.rejects(loading,{name:'AbortError'}),from=f.events.length;
+  f.audio.beforePcmSampleEdit();decode.resolve({sampleRate:48000,numberOfChannels:1,getChannelData:()=>new Float32Array([0,.5])});
+  await rejected;assert.deepEqual(f.events.slice(from),[]);assert.deepEqual(f.audio.getState().pcmChannels,[1]);
+  pcm.noteOff(1);assert.deepEqual(f.events.at(-1),['pcm-release',1]);await f.audio.dispose();
+});
+
 test('Code FM uses author OP masks and updates only held operators without retriggering pitch',async()=>{
   const writes=[],native=new YM2612Synth({transport:{write:(port,register,value)=>writes.push({port,register,value}),reset(){}}});
   let voice={keyMask:5,specialMode:false,specialFrequencies:[]};

@@ -94,8 +94,8 @@ const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.wa
   '.json':'application/json','.webp':'image/webp','.png':'image/png'};
 
 async function checkEngine(name, engine, origin) {
-  const browser = await engine.launch({headless:true});
-  const errors = [], failed = [], external = [], checks = [];
+  const browser = await engine.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})});
+  const errors = [], failed = [], external = [], checks = [],heldWaveEdits=[];
   let stage = 'startup';
   try {
     if(config.screenshots)await fs.mkdir(config.screenshots,{recursive:true});
@@ -109,9 +109,10 @@ async function checkEngine(name, engine, origin) {
       external.push(url.href); return route.abort();
     });
     await page.addInitScript(() => {
-      const audit = window.audit = {contexts:[],worklets:[],analysers:[],nextId:0,presetMessages:[]};
+      const audit = window.audit = {contexts:[],worklets:[],analysers:[],mutes:[],nextId:0,presetMessages:[],noteCommands:[]};
       const post=MessagePort.prototype.postMessage;
       MessagePort.prototype.postMessage=function(data,...args) {
+        if(['noteOn','noteOff','stop','loadPreset','setPreset'].includes(data?.method))audit.noteCommands.push({method:data.method,id:typeof data.args?.[0]==='string'?data.args[0]:null});
         if(['setPreset','loadPreset'].includes(data?.method)) audit.presetMessages.push({method:data.method,
           dataLength:data.args?.[0]?.dda?.data?.length??0,elided:data.ddaDataUnchanged===true});
         if(audit.holdDdaCommit&&data?.method==='loadPreset'&&data.args?.[0]?.dda?.name==='slow-commit.wav') {
@@ -127,6 +128,7 @@ async function checkEngine(name, engine, origin) {
         if (destination === this.context.destination) {
           const analyser = this.context.createAnalyser(); analyser.fftSize = 4096;
           const mute = this.context.createGain(); mute.gain.value = 0;
+          audit.mutes.push(mute);
           audit.analysers.push(analyser);
           connect.call(this, analyser);connect.call(analyser, mute);connect.call(mute, destination);
           return destination;
@@ -229,10 +231,26 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.locator('#waveSection canvas').count(),1);
     const before=(await read()).preset.wave;
     const canvas=page.locator('#waveCanvas'),box=await canvas.boundingBox();
+    // A slow software Attack makes an accidental envelope restart visible in
+    // the real channel-level register, rather than only in a DOM key marker.
+    const beforeWavePreset=(await read()).preset,envelopePreset={...beforeWavePreset,name:'Held wave edit envelope',envelope:{enabled:true,attack:.7,decay:.1,sustain:.35,release:.3}};
+    await page.locator('#presetFileInput').setInputFiles({name:'held-wave-envelope.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(envelopePreset))});
+    await wait(s=>s.preset.name===envelopePreset.name);await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);
+    const waveOwner={...state.voices[0]},heldLevel=Math.max(0,Math.min(31,envelopePreset.volume+Math.round(20*Math.log10(.35)/1.5)));
+    // Attack also passes through the eventual sustain level; wait past both
+    // timed stages before using the native volume as a restart detector.
+    await page.waitForTimeout((envelopePreset.envelope.attack+envelopePreset.envelope.decay)*1000+150);
+    await wait(s=>(s.registers[waveOwner.channel][4]&31)===heldLevel);const waveCommands=await page.evaluate(()=>window.audit.noteCommands.length);
     assert(box);await page.mouse.move(box.x+box.width*.2,box.y+box.height*.25);await page.mouse.down();
     await page.mouse.move(box.x+box.width*.6,box.y+box.height*.7,{steps:12});await page.mouse.up();
     state=await wait(s=>JSON.stringify(s.preset.wave)!==JSON.stringify(before));
     assert.equal(state.preset.wave.length,32);assert(state.preset.wave.every(v=>Number.isInteger(v)&&v>=0&&v<=31));
+    assert.deepEqual(state.voices,[waveOwner],'Drawing retains the same physical note owner');assert.equal(state.registers[waveOwner.channel][4]&31,heldLevel,'Drawing does not restart the slow Attack');assert(state.registers[waveOwner.channel][4]&128);await sound();
+    const waveEditCommands=await page.evaluate(from=>window.audit.noteCommands.slice(from),waveCommands);assert(!waveEditCommands.some(command=>['noteOn','noteOff','stop','loadPreset'].includes(command.method)),'Wave edits do not generate new note/envelope ownership');
+    await page.keyboard.up(keys[0]);state=await wait(s=>s.voices.length===0);assert(state.tails.some(voice=>voice.id===waveOwner.id),'Key-up still releases the original software envelope');await silent();
+    heldWaveEdits.push({target:'main',owner:waveOwner,heldLevel,afterLevel:heldLevel,editCommands:waveEditCommands,keyUpReleased:true});
+    await page.locator('#presetFileInput').setInputFiles({name:'wave-envelope-restore.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...state.preset,name:beforeWavePreset.name,envelope:beforeWavePreset.envelope}))});
+    state=await wait(s=>s.preset.name===beforeWavePreset.name&&s.preset.envelope.attack===beforeWavePreset.envelope.attack);
     assert.match(await page.locator('#voiceEditor').textContent(),/Software.*[Ee]nvelope/);
     check('cancelled waveform strokes retain the original data and held note');
     const committed=state.preset.wave;
@@ -249,7 +267,24 @@ async function checkEngine(name, engine, origin) {
     state=await wait(s=>s.preset.lfo.wave.filter(v=>v===31).length===16);assert.deepEqual(state.preset.wave,main);
     await page.locator('#lfoEnabled').check();await wait(s=>s.capacity===1&&s.preset.lfo.enabled);
     await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);assert.equal(state.voices[0].channel,0);await sound();
-    const lfoOwner=state.voices[0].id;
+    state=await wait(s=>(s.registers[0][4]&31)===s.preset.volume);
+    let lfoOwner=state.voices[0].id;
+    check('held LFO and carrier waveform edits retain note ownership, gate levels and eventual key-up');
+    const lfoHeldVoice={...state.voices[0]},lfoControls=[state.registers[0][4],state.registers[1][4]],modulatorBefore=state.preset.lfo.wave,mainBefore=state.preset.wave;
+    const lfoCommandStart=await page.evaluate(()=>window.audit.noteCommands.length);
+    await canvas.scrollIntoViewIfNeeded();const lfoBox=await canvas.boundingBox();assert(lfoBox);
+    await page.mouse.move(lfoBox.x+lfoBox.width*.25,lfoBox.y+lfoBox.height*.3);await page.mouse.down();await page.mouse.move(lfoBox.x+lfoBox.width*.65,lfoBox.y+lfoBox.height*.65,{steps:8});await page.mouse.up();
+    state=await wait(s=>JSON.stringify(s.preset.lfo.wave)!==JSON.stringify(modulatorBefore));assert.deepEqual(state.voices,[lfoHeldVoice]);assert.deepEqual(state.preset.wave,mainBefore);
+    assert.deepEqual([state.registers[0][4],state.registers[1][4]],lfoControls,'Modulator editing preserves both current gate/attenuation values');await sound();
+    const drawnLfo=state.preset.lfo.wave;await page.locator('[data-wave-shape="triangle"]').click();state=await wait(s=>JSON.stringify(s.preset.lfo.wave)!==JSON.stringify(drawnLfo));
+    assert.deepEqual(state.voices,[lfoHeldVoice]);assert.deepEqual([state.registers[0][4],state.registers[1][4]],lfoControls);
+    const retainedModulator=state.preset.lfo.wave;await page.locator('[data-wave-target="main"]').click();await page.locator('[data-wave-shape="saw"]').click();
+    state=await wait(s=>JSON.stringify(s.preset.wave)!==JSON.stringify(mainBefore));assert.deepEqual(state.voices,[lfoHeldVoice]);assert.deepEqual(state.preset.lfo.wave,retainedModulator);assert.deepEqual([state.registers[0][4],state.registers[1][4]],lfoControls);await sound();
+    const lfoEditCommands=await page.evaluate(from=>window.audit.noteCommands.slice(from),lfoCommandStart);assert(!lfoEditCommands.some(command=>['noteOn','noteOff','stop','loadPreset'].includes(command.method)));
+    heldWaveEdits.push({target:'lfo-and-carrier',owner:lfoHeldVoice,controls:lfoControls,editCommands:lfoEditCommands,generatedShape:true,keyUpReleased:true});
+    await page.locator('[data-wave-target="lfo"]').click();
+    await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);await silent();
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);lfoOwner=state.voices[0].id;
     await page.locator('[data-stepper-for="lfoFrequency"][data-stepper-delta="1"]').click();
     state=await wait(s=>s.preset.lfo.frequency===33);assert.equal(state.voices[0].id,lfoOwner);
     await page.keyboard.down(keys[1]);state=await wait(s=>s.voices.length===1&&s.voices[0].id!==lfoOwner);
@@ -594,8 +629,8 @@ async function checkEngine(name, engine, origin) {
     if(config.screenshots) {await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-390.png`),fullPage:true});}
     await page.setViewportSize({width:1180,height:1000});await page.locator('#resetPreset').click();await wait(s=>!s.preset.lfo.enabled);
     if(config.screenshots) await page.screenshot({path:path.join(config.screenshots,`${name}-1180.png`),fullPage:true});
-    assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);assert.deepEqual(external,[]);
-    return {engine:name,ok:true,checks,errors,failed,external,sample:await page.evaluate(()=>window.audit.sample())};
+    assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);assert.deepEqual(external,[]);assert(await page.evaluate(()=>window.audit.mutes.every(mute=>mute.gain.value===0)));
+    return {engine:name,ok:true,checks,heldWaveEdits,physicalOutputMuted:true,listeningPerformed:false,errors,failed,external,sample:await page.evaluate(()=>window.audit.sample())};
   }catch(error) {throw new Error(`${name} (${stage}): ${error.message}`,{cause:error});}
   finally {await browser.close();}
 }

@@ -1,4 +1,4 @@
-import {normalizePcmPreset,normalizePcmSettings,PCM_MAX_FRAMES,PCM_SETTINGS_DEFAULTS} from './synth_pcm.js?v=pcm-live-end-1';
+import {normalizePcmPreset,normalizePcmSettings,normalizePcmSampleEdit,PCM_MAX_FRAMES,PCM_SETTINGS_DEFAULTS} from './synth_pcm.js?v=pcm-live-draw-1';
 
 export const PCM_RECORDING_FORMAT='tetorica-rf5c164-recording-v1';
 export const PCM_RECORDING_MAX_SECONDS=86400;
@@ -79,17 +79,17 @@ function bankBudget(initialPreset) {
   check(initialPreset)();return {check};
 }
 function checkCommandBank(budget,command,currentPreset) {
-  return command.type==='setPreset'?budget.check(command.preset):
+  return command.type==='setPreset'||command.type==='editSample'?budget.check(command.preset):
     command.type==='setSettings'?budget.check(currentPreset,command.settings.loopEnd):()=>{};
 }
 
 /** Validate an applied semantic operation; persisted operations also carry time. */
-export function normalizePcmRecordingCommand(command,{frames=PCM_MAX_FRAMES}={}) {
+export function normalizePcmRecordingCommand(command,{frames=PCM_MAX_FRAMES,preset}={}) {
   object(command,'PCM recording command');
   integer(frames,PCM_MAX_FRAMES,'PCM recording sample frame count',1);
   const shapes={noteOn:['type','channel','block','fnum'],noteOff:['type','channel'],
     setFrequency:['type','channel','block','fnum'],setSettings:['type','settings'],
-    setPreset:['type','preset'],stop:['type']};
+    setPreset:['type','preset'],editSample:['type','preset'],stop:['type']};
   if(!Object.hasOwn(shapes,command.type))throw new Error(`Unknown PCM recording command: ${String(command.type)}`);
   const fields=shapes[command.type],timed=Object.hasOwn(command,'time');
   exact(command,timed?[...fields,'time']:fields,'PCM recording command');
@@ -102,6 +102,10 @@ export function normalizePcmRecordingCommand(command,{frames=PCM_MAX_FRAMES}={})
   }
   if(command.type==='setSettings')next.settings=fullSettings(command.settings,frames);
   if(command.type==='setPreset')next.preset=normalizePcmPreset(command.preset);
+  if(command.type==='editSample') {
+    if(!preset)throw new TypeError('PCM sample editing requires the preceding preset');
+    next.preset=normalizePcmSampleEdit(preset,command.preset);
+  }
   return next;
 }
 
@@ -117,12 +121,12 @@ export function normalizePcmRecording(value) {
   const banks=bankBudget(initialState.preset);
   const commands=value.commands.map(command=>{
     if(!Object.hasOwn(command??{},'time'))throw new TypeError('PCM recording commands require time');
-    const next=normalizePcmRecordingCommand(command,{frames:framesOf(currentPreset)});
+    const next=normalizePcmRecordingCommand(command,{frames:framesOf(currentPreset),preset:currentPreset});
     if(next.time<lastTime||next.time>durationSeconds)throw new Error('PCM recording commands must be ordered and inside the recording duration');
     lastTime=next.time;
     bytes=checkBudget(bytes+commandBytes(next));
     checkCommandBank(banks,next,currentPreset)();
-    if(next.type==='setPreset')currentPreset=next.preset;
+    if(next.type==='setPreset'||next.type==='editSample')currentPreset=next.preset;
     else if(next.type==='setSettings')currentPreset={...currentPreset,settings:next.settings};
     return next;
   });
@@ -139,6 +143,7 @@ function tracker(initialPreset) {
     apply(command) {
       if(command.type==='stop')held.clear();
       else if(command.type==='setPreset'){preset=command.preset;held.clear();}
+      else if(command.type==='editSample')preset=command.preset;
       else if(command.type==='setSettings') {
         preset={...preset,settings:command.settings};
       } else if(command.type==='noteOn')held.add(command.channel);
@@ -180,7 +185,7 @@ export class SynthPcmRecordingManager {
   }
   recordCommand(command) {
     if(!this.recording||!this.currentRecording||this.playing)return false;
-    const normalized=normalizePcmRecordingCommand(command,{frames:this._tracker.frames});
+    const normalized=normalizePcmRecordingCommand(command,{frames:this._tracker.frames,preset:this._tracker.preset});
     if(Object.hasOwn(normalized,'time'))throw new TypeError('Live PCM commands cannot supply a recording time');
     const time=seconds(this._elapsed(),'PCM recording time');
     if(this.currentRecording.commands.length>=PCM_RECORDING_MAX_COMMANDS-STOP_RESERVE)throw new RangeError('PCM recording has reached its command limit');

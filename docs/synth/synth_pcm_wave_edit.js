@@ -1,4 +1,4 @@
-import {createPcmPreset,normalizePcmPreset,pcmSampleBytes} from './synth_pcm.js?v=pcm-live-end-1';
+import {createPcmPreset,normalizePcmPreset,pcmSampleBytes} from './synth_pcm.js?v=pcm-live-draw-1';
 
 const sampleFields=['name','sampleRate','encoding','data'];
 const encodeValue=value=>Math.min(126,Math.round(Math.abs(value)*126))|(value>=0?128:0);

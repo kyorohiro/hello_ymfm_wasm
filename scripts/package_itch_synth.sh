@@ -90,6 +90,10 @@ synth_looper.js
 "
 RUNTIME_FILES="
 playground_code_runtime.js
+ps1_vab.js
+ps1synth.js
+ps1_spu.js
+ps1_parameters.js
 playground_clock.js
 playground_live.js
 playground_music.js

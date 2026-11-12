@@ -98,8 +98,9 @@ key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
 
 Allocation uses available channels in round-robin order and replaces an old
 voice when the pool is full. Releasing a replaced key cannot stop its new owner.
-Changing source, wave data or the LFO routing can stop held notes; play a new
-note after applying those edits. There is no separate Apply button.
+Changing source or the LFO routing can stop held notes; play a new note after
+those changes. Editing only the Main or LFO wave keeps the held keys and the
+software envelope's progress. There is no separate Apply button.
 
 **Noise does not follow the keyboard note or Pitch wheel.** Its 0–31 clock code
 sets the noise texture; it is not a frequency in Hz. Noise controls can change
@@ -111,7 +112,10 @@ Choose **Main** or **LFO** as the edit target on the same canvas. **Sine**,
 **Triangle**, **Saw** and **Square** prepare a waveform, or draw all 32 samples
 yourself. Each sample is an integer from 0 to 31, matching the PSG's five-bit
 Wave RAM. A shape applies immediately; a drawing applies on pointer release.
-An interrupted stroke is discarded.
+An interrupted stroke is discarded. Wave edits keep sounding notes, their
+pitch and envelope timing; releasing the key still releases the same voice.
+The hardware wave-upload path resets the wave index / oscillator phase, so
+this preserves the performance rather than the exact pre-edit phase.
 
 Numbers use **− / value / +** controls with drag and keyboard adjustment.
 Source and other discrete choices use buttons. Clicking sound controls leaves

@@ -80,6 +80,16 @@ export function normalizePcmPreset(value) {
   return {version:PCM_PRESET_VERSION,kind:PCM_PRESET_KIND,settings,sample:{...value.sample}};
 }
 
+/** A drawn edit changes amplitudes only; instrument replacement is separate. */
+export function normalizePcmSampleEdit(current,value) {
+  const previous=normalizePcmPreset(current),next=normalizePcmPreset(value);
+  if(pcmSampleBytes(previous.sample).length!==pcmSampleBytes(next.sample).length||
+    ['name','sampleRate','encoding'].some(field=>previous.sample[field]!==next.sample[field])||
+    settingFields.some(field=>previous.settings[field]!==next.settings[field]))
+    throw new TypeError('PCM drawing must preserve sample length, metadata and settings');
+  return next;
+}
+
 /** Build a strict self-contained instrument from a sample and partial settings. */
 export function createPcmPreset({sample,settings={}}={}) {
   if(sample===undefined) {
@@ -216,6 +226,14 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
       const next=normalizePcmPreset(value),nextFrames=pcmSampleBytes(next.sample).length;
       silence();current=next;frames=nextFrames;revision++;installed=null;installedRevision=-1;
       onCommand({type:'setPreset',preset:getPreset()});emit();return getPreset();
+    },
+    editSample(value) {
+      const next=normalizePcmSampleEdit(current,value);
+      if(next.sample.data===current.sample.data)return false;
+      // Keep the installed endpoint and voice positions. install() transfers
+      // the new guarded bytes in FIFO order, just like a live End edit.
+      current=next;revision++;
+      onCommand({type:'editSample',preset:getPreset()});emit();return true;
     },
     setSettings(patch) {
       ownObject(patch,'PCM settings patch');

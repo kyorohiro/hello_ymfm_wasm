@@ -1,22 +1,22 @@
-import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
+import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-live-draw-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=pcm-wave-draw-1';
+import {setupSynthFiles} from './synth_files.js?v=pcm-live-draw-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=shared-pcm-notes-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=shared-pcm-notes-1';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=pcm-live-draw-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-release-1';
-import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-end-1';
-import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=channel-mixer-1';
-import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-release-1';
-import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-release-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-live-draw-1';
+import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-draw-1';
+import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-live-draw-1';
+import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-draw-1';
+import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-live-draw-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=channel-mixer-1';
 import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-mixer-1';
-import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-wave-draw-1';
-import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-release-1';
+import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-draw-1';
+import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=channel-mixer-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=pcm-live-draw-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -760,9 +760,11 @@ pcmControls=setupSynthPcmControls({voice:pcmVoice,onBuiltin:shape=>{
   if(applyPcmEditPreset(createPcmBuiltinPreset(shape)))setStatus(`PCM ${shape} selected.`);
 },
   onSampleEdit:preset=>{
-    const applied=applyPcmEditPreset(preset);
-    if(applied)setStatus('PCM waveform drawn. Press a key to hear it.');
-    return applied;
+    try {
+      const applied=applyPcmSampleEdit(preset);
+      if(applied)setStatus('PCM waveform drawn. Held notes keep playing.');
+      return applied;
+    } catch(error) {setStatus(`PCM drawing: ${error.message} Current sound kept.`);return false;}
   },
   onLoad:loadPcmWav,onVisualModeChange:()=>drawEnvelopeGuide(),onSettingsChange:patch=>{
     if(activeInstrumentKind!=='pcm'||isSongChannelTarget()||document.querySelector('.synth-editor').getAttribute('aria-busy')==='true')return;
@@ -781,6 +783,21 @@ function applyPcmEditPreset(preset,notice='') {
   pcmVoice.setPreset(preset);codeAudio?.pcmSourceChanged?.();pcmControls.update();synthFiles?.markDirty();
   const label=document.getElementById('synthPcmLoadStatus');label.textContent=notice;label.hidden=!notice;
   if(audioContext&&editorChip==='pcm')void ensureAudioReady({announce:false}).catch(error=>setStatus(`PCM audio: ${error.message}`));
+  return true;
+}
+
+function applyPcmSampleEdit(preset) {
+  if(activeInstrumentKind!=='pcm'||isSongChannelTarget()||document.querySelector('.synth-editor').getAttribute('aria-busy')==='true')return false;
+  const previous=pcmVoice.getPreset(),next=normalizePcmSampleEdit(previous,preset);
+  if(next.sample.data===previous.sample.data)return false;
+  codeAudio?.beforePcmSampleEdit();
+  ++pcmLoadGeneration;
+  pcmVoice.editSample(next);pcmControls.update();synthFiles?.markDirty();
+  // Queue the same-endpoint RAM update now. Do not leave a later audio-ready
+  // await able to overwrite a newer Code loadMemory request out of FIFO order.
+  const pcm=pcmAudio.getPcm();
+  if(pcm)void pcmVoice.install(pcm).catch(error=>setStatus(`PCM audio: ${error.message}`));
+  else if(audioContext&&editorChip==='pcm')void ensureAudioReady({announce:false}).catch(error=>setStatus(`PCM audio: ${error.message}`));
   return true;
 }
 

@@ -2,6 +2,8 @@
 
 依頼：既定のStart／End位置指定を維持し、PC Engine Synthのように同じcanvasへ描いてPCM波形を変更できるようにする。
 
+後続変更（2026-11-12）: [保持音を維持する修正](todo_pcm_wave_edit_held_notes_01.md)で、Draw確定を同じ長さのRAM更新へ分離する。以下は最初の実装・検証時の記録で、適用時停止の記述は修正前の動作。
+
 - [x] 既存のPCM preset／共有RAM／Code／録音・Looper・保存経路とHuC6280の描画操作を確認する。
 - [x] Sample表示にRange（既定）／Drawの切替を追加。同じcanvasを使い、マウス・touch／penで振幅を描けるようにする。新しい画面やselectで演奏用キー入力を奪わない。
 - [x] RF5C164のsign-magnitudeと予約値0xffを尊重し、飛んだpointer位置の間も補間する。sampleRate・Root・長さ・Loop設定と描画外のデータを保つ。

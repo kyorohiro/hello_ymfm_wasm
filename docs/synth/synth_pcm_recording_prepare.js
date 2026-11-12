@@ -1,7 +1,7 @@
 // Main-thread JSON / sample preparation stays outside AudioWorkletGlobalScope.
-import {normalizePcmRecording,PCM_RECORDING_MAX_BANKS} from './synth_pcm_recording.js?v=pcm-live-end-1';
-import {normalizePcmPreset,pcmSampleBytes,PCM_NATIVE_RATE,PCM_RAM_BYTES} from './synth_pcm.js?v=pcm-live-end-1';
-import {PCM_RECORDING_MAX_COMPILED_BYTES,PCM_RECORDING_COMPILED_KIND} from './synth_pcm_recording_player.js?v=pcm-live-end-1';
+import {normalizePcmRecording,PCM_RECORDING_MAX_BANKS} from './synth_pcm_recording.js?v=pcm-live-draw-1';
+import {normalizePcmPreset,pcmSampleBytes,PCM_NATIVE_RATE,PCM_RAM_BYTES} from './synth_pcm.js?v=pcm-live-draw-1';
+import {PCM_RECORDING_MAX_COMPILED_BYTES,PCM_RECORDING_COMPILED_KIND} from './synth_pcm_recording_player.js?v=pcm-live-draw-1';
 
 if(PCM_RECORDING_MAX_COMPILED_BYTES!==PCM_RECORDING_MAX_BANKS*PCM_RAM_BYTES)throw new Error('PCM recording RAM budgets differ');
 const positive=(value,max,label)=>{
@@ -42,7 +42,10 @@ export function prepareSynthPcmRecording(value,{sampleRate,ignorePatch=false,pre
   const initial=configuration(current),events=[];
   for(const command of recording.commands) {
     const frame=Math.round(command.time*sampleRate),{time,...event}=command;
-    if(command.type==='setPreset') {
+    if(command.type==='editSample') {
+      if(ignorePatch)continue;
+      current=command.preset;events.push({frame,type:'editSample',configuration:configuration(current)});
+    } else if(command.type==='setPreset') {
       if(ignorePatch){events.push({frame,type:'stop'});continue;}
       current=command.preset;events.push({frame,type:'setPreset',configuration:configuration(current)});
     } else if(command.type==='setSettings') {

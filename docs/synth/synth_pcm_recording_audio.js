@@ -1,12 +1,12 @@
 import {watchAudioEndpoint} from '../js/playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
-import {prepareSynthPcmRecording} from './synth_pcm_recording_prepare.js?v=pcm-live-end-1';
+import {prepareSynthPcmRecording} from './synth_pcm_recording_prepare.js?v=pcm-live-draw-1';
 
 async function createDevice(context,output,{signal,onError}={}) {
   signal?.throwIfAborted();
   const [response]=await Promise.all([
     fetch(new URL('../generated/rf5c164_wasm.wasm',import.meta.url),{signal}),
-    context.audioWorklet.addModule(new URL('./synth_pcm_recording_worklet.js?v=pcm-release-1',import.meta.url)),
+    context.audioWorklet.addModule(new URL('./synth_pcm_recording_worklet.js?v=pcm-live-draw-1',import.meta.url)),
   ]);
   if(!response.ok)throw Error(`PCM Event Rec WASM HTTP ${response.status}`);
   const wasmBinary=await response.arrayBuffer();signal?.throwIfAborted();

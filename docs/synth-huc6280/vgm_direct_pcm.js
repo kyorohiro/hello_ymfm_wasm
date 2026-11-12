@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js';
-import {createDefaultPreset, readPreset} from './preset.js';
+import {createDefaultPreset, readPreset} from './preset.js?v=wave-held-1';
 import {encodeDdaDataAsync, MAX_DDA_SAMPLES} from './dda_pcm.js';
 
 const MAX_COMMANDS=4_000_000, MAX_REGIONS=100_000, MAX_VOICES=4096, CHUNK=4096;

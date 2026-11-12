@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
+import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js?v=wave-held-1';
 import {decodeDdaData} from './dda_pcm.js';
 import {mergeVgmVolumeVariants} from './vgm_pcm_variants.js';
 

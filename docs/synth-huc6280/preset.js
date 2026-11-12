@@ -47,6 +47,17 @@ export function createDefaultPreset() {
     envelope:{enabled:true, attack:.005, decay:0, sustain:1, release:.025}, dda:createDefaultDda()};
 }
 
+/** Compare canonical presets: only the two fixed 32-point wave arrays changed.
+ * Inactive Wave drafts are included; they must not touch Noise/DDA playback.
+ * Imports and combined parameter/routing edits retain their replacement path.
+ */
+export function isWaveOnlyEdit(previous,next) {
+  const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  if(same(previous.wave,next.wave)&&same(previous.lfo.wave,next.lfo.wave))return false;
+  const settings=p=>({...p,wave:null,lfo:{...p.lfo,wave:null}});
+  return same(settings(previous),settings(next));
+}
+
 /** Validate a complete portable preset atomically and detach all nested data.
  * Envelope timing is host software, not a HuC6280 hardware envelope unit. */
 export function readPreset(value) {

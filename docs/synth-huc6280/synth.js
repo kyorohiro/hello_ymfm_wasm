@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js';
-import {createEditor} from './editor.js';
-import {createVgmLibrary} from './vgm_library.js';
-import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
+import {createAudio} from './audio.js?v=wave-held-1';
+import {createEditor} from './editor.js?v=wave-held-1';
+import {createVgmLibrary} from './vgm_library.js?v=wave-held-1';
+import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
 import {prepareDdaAudio} from './audio_import.js';
 import {MAX_PRESET_BYTES} from './dda_pcm.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
@@ -107,10 +107,11 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   const next = readPreset(value);
   if (!fromVgm) vgmLibrary?.clearSelection();
   const previous = preset;
-  const replacesVoices = load || previous.source !== next.source || previous.lfo.enabled !== next.lfo.enabled
+  const waveOnly=!load&&isWaveOnlyEdit(previous,next);
+  const replacesVoices = load || !waveOnly&&(previous.source !== next.source || previous.lfo.enabled !== next.lfo.enabled
     || previous.lfo.mode !== next.lfo.mode || previous.lfo.output.enabled !== next.lfo.output.enabled
     || previous.envelope.enabled !== next.envelope.enabled || JSON.stringify(previous.wave) !== JSON.stringify(next.wave)
-    || JSON.stringify(previous.lfo.wave) !== JSON.stringify(next.lfo.wave) || previous.dda.data !== next.dda.data;
+    || JSON.stringify(previous.lfo.wave) !== JSON.stringify(next.lfo.wave) || previous.dda.data !== next.dda.data);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
   const editRevision = revision;
@@ -127,7 +128,8 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
       if (audio !== engine) return;
       readVoices(state);
       visualizer.wake();
-      if (revision === editRevision) status(message ?? (replacesVoices
+      if (revision === editRevision) status(message ?? (waveOnly
+        ? 'Wave updated · held notes and Software envelope continue.' : replacesVoices
         ? 'Wave or routing updated · previous notes stopped. Play the keyboard.'
         : 'Instrument updated · volume, pan, Noise clock and LFO rate apply live.'));
     } catch (error) {

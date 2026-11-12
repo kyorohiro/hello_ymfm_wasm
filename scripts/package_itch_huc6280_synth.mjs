@@ -56,7 +56,7 @@ export async function packageHuc6280Synth({version='dev',releaseDir=join(root,'r
     return `href="${new URL(path,home+'synth-huc6280/').href}"`;
   });
   await writeFile(join(stage,'synth-huc6280/index.html'),html);
-  await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica_huc6280_synth.webp','./tetorica_huc6280_synth.webp').replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g,'$1="./synth-huc6280/$2"'));
+  await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica_huc6280_synth.webp','./tetorica_huc6280_synth.webp').replace(/\b(href|src)="\.\/(synth\.(?:css|js))([?#][^"]*)?"/g,'$1="./synth-huc6280/$2$3"'));
   await copyRuntimeArtifacts({root,destination:join(stage,'generated'),ids:['huc6280'],includeMetadata:false});
   const sourceCheck=await copyHuc6280Sources(stage);
   await copyFile(join(root,'LICENSE'),join(stage,'LICENSE'));

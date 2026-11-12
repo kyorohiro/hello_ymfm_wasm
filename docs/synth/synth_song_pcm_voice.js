@@ -1,7 +1,7 @@
 import {
   PCM_ENCODING, PCM_PRESET_VERSION, PCM_PRESET_KIND, PCM_MAX_FRAMES,
   PCM_MIN_SAMPLE_RATE, PCM_MAX_SAMPLE_RATE, createSynthPcmVoice,
-} from './synth_pcm.js?v=pcm-release-1';
+} from './synth_pcm.js?v=pcm-live-draw-1';
 
 const RAM_BYTES=65536;
 const capturedSamples=new WeakMap();

@@ -1,9 +1,9 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
-import {createSynthProject,isSynthTonePath,isSynthStatePath,isPsgPresetPath,isPcmPresetPath} from './synth_project.js?v=pcm-editor-1';
+import {createSynthProject,isSynthTonePath,isSynthStatePath,isPsgPresetPath,isPcmPresetPath} from './synth_project.js?v=pcm-live-draw-1';
 import {isPsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {isPcmPreset} from './synth_pcm.js?v=pcm-editor-1';
+import {isPcmPreset} from './synth_pcm.js?v=pcm-live-draw-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
-import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=pcm-editor-1';
+import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=pcm-live-draw-1';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';

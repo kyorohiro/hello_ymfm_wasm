@@ -20,7 +20,7 @@ const evaluate=(page,fn,arg)=>bounded(page.evaluate(fn,arg),'evaluate');
 async function until(page,test,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await test())return;await pause(40);}throw Error(label);}
 function installAudit(){
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,NativeWorklet=window.AudioWorkletNode,meters=[],writes=[];
-  let mask=255,selected=0,capture=null,captureSerial=0;const steps=Array(8).fill(0),nodes=new WeakMap(),liveNodes=[];
+  let mask=255,selected=0,capture=null,captureSerial=0,holdNextMemory=false,heldMemory=null;const steps=Array(8).fill(0),nodes=new WeakMap(),liveNodes=[];
   function meter(source,kind,destination){
     const ctx=source.context,split=ctx.createChannelSplitter(2),left=ctx.createAnalyser(),right=ctx.createAnalyser(),mute=ctx.createGain();
     left.fftSize=right.fftSize=8192;mute.gain.value=0;connect.call(source,split);connect.call(split,left,0);connect.call(split,right,1);
@@ -34,6 +34,9 @@ function installAudit(){
     return result;
   };
   MessagePort.prototype.postMessage=function(message,...args){
+    if(holdNextMemory&&message?.method==='loadMemory'){
+      holdNextMemory=false;const port=this;heldMemory=()=>post.call(port,message,...args);return;
+    }
     for(const c of Array.isArray(message)?message:[message]){
       if(c?.method==='writeRegister'&&Array.isArray(c.args)){
         const [register,value]=c.args;writes.push({kind:'rf',register,value});
@@ -101,7 +104,8 @@ function installAudit(){
   window.__pcmAudit={beginCapture,finishCapture,captureBlocks:()=>capture?.blocks.length??0,
     setTestPan(channel,left,right){const port=liveNodes.at(-1).port;port.postMessage({method:'writeRegister',args:[7,0xc0|channel]});port.postMessage({method:'writeRegister',args:[1,left|(right<<4)]});},
     retriggerDuringRelease(channel){const port=liveNodes.at(-1).port;port.postMessage({method:'releaseNote',args:[channel]});port.postMessage({method:'keyOn',args:[channel]});},
-    drain:()=>writes.splice(0),state:()=>({mask,steps:[...steps]}),read:()=>meters.map(({left,right,mute,kind})=>({kind,left:sample(left),right:sample(right),muted:mute.gain.value===0}))};
+    holdMemory(){holdNextMemory=true;},hasHeldMemory:()=>Boolean(heldMemory),releaseMemory(){const send=heldMemory;heldMemory=null;send?.();},
+    drain:()=>writes.splice(0),state:()=>({mask,steps:[...steps],editorNodes:liveNodes.length}),read:()=>meters.map(({left,right,mute,kind})=>({kind,left:sample(left),right:sample(right),muted:mute.gain.value===0}))};
 }
 const audit=page=>evaluate(page,()=>__pcmAudit.read()),drain=page=>evaluate(page,()=>__pcmAudit.drain());
 async function level(page,kind='output'){return Math.max(0,...(await audit(page)).filter(m=>m.kind===kind).flatMap(m=>[m.left.rms,m.right.rms]));}
@@ -149,7 +153,7 @@ async function drawingChecks(page){
   await page.locator('#synthPcmPresetSelect').focus();await button('draw').click();
   assert.equal(await button('draw').getAttribute('aria-pressed'),'true');
   assert(await evaluate(page,()=>document.activeElement!==document.getElementById('synthPcmPresetSelect')),'Draw mode returns mouse-selected controls to musical key input');
-  await page.keyboard.down('a');await sounding(page);const held=(await evaluate(page,()=>__pcmAudit.state())).mask;await drain(page);
+  await page.keyboard.down('a');await sounding(page);const heldState=await evaluate(page,()=>__pcmAudit.state()),held=heldState.mask;await drain(page);
   async function point(frame,value){const box=await canvas.boundingBox(),size=await canvas.evaluate(node=>({width:node.width,height:node.height}));assert(box);return{x:box.x+(28+frame/255*(size.width-40))*box.width/size.width,y:box.y+(21+(size.height-43)/2-value*(size.height-43)*.45)*box.height/size.height};}
   async function begin(from=40,level=.65){await canvas.scrollIntoViewIfNeeded();const start=await point(from,level);await canvas.evaluate(node=>node.addEventListener('pointerdown',event=>{window.__pcmDrawPointerId=event.pointerId;},{once:true}));await page.mouse.move(start.x,start.y);await page.mouse.down();}
   async function move(to=100,level=-.65){const next=await point(to,level);await page.mouse.move(next.x,next.y);}
@@ -157,24 +161,45 @@ async function drawingChecks(page){
   assert.deepEqual(await exportedDuringStroke(page),initial,'Dragging previews a draft without changing exported PCM');
   assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,held,'Drawing preview retains the sounding physical voices');
   assert(!(await drain(page)).some(row=>row.kind==='rf-memory'||row.kind==='rf-command'&&['keyOff','releaseNote','reset'].includes(row.method)||row.kind==='rf'&&row.register===8),'Drawing preview does not upload RAM or stop notes');
-  await page.mouse.up();await pcmReady(page);await silence(page);await up(page);
-  const committed=await exported(page),after=Buffer.from(committed.sample.data,'base64'),writes=await drain(page);
+  await page.mouse.up();await pcmReady(page);await sounding(page);
+  assert.deepEqual(await evaluate(page,()=>__pcmAudit.state()),heldState,'Committing a stroke retains physical gates, pitch steps and the same editor endpoint');
+  assert.equal(await page.locator('#keyboard .key.is-active').count(),1,'The held input still owns its key after drawing');
+  const writes=await drain(page);
   assert.equal(writes.filter(row=>row.kind==='rf-memory').length,1,'A completed stroke uploads the new source exactly once');
+  assert(!writes.some(row=>row.kind==='rf-keyOn'||row.kind==='rf-command'&&['keyOn','keyOff','releaseNote','reset'].includes(row.method)||row.kind==='rf'&&[6,8].includes(row.register)),
+    'Committing PCM edits changes only RAM, without release, retrigger or playback-start writes');
+  await up(page);await silence(page);const released=await drain(page);
+  assert.equal(released.filter(row=>row.kind==='rf-command'&&row.method==='releaseNote').length,1,'The original key-up releases its retained PCM voice');
+  assert.equal(await page.locator('#keyboard .key.is-active').count(),0);
+  const committed=await exported(page),after=Buffer.from(committed.sample.data,'base64');
   assert.equal(after.length,before.length);assert(!after.includes(255),'Draw never emits the reserved RF5C164 marker');
   assert.deepEqual({...committed.sample,data:initial.sample.data},initial.sample,'Painting preserves source name/rate/encoding');assert.deepEqual(committed.settings,initial.settings,'Painting preserves Root/Loop/Volume/Pan');
   assert.deepEqual(after.subarray(0,38),before.subarray(0,38));assert.deepEqual(after.subarray(103),before.subarray(103),'Unpainted sample bytes are unchanged');
   const amplitude=byte=>(byte&127)/126*(byte&128?1:-1);
   for(let frame=45;frame<=95;frame++){const target=.65-1.3*(frame-40)/60;assert(Math.abs(amplitude(after[frame])-target)<.04,'A fast positive/negative stroke interpolates skipped PCM frames: '+frame);}
-  assert.notDeepEqual(after,before);assert.equal(await page.locator('#keyboard .key.is-active').count(),0,'Releasing the drawing stroke retires held keyboard notes');
+  assert.notDeepEqual(after,before);
   await begin(220,-.5);await move(172,.5);await page.mouse.up();await pcmReady(page);
   const painted=await exported(page),reversed=Buffer.from(painted.sample.data,'base64');
   for(let frame=177;frame<=215;frame++){const target=.5-(frame-172)/48;assert(Math.abs(amplitude(reversed[frame])-target)<.04,'Right-to-left strokes interpolate in sample order: '+frame);}
   assert(!reversed.includes(255));assert.deepEqual(reversed.subarray(0,170),after.subarray(0,170));assert.deepEqual(reversed.subarray(223),after.subarray(223));
+  // The source RAM may be waiting for ACK, but a physically held input still
+  // owns its old channel. Its key-up must overtake the pending edit safely.
+  await down(page,'a');await sounding(page);const pendingHeld=await evaluate(page,()=>__pcmAudit.state());await drain(page);
+  await evaluate(page,()=>__pcmAudit.holdMemory());let pendingRelease;
+  try{
+    await begin(120,.5);await move(150,-.5);await page.mouse.up();await until(page,()=>evaluate(page,()=>__pcmAudit.hasHeldMemory()),'Draw RAM command is awaiting ACK');
+    assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,pendingHeld.mask);await up(page);await silence(page);
+    pendingRelease=await drain(page);assert(pendingRelease.some(row=>row.kind==='rf-command'&&row.method==='releaseNote'),'Key-up reaches the retained PCM voice before its edit ACK');
+    assert(await evaluate(page,()=>__pcmAudit.hasHeldMemory()),'Release completes while the RAM command is still delayed');
+  }finally{await evaluate(page,()=>__pcmAudit.releaseMemory());await up(page);}
+  await pcmReady(page);await silence(page);assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,255);assert.equal(await page.locator('#keyboard .key.is-active').count(),0,'Late edit ACK cannot resurrect the released input');
+  // Use the final committed edit for the existing serialization checks.
+  const finalPainted=await exported(page);
   // Verify the source format and normal Files/Cassette flow, rather than a
   // second drawing-only serialization path.
-  await sync(page);const drawnPath=await pathNow(page);await builtin(page,'triangle');await page.locator('#synthFileRevertButton').click();await ready(page);await pcmReady(page);assert.deepEqual(await exported(page),painted,'Revert restores the painted PCM checkpoint');
-  const archive=await cassette(page);assert.deepEqual(JSON.parse(bytesAt(archive.value,drawnPath).toString()),painted,'Cassette contains the painted source bytes');
-  await page.locator('#tfiFile').setInputFiles({name:'Drawn PCM.pcm.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(painted))});await ready(page);await pcmReady(page);assert.deepEqual(await exported(page),painted,'Painted PCM JSON round-trips through normal import');
+  await sync(page);const drawnPath=await pathNow(page);await builtin(page,'triangle');await page.locator('#synthFileRevertButton').click();await ready(page);await pcmReady(page);assert.deepEqual(await exported(page),finalPainted,'Revert restores the painted PCM checkpoint');
+  const archive=await cassette(page);assert.deepEqual(JSON.parse(bytesAt(archive.value,drawnPath).toString()),finalPainted,'Cassette contains the painted source bytes');
+  await page.locator('#tfiFile').setInputFiles({name:'Drawn PCM.pcm.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(finalPainted))});await ready(page);await pcmReady(page);assert.deepEqual(await exported(page),finalPainted,'Painted PCM JSON round-trips through normal import');
   const cancellation=[];
   for(const reason of ['pointercancel','lostpointercapture','Escape','blur','visual-mode','tab','preset']){
     await button('draw').click();const kept=await exported(page);
@@ -205,7 +230,8 @@ async function drawingChecks(page){
   }
   await page.locator('[data-pcm-visual-mode="sample"]').click();await button('range').click();
   await builtin(page,'sine');
-  return{frames:after.length,changedFrames:after.reduce((count,value,index)=>count+Number(value!==before[index]),0),strokeUploads:1,cancellation,roundTrip:true,physicalOutputMuted:true};
+  return{frames:after.length,changedFrames:after.reduce((count,value,index)=>count+Number(value!==before[index]),0),strokeUploads:1,heldVoicePreserved:true,keyUpReleasesRetainedVoice:true,
+    pendingEditKeyUp:{releasedBeforeAck:true,commands:pendingRelease},cancellation,roundTrip:true,physicalOutputMuted:true};
 }
 const pathNow=page=>page.locator('#synthActiveFilePath').textContent();
 async function sync(page){await page.locator('#synthFileSaveButton').click();await ready(page);await until(page,()=>page.locator('#synthFileSaveButton').getAttribute('data-feedback').then(v=>v==='success'),'Sync succeeds');}

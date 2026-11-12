@@ -1,4 +1,4 @@
-import {SynthPcmRecordingManager} from './synth_pcm_recording.js?v=pcm-release-1';
+import {SynthPcmRecordingManager} from './synth_pcm_recording.js?v=pcm-live-draw-1';
 import {SynthLayerLooper,LAYER_LOOP_MIN_SECONDS,LAYER_LOOP_MAX_SECONDS,LAYER_LOOP_MAX_UNITS,LAYER_LOOP_MAX_PCM_BYTES} from './synth_layer_looper.js?v=pcm-looper-1';
 
 export const PCM_LOOP_MIN_SECONDS=LAYER_LOOP_MIN_SECONDS;

@@ -4,7 +4,7 @@ import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=channel-
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
 import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {describeSynthPsgSongVoice,createSynthPsgSongCopyPreset} from './synth_song_psg_voice.js?v=psg-live-1';
-import {describeSynthPcmSongVoice,createSynthPcmSongCopyPreset} from './synth_song_pcm_voice.js?v=pcm-live-1';
+import {describeSynthPcmSongVoice,createSynthPcmSongCopyPreset} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 
 const isSong = path => path.startsWith('/vgm/') && /\.(vgm|vgz)$/i.test(path);
 const chips={

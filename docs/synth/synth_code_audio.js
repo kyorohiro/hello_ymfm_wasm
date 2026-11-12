@@ -8,7 +8,7 @@ import {decodeAudioBuffer} from '../js/audio_decode.js';
 import {SEGAPSG_CLOCK} from '../js/segapsg.js';
 import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
 import {rf5c164MidiNote,rf5c164NoteStep} from '../js/rf5c164_notes.js?v=shared-notes-1';
-import {PCM_NATIVE_RATE} from './synth_pcm.js?v=pcm-release-1';
+import {PCM_NATIVE_RATE} from './synth_pcm.js?v=pcm-live-draw-1';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 import {createSynthPerformanceTarget,normalizeCapturedVoice} from './synth_performance.js?v=op-gates-1';
 
@@ -232,6 +232,13 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     pcmSeeded=false;pcmMemoryChanged=false;pcmSelected=0;
     lastPcmSettings=settingsPcm();
   }
+  function beforePcmSampleEdit() {
+    if(stopping)throw Error('Wait for Code to stop before drawing the editor sample.');
+    if(pcmMemoryChanged)throw Error('Stop Code before drawing the editor sample; Code owns different PCM RAM.');
+    // Cancel an old asynchronous loadSample decode, but keep current musical
+    // tuning, physical channels and pending/held note ownership intact.
+    pcmSourceGeneration++;
+  }
   function startPcm(ch) {
     seedPcm();const value=required(getPcm,'PCM').keyOn(ch);pcmActive.add(ch);return value;
   }
@@ -388,7 +395,7 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     }).finally(()=>{if(stopping===task)stopping=null;});
     stopping=task;return task;
   }
-  return {prepare,useSoundChip,fx,getFm:()=>client('ym2612',fmOverrides,getFm),syncFmVoice,syncPsgSettings,syncPcmSettings,pcmSourceChanged,
+  return {prepare,useSoundChip,fx,getFm:()=>client('ym2612',fmOverrides,getFm),syncFmVoice,syncPsgSettings,syncPcmSettings,pcmSourceChanged,beforePcmSampleEdit,
     setMaster(value){
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw RangeError('Code Master must be 0..3.8');
       pwmMaster=value;if(pwmOwner)pwmOwner.gain.gain.value=value*pwmSourceVolume;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../js/huc6280synth.js';
-import {createDefaultPreset, readPreset} from './preset.js';
+import {createDefaultPreset, readPreset, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
 import {decodeDdaData} from './dda_pcm.js';
 
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -109,11 +109,15 @@ export class Huc6280Instrument {
   _apply(previous, next) {
     const changed = getter => !previous || !same(getter(previous), getter(next));
     const lfo = hasLfo(next);
-    if (changed(p => p.wave) || changed(p => p.source) || changed(p => p.lfo.enabled) || changed(p => p.lfo.wave)) {
-      for (let ch = 0; ch < 6; ch++) this.synth.setWaveform(ch, lfo && ch === 1 ? next.lfo.wave : next.wave);
-      this.levels.fill(null);
+    const routingChanged=changed(p=>p.source)||changed(p=>p.lfo.enabled),uploaded=[];
+    for(let channel=0;channel<6;channel++) {
+      const modulator=lfo&&channel===1;
+      if(routingChanged||next.source==='wave'&&changed(p=>modulator?p.lfo.wave:p.wave)) {
+        this.synth.setWaveform(channel,modulator?next.lfo.wave:next.wave);
+        this.levels[channel]=null;uploaded.push(channel);
+      }
     }
-    if(changed(p=>p.source)||changed(p=>p.wave)||changed(p=>p.lfo.enabled)||changed(p=>p.lfo.wave)) for(let channel=0;channel<6;channel++) {
+    if(routingChanged) for(let channel=0;channel<6;channel++) {
       this.synth.setDda(channel,next.source==='dda');
       if(next.source==='dda') this._writeDda(channel,16);
     }
@@ -132,6 +136,7 @@ export class Huc6280Instrument {
         this.synth.setVolume(1, next.lfo.output.volume); this.synth.keyOff(1); this.levels[1] = next.lfo.output.volume;
       }
     }
+    return uploaded;
   }
   read() {
     this._open();
@@ -145,17 +150,31 @@ export class Huc6280Instrument {
   setPreset(value) {
     this._open();
     const next = readPreset(value), previous = this.preset;
+    const waveOnly=isWaveOnlyEdit(previous,next);
+    const activeWaveChanged=next.source==='wave'&&(!same(previous.wave,next.wave)||hasLfo(next)&&!same(previous.lfo.wave,next.lfo.wave));
+    if(waveOnly&&!activeWaveChanged){this.preset=next;return this.read();}
     const clear = previous.source !== next.source || !same(previous.wave, next.wave) || previous.lfo.enabled !== next.lfo.enabled ||
       !same(previous.lfo.wave, next.lfo.wave) || previous.lfo.mode !== next.lfo.mode ||
       previous.lfo.output.enabled !== next.lfo.output.enabled || previous.envelope.enabled !== next.envelope.enabled || previous.dda.data!==next.dda.data;
-    if (clear) this.stop();
-    this._apply(previous, next); this.preset = next;
+    if (clear&&!waveOnly) this.stop();
+    const gates=waveOnly?this.synth._getState().registers.map(registers=>Boolean(registers[4]&128)):null;
+    const uploaded=this._apply(previous, next); this.preset = next;
     if(previous.dda.data!==next.dda.data) this.ddaSamples=decodeDdaData(next.dda.data);
     if (next.source === 'wave' && (!same(previous.lfo.carrierPeriod, next.lfo.carrierPeriod) || !same(previous.lfo.modulatorPeriod, next.lfo.modulatorPeriod))) {
       for (const voice of this.slots) if (voice) this._tuneVoice(voice);
     }
     if(next.source==='dda') for(const voice of this.slots) if(voice) this._tuneVoice(voice);
     this._advanceEnvelopes();
+    if(waveOnly&&uploaded.length) {
+      // setWaveform gates output and resets its write/oscillator index. Restore
+      // only already-enabled owned channels, without noteOn, retuning, replacing
+      // the owner, or restarting the host envelope/release timeline.
+      const owned=new Set();
+      for(const voice of this.slots)if(voice&&!voice.ended) {
+        owned.add(voice.channel);if(voice.paired)owned.add(1);
+      }
+      for(const channel of uploaded)if(gates[channel]&&owned.has(channel))this.synth.keyOn(channel);
+    }
     return this.read();
   }
   loadPreset(value) {

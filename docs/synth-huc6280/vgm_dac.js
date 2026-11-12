@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js';
-import {createDefaultPreset, readPreset} from './preset.js';
+import {createDefaultPreset, readPreset} from './preset.js?v=wave-held-1';
 import {encodeDdaDataAsync, MAX_DDA_SAMPLES} from './dda_pcm.js';
 
 // DAC stream control: VGM v1.71, and libvgm emu/dac_control.c.

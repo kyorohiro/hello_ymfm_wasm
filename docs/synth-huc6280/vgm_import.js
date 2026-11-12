@@ -3,9 +3,9 @@
 import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js';
 import {parseVgmMetadata} from '../js/vgm_file.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
-import {createDefaultPreset, readPreset} from './preset.js';
-import {extractVgmDacStreams} from './vgm_dac.js';
-import {extractVgmDirectPcm} from './vgm_direct_pcm.js';
+import {createDefaultPreset, readPreset} from './preset.js?v=wave-held-1';
+import {extractVgmDacStreams} from './vgm_dac.js?v=wave-held-1';
+import {extractVgmDirectPcm} from './vgm_direct_pcm.js?v=wave-held-1';
 import {MAX_DDA_SAMPLES} from './dda_pcm.js';
 
 export const MAX_VGM_BYTES = 64 * 1024 * 1024;

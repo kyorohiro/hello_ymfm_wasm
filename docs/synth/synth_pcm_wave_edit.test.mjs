@@ -92,7 +92,7 @@ test('full-RAM edited samples retain exact length, marker guards and existing pr
   assert.deepEqual(project.revertTone(path).preset,preset);
 });
 
-test('a committed stroke reaches the real RF core through the existing preset-install path and produces finite PCM',async()=>{
+test('a committed stroke reaches the real RF core without stopping the held note and produces finite PCM',async()=>{
   const wasmBinary=await readFile(new URL('../generated/rf5c164_wasm.wasm',import.meta.url));
   const chip=await Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:48000});
   const raw=new RF5C164Synth({transport:new RF5C164DirectTransport(chip)}),commands=[];
@@ -101,13 +101,13 @@ test('a committed stroke reaches the real RF core through the existing preset-in
     await voice.install();voice.noteOn(0,4,644);
     assert(chip.generateStereo(480).left.every(value=>value===0));
     const draft=createPcmWaveDraft(original);draft.setPoint({index:0,value:1});draft.setPoint({index:31,value:-1});
-    voice.setPreset(draft.finish());assert.deepEqual(voice.getState().heldChannels,[]);
-    assert.equal(commands.at(-1).type,'setPreset');assert.equal(raw.channelMask,255);
-    assert(await voice.install());voice.noteOn(0,4,644);
+    voice.editSample(draft.finish());assert.deepEqual(voice.getState().heldChannels,[0]);
+    assert.equal(commands.at(-1).type,'editSample');assert.equal(raw.channelMask,254);
+    assert(await voice.install());
     const pcm=chip.generateStereo(480);
     assert(pcm.left.every(Number.isFinite)&&pcm.right.every(Number.isFinite));
     assert(pcm.left.some(value=>Math.abs(value)>.001),'drawn amplitudes reach hardware PCM output');
-    assert.deepEqual(pcm.left,pcm.right);assert.equal(commands.filter(command=>command.type==='setPreset').length,1);
+    assert.deepEqual(pcm.left,pcm.right);assert.equal(commands.filter(command=>command.type==='editSample').length,1);
     assert.deepEqual(pcmSampleBytes(original.sample),new Uint8Array(32).fill(128));
   } finally {voice.stop();chip.dispose();}
 });

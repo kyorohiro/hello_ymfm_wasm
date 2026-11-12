@@ -66,7 +66,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for(const entry of info.receipt.bundles) assert.deepEqual(entry,info.receipt.modules.find(module=>module.path===entry.path));
   const main=await readFile(join(a.stage,'synth-huc6280/synth.js'),'utf8');
   assert(main.split('\n').length>100);assert.match(main,/^\/\/ SPDX-License-Identifier: BSD-3-Clause\n/);
-  assert.match(main,/import \{createAudio\} from '\.\/audio\.js'/);
+  assert.match(main,/import \{createAudio\} from '\.\/audio\.js(?:\?v=[A-Za-z0-9._-]+)?'/);
   assert.match(await readFile(join(a.stage,'synth-huc6280/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
   for(const name of ['vgm_import.js','vgm_library.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));

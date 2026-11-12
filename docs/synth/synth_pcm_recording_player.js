@@ -1,4 +1,4 @@
-import {normalizePcmSettings,PCM_RAM_BYTES,PCM_MAX_FRAMES} from './synth_pcm.js?v=pcm-release-1';
+import {normalizePcmSettings,PCM_RAM_BYTES,PCM_MAX_FRAMES} from './synth_pcm.js?v=pcm-live-draw-1';
 
 export const PCM_RECORDING_MAX_COMPILED_BYTES=32*1024*1024;
 export const PCM_RECORDING_COMPILED_KIND='tetorica-pcm-recording-compiled-v1';
@@ -36,10 +36,17 @@ function validatePrepared(value,sampleRate) {
   }
   configuration(value.initial);
   if(!Array.isArray(value.events)||!value.events.length||value.events.length>MAX_COMMANDS)throw new TypeError('Invalid prepared PCM event count');
-  let previous=0;
+  let previous=0,preceding=value.initial;
   for(const event of value.events) {
     integer(event?.frame,previous,durationFrames,'event frame');previous=event.frame;
-    if(['setPreset','setSettings'].includes(event.type)){configuration(event.configuration);continue;}
+    if(['setPreset','setSettings','editSample'].includes(event.type)){
+      configuration(event.configuration);
+      if(event.type==='editSample'&&(event.configuration.frames!==preceding.frames||
+        Object.keys(preceding.settings).some(field=>event.configuration.settings[field]!==preceding.settings[field])||
+        preceding.pitchFactors.some((value,index)=>value!==event.configuration.pitchFactors[index])))
+        throw new TypeError('Prepared PCM sample editing must preserve the preceding sample shape and settings');
+      preceding=event.configuration;continue;
+    }
     if(event.type==='stop')continue;
     if(!['noteOn','noteOff','setFrequency'].includes(event.type))throw new TypeError('Invalid prepared PCM event type');
     integer(event.channel,0,7,'channel');
@@ -82,6 +89,10 @@ export function createSynthPcmRecordingPlayer({sampleRate,pcm,onEnded=()=>{}}={}
   }
   function apply(event) {
     if(event.type==='stop'){silence();return;}
+    if(event.type==='editSample') {
+      if(configuration.bank!==event.configuration.bank)pcm.loadMemory(prepared.banks[event.configuration.bank],0);
+      configuration=event.configuration;return;
+    }
     if(event.type==='setPreset'||event.type==='setSettings'){settings(event.configuration,event.type==='setPreset');return;}
     const channel=event.channel;
     if(event.type==='noteOn') {
