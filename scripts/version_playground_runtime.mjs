@@ -7,7 +7,7 @@ import {SID_RUNTIME_MODULES} from './sid_artifacts.mjs';
 // imports query-free so direct class exports retain their constructor identity.
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
-const exactRuntimeModules=new Set(['playground_code_runtime.js',...SID_RUNTIME_MODULES]);
+const exactRuntimeModules=new Set(['playground_code_runtime.js','ps1_vab.js',...SID_RUNTIME_MODULES]);
 const nativeFiles=['native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_soundchips.js','playground_performance_processor.js','playground_chip_clock.js',
   'nesapusynth.js','playground_nes.js','playground_nes_audio.js','playground_nes_worklet.js',
@@ -409,8 +409,15 @@ do {
   }
 }while(propagated);
 for(const name of ['playground.js','playground_audio_engine.js','playground_examples.js'])rfNoteFiles.add(name);
-const revisionFor=name=>name==='playground_monaco_definitions.js'?'synth-code-types-1':rfNoteFiles.has(name)?'rf5c164-notes-1':(scspFiles.has(name)||name==='playground_workbench.js')&&name!=='playground_mixer_defaults.js'?'scsp-fm-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'scsp-calibration-1':scspEditorFiles.has(name)?'scsp-editor-1':['playground.js','playground_workbench.js'].includes(name)?'scsp-layout-1':scspFiles.has(name)?'scsp-playground-1':ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+// Keep the pure VAB module URL bare: source-bank ownership must cross UI and
+// Main/Worker Code entry points. Roll its changed importers and editor assets.
+const vabApiFiles=new Set(['playground_runtime.js','playground_logic_worker.js','soundchip.js',
+  'playground.js','playground_examples.js','playground_mode_examples.js','playground_monaco.js',
+  'playground_monaco_completion.js','playground_monaco_definitions.js','playground_declarations.js',
+  'playground_ps1_vab.js','playground_ps1_psf.js']);
+const revisionFor=name=>vabApiFiles.has(name)?'ps1-vab-api-1':name==='playground_monaco_definitions.js'?'synth-code-types-1':rfNoteFiles.has(name)?'rf5c164-notes-1':(scspFiles.has(name)||name==='playground_workbench.js')&&name!=='playground_mixer_defaults.js'?'scsp-fm-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'scsp-calibration-1':scspEditorFiles.has(name)?'scsp-editor-1':['playground.js','playground_workbench.js'].includes(name)?'scsp-layout-1':scspFiles.has(name)?'scsp-playground-1':ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
+  ...vabApiFiles,
   ...rfNoteFiles,
   ...scspFiles,
   ...ps1LiveFiles,
@@ -466,7 +473,7 @@ const targets=[...new Set([
   'spc.js','spc_trace.js','spc_events.js','spc_performance.js','spc_pitch.js','spc_audio.js','spc-worklet.js','spc_resampler.js','spc_file.js','snes_brr.js',
   'snessynth.js','playground_snes.js','playground_snes_audio.js','playground_snes_worklet.js',
   'playground_soundchips.js','playground_spc.js','playground_spc_audio.js',
-])];
+])].filter(name=>name!=='ps1_vab.js');
 const filenames=targets.map(name=>name.replaceAll('.', '\\.')).join('|');
 // Include bare sibling worklet filenames as well as relative module imports and
 // new URL() / Worker() defaults. Custom absolute URLs remain unchanged.

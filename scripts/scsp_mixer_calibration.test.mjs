@@ -12,6 +12,7 @@ import {buildPlaygroundMixerPolicy,generatePlaygroundMixerDefaults} from './gene
 import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,isSoundChipPsgSourceLayoutRevision} from './generate_soundchip_mixer_presets.mjs';
 import {SoundChipMixer} from '../tetorica_src/runtime/soundchip_mixer.js';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.url),'utf8'));
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
@@ -64,12 +65,15 @@ test('complete SCSP measurement retains every script/source fingerprint through 
  assert.deepEqual(await readFile(new URL('../'+currentScspReportPath,import.meta.url)),bytes,'Freshness validation never edits measurements');
 });
 
-test('PSG source relocation retains original full digests and rejects DSP, import or unknown-file changes',async()=>{
- const measured=await read('docs/issues/soundchip_psg_levels_04.json');
+test('PSG relocation retains original full digests; the later SID factory requires its untouched PSG05 remeasurement',async()=>{
+ const measured=await read('docs/issues/soundchip_psg_levels_04.json'),currentMeasurement=await read('docs/issues/soundchip_psg_levels_05.json');
  for(const path of ['scripts/measure_soundchip_psg_levels.mjs','web/soundchip.js','web/nesapu.js','web/nesapu_wasm.js']){
   const actual=path.startsWith('web/')?'tetorica_src/runtime/'+path.slice(4):path;
-  const bytes=await readFile(new URL('../'+actual,import.meta.url)),expected=measured.sources[path];
-  assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,expected),true,path);
+  const current=await readFile(new URL('../'+actual,import.meta.url)),bytes=restoreMixerCalibrationVabApiRevision(path,current),expected=measured.sources[path];
+  if(path==='web/soundchip.js') {
+   assert.equal(createHash('sha256').update(bytes).digest('hex'),currentMeasurement.sources[actual],'the separately remeasured factory still matches its exact pre-VAB PSG05 source');
+   assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,expected),false,'layout alone cannot authorize the earlier SID factory addition against PSG04');
+  }else assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,expected),true,path);
   const modified=Buffer.from(bytes);modified[Math.floor(modified.length/2)]^=1;
   for(const changed of [modified,Buffer.concat([bytes,Buffer.from('\n')]),Buffer.from(bytes.toString().replace('Math.','math.'))]){
    if(changed.equals(bytes))continue;

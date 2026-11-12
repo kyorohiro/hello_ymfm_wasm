@@ -8,11 +8,11 @@ import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
-import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone,exportVab} from './spu_synth_vab.js?v=spu-bank-presets-1';
-import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=psf-vab-export-1';
-import {setupSpuCodeHost} from './code_host.js?v=spu-bank-presets-1';
+import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone,exportVab} from './spu_synth_vab.js?v=ps1-vab-api-1';
+import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=ps1-vab-api-1';
+import {setupSpuCodeHost} from './code_host.js?v=ps1-vab-api-1';
 import {SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
-import {prepareVabTonePreset,prepareVabBankPresets,vabTonePresetName} from './spu_bank_presets.js?v=spu-bank-presets-1';
+import {prepareVabTonePreset,prepareVabBankPresets,vabTonePresetName} from './spu_bank_presets.js?v=ps1-vab-api-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {setupSynthMenu} from '../synth/synth_menu.js';

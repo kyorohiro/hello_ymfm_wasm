@@ -31,7 +31,7 @@ const definitions = {
   nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],
   scsp: ['/examples/scsp/scsp-stereo-pcm.js','/examples/scsp/scsp-two-slot-fm.js'],
   ps1: ['/examples/ps1/ps1-stereo-voices.js','/examples/ps1/ps1-adpcm-wave.js',
-    '/examples/ps1/ps1-pcm-adpcm.js','/examples/ps1/ps1-sampler.js'],
+    '/examples/ps1/ps1-pcm-adpcm.js','/examples/ps1/ps1-vab-tone.js','/examples/ps1/ps1-sampler.js'],
   snes: ['/examples/snes/snes-mode-brr.js','/examples/snes/snes-mode-stereo.js','/examples/snes/snes-pcm-brr.js'],
   x68000: ['/examples/x68000/x68000-mode-opm.js','/examples/x68000/x68000-mode-adpcm.js'],
   'pc-engine': ['/examples/pc-engine/pce-mode-wave.js','/examples/pc-engine/pce-mode-stereo.js','/examples/pc-engine/pce-mode-noise.js','/examples/pc-engine/pce-cdda.js'],

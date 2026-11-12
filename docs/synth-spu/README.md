@@ -272,7 +272,9 @@ fresh project. Export a saved `.vab` from Files to reuse it outside Tetorica.
 ### Use a VAB with the SPU API
 
 VAB is an asset format, separate from the chip's register / sample API. The
-shipped browser module exposes `readVab`, `prepareVabTone` and `exportVab`:
+shared runtime exposes `readVab`, `prepareVabTone` and `exportVab`. They are
+included in the npm payload at the package root and `ps1_vab.js` / `ps1_vab`
+subpaths, and exposed as Playground / Synth Code globals:
 
 In this Synth's **Code** tab, first choose a VAB Tone from **Preset**, then use
 `const ps1 = await useSoundChip("ps1")` and `ps1.noteOn(...)` as usual; Code
@@ -280,7 +282,7 @@ borrows the selected instrument. The following module example is for your own
 application, when it needs to choose and load a Tone programmatically.
 
 ```js
-import {readVab, prepareVabTone} from './synth-spu/spu_synth_vab.js';
+import {readVab, prepareVabTone} from 'tetorica-fm2612';
 
 // ps1 is an existing SPU client or Ps1Synth; no Tetorica JSON is required.
 async function loadVabTone(ps1, bytes, program, tone, channel = 0) {
@@ -296,9 +298,13 @@ async function loadVabTone(ps1, bytes, program, tone, channel = 0) {
 Read the VAB bytes from `fetch(...).arrayBuffer()` or your application's files,
 then call `loadVabTone`. `channel` is zero-based; normal `noteOn` / `noteOff`
 methods play it. `exportVab(bank)` preserves the complete original bank, while
-`exportVab(bank, {toneNumber: index})` extracts a one-Tone bank. These helpers
-currently ship with Playground / Synth source; they are **not yet published
-as npm exports**. The npm SPU API already provides `loadADPCM` / `setPreset`.
+`exportVab(bank, {toneNumber: index})` extracts a one-Tone bank. The standalone
+browser compatibility module `synth-spu/spu_synth_vab.js` exposes the same
+functions. `loadADPCM` / `setPreset` accept the prepared result in direct and
+asynchronous SPU clients. Public types include `Ps1VabBank`, `Ps1VabTone` and
+`Ps1VabPreparedTone`. Parsing and exporting do not create an audio device,
+fetch files or execute a PSF driver. The npm registry release is a separate
+publication step; use a package build that includes this API.
 
 For **PSF1 / MiniPSF**, choose **Menu → Import → PSF set…** and select the song and all
 referenced PSFLib files together, or use **PSF folder…** in the same menu to retain library

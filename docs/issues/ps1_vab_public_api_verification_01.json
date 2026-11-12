@@ -1,0 +1,1144 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "One shared standard VAB API for npm, Playground Main/Worker and Synth Code; no DSP or performance-allocation redesign.",
+  "todo": "docs/issues/todo_ps1_vab_public_api_01.md",
+  "api": {
+    "exports": [
+      "MAX_VAB_FILE_BYTES",
+      "readVab",
+      "prepareVabTone",
+      "exportVab"
+    ],
+    "types": [
+      "Ps1VabBank",
+      "Ps1VabProgram",
+      "Ps1VabTone",
+      "Ps1VabSample",
+      "Ps1VabPreparedTone",
+      "Ps1VabExportOptions"
+    ],
+    "npmEntries": [
+      "tetorica-fm2612",
+      "tetorica-fm2612/ps1_vab.js",
+      "tetorica-fm2612/ps1_vab"
+    ],
+    "codeEntries": [
+      "global",
+      "pg"
+    ],
+    "source": "tetorica_src/runtime/ps1_vab.js",
+    "browserModuleIdentity": "Every browser VAB importer uses the same query-free js/ps1_vab.js URL, including both compatibility adapters; original-bank WeakMap ownership crosses UI and Code exports.",
+    "limits": "Standard VAB v6/v7. Export preserves unchanged source banks or one selected ordinary Tone, not arbitrary edited instruments. Shared reverb, driver modulation and key-zone layering remain separate host behavior."
+  },
+  "node": [
+    {
+      "command": "node --test test/runtime/ps1_vab.test.mjs docs/playground/playground_vab_types.test.mjs docs/playground/playground_monaco_definitions.test.mjs",
+      "passed": 21,
+      "failed": 0,
+      "log": "/private/tmp/ps1-vab-api-final-focused.log",
+      "record": {
+        "bytes": 2269,
+        "sha256": "0c26009fdb6a52d53016372b8bcd044630b5ff5e310eba0681ad354eb5e616ed"
+      }
+    },
+    {
+      "command": "node --test test/runtime/playground_runtime.test.mjs docs/playground/playground_logic_worker.test.mjs scripts/playground_code_runtime.test.mjs docs/playground/playground_vab_types.test.mjs docs/playground/playground_monaco_definitions.test.mjs",
+      "passed": 313,
+      "failed": 0,
+      "log": "/private/tmp/ps1-vab-api-code-regression.log",
+      "record": {
+        "bytes": 31818,
+        "sha256": "c830b1a17996fd2497545f3264d6e3075875630b439c31be29bf879fd54809db"
+      }
+    },
+    {
+      "command": "node --test docs/synth-spu/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_spu_synth.test.mjs",
+      "passed": 345,
+      "failed": 0,
+      "log": "/private/tmp/ps1-vab-api-synth-regression.log",
+      "record": {
+        "bytes": 37725,
+        "sha256": "4ad09f215fbecc84108cd822be047f688f83a2a4de1fea1efec2ae434eb0e836"
+      }
+    }
+  ],
+  "package": {
+    "build": {
+      "command": "node scripts/build_fm2612_package.mjs",
+      "passed": true,
+      "runtimeModules": 360,
+      "wasmEngines": 28,
+      "strictGeneratedDeclarations": 411,
+      "log": "/private/tmp/ps1-vab-api-package-build.log",
+      "record": {
+        "bytes": 165,
+        "sha256": "6df985002338107015f3aa825c37b858b6eff43ae403663b8bb1fac225717b15"
+      }
+    },
+    "candidateVersion": "0.2.39",
+    "installedChecks": [
+      {
+        "command": "node scripts/check_fm2612_types.mjs dist/fm2612",
+        "exitCode": 0,
+        "profiles": [
+          "NodeNext",
+          "Bundler",
+          "browser Bundler without Node ambient types"
+        ],
+        "negativeVabCases": 11
+      },
+      {
+        "command": "node scripts/check_fm2612_package.mjs --skip-build",
+        "exitCode": 0,
+        "tarball": {
+          "files": 1253,
+          "compressedBytes": 2819674,
+          "unpackedBytes": 11405204
+        },
+        "stagedWasmEngines": 28,
+        "localAssetReferences": 1172,
+        "vabSmoke": [
+          "root/.js/extensionless identity",
+          "offset DataView and split VH/VB input",
+          "source and output detach",
+          "exact full-bank export",
+          "single Tone standard VAB with original padding",
+          "tuning loop ADSR metadata",
+          "invalid/noise/modified-source rejection",
+          "real SPU CH24 looping PCM and release",
+          "one-shot END without padding replay",
+          "offline/no AudioContext"
+        ]
+      }
+    ],
+    "offlineExamples": [
+      {
+        "program": 3,
+        "tone": 0,
+        "frames": 105840,
+        "sampleRate": 44100,
+        "channels": 2,
+        "peak": 0.4015257954597473,
+        "wav": "/private/tmp/ps1-public-vab-example.wav"
+      },
+      {
+        "program": 11,
+        "tone": 0,
+        "frames": 105840,
+        "sampleRate": 44100,
+        "channels": 2,
+        "peak": 0.012999694794416428,
+        "wav": "/private/tmp/ps1-public-vab-one-shot.wav"
+      }
+    ],
+    "registryPublished": false,
+    "typeGenerationCorrection": "Qualify the existing three Ps1Synth method-return JSDoc imports so native-primary inferred union declarations retain valid indexed method types; runtime behavior unchanged."
+  },
+  "browser": {
+    "command": "node scripts/check_ps1_vab_public_api_browser.cjs",
+    "report": "/private/tmp/ps1-vab-api-browser.json",
+    "record": {
+      "bytes": 72666,
+      "sha256": "437839332e06ce26b78ca1d522a62d33c50cbd491c424d45f2b3d03637a8cf93"
+    },
+    "checkerSha256": "ddb4572142c2a1c2bc4a891a821a9537a78f388074bab9b7bb2945620edbaf52",
+    "servedSourceCount": 346,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "results": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "main",
+        "probe": {
+          "rejected": 3,
+          "tones": 3,
+          "program": 3,
+          "tone": 0,
+          "sample": 1,
+          "fullBytes": 3744,
+          "selectedBytes": 3200,
+          "prepared": {
+            "bytes": 64,
+            "trimmedBytes": 16,
+            "options": {
+              "baseFrequencyHz": 254.17759331190004,
+              "loopStartSamples": 0
+            },
+            "preset": {
+              "adsr1": 15,
+              "adsr2": 0,
+              "pitch": 4096,
+              "reverb": false,
+              "volumeLeft": 0.62000124000248,
+              "volumeRight": 0.62000124000248
+            }
+          },
+          "uploaded": {
+            "id": 1,
+            "startAddress": 4160,
+            "repeatAddress": 4160,
+            "byteLength": 64,
+            "decodedFrames": 112,
+            "rootNote": null,
+            "rootFrequencyHz": 254.17759331190004,
+            "basePitch": 4096,
+            "loop": true,
+            "loopStartSamples": 0
+          }
+        },
+        "crossModule": {
+          "functionIdentity": true,
+          "fullExport": true,
+          "selectedExport": true,
+          "actualMainBankExport": true,
+          "selectedProgram": 3
+        },
+        "probePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.05192810297012329,
+              "rms": 0.03669338913676542,
+              "nonFinite": 0,
+              "nonZero": 4096
+            },
+            {
+              "peak": 0.05192810297012329,
+              "rms": 0.03669338913676542,
+              "nonFinite": 0,
+              "nonZero": 4096
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "noteOff": {
+          "gate": false,
+          "envelope": 0,
+          "releaseRate": 0
+        },
+        "released": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "probeStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "examplePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.051925044506788254,
+              "rms": 0.03665728900384643,
+              "nonFinite": 0,
+              "nonZero": 4096
+            },
+            {
+              "peak": 0.051925044506788254,
+              "rms": 0.03665728900384643,
+              "nonFinite": 0,
+              "nonZero": 4096
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "exampleStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "importedFile": {
+          "path": "/spu-synth-demo.vab",
+          "bytes": 3744,
+          "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+        },
+        "example": {
+          "path": "/playground/examples/ps1/ps1-vab-tone.js",
+          "sha256": "934bb9a5481e8ae550fc4ff2bdf6890a47e873cfda272f9c714ab736592cf1f4"
+        },
+        "audit": {
+          "contexts": 1,
+          "workers": [],
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-vab-public-capture"
+          ],
+          "processorErrors": [],
+          "methods": [
+            "loadADPCM",
+            "setPreset",
+            "noteOn",
+            "noteOff",
+            "getState",
+            "stopVoices",
+            "loadADPCM",
+            "setPreset",
+            "noteOn",
+            "keyOff",
+            "stopVoices"
+          ],
+          "physicalOutputMuted": true
+        },
+        "screenshot": "/private/tmp/ps1-vab-api-browser-screens/chromium-main.png",
+        "blockedExternalRequests": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ]
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "worker",
+        "probe": {
+          "rejected": 3,
+          "tones": 3,
+          "program": 3,
+          "tone": 0,
+          "sample": 1,
+          "fullBytes": 3744,
+          "selectedBytes": 3200,
+          "prepared": {
+            "bytes": 64,
+            "trimmedBytes": 16,
+            "options": {
+              "baseFrequencyHz": 254.17759331190004,
+              "loopStartSamples": 0
+            },
+            "preset": {
+              "adsr1": 15,
+              "adsr2": 0,
+              "pitch": 4096,
+              "reverb": false,
+              "volumeLeft": 0.62000124000248,
+              "volumeRight": 0.62000124000248
+            }
+          },
+          "uploaded": {
+            "id": 1,
+            "startAddress": 4160,
+            "repeatAddress": 4160,
+            "byteLength": 64,
+            "decodedFrames": 112,
+            "rootNote": null,
+            "rootFrequencyHz": 254.17759331190004,
+            "basePitch": 4096,
+            "loop": true,
+            "loopStartSamples": 0
+          }
+        },
+        "crossModule": {
+          "functionIdentity": true,
+          "fullExport": true,
+          "selectedExport": true,
+          "actualMainBankExport": false,
+          "selectedProgram": 3
+        },
+        "probePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.051922380924224854,
+              "rms": 0.018286654097616584,
+              "nonFinite": 0,
+              "nonZero": 1032
+            },
+            {
+              "peak": 0.051922380924224854,
+              "rms": 0.018286654097616584,
+              "nonFinite": 0,
+              "nonZero": 1032
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "noteOff": {
+          "gate": false,
+          "envelope": 0,
+          "releaseRate": 0
+        },
+        "released": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "probeStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "examplePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.05192282423377037,
+              "rms": 0.0223313243236163,
+              "nonFinite": 0,
+              "nonZero": 1526
+            },
+            {
+              "peak": 0.05192282423377037,
+              "rms": 0.0223313243236163,
+              "nonFinite": 0,
+              "nonZero": 1526
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "exampleStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "importedFile": {
+          "path": "/spu-synth-demo.vab",
+          "bytes": 3744,
+          "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+        },
+        "example": {
+          "path": "/playground/examples/ps1/ps1-vab-tone.js",
+          "sha256": "934bb9a5481e8ae550fc4ff2bdf6890a47e873cfda272f9c714ab736592cf1f4"
+        },
+        "audit": {
+          "contexts": 1,
+          "workers": [
+            "http://127.0.0.1:63098/js/playground_logic_worker.js?v=ps1-vab-api-1"
+          ],
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-vab-public-capture"
+          ],
+          "processorErrors": [],
+          "methods": [
+            "stopVoices",
+            "stopVoices"
+          ],
+          "physicalOutputMuted": true
+        },
+        "screenshot": "/private/tmp/ps1-vab-api-browser-screens/chromium-worker.png",
+        "blockedExternalRequests": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ]
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "synth-code",
+        "probe": {
+          "globalIdentity": true,
+          "uiIdentity": true,
+          "uiBankExport": true,
+          "limit": 1048576,
+          "preparedBytes": 64,
+          "rootFrequencyHz": 254.17759331190004,
+          "loop": true,
+          "loopStartSamples": 0,
+          "program": 3,
+          "tone": 0,
+          "sourceBytes": 3744
+        },
+        "pcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.036346081644296646,
+              "rms": 0.025693222671809,
+              "nonFinite": 0,
+              "nonZero": 4096
+            },
+            {
+              "peak": 0.036346081644296646,
+              "rms": 0.025693222671809,
+              "nonFinite": 0,
+              "nonZero": 4096
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "stopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "uiBankKept": true,
+        "importedFileKept": true,
+        "physicalOutputMuted": true,
+        "screenshot": "/private/tmp/ps1-vab-api-browser-screens/chromium-synth-code.png"
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "main",
+        "probe": {
+          "rejected": 3,
+          "tones": 3,
+          "program": 3,
+          "tone": 0,
+          "sample": 1,
+          "fullBytes": 3744,
+          "selectedBytes": 3200,
+          "prepared": {
+            "bytes": 64,
+            "trimmedBytes": 16,
+            "options": {
+              "baseFrequencyHz": 254.17759331190004,
+              "loopStartSamples": 0
+            },
+            "preset": {
+              "adsr1": 15,
+              "adsr2": 0,
+              "pitch": 4096,
+              "reverb": false,
+              "volumeLeft": 0.62000124000248,
+              "volumeRight": 0.62000124000248
+            }
+          },
+          "uploaded": {
+            "id": 1,
+            "startAddress": 4160,
+            "repeatAddress": 4160,
+            "byteLength": 64,
+            "decodedFrames": 112,
+            "rootNote": null,
+            "rootFrequencyHz": 254.17759331190004,
+            "basePitch": 4096,
+            "loop": true,
+            "loopStartSamples": 0
+          }
+        },
+        "crossModule": {
+          "functionIdentity": true,
+          "fullExport": true,
+          "selectedExport": true,
+          "actualMainBankExport": true,
+          "selectedProgram": 3
+        },
+        "probePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.05192296952009201,
+              "rms": 0.03669150212673701,
+              "nonFinite": 0,
+              "nonZero": 4096
+            },
+            {
+              "peak": 0.05192296952009201,
+              "rms": 0.03669150212673701,
+              "nonFinite": 0,
+              "nonZero": 4096
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "noteOff": {
+          "gate": false,
+          "envelope": 0,
+          "releaseRate": 0
+        },
+        "released": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "probeStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "examplePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.05192430317401886,
+              "rms": 0.03646812966522251,
+              "nonFinite": 0,
+              "nonZero": 4096
+            },
+            {
+              "peak": 0.05192430317401886,
+              "rms": 0.03646812966522251,
+              "nonFinite": 0,
+              "nonZero": 4096
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "exampleStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "importedFile": {
+          "path": "/spu-synth-demo.vab",
+          "bytes": 3744,
+          "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+        },
+        "example": {
+          "path": "/playground/examples/ps1/ps1-vab-tone.js",
+          "sha256": "934bb9a5481e8ae550fc4ff2bdf6890a47e873cfda272f9c714ab736592cf1f4"
+        },
+        "audit": {
+          "contexts": 1,
+          "workers": [],
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-vab-public-capture"
+          ],
+          "processorErrors": [],
+          "methods": [
+            "loadADPCM",
+            "setPreset",
+            "noteOn",
+            "noteOff",
+            "getState",
+            "stopVoices",
+            "loadADPCM",
+            "setPreset",
+            "noteOn",
+            "keyOff",
+            "stopVoices"
+          ],
+          "physicalOutputMuted": true
+        },
+        "screenshot": "/private/tmp/ps1-vab-api-browser-screens/webkit-main.png",
+        "blockedExternalRequests": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ]
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "worker",
+        "probe": {
+          "rejected": 3,
+          "tones": 3,
+          "program": 3,
+          "tone": 0,
+          "sample": 1,
+          "fullBytes": 3744,
+          "selectedBytes": 3200,
+          "prepared": {
+            "bytes": 64,
+            "trimmedBytes": 16,
+            "options": {
+              "baseFrequencyHz": 254.17759331190004,
+              "loopStartSamples": 0
+            },
+            "preset": {
+              "adsr1": 15,
+              "adsr2": 0,
+              "pitch": 4096,
+              "reverb": false,
+              "volumeLeft": 0.62000124000248,
+              "volumeRight": 0.62000124000248
+            }
+          },
+          "uploaded": {
+            "id": 1,
+            "startAddress": 4160,
+            "repeatAddress": 4160,
+            "byteLength": 64,
+            "decodedFrames": 112,
+            "rootNote": null,
+            "rootFrequencyHz": 254.17759331190004,
+            "basePitch": 4096,
+            "loop": true,
+            "loopStartSamples": 0
+          }
+        },
+        "crossModule": {
+          "functionIdentity": true,
+          "fullExport": true,
+          "selectedExport": true,
+          "actualMainBankExport": false,
+          "selectedProgram": 3
+        },
+        "probePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.05192151665687561,
+              "rms": 0.02329876399486574,
+              "nonFinite": 0,
+              "nonZero": 1662
+            },
+            {
+              "peak": 0.05192151665687561,
+              "rms": 0.02329876399486574,
+              "nonFinite": 0,
+              "nonZero": 1662
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "noteOff": {
+          "gate": false,
+          "envelope": 0,
+          "releaseRate": 0
+        },
+        "released": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "probeStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "examplePcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.051925044506788254,
+              "rms": 0.02197872739474964,
+              "nonFinite": 0,
+              "nonZero": 1486
+            },
+            {
+              "peak": 0.051925044506788254,
+              "rms": 0.02197872739474964,
+              "nonFinite": 0,
+              "nonZero": 1486
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "exampleStopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "importedFile": {
+          "path": "/spu-synth-demo.vab",
+          "bytes": 3744,
+          "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+        },
+        "example": {
+          "path": "/playground/examples/ps1/ps1-vab-tone.js",
+          "sha256": "934bb9a5481e8ae550fc4ff2bdf6890a47e873cfda272f9c714ab736592cf1f4"
+        },
+        "audit": {
+          "contexts": 1,
+          "workers": [
+            "http://127.0.0.1:63098/js/playground_logic_worker.js?v=ps1-vab-api-1"
+          ],
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-vab-public-capture"
+          ],
+          "processorErrors": [],
+          "methods": [
+            "stopVoices",
+            "stopVoices"
+          ],
+          "physicalOutputMuted": true
+        },
+        "screenshot": "/private/tmp/ps1-vab-api-browser-screens/webkit-worker.png",
+        "blockedExternalRequests": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ]
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "synth-code",
+        "probe": {
+          "globalIdentity": true,
+          "uiIdentity": true,
+          "uiBankExport": true,
+          "limit": 1048576,
+          "preparedBytes": 64,
+          "rootFrequencyHz": 254.17759331190004,
+          "loop": true,
+          "loopStartSamples": 0,
+          "program": 3,
+          "tone": 0,
+          "sourceBytes": 3744
+        },
+        "pcm": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0.036349207162857056,
+              "rms": 0.025696039266863126,
+              "nonFinite": 0,
+              "nonZero": 4096
+            },
+            {
+              "peak": 0.036349207162857056,
+              "rms": 0.025696039266863126,
+              "nonFinite": 0,
+              "nonZero": 4096
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "stopped": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            },
+            {
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        "uiBankKept": true,
+        "importedFileKept": true,
+        "physicalOutputMuted": true,
+        "screenshot": "/private/tmp/ps1-vab-api-browser-screens/webkit-synth-code.png"
+      }
+    ],
+    "monaco": "External CDN intentionally unavailable in this check; local fallback executes the same Code. Source navigation, declarations and completion contracts are covered by Node and strict type tests."
+  },
+  "distribution": {
+    "archives": [
+      {
+        "path": "release/tetorica_spu_synth_vab-api-20261112_itch.zip",
+        "bytes": 7097248,
+        "sha256": "86a101d3d326158a9d94a391507e3d493001d4dab37a19edc67c0219e2937292",
+        "entries": 342,
+        "newRuntimeSourceExact": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_vab-api-20261112_itch_playground.zip",
+        "bytes": 38146323,
+        "sha256": "30912a15dc2740aa3ba200d894e794f1092579c66dae82f0225b137d72fb35a8",
+        "entries": 1495,
+        "newRuntimeSourceExact": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_vab-api-20261112_itch_playground_for_run.zip",
+        "bytes": 38501251,
+        "sha256": "3027cdba753fd315fb54dd5dd97678b172f346c0503135350cd3db58510edc3c",
+        "entries": 1000,
+        "newRuntimeSourceExact": true
+      }
+    ],
+    "spuSourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    },
+    "playgroundRunEntries": 1000,
+    "archiveOnlyBuildInventories": [
+      "sources/sdk/RELEASE-MANIFEST.json",
+      "sources/scsp-sdk/RELEASE-MANIFEST.json"
+    ],
+    "preservation": "The two build-only inventories remain byte-exact inside the existing complete corresponding-source.zip and expanded downloadable ZIP. New VAB runtime and example stay direct, authored readable files in all applicable ZIPs. Existing Playground page-bundle policy is unchanged.",
+    "preparationTests": {
+      "command": "node --test scripts/prepare_itch_playground_run.test.mjs",
+      "passed": 9,
+      "failed": 0
+    }
+  },
+  "calibration": {
+    "receipt": "docs/issues/ps1_vab_public_api_source_revision_01.json",
+    "receiptRecord": {
+      "bytes": 28483,
+      "sha256": "7fab2e9df1149d9de872ad4c1e36471a4c0c0d76db633172213d0b94199bfe74"
+    },
+    "reportsAndGainsChanged": false,
+    "sdkRebuilt": false,
+    "wasmRebuilt": false,
+    "regression": {
+      "command": "node --test scripts/*mixer_calibration*.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs",
+      "passed": 412,
+      "failed": 0,
+      "log": "/private/tmp/spu-vab-calibration-suite.txt",
+      "record": {
+        "bytes": 30178,
+        "sha256": "cafe0493dbcd1cc49567e1025ed176330306e156c5e8b0f2e284c0763873952c"
+      }
+    },
+    "freshnessChecks": [
+      "node scripts/record_vab_public_api_revision.mjs --check",
+      "node scripts/generate_soundchip_mixer_presets.mjs --check"
+    ]
+  },
+  "sourceRecords": {
+    "tetorica_src/runtime/ps1_vab.js": {
+      "bytes": 14976,
+      "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+    },
+    "docs/js/ps1_vab.js": {
+      "bytes": 14976,
+      "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+    },
+    "tetorica_src/runtime/soundchip.js": {
+      "bytes": 14139,
+      "sha256": "80506be7a4db087c8450e7d8eec83f7c385b1cd0c7257d4d727166e4d92fe296"
+    },
+    "tetorica_src/runtime/playground_ps1.js": {
+      "bytes": 8787,
+      "sha256": "d3ceadfaabb1616909b0558d13add683b3623f62850eacaf8895afee2f317b25"
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "bytes": 161173,
+      "sha256": "965815dabf9351782aa4fb1c8ca1b28a05160e84ab4797149e83bbb88da3f00b"
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "bytes": 58286,
+      "sha256": "eb84089529f55651d2c70550b1672900f7c0fcf1c21220de3182f06d3d51d533"
+    },
+    "tetorica_src/runtime/playground_code_runtime.js": {
+      "bytes": 21299,
+      "sha256": "e792b84bdd6ff8bf086ca01bed276fc72909a751bdba18336d71f9e5c884c1b9"
+    },
+    "docs/playground/playground_ps1_vab.js": {
+      "bytes": 285,
+      "sha256": "21b65f6822b841c48b41ab334bfbc36cdd847e0491135cec6514ac40d10e3c26"
+    },
+    "docs/synth-spu/spu_synth_vab.js": {
+      "bytes": 205,
+      "sha256": "b88eef07dc7f8280b260e3f330bcfe8d15bb19d11586d79ee4820e43c538f000"
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "bytes": 143235,
+      "sha256": "cb5f91e6de2fe80670d580af69b883476ef64e774d41d12c94045c986ce98889"
+    },
+    "docs/playground/examples/ps1/ps1-vab-tone.js": {
+      "bytes": 1225,
+      "sha256": "934bb9a5481e8ae550fc4ff2bdf6890a47e873cfda272f9c714ab736592cf1f4"
+    },
+    "tetorica_examples/nodejs/main_ps1_vab.js": {
+      "bytes": 3403,
+      "sha256": "64f69101f8e029387bcb3a0851f15984546c82bbf1fcda51110b792691a3c131"
+    },
+    "scripts/check_ps1_vab_public_api_browser.cjs": {
+      "bytes": 25488,
+      "sha256": "ddb4572142c2a1c2bc4a891a821a9537a78f388074bab9b7bb2945620edbaf52"
+    },
+    "scripts/package_itch_playground.sh": {
+      "bytes": 24171,
+      "sha256": "3be651c0a73557febae872fe9aa75af6d4c2c31e83750aadeb553c69899d10f0"
+    },
+    "scripts/prepare_itch_playground_run.mjs": {
+      "bytes": 13762,
+      "sha256": "dc9f7ce3a39ed39fa74ebe852554078e967926dd6f90e44e9b6ff2a935f0a5a2"
+    }
+  },
+  "manualRemaining": [
+    "Real-game PSF compatibility, listening and long-duration checks remain in their original TODOs."
+  ],
+  "agentCommitted": false,
+  "agentPushed": false,
+  "published": false,
+  "tauriChanged": false,
+  "ordinaryAppsOpened": false,
+  "osVolumeChanged": false
+}

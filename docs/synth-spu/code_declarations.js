@@ -4,6 +4,7 @@ export const SPU_CODE_GLOBALS=Object.freeze([
   'context','fx','CH1','CH2','CH3','CH4','CH5','CH6','console','log','useSoundChip','file','setBpm','beat','nextBeat','sleep','sleepSamples','tween',
   'liveLoop','livePrepare','liveFx','stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','midiToNoteName',
   'scale','chord','lerp','choose','cycle','rand','rrange','randInt','pg',
+  'readVab','prepareVabTone','exportVab','MAX_VAB_FILE_BYTES',
 ]);
 const SPU_TYPES=`
 interface SpuCodePmon {enabled:boolean;waveform:'sine'|'triangle'|'saw'|'square';ratio:number;depth:number;decayMs:number;}

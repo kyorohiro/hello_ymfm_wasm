@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Glue for the shared Code editor/scheduler and this Synth's existing SID.
-import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?sid-code=1';
+import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
 import {setupSynthCodeControls} from '../synth/synth_code_controls.js?sid-code=1';
 import {selectSidCodeDeclarations} from './code_declarations.js?sid-code=1';
 import {createSidCodeAudio} from './code_audio.js?sid-code=1';

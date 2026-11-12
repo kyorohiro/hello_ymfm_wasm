@@ -1,0 +1,566 @@
+{
+  "schemaVersion": 1,
+  "scope": "ps1-vab-pure-api-and-passive-routing",
+  "baseCommit": "1ec321b014a67a757bfa7c847c998f3e47584203",
+  "review": "Pure VAB parse/prepare/source-preserving export extracted into one typed runtime module; additive Playground/Code helpers, definitions, self-authored example and exact cache import rollout. The prior raw-source VAB export revision is pinned separately. Original reports, audio renderers, reference programs, WASM and source/listening gains are unchanged. No audio device or browser is used by this evidence layer.",
+  "reports": {
+    "docs/issues/soundchip_psg_levels_05.json": {
+      "bytes": 35484,
+      "sha256": "67abbf42ba6e29c3d684969bc8ee7c0a09cf100c2dd8aa680dd29c47716031ad"
+    },
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "sources": {
+    "docs/js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 58599,
+        "sha256": "0985be342e209aa93ef29c79f3fe5dff53cc34a0b02874e50f80d2a01c035830"
+      },
+      "after": {
+        "bytes": 58738,
+        "sha256": "c5b28c358d0a773efbaefd36d8a7fceeadf8a0590904656c931d51f4c01c5e6f"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 363,
+          "afterBytes": 82,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 38069,
+          "afterBytes": 57,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_ps1.js": {
+      "before": {
+        "bytes": 8863,
+        "sha256": "b90138b96c4cd07727bc47f2ce42f695544e2e7de7908c2c15827947ed65e769"
+      },
+      "after": {
+        "bytes": 8997,
+        "sha256": "9bc1958e3ee397314ebd479cd2133471549618c81bacfe9dba9fe4dc34a39562"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 135,
+          "afterBytes": 16,
+          "beforeText": "oneshot-marker"
+        },
+        {
+          "afterOffset": 7482,
+          "afterBytes": 396,
+          "beforeText": "Ps1Synth['getState']>>} */ getState(){return request('getState');},\n    /** @param {number} ch @returns {Promise<ReturnType<Ps1Synth['getPreset']>>} */ getPreset(ch){validation.getPreset(ch);return request('getPreset',[ch]);},\n    /** @returns {Promise<ReturnType<"
+        }
+      ]
+    },
+    "docs/js/playground_ps1_inspector.js": {
+      "before": {
+        "bytes": 8112,
+        "sha256": "860ec56647a3577592208614c9639fe51fee4771590945306bd160ba6b3aca41"
+      },
+      "after": {
+        "bytes": 8114,
+        "sha256": "0834f0777737bada6dbbfd1bd508602b1556ad4c24adbe2e753ab8b75fd224e1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 173,
+          "afterBytes": 16,
+          "beforeText": "oneshot-marker"
+        }
+      ]
+    },
+    "docs/js/playground_ps1_worklet.js": {
+      "before": {
+        "bytes": 7363,
+        "sha256": "8192179ce64e22c228e69b1a62d672c37a46ab78666b715532c0c94f456854cf"
+      },
+      "after": {
+        "bytes": 7365,
+        "sha256": "71dfd7b65b0bb39954fb012c51f71e2e56aaafd0c8dada799d9528c259a61f8d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 203,
+          "afterBytes": 16,
+          "beforeText": "oneshot-marker"
+        }
+      ]
+    },
+    "docs/js/playground_runtime.js": {
+      "before": {
+        "bytes": 162063,
+        "sha256": "6ba30ad274ea1af7649685468e238303478066b00f58f1a089e84d4037f5d302"
+      },
+      "after": {
+        "bytes": 162358,
+        "sha256": "b0ab0a88c07b84114859a74bce8999f88f2617278b5bbcb29c136f5344709ad3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 746,
+          "afterBytes": 82,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 14956,
+          "afterBytes": 11,
+          "beforeText": "rf5c164-notes"
+        },
+        {
+          "afterOffset": 125725,
+          "afterBytes": 59,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 136817,
+          "afterBytes": 156,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/index.html": {
+      "before": {
+        "bytes": 132891,
+        "sha256": "37d9b7e64717851336fab5164104bfc83ccaf728458788ee51ab0aa2a764b6ca"
+      },
+      "after": {
+        "bytes": 132889,
+        "sha256": "18f11ac142c40eb74dcba6c6eeac0f5e81e154cdbdda471d85e372a7ad15dced"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 132785,
+          "afterBytes": 11,
+          "beforeText": "rf5c164-notes"
+        }
+      ]
+    },
+    "docs/playground/playground.js": {
+      "before": {
+        "bytes": 124895,
+        "sha256": "733c7acbbfb829e0d485a623fe2acba5231920866ba4c3925fb538131460da5f"
+      },
+      "after": {
+        "bytes": 124885,
+        "sha256": "ce227ffbc5594fc13cac71b4e61c854ed15bb8ce8953c3e45f50930e58c54916"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4316,
+          "afterBytes": 96,
+          "beforeText": "rf5c164-notes-1\";\nimport { initializePlaygroundMonaco } from \"./playground_monaco.js?v=ps1-adpcm-encoder"
+        },
+        {
+          "afterOffset": 5553,
+          "afterBytes": 11,
+          "beforeText": "rf5c164-notes"
+        }
+      ]
+    },
+    "docs/playground/playground_examples.js": {
+      "before": {
+        "bytes": 218564,
+        "sha256": "278386738c08d7e86717b80d905c0efbe7c3157a7b8eef5f9c20a9881e1329d1"
+      },
+      "after": {
+        "bytes": 219946,
+        "sha256": "9fa4386e4c5dfc62ff76d889e2acfdb23acc6a60340e21bfb33b946f4550c4d1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 188152,
+          "afterBytes": 1345,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 214828,
+          "afterBytes": 37,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_monaco.js": {
+      "before": {
+        "bytes": 23177,
+        "sha256": "28e8bfb630eba7caf09c3a749ea01477eea7a039e463554405b15cf391debca8"
+      },
+      "after": {
+        "bytes": 23167,
+        "sha256": "ea8fed03e3f5cdd703ade3dba6dfd59c8fe7e5d1541fd41784bcf710aa76ab0c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 75,
+          "afterBytes": 197,
+          "beforeText": "synth-code-types-1&ps1-source=1';\nimport { registerMonacoCompletions } from \"./playground_monaco_completion.js?v=scsp-fm-1\";\nimport {selectPlaygroundDeclarations} from './playground_declarations.js?v=scsp-fm"
+        }
+      ]
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 18853,
+        "sha256": "252707f45af5bccba99e8bf585dfc742b0666f6526d5f424ad50c6c2bad87f10"
+      },
+      "after": {
+        "bytes": 19662,
+        "sha256": "6f66f6cfa170054438b2454c284af1c4a57fa0bc3b6c0284ac0d3728325fa794"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2338,
+          "afterBytes": 368,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6080,
+          "afterBytes": 473,
+          "beforeText": "return {lineNumber:1, column:1};"
+        }
+      ]
+    },
+    "docs/playground/playground_ps1_psf.js": {
+      "before": {
+        "bytes": 20531,
+        "sha256": "87cd20d5171521bb5d377d22641a79c4c4430380f9dd52b3176ce31f8eed16f2"
+      },
+      "after": {
+        "bytes": 20528,
+        "sha256": "949cb27a66858693ce956113b2f53ee0221168bcae007d2e941e79e8aef39764"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 317,
+          "afterBytes": 3,
+          "beforeText": "export"
+        }
+      ]
+    },
+    "docs/playground/playground_ps1_vab.js": {
+      "before": {
+        "bytes": 10786,
+        "sha256": "f48cc1c0cb5ddd81bf34b8a2f2d4701c86bac6a8a9242d36ee85f0a9e537cee3"
+      },
+      "after": {
+        "bytes": 285,
+        "sha256": "21b65f6822b841c48b41ab334bfbc36cdd847e0491135cec6514ac40d10e3c26"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 46,
+          "afterBytes": 238,
+          "beforeText": "pyright (c) 2026 kyorohiro.\n// Standard Sony VAB v6/v7. Layout references:\n// https://github.com/vgmtrans/vgmtrans/blob/master/src/main/formats/PS1/Vab.cpp\n// https://psx-spx.consoledev.net/cdromfileformats/#vab-header-vh\n// libsnd tuning and body prefix checked against:\n// https://github.com/Xeeynamo/sotn-decomp/blob/master/src/main/psxsdk/libsnd/vmanager.c\n// https://github.com/Xeeynamo/sotn-decomp/blob/master/src/main/psxsdk/libsnd/vs_vh.c\nimport {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';\n\nexport const MAX_VAB_FILE_BYTES = 1024 * 1024;\nconst bytesOf = input => {\n  if (input instanceof ArrayBuffer) return new Uint8Array(input);\n  if (ArrayBuffer.isView(input)) return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);\n  throw new TypeError('Expected VAB bytes');\n};\nconst fail = message => {throw new RangeError(`VAB: ${message}`);};\nconst midi = (value, name) => {if (value > 127) fail(`${name} must be 0–127`); return value;};\n// Keep raw source bytes private: parser results remain the same enumerable\n// data model used by existing inspectors, snapshots and JSON diagnostics.\nconst vabSources = new WeakMap();\nconst bankMetadata = bank => {\n  const {samples,...metadata}=bank;\n  return JSON.stringify({...metadata,samples:samples.map(({bytes,...sample})=>({...sample,byteLength:bytes?.byteLength}))});\n};\n\n/** Parse a complete VAB, or a VH header plus its explicitly supplied VB body.\n * Counts are actual counts (not count minus one). Tone tables are packed by\n * nonempty program, while the 128-entry program table may have holes.\n * No file names, code execution or live RAM are involved. */\nexport function readVab(headerInput, bodyInput) {\n  return parseVab(headerInput,bodyInput,true);\n}\nfunction parseVab(headerInput, bodyInput, retainSource) {\n  const header = bytesOf(headerInput), split = bodyInput !== undefined;\n  if (header.length > MAX_VAB_FILE_BYTES || header.length < 0x820 || String.fromCharCode(...header.subarray(0,4)) !== 'pBAV') fail('expected a standard pBAV header');\n  const view = new DataView(header.buffer, header.byteOffset, header.byteLength);\n  const u16 = offset => view.getUint16(offset, true), u32 = offset => view.getUint32(offset, true);\n  const version = u32(4), programCount = u16(0x12), toneCount = u16(0x14), sampleCount = u16(0x16);\n  if (![6,7].includes(version)) fail(`version ${version} is unsupported (initial support: 6 and 7)`);\n  if (!programCount || programCount > 128 || !toneCount || toneCount > programCount * 16 || sampleCount > 255) fail('invalid program, tone or sample count');\n  const masterVolume = midi(header[0x18], 'master volume'), masterPan = midi(header[0x19], 'master pan');\n  const sizeTable = 0x820 + programCount * 0x200, bodyOffset = sizeTable + 0x200;\n  if (header.length < bodyOffset) fail('truncated tone or sample-size table');\n  const body = split ? bytesOf(bodyInput) : header.subarray(bodyOffset);\n  if (body.length > 524288) fail('sample body exceeds 512 KiB');\n  const declaredSize = u32(0x0c);\n  if (declaredSize !== bodyOffset + body.length || split && header.length !== bodyOffset) fail('declared file size does not match VH + VB (choose the matching pair)');\n  const samples = [], sampleRanges = [];\n  // Entry zero is a leading body reservation (usually zero), not sample #1.\n  let offset = u16(sizeTable) * 8;\n  if (offset > body.length) fail('sample body prefix exceeds VB size');\n  for (let index = 1; index <= sampleCount; index++) {\n    const size = u16(sizeTable + index * 2) * 8;\n    if (size < 16 || offset + size > body.length) fail(`invalid size or boundary for sample ${index}`);\n    samples.push({index, bytes:body.slice(offset, offset + size)});\n    sampleRanges.push({offset,size});\n    offset += size;\n  }\n  // Padding after the last sample is allowed; each sample is still bounded by\n  // the size table, never by a search into the next sample.\n  const programs = [], tones = [];\n  let packed = 0;\n  for (let index = 0; index < 128; index++) {\n    const at = 0x20 + index * 16, count = header[at];\n    if (!count) continue;\n    if (count > 16 || packed >= programCount) fail(`invalid tone count in program ${index}`);\n    const volume = midi(header[at+1], 'program volume'), pan = midi(header[at+4], 'program pan');\n    const program = {index, volume, pan, tones:[]};\n    for (let toneIndex = 0; toneIndex < count; toneIndex++) {\n      const t = 0x820 + packed * 0x200 + toneIndex * 32;\n      const tone = {program:index, index:toneIndex, sample:u16(t+22), mode:header[t+1],\n        volume:midi(header[t+2], 'tone volume'), pan:midi(header[t+3], 'tone pan'),\n        center:midi(header[t+4], 'center note'), shift:midi(header[t+5], 'fine tuning'),\n        keyLow:midi(header[t+6], 'key minimum'), keyHigh:midi(header[t+7], 'key maximum'),\n        adsr1:u16(t+16), adsr2:u16(t+18), vibratoWidth:header[t+8], vibratoTime:header[t+9],\n        portamentoWidth:header[t+10], portamentoTime:header[t+11], bendMin:header[t+12], bendMax:header[t+13]};\n      if (tone.keyLow > tone.keyHigh || tone.sample > sampleCount && tone.sample!==255) fail(`invalid key range or sample reference in program ${index}, tone ${toneIndex}`);\n      program.tones.push(tone); tones.push(tone);\n    }\n    packed++; programs.push(program);\n  }\n  if (packed !== programCount || tones.length !== toneCount) fail('program/tone counts disagree with the tables');\n  const bank={version, id:u32(8), masterVolume, masterPan, programs, tones, samples};\n  if(retainSource)vabSources.set(bank,{header:header.slice(0,bodyOffset),body:body.slice(),sampleRanges});\n  return bank;\n}\n\n/** Export an opened, unchanged standard VAB without an audio core or encoder.\n * Full-bank output preserves the original VH + VB bytes, including padding.\n * A selected Tone keeps its original Program number and raw attributes, but\n * becomes the only Tone (index 0) and references the only sample (number 1).\n * This exports source banks, not arbitrary edited Synth instruments.\n * @param {ReturnType<typeof readVab>} bank\n * @param {{toneNumber?:number}} [options]\n * @returns {Uint8Array} */\nexport function exportVab(bank,options={}) {\n  if(!options||typeof options!=='object'||Array.isArray(options)||Reflect.ownKeys(options).some(key=>key!=='toneNumber'))throw new TypeError('Expected VAB export options {toneNumber?}');\n  const source=vabSources.get(bank);\n  if(!source)fail('export requires the original bank returned by readVab');\n  let unchanged=false;\n  try {\n    // Source comparison is export-only. PSF bank searches do not serialize\n    // metadata or scan every sample again merely to retain an export source.\n    const original=parseVab(source.header,source.body,false);\n    unchanged=bankMetadata(bank)===bankMetadata(original)&&bank.samples.every((sample,index)=>{\n      const range=source.sampleRanges[index],bytes=sample.bytes;\n      return bytes instanceof Uint8Array&&bytes.length===range.size&&bytes.every((value,at)=>value===source.body[range.offset+at]);\n    });\n  }catch{}\n  if(!unchanged)fail('source bank changed; reopen it before exporting its original VAB');\n  if(options.toneNumber===undefined) {\n    const result=new Uint8Array(source.header.length+source.body.length);\n    result.set(source.header);result.set(source.body,source.header.length);return result;\n  }\n  // Availability validation neither trims nor rewrites the raw exported\n  // sample. Bytes after its first END remain inside the original size bound.\n  const {tone}=prepareVabTone(bank,options.toneNumber);\n  const packed=bank.programs.findIndex(program=>program.index===tone.program),range=source.sampleRanges[tone.sample-1];\n  const raw=new DataView(source.header.buffer,source.header.byteOffset,source.header.byteLength);\n  const originalSizeTable=0x820+bank.programs.length*0x200,prefix=raw.getUint16(originalSizeTable,true)*8;\n  const sizeTable=0xa20,bodyOffset=0xc20,result=new Uint8Array(bodyOffset+prefix+range.size),view=new DataView(result.buffer);\n  result.set(source.header.subarray(0,0x20));\n  view.setUint32(0x0c,result.length,true);view.setUint16(0x12,1,true);view.setUint16(0x14,1,true);view.setUint16(0x16,1,true);\n  const programAt=0x20+tone.program*16;\n  result.set(source.header.subarray(programAt,programAt+16),programAt);result[programAt]=1;\n  const toneAt=0x820+packed*0x200+tone.index*32;\n  result.set(source.header.subarray(toneAt,toneAt+32),0x820);view.setUint16(0x820+22,1,true);\n  view.setUint16(sizeTable,prefix/8,true);view.setUint16(sizeTable+2,range.size/8,true);\n  result.set(source.body.subarray(0,prefix),bodyOffset);\n  result.set(source.body.subarray(range.offset,range.offset+range.size),bodyOffset+prefix);\n  return result;\n}\n\n/** Prepare one Tone for the existing Synth/preset API. ADPCM payload is never\n * decoded or re-encoded. Trim only bytes after the first hardware END packet.\n * Unsupported flag patterns fail instead of silently rewriting game data. */\nexport function prepareVabTone(bank, toneNumber) {\n  if (!Number.isInteger(toneNumber) || !bank?.tones?.[toneNumber]) fail('choose a tone');\n  const tone = bank.tones[toneNumber], program = bank.programs.find(item => item.index === tone.program);\n  if (tone.sample===0) fail('this Tone has no assigned sample');\n  if (tone.sample===255) fail('libsnd Noise tone (sample 255) is not supported by this importer yet');\n  const bytes = bank.samples[tone.sample-1].bytes;\n  let end = -1, marker = null;\n  for (let at = 0; at + 16 <= bytes.length; at += 16) {\n    if (bytes[at+1] & 4) {if (marker !== null) fail('multiple loop-start markers are not supported yet'); marker = at / 16 * 28;}\n    if (bytes[at+1] & 1) {end = at + 16; break;}\n  }\n  if (end < 0) fail(`sample ${tone.sample} has no END packet`);\n  const adpcm = bytes.slice(0, end), loop = Boolean(adpcm[end-15] & 2);\n  // Positive shift raises playback pitch; therefore it lowers the effective\n  // root frequency. See libsnd note2pitch2 (shift / 8, 16 steps/semitone).\n  const options = {baseFrequencyHz:440 * 2 ** ((tone.center - tone.shift/128 - 69)/12),\n    ...(loop ? {loopStartSamples:marker ?? 0} : {})};\n  preparePs1ADPCM(adpcm, options);\n  // Static libsnd-style volume/pan approximation. Game driver dynamics and\n  // controller values are unavailable from VAB alone.\n  const level = bank.masterVolume/127 * program.volume/127 * tone.volume/127;\n  const pans=[bank.masterPan,program.pan,tone.pan];\n  const left=pans.reduce((gain, pan) => gain*(pan<64 ? 1 : (127-pan)/63),1);\n  const right=pans.reduce((gain, pan) => gain*(pan<64 ? pan/63 : 1),1);\n  const preset = {adsr1:tone.adsr1, adsr2:tone.adsr2, pitch:4096, reverb:Boolean(tone.mode & 4),\n    volumeLeft:(level*left)**2, volumeRight:(level*right)**2};\n  return {adpcm, options, preset, tone, trimmedBytes:bytes.length-end};\n}"
+        }
+      ]
+    },
+    "docs/playground/playground_ps1_vab_panel.js": {
+      "before": {
+        "bytes": 12043,
+        "sha256": "13aebbebf1e572c5a5ac666b41951976f836f0bc5ea876cef028cee528944876"
+      },
+      "after": {
+        "bytes": 12034,
+        "sha256": "7372505d0a4e2bb0d2d8d843842e58b8a39e71f4efd4fa0b2372d881f1a25806"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 163,
+          "afterBytes": 124,
+          "beforeText": "oneshot-marker-1';\nimport {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js?v=psf-split-vab"
+        }
+      ]
+    },
+    "tetorica_src/runtime/soundchip.js": {
+      "before": {
+        "bytes": 13635,
+        "sha256": "665e25f4f9394ffbbd58f54a76b1cb97492280454208ab8978f914b3570fe2a3"
+      },
+      "after": {
+        "bytes": 14139,
+        "sha256": "80506be7a4db087c8450e7d8eec83f7c385b1cd0c7257d4d727166e4d92fe296"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 736,
+          "afterBytes": 504,
+          "beforeText": ""
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/ps1_vab.js": {
+      "before": null,
+      "after": {
+        "bytes": 14976,
+        "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+      }
+    },
+    "docs/js/ps1_vab.js": {
+      "before": null,
+      "after": {
+        "bytes": 14976,
+        "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+      }
+    },
+    "docs/js/soundchip.js": {
+      "before": {
+        "bytes": 13697,
+        "sha256": "3d3a019add4311f00067fdd4055385a78a23e1a847847f4b0d16e7fe8e19bf7a"
+      },
+      "after": {
+        "bytes": 15098,
+        "sha256": "ed47c15d512ccaff6eb311fb7b035267bae9a122ec92a60148c22801d013a733"
+      }
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "before": {
+        "bytes": 160876,
+        "sha256": "e4ef3d109a8d3ec2ee5b77cbd522ede56919a52c5d06b7ab54a0627e48b303aa"
+      },
+      "after": {
+        "bytes": 161173,
+        "sha256": "965815dabf9351782aa4fb1c8ca1b28a05160e84ab4797149e83bbb88da3f00b"
+      }
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "before": {
+        "bytes": 58147,
+        "sha256": "efd93da9aede41096a6dbd8070b65d38011a07127c35d3515538e45e5d54ef26"
+      },
+      "after": {
+        "bytes": 58286,
+        "sha256": "eb84089529f55651d2c70550b1672900f7c0fcf1c21220de3182f06d3d51d533"
+      }
+    },
+    "tetorica_src/runtime/playground_ps1.js": {
+      "before": {
+        "bytes": 8715,
+        "sha256": "7807335c5a0ee1165d6251a0a030dab897c9684f7619b25209b51ce1e37e46ea"
+      },
+      "after": {
+        "bytes": 8787,
+        "sha256": "d3ceadfaabb1616909b0558d13add683b3623f62850eacaf8895afee2f317b25"
+      }
+    },
+    "tetorica_src/runtime/playground_code_runtime.js": {
+      "before": {
+        "bytes": 21158,
+        "sha256": "79c8c745a2bd718fc9c2c1cc5f8efb2f1e6b1191a9a19c680149948ffe0694d1"
+      },
+      "after": {
+        "bytes": 21299,
+        "sha256": "e792b84bdd6ff8bf086ca01bed276fc72909a751bdba18336d71f9e5c884c1b9"
+      }
+    },
+    "docs/js/playground_code_runtime.js": {
+      "before": {
+        "bytes": 21158,
+        "sha256": "79c8c745a2bd718fc9c2c1cc5f8efb2f1e6b1191a9a19c680149948ffe0694d1"
+      },
+      "after": {
+        "bytes": 21299,
+        "sha256": "e792b84bdd6ff8bf086ca01bed276fc72909a751bdba18336d71f9e5c884c1b9"
+      }
+    },
+    "docs/js/megasynth_offline.js": {
+      "before": {
+        "bytes": 9331,
+        "sha256": "dd9bc824fb6d931cbff8bdad4be004fe55bff8ef2d225b7f147140b81c4f330f"
+      },
+      "after": {
+        "bytes": 9322,
+        "sha256": "91ddd2c36a553e08e1ff7824298d0c1a5aab05673d31a508f65d4e812ee188fc"
+      }
+    },
+    "docs/js/sid_soundchip.js": {
+      "before": {
+        "bytes": 4603,
+        "sha256": "d17db2f826c583a01ba56f0b2b740bbd72879d7cf0db4508c25b65d96125bafe"
+      },
+      "after": {
+        "bytes": 4657,
+        "sha256": "b8d61be6f924a2138918a6eed4023ac7e7a3272ff5012fde4b1b86edc2237a79"
+      }
+    },
+    "docs/js/soundchip-output-worklet.js": {
+      "before": {
+        "bytes": 20075,
+        "sha256": "6e9680208477775a63537e37b13a4c6636ee9c92e6279dad8d78a469c22013ba"
+      },
+      "after": {
+        "bytes": 20579,
+        "sha256": "d1745016595199ef4a63557f5c1413161ce477ba815fbd6f250c218b747990df"
+      }
+    },
+    "docs/js/soundchip_worklet.js": {
+      "before": {
+        "bytes": 6830,
+        "sha256": "c04d371bfa008ff7ace5725459d270246394e0a47e3d6ced3e4cda39a29f1c00"
+      },
+      "after": {
+        "bytes": 6947,
+        "sha256": "225c95c95da508f5457ce3a50d94aad5362c8394834b1a3c94c0f0b7b2d10e63"
+      }
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 140459,
+        "sha256": "ff4be7c042f61b129eceb2e36cd8dba8b66163bcd89a2a7c0b316ad6590396b7"
+      },
+      "after": {
+        "bytes": 143235,
+        "sha256": "cb5f91e6de2fe80670d580af69b883476ef64e774d41d12c94045c986ce98889"
+      }
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "before": {
+        "bytes": 5583,
+        "sha256": "b11dd22501636cd8822d650e5bffc9966ae0ef15d4f236f3e1006aaa4bf7ef9d"
+      },
+      "after": {
+        "bytes": 5615,
+        "sha256": "20437207e122ef3f7cf098181409531421d460e238a62c82c1dc29b03d4581c5"
+      }
+    },
+    "docs/playground/examples/ps1/ps1-vab-tone.js": {
+      "before": null,
+      "after": {
+        "bytes": 1225,
+        "sha256": "934bb9a5481e8ae550fc4ff2bdf6890a47e873cfda272f9c714ab736592cf1f4"
+      }
+    },
+    "docs/generated/ps1_spu_wasm.wasm": {
+      "before": {
+        "bytes": 52082,
+        "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f"
+      },
+      "after": {
+        "bytes": 52082,
+        "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f"
+      }
+    },
+    "docs/generated/segapsg_wasm.wasm": {
+      "before": {
+        "bytes": 27286,
+        "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+      },
+      "after": {
+        "bytes": 27286,
+        "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+      }
+    },
+    "docs/generated/ay8910_wasm.wasm": {
+      "before": {
+        "bytes": 13549,
+        "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+      },
+      "after": {
+        "bytes": 13549,
+        "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+      }
+    },
+    "docs/generated/nesapu_wasm.wasm": {
+      "before": {
+        "bytes": 30410,
+        "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+      },
+      "after": {
+        "bytes": 30410,
+        "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+      }
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "before": {
+        "bytes": 3276,
+        "sha256": "c5e3330fe214f1e2b5beecc08f0f5bbacf62396c0b2cb869b088d07b3cf79420"
+      },
+      "after": {
+        "bytes": 3276,
+        "sha256": "c5e3330fe214f1e2b5beecc08f0f5bbacf62396c0b2cb869b088d07b3cf79420"
+      }
+    }
+  },
+  "priorSourceExport": {
+    "beforeCommit": "f84e5455b1fe89699ab86d7d4b42aad97ebd5aa0",
+    "afterCommit": "f26d8412cdb86a55fc1689baca1a7d090c563872",
+    "sources": {
+      "docs/playground/playground_ps1_vab.js": {
+        "before": {
+          "bytes": 7054,
+          "sha256": "89fdd1ebf9e78a684d592eee0bb38517ad287a19734d11747c047df9052268fa"
+        },
+        "after": {
+          "bytes": 10786,
+          "sha256": "f48cc1c0cb5ddd81bf34b8a2f2d4701c86bac6a8a9242d36ee85f0a9e537cee3"
+        },
+        "reverseHunks": [
+          {
+            "afterOffset": 1027,
+            "afterBytes": 380,
+            "beforeText": ""
+          },
+          {
+            "afterOffset": 1747,
+            "afterBytes": 107,
+            "beforeText": ""
+          },
+          {
+            "afterOffset": 3262,
+            "afterBytes": 19,
+            "beforeText": ""
+          },
+          {
+            "afterOffset": 3743,
+            "afterBytes": 38,
+            "beforeText": ""
+          },
+          {
+            "afterOffset": 5433,
+            "afterBytes": 204,
+            "beforeText": "return {version, id:u32(8), masterVolume, masterPan, programs, tones, samples}"
+          },
+          {
+            "afterOffset": 5642,
+            "afterBytes": 3062,
+            "beforeText": ""
+          }
+        ]
+      },
+      "docs/playground/playground_ps1_psf.js": {
+        "before": {
+          "bytes": 20535,
+          "sha256": "3fe596a1121a34ff9f20cf496fd491d6adf31155f71bd8d374d43d32eeec4082"
+        },
+        "after": {
+          "bytes": 20531,
+          "sha256": "87cd20d5171521bb5d377d22641a79c4c4430380f9dd52b3176ce31f8eed16f2"
+        },
+        "reverseHunks": [
+          {
+            "afterOffset": 313,
+            "afterBytes": 10,
+            "beforeText": "oneshot-marker"
+          }
+        ]
+      }
+    }
+  }
+}

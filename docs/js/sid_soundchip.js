@@ -3,7 +3,7 @@
 import {SidCore, SID_PAL_CLOCK} from './sid.js';
 import {Sid8580Core} from './sid8580.js';
 
-/** @param {import('./soundchip.js').SoundChipOptions} [options] */
+/** @param {import('./soundchip.js?v=pokey-prepare-1').SoundChipOptions} [options] */
 export function validateSidSoundChipOptions(options = {}) {
   options.signal?.throwIfAborted();
   if (options.moduleFactory !== undefined) throw new TypeError('SID uses its dedicated WASM core, not an Emscripten moduleFactory');
@@ -19,7 +19,7 @@ export function validateSidSoundChipOptions(options = {}) {
 
 /** Load only the selected SID binary. The common factory uses its generated/
  * directory; individual SidCore imports keep their own historical defaults.
- * @param {import('./soundchip.js').SoundChipOptions} [options]
+ * @param {import('./soundchip.js?v=pokey-prepare-1').SoundChipOptions} [options]
  * @returns {Promise<BufferSource>} */
 export async function loadSidSoundChipBinary(options = {}) {
   const {model} = validateSidSoundChipOptions(options);
@@ -44,7 +44,7 @@ export async function loadSidSoundChipBinary(options = {}) {
 
 /** Return the existing low-level core, without initializing voices or opening
  * an audio device. A cancellation during WASM creation retires the late core.
- * @param {import('./soundchip.js').SoundChipOptions} [options]
+ * @param {import('./soundchip.js?v=pokey-prepare-1').SoundChipOptions} [options]
  * @returns {Promise<SidCore|Sid8580Core>} */
 export async function createSidSoundChip(options = {}) {
   const settings = validateSidSoundChipOptions(options), wasmBinary = await loadSidSoundChipBinary(options);

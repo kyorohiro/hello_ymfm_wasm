@@ -26,6 +26,9 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (symbol === 'encodeBrr') return {file:'snes_brr_encoder.js',symbol};
   if (symbol === 'encodeAdpcmA') return {file:'adpcm_a_sample.js',symbol};
   if (symbol === 'encodePs1Adpcm') return {file:'ps1_adpcm_encoder.js',symbol};
+  if (['readVab','prepareVabTone','exportVab','MAX_VAB_FILE_BYTES'].includes(symbol)) return {file:'ps1_vab.js',symbol};
+  if (/^Ps1Vab(?:Bank|Program|Tone|Sample|PreparedTone|ExportOptions)$/.test(symbol)) return {file:'ps1_vab.js',symbol};
+  if (/^Ps1Vab(?:Bank|Program|Tone|Sample|PreparedTone|ExportOptions)$/.test(owner)) return {file:'ps1_vab.js',symbol:owner};
   if (symbol === 'OPL_PRESETS') return {file:'opl_synth.js',symbol:'OPL_PRESETS'};
   if (symbol === 'opll') return {file:'playground_ym2413.js',symbol:'createYm2413Client'};
   if (symbol === 'ay') return {file:'playground_ay8910.js',symbol:'createAy8910Client'};
@@ -62,7 +65,14 @@ export function sourcePosition(text, symbol) {
   // Small runtime facades may put several object methods on one line. Match
   // an actual method body after a separator, never a member call site.
   const match = pattern.exec(text)??new RegExp(`[},;]\\s*(?:async\\s+)?${escaped}\\s*(?:\\([^)]*\\)\\s*\\{|:\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>)`,'m').exec(text);
-  if (!match) return {lineNumber:1, column:1};
+  if (!match) {
+    // Public pure helpers expose structured types with JSDoc rather than a
+    // JavaScript class. Keep implementation navigation on their real typedef.
+    const typedef=new RegExp(`@typedef\\s+\\{[^\\n]*\\}\\s+${escaped}\\b`).exec(text);
+    if(!typedef)return {lineNumber:1,column:1};
+    const index=typedef.index+typedef[0].lastIndexOf(symbol),prefix=text.slice(0,index);
+    return {lineNumber:prefix.split('\n').length,column:index-prefix.lastIndexOf('\n')};
+  }
   const index = match.index + match[0].indexOf(symbol);
   const prefix = text.slice(0,index);
   return {lineNumber:prefix.split('\n').length, column:index - prefix.lastIndexOf('\n')};

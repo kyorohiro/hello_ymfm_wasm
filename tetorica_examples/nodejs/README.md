@@ -27,11 +27,30 @@ SPU ADPCMとして直接生成し、実際の24声SPUのvoice 0／23で旋律を
 出力先省略時はスクリプトの隣に保存し、同名ファイルは上書きする。
 外部ROM・音声・AudioContextは不要。有限PCM・非clip・末尾無音も検査する。
 
-Native／WASM共通の実験的MAME派生コアで、現時点では低レベルAPIのみ。
-PlaygroundのPS1 mode／Synth／汎用PCM encoderは次段階。
+Native／WASM共通の実験的MAME派生コアです。低レベルの `Ps1Spu` に加え、
+`Ps1Synth`、PCM→ADPCM encoder、PlaygroundのPS1 modeとSPU Synthも利用できます。
 補間・ADSR・reverbは元実装の近似を含む。仕様・利用例は
 [PS1 SPU guide](../../docs/ps1_spu.md)、由来とライセンスは
 [固定SDKのPlayStation SPU](../../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/README.md) を参照。
+
+## Standard VAB → PS1 SPU → WAV
+
+```sh
+node tetorica_examples/nodejs/main_ps1_vab.js docs/playground/samples/spu-import/spu-synth-demo.vab /tmp/vab-tone.wav --program 3 --tone 0
+```
+
+[main_ps1_vab.js](main_ps1_vab.js) は標準VABを `readVab()` で読み、
+`prepareVabTone()` のADPCM・調律・ADSR・音量・pan・reverb sendを
+`Ps1Synth.loadADPCM()` / `setPreset()` へ直接渡します。JSONへの変換は不要です。
+上のコマンドはゲームデータを含まない同梱の自作bankを使用します。
+入力VABと出力WAVは必須で、Program省略時は最初のProgram、Tone省略時は0です。
+既存の出力WAVは上書きします。44.1 kHzステレオWAVを保存するだけで、
+AudioContext・スピーカー・外部ダウンロードは使いません。
+
+`--program` は元のProgram番号、`--tone` はその中のTone番号です。
+APIの `prepareVabTone(bank, toneNumber)` は `bank.tones` 全体の配列indexなので、
+例では両番号から該当indexを探します。共有reverbはOffのままです。
+曲の再生・key zoneの重ね合わせ・ドライバーのvibrato等はこの例に含みません。
 
 ## SNES PCM → BRR → WAV
 

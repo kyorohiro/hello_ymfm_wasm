@@ -605,6 +605,11 @@ export const EXAMPLE_FILES = [
     "data": "// Two physical SPU voices share the original sample, with independent stereo gains.\nsetBpm(120);\nspu.setPreset(0, {sample:0, volumeLeft:0.9, volumeRight:0.25, adsr2:9});\nspu.setPreset(23, {sample:0, volumeLeft:0.25, volumeRight:0.9, adsr2:9});\nliveLoop('ps1-stereo', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    spu.noteOn(0, note);\n    spu.noteOn(23, 'C3');\n    await beat(0.8);\n    spu.keyOff(0); spu.keyOff(23);\n    await beat(0.2);\n  }\n});\n"
   },
   {
+    "path": "/examples/ps1/ps1-vab-tone.js",
+    "name": "ps1-vab-tone",
+    "data": "// Select PS1 mode. First use Files -> Add files... to import a standard .vab.\n// Try the original demo at samples/spu-import/spu-synth-demo.vab\n// (Playground's SPU import demos); Add files places it at the workspace root.\nconst asset='/spu-synth-demo.vab'; // Replace with your imported bank's path.\nconst bank=readVab(await file(asset,{type:'arrayBuffer'}));\nlog(bank.tones.map((tone,toneNumber)=>({toneNumber,program:tone.program,tone:tone.index,sample:tone.sample})));\n// The second argument is an index in bank.tones, not a Program number.\nconst prepared=prepareVabTone(bank,0);\nconst ps1=await useSoundChip('ps1');\nconst instrument=await livePrepare('vab-demo-tone',()=>ps1.loadADPCM(prepared.adpcm,prepared.options));\nconst channel=0; // PS1 physical channels are numbered 0–23.\nawait ps1.setPreset(channel,{...prepared.preset,sample:instrument});\nsetBpm(120);\n// Standard VAB bytes -> tuned ADPCM + preset. No intermediate JSON is needed.\n// Shared reverb and driver-controlled modulation remain separate host choices.\nliveLoop('vab-melody',async()=>{\n  for(const note of ['C4','E4','G4','C5']) {\n    await ps1.noteOn(channel,note);\n    await beat(0.8);\n    await ps1.keyOff(channel);\n    await beat(0.2);\n  }\n});\n"
+  },
+  {
     "path": "/examples/scsp/scsp-stereo-pcm.js",
     "name": "scsp-stereo-pcm",
     "data": "// Original signed PCM16. 64 samples at 44100 Hz have a root of 44100 / 64 Hz.\n// This example also works as an additional SCSP in other Web Audio modes.\nconst saturn = await useSoundChip('scsp');\nsaturn.reset({clearRam:true});\nconst pcm = Int16Array.from({length:64}, (_,i) => Math.round(8192 * Math.sin(2 * Math.PI * i / 64)));\nconst wave = await saturn.loadPCM(pcm, {baseFrequencyHz:44100 / 64, loopStartSamples:0});\nsaturn.setPreset(0, {sample:wave, totalLevel:12, pan:31, envelope:{attackRate:31, releaseRate:24}});\nsaturn.setPreset(1, {sample:wave, totalLevel:12, pan:15, envelope:{attackRate:31, releaseRate:24}});\nsetBpm(120);\nliveLoop('saturn-stereo', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    saturn.noteOn(0, note);\n    saturn.noteOn(1, 'C3');\n    await beat(0.4);\n    saturn.keyOff(0);\n    saturn.keyOff(1);\n    await beat(0.1);\n  }\n});\n"
@@ -851,6 +856,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/ps1/ps1-stereo-voices.js",
     "/examples/ps1/ps1-adpcm-wave.js",
     "/examples/ps1/ps1-pcm-adpcm.js",
+    "/examples/ps1/ps1-vab-tone.js",
     "/examples/ps1/ps1-sampler.js"
   ],
   "snes": [

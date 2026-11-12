@@ -22,10 +22,10 @@ PSF／MiniPSFを読み込み、SID／FM2612と同様に元の曲を試聴でき�
 - ZIP：`release/tetorica_spu_synth_psf-playback-20261111-final_itch.zip`（314 files、6,757,112 bytes、SHA-256 `21418d08dd2227dae907172738e093c6bcab6b40bb02a162b2e52c91f1e1c3f9`）。可読JS／CSS、Play!／Framework／CodeGenのBSD-2-Clauseライセンスとソース・来歴・ビルド手順を同梱。配布ソースキットだけの再ビルドでJS／WASMが配布版とバイト単位で一致。元SPUの固定Native SDKは変更なし。
 - 詳細：[検証記録](spu_synth_psf_playback_verification_01.json)。commit／push／tag／公開なし。
 
-## Previewの制限と続き
+## 現在の制限と続き（2026-11-12更新）
 
-再生エンジンは既存SynthのSPUとは別のPlay!実装。基本ADPCM／ADSR／reverbは再生するが、曲側のNoise・PMON・実機main／reverb出力音量レジスターを再現しない。HLE BIOSにも対応範囲があるため、実機との厳密な比較用とはしない。UIの「?」・READMEにも明記。
+上の完了記録は初期Previewの履歴。現在はPlay! CPU／HLEと固定MAME由来SPUを接続済みで、Noise・PMON・main／reverb音量にも対応する。HLE BIOS／CPU timingや未対応register操作の制限は残るため、実ゲームの完全互換性・実聴・長時間確認とは分ける。
 
-- [ ] Preview側SPUを既存のMAME由来SPUへ接続し、Noise／PMON／出力音量などの再現範囲を揃える方式を検討する。
-- [ ] 曲のCH Live表示・Captureを検討する。まずは再生を試してから決める。
+- [x] Preview側SPUを固定MAME由来SPUへ接続し、Noise／PMON／出力音量を揃える。[完了記録](todo_spu_psf_shared_core_01.md)。
+- [x] 曲の24CH Live表示・Pause中のCaptureと鍵盤試奏を追加する。[Capture](todo_spu_psf_capture_01.md)・[Pause試奏](todo_spu_psf_paused_audition_01.md)。
 - [ ] 実ゲームPSFの互換性・実聴・長時間動作を確認する。今回の自動検証では未実施。

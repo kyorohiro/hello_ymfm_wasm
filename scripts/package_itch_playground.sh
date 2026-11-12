@@ -178,6 +178,7 @@ ps1_spu.js
 ps1_parameters.js
 ps1_waveform.js
 ps1synth.js
+ps1_vab.js
 ps1_resampler.js
 pcm_44100_resampler.js
 scsp.js

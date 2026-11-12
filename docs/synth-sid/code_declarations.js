@@ -4,6 +4,7 @@ export const SID_CODE_GLOBALS=Object.freeze([
   'context','fx','CH1','CH2','CH3','console','log','useSoundChip','file','setBpm','beat','nextBeat','sleep','sleepSamples','tween',
   'liveLoop','livePrepare','liveFx','stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','midiToNoteName',
   'scale','chord','lerp','choose','cycle','rand','rrange','randInt','pg',
+  'readVab','prepareVabTone','exportVab','MAX_VAB_FILE_BYTES',
 ]);
 const SID_TYPES=`
 type SidCodeSoundChipMap = {sid:PlaygroundSid};

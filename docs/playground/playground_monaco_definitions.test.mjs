@@ -29,6 +29,32 @@ test('ADPCM-A encoder global and pg lookup keep their own implementation',()=>{
   }
 });
 
+test('VAB globals, pg helpers and structured types navigate to the shared pure implementation',async()=>{
+  const declarations=await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8');
+  const source=await readFile(new URL('../../tetorica_src/runtime/ps1_vab.js',import.meta.url),'utf8');
+  const library={uri:'file:///globals.d.ts',getValue:()=>declarations,
+    getPositionAt:offset=>({lineNumber:declarations.slice(0,offset).split('\n').length,column:offset-declarations.lastIndexOf('\n',offset-1)})};
+  for(const symbol of ['readVab','prepareVabTone','exportVab','MAX_VAB_FILE_BYTES'])for(const prefix of ['','pg.','other.']){
+    const code=`${prefix}${symbol}`,startColumn=prefix.length+1;
+    const model={getWordAtPosition:()=>({word:symbol,startColumn}),getLineContent:()=>code};
+    const target=globalDefinition(model,{lineNumber:1,column:startColumn},new Map([['library',library]]));
+    if(prefix==='other.'){assert.equal(target,null);continue;}
+    for(const options of [{},{runtimeFile:'playground_code_runtime.js'}]){
+      assert.deepEqual(definitionSource(declarations,target.range,'ps1',options),{file:'ps1_vab.js',symbol});
+    }
+    const point=sourcePosition(source,symbol);assert(point.lineNumber>1,symbol);
+    assert.match(source.split('\n')[point.lineNumber-1],new RegExp(`\\b${symbol}\\b`));
+  }
+  for(const name of ['Ps1VabBank','Ps1VabProgram','Ps1VabTone','Ps1VabSample','Ps1VabPreparedTone','Ps1VabExportOptions']){
+    const text=`interface ${name} {\n  property:number;\n}`;
+    assert.deepEqual(definitionSource(text,{lineNumber:1,column:11}),{file:'ps1_vab.js',symbol:name});
+    assert.deepEqual(definitionSource(text,{lineNumber:2,column:3}),{file:'ps1_vab.js',symbol:name});
+    const point=sourcePosition(source,name);assert(point.lineNumber>1,name);
+    assert.match(source.split('\n')[point.lineNumber-1],new RegExp(`@typedef.*\\b${name}\\b`));
+  }
+  assert.equal(definitionSource('interface Unknown {\n property:number;\n}',{lineNumber:2,column:2}),null);
+});
+
 test('BRR encoder global and pg fallback resolve the actual encoder declaration and implementation', async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
   const library = {

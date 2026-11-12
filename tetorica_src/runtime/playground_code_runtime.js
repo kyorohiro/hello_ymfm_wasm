@@ -10,6 +10,7 @@ import {executeWithPlaygroundGuards} from './playground_execution.js';
 import {midiToOpnPitch,opnPitchFromHz} from './soundchip_pitch.js';
 import {FM_PRESETS} from './megasynth-fm-presets.js';
 import {formatLogArgs} from './playground_log.js';
+import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
 
 /** @typedef {'ym2612'|'segapsg'|'rf5c164'|'pwm'} DefaultCodeSoundChip */
 /** @type {readonly DefaultCodeSoundChip[]} */
@@ -254,6 +255,7 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
       waitBeats:beats=>{ensure();return clock.waitForBeat(clock.currentBeat()+beats,scope.epoch);}});
     const log=(...args)=>{ensure();onLog(formatLogArgs(args));};
     const globals={context:runtime.context,fm:fm(),fx:guarded(effectApi,scope),FM_PRESETS,CH1:0,CH2:1,CH3:2,CH4:3,CH5:4,CH6:5,
+      readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES,
       PSG1:0,PSG2:1,PSG3:2,OP1:0,OP2:1,OP3:2,OP4:3,
       console:{log,warn:(...args)=>log('[warn]',...args),error:(...args)=>log('[error]',...args)},log,
       async useSoundChip(name) {

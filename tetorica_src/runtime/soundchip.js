@@ -10,6 +10,13 @@ import { createSoundChipFactory } from './soundchip_factory.js';
 import {createWorkletSoundChip} from './soundchip_worklet.js';
 import {PWM32X} from './pwm32x.js';
 export {encodeWav} from './wav.js';
+export {MAX_VAB_FILE_BYTES,readVab,prepareVabTone,exportVab} from './ps1_vab.js';
+/** @typedef {import('./ps1_vab.js').Ps1VabBank} Ps1VabBank */
+/** @typedef {import('./ps1_vab.js').Ps1VabProgram} Ps1VabProgram */
+/** @typedef {import('./ps1_vab.js').Ps1VabTone} Ps1VabTone */
+/** @typedef {import('./ps1_vab.js').Ps1VabSample} Ps1VabSample */
+/** @typedef {import('./ps1_vab.js').Ps1VabPreparedTone} Ps1VabPreparedTone */
+/** @typedef {import('./ps1_vab.js').Ps1VabExportOptions} Ps1VabExportOptions */
 
 /**
  * Loader settings forwarded to an Emscripten chip factory.

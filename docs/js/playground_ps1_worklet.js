@@ -1,6 +1,6 @@
 import factory from '../generated/ps1_spu_wasm.js?v=ps1-deferred-release-1';
 import {Ps1Spu} from './ps1_spu.js?v=ps1-deferred-release-1';
-import {Ps1Synth,createPs1InitSample} from './ps1synth.js?v=ps1-oneshot-marker-1';
+import {Ps1Synth,createPs1InitSample} from './ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from './ps1_resampler.js?v=scsp-fm-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-deferred-release-1';

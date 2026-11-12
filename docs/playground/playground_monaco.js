@@ -1,6 +1,6 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=synth-code-types-1&ps1-source=1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=scsp-fm-1";
-import {selectPlaygroundDeclarations} from './playground_declarations.js?v=scsp-fm-1';
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=ps1-vab-api-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=ps1-vab-api-1";
+import {selectPlaygroundDeclarations} from './playground_declarations.js?v=ps1-vab-api-1';
 // Asset loading must remain trusted while user liveLoop callbacks install the
 // execution guard over global fetch. Loading Monaco itself is still lazy.
 const nativeFetch=globalThis.fetch?.bind(globalThis);

@@ -30,6 +30,7 @@ ps1_spu.js
 ps1_parameters.js
 ps1_waveform.js
 ps1synth.js
+ps1_vab.js
 ps1_resampler.js
 pcm_44100_resampler.js
 scsp.js
@@ -103,6 +104,7 @@ playground_wonderswan_worklet.js
 playground_wonderswan_inspector.js
 pokey.js
 sid.js
+sid_soundchip.js
 sid_test_instrument.js
 sidsynth.js
 playground_sid.js

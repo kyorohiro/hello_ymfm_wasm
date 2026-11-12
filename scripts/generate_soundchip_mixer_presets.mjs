@@ -8,6 +8,7 @@ import {validateWonderSwanMixerCalibration,validateWonderSwanMixerCalibrationSou
 import {validatePokeyMixerCalibration,validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
 import {validateScspMixerCalibration,validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
 import {publicRuntimeModule} from './runtime_module_layout.mjs';
+import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 
 const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_05.json',import.meta.url));
 const psgHistoricalSourcePaths=Object.freeze(Object.fromEntries([
@@ -119,7 +120,8 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
   const sources=Object.entries(psgReport.sources??{});
   if(!sources.length)throw new Error('Missing sound-chip PSG source hashes');
   for(const [path,sha256] of sources) {
-    const bytes=await readFile(new URL('../'+(psgHistoricalSourcePaths[path]??path),import.meta.url));
+    const current=await readFile(new URL('../'+(psgHistoricalSourcePaths[path]??path),import.meta.url));
+    const bytes=sourceSha(current)===sha256?current:restoreMixerCalibrationVabApiRevision(path,current);
     if(sourceSha(bytes)!==sha256&&!isSoundChipPsgSourceLayoutRevision(path,bytes,sha256))throw new Error('Sound-chip PSG source changed; remeasure: '+path);
   }
   if(ps1Report!==undefined)await validatePs1MixerCalibrationSources({reportPath,ps1Report});

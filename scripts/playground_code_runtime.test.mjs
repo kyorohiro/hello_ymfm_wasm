@@ -9,6 +9,8 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {createPlaygroundCodeRuntime,CODE_SOUND_CHIPS} from '../tetorica_src/runtime/playground_code_runtime.js';
 import {createNativeFXController} from '../tetorica_src/runtime/native_fx.js';
+import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from '../tetorica_src/runtime/ps1_vab.js';
+import {createVabFixture} from '../test/helpers/spu_vab_fixture.mjs';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 const turns=async()=>{for(let i=0;i<25;i++)await Promise.resolve();};
@@ -120,6 +122,29 @@ test('existing music helpers, Files bridge and entry paths are exposed without a
   assert.deepEqual(prepared,[{path:'/code/demo.js'}]);assert.deepEqual(reads,[{path:'./a.txt',options:{type:'text'},entry:{path:'/code/demo.js'}}]);
   const context=f.runtime.getContext();assert.equal(context.text,'hello');assert.deepEqual(context.notes,['C4','D4','E4','G4','A4']);
   assert.deepEqual(context.chord,['C4','D#4','G4']);assert.deepEqual(context.sequence,[1,2,1]);assert(f.logs.includes('ready hello'));await f.runtime.stop();
+});
+
+test('Synth Code parses VAB files and prepares/exports original Tones without borrowing a chip',async()=>{
+  const bytes=createVabFixture().vab,before=bytes.slice(),reads=[];
+  const f=fixture({readFile:async(path,options)=>{reads.push([path,options]);return bytes;}});
+  try {
+    await f.runtime.run(`
+      if(readVab!==pg.readVab||prepareVabTone!==pg.prepareVabTone||exportVab!==pg.exportVab)throw Error('Separate VAB helpers');
+      const source=await file('bank.vab',{type:'arrayBuffer'}),bank=pg.readVab(source);
+      context.tone=prepareVabTone(bank,1);context.full=exportVab(bank);context.single=pg.exportVab(bank,{toneNumber:1});
+      context.limit=MAX_VAB_FILE_BYTES;context.sameLimit=MAX_VAB_FILE_BYTES===pg.MAX_VAB_FILE_BYTES;
+      context.reopened=readVab(context.single);
+      let rejected=0;for(const call of [()=>readVab(new Uint8Array()),()=>prepareVabTone(bank,99),()=>exportVab({...bank})]){
+        try{call();}catch{rejected++;}
+      }if(rejected!==3)throw Error('VAB validation was bypassed');
+    `);
+    const actual=f.runtime.getContext(),bank=readVab(bytes);
+    assert.deepEqual(actual.tone,prepareVabTone(bank,1));assert.deepEqual(actual.full,bytes);
+    assert.deepEqual(actual.single,exportVab(bank,{toneNumber:1}));assert.equal(actual.reopened.tones.length,1);
+    assert.equal(actual.limit,MAX_VAB_FILE_BYTES);assert.equal(actual.sameLimit,true);assert.deepEqual(bytes,before);
+    assert.deepEqual(reads,[['bank.vab',{type:'arrayBuffer'}]]);assert.deepEqual(f.requests,[]);
+    assert(!f.writes.some(([kind])=>['on','preset'].includes(kind)));
+  }finally{await f.runtime.stop();}
 });
 
 test('named loops use the shared beat clock, change on Apply boundaries and release owned notes on removal',async()=>{

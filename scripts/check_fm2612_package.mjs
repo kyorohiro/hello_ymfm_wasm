@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {assertSidPackageFiles,checkInstalledSidNode} from './check_fm2612_sid_package.mjs';
+import {createVabFixture} from '../test/helpers/spu_vab_fixture.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'tetorica-fm2612-check-'));
 try {
@@ -30,6 +31,9 @@ try {
   }
   for(const file of ['ps1_parameters.js','ps1_parameters.d.ts']) {
     assert.ok(packedPaths.has(file),`PS1 named envelope/reverb parameters payload missing ${file}`);
+  }
+  for(const file of ['ps1_vab.js','ps1_vab.d.ts']) {
+    assert.ok(packedPaths.has(file),`Public standard VAB API payload missing ${file}`);
   }
   for(const file of ['scsp.js','scsp.d.ts','scspsynth.js','scspsynth.d.ts','scsp_sample.js','scsp_sample.d.ts','pcm_44100_resampler.js',
     'playground_scsp.js','playground_scsp_audio.js','playground_scsp_worklet.js','playground_scsp_inspector.js',
@@ -113,6 +117,85 @@ try {
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
   await checkInstalledSidNode(consumer);
+  const vabFixture=createVabFixture();
+  for(const extension of ['vab','vh','vb'])await writeFile(join(consumer,'original.'+extension),vabFixture[extension]);
+  await writeFile(join(consumer,'ps1-vab-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from 'tetorica-fm2612';
+import * as js from 'tetorica-fm2612/ps1_vab.js';
+import * as bare from 'tetorica-fm2612/ps1_vab';
+import {Ps1Spu} from 'tetorica-fm2612/ps1_spu.js';
+import {Ps1Synth} from 'tetorica-fm2612/ps1synth.js';
+import factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
+assert.equal(typeof globalThis.AudioContext,'undefined');
+assert.equal(MAX_VAB_FILE_BYTES,1024*1024);
+assert.equal(MAX_VAB_FILE_BYTES,js.MAX_VAB_FILE_BYTES);assert.equal(MAX_VAB_FILE_BYTES,bare.MAX_VAB_FILE_BYTES);
+assert.equal(readVab,js.readVab);assert.equal(readVab,bare.readVab);
+assert.equal(prepareVabTone,js.prepareVabTone);assert.equal(prepareVabTone,bare.prepareVabTone);
+assert.equal(exportVab,js.exportVab);assert.equal(exportVab,bare.exportVab);
+const source=new Uint8Array(await readFile('original.vab'));
+const vh=await readFile('original.vh'),vb=await readFile('original.vb');
+const padded=new Uint8Array(source.length+19);padded.set(source,7);
+const offsetView=new DataView(padded.buffer,7,source.length);
+const originalFetch=globalThis.fetch;
+globalThis.fetch=()=>{throw new Error('VAB parsing and explicit WASM must stay offline');};
+try{
+ const bank=readVab(offsetView),split=bare.readVab(vh,vb);
+ assert.deepEqual(bank,split);assert.deepEqual(bank.programs.map(p=>p.index),[3,11]);
+ assert.equal(bank.tones.length,3);assert.equal(bank.samples.length,2);
+ assert.deepEqual(exportVab(bank),source,'combined VAB export retains every original byte');
+ assert.deepEqual(exportVab(split),source,'split VH/VB export recombines without JSON');
+ padded.fill(0);assert.deepEqual(exportVab(bank),source,'input views are detached at parse');
+ const copy=exportVab(bank);copy.fill(0);assert.deepEqual(exportVab(bank),source);
+ const prepared=prepareVabTone(bank,1),lower=prepareVabTone(bank,0);
+ assert.equal(prepared.trimmedBytes,16);assert.equal(prepared.adpcm.length,64);
+ assert.equal(prepared.options.loopStartSamples,0);
+ assert.equal(prepared.options.baseFrequencyHz,440*2**((60-0.5-69)/12));
+ assert(prepared.options.baseFrequencyHz<lower.options.baseFrequencyHz);
+ assert.equal(prepared.preset.adsr1,15);assert.equal(prepared.preset.pitch,4096);
+ const selected=js.exportVab(bank,{toneNumber:1}),single=readVab(selected);
+ assert.equal(single.programs[0].index,3);assert.equal(single.tones.length,1);
+ assert.equal(single.tones[0].index,0);assert.equal(single.tones[0].sample,1);
+ assert.deepEqual(single.samples[0].bytes,bank.samples[0].bytes,'single Tone keeps post-END padding');
+ assert.deepEqual(prepareVabTone(single,0).options,prepared.options);
+ assert.deepEqual(prepareVabTone(single,0).preset,prepared.preset);
+ assert.throws(()=>readVab(new Uint8Array(12)),/VAB/);
+ assert.throws(()=>readVab(vh,vb.subarray(1)),/declared file size/);
+ assert.throws(()=>prepareVabTone(bank,3),/choose a tone/);
+ assert.throws(()=>exportVab({...bank}),/original bank/);
+ const unsupported=source.slice();new DataView(unsupported.buffer).setUint16(0x820+22,255,true);
+ assert.throws(()=>prepareVabTone(readVab(unsupported),0),/Noise/);
+ const modified=readVab(source);modified.samples[0].bytes[2]^=1;
+ assert.throws(()=>exportVab(modified),/source bank changed/);
+ const wasmBinary=await readFile(runtimeAssetUrl('generated/ps1_spu_wasm.wasm'));
+ const synth=new Ps1Synth({core:await Ps1Spu.create({moduleFactory:factory,moduleOptions:{wasmBinary}})});
+ try{
+  const loaded=synth.loadADPCM(prepared.adpcm,prepared.options);
+  assert.equal(loaded.decodedFrames,112);assert.equal(loaded.loop,true);
+  assert.equal(loaded.rootFrequencyHz,prepared.options.baseFrequencyHz);
+  synth.setPreset(23,{...prepared.preset,sample:loaded});synth.noteOn(23,'C4');
+  const left=new Float32Array(4096),right=new Float32Array(4096);synth.renderInto(left,right);
+  assert(left.every(Number.isFinite)&&right.every(Number.isFinite));
+  assert(left.some(v=>Math.abs(v)>.001)&&right.some(v=>Math.abs(v)>.001),'prepared VAB Tone renders on actual SPU');
+  assert.equal(synth.getPreset(23).adsr1,prepared.preset.adsr1);
+  assert.deepEqual(synth.core.readRam(loaded.startAddress,prepared.adpcm.length),prepared.adpcm);
+  synth.keyOff(23);synth.renderInto(left,right);
+  assert(left.subarray(-128).every(v=>v===0)&&right.subarray(-128).every(v=>v===0));
+  const hit=prepareVabTone(bank,2),oneShot=synth.loadADPCM(hit.adpcm,hit.options);
+  assert.equal(oneShot.loop,false);assert.equal(oneShot.decodedFrames,28);
+  assert.equal(hit.options.baseFrequencyHz,440);assert.equal(hit.trimmedBytes,16);
+  synth.setPreset(23,{...hit.preset,sample:oneShot});synth.noteOn(23,'A4');synth.renderInto(left,right);
+  assert(left.some(v=>Math.abs(v)>.001)&&left.every(Number.isFinite));
+  assert(left.subarray(-128).every(v=>v===0),'one-shot END must not replay the original padding');
+ }finally{synth.dispose();}
+ assert.deepEqual(exportVab(bank),source,'rendering never mutates the source bank');
+}finally{globalThis.fetch=originalFetch;}
+assert.equal(typeof globalThis.AudioContext,'undefined');
+console.log('Installed VAB API verified: root/.js/extensionless identity, offset DataView and split input, exact independent standard exports, original Tone metadata/tuning/loop, validation, actual offline SPU rendering and release; no JSON or audio device.');
+`);
+  execFileSync(process.execPath,[join(consumer,'ps1-vab-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'scsp-sample-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';

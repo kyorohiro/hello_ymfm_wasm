@@ -1174,6 +1174,10 @@ type PlaygroundAPIBase = {
   encodeBrr: typeof encodeBrr;
   encodeAdpcmA: typeof encodeAdpcmA;
   encodePs1Adpcm: typeof encodePs1Adpcm;
+  readVab: typeof readVab;
+  prepareVabTone: typeof prepareVabTone;
+  exportVab: typeof exportVab;
+  MAX_VAB_FILE_BYTES: typeof MAX_VAB_FILE_BYTES;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1801,6 +1805,48 @@ interface PlaygroundPs1AdpcmEncodeResult {
  * when passing the result to spu.loadADPCM. Run during preparation, before liveLoop.
  */
 declare function encodePs1Adpcm(pcm:Float32Array, options?:PlaygroundPs1AdpcmEncodeOptions):PlaygroundPs1AdpcmEncodeResult;
+/** One standard VAB sample, with its original size-table-bounded SPU ADPCM bytes. */
+interface Ps1VabSample {index:number;bytes:Uint8Array;}
+/** Raw Tone attributes. Program, Tone and sample indices are source-bank indices;
+ * key range, vibrato and portamento metadata are not a software sequencer. */
+interface Ps1VabTone {
+  program:number;index:number;sample:number;mode:number;
+  volume:number;pan:number;center:number;shift:number;keyLow:number;keyHigh:number;
+  adsr1:number;adsr2:number;vibratoWidth:number;vibratoTime:number;
+  portamentoWidth:number;portamentoTime:number;bendMin:number;bendMax:number;
+}
+interface Ps1VabProgram {index:number;volume:number;pan:number;tones:Ps1VabTone[];}
+/** Parsed standard Sony VAB v6/v7. Opening never creates audio or executes code.
+ * Preserve this original object and its bytes to export the source bank later. */
+interface Ps1VabBank {
+  version:6|7;id:number;masterVolume:number;masterPan:number;
+  programs:Ps1VabProgram[];tones:Ps1VabTone[];samples:Ps1VabSample[];
+}
+/** One Tone prepared for loadADPCM / setPreset without decoding or re-encoding.
+ * adpcm excludes bytes following its first END; trimmedBytes reports that tail. */
+interface Ps1VabPreparedTone {
+  adpcm:Uint8Array;
+  options:{baseFrequencyHz:number;loopStartSamples?:number;};
+  preset:{adsr1:number;adsr2:number;pitch:number;reverb:boolean;volumeLeft:number;volumeRight:number;};
+  tone:Ps1VabTone;trimmedBytes:number;
+}
+interface Ps1VabExportOptions {
+  /** Global zero-based index in bank.tones, not a Program-local Tone index.
+   * Omit to preserve the complete original bank. A selected Tone retains its
+   * Program number, becomes Tone 0 and references the only sample, number 1. */
+  toneNumber?:number;
+}
+/** Maximum supported VAB file size in bytes (1 MiB). */
+declare const MAX_VAB_FILE_BYTES:number;
+/** Pure standard Sony VAB parser. Supply a complete .vab, or matching .vh and .vb
+ * byte arrays. Returns independent bounded sample bytes; no name/format guessing. */
+declare function readVab(headerInput:ArrayBuffer|ArrayBufferView, bodyInput?:ArrayBuffer|ArrayBufferView):Ps1VabBank;
+/** Prepare a global bank.tones index for SPU loadADPCM + setPreset. Unsupported
+ * Noise/dynamic data or malformed samples throw without rewriting source bytes. */
+declare function prepareVabTone(bank:Ps1VabBank, toneNumber:number):Ps1VabPreparedTone;
+/** Export the unchanged source bank returned by readVab, or one available Tone.
+ * Preserves source ADPCM/metadata; edited or cloned banks must be reopened first. */
+declare function exportVab(bank:Ps1VabBank, options?:Ps1VabExportOptions):Uint8Array;
 interface PlaygroundBrrEncodeOptions {
   /** Null/omitted for one-shots. Loop start and source length must be multiples of 16. */
   loopStartSamples?:number | null;

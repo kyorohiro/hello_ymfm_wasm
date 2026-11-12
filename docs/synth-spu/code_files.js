@@ -3,7 +3,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu} from './file_context_menu.js?v=spu-files-menu-1';
-import {readVab,prepareVabTone} from './spu_synth_vab.js?v=spu-bank-presets-1';
+import {readVab,prepareVabTone} from './spu_synth_vab.js?v=ps1-vab-api-1';
 import {createSpuCodeProject,createSpuProjectStore,readSpuProjectSound,isSpuCodePath,isSpuTextPath,SPU_PROJECT_MANIFEST,SPU_PROJECT_CODE_LENGTH,SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');

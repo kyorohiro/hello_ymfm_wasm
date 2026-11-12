@@ -7,6 +7,8 @@ import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
 import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
 import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
 import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from '../../tetorica_src/runtime/ps1_vab.js';
+import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
 import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../tetorica_src/runtime/playground_native_primary.js';
 import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../tetorica_src/runtime/soundchip_pitch.js';
@@ -49,7 +51,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     // Imported encoders use instanceof; share their PCM constructor with the VM.
-    encodeBrr, encodeAdpcmA, encodePs1Adpcm, Float32Array,
+    encodeBrr, encodeAdpcmA, encodePs1Adpcm, readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES, Float32Array,
     validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
@@ -212,6 +214,25 @@ for (const chip of ['ym2612','ps1']) test(`Worker ${chip} converts SPU ADPCM loc
     assert.ok(result);assert.deepEqual(result[1],expected);assert.deepEqual(result[2],expected);
     assert(!f.worker.messages.some(message=>message.command==='pcm.create'||message.command==='pcm.decode'));
   } finally {await f.stop();}
+});
+
+for(const chip of ['ym2612','ps1'])test(`Worker ${chip} prepares and exports VAB locally without an audio RPC`,async()=>{
+  const f=createTimedWorkerHarness(),bytes=createVabFixture().vab;
+  try {
+    await f.run(`
+      if(readVab!==pg.readVab||prepareVabTone!==pg.prepareVabTone||exportVab!==pg.exportVab)throw Error('Separate VAB helpers');
+      if(MAX_VAB_FILE_BYTES!==pg.MAX_VAB_FILE_BYTES)throw Error('Separate byte limit');
+      const bytes=Uint8Array.from(${JSON.stringify(Array.from(bytes))}),bank=readVab(bytes);
+      console.log('vab-result',prepareVabTone(bank,1),pg.exportVab(bank),exportVab(bank,{toneNumber:1}),MAX_VAB_FILE_BYTES);
+      let rejected=0;for(const call of [()=>pg.readVab(new Uint8Array()),()=>pg.prepareVabTone(bank,99),()=>pg.exportVab({...bank})]){
+        try{call();}catch{rejected++;}
+      }if(rejected!==3)throw Error('VAB validation was bypassed');
+    `,0,{capabilities:{chip,fmChannels:chip==='ps1'?0:6,psg:chip!=='ps1',dac:chip!=='ps1'}});
+    const result=f.logs().find(args=>args[0]==='vab-result'),bank=readVab(bytes);
+    assert.ok(result);assert.deepEqual(result[1],prepareVabTone(bank,1));assert.deepEqual(result[2],bytes);
+    assert.deepEqual(result[3],exportVab(bank,{toneNumber:1}));assert.equal(result[4],MAX_VAB_FILE_BYTES);
+    assert(!f.worker.messages.some(message=>message.command==='rpc'),'VAB helpers do not request audio/PCM/files');
+  }finally{await f.stop();}
 });
 
 test('Worker cycles three- and four-item sequences independently across loop iterations like Main', async () => {

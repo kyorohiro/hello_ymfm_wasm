@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './playground_ps1_vab.js?v=ps1-oneshot-marker-1';
-import {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js?v=psf-split-vab-1';
+import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './playground_ps1_vab.js?v=ps1-vab-api-1';
+import {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js?v=ps1-vab-api-1';
 
 /** Opening a bank is local-only; loading a Tone is one inspector transaction. */
 export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=()=>{}}) {

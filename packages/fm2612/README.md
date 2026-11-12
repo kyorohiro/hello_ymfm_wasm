@@ -70,6 +70,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
 | PS1 named ADSR / reverb parameters | `tetorica-fm2612/ps1_parameters.js` | `decodePs1Envelope`, `encodePs1Envelope`, `patchPs1Envelope`, `PS1_REVERB_PRESETS` |
+| Standard PS1 VAB banks / selected Tone export | `tetorica-fm2612`, `tetorica-fm2612/ps1_vab.js` | `readVab`, `prepareVabTone`, `exportVab`, `MAX_VAB_FILE_BYTES` |
 | PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm`, `encodePs1AdpcmCycle` |
 | PS1 Sample Editor conversion / waveform comparison | `tetorica-fm2612/playground_sample_ps1.js` | `renderPs1Sample`, `renderPs1SampleComparison` |
 | Isolated offline PS1 sample audition | `tetorica-fm2612/playground_sample_ps1_preview.js` | `renderPs1SamplePreview` with an injected PS1 WASM factory |
@@ -266,6 +267,58 @@ delay; no physical SCSP timing/address-clipping fidelity is claimed. Main/Worker
 and updated Native hosts accept these controls. A multi-slot Synth voice allocator
 and patch serialization remain later work. These additions are not in published
 0.2.36. See the SCSP guide for a two-slot example and scheduling limitations.
+
+### Standard PS1 VAB banks
+
+`readVab`, `prepareVabTone` and `exportVab` are pure synchronous APIs for
+standard Sony VAB v6/v7. Import them from the package root or
+`tetorica-fm2612/ps1_vab.js` (the extensionless `ps1_vab` path also works).
+They do not create an audio device, require WASM, or convert through JSON.
+
+```js
+import {readVab,prepareVabTone,exportVab} from 'tetorica-fm2612';
+
+// Browser: bytes = await (await fetch(yourBankUrl)).arrayBuffer().
+// Node:    bytes = await readFile(yourBankPath).
+const bank=readVab(bytes);
+// For split banks instead: readVab(vhBytes, vbBytes).
+console.table(bank.tones.map((tone,toneNumber)=>({toneNumber,...tone})));
+
+const toneNumber=0; // Global bank.tones index, not an original Program ID.
+const prepared=prepareVabTone(bank,toneNumber);
+// ps1 is an initialized Ps1Synth, or the Playground's PS1 client.
+const instrument=await ps1.loadADPCM(prepared.adpcm,prepared.options);
+await ps1.setPreset(0,{...prepared.preset,sample:instrument});
+await ps1.noteOn(0,'C4');
+// Later: await ps1.keyOff(0).
+
+const originalBankBytes=exportVab(bank);
+const selectedToneBytes=exportVab(bank,{toneNumber});
+```
+
+Inputs may be an `ArrayBuffer` or any `ArrayBufferView`, including `DataView`
+and Node `Buffer`. Parsed banks retain original sparse Program IDs and Tone
+metadata. Preparation returns owned ADPCM through the first END packet,
+explicit `baseFrequencyHz`, an optional loop start, and ADSR/volume/pan/send
+settings compatible with `Ps1Synth` and its asynchronous client. The bytes
+are not decoded or re-encoded. Static volume/pan approximate libsnd;
+shared reverb, key-zone layering, vibrato, portamento and song-driver logic
+remain host responsibilities. Unassigned samples, libsnd Noise Tones and
+unsupported ADPCM forms fail with an explanation.
+
+Full-bank export preserves the original combined VH + VB bytes, including
+padding. Selected export produces a standard one-Tone VAB, retaining its
+original Program ID while packing the Tone as index 0 and its sample as 1.
+Export requires the unchanged bank returned by `readVab`; it does not serialize
+an arbitrary edited Synth instrument. Returned buffers are independent copies.
+The exported types are `Ps1VabBank`, `Ps1VabProgram`, `Ps1VabTone`,
+`Ps1VabSample`, `Ps1VabPreparedTone` and `Ps1VabExportOptions`.
+
+In SPU Synth, **Save bank to presets** and **Save selected Tone to preset**
+keep standard `.vab` files alongside portable Tone JSON. The Preset picker can
+load a Program/Tone directly from a saved VAB, even with no JSON files present.
+For an offline WAV example using the original demo bank, see
+[main_ps1_vab.js](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/tetorica_examples/nodejs/main_ps1_vab.js).
 
 ### Experimental standalone PlayStation SPU
 

@@ -1,5 +1,5 @@
 /** Ordered Browser/logic-Worker controls for the experimental PS1 SPU. */
-import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-oneshot-marker-1';
+import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-deferred-release-1';
 const TIMEOUT_MS=15000;
 /** @param {MessagePort} port @param {{sampleRate?:number,state?:any}} [initial] */
 export function createPs1Client(port,initial={},lifecycle={}) {
@@ -54,9 +54,9 @@ export function createPs1Client(port,initial={},lifecycle={}) {
     /** Immediate preparation barrier, including in Worker mode. Clears prior
      * reserved notes; later voice controls retain their normal lookahead.
      * @param {{clearRam?:boolean}} [options] */ reset(options){control('reset',options===undefined?[]:[options]);},
-    /** @returns {Promise<ReturnType<Ps1Synth['getState']>>} */ getState(){return request('getState');},
-    /** @param {number} ch @returns {Promise<ReturnType<Ps1Synth['getPreset']>>} */ getPreset(ch){validation.getPreset(ch);return request('getPreset',[ch]);},
-    /** @returns {Promise<ReturnType<Ps1Synth['snapshot']>>} */ snapshot(){return request('snapshot');},
+    /** @returns {Promise<ReturnType<import('./ps1synth.js?v=audio-stability-2').Ps1Synth['getState']>>} */ getState(){return request('getState');},
+    /** @param {number} ch @returns {Promise<ReturnType<import('./ps1synth.js?v=audio-stability-2').Ps1Synth['getPreset']>>} */ getPreset(ch){validation.getPreset(ch);return request('getPreset',[ch]);},
+    /** @returns {Promise<ReturnType<import('./ps1synth.js?v=audio-stability-2').Ps1Synth['snapshot']>>} */ snapshot(){return request('snapshot');},
     dispose(){if(disposed)return;disposed=true;revision++;try{port.postMessage({method:'dispose',args:[]});}catch{}finally{for(const p of pending.values()){clearTimeout(p.timer);p.reject(abort('PS1 SPU instance is disposed'));}pending.clear();port.onmessage=null;port.onmessageerror=null;port.close();}},
   };
   {

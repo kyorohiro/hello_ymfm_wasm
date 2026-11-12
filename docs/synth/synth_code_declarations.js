@@ -5,6 +5,7 @@ export const SYNTH_CODE_GLOBALS=Object.freeze([
   'console','log','useSoundChip','file','setBpm','beat','nextBeat','sleep','sleepSamples','tween','liveLoop','livePrepare','liveFx',
   'stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','toPitch','noteToBlockFnum','noteLerp','hzToBlockFnum',
   'midiToNoteName','scale','chord','lerp','choose','cycle','rand','rrange','randInt','pg',
+  'readVab','prepareVabTone','exportVab','MAX_VAB_FILE_BYTES',
 ]);
 
 /** Read whole top-level type/interface/ambient declarations, including multiline

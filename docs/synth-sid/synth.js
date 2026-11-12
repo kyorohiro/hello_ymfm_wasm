@@ -8,7 +8,7 @@ import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.j
 import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
 import {createSidLiveView} from './sid_live_view.js?sid-waves=1&sid-code-live=1';
-import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2';
+import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2&ps1-vab-api=1';
 import {createSidCodeLive} from './code_live.js?sid-code-live=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,

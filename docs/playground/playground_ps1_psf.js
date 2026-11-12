@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 // Bounded local PSF1 container / overlay loader; no CPU or network file access.
 // https://gist.github.com/SaxxonPike/11618bd321a45a70c01febae43ff564e
-import {MAX_VAB_FILE_BYTES,readVab,prepareVabTone} from './playground_ps1_vab.js?v=ps1-vab-export-1';
+import {MAX_VAB_FILE_BYTES,readVab,prepareVabTone} from './playground_ps1_vab.js?v=ps1-vab-api-1';
 
 export const PSF_FILES = /\.(?:psf1?|minipsf1?|psflib|psf1lib)$/i;
 export const MAX_PSF_FILE_BYTES = 4*1024*1024;

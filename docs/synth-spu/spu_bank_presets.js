@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Portable presets from an opened bank, without loading it into an audio core.
-import {prepareVabTone} from './spu_synth_vab.js?v=spu-split-vab-1';
+import {prepareVabTone} from './spu_synth_vab.js?v=ps1-vab-api-1';
 import {writeSpuInstrument} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 const defaultReverb=()=>({preset:'off',volumeLeft:.25,volumeRight:.25});

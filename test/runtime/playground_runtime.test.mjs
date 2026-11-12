@@ -22,6 +22,8 @@ import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
 import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
 import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
 import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from '../../tetorica_src/runtime/ps1_vab.js';
+import {createVabFixture} from '../helpers/spu_vab_fixture.mjs';
 import {ps1VoiceCode} from '../../docs/playground/playground_ps1_voice_panel.js';
 import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
 import {PokeySynth} from '../../tetorica_src/runtime/pokeysynth.js';
@@ -120,6 +122,26 @@ for (const chip of ['ym2612','ps1']) test(`Main ${chip} exposes one pure SPU ADP
   assert.deepEqual(runtime.context.globalSpu,expected);assert.deepEqual(runtime.context.pgSpu,expected);
   await assert.rejects(runtime.playSource(`encodePs1Adpcm(new Float32Array(28),{loopStartSamples:1});`),/align/i);
   await assert.rejects(runtime.playSource(`pg.encodePs1Adpcm(new Float32Array(28),{maxBytes:15});`),/maxBytes/);
+});
+
+for(const chip of ['ym2612','ps1'])test(`Main ${chip} parses, prepares and exports VAB through the same global and pg functions`,async t=>{
+  const {runtime,megaDrive}=setup(t,{chip,fmChannels:chip==='ps1'?0:6,psg:chip!=='ps1',dac:chip!=='ps1'});
+  const bytes=createVabFixture().vab;megaDrive.stopAllNative=()=>{};
+  const before=bytes.slice();runtime.context.input=bytes;
+  await runtime.playSource(`
+    if(readVab!==pg.readVab||prepareVabTone!==pg.prepareVabTone||exportVab!==pg.exportVab)throw Error('Separate VAB helpers');
+    context.limit=MAX_VAB_FILE_BYTES;context.sameLimit=MAX_VAB_FILE_BYTES===pg.MAX_VAB_FILE_BYTES;
+    const bank=readVab(context.input);context.tone=pg.prepareVabTone(bank,1);
+    context.full=exportVab(bank);context.single=pg.exportVab(bank,{toneNumber:1});
+    context.reopened=pg.readVab(context.single);
+    let rejected=0;for(const call of [()=>readVab(new Uint8Array()),()=>prepareVabTone(bank,99),()=>exportVab({...bank})]){
+      try{call();}catch{rejected++;}
+    }if(rejected!==3)throw Error('VAB validation was bypassed');
+  `);
+  const bank=readVab(bytes);assert.deepEqual(runtime.context.tone,prepareVabTone(bank,1));
+  assert.deepEqual(runtime.context.full,before);assert.deepEqual(runtime.context.single,exportVab(bank,{toneNumber:1}));
+  assert.equal(runtime.context.reopened.tones.length,1);assert.equal(runtime.context.reopened.tones[0].program,3);
+  assert.equal(runtime.context.limit,MAX_VAB_FILE_BYTES);assert.equal(runtime.context.sameLimit,true);assert.deepEqual(bytes,before);
 });
 
 // Inject a deterministic audio endpoint into the real runtime, keeping its
