@@ -41,11 +41,11 @@
                   <section class="synth-menu-section">
                     <h2>Import</h2>
                     <div class="synth-menu-actions">
-                      <button id="loadVab" type="button" data-spu-open-panel="bank" data-close-synth-menu>VAB / VH + VB…</button>
+                      <button id="loadVab" type="button" data-spu-import-input="vabFileInput" data-spu-open-panel="bank" data-close-synth-menu>VAB / VH + VB…</button>
                       <input id="vabFileInput" class="file-input" type="file" accept=".vab,.vh,.vb" multiple aria-label="Choose a VAB or matching VH and VB files">
-                      <button id="loadPsf" type="button" data-spu-open-panel="bank" data-close-synth-menu>PSF set…</button>
+                      <button id="loadPsf" type="button" data-spu-import-input="psfFileInput" data-spu-open-panel="bank" data-close-synth-menu>PSF set…</button>
                       <input id="psfFileInput" class="file-input" type="file" accept=".psf,.psf1,.minipsf,.minipsf1,.psflib,.psf1lib" multiple aria-label="Choose PSF and related PSFLib files together">
-                      <button id="loadPsfFolder" type="button" data-spu-open-panel="bank" data-close-synth-menu>PSF folder…</button>
+                      <button id="loadPsfFolder" type="button" data-spu-import-input="psfFolderInput" data-spu-open-panel="bank" data-close-synth-menu>PSF folder…</button>
                       <input id="psfFolderInput" class="file-input" type="file" multiple webkitdirectory aria-label="Choose a folder containing a PSF set">
                       <button id="loadAudio" type="button" data-spu-open-panel="audio" data-close-synth-menu>Audio sample…</button>
                       <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
@@ -170,6 +170,11 @@
           </section>
           <section id="instrumentPanel-bank" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-bank" hidden>
             <h3>PS1 sound bank</h3>
+            <div class="sample-actions" role="group" aria-label="Open a sound bank or PSF set">
+              <button id="loadVabInPanel" type="button" data-spu-import-input="vabFileInput">Load VAB / VH + VB…</button>
+              <button id="loadPsfInPanel" type="button" data-spu-import-input="psfFileInput">Load PSF set…</button>
+              <button id="loadPsfFolderInPanel" type="button" data-spu-import-input="psfFolderInput">Open PSF folder…</button>
+            </div>
             <p class="subtext">Open a standard Sony VAB (version 6 or 7), matching VH + VB files, or a PSF1 / MiniPSF set with all its PSFLib files. Opening or extracting a bank keeps the current instrument.</p>
             <p class="subtext">Use Extract VAB beside the song controls to list its banks, then choose a Tone below.</p>
 
@@ -259,6 +264,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-bank-presets-1"></script>
+    <script type="module" src="./synth.js?v=spu-bank-import-buttons-1"></script>
   </body>
 </html>

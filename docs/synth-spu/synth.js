@@ -857,8 +857,8 @@ for(const[id,all]of [['saveVabBank',true],['saveVabTone',false]]) {
   $(id).addEventListener('click',()=>void saveVabPresets(all));
 }
 $('psfEntry').addEventListener('change',()=>{beginAssetOperation();if(psfSet)psfSong.setSource(psfSet,$('psfEntry').value);});
-$('loadPsf').addEventListener('click',()=>$('psfFileInput').click());
-$('loadPsfFolder').addEventListener('click',()=>$('psfFolderInput').click());
+for(const button of document.querySelectorAll('[data-spu-import-input]'))
+  button.addEventListener('click',() => $(button.dataset.spuImportInput).click());
 function showPsfSongs(set,isFolder) {
   const songs=set.entries.filter(entry=>!/\.(?:psflib|psf1lib)$/i.test(entry.path));
   psfHasSongs=songs.length>0;
@@ -916,7 +916,6 @@ $('extractPsf').addEventListener('click',async()=>{
   } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}
   finally {if (operation===assetEpoch) {bankReadController=null;extractingPsf=false;updateBankControls();}}
 });
-$('loadVab').addEventListener('click', () => $('vabFileInput').click());
 $('vabFileInput').addEventListener('change', async () => {
   const files = [...$('vabFileInput').files]; $('vabFileInput').value='';
   if (!files.length) return;

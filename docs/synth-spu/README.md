@@ -236,7 +236,9 @@ remain available in [Playground](../playground/index.html?mode=ps1).
 
 ## PS1 sound banks
 
-Choose **Menu → Import → VAB / VH + VB…**. Select one complete `.vab`, or
+Use **Load VAB / VH + VB…**, **Load PSF set…** or **Open PSF folder…** at the
+top of the **PSF / VAB** tab. The same file pickers are also available in
+**Menu → Import**. Select one complete `.vab`, or
 select its matching `.vh` and `.vb` together. Standard Sony versions 6 and 7
 are supported. Opening a bank lists its Tones without changing the current
 instrument. Select a Tone and choose **Load selected Tone**, then play the

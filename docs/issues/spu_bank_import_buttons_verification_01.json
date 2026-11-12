@@ -1,0 +1,118 @@
+{
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_spu_synth_bank-import-buttons-20261112-zX8Md6",
+  "results": [
+    {
+      "browser": "chromium",
+      "passed": true,
+      "checks": [
+        "All three tab buttons open matching Menu file inputs",
+        "VAB parsed and three Tones listed",
+        "PSF set parsed and song listed",
+        "PSF folder read with relative paths",
+        "Empty/cancel keeps prior bank and song",
+        "All three Menu buttons still work",
+        "No AudioContext created; physical output muted",
+        "390px controls fit without horizontal overflow"
+      ],
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "buttons": [
+          {
+            "id": "loadVabInPanel",
+            "left": 35,
+            "right": 197.15625,
+            "width": 162.15625,
+            "height": 36
+          },
+          {
+            "id": "loadPsfInPanel",
+            "left": 205.15625,
+            "right": 324.1875,
+            "width": 119.03125,
+            "height": 36
+          },
+          {
+            "id": "loadPsfFolderInPanel",
+            "left": 35,
+            "right": 177.21875,
+            "width": 142.21875,
+            "height": 36
+          }
+        ]
+      },
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "passed": true,
+      "checks": [
+        "All three tab buttons open matching Menu file inputs",
+        "VAB parsed and three Tones listed",
+        "PSF set parsed and song listed",
+        "PSF folder read with relative paths",
+        "Empty/cancel keeps prior bank and song",
+        "All three Menu buttons still work",
+        "No AudioContext created; physical output muted",
+        "390px controls fit without horizontal overflow"
+      ],
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390,
+        "buttons": [
+          {
+            "id": "loadVabInPanel",
+            "left": 35,
+            "right": 197.84375,
+            "width": 162.84375,
+            "height": 36
+          },
+          {
+            "id": "loadPsfInPanel",
+            "left": 205.84375,
+            "right": 324.875,
+            "width": 119.03125,
+            "height": 36
+          },
+          {
+            "id": "loadPsfFolderInPanel",
+            "left": 35,
+            "right": 177.21875,
+            "width": 142.21875,
+            "height": 36
+          }
+        ]
+      },
+      "errors": []
+    }
+  ],
+  "distribution": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_spu_synth_bank-import-buttons-20261112-zX8Md6",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_spu_synth_bank-import-buttons-20261112_itch.zip",
+    "files": 341,
+    "bundles": 3,
+    "archiveRecord": {
+      "bytes": 7091813,
+      "sha256": "a4e1ff94ea5a191e2e5890254694188d81d92ad33ef26eb119d4ac67480be836"
+    },
+    "sourceCheck": {
+      "passed": true,
+      "sourceInputs": 24,
+      "bundleFiles": 28,
+      "fixedSdkArtifact": true,
+      "sdkVersion": "0.1.7",
+      "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+      "rebuilt": null
+    },
+    "zipIntegrity": {
+      "crcPassed": true,
+      "allEntriesMatchStage": true
+    }
+  },
+  "scope": "PSF / VAB panel import shortcuts; same existing inputs and handlers as Menu",
+  "validationNote": "Targeted silent browser verification only; audio decoding/playback was not started. Existing focus-loss keyboard release behavior is unchanged."
+}
