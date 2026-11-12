@@ -4,6 +4,8 @@
 複数作品を検証するときは作品ごとに実行し、レポートを分ける。
 Node.js 22以降。ブラウザ・音声デバイス・ネットワークは使用しない。
 
+曲の実行可否やPCM／CH／RAMの変化を調べる場合は、別の[PSF無音バッチ診断](check_psf_batch.md)を使う。静的VAB検出とドライバー実行の診断は独立している。
+
 ```sh
 node scripts/inspect_psf_banks.mjs /path/to/extracted-game-set --out /private/tmp/game-psf-report.json
 ```

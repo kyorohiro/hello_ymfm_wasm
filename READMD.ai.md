@@ -2,7 +2,74 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-08 (English handoff; readable distributions, dual-model SID Synth / browser SID Player, single-voice / isolated Sync-Ring snapshots and additional 8580 Preview Playground instances). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-12 (English handoff; SPU Synth PSF preview, paused audition / Capture, full-sample editing and published VAB APIs). This is an entry point for AI agents investigating the repository and resuming work.
+
+## Current PlayStation SPU handoff
+
+The browser [SPU Synth](docs/synth-spu/index.html) now opens local PSF1 / MiniPSF
+sets or folders with their PSFLib dependencies and previews supported music
+drivers. Play / Pause / Resume / Stop and cancellable seek are implemented.
+The separate Play! CPU / HLE machine needs no external BIOS; its audio uses the
+same MAME-derived SPU DSP sources as the keyboard Synth. It is not cycle-exact
+PS1 emulation, PSF2 support or a guarantee that every game's driver will work.
+Volume sweeps, voice Start / Repeat addresses aligned only to 8 bytes rather
+than 16, and unsupported RAM transfer modes fail explicitly.
+
+Live follows the audible position with coherent CH1–24 snapshots and sampled
+activity indicators. In Pause, the keyboard can temporarily audition a selected
+ordinary ADPCM or Noise voice without replacing the edited instrument. Capture
+creates an editable instrument and keeps the original song paused; choose Synth
+view to edit it, or a PSF CH to inspect and audition the original voice again.
+Capture preserves original ADPCM bytes and supported loops. Its Reference key
+maps the raw PITCH code, not an inferred sample root. Noise captures preserve
+Clock, not the running LFSR phase. PMON carriers are not captured or auditioned.
+Live's bounded Start-address waveform preview is read-only and is not the
+current audible waveform. Imported / captured ADPCM instead has a full-sample
+editor that preserves length, tuning and loop points; committing an edit
+re-encodes ADPCM and leaves the source bank unchanged. See the
+[SPU guide and limits](docs/synth-spu/README.md#ps1-sound-banks).
+
+Seek advances a separate candidate from the beginning with discarded PCM and
+cooperative yielding; cancel or failure retains the old song state. Targets are
+limited to 30 minutes and processing to 30 seconds between native slices. There
+is no seek checkpoint cache. PSF `length` / `fade` tags are range hints, not
+automatic ending or fading. Selected-channel Dry listening keeps all 24 voices,
+PMON / Noise and shared reverb processing; only the selected dry contribution
+is heard, without the song's shared reverb return.
+
+Static VAB extraction is separate from song execution. SPU Synth can save an
+opened bank or selected Tone as source-preserving standard VAB plus portable
+JSON presets. Standard VAB export does not serialize an arbitrary edited Synth
+instrument. Published **`tetorica-fm2612@0.2.40`** exposes pure synchronous
+`readVab`, `prepareVabTone`, `exportVab` and `MAX_VAB_FILE_BYTES`, with public
+metadata types, from the package root / `ps1_vab.js`. They handle standard Sony
+v6 / v7 VAB or matching VH + VB without an audio device or WASM. They do not
+include PSF song execution or universal game-specific bank recovery. Use the
+[VAB API examples and limits](packages/fm2612/README.md#standard-ps1-vab-banks).
+
+Resume from the [SPU application guide](docs/synth-spu/README.md),
+[`synth.js`](docs/synth-spu/synth.js),
+[`psf_song_preview.js`](docs/synth-spu/psf_song_preview.js),
+[`psf_playback_core.js`](docs/synth-spu/psf_playback_core.js) and the canonical
+[`ps1_vab.js`](tetorica_src/runtime/ps1_vab.js). Implementation / verification
+records are linked from the [shared-core TODO](docs/issues/todo_spu_psf_shared_core_01.md),
+[seek TODO](docs/issues/todo_spu_psf_seek_01.md),
+[VAB API record](docs/issues/ps1_vab_public_api_verification_01.json) and
+[npm release record](docs/issues/npm_ps1_vab_release_01.md).
+These checks include offline native PCM / state comparisons, source-kit rebuilds
+and muted headless browser workflows; they do not establish all-game
+compatibility, human listening approval or long-session stability.
+
+Keep Tetorica's learning / reuse goals prominent and distributions readable.
+The earlier SID investigation below is retained as its own historical handoff.
+
+The repository-only [PSF batch diagnostic CLI](scripts/check_psf_batch.md) runs
+`npm run psf:batch -- "/path/to/psf-set" --out /tmp/psf-report.json` without
+an audio device. It loads each entry's dependency closure and uses a separate
+Node process with hard wall-time limits for the existing ABI4 CPU/SPU core.
+Reports contain PCM statistics/hashes, sampled CH metadata and SPU RAM hashes,
+not game sample bytes. Silence is a diagnostic, not a failure by itself. This
+tool is separate from static VAB extraction and is not an npm PSF player API.
 
 ## C64 SID work in progress
 

@@ -56,7 +56,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | --- | --- |
 | [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) | JavaScriptライブコーディング、レジスター操作、音楽API、サンプル編集、FILES／Shell。音源modeを選んで使います。 |
 | [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FMオペレーター／エンベロープ編集、鍵盤試奏、VGM音色取込、TFI／VGI編集。Keyboard／Codeタブで編集中の音源をJavaScriptから演奏できます。Files／Cassetteに`/index.js`やローカルmoduleを保存し、`useSoundChip()`でYM2612／Sega PSG／RF5C164／32X PWMを操作。Playgroundと共通の`liveLoop`／`liveFx`／`context`、Run／Apply／Stop、遅延ロードする補完editorを備えます。[Code演奏ガイド](docs/synth/CODE.md)も参照できます。Mega CD PCMタブはRF5C164の8CHラウンドロビンで、内蔵波形／WAV・Loop範囲・Root note・Volume・左右Panを演奏できます。離鍵時は対象CHの実機Volumeを4 msで下げるソフトウェア処理でクリックを抑え、共有コアや保持中の他CHは変更しません。mono 8-bit変換と共有64 KiB RAMへの調整はソフトウェア処理と明記し、PCM音色は自己完結の`.pcm.json`としてFiles／Cassetteへ保存できます。PCM CH1〜CH8では聴こえる位置のVGM波形RAMと設定をLive／Freeze表示できます。Pause中は別の音源で選択CHを試奏し、Copyで範囲が確定したサンプルと設定を新しい編集音色へ保存できます。C4は取得時の再生速度であり、元の音程の推定ではありません。その後のRAM書換えやゲーム側Envelopeは復元せず、範囲やRAMが不完全な場合は理由を表示します。PCMのSoftware Event Recは発音・Pitch・Volume／Pan／Root／Loop設定・サンプル変更を自己完結JSONへ記録し、別のRF5C164でsample clockに沿ってループ再生します。編集中の音色は変更しません。Use current soundは再生開始時のサンプルと設定を使います。FM／PSG／PCMのtakeは独立して保持し、VGM再生中は録音を停止・無効化します。PCMのSoftware Looperは各層のサンプル・設定を保持する重ね録り、Undo／Clear、停止・再開に対応します。最初のtakeで周期を決め、後続は録音開始位置から重ねます。生PCMをaudio clockでmixし、System PCM補正×Masterは再生時に一度だけ適用します。最大16層／120秒／生成PCM 128 MiBをセッション中のメモリに保持し、Cassetteには保存しません。PSGタブでは矩形波3CHのラウンドロビン／Noiseを演奏し、実機の減衰値と固定／Tone 3連動のNoise clockを操作できます。Software Envelope（初期値Off）でADSRも設定でき、実機の段階的な音量をソフトウェア制御する機能だと明示しています。PSG音色は読みやすい`.psg.json`としてFiles／Cassetteへ保存でき、Sync／Revertとローカル復旧に対応します。FM／PSGの切替では各音色と編集ファイルを保持します。PSGのEvent Recは発音・Pitch・Software Envelopeなどの設定変更を専用JSONへ記録し、独立したPSGでsample clock再生するため編集音色を変更しません。FM／PSGのEvent Rec takeとLooper layerは別々に保持します。PSG Looperは重ね録り・Undo／Clear・停止／再開に対応し、各layerの音色とReleaseの尾音を保ちます。共通PSG補正×Masterは再生時に一度だけ適用します。Loopはメモリ内で保持し、演奏を保存する場合はEvent Rec JSONを使います。元のVGM／VGZをFiles／Cassetteに保存し、メガドライブ／Mega CD／32Xの模範演奏（YM2612＋Sega PSG＋DAC＋RF5C164＋PWM）を再生できます。シークバーを離すと移動し、再生／Pauseを保って移動先のLive表示・試奏へ切り替わります。Seek cacheは既定OnでMixerから切替可能。同曲の再訪には上限付きのメモリ内checkpointを使います。YM2612／PSGタブで曲中のCH1〜CH6、PSG Tone 1〜3／Noiseを切り替えてLive表示できます。PSGは聴こえる位置の実機設定を表示し、Software EnvelopeはOffです。Pause中に選択CHを試奏し、Copyで元音色を残して新しいSynth音色へ取り込めます。OP1〜OP4の行番号で、通常音色も実機のKey On／Off（全Offを含む）を選べます。押しっぱなしの切替でも他のOPを再発音しません。Files／Cassette・Looper／Event Recも発音OPとCH3の音程比を保持し、特殊モードはCH3固定です。VGM再生中は録音を停止・無効化します。Live（既定On）は聴こえる位置へ追従し、Offでは表示を固定。32X PWM直後のMixerタブでは、YM2612／Sega PSG／RF5C164／32X PWMのVolume（0〜380%）をKeyboard／Code／Event Rec／Looper／VGMで共用します。20CHのOn／OffはVGM読込前から常時表示され、liveのKeyboard／Code／VGM出力へ共通に適用します。レンダリング済みのLooper音声はgroup Volumeで調整します。Code拡大中も演奏を止めずに同じタブを開けます。100%は音源出力1倍で、初期値・Resetは共通System補正です。VolumeとCHのOn／Offはセッション中の曲変更でも保持し、Cassetteには保存しません。変更ハイライトは既定Onです。 |
-| [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStationのサンプル音源、PCMお絵描き、ADSR、PMON、Noise、SPU Reverb、PSF／VAB音色抽出。 |
+| [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStationのサンプル音源、サンプル全体のPCMお絵描き、ADSR、PMON、Noise、SPU Reverb。手元のPSF1／MiniPSFを再生・Pause／Resume・seekし、CH1〜24をLive表示。Pause中の対応voiceを試奏・Captureできます。VAB読込と標準VAB／portable JSONプリセット保存にも対応。[ガイド・制限](docs/synth-spu/README.md)。 |
 | [DMG Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-dmg/index.html) | Game Boy DMGの1台のAPUでPulse／Wave／Noiseを演奏。ラウンドロビン鍵盤、波形描画、プリセット、JavaScript出力。英語UI。[ガイド](docs/synth-dmg/README.md)。 |
 | [2A03 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-2a03/index.html) | Pulse／Triangle／Noise／DMC／FDSを鍵盤で試奏。実機EnvelopeとPulse／Triangle／Noiseのcounter gate・内部状態表示、DMC目標波形の描画・bit編集・DAC可視化・Undo／Redo、FDS波形・変調table編集、VGM／VGZ音色・サンプル抽出、DPCM書出・プリセット保存・JavaScriptコピー。英語UI。[ガイド](docs/synth-2a03/README.md)。 |
 | [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engineの波形メモリーPSG、Noise、LFOペア、波形描画、音声の5bit DDA PCM再生、ソフトウェアADSR、VGM／VGZのWave／Noise／LFO／DACストリーム・直接DAC PCM抽出、プリセット／JavaScript出力。英語UI。[ガイド](docs/synth-huc6280/README.md)。 |
@@ -88,7 +88,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | ファミコン／NES＋FDS、ゲームボーイ | APU音源の操作と、対応するVGMの再生／解析。リージョン・拡張の条件は音源ごとに異なります。 |
 | PCエンジン／CD-ROM² | HuC6280、MSM5205 ADPCM、CD-DA API。対応するVGMの再生／解析。 |
 | スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
-| PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
+| PlayStation 1 | SPU音源の操作、SPU Synthで手元のPSF1／MiniPSFを試聴、PSFセットからの独立したVAB静的抽出。再生互換性は音楽ドライバーによります。 |
 | セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
 | Commodore 64 | npm 0.2.37以降は`SidCore`・`Sid8580Core`・`SidSynth`を提供します（[利用例](packages/fm2612/README.md#c64-sid-6581-and-8580-preview)）。実験的な6581／PALの8580 Preview音色、共有filter、Main／Worker API。Playgroundの標準SIDは6581で、8580は独立した追加インスタンスを作成します。[ブラウザーSID Player](docs/sid-player/README.md)はPAL・単一SIDのPSID VBI／CIA・RSID v2を**6581／8580 Preview**で再生。Direct VBIは6581で選択可能です。既存[参照CLI](docs/sid-reference.md)は変更せず比較WAVを出力。NTSC／複数SID・正確なvolume-DAC digiはPlayerの対応範囲外です。ROM依存／BASIC起動はユーザーROMが必要で実firmware互換性は追加確認が必要です。C64 ROMは同梱しません。 |
 | Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
@@ -98,9 +98,18 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | VGM／VGZ | Browser AnalyzerとCLIで再生／調査。チップ別に音色・サンプル・楽譜を出力。一部のPlayground modeでは編集可能なJavaScriptへ変換できます。 |
 | S98 | 対応する単一Yamaha音源構成。圧縮S98・複数デバイスは対象外です。[入力仕様](CLI.md#s98-input-and-source-documents)を確認してください。 |
 | SPC／BRR | SPCのCPU／DSP再生と解析、独立したBRR音色の作成。[変換仕様と制限](docs/browser_workflows.ja.md)。 |
-| VAB、または対応するVH＋VB | Sony標準v6／v7のバンク。Playground／SPU SynthでToneを選び試奏できます。 |
-| PSF1／MiniPSF＋PSFLib | ファイルまたはフォルダーを指定し、依存ライブラリーを解決して認識できるVABを静的抽出。ゲームドライバー実行・PSF2・すべての独自音色形式の復元には未対応です。[SPU取込ガイド](docs/synth-spu/README.md#ps1-sound-banks)。 |
+| VAB、または対応するVH＋VB | Sony標準v6／v7のバンク。Playground／SPU SynthでToneを選び試奏できます。npmの純粋関数で読込・Tone準備・元データを保持したVAB出力も可能です。[VAB API](packages/fm2612/README.md#standard-ps1-vab-banks)。 |
+| PSF1／MiniPSF＋PSFLib | 依存ファイルを含む手元のセットまたはフォルダーを指定。SPU Synthは対応する音楽ドライバーを実行し、曲の試聴・Live表示・Pause中の試奏・Captureができます。VAB静的抽出は独立した機能です。PSF2とすべての独自音色形式の復元は対象外です。[SPUガイド](docs/synth-spu/README.md#ps1-sound-banks)。 |
 | 音声・音色ファイル | PCM作成とチップ別のサンプル変換。TFI／VGI、OPM、SBI、DX7 SysExはそれぞれ取込／出力の対応範囲が異なります。 |
+
+PSFの曲試聴はSPU Synthアプリの機能です。Play!のCPU／HLEとMAME由来のSPUコアを組み合わせ、
+外部BIOSなしで動作します。タイミングや実機機能に制限があり、サイクル単位で正確なPS1録音の基準や、
+すべてのゲームの再生互換性を保証するものではありません。npmのVAB関数はバンクのbyte列を扱うもので、
+アプリのPSF曲プレイヤーは含みません。
+
+repository内では[PSF無音バッチ診断](scripts/check_psf_batch.md)も使えます。
+`npm run psf:batch -- "/path/to/psf-set" --out /tmp/psf-report.json`で短い区間を独立プロセスで実行し、
+読込・未対応処理・時間切れと、PCM統計・CH活動・SPU RAMのhashを記録します。音声は再生・保存しません。
 
 特定のVGMは`npx tetorica-vgm support song.vgz --json`で確認できます。
 併用構成、外部ROMの要否、Exportの制限は[Analyzer対応表](docs/vgm_analyzer/support.html)を参照してください。

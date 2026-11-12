@@ -1,0 +1,1042 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "Repository-only short offline PSF1/MiniPSF execution diagnostics in isolated processes; no fidelity/listening verification.",
+  "todo": "docs/issues/todo_psf_batch_diagnostics_01.md",
+  "guide": "scripts/check_psf_batch.md",
+  "entryPoint": "scripts/check_psf_batch.mjs",
+  "sourceCommit": "bcc13477250eddfe703950b6ee7ffab681adf2a9",
+  "workingTreeImplementation": true,
+  "design": {
+    "backend": "Existing Play! CPU/HLE + MAME PS1 SPU ABI4, explicit localWASM bytes",
+    "input": "Per-entry dependency closure with existing casefold/overlay rules; broken unrelated files do not poison other entries.",
+    "isolation": "Sequential child processes, JS heap256MiB, parent hardwall timeout/SIGKILL and close/reap before advancing. No OS/RSS sandbox claim.",
+    "report": "Atomic checkpoints; finite/rawPCM statistics+Float32LE SHA256, first/final registermetadata, sampled24CH activity, SPU RAM hashes/change counts. No PCM/RAM/container/sample bytes.",
+    "silence": "Rendered silence remains diagnostic success, not automatic incompatibility.",
+    "limits": {
+      "inputFiles": 512,
+      "readableInputBytes": 67108864,
+      "fileBytes": 4194304,
+      "directoryEntries": 16384,
+      "depth": 64,
+      "workerJsHeapMiB": 256,
+      "workerResultBytes": 131072,
+      "reportBytes": 83886080,
+      "processRssCapped": false
+    },
+    "defaults": {
+      "seconds": 2,
+      "timeoutMs": 10000,
+      "batchTimeoutMs": 300000,
+      "maxEntries": 512,
+      "chunkFrames": 4410
+    }
+  },
+  "automatedTests": {
+    "command": "npm run test:psf-batch",
+    "passed": 22,
+    "failed": 0,
+    "groups": {
+      "input": 9,
+      "worker": 5,
+      "orchestrationIntegration": 8
+    },
+    "log": "/private/tmp/psf-batch-all-tests-final.log",
+    "record": {
+      "bytes": 2703,
+      "sha256": "29be973373c10e257d59c2b1a13b7b7595015212cfffe0192cc36ae76c1febbb"
+    },
+    "coverage": [
+      "existing compose image equality and MiniPSF overlay",
+      "CRC/missing/ambiguous/PSF2/path/size/depth/cycle/visit failures",
+      "corrupt sibling isolation",
+      "actual ABI4 finite stereo PCM and silence",
+      "chunk-independent exact Float32LE hash",
+      "24CH and RAM metadata without rawpayload",
+      "later runtime error retains successful chunks and partial native progress",
+      "hard timeout/crash followed by next real worker",
+      "active abort/preabort/batch budget/SIGINT130",
+      "child PID confirmed reaped",
+      "atomic partial/final JSON and safe output targets"
+    ]
+  },
+  "localCorpus": {
+    "label": "Previously provided local Arc the Lad PSF set",
+    "publicPayloadIncluded": false,
+    "audioDeviceAccess": false,
+    "listeningPerformed": false,
+    "inputFiles": 43,
+    "inputBytes": 2646634,
+    "entries": 40,
+    "secondsPerEntry": 2,
+    "nativeFramesPerEntry": 88200,
+    "summary": {
+      "rendered": 40,
+      "errors": 0,
+      "timeouts": 0,
+      "crashes": 0,
+      "aborted": 0,
+      "silent": 0,
+      "remaining": 0
+    },
+    "allNativeProgressMatched": true,
+    "allPcmFinite": true,
+    "elapsedMs": 17278,
+    "fullPrivateReport": "build/psf-batch-diagnostics-20261112/arc-the-lad-report.json",
+    "fullReportRecord": {
+      "bytes": 1827276,
+      "sha256": "8eac61e3abf8754d10d0a0a7313192a3a536c9a2092d45157264679f9c029868"
+    },
+    "sources": [
+      {
+        "path": "02 - All Beginnings.minipsf",
+        "bytes": 35868,
+        "sha256": "031a61e0df10a11f682bf6ebaf5ddfa8252f4cf438267571786ae6f265277c03"
+      },
+      {
+        "path": "Arc_The_Lad_psf_driver.psflib",
+        "bytes": 216795,
+        "sha256": "a68bcb16b46ec7870836f7f91890d83eaf11ae6528f58c0c25650405ae44c1d8"
+      },
+      {
+        "path": "03 - Father, Yoshua.minipsf",
+        "bytes": 47196,
+        "sha256": "f14196aeeb64e3f28c649751fce39cfc3b47170ef372a592f72674f037d90dca"
+      },
+      {
+        "path": "04 - Arc.minipsf",
+        "bytes": 80445,
+        "sha256": "2d0ecf051745565923ceefc27b34d75351af12cfd6bc581029f7c7fc82bd8e85"
+      },
+      {
+        "path": "05 - Battle 1.minipsf",
+        "bytes": 82208,
+        "sha256": "0e69008bcbdea51f37f6627c5f6407545a7f291de2942e78613228c241868505"
+      },
+      {
+        "path": "06 - Arc Demon.minipsf",
+        "bytes": 795,
+        "sha256": "29f282ba7434a0219efcdf3ce310d23e41b4c179c003b1e8126aff6b72243b43"
+      },
+      {
+        "path": "comm.psflib",
+        "bytes": 260273,
+        "sha256": "28f5b37090bf31dd0620182671d6bb5aa360748f072976bd00b550317effa09f"
+      },
+      {
+        "path": "07 - Spirit.minipsf",
+        "bytes": 28632,
+        "sha256": "ee316c02bee387dc8578ab26b4ecc5aa268d86e6e554e4b3ba18414fd28b6a55"
+      },
+      {
+        "path": "08 - Battle 2.minipsf",
+        "bytes": 65496,
+        "sha256": "e415f995fdc9b9f1c141118a7d5e70b6ba9ca4fb1e8ee17973f16fea3b689fce"
+      },
+      {
+        "path": "09 - Victorious Fanfare.minipsf",
+        "bytes": 2044,
+        "sha256": "0263a13f41b70b5ac7cf4e7d62787f868474368dd1900b71b4a381f947ed1d47"
+      },
+      {
+        "path": "10 - Critical Moment.minipsf",
+        "bytes": 63499,
+        "sha256": "5a16f34b6332c0064e59e2d6481381c600b69a733d90b716b92103b2abff3611"
+      },
+      {
+        "path": "11 - Separation.minipsf",
+        "bytes": 74066,
+        "sha256": "411bbd9e2ac5abe11f3181f89123b5d94f9777805fa9d22dd6e5f7f0d53e860c"
+      },
+      {
+        "path": "12 - Seiyra.minipsf",
+        "bytes": 34943,
+        "sha256": "1574a1846bcf58fcf1e603f2ffdf2eeb09fb605f7647e281edf734416b90deeb"
+      },
+      {
+        "path": "13 - House of Hometown.minipsf",
+        "bytes": 78770,
+        "sha256": "f37367a0ee8a02a9d5292699ee42adf94df25aa67422f04b9a1ce9def11e31fa"
+      },
+      {
+        "path": "14 - Niedel.minipsf",
+        "bytes": 42096,
+        "sha256": "f0ff8d54eae1dcefff6bdf3378c7021a020485ab18d9318a9f6f142411ef9fa9"
+      },
+      {
+        "path": "15 - Between Audiences.minipsf",
+        "bytes": 38594,
+        "sha256": "22f7c255b640372af5aaa9cda427d324a4d67eefa87a549d4b42340e7db77be9"
+      },
+      {
+        "path": "16 - Battle 3.minipsf",
+        "bytes": 78227,
+        "sha256": "b7983852be59915569371c8b335e8b11cf5a8969dde6706e0257ffb0faebd14d"
+      },
+      {
+        "path": "17 - Battle 4.minipsf",
+        "bytes": 76486,
+        "sha256": "98f91ebde6c9c01a4bf3690d3e37a355ec902b948ecafb7378da60623ca9ba04"
+      },
+      {
+        "path": "18 - Poco.minipsf",
+        "bytes": 46838,
+        "sha256": "3cf3813294843926cd1414623c5301d5bf07891d2e3d643dac9fabd9384b550e"
+      },
+      {
+        "path": "19 - Four Generals.minipsf",
+        "bytes": 47442,
+        "sha256": "797729f4f2f5870711dbcd38aacfa35d3a4ea3117ac9f8ee4359d8649c3e12d0"
+      },
+      {
+        "path": "20 - Area Movement.minipsf",
+        "bytes": 74921,
+        "sha256": "f6e4218937acddef057af393edc7b0491dabcfb4674d302780211c1c7fe3e924"
+      },
+      {
+        "path": "21 - Millmana.minipsf",
+        "bytes": 49028,
+        "sha256": "d121e3c9c6aac652b0e7bc4ee7d1fd28013e50b09241cb063010dcdf6342c74e"
+      },
+      {
+        "path": "22 - Battle 5.minipsf",
+        "bytes": 63270,
+        "sha256": "d866b2cf3d19f052e69b69d81f5fef7b516e33de1ba197af21ff12ef77393d8e"
+      },
+      {
+        "path": "23 - Battle 6.minipsf",
+        "bytes": 69506,
+        "sha256": "9a7930f0952cb8bba23e4f5c1ffc891a97f014872b9314787a7c2eb53e781d7b"
+      },
+      {
+        "path": "24 - Battle 7.minipsf",
+        "bytes": 76978,
+        "sha256": "62f3701006a2979d8a98af740cc1721e5403062041c239d2cad68b4c3b38f837"
+      },
+      {
+        "path": "25 - Tosh.minipsf",
+        "bytes": 51395,
+        "sha256": "7aecc46976fca735b2e02d5a31d834ff7d51953d745fa4156d01f515c449b5e5"
+      },
+      {
+        "path": "26 - Underground Prison.minipsf",
+        "bytes": 77972,
+        "sha256": "21154124860b8138fc38c50a84da72a81faf6ddd5636ed1525c2f15cc6915533"
+      },
+      {
+        "path": "27 - Recollection.minipsf",
+        "bytes": 36351,
+        "sha256": "3d5400923f75e8254bc4b03ebdea242eeb42be417cf7d93314bb2c03b9cbe305"
+      },
+      {
+        "path": "28 - Anger.minipsf",
+        "bytes": 64536,
+        "sha256": "d67fc407650a9c0e2e09202b52358f5db8426c9f34783638797e8f3868fd721a"
+      },
+      {
+        "path": "29 - Gogen.minipsf",
+        "bytes": 62341,
+        "sha256": "38b361930bc391fd812d672bf950f408f8881c314dd20bd92ece9787accd4d17"
+      },
+      {
+        "path": "30 - Alatos.minipsf",
+        "bytes": 59962,
+        "sha256": "de4f5b647c6a6af80a325a666732bc8f1c815e1b389ba1a673038c0eeaec9fe0"
+      },
+      {
+        "path": "31 - Chongara.minipsf",
+        "bytes": 60015,
+        "sha256": "417a9d0197c321ca0a860754962268bb3cb124570a4eb3d26d8ca16498728b40"
+      },
+      {
+        "path": "32 - Greyshinne.minipsf",
+        "bytes": 37408,
+        "sha256": "09225ce808b6c5fd97a7fd11e7850ce24a2b863b34c6c91d12f5d816dd3b3b6f"
+      },
+      {
+        "path": "33 - Iga.minipsf",
+        "bytes": 74042,
+        "sha256": "0d1a43b803a0edf01c3416d7a2d867da4967b7a58e96eec86f79472e698a0f5e"
+      },
+      {
+        "path": "34 - Zariban.minipsf",
+        "bytes": 23033,
+        "sha256": "b8f9873a017dad17431b6a20ec2b77369177133c92f60db13801dc892e5f9264"
+      },
+      {
+        "path": "35 - Battle 8.minipsf",
+        "bytes": 83244,
+        "sha256": "95ab2233e21e9d889306b0f1dc1b2ec16356759dd050c0d608035a494e0fd094"
+      },
+      {
+        "path": "37 - Battle 9.minipsf",
+        "bytes": 67306,
+        "sha256": "76a4d1cb020bdb42291a1bf5019e99f0e15029bcd1efdf5ecc98edd3d6d437a0"
+      },
+      {
+        "path": "38 - Save & Load.minipsf",
+        "bytes": 715,
+        "sha256": "502ce56c83afc47617047d18d9e87caf9f8bb2bb84ab6f49df988100110924f7"
+      },
+      {
+        "path": "41 - Kukuru.minipsf",
+        "bytes": 57595,
+        "sha256": "4e10a5245f225ef3fcb1165c71a44b619aa7fb9af73e3a7859504bf7d0cf0889"
+      },
+      {
+        "path": "99 - All Beginnings (alternative).minipsf",
+        "bytes": 35870,
+        "sha256": "ff303e56e0f360d87dde6723a4a8701868f76cbbe15536dbf412b08d597071cb"
+      },
+      {
+        "path": "99 - Father, Yoshua (short ver.).minipsf",
+        "bytes": 45559,
+        "sha256": "06daae7fb6e3fe2992c6da01732c14447a0a4481b67e758cc0f0de41146d165d"
+      },
+      {
+        "path": "loopoff.psflib",
+        "bytes": 128,
+        "sha256": "45188c8623106550a91f3f796b4141ded9782e20c972edb62fecc7a9c6589bc4"
+      },
+      {
+        "path": "99 - Underground Elevator in Palencia Castle.minipsf",
+        "bytes": 74746,
+        "sha256": "e6e1508ef76b1a622307cf1a0009a9506168f806b5a31ff4fc1253267018c039"
+      }
+    ],
+    "results": [
+      {
+        "entry": "02 - All Beginnings.minipsf",
+        "status": "rendered",
+        "pcmSha256": "bcbcbb83868f80d777713bc97d932ec991a7322ff51c713573e991dc7b835741",
+        "peak": [
+          0.1700640767812729,
+          0.16838571429252625
+        ],
+        "rms": [
+          0.04976084025015193,
+          0.0491403409448162
+        ],
+        "activeMask": 255,
+        "spuRamChangedBytes": 40829,
+        "spuRamAfterSha256": "73eb6f465a7ef0da65665b434ab0a0b9df51f46e517f13de08bcb697c5ba7295"
+      },
+      {
+        "entry": "03 - Father, Yoshua.minipsf",
+        "status": "rendered",
+        "pcmSha256": "5f5d1dc7afcf42bd871cc8ba52e124c209505e02fba9c8c8f187d286a7f9b9bf",
+        "peak": [
+          0.36643272638320923,
+          0.3974977135658264
+        ],
+        "rms": [
+          0.08345279044333385,
+          0.08924209194539927
+        ],
+        "activeMask": 1023,
+        "spuRamChangedBytes": 48022,
+        "spuRamAfterSha256": "96957d28c62e6e05cda73369c77ebbfaecd0b2aee9235d64abfdd92557a57fad"
+      },
+      {
+        "entry": "04 - Arc.minipsf",
+        "status": "rendered",
+        "pcmSha256": "84a0be262bbf08ca5a118baeadc69bbe7ff106ba28cba8f49fe05b59905651eb",
+        "peak": [
+          0.46301496028900146,
+          0.5442172884941101
+        ],
+        "rms": [
+          0.08320430788420596,
+          0.09122967401644742
+        ],
+        "activeMask": 131071,
+        "spuRamChangedBytes": 85323,
+        "spuRamAfterSha256": "c231d85bbae2d9e3e8dfdd108ef278e4aa87c81d18cafe556812470f9998ce27"
+      },
+      {
+        "entry": "05 - Battle 1.minipsf",
+        "status": "rendered",
+        "pcmSha256": "02c9ac0daa981970f855a7dd01d1b366640034480fedee888e84250bca89ce7a",
+        "peak": [
+          0.5055233240127563,
+          0.5274336338043213
+        ],
+        "rms": [
+          0.07765992693929398,
+          0.08423166857655226
+        ],
+        "activeMask": 127,
+        "spuRamChangedBytes": 90831,
+        "spuRamAfterSha256": "fad80cee2b8d114a05f7debf3b02b59cde8321101bf013cd205bacdf72eb1891"
+      },
+      {
+        "entry": "06 - Arc Demon.minipsf",
+        "status": "rendered",
+        "pcmSha256": "077f0e3266a7ed6ba745af51d0d22ffdf245b1b785408e899d1768d193ff7fbd",
+        "peak": [
+          0.3447055220603943,
+          0.3480927646160126
+        ],
+        "rms": [
+          0.06610748392869807,
+          0.07255565916515486
+        ],
+        "activeMask": 8191,
+        "spuRamChangedBytes": 291185,
+        "spuRamAfterSha256": "0e4d6784d974fc51f3300d646b23af2a47b186f811d15ad648d93d6b091911fd"
+      },
+      {
+        "entry": "07 - Spirit.minipsf",
+        "status": "rendered",
+        "pcmSha256": "c59df0e050127337c5c854838858b8f2f618645985e605cddfee77dcf41ab7da",
+        "peak": [
+          0.08544400334358215,
+          0.060482148081064224
+        ],
+        "rms": [
+          0.011105563240345258,
+          0.007197641291473467
+        ],
+        "activeMask": 15,
+        "spuRamChangedBytes": 32765,
+        "spuRamAfterSha256": "cd41d2e4a47637b47834afd94397d0fadb2245ed3c4c1635e89fcfa084df3177"
+      },
+      {
+        "entry": "08 - Battle 2.minipsf",
+        "status": "rendered",
+        "pcmSha256": "c8ace12e1713fe8df229037ee581eed561462d51074f1ca93e1a84ff2a7a4852",
+        "peak": [
+          0.5273420810699463,
+          0.5575221180915833
+        ],
+        "rms": [
+          0.11229059700952525,
+          0.11996547456075325
+        ],
+        "activeMask": 1023,
+        "spuRamChangedBytes": 68694,
+        "spuRamAfterSha256": "40a882d27f09f296af873697ac5f4132d9c83d51496014a71e2f6270c49cbf1e"
+      },
+      {
+        "entry": "09 - Victorious Fanfare.minipsf",
+        "status": "rendered",
+        "pcmSha256": "9ebfe1ad0046a2affbaa39c5b640d3b1fd144e97350d2d5931fdd2c7ab765696",
+        "peak": [
+          0.3850778043270111,
+          0.42169666290283203
+        ],
+        "rms": [
+          0.0696726632488881,
+          0.0750900880307
+        ],
+        "activeMask": 255,
+        "spuRamChangedBytes": 291183,
+        "spuRamAfterSha256": "6fd9843a35407a33df34fc35c1c1dd91a8db20ad17271d652f9081c226f5d1de"
+      },
+      {
+        "entry": "10 - Critical Moment.minipsf",
+        "status": "rendered",
+        "pcmSha256": "bbe293a7a7f8428c0f8151a2a26a4bc0e79bf68da6de1592d8578fbae8fe17a8",
+        "peak": [
+          0.4757094979286194,
+          0.5545620918273926
+        ],
+        "rms": [
+          0.11556662520191403,
+          0.13769165272360664
+        ],
+        "activeMask": 1023,
+        "spuRamChangedBytes": 72373,
+        "spuRamAfterSha256": "ca75fae3bedaa638c94d2d8f22d15d110b08da9e9ea2620e09b774b2700f5ab0"
+      },
+      {
+        "entry": "11 - Separation.minipsf",
+        "status": "rendered",
+        "pcmSha256": "fddd30f2074b219022c7f0ab73bf2ff9b6c5a272d1062d80b1067c8971e9bcd4",
+        "peak": [
+          0.4363136887550354,
+          0.5057369470596313
+        ],
+        "rms": [
+          0.10585962648360105,
+          0.11495369464486667
+        ],
+        "activeMask": 2047,
+        "spuRamChangedBytes": 84072,
+        "spuRamAfterSha256": "a025842e032b60da8c83062d3aeaebb7fb60cd7db7c73bbff447b80c762a2120"
+      },
+      {
+        "entry": "12 - Seiyra.minipsf",
+        "status": "rendered",
+        "pcmSha256": "1c781ae9943044f892ebaf8f08284fd315de6c15dfddac9f00978cc2fcdb3bd4",
+        "peak": [
+          0.3691180944442749,
+          0.4057674705982208
+        ],
+        "rms": [
+          0.06617153237496723,
+          0.06171628624578476
+        ],
+        "activeMask": 63,
+        "spuRamChangedBytes": 39733,
+        "spuRamAfterSha256": "106f6a6f2707d9ef5dee4ce25d3bbc253820ece03bf3d8fad3d3cdf1de2f1634"
+      },
+      {
+        "entry": "13 - House of Hometown.minipsf",
+        "status": "rendered",
+        "pcmSha256": "a8372c0ccfb1ea8b980d175deaeea8ba4145d0ec80a829c7cfe5a04205606b1f",
+        "peak": [
+          0.29169973731040955,
+          0.12191028147935867
+        ],
+        "rms": [
+          0.0638665205516663,
+          0.026864202411726382
+        ],
+        "activeMask": 8388607,
+        "spuRamChangedBytes": 84685,
+        "spuRamAfterSha256": "31f2666cc09ba88b977684cc440d1d92a775f5a65c8558980b9030aa9bd4b99a"
+      },
+      {
+        "entry": "14 - Niedel.minipsf",
+        "status": "rendered",
+        "pcmSha256": "e25bf284597e676178ae058438a243334db05fd324399ca1fecb71cc42ca2972",
+        "peak": [
+          0.42313089966773987,
+          0.43814465403556824
+        ],
+        "rms": [
+          0.10948106957546672,
+          0.11669820724393773
+        ],
+        "activeMask": 4095,
+        "spuRamChangedBytes": 60871,
+        "spuRamAfterSha256": "d18a2cd51712d153a9bf9718edd2d9d814d13146a79d585e7e5e674e85ae72a7"
+      },
+      {
+        "entry": "15 - Between Audiences.minipsf",
+        "status": "rendered",
+        "pcmSha256": "9e1a9acf3f7bd344b8944151ada1562f1140c83b2d0e9f1675f6dda8e9d38242",
+        "peak": [
+          0.16792798042297363,
+          0.14040280878543854
+        ],
+        "rms": [
+          0.06983215872513485,
+          0.04429556509339208
+        ],
+        "activeMask": 3,
+        "spuRamChangedBytes": 45815,
+        "spuRamAfterSha256": "1d8d555cdbd9ba87b8018b1284b34db78e8814e255869f42da54bca5697ca709"
+      },
+      {
+        "entry": "16 - Battle 3.minipsf",
+        "status": "rendered",
+        "pcmSha256": "f273a942b980036a6d1566be0fe12dfff6b614039f0634d026951dd37c05eda2",
+        "peak": [
+          0.34363746643066406,
+          0.40234971046447754
+        ],
+        "rms": [
+          0.06398727677055442,
+          0.06844314993944162
+        ],
+        "activeMask": 131071,
+        "spuRamChangedBytes": 88115,
+        "spuRamAfterSha256": "68f89a6704b2cde691b7f4dc160cd7ab34308d27c291a030aa02a39601036c29"
+      },
+      {
+        "entry": "17 - Battle 4.minipsf",
+        "status": "rendered",
+        "pcmSha256": "5c21523cc466544b2604977e259114e6208f1d4819e8122d380cee3fa4590bc0",
+        "peak": [
+          0.47348183393478394,
+          0.5348489284515381
+        ],
+        "rms": [
+          0.10576499223143973,
+          0.11434873108650931
+        ],
+        "activeMask": 1048575,
+        "spuRamChangedBytes": 80371,
+        "spuRamAfterSha256": "d1124f4cdefb1a09b7d2f6c42764ef864fb0ba297aa8e167f60778c23c64e008"
+      },
+      {
+        "entry": "18 - Poco.minipsf",
+        "status": "rendered",
+        "pcmSha256": "240a820c3a9c0d47290579c2c616e0c04f37cf38653aa20655bc65d57b104268",
+        "peak": [
+          0.3165700435638428,
+          0.3925846815109253
+        ],
+        "rms": [
+          0.0604513359764493,
+          0.07004366582815658
+        ],
+        "activeMask": 1048575,
+        "spuRamChangedBytes": 52062,
+        "spuRamAfterSha256": "1febc17ee9e76fade0e0977037a6388622ff7400b2f4b183daa28359ded079a7"
+      },
+      {
+        "entry": "19 - Four Generals.minipsf",
+        "status": "rendered",
+        "pcmSha256": "0cf76fe5677088b94a64885f79c291fa159b4dac082b4fb0241af19b3858bc86",
+        "peak": [
+          0.42706742882728577,
+          0.4414098262786865
+        ],
+        "rms": [
+          0.10688895440325959,
+          0.11613131842729026
+        ],
+        "activeMask": 511,
+        "spuRamChangedBytes": 54979,
+        "spuRamAfterSha256": "f0aad3ed6e9f677dde086f654bff7c15b4466c1f1af191079f1b92a1358775df"
+      },
+      {
+        "entry": "20 - Area Movement.minipsf",
+        "status": "rendered",
+        "pcmSha256": "b558faf25faea233b2a98381dedde98857d9a2b9298eb94cae8d17063632317b",
+        "peak": [
+          0.46197742223739624,
+          0.5809276700019836
+        ],
+        "rms": [
+          0.1019781931852656,
+          0.09581080613147687
+        ],
+        "activeMask": 16777215,
+        "spuRamChangedBytes": 80019,
+        "spuRamAfterSha256": "47cd492f4e0d979833cc805ff178d61e4263bca442f054853acfa7cb534ddeed"
+      },
+      {
+        "entry": "21 - Millmana.minipsf",
+        "status": "rendered",
+        "pcmSha256": "65e9f85165ead995111900c7a135e30d3e2a8c4a607e1d132a7e93da59d86d4e",
+        "peak": [
+          0.47027769684791565,
+          0.4530668258666992
+        ],
+        "rms": [
+          0.09311728070995354,
+          0.10008612385904705
+        ],
+        "activeMask": 1023,
+        "spuRamChangedBytes": 53625,
+        "spuRamAfterSha256": "e12460781e4340191ddc5c0dee9b63f433e244240cb638ec9b25b447578a499c"
+      },
+      {
+        "entry": "22 - Battle 5.minipsf",
+        "status": "rendered",
+        "pcmSha256": "d7833c6c4949ae7c9df199742343b658679816abeaa7869c01a329fd0a58236b",
+        "peak": [
+          0.44598719477653503,
+          0.3658834397792816
+        ],
+        "rms": [
+          0.07314012727312558,
+          0.07684459267001087
+        ],
+        "activeMask": 511,
+        "spuRamChangedBytes": 70993,
+        "spuRamAfterSha256": "7a935712c978c547e4caae00028194259e211347ee14894600f12e83c907dd77"
+      },
+      {
+        "entry": "23 - Battle 6.minipsf",
+        "status": "rendered",
+        "pcmSha256": "0b2a458986a692d8c1ad25ba30a9975218e6398724899e8963d9eff4b458ffc8",
+        "peak": [
+          0.42654865980148315,
+          0.4604211151599884
+        ],
+        "rms": [
+          0.09588146754133414,
+          0.10501324255485944
+        ],
+        "activeMask": 255,
+        "spuRamChangedBytes": 73947,
+        "spuRamAfterSha256": "8250888d77d9bc0a384519be0507667615fffb10108addaedbf36a3c7b0fe67e"
+      },
+      {
+        "entry": "24 - Battle 7.minipsf",
+        "status": "rendered",
+        "pcmSha256": "ac8fd522fb84c73adc558e038640d7f1c7136d7f338cc019d57561b10271df83",
+        "peak": [
+          0.5132132768630981,
+          0.5966127514839172
+        ],
+        "rms": [
+          0.08795397292866611,
+          0.09640904580842116
+        ],
+        "activeMask": 2047,
+        "spuRamChangedBytes": 85914,
+        "spuRamAfterSha256": "fa84b7e8bc35f46e3b19a5843187f5168ba8bc53bf672988371e9e9ced8971ab"
+      },
+      {
+        "entry": "25 - Tosh.minipsf",
+        "status": "rendered",
+        "pcmSha256": "cd1380283b3a20c953217b62bece196ad318846e1b4256ea1de49a97df300045",
+        "peak": [
+          0.42319193482398987,
+          0.4438510835170746
+        ],
+        "rms": [
+          0.0997599906758792,
+          0.11034895977601561
+        ],
+        "activeMask": 4194303,
+        "spuRamChangedBytes": 55315,
+        "spuRamAfterSha256": "1ccdf4841ccf15d9421c0d68259c58cadbfd610dcf977cf34415c68d7e483f61"
+      },
+      {
+        "entry": "26 - Underground Prison.minipsf",
+        "status": "rendered",
+        "pcmSha256": "88616fb6574880531140f16532ca635ba002cd45696a1ed10bc168343420511c",
+        "peak": [
+          0.4970094561576843,
+          0.5343301892280579
+        ],
+        "rms": [
+          0.11456983652498968,
+          0.11944222139258912
+        ],
+        "activeMask": 4194303,
+        "spuRamChangedBytes": 84416,
+        "spuRamAfterSha256": "05de0a44974d58f32dbd7f056b4b878623ed64abec98631b6881f35e52590cc2"
+      },
+      {
+        "entry": "27 - Recollection.minipsf",
+        "status": "rendered",
+        "pcmSha256": "ca68fae184118d421db5f64886c6026c117bfdcd5eaf5b59d1e0a2f8a73e75f9",
+        "peak": [
+          0.3925236463546753,
+          0.3574305772781372
+        ],
+        "rms": [
+          0.08642537569447768,
+          0.08792940786794208
+        ],
+        "activeMask": 1023,
+        "spuRamChangedBytes": 39897,
+        "spuRamAfterSha256": "9e38c8063f135d0def5c294fd04f4e809be6e367ba6faaffe32d1089a9f7a74f"
+      },
+      {
+        "entry": "28 - Anger.minipsf",
+        "status": "rendered",
+        "pcmSha256": "93a595addca749c4b72ef989cbc71189b6c989e2fa7d040e523536510f0119ff",
+        "peak": [
+          0.5455904603004456,
+          0.6149221658706665
+        ],
+        "rms": [
+          0.09551825575058775,
+          0.10734002113078385
+        ],
+        "activeMask": 8191,
+        "spuRamChangedBytes": 71044,
+        "spuRamAfterSha256": "0490d383c3854fb33fa87e676fb4ee3e2df13e939cb8d8e3c687ccb897400e6b"
+      },
+      {
+        "entry": "29 - Gogen.minipsf",
+        "status": "rendered",
+        "pcmSha256": "22599603dd888011ecd9904ec76de9188a3799f38be714d83c0d8a5ceff020ef",
+        "peak": [
+          0.5113213062286377,
+          0.5050961375236511
+        ],
+        "rms": [
+          0.07639182504487921,
+          0.08679125722274836
+        ],
+        "activeMask": 131071,
+        "spuRamChangedBytes": 69594,
+        "spuRamAfterSha256": "8168cb8b96e1ec1ab61ffadf845e171e158d57c3cb1a33f42e969505ebcb880f"
+      },
+      {
+        "entry": "30 - Alatos.minipsf",
+        "status": "rendered",
+        "pcmSha256": "620bfc86cd0276e5ea2359e553178a98cd292fc34190654730ce5da19661581c",
+        "peak": [
+          0.278394877910614,
+          0.27656394243240356
+        ],
+        "rms": [
+          0.06087265964200205,
+          0.06154116096988055
+        ],
+        "activeMask": 127,
+        "spuRamChangedBytes": 67084,
+        "spuRamAfterSha256": "2c400ec869214ad405d782651d5f886e09b27203cf3a333682ada92f11bbb691"
+      },
+      {
+        "entry": "31 - Chongara.minipsf",
+        "status": "rendered",
+        "pcmSha256": "4525211e0e34b2d32d852fa2e6fe753ad35584d3f38834e1068eedcc8a5e0eb0",
+        "peak": [
+          0.3679584860801697,
+          0.5152273178100586
+        ],
+        "rms": [
+          0.05578287844086395,
+          0.06377518699616007
+        ],
+        "activeMask": 127,
+        "spuRamChangedBytes": 67000,
+        "spuRamAfterSha256": "778839f457ee26af6e91de97ee2b5b1de78056a5011c094c5c2c8dc799d2abd1"
+      },
+      {
+        "entry": "32 - Greyshinne.minipsf",
+        "status": "rendered",
+        "pcmSha256": "075390b462f997c630cf7b4a5df596b8a1ccd0b95f9fc89216923be3e51c65e3",
+        "peak": [
+          0.4530363082885742,
+          0.49804699420928955
+        ],
+        "rms": [
+          0.06893333903900012,
+          0.07733535511413563
+        ],
+        "activeMask": 511,
+        "spuRamChangedBytes": 42314,
+        "spuRamAfterSha256": "fa1143d83daf0cdab8eb83835011df0ae17fbd54f48db6da0d545dbf8e24b494"
+      },
+      {
+        "entry": "33 - Iga.minipsf",
+        "status": "rendered",
+        "pcmSha256": "9e31f34be388ed7e9f71647a828cdff036a9267083332e2a93fcf2be4c0d5fa5",
+        "peak": [
+          0.45834603905677795,
+          0.5464754104614258
+        ],
+        "rms": [
+          0.06593676759353541,
+          0.07431117999944377
+        ],
+        "activeMask": 4194303,
+        "spuRamChangedBytes": 81374,
+        "spuRamAfterSha256": "b095e90999354cef60f834b1df86c9e6e9723158a66eba6bbe35f89a525085a4"
+      },
+      {
+        "entry": "34 - Zariban.minipsf",
+        "status": "rendered",
+        "pcmSha256": "d33620598f46ad9d1ccae1fdf3114d2a554a5a79cc97f628f8ebb16bf48bcb4e",
+        "peak": [
+          0.28846505284309387,
+          0.3097955584526062
+        ],
+        "rms": [
+          0.06783428847917984,
+          0.07442446120199998
+        ],
+        "activeMask": 255,
+        "spuRamChangedBytes": 21187,
+        "spuRamAfterSha256": "2a47ba27edfa21a5e88c027539df5bb4c532009ffccf17f590cd80834800bf90"
+      },
+      {
+        "entry": "35 - Battle 8.minipsf",
+        "status": "rendered",
+        "pcmSha256": "5426e86277869d36e53fde3a3303ee7b8043be86a5ee809e57d021abcb6540a6",
+        "peak": [
+          0.47802868485450745,
+          0.4994201958179474
+        ],
+        "rms": [
+          0.1086347447797073,
+          0.11640958472329123
+        ],
+        "activeMask": 16383,
+        "spuRamChangedBytes": 89883,
+        "spuRamAfterSha256": "9fae94901982833aad467730e107c29b08c334b5ba6c5878e728f75face35c81"
+      },
+      {
+        "entry": "37 - Battle 9.minipsf",
+        "status": "rendered",
+        "pcmSha256": "59e30e70e65968c80c7e6f924d5d9485c7f1c3ea52ed39e816970f3acb91f1d4",
+        "peak": [
+          0.30711016058921814,
+          0.2576136589050293
+        ],
+        "rms": [
+          0.06644779855867329,
+          0.06442604904965894
+        ],
+        "activeMask": 127,
+        "spuRamChangedBytes": 76457,
+        "spuRamAfterSha256": "6e21085c6576fe8f3b9583aebf49d1f51c3a199808d73eb95044e82d1b05cfd3"
+      },
+      {
+        "entry": "38 - Save & Load.minipsf",
+        "status": "rendered",
+        "pcmSha256": "49ee5cb350d60983a5bcafa95ea5614c29de930257f1cebcf7f5dfb0c30315f4",
+        "peak": [
+          0.23677143454551697,
+          0.2384803146123886
+        ],
+        "rms": [
+          0.0606566500754802,
+          0.06390239674485212
+        ],
+        "activeMask": 511,
+        "spuRamChangedBytes": 291194,
+        "spuRamAfterSha256": "74c287360768aa384ecc3fc89c055aeaf30f00f39ddbb6f755200f5cf80de9d1"
+      },
+      {
+        "entry": "41 - Kukuru.minipsf",
+        "status": "rendered",
+        "pcmSha256": "66b7d03c273dc6cdf05d931225ac89b5103542cf7129e04eb4cdd8440da86527",
+        "peak": [
+          0.5852609276771545,
+          0.5624961853027344
+        ],
+        "rms": [
+          0.09821904351922794,
+          0.10004065870472885
+        ],
+        "activeMask": 2097151,
+        "spuRamChangedBytes": 65463,
+        "spuRamAfterSha256": "e828b413f96b43e256b38345349a3a08c1ecf4b9e9c57cef7ad8c43d76c79eac"
+      },
+      {
+        "entry": "99 - All Beginnings (alternative).minipsf",
+        "status": "rendered",
+        "pcmSha256": "e0b0f185d13856d20b87e3b72005629ad055cd83ebaf3782d61c8f2dd3da00c6",
+        "peak": [
+          0.28428441286087036,
+          0.2819957137107849
+        ],
+        "rms": [
+          0.0834233535500075,
+          0.082410881875544
+        ],
+        "activeMask": 255,
+        "spuRamChangedBytes": 40829,
+        "spuRamAfterSha256": "73eb6f465a7ef0da65665b434ab0a0b9df51f46e517f13de08bcb697c5ba7295"
+      },
+      {
+        "entry": "99 - Father, Yoshua (short ver.).minipsf",
+        "status": "rendered",
+        "pcmSha256": "176a3b6e28a4f117c24f19251a9dd6605c54735a219790283faf708618e83dca",
+        "peak": [
+          0.7625572085380554,
+          0.9581934809684753
+        ],
+        "rms": [
+          0.17660403713811468,
+          0.19997701782982163
+        ],
+        "activeMask": 16383,
+        "spuRamChangedBytes": 44489,
+        "spuRamAfterSha256": "f53c19c1963d7b10bc14405507523cc31b51d8715703af15f71cbd61e151b777"
+      },
+      {
+        "entry": "99 - Underground Elevator in Palencia Castle.minipsf",
+        "status": "rendered",
+        "pcmSha256": "17477f75a386e12a8df2014e9714f24b331a5b222f27706daa9a4e956a009e20",
+        "peak": [
+          0.37067440152168274,
+          0.41522735357284546
+        ],
+        "rms": [
+          0.07584428722119589,
+          0.0797634828742615
+        ],
+        "activeMask": 8191,
+        "spuRamChangedBytes": 83349,
+        "spuRamAfterSha256": "c248d41633dc216745522ddf3a2ad4baf302e0d2c6a0ecd029c187a377f3f834"
+      }
+    ]
+  },
+  "workflow": {
+    "path": ".github/workflows/spu-synth.yml",
+    "pathTriggerAdded": "scripts/*psf_batch*",
+    "localTestStep": "npm run test:psf-batch",
+    "yamlParsedLocally": true,
+    "remoteActionsRunTriggered": false
+  },
+  "documentationLinksChecked": 244,
+  "missingLinks": 0,
+  "sourceRecords": {
+    "scripts/check_psf_batch.mjs": {
+      "bytes": 13758,
+      "sha256": "8ee2a249f9da8d470d059f1f5135b620d986130da489ebc7eb70a00f944cdc79"
+    },
+    "scripts/psf_batch_inputs.mjs": {
+      "bytes": 12177,
+      "sha256": "f902a651ed1b23429bf10aa83ac0ffb139c3c54a2c649e8877656614317b53bf"
+    },
+    "scripts/psf_batch_worker.mjs": {
+      "bytes": 13819,
+      "sha256": "a47810cf517e6ec24364f749d6d3aa0d99686ada4958dc763fa544bc06c8b479"
+    },
+    "scripts/check_psf_batch.test.mjs": {
+      "bytes": 12249,
+      "sha256": "550fe5afc6cc1a1d36b043f4c618c18d41b21152a3526dbb9944e1a8669e02a6"
+    },
+    "scripts/psf_batch_inputs.test.mjs": {
+      "bytes": 9475,
+      "sha256": "75a888b17a1edc43cb21fbb109dafe200f2d3aab24012149db255ccbaacc1022"
+    },
+    "scripts/psf_batch_worker.test.mjs": {
+      "bytes": 7193,
+      "sha256": "f6dd6883bc4e6944ab830c59fedbb2c6f142ab800f07d0f4aaf9e3d132f51b85"
+    },
+    "scripts/check_psf_batch.md": {
+      "bytes": 8098,
+      "sha256": "714d7e6d3aa3aef71ece6aa037a90f3b515cd1991a439aa43a7b06bb1a096baf"
+    },
+    ".github/workflows/spu-synth.yml": {
+      "bytes": 4307,
+      "sha256": "3669ee527ebe1a0e4d475770e0107a66e2b3ac4d3dabd1fbf881234191309d39"
+    },
+    "package.json": {
+      "bytes": 7071,
+      "sha256": "bb4155d6861af76c624be985af4a2eceb22433506fe23a7f9ae07af8e5f208c5"
+    }
+  },
+  "unchangedBackendRecords": {
+    "docs/synth-spu/psf_playback_core.js": {
+      "bytes": 6947,
+      "sha256": "7b595dd1d5912207eb3448ce5f11cb7253aade8fb2d0ab7e7ed476489dd1e471"
+    },
+    "docs/synth-spu/psf_song_source.js": {
+      "bytes": 944,
+      "sha256": "8c791b04578607840eb0a0ead66fa5984e8b28d3b69ccf6261cccfbe397cd4c4"
+    },
+    "docs/synth-spu/psf_live_snapshot.js": {
+      "bytes": 7953,
+      "sha256": "ec8a0a0f78506e48a0046c9c09ff83cbcd3f35b2e569574c262a1366b3d18dd0"
+    },
+    "docs/playground/playground_ps1_psf.js": {
+      "bytes": 20528,
+      "sha256": "949cb27a66858693ce956113b2f53ee0221168bcae007d2e941e79e8aef39764"
+    },
+    "docs/generated/psf-player/psf_player.js": {
+      "bytes": 57343,
+      "sha256": "455b51757246d10fdb622a76c8cdd86c7359c26104a891e21eb555fe6ec4ab23"
+    },
+    "docs/generated/psf-player/psf_player.wasm": {
+      "bytes": 455304,
+      "sha256": "31a8383afbd95694b34f15328d5c7b916b06be7b6607ced5757c94a93de095ab"
+    }
+  },
+  "preExistingChangesPreserved": [
+    "README.md / README.ja.md / READMD.ai.md VAB-example/PSF coverage updates",
+    "docs/issues/todo_ps1_vab_examples_01.md",
+    "docs/issues/ps1_vab_examples_verification_01.json",
+    "separate w/tetorica-fm2612-examples working tree"
+  ],
+  "manualRemaining": [
+    "Listening, complete songs/long sessions and broad multi-title compatibility remain separate.",
+    "Static VAB to runtime sample/RAM transfer matching is not implemented in this diagnostic."
+  ],
+  "ordinaryAppsOpened": false,
+  "audioDeviceUsed": false,
+  "osVolumeChanged": false,
+  "nativeOrWasmRebuilt": false,
+  "runtimeUiOrGainChanged": false,
+  "gamePayloadDistributed": false,
+  "gitCommitPushPerformed": false,
+  "published": false
+}

@@ -50,6 +50,12 @@ The bundled LGPL-2.1-or-later snes_spc sources and rebuild recipe are in `source
 
 ## From this repository
 
+For PSF1 / MiniPSF execution checks, see the separate
+[offline PSF batch diagnostics](scripts/check_psf_batch.md).
+`npm run psf:batch -- "/path/to/set" --out /tmp/psf-report.json` runs bounded
+segments without audio output. This repository tool is not a `tetorica-vgm`
+command or a lossless music/fidelity test.
+
 The BSD-3-Clause synthetic YM2608 rhythm replacement is included at
 `web/tetorica_ym2608_adpcm_rom.bin` (under `dist/vgm/` in a local build). Use `render music.vgm --ym2608-rom PATH --output music.wav` with
 that path to select it. Original Yamaha ROMs are not bundled; this replacement

@@ -1,0 +1,607 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-12",
+  "passed": true,
+  "scope": "Published npm0.2.40 VAB Web/Node examples plus accurate English/Japanese/AI PSF coverage documentation.",
+  "parentTodo": "docs/issues/todo_ps1_vab_examples_01.md",
+  "examplesTodo": "notes/todo-vab-api-01.md",
+  "sourceCommits": {
+    "parent": "bcc13477250eddfe703950b6ee7ffab681adf2a9",
+    "examples": "24c5661d261511538bc1763e0944e024d2934d58",
+    "workingTreeChanges": true
+  },
+  "package": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.40",
+    "registryTarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.40.tgz",
+    "integrity": "sha512-hh2GsrUBpaf2Cyn2ll3+aUrxEjsFCty8/mfpC+/VhOjQmPGN41RACL+SOnOaTNMf23DnkvGbUC4AIDXhwOe4eg==",
+    "registryIntegrityMatchesPriorPublishRecord": true,
+    "installedFiles": 1253,
+    "typesAndAssets": "All installed package files, including declarations/WASM/source kits, are byte-identical in both site trees. This is the already-verified public0.2.40 payload; release type evidence remains in npm_ps1_vab_release_01.json."
+  },
+  "example": {
+    "path": "examples/ps1/spu/03-vab-bank",
+    "fixture": {
+      "bytes": 3744,
+      "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+    },
+    "fixtureOriginalCopy": true,
+    "license": "BSD-3-Clause; assets/LICENSE",
+    "web": "Explicit Load demo/Open VAB, Program/Tone, note and Play/Stop; selecting or loading creates no audio. Read/prepare before commit, stale read fencing, original source isolated from editable code. Host gain0.6 once and8ms software transport fade; original ADPCM/ADSR/tuning/loop unchanged.",
+    "node": "CPU-only2.6-second44.1k stereo PCM16 WAV. Optional --input/--program/--tone/--export-vab; no device, network or WASM build. Reject invalid selection before outputs.",
+    "export": "exportVab(bank,{toneNumber}) preserves sourceProgram/rawattrs/samplepadding, packs Tone0/Sample1. No intermediateJSON; not arbitrary edited-synth-to-VAB conversion.",
+    "limits": "Web opens combined VAB v6/v7. API also accepts splitVH/VB. Shared reverbOff, driver vibrato/portamento/keyzone layering and PSF song playback are separate."
+  },
+  "node": {
+    "command": "node scripts/check-vab-node.mjs /private/tmp/npm-vab-examples-node.json",
+    "report": "/private/tmp/npm-vab-examples-node.json",
+    "record": {
+      "bytes": 1413,
+      "sha256": "c6ee6ac406b6acc280fc94f0a825f575c75d141f0599e0b4b1e86349154c8b7d"
+    },
+    "results": {
+      "passed": true,
+      "package": "tetorica-fm2612@0.2.40",
+      "cases": [
+        {
+          "program": 3,
+          "tone": 0,
+          "frames": 114660,
+          "peak": 0.401519775390625,
+          "nonzero": 158760,
+          "stopSilentFrames": 8820,
+          "baseFrequencyHz": 261.6255653005986,
+          "pitches": [
+            4096,
+            5161,
+            6137,
+            8192
+          ],
+          "exportedBytes": 3200,
+          "samplePaddingPreserved": true,
+          "pcmRoundTripExact": true
+        },
+        {
+          "program": 3,
+          "tone": 1,
+          "frames": 114660,
+          "peak": 0.401519775390625,
+          "nonzero": 158760,
+          "stopSilentFrames": 8820,
+          "baseFrequencyHz": 254.17759331190004,
+          "pitches": [
+            4216,
+            5312,
+            6317,
+            8432
+          ],
+          "exportedBytes": 3200,
+          "samplePaddingPreserved": true,
+          "pcmRoundTripExact": true
+        },
+        {
+          "program": 11,
+          "tone": 0,
+          "frames": 114660,
+          "peak": 0.01300048828125,
+          "nonzero": 276,
+          "stopSilentFrames": 8820,
+          "baseFrequencyHz": 440,
+          "pitches": [
+            2435,
+            3069,
+            3649,
+            4871
+          ],
+          "exportedBytes": 3152,
+          "samplePaddingPreserved": true,
+          "pcmRoundTripExact": true
+        }
+      ],
+      "rejected": [
+        "bad arguments",
+        "out-of-range Program",
+        "absent Tone",
+        "bad VAB",
+        "Noise Tone"
+      ],
+      "audioDeviceUsed": false,
+      "inputClobberPrevented": true
+    }
+  },
+  "allNodeExamples": {
+    "command": "npm run check:node",
+    "passed": 51,
+    "failed": 0,
+    "log": "/private/tmp/npm-vab-examples-all-node.log",
+    "record": {
+      "bytes": 3815,
+      "sha256": "0d63428deca86cf2d4c75c9533cc333cdb6747ed0e87b9bed4aa706f2544f4fc"
+    },
+    "nodeAudioOutputCasesExcluded": true
+  },
+  "browser": {
+    "command": "node scripts/check-vab-browser.mjs --root=dist --out=/private/tmp/tetorica-vab-examples-browser.json",
+    "report": "/private/tmp/tetorica-vab-examples-browser.json",
+    "record": {
+      "bytes": 8542,
+      "sha256": "232f179e334c571f3aaa0972db436534c71a6b9b117d27584d9aa96bb7fee0d7"
+    },
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "sparsePrograms": [
+          3,
+          11
+        ],
+        "sourceBytes": 3744,
+        "selectedTone": 1,
+        "prepared": {
+          "baseFrequencyHz": 254.17759331190004,
+          "loopStartSamples": 0
+        },
+        "download": {
+          "name": "local-kept-p3-t1.vab",
+          "bytes": 3200,
+          "sha256": "26fb74292f1e38056657271146531be790f0e513f57b6652beedd6466193d504"
+        },
+        "sourceAndSelectionKept": true,
+        "unavailableReason": true,
+        "staleReadDiscarded": true,
+        "noAutomaticAudioOrFetch": true,
+        "allContextsClosed": true,
+        "stopDuringLoading": true,
+        "pagehideCleanup": true,
+        "uploaded": {
+          "id": 1,
+          "startAddress": 4160,
+          "repeatAddress": 4160,
+          "byteLength": 64,
+          "decodedFrames": 112,
+          "rootNote": null,
+          "rootFrequencyHz": 254.17759331190004,
+          "basePitch": 4096,
+          "loop": true,
+          "loopStartSamples": 0
+        },
+        "meters": [
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.24091549217700958,
+            "rms": 0.17036311449212427,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.24087737500667572,
+            "rms": 0.12376951732777279,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0,
+            "rms": 0,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0,
+            "rms": 0,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          }
+        ],
+        "screenshot": "/private/tmp/tetorica-vab-examples-browser-chromium.png"
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "sparsePrograms": [
+          3,
+          11
+        ],
+        "sourceBytes": 3744,
+        "selectedTone": 1,
+        "prepared": {
+          "baseFrequencyHz": 254.17759331190004,
+          "loopStartSamples": 0
+        },
+        "download": {
+          "name": "local-kept-p3-t1.vab",
+          "bytes": 3200,
+          "sha256": "26fb74292f1e38056657271146531be790f0e513f57b6652beedd6466193d504"
+        },
+        "sourceAndSelectionKept": true,
+        "unavailableReason": true,
+        "staleReadDiscarded": true,
+        "noAutomaticAudioOrFetch": true,
+        "allContextsClosed": true,
+        "stopDuringLoading": true,
+        "pagehideCleanup": true,
+        "uploaded": {
+          "id": 1,
+          "startAddress": 4160,
+          "repeatAddress": 4160,
+          "byteLength": 64,
+          "decodedFrames": 112,
+          "rootNote": null,
+          "rootFrequencyHz": 254.17759331190004,
+          "basePitch": 4096,
+          "loop": true,
+          "loopStartSamples": 0
+        },
+        "meters": [
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.24091549217700958,
+            "rms": 0.17036183129376564,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.24090757966041565,
+            "rms": 0.11995731952556878,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0,
+            "rms": 0,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0,
+            "rms": 0,
+            "current": {
+              "peak": 0,
+              "rms": 0
+            }
+          }
+        ],
+        "screenshot": "/private/tmp/tetorica-vab-examples-browser-webkit.png"
+      }
+    ]
+  },
+  "existingSpuRegression": {
+    "command": "node scripts/check-spu-browser.mjs --root=dist --out=/private/tmp/npm-vab-examples-spu-regression.json",
+    "report": "/private/tmp/npm-vab-examples-spu-regression.json",
+    "record": {
+      "bytes": 9440,
+      "sha256": "516ecb3a2a1e2af70ab60015c409f467e12de09290266981394768cc49c061f1"
+    },
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "node": [
+      {
+        "example": "ps1/spu/01-sample-adsr",
+        "frames": 185220,
+        "peak": 0.09197998046875,
+        "frequency": 439.9886888146972,
+        "heldRms": 0.04472136471943937,
+        "liveSustainRms": 0.02940087941485038,
+        "stopTailSilent": true
+      },
+      {
+        "example": "ps1/spu/02-reverb",
+        "frames": 229320,
+        "peak": 0.090179443359375,
+        "leftOnlyTailRms": 0.001458634904357884,
+        "rightOnlyTailRms": 0.0008112170017859366,
+        "sharedRoomAndHall": true,
+        "stopTailSilent": true
+      }
+    ],
+    "browserCases": [
+      {
+        "browser": "chromium",
+        "example": "ps1/spu/01-sample-adsr",
+        "realPcm": true,
+        "liveControls": true,
+        "freshReplay": true,
+        "stopDuringLoading": true,
+        "allContextsClosed": true,
+        "meters": [
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.09159474819898605,
+            "acRms": 0.047207401288822025,
+            "difference": 0,
+            "current": {
+              "peak": 0.04702376574277878,
+              "acRms": 0.03245797572401428,
+              "frequency": 439.9892061396017,
+              "difference": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.09195396304130554,
+            "acRms": 0.04696591671514471,
+            "difference": 0,
+            "current": {
+              "peak": 0,
+              "acRms": 0,
+              "frequency": 0,
+              "difference": 0
+            }
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "example": "ps1/spu/02-reverb",
+        "realPcm": true,
+        "liveControls": true,
+        "freshReplay": true,
+        "stopDuringLoading": true,
+        "allContextsClosed": true,
+        "meters": [
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.1050715297460556,
+            "acRms": 0.03207202719133571,
+            "difference": 0.02775617688894272,
+            "current": {
+              "peak": 0.1050715297460556,
+              "acRms": 0.024126960236943423,
+              "frequency": 489.4732538899893,
+              "difference": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.09009703993797302,
+            "acRms": 0.030372669687811823,
+            "difference": 0,
+            "current": {
+              "peak": 0,
+              "acRms": 0,
+              "frequency": 0,
+              "difference": 0
+            }
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "example": "ps1/spu/01-sample-adsr",
+        "realPcm": true,
+        "liveControls": true,
+        "freshReplay": true,
+        "stopDuringLoading": true,
+        "allContextsClosed": true,
+        "meters": [
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.09160802513360977,
+            "acRms": 0.046865864241784724,
+            "difference": 0,
+            "current": {
+              "peak": 0.047018617391586304,
+              "acRms": 0.03243769872295291,
+              "frequency": 439.9882553110894,
+              "difference": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.09195762872695923,
+            "acRms": 0.04664996720389009,
+            "difference": 0,
+            "current": {
+              "peak": 0,
+              "acRms": 0,
+              "frequency": 0,
+              "difference": 0
+            }
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "example": "ps1/spu/02-reverb",
+        "realPcm": true,
+        "liveControls": true,
+        "freshReplay": true,
+        "stopDuringLoading": true,
+        "allContextsClosed": true,
+        "meters": [
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.10512644797563553,
+            "acRms": 0.030570573487310813,
+            "difference": 0.02775617688894272,
+            "current": {
+              "peak": 0.10512644797563553,
+              "acRms": 0.021702488334131683,
+              "frequency": 528.587353345872,
+              "difference": 0
+            }
+          },
+          {
+            "state": "closed",
+            "muted": true,
+            "peak": 0.09004943817853928,
+            "acRms": 0.030145127547316762,
+            "difference": 0,
+            "current": {
+              "peak": 0,
+              "acRms": 0,
+              "frequency": 0,
+              "difference": 0
+            }
+          }
+        ]
+      }
+    ],
+    "chromiumMuteFlagAdded": true
+  },
+  "staticBuild": {
+    "commands": [
+      "npm run build",
+      "npm run build:docs"
+    ],
+    "result": {
+      "passed": true,
+      "packageVersion": "0.2.40",
+      "installedPackageFiles": 1253,
+      "siteFiles": 1554,
+      "siteTreesByteIdentical": true,
+      "everyRuntimeAndExampleBytePreserved": true,
+      "catalogEntries": 77,
+      "catalogLinksExist": true,
+      "registryIntegrity": "sha512-hh2GsrUBpaf2Cyn2ll3+aUrxEjsFCty8/mfpC+/VhOjQmPGN41RACL+SOnOaTNMf23DnkvGbUC4AIDXhwOe4eg==",
+      "newExampleFiles": {
+        "README.md": {
+          "bytes": 4709,
+          "sha256": "e6d5c0306fb87d3a5b92c0d0054c3198ba5e9cd2bfc27e7113b5f7c5ddd3b38a"
+        },
+        "web/index.html": {
+          "bytes": 4107,
+          "sha256": "2536467289021147033212b61e41c3d29282120c8ec2dfb97aa9ff0b31cc4319"
+        },
+        "web/main.js": {
+          "bytes": 12037,
+          "sha256": "e947f6606f6f7f3b80b8eeae3543ba6fcb82ddfba0993280407e13aa629b322d"
+        },
+        "node/main.mjs": {
+          "bytes": 5119,
+          "sha256": "e39278269cab4d74432b103ae2c0aadfc56fb82758f5132bd3ad06986fb32d50"
+        },
+        "assets/LICENSE": {
+          "bytes": 1519,
+          "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+        },
+        "assets/README.md": {
+          "bytes": 788,
+          "sha256": "9e66939b8f49081dc6a13397520a3040e5a874cd22723ff6a1f2c31bc0c4609c"
+        },
+        "assets/demo.vab": {
+          "bytes": 3744,
+          "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+        }
+      }
+    },
+    "logs": [
+      "/private/tmp/npm-vab-examples-build-dist.log",
+      "/private/tmp/npm-vab-examples-build-docs.log"
+    ],
+    "localMarkdownLinksChecked": 324,
+    "missingLinks": 0
+  },
+  "documentation": {
+    "englishJapanese": "Replaces old PSF playback/driver-execution exclusion with SPU Synth supportedPSF1/MiniPSF Preview, Live/Pause audition/Capture and limits. Static VAB extraction and pure npm helpers are distinguished.",
+    "ai": "English handoff dated2026-11-12 with currentSPU sources and verification pointers.",
+    "projectGoalsAndPlaygroundScreenshotPreserved": true
+  },
+  "sourceRecords": {
+    "parent": {
+      "README.md": {
+        "bytes": 26028,
+        "sha256": "429342f58c228b6aa623e6d3c852461ce1654100d7588cd2bf92fa0320282713"
+      },
+      "README.ja.md": {
+        "bytes": 29127,
+        "sha256": "152d606119acbf44c5d586429c386b2aff555a23666abaa98dbd5f6e00f91a02"
+      },
+      "READMD.ai.md": {
+        "bytes": 100381,
+        "sha256": "e0eb0f7f6962e203beb055d9bf362d13b0eba4ff00b652519d0626b0e26e963c"
+      }
+    },
+    "examples": {
+      "package.json": {
+        "bytes": 1575,
+        "sha256": "b6989aaca4c07b58f01ce1fb70bc1f632d976dfcf312e547c792a3273e017472"
+      },
+      "package-lock.json": {
+        "bytes": 1895,
+        "sha256": "15cde90da276ec8390da1738256e24a1d9a488ff05091c3c66cc0a123fee3a52"
+      },
+      "README.md": {
+        "bytes": 36424,
+        "sha256": "6035b3ced65347a7aebea3d89968c0376e2cd314a15cb9d4486fd05b901a4dcb"
+      },
+      "examples/manifest.json": {
+        "bytes": 20176,
+        "sha256": "db864c5d1580307832428b14a301a37959eaa58b186579a01d942593de95b312"
+      },
+      "public/index.html": {
+        "bytes": 6077,
+        "sha256": "9299d670c48d2fa45b7dcb441e5850f5411f856bcac8f7c7cb576f364a4c5a2f"
+      },
+      "public/page.js": {
+        "bytes": 3664,
+        "sha256": "04c6127e3c27cd6f7dffc0f01069f985cc0a4eff09f74737259acac934bcd8c3"
+      },
+      "public/runtime.html": {
+        "bytes": 21590,
+        "sha256": "4e65089375a5df39da8df63b8928ff185cd50dccd23a70ac189a6c09aedb1831"
+      },
+      "scripts/runtime.mjs": {
+        "bytes": 17131,
+        "sha256": "94efe1d3cb135599a1623a3f76700b9f7fbcf8ea0c7cc04d800c94e87c45a494"
+      },
+      "scripts/check-vab-node.mjs": {
+        "bytes": 7569,
+        "sha256": "a488e8b3ac5680dea44d468fbe813a60cac4a3f546e6f7a01682e55e6906a312"
+      },
+      "scripts/check-vab-browser.mjs": {
+        "bytes": 17203,
+        "sha256": "1c9f03f7e1306917c16f04c7d1a041b61f1a0dc7a888ad9ee2a4913b9be6e27b"
+      },
+      "scripts/check-spu-browser.mjs": {
+        "bytes": 17190,
+        "sha256": "152678bd1d57a70759d168298242059270089b2fc902e40631b46dbb1cd5f161"
+      }
+    }
+  },
+  "physicalAudioAudible": false,
+  "ordinaryAppsOpened": false,
+  "osVolumeChanged": false,
+  "sdkOrWasmRebuilt": false,
+  "gitCommitPushPerformed": false,
+  "pagesPublished": false,
+  "npmPublishPerformedThisTask": false,
+  "tauriChanged": false
+}
