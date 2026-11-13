@@ -87,6 +87,15 @@ function longPsgSong(seconds=20) {
   return vgm({clock:0,commands:[0x50,0x8c,0x50,0x1f,0x50,0x90,...waitCommands(seconds),0x66],durationSamples:seconds*44100});
 }
 
+function longPcmSong(seconds=20) {
+  const commands=[0xb1,7,0x80];
+  for(let index=0;index<128;index++)commands.push(0xc2,index,0,index<64?(index%32<16?0xd0:0x50):255);
+  commands.push(0xb1,7,0xc0,0xb1,0,192,0xb1,1,0xff,0xb1,2,0,0xb1,3,8,
+    0xb1,4,0,0xb1,5,0,0xb1,6,0,0xb1,8,0xfe,
+    0xb1,7,0xc5,0xb1,0,17,0xb1,7,0x83,...waitCommands(seconds),0x66);
+  return vgm({clock:0,psg:0,rf:12500000,commands,durationSamples:seconds*44100});
+}
+
 async function mixedNativeSong() {
   const fixtureCommands=[];let fixtureSamples=0;
   for(const name of ['genesis-pcm','pwm-stream']) {
@@ -273,6 +282,65 @@ test('PSG observation and manual readiness add no writes or PCM changes before i
     await preview.load(source,'PSG-unaltered.vgm');await preview.play();
     samePcm(await renderedPrefix(host,0),expected,'PSG helper vs independent native renderer before any hand edit');
     assert.equal(preview.getState().cache.manualDirty,false);
+  } finally {preview.dispose();outputMix.dispose();engine.dispose();}
+});
+
+test('manual RF5C164 controls use the same native PCM and source seek restores original cold and cached state',async()=>{
+  const host=audioHost(),controlHost=audioHost(),preview=createSynthSongPreview({getAudio:()=>host}),
+    control=createSynthSongPreview({getAudio:()=>controlHost,seekCacheEnabled:false});
+  const source=longPcmSong(14),original=source.slice();
+  const span=(nodes,side=0)=>{
+    let min=Infinity,max=-Infinity;
+    for(const node of nodes)for(const value of node.buffer.getChannelData(side)){min=Math.min(min,value);max=Math.max(max,value);}
+    return max-min;
+  };
+  try {
+    await preview.load(source,'native-RF-manual.vgm');await control.load(source,'native-RF-control.vgm');
+    await preview.seek(10.25);assert(preview.getState().cache.count>=2);await preview.resume();
+    let state=preview.getState();assert.equal(state.manualReady,false);assert.equal(state.psgManualReady,false);
+    assert.equal(state.pcmManualReady,true);assert.equal(state.liveState,null);assert.equal(state.psgLiveState,null);
+    assert(state.pcmManualLatencySeconds<.11);assert.equal(preview.describePcm(0).playable,true);
+    const originalNodes=[...host.starts],before=span(originalNodes);assert(before>.001);
+    const selection=[state.pcmLiveState.selectedChannel,state.pcmLiveState.bank,state.pcmLiveState.enabled];
+    preview.editPcm({channel:0,changes:{panLeft:0,step:4096}});
+    for(let step=0;step<4;step++){host.context.currentTime+=.04;await tick();}
+    assert(span(host.starts.slice(-1))<before*.01,'manual pan changes actual native left PCM');
+    assert(span(host.starts.slice(-1),1)>.001,'unmodified right pan still passes actual sample playback');
+    state=preview.getState();assert.equal(state.pcmLiveState.channels[0].step,4096);
+    assert.deepEqual([state.pcmLiveState.selectedChannel,state.pcmLiveState.bank,state.pcmLiveState.enabled],selection);
+    preview.applyPcmSettings(0,{volume:0});
+    assert.equal(preview.getState().cache.manualDirty,true);assert.equal(preview.getState().cache.count,0);
+    for(let step=0;step<4;step++){host.context.currentTime+=.04;await tick();}
+    assert(span(host.starts.slice(-1),1)<before*.01,'the next native buffers reflect hardware volume zero');
+    assert(originalNodes.every(node=>!node.stopped),'manual RF controls never flush the original audio queue');
+    assert.equal(host.gains[0].gain.value,1);assert(preview.getState().pcmManualLatencySeconds<.11);
+    preview.pause();await preview.seek(6.25);await control.seek(6.25);
+    state=preview.getState();assert.equal(state.cache.manualDirty,false);assert(state.cache.count>0);
+    sameLiveSource(state.pcmLiveState,control.getState().pcmLiveState);
+    assert.equal(state.pcmLiveState.channels[0].volume,192);assert.equal(state.pcmLiveState.channels[0].step,2048);
+    let start=host.starts.length,controlStart=controlHost.starts.length;await preview.resume();await control.resume();
+    samePcm(await renderedPrefix(host,start),await renderedPrefix(controlHost,controlStart),'source seek after RF controls vs original cold native PCM');
+    preview.pause();control.pause();await preview.seek(5.75);await control.seek(5.75);
+    assert(preview.getState().cache.lastRestoreFrame>0,'source-only native checkpoints can be reused after intervention was discarded');
+    sameLiveSource(preview.getState().pcmLiveState,control.getState().pcmLiveState);
+    start=host.starts.length;controlStart=controlHost.starts.length;await preview.resume();await control.resume();
+    samePcm(await renderedPrefix(host,start),await renderedPrefix(controlHost,controlStart),'restored RF cache vs original cold native PCM');
+    assert.deepEqual(source,original);
+  } finally {preview.dispose();control.dispose();}
+});
+
+test('RF-only manual observation leaves original native output bit-exact before intervention',async()=>{
+  const source=longPcmSong(1),host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host,createEngine:nativeEngine}),
+    engine=await nativeEngine(),outputMix=installSynthSongOutputMix(engine),player=new VgmPlayer(engine);
+  try {
+    outputMix.setMutedChannels([...[0,1,2,3,4,5].map(ch=>`ym2612:${ch}`),
+      ...[0,1,2,3].map(ch=>`psg:${ch}`),...['pwm:0','pwm:1']]);
+    player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(source,{logger:null});player.play();
+    const expected={left:new Float32Array(4096),right:new Float32Array(4096)};
+    assert.equal(player.process(expected.left,expected.right,4096),4096);
+    await preview.load(source,'RF-unaltered.vgm');await preview.play();
+    samePcm(await renderedPrefix(host,0),expected,'RF helper vs independent native renderer before any hand edit');
+    assert.equal(preview.getState().pcmManualReady,true);assert.equal(preview.getState().cache.manualDirty,false);
   } finally {preview.dispose();outputMix.dispose();engine.dispose();}
 });
 

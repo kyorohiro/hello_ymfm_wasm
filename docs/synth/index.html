@@ -1677,12 +1677,12 @@
                   <div><h2>Mega CD PCM</h2><p class="synth-psg-session">RF5C164 · 8 voices · shared 64 KiB RAM</p></div>
                   <details id="synthPcmHelp" class="synth-psg-help"><summary aria-label="About Mega CD PCM" title="About Mega CD PCM">?</summary><div class="synth-psg-help-body">
                     <p>In Synth mode, eight PCM voices share one sample in 64 KiB RAM. Volume is 8-bit; left and right Pan each have 16 levels. New keys use round robin.</p>
-                    <p>Software release smoothing lowers only the released voice's Volume over 4 ms before stopping it. This is a Synth software feature, shared by keyboard audition, Event Rec and Looper; the RF5C164 has no hardware ADSR envelope. Held voices keep their original sound. Stop and sample changes stop voices immediately.</p>
+                    <p>Author Synth and paused audition use software release smoothing: only the released voice's Volume falls over 4 ms before stopping. Event Rec and Looper share this feature; RF5C164 has no hardware ADSR. Playing song channels use hardware Key Off. Stop and sample changes stop author voices immediately.</p>
                     <p>WAV decoding, mono mixing and 8-bit conversion are software operations. Long samples are resampled to fit RAM, preserving duration with reduced bandwidth. Guard bytes reserve safe loop / stop markers.</p>
                     <p>Root note plays at the original sample speed. Loop Start and End can change while notes are held. End moves a marker in shared RAM without restarting the voices. Changing the sample stops held notes. Loop Off plays once and then loops silence; extending End can expose more audio to a held voice.</p>
-                    <p>Sample view starts in Range mode. Choose Draw to paint the source waveform on the same canvas. This is software PCM editing: a stroke previews while dragging and applies when released, stopping held notes. Escape, pointer cancellation or leaving the editor discards the unfinished stroke. Drawing keeps the sample length, rate, Root and Loop settings; save it with the existing PCM preset or Files / Cassette controls. Waveform and Spectrum show output only; VGM Live is read-only.</p>
-                    <p>VGM Live shows the selected PCM channel's written settings and sample RAM at the audible position. Pause to play that sample on the selected channel; Copy creates a new Synth instrument. C4 is the captured playback speed, not an inferred original note. A snapshot cannot preserve later RAM edits or a game's software envelope.</p>
-                    <p>Wrapped samples, unknown RAM or unsafe end markers cannot be copied or auditioned.</p>
+                    <p>Sample view starts in Range mode. Choose Draw to paint the author's source waveform on the same canvas. This is software PCM editing: a stroke previews while dragging and applies on release while held notes keep playing. Escape, pointer cancellation or leaving the editor discards the stroke. Drawing keeps sample length, rate, Root and Loop settings; Files / Cassette keep the result.</p>
+                    <p>During VGM playback, PCM CH1–8 selects the same physical channel for viewing, Volume, Pan, Step and keyboard input. C4 uses the recorded Step as its reference speed, not an inferred original note; a Step edit changes that reference. Later VGM writes take over. The player's CH / RAM-bank selection and other voices are preserved. Sample, Root and Loop editing stay in author Synth. Waveform and Spectrum remain available while inspecting a song.</p>
+                    <p>Synth uses your separate author sample bank and keyboard. Loading a preset or sample keeps the song running and switches to Synth; it does not overwrite song RAM. Pause retains the independent captured audition, and Copy creates an author instrument. Wrapped or disjoint samples can play on the original chip when RAM is known, while Pause audition / Copy require a bounded contiguous sample and safe end markers. Globally disabled PCM, Step 0 or incomplete sample RAM show a keyboard-unavailable reason.</p>
                     <p>Software Event Rec records notes, Pitch, PCM settings and sample changes into self-contained JSON. Start Event Rec, then use Record / Stop or Space. Stopping a take starts loop playback on a separate PCM chip. Use current sound captures your current sample and settings when playback starts; later edits do not change that playback. Original note and stop timing is retained. Export / import takes from Menu.</p>
                     <p>Software Looper adds independent recorded layers. Start Looper, then Record / Stop or Space; the first take sets the period. Later takes join at their recorded position. Each layer keeps its samples and settings when you edit the Synth. Undo removes the latest layer; Stop / Start keeps layers, while Clear removes them. Up to 16 layers / 120 seconds / 128 MiB of rendered audio stay in this session's memory; they are not saved in Cassette. Layer mixing is software, beyond one chip's eight voices.</p>
                   </div></details>
@@ -1698,7 +1698,7 @@
                   <div class="synth-pcm-field"><span>Pan left · 0–15</span><div id="synthPcmPanLeftControl"></div></div>
                   <div class="synth-pcm-field"><span>Pan right · 0–15</span><div id="synthPcmPanRightControl"></div></div>
                   <div id="synthPcmRootField" class="synth-pcm-field"><span>Root note · <span id="synthPcmRootName">C4</span></span><div id="synthPcmRootNoteControl"></div></div>
-                  <div id="synthPcmStepField" class="synth-pcm-field" hidden><span>Playback step · hardware</span><output id="synthPcmStep" class="synth-pcm-step">0</output></div>
+                  <div id="synthPcmStepField" class="synth-pcm-field" hidden><span>Playback step · hardware</span><div id="synthPcmStepControl"></div></div>
                 </div>
                 <div class="synth-psg-row"><span class="synth-psg-label">Loop</span><button id="synthPcmLoopEnabled" type="button" class="toolbar-button" aria-pressed="true">On</button></div>
                 <div class="synth-pcm-fields"><div class="synth-pcm-field"><span id="synthPcmLoopStartLabel">Loop Start · frame</span><div id="synthPcmLoopStartControl"></div></div><div class="synth-pcm-field"><span id="synthPcmLoopEndLabel">Loop End · exclusive frame</span><div id="synthPcmLoopEndControl"></div></div></div>
@@ -1829,7 +1829,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=psg-manual-1";
+      import "./synth.js?v=pcm-manual-1";
     </script>
   </body>
 </html>

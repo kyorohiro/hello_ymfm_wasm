@@ -60,6 +60,67 @@ function fixture({getAudio, createEngine, beforeResume}={}) {
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,35));
 
+test('PCM hand edits share the reference engine, preserve source channel/bank continuations and frozen RAM, and discard edited seek state',async()=>{
+  const registers=new Uint8Array(56),ram=new Uint8Array(65536),writes=[];
+  let selected=0,bank=0,mask=255,enabled=false,phase=0;
+  const engine={reset(){registers.fill(0);selected=bank=phase=0;mask=255;enabled=false;},dispose(){},sampleRate:()=>44100,
+    writeYm2612(){},writePsg(){},
+    writeRf5c164(register,value){writes.push([register,value]);
+      if(register<7)registers[selected*7+register]=value;
+      else if(register===7){enabled=Boolean(value&128);if(value&64)selected=value&7;else bank=(value&15)<<12;}
+      else mask=value;
+    },
+    writeRf5c164Memory(offset,value){ram[bank|offset]=value;},
+    loadRf5c164Memory(bytes,offset=0){ram.set(bytes,bank|offset);},
+    processFrames(frames){const left=Float32Array.from({length:frames},()=>Math.sin(phase++*.03)*.1);return{left,right:left.slice()};},
+  };
+  const commands=[0xb1,7,0x82];
+  for(let index=0;index<112;index++)commands.push(0xc2,index,0,index<64?(index&1?0x60:0xa0):255);
+  commands.push(0xb1,7,0xc0,0xb1,0,192,0xb1,1,0x64,0xb1,2,0,0xb1,3,4,
+    0xb1,4,0,0xb1,5,0x20,0xb1,6,0x20,0xb1,8,0xfe,
+    0xb1,7,0xc5,0xb1,0,17,0xb1,7,0x82,
+    0x61,0x74,0x22,0xb1,0,11,0xc2,1,0,0x83,0xb1,8,0xfe,0x61,0xd0,0x89,0x66);
+  const source=vgm({clock:0,psg:0,rf:12500000,commands}),original=source.slice(),f=fixture({createEngine:async()=>engine});
+  try {
+    assert.equal(f.preview.editPcm({channel:0,changes:{volume:9}}),false);
+    await f.preview.load(source,'PCM-manual.vgm');await f.preview.play();
+    // Cooperative parsing can yield during the initial RAM transfer when the
+    // test suite is busy. Wait for its first actual buffer, without moving the
+    // fake device cursor or requiring a particular wall-clock parse duration.
+    const deadline=Date.now()+1000;
+    while(!f.host.starts.length&&Date.now()<deadline)await tick();
+    const before=f.preview.getState(),frozen=before.pcmLiveState,nodes=[...f.host.starts];
+    const pcm=nodes.map(node=>node.buffer.getChannelData(0).slice());
+    assert.equal(before.manualReady,false);assert.equal(before.psgManualReady,false);assert.equal(before.pcmManualReady,true);
+    assert.equal(f.preview.describePcm(0).playable,true);
+    assert(before.pcmManualLatencySeconds>0&&before.pcmManualLatencySeconds<.11);
+    f.preview.setPcmPitch(1);assert.equal(f.preview.getState().cache.manualDirty,false);
+    f.preview.editPcm({channel:0,changes:{volume:9,panLeft:2,step:2050}});
+    let state=f.preview.getState();assert.equal(state.playback,'playing');assert.equal(state.positionFrames,before.positionFrames);
+    assert.equal(registers[0],9);assert.equal(registers[1],0x62,'manual Pan keeps the latest right half');
+    assert.equal(registers[2]|registers[3]<<8,2050);assert.equal(selected,5);assert.equal(bank,0x2000);assert.equal(enabled,true);
+    assert.equal(state.cache.manualDirty,true);assert.equal(state.cache.count,0);
+    const shown=f.preview.readPcmSnapshot(frozen);
+    assert.equal(shown.channels[0].volume,9);assert.equal(shown.channels[0].panLeft,2);
+    assert.equal(shown.ram,frozen.ram,'display overlays share immutable sample bytes');
+    assert.equal(shown.known,frozen.known,'display overlays share immutable known-byte metadata');
+    assert.equal(shown.channels[5].volume,17,'other frozen channels remain untouched');
+    assert(nodes.every(node=>!node.stopped));nodes.forEach((node,index)=>assert.deepEqual(node.buffer.getChannelData(0),pcm[index]));
+    assert.equal(f.host.gains[0].gain.value,1);
+    f.preview.noteOnPcm('key',{block:4,fnum:644},{channel:0,pitchClock:7670454});
+    assert.equal(mask,0xfe);assert.equal(selected,5);assert.equal(bank,0x2000);
+    for(const time of [.04,.08,.12,.16,.20,.24]){f.host.context.currentTime=time;await tick();}
+    state=f.preview.getState();assert.equal(registers[35],11,'the next source register reaches its original CH5');
+    assert.equal(ram[0x2001],0x83,'source window write still reaches RAM bank2');
+    assert.equal(f.preview.noteOffPcm('key'),false,'new source key mask owns the channel');
+    const count=writes.length;f.preview.setPcmPitch(0);assert.equal(writes.length,count,'an old wheel cleanup cannot restore keyboard step');
+    await f.preview.seek(.025);state=f.preview.getState();
+    assert.equal(state.cache.manualDirty,false);assert.equal(state.pcmLiveState.channels[0].volume,192);
+    assert.equal(state.pcmLiveState.channels[0].panLeft,4);assert.equal(state.pcmLiveState.channels[0].step,1024);
+    assert(state.pcmManualLatencySeconds<.11);assert.deepEqual(source,original);
+  } finally {f.preview.dispose();}
+});
+
 test('PSG-only hand edits share the song engine, preserve queued output and VGM latch continuations, and clear only source cache',async()=>{
   const f=fixture(),bytes=vgm({clock:0,commands:[
     0x50,0xc4,0x50,0x20,0x50,0xd3,0x50,0xe7,0x50,0xf4,

@@ -67,13 +67,20 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
           integer(ch,5,'FM channel');integer(args[0],7,'FM block');integer(args[1],2047,'FM fnum');
           if(gates.get(gateKey(chip,ch))==='code')required(getFm,'FM').keyOff(ch);
         }
-        const result=object.noteOn(ch,...args);if(result!==null)gates.set(gateKey(chip,ch),'keyboard');return result;
+        const result=object.noteOn(ch,...args);
+        if(result!==null){gates.set(gateKey(chip,ch),'keyboard');if(chip==='rf5c164')rememberPcmKeyboard(object,ch,result,true);}
+        return result;
       };
       if(key==='noteOff')return(ch,...args)=>{
         if(gates.get(gateKey(chip,ch))!=='keyboard')return false;
         const result=object.noteOff(ch,...args);gates.delete(gateKey(chip,ch));return result;
       };
-      if(key==='setFrequency')return(ch,...args)=>gates.get(gateKey(chip,ch))==='keyboard'?object.setFrequency(ch,...args):false;
+      if(key==='setFrequency')return(ch,...args)=>{
+        if(gates.get(gateKey(chip,ch))!=='keyboard')return false;
+        const result=object.setFrequency(ch,...args);
+        if(chip==='rf5c164')rememberPcmKeyboard(object,ch,result,false);
+        return result;
+      };
       const value=object[key];return typeof value==='function'?value.bind(object):value;
     }}));
     return keyboardTargets.get(target);
@@ -249,10 +256,22 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     return {start:0,loopStart:s.loopEnabled?s.loopStart:s.loopEnd+1,volume:s.volume,pan:{left:s.panLeft,right:s.panRight},
       step:clampStep(preset.sample.sampleRate/PCM_NATIVE_RATE*2048*2**((60-s.rootNote)/12))};
   }
+  function rememberPcmKeyboard(target,ch,result,triggered) {
+    if(!Number.isInteger(result?.step)||typeof target.getSettings!=='function')return;
+    const current=pcmChannels.get(ch)??defaultPcmChannel();
+    const changes={step:result.step};
+    if(triggered) {
+      const settings=target.getSettings();
+      Object.assign(changes,{start:0,loopStart:settings.loopEnabled?settings.loopStart:settings.loopEnd+1,
+        volume:settings.volume,pan:{left:settings.panLeft,right:settings.panRight}});
+    }
+    pcmChannels.set(ch,{...current,...changes});pcmSelected=ch;pcmCodeRootChannels.delete(ch);
+  }
   function writePcmChannel(ch,options) {
     integer(ch,7,'PCM channel');if(!object(options))throw TypeError('PCM channel settings must be an object');
     const api=required(getPcm,'PCM'),before=pcmChannels.get(ch)??defaultPcmChannel();
     api.setChannel(ch,options);
+    pcmSelected=ch;
     pcmChannels.set(ch,{...before,...options,pan:options.pan?{...options.pan}:{...before.pan}});
   }
   function setPcmChannel(ch,options) {
@@ -264,7 +283,7 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     const api=required(getPcm,'PCM'),settings=defaultPcmChannel();
     for(let ch=0;ch<8;ch++) {
       const configured=pcmChannels.get(ch),next={...settings,...configured,pan:{...(configured?.pan??settings.pan)}};
-      api.setChannel(ch,next);pcmChannels.set(ch,next);
+      api.setChannel(ch,next);pcmSelected=ch;pcmChannels.set(ch,next);
     }
     lastPcmSettings=settingsPcm();pcmSeeded=true;
   }
@@ -284,7 +303,7 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     pcmSourceGeneration++;
   }
   function startPcm(ch) {
-    seedPcm();const value=required(getPcm,'PCM').keyOn(ch);claim('rf5c164',ch);pcmActive.add(ch);return value;
+    seedPcm();const value=required(getPcm,'PCM').keyOn(ch);pcmSelected=ch;claim('rf5c164',ch);pcmActive.add(ch);return value;
   }
   function keyOnPcm(ch,beforeStart) {
     integer(ch,7,'PCM channel');pcmPending.delete(ch);
@@ -365,11 +384,14 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
       if(register===1)state.pan={left:value&15,right:value>>4};
       if(register===2)state.step=(state.step&65280)|value;
       if(register===3)state.step=(state.step&255)|(value<<8);
+      if(register===4)state.loopStart=(state.loopStart&65280)|value;
+      if(register===5)state.loopStart=(state.loopStart&255)|(value<<8);
+      if(register===6)state.start=value<<8;
       if(register===2||register===3)pcmCodeRootChannels.delete(pcmSelected);
       pcmChannels.set(pcmSelected,state);
       if(register===8)for(let ch=0;ch<8;ch++){claim('rf5c164',ch);if(value&(1<<ch))pcmActive.delete(ch);else pcmActive.add(ch);}
     },
-    reset() {stopPcm();pcmChannels.clear();pcmCodeRootChannels.clear();pcmSeeded=false;return required(getPcm,'PCM').reset();},
+    reset() {stopPcm();pcmChannels.clear();pcmCodeRootChannels.clear();pcmSeeded=false;pcmSelected=0;return required(getPcm,'PCM').reset();},
   };
   function syncPsgSettings(previous=lastPsgSettings,patch) {
     const next=settingsPsg(),api=getPsg();lastPsgSettings=next;
@@ -388,14 +410,20 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
       api.setNoise(settings);rememberPsgNoise(settings);psgLatch(api,6);
     }
   }
-  function syncPcmSettings(previous=lastPcmSettings) {
+  function syncPcmSettings(previous=lastPcmSettings,patch) {
     const next=settingsPcm(),api=getPcm();lastPcmSettings=next;
     if(!api||!pcmChannels.size)return;
+    const changed=field=>patch?Object.hasOwn(patch,field):!previous||previous[field]!==next[field];
     for(const ch of pcmChannels.keys()) {
       const current=pcmChannels.get(ch)??defaultPcmChannel();
-      writePcmChannel(ch,{volume:next.volume,pan:{left:next.panLeft,right:next.panRight},
-        loopStart:next.loopEnabled?next.loopStart:next.loopEnd+1,
-        step:previous&&!pcmCodeRootChannels.has(ch)?clampStep(current.step*2**((previous.rootNote-next.rootNote)/12)):current.step});
+      const changes={};
+      if(changed('volume'))changes.volume=next.volume;
+      if(changed('panLeft')||changed('panRight'))changes.pan={
+        left:changed('panLeft')?next.panLeft:current.pan.left,
+        right:changed('panRight')?next.panRight:current.pan.right};
+      if(changed('loopEnabled')||changed(next.loopEnabled?'loopStart':'loopEnd'))changes.loopStart=next.loopEnabled?next.loopStart:next.loopEnd+1;
+      if(changed('rootNote')&&previous&&!pcmCodeRootChannels.has(ch))changes.step=clampStep(current.step*2**((previous.rootNote-next.rootNote)/12));
+      if(Object.keys(changes).length)writePcmChannel(ch,changes);
     }
   }
   function fmVoice(ch) {

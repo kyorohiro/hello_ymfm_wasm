@@ -2,14 +2,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSynthCodeAudio} from './synth_code_audio.js';
-import {createPcmBuiltinPreset,PCM_NATIVE_RATE} from './synth_pcm.js';
+import {createPcmBuiltinPreset,createSynthPcmVoice,PCM_NATIVE_RATE} from './synth_pcm.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js';
 import {YM2612Synth} from '../js/ym2612synth.js';
 import {createSegaPsgApi} from '../js/segapsg_api.js';
+import {RF5C164Synth} from '../js/rf5c164synth.js';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 const turn=()=>Promise.resolve();
-function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,psgChip=null,getFmVoice=()=>null}={}) {
+function pcmRegisterEndpoint() {
+  const registers=new Uint8Array(56),ram=new Uint8Array(65536),writes=[];let selected=0,mask=255;
+  const api=new RF5C164Synth({transport:{write(register,value){
+    if(register===7&&value&64)selected=value&7;
+    if(register<7)registers[selected*7+register]=value;
+    if(register===8)mask=value;
+    writes.push({register,value,channel:selected});
+  },loadMemory(bytes,address){ram.set(bytes,address);return Promise.resolve();},reset(){registers.fill(0);selected=0;mask=255;}}});
+  const channel=ch=>{const i=ch*7;return{volume:registers[i],pan:registers[i+1],step:registers[i+2]|registers[i+3]<<8,
+    loopStart:registers[i+4]|registers[i+5]<<8,start:registers[i+6]<<8};};
+  return{api,ram,writes,channel,get mask(){return mask;}};
+}
+function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,psgChip=null,pcmChip=null,pcmVoiceOverride=null,getFmVoice=()=>null}={}) {
   const events=[],gains=[],fxRequests=[],pwmRequests=[],nodes=[];
   const context={state:'running',currentTime:0,sampleRate:48000,closeCalls:0,close(){this.closeCalls++;},
     createChannelSplitter(count){const value=node('splitter');value.outputs=count;return value;},
@@ -28,11 +41,11 @@ function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip
     noise:options=>{events.push(['noise-on',options]);return 4;},envelopeNoteOn:(...args)=>events.push(['env-on',...args]),
     envelopeNoteOff:ch=>events.push(['env-off',ch]),setEnvelopeAttenuation:a=>events.push(['env-base',a]),write:value=>events.push(['psg-write',value])};
   let preset=createPcmBuiltinPreset('sine');
-  const pcm={setChannel:(ch,settings)=>{if(ch<0||ch>7)throw RangeError('channel');if(settings.step!==undefined&&(!Number.isInteger(settings.step)||settings.step<0||settings.step>65535))throw RangeError('step');events.push(['pcm-channel',ch,structuredClone(settings)]);},
+  const pcm=pcmChip??{setChannel:(ch,settings)=>{if(ch<0||ch>7)throw RangeError('channel');if(settings.step!==undefined&&(!Number.isInteger(settings.step)||settings.step<0||settings.step>65535))throw RangeError('step');events.push(['pcm-channel',ch,structuredClone(settings)]);},
     keyOn:ch=>events.push(['pcm-on',ch]),keyOff:ch=>events.push(['pcm-off',ch]),releaseNote:ch=>events.push(['pcm-release',ch]),
     loadMemory:(bytes,address)=>{if(!Number.isInteger(address)||address<0||address+bytes.length>65536)throw RangeError('RAM');events.push(['pcm-memory',bytes.slice(),address]);return Promise.resolve();},
     writeRegister:(r,v)=>{if(!Number.isInteger(r)||r<0||r>8||!Number.isInteger(v)||v<0||v>255)throw RangeError('register');events.push(['pcm-register',r,v]);},reset:()=>events.push(['pcm-reset'])};
-  const pcmVoice={getPreset:()=>structuredClone(preset),getSettings:()=>structuredClone(preset.settings),setPreset:value=>{preset=structuredClone(value);events.push(['restore-preset']);},install:api=>{assert.equal(api,pcm);events.push(['restore-memory']);return Promise.resolve(true);}};
+  const pcmVoice=pcmVoiceOverride??{getPreset:()=>structuredClone(preset),getSettings:()=>structuredClone(preset.settings),setPreset:value=>{preset=structuredClone(value);events.push(['restore-preset']);},install:api=>{assert.equal(api,pcm);events.push(['restore-memory']);return Promise.resolve(true);}};
   const options={ensureChip:async name=>{events.push(['ensure',name]);await ensureChip(name);},getContext:()=>context,getInput:()=>input,getOutput:()=>output,getFm:()=>fm,getFmVoice,
     getPsg:()=>psg,getPsgVoice:()=>({getSettings:()=>structuredClone(psgSettings)}),getPcm:()=>pcm,getPcmVoice:()=>pcmVoice,getMaster:()=>.5,
     createFxRack:()=>{
@@ -156,6 +169,113 @@ test('PCM Code shares the author sample, follows live level/pan/loop/root edits 
   assert.equal(f.getPreset().sample.data,original.sample.data);await f.audio.dispose();
 });
 
+test('PCM knob edits keep Code pan companions, raw playback addresses, step and private sample RAM',async()=>{
+  const endpoint=pcmRegisterEndpoint(),f=fixture({pcmChip:endpoint.api}),pcm=await f.audio.useSoundChip('rf5c164');
+  try {
+    await pcm.loadMemory(Uint8Array.of(0xa0,0x20,255),0x2000);
+    pcm.setChannel(3,{start:0x2000,loopStart:0x2345,step:0x1234,volume:91,pan:{left:9,right:11}});pcm.keyOn(3);
+    const memory=endpoint.ram.slice(),mask=endpoint.mask;
+    let previous=f.getPreset().settings,from=endpoint.writes.length;
+    f.setPcm({panLeft:2});f.audio.syncPcmSettings(previous,{panLeft:2});
+    assert.deepEqual(endpoint.channel(3),{volume:91,pan:0xb2,step:0x1234,loopStart:0x2345,start:0x2000});
+    assert(endpoint.writes.slice(from).every(write=>[7,1].includes(write.register)),'one pan knob never writes volume, step, loop, start or gate');
+    previous=f.getPreset().settings;from=endpoint.writes.length;
+    f.setPcm({volume:42});f.audio.syncPcmSettings(previous,{volume:42});
+    assert.deepEqual(endpoint.channel(3),{volume:42,pan:0xb2,step:0x1234,loopStart:0x2345,start:0x2000});
+    assert(endpoint.writes.slice(from).every(write=>[7,0].includes(write.register)));
+    assert.equal(endpoint.mask,mask);assert.deepEqual(endpoint.ram,memory,'hardware control edits never re-upload the author sample into private Code RAM');
+    previous=f.getPreset().settings;from=endpoint.writes.length;
+    f.setPcm({rootNote:72});f.audio.syncPcmSettings(previous,{rootNote:72});
+    assert.equal(endpoint.channel(3).step,Math.round(0x1234/2),'an explicitly changed inherited Root retunes the current Code step');
+    assert(endpoint.writes.slice(from).every(write=>[7,2,3].includes(write.register)));
+  } finally {await f.audio.dispose();}
+});
+
+test('Code parameter loops and manual keyboard notes share sparse PCM edits without clobbering hardware companions',async()=>{
+  const endpoint=pcmRegisterEndpoint(),voice=createSynthPcmVoice({getPcm:()=>endpoint.api});
+  await voice.install();
+  const f=fixture({pcmChip:endpoint.api,pcmVoiceOverride:voice}),pcm=await f.audio.useSoundChip('rf5c164');
+  const keyboard=f.audio.keyboardTarget('rf5c164',voice);
+  try {
+    keyboard.noteOn(3,4,644);
+    pcm.setChannel(3,{volume:91,pan:{left:9,right:11},step:0x1234,loopStart:0x40});
+    await pcm.loadMemory(Uint8Array.of(0xa0,0x20,255),0x3000);
+    const memory=endpoint.ram.slice(),before=endpoint.channel(3);
+    let previous=voice.getSettings(),from=endpoint.writes.length;
+    voice.setSettings({volume:42},{applyHardware:false});f.audio.syncPcmSettings(previous,{volume:42});
+    assert.deepEqual(endpoint.channel(3),{...before,volume:42});
+    assert(endpoint.writes.slice(from).every(write=>[7,0].includes(write.register)),'volume-only edit never emits a stale keyboard pitch, loop or pan');
+    previous=voice.getSettings();from=endpoint.writes.length;
+    voice.setSettings({panLeft:2},{applyHardware:false});f.audio.syncPcmSettings(previous,{panLeft:2});
+    assert.equal(endpoint.channel(3).pan,0xb2,'the latest Code right half survives a manual left edit');
+    assert.equal(endpoint.channel(3).step,0x1234);assert.equal(endpoint.channel(3).loopStart,0x40);
+    assert(endpoint.writes.slice(from).every(write=>[7,1].includes(write.register)));
+    assert.deepEqual(endpoint.ram,memory);
+
+    // Retriggering the author instrument consciously replaces channel settings.
+    // The next sparse edit must use those actual keyboard writes, not old Code.
+    keyboard.noteOff(3);keyboard.noteOn(3,4,644);
+    assert.equal(endpoint.channel(3).pan,0xf2);
+    previous=voice.getSettings();voice.setSettings({panLeft:1},{applyHardware:false});f.audio.syncPcmSettings(previous,{panLeft:1});
+    assert.equal(endpoint.channel(3).pan,0xf1);
+    const tuned=keyboard.setFrequency(3,4,700).step;
+    previous=voice.getSettings();voice.setSettings({rootNote:72},{applyHardware:false});f.audio.syncPcmSettings(previous,{rootNote:72});
+    assert.equal(endpoint.channel(3).step,Math.round(tuned/2),'the inherited Root follows the latest manual keyboard pitch');
+  } finally {await f.audio.dispose();}
+});
+
+test('manual PCM keyboard takeover replaces the old Code Root basis for UI tuning',async()=>{
+  const endpoint=pcmRegisterEndpoint(),voice=createSynthPcmVoice({getPcm:()=>endpoint.api});
+  await voice.install();
+  const f=fixture({pcmChip:endpoint.api,pcmVoiceOverride:voice}),pcm=await f.audio.useSoundChip('rf5c164');
+  const keyboard=f.audio.keyboardTarget('rf5c164',voice);
+  try {
+    pcm.setRootNote('A4');pcm.noteOn(0,'A5');
+    const played=keyboard.noteOn(0,4,644).step;
+    const previous=voice.getSettings();voice.setSettings({rootNote:72},{applyHardware:false});f.audio.syncPcmSettings(previous,{rootNote:72});
+    assert.equal(endpoint.channel(0).step,Math.round(played/2),'keyboard-owned tuning inherits UI Root even though future Code notes use A4');
+    keyboard.noteOff(0);pcm.noteOn(0,'A4');
+    assert.equal(endpoint.channel(0).step,Math.round(voice.getPreset().sample.sampleRate/PCM_NATIVE_RATE*2048),'the Code Root declaration still applies to its next note');
+  } finally {await f.audio.dispose();}
+});
+
+test('PCM raw register halves and high-level selection remain the basis for later partial UI edits and reseeding',async()=>{
+  const endpoint=pcmRegisterEndpoint(),f=fixture({pcmChip:endpoint.api}),pcm=await f.audio.useSoundChip('rf5c164');
+  try {
+    pcm.setChannel(2,{start:0x2000,loopStart:0x1234,step:0x0800,volume:89,pan:{left:9,right:11}});
+    pcm.writeRegister(4,0x56);pcm.writeRegister(5,0x34);pcm.writeRegister(6,0x45);
+    pcm.writeRegister(1,0xab);pcm.writeRegister(2,0x34);
+    let previous=f.getPreset().settings;
+    f.setPcm({panRight:3});f.audio.syncPcmSettings(previous,{panRight:3});
+    assert.deepEqual(endpoint.channel(2),{volume:89,pan:0x3b,step:0x0834,loopStart:0x3456,start:0x4500},'the latest raw left half survives a right-only edit');
+    previous=f.getPreset().settings;f.setPcm({panLeft:1});f.audio.syncPcmSettings(previous,{panLeft:1});
+    assert.equal(endpoint.channel(2).pan,0x31);
+    pcm.reset();pcm.writeRegister(7,0xc2);pcm.writeRegister(4,0x56);pcm.writeRegister(5,0x34);pcm.writeRegister(6,0x45);
+    pcm.writeRegister(2,0x34);pcm.writeRegister(3,0x08);pcm.keyOn(2);
+    assert.equal(endpoint.channel(2).start,0x4500,'next seed keeps the raw source page');
+    assert.equal(endpoint.channel(2).loopStart,0x3456,'next seed keeps both raw loop address bytes');
+    assert.equal(endpoint.channel(2).step,0x0834);
+  } finally {await f.audio.dispose();}
+});
+
+test('PCM loop controls change only the address that is effective for the selected loop mode',async()=>{
+  const endpoint=pcmRegisterEndpoint(),f=fixture({pcmChip:endpoint.api}),pcm=await f.audio.useSoundChip('rf5c164');
+  try {
+    pcm.setChannel(0,{loopStart:0x3456,volume:43,pan:{left:1,right:2}});
+    let previous=f.getPreset().settings,from=endpoint.writes.length;
+    f.setPcm({loopEnd:128});f.audio.syncPcmSettings(previous,{loopEnd:128});
+    assert.deepEqual(endpoint.writes.slice(from),[],'moving the sample END while looping does not overwrite a private Code loop address');
+    assert.equal(endpoint.channel(0).loopStart,0x3456);
+    previous=f.getPreset().settings;f.setPcm({loopEnabled:false});f.audio.syncPcmSettings(previous,{loopEnabled:false});
+    assert.equal(endpoint.channel(0).loopStart,129,'Loop Off explicitly selects the author END guard');
+    previous=f.getPreset().settings;from=endpoint.writes.length;
+    f.setPcm({loopStart:16});f.audio.syncPcmSettings(previous,{loopStart:16});assert.deepEqual(endpoint.writes.slice(from),[]);
+    previous=f.getPreset().settings;f.setPcm({loopEnd:160});f.audio.syncPcmSettings(previous,{loopEnd:160});assert.equal(endpoint.channel(0).loopStart,161);
+    previous=f.getPreset().settings;f.setPcm({loopEnabled:true});f.audio.syncPcmSettings(previous,{loopEnabled:true});assert.equal(endpoint.channel(0).loopStart,16);
+    assert.equal(endpoint.channel(0).volume,43);assert.equal(endpoint.channel(0).pan,0x21);
+  } finally {await f.audio.dispose();}
+});
+
 test('PCM musical notes use the author sample rate and declared Root, without assuming one cycle or touching the other settings',async()=>{
   const f=fixture(),author=createPcmBuiltinPreset('triangle');
   author.sample.data=btoa(String.fromCharCode(...new Uint8Array(97).fill(128)));
@@ -196,10 +316,10 @@ test('PCM Code Root applies to future musical calls without editing the author o
   const previous=f.getPreset().settings;f.setPcm({rootNote:72,volume:48,panLeft:2,loopStart:16});
   const start=f.events.length;f.audio.syncPcmSettings(previous);
   const updates=f.events.slice(start).filter(e=>e[0]==='pcm-channel');
-  assert.equal(updates.find(e=>e[1]===0)[2].step,4096,'Code-tuned channel ignores the unrelated UI Root change');
+  assert.equal(updates.find(e=>e[1]===0)[2].step,undefined,'Code-tuned channel ignores the unrelated UI Root change without rewriting its pitch');
   assert.equal(updates.find(e=>e[1]===1)[2].step,2048,'raw step retains its existing UI Root behavior');
   assert.equal(updates.find(e=>e[1]===2)[2].step,1024,'unconfigured channels continue following the editor Root');
-  assert.deepEqual(updates.find(e=>e[1]===0)[2],{volume:48,pan:{left:2,right:15},loopStart:16,step:4096});
+  assert.deepEqual(updates.find(e=>e[1]===0)[2],{volume:48,pan:{left:2,right:15},loopStart:16});
   assert(!f.events.slice(start).some(e=>e[0]==='pcm-on'),'UI controls do not retrigger Code notes');
   const clear=f.events.length;assert.equal(pcm.setRootNote(null),72);assert.deepEqual(f.events.slice(clear),[]);
   assert.equal(pcm.setNote(0,'C5'),2048,'null resumes the current editor Root on the next note helper call');
@@ -222,9 +342,11 @@ test('raw PCM step writes reclaim UI tuning while non-pitch channel edits preser
     else if(mode==='setChannel')pcm.setChannel(0,{step:4096});
     else if(mode==='writeRegister'){pcm.writeRegister(7,0xc0);pcm.writeRegister(2,0);pcm.writeRegister(3,16);}
     else pcm.setChannel(0,{volume:32});
-    const previous=f.getPreset().settings;f.setPcm({rootNote:72});f.audio.syncPcmSettings(previous);
-    const update=f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===0).at(-1)[2];
-    assert.equal(update.step,mode==='volume'?4096:2048,mode+' preserves the appropriate tuning basis');
+    const previous=f.getPreset().settings,start=f.events.length;f.setPcm({rootNote:72});f.audio.syncPcmSettings(previous);
+    const updates=f.events.slice(start).filter(e=>e[0]==='pcm-channel'&&e[1]===0);
+    if(mode==='volume')assert.deepEqual(updates,[],'a Code Root-owned channel is untouched by the author Root-only edit');
+    const lastPitch=f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===0&&e[2].step!==undefined).at(-1)[2].step;
+    assert.equal(lastPitch,mode==='volume'?4096:2048,mode+' preserves the appropriate tuning basis');
     await f.audio.dispose();
   }
 });

@@ -16,6 +16,7 @@ import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=channel-mi
 import {seekPlayback} from '../vgm_analyzer/seek_playback.js';
 import {createSynthSongInteraction} from './synth_song_interaction.js?v=vgm-manual-1';
 import {createSynthPsgSongInteraction} from './synth_song_psg_interaction.js?v=psg-manual-1';
+import {createSynthPcmSongInteraction} from './synth_song_pcm_interaction.js?v=pcm-manual-1';
 
 // Keep the existing native-rate buffer size/resampling path. Only the queued
 // duration changes: manual writes no longer wait behind 200 ms of rendered PCM.
@@ -151,8 +152,9 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     let psgLiveState = playback === 'seeking' ? null :
       active?.psgTimeline && ['playing','paused'].includes(playback) ? active.psgTimeline.read(consumedFrames) : lastPsgLiveState;
     if (psgLiveState && active?.psgInteraction) psgLiveState=active.psgInteraction.readSnapshot(psgLiveState,consumedFrames);
-    const pcmLiveState = playback === 'seeking' ? null :
+    let pcmLiveState = playback === 'seeking' ? null :
       active?.pcmTimeline && ['playing','paused'].includes(playback) ? active.pcmTimeline.read(consumedFrames) : lastPcmLiveState;
+    if (pcmLiveState && active?.pcmInteraction) pcmLiveState=active.pcmInteraction.readSnapshot(pcmLiveState,consumedFrames);
     const stats = active?.player.checkpointStats() ?? {count:0,bytes:0};
     const durationKnown = totalSamples > 0;
     return {playback, hasSource:Boolean(source), name, errorMessage,
@@ -162,11 +164,15 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       durationKnown,seekable:durationKnown,seeking:playback==='seeking',seekProgress,seekTargetSeconds,
       manualReady:playback==='playing'&&Boolean(active?.interaction),
       psgManualReady:playback==='playing'&&Boolean(active?.psgInteraction),
+      pcmManualReady:playback==='playing'&&Boolean(active?.pcmInteraction),
       manualLatencySeconds:active?.interaction&&playback==='playing'
         ? Math.max(0,(active.interaction.generatedFrames-consumedFrames)/sampleRate)+
           Math.max(0,active.clockStart-active.context.currentTime):0,
       psgManualLatencySeconds:active?.psgInteraction&&playback==='playing'
         ? Math.max(0,(active.psgInteraction.generatedFrames-consumedFrames)/sampleRate)+
+          Math.max(0,active.clockStart-active.context.currentTime):0,
+      pcmManualLatencySeconds:active?.pcmInteraction&&playback==='playing'
+        ? Math.max(0,(active.pcmInteraction.generatedFrames-consumedFrames)/sampleRate)+
           Math.max(0,active.clockStart-active.context.currentTime):0,
       lastSeekCacheFrame,cache:{enabled:seekCacheEnabled,supported:Boolean(active?.player.supportsState()),
         manualDirty:Boolean(active?.manualDirty),
@@ -194,6 +200,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     run.segments.length = 0;
     run.gain.disconnect();
     // Observers wrap process/reset; unwind the last installed first.
+    run.pcmInteraction?.dispose();
     run.psgInteraction?.dispose();
     run.interaction?.dispose();
     run.pcmTimeline?.dispose();
@@ -204,6 +211,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   }
   function suspend(run) {
     if (!run) return;
+    run.pcmInteraction?.releaseKeyboard();
     run.psgInteraction?.releaseKeyboard();
     run.interaction?.releaseKeyboard();
     run.basePosition = currentPosition(run);
@@ -338,6 +346,21 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     return active?.psgInteraction&&snapshot
       ?active.psgInteraction.readSnapshot(snapshot,consumedFrames,{frozen:true}):snapshot??null;
   }
+  function editPcm(edit) {return applyManualFor(active?.pcmInteraction,'applyEdit',edit);}
+  function applyPcmSettings(channel,settings) {return applyManualFor(active?.pcmInteraction,'applySettings',channel,settings);}
+  function noteOnPcm(id,note,options) {return applyManualFor(active?.pcmInteraction,'noteOn',id,note,options);}
+  function noteOffPcm(id) {return applyManualFor(active?.pcmInteraction,'noteOff',id);}
+  function releasePcmKeyboard() {
+    const result=active?.pcmInteraction?.releaseKeyboard()??false;
+    if(active&&result!==false){active.manualDirty=true;invalidateCache();emit();}
+    return result;
+  }
+  function setPcmPitch(semitones) {return applyManualFor(active?.pcmInteraction,'setPitch',semitones);}
+  function describePcm(channel) {return active?.pcmInteraction?.describe(channel)??{playable:false,reason:'Start a PCM song to play this channel.'};}
+  function readPcmSnapshot(snapshot,consumedFrames=currentPosition()) {
+    return active?.pcmInteraction&&snapshot
+      ?active.pcmInteraction.readSnapshot(snapshot,consumedFrames,{frozen:true}):snapshot??null;
+  }
   function restartChangedSeek() {
     if(playback==='seeking')void seekAt(seekTargetSeconds,seekResumePlaying).catch(()=>{});
   }
@@ -459,7 +482,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     return task;
   }
   async function prepare(ticket,audioReady,hostReady=Promise.resolve()) {
-    let engine=null,timeline=null,psgTimeline=null,pcmTimeline=null,outputMix=null,interaction=null,psgInteraction=null;
+    let engine=null,timeline=null,psgTimeline=null,pcmTimeline=null,outputMix=null,interaction=null,psgInteraction=null,pcmInteraction=null;
     try {
       await metadataReady;
       if(!isCurrent(ticket))return null;
@@ -500,6 +523,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       pcmTimeline = header.rf5c164Clock ? createPcmSongTimeline(engine, header.rf5c164Clock) : null;
       interaction=header.ym2612Clock?createSynthSongInteraction(engine,{clockHz:header.ym2612Clock}):null;
       psgInteraction=header.psgClock?createSynthPsgSongInteraction(engine,{clockHz:header.psgClock}):null;
+      pcmInteraction=header.rf5c164Clock?createSynthPcmSongInteraction(engine,{clockHz:header.rf5c164Clock}):null;
       const player = new VgmPlayer(engine);
       // The host already keeps a bounded native-rate queue. A second speculative queue would
       // delay listening changes further; retain only one requested chunk.
@@ -507,7 +531,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       player.setLoopEnabled(false);
       player.checkpointMaxBytes=CACHE_MAX_BYTES;player.checkpointMaxCount=CACHE_MAX_COUNT;
       player.seekSettingsKey=()=>JSON.stringify([mix.getMutedChannels(),mix.getGroupVolumes()]);
-      player.captureSeekState=()=>({timeline:timeline?.saveState(),psgTimeline:psgTimeline?.saveState(),pcmTimeline:pcmTimeline?.saveState(),outputMix:outputMix.saveState(),interaction:interaction?.saveState(),psgInteraction:psgInteraction?.saveState()});
+      player.captureSeekState=()=>({timeline:timeline?.saveState(),psgTimeline:psgTimeline?.saveState(),pcmTimeline:pcmTimeline?.saveState(),outputMix:outputMix.saveState(),interaction:interaction?.saveState(),psgInteraction:psgInteraction?.saveState(),pcmInteraction:pcmInteraction?.saveState()});
       player.restoreSeekState=state=>{
         if(state.timeline)timeline?.loadState(state.timeline);
         if(state.psgTimeline)psgTimeline?.loadState(state.psgTimeline);
@@ -515,6 +539,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
         outputMix.loadState(state.outputMix);
         if(state.interaction)interaction?.loadState(state.interaction);
         if(state.psgInteraction)psgInteraction?.loadState(state.psgInteraction);
+        if(state.pcmInteraction)pcmInteraction?.loadState(state.pcmInteraction);
       };
       const restoreCheckpoint=player.restoreCheckpoint.bind(player);
       player.restoreCheckpoint=target=>{
@@ -526,13 +551,14 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       const gain = context.createGain();
       gain.gain.value = volume;
       gain.connect(output);
-      const run = {engine, timeline, psgTimeline, pcmTimeline, outputMix, interaction, psgInteraction, manualDirty:false,player, context, output, gain, sampleRate,basePosition:0,renderedFrames:0,cacheResumeFrame:0,
+      const run = {engine, timeline, psgTimeline, pcmTimeline, outputMix, interaction, psgInteraction, pcmInteraction, manualDirty:false,player, context, output, gain, sampleRate,basePosition:0,renderedFrames:0,cacheResumeFrame:0,
         clockStart:context.currentTime + START_DELAY_SECONDS, segments:[], eof:false, timer:null, released:false};
       active = run;
       engine = null; // Ownership has moved to run/release.
       // The snapshot hooks retain these adapters for the life of this run.
       return run;
     } catch (error) {
+      pcmInteraction?.dispose();
       psgInteraction?.dispose();
       interaction?.dispose();
       pcmTimeline?.dispose();
@@ -641,6 +667,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   function pause() {
     if (!active || playback !== 'playing') return;
     const run = active;
+    run.pcmInteraction?.releaseKeyboard();
     run.psgInteraction?.releaseKeyboard();
     run.interaction?.releaseKeyboard();
     run.basePosition = currentPosition(run);
@@ -679,5 +706,6 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   return {load, clear, play, pause, resume, stop, setVolume,
     setChannelMuted, setGroupVolume, resetMix,seek,setSeekCacheEnabled,dispose,getState,
     editFm,applyFmPreset,noteOnFm,noteOffFm,releaseFmKeyboard,setFmPitch,readFmSnapshot,describeFm,
-    editPsg,applyPsgPreset,noteOnPsg,noteOffPsg,releasePsgKeyboard,setPsgPitch,readPsgSnapshot,describePsg};
+    editPsg,applyPsgPreset,noteOnPsg,noteOffPsg,releasePsgKeyboard,setPsgPitch,readPsgSnapshot,describePsg,
+    editPcm,applyPcmSettings,noteOnPcm,noteOffPcm,releasePcmKeyboard,setPcmPitch,readPcmSnapshot,describePcm};
 }

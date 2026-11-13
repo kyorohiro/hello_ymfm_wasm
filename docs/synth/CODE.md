@@ -41,8 +41,7 @@ latency). YM2612 gain calibration and native 2048-frame audio chunks are kept.
 
 VGM and Code remain mutually exclusive. Manual input can accompany either;
 switching Keyboard / Code views keeps Code running. Looper and Event Rec stay
-disabled during VGM playback. RF5C164 song channels retain Live viewing and
-Pause audition; direct editing during their playback is a later extension.
+disabled during VGM playback.
 
 PSG **Tone 1–3 / Noise** now selects the same physical channel for Live
 viewing, hardware edits and keyboard input during the song. Tone and Noise are
@@ -67,6 +66,32 @@ next manual note. A direct selected-CH attenuation edit is a physical register
 edit and can unmute that channel. VGM manual input uses hardware levels;
 **Software Envelope** remains saved in the author instrument and is available
 again after stopping the VGM. Code keeps its existing software-envelope tools.
+
+For **RF5C164**, select **PCM CH1–8** to edit Volume, left/right Pan and 16-bit
+**Playback step**, and play the existing song sample on that physical channel.
+The recorded Step is the C4 reference speed; it is not detected sample pitch.
+Editing Step updates that reference, while subsequent keys and Pitch use it
+without accumulating transposition. The original Start, Loop and sample RAM
+stay in place, including known wrapped or disjoint samples that cannot be
+exported as a contiguous author sample. Global Disable, Step 0 or incomplete
+sample RAM explain why keys are unavailable; the hardware controls stay usable.
+
+Manual PCM transactions preserve both of the player's independent CH and
+RAM-bank selectors, Global Enable and all other channel-mask bits. Volume and
+Pan preserve gate ownership; a later source Step write takes pitch control,
+and source gate / Start / Loop writes retire the old manual key. An old key-up
+or wheel reset cannot undo those new instructions. Live Off freezes unrelated
+fields while showing deliberate edits. Hardware Key Off has no software fade
+on the playing reference chip.
+
+PCM **Synth** uses its separate author sample bank and keyboard. Author edits,
+WAV/preset loading and Code continue to use that bank without replacing song
+RAM; loading an instrument selects Synth and keeps the VGM running. Root note,
+sample drawing and Range/Loop edits belong to this author instrument. The song
+sample display is read-only, with Waveform/Spectrum available during hardware
+edits. Pause keeps the separate captured audition and its software release;
+Copy retains its stricter contiguous-sample checks. Seek reconstructs the
+original VGM and discards temporary hand edits and their checkpoints.
 
 Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout while Code keeps playing. Maximized layout is temporary and is not restored after a reload.
 
@@ -116,7 +141,7 @@ liveLoop("pulse", async () => {
 
 PCM uses the sample, loop and channel settings from the RF5C164 editor. Set **Root note** to the note heard when the sample plays at its original sample rate. `setNote(channel, note)` computes and returns the raw RF5C164 step without starting a voice; `noteOn(channel, note)` also starts it. Both accept note names or integer MIDI 0–127, on channels 0–7. This is software tuning from the editor's sample rate and Root note; it does not detect an arbitrary WAV's pitch. Changing the loop region can change the perceived pitch, so adjust Root note when needed. For a VGM-copied sample, the initial C4 represents the captured playback speed rather than a detected C4 fundamental.
 
-In the PCM **Sample** view, **Range** moves the loop start / end markers. **Draw** edits amplitudes on that same canvas with a mouse, pen or touch. A stroke previews while drawing and updates the shared sample RAM on release; interrupted strokes are discarded. Drawing is a software sample editor: it preserves the sample length, rate, Root note and loop settings, and changes only the frames crossed by the stroke. Samples are quantized to RF5C164 sign-magnitude bytes without using its reserved `0xff` loop marker. Applying a drawing keeps held PCM notes and their playback positions, including Code notes using the editor's shared sample. The next samples use the edited waveform without a new Key On. If Code has loaded its own PCM RAM, stop Code before drawing; its private data and sounding notes are kept when an edit is rejected. Loading another sample or choosing a builtin still replaces the instrument and stops its notes. VGM Live remains read-only.
+In the PCM **Sample** view, **Range** moves the loop start / end markers. **Draw** edits amplitudes on that same canvas with a mouse, pen or touch. A stroke previews while drawing and updates the shared sample RAM on release; interrupted strokes are discarded. Drawing is a software sample editor: it preserves the sample length, rate, Root note and loop settings, and changes only the frames crossed by the stroke. Samples are quantized to RF5C164 sign-magnitude bytes without using its reserved `0xff` loop marker. Applying a drawing keeps held PCM notes and their playback positions, including Code notes using the editor's shared sample. The next samples use the edited waveform without a new Key On. If Code has loaded its own PCM RAM, stop Code before drawing; its private data and sounding notes are kept when an edit is rejected. Loading another sample or choosing a builtin still replaces the instrument and stops its notes. The VGM song sample remains read-only; its Volume, Pan and Step are editable while playing.
 
 The edited sample stays inside the existing PCM preset, so Files and Cassette keep it together with the instrument. Event Rec and Looper record drawing as a sample edit that keeps sounding voices during replay. Previously recorded takes keep their own captured samples. The drawing helper is in [synth_pcm_wave_edit.js](synth_pcm_wave_edit.js), separate from the chip renderer and audio lifecycle.
 

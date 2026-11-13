@@ -248,10 +248,10 @@ async function run(browser,name,origin) {
     assert(await page.locator('#synthSongLiveToggle').isChecked(),'Live defaults On');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await until(page,async()=>{const s=await ui(page);return s.volume===64&&s.step===1024;},'Initial PCM CH1 source values');await sounding(page);
-    const first=await ui(page),initialCanvas=await canvasHash(page);assert.equal(first.loopStart,'272');assert.equal(first.loopEnd,'512');assert(first.rootHidden&&!first.stepHidden&&first.settingsInert&&first.canvasInert);
+    const first=await ui(page),initialCanvas=await canvasHash(page);assert.equal(first.loopStart,'272');assert.equal(first.loopEnd,'512');assert(first.rootHidden&&!first.stepHidden&&!first.settingsInert&&first.canvasInert);
     assert(await evaluate(page,()=>__originalPcmNodes.every((node,i)=>node===[document.getElementById('synthPcmCanvas'),document.getElementById('synthPcmSettings'),document.getElementById('synthPcmVolume')][i])),'Live reuses the same editor controls and canvas');
     assert.deepEqual(await page.locator('#synthSongChannelSelect option').evaluateAll(nodes=>nodes.map(n=>n.value)),['synth','pcm:0','pcm:1','pcm:2','pcm:3','pcm:4','pcm:5','pcm:6','pcm:7']);
-    const key=await c4Key(page);await drain(page);await down(page,key.key);await pause(70);await keyState(page,key.key,false);assert.equal((await drain(page)).filter(e=>e.kind==='keyOn').length,0,'Playing observations do not trigger a keyboard chip');await page.keyboard.up(key.key);
+    const key=await c4Key(page);assert.equal((await transport(page)).keyboard,'live','Playing reference channels accept direct native keyboard input');
     const timing=await evaluate(page,async rate=>{const rows=[];for(let i=0;i<500;i++){
       const frame=Number(document.getElementById('synthSongPlayer').dataset.consumedFrames);
       rows.push({frame,volume:Number(document.getElementById('synthPcmVolume').textContent),left:Number(document.getElementById('synthPcmPanLeft').textContent),changed:document.getElementById('synthPcmVolume').classList.contains('is-live-changed')});
@@ -261,14 +261,14 @@ async function run(browser,name,origin) {
     assert(early.length>1&&early.every(row=>row.volume===64&&row.left===15),'No prefetched future PCM settings');
     assert(late.length>1&&late.every(row=>row.volume===96&&row.left===0),'PCM follows the consumed register write');
     assert(timing.some(row=>row.changed),'Live highlight pulses at the actual register transition');
-    steps.push('Same read-only PCM UI, eight reference targets, original settings at consumed time and optional live highlights');
+    steps.push('Same PCM UI with editable live hardware values and read-only sample RAM, eight reference targets, consumed-time settings and optional highlights');
 
     await page.locator('#synthSongPlayButton').click();await state(page,'paused');await silence(page);
     const paused=(await transport(page)).frame;await pause(120);assert.equal((await transport(page)).frame,paused);
     await seek(page,.5);await auditionReady(page);assert.equal((await ui(page)).volume,64);assert.equal(await canvasHash(page),initialCanvas);
     await checkbox(page,'synthSongLiveToggle',false);const frozen=await ui(page);
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
-    await until(page,async()=>(await transport(page)).frame>2.2*RATE,'Transport advances with Live Off');assert.deepEqual(await ui(page),frozen);assert.match((await transport(page)).status,/Frozen PCM CH1/);
+    await until(page,async()=>(await transport(page)).frame>2.2*RATE,'Transport advances with Live Off');const resumedFrozen=await ui(page);assert.equal(resumedFrozen.settingsInert,false);assert.deepEqual({...resumedFrozen,settingsInert:frozen.settingsInert,sample:resumedFrozen.sample.replace(/ · C4 reference step \d+$/,'')},frozen);assert.match((await transport(page)).status,/Frozen PCM CH1/);
     await checkbox(page,'synthSongLiveToggle',true);await until(page,async()=>(await ui(page)).volume===96,'Live On catches up');
     await checkbox(page,'synthSongHighlightToggle',false);
     const patchTiming=await evaluate(page,async rate=>{const rows=[];for(let i=0;i<500;i++){
@@ -313,8 +313,8 @@ async function run(browser,name,origin) {
 
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');
     await page.locator('#synthSongSelect').selectOption('/vgm/PCM Unsafe.vgm');await page.locator('#synthSongChannelSelect').selectOption('pcm:0');await page.locator('#synthSongPlayButton').click();await state(page,'playing');
-    await until(page,async()=>(await transport(page)).status.includes('incomplete'),'Unknown source RAM is explained');await page.locator('#synthSongPlayButton').click();await state(page,'paused');
-    assert(await page.locator('#synthSongCopyButton').isDisabled());assert.match((await ui(page)).sample,/Sample unavailable/);
+    await until(page,async()=>/incomplete|not prepared/i.test((await transport(page)).status),'Unknown source RAM is explained');await page.locator('#synthSongPlayButton').click();await state(page,'paused');
+    assert(await page.locator('#synthSongCopyButton').isDisabled());assert.match((await ui(page)).sample,/Sample unavailable|waveform unavailable/);
     assert.match((await audit(page)).canvasLabels.join(' '),/incomplete/,'Unsafe capture clears the old sample instead of showing stale waveform');
     await drain(page);await down(page,key.key);await pause(70);await keyState(page,key.key,false);await page.keyboard.up(key.key);assert.equal((await drain(page)).filter(e=>e.kind==='keyOn').length,0);
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');await page.locator('#synthSongChannelSelect').selectOption('synth');assert.deepEqual(await exportPcm(page),originalPcm);

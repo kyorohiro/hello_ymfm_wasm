@@ -1,0 +1,440 @@
+{
+  "date": "2026-11-13",
+  "feature": "FM2612 Synth: RF5C164 reference channel controls and keyboard during VGM playback",
+  "passed": true,
+  "scope": {
+    "channels": "RF5C164 CH1–8 on the same reference engine",
+    "hardwareFields": [
+      "volume",
+      "panLeft",
+      "panRight",
+      "16-bit step"
+    ],
+    "keyboard": "existing source Start/Loop/RAM, source Step as C4 reference; no cumulative key transposition",
+    "authorSynth": "separate author RAM and keyboard; loading/editing keeps the VGM playing",
+    "sourcePolicy": "VGM or Code; manual controls may accompany either",
+    "ownership": "source gate/start/loop retire old manual key, source step steals pitch only; mask RMW preserves other CH bits",
+    "cursorPolicy": "restore channel and RAM bank, preserve Global Enable",
+    "liveOff": "pending fields and C4 reference metadata update without cloning RAM",
+    "samplePolicy": "known native wrapped/disjoint loops allowed; Pause/Copy retain contiguous guarded capture limits",
+    "release": "hardware Key Off on reference; existing4ms software release on author/Pause chip",
+    "code": "sparse settings preserve unedited Code volume/pan/step/loop/privateRAM, including hand-held keys",
+    "deferred": [
+      "Source sample RAM drawing/loading and Start/Loop editing",
+      "Dedicated PWM keyboard editor",
+      "Listening, long-duration and load tests"
+    ]
+  },
+  "node": {
+    "command": "node --test docs/synth/*.test.mjs",
+    "tests": 599,
+    "passed": 599,
+    "failed": 0,
+    "log": "build/verification/fm-pcm-manual-20261113/node-tests.log",
+    "sha256": "68e9ab62d38ab3a13b0a52fee5c41316f98d21e43952412203fa45c2a7870cf6"
+  },
+  "nativePcm": {
+    "baselineCommit": "7963fb18b63bc26c2b5887bb5df6107e70886d7b",
+    "passed": true,
+    "physicalOutput": false,
+    "comparisons": [
+      {
+        "name": "RF-only",
+        "baseline": {
+          "sampleRate": 53267,
+          "comparedFrames": 32768,
+          "sourceSha256": "5c3a87b0a9fc6b44e0ea8cf5645f33503e09e4c705725fc225634627a02e39e3",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.061586279422044754,
+          "master": 0.7,
+          "afterMasterPeak": 0.043110395595431325,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.7755575615628914e-17,
+          "pcmLatencySeconds": null
+        },
+        "current": {
+          "sampleRate": 53267,
+          "comparedFrames": 32768,
+          "sourceSha256": "5c3a87b0a9fc6b44e0ea8cf5645f33503e09e4c705725fc225634627a02e39e3",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.061586279422044754,
+          "master": 0.7,
+          "afterMasterPeak": 0.043110395595431325,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.7755575615628914e-17,
+          "pcmLatencySeconds": {
+            "min": 0.04610734601160193,
+            "max": 0.08737116789006327
+          }
+        },
+        "channelSamples": 65536,
+        "differingSamples": 0,
+        "maxDifference": 0
+      },
+      {
+        "name": "FM/PSG/RF/PWM",
+        "baseline": {
+          "sampleRate": 53267,
+          "comparedFrames": 65536,
+          "sourceSha256": "89c458d7667a5dda1b1c0e44ae2670d4183a5d6ebf7a0d9012a32e64a4afa27b",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.13228319585323334,
+          "master": 0.7,
+          "afterMasterPeak": 0.09259823709726334,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.220446049250313e-16,
+          "pcmLatencySeconds": null
+        },
+        "current": {
+          "sampleRate": 53267,
+          "comparedFrames": 65536,
+          "sourceSha256": "89c458d7667a5dda1b1c0e44ae2670d4183a5d6ebf7a0d9012a32e64a4afa27b",
+          "bufferFrames": [
+            2048,
+            1326
+          ],
+          "nativePeak": 0.13228319585323334,
+          "master": 0.7,
+          "afterMasterPeak": 0.09259823709726334,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.220446049250313e-16,
+          "pcmLatencySeconds": {
+            "min": 0.04541273208553138,
+            "max": 0.08737116789006327
+          }
+        },
+        "channelSamples": 131072,
+        "differingSamples": 0,
+        "maxDifference": 0
+      }
+    ]
+  },
+  "nativeSeek": {
+    "passed": true,
+    "physicalOutput": false,
+    "steps": [
+      {
+        "step": "cold seek10.25 and Resume",
+        "positionFrames": 545986,
+        "volume": 192,
+        "stepCode": 2048,
+        "manualLatencyMs": 86.95195899900502,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 2,
+          "bytes": 666456,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "hand volume9 and step4096",
+        "positionFrames": 545986,
+        "volume": 9,
+        "stepCode": 4096,
+        "manualLatencyMs": 86.95195899900502,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": true,
+          "count": 0,
+          "bytes": 0,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "source seek6.25 after hand edit",
+        "positionFrames": 332918,
+        "volume": 192,
+        "stepCode": 2048,
+        "manualLatencyMs": 87.34619933542342,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 1,
+          "bytes": 333228,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "warm source seek5.75",
+        "positionFrames": 306285,
+        "volume": 192,
+        "stepCode": 2048,
+        "manualLatencyMs": 88.13468000826028,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 1,
+          "bytes": 333228,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 270336
+        }
+      }
+    ],
+    "notes": [
+      "Actual WASM; no browser or physical audio.",
+      "Same borrowed fake clock/output bus through all seeks; source bytes and2048-frame buffers retained.",
+      "Latency excludes device output latency."
+    ]
+  },
+  "browsers": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "reports": [
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/pcm-manual-b2.json",
+        "sha256": "7d273358b61cd869f64ee027e613dfbdf3207e0e2831acd3e5fc2d5a2de1cd9a",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/pcm-live-b.json",
+        "sha256": "8056bb4e6194c90fc4f8c20680ec367d2f24c486b430eca11c0038b14371c400",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/fm-manual-b.json",
+        "sha256": "98c4bb83f86fa2626060572f4fdcb588336008030f3a499a6be483bb7e5bc29e",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/psg-manual-b.json",
+        "sha256": "6903f2591e6939b6d5e333002511efc7cf3d7e88524a1949c31491abf46f4e3d",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/seek-b.json",
+        "sha256": "7ae515de33c2da813cb519e0d78d672c9ac7c8936e0acc472c7c3966b32c9391",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/code-keyboard-b.json",
+        "sha256": "fcb8a83ef2fffb9dec8bc76f608428a44c517e69d19e4c45d2876018559558d7",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/preview-b.json",
+        "sha256": "96e255d086dee09ef993b70cefb5ca86ccc672b3e69ee8e87c5c522cb3632967",
+        "passed": true,
+        "results": 6
+      },
+      {
+        "path": "build/verification/fm-pcm-manual-20261113/package-b.json",
+        "sha256": "ce75aaaed5f1c4a69b8b86f7e2fed8f985becc3c7e23d0e854889bcb1629ec83",
+        "passed": true,
+        "results": null
+      }
+    ],
+    "manualMeasurements": [
+      {
+        "browser": "chromium",
+        "checks": 9,
+        "renderAheadSeconds": 0.0731034223815871,
+        "browserPeak": 0.013275264762341976,
+        "nativePeak": 0.013275264762341976,
+        "rmsRatio": 0.9935527679737567,
+        "master50PeakRatio": 0.5,
+        "master50RmsRatio": 0.5031686791093846
+      },
+      {
+        "browser": "webkit",
+        "checks": 9,
+        "renderAheadSeconds": 0.012427957271856872,
+        "browserPeak": 0.013275264762341976,
+        "nativePeak": 0.013275264762341976,
+        "rmsRatio": 0.9962932638737342,
+        "master50PeakRatio": 0.5,
+        "master50RmsRatio": 0.4990513421654354
+      }
+    ],
+    "newChecks": [
+      "RF-only import stays passive; selected CH hardware controls share one reference engine with calibrated stereo output",
+      "Manual CH writes restore both source channel and RAM bank; following implicit writes reach their original destinations",
+      "Live Off freezes observations while packed Pan and partial 16-bit source Step keep the latest native companions",
+      "Keyboard reuses the selected sample at recorded C4 speed and stale key-up cannot overwrite later VGM gates",
+      "Mixer mute preserves hardware gates and desired Pan while manual edits stay on the same reference channel",
+      "Global Disable, zero Step and unknown RAM are explained without enabling the chip or replacing source memory",
+      "Pause audition stays independent; Copy and original-source Seek preserve samples, cursor and transport ownership",
+      "Author sample presets stay separate, editable and playable while reference RAM and source voices keep running",
+      "Code and VGM remain exclusive while manual author PCM controls and Keyboard view preserve the Code loop"
+    ],
+    "checkerSha256": "888361569f4e7ce5afc9d19e79c60765e7ea116437627d8059974e6229b16773",
+    "codeSparseCases": [
+      {
+        "owner": "Code",
+        "program": {
+          "volume": 123,
+          "leftPan": 15,
+          "rightPan": 3,
+          "loopStart": 7,
+          "step": 4096
+        },
+        "handEdits": [
+          "leftPan only",
+          "volume only"
+        ],
+        "verified": [
+          "only requested r1/r0 plus channel selector7",
+          "no sample RAM or gate messages",
+          "actual stereo right/left ratio",
+          "continuing liveLoop ticks"
+        ]
+      },
+      {
+        "owner": "keyboard while Code updates parameters",
+        "program": {
+          "volume": 111,
+          "leftPan": 12,
+          "rightPan": 4,
+          "loopStart": 9,
+          "step": 3072
+        },
+        "handEdits": [
+          "leftPan only",
+          "volume only"
+        ],
+        "verified": [
+          "no unrelated volume/Pan/Step/Loop/RAM/gate writes",
+          "old keyboard key-up still reaches releaseNote",
+          "continuing liveLoop ticks"
+        ]
+      }
+    ],
+    "notes": [
+      "All checks use the final immutable B package. Original source and imported author files remain reusable.",
+      "Self-authored timing fixture includes quiet windows; blocked keyboard probes compare target channel rather than legitimate simultaneous VGM writes.",
+      "The legacy PCM Live checker now expects live hardware controls but read-only sample RAM, transport-mode C4 metadata, and current unprepared-RAM wording. All audible-time/RAM/Pause/Copy assertions remain.",
+      "No product mutation, commit, push, physical output, ordinary browser or native application was used during verification."
+    ]
+  },
+  "package": {
+    "archive": "release/hello_ymfm_wasm_fm-pcm-manual-20261113b_itch_synth.zip",
+    "archiveSha256": "b064620b7280475a0c8676149d025117c43127f6f0bb0974532231e1615bdcd8",
+    "archiveBytes": 1116139,
+    "files": 291,
+    "zipCrcVerified": true,
+    "allStageFileHashesMatchZip": true
+  },
+  "featureAssets": {
+    "synth.js": "a4f581725a9aa9457b4b6b58e2a8858cffd914a434057b7c625000600d1a906e",
+    "synth_pcm.js": "ff76d1b37636552d4a2e15e9d7faea01f91251271d9bcc503856a6c6032e7bd3",
+    "synth_pcm_controls.js": "993730b82758d4cc756b890223e0805e1f66d34fb8d274900b29f35d1b244425",
+    "synth_code_audio.js": "f2363bc9a795ccf32efad7d1798ef199eb8bdf31c99e90608499f083fdb73b9a",
+    "synth_song_pcm_interaction.js": "7e9e790a9a0313a7817f6eecdb9df889437a804de32220834154775089d8f60b",
+    "synth_song_preview.js": "77f4d06f5c4c7902380f649b795a19504114df4da82ed6b76f94c2ee24432c8c",
+    "synth_song_controls.js": "30103fd8ac09e09a53a6d638531490583bbe936dd3b4445b78134851802c908a",
+    "index.html": "c3b9eb31b4782401a98f5bad446e43e15f3b5de30e45f86ec9f79549c293c2bb",
+    "CODE.md": "3247999f52bcc2497bfa5a25e4930cfc1ea39c58dea981d8c09eea516733cd91"
+  },
+  "ci": {
+    "workflow": ".github/workflows/itch-web.yml",
+    "added": "Packaged PCM manual interaction in Chromium and WebKit",
+    "remoteActionsRun": false
+  },
+  "notes": [
+    "All browser destinations were intercepted at gain0 before application code. Chromium also uses --mute-audio. No physical audio/listening.",
+    "All final browser feature and regression checks used candidate B. Timing/text-only checker fixes account for the continuing source and the more precise bounded-waveform caption.",
+    "Native comparison covers196608channel-samples before manual intervention, with0differences. Gain calibration/scheduling/2048-frame generation unchanged.",
+    "Future source writes and unknown-RAM hardware quirks are preserved; manual reference notes use the raw chip, while detached Copy retains stricter guards.",
+    "No commit, push or publication performed."
+  ]
+}

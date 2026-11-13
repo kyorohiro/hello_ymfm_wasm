@@ -75,6 +75,7 @@ synth_song_seek_controls.js
 synth_song_preview.js
 synth_song_interaction.js
 synth_song_psg_interaction.js
+synth_song_pcm_interaction.js
 synth_song_state.js
 synth_song_psg_state.js
 synth_song_psg_voice.js
@@ -334,7 +335,7 @@ EOF
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' \
-  "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_interaction.js" "${STAGE_DIR}/synth_song_psg_interaction.js" "${STAGE_DIR}/synth_song_state.js" \
+  "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_interaction.js" "${STAGE_DIR}/synth_song_psg_interaction.js" "${STAGE_DIR}/synth_song_pcm_interaction.js" "${STAGE_DIR}/synth_song_state.js" \
   "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js" \
   "${STAGE_DIR}/synth_song_mix_defaults.js" "${STAGE_DIR}/synth_psg_audio.js" "${STAGE_DIR}/synth_psg_worklet.js" "${STAGE_DIR}/synth_song_psg_voice.js" "${STAGE_DIR}/synth_psg_loop_render.js" "${STAGE_DIR}/synth_pcm_audio.js" "${STAGE_DIR}/synth_pcm.js" \
   "${STAGE_DIR}/synth_pcm_recording_audio.js" "${STAGE_DIR}/synth_pcm_recording_worklet.js" "${STAGE_DIR}/synth_pcm_worklet.js" "${STAGE_DIR}/synth_pcm_release.js" \

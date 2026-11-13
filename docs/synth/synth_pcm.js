@@ -235,7 +235,8 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
       current=next;revision++;
       onCommand({type:'editSample',preset:getPreset()});emit();return true;
     },
-    setSettings(patch) {
+    setSettings(patch,{applyHardware=true}={}) {
+      if(typeof applyHardware!=='boolean')throw new TypeError('PCM applyHardware must be boolean');
       ownObject(patch,'PCM settings patch');
       const next=normalizePcmSettings({...current.settings,...patch},frames),previous=current.settings;
       if(settingFields.every(field=>next[field]===previous[field]))return getSettings();
@@ -244,7 +245,7 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
       const pcm=getPcm();
       if(pcm&&installed===pcm)for(const [ch,note] of held) {
         const changed=pitch(note.block,note.fnum);
-        pcm.setChannel(ch,{volume:next.volume,pan:{left:next.panLeft,right:next.panRight},loopStart:loopAddress(),step:changed.step});
+        if(applyHardware)pcm.setChannel(ch,{volume:next.volume,pan:{left:next.panLeft,right:next.panRight},loopStart:loopAddress(),step:changed.step});
         held.set(ch,{channel:ch,...changed});
       }
       onCommand({type:'setSettings',settings:getSettings()});emit();return getSettings();

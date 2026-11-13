@@ -3,9 +3,9 @@ import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.
 import {createPcmWaveDraft} from './synth_pcm_wave_edit.js?v=pcm-live-draw-1';
 
 /** Compact RF5C164 authoring controls; writes and file decoding belong to the host. */
-export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=()=>{},onLoad=()=>{},onSampleEdit=()=>{},onVisualModeChange=()=>{}}={}) {
+export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=()=>{},onLoad=()=>{},onSampleEdit=()=>{},onVisualModeChange=()=>{},onObservationEdit=()=>{}}={}) {
   if(typeof voice?.getState!=='function')throw new TypeError('PCM controls need a voice');
-  for(const callback of [onSettingsChange,onBuiltin,onLoad,onSampleEdit,onVisualModeChange])if(typeof callback!=='function')throw new TypeError('PCM controls need callbacks');
+  for(const callback of [onSettingsChange,onBuiltin,onLoad,onSampleEdit,onVisualModeChange,onObservationEdit])if(typeof callback!=='function')throw new TypeError('PCM controls need callbacks');
   const byId=id=>document.getElementById(id),root=byId('synthChipPcm'),canvas=byId('synthPcmCanvas');
   const context=canvas.getContext('2d'),info=byId('synthPcmSampleInfo'),rootName=byId('synthPcmRootName');
   const description=byId('synthPcmVisualizerDescription'),help=byId('synthPcmHelp'),loopButton=byId('synthPcmLoopEnabled');
@@ -26,17 +26,23 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     return settings[field]===value?null:{[field]:value};
   }
   function change(field,value) {
-    if(disposed||liveDisplay)return;
+    if(disposed)return;
+    if(liveDisplay) {
+      if(liveDisplay.editable&&['volume','panLeft','panRight','step'].includes(field))onObservationEdit({[field]:value});
+      return;
+    }
+    if(field==='step')return;
     const patch=clampedPatch(field,value);
     if(patch)onSettingsChange(patch);
     update();
   }
   for(const [field,name,max,min,category] of [
     ['volume','Volume',255,0,'level'],['panLeft','PanLeft',15,0,'level'],['panRight','PanRight',15,0,'level'],
+    ['step','Step',65535,0,'frequency'],
     ['rootNote','RootNote',127,0,'frequency'],['loopStart','LoopStart',PCM_MAX_FRAMES-1,0,'frequency'],['loopEnd','LoopEnd',PCM_MAX_FRAMES,1,'frequency'],
   ]) {
-    const label={volume:'PCM volume',panLeft:'PCM left pan',panRight:'PCM right pan',rootNote:'PCM root note',loopStart:'PCM loop start frame',loopEnd:'PCM end frame, exclusive'}[field];
-    const control=createParamControl({label,min,max,step:1,value:state.settings[field],showLabel:false,category,onChange:value=>change(field,value)});
+    const label={volume:'PCM volume',panLeft:'PCM left pan',panRight:'PCM right pan',step:'PCM playback step',rootNote:'PCM root note',loopStart:'PCM loop start frame',loopEnd:'PCM end frame, exclusive'}[field];
+    const control=createParamControl({label,min,max,step:1,value:state.settings[field]??0,showLabel:false,category,onChange:value=>change(field,value)});
     control.element.classList.add('synth-pcm-number');
     byId(`synthPcm${name}Control`).replaceWith(control.element);
     const value=control.element.querySelector('.param-value');value.id=`synthPcm${name}`;
@@ -122,8 +128,13 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
       volume:display.volume,panLeft:display.panLeft,panRight:display.panRight,rootNote:60,loopEnabled:false,loopStart:0,loopEnd:0}}:voice.getState();
     if(!sameSample(next.preset?.sample,state.preset?.sample)||wasLive!==Boolean(display)) {releaseDrag();releaseStroke();}
     state=next;
-    for(const [field,control]of controls)control.updateVisual(display&&field==='loopStart'?display.sourceLoopStart:
-      display&&field==='loopEnd'?(display.sourceEnd??'—'):state.settings[field]);
+    for(const [field,control]of controls) {
+      control.updateVisual(field==='step'?(display?.step??0):display&&field==='loopStart'?display.sourceLoopStart:
+        display&&field==='loopEnd'?(display.sourceEnd??'—'):state.settings[field]);
+      control.element.inert=display?(!display.editable||!['volume','panLeft','panRight','step'].includes(field)):field==='step';
+      for(const button of control.element.querySelectorAll('button'))button.disabled=control.element.inert;
+    }
+    loopButton.disabled=loadButton.disabled=Boolean(display);
     loopButton.setAttribute('aria-pressed',String(state.settings.loopEnabled));
     loopButton.classList.toggle('is-selected',state.settings.loopEnabled);
     loopButton.textContent=display&&!state.preset?'Loop: —':state.settings.loopEnabled?'Loop: On':'Loop: Off';
@@ -131,13 +142,13 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     for(const button of builtinButtons) {
       const builtin=builtins.get(button.dataset.pcmBuiltin),selected=Boolean(sample&&builtin?.data===sample.data&&builtin.sampleRate===sample.sampleRate);
       button.setAttribute('aria-pressed',String(selected));button.classList.toggle('is-selected',selected);
+      button.disabled=Boolean(display);
     }
     const hex=value=>Number.isInteger(value)?'$'+value.toString(16).toUpperCase().padStart(4,'0'):'—';
-    const text=display?`PCM CH${display.channel+1} · ${state.frames?state.frames+' frames':'Sample unavailable'} · ${Number.isFinite(display.sampleRateHz)?display.sampleRateHz.toFixed(1)+' samples/s':'—'} · Start ${hex(display.sourceStart)} · Loop ${hex(display.sourceLoopStart)}`:
+    const text=display?`PCM CH${display.channel+1} · ${state.frames?state.frames+' frames':'Bounded waveform unavailable'} · ${Number.isFinite(display.sampleRateHz)?display.sampleRateHz.toFixed(1)+' samples/s':'—'} · Start ${hex(display.sourceStart)} · Loop ${hex(display.sourceLoopStart)}${display.editable?' · C4 reference step '+(display.referenceStep??display.step):''}`:
       `${sample.name} · ${state.frames} frames · ${sample.sampleRate.toFixed(1)} Hz · 8-bit mono · shared 64 KiB RAM`;
     if(info.textContent!==text)info.textContent=text;
     byId('synthPcmRootField').hidden=Boolean(display);byId('synthPcmStepField').hidden=!display;
-    byId('synthPcmStep').textContent=display?String(display.step):'0';
     byId('synthPcmLoopStartLabel').textContent=display?'Loop address · RAM':'Loop Start · frame';
     byId('synthPcmLoopEndLabel').textContent=display?'End marker · RAM':'Loop End · exclusive frame';
     byId('synthPcmLoadStatus').hidden=Boolean(display)||!byId('synthPcmLoadStatus').textContent;
@@ -145,10 +156,10 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     const rootText=names[note%12]+(Math.floor(note/12)-1);
     if(rootName&&rootName.textContent!==rootText)rootName.textContent=rootText;
     for(const button of controlButtons)if(button.dataset.pcmField) {
-      const field=button.dataset.pcmField,step=Number(button.dataset.pcmStep),value=state.settings[field];
+      const field=button.dataset.pcmField,step=Number(button.dataset.pcmStep),value=field==='step'?(display?.step??0):state.settings[field];
       const min=field==='loopEnd'?state.settings.loopStart+1:0;
-      const max=field==='volume'?255:field==='rootNote'?127:field==='loopStart'?state.settings.loopEnd-1:field==='loopEnd'?state.frames:15;
-      button.disabled=step<0?value<=min:value>=max;
+      const max=field==='volume'?255:field==='step'?65535:field==='rootNote'?127:field==='loopStart'?state.settings.loopEnd-1:field==='loopEnd'?state.frames:15;
+      button.disabled=controls.get(field).element.inert||(step<0?value<=min:value>=max);
     }
     refreshEditMode();refreshDescription();drawSample();return state;
   }

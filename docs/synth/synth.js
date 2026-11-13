@@ -1,23 +1,23 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-live-draw-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=psg-manual-1';
+import {setupSynthFiles} from './synth_files.js?v=pcm-manual-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-keyboard-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=psg-manual-1';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=pcm-manual-1';
 import {createSynthFmEdits} from './synth_fm_edits.js';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=synth-code-keyboard-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-manual-1';
 import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-draw-1';
 import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-live-draw-1';
 import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-draw-1';
 import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-live-draw-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=channel-mixer-1';
 import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-mixer-1';
-import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-draw-1';
+import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-manual-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=psg-manual-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=pcm-manual-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -290,7 +290,9 @@ function updatePitchBend(value) {
   pitchBendSemitones = value / 1000 * 2;
   for (const wheel of pitchBendWheels) wheel.value = String(value);
   for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
-  if(isPsgSongPlaying()&&editorChip==='psg') {
+  if(isPcmReferenceKeyboard()) {
+    songControls.setPcmPitch(pitchBendSemitones);
+  } else if(isPsgSongPlaying()&&editorChip==='psg') {
     songControls.setPsgPitch(pitchBendSemitones);
   } else if (isFmSongPlaying()&&editorChip==='ym2612') {
     songControls.setFmPitch(pitchBendSemitones);
@@ -772,7 +774,9 @@ psgControls = setupSynthPsgControls({
     updateKeyboardAvailability(); drawEnvelopeGuide();
   },
 });
-pcmControls=setupSynthPcmControls({voice:pcmVoice,onBuiltin:shape=>{
+pcmControls=setupSynthPcmControls({voice:pcmVoice,
+  onObservationEdit:changes=>canEditSongPcm()&&songControls.editPcm({channel:songPcmLiveView.channel,changes}),
+  onBuiltin:shape=>{
   if(applyPcmEditPreset(createPcmBuiltinPreset(shape)))setStatus(`PCM ${shape} selected.`);
 },
   onSampleEdit:preset=>{
@@ -785,7 +789,7 @@ pcmControls=setupSynthPcmControls({voice:pcmVoice,onBuiltin:shape=>{
   onLoad:loadPcmWav,onVisualModeChange:()=>drawEnvelopeGuide(),onSettingsChange:patch=>{
     if(activeInstrumentKind!=='pcm'||isSongChannelTarget()||document.querySelector('.synth-editor').getAttribute('aria-busy')==='true')return;
     const previous=pcmVoice.getSettings();
-    pcmVoice.setSettings(patch);codeAudio?.syncPcmSettings(previous);synthFiles?.markDirty();pcmControls.update();
+    pcmVoice.setSettings(patch,{applyHardware:!codeActive});codeAudio?.syncPcmSettings(previous,patch);synthFiles?.markDirty();pcmControls.update();
     if(audioContext&&!pcmVoice.isReady())void ensureAudioReady({announce:false}).catch(error=>setStatus(`PCM audio: ${error.message}`));
   }});
 
@@ -1039,12 +1043,17 @@ function isFmSongPlaying() {
 }
 
 function isPsgSongPlaying() {return songTargetState.playback==='playing'&&songTargetState.psgManualReady;}
+function isPcmSongPlaying() {return songTargetState.playback==='playing'&&songTargetState.pcmManualReady;}
+function isPcmReferenceKeyboard() {
+  return editorChip==='pcm'&&isPcmSongPlaying()&&isSongChannelTarget()&&songTargetState.chip==='pcm';
+}
 function isReferenceKeyboard() {
-  return editorChip==='ym2612'&&isFmSongPlaying()||editorChip==='psg'&&isPsgSongPlaying();
+  return editorChip==='ym2612'&&isFmSongPlaying()||editorChip==='psg'&&isPsgSongPlaying()||isPcmReferenceKeyboard();
 }
 
 function canEditSongFm() {return Boolean(songLiveView?.editable);}
 function canEditSongPsg() {return Boolean(songPsgLiveView?.editable);}
+function canEditSongPcm() {return Boolean(songPcmLiveView?.editable);}
 
 const songManualVoice={
   noteOn(channel,block,fnum) {return songControls.noteOnFm(`keyboard:${channel}`,{block,fnum},{channel});},
@@ -1055,6 +1064,12 @@ const psgSongManualVoice={
     return songControls.noteOnPsg(`keyboard:${channel}`,{block,fnum},{channel,pitchClock:synth?.clock??YM2612_CLOCK});
   },
   noteOff(channel) {return songControls.noteOffPsg(`keyboard:${channel}`);},
+};
+const pcmSongManualVoice={
+  noteOn(channel,block,fnum) {
+    return songControls.noteOnPcm(`keyboard:${channel}`,{block,fnum},{channel,pitchClock:synth?.clock??YM2612_CLOCK});
+  },
+  noteOff(channel) {return songControls.noteOffPcm(`keyboard:${channel}`);},
 };
 
 function editSongFm(changes) {
@@ -1084,7 +1099,7 @@ function isPerformanceInputEnabled() {
     if(editorChip!==songTargetState.chip)referenceKeyboard=false;
     else {
       const channel=Number(String(songTargetState.target).split(':').at(-1));
-      const description=editorChip==='psg'?songControls.describePsg(channel):songControls.describeFm(channel);
+      const description=editorChip==='pcm'?songControls.describePcm(channel):editorChip==='psg'?songControls.describePsg(channel):songControls.describeFm(channel);
       referenceKeyboard=Boolean(description?.playable);
     }
   }
@@ -1219,7 +1234,7 @@ function setSongTargetState(next) {
   const leavingEditor=songTargetState.target==='synth'&&next.target!=='synth'&&next.playback==='paused';
   const channelTarget = next.target !== 'synth' && ['loading','playing','paused','seeking'].includes(next.playback);
   const audition = channelTarget && next.playback === 'paused' ? next.view : null;
-  const signature = JSON.stringify([next.chip,channelTarget ? next.target : 'synth', next.playback, next.manualReady,next.psgManualReady,
+  const signature = JSON.stringify([next.chip,channelTarget ? next.target : 'synth', next.playback, next.manualReady,next.psgManualReady,next.pcmManualReady,
     audition?.snapshot.revision, audition?.snapshot.frame]);
   songTargetState = next;
   if(startingSeek||!wasPlaying&&['loading','playing'].includes(next.playback)||leavingEditor)void stopRecordingForReference();
@@ -1333,6 +1348,7 @@ function setSongLiveView(next) {
   const hadPsgView=Boolean(songPsgLiveView);
   const hadPsgEditable=Boolean(songPsgLiveView?.editable);
   const hadPcmView=Boolean(songPcmLiveView);
+  const hadPcmEditable=Boolean(songPcmLiveView?.editable);
   songPsgLiveView=next?.chip==='psg'?next:null;
   songPcmLiveView=next?.chip==='pcm'?next:null;
   setFmSongLiveView(next?.chip==='ym2612'?next:null);
@@ -1347,16 +1363,19 @@ function setSongLiveView(next) {
   psgLiveHighlighter?.update(songPsgLiveView);
   if(hadPsgView!==Boolean(songPsgLiveView)||hadPsgEditable!==Boolean(songPsgLiveView?.editable))synthFiles?.refresh();
   const pcmObserving=isSongChannelTarget()&&songTargetState.chip==='pcm';
-  const pcmSignature=songPcmLiveView?JSON.stringify([songPcmLiveView.channel,songPcmLiveView.snapshot.revision]):
+  const pcmSignature=songPcmLiveView?JSON.stringify([songPcmLiveView.channel,songPcmLiveView.snapshot.revision,
+    songPcmLiveView.snapshot.channels[songPcmLiveView.channel],songPcmLiveView.editable,songPcmLiveView.paused]):
     pcmObserving?`unavailable:${songTargetState.target}:${songTargetState.playback}`:'';
   if(pcmSignature!==songPcmLiveSignature||hadPcmView&&!songPcmLiveView) {
     songPcmLiveSignature=pcmSignature;
-    pcmControls?.update(songPcmLiveView?createSynthPcmSongDisplay(songPcmLiveView.snapshot,songPcmLiveView.channel):
+    pcmControls?.update(songPcmLiveView?{...createSynthPcmSongDisplay(songPcmLiveView.snapshot,songPcmLiveView.channel),
+      editable:songPcmLiveView.editable,referenceStep:songPcmLiveView.snapshot.channels[songPcmLiveView.channel].referenceStep}:
       pcmObserving?{preset:null,frames:0,channel:Number(String(songTargetState.target).split(':')[1]),
         volume:0,panLeft:0,panRight:0,step:0,sourceLoopStart:0,
         reason:'No RF5C164 PCM snapshot at this position.'}:null);
   }
   pcmLiveHighlighter?.update(songPcmLiveView);
+  if(hadPcmView!==Boolean(songPcmLiveView)||hadPcmEditable!==Boolean(songPcmLiveView?.editable))synthFiles?.refresh();
   document.querySelector('.synth-editor').dataset.liveView=String(isSongChannelTarget());
   document.querySelector('.synth-editor').dataset.liveEditable=String(Boolean(next?.editable));
   if(!next&&(hadView||songObservationMode!=='editor')&&!isSongChannelTarget()) {
@@ -3109,6 +3128,7 @@ function renderFretboardUi() {
 function stopAllNotes() {
   songControls?.releaseFmKeyboard();
   songControls?.releasePsgKeyboard();
+  songControls?.releasePcmKeyboard();
   if(codeActive&&codeAudio){
     for(const [name,target,count]of [['segapsg',psgVoice,4],['rf5c164',pcmVoice,8],['ym2612',editorPerformanceTarget,6]])
       for(let ch=0;ch<count;ch++)codeAudio.keyboardTarget(name,target).noteOff(ch);
@@ -3134,6 +3154,7 @@ function stopAllNotes() {
 }
 
 function getPlayableSynth() {
+  if(isPcmReferenceKeyboard())return pcmSongManualVoice;
   if(isPsgSongPlaying()&&editorChip==='psg')return psgSongManualVoice;
   if(isFmSongPlaying()&&editorChip==='ym2612')return songManualVoice;
   if (isSongChannelTarget()) return songAuditionVoice;
@@ -3809,7 +3830,8 @@ inputController =
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,
-    chooseVoice: available => isPsgSongPlaying()&&editorChip==='psg'
+    chooseVoice: available => isPcmReferenceKeyboard()?available[Number(String(songTargetState.target).split(':')[1])]
+      : isPsgSongPlaying()&&editorChip==='psg'
       ? isSongChannelTarget()?available[Number(String(songTargetState.target).split(':')[1])]
         :chooseVoice(available.filter(voice=>psgVoice.getChannels().includes(voice.channel)&&songControls.describePsg(voice.channel)?.playable))
       : isFmSongPlaying()&&editorChip==='ym2612'
@@ -4011,9 +4033,10 @@ synthFiles = setupSynthFiles({
   isObserving:isSongChannelTarget,
   canEditObservation:canEditSongFm,
   canEditPsgObservation:canEditSongPsg,
-  canLoadWhileObserving:()=>isFmSongPlaying()||isPsgSongPlaying(),
+  canEditPcmObservation:canEditSongPcm,
+  canLoadWhileObserving:()=>isFmSongPlaying()||isPsgSongPlaying()||isPcmSongPlaying(),
   isChipModeLocked:isFmSongPlaying,
-  stopAllNotes:()=>{if(!codeActive&&!isFmSongPlaying()&&!isPsgSongPlaying())stopAllNotes();},
+  stopAllNotes:()=>{if(!codeActive&&!isFmSongPlaying()&&!isPsgSongPlaying()&&!isPcmSongPlaying())stopAllNotes();},
   setStatus,
 });
 songControls = setupSynthSongControls({
