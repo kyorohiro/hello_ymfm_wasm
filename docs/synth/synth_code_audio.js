@@ -50,7 +50,7 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     if(typeof value!=='function')throw TypeError('Code audio requires host callbacks');
   }
   let epoch=0,disposed=false,fxOwner=null,pwmOwner=null,pcmSeeded=false,pcmMemoryChanged=false,pcmSelected=0,stopping=null;
-  let lastPcmSettings=null,lastPsgSettings=null,psgLatched=0,pcmSourceGeneration=0,pcmRootNote=null;
+  let lastPcmSettings=null,lastPsgSettings=null,psgNoise=null,psgSessionUsed=false,psgLatched=0,pcmSourceGeneration=0,pcmRootNote=null;
   let pwmSourceVolume=SYNTH_SONG_MIX_DEFAULTS.pwm,pwmMaster=null;
   const pwmChannelMutes=[false,false];
   const clients=new Map(),fmActive=new Set(),psgActive=new Map(),pcmChannels=new Map(),pcmActive=new Set(),pcmPending=new Map(),fxNames=new Set();
@@ -183,46 +183,66 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     const period=api.tone(ch,{...options,...(level===undefined?{}:{attenuation:level})});
     claim('segapsg',ch);psgActive.set(ch,{source:'tone'});
     if(settings.envelope.enabled)api.envelopeNoteOn?.(ch,settings.envelope,level??settings.attenuation);
+    psgLatch(api,(ch<<1)|1);
     return period;
+  }
+  const noiseRates=['low','medium','high','tone3'];
+  function rememberPsgNoise(options={}) {
+    psgNoise={type:options.type??'white',rate:options.rate??'medium'};
+  }
+  function psgLatch(api,fallback=psgLatched) {
+    // High-level API calls also move the physical latch. Raw continuation data
+    // must use that cursor, rather than our last explicit Code .write latch.
+    const actual=api._getState?.().latched;
+    psgLatched=Number.isInteger(actual)&&actual>=0&&actual<=7?actual:fallback;
+    return psgLatched;
   }
   function psgOff(ch) {
     integer(ch,3,'PSG channel');const api=required(getPsg,'PSG'),settings=settingsPsg();
     if(!canRelease('segapsg',ch)){psgActive.delete(ch);return false;}
     if(settings.envelope.enabled&&psgActive.has(ch))api.envelopeNoteOff?.(ch);
     else if(ch===3)api.noiseOff();else api.keyOff(ch);
+    psgLatch(api,(ch<<1)|1);
     psgActive.delete(ch);
   }
-  function stopPsg() {getPsg()?.allNotesOff();for(let ch=0;ch<4;ch++)claim('segapsg',ch);psgActive.clear();}
+  function stopPsg() {const api=getPsg();api?.allNotesOff();if(api)psgLatch(api,7);for(let ch=0;ch<4;ch++)claim('segapsg',ch);psgActive.clear();}
   const psgOverrides={tone:psgTone,noteOn:(ch,note)=>psgTone(ch,{note}),
     keyOn:ch=>{
       integer(ch,3,'PSG channel');const api=required(getPsg,'PSG'),settings=settingsPsg();
-      if(ch===3)api.setNoise({type:settings.noiseType,rate:settings.noiseRate});
+      if(ch===3){api.setNoise({type:settings.noiseType,rate:settings.noiseRate});rememberPsgNoise({type:settings.noiseType,rate:settings.noiseRate});}
       if(settings.envelope.enabled)api.envelopeNoteOn?.(ch,settings.envelope,settings.attenuation);
       else api.setAttenuation(ch,settings.attenuation);
+      psgLatch(api,(ch<<1)|1);
       claim('segapsg',ch);psgActive.set(ch,{source:ch===3?'noise':'tone'});
     },
     off:psgOff,keyOff:psgOff,noteOff:psgOff,noiseOff:()=>psgOff(3),allNotesOff:stopPsg,dispose:stopPsg,
     noise(options={}) {
       const settings=settingsPsg(),api=required(getPsg,'PSG');
-      const value=api.noise({type:settings.noiseType,rate:settings.noiseRate,attenuation:settings.attenuation,...options});
+      const next={type:settings.noiseType,rate:settings.noiseRate,attenuation:settings.attenuation,...options};
+      const value=api.noise(next);rememberPsgNoise(next);psgLatch(api,7);
       claim('segapsg',3);psgActive.set(3,{source:'noise'});
       if(settings.envelope.enabled)api.envelopeNoteOn?.(3,settings.envelope,settings.attenuation);
       return value;
     },
+    setNoise(options={}) {
+      const api=required(getPsg,'PSG'),result=api.setNoise(options);
+      rememberPsgNoise(options);psgLatch(api,6);return result;
+    },
     setAttenuation(ch,value) {
-      const result=required(getPsg,'PSG').setAttenuation(ch,value);
+      const api=required(getPsg,'PSG'),result=api.setAttenuation(ch,value);psgLatch(api,(ch<<1)|1);
       if(value<15)psgActive.set(ch,{source:ch===3?'noise':'tone'});else psgActive.delete(ch);
       return result;
     },
     write(value) {
-      const result=required(getPsg,'PSG').write(value);
-      if(value&128)psgLatched=value>>4&7;
+      const api=required(getPsg,'PSG'),result=api.write(value);
+      psgLatch(api,value&128?value>>4&7:psgLatched);
+      if(psgLatched===6)rememberPsgNoise({type:value&4?'white':'periodic',rate:noiseRates[value&3]});
       if(psgLatched&1){const ch=psgLatched>>1;claim('segapsg',ch);if((value&15)<15)psgActive.set(ch,{source:ch===3?'noise':'tone'});else psgActive.delete(ch);}
       return result;
     },
-    noiseVolume(value) {const result=required(getPsg,'PSG').noiseVolume(value);if(value>0)psgActive.set(3,{source:'noise'});else psgActive.delete(3);return result;},
-    reset:()=>{psgActive.clear();return required(getPsg,'PSG').reset();},
-    resetAll:()=>{psgActive.clear();return required(getPsg,'PSG').resetAll();},
+    noiseVolume(value) {const api=required(getPsg,'PSG'),result=api.noiseVolume(value);psgLatch(api,7);if(value>0)psgActive.set(3,{source:'noise'});else psgActive.delete(3);return result;},
+    reset:()=>{const result=required(getPsg,'PSG').reset();psgActive.clear();psgLatched=0;rememberPsgNoise({type:'periodic',rate:'low'});return result;},
+    resetAll:()=>{const result=required(getPsg,'PSG').resetAll();psgActive.clear();psgLatched=0;rememberPsgNoise({type:'periodic',rate:'low'});return result;},
   };
   function defaultPcmChannel() {
     const voice=required(getPcmVoice,'PCM'),preset=voice.getPreset(),s=preset.settings;
@@ -351,13 +371,22 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     },
     reset() {stopPcm();pcmChannels.clear();pcmCodeRootChannels.clear();pcmSeeded=false;return required(getPcm,'PCM').reset();},
   };
-  function syncPsgSettings(previous=lastPsgSettings) {
+  function syncPsgSettings(previous=lastPsgSettings,patch) {
     const next=settingsPsg(),api=getPsg();lastPsgSettings=next;
     if(!api)return;
-    if(previous&&(previous.source!==next.source||previous.envelope.enabled!==next.envelope.enabled)){psgActive.clear();return;}
-    if(next.envelope.enabled)api.setEnvelopeAttenuation?.(next.attenuation);
-    else for(const ch of psgActive.keys())api.setAttenuation(ch,next.attenuation);
-    if(psgActive.has(3)&&(!previous||previous.noiseType!==next.noiseType||previous.noiseRate!==next.noiseRate))api.setNoise({type:next.noiseType,rate:next.noiseRate});
+    if(previous&&(previous.source!==next.source||previous.envelope.enabled!==next.envelope.enabled)){
+      psgActive.clear();rememberPsgNoise({type:next.noiseType,rate:next.noiseRate});return;
+    }
+    const changed=field=>patch?Object.hasOwn(patch,field):!previous||previous[field]!==next[field];
+    if(changed('attenuation')) {
+      if(next.envelope.enabled)api.setEnvelopeAttenuation?.(next.attenuation);
+      else for(const ch of psgActive.keys())api.setAttenuation(ch,next.attenuation);
+    }
+    if((psgActive.has(3)||psgNoise)&&(changed('noiseType')||changed('noiseRate'))) {
+      const current=psgNoise??{type:previous?.noiseType??next.noiseType,rate:previous?.noiseRate??next.noiseRate};
+      const settings={type:changed('noiseType')?next.noiseType:current.type,rate:changed('noiseRate')?next.noiseRate:current.rate};
+      api.setNoise(settings);rememberPsgNoise(settings);psgLatch(api,6);
+    }
   }
   function syncPcmSettings(previous=lastPcmSettings) {
     const next=settingsPcm(),api=getPcm();lastPcmSettings=next;
@@ -411,7 +440,11 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     if(!names.has(name))throw Error(`Synth Code supports ym2612, segapsg, rf5c164 and pwm; got ${String(name)}`);
     const token=epoch;check(token);if(stopping)await stopping;check(token);await ensureChip(name);check(token);
     if(name==='ym2612')return client(name,fmOverrides,getFm);
-    if(name==='segapsg'){lastPsgSettings=settingsPsg();return client(name,psgOverrides,getPsg);}
+    if(name==='segapsg'){
+      lastPsgSettings=settingsPsg();
+      if(!psgSessionUsed){rememberPsgNoise({type:lastPsgSettings.noiseType,rate:lastPsgSettings.noiseRate});psgSessionUsed=true;}
+      return client(name,psgOverrides,getPsg);
+    }
     if(name==='rf5c164'){seedPcm();return client(name,pcmOverrides,getPcm);}
     await preparePwm();check(token);return client(name,{dispose:()=>retirePwm(pwmOwner)},()=>pwmOwner?.api);
   }
@@ -419,6 +452,7 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     if(stopping)return stopping;
     ++epoch;stopFm();
     stopPsg();stopPcm();retirePwm(pwmOwner);
+    psgNoise=null;psgSessionUsed=false;lastPsgSettings=null;
     fxNames.clear();
     if(fxOwner?.rack){fxOwner.rack.stop();fxOwner.rack.controller.dispose();restoreDirect(fxOwner);}
     else retireFx(fxOwner);

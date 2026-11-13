@@ -41,8 +41,32 @@ latency). YM2612 gain calibration and native 2048-frame audio chunks are kept.
 
 VGM and Code remain mutually exclusive. Manual input can accompany either;
 switching Keyboard / Code views keeps Code running. Looper and Event Rec stay
-disabled during VGM playback. PSG and RF5C164 song channels retain Live viewing
-and Pause audition; direct editing during their playback is a later extension.
+disabled during VGM playback. RF5C164 song channels retain Live viewing and
+Pause audition; direct editing during their playback is a later extension.
+
+PSG **Tone 1–3 / Noise** now selects the same physical channel for Live
+viewing, hardware edits and keyboard input during the song. Tone and Noise are
+fixed channel types: use this channel selector to change type. **Period** edits
+the selected tone's 10-bit hardware code; a higher code gives a lower pitch,
+and 0–1 gives constant tone output. Noise using Tone 3 shares that period.
+Changing its period also changes the audible Tone 3 oscillator, whose level is
+preserved. Selecting a Noise clock changes only its control register; a fresh
+keyboard note can then program Tone 3's pitch. Fixed-clock Noise keys retrigger
+the noise without adding a musical pitch.
+
+PSG's latch/data cursor from the original VGM is kept separately from hand
+writes, so a later source data byte still reaches its intended register. A
+volume edit does not reset the Noise LFSR; a Noise-control write does, as on the
+chip. Later source writes take ownership, so an old key-up or Pitch reset
+cannot silence or retune their replacement. Tone 3 source pitch changes retire
+the hand's Noise pitch control while keeping its independent key-up usable.
+
+In **Synth**, PSG author presets and hardware edits reach the active Tone group
+or Noise. Idle muted channels stay muted; their selected level is used at the
+next manual note. A direct selected-CH attenuation edit is a physical register
+edit and can unmute that channel. VGM manual input uses hardware levels;
+**Software Envelope** remains saved in the author instrument and is available
+again after stopping the VGM. Code keeps its existing software-envelope tools.
 
 Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout while Code keeps playing. Maximized layout is temporary and is not restored after a reload.
 

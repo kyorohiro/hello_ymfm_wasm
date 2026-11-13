@@ -227,3 +227,52 @@ test('manual FM edits reach real reference PCM at bounded latency and source see
   } finally {preview.dispose();control.dispose();}
 });
 
+test('manual PSG edits reach the same native output and source seek restores exact cold PCM with PSG-only headers',async()=>{
+  const host=audioHost(),controlHost=audioHost(),preview=createSynthSongPreview({getAudio:()=>host}),
+    control=createSynthSongPreview({getAudio:()=>controlHost,seekCacheEnabled:false});
+  const source=longPsgSong(12),original=source.slice();
+  const span=nodes=>{
+    let min=Infinity,max=-Infinity;
+    for(const node of nodes)for(const value of node.buffer.getChannelData(0)){min=Math.min(min,value);max=Math.max(max,value);}
+    return max-min;
+  };
+  try {
+    await preview.load(source,'native-PSG-manual.vgm');await control.load(source,'native-PSG-control.vgm');
+    await preview.seek(10.25);assert(preview.getState().cache.count>=2);await preview.resume();
+    let state=preview.getState();assert.equal(state.manualReady,false);assert.equal(state.psgManualReady,true);
+    assert.equal(state.liveState,null);assert(state.psgManualLatencySeconds<.11);
+    const originalNodes=[...host.starts],before=span(originalNodes);assert(before>.001);
+    preview.applyPsgPreset(0,{attenuation:15});
+    assert.equal(preview.getState().cache.manualDirty,true);assert.equal(preview.getState().cache.count,0);
+    for(let step=0;step<4;step++){host.context.currentTime+=.04;await tick();}
+    const after=span(host.starts.slice(-1));assert(after<before*.01,`native PSG hand edit reduces AC span ${before} -> ${after}`);
+    assert(originalNodes.every(node=>!node.stopped),'manual PSG edits do not flush pre-rendered song output');
+    assert.equal(host.gains[0].gain.value,1);assert(preview.getState().psgManualLatencySeconds<.11);
+    preview.pause();await preview.seek(6.25);await control.seek(6.25);
+    state=preview.getState();assert.equal(state.cache.manualDirty,false);assert(state.cache.count>0);
+    sameLiveSource(state.psgLiveState,control.getState().psgLiveState);
+    const start=host.starts.length,controlStart=controlHost.starts.length;await preview.resume();await control.resume();
+    samePcm(await renderedPrefix(host,start),await renderedPrefix(controlHost,controlStart),'source seek after PSG manual edit vs original cold native playback');
+    assert.deepEqual(source,original);
+  } finally {preview.dispose();control.dispose();}
+});
+
+test('PSG observation and manual readiness add no writes or PCM changes before intervention',async()=>{
+  const source=vgm({clock:0,commands:[0x50,0x8e,0x50,0x0f,0x50,0x94,
+    0x50,0xc3,0x50,0x11,0x50,0xd7,0x50,0xe7,0x50,0xf8,...waitCommands(1),0x66]}),
+    host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host,createEngine:nativeEngine}),
+    engine=await nativeEngine(),outputMix=installSynthSongOutputMix(engine),player=new VgmPlayer(engine);
+  try {
+    // PSG-only reference files mute the allocated but absent chips, including
+    // the YM2612's idle DC component. Match that listening policy explicitly.
+    outputMix.setMutedChannels([...[0,1,2,3,4,5].map(ch=>`ym2612:${ch}`),
+      ...[0,1,2,3,4,5,6,7].map(ch=>`pcm:${ch}`),...['pwm:0','pwm:1']]);
+    player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(source,{logger:null});player.play();
+    const expected={left:new Float32Array(4096),right:new Float32Array(4096)};
+    assert.equal(player.process(expected.left,expected.right,4096),4096);
+    await preview.load(source,'PSG-unaltered.vgm');await preview.play();
+    samePcm(await renderedPrefix(host,0),expected,'PSG helper vs independent native renderer before any hand edit');
+    assert.equal(preview.getState().cache.manualDirty,false);
+  } finally {preview.dispose();outputMix.dispose();engine.dispose();}
+});
+

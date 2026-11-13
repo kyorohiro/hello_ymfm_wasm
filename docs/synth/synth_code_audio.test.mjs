@@ -5,10 +5,11 @@ import {createSynthCodeAudio} from './synth_code_audio.js';
 import {createPcmBuiltinPreset,PCM_NATIVE_RATE} from './synth_pcm.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js';
 import {YM2612Synth} from '../js/ym2612synth.js';
+import {createSegaPsgApi} from '../js/segapsg_api.js';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 const turn=()=>Promise.resolve();
-function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,getFmVoice=()=>null}={}) {
+function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,psgChip=null,getFmVoice=()=>null}={}) {
   const events=[],gains=[],fxRequests=[],pwmRequests=[],nodes=[];
   const context={state:'running',currentTime:0,sampleRate:48000,closeCalls:0,close(){this.closeCalls++;},
     createChannelSplitter(count){const value=node('splitter');value.outputs=count;return value;},
@@ -21,7 +22,7 @@ function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip
   const input=node('performance'),output=node('final');input.connect(output);
   const fm=fmChip??{clock:7670454,noteOn:(...args)=>events.push(['fm-on',...args]),keyOff:ch=>events.push(['fm-off',ch]),noteOff:ch=>events.push(['fm-off',ch]),dispose(){throw Error('Cannot dispose borrowed FM');}};
   let psgSettings={source:'tone',attenuation:6,noiseType:'white',noiseRate:'medium',envelope:{enabled:false,attack:0,decay:0,sustain:100,release:0}};
-  const psg={tone:(ch,options)=>{if(ch<0||ch>2)throw RangeError('tone channel');events.push(['psg-tone',ch,options]);return 99;},
+  const psg=psgChip??{tone:(ch,options)=>{if(ch<0||ch>2)throw RangeError('tone channel');events.push(['psg-tone',ch,options]);return 99;},
     setAttenuation:(...args)=>events.push(['psg-attenuation',...args]),keyOff:ch=>events.push(['psg-off',ch]),
     allNotesOff:()=>events.push(['psg-stop']),noiseOff:()=>events.push(['noise-off']),setNoise:options=>events.push(['noise-settings',options]),
     noise:options=>{events.push(['noise-on',options]);return 4;},envelopeNoteOn:(...args)=>events.push(['env-on',...args]),
@@ -94,6 +95,52 @@ test('PSG Code notes inherit the current UI level and envelope; knob changes aff
   psg.noteOff(0);assert.deepEqual(f.events.at(-1),['env-off',0]);
   psg.noise();assert(f.audio.getState().psgChannels.includes(3));const noiseBefore=f.getPsg();f.setPsg({noiseType:'periodic',noiseRate:'low'});f.audio.syncPsgSettings(noiseBefore);
   assert.deepEqual(f.events.at(-1),['noise-settings',{type:'periodic',rate:'low'}]);await f.audio.dispose();
+});
+
+test('PSG noise UI edits preserve Code companions and explicit Code level, including a repeated client lookup',async()=>{
+  const writes=[],api=createSegaPsgApi({write:value=>writes.push(value)}),f=fixture({psgChip:api}),psg=await f.audio.useSoundChip('segapsg');
+  try {
+    psg.noise({type:'periodic',rate:'tone3',attenuation:3});
+    let previous=f.getPsg(),from=writes.length;
+    f.setPsg({noiseType:'white'});f.audio.syncPsgSettings(previous,{noiseType:'white'});
+    assert.deepEqual(writes.slice(from),[0xe7],'one type edit keeps Code Tone 3 clock and its explicit attenuation');
+    assert.equal(await f.audio.useSoundChip('segapsg'),psg);
+    previous=f.getPsg();from=writes.length;
+    f.setPsg({noiseRate:'high'});f.audio.syncPsgSettings(previous,{noiseRate:'high'});
+    assert.deepEqual(writes.slice(from),[0xe6],'client reuse does not replace Code noise settings with author defaults');
+    previous=f.getPsg();from=writes.length;
+    f.setPsg({noiseType:'periodic',noiseRate:'low',attenuation:9});
+    f.audio.syncPsgSettings(previous,f.getPsg());
+    assert.deepEqual(writes.slice(from),[0xf9,0xe0],'an explicit full preset replaces both fields and level');
+  } finally {await f.audio.dispose();}
+});
+
+test('PSG raw continuation tracking reads the physical latch after high-level calls',async()=>{
+  const writes=[],api=createSegaPsgApi({write:value=>writes.push(value)}),f=fixture({psgChip:api}),psg=await f.audio.useSoundChip('segapsg');
+  try {
+    psg.setNoise({type:'periodic',rate:'tone3'});psg.write(4);
+    let previous=f.getPsg();f.setPsg({noiseRate:'high'});f.audio.syncPsgSettings(previous,{noiseRate:'high'});
+    assert.equal(writes.at(-1),0xe6,'unlatched Noise control data sets white / low before the rate-only edit');
+    psg.setNoise({type:'periodic',rate:'tone3'});psg.setPeriod(0,123);psg.write(3);
+    previous=f.getPsg();f.setPsg({noiseRate:'low'});f.audio.syncPsgSettings(previous,{noiseRate:'low'});
+    assert.equal(writes.at(-1),0xe0,'a raw tone continuation must not be mistaken for a Noise setting');
+  } finally {await f.audio.dispose();}
+});
+
+test('PSG noise tracking has a fake-endpoint latch fallback and new sessions seed the current author sound',async()=>{
+  const f=fixture(),psg=await f.audio.useSoundChip('segapsg');
+  try {
+    psg.setNoise({type:'periodic',rate:'tone3'});psg.write(4);
+    let previous=f.getPsg();f.setPsg({noiseRate:'high'});f.audio.syncPsgSettings(previous,{noiseRate:'high'});
+    assert.deepEqual(f.events.at(-1),['noise-settings',{type:'white',rate:'high'}]);
+    await f.audio.stop();f.setPsg({noiseType:'periodic',noiseRate:'tone3'});await f.audio.useSoundChip('segapsg');
+    previous=f.getPsg();f.setPsg({noiseRate:'low'});f.audio.syncPsgSettings(previous,{noiseRate:'low'});
+    assert.deepEqual(f.events.at(-1),['noise-settings',{type:'periodic',rate:'low'}],'stopped session does not leak its old white mode');
+    await f.audio.stop();previous=f.getPsg();f.setPsg({source:'noise',noiseType:'periodic',noiseRate:'tone3'});f.audio.syncPsgSettings(previous);
+    f.setPsg({noiseType:'white',noiseRate:'medium'});await f.audio.useSoundChip('segapsg');
+    previous=f.getPsg();f.setPsg({noiseRate:'high'});f.audio.syncPsgSettings(previous,{noiseRate:'high'});
+    assert.deepEqual(f.events.at(-1),['noise-settings',{type:'white',rate:'high'}],'idle author restoration cannot suppress a fresh session baseline');
+  } finally {await f.audio.dispose();}
 });
 
 test('PCM Code shares the author sample, follows live level/pan/loop/root edits without retrigger, and uses releaseNote',async()=>{

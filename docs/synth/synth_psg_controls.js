@@ -7,6 +7,9 @@ export function setupSynthPsgControls({
   onBeforeEnvelopeToggle = () => {},
   onSettingsChange = () => {},
   onVisualModeChange = () => {},
+  getObservation = () => null,
+  onObservationEdit = () => false,
+  isHardwarePlayback = () => false,
 }) {
   if (!voice?.getSettings || !voice?.setSettings) throw new TypeError('PSG controls need a voice');
   const root = document.getElementById('synthChipPsg');
@@ -18,6 +21,9 @@ export function setupSynthPsgControls({
   const help = document.getElementById('synthPsgHelp');
   const envelopeEnabled = document.getElementById('synthPsgEnvelopeEnabled');
   const envelopePanel = document.getElementById('synthPsgEnvelopeControls');
+  const envelopeCaption = root.querySelector('.synth-psg-envelope-caption');
+  const periodRow = document.getElementById('synthPsgPeriodRow');
+  const periodHost = document.getElementById('synthPsgPeriodControl');
   const listeners = [];
   let settings = voice.getSettings(), visualMode = 'waveform', disposed = false;
   const attenuationControl = createParamControl({
@@ -30,6 +36,13 @@ export function setupSynthPsgControls({
   attenuationHost.replaceWith(attenuationControl.element);
   const attenuation = attenuationControl.element.querySelector('.param-value');
   attenuation.id = 'synthPsgAttenuation';
+  const periodControl=createParamControl({label:'PSG period',min:0,max:1023,step:1,value:0,
+    showLabel:false,category:'pitch',onChange:value=>{
+      if(getObservation()?.editable)onObservationEdit({period:value});
+    }});
+  periodControl.element.classList.add('synth-psg-number');
+  periodHost.replaceWith(periodControl.element);
+  periodControl.element.querySelector('.param-value').id='synthPsgPeriod';
   for (const [index, button] of [...attenuationControl.element.querySelectorAll('.param-button')].entries()) {
     button.dataset.psgAttenuationStep = String(index ? 1 : -1);
     button.setAttribute('aria-label', index ? 'Increase attenuation: quieter' : 'Decrease attenuation: louder');
@@ -90,9 +103,18 @@ export function setupSynthPsgControls({
   function update(next = voice.getSettings()) {
     if (disposed) return readState();
     settings = {...next, envelope:{...next.envelope}};
+    const observation=getObservation(),hardware=isHardwarePlayback(),observed=Boolean(observation);
     selected(sourceButtons, 'psgSource', settings.source);
     selected(typeButtons, 'psgNoiseType', settings.noiseType);
     selected(rateButtons, 'psgNoiseRate', settings.noiseRate);
+    for(const button of sourceButtons) {
+      button.disabled=observed;
+      button.title=observed?'Tone 1–3 and Noise are fixed hardware channels. Select another song CH above.':'';
+    }
+    const periodVoice=observation?.snapshot.channels[observation.channel];
+    periodRow.hidden=!periodVoice||(periodVoice.source==='noise'&&settings.noiseRate!=='tone3');
+    if(periodVoice)periodControl.updateVisual(periodVoice.period);
+    periodRow.querySelector('[data-psg-period-label]').textContent=settings.source==='noise'?'Tone 3 period':'Period';
     attenuationControl.updateVisual(settings.attenuation);
     attenuation.title = (settings.attenuation === 15 ? 'Muted' : `−${settings.attenuation * 2} dB from loudest`) + ' · Drag left/right to adjust.';
     for (const button of attenuationButtons) {
@@ -103,9 +125,17 @@ export function setupSynthPsgControls({
     envelopeEnabled.setAttribute('aria-pressed', String(settings.envelope.enabled));
     envelopeEnabled.setAttribute('aria-expanded', String(settings.envelope.enabled));
     envelopeEnabled.textContent = settings.envelope.enabled ? 'On' : 'Off';
+    envelopeEnabled.disabled=hardware||observed;
+    envelopePanel.inert=hardware||observed;
+    envelopeCaption.textContent=hardware
+      ? 'VGM manual input uses hardware levels. Software Envelope stays in the author preset; stop the VGM to use it.'
+      : observed?'Captured hardware settings · no captured software envelope'
+      : 'Software control · not a hardware PSG envelope';
     envelopePanel.hidden = !settings.envelope.enabled;
     for (const [field, control] of envelopeControls) control.updateVisual(settings.envelope[field]);
-    const text = settings.source === 'tone'
+    const text = observed
+      ? `${settings.source==='tone'?`Tone ${observation.channel+1}`:'Noise'} · ${observation.editable?'edit and play this song CH':'frozen hardware settings'}${settings.source==='noise'&&settings.noiseRate==='tone3'?' · shares Tone 3 period; its level is kept':''}.`
+      : settings.source === 'tone'
       ? 'Tone · 3 hardware channels · round robin.'
       : settings.noiseRate === 'tone3'
         ? 'Noise · 1 hardware channel · Tone 3 clock follows keyboard and Pitch.'
@@ -115,6 +145,7 @@ export function setupSynthPsgControls({
   }
   function changeEnvelope(field, value) {
     if (disposed) return;
+    if(getObservation()||isHardwarePlayback())return;
     const previous = voice.getSettings();
     if (previous.envelope[field] === value) return;
     if (field === 'enabled') onBeforeEnvelopeToggle(value, previous);
@@ -124,6 +155,11 @@ export function setupSynthPsgControls({
   }
   function change(field, value) {
     if (disposed) return;
+    const observation=getObservation();
+    if(observation) {
+      if(observation.editable&&field!=='source')onObservationEdit({[field]:value});
+      return;
+    }
     const previous = voice.getSettings();
     if (previous[field] === value) return;
     if (field === 'source') onBeforeSourceChange(value, previous);
@@ -164,6 +200,12 @@ export function setupSynthPsgControls({
   for (const control of envelopeControls.values()) {
     const value = control.element.querySelector('.param-value');
     listen(value, 'lostpointercapture', () => value.classList.remove('is-dragging'));
+  }
+  for(const button of periodControl.element.querySelectorAll('button')) {
+    listen(button,'pointerdown',event=>event.preventDefault());
+    for(const type of ['keydown','keyup'])listen(button,type,event=>{
+      if(event.key===' '||event.key==='Enter')event.stopPropagation();
+    });
   }
   const summary = help.querySelector('summary');
   listen(summary, 'keydown', event => {

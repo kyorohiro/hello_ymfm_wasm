@@ -30,7 +30,7 @@ async function openDraftStore() {
 
 export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,applySnapshot,onSaved,onListChanged,onWorkspaceReplaced,
   getEditorKind=()=> 'fm',setEditorKind=()=>{},getDefaultPresetId=()=> 'one-op-basic',isObserving=()=>false,
-  canEditObservation=()=>false,canLoadWhileObserving=()=>false,isChipModeLocked=()=>false,stopAllNotes,setStatus}) {
+  canEditObservation=()=>false,canEditPsgObservation=()=>false,canLoadWhileObserving=()=>false,isChipModeLocked=()=>false,stopAllNotes,setStatus}) {
   const byId = id => document.getElementById(id);
   const panel = byId('synthFilesPanel'), tree = byId('synthFilesTree');
   const toggle = byId('synthFilesToggle'), workspace = byId('synthWorkspace');
@@ -189,8 +189,8 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     document.querySelector('.synth-editor').setAttribute('aria-busy', String(busy));
     for (const id of ['commonControls','operatorControls']) byId(id).inert = busy || readOnly&&!canEditObservation();
     byId('channel3SpecialControls').inert=busy||readOnly||isChipModeLocked();
-    if(byId('synthPsgSettings'))byId('synthPsgSettings').inert=busy||readOnly;
-    if(byId('synthPsgPresetSelect'))byId('synthPsgPresetSelect').disabled=busy||readOnly;
+    if(byId('synthPsgSettings'))byId('synthPsgSettings').inert=busy||readOnly&&!canEditPsgObservation();
+    if(byId('synthPsgPresetSelect'))byId('synthPsgPresetSelect').disabled=busy||readOnly&&!canLoadWhileObserving();
     if(byId('synthPcmSettings'))byId('synthPcmSettings').inert=busy||readOnly;
     if(byId('synthPcmCanvas'))byId('synthPcmCanvas').inert=busy||readOnly;
     if(byId('synthPcmEditModeControls'))byId('synthPcmEditModeControls').inert=busy||readOnly;

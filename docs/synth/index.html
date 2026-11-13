@@ -1600,7 +1600,8 @@
                     <div class="synth-psg-help-body">
                       <p>Three hardware tone channels play fixed 50% duty square waves. New notes rotate through them. PSG has no hardware ADSR. Low notes clamp at the 10-bit tone-period limit.</p>
                       <p>Attenuation changes in 2 dB steps: 0 is loudest, 15 is silent. Master volume is shared with the other editors.</p>
-                      <p>Noise has one channel. Clock / 512, / 1024 and / 2048 use fixed clocks; keys retrigger the noise without changing its pitch. Tone 3 links its clock to the keyboard and Pitch. The Tone 3 square-wave output stays silent.</p>
+                      <p>Noise has one channel. Clock / 512, / 1024 and / 2048 use fixed clocks; keys retrigger the noise without changing its pitch. Tone 3 links its clock to the keyboard and Pitch. The author's Noise instrument keeps Tone 3 silent; live VGM input preserves its current level because the song may also use that square wave.</p>
+                      <p>During VGM playback, select Tone 1–3 or Noise above to edit and play that physical channel. Later song writes take over. Period is a hardware code: 0–1 gives constant tone output; a higher value gives a lower pitch. Noise's Tone 3 period also changes the audible Tone 3 oscillator. Pause keeps the independent frozen audition.</p>
                       <p>Software Envelope is an added software feature, not a hardware PSG envelope. It moves each voice's real attenuation in 2 dB steps. Attack, Decay and Release are milliseconds; Sustain is a level percentage. ADSR edits apply to new notes. Changing On / Off stops held notes and release tails.</p>
                     </div>
                   </details>
@@ -1616,6 +1617,11 @@
                   <span class="synth-psg-label">Attenuation</span>
                   <div id="synthPsgAttenuationControl"></div>
                   <span class="synth-psg-scale">0 loudest · 15 silent</span>
+                </div>
+                <div id="synthPsgPeriodRow" class="synth-psg-row" hidden>
+                  <span class="synth-psg-label" data-psg-period-label>Period</span>
+                  <div id="synthPsgPeriodControl"></div>
+                  <span class="synth-psg-scale">Hardware code · 0–1023</span>
                 </div>
                 <div id="synthPsgNoiseControls" class="synth-psg-noise" hidden>
                   <div class="synth-psg-row">
@@ -1823,7 +1829,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=vgm-manual-1";
+      import "./synth.js?v=psg-manual-1";
     </script>
   </body>
 </html>

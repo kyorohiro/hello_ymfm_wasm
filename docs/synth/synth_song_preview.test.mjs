@@ -48,8 +48,8 @@ function fixture({getAudio, createEngine, beforeResume}={}) {
   const host=audioHost(), engines=[], states=[], statuses=[];
   const factory=async header=>{
     let phase=0;
-    const engine={header,disposed:0,writes:[],reset(){phase=0;},sampleRate:()=>44100,
-      writeYm2612(...args){this.writes.push(args);},writePsg(){},
+    const engine={header,disposed:0,writes:[],psgWrites:[],reset(){phase=0;},sampleRate:()=>44100,
+      writeYm2612(...args){this.writes.push(args);},writePsg(value){this.psgWrites.push(value);},
       processFrames(frames){const left=Float32Array.from({length:frames},()=>Math.sin(2*Math.PI*220*phase++/44100)*.1);return {left,right:left.slice()};},
       dispose(){this.disposed++;}};
     engines.push(engine);return engine;
@@ -59,6 +59,50 @@ function fixture({getAudio, createEngine, beforeResume}={}) {
   return {host,engines,states,statuses,preview};
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,35));
+
+test('PSG-only hand edits share the song engine, preserve queued output and VGM latch continuations, and clear only source cache',async()=>{
+  const f=fixture(),bytes=vgm({clock:0,commands:[
+    0x50,0xc4,0x50,0x20,0x50,0xd3,0x50,0xe7,0x50,0xf4,
+    0x50,0x8e,0x50,0x0f,0x50,0x96,0x50,0x8e,
+    0x61,0x74,0x22,0x50,0x2a,0x61,0xd0,0x89,0x66,
+  ]}),original=bytes.slice();
+  try {
+    assert.equal(f.preview.editPsg({channel:0,changes:{attenuation:4}}),false);
+    await f.preview.load(bytes,'PSG-manual.vgm');await f.preview.play();
+    const before=f.preview.getState(),frozen=structuredClone(before.psgLiveState),nodes=[...f.host.starts];
+    const pcm=nodes.map(node=>node.buffer.getChannelData(0).slice());
+    assert.equal(before.manualReady,false);assert.equal(before.psgManualReady,true);
+    assert(before.psgManualLatencySeconds>0&&before.psgManualLatencySeconds<.11);
+    assert.equal(f.preview.describePsg(0).playable,true);
+    f.preview.setPsgPitch(1);assert.equal(f.preview.getState().cache.manualDirty,false);
+    f.preview.editPsg({channel:0,changes:{attenuation:4}});
+    f.preview.editPsg({channel:3,changes:{noiseRate:'medium'}});
+    let state=f.preview.getState();assert.equal(state.playback,'playing');assert.equal(state.positionFrames,before.positionFrames);
+    assert.equal(state.psgLiveState.channels[0].attenuation,4);
+    assert.equal(f.preview.readPsgSnapshot(frozen).channels[0].attenuation,4);
+    assert.equal(f.preview.readPsgSnapshot(frozen).channels[0].period,254,'a sparse edit leaves frozen pitch untouched');
+    assert.equal(state.cache.manualDirty,true);assert.equal(state.cache.count,0);
+    assert.equal(f.engines.length,1,'the keyboard shares the original PSG');
+    assert(nodes.every(node=>!node.stopped));nodes.forEach((node,index)=>assert.deepEqual(node.buffer.getChannelData(0),pcm[index]));
+    assert.equal(f.host.gains[0].gain.value,1,'manual PSG input adds no gain stage');
+    const prior=f.engines[0].psgWrites.length;
+    f.preview.noteOnPsg('noise',{block:4,fnum:1100},{channel:3,pitchClock:7670454});
+    assert(!f.engines[0].psgWrites.slice(prior).includes(0xdf),'playing Noise never mutes the audible Tone 3');
+    assert.equal(f.preview.noteOffPsg('noise'),true);assert.equal(f.preview.noteOffPsg('noise'),false);
+    // The source left its latch on Tone 1 before waiting. Manual noise writes
+    // must not redirect its following unlatched data byte into Noise control.
+    for(const time of [.04,.08,.12,.16,.20,.24]){f.host.context.currentTime=time;await tick();}
+    state=f.preview.getState();assert.equal(state.psgLiveState.channels[0].period,0x2ae);
+    assert.equal(state.psgLiveState.channels[3].noiseRate,'medium');
+    await f.preview.seek(.025);state=f.preview.getState();
+    assert.equal(state.cache.manualDirty,false);assert.equal(state.psgLiveState.channels[0].attenuation,6);
+    assert.equal(state.psgLiveState.channels[0].period,254);assert.equal(state.psgLiveState.channels[3].noiseRate,'tone3');
+    assert(state.psgManualLatencySeconds<.11);
+    f.preview.pause();assert.equal(f.preview.getState().psgManualReady,false);
+    assert.equal(f.preview.editPsg({channel:0,changes:{attenuation:2}}),false);
+    assert.deepEqual(bytes,original);
+  } finally {f.preview.dispose();}
+});
 
 test('live FM hand edits and guarded keyboard writes keep transport, source bytes, queued PCM and author output intact',async()=>{
   const f=fixture(),bytes=vgm({psg:0,commands:[0x52,0xb0,4,0x52,0xb4,0xc0,

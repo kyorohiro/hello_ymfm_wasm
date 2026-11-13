@@ -113,6 +113,12 @@ jobs:
             --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
             --out="$RUNNER_TEMP/itch-web/synth-song-manual.json" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-song-manual.log"
+      - name: Play VGM and edit the same PSG channels manually
+        run: |
+          node scripts/check_synth_psg_song_manual_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
+            --out="$RUNNER_TEMP/itch-web/synth-psg-song-manual.json" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-psg-song-manual.log"
       - name: Test the packaged Playground in Chromium and WebKit
         run: |
           node scripts/check_itch_playground_bundle_browser.cjs \

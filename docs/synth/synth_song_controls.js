@@ -1,4 +1,4 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-manual-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=psg-manual-1';
 import {setupSynthSongSeekControls} from './synth_song_seek_controls.js?v=song-seek-1';
 import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=channel-mixer-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
@@ -49,7 +49,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
         return option;
       }));
       channel.title=chip==='pcm'?'Synth: edit and play your sound. PCM CH1–CH8: view that song channel; Pause to play its captured sample on the keyboard.'
-        :chip==='psg'?'Synth: edit and play your sound. Tone 1–3 / Noise: view that song channel; Pause to play its sound on the keyboard.'
+        :chip==='psg'?'Synth: edit your Tone or Noise instrument. Tone 1–3 / Noise: view, edit and play that song channel. Pause for independent audition.'
         :'Synth: edit and play all FM channels. CH1–CH6: view, edit and play that song channel. Pause for independent audition.';
     }
     channel.value=value;
@@ -83,15 +83,17 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     const target = !selectedPath || channel.value === 'synth' ? 'synth' : selectedChip==='ym2612'?Number(channel.value):channel.value;
     const selectedChannel = target === 'synth' ? null : channelNumber(String(target));
     const frozen = running ? frozenSnapshots[selectedChip] : null;
-    const snapshot = selectedChip==='ym2612' && state.playback==='playing'
-      ? preview.readFmSnapshot?.(frozen,state.consumedFrames) ?? frozen : frozen;
+    const snapshot = state.playback==='playing'
+      ? (selectedChip==='ym2612'?preview.readFmSnapshot?.(frozen,state.consumedFrames)
+        :selectedChip==='psg'?preview.readPsgSnapshot?.(frozen,state.consumedFrames):frozen) ?? frozen : frozen;
     const voice = selectedChannel === null ? null : snapshot?.channels[selectedChannel];
-    const editable=selectedChip==='ym2612'&&state.playback==='playing'&&Boolean(state.manualReady);
+    const editable=state.playback==='playing'&&Boolean(selectedChip==='ym2612'?state.manualReady:selectedChip==='psg'?state.psgManualReady:false);
     const view = voice ? {chip:selectedChip,snapshot, channel:selectedChannel, paused:state.playback==='paused', following:live.checked,editable} : null;
     root.dataset.live = String(Boolean(voice));
     root.dataset.target = String(target);
     root.dataset.chip=selectedChip;
     root.dataset.manualReady=String(Boolean(state.manualReady));
+    root.dataset.psgManualReady=String(Boolean(state.psgManualReady));
     channel.disabled = copying || seeking;
     live.disabled = seeking;
     const description=voice?chips[selectedChip].describe(snapshot,selectedChannel):null;
@@ -113,8 +115,10 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
       const settings=voice.preset;
       const signal=selectedChannel===3?`${settings.noiseType==='white'?'White':'Periodic'} · ${settings.noiseRate==='tone3'?'Tone 3 clock':{low:'Clock / 512',medium:'Clock / 1024',high:'Clock / 2048'}[settings.noiseRate]}`
         :`Period ${voice.period} · ${Number.isFinite(voice.frequencyHz)?voice.frequencyHz.toFixed(1)+' Hz':'—'}`;
-      const audition=!description.playable?description.reason:state.playback==='paused'?'Keyboard: this CH':'Pause to play this CH';
-      text(liveStatus,`${mode} PSG ${label} · ${signal} · Attenuation ${voice.attenuation}${voice.attenuation===15?' · Muted':''} · ${audition} · read-only`);
+      const manualDescription=editable?preview.describePsg?.(selectedChannel):null;
+      const audition=editable?(manualDescription?.playable?'Keyboard + controls: this song CH':manualDescription?.reason??'Preparing keyboard'):
+        !description.playable?description.reason:state.playback==='paused'?'Keyboard: this CH':'Pause to play this CH';
+      text(liveStatus,`${mode} PSG ${label} · ${signal} · Attenuation ${voice.attenuation}${voice.attenuation===15?' · Muted':''} · ${audition}${editable?' · temporary edits; later VGM writes take over':' · read-only'}`);
     } else if (voice) {
       const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
       const midi = Number.isFinite(voice.midi) ? Math.round(voice.midi) : null;
@@ -135,7 +139,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     }
     // The keyboard owner needs transport/target changes even before a chip
     // snapshot exists. Notify it first so stale held notes cannot cross modes.
-    onTargetState({target,chip:selectedChip, playback:state.playback, manualReady:Boolean(state.manualReady), view});
+    onTargetState({target,chip:selectedChip, playback:state.playback, manualReady:Boolean(state.manualReady),psgManualReady:Boolean(state.psgManualReady), view});
     onLiveView(view);
   }
   const preview = createPreview({getAudio, onState:showState, onStatus, beforeResume,...(mix===undefined?{}:{mix})});
@@ -231,6 +235,13 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     releaseFmKeyboard: ()=>preview.releaseFmKeyboard?.(),
     setFmPitch: value=>preview.setFmPitch?.(value),
     describeFm: channel=>preview.describeFm?.(channel),
+    editPsg: edit=>preview.editPsg?.(edit),
+    applyPsgPreset: (channel,preset)=>preview.applyPsgPreset?.(channel,preset),
+    noteOnPsg: (...args)=>preview.noteOnPsg?.(...args),
+    noteOffPsg: id=>preview.noteOffPsg?.(id),
+    releasePsgKeyboard: ()=>preview.releasePsgKeyboard?.(),
+    setPsgPitch: value=>preview.setPsgPitch?.(value),
+    describePsg: channel=>preview.describePsg?.(channel),
     selectChip(chip) {
       if(!Object.hasOwn(chips,chip)||copying)return false;
       if(chip===selectedChip)return true;

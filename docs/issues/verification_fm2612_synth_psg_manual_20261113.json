@@ -1,0 +1,678 @@
+{
+  "date": "2026-11-13",
+  "feature": "FM2612 Synth: live PSG manual interaction during VGM playback",
+  "passed": true,
+  "scope": {
+    "referenceChannels": "Tone1–3 / Noise on the same reference PSG",
+    "editableHardware": [
+      "attenuation",
+      "10-bit tone period",
+      "noise type",
+      "noise clock"
+    ],
+    "sourcePolicy": "VGM or Code, mutually exclusive; manual operations may accompany either",
+    "sourceLatch": "separate source data-byte cursor; explicit remapping after hand writes",
+    "sharedTone3": "Noise keyboard never mutes Tone3; source Tone3 pitch steals Noise pitch ownership only, preserving its manual key-up",
+    "idleAuthorPreset": "keep physical attenuation15, use selected level at next manual note",
+    "softwareEnvelope": "kept in author preset; not applied to reference PSG manual notes",
+    "crossKindLoads": "explicit preset loading chooses Synth without stopping the current song",
+    "seek": "original-source reconstruction; edited checkpoints discarded",
+    "deferred": [
+      "Direct reference RF5C164/PWM editing",
+      "Listening, long-duration and load testing"
+    ]
+  },
+  "node": {
+    "command": "node --test docs/synth/*.test.mjs",
+    "tests": 575,
+    "passed": 575,
+    "failed": 0,
+    "log": "build/verification/fm-psg-manual-20261113/node-tests.log",
+    "sha256": "1c95a7edf96184c158ea13a2835fd6d0785be2bc77944de486668414c585ae30"
+  },
+  "nativePcm": {
+    "baselineCommit": "b860c1a77f7a651c52db358ab8e60e06a180e0d3",
+    "physicalOutput": false,
+    "passed": true,
+    "comparisons": [
+      {
+        "name": "PSG Tone3/Noise and unlatched data",
+        "baseline": {
+          "sampleRate": 53267,
+          "comparedFrames": 32768,
+          "sourceSha256": "1b97920560a20670ead58e4be3e0a73048e332fc18f2f4e32ffebb8bc9aa5f2f",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.06397028267383575,
+          "master": 0.7,
+          "afterMasterPeak": 0.04477919787168502,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.7755575615628914e-17,
+          "psgLatencySeconds": null
+        },
+        "current": {
+          "sampleRate": 53267,
+          "comparedFrames": 32768,
+          "sourceSha256": "1b97920560a20670ead58e4be3e0a73048e332fc18f2f4e32ffebb8bc9aa5f2f",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.06397028267383575,
+          "master": 0.7,
+          "afterMasterPeak": 0.04477919787168502,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.7755575615628914e-17,
+          "psgLatencySeconds": {
+            "min": 0.027409090055756848,
+            "max": 0.07128240749432106
+          }
+        },
+        "channelSamples": 65536,
+        "differingSamples": 0,
+        "maxDifference": 0
+      },
+      {
+        "name": "mixed FM/PSG/RF/PWM",
+        "baseline": {
+          "sampleRate": 53267,
+          "comparedFrames": 65536,
+          "sourceSha256": "b55934c9f2aea44d120cdad0c17650288453fd7d79419c49778607b1d3f7190c",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.11310579627752304,
+          "master": 0.7,
+          "afterMasterPeak": 0.07917405739426613,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.220446049250313e-16,
+          "psgLatencySeconds": null
+        },
+        "current": {
+          "sampleRate": 53267,
+          "comparedFrames": 65536,
+          "sourceSha256": "b55934c9f2aea44d120cdad0c17650288453fd7d79419c49778607b1d3f7190c",
+          "bufferFrames": [
+            2048
+          ],
+          "nativePeak": 0.11310579627752304,
+          "master": 0.7,
+          "afterMasterPeak": 0.07917405739426613,
+          "groupVolumes": [
+            {
+              "id": "ym2612",
+              "volume": 0.775938
+            },
+            {
+              "id": "psg",
+              "volume": 0.35
+            },
+            {
+              "id": "pcm",
+              "volume": 0.280286
+            },
+            {
+              "id": "pwm",
+              "volume": 0.128818
+            }
+          ],
+          "lateBuffers": 0,
+          "maxGapSeconds": 1.1102230246251565e-16,
+          "maxOverlapSeconds": 2.220446049250313e-16,
+          "psgLatencySeconds": {
+            "min": 0.02609495560102878,
+            "max": 0.07128240749432106
+          }
+        },
+        "channelSamples": 131072,
+        "differingSamples": 0,
+        "maxDifference": 0
+      }
+    ]
+  },
+  "nativeSeek": {
+    "physicalOutput": false,
+    "passed": true,
+    "steps": [
+      {
+        "step": "cold seek10.25 and Resume",
+        "positionFrames": 545986,
+        "attenuation": 0,
+        "manualLatencyMs": 86.95195899900502,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 2,
+          "bytes": 10488,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "hand attenuation9",
+        "positionFrames": 545986,
+        "attenuation": 9,
+        "manualLatencyMs": 86.95195899900502,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": true,
+          "count": 0,
+          "bytes": 0,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "source seek6.25 after hand edit",
+        "positionFrames": 332918,
+        "attenuation": 0,
+        "manualLatencyMs": 87.34619933542342,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 1,
+          "bytes": 5244,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "warm source seek5.75",
+        "positionFrames": 306285,
+        "attenuation": 0,
+        "manualLatencyMs": 88.13468000826028,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 1,
+          "bytes": 5244,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 270336
+        }
+      }
+    ],
+    "notes": [
+      "Actual WASM. Same borrowed fake clock and audio bus through all seeks.",
+      "Latency excludes hardware output latency.",
+      "Original source and 2048-frame native output chunks retained."
+    ]
+  },
+  "browsers": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "reports": [
+      {
+        "path": "build/verification/fm-psg-manual-20261113/psg-manual-b.json",
+        "sha256": "f6a2a5e713984d9992bb782a153bf219b64447954464611d579825b5d019c91f",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-psg-manual-20261113/fm-manual-a.json",
+        "sha256": "dc5babd8a1793927e58ae727d88f8f6e2296be0d75c57c515cf9ff7d6e02e057",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-psg-manual-20261113/seek-a.json",
+        "sha256": "80fe03e8f7dbcb0dd149aea04558c2d6f1b319de0402b3ad42c44f94bfc11b3b",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-psg-manual-20261113/code-keyboard-a.json",
+        "sha256": "144d1e3c3c4b7fdc37862d8de44bf006e5c7176cd458a2bae181bf8625b730d6",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-psg-manual-20261113/preview-a.json",
+        "sha256": "dd18cbee316ef942f20b2b0f8a736ad8c93dc15f05811dc44cb092a781ee9a5b",
+        "passed": true,
+        "results": 6
+      },
+      {
+        "path": "build/verification/fm-psg-manual-20261113/candidate-a-b-package-browser.json",
+        "sha256": "6d6d3de7a5a04a6a9ad935fe66bf375d47ba083515d8db809bc16fb34abe4c92",
+        "passed": true,
+        "results": null
+      }
+    ],
+    "psgManualMeasurements": [
+      {
+        "browser": "chromium",
+        "checks": 9,
+        "renderAheadSeconds": 0.05408601948673663,
+        "peak": 0.037489935755729675,
+        "nativePeak": 0.037489935755729675,
+        "rmsRatio": 0.9930277227303255,
+        "master50Ratio": 0.49322529715207664
+      },
+      {
+        "browser": "webkit",
+        "checks": 9,
+        "renderAheadSeconds": 0.05628250136106783,
+        "peak": 0.037489935755729675,
+        "nativePeak": 0.037489935755729675,
+        "rmsRatio": 0.9788092353349982,
+        "master50Ratio": 0.5025962297506378
+      }
+    ],
+    "candidateNote": "Final PSG/manual/cross-kind preset checks use candidate B. Existing FM, Seek, CodeKeyboard and four-chip preview regressions use A; A/B file names are identical and only synth.js differs by the author preset target-selection line. All 290 final stage file hashes match the ZIP.",
+    "checkerSha256": "c797cad39de805f9e0c9fa035e0b8f282eac0e4f5e0a1a75b3d9ab4c0f1bbebc",
+    "newChecks": [
+      "A PSG-only VGM imports passively and manual Tone controls share its actual reference engine",
+      "Manual writes preserve later source tone data and editable periods reach the selected physical CH",
+      "Live Off keeps observation frozen while sparse Noise edits preserve the latest source clock",
+      "Later source volume data defeats old keyboard key-up and Pitch cleanup without a layered PSG",
+      "Tone3-clock Noise follows hand pitch without muting Tone3, and later Tone3 pitch defeats stale wheel reset",
+      "Pause audition remains independent; Copy and Seek retain the frozen sound and source-only cache",
+      "Loading an author PSG preset and round-robin keyboard keep the original reference transport",
+      "Cross-kind author presets stay visible and playable while an unrelated reference chip keeps running",
+      "Code and VGM remain exclusive while manual PSG edits and Keyboard view preserve running Code"
+    ]
+  },
+  "package": {
+    "archive": "release/hello_ymfm_wasm_fm-psg-manual-20261113b_itch_synth.zip",
+    "sha256": "701c3344958068d6027062100a9e6322af62a1482f1018b6aa07ea8dd9ce676f",
+    "bytes": 1108827,
+    "assets": {
+      "synth.js": "b8005f48f06b9c0a0d544343d6a95527e3890ba6de61371fd17f88394d87b200",
+      "synth_code_audio.js": "6c427cc7ff300fe0d43fc2b6988c5d738903c1644e8764118d4a7dfe5fa57cc9",
+      "synth_psg_controls.js": "b16d5a33adc3db987875fbd4a55ba81b4b1c3a608c9fc00efabb89be73818880",
+      "synth_song_psg_interaction.js": "7b75fdb419c2c91d2134cf4318ccdc9c4ede49bb830f7f92e1e41763811600a2",
+      "synth_files.js": "ab06932c6d4c647fd1bada907d6044791823d7365c69f30302c88fff047d2e98",
+      "synth_song_controls.js": "0d9dd7094995d29bb57714d23989eb126059f344f829b57f88830699714511e8",
+      "synth_song_preview.js": "cf23fe5e70065586711f74a1fdf5175a5f902bd6d4e71345c878dfb6faa50947",
+      "index.html": "a71a85db12668c931082eca5b188d45682c1bd724e1c085df0460b6df28f9c55",
+      "CODE.md": "47b64a1edc45a01a7365f1e6434c7941c7f1d78bf90301e0715ffb5917cbbbba"
+    },
+    "zipCrcVerified": true,
+    "stageMatchesArchive": true,
+    "readableSources": true
+  },
+  "packageValidation": {
+    "passed": true,
+    "sameFileNames": true,
+    "files": 290,
+    "changed": [
+      "synth.js"
+    ],
+    "candidateA": "release/itch_synth_fm-psg-manual-20261113a",
+    "candidateB": "release/itch_synth_fm-psg-manual-20261113b",
+    "archive": "release/hello_ymfm_wasm_fm-psg-manual-20261113b_itch_synth.zip",
+    "archiveSha256": "701c3344958068d6027062100a9e6322af62a1482f1018b6aa07ea8dd9ce676f",
+    "archiveBytes": 1108827,
+    "zipCrcVerified": true,
+    "allStageFileHashesMatchZip": true,
+    "assetsB": {
+      "synth_pcm.js": "ea373c3b205c147927b5c41627918702dc4f34dc61731a0ab7162b6160c3522a",
+      "synth_pcm_loop_render.js": "2c017d131ea5aaedd5c4e24f602cdbb2172df1ce2e6ae492b24e3e4216ece9ba",
+      "synth_code_audio.js": "6c427cc7ff300fe0d43fc2b6988c5d738903c1644e8764118d4a7dfe5fa57cc9",
+      "synth_fm_worklet.js": "45776e136f8f9f3339c0d1435e73ec6385ebd0bc10032330e153f51728522073",
+      "synth_pcm_recording_audio.js": "090dc5d190541890c29675175bd0a8bf8ddb472bcb73d4e8ff8ca9536d1e9f21",
+      "synth_song_psg_state.js": "74e25cd3470ea0d451cc5e48a333fd57f1160e8514ca2b1bb390b556babd444f",
+      "synth_psg_recording.js": "9e918e3ce6111f553af4e2b3eb6e53a08887bf90b35d1bdff361323777c08054",
+      "synth_pcm_recording_worklet.js": "85a6b3da482e74a364d0b9ee1c815e2dd3e439f11bf61fe5fd8638b9598d93ad",
+      "synth_pcm_release.js": "6cb892a20eea5e3385713028c77cd39ec24214aa517fc94b5e291730de23d1b4",
+      "synth_runtime.js": "760f0d69b30e7117f03a81eec0c1d35116572ea0515c1309c596ace61c9362bc",
+      "synth_modulation.js": "ef0971094fd2be036b8023eb7a155649af088802392a880833bdf5b9648ed6fb",
+      "synth_psg_loop_player.js": "deb31c4de90ec33cc50ae861466ad2401ef4c4447e9b0252e7de08bc44d132d0",
+      "index.html": "a71a85db12668c931082eca5b188d45682c1bd724e1c085df0460b6df28f9c55",
+      "synth_fm_mute.js": "00f12e6163da7a4829f1ac29941832692cced44e93b1ecc13b087165d352acb1",
+      "LICENSE": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+      "synth_song_seek_controls.js": "2529ba7d96d89d77e9ec1f3eeb62558e8e8dc5aa465bd8629c0ba0482d99ef8c",
+      "synth_fm_edits.js": "e66678421adf17672d51233ff897731be766adb6be60c5748ab5b3aca0632dd3",
+      "synth_song_interaction.js": "decd171b7291f7ed1be536967759bfd9e0e516e0969bae420a32df1366f489e3",
+      "synth_audio_loop_player.js": "f23b4e578c8d5b3e22f7812cbe1bfd285ec09aa01fb37004cb188513c2002f4b",
+      "synth_pcm_loop_audio.js": "c8a3d636cb79ca4e7937cfd7c3a424b1597929c487357d55be108d30f44f9195",
+      "synth_keyboard.js": "da9341cd14718f6650f5ebb0fefd2e2081bbc64e5b6e2d2350f0da4f095d79ee",
+      "synth_psg_envelope.js": "c47eed45b04266a6966f8c11a04005ad60603d094b55cfc1b8df8950f4ee28b4",
+      "synth_fm_worklet_nuked.js": "3d39471891089b95d9d6dc3d4e88801ce56550fb4607f79a2d18c7d567e3fa2a",
+      "synth_pcm_looper.js": "6e509313c9fc58a1c50384e360b2b4936a1824102f6864dd0f6328940ff8ab0a",
+      "synth_pcm_controls.js": "7cd40fbf21aefc246998328142083a073af4c6608960975d097c041249c9c5f4",
+      "synth.js": "b8005f48f06b9c0a0d544343d6a95527e3890ba6de61371fd17f88394d87b200",
+      "synth_output_visualizer.js": "1c210952b3d517c26d512f09a76911aa980617ef4849f8df63f0330d6b840af9",
+      "synth_pitch_bend.js": "7e10712646b165ae30b3a0e58c5d7afcfaa921582885f7d7c128cccd5ab5aa2b",
+      "synth_song_mix_defaults.js": "48635c88ef8e5c7705c0f7f054f67f65a4f79454f1804dfee19102994fd5519f",
+      "synth_envelope.js": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d",
+      "synth_preset_import.js": "e4098b8b24fc1ef1dee365f8997a2bb5fde3d513479bd0fd443bb2cbaa388e71",
+      "THIRD_PARTY_LICENSES.txt": "3179458b23a3a60857e1aabcfafc7e08e82d7f4e01047c7b9d483d5835544850",
+      "synth_input.js": "cb3100be518e5d8c112b56b5ef1f322a8b61812f2217f6ef3318f1cafeb8ae8c",
+      "synth_live_highlight.js": "b4e7c5e6245820d8d6a65af984d176739f3360887b2c2928fb0117a52c689c19",
+      "synth_psg.js": "66ab71a16a276b2b36b5329c710612a08535da65039ff5aa1bfcbee3af26e46b",
+      "synth_pcm_mute.js": "95411b40b7b71cfade5e0a190372864c4f88133a2bf37b60b47e6a5a84a3d63a",
+      "synth_menu.js": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f",
+      "synth_operator_envelope.js": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a",
+      "synth_song_psg_voice.js": "3db9075aa880d87451f1e4012129f2e34cbf37a8992f287415e8bba0bbd053fe",
+      "synth_psg_audio.js": "9ef177aa0cefdf2be6c66e12d233e5357ccc4eab5b5fee03190825ed93d1f70e",
+      "synth_pcm_recording_prepare.js": "0603b841ca4e5f5ff3cee3ce1808d852e09ca48add0f1704ebb764830d360517",
+      "synth_song_output_mix.js": "0c08c7388c2a01d681c7cd848d0d2c14f8939f0fea1c046c5198f03c380e455f",
+      "synth_pcm_audio.js": "e64f59feecd30acdeb22a2f4cb76ac9ffa544f6854c75bfaa67f6400581a7654",
+      "synth_recovery.js": "08f7895a8d4232053b7c0e88f6581258bc4ed45403e4f933a659c7c4af5a5c2d",
+      "synth_psg_loop_render.js": "6beb8aff9f2c80b96ab52a0824e31658d1779c97fd9370d8c0398a5888e4a39a",
+      "synth_code_declarations.js": "5f1a800a38b76e63fbb055c0eea3a4277b75e35cc9270ce1f0bdd1dd682584e6",
+      "synth_looper.js": "c420dfa41ab21b1a2b2d33a3dee97214a1e83ab9f43bc0cea4496753cadf750c",
+      "synth_psg_worklet.js": "a424e4e9d30a482dee6c03976eb077358cf94409ff917f850e37a971cdbf0853",
+      "synth_song_pcm_voice.js": "0fb1510db46af0695fd029118bd18b1a6402187458c762030ff142f4ab5163c5",
+      "synth_project.js": "6b40ba6b438e0493b7bfbb6084b2248fee0985c35a2dc83a3abc94b8d91f3289",
+      "synth_pcm_recording.js": "b2caf24ce61561634684abd07c1e914d0600a469fe1397d014080d35faa81331",
+      "synth_code_output.js": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112",
+      "synth_pcm_loop_player.js": "c3ba20523d0174b24151a01ebd61b9ce3aa6bfa1ba8f5103a05514cc5a65f1fd",
+      "synth_pcm_wave_edit.js": "848ad1213c11e42d788eb66b5d26fe7e66408a73d61ad184713e4e9b92bd8e17",
+      "synth_recording.js": "f470b49b4df4f045ae4def39592a43d9d645a482b65af9eef55b7820297f5e1b",
+      "synth_song_mix.js": "fdb36e841a3c902f16e6b21d902b3ba81f8dbb3584e56c2d53e014922b695a8d",
+      "synth_song_state.js": "c5b7a13b35999b9d79a5ced191dc3ea02210a72bdb7550b64474912441bafc73",
+      "synth_pcm_worklet.js": "cab6d6d6e5f5e50e14c2ac2d73d8c7e7f5e6d03ef60e104595693ac085756c01",
+      "synth_psg_controls.js": "b16d5a33adc3db987875fbd4a55ba81b4b1c3a608c9fc00efabb89be73818880",
+      "synth_layer_looper.js": "5b398d546cf07d9feb6cec68c51ebb1e923ce6d314a623e618b6a1cbb5adeba3",
+      "synth_controls.js": "2316f603e46c3b58314759bf59385827202ec5eabbaed0b6c550ad0451877349",
+      "synth_song_psg_interaction.js": "7b75fdb419c2c91d2134cf4318ccdc9c4ede49bb830f7f92e1e41763811600a2",
+      "synth_pcm_loop_worklet.js": "b6f234d49094ad6430888897d190062c5116e3fdb5c962f1cc2fda1292c01b1b",
+      "synth_pcm_recording_player.js": "c73f54526d8fe62eb098d740706c5166495378a6217783ab6a52bf17006804d8",
+      "synth_song_preview.js": "cf23fe5e70065586711f74a1fdf5175a5f902bd6d4e71345c878dfb6faa50947",
+      "CODE.md": "47b64a1edc45a01a7365f1e6434c7941c7f1d78bf90301e0715ffb5917cbbbba",
+      "synth_song_voice.js": "687d38ebc4a612af39938baf7ce2d1af7699c4112c388e56d622271194b9c7b2",
+      "synth_psg_preset.js": "09d4a0c388357f3c1d2731cad56577b9f572691a2084e0277c35132a994ea134",
+      "synth_psg_looper.js": "991c4b543fe10c63c8658ce88b7999389040aa9639c761fa3e961471f85497ac",
+      "synth_code_controls.js": "2482d3d2c5e9670bc1c324e2afe051c065476cff5543e5c7339d9f13d00f2675",
+      "synth_song_copy.js": "5e1a61e0091d87bc612cc5352218473dbf8a90f97a8c0a0073fdaff6ba663860",
+      "synth_files.js": "ab06932c6d4c647fd1bada907d6044791823d7365c69f30302c88fff047d2e98",
+      "synth_code_project.js": "bf015d5805e6108638ca6a7c83b9e8c9628da42bd91ee03031bbc27c714c63e6",
+      "synth_song_controls.js": "0d9dd7094995d29bb57714d23989eb126059f344f829b57f88830699714511e8",
+      "synth_song_pcm_state.js": "a3eefb69942ad790817d08465aaabd69f0e18f675e1b20b05af80068bde39c7f",
+      "synth_song_mix_controls.js": "0c1e9cd395e42a949ec46f4718fafbd39214009be11f27087176a27e81081992",
+      "synth_psg_recording_player.js": "6ed8448d1943658de7c8f1e0a6c943907d9b6a9aa8bf40de4d86ed203bdbae49",
+      "synth_performance.js": "a69fe78a6d8cd93c12928cbda948a035f82f09ab35d59d845b1edb073a8ef76a",
+      "generated/nesapu_wasm.js": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b",
+      "generated/ym2608_wasm.wasm": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+      "generated/nesapu_wasm.wasm": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+      "generated/pwm32x_wasm.js": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643",
+      "generated/ym2203_wasm.js": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+      "generated/nuked_opn2_wasm.wasm": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1",
+      "generated/pwm32x_wasm.wasm": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c",
+      "generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+      "generated/ym2608_wasm.js": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+      "generated/ym2203_wasm.wasm": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+      "generated/rf5c164_wasm.js": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+      "generated/nuked_opn2_wasm.js": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a",
+      "generated/ym2612_wasm.wasm": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+      "generated/rf5c164_wasm.wasm": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+      "generated/segapsg_wasm.js": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+      "generated/ym2612_wasm.js": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+      "playground/tetorica-shell.d.ts": "a0d17aeb969faf8a2e8489a00e6f1a869622e08db7b1b019cced67774326391d",
+      "playground/tetorica-playground-globals.d.ts": "cb5f91e6de2fe80670d580af69b883476ef64e774d41d12c94045c986ce98889",
+      "playground/playground_cassette.js": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346",
+      "playground/rf5c164_vgm_export.js": "e4733bbefa1f59d0007c829c32659df765f3ffde2fe37e6bd72312696610ba3a",
+      "playground/playground_monaco_completion.js": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49",
+      "playground/pokey_vgm_import.js": "338237472f43567ed9914599a4541c065185a2612880f6a3276e86715f135cd3",
+      "playground/playground_monaco.js": "ea8fed03e3f5cdd703ade3dba6dfd59c8fe7e5d1541fd41784bcf710aa76ab0c",
+      "playground/wonderswan_vgm_import.js": "9ab308728d773eae2d82d77ef896202e20fb7ed47e00db7a84e015aefbf8e898",
+      "playground/playground_declarations.js": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255",
+      "playground/playground_virtual_files.js": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41",
+      "playground/playground_vgm_import.js": "6e8682d9f764fcfe2ab518db5c5b3dd453d610bbcee67d24267004b38b3563ba",
+      "playground/playground_file_tree.js": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30",
+      "playground/ym2203_high.js": "277b2456042c80f66d9f7761bcddf9ba08c30b2183f41ccd6f3a6034d7b9387e",
+      "playground/playground_monaco_definitions.js": "6f66f6cfa170054438b2454c284af1c4a57fa0bc3b6c0284ac0d3728325fa794",
+      "playground/playground_example_order.js": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209",
+      "playground/playground_vgm_presets.js": "2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e",
+      "playground/tetorica-playground-ym2612.d.ts": "4e7d976da314a668bcdbd37254c5e1fb3f393e21e72d380d06eefb744ec02c74",
+      "js/ym2203-worklet.js": "67f7ad88c0849bd1d62416c0168a965824a4494b9ddf0fef55a1b16db5930951",
+      "js/ym2608-worklet.js": "2a3566d689854690c36befa5769804877b6e4f881e1446e2ad6dcc2212b03f2c",
+      "js/nesapu_wasm.js": "0bc07cab4c52cef9d62041f1ab532610c4e6158ae48e7c854178107138a45e2b",
+      "js/vgmplayer.js": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+      "js/vgi.js": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99",
+      "js/megasynth_fx.js": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6",
+      "js/native-fx-worklet.js": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac",
+      "js/ym2203synth.js": "4d851fb530b7b43dc6909e930257c29f526859bd9f3e11c73528cf97f2ef244b",
+      "js/adpcm_b_sample.js": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93",
+      "js/bitcrusher-worklet.js": "782a8c0f015770792f7226f3d6a874c23e067ecf8665337244baa5872b3d52d9",
+      "js/nesapu.js": "0b3c5187f2630ea675636b1da600f9ab1358a176208e111052676f7e1003e80d",
+      "js/playground_audio_endpoint.js": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd",
+      "js/ym2612vgm.js": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b",
+      "js/looper.js": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366",
+      "js/playground_log.js": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6",
+      "js/megasynth_looper.js": "be050452dee7be77eeb69c2b411aa657193d51e6c38fcc5e182cb8317ea68af9",
+      "js/ps1synth.js": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193",
+      "js/tetorica_ym2608_adpcm_rom.bin": "c33441f88d712f2864a33a962a88ae5800d2c5a5df418a8a345f2532cecb7704",
+      "js/native_fx_rack.js": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5",
+      "js/playground_gameboy.js": "51ba6185182fbb25955b58bef5711d59cfe05d6483ba9377e2b6c3e6c1846277",
+      "js/chip_worklet_transport.js": "4adcc8a58773fb970700a9846e628fcfea20e5d16b43778ea80d0e083b630a7b",
+      "js/fds_audio.js": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9",
+      "js/opn_fm_synth.js": "50427833a255acc71310f0045d30ad9b6785ee6cd7304d9bb3524c0748c82c5e",
+      "js/pwm32x_wasm.js": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9",
+      "js/ym2610b.js": "68b31010b86b2d1bdd0ad684469b80aba7020e30edf80d41504158e59c6197e0",
+      "js/pwm32x.js": "32fc07ab58957d8dcb2b931cb17219e4ada4490ba46937f77abd97f140b7ff28",
+      "js/playground_pwm_worklet.js": "f245992abc3e65e9a6c5e76cafef257bcf7cd475de67c98be6f10016a5149984",
+      "js/ym2612_dac.js": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf",
+      "js/ssgsynth.js": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f",
+      "js/native_fx_graph.js": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf",
+      "js/ym2203audioengine.js": "52107ae322a83263aee9edf241b8ca0a8db161bac4752f2ca694c71e3ad2d7b7",
+      "js/playground_clock.js": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d",
+      "js/ym2608audioengine.js": "7f679903430e52de210219ffa00cf38adffba836e6f2dca58909caf2f61ed593",
+      "js/native_sample_processor.js": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27",
+      "js/playground_chip_port.js": "d0a569b419552f7e6de36dd8b9732ab452d5e7daf141d5f2fe0cedfa66283591",
+      "js/genesisaudioengine.js": "b94cdf9c52306fa3a67c86c5d656f4da54f0b992c5c191bc8436f0cc571c90ca",
+      "js/playground_rf5c164_audio.js": "ffc97eae046096244724e121c6e512a684ee52b306e64bbcecc15e5be0bf0abd",
+      "js/playground_opn_inspector.js": "7ef455ea8ded4659e1a2bac2a087eda7562e5726940da8f82bc0a8652a71442d",
+      "js/megasynth_recording.js": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd",
+      "js/playground_rf5c164.js": "c2cd1646400fe8211328c322902a4217d958af0b1a7d7af1f0cf4a852a4dd604",
+      "js/rf5c164.js": "0ea1b5f03533b7537548e0bee277b5b01f0636474797f4b5469c2acef52f3203",
+      "js/ym2203.js": "94c7c1f289e3aca63d279b97b9cbb0a014a7258dabe412dafb553e1713340715",
+      "js/playground_code_runtime.js": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480",
+      "js/ps1_vab.js": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87",
+      "js/soundchip_mixer_presets.js": "a43c6bacc2f7d2d180002fce7965f9938a7b435db34bcb2a499554f34f14d8b4",
+      "js/playground_native_voice_inspector.js": "5de1bd67ba8ed22011362f09c9ccbdb83a8a23f4f5c97c484b758ae22451b083",
+      "js/ps1_parameters.js": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1",
+      "js/pwm32x_playback.js": "ad828d6e3f8c28c3f3651a701005970cca66ca3a04309475a2308abab2d61932",
+      "js/nesapusynth.js": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+      "js/opn_fm_vgm.js": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c",
+      "js/playground_async_tasks.js": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd",
+      "js/playground_performance_queue.js": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5",
+      "js/rf5c164_notes.js": "cd10b0abe19000e699edd181b3527edbea8d06ada2dbf34a88c51e12bf9d273f",
+      "js/stereo-width-worklet.js": "36b8f452b84faef614677c97bdfca7fb34e2cb42fa4b5ec56e7cdfb68495fa50",
+      "js/ym2612synth.js": "495408c80ab002bd49fafc32f7e8fb44c1e5b0ab6bcc219eb62edd36635d1138",
+      "js/playground_pwm_audio.js": "acaeb5a6b43c63de10f39397f7ffe154b48ab094049c696978cdae3e5a0db731",
+      "js/playground_keyboard_channels.js": "079a063894f68f599a64de64df7a71bd26a54a2420f23d07986845a11423f663",
+      "js/ps1_spu.js": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769",
+      "js/segapsg_api.js": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa",
+      "js/playground_live.js": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e",
+      "js/segapsgsynth.js": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9",
+      "js/pitch.js": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42",
+      "js/playground_music.js": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6",
+      "js/playground_segapsg_audio.js": "98ef250cdc55608fddce00bb9c21e75ef28799b6f3c35f5d78f92bb4330202bb",
+      "js/playground_performance_processor.js": "c947942492ea11e4c8ddbb4f100a0d16fad3a19eab417ba9a4d9a447a6acc243",
+      "js/opn_runtime_synth.js": "c7ef50bcb7146ef9f5d63282e5758ca7c92cc30b39cca7089920a8d538fcae78",
+      "js/rf5c164-worklet.js": "c6e1181ff8995d8dbbe9bb7366bce8600a97dae6d2b3cbe0265eb5f3a1e3bee0",
+      "js/native_fx.js": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f",
+      "js/playground_worker_chip.js": "ed2740446273b68cd324d6873abe81cf0318e8cdf3c26ae373e448fe03c422da",
+      "js/ym2608.js": "54384da784d96c0875f9edf224dfa8c77911f5e192ef15cdf11fa79d1765e522",
+      "js/megasynth-fm-presets.js": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c",
+      "js/nesapuaudioengine.js": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947",
+      "js/vgm_file.js": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48",
+      "js/s98_file.js": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1",
+      "js/audio_decode.js": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4",
+      "js/segapsg.js": "c482525bb445b73b03ed35832ca3855f25d29c145267b16ecb9687e0e8e72c46",
+      "js/gameboysynth.js": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af",
+      "js/ym2608synth.js": "8c90e5ed6e03acad09e60cc32d555e7e2f20525513c0f4e1d3b0a6861c684da6",
+      "js/playground_chip_inspector_state.js": "37a95d08cffa26d7ba850cdf11ef9af336ce664e27a48a49abbebae3fbb10f67",
+      "js/rf5c164synth.js": "dff616b61eb9e567e73add6df849f80299426aee4c2897554c3bd9b2263192ef",
+      "js/playground_duration.js": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1",
+      "js/native_sample.js": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0",
+      "js/tfi.js": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720",
+      "js/ym2612-worklet.js": "0788694f36ae5ea37d97fc29ee98f5e80a7b111e2f80ff51fbc192f42048ddcc",
+      "js/native_noise.js": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f",
+      "js/tetorica_audio_runtime.js": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3",
+      "js/playground_audition_guard.js": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310",
+      "js/megasynth.js": "f27fc48fe12af95b31669b83d42eb8772bebff21a63961b30985afad3ddce723",
+      "js/playground_segapsg_worklet.js": "12b23e1b9f3bd170c0f64c75188bcae8607604c82148fc3861bcd226e5f15fb4",
+      "js/custom_fx.js": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e",
+      "js/gameboyapu.js": "cbfd33c3eef9110f1d0940ff46ebfa8c151da3370687833f959e354c6ecb49d9",
+      "js/rf5c164_pcm.js": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a",
+      "js/soundchip_pitch.js": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+      "js/native_fx_engine.js": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f",
+      "js/ym2612-worklet-nuked.js": "1866417d09e95101207671b4ef00c8fd130d60e5e46ef2ca2a12ee976ea86983",
+      "js/ym2610bsynth.js": "934e21dace2f981299926e9432f23e7117373068bc78fede20a41b2ff4caee79",
+      "js/playground_worker_dac.js": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261",
+      "js/soundchip_mixer.js": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb",
+      "js/playground_chip_clock.js": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d",
+      "js/ym2612.js": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+      "js/playground_execution.js": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e",
+      "js/native_audio_effect.wasm": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290",
+      "vgm_analyzer/opm_monitor.js": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7",
+      "vgm_analyzer/stored_zip.js": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968",
+      "vgm_analyzer/opm_tfi.js": "45e83093aa2643e650582b123922bcc5af6fbd7f56252ce6eaafb6a5bb2c002a",
+      "vgm_analyzer/seek_playback.js": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb",
+      "vgm_analyzer/opm_export.js": "cfe9192492c88c142df37a0f7e06f155bf63e40f7ee3a4f49fdf3fa3bda6e120",
+      "sources/NES-FDS.md": "b17df645ef2ea88a9bf8ed836aa04f2b8c7660729c40f554c0d6d586cba29459",
+      "sources/LICENSE": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "sources/SegaPSG.md": "fcd72036b6a57be209c5814549caca2e1183035332cd57119ba1c6cbddcede16",
+      "sources/PWM32X.md": "b9c0f9eb579f2fe3cdc7a478a2799938e3882b0ee0ea300d2c33e7ee79fdf6a6",
+      "sources/LICENSE.tetorica": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "sources/Nuked-OPN2.md": "584d55839c019063c68cf2d48d120262570a9030fa60338fb565dc48415098d8",
+      "assets/opna-rhythm/LICENSE": "fc3f6037e016ec318ec521034aa3c643a01c557c216859bf4dc49b0031ce94f7",
+      "assets/opna-rhythm/README.md": "063ceb58467a9e2a2a3dca61c0a20d4b6f19a52f491b804e8a54926a47a7eba4",
+      "assets/opna-rhythm/generate.mjs": "7280f97c5b0fe3a7334d50a680501eae06b4dc72065d86a95ea85351315e69cf",
+      "assets/opna-rhythm/synthesis.mjs": "6b26b31f91396a3cd6e66f45753edd8825237e5f25549f7f4f84b7cbc6817c18",
+      "sources/wasm/segapsg_wasm.cpp": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e",
+      "sources/wasm/pwm32x_wasm.cpp": "9ed05d4cab51ad0565d0a9f1da96e97e204007660482e567938f1c0f003d24bb",
+      "sources/wasm/nuked_opn2_wasm.c": "85cb336960d5bfbff1265268f732a48a426ecb943810e0165a1bbb1750839115",
+      "sources/wasm/pwm32x_core.h": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c",
+      "sources/wasm/nesapu_wasm.cpp": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105",
+      "sources/scripts/build_nesapu_wasm.sh": "884ff7505447afc232e860bac6e633652ed26c6097c5e0a10e5c14dffee09c4d",
+      "sources/scripts/build_pwm32x_wasm.sh": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
+      "sources/scripts/build_nuked_opn2_wasm.sh": "ea620223822175fb4d6470778dd40a07621b9674bebdf9a6a2571917c72c1fbe",
+      "sources/scripts/build_segapsg_wasm.sh": "dde29ed6f87201507fafefd1a5921a6fccb5686e81f621d5618a5f9a712c991f",
+      "sources/src/chip_state.h": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+      "sources/third_party/tetorica-nes/UPSTREAM-JSNES.md": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "sources/third_party/tetorica-nes/nes_core.h": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
+      "sources/third_party/tetorica-nes/LICENSE-FDS": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "sources/third_party/tetorica-nes/AUTHORS-JSNES.md": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "sources/third_party/tetorica-nes/README.md": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396",
+      "sources/third_party/tetorica-nes/LICENSE-JSNES": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "sources/third_party/tetorica-nes/UPSTREAM-FDS.md": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "sources/third_party/tetorica-nes/nes_core.cpp": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959",
+      "sources/third_party/nuked-opn2/ym3438.h": "8e60e35f77049d0e600ad1a47bfc3dfc8b832483e614104473a83c1f33cd7189",
+      "sources/third_party/nuked-opn2/LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "sources/third_party/nuked-opn2/README.md": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa",
+      "sources/third_party/nuked-opn2/ym3438.c": "8fa385546f0f2d1c975d097002af00cd729ae2ae097c068e9c883ce08ddf3a76",
+      "sources/third_party/mame-32x-pwm/LICENSE": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6",
+      "sources/third_party/mame-32x-pwm/README.md": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec",
+      "sources/third_party/tetorica_sega_psg/LICENSE": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "sources/third_party/tetorica_sega_psg/README.md": "96528208bdaf25b01f08bed5075274bbc538a91bf2a552784b939257fc1cd75e",
+      "sources/third_party/tetorica_sega_psg/segapsg.cpp": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e",
+      "sources/third_party/tetorica_sega_psg/segapsg.h": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e",
+      "sources/third_party/mame-32x-pwm/upstream/mega32x.h": "fcb83da0eda963035d444eca408e1bc870a0eb723277db7c38219d6aa2348c0a",
+      "sources/third_party/mame-32x-pwm/upstream/mega32x.cpp": "17490105d503cb3229090639debd80a31acc400221085ddddb32145b16ead91a",
+      "js/tetorica_virtual_files/filesystem.js": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41",
+      "js/tetorica_virtual_files/sync.js": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4",
+      "js/tetorica_virtual_files/path.js": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4",
+      "js/tetorica_virtual_files/reader.js": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f",
+      "js/nes_apu_vendor/channel-dm.js": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7",
+      "js/nes_apu_vendor/channel-noise.js": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812",
+      "js/nes_apu_vendor/index.js": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122",
+      "js/nes_apu_vendor/utils.js": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c",
+      "js/nes_apu_vendor/channel-triangle.js": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506",
+      "js/nes_apu_vendor/channel-square.js": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317",
+      "licenses/tetorica-nes/UPSTREAM-JSNES.md": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "licenses/tetorica-nes/LICENSE-FDS": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "licenses/tetorica-nes/AUTHORS-JSNES.md": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "licenses/tetorica-nes/README.md": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396",
+      "licenses/tetorica-nes/LICENSE-JSNES": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "licenses/tetorica-nes/UPSTREAM-FDS.md": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "licenses/jsnes/AUTHORS.md": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "licenses/jsnes/LICENSE": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "licenses/jsnes/README.md": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "licenses/fixnes-fds/LICENSE": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "licenses/fixnes-fds/README.md": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "licenses/nuked-opn2/LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "licenses/nuked-opn2/README.md": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa",
+      "licenses/mame-rf5c164/LICENSE": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853",
+      "licenses/mame-rf5c164/README.md": "3be506399ecf8d36c6724c82673436c7e122d82c84c1263114f1628ac1282af6",
+      "licenses/tetorica-virtual-files/LICENSE": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+      "licenses/mame-32x-pwm/LICENSE": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6",
+      "licenses/mame-32x-pwm/README.md": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec",
+      "licenses/tetorica_sega_psg/LICENSE": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "licenses/tetorica_sega_psg/README.md": "9b3510bca94e2f97b356b6f28770bd5aca5c46361b33aaa5829dac55a2c97b2d",
+      "playground/vendor/fflate.js": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1",
+      "playground/vendor/fflate-LICENSE": "0a1df3a083d0c010560aa342e87959c8c1070e6fd54545741f083f22d0c8b551"
+    }
+  },
+  "ci": {
+    "workflow": ".github/workflows/itch-web.yml",
+    "added": "Packaged PSG manual interaction in Chromium and WebKit",
+    "remoteActionsRun": false
+  },
+  "notes": [
+    "Browser destinations were intercepted at gain0 before application code; Chromium also uses --mute-audio. No physical audio or listening.",
+    "Gain calibration, scheduling and 2048-frame output chunks were not changed. The196608compared native channel-samples are identical to baseline before manual edits.",
+    "Final B adds only the explicit cross-kind preset-view fix to candidate A. Existing regression checks ran on A; the full PSG checker including cross-kind loads ran on final B.",
+    "No commit, push or publication performed."
+  ]
+}
