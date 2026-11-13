@@ -30,7 +30,7 @@ const tick=()=>new Promise(resolve=>queueMicrotask(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return{promise,resolve};};
 async function until(check){for(let i=0;i<200;i++){if(check())return;await new Promise(resolve=>setImmediate(resolve));}assert.fail('operation did not reach expected state');}
 
-function harness(store={saved:null,journal:new Map()}) {
+function harness(store={saved:null,journal:new Map()},options={}) {
   const globals=['document','window','indexedDB','localStorage','setTimeout','clearTimeout'],previous=new Map(globals.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const elements=new Map(),body=new Element('body'),editor=new Element();editor.className='synth-editor';body.append(editor);
   const byId=id=>{if(!elements.has(id)){const item=new Element(id==='synthFileNameDialog'?'dialog':'div');item.id=id;elements.set(id,item);body.append(item);}return elements.get(id);};
@@ -52,7 +52,7 @@ function harness(store={saved:null,journal:new Map()}) {
   const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='pcm'?'pcm-sine':value==='psg'?'psg-default':'one-op-basic',
     getPreset:()=>structuredClone(patches[kind]),getPresetId:()=>ids[kind],applySnapshot,
     applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(id==='pcm-sine'?createPcmBuiltinPreset('sine'):id==='psg-default'?createPsgPreset({}):fm(),id),
-    onSaved:path=>{ids[isPcmPresetPath(path)?'pcm':isPsgPresetPath(path)?'psg':'fm']='vfs:'+path;},onListChanged(){},onWorkspaceReplaced(){},stopAllNotes(){},setStatus:message=>messages.push(message)});
+    onSaved:path=>{ids[isPcmPresetPath(path)?'pcm':isPsgPresetPath(path)?'psg':'fm']='vfs:'+path;},onListChanged(){},onWorkspaceReplaced(){},stopAllNotes(){},setStatus:message=>messages.push(message),...options});
   async function idle(){for(let i=0;i<50;i++){await tick();if(editor.attributes['aria-busy']==='false')return;}assert.fail('file operation stayed busy');}
   async function action(name,path){
     if(path){const target=new Element('button');target.setAttribute('data-file-path',path);byId('synthFilesTree').fire('contextmenu',target);}
@@ -68,6 +68,26 @@ function harness(store={saved:null,journal:new Map()}) {
   return {store,project,patches,ids,files,messages,applied,byId,action,rename,get kind(){return kind;},forceKind:value=>{kind=value;},
     cleanup(){for(const [name,descriptor]of previous)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
+
+test('a playing FM observation can load author presets without enabling author Sync or chip-wide mode controls',async()=>{
+  let observing=false,playing=false,stops=0;
+  const h=harness(undefined,{isObserving:()=>observing,canEditObservation:()=>playing,
+    canLoadWhileObserving:()=>playing,stopAllNotes:()=>{if(!playing)stops++;}});
+  try {
+    await until(()=>h.store.saved);
+    const tone=h.project.createTone(fm(),'Shared sound');await h.files.selectFile(tone.path);
+    const count=h.applied.length,stopCount=stops;
+    observing=playing=true;h.files.refresh();
+    assert.equal(h.byId('commonControls').inert,false);assert.equal(h.byId('operatorControls').inert,false);
+    assert.equal(h.byId('channel3SpecialControls').inert,true);assert.equal(h.byId('synthFileSaveButton').disabled,true);
+    assert.equal(h.byId('presetSelect').disabled,false);
+    assert(await h.files.selectFile(tone.path),'an already selected preset is still applied to a song');
+    assert.equal(h.applied.length,count+1);assert.equal(stops,stopCount,'host keeps automatic playback running');
+    playing=false;h.files.refresh();
+    assert.equal(h.byId('commonControls').inert,true);assert.equal(h.byId('presetSelect').disabled,true);
+    assert.equal(await h.files.selectFile(tone.path),false,'paused observation retains independent audition');
+  } finally {h.cleanup();}
+});
 
 function attachCode(h) {
   let path=null,mode='keyboard';const opened=[],changes=[],flushes=[];

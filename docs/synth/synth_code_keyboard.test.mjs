@@ -11,7 +11,7 @@ test('cold Code initialization can apply author tuning before its keyboard adapt
   const fm={},psg={},pcm={},wrapped=[];
   const scope=vm.createContext({codeActive:true,codeAudio:null,synth:{},editorChip:'ym2612',editorPerformanceTarget:fm,
     pcmAudio:{getPcm:()=>({})},psgAudio:{getPsg:()=>({})},pcmVoice:pcm,psgVoice:psg,looper:null,
-    isSongChannelTarget:()=>false,songAuditionVoice:null});
+    isSongChannelTarget:()=>false,isFmSongPlaying:()=>false,songAuditionVoice:null});
   vm.runInContext(selectors,scope);
   for(const [chip,target]of [['ym2612',fm],['psg',psg],['pcm',pcm]]){
     scope.editorChip=chip;assert.equal(scope.getPlayableSynth(),target,'cold '+chip);

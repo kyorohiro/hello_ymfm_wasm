@@ -1,0 +1,141 @@
+{
+  "date": "2026-11-13",
+  "status": "audit_complete_finding_reproduced",
+  "sourceRevision": "b746a20d8754aa0198701e3b6511adc628f7a4ad",
+  "request": "Check whether DMG Synth VGM playback is distorted/clipping and whether mixer balancing is applied. Verification only; do not modify the sound or product code.",
+  "input": {
+    "path": "/Users/kyorohiro/Downloads/Final_Fantasy_Legend_II_(Game_Boy)/01 The Legend Begins.vgz",
+    "bytes": 5289,
+    "sha256": "c253fa4204d5370ae248a042ca25c9120acff64da424bb924cf042b05ba8663b",
+    "vgmTotalSamples": 2421222,
+    "declaredSeconds": 54.90299319727891,
+    "metadata": {
+      "trackName": "The Legend Begins",
+      "trackNameOriginal": "伝説は始まる",
+      "gameName": "Final Fantasy Legend II",
+      "gameNameOriginal": "Sa・Ga2 秘宝伝説",
+      "systemName": "Game Boy",
+      "systemNameOriginal": "ゲームボーイ",
+      "author": "Nobuo Uematsu",
+      "authorOriginal": "植松伸夫",
+      "releaseDate": "1990-12-14",
+      "creator": "shywolf",
+      "notes": ""
+    }
+  },
+  "settings": {
+    "userMasterValue": "Not provided",
+    "testedStandaloneMaster": [
+      0.7,
+      1,
+      2,
+      3.8
+    ],
+    "browserMaster": [
+      0.7,
+      3.8
+    ],
+    "manualNotes": false,
+    "codeRun": false,
+    "physicalAudioOutput": false
+  },
+  "gainPolicy": {
+    "standaloneDmg": 0.28,
+    "standaloneDefaultMaster": 0.7,
+    "standaloneEffectiveDefault": 0.196,
+    "playgroundSystem": 0.36,
+    "genericMixerFallback": 0.28,
+    "defaultSelection": "Fallback/factory/saved gain values replace one another; .28 and .36 are not multiplied.",
+    "proof": "build/verification/dmg-gain-audit-20261113/mixer-routing.json"
+  },
+  "native": {
+    "internalClipping": false,
+    "linearSummation": true,
+    "maxFloat32SumError": 2.9802322387695312e-08,
+    "rawAbiVsJsWrapperDifference": 0,
+    "nr50MaxVsDefaultRatio": 2,
+    "nativeOutputBoundAtNr50Max": 1,
+    "evidence": "build/verification/dmg-gain-audit-20261113/native-gain-audit.json"
+  },
+  "fullTrackOffline": {
+    "seconds": 54.90299319727891,
+    "frames": 2421222,
+    "complete": true,
+    "rawPeak": 0.75,
+    "rawOverFullScaleSamples": 0,
+    "masterScenarios": [
+      {
+        "master": 0.7,
+        "masterPercent": 70,
+        "effectiveGain": 0.196,
+        "peak": 0.147,
+        "peakDbfs": -16.653653305036478,
+        "overFullScaleSamples": 0,
+        "overFullScaleFraction": 0
+      },
+      {
+        "master": 1,
+        "masterPercent": 100,
+        "effectiveGain": 0.28,
+        "peak": 0.21000000000000002,
+        "peakDbfs": -13.555614105321613,
+        "overFullScaleSamples": 0,
+        "overFullScaleFraction": 0
+      },
+      {
+        "master": 2,
+        "masterPercent": 200,
+        "effectiveGain": 0.56,
+        "peak": 0.42000000000000004,
+        "peakDbfs": -7.53501419204199,
+        "overFullScaleSamples": 0,
+        "overFullScaleFraction": 0
+      },
+      {
+        "master": 3.8,
+        "masterPercent": 380,
+        "effectiveGain": 1.064,
+        "peak": 0.798,
+        "peakDbfs": -1.9599421729854107,
+        "overFullScaleSamples": 0,
+        "overFullScaleFraction": 0
+      }
+    ],
+    "proof": "build/verification/dmg-gain-audit-20261113/user-vgm-pcm.json"
+  },
+  "browserFinding": {
+    "realTimePcmOvershootObserved": true,
+    "master380ClippingRiskReproduced": true,
+    "master70OverFullScaleObserved": false,
+    "independentWorkletMeter": {
+      "chromium": {
+        "master70Peak": 0.196,
+        "master380Peak": 1.596,
+        "master380UniqueOverFullScaleChannelSamples": 8
+      },
+      "webkit": {
+        "master70Peak": 0.196,
+        "master380Peak": 1.229,
+        "master380UniqueOverFullScaleChannelSamples": 4
+      }
+    },
+    "precision": "Peaks rounded here; full precision and exact counts are in the meter receipt. Unique counts are per-channel samples, not distinct audible glitch events.",
+    "proof": "build/verification/dmg-gain-audit-20261113/browser-worklet-meter.json",
+    "baselineAnalyser": "build/verification/dmg-gain-audit-20261113/browser-baseline.json",
+    "meterCalibration": "build/verification/dmg-gain-audit-20261113/meter-calibration.json",
+    "offlineBoundaryControl": "build/verification/dmg-gain-audit-20261113/offline-chunk-boundaries.json",
+    "summary": "build/verification/dmg-gain-audit-20261113/summary-final.json",
+    "constraints": "Normal foreground playback; no deliberate load/stress. All speaker routes were gain zero before app JS. Headless Chromium and WebKit; no OS volume or ordinary browser used."
+  },
+  "ruledOut": [
+    "Native per-channel summation saturation before the JS mixer.",
+    "Accidental multiplication of .28 and .36 mixer defaults.",
+    "Simple gain doubling in the meter, verified using known Offline stereo signals.",
+    "A trivial deterministic small-buffer/resampling-only explanation: synthetic Offline constant controls at both source rates and three segment lengths were normal.",
+    "Scheduled buffer late starts, gaps or overlaps in these ordinary-load captures; all were zero by the requested/actual start-time metrics."
+  ],
+  "unresolved": "The exact real-time signal path/scheduling mechanism creating the peaks remains unlocated. Do not describe it as a confirmed resampling bug or fix it by merely lowering gain.",
+  "conclusion": "Gain balancing is applied. The supplied unchanged VGM is below full scale offline even at Master380%, but real browser playback produces extra transient peaks and over-full-scale PCM at380%. At70%, no over-full-scale samples were recorded, although extra peaks remain. This supports investigating the VGM real-time rendering path before FM2612 rollout.",
+  "changes": "Investigation artifacts and issue records only. Product JS/CSS/WASM, calibration gains and presets unchanged.",
+  "todo": "docs/issues/todo_dmg_gain_audit_01.md"
+}

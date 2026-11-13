@@ -194,3 +194,36 @@ test('cold and cached mixed native seeks match uninterrupted linear playback at 
   } finally {preview.dispose();timeline.dispose();outputMix.dispose();engine.dispose();}
 });
 
+test('manual FM edits reach real reference PCM at bounded latency and source seek cannot restore an edited checkpoint',async()=>{
+  const host=audioHost(),controlHost=audioHost(),preview=createSynthSongPreview({getAudio:()=>host}),
+    control=createSynthSongPreview({getAudio:()=>controlHost,seekCacheEnabled:false});
+  const commands=[];
+  for(const slot of [0,8,4,12])for(const [register,value]of [[0x30,1],[0x40,slot===12?16:127],[0x50,31],[0x60,0],[0x70,0],[0x80,0x07]])commands.push(0x52,register+slot,value);
+  commands.push(0x52,0xb0,7,0x52,0xb4,0xc0,0x52,0xa4,0x24,0x52,0xa0,0x40,
+    0x52,0x28,0x80,...waitCommands(12),0x66);
+  const source=vgm({psg:0,commands,durationSamples:12*44100}),original=source.slice();
+  const peak=nodes=>nodes.reduce((maximum,node)=>node.buffer.getChannelData(0).reduce((value,item)=>Math.max(value,Math.abs(item)),maximum),0);
+  const span=nodes=>{const samples=nodes.flatMap(node=>Array.from(node.buffer.getChannelData(0)));return Math.max(...samples)-Math.min(...samples);};
+  try {
+    await preview.load(source,'native-manual.vgm');await control.load(source,'native-manual.vgm');
+    await preview.seek(10.25);assert(preview.getState().cache.count>=2);
+    await preview.resume();let state=preview.getState();
+    assert(state.manualReady);assert(state.manualLatencySeconds<.11,'silent seek bounds native prefetch before manual input');
+    const originalNodes=[...host.starts],before=span(originalNodes);assert(peak(originalNodes)>.001&&before>.001);
+    preview.editFm({channel:0,changes:{'operators.4.tl':127}});
+    assert.equal(preview.getState().cache.count,0);assert.equal(preview.getState().cache.manualDirty,true);
+    for(let step=0;step<4;step++){host.context.currentTime+=.04;await tick();}
+    const after=span(host.starts.slice(-1));
+    assert(after<before*.01,`the edited carrier changes new real-WASM PCM on the same transport (AC span ${before} -> ${after})`);
+    assert(originalNodes.every(node=>!node.stopped),'no queued song buffer is flushed for a knob edit');
+    assert.equal(host.gains[0].gain.value,1);assert(preview.getState().manualLatencySeconds<.11);
+    preview.pause();await preview.seek(6.25);await control.seek(6.25);
+    state=preview.getState();assert.equal(state.cache.manualDirty,false);assert(state.cache.count>0);
+    sameLiveSource(state.liveState,control.getState().liveState);
+    const start=host.starts.length,controlStart=controlHost.starts.length;
+    await preview.resume();await control.resume();
+    samePcm(await renderedPrefix(host,start),await renderedPrefix(controlHost,controlStart),'source seek after a hand edit vs unedited cold native playback');
+    assert.deepEqual(source,original);
+  } finally {preview.dispose();control.dispose();}
+});
+

@@ -1,4 +1,4 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=channel-mixer-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-manual-1';
 import {setupSynthSongSeekControls} from './synth_song_seek_controls.js?v=song-seek-1';
 import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=channel-mixer-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
@@ -50,7 +50,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
       }));
       channel.title=chip==='pcm'?'Synth: edit and play your sound. PCM CH1–CH8: view that song channel; Pause to play its captured sample on the keyboard.'
         :chip==='psg'?'Synth: edit and play your sound. Tone 1–3 / Noise: view that song channel; Pause to play its sound on the keyboard.'
-        :'Synth: edit and play your sound. CH1–CH6: view that song channel; Pause to play its sound on the keyboard.';
+        :'Synth: edit and play all FM channels. CH1–CH6: view, edit and play that song channel. Pause for independent audition.';
     }
     channel.value=value;
   }
@@ -82,12 +82,16 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     }
     const target = !selectedPath || channel.value === 'synth' ? 'synth' : selectedChip==='ym2612'?Number(channel.value):channel.value;
     const selectedChannel = target === 'synth' ? null : channelNumber(String(target));
-    const snapshot = running ? frozenSnapshots[selectedChip] : null;
+    const frozen = running ? frozenSnapshots[selectedChip] : null;
+    const snapshot = selectedChip==='ym2612' && state.playback==='playing'
+      ? preview.readFmSnapshot?.(frozen,state.consumedFrames) ?? frozen : frozen;
     const voice = selectedChannel === null ? null : snapshot?.channels[selectedChannel];
-    const view = voice ? {chip:selectedChip,snapshot, channel:selectedChannel, paused:state.playback==='paused', following:live.checked} : null;
+    const editable=selectedChip==='ym2612'&&state.playback==='playing'&&Boolean(state.manualReady);
+    const view = voice ? {chip:selectedChip,snapshot, channel:selectedChannel, paused:state.playback==='paused', following:live.checked,editable} : null;
     root.dataset.live = String(Boolean(voice));
     root.dataset.target = String(target);
     root.dataset.chip=selectedChip;
+    root.dataset.manualReady=String(Boolean(state.manualReady));
     channel.disabled = copying || seeking;
     live.disabled = seeking;
     const description=voice?chips[selectedChip].describe(snapshot,selectedChannel):null;
@@ -122,16 +126,16 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
       const audition = selectedChannel === 5 && snapshot.dacEnabled ? 'DAC / PCM · FM keyboard unavailable' :
         selectedChannel === 2 && snapshot.csmEnabled ? 'CSM · keyboard unavailable' :
         selectedChannel === 2 && voice.specialMode && !voice.specialFrequencies[3]?.fnum ? 'No base pitch · keyboard unavailable' :
-        state.playback === 'paused' ? 'Keyboard: this CH' : 'Pause to play this CH';
+        state.playback === 'paused' ? 'Keyboard: this CH' : editable ? 'Keyboard + controls: this song CH' : 'Pause to play this CH';
       const mode = state.playback === 'paused' ? 'Paused' : live.checked ? 'Live' : 'Frozen';
-      text(liveStatus, `${mode} CH${selectedChannel + 1} · ${note} · ${gate} · ${pan.left ? 'L' : ''}${pan.right ? 'R' : ''}${!pan.left && !pan.right ? 'Muted' : ''} · ${audition} · read-only`);
+      text(liveStatus, `${mode} CH${selectedChannel + 1} · ${note} · ${gate} · ${pan.left ? 'L' : ''}${pan.right ? 'R' : ''}${!pan.left && !pan.right ? 'Muted' : ''} · ${audition}${editable?' · temporary edits; later VGM writes take over':' · read-only'}`);
     } else {
       text(liveStatus, target === 'synth' ? 'Synth · edit and play' :
         running && !snapshotFor(state,selectedChip) ? `No ${chips[selectedChip].label} in this VGM · choose Synth to play` : 'Synth keyboard · Play, then Pause to play this CH');
     }
     // The keyboard owner needs transport/target changes even before a chip
     // snapshot exists. Notify it first so stale held notes cannot cross modes.
-    onTargetState({target,chip:selectedChip, playback:state.playback, view});
+    onTargetState({target,chip:selectedChip, playback:state.playback, manualReady:Boolean(state.manualReady), view});
     onLiveView(view);
   }
   const preview = createPreview({getAudio, onState:showState, onStatus, beforeResume,...(mix===undefined?{}:{mix})});
@@ -220,6 +224,13 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   showState(preview.getState());
   return {
     stop: () => preview.stop(),
+    editFm: edit=>preview.editFm?.(edit),
+    applyFmPreset: (channel,preset)=>preview.applyFmPreset?.(channel,preset),
+    noteOnFm: (...args)=>preview.noteOnFm?.(...args),
+    noteOffFm: id=>preview.noteOffFm?.(id),
+    releaseFmKeyboard: ()=>preview.releaseFmKeyboard?.(),
+    setFmPitch: value=>preview.setFmPitch?.(value),
+    describeFm: channel=>preview.describeFm?.(channel),
     selectChip(chip) {
       if(!Object.hasOwn(chips,chip)||copying)return false;
       if(chip===selectedChip)return true;

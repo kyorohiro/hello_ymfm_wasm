@@ -1,4 +1,4 @@
-// Exercise the published FM2612 controls as a read-only, audible-time VGM view.
+// Exercise the published FM2612 controls as an audible-time VGM view.
 // The real chip engines run; every physical output is metered and muted.
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -202,10 +202,10 @@ async function checkBrowser(browser,name,origin,emptyCassette){
     assert(before.length>1&&before.every(row=>row.algorithm==='7'&&row.tl==='48'),'UI must not expose a prefetched future write');
     assert(after.length>1&&after.every(row=>row.algorithm==='5'&&row.tl==='40'),'UI follows the actual consumed transition');
     await sound(page,220);assert.equal(await common(page,'FB'),'6');assert.equal(await common(page,'LFO'),'ON');assert.equal(await common(page,'LFOF'),'3');
-    await drainWrites(page);await page.keyboard.down('a');await pause(80);
-    assert.equal(await page.locator('#keyboard .key[data-key="a"]').evaluate(node=>node.classList.contains('is-active')),false,'Playing channel observations do not trigger the editable synth');
-    assert.equal((await drainWrites(page)).filter(write=>write.register===0x28&&(write.value&0xf0)).length,0,'No keyboard KON is sent while following a playing channel');
-    await page.keyboard.up('a');
+    // Playing-channel interaction is verified against the real reference
+    // engine by check_synth_song_manual_browser.cjs. Do not replace the song's
+    // currently held A3 here: the checks below deliberately retain that note.
+    assert.equal(await page.locator('#keyboard').getAttribute('data-song-audition'),'live','Playing YM2612 channels allow manual intervention on the same chip');
     steps.push('actual A4→A3 audio and live ALGO/TL/AR/LFO changes at consumed time, not render-ahead');
 
     await page.locator('#synthSongPlayButton').click();await state(page,'paused');await silence(page);
@@ -301,11 +301,11 @@ async function checkBrowser(browser,name,origin,emptyCassette){
     assert.match((await transport(page)).status,/Frozen/);
     await page.locator('#synthSongChannelSelect').selectOption('synth');await live(page,false);assert.deepEqual(await controls(page),original);
     await drainWrites(page);await page.keyboard.down('a');await keyActive(page,'a',true);await page.keyboard.up('a');await keyActive(page,'a',false);
-    assert((await drainWrites(page)).some(write=>write.register===0x28&&(write.value&0xf0)),'Synth target remains playable while the independent song is playing');
+    assert.equal((await transport(page)).state,'playing','Synth keyboard does not stop the reference song');
     await page.locator('#synthSongLiveToggle').check();await page.locator('#synthSongChannelSelect').selectOption('0');await live(page,true);
     await until(page,async()=>await common(page,'ALGO')==='5','Automatic following resumes at the actual current song state');
     await pause(650);assert.deepEqual(await draftFiles(page),originalFiles,'Auditions and target changes preserve all original VFS bytes');
-    steps.push('Live Off freezes during actual song changes, Synth remains independently playable, and Live On catches up without rewriting files');
+    steps.push('Live Off freezes during actual song changes, Synth remains playable, and Live On catches up without rewriting files');
     if(config.screenshots){await fs.mkdir(config.screenshots,{recursive:true});for(const width of[1240,390]){await page.setViewportSize({width,height:1000});await page.screenshot({path:path.join(config.screenshots,`${name}-live-${width}.png`)});}}
     await page.locator('#cassetteImportInput').setInputFiles({name:'Empty.cassette.zip',mimeType:'application/zip',buffer:emptyCassette});await ready(page);await live(page,false);
     assert.equal(await page.locator('#synthSongPlayer').isVisible(),false);assert.match((await controls(page)).path,/Built-in/);assert.equal(await page.locator('#synthSongLiveToggle').isChecked(),true);
@@ -321,7 +321,7 @@ async function checkBrowser(browser,name,origin,emptyCassette){
   const emptyCassette=Buffer.from(createPlaygroundCassetteZip([],{directories:['/presets']}));
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   const origin=`http://127.0.0.1:${server.address().port}`,results=[];
-  try{for(const name of engines){const browser=await bounded(({chromium,webkit})[name].launch({headless:true}),'launch '+name);try{results.push(await checkBrowser(browser,name,origin,emptyCassette));console.log('PASS '+name+': audible-time live controls, channel changes and editor/VFS preservation');}finally{await bounded(browser.close(),'close '+name);}}}
+  try{for(const name of engines){const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);try{results.push(await checkBrowser(browser,name,origin,emptyCassette));console.log('PASS '+name+': audible-time live controls, channel changes and editor/VFS preservation');}finally{await bounded(browser.close(),'close '+name);}}}
   finally{server.closeIdleConnections?.();server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}
   assert.deepEqual(missing,[]);assert.deepEqual(external,[]);
   const report={passed:true,physicalOutputMuted:true,listeningPerformed:false,results,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))};

@@ -92,6 +92,8 @@ export function createSynthInputController({
     const voice =
       chooseVoice(voices);
 
+    if(!voice)return;
+
     if (voice.held) {
       synth.noteOff(
         voice.channel

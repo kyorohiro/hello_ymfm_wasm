@@ -15,6 +15,35 @@ Replacing sample RAM can end a held PCM note, so trigger the next note from
 the continuing loop. Project replacement and reference-song playback still
 stop Code before taking ownership of the chips.
 
+## Play a VGM and change its FM sound
+
+During VGM playback, **CH1–CH6** selects the same YM2612 channel for viewing,
+knob edits and the keyboard. Hand edits are temporary: later VGM writes can
+replace them. **Synth** keeps the authoring sound visible; its FM edits and
+preset selections also reach all six song channels, and its keyboard uses the
+available song channels in round robin. No extra FM keyboard chip is mixed in
+while the song plays. The original VGM file is never changed.
+
+**Live** follows the consumed song position. With Live off, the observation
+freezes, while fields you deliberately change still update. Editing a packed
+register preserves its other current fields. The hardware LFO is shared by all
+six channels. An older keyboard key-up or Pitch reset cannot stop or retune a
+newer VGM-owned note. CH3 special mode keeps its operator pitch ratios and OP
+selection; CSM CH3 and DAC CH6 explain why FM keyboard input is unavailable.
+DAC and CH3 mode controls remain under the VGM program.
+
+**Pause** freezes the song and uses the existing independent keyboard audition.
+**Copy** then saves a channel as an editable authoring instrument. **Seek**
+reconstructs the original song, discarding temporary hand edits; the seek cache
+is cleared after a hand edit and starts again after seeking. Keyboard response
+includes a short rendered-audio queue (about 50–100 ms, plus device
+latency). YM2612 gain calibration and native 2048-frame audio chunks are kept.
+
+VGM and Code remain mutually exclusive. Manual input can accompany either;
+switching Keyboard / Code views keeps Code running. Looper and Event Rec stay
+disabled during VGM playback. PSG and RF5C164 song channels retain Live viewing
+and Pause audition; direct editing during their playback is a later extension.
+
 Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout while Code keeps playing. Maximized layout is temporary and is not restored after a reload.
 
 Open the **Mixer** tab after 32X PWM for shared YM2612, Sega PSG, Mega CD PCM and 32X PWM volumes and channel **On / Off**. All 20 channel switches are available before loading a VGM and apply to live Keyboard, Code and VGM output. These are software output controls, applied once before Master; they stay in this session rather than the Cassette. Live highlight and Seek cache remain VGM options. The Mixer button in maximized Code restores the view and opens this tab without stopping Code.

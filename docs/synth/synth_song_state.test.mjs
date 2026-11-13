@@ -183,8 +183,16 @@ test('reference live state follows consumed audio despite VgmPlayer render-ahead
   const preview=createSynthSongPreview({getAudio:()=>audio,createEngine:async()=>engine});
   try {
     preview.load(song(),'timed.vgm');await preview.play();
-    assert(writes.some(write=>write.register===0xb0&&write.value===5),'future register writes were already rendered');
     assert.equal(preview.getState().liveState.channels[0].preset.algorithm,1);
+    // Advance the fake device in increments inside the low-latency queue, so
+    // the producer reaches the next patch while the audible cursor stays
+    // before it. Do not require the old 200-ms startup render-ahead.
+    audio.context.currentTime=.04;await new Promise(resolve=>setTimeout(resolve,35));
+    audio.context.currentTime=.08;
+    const deadline=Date.now()+1000;
+    while(!writes.some(write=>write.register===0xb0&&write.value===5)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,15));
+    assert(writes.some(write=>write.register===0xb0&&write.value===5),'future register writes were already rendered');
+    assert.equal(preview.getState().liveState.channels[0].preset.algorithm,1,'the future patch remains hidden behind the audible cursor');
     audio.context.currentTime=.10;
     assert.equal(preview.getState().liveState.channels[0].preset.algorithm,1,'90 ms consumed: future patch is hidden');
     audio.context.currentTime=.12;

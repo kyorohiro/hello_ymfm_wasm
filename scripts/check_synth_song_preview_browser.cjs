@@ -354,16 +354,24 @@ async function megaCd32x(browser,name,origin){
     steps.push('RF5C164 C1 loop marker/C2 waveform/register playback, MAME PWM bank stream, isolated Pause/Resume/Stop');
     await page.locator('#synthSongSelect').selectOption('/vgm/Combined.vgm');
     await page.locator('#synthSongPlayButton').click();await waitState(page,'playing');
-    for(const hz of[440,330,RF_TONE_HZ,220.5])await sound(page,hz);
+    const mixedSoloTones={};
+    for(const hz of[440,330,RF_TONE_HZ,220.5]){
+      await sound(page,hz);await pause(100);
+      mixedSoloTones[String(hz)]=Math.max(0,...(await audit(page)).readings.map(reading=>reading.tones[String(hz)]));
+      assert(mixedSoloTones[String(hz)]>.0001,'Each calibrated source has an independently measured positive spectral baseline: '+hz);
+    }
     await until(page,async()=>(await state(page)).frames>4.15*53267,'Combined section is actually consumed');
-    const minima={'440':.0015,'330':.004,[String(RF_TONE_HZ)]:.008,'220.5':.05};
+    // Preserve the app's calibrated source levels. In particular PWM's shared
+    // System gain is well below unity; compare each mixed component with its
+    // own earlier solo in this same log instead of assuming an old fixed gain.
+    const minima=Object.fromEntries(Object.entries(mixedSoloTones).map(([hz,level])=>[hz,level*.6]));
     await until(page,async()=>(await audit(page)).readings.some(reading=>Object.entries(minima).every(([hz,minimum])=>reading.tones[hz]>minimum)),'Every actual source frequency survives the mixed output');
     const combined=(await audit(page)).readings.find(reading=>Object.entries(minima).every(([hz,minimum])=>reading.tones[hz]>minimum));
     assert.deepEqual(await snapshot(page),patch,'Extended playback leaves the editable patch unchanged');
     await page.locator('#synthSongStopButton').click();await waitState(page,'stopped');await silence(page);
     assert.equal((await audit(page)).activeSources,0);assert.deepEqual(errors,[]);
     steps.push('FM, Sega PSG, RF5C164 and 32X PWM individually audible in one log, then all four measured together');
-    return {browser:name,extendedChips:true,steps,isolated,combinedTones:combined.tones,physicalOutputMuted:true};
+    return {browser:name,extendedChips:true,steps,isolated,mixedSoloTones,mixedToneMinima:minima,combinedTones:combined.tones,physicalOutputMuted:true};
   }catch(error){console.error(JSON.stringify({browser:name,steps,state:await state(page).catch(()=>null),audit:await briefAudit(page).catch(()=>null),errors}));throw error;}
   finally{await bounded(page.close(),'close Mega CD / 32X page');}
 }
@@ -401,7 +409,7 @@ async function realFile(browser,name,origin,filename){
   const emptyCassette=Buffer.from(createPlaygroundCassetteZip([],{directories:['/presets']}));
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   const origin=`http://127.0.0.1:${server.address().port}`,results=[];
-  try{for(const name of engines){const browser=await bounded(({chromium,webkit})[name].launch({headless:true}),'launch '+name);try{
+  try{for(const name of engines){const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);try{
     results.push(await checkBrowser(browser,name,origin,emptyCassette));results.push(await cancelledLoad(browser,name,origin));
     results.push(await megaCd32x(browser,name,origin));for(const filename of realFiles)results.push(await realFile(browser,name,origin,filename));
     console.log('PASS '+name+': reference song playback, actual PCM, lifecycle, Mega CD / 32X and storage UI');

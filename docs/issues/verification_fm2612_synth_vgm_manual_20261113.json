@@ -1,0 +1,320 @@
+{
+  "date": "2026-11-13",
+  "feature": "FM2612 Synth: automatic playback and manual intervention",
+  "baselineCommit": "b746a20d8754aa0198701e3b6511adc628f7a4ad",
+  "passed": true,
+  "scope": {
+    "manualVgmChannels": "YM2612 CH1–CH6 on the same reference engine",
+    "codeAndVgm": "mutually exclusive; manual input can accompany either",
+    "songChannelEdits": "temporary; later VGM writes take over",
+    "authorEditsAndPresetLoads": "saved in author context and forwarded to all six reference FM channels",
+    "pause": "existing independent frozen audition",
+    "seek": "original source reconstruction; manual checkpoints are discarded",
+    "deferred": [
+      "Direct live editing of reference PSG/RF5C164/PWM",
+      "Listening and long-duration/load tests"
+    ]
+  },
+  "node": {
+    "command": "node --test docs/synth/*.test.mjs",
+    "tests": 551,
+    "passed": 551,
+    "failed": 0,
+    "log": "build/verification/fm-vgm-manual-20261113/node-tests.log",
+    "logSha256": "201141b7ffa5bf55ea7652a88443724e214eec518650be78b8a519ff65220c84"
+  },
+  "nativePcm": {
+    "baseline": {
+      "nativeRate": 53267,
+      "comparedFrames": 16384,
+      "scheduledBuffers": 11,
+      "actualBufferFrames": [
+        2048
+      ],
+      "nativePeak": 0.052075378596782684,
+      "master": 0.7,
+      "afterMasterPeak": 0.03645276501774788,
+      "groupVolumes": [
+        {
+          "id": "ym2612",
+          "volume": 0.775938
+        },
+        {
+          "id": "psg",
+          "volume": 0.35
+        },
+        {
+          "id": "pcm",
+          "volume": 0.280286
+        },
+        {
+          "id": "pwm",
+          "volume": 0.128818
+        }
+      ],
+      "lateBuffers": 0,
+      "maxGapSeconds": 3.469446951953614e-17,
+      "maxOverlapSeconds": 2.0816681711721685e-17,
+      "latencySeconds": null
+    },
+    "current": {
+      "nativeRate": 53267,
+      "comparedFrames": 16384,
+      "scheduledBuffers": 11,
+      "actualBufferFrames": [
+        2048
+      ],
+      "nativePeak": 0.052075378596782684,
+      "master": 0.7,
+      "afterMasterPeak": 0.03645276501774788,
+      "groupVolumes": [
+        {
+          "id": "ym2612",
+          "volume": 0.775938
+        },
+        {
+          "id": "psg",
+          "volume": 0.35
+        },
+        {
+          "id": "pcm",
+          "volume": 0.280286
+        },
+        {
+          "id": "pwm",
+          "volume": 0.128818
+        }
+      ],
+      "lateBuffers": 0,
+      "maxGapSeconds": 3.469446951953614e-17,
+      "maxOverlapSeconds": 2.0816681711721685e-17,
+      "latencySeconds": {
+        "min": 0.0471962002740909,
+        "max": 0.09126982935025438
+      }
+    },
+    "pcmComparison": {
+      "channelSamples": 32768,
+      "differingSamples": 0,
+      "maxAbsoluteDifference": 0
+    },
+    "notes": [
+      "Node actual WASM; no physical audio, no browser.",
+      "HEAD baseline and current both render the same FM + PSG source with unchanged master/group gains.",
+      "Only queue scheduling and bounded seek rendering changed; native output buffers are compared before Web Audio resampling.",
+      "Reported manual latency excludes hardware output latency; scheduling deadline stability is not a loaded-browser long-duration guarantee."
+    ]
+  },
+  "nativeSeek": {
+    "results": [
+      {
+        "step": "cold seek10.25 and Resume",
+        "positionFrames": 545986,
+        "tl": 16,
+        "manualLatencyMs": 86.95195899900502,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 2,
+          "bytes": 13160,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "hand edit TL127",
+        "positionFrames": 545986,
+        "tl": 127,
+        "manualLatencyMs": 86.95195899900502,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": true,
+          "count": 0,
+          "bytes": 0,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "original source seek6.25 after hand edit",
+        "positionFrames": 332918,
+        "tl": 16,
+        "manualLatencyMs": 87.34619933542342,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 1,
+          "bytes": 6580,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 0
+        }
+      },
+      {
+        "step": "warm original source seek5.75",
+        "positionFrames": 306285,
+        "tl": 16,
+        "manualLatencyMs": 88.13468000826028,
+        "cache": {
+          "enabled": true,
+          "supported": true,
+          "manualDirty": false,
+          "count": 1,
+          "bytes": 6580,
+          "maxBytes": 33554432,
+          "maxCount": 120,
+          "lastRestoreFrame": 270336
+        }
+      }
+    ],
+    "physicalAudio": false,
+    "notes": [
+      "Actual WASM; stable borrowed audio host across all seeks.",
+      "Manual latency includes the10ms scheduling lead, excludes hardware output latency.",
+      "Source seek after manual edit restores original TL16 and source-only checkpoints.",
+      "Pause/Resume cursor retained exactly."
+    ]
+  },
+  "browsers": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "reports": [
+      {
+        "path": "build/verification/fm-vgm-manual-20261113/manual-d.json",
+        "sha256": "807172fa11bf64d57f26accded7d05f95bcbb4304535f3a998eb0fad387cfdc2",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-vgm-manual-20261113/live-c.json",
+        "sha256": "aa56019ef9c296cdcd9fac07bdafcfd6bf495f356bfd0efa8af606b7d933bca9",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-vgm-manual-20261113/seek-d.json",
+        "sha256": "5ad6c6e38e7fd6c7e80d028ea7be362d4203e679ef889eed318c70d07e72370f",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-vgm-manual-20261113/code-keyboard-d.json",
+        "sha256": "579355bf3e18af07bc469753ad7777bcf514da06176f2619cc8c928ea21443e7",
+        "passed": true,
+        "results": 2
+      },
+      {
+        "path": "build/verification/fm-vgm-manual-20261113/preview-d2.json",
+        "sha256": "6663fa5bbd471803c0b541a460c19dfd8b2b847fd61b0085a6640561064f2d2e",
+        "passed": true,
+        "results": 6
+      },
+      {
+        "path": "build/verification/fm-vgm-manual-20261113/candidate-c-d-assets.json",
+        "sha256": "1dc503200e5d3f7d9861139490ef989502b163d35a5a521010a4e8d94d432e9e",
+        "passed": true,
+        "results": null
+      }
+    ],
+    "manualMeasurements": [
+      {
+        "browser": "chromium",
+        "renderAheadSeconds": 0.04447406461786847,
+        "peak": 0.013426417484879494,
+        "nativePeak": 0.013426417484879494,
+        "rmsRatio": 0.9967353583062811,
+        "master50Ratio": 0.49973474196025025
+      },
+      {
+        "browser": "webkit",
+        "renderAheadSeconds": 0.03486210974900032,
+        "peak": 0.013426417484879494,
+        "nativePeak": 0.013426417484879494,
+        "rmsRatio": 0.9972134228185664,
+        "master50Ratio": 0.4999219403818435
+      }
+    ],
+    "mixedSources": [
+      {
+        "browser": "chromium",
+        "solo": {
+          "330": 0.014123269502565776,
+          "440": 0.00410419407736651,
+          "542.5347222222222": 0.008858380098387615,
+          "220.5": 0.027125274082787348
+        },
+        "combined": {
+          "330": 0.014135047225358485,
+          "440": 0.004098469729060177,
+          "542.5347222222222": 0.008857984194049312,
+          "220.5": 0.02714701079599385
+        },
+        "minima": {
+          "330": 0.008473961701539466,
+          "440": 0.002462516446419906,
+          "542.5347222222222": 0.005315028059032569,
+          "220.5": 0.01627516444967241
+        }
+      },
+      {
+        "browser": "webkit",
+        "solo": {
+          "330": 0.014123261176739557,
+          "440": 0.00410419407736651,
+          "542.5347222222222": 0.008858364181507773,
+          "220.5": 0.027125294364515093
+        },
+        "combined": {
+          "330": 0.014118272556267079,
+          "440": 0.004080173495518759,
+          "542.5347222222222": 0.008859421982920326,
+          "220.5": 0.027139838742908488
+        },
+        "minima": {
+          "330": 0.008473956706043733,
+          "440": 0.002462516446419906,
+          "542.5347222222222": 0.0053150185089046635,
+          "220.5": 0.016275176618709055
+        }
+      }
+    ]
+  },
+  "package": {
+    "archive": "release/hello_ymfm_wasm_fm-vgm-manual-20261113d_itch_synth.zip",
+    "sha256": "2ec5b6d085e7e7c2de3e1a36db9389732d8d604a0b7c5a676f24fd5fb309edda",
+    "bytes": 1100777,
+    "assets": {
+      "synth.js": "04d1d285f5fb6ab5da7127d86da08998068c95db5cdad2fcee2ce6c3395bbca4",
+      "synth_fm_edits.js": "e66678421adf17672d51233ff897731be766adb6be60c5748ab5b3aca0632dd3",
+      "synth_files.js": "426c924d90770de63ded7863be177c9931bd82127e78bf72f510766e3ec4ff5f",
+      "synth_input.js": "cb3100be518e5d8c112b56b5ef1f322a8b61812f2217f6ef3318f1cafeb8ae8c",
+      "synth_song_controls.js": "6b226a6102a8c0d98d685bf31ca6b22417cc3b3e54ec84875da2530dc8ce9d28",
+      "synth_song_preview.js": "e1472fdbb43f08ea8b4ca8345825e65a32e9a96554d2446128d9fde433dec005",
+      "synth_song_interaction.js": "decd171b7291f7ed1be536967759bfd9e0e516e0969bae420a32df1366f489e3",
+      "index.html": "42de34d757029c8ac1d3c731ffbc4371e17960616bd6937bfa3ec17c67e62a52",
+      "CODE.md": "230b9c8ce60df27d0a53ec21c09a48914655a3004f957b87d5f6c842b10b88d1"
+    },
+    "zipCrcVerified": true,
+    "stagedSourceMatchesArchive": true,
+    "readableSources": true
+  },
+  "ci": {
+    "workflow": ".github/workflows/itch-web.yml",
+    "added": "Packaged VGM + manual FM integration check in Chromium and WebKit",
+    "remoteActionsRun": false
+  },
+  "notes": [
+    "No physical output or listening: all headless browser destinations intercepted at gain0; Chromium also uses --mute-audio.",
+    "Gain calibration and native 2048-frame buffers unchanged. Render lookahead reduced from 200ms to45ms, refill25ms to10ms; silent seek also bounds native render-ahead.",
+    "Live regression uses candidate C; C and final D contain289identical file names and differ only in the pure display-overlay helper batching. All other browser checks use final D.",
+    "Reference preview spectral checks compare the four calibrated mixed tones with nonzero same-log solo baselines instead of obsolete unity-gain amplitude thresholds.",
+    "Future scheduleWrites entries execute inside the worklet and are outside the author UI immediate-write observer.",
+    "DMG product/gain and pre-staged DMG audit documents were left as received. No commit, push or publication performed."
+  ]
+}

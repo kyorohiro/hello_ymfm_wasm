@@ -284,6 +284,10 @@ async function checkBrowser(browser,name,origin) {
     await pause(550);await silence(page);assert.equal((await transport(page)).cache.count,0,'Changing source releases the old checkpoint cache');
     steps.push('stopped seek resumes from its destination, playing seek reaches EOF, and immediate Stop/source switch cancel pending reconstruction without late sound');
 
+    // A new, still-unprepared source has no reference Mixer rows yet. Prepare
+    // it through the public transport before editing its visible preferences.
+    await page.locator('#synthSongPlayButton').click();await state(page,'playing');
+    await page.locator('#synthSongPlayButton').click();await state(page,'paused');await silence(page);
     await cacheOff(page);await page.reload();await ready(page);await openMix(page);
     assert.equal(await page.locator('#synthSongSeekCacheToggle').isChecked(),false,'Cache Off preference survives reload');
     await until(page,async()=>(await transport(page)).cache.enabled==='false','Reload applies saved cache preference');
@@ -303,7 +307,7 @@ async function checkBrowser(browser,name,origin) {
 
 (async()=>{
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin=`http://127.0.0.1:${server.address().port}`,results=[];
-  try{for(const name of engines){const browser=await bounded(({chromium,webkit})[name].launch({headless:true}),'launch '+name);
+  try{for(const name of engines){const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);
     try{results.push(await checkBrowser(browser,name,origin));console.log('PASS '+name+': source seeking, realPCM/Live, boundedcache, cancellation and UI');}
     finally{await bounded(browser.close(),'close '+name);}}}
   finally{server.closeIdleConnections?.();server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}

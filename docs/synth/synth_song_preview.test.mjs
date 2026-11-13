@@ -60,6 +60,37 @@ function fixture({getAudio, createEngine, beforeResume}={}) {
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,35));
 
+test('live FM hand edits and guarded keyboard writes keep transport, source bytes, queued PCM and author output intact',async()=>{
+  const f=fixture(),bytes=vgm({psg:0,commands:[0x52,0xb0,4,0x52,0xb4,0xc0,
+    0x52,0xa4,0x24,0x52,0xa0,0x40,0x52,0x28,0x80,0x61,0x44,0xac,0x66]}),original=bytes.slice();
+  try {
+    assert.equal(f.preview.editFm({channel:0,changes:{feedback:7}}),false);
+    await f.preview.load(bytes,'manual.vgm');await f.preview.play();
+    const before=f.preview.getState(),frozen=structuredClone(before.liveState),nodes=[...f.host.starts];
+    const pcm=nodes.map(node=>node.buffer.getChannelData(0).slice());
+    assert.equal(before.manualReady,true);assert(before.manualLatencySeconds>0&&before.manualLatencySeconds<.11);
+    f.preview.setFmPitch(1);assert.equal(f.preview.getState().cache.manualDirty,false,'a wheel without owned notes does not contaminate source cache');
+    f.preview.editFm({channel:0,changes:{feedback:7}});
+    let state=f.preview.getState();assert.equal(state.playback,'playing');assert.equal(state.positionFrames,before.positionFrames);
+    assert.equal(state.liveState.channels[0].preset.algorithm,4);assert.equal(state.liveState.channels[0].preset.feedback,7);
+    assert.equal(f.preview.readFmSnapshot(frozen).channels[0].preset.feedback,7,'a frozen Live view receives the deliberate field only');
+    assert.equal(state.cache.manualDirty,true);assert.equal(state.cache.count,0);
+    assert(nodes.every(node=>!node.stopped));nodes.forEach((node,index)=>assert.deepEqual(node.buffer.getChannelData(0),pcm[index]));
+    assert.equal(f.host.gains[0].gain.value,1,'manual controls add no gain compensation');
+    assert.equal(f.engines.length,1,'keyboard uses the existing reference chip');
+    assert.equal(f.preview.describeFm(0).keyMask,8);
+    const key=f.preview.noteOnFm('key-1',{block:4,fnum:1100},{channel:0});assert.equal(key.channel,0);assert.equal(key.keyMask,8);
+    assert.equal(f.preview.noteOffFm('key-1'),true);assert.equal(f.preview.noteOffFm('key-1'),false);
+    assert.equal(f.preview.releaseFmKeyboard(),false);
+    await f.preview.seek(.025);state=f.preview.getState();assert.equal(state.playback,'playing');
+    assert.equal(state.liveState.channels[0].preset.feedback,0,'source seek discards the temporary edit');
+    assert.equal(state.cache.manualDirty,false);assert(state.manualLatencySeconds<.11,'the first note after seek has no long parser backlog');
+    f.preview.pause();assert.equal(f.preview.getState().manualReady,false);
+    assert.equal(f.preview.editFm({channel:0,changes:{feedback:6}}),false,'Pause retains its independent audition path');
+    assert.deepEqual(bytes,original);
+  } finally {f.preview.dispose();}
+});
+
 test('native PSG-only playback observes the audible prefix and exact paused/seek positions without a fabricated FM snapshot',async()=>{
   const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
   const wait=frames=>[0x61,frames&255,frames>>8];
@@ -71,10 +102,10 @@ test('native PSG-only playback observes the audible prefix and exact paused/seek
     await preview.load(bytes,'PSG-only.vgm');assert.equal(preview.getState().psgLiveState,null);
     assert.equal(await preview.play(),true);
     const deadline=Date.now()+1000;
-    while(host.starts.reduce((sum,node)=>sum+node.buffer.length,0)<12000&&Date.now()<deadline)await tick();
+    while(!host.starts.length&&Date.now()<deadline)await tick();
     let view=preview.getState();assert.equal(view.liveState,null);assert.equal(view.psgLiveState.channels[0].attenuation,6);
     assert.equal(view.psgLiveState.channels[3].attenuation,15,'render-ahead noise writes are not yet audible');
-    host.context.currentTime=.085;preview.pause();view=preview.getState();
+    host.context.currentTime=.04;await tick();host.context.currentTime=.085;preview.pause();view=preview.getState();
     assert.equal(view.psgLiveState.channels[0].attenuation,9);assert.equal(view.psgLiveState.channels[3].attenuation,4);
     const frozen=structuredClone(view.psgLiveState);host.context.currentTime=10;await tick();
     assert.deepEqual(preview.getState().psgLiveState,frozen);
@@ -99,12 +130,12 @@ test('native PCM-only playback shows audible RAM and registers, exact Pause and 
     await preview.load(vgm({clock:0,psg:0,rf:12500000,durationSamples:17640,commands}),'PCM-only.vgm');
     assert.equal(preview.getState().pcmLiveState,null);await preview.play();
     const deadline=Date.now()+1000;
-    while(host.starts.reduce((sum,node)=>sum+node.buffer.length,0)<12000&&Date.now()<deadline)await tick();
+    while(!host.starts.length&&Date.now()<deadline)await tick();
     let view=preview.getState();assert.equal(view.liveState,null);assert.equal(view.psgLiveState,null);
     assert.equal(view.pcmLiveState.channels[0].volume,64);assert.equal(view.pcmLiveState.channels[0].panLeft,5);
     assert.equal(view.pcmLiveState.channels[0].panRight,10);assert.equal(view.pcmLiveState.ram[0x100],0xa0);
     assert.equal(view.pcmLiveState.known[0x104],1);assert.equal(view.pcmLiveState.known[0x105],0);
-    const early=view.pcmLiveState;host.context.currentTime=.085;preview.pause();view=preview.getState();
+    const early=view.pcmLiveState;host.context.currentTime=.04;await tick();host.context.currentTime=.085;preview.pause();view=preview.getState();
     assert.equal(view.pcmLiveState.channels[0].volume,32);assert.equal(view.pcmLiveState.ram[0x100],0xb4);
     assert.equal(early.ram[0x100],0xa0,'render-ahead memory cannot mutate an earlier view');
     const paused=structuredClone(view.pcmLiveState);host.context.currentTime=10;await tick();
@@ -192,9 +223,9 @@ test('Pause freezes consumed frames and Resume preserves the exact unconsumed bu
     // before advancing the fake audio clock into that unconsumed buffer.
     const deadline=Date.now()+1000;
     const scheduledFrames=()=>f.host.starts.reduce((sum,node)=>sum+node.buffer.length,0);
-    while(scheduledFrames()<44100*.2&&Date.now()<deadline)await tick();
-    assert(scheduledFrames()>=44100*.2,'the player schedules enough actual audio for a mid-buffer Pause');
-    f.host.context.currentTime=.075;
+    while(scheduledFrames()<1024&&Date.now()<deadline)await tick();
+    assert(scheduledFrames()>=1024,'the player schedules enough actual audio for a mid-buffer Pause');
+    f.host.context.currentTime=.025;
     const consumed=f.preview.getState().consumedFrames;assert(consumed>0);
     f.preview.pause();const frozen=f.preview.getState();
     assert.equal(frozen.playback,'paused');assert.equal(frozen.positionFrames,consumed);
@@ -261,8 +292,8 @@ test('natural EOF drains scheduled samples and retains the source engine until d
   try{
     f.preview.load(vgm(),'song.vgm');await f.preview.play();
     assert.equal(f.preview.getState().playback,'playing');
-    for(let step=0;step<20&&f.preview.getState().playback==='playing';step++){
-      f.host.context.currentTime+=.1;await tick();
+    for(let step=0;step<60&&f.preview.getState().playback==='playing';step++){
+      f.host.context.currentTime+=.025;await tick();
     }
     const state=f.preview.getState();assert.equal(state.playback,'ended');
     assert.equal(state.positionFrames,44100);assert.equal(state.positionSeconds,1);
@@ -580,7 +611,7 @@ test('loading VGM and VGZ prepares a known duration without audio; stale metadat
     assert.equal(requests,0);assert.equal(host.starts.length,0);
     assert.equal(preview.getState().durationSeconds,12);assert.equal(preview.getState().seekable,true);
     assert.equal(preview.getState().name,'new.vgm');assert.deepEqual(preview.getState().cache,
-      {enabled:true,supported:false,count:0,bytes:0,maxBytes:32*1024*1024,maxCount:120,lastRestoreFrame:0});
+      {enabled:true,supported:false,manualDirty:false,count:0,bytes:0,maxBytes:32*1024*1024,maxCount:120,lastRestoreFrame:0});
     const unknown=longPsgSong(2);new DataView(unknown.buffer).setUint32(0x18,0,true);
     await preview.load(unknown,'unknown.vgm');assert.equal(preview.getState().seekable,false);
     assert.equal(await preview.seek(10),true,'an API seek with no declared duration stops at actual EOF');
