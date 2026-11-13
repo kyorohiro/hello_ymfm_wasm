@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-13",
+  "status": "passed",
+  "task": "DMG Synth: unify display, parameter editing and keyboard into Synth (Round robin) / CH1 / CH2 / CH3 / CH4.",
+  "behavior": [
+    "A single Channel selector remains the target across idle, Code and VGM. Selecting it does not copy parameters, retrigger notes, stop Code or move the reference song.",
+    "Each physical CH keeps its own authored settings. Round-robin edits broadcast only changed compatible fields; selection alone preserves mixed settings.",
+    "Auto update Off freezes the coherent display without changing keyboard routing. Manual edits patch only touched frozen fields; a new Run gets an initial observation.",
+    "Fixed CH is editable while idle or in Code. VGM CH is read-only, with paused audition on the same CH. Capture keeps the song paused and selects Synth.",
+    "Save and portable JSON remain a single authored instrument. The independent four-CH bank is page-session state; full preset load or project restoration seeds it from the existing single-preset format."
+  ],
+  "node": {
+    "command": "npm run test:dmg-synth",
+    "passed": 231,
+    "failed": 0,
+    "receipt": "build/verification/dmg-unified-channel-20261113/node-final.log",
+    "includes": "Actual Game Boy WASM, bank routing, sparse edits, Stop races, Capture rollback and ownership."
+  },
+  "browser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "profiles": [
+      {
+        "name": "channel",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/channel-browser-final.json"
+      },
+      {
+        "name": "code",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/code-browser-final.json"
+      },
+      {
+        "name": "song",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/song-browser-final.json"
+      },
+      {
+        "name": "capture",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/capture-browser-final.json"
+      },
+      {
+        "name": "seek",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/seek-browser-final.json"
+      },
+      {
+        "name": "channels",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/channels-browser-final.json"
+      },
+      {
+        "name": "menu",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/menu-browser-final.json"
+      },
+      {
+        "name": "baseline",
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "receipt": "build/verification/dmg-unified-channel-20261113/baseline-browser-final.json"
+      }
+    ],
+    "layoutWidths": [
+      1240,
+      390
+    ],
+    "scope": "Headless Chromium and WebKit; gain zero inserted before app JS, plus Chromium --mute-audio. The ordinary desktop browser and OS volume were not changed.",
+    "monaco": "Existing fallback-editor profiles; real CDN Monaco is not revalidated by this task.",
+    "screenshots": "build/verification/dmg-unified-channel-20261113/channel-screens-final"
+  },
+  "package": {
+    "passed": true,
+    "files": 128,
+    "archive": "release/tetorica_dmg_synth_dmg-unified-channel-20261113b_itch.zip",
+    "sha256": "e27f7cdc4a57b5acace6a6fd4aaa93a6e2c5a4052b8c058206b9648688d8390c",
+    "testedStage": "release/itch_dmg_synth_dmg-unified-channel-20261113b-jiaohn",
+    "productSourceEquality": "build/verification/dmg-unified-channel-20261113/packaged-source-equality.json",
+    "archiveStageEquality": "build/verification/dmg-unified-channel-20261113/archive-stage-equality.json",
+    "sourceInputs": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    }
+  },
+  "regressionNotes": [
+    "Native ACK / Stop races adopt the committed per-CH bank before marking the selected preset dirty.",
+    "Capture cancellation after early author publication restores the original distinct bank, and late rollback ACKs cannot repaint a newer preset.",
+    "The first seek checker attempt assumed its old initially-selected CH. It was updated to select a numbered CH before toggling Auto update; all final receipts pass."
+  ],
+  "unchanged": "Public SDK APIs, JSON schema, generated WASM and native core.",
+  "todo": "docs/issues/todo_dmg_synth_unified_channel_01.md"
+}

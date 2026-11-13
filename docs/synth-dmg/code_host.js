@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-co
 import {selectGameboyCodeDeclarations} from './code_declarations.js';
 import {createGameboyCodeAudio} from './code_audio.js';
 import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js';
-import {setupGameboyCodeFiles} from './code_files.js?v=dmg-code-keyboard-1';
+import {setupGameboyCodeFiles} from './code_files.js?v=dmg-unified-channel-1';
 
 export const GAMEBOY_STARTER_CODE=`const gb = await useSoundChip("gameboy");
 setBpm(120);

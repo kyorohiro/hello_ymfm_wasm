@@ -11,9 +11,10 @@ class Element {
   fire(type,event={}){return this.listeners.get(type)?.(event);}
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-function fixture(t,{project=createGameboyCodeProject(),load,onCapture}={}){
+function fixture(t,{project=createGameboyCodeProject(),load,onCapture,controlsOptions={},omit=[]}={}){
   const ids=['Player','Select','PlayButton','StopButton','Status','LiveEnabled','ChannelSelect','LiveStatus','Position','CaptureButton','Seek','SeekPosition','Channel1Toggle','Channel2Toggle','Channel3Toggle','Channel4Toggle'];
   const nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));nodes.ChannelSelect.value='0';
+  for(const id of omit)delete nodes[id];
   const doc={getElementById:id=>nodes[id.slice('dmgSong'.length)],createElement:()=>new Element()};
   const calls=[],states=[],liveViews=[];let notify;
   let state={playback:'stopped',loading:false,busy:false,hasSource:false,playing:false,paused:false,positionFrames:0,positionSeconds:0,durationSeconds:1,liveEnabled:true,liveVoice:0,liveState:null,channelEnabled:[true,true,true,true]};
@@ -29,7 +30,7 @@ function fixture(t,{project=createGameboyCodeProject(),load,onCapture}={}){
     whenIdle:async()=>{calls.push(['whenIdle']);},
     stop(){calls.push(['stop']);emit({playback:'stopped',playing:false,paused:false,loading:false,liveActive:false,liveState:null});},dispose(){calls.push(['dispose']);}};
   const controls=setupGameboySongControls({project,document:doc,getAudio:()=>assert.fail('Passive controls must not acquire audio'),beforePlay:()=>assert.fail('Mock owns explicit Play'),
-    onState:value=>states.push(value),onLiveView:value=>liveViews.push(value),onCapture,createPreview:options=>{notify=options.onState;return preview;}});
+    onState:value=>states.push(value),onLiveView:value=>liveViews.push(value),onCapture,createPreview:options=>{notify=options.onState;return preview;},...controlsOptions});
   t.after(()=>controls.dispose());return{controls,project,nodes,calls,states,liveViews,emit};
 }
 
@@ -208,4 +209,59 @@ test('DMG Capture → Synth → same physical CH repaints the song view even wit
   assert.equal(f.nodes.Player.dataset.view,'song');assert.equal(f.nodes.ChannelSelect.value,'2');
   assert.equal(f.liveViews.length,notifications+1);assert.equal(f.liveViews.at(-1).view,'song');assert.equal(f.liveViews.at(-1).liveVoice,2);
   assert.equal(f.liveViews.at(-1).positionFrames,4410);assert.equal(f.nodes.CaptureButton.disabled,false);
+});
+
+test('API-only VGM view/Live integration needs no legacy selector mounts and cannot move the song or change Code settings',async t=>{
+  const changes=[],project=createGameboyCodeProject({starterCode:'const retained = context;'});project.setCodeState({mode:'code',path:'/index.js'});
+  const f=fixture(t,{project,omit:['ChannelSelect','LiveEnabled','LiveStatus'],controlsOptions:{channelElement:null,liveElement:null,initialView:'synth',initialLiveEnabled:false,onViewChange:(target,meta)=>changes.push([target,meta.reason])}});
+  assert.equal(f.controls.getState().viewTarget,'synth');assert.equal(f.controls.getState().liveEnabled,false);assert.deepEqual(f.calls,[]);
+  project.importSongSources([{name:'unified.vgm',bytes:Uint8Array.of(1,2,3)}]);await tick();
+  const source=project.fs.get('/vgm/unified.vgm').data.slice(),code=project.getCodeState(),snapshot=pausedSnapshot(8820);
+  f.emit({playback:'paused',paused:true,playing:false,liveActive:true,liveState:snapshot,positionFrames:8820,positionSeconds:.2});
+  f.controls.setView(2,{notify:false});f.controls.setLiveEnabled(true);f.controls.setView('synth',{notify:false});f.controls.setLiveEnabled(false);f.controls.setView(2,{notify:false});
+  const state=f.controls.getState();assert.equal(state.viewTarget,2);assert.equal(state.liveVoice,2);assert.equal(state.liveState,snapshot);assert.equal(state.positionFrames,8820);assert.equal(state.playback,'paused');
+  assert.deepEqual(changes,[],'root-driven synchronization cannot loop through view callbacks');assert.deepEqual(project.getCodeState(),code);assert.deepEqual(project.fs.get('/vgm/unified.vgm').data,source);
+  assert(!f.calls.some(([method])=>['play','pause','resume','stop','seek'].includes(method)));
+  f.controls.setView(3);assert.deepEqual(changes,[[3,'api']]);f.emit({positionFrames:8820});assert.equal(changes.length,1,'ordinary renderer state updates do not change the application target');
+});
+
+test('Capture notifies the shared selector once after publishing Synth, retaining exact Pause, Live and remembered CH',async t=>{
+  let f;const changes=[];
+  f=fixture(t,{omit:['ChannelSelect','LiveEnabled'],onCapture:async()=>true,controlsOptions:{channelElement:null,liveElement:null,initialView:2,initialLiveEnabled:false,
+    onViewChange:(target,meta)=>changes.push({target,reason:meta.reason,view:f.controls.getState().viewTarget,capturing:f.controls.getState().capturing})}});
+  f.project.importSongSources([{name:'capture.vgm',bytes:Uint8Array.of(1)}]);await tick();
+  const snapshot=pausedSnapshot();f.emit({playback:'paused',paused:true,playing:false,liveActive:true,liveState:snapshot,positionFrames:4410,positionSeconds:.1});
+  assert.equal(await f.controls.capture(),true);
+  assert.deepEqual(changes,[{target:'synth',reason:'capture',view:'synth',capturing:false}]);
+  let state=f.controls.getState();assert.equal(state.positionFrames,4410);assert.equal(state.liveVoice,2);assert.equal(state.liveState,snapshot);assert.equal(state.liveEnabled,false);
+  f.controls.setView(2,{notify:false});assert.equal(f.controls.getState().view,'song');assert.equal(f.controls.getCapturePayload().channel,2);assert.equal(changes.length,1);
+  assert(!f.calls.some(([method])=>['play','pause','resume','stop','seek'].includes(method)));
+});
+
+test('external control elements stay separate from old mounts and validate selection before cancelling a pending Capture',async t=>{
+  const channel=new Element(),live=new Element(),changes=[];channel.value='3';live.checked=false;
+  let finish,guard;const pending=new Promise(resolve=>finish=resolve);
+  const f=fixture(t,{onCapture:async(_payload,{isCurrent})=>{guard=isCurrent;await pending;return true;},controlsOptions:{channelElement:channel,liveElement:live,onViewChange:(target,meta)=>changes.push([target,meta.reason])}});
+  assert.equal(f.controls.getState().liveVoice,3);assert.equal(f.controls.getState().liveEnabled,false);
+  assert.equal(f.nodes.ChannelSelect.value,'0');assert.equal(f.nodes.LiveEnabled.checked,true);assert.equal(f.nodes.ChannelSelect.listeners.size,0);assert.equal(f.nodes.LiveEnabled.listeners.size,0);
+  f.project.importSongSources([{name:'external.vgm',bytes:Uint8Array.of(1)}]);await tick();
+  f.emit({playback:'paused',paused:true,playing:false,liveActive:true,liveState:pausedSnapshot(),positionFrames:4410});
+  const capturing=f.controls.capture();assert(guard());
+  for(const value of [-1,4,NaN,null,undefined,'','bogus'])assert.throws(()=>f.controls.setView(value),/Song view/);
+  assert.throws(()=>f.controls.setLiveEnabled(1),/boolean/);assert(guard(),'invalid shared input cannot cancel or mutate the current Capture');
+  f.controls.setView(3,{notify:false});f.controls.setLiveEnabled(false);assert(guard(),'idempotent shared state synchronization is passive');
+  finish();assert.equal(await capturing,true);assert.deepEqual(changes,[['synth','capture']]);assert.equal(channel.value,'synth');assert.equal(live.checked,false);
+  channel.value='1';channel.fire('change');assert.equal(channel.blurred,true);assert.equal(f.controls.getState().viewTarget,1);assert.deepEqual(changes.at(-1),[1,'selector']);
+  live.checked=true;live.fire('change');assert.equal(f.controls.getState().liveEnabled,true);assert.equal(live.blurred,true);
+  f.controls.dispose();assert.equal(f.controls.setView(0),false);assert.equal(f.controls.setLiveEnabled(false),false);assert.equal(channel.listeners.size,0);assert.equal(live.listeners.size,0);
+});
+
+test('headless VGM controls retain Play/Pause/Seek/Capture/Resume/Stop without channel or Live elements',async t=>{
+  const f=fixture(t,{omit:['ChannelSelect','LiveEnabled','LiveStatus'],onCapture:async()=>true,controlsOptions:{channelElement:null,liveElement:null,initialView:2}});
+  f.project.importSongSources([{name:'transport.vgm',bytes:Uint8Array.of(1)}]);await tick();
+  f.nodes.PlayButton.fire('click');await tick();assert(f.controls.isPlaying());f.nodes.PlayButton.fire('click');assert(f.controls.getState().paused);
+  assert.equal(await f.controls.seek(.1),true);f.emit({liveState:pausedSnapshot(),positionFrames:4410});assert.equal(await f.controls.capture(),true);
+  assert.equal(f.controls.getState().viewTarget,'synth');f.controls.setView(2);assert.equal(f.controls.getCapturePayload().channel,2);
+  f.nodes.PlayButton.fire('click');await tick();assert(f.controls.isPlaying());f.nodes.StopButton.fire('click');assert.equal(f.controls.getState().playback,'stopped');
+  assert.deepEqual(f.calls.filter(([method])=>method!=='load'),[['play'],['pause'],['seek',.1],['resume'],['stop']]);
 });

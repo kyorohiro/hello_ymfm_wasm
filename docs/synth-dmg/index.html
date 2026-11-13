@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=dmg-code-keyboard-1">
+  <link rel="stylesheet" href="./synth.css?v=dmg-unified-channel-1">
 </head>
 <body>
   <main>
@@ -91,7 +91,7 @@
           <button id="dmgSongPlayButton" class="primary" type="button" disabled>Play</button>
           <button id="dmgSongStopButton" type="button" disabled>Stop</button>
           <output id="dmgSongPosition" aria-label="Song position">0:00</output>
-          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ from Menu → Import, or add it to Files. Extracted sounds are saved under /presets; choose one in Files to load it. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Song channels On / Off is a software playback mute. It does not change the recorded settings, Live view, keyboard audition or Capture. Changes reach the output after its short pre-rendered audio buffer; already queued sound is retained to keep the song position and APU phase intact. All four switches stay set across Stop, source changes and seeks in this session. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Live Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Live follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
+          <details class="dmg-inline-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a Game Boy VGM / VGZ from Menu → Import, or add it to Files. Extracted sounds are saved under /presets; choose one in Files to load it. Original bytes are saved under /vgm within the project size limit. Play uses a separate reference APU through the same Master. Song channels On / Off is a software playback mute. It does not change the recorded settings, channel view, keyboard audition or Capture. Changes reach the output after its short pre-rendered audio buffer; already queued sound is retained to keep the song position and APU phase intact. All four switches stay set across Stop, source changes and seeks in this session. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause, and updates all four channels at the destination even with Auto update Off. Seeking from Stop prepares the position paused. Escape cancels a seek or an unfinished drag. Auto update follows the audible position; Off freezes all four channels, and Pause holds its exact position. Pause and select CH1–4 to audition that configured voice on the keyboard. Capture to Synth preserves the paused song and saves both your original and new sound in Files. Select Synth to edit and play your sound, or return to a numbered CH to inspect the song again. Values are recorded register settings, not current hardware Envelope volume or Sweep progress.</p></details>
         </div>
         <div class="dmg-song-seek">
           <input id="dmgSongSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="VGM song position in seconds" disabled>
@@ -107,24 +107,18 @@
             <button id="dmgSongChannel4Toggle" type="button" data-dmg-song-channel="3" aria-pressed="true">CH4 · Noise · On</button>
           </div>
         </div>
-        <div class="dmg-live-controls">
-          <label for="dmgSongChannelSelect">VGM view <select id="dmgSongChannelSelect"><option value="synth">Synth · edit and play</option><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
-          <label><input id="dmgSongLiveEnabled" type="checkbox" checked> Live from VGM</label>
-          <button id="dmgSongCaptureButton" type="button" disabled>Capture to Synth</button>
-        </div>
-        <p id="dmgSongLiveStatus"></p>
-        <p id="dmgSongReadout"></p>
         <p id="dmgSongAuditionStatus" role="status"></p>
       </section>
 
-      <section id="dmgCodeLiveTools" class="dmg-code-live-tools" aria-label="Code channel view" hidden>
+      <section id="dmgChannelTools" class="dmg-code-live-tools" aria-label="Channel selection">
         <div class="dmg-live-controls">
-          <label for="dmgLiveChannel">Code channel <select id="dmgLiveChannel"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
-          <label><input id="dmgLiveEnabled" type="checkbox" checked> Live from Code</label>
-          <details class="dmg-inline-help"><summary aria-label="About Code Live">?</summary><p>Live shows and edits the selected physical channel using the controls below. Values are sent register settings, not measured hardware envelope volume or Sweep position. Only the fields you touch are changed; other channels, pitch and Gate keep running. Wave RAM changes can end a held Wave note. Edited fields are also saved in your instrument for Stop and Save sound. Source is fixed by the physical channel; CH1 alone supports Sweep. Live Off edits your common instrument. Keyboard / Code changes the view while Run continues, and Stop stays available. With Live On, keys play the selected channel using its live settings; with Live Off, keys use the instrument's source pool. The latest Key On owns a physical channel; old releases cannot cut its new note. Code and knobs that repeatedly write the same parameter follow the latest write.</p></details>
+          <label for="dmgChannelSelect">Channel <select id="dmgChannelSelect"><option value="synth">Synth (Round robin)</option><option value="0">CH1 · Pulse</option><option value="1">CH2 · Pulse</option><option value="2">CH3 · Wave</option><option value="3">CH4 · Noise</option></select></label>
+          <label><input id="dmgAutoUpdate" type="checkbox" checked> Auto update</label>
+          <button id="dmgSongCaptureButton" type="button" disabled hidden>Capture to Synth</button>
+          <details class="dmg-inline-help"><summary aria-label="About channel selection">?</summary><p>One selection controls the displayed settings and keyboard. Synth uses your instrument's source pool in round robin. CH1 / CH2 are Pulse, CH3 is Wave and CH4 is Noise. Selecting a channel never copies settings or restarts Code or the song. Edit a CH to change only its touched fields. Synth edits share the touched field with its compatible channels; different CH settings stay distinct until edited. While a VGM is playing, numbered CHs show its read-only settings; Pause to audition that CH, or Capture to Synth to keep its sound. Auto update refreshes the selected view; Off freezes the observation without changing the channel or keyboard route. Code and Keyboard are views of the same running program. The latest Key On owns a physical channel. Wave RAM changes can end a Wave note. Save sound keeps the selected Synth channel as a single preset; VGM sounds must be captured first. Per-CH variations are session settings, not a new four-channel preset format.</p></details>
         </div>
-        <p id="dmgLiveStatus" role="status">Code stopped · edit your sound.</p>
-        <p id="dmgLiveReadout"></p>
+        <p id="dmgChannelStatus" role="status">Synth · Round robin · edit and play.</p>
+        <p id="dmgChannelReadout"></p>
       </section>
 
       <section class="spu-monitor gb-monitor" aria-label="Instrument display">
@@ -203,6 +197,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=dmg-code-keyboard-1"></script>
+  <script type="module" src="./synth.js?v=dmg-unified-channel-1"></script>
 </body>
 </html>

@@ -58,7 +58,7 @@ const read=(page,method='read')=>page.evaluate(method=>__dmgSongAudit.read(metho
 const state=page=>page.evaluate(()=>({phase:document.querySelector('#dmgSongPlayer').dataset.state,frame:Number(document.querySelector('#dmgSongPlayer').dataset.positionFrames),
   rendered:Number(document.querySelector('#dmgSongPlayer').dataset.renderedFrames),
   duty:document.querySelector('#pulseDuty [aria-checked=true]')?.dataset.choiceValue,source:document.querySelector('#source [aria-checked=true]')?.dataset.choiceValue,
-  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgSongLiveStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
+  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgChannelStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
 async function phase(page,expected){await until(()=>state(page).then(value=>value.phase===expected),'song '+expected);}
 async function pcm(page,audible=true){let value;await until(async()=>{value=await page.evaluate(()=>__dmgSongAudit.output());return value.muted&&value.finite&&(audible?value.rms>.0001:value.peak<1e-7);},audible?'real song PCM':'output silence');return value;}
 async function files(page){if(await page.locator('#dmgFilesPanel').isHidden())await page.locator('#dmgFilesToggle').click();await until(()=>page.locator('#dmgFileImportButton').isEnabled(),'Files ready');}
@@ -80,7 +80,7 @@ async function seek(page,seconds,playback='paused'){
   await until(()=>seekState(page).then(value=>!value.seeking&&!value.preparing&&value.phase===playback&&(playback==='playing'?value.frame>=frame&&value.frame<frame+8820:value.frame===frame)),'seek '+seconds+' '+playback);
   return seekState(page);
 }
-async function channel(page,value){await page.locator('#dmgSongChannelSelect').selectOption(String(value));await until(()=>page.locator('#dmgSongChannelSelect').inputValue().then(current=>current===String(value)),'selected channel');}
+async function channel(page,value){await page.locator('#dmgChannelSelect').selectOption(String(value));await until(()=>page.locator('#dmgChannelSelect').inputValue().then(current=>current===String(value)),'selected channel');}
 const CODE_HOLD=`const gb=await useSoundChip('gameboy');\nawait gb.initialize();\nawait gb.pulse.setVoice(0,{duty:.5,volume:5,envelope:{direction:'down',period:0}});\nawait gb.pulse.noteOn(0,'C4');\n`;
 
 async function check(browser,name,origin,fixture,loadCassette){
@@ -118,16 +118,16 @@ async function check(browser,name,origin,fixture,loadCassette){
     await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'editor APU ready');const author=await read(page);measurements.initialSeek=await seekState(page);
 
     step('Paused forward / backward seek refreshes every channel at the exact destination even with Live Off');
-    await page.locator('#dmgSongLiveEnabled').uncheck();await seek(page,1.12);await channel(page,0);
+    await channel(page,0);await page.locator('#dmgAutoUpdate').uncheck();await seek(page,1.12);await channel(page,0);
     assert.equal(await page.locator('#pulseDuty [aria-checked=true]').getAttribute('data-choice-value'),'0.75');
     await channel(page,1);assert.equal(await page.locator('#pulseDuty [aria-checked=true]').getAttribute('data-choice-value'),'0.125');
     await channel(page,2);assert.deepEqual(await page.evaluate(()=>__dmgSongAudit.wave()),fixture.futureWave);
     await channel(page,3);assert.equal(await page.locator('#noiseVolume').textContent(),'6');assert.equal(await page.locator('#noiseShift').textContent(),'1');assert.equal(await page.locator('#noiseWidth [aria-checked=true]').getAttribute('data-choice-value'),'7');
-    assert.equal(await page.locator('#dmgSongLiveEnabled').isChecked(),false);assert.deepEqual((await read(page)).preset,author.preset);
+    assert.equal(await page.locator('#dmgAutoUpdate').isChecked(),false);assert.deepEqual((await read(page)).preset,author.preset);
     await seek(page,.23);await channel(page,0);assert.equal(await page.locator('#pulseDuty [aria-checked=true]').getAttribute('data-choice-value'),'0.25');
     await channel(page,2);assert.deepEqual(await page.evaluate(()=>__dmgSongAudit.wave()),fixture.initialWave);
     await channel(page,3);assert.equal(await page.locator('#noiseShift').textContent(),'4');
-    await page.locator('#dmgSongLiveEnabled').check();
+    await page.locator('#dmgAutoUpdate').check();
 
     step('Seek retires a held trial; audition and Capture use the new Wave RAM while preserving Pause');
     await channel(page,2);await page.keyboard.down('z');await until(()=>seekState(page).then(value=>value.sounding===1),'held original Wave trial');await pcm(page);

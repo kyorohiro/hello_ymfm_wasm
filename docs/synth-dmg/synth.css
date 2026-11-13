@@ -144,7 +144,7 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .dmg-live-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; }
 .dmg-live-controls label { display:flex; align-items:center; gap:7px; font-size:.75rem; color:var(--muted); }
 .dmg-live-controls select { max-width:100%; padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:#faf9f5; color:var(--ink); }
-#dmgLiveStatus,#dmgLiveReadout { margin:7px 0; font-size:.72rem; line-height:1.5; overflow-wrap:anywhere; color:var(--muted); font-variant-numeric:tabular-nums; }
+#dmgChannelStatus,#dmgChannelReadout { margin:7px 0; font-size:.72rem; line-height:1.5; overflow-wrap:anywhere; color:var(--muted); font-variant-numeric:tabular-nums; }
 .dmg-inline-help { font-size:.73rem; color:var(--muted); margin:8px 0; }
 .dmg-inline-help summary { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border:1px solid var(--line); border-radius:50%; cursor:pointer; font-weight:750; }
 .dmg-inline-help p { max-width:80ch; line-height:1.6; }
@@ -170,9 +170,9 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .dmg-song-channel-buttons button { min-width:0; min-height:30px; padding:5px 6px; font-size:.67rem; line-height:1.35; }
 .dmg-song-channel-buttons button[aria-pressed="true"] { color:#fff; }
 .dmg-song-channel-buttons button[aria-pressed="false"] { color:var(--muted); background:#e4e1dd; box-shadow:none; }
-#dmgSongStatus,#dmgSongLiveStatus,#dmgSongReadout { margin:7px 0; font-size:.72rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+#dmgSongStatus { margin:7px 0; font-size:.72rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
 #dmgSongStatus[data-error="true"] { color:#a02f31; }
-#dmgSongLiveStatus:empty,#dmgSongReadout:empty { display:none; }
+#dmgChannelReadout:empty { display:none; }
 @media(max-width:640px) { .dmg-song-transport>label { flex-basis:100%; }.dmg-song-player { padding:10px; } }
 
 #dmgSongCaptureButton { min-height:30px; padding:5px 10px; font-size:.73rem; }

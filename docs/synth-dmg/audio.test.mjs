@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
 import {createDefaultPreset,readPreset} from './preset.js';
 import {readGameboyCodeEdit} from './code_parameter_edit.js';
+import {createGameboyChannelBank} from './channel_bank.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -111,6 +112,28 @@ test('Rejected edits and uncloneable messages clear deadlines without destroying
   await assert.rejects(audio.command('constructor'),/Unknown Game Boy command/);
   await assert.rejects(audio.command('noteOn',{}),/arguments must be an array/);
   assert.equal(f.timers.size,0); assert.equal(f.errors.length,0); assert.equal(f.context.state,'running');
+  await audio.dispose();
+});
+
+test('idle channel bank RPCs never acquire Code, and a new Code owner or Stop fences a pending channel-edit reply',async()=>{
+  const f=fixture(),audio=await f.create(),edit={channel:1,changes:{'pulse.duty':.75}};
+  await audio.command('observeEditor');await audio.command('loadChannelBank',[createGameboyChannelBank(createDefaultPreset())]);
+  await audio.applyChannelEdit(edit);assert(!f.messages.some(message=>message.method==='beginCode'));
+  assert(f.messages.some(message=>message.method==='applyChannelEdit'&&message.args[0].channel===1));
+  const before=f.messages.length;await assert.rejects(audio.applyChannelEdit(edit,{isCurrent:()=>false}),{name:'AbortError'});assert.equal(f.messages.length,before);
+  f.mode('hold');const stale=audio.applyChannelEdit(edit),code=audio.getGameboyClient();f.mode('reply');f.release();
+  await assert.rejects(stale,{name:'AbortError'});const client=await code;assert(client.isCurrent());
+  const count=f.messages.length;await assert.rejects(audio.applyChannelEdit(edit),{name:'AbortError'});assert.equal(f.messages.length,count);
+  await client.dispose();f.mode('hold');const stopped=audio.applyChannelEdit(edit);f.mode('reply');await audio.command('stop');f.release();await assert.rejects(stopped,{name:'AbortError'});
+  await audio.dispose();
+});
+
+test('running common-field edits opt out of whole-bank replacement while the default preset API stays compatible',async()=>{
+  const f=fixture(),audio=await f.create(),client=await audio.getGameboyClient(),preset=createDefaultPreset();
+  await audio.applyCodePreset(preset,{replace:false});let message=f.messages.at(-1);
+  assert.equal(message.method,'applyCodePreset');assert.equal(message.args.length,3);assert.equal(message.args[2].replace,false);assert(client.isCurrent());
+  await audio.applyCodePreset(preset);assert.equal(f.messages.at(-1).args.length,2);
+  const before=f.messages.length;await assert.rejects(audio.applyCodePreset(preset,{replace:1}),/replacement/);assert.equal(f.messages.length,before);
   await audio.dispose();
 });
 

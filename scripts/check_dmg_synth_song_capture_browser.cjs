@@ -58,7 +58,7 @@ const read=(page,method='read')=>page.evaluate(method=>__dmgSongAudit.read(metho
 const state=page=>page.evaluate(()=>({phase:document.querySelector('#dmgSongPlayer').dataset.state,frame:Number(document.querySelector('#dmgSongPlayer').dataset.positionFrames),
   rendered:Number(document.querySelector('#dmgSongPlayer').dataset.renderedFrames),
   duty:document.querySelector('#pulseDuty [aria-checked=true]')?.dataset.choiceValue,source:document.querySelector('#source [aria-checked=true]')?.dataset.choiceValue,
-  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgSongLiveStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
+  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgChannelStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
 async function phase(page,expected){await until(()=>state(page).then(value=>value.phase===expected),'song '+expected);}
 async function pcm(page,audible=true){let value;await until(async()=>{value=await page.evaluate(()=>__dmgSongAudit.output());return value.muted&&value.finite&&(audible?value.rms>.0001:value.peak<1e-7);},audible?'real song PCM':'output silence');return value;}
 async function files(page){if(await page.locator('#dmgFilesPanel').isHidden())await page.locator('#dmgFilesToggle').click();await until(()=>page.locator('#dmgFileImportButton').isEnabled(),'Files ready');}
@@ -72,8 +72,8 @@ async function download(page,selector){if(await page.locator(selector).evaluate(
 const trialState=page=>page.evaluate(()=>{const node=document.querySelector('#dmgSongPlayer');return{
   phase:node.dataset.state,frame:Number(node.dataset.positionFrames),rendered:Number(node.dataset.renderedFrames),view:node.dataset.view,
   state:node.dataset.auditionState,held:Number(node.dataset.auditionHeld),sounding:Number(node.dataset.auditionSounding),
-  channel:document.querySelector('#dmgSongChannelSelect').value,status:document.querySelector('#dmgSongStatus').textContent};});
-async function view(page,channel){await page.locator('#dmgSongChannelSelect').selectOption(String(channel));await until(()=>trialState(page).then(value=>value.view===(channel==='synth'?'synth':'song')),'selected view');}
+  channel:document.querySelector('#dmgChannelSelect').value,status:document.querySelector('#dmgSongStatus').textContent};});
+async function view(page,channel){await page.locator('#dmgChannelSelect').selectOption(String(channel));await until(()=>trialState(page).then(value=>value.view===(channel==='synth'?'synth':'song')),'selected view');}
 async function paused(page,path='/vgm/reference.vgm',minimum=7000){
   await choose(page,path);await view(page,0);await play(page);await until(()=>trialState(page).then(value=>value.frame>=minimum),'song reaches paused test position');
   await pause(page);return trialState(page);
@@ -116,7 +116,7 @@ async function check(browser,name,origin,fixture,loadCassette){
       {name:'sweep.vgm',mimeType:'application/octet-stream',buffer:sweep},
     ]);
     await until(()=>page.locator('#dmgSongSelect option[value="/vgm/reference.vgm"]').count().then(Boolean),'original VGM imported');
-    assert.equal((await page.evaluate(()=>__dmgSongAudit.graph())).contexts,0);assert(await page.locator('#dmgSongCaptureButton').isDisabled());
+    assert.equal((await page.evaluate(()=>__dmgSongAudit.graph())).contexts,0);assert(await page.locator('#dmgSongCaptureButton').isHidden()||await page.locator('#dmgSongCaptureButton').isDisabled());
     await page.locator('#startAudio').click();await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'author APU');const author=await read(page);
     await page.locator('#dmgFilesToggle').click();
 
@@ -164,7 +164,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     step('Cancelled Capture rollback finishes before a later Code owner and leaves no partially saved presets');
     await paused(page);await view(page,2);await page.evaluate(()=>__trialDelay.capture());
     await page.locator('#dmgSongCaptureButton').click();await until(()=>page.evaluate(()=>__trialDelay.count()).then(value=>value===1),'deferred captured instrument write');
-    await stop(page);assert(await page.locator('#dmgSongCaptureButton').isDisabled());
+    await stop(page);assert(await page.locator('#dmgSongCaptureButton').isHidden()||await page.locator('#dmgSongCaptureButton').isDisabled());
     await page.evaluate(()=>__trialDelay.release(true));
     await until(async()=>await page.evaluate(()=>__trialDelay.count())===1&&await page.locator('#dmgFilesPanel').getAttribute('aria-busy')==='false','deferred rollback after Files unlock');
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});await page.locator('#synthCodeEditor').fill(CODE_HOLD);
@@ -182,9 +182,9 @@ async function check(browser,name,origin,fixture,loadCassette){
     const captureFrame=await paused(page);await view(page,2);await trial(page);await releaseTrial(page);
     await page.locator('#dmgSongCaptureButton').click();await until(()=>trialState(page).then(value=>value.view==='synth'&&value.phase==='paused'),'captured Synth view');
     await until(()=>page.locator('#voiceEditor').getAttribute('data-readonly').then(value=>value==='false'),'captured editor enabled');
-    fixed(await trialState(page),captureFrame);assert.equal(await page.locator('#dmgSongChannelSelect').inputValue(),'synth');assert(await page.locator('#dmgSongLiveEnabled').isChecked());
+    fixed(await trialState(page),captureFrame);assert.equal(await page.locator('#dmgChannelSelect').inputValue(),'synth');assert(await page.locator('#dmgAutoUpdate').isChecked());
     const captured=(await read(page)).preset;assert.equal(captured.source,'wave');assert.deepEqual(captured.wave.samples,fixture.initialWave);assert.equal(captured.wave.level,.5);
-    assert.equal(await read(page,'observeCode'),null);assert(await page.locator('#dmgSongCaptureButton').isDisabled());
+    assert.equal(await read(page,'observeCode'),null);assert(await page.locator('#dmgSongCaptureButton').isHidden()||await page.locator('#dmgSongCaptureButton').isDisabled());
     await files(page);const projectBytes=await download(page,'#dmgProjectExportButton'),project=await loadCassette(projectBytes),json=[];
     for(const [filename,bytes]of project.files)if(/^presets\/.*\.json$/.test(filename))json.push({filename,value:JSON.parse(Buffer.from(bytes).toString('utf8'))});
     assert.equal(json.length,2);assert(json.some(item=>JSON.stringify(item.value)===JSON.stringify(author.preset)));const saved=json.find(item=>JSON.stringify(item.value)===JSON.stringify(captured));assert(saved);measurements.savedPresets=json.map(item=>item.filename);

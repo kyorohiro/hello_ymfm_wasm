@@ -1,20 +1,52 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGameboyCodeLive} from './code_live.js';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js';
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const state=(marker='first',frames=128)=>({marker,clock:4194304,positionFrames:frames,
   registers:Array.from({length:48},(_,index)=>index),voice:Array(48).fill(0)});
-function fixture(){
+function fixture(options={}){
   let running=false,audio=null,serial=0;
   const timers=new Map(),requests=[],updates=[];
   const engine=()=>({command(method){return new Promise((resolve,reject)=>requests.push({method,resolve,reject}));}});
   const live=createGameboyCodeLive({getAudio:()=>audio,isRunning:()=>running,onUpdate:value=>updates.push(value),
-    schedule(fn,ms){const id=++serial;timers.set(id,{fn,ms});return id;},cancel:id=>timers.delete(id)});
+    schedule(fn,ms){const id=++serial;timers.set(id,{fn,ms});return id;},cancel:id=>timers.delete(id),...options});
   return{live,timers,requests,updates,engine,
     setRunning(value){running=value;},setAudio(value){audio=value;},
     async tick(){assert.equal(timers.size,1);const[id,value]=timers.entries().next().value;timers.delete(id);value.fn();await flush();return value.ms;}};
 }
+
+test('unified Auto update Off retains all channels and permits a passive one-shot refresh',async()=>{
+  const f=fixture({retainSnapshot:true});f.setAudio(f.engine());f.setRunning(true);f.live.sync();await f.tick();
+  f.requests[0].resolve(state('frozen'));await flush();f.live.setEnabled(false);f.live.setVoice(3);
+  assert.equal(f.live.read().liveState.marker,'frozen');assert(f.live.read().liveActive);assert.equal(f.timers.size,0);assert.equal(f.requests.length,1);
+  const refresh=f.live.refresh();await flush();assert.equal(f.requests.length,2);f.requests[1].resolve(state('manual'));await refresh;
+  assert.equal(f.live.read().liveState.marker,'manual');assert.equal(f.live.read().liveVoice,3);assert.equal(f.timers.size,0);
+  f.setRunning(false);f.live.sync();assert.equal(f.live.read().liveState,null);f.live.dispose();
+});
+
+test('author observation refresh waits for an older request without overlaps or stale freeze data',async()=>{
+  const f=fixture({method:'observeEditor',retainSnapshot:true});f.setAudio(f.engine());f.setRunning(true);f.live.sync();await f.tick();
+  f.live.setEnabled(false);const refresh=f.live.refresh();await flush();assert.equal(f.requests.length,1);
+  f.requests[0].resolve(state('stale'));await flush();assert.equal(f.requests.length,2);assert.equal(f.requests[1].method,'observeEditor');
+  f.requests[1].resolve(state('author'));await refresh;assert.equal(f.live.read().liveKind,'editor');assert.equal(f.live.read().liveState.marker,'author');f.live.dispose();
+});
+
+test('manual edits patch only their fields into a frozen observation without polling or changing another CH',async()=>{
+  const f=fixture({retainSnapshot:true});f.setAudio(f.engine());f.setRunning(true);f.live.sync();await f.tick();
+  const original=state('frozen');original.voice[6]=0xe7;original.voice[7]=0x6b;original.registers[21]=0x55;
+  f.requests[0].resolve(original);await flush();f.live.setEnabled(false);
+  f.live.commitEdit({channel:1,changes:{'pulse.duty':.125,'pan.right':true}});
+  const frozen=f.live.read().liveState,view=gameboyCodeLiveView(frozen,1).preset;
+  assert.equal(view.pulse.duty,.125);assert.equal(view.pulse.volume,6);assert.deepEqual(view.pulse.envelope,{direction:'up',period:3});
+  assert.equal(frozen.voice[6],0x27,'length bits stay frozen');assert.equal(frozen.voice[7],0x6b);
+  assert.equal(frozen.registers[21],0x57,'only CH2 right pan changes');assert.equal(frozen.voice[2],original.voice[2]);
+  assert.equal(original.voice[6],0xe7,'input snapshot is detached');assert.equal(f.requests.length,1);assert.equal(f.timers.size,0);
+  f.live.setVoice(0);f.live.setVoice(1);assert.deepEqual(f.live.read().liveState,frozen);
+  f.live.commitEdit({channel:2,changes:{'wave.samples':Array.from({length:32},(_,i)=>i%16),'wave.level':.5}});
+  assert.deepEqual(gameboyCodeLiveView(f.live.read().liveState,2).preset.wave,{samples:Array.from({length:32},(_,i)=>i%16),level:.5});
+  assert.equal(f.live.read().liveState.voice[7],0x6b);f.live.dispose();
+});
 
 test('Code Live stays passive, polls at most once per interval and returns detached state',async()=>{
   const f=fixture();assert.equal(f.updates.length,0);f.live.sync();assert.equal(f.timers.size,0);assert.equal(f.requests.length,0);

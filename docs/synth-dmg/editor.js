@@ -311,7 +311,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
       else input.disabled = !preset.pulse.sweep.enabled||liveChannel!==null&&liveChannel!==0;
     }
     sourceHint.textContent = preset.source === 'pulse' ? (preset.pulse.sweep.enabled ? 'CH1 · one voice with hardware Sweep.' : 'CH1 + CH2 · two voices in round robin.') : preset.source === 'wave' ? 'CH3 · one voice, with your own Wave RAM.' : 'CH4 · one noise voice. Keys trigger; they do not change pitch.';
-    if(liveChannel!==null)sourceHint.textContent=liveOrigin==='Code'?`Code CH ${liveChannel+1} · edit this physical channel. Choose another CH above to change source.`:`${liveOrigin} CH ${liveChannel+1} · read-only sent / configured ${preset.source} settings.`;
+    if(liveChannel!==null)sourceHint.textContent=liveOrigin==='VGM'?`VGM CH ${liveChannel+1} · read-only sent / configured ${preset.source} settings.`:`${liveOrigin} CH ${liveChannel+1} · edit this physical channel. Choose another CH above to change source.`;
     const high = preset.pulse.duty * 80; let path = '';
     for (let index = 0; index < 4; index++) {const x = index * 80; path += `${index ? 'L' : 'M'}${x} 10 L${x + high} 10 L${x + high} 36 L${x + 80} 36 `;}
     pulsePath.setAttribute('d', path); resizeWave(); drawWave(stroke?.samples);

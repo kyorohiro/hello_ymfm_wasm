@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createDefaultPreset,readPreset} from './preset.js';
+import {createGameboyChannelBank,readGameboyChannelBank,updateGameboyChannelBank} from './channel_bank.js';
 const source=await readFile(new URL('./synth.js',import.meta.url),'utf8');
 const start=source.indexOf('async function applyPreset('),end=source.indexOf('\nconst editor =',start);
 assert(start>=0&&end>start,'Locate the real application preset function');
@@ -21,7 +22,7 @@ function fixture({audio=true,blockedQueue=null,apply=async()=>{},read=async()=>{
     async read(){calls.push({method:'read'});await read();return {preset:readPreset(backend),voices:[]};},
     async command(method,args){calls.push({method,args});if(['setPreset','loadPreset'].includes(method))backend=readPreset(args[0]);return true;},
   };
-  const realm={readPreset,applySequence:0,disposed:false,lastSongState:null,isSongChannelView:()=>false,isSongActive:()=>false,audition:null,
+  const realm={readPreset,readGameboyChannelBank,updateGameboyChannelBank,channelBank:createGameboyChannelBank(createDefaultPreset()),applySequence:0,disposed:false,lastSongState:null,isSongChannelView:()=>false,isSongActive:()=>false,audition:null,
     stopAudition:async()=>{},songControls:null,codeHost:{isRunning:()=>running,markSoundDirty(){publishes.push(readPreset(realm.preset));}},audio:audio?engine:null,
     preset:createDefaultPreset(),epoch:0,notes:new Map(),revision:0,updateKeys(){},codeLive:null,setPitchUi(){},updatePresetUi(){},status(){},
     enqueue(action){const task=queue.then(async()=>{if(blockedQueue)await blockedQueue;return action();});queue=task.catch(()=>{});return task;},

@@ -13,9 +13,25 @@ keyboard and output display used by Tetorica's FM2612 / SPU Synths.
 
 ## Play and edit
 
-1. Select **Enable audio**, then click a key or play the displayed computer keys.
-2. Choose **Pulse**, **Wave** or **Noise** under **Source**.
-3. Change its controls, use **Files → Save sound**, or **Menu → Export → Copy JavaScript**.
+1. Choose **Synth (Round robin)** or **CH1–CH4** in the common **Channel** selector above the monitor.
+2. Select **Enable audio**, then click a key or play the displayed computer keys.
+3. In Synth, choose **Pulse**, **Wave** or **Noise** under **Source**. A fixed CH uses its hardware source.
+4. Change its controls, use **Files → Save sound**, or **Menu → Export → Copy JavaScript**.
+
+The same Channel selection controls the display, edits and keyboard in idle,
+Code and VGM contexts. CH1 / CH2 are Pulse, CH3 is Wave and CH4 is Noise;
+Sweep belongs to CH1 only. Choosing a CH does not copy its settings into
+another channel, retrigger notes, stop Code or move a VGM song. **Synth (Round
+robin)** shows the common authored instrument and uses its existing source
+pool. Selecting Synth alone leaves different CH values intact. Changing one
+control in Synth applies only that touched field across the relevant channels;
+it does not replace their other settings. A mixed-settings indication explains
+when the physical channels differ.
+
+**Auto update** is On by default. It updates the displayed physical-CH values;
+Off freezes that display. It does not change the selected CH, keyboard routing,
+Code execution or song playback. Use this same selector and Auto update control
+for Code and VGM observation.
 
 The hamburger **Menu** beside Enable audio contains Import / Export and Reset.
 Import a VGM / VGZ there to keep its original file and extracted sounds in
@@ -31,8 +47,9 @@ Explicit Stop retains the latest selected preset. Importing a project or
 starting a VGM song still stops Code before transferring ownership.
 
 Opening the page or editing a source does not start an audio device. Playing
-a key can also initialize audio. All keyboard keys play the selected source;
-there is no split by keyboard region.
+a key can also initialize audio. In Synth, all keyboard keys play the selected
+source; a fixed CH sends every key to that one physical voice. There is no
+split by keyboard region.
 
 One APU supplies the following physical channels:
 
@@ -43,11 +60,12 @@ One APU supplies the following physical channels:
 | Wave | One, using CH3 | 32 four-bit samples and hardware output level |
 | Noise | One, using CH4 | Clock divisor / shift, 7- or 15-bit LFSR and hardware volume envelope |
 
-The keyboard allocator prefers an available channel in round-robin order. If
+In Synth mode, the keyboard allocator prefers an available channel in round-robin order. If
 all channels for the source are occupied, a new key replaces the oldest note.
 Releasing the replaced key cannot stop its replacement. Changing Source or
 enabling / disabling Sweep stops held notes. The voice capacity is shown above
-the editor. This initial version does not duplicate APUs to add polyphony.
+the editor. Fixed-CH mode is monophonic and retains that CH's own settings.
+The Synth does not duplicate APUs to add polyphony.
 
 **Noise does not follow musical note pitch.** Every keyboard key triggers the
 same configured noise; its clock and LFSR width set the character. Both Pitch
@@ -66,7 +84,7 @@ page, switching away from its window or hiding the page also releases keyboard
 notes. Code has its own Stop control; leaving the page stops it too. If
 the audio engine fails, select **Enable audio** to reconnect.
 
-## Keyboard / Code, Files and Live
+## Keyboard / Code, Files and channel editing
 
 Select **Code** beside Keyboard to edit `/index.js` in the same Synth. **Run**
 starts a fresh performance, **Apply** updates named loops while preserving
@@ -103,26 +121,31 @@ existing API; trigger it again after changing Wave RAM. `initialize()` and
 settings; omit them when keeping the upper editor sound. `setClock` accepts
 only the fixed DMG clock in this standalone Synth.
 
-**Live from Code** is On by default. Select CH1–4 above the output display to
-view and edit that physical channel in the existing Pulse / Wave / Noise controls.
-These are sent/configured register values, including the configured initial
-volume, Wave RAM and base pitch. They are not measurements of the current
-hardware envelope volume or Sweep frequency. Observation is capped at 20 Hz,
-with only one request at a time. Live Off returns to the editable instrument
-while Code continues; instrument edits apply to the same APU. Live observation
-does not rewrite the stored preset. A deliberate edit changes only the fields
-you touch on the selected channel, keeping other channels, pitch and Gate.
-Those fields also update your authored instrument for Stop and Save sound.
-Wave RAM replacement can end a held Wave note. The physical CH determines
-Pulse / Wave / Noise, and Sweep remains CH1-only.
+The common **Channel** selector remains the edit and keyboard target while
+Code runs. Select CH1–4 to view and edit its physical Pulse / Wave / Noise
+controls, or Synth to edit the common instrument. Selecting a CH does not
+rewrite Code: existing scripts keep addressing their explicitly chosen
+physical channels.
 
-Keyboard works alongside Code on this same APU. Live On plays the selected
-physical CH using its current settings; Live Off uses the authored source pool.
-The latest Key On owns a physical channel. An older Code release or keyboard
-key-up cannot cut its replacement; releasing it does not restore an older note.
-Blur releases keyboard notes while Code continues. Explicit Stop ends both.
-Code can also automate Duty, pan or Noise clock while you play the keyboard.
-If Code and a knob write the same parameter repeatedly, the latest write wins.
+The channel values are sent/configured registers, including the initial volume,
+Wave RAM and base pitch. They are not measurements of current hardware envelope
+volume or Sweep frequency. **Auto update** is capped at 20 Hz, with only one
+request at a time. Off freezes the displayed values while retaining the same CH
+and keyboard route; it does not return to Synth or stop Code. Observation alone
+does not rewrite a preset. A deliberate edit sends only the fields you touch,
+keeping other channel settings, pitch and Gate. Those fields also update that
+CH's authored sound for Stop and Save sound. Wave RAM replacement can end a
+held Wave note. The physical CH determines Pulse / Wave / Noise, and Sweep
+remains CH1-only.
+
+Keyboard works alongside Code on this same APU. A fixed CH plays that physical
+voice using its current settings, regardless of Auto update. Synth uses the
+common sound's source pool and round robin. The latest Key On owns a physical
+channel. An older Code release or keyboard key-up cannot cut its replacement;
+releasing it does not restore an older note. Blur releases keyboard notes while
+Code continues. Explicit Stop ends both. Code can automate Duty, pan or Noise
+clock while you play the keyboard. If Code and a knob write the same parameter
+repeatedly, the latest write wins.
 
 `liveLoop`, `beat`, `tween`, `context`, scheduling and `liveFx`
 are software facilities, separate from APU Envelope / Sweep.
@@ -202,7 +225,7 @@ Drag the **position bar** and release to seek. The exact preview time appears
 beside it; moving the pointer alone does not change playback. Arrow keys and
 Home / End also work. A seek keeps Play / Pause, and seeking from Stop prepares
 the selected position paused. The destination refreshes all four channel
-settings even with Live Off, so keyboard audition and Capture use the new
+settings even with Auto update Off, so keyboard audition and Capture use the new
 position. **Escape** cancels an unfinished drag or a seek; **Stop** resets to
 the start.
 
@@ -213,13 +236,15 @@ failed or cancelled seek keeps the old position; Stop, another source or Code
 cannot be overwritten by a late seek. Progress is shown while preparing;
 preparation has a 30-second work limit. Checkpoint caching is not enabled.
 
-Select **VGM view CH1–4** to follow recorded Pulse Duty / envelope settings,
-Wave RAM / level, Noise clock and routing in the same sound editor. **Live from
-VGM** is On by default. Off freezes a coherent snapshot of all four channels;
-changing CH shows that same frozen instant. Pause refreshes the snapshot to its
-exact audible position even with Live Off. Live is capped at 20 updates per
-second, and displays consumed audio time rather than the ~200 ms render-ahead
-buffer. The values are sent/configured registers, not measured hardware
+Use the common **Channel** selector to choose CH1–4 and follow recorded
+Pulse Duty / envelope settings, Wave RAM / level, Noise clock and routing in the
+same editor. VGM channel controls are read-only. Select Synth to show the
+editable authored sound. **Auto update** is On by default; Off freezes a coherent
+snapshot of all four channels, with the selected CH and paused keyboard route
+kept. Changing CH then shows the same frozen instant. Pause refreshes that
+snapshot to its exact audible position even with Auto update Off. Updates are
+capped at 20 per second and show consumed audio time rather than the ~200 ms
+render-ahead buffer. These are sent/configured registers, not measured hardware
 Envelope volume or current Sweep frequency.
 
 While paused, choose **CH1–4** and play the keyboard to audition that channel.
@@ -231,8 +256,8 @@ hardware Sweep remains CH1-only. Changing CH, resuming, stopping, starting Code
 or changing the song ends the trial. A silent or invalid channel shows a reason
 instead of playing another instrument.
 
-**Capture to Synth** keeps the song paused and switches the view to
-**Synth · edit and play**. Files saves the original instrument and a new captured
+**Capture to Synth** keeps the song paused and changes the common Channel
+selection to **Synth (Round robin)**. Files saves the original instrument and a new captured
 instrument as separate, uniquely named JSON presets. Edit or play the new sound,
 or choose a song CH to return to the frozen registers without losing those edits.
 Resume continues from the retained song position. Capture recreates configured
@@ -242,7 +267,7 @@ counters or the elapsed Envelope / Sweep phase.
 **Song channels · software mute** provides separate On / Off switches for
 CH1 Pulse (+ hardware Sweep), CH2 Pulse, CH3 Wave and CH4 Noise. Leave only the
 channels you want to hear On. This is a reference-playback output control:
-recorded registers, Live observation, keyboard audition, Code and Capture keep
+recorded registers, channel observation, keyboard audition, Code and Capture keep
 their original settings. An Off channel can still be selected and auditioned
 while paused, or captured into an editable instrument.
 
@@ -300,10 +325,20 @@ selected source, Pulse settings shared by CH1 / CH2, Wave's 32 samples and level
 settings, and left / right routing. The portable format is
 `tetorica-gameboy-voice`, version 1. **Menu → Import → Instrument · DMG JSON…**
 validates the file and adds it to Files; select its JSON there to apply it.
-Malformed or oversized files preserve the previous sound. Selecting a valid
-preset or resetting stops notes. Master, keyboard
-layout, octave and the temporary Pitch wheel position are performance controls
-and are not saved in the instrument preset.
+Malformed or oversized files preserve the previous sound. Loading a full
+preset or resetting seeds all four authored channel sounds from that one
+instrument. It can release held notes while keeping Code Run. Merely choosing
+Synth or another CH does not seed or unify settings.
+
+**Files → Save sound** and instrument JSON export save one ordinary single
+instrument for the selected idle / Code CH, or the common sound when Synth is
+selected. The four different channel sounds are a page-session bank, not a new
+portable preset format. Project / local restoration uses its saved single
+instrument to seed the four channels again; it does not restore an independent
+four-CH bank. To save a song channel, use Capture to Synth first. The public SDK,
+WASM and version-1 JSON schema are unchanged. Master, keyboard layout, octave and
+the temporary Pitch wheel are performance controls and are not saved in the
+instrument preset.
 
 **Menu → Export → Copy JavaScript** generates the selected source's setup and a single-channel
 audition. Open the Playground in **Game Boy** mode, replace its default script
@@ -346,6 +381,7 @@ npm run test:dmg-synth:song-capture-browser
 npm run test:dmg-synth:song-seek-browser
 npm run test:dmg-synth:menu-browser
 npm run test:dmg-synth:song-channels-browser
+npm run test:dmg-synth:channel-browser
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

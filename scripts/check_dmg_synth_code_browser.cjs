@@ -179,6 +179,7 @@ async function check(browser,name,origin,loadCassette){
     const graph=await page.evaluate(()=>__dmgCodeAudit.graph());assert.equal(graph.contexts,1);assert.equal(graph.editorWorklets,1);assert.equal(graph.destinationConnections,1);assert(graph.muted);
 
     step('Live uses editable controls for each physical channel without applying untouched fields');
+    await page.locator('#dmgChannelSelect').selectOption('0');
     await until(()=>page.locator('#voiceEditor').getAttribute('data-readonly').then(value=>value==='false'),'Live editable');
     const startCommands=await page.evaluate(()=>__dmgCodeAudit.drain());
     assert.equal(await page.locator('#instrumentName').evaluate(input=>input.readOnly),true);
@@ -186,11 +187,11 @@ async function check(browser,name,origin,loadCassette){
     assert(await read(page,'observeCode'),'Enter in the read-only instrument name keeps the Code lease');
     assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
     for(const [channel,kind]of [[0,'Pulse'],[1,'Pulse'],[2,'Wave'],[3,'Noise']]){
-      await page.locator('#dmgLiveChannel').selectOption(String(channel));
-      await until(()=>page.locator('#dmgLiveReadout').textContent().then(value=>value.includes(`CH ${channel+1} · ${kind}`)),'Live '+kind);
+      await page.locator('#dmgChannelSelect').selectOption(String(channel));
+      await until(()=>page.locator('#dmgChannelReadout').textContent().then(value=>value.includes(`CH ${channel+1} · ${kind}`)),'Live '+kind);
       assert.equal(await page.locator('#voiceEditor').evaluate(node=>node.inert),false);
       assert(await page.locator('[data-choice-for="source"][data-choice-value="pulse"]').isDisabled(),'Physical source is chosen by CH');
-      if(channel===2){await fs.mkdir(config.screenshots,{recursive:true});await page.locator('#dmgCodeLiveTools').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(config.screenshots,name+'-live-ch3.png')});}
+      if(channel===2){await fs.mkdir(config.screenshots,{recursive:true});await page.locator('#dmgChannelTools').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(config.screenshots,name+'-live-ch3.png')});}
     }
     const afterViews=await page.evaluate(()=>__dmgCodeAudit.drain());
     assert(!afterViews.some(command=>['setPreset','loadPreset','noteOn','noteOff','stop','beginCode','code'].includes(command.method)),'view changes only observe, never mutate the APU');
@@ -209,6 +210,7 @@ async function check(browser,name,origin,loadCassette){
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-readonly'),'false');
 
     step('Save sound preserves running Code and focus, while a JSON selection remains non-runnable');
+    await page.locator('#dmgChannelSelect').selectOption('synth');
     await source(page,HOLD);await execute(page);await pcm(page);await page.locator('#synthCodeEditor').focus();
     const beforeSave=await read(page,'observeCode'),focus=await page.evaluate(()=>document.activeElement.id);
     await page.locator('#dmgFileSaveSoundButton').click();await until(()=>page.locator('#dmgFilesStatus').textContent().then(value=>/Current DMG instrument saved/.test(value)),'Save sound');
@@ -264,7 +266,7 @@ context.boots=(context.boots??0)+1;const prepared=await livePrepare('direct-edit
 globalThis.__dmgEditProbe={gb,context,prepared};
 liveFx('edit-level',{context:{gain:.5},process(input,output,state,context){for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.gain;}});
 liveLoop('melody',async()=>{prepared.ticks++;await gb.pulse.noteOn(0,prepared.ticks%2?'C4':'E4');await sleep(.12);await gb.pulse.keyOff(0);await sleep(.03);});`);
-    await execute(page);await pcm(page);await page.locator('#dmgLiveChannel').selectOption('1');
+    await execute(page);await pcm(page);await page.locator('#dmgChannelSelect').selectOption('1');
     await until(()=>page.locator('#pulseVolume').textContent().then(value=>value==='6'),'CH2 volume view');
     const beforeEdit=await read(page,'observeCode');await page.evaluate(()=>{window.__dmgEditIdentity=__dmgEditProbe;__dmgCodeAudit.drain();});
     await page.locator('[data-choice-for="pulseDuty"][data-choice-value="0.75"]').click();
@@ -274,10 +276,10 @@ liveLoop('melody',async()=>{prepared.ticks++;await gb.pulse.noteOn(0,prepared.ti
     const afterEdit=await read(page,'observeCode');assert.equal(afterEdit.voice[1],beforeEdit.voice[1]);assert.equal(afterEdit.voice[2],beforeEdit.voice[2]);
     assert.deepEqual(afterEdit.registers.slice(8,10),beforeEdit.registers.slice(8,10),'CH2 keeps its held pitch');assert.equal(afterEdit.registers[21]&16,beforeEdit.registers[21]&16,'CH1 pan is kept');
     assert(await page.locator('#sweepEnabled').isDisabled(),'CH2 cannot acquire CH1 Sweep');
-    await page.locator('#dmgLiveChannel').selectOption('2');await until(()=>page.locator('#waveCanvas').isVisible(),'CH3 editor');
+    await page.locator('#dmgChannelSelect').selectOption('2');await until(()=>page.locator('#waveCanvas').isVisible(),'CH3 editor');
     await page.locator('[data-wave-shape="triangle"]').click();
     await until(async()=>{const value=await read(page);return value.preset.wave.samples[0]===0&&value.preset.wave.samples[16]===15;},'CH3 wave applied');
-    await page.locator('#dmgLiveChannel').selectOption('3');await until(()=>page.locator('#noiseShift').isVisible(),'CH4 editor');
+    await page.locator('#dmgChannelSelect').selectOption('3');await until(()=>page.locator('#noiseShift').isVisible(),'CH4 editor');
     const noiseShift=Number(await page.locator('#noiseShift').textContent());await page.locator('[data-stepper-for="noiseShift"][data-stepper-delta="1"]').click();
     await until(async()=>((await read(page,'observeCode')).voice[18]>>4)===noiseShift+1,'CH4 Noise clock applied');
     await until(()=>page.evaluate(()=>__dmgEditProbe.prepared.ticks>2),'Code melody continues after edits');
@@ -292,7 +294,7 @@ liveLoop('melody',async()=>{prepared.ticks++;await gb.pulse.noteOn(0,prepared.ti
 const prepared=await livePrepare('keyboard-motion',()=>({ticks:0}));context.boots=(context.boots??0)+1;
 globalThis.__dmgParamProbe={gb,prepared,context};
 liveLoop('motion',async()=>{prepared.ticks++;await gb.pulse.setDuty(0,prepared.ticks%2?.25:.5);await sleep(.04);});`);
-    await execute(page);await pcm(page,false);await page.locator('#dmgLiveChannel').selectOption('0');
+    await execute(page);await pcm(page,false);await page.locator('#dmgChannelSelect').selectOption('0');
     const tabBefore=await read(page,'observeCode'),ticks=await page.evaluate(()=>__dmgParamProbe.prepared.ticks);
     await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='keyboard'),'Keyboard view');assert(await page.locator('#synthCodeStopButton').isVisible());
     assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
@@ -337,7 +339,7 @@ liveLoop('motion',async()=>{prepared.ticks++;await gb.pulse.setDuty(0,prepared.t
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);
     return {browser:name,passed:true,checks,measurements,graph:await page.evaluate(()=>__dmgCodeAudit.graph()),pageErrors:errors,consoleErrors};
   }catch(error){
-    const diagnostic={stage,codeState:await page.locator('#synthCodeState').textContent().catch(()=>''),codeError:await page.locator('#synthCodeError').textContent().catch(()=>''),status:await page.locator('#audioStatus').textContent().catch(()=>''),live:await page.locator('#dmgLiveStatus').textContent().catch(()=>''),commands:await page.evaluate(()=>__dmgCodeAudit.drain()).catch(()=>[])};
+    const diagnostic={stage,codeState:await page.locator('#synthCodeState').textContent().catch(()=>''),codeError:await page.locator('#synthCodeError').textContent().catch(()=>''),status:await page.locator('#audioStatus').textContent().catch(()=>''),live:await page.locator('#dmgChannelStatus').textContent().catch(()=>''),commands:await page.evaluate(()=>__dmgCodeAudit.drain()).catch(()=>[])};
     await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-failure.png'),fullPage:true}).catch(()=>{});
     error.receipt={browser:name,passed:false,error:error.stack,checks,measurements,diagnostic,pageErrors:errors,consoleErrors};throw error;
   }finally{await page.close();}

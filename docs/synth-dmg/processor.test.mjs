@@ -19,6 +19,9 @@ function fixture() {
     applyCodeEdit(session,value){if(!this.codeActive||session!==this.codeEpoch){const error=new Error('stale');error.name='AbortError';throw error;}this.calls.push(['applyCodeEdit',value]);return {preset:value};}
     releaseKeyboard(){this.calls.push(['releaseKeyboard']);return this.read();}
     observeCode() {return this.codeActive ? {clock:4194304,registers:Array(48).fill(0),voice:Array(48).fill(0)} : null;}
+    observeEditor(){return{channelPresets:Array(4).fill(null)};}
+    applyChannelEdit(edit){this.calls.push(['applyChannelEdit',edit]);return this.read();}
+    loadChannelBank(bank){this.calls.push(['loadChannelBank',bank]);return this.read();}
     code(session,method,args) {
       if (!this.codeActive || session !== this.codeEpoch) {const error = new Error('stale');error.name='AbortError';throw error;}
       return {method,args};
@@ -173,4 +176,18 @@ test('selected channel edits and keyboard-only cleanup use the same Code session
   assert.deepEqual(f.processor.instrument.calls,[['applyCodeEdit',{channel:1,changes:{'pulse.duty':.25}}],['keyboard',64,{channel:1}],['releaseKeyboard']]);
   f.processor.receive({id:5,method:'stop'});f.processor.receive({id:6,method:'applyCodeEdit',args:[session,{channel:0,changes:{'pulse.duty':.5}}]});await f.processor.commands;
   assert.equal(f.messages.find(message=>message.id===6).name,'AbortError');f.processor.dispose();
+});
+
+test('idle bank observation/editing is passive and common Code edits pass an explicit replacement policy without retiring the owner',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  f.processor.receive({id:1,method:'observeEditor'});f.processor.receive({id:2,method:'applyChannelEdit',args:[{channel:1,changes:{'pulse.duty':.75}}]});f.processor.receive({id:3,method:'loadChannelBank',args:[['bank']]});
+  await f.processor.commands;assert.equal(f.processor.instrument.codeActive,false);assert.equal(f.processor.codeOwner,null);assert.equal(f.processor.instrument.stopCount,0);
+  assert.equal(f.messages.find(message=>message.id===1).value.channelPresets.length,4);
+  assert.deepEqual(f.processor.instrument.calls,[['applyChannelEdit',{channel:1,changes:{'pulse.duty':.75}}],['loadChannelBank',['bank']]]);
+  f.processor.receive({id:4,method:'beginCode'});await f.processor.commands;const owner=f.processor.codeOwner,session=f.messages.find(message=>message.id===4).value.session;
+  let seen;f.processor.instrument.applyCodePreset=(...args)=>{seen=args;return{};};
+  f.processor.receive({id:5,method:'applyCodePreset',args:[session,{name:'preset'},{replace:false}]});await f.processor.commands;
+  assert.deepEqual(seen,[owner.token,{name:'preset'},null,false]);assert.equal(f.processor.codeOwner,owner);
+  f.processor.receive({id:6,method:'applyCodePreset',args:[session,{}, {replace:0}]});await f.processor.commands;assert.equal(f.messages.find(message=>message.id===6).name,'TypeError');assert.equal(f.processor.codeOwner,owner);
+  f.processor.dispose();
 });

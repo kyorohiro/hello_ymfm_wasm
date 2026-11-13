@@ -58,7 +58,7 @@ const read=(page,method='read')=>page.evaluate(method=>__dmgSongAudit.read(metho
 const state=page=>page.evaluate(()=>({phase:document.querySelector('#dmgSongPlayer').dataset.state,frame:Number(document.querySelector('#dmgSongPlayer').dataset.positionFrames),
   rendered:Number(document.querySelector('#dmgSongPlayer').dataset.renderedFrames),
   duty:document.querySelector('#pulseDuty [aria-checked=true]')?.dataset.choiceValue,source:document.querySelector('#source [aria-checked=true]')?.dataset.choiceValue,
-  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgSongLiveStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
+  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgChannelStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
 async function phase(page,expected){await until(()=>state(page).then(value=>value.phase===expected),'song '+expected);}
 async function pcm(page,audible=true){let value;await until(async()=>{value=await page.evaluate(()=>__dmgSongAudit.output());return value.muted&&value.finite&&(audible?value.rms>.0001:value.peak<1e-7);},audible?'real song PCM':'output silence');return value;}
 async function files(page){if(await page.locator('#dmgFilesPanel').isHidden())await page.locator('#dmgFilesToggle').click();await until(()=>page.locator('#dmgFileImportButton').isEnabled(),'Files ready');}
@@ -104,7 +104,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     const author=await read(page);await page.locator('#dmgFilesToggle').click();
 
     step('Live follows audible position, not prefetched future writes, through the same editor');
-    await page.locator('#dmgSongChannelSelect').selectOption('0');await play(page);await pcm(page);
+    await page.locator('#dmgChannelSelect').selectOption('0');await play(page);await pcm(page);
     const history=[];await until(async()=>{const value=await state(page);history.push(value);return value.frame>=Math.round(1.05*44100);},'future register change becomes audible');
     const early=history.filter(value=>value.frame>4410&&value.frame<Math.round(.87*44100));assert(early.length>=2,'observed real pre-boundary playback');
     assert(early.every(value=>value.duty==='0.25'),'future Duty must not leak out of render-ahead');
@@ -116,26 +116,26 @@ async function check(browser,name,origin,fixture,loadCassette){
     step('Pause freezes all four channels; CH changes and Live Off / On only change observation');
     await page.evaluate(()=>__dmgSongAudit.drain());
     for(const [channel,kind]of [[0,'Pulse'],[1,'Pulse'],[2,'Wave'],[3,'Noise']]){
-      await page.locator('#dmgSongChannelSelect').selectOption(String(channel));
-      await until(()=>page.locator('#dmgSongReadout').textContent().then(value=>value.includes(`CH ${channel+1} · ${kind}`)),'Live '+kind);
+      await page.locator('#dmgChannelSelect').selectOption(String(channel));
+      await until(()=>page.locator('#dmgChannelReadout').textContent().then(value=>value.includes(`CH ${channel+1} · ${kind}`)),'Live '+kind);
       assert.equal((await state(page)).frame,frozen.frame);
       if(channel===1)assert.equal((await state(page)).duty,'0.125');
       if(channel===2)assert.deepEqual(await page.evaluate(()=>__dmgSongAudit.wave()),fixture.futureWave);
       if(channel===3){assert.equal(await page.locator('#noiseVolume').textContent(),'6');assert.equal(await page.locator('#noiseDivisor').textContent(),'3');assert.equal(await page.locator('#noiseShift').textContent(),'1');assert.equal(await page.locator('#noiseWidth [aria-checked=true]').getAttribute('data-choice-value'),'7');}
     }
-    await page.locator('#dmgSongLiveEnabled').uncheck();const off=await state(page);await wait(120);assert.equal((await state(page)).frame,frozen.frame);assert.equal(off.readonly,'true');assert.match(off.live,/Frozen|Paused/);
-    await page.locator('#dmgSongLiveEnabled').check();assert.equal((await state(page)).frame,frozen.frame);
+    await page.locator('#dmgAutoUpdate').uncheck();const off=await state(page);await wait(120);assert.equal((await state(page)).frame,frozen.frame);assert.equal(off.readonly,'true');assert.match(off.live,/Frozen|Paused/);
+    await page.locator('#dmgAutoUpdate').check();assert.equal((await state(page)).frame,frozen.frame);
     assert(!(await page.evaluate(()=>__dmgSongAudit.drain())).some(command=>['code','beginCode','noteOn','noteOff','setPreset','loadPreset','stop'].includes(command.method)),'observing never writes the authored APU');
-    await page.locator('#dmgSongChannelSelect').selectOption('2');await fs.mkdir(config.screenshots,{recursive:true});
+    await page.locator('#dmgChannelSelect').selectOption('2');await fs.mkdir(config.screenshots,{recursive:true});
     await page.locator('#dmgSongPlayer').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(config.screenshots,name+'-paused-wave.png'),fullPage:true});
-    await page.locator('#dmgSongChannelSelect').selectOption('3');await page.locator('#dmgSongLiveEnabled').uncheck();
+    await page.locator('#dmgChannelSelect').selectOption('3');await page.locator('#dmgAutoUpdate').uncheck();
     await play(page);await until(()=>state(page).then(value=>value.frame>72765+2205),'Resume advances past the authored DAC-off writes');
     assert.equal(await page.locator('#noiseVolume').textContent(),'6','Live Off retains the old Noise settings while audio keeps advancing');
-    await page.locator('#dmgSongLiveEnabled').check();await until(()=>page.locator('#noiseVolume').textContent().then(value=>value==='0'),'Live On catches up to the audible DAC-off event');
+    await page.locator('#dmgAutoUpdate').check();await until(()=>page.locator('#noiseVolume').textContent().then(value=>value==='0'),'Live On catches up to the audible DAC-off event');
     await until(()=>state(page).then(value=>value.phase==='ended'),'song EOF');await pcm(page,false);assert.deepEqual((await read(page)).preset,author.preset);
 
     step('The reference APU uses one Master / monitor path; keyboard cannot layer over the song');
-    await page.locator('#dmgSongChannelSelect').selectOption('0');await play(page);await pcm(page);await wait(110);
+    await page.locator('#dmgChannelSelect').selectOption('0');await play(page);await pcm(page);await wait(110);
     const normal=await page.evaluate(()=>__dmgSongAudit.output());
     await page.locator('#masterVolume').evaluate(input=>{input.value='.35';input.dispatchEvent(new Event('input',{bubbles:true}));});await wait(110);
     const half=await page.evaluate(()=>__dmgSongAudit.output());measurements.master={normal,half,ratio:half.rms/normal.rms};

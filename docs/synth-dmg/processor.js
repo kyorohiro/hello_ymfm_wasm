@@ -2,9 +2,9 @@
 // Copyright (c) 2026 kyorohiro.
 import factory from '../generated/gameboy_apu_wasm.js';
 import {GameboyApu} from '../js/gameboyapu.js';
-import {GameboyInstrument} from './instrument.js?v=dmg-code-keyboard-1';
+import {GameboyInstrument} from './instrument.js?v=dmg-unified-channel-1';
 
-const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'applyCodePreset', 'applyCodeEdit', 'releaseKeyboard', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'observeEditor', 'setPreset', 'loadPreset', 'loadChannelBank', 'applyChannelEdit', 'applyCodePreset', 'applyCodeEdit', 'releaseKeyboard', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 const cancelled = () => {const error = new Error('Game Boy command cancelled by Stop or a newer Code session');error.name='AbortError';return error;};
 
 class GameboySynthProcessor extends AudioWorkletProcessor {
@@ -60,7 +60,7 @@ class GameboySynthProcessor extends AudioWorkletProcessor {
         if (!COMMANDS.has(data?.method)) throw new Error('Unknown DMG Synth command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('Game Boy command arguments must be an array');
         if (data.method === 'stop' && !validStop) throw new TypeError('Game Boy Stop takes no arguments');
-        if (!['read','observeCode','stop'].includes(data.method) && epoch !== this.commandEpoch) throw cancelled();
+        if (!['read','observeCode','observeEditor','stop'].includes(data.method) && epoch !== this.commandEpoch) throw cancelled();
         const args = data.args ?? [];
         let value;
         if (data.method === 'beginCode') {
@@ -72,8 +72,14 @@ class GameboySynthProcessor extends AudioWorkletProcessor {
           const [session,method,parameters] = args, owner = this.codeOwner;
           if (!owner || owner.session !== session || owner.instrument !== this.instrument) throw cancelled();
           if (data.method === 'applyCodePreset' || data.method === 'applyCodeEdit') {
-            if (args.length !== 2) throw new TypeError('Game Boy Code preset takes a session and preset');
-            value = await this.instrument[data.method](owner.token,method);
+            if(data.method==='applyCodePreset'&&args.length===3){
+              const options=args[2];
+              if(!options||typeof options!=='object'||Array.isArray(options)||Reflect.ownKeys(options).length!==1||!Object.hasOwn(options,'replace')||typeof options.replace!=='boolean')throw new TypeError('Game Boy preset needs a boolean replacement option');
+              value=await this.instrument.applyCodePreset(owner.token,method,null,options.replace);
+            }else{
+              if (args.length !== 2) throw new TypeError('Game Boy Code preset takes a session and preset');
+              value = await this.instrument[data.method](owner.token,method);
+            }
           } else value = await this.instrument.code(owner.token,method,parameters);
           if (epoch !== this.commandEpoch || this.codeOwner !== owner) throw cancelled();
           if (data.method === 'code' && method === 'dispose') this.codeOwner = null;

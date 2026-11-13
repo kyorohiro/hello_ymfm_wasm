@@ -62,7 +62,7 @@ const read=(page,method='read')=>page.evaluate(method=>__dmgSongAudit.read(metho
 const state=page=>page.evaluate(()=>({phase:document.querySelector('#dmgSongPlayer').dataset.state,frame:Number(document.querySelector('#dmgSongPlayer').dataset.positionFrames),
   rendered:Number(document.querySelector('#dmgSongPlayer').dataset.renderedFrames),
   duty:document.querySelector('#pulseDuty [aria-checked=true]')?.dataset.choiceValue,source:document.querySelector('#source [aria-checked=true]')?.dataset.choiceValue,
-  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgSongLiveStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
+  status:document.querySelector('#dmgSongStatus').textContent,live:document.querySelector('#dmgChannelStatus').textContent,readonly:document.querySelector('#voiceEditor').dataset.readonly}));
 async function phase(page,expected){await until(()=>state(page).then(value=>value.phase===expected),'song '+expected);}
 async function pcm(page,audible=true){let value;await until(async()=>{value=await page.evaluate(()=>__dmgSongAudit.output());return value.muted&&value.finite&&(audible?value.rms>.0001:value.peak<1e-7);},audible?'real song PCM':'output silence');return value;}
 async function files(page){if(await page.locator('#dmgFilesPanel').isHidden())await page.locator('#dmgFilesToggle').click();await until(()=>page.locator('#dmgFileImportButton').isEnabled(),'Files ready');}
@@ -123,9 +123,9 @@ async function check(browser,name,origin,fixture,loadCassette){
       isolated.push({channel,output,spectrum});
     }
     measurements.isolated=isolated;await channels(page,[]);measurements.allOff=await drained(page,false);assert.equal((await state(page)).phase,'playing');
-    await page.locator('#dmgSongChannelSelect').selectOption('2');const wave=await page.evaluate(()=>__dmgSongAudit.wave());assert.deepEqual(wave,fixture.wave);
-    await page.locator('#dmgSongLiveEnabled').uncheck();const readout=await page.locator('#dmgSongReadout').textContent();
-    await channels(page,[2]);await drained(page,true);assert.deepEqual(await page.evaluate(()=>__dmgSongAudit.wave()),wave);assert.equal(await page.locator('#dmgSongReadout').textContent(),readout);await page.locator('#dmgSongLiveEnabled').check();
+    await page.locator('#dmgChannelSelect').selectOption('2');const wave=await page.evaluate(()=>__dmgSongAudit.wave());assert.deepEqual(wave,fixture.wave);
+    await page.locator('#dmgAutoUpdate').uncheck();const readout=await page.locator('#dmgChannelReadout').textContent();
+    await channels(page,[2]);await drained(page,true);assert.deepEqual(await page.evaluate(()=>__dmgSongAudit.wave()),wave);assert.equal(await page.locator('#dmgChannelReadout').textContent(),readout);await page.locator('#dmgAutoUpdate').check();
     assert.deepEqual((await read(page)).preset,author.preset);
 
     step('Channel choices persist through Stop, source change, replay and seek');
@@ -137,7 +137,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     await play(page);await drained(page,false);await pause(page);
 
     step('An Off song channel remains available for paused keyboard audition and Capture');
-    await page.locator('#dmgSongChannelSelect').selectOption('2');const frozen=await state(page);assert(await page.locator('#dmgSongCaptureButton').isEnabled());
+    await page.locator('#dmgChannelSelect').selectOption('2');const frozen=await state(page);assert(await page.locator('#dmgSongCaptureButton').isEnabled());
     await page.keyboard.down('z');await until(()=>page.locator('#dmgSongPlayer').getAttribute('data-audition-sounding').then(value=>value==='1'),'muted-channel trial');await pcm(page);
     assert.equal((await state(page)).frame,frozen.frame);assert.equal(await mask(page),15);assert.deepEqual((await read(page)).preset,author.preset);
     await page.keyboard.up('z');await pcm(page,false);await page.locator('#dmgSongCaptureButton').click();
@@ -158,7 +158,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     const graph=await page.evaluate(()=>__dmgSongAudit.graph());assert.equal(graph.contexts,1);assert.equal(graph.editorWorklets,1);assert.equal(graph.destinationConnections,1);assert(graph.muted);measurements.graph=graph;
 
     step('390px buttons fit; channel monitor settings are session-only and restore defaults without autoplay');
-    await seek(page,2);await page.locator('#dmgSongChannelSelect').selectOption('2');await fs.mkdir(config.screenshots,{recursive:true});
+    await seek(page,2);await page.locator('#dmgChannelSelect').selectOption('2');await fs.mkdir(config.screenshots,{recursive:true});
     for(const width of [1240,390]){await page.setViewportSize({width,height:1050});await page.locator('#dmgSongChannel1Toggle').scrollIntoViewIfNeeded();
       const layout=await page.locator('[data-dmg-song-channel]').evaluateAll(nodes=>({width:innerWidth,scroll:document.documentElement.scrollWidth,buttons:nodes.map(node=>{const r=node.getBoundingClientRect();return{id:node.id,left:r.left,right:r.right,width:r.width,height:r.height,text:node.textContent};})}));
       assert(layout.scroll<=width+1);assert(layout.buttons.every(value=>value.left>=-1&&value.right<=width+1&&value.width>=40&&value.height>=25));measurements['layout'+width]=layout;
