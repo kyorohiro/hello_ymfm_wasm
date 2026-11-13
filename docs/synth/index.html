@@ -1681,7 +1681,7 @@
                 <canvas id="synthPcmCanvas" class="synth-psg-canvas" width="720" height="160" role="img" aria-label="PCM sample and loop range"></canvas>
               </div>
               <div id="synthPcmSettings" class="control-section">
-                <div class="preset-row"><label for="synthPcmPresetSelect">Preset</label><select id="synthPcmPresetSelect"><option value="pcm-sine">PCM default</option></select></div>
+                <div class="preset-row"><label for="synthPcmPresetSelect">Preset</label><select id="synthPcmPresetSelect"><option value="pcm-sine">Sine · built-in</option><option value="pcm-triangle">Triangle · built-in</option><option value="pcm-saw">Saw · built-in</option><option value="pcm-square">Square · built-in</option></select></div>
                 <div class="synth-psg-heading">
                   <div><h2>Mega CD PCM</h2><p class="synth-psg-session">RF5C164 · 8 voices · shared 64 KiB RAM</p></div>
                   <details id="synthPcmHelp" class="synth-psg-help"><summary aria-label="About Mega CD PCM" title="About Mega CD PCM">?</summary><div class="synth-psg-help-body">
@@ -1838,7 +1838,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=channel-presets-1";
+      import "./synth.js?v=pcm-frames-2";
     </script>
   </body>
 </html>

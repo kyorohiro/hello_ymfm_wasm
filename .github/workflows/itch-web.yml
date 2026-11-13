@@ -139,6 +139,13 @@ jobs:
             --out="$RUNNER_TEMP/itch-web/synth-channel-presets.json" \
             --screenshots="$RUNNER_TEMP/itch-web/synth-channel-preset-images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-channel-presets.log"
+      - name: Load variable-length PCM presets and drag frame controls
+        run: |
+          node scripts/check_synth_pcm_frames_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
+            --out="$RUNNER_TEMP/itch-web/synth-pcm-frames.json" \
+            --screenshots="$RUNNER_TEMP/itch-web/synth-pcm-frame-images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-pcm-frames.log"
       - name: Test the packaged Playground in Chromium and WebKit
         run: |
           node scripts/check_itch_playground_bundle_browser.cjs \

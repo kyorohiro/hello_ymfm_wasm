@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "FM2612 Synth PCM preset preservation and variable frame control dragging",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "findings": [
+    "Numeric Loop Start/End controls used the full 65503-frame RAM range for a 160px drag, causing even a small pointer move on a 256-frame sample to clamp to an endpoint.",
+    "The attached Cassette contains a 9215-frame PCM checkpoint (loop 8960..9215), while its working preset contains a 256-frame Saw. Built-in waveform selection previously autosaved over the active file; preset loading itself did not truncate the sample."
+  ],
+  "behavior": [
+    "Loop Start and exclusive Loop End drag bounds follow the actual authored sample and current companion endpoint. One-frame +/- and wheel changes remain unchanged.",
+    "Sample/bounds changes retire stale numeric gestures; unchanged own updates keep the drag active. Read-only physical RAM addresses and missing marker display remain intact, and source RAM updates do not interrupt editable live hardware drags.",
+    "Sine/Triangle/Saw/Square are distinct builtin preset selections in buttons and dropdown. Selection detaches the previous active file before applying, retaining its current bytes, checkpoint and Code/FX session.",
+    "Range/drawing/parameter edits retain the existing editable-file draft model, with Sync/Revert checkpoints.",
+    "Variable lengths 1/128/256/1024/4096/9215 work through actual UI, pointer dragging, keyed internal audio, builtin switching, Files persistence and reload. Node application-route tests also cover 65503-frame samples."
+  ],
+  "node": {
+    "passed": 725,
+    "failed": 0,
+    "command": "node --test docs/synth/*.test.mjs docs/synth-sid/editor.test.mjs docs/playground/playground_operator_tab.test.mjs",
+    "receipt": {
+      "path": "build/verification/fm-pcm-frames-20261113/node-tests.log",
+      "bytes": 81127,
+      "sha256": "94bc920296a89744b030aeab71c4f88ca22e13dd0f59990cd8ff9675fd8bb88c"
+    }
+  },
+  "browsers": {
+    "suites": 5,
+    "runs": 10,
+    "results": [
+      {
+        "suite": "pcm-frames",
+        "receipt": {
+          "path": "build/verification/fm-pcm-frames-20261113/pcm-frames-b.json",
+          "bytes": 31677,
+          "sha256": "c5a4d80f85c3b38ab21e37858ffaa913eb0b46c96c21075ece38d027b59b0b9d"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "pcm-live",
+        "receipt": {
+          "path": "build/verification/fm-pcm-frames-20261113/pcm-live-b.json",
+          "bytes": 32089,
+          "sha256": "090c336fb6f3d485a03fa182fe3b7a5f913c1cb9b6f2b2641236d32ce9430391"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": null
+          },
+          {
+            "name": "webkit",
+            "checks": null
+          }
+        ]
+      },
+      {
+        "suite": "code-presets",
+        "receipt": {
+          "path": "build/verification/fm-pcm-frames-20261113/code-presets-b.json",
+          "bytes": 28913,
+          "sha256": "f8c7bee884bf6a27f3a31fd474cad54724b0fbc2bffe36040456ecc3d4e91d4e"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": null
+          },
+          {
+            "name": "webkit",
+            "checks": null
+          }
+        ]
+      },
+      {
+        "suite": "channel-presets",
+        "receipt": {
+          "path": "build/verification/fm-pcm-frames-20261113/channel-presets-b.json",
+          "bytes": 33507,
+          "sha256": "84d99edbc5d98b36bd55c66322b4eaecde9944fba9b7d15106abc9810c2b1cf6"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 12
+          },
+          {
+            "name": "webkit",
+            "checks": 12
+          }
+        ]
+      },
+      {
+        "suite": "standard",
+        "receipt": {
+          "path": "build/verification/fm-pcm-frames-20261113/standard-b.json",
+          "bytes": 25354,
+          "sha256": "5feb072c4b90fd75cd341419f555ebdb434dc889b8e7222f23d806fcc3be47f8"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": null
+          },
+          {
+            "name": "webkit",
+            "checks": null
+          }
+        ]
+      }
+    ]
+  },
+  "package": {
+    "zip": "release/hello_ymfm_wasm_pcm-frames-20261113b_itch_synth.zip",
+    "stage": "release/itch_synth_pcm-frames-20261113b",
+    "files": 292,
+    "bytes": 1124923,
+    "sha256": "c5a2d1bf6609d74637854febbd0b2f3f052c61c66faa3185fdbc3f1830784f26",
+    "crcPassed": true,
+    "changedSourcesMatchAfterPathRelocation": true
+  },
+  "recovery": {
+    "sourceFile": "cassette.cassette.zip",
+    "sourceUnmodifiedSha256": "80d93d08cfe24202344364ee9348c032cc245e5ef81badee8fb39ec2b083653d",
+    "restoredFrames": 9215,
+    "loopStart": 8960,
+    "loopEnd": 9215,
+    "sourceWasNotExecutedOrPlayed": true,
+    "files": [
+      {
+        "path": "build/recovery/fm-pcm-20261113/02 - Opening-PCM-CH1-original.pcm.json",
+        "bytes": 12640,
+        "sha256": "7dd94fa6d8f39a463a283c061c8b9eef9a17e251996c2b65d235130e3d951709"
+      },
+      {
+        "path": "build/recovery/fm-pcm-20261113/cassette-recovered.cassette.zip",
+        "bytes": 58724,
+        "sha256": "423f86e7958e440a419c4f3a33836f30dd372f6d91ab38df2da43b685b87f082"
+      }
+    ],
+    "zipCrcPassed": true
+  },
+  "scope": "No PCM resizing, public SDK/WASM/gain calibration changes. User sample data and VGM were not executed or played and are retained only in ignored local recovery artifacts, not repository tests or the release ZIP."
+}

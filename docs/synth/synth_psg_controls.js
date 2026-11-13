@@ -1,4 +1,4 @@
-import {createParamControl} from './synth_controls.js?v=op-gates-1';
+import {createParamControl} from './synth_controls.js?v=pcm-frames-1';
 
 /** Compact instrument controls for the shared keyboard's Sega PSG voice. */
 export function setupSynthPsgControls({

@@ -1,6 +1,6 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=channel-presets-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=channel-presets-1';
+import {setupSynthFiles} from './synth_files.js?v=pcm-frames-2';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-keyboard-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
 import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';
@@ -14,7 +14,7 @@ import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-draw-1';
 import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-live-draw-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=channel-mixer-1';
 import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-view-1';
-import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-manual-1';
+import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-frames-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=channel-presets-1';
@@ -29,7 +29,7 @@ import {SynthPsgLooper} from './synth_psg_looper.js?v=pcm-looper-1';
 import {renderSynthPsgLoop} from './synth_psg_loop_render.js?v=psg-looper-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=synth-code-keyboard-1';
 import {createSynthPsgAudio} from './synth_psg_audio.js?v=channel-view-1';
-import {setupSynthPsgControls} from './synth_psg_controls.js?v=channel-view-1';
+import {setupSynthPsgControls} from './synth_psg_controls.js?v=pcm-frames-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { modulationSettings } from "./synth_modulation.js";
@@ -64,7 +64,7 @@ import {
   createParamControl,
   buildOperatorControls as buildOperatorControlsView,
   displayOperatorToApiOperator,
-} from "./synth_controls.js?v=op-gates-1";
+} from "./synth_controls.js?v=pcm-frames-1";
 import {
   attachOutputEnvelopeTap,
   chooseVoice,
@@ -400,6 +400,7 @@ const channel3SpecialState = {
 let currentPresetName =
   "one-op-basic";
 let currentPsgPresetName = 'psg-default';
+const PCM_BUILTIN_SHAPES=Object.freeze({'pcm-sine':'sine','pcm-triangle':'triangle','pcm-saw':'saw','pcm-square':'square'});
 let currentPcmPresetName = 'pcm-sine', pcmLoadGeneration=0;
 let importedTfiName = "";
 let currentPresetPan = {left:true, right:true};
@@ -778,8 +779,12 @@ psgControls = setupSynthPsgControls({
 pcmControls=setupSynthPcmControls({voice:pcmVoice,
   onObservationEdit:editObservedPcm,
   onBuiltin:shape=>{
-  if(applyPcmEditPreset(createPcmBuiltinPreset(shape)))setStatus(`PCM ${shape} selected.`);
-},
+    const id=`pcm-${shape}`;
+    if(!Object.hasOwn(PCM_BUILTIN_SHAPES,id))return;
+    // Choosing a builtin starts its own author instrument. Replacing the
+    // active sample in place would autosave 256 frames over an imported file.
+    void synthFiles.selectPreset(id).then(selected=>{if(selected)setStatus(`PCM ${shape} selected. Previous preset kept.`);});
+  },
   onSampleEdit:preset=>{
     try {
       const applied=applyPcmSampleEdit(preset);
@@ -2474,7 +2479,7 @@ function applyPresetState(
 ) {
   const preset = presetName.startsWith('vfs:')
     ? synthProject.readTone(presetName.slice(4)).preset
-    : presetName === 'pcm-sine' ? createPcmBuiltinPreset('sine') : presetName === 'psg-default' ? createPsgPreset({}) : FM_PRESETS[presetName];
+    : Object.hasOwn(PCM_BUILTIN_SHAPES,presetName) ? createPcmBuiltinPreset(PCM_BUILTIN_SHAPES[presetName]) : presetName === 'psg-default' ? createPsgPreset({}) : FM_PRESETS[presetName];
 
   if (!preset) {
     return;
@@ -4102,6 +4107,7 @@ synthFiles = setupSynthFiles({
     songControls?.selectChip(kind==='pcm'?'pcm':kind === 'psg' ? 'psg' : 'ym2612');
   },
   getDefaultPresetId:kind=>kind==='pcm'?'pcm-sine':kind === 'psg' ? 'psg-default' : 'one-op-basic',
+  getPresetKind:id=>Object.hasOwn(PCM_BUILTIN_SHAPES,id)?'pcm':null,
   applyPreset:applyPresetState,
   applySnapshot:applyPresetData,
   onSaved(path) {

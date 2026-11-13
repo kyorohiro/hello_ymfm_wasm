@@ -58,6 +58,17 @@ missing tuning from the author sample on its first key; configured Code slots
 are kept intact, including zero Step or custom RAM. Sample/Root/drawing controls
 remain in Auto because all PCM channels share the same RAM.
 
+PCM presets retain their source length, sample rate, Root and loop settings;
+the built-in single-cycle shapes contain 256 frames. Choosing Sine, Triangle,
+Saw or Square selects a separate built-in preset instead of overwriting the
+currently selected file. Choose that file again to return to its sample.
+Range, drawing and parameter edits still update the selected document's draft;
+**Revert** restores its last checkpoint, and **Sync** updates that checkpoint.
+Loop Start and exclusive
+Loop End use the loaded sample's actual frame range for dragging and one-frame
+buttons. Changing the sample or its valid interval cancels an older drag,
+without applying it to the newly loaded sound. This does not resize the sample.
+
 ## Play a VGM and change its FM sound
 
 During VGM playback, **CH1–CH6** selects the same YM2612 channel for viewing,

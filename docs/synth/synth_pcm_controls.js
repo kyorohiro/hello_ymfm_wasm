@@ -1,4 +1,4 @@
-import {createParamControl} from './synth_controls.js?v=op-gates-1';
+import {createParamControl} from './synth_controls.js?v=pcm-frames-1';
 import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.js?v=pcm-live-draw-1';
 import {createPcmWaveDraft} from './synth_pcm_wave_edit.js?v=pcm-live-draw-1';
 
@@ -65,7 +65,8 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     const {id}=stroke;stroke=null;canvas.classList.remove('is-dragging');
     if(canvas.hasPointerCapture?.(id))canvas.releasePointerCapture(id);
   }
-  function cancelEdit() {releaseDrag();releaseStroke();drawSample();}
+  function cancelNumbers() {for(const control of controls.values())control.cancelDrag();}
+  function cancelEdit() {releaseDrag();releaseStroke();cancelNumbers();drawSample();}
   function editable() {
     return !disposed&&!liveDisplay&&visualMode==='sample'&&!canvas.inert&&!root.hidden&&
       root.closest('.synth-editor')?.getAttribute('aria-busy')!=='true';
@@ -126,8 +127,16 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     const wasLive=Boolean(liveDisplay);liveDisplay=display;
     const next=display?{preset:display.preset,frames:display.frames,settings:display.preset?.settings??{
       volume:display.volume,panLeft:display.panLeft,panRight:display.panRight,rootNote:60,loopEnabled:false,loopStart:0,loopEnd:0}}:voice.getState();
-    if(!sameSample(next.preset?.sample,state.preset?.sample)||wasLive!==Boolean(display)) {releaseDrag();releaseStroke();}
+    const sampleChanged=!sameSample(next.preset?.sample,state.preset?.sample),viewChanged=wasLive!==Boolean(display);
+    if(sampleChanged||viewChanged) {releaseDrag();releaseStroke();}
+    // A fresh authored sample retires the old gesture. Live RAM updates belong
+    // to the running source and must not interrupt editable Volume/Pan/Step.
+    if(viewChanged||!display&&sampleChanged)cancelNumbers();
     state=next;
+    if(!display) {
+      controls.get('loopStart').updateRange(0,state.settings.loopEnd-1);
+      controls.get('loopEnd').updateRange(state.settings.loopStart+1,state.frames);
+    }
     for(const [field,control]of controls) {
       control.updateVisual(field==='step'?(display?.step??0):display&&field==='loopStart'?display.sourceLoopStart:
         display&&field==='loopEnd'?(display.sourceEnd??'—'):state.settings[field]);
@@ -272,7 +281,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
   editObserver?.observe(root,{attributes:true,attributeFilter:['hidden']});
   resize?.observe(canvas);update();
   return {canvas,getVisualMode:()=>visualMode,getEditMode:()=>editMode,cancelEdit,update,drawSample,dispose(){
-    if(disposed)return;disposed=true;releaseDrag();releaseStroke();resize?.disconnect();editObserver?.disconnect();for(const remove of listeners)remove();
+    if(disposed)return;disposed=true;releaseDrag();releaseStroke();cancelNumbers();resize?.disconnect();editObserver?.disconnect();for(const remove of listeners)remove();
     if(help)help.open=false;
   }};
 }

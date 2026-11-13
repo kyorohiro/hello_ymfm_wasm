@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {setupSynthFiles} from './synth_files.js';
 import {createSynthProject,isPsgPresetPath,isPcmPresetPath} from './synth_project.js';
 import {createPsgPreset,isPsgPreset,normalizePsgPreset} from './synth_psg_preset.js';
-import {createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,PCM_MAX_FRAMES} from './synth_pcm.js';
+import {createPcmBuiltinPreset,createPcmPreset,isPcmPreset,normalizePcmPreset,PCM_ENCODING,PCM_MAX_FRAMES} from './synth_pcm.js';
 
 class Element {
   constructor(tag='div') {this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attributes={};this.style={};this.listeners=new Map();this.hidden=false;this.open=false;this.value='';
@@ -50,8 +50,9 @@ function harness(store={saved:null,journal:new Map()},options={}) {
   let kind='fm';
   function applySnapshot(preset,id){applied.push(id);kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
   const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='pcm'?'pcm-sine':value==='psg'?'psg-default':'one-op-basic',
+    getPresetKind:id=>/^pcm-(sine|triangle|saw|square)$/.test(id)?'pcm':null,
     getPreset:()=>structuredClone(patches[kind]),getPresetId:()=>ids[kind],applySnapshot,
-    applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(id==='pcm-sine'?createPcmBuiltinPreset('sine'):id==='psg-default'?createPsgPreset({}):fm(),id),
+    applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(/^pcm-(sine|triangle|saw|square)$/.test(id)?createPcmBuiltinPreset(id.slice(4)):id==='psg-default'?createPsgPreset({}):fm(),id),
     onSaved:path=>{ids[isPcmPresetPath(path)?'pcm':isPsgPresetPath(path)?'psg':'fm']='vfs:'+path;},onListChanged(){},onWorkspaceReplaced(){},stopAllNotes(){},setStatus:message=>messages.push(message),...options});
   async function idle(){for(let i=0;i<50;i++){await tick();if(editor.attributes['aria-busy']==='false')return;}assert.fail('file operation stayed busy');}
   async function action(name,path){
@@ -101,6 +102,41 @@ function attachCode(h) {
   };
   h.files.setCodeControls(controls);return {controls,opened,changes,flushes};
 }
+
+test('selecting each PCM builtin detaches the long active file before applying and preserves its draft and checkpoint in Normal and Code',async()=>{
+  for(const running of [false,true])for(const shape of ['sine','triangle','saw','square']) {
+    let stops=0;
+    const h=harness(undefined,{canLoadWhileObserving:()=>running,stopAllNotes(){if(!running)stops++;}});
+    try {
+      await h.files.ready;
+      const frames=9215,bytes=Buffer.from(Uint8Array.from({length:frames},(_,index)=>(index*13%127)|128));
+      const long=createPcmPreset({sample:{name:'Long captured PCM',sampleRate:16276.041666666666,encoding:PCM_ENCODING,data:bytes.toString('base64')},
+        settings:{rootNote:60,volume:56,loopStart:8960,loopEnd:frames}});
+      assert(await h.files.createFromPreset(long,'Captured PCM'));
+      const path=h.files.activeTonePath;
+      h.patches.pcm.settings.volume=43;h.files.markDirty();
+      assert.equal(h.project.isToneModified(path),true,'the original saved baseline has a separate draft edit');
+      const current=h.project.fs.get(path).data,checkpoint=h.project.fs.get('/.tet.ss'+path).data;
+      const count=h.project.listTones().length;
+      let code;
+      if(running){h.project.fs.writeText('/index.js','context.keep = 17;\n');code=attachCode(h);await h.files.selectFile('/index.js');}
+      const stopCount=stops,id=`pcm-${shape}`;
+      assert(await h.files.selectPreset(id));
+      assert.equal(h.kind,'pcm');assert.equal(h.files.activeTonePath,null,'a builtin must not remain attached to the imported file');
+      assert.equal(h.ids.pcm,id);assert.deepEqual(h.patches.pcm,createPcmBuiltinPreset(shape));
+      assert.equal(h.project.listTones().length,count,'selection alone creates no file');
+      assert.deepEqual(h.project.fs.get(path).data,current);assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      if(running){assert.equal(stops,stopCount);assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);}
+      h.patches.pcm.settings.volume=29;h.files.markDirty();
+      assert.notEqual(h.files.activeTonePath,path,'editing the builtin uses a separate author draft');
+      assert.deepEqual(h.project.fs.get(path).data,current);assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      assert(await h.files.selectFile(path));
+      assert.equal(h.patches.pcm.sample.data,long.sample.data);assert.equal(h.patches.pcm.settings.loopEnd,frames);
+      assert.equal(h.patches.pcm.settings.loopStart,8960);assert.equal(h.patches.pcm.settings.volume,43,'reselection retrieves the prior parameter draft');
+      assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+    }finally{h.cleanup();}
+  }
+});
 
 test('reselecting the active FM / PSG / PCM Files preset reapplies its sound during Code, including Auto, without replacing the Code file',async()=>{
   for(const preset of [fm(),createPsgPreset({attenuation:7}),createPcmBuiltinPreset('triangle')])for(const route of ['file','preset']) {

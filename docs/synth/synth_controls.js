@@ -28,8 +28,8 @@ export function apiOperatorToDisplayOperator(
 export function createParamControl(config) {
   const {
     label,
-    min,
-    max,
+    min: initialMin,
+    max: initialMax,
     step,
     value,
     onChange,
@@ -38,6 +38,7 @@ export function createParamControl(config) {
     category = "",
     wheelAdjust = true,
   } = config;
+  let min=initialMin,max=initialMax;
 
   const wrapper =
     document.createElement("div");
@@ -101,9 +102,22 @@ export function createParamControl(config) {
 
   let dragStartX = 0;
   let dragStartValue = value;
-  const valueRange =
-    Math.max(step, max - min);
+  let dragPointer=null;
   const dragPixelsForFullRange = 160;
+
+  function cancelDrag() {
+    const pointer=dragPointer;dragPointer=null;
+    if(pointer!==null&&valueElement.hasPointerCapture(pointer))valueElement.releasePointerCapture(pointer);
+    valueElement.classList.remove('is-dragging');
+  }
+  // Sample-backed controls can change their legal interval after loading a
+  // preset or moving its other endpoint. Updating bounds is not a user edit.
+  function updateRange(nextMin,nextMax) {
+    if(!Number.isFinite(nextMin)||!Number.isFinite(nextMax)||nextMin>nextMax)throw new RangeError('Invalid parameter range');
+    if(nextMin===min&&nextMax===max)return;
+    cancelDrag();min=nextMin;max=nextMax;
+    if(typeof currentValue==='number'&&Number.isFinite(currentValue))updateVisual(clampValue(currentValue,min,max));
+  }
 
   const applyValue =
     (nextValue) => {
@@ -143,6 +157,7 @@ export function createParamControl(config) {
       }
       dragStartX = event.clientX;
       dragStartValue = currentValue;
+      dragPointer=event.pointerId;
       valueElement.classList.add(
         "is-dragging"
       );
@@ -171,7 +186,7 @@ export function createParamControl(config) {
       const deltaSteps =
         Math.round(
           (deltaX / dragPixelsForFullRange) *
-          (valueRange / step)
+          (Math.max(step,max-min) / step)
         );
 
       applyValue(
@@ -183,6 +198,7 @@ export function createParamControl(config) {
 
   const endDrag =
     (event) => {
+      if(dragPointer===event.pointerId)dragPointer=null;
       if (
         valueElement.hasPointerCapture(
           event.pointerId
@@ -205,6 +221,10 @@ export function createParamControl(config) {
     "pointercancel",
     endDrag
   );
+  valueElement.addEventListener('lostpointercapture',event=>{
+    if(dragPointer===event.pointerId)dragPointer=null;
+    valueElement.classList.remove('is-dragging');
+  });
 
   if (wheelAdjust) {
     wrapper.addEventListener(
@@ -241,6 +261,8 @@ export function createParamControl(config) {
   return {
     element: wrapper,
     updateVisual,
+    updateRange,
+    cancelDrag,
   };
 }
 

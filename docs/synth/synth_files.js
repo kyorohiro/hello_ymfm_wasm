@@ -29,7 +29,7 @@ async function openDraftStore() {
 }
 
 export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,applySnapshot,onSaved,onListChanged,onWorkspaceReplaced,
-  getEditorKind=()=> 'fm',setEditorKind=()=>{},getDefaultPresetId=()=> 'one-op-basic',isObserving=()=>false,
+  getEditorKind=()=> 'fm',setEditorKind=()=>{},getDefaultPresetId=()=> 'one-op-basic',getPresetKind=()=>null,isObserving=()=>false,
   canEditObservation=()=>false,canEditPsgObservation=()=>false,canEditPcmObservation=()=>false,canLoadWhileObserving=()=>false,isChipModeLocked=()=>false,stopAllNotes,setStatus}) {
   const byId = id => document.getElementById(id);
   const panel = byId('synthFilesPanel'), tree = byId('synthFilesTree');
@@ -386,7 +386,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     busy=true;updateButtons();
     try {
       if (!await flushEdits()) return false;
-      const kind=['pcm','psg'].find(candidate=>id===getDefaultPresetId(candidate)&&id!==getDefaultPresetId('fm'))??'fm';
+      const kind=validKind(getPresetKind(id)??['pcm','psg'].find(candidate=>id===getDefaultPresetId(candidate)&&id!==getDefaultPresetId('fm'))??'fm');
       activateEditor(kind,false);
       activeTonePath = null; dirty = false;
       stopAllNotes();applyPreset(id);setBaseline();render();await remember(true);return true;
