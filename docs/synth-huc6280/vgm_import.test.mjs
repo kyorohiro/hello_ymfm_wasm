@@ -27,6 +27,15 @@ function vgm(commands,clock=3579545) {
 const complete = () => vgm([...globals,...upload(),...play(),...wait(),...w(2,200),...wait(),...stop(0),
   ...upload(2,other),...play(2,20,247),...wait(),...stop(2),...noise(),...wait(),...stop(4),0x66]);
 
+test('reference-file import may retain a valid song without guessing an incomplete static voice',async()=>{
+  const bytes=vgm([...globals,...play(),...wait(),0x66]);
+  await assert.rejects(extractVgmInstruments(bytes),/No complete/);
+  const result=await extractVgmInstruments(bytes,{allowEmpty:true});
+  assert.deepEqual(result.voices,[]);assert(result.warnings.some(message=>/unknown|omitted/i.test(message)));
+  await assert.rejects(extractVgmInstruments(new Uint8Array(12),{allowEmpty:true}),/header/);
+  await assert.rejects(extractVgmInstruments(bytes,{allowEmpty:1}),/boolean/);
+});
+
 test('PCM-only VGM/VGZ and mixed libraries merge chronologically with portable exact-rate presets',async()=>{
   const data=[0xe0|16,255,0,23,8,16];
   const pcm=[0x67,0x66,5,data.length,0,0,0,...data,...w(0,0),...w(4,0xdf),...w(5,0xab),

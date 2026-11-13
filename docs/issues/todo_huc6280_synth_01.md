@@ -41,6 +41,9 @@
 
 ## 後続候補
 
+2026-11-13時点の優先順は[HuC6280 Synthの仕上げ](todo_huc6280_synth_finish_01.md)を参照。
+Code／Files／Software FXとTauri版の作成は実施済み。以下には当時の未完了候補も残る。
+
 - [x] VGM／VGZから通常Wave／Noiseを抽出する。LFO／DDA区間と不完全なRAMは、無理に通常Waveへ置き換えず、理由を表示して省略する。
 - [x] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセットv2で、CH1／CH2ペアを取り込む。
 - [x] 音声ファイルからDDA PCMを準備して試奏する（下記v3）。単一DAC値の書込ではなく、出力frameに合わせてPCMを供給する。
@@ -48,7 +51,7 @@
 - [x] 一定間隔で境界が明確な直接DAC write列のPCMを抽出する（下記）。
 - [ ] 間隔が変わる直接DAC列、圧縮bank、CD-ROM² ADPCM／CD-DAは別工程として検討する。
 - [ ] 必要ならSoftware morphや外部ソフトウェアFXを追加する。SPUのハードウェアReverbと混同しない。
-- [ ] Web版確認後、Tauri／Native版へ進む。
+- [x] Web版確認後、Tauri版を作成する。今回のWeb更新の反映・検証は上記の仕上げTODOで管理する。
 
 ## VGM音色読み込み（2026-11-05 完了）
 

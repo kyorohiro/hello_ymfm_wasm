@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setupHuc6280CodeFiles} from './code_files.js';
-import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js';
+import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES,isHuc6280SongPath} from './code_project.js';
 import {createDefaultPreset,readPreset} from './preset.js';
 import {encodeDdaData,MAX_PRESET_BYTES} from './dda_pcm.js';
 
@@ -227,5 +227,33 @@ test('DDA preset saves and project reload retain every DAC value and sample sett
   assert.equal(path,'/presets/DAC sample.huc6280.json');assert.deepEqual(JSON.parse(f.project.fs.get(path).data),value);
   const exported=await f.files.exportProject(),copy=createHuc6280CodeProject();copy.restore(await copy.prepareImport(exported));
   assert.deepEqual(copy.settings,value);assert.deepEqual(JSON.parse(copy.fs.get(path).data),value);assert.deepEqual(f.calls,[]);
+});
+
+test('VGM imports preserve exact compressed bytes in unique portable paths without applying sounds or stopping Code',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.settings,source=Uint8Array.of(0,31,139,8,255,7).subarray(1,5);
+  f.project.fs.mkdir('/vgm/SONG.VGZ',{recursive:true});
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,setBusy(){},flush:async()=>true,
+    stop:()=>assert.fail('Import never stops Code'),openFile:()=>assert.fail('Song bytes never open Code'),workspaceReplaced:()=>assert.fail('Song import is not a workspace replacement')});
+  const first=await f.files.importSong(source,'song.vgz');assert.equal(first,'/vgm/song (2).vgz');
+  const paths=await f.files.importFiles([{name:'SONG.VGZ',size:source.byteLength,arrayBuffer:async()=>source.slice().buffer}]);
+  assert.deepEqual(paths,['/vgm/SONG (3).VGZ']);assert.deepEqual(f.project.fs.get(first).data,source);
+  assert.deepEqual(f.project.fs.get(paths[0]).data,source);assert.deepEqual(f.project.settings,before);assert.deepEqual(f.calls,[]);
+  assert(isHuc6280SongPath(first));assert(!isHuc6280SongPath('/song.vgz'));assert(!isHuc6280SongPath('/vgm/../song.vgz'));
+  await f.files.selectFile(first);assert.match(f.statuses.at(-1),/reference song selected.*Press Play.*instrument and Code are kept/);
+  assert.deepEqual(f.opened,[]);assert.deepEqual(f.calls,[]);
+  const copy=createHuc6280CodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));
+  assert.deepEqual(copy.fs.get(first).data,source);assert.deepEqual(copy.fs.get(paths[0]).data,source);
+});
+
+test('song copy cancellation and cassette limits keep prior source bytes and instrument intact',async t=>{
+  const f=fixture(t);await f.files.ready;const raw=Uint8Array.of(1,2,3);
+  await f.files.importSong(raw,'kept.vgm',{announce:false});const before=f.project.snapshot(),statuses=f.statuses.length;
+  assert.equal(await f.files.importSong(raw,'ignored.vgm',{isCurrent:()=>false}),null);assert.deepEqual(f.project.snapshot(),before);
+  await assert.rejects(f.files.importSong(new Uint8Array(16*1024*1024+1),'too-large.vgm'),/16 MiB/);assert.deepEqual(f.project.snapshot(),before);
+  await assert.rejects(f.files.importSong(raw,'not-a-song.bin'),/\.vgm or .vgz/);assert.equal(f.statuses.length,statuses);
+  const gate=deferred();let current=true,entered;const begun=new Promise(resolve=>entered=resolve);
+  f.files.setCodeControls({setBusy(){},flush:async()=>{entered();await gate.promise;}});
+  const pending=f.files.importSong(raw,'cancelled.vgm',{isCurrent:()=>current});await begun;current=false;gate.resolve();
+  assert.equal(await pending,null);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
 });
 

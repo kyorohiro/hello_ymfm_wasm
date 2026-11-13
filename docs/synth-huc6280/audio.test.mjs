@@ -77,9 +77,11 @@ test('HuC6280 audio is lazy and routes one fixed balance before the user Master 
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
-  const [balance, fade, master] = f.context.gains;
+  const [balance, fade, master, song] = f.context.gains;
   assert.equal(balance.gain.value,1);assert.equal(fade.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
+  assert.equal(audio.songInputNode,song);assert.equal(song.gain.value,1);
+  assert.deepEqual(song.connections,[master],'reference audio shares final Master without the Code fade');
   assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]);assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
   audio.setVolume(0); assert.equal(master.gain.value,0);
@@ -87,6 +89,7 @@ test('HuC6280 audio is lazy and routes one fixed balance before the user Master 
   assert.deepEqual(await audio.read(),{voices:[]});
   const first = audio.dispose(); assert.equal(audio.dispose(),first); await first;
   assert.equal(f.context.closeCount,1); assert.equal(f.node.disposed,1); assert.equal(f.timers.size,0);
+  assert.equal(song.disconnected,true);
 });
 
 test('PCM is sent once, metadata edits refer to acknowledged data, and replies restore the local preset',async()=>{

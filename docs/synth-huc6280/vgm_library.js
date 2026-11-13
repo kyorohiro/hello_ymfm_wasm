@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js?v=wave-held-1';
+import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js?v=huc-song-1';
 import {decodeDdaData} from './dda_pcm.js';
 import {mergeVgmVolumeVariants} from './vgm_pcm_variants.js';
+import {prepareHuc6280SongSource} from './song_source.js';
 
 /** Passive file analysis. Only choosing a sound asks the host to replace its
  * instrument; opening, failing, cancelling or closing a library never does. */
-export function createVgmLibrary({root, onSelect}) {
+export function createVgmLibrary({root, onSelect, onSource, extract=extractVgmInstruments,prepareSong=prepareHuc6280SongSource}) {
   const doc = root.ownerDocument, $ = id => root.querySelector(`#${id}`);
   const events = new AbortController(), pageSize = 24;
   const pcmInfo = new WeakMap();
@@ -122,11 +123,34 @@ export function createVgmLibrary({root, onSelect}) {
       if (file.size > MAX_VGM_BYTES) throw new Error('VGM / VGZ files must be at most 64 MiB.');
       const bytes = await file.arrayBuffer();
       if (disposed || token !== request) return;
-      const result = await extractVgmInstruments(bytes, {signal:controller.signal});
+      if(bytes.byteLength>MAX_VGM_BYTES)throw new Error('VGM / VGZ files must be at most 64 MiB.');
+      const result = await extract(bytes, {signal:controller.signal,allowEmpty:true});
       if (disposed || token !== request) return;
+      // Extraction can omit an incomplete Wave RAM or DAC snapshot. Without
+      // any static sound, retain the file only if its complete song timeline
+      // is usable; an omitted malformed stream must not replace the library.
+      if(!result.voices.length){
+        await prepareSong(bytes,{signal:controller.signal});
+        if(disposed||token!==request||controller.signal.aborted)return;
+      }
       library = {...result, name:file.name}; filter = 'all'; page = 0; selected = null; selection++;
       render();
-      status(`${visibleVoices().length} sounds found · choose one to play. Current instrument kept.`);
+      const current=()=>!disposed&&token===request&&!controller.signal.aborted;
+      let sourceMessage='',sourceFailed=false;
+      if(onSource){
+        try{
+          const path=await onSource({name:file.name,bytes:new Uint8Array(bytes)}, {isCurrent:current,signal:controller.signal});
+          if(!current())return;
+          if(!path)throw Error('The source was not added to Files.');
+          sourceMessage=` Reference song saved to ${path}; press Play in the song player.`;
+        }catch(error){
+          if(!current()||error.name==='AbortError')return;
+          sourceFailed=true;sourceMessage=` Extracted sounds remain available. Reference song not saved to Files: ${error.message}`;
+        }
+      }
+      if(!current())return;
+      const count=visibleVoices().length;
+      status(`${count} sounds found${count?' · choose one to play':''}.${sourceMessage} Current instrument kept.`,sourceFailed);
     } catch (error) {
       if (!disposed && token === request && error.name !== 'AbortError') status(`VGM import failed: ${error.message} Current sound kept.`, true);
     } finally {

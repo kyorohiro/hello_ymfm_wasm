@@ -43,7 +43,8 @@ async function decode(source, signal) {
  * firstTime is in VGM's 44,100-sample timebase; channels are one-based CH1–CH6.
  * Wave RAM is never guessed from reset defaults or an unknown playback index.
  */
-export async function extractVgmInstruments(source, {signal} = {}) {
+export async function extractVgmInstruments(source, {signal,allowEmpty=false} = {}) {
+  if(typeof allowEmpty!=='boolean')throw new TypeError('allowEmpty must be boolean');
   let bytes = await decode(source, signal); abort(signal);
   if (bytes.length < 0x40) throw new Error('Truncated VGM header');
   let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -350,7 +351,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     }
   }
   abort(signal);
-  if (!voices.length) {
+  if (!voices.length&&!allowEmpty) {
     const reasons = [...warnings].filter(message => /omitted|unknown|DAC streams/i.test(message));
     const error = new Error(`No complete, audible HuC6280 Wave / Noise / LFO / PCM voices found in this VGM.${reasons.length ? ' ' + reasons.join(' ') : ''}`);
     error.warnings = [...warnings];

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "HuC6280 Synth VGM reference transport and source Files",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Imported VGM/VGZ original bytes are retained under unique /vgm paths and survive Cassette export/import and local recovery. Selecting, restoring or validating a song does not open audio or run Code.",
+    "A compact VGM selector above Waveform/Spectrum provides Play/Pause/Resume/Stop and consumed song position. Reference playback uses a separate existing HuC6280 core through the existing AudioContext, calibrated song bus, Master and final desktop/monitor output; authored sound is retained.",
+    "Timed Wave, Noise, hardware LFO, direct DAC and supported 0x90–0x95 DAC streams play once. Native PCM matches the shared VgmPlayer bit-for-bit, including exact-frame Pause/Resume with retained unconsumed buffers and offsets.",
+    "Code and VGM are exclusive. Play/Resume retires Code and hand keys; Run and workspace replacement stop VGM. Global Stop, disposal, pagehide, audio failure and desktop output changes retire song resources. Stale startup/ownership hooks cannot stop newer Code or restart old audio.",
+    "Zero-static-voice sources require playback validation before replacing the extraction library. Valid unknown-Wave-RAM or irregular-DAC sources can be stored for song playback; missing-bank or malformed sources keep the prior library and authored sound. Voiceful snapshot extraction keeps its existing supported subset.",
+    "Files capacity/copy failure is reported separately without losing extracted instruments. Direct analysis retains 64 MiB compressed/expanded bounds; Cassette keeps its 16 MiB whole-project bound.",
+    "Source validation accepts one normal 3579545 Hz HuC6280, VGM 1.61–1.72 and supported uncompressed DAC banks. Other chips, dual/variant clocks, extra headers, compressed/ROM banks, invalid stream ranges and active bank/stride changes are rejected before playback ownership.",
+    "Readable original frontend modules, matching unchanged WASM, source inputs, rebuild sources, types and licenses remain together in the standalone ZIP."
+  ],
+  "limits": {
+    "fileBytes": 67108864,
+    "expandedBytes": 67108864,
+    "durationSeconds": 3600,
+    "commands": 4000000,
+    "zeroTimeCommandBurst": 4096,
+    "commandsPer256Samples": 32768,
+    "recursiveStreamMetadata": 256,
+    "streamHz": 192000,
+    "aggregateActiveStreamHz": 384000,
+    "streamWrites": 100000000,
+    "bankConcatenationBytes": 268435456
+  },
+  "node": {
+    "passed": 278,
+    "failed": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-song-20261113/node-tests-c.log",
+      "bytes": 29994,
+      "sha256": "63a64a8fb38ccbee974331445ad9c74b406365f45d1da8a041d3f2910f2ffab7"
+    }
+  },
+  "browsers": {
+    "suites": 3,
+    "runs": 6,
+    "checks": 90,
+    "results": [
+      {
+        "suite": "VGM reference playback",
+        "receipt": {
+          "path": "build/verification/huc-song-20261113/song-c.json",
+          "bytes": 24383,
+          "sha256": "92868206eed670f8c96609c55640e4a6796a55ab0463dce10d1ad7ed99fa2e4d"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "Existing Code and Files",
+        "receipt": {
+          "path": "build/verification/huc-song-20261113/code-c.json",
+          "bytes": 19224,
+          "sha256": "be11be56d15f5238bce4bd630dfb692c79feafe8235bec2a88e5a2772d4ca738"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "Existing keyboard, extraction and PCM",
+        "receipt": {
+          "path": "build/verification/huc-song-20261113/legacy-c.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsVisuallyInspected": true,
+    "legacyExpectation": "Only the former irregular-direct-DAC extraction failure expectation changed: it is a valid timed song with zero static snapshots. The test proves original preset, held owner and audible authored PCM are retained without autoplay. The malformed missing-bank rejection assertion remains unchanged."
+  },
+  "package": {
+    "zip": "release/tetorica_huc6280_synth_huc-song-20261113c_itch.zip",
+    "stage": "release/itch_huc6280_synth_huc-song-20261113c-M7bAXu",
+    "files": 131,
+    "bytes": 1742823,
+    "sha256": "5b156a95e82bd0467801721a2050f44047263a35988f25b9161ab5e9036beae9",
+    "sourceCheck": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    },
+    "integrityReceipt": {
+      "path": "build/verification/huc-song-20261113/zip-integrity-c.json",
+      "bytes": 165,
+      "sha256": "86a8a5fbbd9278d1eef8c6b39c9183e8f798056d3d225a8ee4452831e3bd7569"
+    },
+    "sourceParityReceipt": {
+      "path": "build/verification/huc-song-20261113/source-parity-c.json",
+      "bytes": 350,
+      "sha256": "6ae741d43d99314ed532fe479083c04c4d8c8dcec56c15b483a87e12c84d6cfa"
+    }
+  },
+  "ci": "The HuC6280 workflow now runs the song checker on the extracted standalone ZIP, sequentially with the Code and legacy checks. GitHub Actions was not dispatched.",
+  "scope": "No physical listening, commercial game assets, commit, push, tag, publication, Tauri import or public npm/native DSP change. Song CH Live view, paused selected-CH audition/Capture, CH On/Off, Seek and direct interaction during VGM remain tracked in the completion roadmap. In this slice keyboard audition uses the authored instrument while paused; changing/loading an instrument stops the reference song."
+}

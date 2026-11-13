@@ -25,7 +25,7 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
   const host={running,mode:false,phase:{busy:false,stopping:false},getState(){return this.phase;},isRunning(){return this.running;},isCodeMode(){return this.mode;},markSoundDirty(){calls.push(['dirty']);}};
   scope=vm.createContext({Promise,DOMException,Map,Set,Array,Number,JSON,structuredClone,
     audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,
-    codeHost:host,channelTarget:channel,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,
+    codeHost:host,songControls:null,songState:null,channelTarget:channel,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,
     readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,
     enqueue(action){const task=pending.then(action);pending=task.catch(error=>errors.push(error));return task;},
     ensureAudio:async()=>{await ready;return engine;},
@@ -113,6 +113,24 @@ test('preparing/stopping Code does not accept a hand key before a physical sessi
     h.scope.press('key:KeyA',{key:'a',midi:60});await h.idle();
     assert.equal(h.notes.size,0);assert.equal(h.calls.length,0,phase);
   }
+});
+
+test('reference playback blocks hand keys and a late hand On cannot enter a newly started song',async()=>{
+  for(const field of ['playing','busy']){
+    const h=harness();h.scope.songState={[field]:true};
+    h.scope.press('key:KeyA',{key:'a',midi:60});await h.idle();assert.equal(h.notes.size,0);assert.equal(h.calls.length,0);
+    const gate=deferred(),late=harness({ready:gate.promise});
+    late.scope.press('key:KeyA',{key:'a',midi:60});await Promise.resolve();late.scope.songState={[field]:true};gate.resolve();await late.idle();
+    assert(!late.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));
+  }
+});
+
+test('an explicit sound load ends reference playback before applying to the authored chip',async()=>{
+  const h=harness({running:false});h.scope.songControls={read:()=>({canStop:true}),stop:()=>h.calls.push(['songStop'])};
+  const next=createDefaultPreset();next.name='New sound';
+  await h.scope.applyPreset(next,{load:true});
+  assert.equal(h.calls[0][0],'songStop');assert(h.calls.some(call=>call[0]==='command'&&call[1]==='loadPreset'));
+  assert.equal(h.scope.preset.name,'New sound');
 });
 
 test('an author load made while Code is preparing waits for its session without restarting or losing the selection',async()=>{

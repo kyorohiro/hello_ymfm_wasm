@@ -3,7 +3,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installHuc6280FileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
-import {createHuc6280CodeProject,createHuc6280ProjectStore,readHuc6280ProjectSound,isHuc6280CodePath,isHuc6280TextPath,HUC6280_PROJECT_MANIFEST,HUC6280_PROJECT_CODE_LENGTH,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
+import {createHuc6280CodeProject,createHuc6280ProjectStore,readHuc6280ProjectSound,isHuc6280CodePath,isHuc6280TextPath,isHuc6280SongPath,HUC6280_PROJECT_MANIFEST,HUC6280_PROJECT_CODE_LENGTH,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-song-1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -32,6 +32,13 @@ function importedSoundPath(filename,used){
   while(used.has(foldedPath(path)))path=`/presets/${stem} (${++index})${extension}`;
   used.add(foldedPath(path));return path;
 }
+function importedSongPath(filename,used){
+  const stem=soundFileStem(filename,/\.vg[mz]$/i),extension=filename.match(/\.vg[mz]$/i)?.[0];
+  if(!extension)throw Error('Choose a .vgm or .vgz reference song.');
+  let index=1,path=`/vgm/${stem}${extension}`;
+  while(used.has(foldedPath(path)))path=`/vgm/${stem} (${++index})${extension}`;
+  used.add(foldedPath(path));return path;
+}
 const foldedPath=path=>path.normalize('NFC').toLowerCase();
 const occupied=(project,path)=>[...project.fs.list().map(file=>file.path),...project.fs.listDirectories()].some(item=>foldedPath(item)===foldedPath(path));
 function copyPath(project,path){
@@ -47,7 +54,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   const panel=doc.getElementById('hucFilesPanel'),toggle=doc.getElementById('hucFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const presetSelect=doc.getElementById('hucPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('HuC6280 Files mount is missing.');
-  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.huc-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
+  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.huc-main'),listeners=[],expanded=new Map([['/presets',true],['/vgm',true],['/lib',true],['/data',true]]);
   let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
@@ -155,7 +162,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
     project.select(path);render();schedule();
     if(file.type==='text')await openInCurrentMode(path);
     if(disposed||token!==operation)return false;
-    say(sound?'HuC6280 sound loaded. Edit its JSON in Code; select it again to apply changes.':soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:file.type==='text'?'Text edits save to Files from Code; select a HuC6280 sound JSON again to apply it.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
+    say(sound?'HuC6280 sound loaded. Edit its JSON in Code; select it again to apply changes.':soundError?`JSON was not applied; current sound kept. Edit it in Code: ${soundError.message}`:isHuc6280SongPath(path)?'VGM reference song selected. Press Play in the song player; current instrument and Code are kept.':file.type==='text'?'Text edits save to Files from Code; select a HuC6280 sound JSON again to apply it.':`Binary file · ${file.data.byteLength} bytes. Export it to use it elsewhere.`);return true;
   }
   async function importFiles(files,{isCurrent=()=>true,announce=true}={}){
     if(disposed||!isCurrent())return[];
@@ -167,7 +174,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
       imported.push({filename,type,data,sound});}
     if(!current())return[];await code?.flush?.();if(!current())return[];
     const candidate=createHuc6280CodeProject({snapshot:project.snapshot()}),used=new Set([...candidate.listEntries().map(file=>file.path),...candidate.fs.listDirectories()].map(foldedPath));
-    const entries=imported.map(({filename,type,data,sound})=>({path:sound?importedSoundPath(filename,used):'/'+filename,type,data}));
+    const entries=imported.map(({filename,type,data,sound})=>({path:sound?importedSoundPath(filename,used):/\.vg[mz]$/i.test(filename)?importedSongPath(filename,used):'/'+filename,type,data}));
     const paths=candidate.importFiles(entries),replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
     setBusy(true);try{
       if(replaceExecution){if(await code.workspaceReplaced()===false||!current())return[];}
@@ -176,6 +183,19 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
       if(replaceActive||replaceExecution)await code.restoreState(project.getCodeState());
       for(const path of paths)reveal(path);render();await persistCode();if(announce)say(`Added ${paths.length} file(s). Code was not run.`);return paths;
     }finally{if(!disposed)setBusy(false);}
+  }
+  async function importSong(data,name,{isCurrent=()=>true,announce=true}={}){
+    if(typeof announce!=='boolean')throw TypeError('Import announcement must be boolean.');
+    if(disposed||!isCurrent())return null;
+    if(typeof name!=='string'||!/\.vg[mz]$/i.test(name))throw Error('Choose a .vgm or .vgz reference song.');
+    if(!(data instanceof ArrayBuffer)&&!ArrayBuffer.isView(data))throw TypeError('Reference song data must be binary bytes.');
+    const source=data instanceof ArrayBuffer?new Uint8Array(data):new Uint8Array(data.buffer,data.byteOffset,data.byteLength);
+    if(source.byteLength>16*1024*1024)throw Error('Reference song exceeds the 16 MiB project file limit. It can still be extracted directly with Import VGM.');
+    const bytes=source.slice();
+    const paths=await importFiles([{name,size:bytes.byteLength,arrayBuffer:async()=>bytes.buffer}],{isCurrent,announce:false});
+    const path=paths[0]??null;
+    if(path&&announce)say(`Reference song saved to ${path}. Press Play in the song player; current instrument and Code are kept.`);
+    return path;
   }
   async function importProject(bytes){
     await api.ready;if(disposed||busy)return false;const token=++operation;
@@ -281,7 +301,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importSong,importProject,exportProject,createFile,move,duplicate,remove,saveSound,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

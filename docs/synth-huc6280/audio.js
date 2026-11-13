@@ -23,7 +23,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
   const controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, codeFade=null, master = null, disposed = false, closing = null;
+  let node = null, balance = null, codeFade=null, master = null, songInput=null, disposed = false, closing = null;
   let codeGeneration=0,codeOwner=null;
   const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
@@ -60,6 +60,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     }
     balance?.disconnect();
     codeFade?.disconnect();
+    songInput?.disconnect();
     master?.disconnect();
     closing = (async () => { if (context.state !== 'closed') await context.close(); })();
     return closing;
@@ -125,6 +126,8 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     balance = context.createGain(); balance.gain.value = HUC6280_SYNTH_BALANCE;
     codeFade=context.createGain();codeFade.gain.value=1;
     master = context.createGain(); master.gain.value = volume;
+    songInput=context.createGain();songInput.gain.value=HUC6280_SYNTH_BALANCE;
+    songInput.connect(master);
     node.connect(balance); balance.connect(codeFade);codeFade.connect(master); master.connect(context.destination);
 
     async function command(method, args = []) {
@@ -179,7 +182,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       check();await owner.promise;check();const result=await command('applyCodeEdit',[owner.session,edit]);check();return result;
     }
     return {
-      context, outputNode:master,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),getHuc6280Client,applyCodePreset,applyCodeEdit,
+      context, outputNode:master,songInputNode:songInput,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),getHuc6280Client,applyCodePreset,applyCodeEdit,
       get codeSession(){return codeOwner?.session??null;},
       async resume() {
         assertOpen();

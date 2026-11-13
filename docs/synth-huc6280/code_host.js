@@ -4,8 +4,8 @@ import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-code-source-1';
 import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-code-1';
 import {createHuc6280CodeAudio} from './code_audio.js?v=huc-code-1';
-import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-code-1';
-import {setupHuc6280CodeFiles} from './code_files.js?v=huc-code-1';
+import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-song-1';
+import {setupHuc6280CodeFiles} from './code_files.js?v=huc-song-1';
 
 export const HUC6280_STARTER_CODE=`const pce = await useSoundChip("huc6280");
 setBpm(120);
@@ -26,7 +26,7 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('HuC6280 Code stopped','AbortError');
 export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySettings,
-  stopKeyboard,onActivity=()=>{},setStatus=()=>{}}={}) {
+  stopKeyboard,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null;
   const project=createHuc6280CodeProject({settings:getSettings(),getStarterCode:()=>HUC6280_STARTER_CODE});
   const audio=createHuc6280CodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -39,7 +39,7 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
   }
   const files=setupHuc6280CodeFiles({project,getSettings,applySettings,setStatus,
     async onBeforeSoundApply(){if(!runtime?.getState().running)await stopKeyboard();},
-    async onBeforeWorkspaceReplace(){await stop();await stopKeyboard();}});
+    async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();}});
   function getRuntime() {
     if(runtime)return runtime;
     runtime=createPlaygroundCodeRuntime({supportedSoundChips:['huc6280'],
@@ -60,7 +60,7 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
     allowTextFiles:true,maxTextLength:HUC6280_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'huc6280',transformDeclarations:selectHuc6280CodeDeclarations,
     journalKey:'tetorica-huc6280-synth-pending-code',getStarterCode:()=>HUC6280_STARTER_CODE,
-    async onBeforeRun(){modeEpoch++;if(!runtime?.getState().running)await stopKeyboard();},
+    async onBeforeRun(){modeEpoch++;await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
     async onModeChange(mode){const request=++modeEpoch;
       if(mode==='code'){if(!disposed&&request===modeEpoch&&!runtime?.getState().running)await stopKeyboard();}
       else if(!disposed&&!runtime?.getState().running)audio.open();onActivity();

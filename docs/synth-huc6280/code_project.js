@@ -16,6 +16,7 @@ const MAX_TEXT=HUC6280_PROJECT_CODE_LENGTH;
 const clone=value=>structuredClone(value);
 export const isHuc6280CodePath=path=>typeof path==='string'&&/\.m?js$/i.test(path)&&!path.split('/').some(part=>['.git','.tet.ss'].includes(part));
 export const isHuc6280TextPath=path=>/\.(?:m?js|json|txt|md|css|html|csv|ya?ml|glsl)$/i.test(path);
+export const isHuc6280SongPath=path=>typeof path==='string'&&/^\/vgm\/.+\.vg[mz]$/i.test(path)&&!path.split('/').some(part=>['..','.git','.tet.ss'].includes(part));
 const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const text=data=>typeof data==='string'?data:decoder.decode(data);
 const name=value=>{if(typeof value!=='string'||!value.trim()||value.length>120||/[\u0000-\u001f/\\]/.test(value))throw Error('Project name must be 1–120 characters without slashes.');return value.trim();};
@@ -40,6 +41,7 @@ function validateFiles(fs){
     total+=file.type==='text'?new TextEncoder().encode(file.data).byteLength:file.data.byteLength;
     if(isCheckpointPath(file.path))continue;
     if(file.path===HUC6280_PROJECT_MANIFEST)throw Error('HuC6280 project manifest is reserved.');
+    if(isHuc6280SongPath(file.path)&&file.type!=='binary')throw Error('VGM / VGZ reference songs must keep their original binary bytes.');
     if(isHuc6280CodePath(file.path)&&(file.type!=='text'||file.data.length>MAX_TEXT))throw Error('JavaScript files must be UTF-8 text no larger than 2 MiB.');
   }
   if(total>HUC6280_PROJECT_FILE_BYTES)throw Error('Code project files exceed the 16 MiB cassette limit. Use Save preset for a larger audio instrument.');

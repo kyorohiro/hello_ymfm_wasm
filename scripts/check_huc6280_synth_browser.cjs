@@ -464,10 +464,18 @@ async function checkEngine(name, engine, origin) {
     await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="1"]').click();
     state=await wait(s=>s.preset.dda.sampleRate===5513.5);assert.equal(state.voices[0].id,directOwner);
     await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="-1"]').click();await wait(s=>s.preset.dda.sampleRate===5512.5);
-    check('irregular direct writes are omitted without changing held PCM and fractional-rate JSON is portable');
+    check('irregular direct PCM stays available as a source, without inventing a snapshot or changing held PCM');
+    const beforeIrregular=(await read()).preset;
     await page.locator('#vgmFileInput').setInputFiles({name:'irregular-direct.vgm',mimeType:'application/octet-stream',buffer:makeDirectPcmVgm({irregular:true})});
-    await page.waitForFunction(()=>document.querySelector('#vgmStatus').dataset.error==='true');
-    assert.equal((await read()).voices[0].id,directOwner);assert.equal(await page.locator('#vgmFileName').textContent(),'direct-pcm.vgz');
+    // Nonuniform DAC timing cannot become one constant-rate PCM preset, but it
+    // is a valid original VGM performance. Keep it for explicit reference Play.
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='irregular-direct.vgm'&&document.querySelector('#vgmLibrary').dataset.loading==='false');
+    assert.equal(await page.locator('[data-vgm-voice]').count(),0);
+    assert.equal(await page.locator('#vgmStatus').getAttribute('data-error'),'false');
+    assert.match(await page.locator('#vgmWarnings').textContent(),/Direct PCM omitted: direct DAC write spacing changes/);
+    assert.equal(await page.locator('#hucSongSelect option[value="/vgm/irregular-direct.vgm"]').count(),1);
+    assert.notEqual(await page.locator('#hucSongPlayer').getAttribute('data-state'),'playing','source import never autoplays');
+    assert.equal((await read()).voices[0].id,directOwner);assert.deepEqual((await read()).preset,beforeIrregular);await sound();
     await page.keyboard.up(c4);await wait(s=>s.voices.length===0);await silent();
     const directDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
     const directSaved=JSON.parse(await fs.readFile(await(await directDownload).path(),'utf8'));

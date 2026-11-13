@@ -125,6 +125,43 @@ both written period registers and both complete waveforms, plus the rate and
 control settings. Unknown data is not replaced with a built-in wave. Song-time
 oscillator phases and elapsed LFO counters are not reconstructed.
 
+## VGM reference playback
+
+Import a VGM / VGZ in **Sounds from VGM**, or use the menu's **Project files…**.
+The original file is saved under `vgm/` in Files with a unique name. The **VGM**
+selector above Waveform / Spectrum lists these files. Select a song, then press
+**Play**. The same button becomes **Pause**, then **Resume**. **Stop** returns to
+the beginning while retaining the selected song and your edited instrument.
+Opening, selecting or restoring a project never starts playback automatically.
+
+Reference playback renders the recorded HuC6280 writes with the existing chip
+core, including timed Wave, Noise, hardware LFO and supported direct / streamed
+DAC writes. It plays **once**, through the existing Master volume and output
+monitor. VGM loop points do not automatically repeat. The reference chip is
+independent of the authored instrument; Pause retains unheard PCM and its exact
+offset so Resume continues at the heard song position.
+
+Code and reference playback run one at a time. Play / Resume stops Code and
+releases manual keys; Run stops the reference song. **Stop all sound** stops
+both. Pause or Stop the song to play your edited instrument on the keyboard.
+Changing or loading an instrument stops the reference song. This first slice
+does not yet expose song-CH Live controls, channel audition / Capture or Seek.
+
+The player accepts VGM **1.61–1.72** and requires one HuC6280 at the normal
+**3,579,545 Hz** PC Engine clock. Other chips,
+dual / variant chips, unsupported stream forms and malformed timelines are
+rejected before the player acquires audio. An invalid song keeps the accepted
+song and edited instrument. Song loading accepts up to **64 MiB** compressed or
+expanded, but Files / Cassette still has its **16 MiB total expanded project**
+limit. If a source cannot be copied into Files, sound extraction can still
+finish and reports the copy failure separately. A valid file without a complete
+static instrument can still be kept for reference playback.
+Supported DAC streams use uncompressed banks; stop a stream before changing
+its bank / stride setup. Preparation is bounded to one hour, four million
+commands, 192,000 Hz per stream and 384,000 Hz across active streams. Extra
+headers, compressed / ROM banks and excessive command bursts are rejected
+with an explanation.
+
 Opening the page or editing a sound does not start an audio device. Playing a
 key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
 
@@ -265,8 +302,8 @@ parameters; keyboard allocation, software envelope scheduling and Master belong
 to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
-Irregular or incomplete direct-write PCM, unsupported DAC stream forms, CD-ROM² ADPCM /
-CD-DA, song playback and full PC Engine emulation are not included.
+Irregular or incomplete direct-write PCM extraction, unsupported DAC stream
+forms, CD-ROM² ADPCM / CD-DA and full PC Engine emulation are not included.
 
 ## API, sources and licenses
 
@@ -275,6 +312,7 @@ CD-DA, song playback and full PC Engine emulation are not included.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
 - [Code host and starter](code_host.js), [shared-chip client / software FX](code_audio.js), [Live channel view](code_live.js), [types](code_declarations.js), [project format](code_project.js) and [Files](code_files.js).
 - [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js), [direct DAC PCM extraction](vgm_direct_pcm.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
+- [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js) and [Files song controls](song_controls.js).
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
@@ -291,6 +329,7 @@ From the repository root:
 npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
+npm run test:huc6280-synth:song-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -330,4 +369,9 @@ PCM一覧に由来・rate・時間・Loopを表示し、C4で記録時の速度�
 直接DACは既知のkey-on／key-offまたはDDA解除に囲まれた一定間隔の区間のみを採用します。最初のDAC writeはkey-onと同時刻が必要で、Loopや元の音階は推測しません。
 音声変換は8,000–44,100Hz、live DAC rateは直接DAC由来の小数rateも扱える1–192,000Hzです。
 間隔が変わる／終端が不明な直接DAC区間、未対応stream、不明な設定は理由付きで省略します。
-CD-ROM²音源と曲の再生は対象外です。
+VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲一覧からPlay／Pause／Resume／Stopできます。
+模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
+Codeと曲再生は排他的で、RunとPlayが互いの演奏を停止します。Pauseは未再生PCMとoffsetを保持します。
+鍵盤で編集用音色を弾くには曲をPauseまたはStopします。CH Live・選択CHの試奏／Capture・Seekは後続です。
+他チップの音を黙って省略せず、単一HuC6280以外や未対応データは理由付きで拒否します。
+CD-ROM²音源は対象外です。
