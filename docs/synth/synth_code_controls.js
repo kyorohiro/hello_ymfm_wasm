@@ -133,11 +133,12 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   async function flush() {
     if(disposed)return false;
     writeCurrent();
+    const receipt={workspaceId:files?.workspaceId,path:activePath,source:activePath?adapter.getValue():null};
     const saved=await files?.persistCode?.();
-    if(saved) {
+    if(saved&&!disposed&&receipt.path&&receipt.workspaceId===files?.workspaceId&&receipt.path===activePath&&receipt.source===adapter.getValue()) {
       try {
         const entry=JSON.parse(localStorage.getItem(journalKey)||'null');
-        if(entry?.workspaceId===files?.workspaceId&&entry.path===activePath&&entry.source===adapter.getValue())localStorage.removeItem(journalKey);
+        if(entry?.workspaceId===receipt.workspaceId&&entry.path===receipt.path&&entry.source===receipt.source)localStorage.removeItem(journalKey);
       }catch{}
     }
     return true;

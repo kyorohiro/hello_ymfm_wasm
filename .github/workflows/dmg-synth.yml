@@ -22,6 +22,8 @@ on:
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth/synth_menu.js'
       - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
+      - 'scripts/check_synth_project_draft_reconnect_browser.cjs'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/gameboy*'
@@ -47,6 +49,7 @@ on:
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth/synth_menu.js'
       - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
@@ -85,6 +88,7 @@ jobs:
           node scripts/check_dmg_synth_song_channels_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-song-channels-browser.json --screenshots=release/dmg-synth-song-channels-images
           node scripts/check_dmg_synth_channel_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-channel-browser.json --screenshots=release/dmg-synth-channel-images
           node scripts/check_dmg_synth_vgm_manual_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-synth-vgm-manual-browser.json --screenshots=release/dmg-synth-vgm-manual-images
+          node scripts/check_synth_project_draft_reconnect_browser.cjs --mode=dmg --root=release/dmg-synth-browser --entry=/index.html --out=release/dmg-draft-reconnect-browser.json --screenshots=release/dmg-draft-reconnect-images
       - name: Check real Code Monaco when its pinned CDN is available
         run: |
           if node scripts/check_dmg_synth_code_monaco_browser.cjs --root=release/dmg-synth-browser --entry=/index.html --engines=chromium,webkit --out=release/dmg-synth-code-monaco-browser.json; then
@@ -117,6 +121,8 @@ jobs:
             release/dmg-synth-channel-images/
             release/dmg-synth-vgm-manual-browser.json
             release/dmg-synth-vgm-manual-images/
+            release/dmg-draft-reconnect-browser.json
+            release/dmg-draft-reconnect-images/
             release/dmg-synth-code-monaco-browser.json
             release/dmg-synth-code-monaco-browser-*.png
           if-no-files-found: ignore

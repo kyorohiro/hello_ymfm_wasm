@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared software scheduler/editor over the upper instrument's existing SPU.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-code-keyboard-1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=draft-reconnect-1';
 import {selectSpuCodeDeclarations} from './code_declarations.js?spu-click-guard=1';
 import {createSpuCodeAudio} from './code_audio.js?spu-code=1';
-import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
-import {setupSpuCodeFiles} from './code_files.js?spu-live-presets=1';
+import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
+import {setupSpuCodeFiles} from './code_files.js?v=draft-reconnect-1';
 
 export const SPU_STARTER_CODE=`const ps1 = await useSoundChip("ps1");
 setBpm(120);

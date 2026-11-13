@@ -2,7 +2,7 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
-import {createSidCodeProject,createSidProjectStore,readSidProjectSound,isSidCodePath,isSidTextPath,SID_PROJECT_MANIFEST} from './code_project.js';
+import {createSidCodeProject,createSidProjectStore,readSidProjectSound,isSidCodePath,isSidTextPath,SID_PROJECT_MANIFEST} from './code_project.js?v=draft-reconnect-1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -13,7 +13,7 @@ export function setupSidCodeFiles({project=createSidCodeProject(),getSettings=()
   const panel=doc.getElementById('sidFilesPanel'),toggle=doc.getElementById('sidFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   if(!panel||!toggle||!workspace)throw Error('SID Files mount is missing.');
   const win=doc.defaultView??globalThis,main=doc.querySelector?.('.sid-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
-  let code=null,busy=true,disposed=false,restoring=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),textPath=null,visibilityTouched=false;
+  let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),textPath=null,visibilityTouched=false;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
   const toolbar=make('div');toolbar.className='sid-files-toolbar';
@@ -46,7 +46,7 @@ export function setupSidCodeFiles({project=createSidCodeProject(),getSettings=()
   }
   function setBusy(value){busy=value;if(main)main.inert=Boolean(value);render();}
   async function persistCode(){
-    if(disposed)return false;
+    if(disposed||!persistenceReady)return false;
     if(!busy&&!restoring)project.setSettings(getSettings());
     try{return await store.write({...project.snapshot(),workspaceId:identity,filesVisible:!panel.hidden});}
     catch(error){report(Error(`Local save failed: ${error.message}. Export project to keep your files.`));return false;}
@@ -138,8 +138,12 @@ export function setupSidCodeFiles({project=createSidCodeProject(),getSettings=()
   api.ready=Promise.resolve().then(async()=>{
     const before=editRevision;
     try{const saved=await store.read();if(disposed)return;if(saved){const candidate=createSidCodeProject({snapshot:saved});if(before!==editRevision)candidate.setSettings(getSettings());
-      restoring=true;try{await onBeforeWorkspaceReplace();if(disposed)return;if(before!==editRevision)candidate.setSettings(getSettings());await applySettings(candidate.settings,{isCurrent:()=>!disposed});if(disposed)return;project.restore(candidate.snapshot());identity=typeof saved.workspaceId==='string'?saved.workspaceId:identity;if(!visibilityTouched)setVisible(Boolean(saved.filesVisible));}finally{restoring=false;}}}
+      restoring=true;try{await onBeforeWorkspaceReplace();if(disposed)return;if(before!==editRevision)candidate.setSettings(getSettings());await applySettings(candidate.settings,{isCurrent:()=>!disposed});if(disposed)return;project.restore(candidate.snapshot());identity=typeof saved.workspaceId==='string'?saved.workspaceId:identity;if(!visibilityTouched)setVisible(Boolean(saved.filesVisible));}finally{restoring=false;}}
+      // A failed read/validation must never allow defaults or later edits to
+      // overwrite a stored project which this page has not safely restored.
+      persistenceReady=true;
+    }
     catch(error){report(Error('Local project restore failed; current files kept. '+error.message));}
-    finally{if(!disposed){setBusy(false);showText(project.selectedPath);}}
+    finally{if(!disposed){setBusy(false);showText(project.selectedPath);if(persistenceReady&&before!==editRevision)schedule();}}
   });if(main)main.inert=true;render();return api;
 }

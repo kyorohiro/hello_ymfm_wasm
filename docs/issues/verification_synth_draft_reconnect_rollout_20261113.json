@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "SPU SID DMG local project storage reconnect rollout",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "SPU, SID and DMG adapters use one ordered project-store layer over the FM reconnect helper. Complete operations, including one lifecycle retry, retain arrival order and detached snapshots.",
+    "The original per-app database names, schema version 1, projects/current key, typed binary snapshots and localStorage keys/$spuBytes/$sidBytes/$dmgBytes fallback encodings are unchanged.",
+    "Closed/version-changing connections reopen without replaying application restoration. A failed initial open is not cached permanently against later I/O.",
+    "Persistence starts only after successful initial read and validation. Failed or invalid stored projects are never replaced with defaults or later edits; current in-memory files remain exportable.",
+    "Shared Code flush captures workspace/path/source before awaiting persistence. An older commit cannot clear a newer recovery journal; this common correction also applies to FM2612.",
+    "SID and DMG retain sound edits made during a slow successful initial read and schedule their save after restoration.",
+    "Close drains accepted writes and rejects late operations without reopening a disposed store. No database deletion, schema migration, automatic localStorage downgrade or public API/DSP change.",
+    "Entry and transitive frontend cache identities are updated. Readable helper modules and matching adapters are included in the three standalone distributions; workflows run the muted storage fault checker."
+  ],
+  "node": {
+    "passed": 1585,
+    "failed": 0,
+    "command": "node --test docs/synth/*.test.mjs docs/synth-spu/*.test.mjs docs/synth-sid/*.test.mjs docs/synth-dmg/*.test.mjs scripts/package_itch_spu_synth.test.mjs scripts/package_itch_sid_synth.test.mjs scripts/package_itch_dmg_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/synth-draft-rollout-20261113/node-tests.log",
+      "bytes": 177207,
+      "sha256": "6c6fd7396b3fea319afddc264abb1f116229ababee8afb46d1aecdec75811ff9"
+    }
+  },
+  "browsers": {
+    "checker": {
+      "path": "scripts/check_synth_project_draft_reconnect_browser.cjs",
+      "bytes": 20668,
+      "sha256": "0ed53084710808e8ce51ebfd2dc490deb3bbf7e7224dca2e06026c70f957918a"
+    },
+    "suites": 3,
+    "runs": 6,
+    "checks": 36,
+    "results": [
+      {
+        "mode": "spu",
+        "receipt": {
+          "path": "build/verification/synth-draft-rollout-20261113/spu-a.json",
+          "bytes": 42820,
+          "sha256": "4f856aac0d31be08f826339c32b7ae5339d0b69fbacbb487d7f81bd6f708ba5b"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 6,
+            "audioContexts": 0
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 6,
+            "audioContexts": 0
+          }
+        ]
+      },
+      {
+        "mode": "sid",
+        "receipt": {
+          "path": "build/verification/synth-draft-rollout-20261113/sid-a.json",
+          "bytes": 45598,
+          "sha256": "bc6d7e9fdd0e7fe250530d2714f9ec3370dfd3176bbced2d99aa67636397efd1"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 6,
+            "audioContexts": 0
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 6,
+            "audioContexts": 0
+          }
+        ]
+      },
+      {
+        "mode": "dmg",
+        "receipt": {
+          "path": "build/verification/synth-draft-rollout-20261113/dmg-b.json",
+          "bytes": 41813,
+          "sha256": "42b291dd5774a66b6d0c8a73c75de6077f117a3a8e1d22311f386236d690647c"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 6,
+            "audioContexts": 0
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 6,
+            "audioContexts": 0
+          }
+        ]
+      }
+    ],
+    "coverage": [
+      "self-authored project import without audio or code execution",
+      "native closing-connection InvalidStateError and autosave",
+      "Files operation after closure",
+      "genuine versionchange from rolled-back upgrade",
+      "native write aborts and immutable queued newer snapshot",
+      "old explicit flush cannot remove newer pending Code journal",
+      "exact sound JSON/Code/text/binary/settings/path/mode after reload"
+    ]
+  },
+  "packages": {
+    "passed": true,
+    "results": [
+      {
+        "mode": "spu",
+        "passed": true,
+        "zip": "release/tetorica_spu_synth_draft-rollout-20261113a_itch.zip",
+        "stage": "release/itch_spu_synth_draft-rollout-20261113a-Vxqstk",
+        "files": 346,
+        "bytes": 7142134,
+        "sha256": "878a8b36827ac09fb89fa4b6102467df356edec2c5f332b610ef214b689b12da",
+        "crcPassed": true,
+        "stageMatchesZip": true,
+        "sharedHelpersAndAdaptersMatchSource": true
+      },
+      {
+        "mode": "sid",
+        "passed": true,
+        "zip": "release/tetorica_sid_synth_draft-rollout-20261113a_itch.zip",
+        "stage": "release/itch_sid_synth_draft-rollout-20261113a-xPd4CJ",
+        "files": 337,
+        "bytes": 3508272,
+        "sha256": "a844ab6a22c5e53d01ece2aaeba5093be5971684ff5eb9a8f9f69c24c58d8823",
+        "crcPassed": true,
+        "stageMatchesZip": true,
+        "sharedHelpersAndAdaptersMatchSource": true
+      },
+      {
+        "mode": "dmg",
+        "passed": true,
+        "zip": "release/tetorica_dmg_synth_draft-rollout-20261113b_itch.zip",
+        "stage": "release/itch_dmg_synth_draft-rollout-20261113b-Y4E7E6",
+        "files": 131,
+        "bytes": 1885377,
+        "sha256": "ad6b40946210878a00522d9bb0584b980b0c8d18a8ca65370da74f9cd8845c1d",
+        "crcPassed": true,
+        "stageMatchesZip": true,
+        "sharedHelpersAndAdaptersMatchSource": true
+      },
+      {
+        "mode": "fm",
+        "passed": true,
+        "zip": "release/hello_ymfm_wasm_draft-rollout-20261113a_itch_synth.zip",
+        "stage": "release/itch_synth_draft-rollout-20261113a",
+        "files": 293,
+        "bytes": 1126296,
+        "sha256": "bacb937b43d79dfb590a5e89442f5958993593998571d7d554d387f124ebbf29",
+        "crcPassed": true,
+        "stageMatchesZip": true
+      }
+    ],
+    "receipt": {
+      "path": "build/verification/synth-draft-rollout-20261113/zip-integrity.json",
+      "bytes": 1732,
+      "sha256": "43a4cf1c3196243f6388078131745897d1d2e2ae86775ea6c5ceb49ed8fa7767"
+    }
+  },
+  "sources": [
+    {
+      "path": "docs/synth/synth_project_store.js",
+      "bytes": 1835,
+      "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+    },
+    {
+      "path": "docs/synth/synth_draft_store.js",
+      "bytes": 3656,
+      "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+    },
+    {
+      "path": "docs/synth/synth_code_controls.js",
+      "bytes": 20720,
+      "sha256": "4430938fcb73034c060cf1bc3b3efbad76f9c9e2fd1174116e067803ac6b79a1"
+    }
+  ],
+  "scope": "No user storage was opened, cleared or migrated during verification; isolated test browser contexts and self-authored files only. No physical listening, commit, push, tag or publication. Files immediate editing, audio routing and public npm APIs remain unchanged."
+}

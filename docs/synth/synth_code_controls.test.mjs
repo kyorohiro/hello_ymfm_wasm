@@ -97,6 +97,32 @@ test('Code opens lazily, preserves an existing index, and edits the Cassette ind
   }finally{f.cleanup();}
 });
 
+test('an older pending flush cannot remove a newer edit recovery journal',async()=>{
+  const gate=deferred(),f=fixture({source:'// original'});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');
+    const saved=[];f.files.persistCode=()=>{saved.push(f.project.fs.get('/index.js').data);return saved.length===1?gate.promise:Promise.resolve(true);};
+    f.byId('synthCodeEditor').value='// old saved snapshot';f.byId('synthCodeEditor').fire('input');
+    const older=f.controls.flush();assert.deepEqual(saved,['// old saved snapshot']);
+    f.byId('synthCodeEditor').value='// newer unsaved source';f.byId('synthCodeEditor').fire('input');
+    const newest=[...f.journal.values()][0];gate.resolve(true);await older;
+    assert.equal([...f.journal.values()][0],newest,'only the older source committed; newer source keeps recovery');
+    await f.controls.flush();assert.equal(f.journal.size,0);assert.equal(saved.at(-1),'// newer unsaved source');
+  }finally{f.cleanup();}
+});
+
+test('a pending flush cannot clear recovery from a replacement workspace',async()=>{
+  const gate=deferred(),f=fixture({source:'// first workspace'});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');
+    f.files.persistCode=()=>gate.promise;
+    const pending=f.controls.flush();f.files.workspaceId='workspace-b';
+    f.byId('synthCodeEditor').value='// replacement';f.byId('synthCodeEditor').fire('input');
+    const journal=[...f.journal.values()][0];gate.resolve(true);await pending;
+    assert.equal([...f.journal.values()][0],journal);assert.equal(JSON.parse(journal).workspaceId,'workspace-b');
+  }finally{f.cleanup();}
+});
+
 test('host editor/declaration options and recovery journals stay independent from the default FM Synth',async()=>{
   const fmKey='tetorica-fm2612-synth-pending-code',sidKey='tetorica-sid-synth-pending-code';
   const entry=source=>JSON.stringify({workspaceId:'workspace-a',path:'/index.js',source});

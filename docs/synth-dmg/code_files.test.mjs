@@ -141,6 +141,50 @@ test('DMG local Files restoration retains a preset edited while storage was pend
   assert.deepEqual(f.project.settings,edited);assert.deepEqual(f.calls.at(-1),['apply',edited]);assert.equal(f.project.fs.get('/index.js').data,'restored code');
 });
 
+test('DMG automatically persists an early sound edit after a slow successful startup read',async t=>{
+  const gate=deferred(),saved=createGameboyCodeProject({starterCode:'// durable source'}),writes=[];
+  saved.importFiles([{path:'/raw/kept.bin',type:'binary',data:Uint8Array.of(0,128,255)}]);
+  const f=fixture(t,{store:{read:()=>gate.promise,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}}});
+  await Promise.resolve();
+  // A selection change schedules a normal save while the source read is
+  // pending. Let that debounce expire before allowing restoration to finish.
+  f.files.rememberCodeState({mode:'code',path:'/index.js'});
+  const edited=createDefaultPreset();edited.source='wave';edited.wave.samples[1]=3;f.setSettings(edited);f.files.markSoundDirty();
+  await new Promise(resolve=>setTimeout(resolve,150));assert.equal(writes.length,0);
+  gate.resolve(saved.snapshot());await f.files.ready;
+  await new Promise(resolve=>setTimeout(resolve,150));
+  assert.equal(writes.length,1,'successful startup must reschedule the early edited sound without a manual save');
+  const restored=createGameboyCodeProject({snapshot:writes[0]});assert.deepEqual(restored.settings,edited);
+  assert.equal(restored.fs.get('/index.js').data,'// durable source');assert.deepEqual(restored.fs.get('/raw/kept.bin').data,Uint8Array.of(0,128,255));
+});
+
+test('DMG persistence waits for successful startup restoration and never reloads state during later saves',async t=>{
+  const gate=deferred(),old=createGameboyCodeProject({starterCode:'// durable source'}),writes=[];let reads=0;
+  old.importFiles([{path:'/raw/kept.bin',type:'binary',data:Uint8Array.of(0,255)}]);
+  const f=fixture(t,{store:{read:()=>{reads++;return gate.promise;},write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}}});
+  await Promise.resolve();assert.equal(await f.files.persistCode(),false);assert.equal(writes.length,0,'pending startup read must not save a default workspace');
+  const edited=createDefaultPreset();edited.source='wave';edited.wave.samples[0]=2;f.setSettings(edited);f.files.markSoundDirty();
+  gate.resolve(old.snapshot());await f.files.ready;assert.equal(reads,1);assert.deepEqual(f.project.settings,edited);
+  f.project.writeEditorText('/index.js','// latest live source');assert.equal(await f.files.persistCode(),true);
+  assert.equal(reads,1,'save/reconnect never reruns startup restoration');
+  assert.equal(writes.at(-1).filesystem.files.find(file=>file.path==='/index.js').data,'// latest live source');
+  assert.deepEqual(f.project.fs.get('/raw/kept.bin').data,Uint8Array.of(0,255));
+});
+
+test('DMG unread or invalid initial drafts cannot be overwritten by later edits, Files operations or disposal',async t=>{
+  for(const failure of ['read','invalid'])await t.test(failure,async t=>{
+    const writes=[],durable=createGameboyCodeProject({starterCode:'// stored source'}).snapshot();
+    const f=fixture(t,{store:{read:async()=>{if(failure==='read')throw new DOMException('Injected backend read error','UnknownError');return{...durable,format:'invalid'};},write:async value=>{writes.push(value);return true;},close:async()=>{}}});
+    await f.files.ready;assert.match(f.statuses.at(-1),/Local project restore failed/);
+    const edited=createDefaultPreset();edited.source='noise';f.setSettings(edited);f.files.markSoundDirty();
+    f.project.writeEditorText('/index.js','// unsaved current edit');assert.equal(await f.files.persistCode(),false);
+    await f.files.createFile('/notes.txt');assert.equal(writes.length,0);
+    const exported=await f.files.exportProject(),copy=createGameboyCodeProject();copy.restore(await copy.prepareImport(exported));
+    assert.equal(copy.fs.get('/index.js').data,'// unsaved current edit');assert.deepEqual(copy.settings,edited);
+    await f.files.dispose();assert.equal(writes.length,0,'shutdown must not save defaults over an unread draft');
+  });
+});
+
 test('DMG Load VGM and Add files retain exact sources under unique /vgm paths without audio or Code mode changes',async t=>{
   const f=fixture(t);await f.files.ready;let flushes=0;
   f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,flush:async()=>{flushes++;return true;},setBusy(){},openFile:()=>assert.fail('Song import does not open Code'),workspaceReplaced:()=>assert.fail('Song import does not stop Code')});

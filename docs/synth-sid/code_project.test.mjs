@@ -53,4 +53,9 @@ test('SID local store is independent and round-trips binary snapshots',async()=>
   const store=createSidProjectStore({indexedDB:null,storage}),project=createSidCodeProject();project.importFiles([{path:'/sample.bin',type:'binary',data:Uint8Array.of(3,255)}]);
   assert.equal(await store.read(),null);await store.write(project.snapshot());assert(values.has(SID_PROJECT_STORAGE_KEY));const restored=createSidCodeProject({snapshot:await store.read()});
   assert.deepEqual(restored.fs.get('/sample.bin').data,Uint8Array.of(3,255));assert.equal(values.get('tetorica-fm2612-synth-pending-code'),'FM kept');
+  assert.match(values.get(SID_PROJECT_STORAGE_KEY),/\"\$sidBytes\"/,'the existing fallback binary marker is retained');
+  await store.close();
+  const reopened=createSidProjectStore({indexedDB:null,storage});
+  assert.deepEqual(await reopened.read(),restored.snapshot(),'a new store reads the existing fallback format without migration');
+  await reopened.close();
 });

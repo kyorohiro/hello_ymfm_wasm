@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Glue for the shared Code editor/scheduler and this Synth's existing SID.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-code-keyboard-1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=draft-reconnect-1';
 import {selectSidCodeDeclarations} from './code_declarations.js?sid-code=1';
 import {createSidCodeAudio} from './code_audio.js?sid-code=1';
-import {createSidCodeProject} from './code_project.js?sid-code=1';
-import {setupSidCodeFiles} from './code_files.js?sid-code=1&sid-live-preset=2';
+import {createSidCodeProject} from './code_project.js?v=draft-reconnect-1';
+import {setupSidCodeFiles} from './code_files.js?sid-code=1&sid-live-preset=2&draft-reconnect=1';
 
 export const SID_STARTER_CODE=`const sid = await useSoundChip("sid");
 setBpm(120);

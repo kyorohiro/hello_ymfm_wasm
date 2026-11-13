@@ -10,8 +10,8 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone,exportVab} from './spu_synth_vab.js?v=ps1-vab-api-1';
 import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js?v=ps1-vab-api-1';
-import {setupSpuCodeHost} from './code_host.js?v=spu-code-parameters-1';
-import {SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
+import {setupSpuCodeHost} from './code_host.js?v=draft-reconnect-1';
+import {SPU_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
 import {prepareVabTonePreset,prepareVabBankPresets} from './spu_bank_presets.js?v=ps1-vab-api-1';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';

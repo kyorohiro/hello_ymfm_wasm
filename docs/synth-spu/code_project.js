@@ -3,6 +3,7 @@ import {createVirtualFileSystem,isCheckpointPath} from '../js/tetorica_virtual_f
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createSynthCodeProject} from '../synth/synth_code_project.js?code-files-scope=2';
+import {createSynthProjectStore} from '../synth/synth_project_store.js?v=draft-reconnect-1';
 import {readSpuInstrument,INSTRUMENT_SCHEMA} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
 export const SPU_PROJECT_FORMAT='tetorica-spu-code-project';
@@ -98,11 +99,8 @@ export function createSpuCodeProject({snapshot,starterCode,getStarterCode}={}){
 function storageJson(snapshot){return JSON.stringify(snapshot,(_key,value)=>value instanceof Uint8Array?{$spuBytes:Array.from(value)}:value);}
 function storageParse(source){return JSON.parse(source,(_key,value)=>value&&Array.isArray(value.$spuBytes)?Uint8Array.from(value.$spuBytes):value);}
 export function createSpuProjectStore({indexedDB=globalThis.indexedDB,storage=globalThis.localStorage}={}){
-  let opened;
-  const database=()=>opened??=new Promise((resolve,reject)=>{const request=indexedDB.open('tetorica-spu-synth-files',1);request.onupgradeneeded=()=>request.result.createObjectStore('projects');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-  return{
-    async read(){if(!indexedDB)return storage?.getItem(SPU_PROJECT_STORAGE_KEY)?storageParse(storage.getItem(SPU_PROJECT_STORAGE_KEY)):null;const db=await database();return new Promise((resolve,reject)=>{const request=db.transaction('projects','readonly').objectStore('projects').get('current');request.onsuccess=()=>resolve(request.result??null);request.onerror=()=>reject(request.error);});},
-    async write(snapshot){if(!indexedDB){if(!storage)return false;storage.setItem(SPU_PROJECT_STORAGE_KEY,storageJson(snapshot));return true;}const db=await database();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(snapshot,'current');tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error??Error('SPU project storage cancelled.'));});},
-    async close(){if(opened)(await opened).close();},
-  };
+  return createSynthProjectStore({indexedDB,name:'tetorica-spu-synth-files',
+    readFallback(){const saved=storage?.getItem(SPU_PROJECT_STORAGE_KEY);return saved?storageParse(saved):null;},
+    writeFallback(snapshot){if(!storage)return false;storage.setItem(SPU_PROJECT_STORAGE_KEY,storageJson(snapshot));return true;},
+  });
 }

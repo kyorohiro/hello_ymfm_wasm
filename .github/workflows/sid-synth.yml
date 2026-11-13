@@ -25,6 +25,9 @@ on:
       - 'docs/sources/sid-rsid/**'
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth/synth_controls.js'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
+      - 'scripts/check_synth_project_draft_reconnect_browser.cjs'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/sid*'
@@ -116,6 +119,7 @@ jobs:
           node scripts/check_sid_synth_transport_upgrade_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-transport-zip-browser.json --screenshots release/sid-synth-transport-zip-images
           node scripts/check_sid_synth_live_presets_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-live-presets-zip-browser.json --screenshots release/sid-synth-live-presets-zip-images
           node scripts/check_sid_synth_song_manual_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-song-manual-zip-browser.json --screenshots release/sid-synth-song-manual-zip-images
+          node scripts/check_synth_project_draft_reconnect_browser.cjs --mode=sid --root=release/sid-synth-browser --entry=/index.html --out=release/sid-draft-reconnect-browser.json --screenshots=release/sid-draft-reconnect-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -142,4 +146,6 @@ jobs:
             release/sid-synth-song-manual-zip-browser.json
             release/sid-synth-song-manual-source-images/
             release/sid-synth-song-manual-zip-images/
+            release/sid-draft-reconnect-browser.json
+            release/sid-draft-reconnect-images/
           if-no-files-found: ignore

@@ -56,6 +56,18 @@ test('DMG local store has its own namespace and retains binary snapshots',async(
   const store=createGameboyProjectStore({indexedDB:null,storage}),p=createGameboyCodeProject();p.importFiles([{path:'/raw.bin',type:'binary',data:Uint8Array.of(3,255)}]);
   assert.equal(await store.read(),null);await store.write(p.snapshot());assert(values.has(GAMEBOY_PROJECT_STORAGE_KEY));
   const copy=createGameboyCodeProject({snapshot:await store.read()});assert.deepEqual(copy.fs.get('/raw.bin').data,Uint8Array.of(3,255));assert.equal(values.get('tetorica-spu-synth-project-v1'),'SPU kept');
+  assert.match(values.get(GAMEBOY_PROJECT_STORAGE_KEY),/"\$dmgBytes"/,'the existing fallback encoding is retained');await store.close();
+});
+
+test('DMG reads an existing fallback project without replacing its settings, Code or binary files',async()=>{
+  const preset=createDefaultPreset();preset.source='wave';preset.wave.samples[7]=3;
+  const project=createGameboyCodeProject({settings:preset,starterCode:'// existing DMG source\n'});
+  project.importFiles([{path:'/raw/sample.bin',type:'binary',data:Uint8Array.of(0,128,255)}]);
+  project.setCodeState({mode:'code',path:'/index.js'});
+  const legacy=JSON.stringify(project.snapshot(),(_key,value)=>value instanceof Uint8Array?{$dmgBytes:Array.from(value)}:value);
+  const values=new Map([[GAMEBOY_PROJECT_STORAGE_KEY,legacy]]),storage={getItem:key=>values.get(key)??null,setItem:()=>assert.fail('Read never replaces the stored project')};
+  const store=createGameboyProjectStore({indexedDB:null,storage}),restored=createGameboyCodeProject({snapshot:await store.read()});
+  assert.deepEqual(restored.snapshot(),project.snapshot());assert.equal(values.get(GAMEBOY_PROJECT_STORAGE_KEY),legacy);await store.close();
 });
 
 test('DMG original VGM/VGZ Files are opaque, collision-safe and survive project ZIP unchanged',async()=>{

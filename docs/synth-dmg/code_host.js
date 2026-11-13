@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared Code runtime/editor over the upper editor's existing physical APU.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-code-keyboard-1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=draft-reconnect-1';
 import {selectGameboyCodeDeclarations} from './code_declarations.js';
 import {createGameboyCodeAudio} from './code_audio.js';
-import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js';
-import {setupGameboyCodeFiles} from './code_files.js?v=dmg-unified-channel-1';
+import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
+import {setupGameboyCodeFiles} from './code_files.js?v=draft-reconnect-1';
 
 export const GAMEBOY_STARTER_CODE=`const gb = await useSoundChip("gameboy");
 setBpm(120);

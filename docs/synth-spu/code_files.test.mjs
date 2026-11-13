@@ -32,6 +32,27 @@ function soundFixture(){return {schema:'tetorica-spu-synth.instrument',version:1
   preset:{volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:0,pitch:4096,reverb:false},
   sample:{adpcm:[12,1,...Array(14).fill(0)],baseFrequencyHz:440},reverb:{preset:'off',volumeLeft:.25,volumeRight:.25}};}
 
+test('SPU writes wait for the initial read and never overwrite an unread or invalid project',async t=>{
+  for(const unread of ['pending','failed','invalid'])await t.test(unread,async t=>{
+    const read=deferred(),writes=[],store={read:()=>read.promise,write:async snapshot=>{writes.push(structuredClone(snapshot));return true;},close:async()=>{}};
+    const f=fixture(t,{store});f.project.fs.writeText('/unsaved.txt','keep live edits');
+    assert.equal(await f.files.persistCode(),false);assert.equal(writes.length,0);
+    if(unread==='pending')read.resolve(null);
+    else if(unread==='invalid')read.resolve({format:'unknown',version:1});
+    else read.resolve(Promise.reject(Error('storage read failed')));
+    await f.files.ready;
+    if(unread==='pending'){
+      assert.equal(await f.files.persistCode(),true);assert.equal(writes.length,1);
+    }else{
+      assert.equal(await f.files.persistCode(),false);assert.equal(writes.length,0);
+      assert(f.statuses.some(text=>text.includes('Local project restore failed')));
+    }
+    const exported=await f.files.exportProject(),copy=createSpuCodeProject();copy.restore(await copy.prepareImport(exported));
+    assert.equal(copy.fs.get('/unsaved.txt').data,'keep live edits');
+    await f.files.dispose();if(unread!=='pending')assert.equal(writes.length,0,'dispose also retains unread durable data');
+  });
+});
+
 test('SPU Files selection, autosave and rename/delete share the Code controls without inspecting audio',async t=>{
   const f=fixture(t);await f.files.ready;const opened=[],changed=[];
   f.files.setCodeControls({activePath:null,flush:async()=>true,openFile:async path=>opened.push(path),pathChanged:(...args)=>changed.push(args),setBusy(){}});

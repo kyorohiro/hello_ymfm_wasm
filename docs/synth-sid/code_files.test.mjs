@@ -56,6 +56,34 @@ test('local restoration validates before callbacks, preserves the file selection
   await f.files.ready;assert.equal(f.files.workspaceId,'saved-sid');assert.equal(f.project.fs.get('/index.js').data,'restored');assert.deepEqual(f.files.getCodeState(),{mode:'code',path:'/index.js'});assert.equal(f.doc.getElementById('sidFilesPanel').hidden,false);assert.deepEqual(f.calls.map(call=>call[0]),['before','settings']);
 });
 
+test('failed initial SID storage read keeps current files exportable and cannot overwrite the unread draft',async t=>{
+  const kept=createSidCodeProject({starterCode:'const kept = true;'});kept.importFiles([{path:'/kept.bin',type:'binary',data:Uint8Array.of(0,255,37)}]);
+  const writes=[],f=fixture(t,{project:kept,store:{read:async()=>{throw new DOMException('Storage is unavailable.','UnknownError');},write:async value=>{writes.push(value);return true;},close:async()=>{}}});
+  await f.files.ready;assert.match(f.statuses.at(-1),/restore failed; current files kept/);
+  assert.equal(await f.files.persistCode(),false);await f.files.createFile('/notes/later.js');
+  assert.equal(f.project.fs.get('/index.js').data,'const kept = true;');assert(f.project.fs.has('/notes/later.js'));
+  const exported=createSidCodeProject({snapshot:await kept.prepareImport(await f.files.exportProject())});
+  assert.deepEqual(exported.fs.get('/kept.bin').data,Uint8Array.of(0,255,37));assert(exported.fs.has('/notes/later.js'));
+  await f.files.dispose();assert.deepEqual(writes,[],'neither user edits nor disposal can replace an unread saved project');
+});
+
+test('invalid restored SID snapshots also retain the original draft without applying or autosaving defaults',async t=>{
+  const writes=[],f=fixture(t,{store:{read:async()=>({format:'tetorica-sid-code-project',version:99}),write:async value=>{writes.push(value);return true;},close:async()=>{}}});
+  await f.files.ready;assert.match(f.statuses.at(-1),/Unsupported SID project format/);assert.deepEqual(f.calls,[]);
+  f.project.fs.writeText('/edited.txt','kept in memory');assert.equal(await f.files.persistCode(),false);
+  await f.files.dispose();assert.deepEqual(writes,[]);assert.equal(f.project.fs.get('/edited.txt').data,'kept in memory');
+});
+
+test('SID saves wait until a pending initial restore has finished instead of recording the starter project',async t=>{
+  const gate=deferred(),writes=[],saved=createSidCodeProject({starterCode:'saved source'});
+  saved.importFiles([{path:'/data.bin',type:'binary',data:Uint8Array.of(6,128,255)}]);
+  const f=fixture(t,{store:{read:()=>gate.promise,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}}});
+  assert.equal(await f.files.persistCode(),false);assert.deepEqual(writes,[]);
+  gate.resolve(saved.snapshot());await f.files.ready;
+  assert.equal(await f.files.persistCode(),true);assert.equal(writes.length,1);
+  const restored=createSidCodeProject({snapshot:writes[0]});assert.equal(restored.fs.get('/index.js').data,'saved source');assert.deepEqual(restored.fs.get('/data.bin').data,Uint8Array.of(6,128,255));
+});
+
 test('unfinished SID JSON stays editable without applying or discarding the current sound',async t=>{
   const f=fixture(t);await f.files.ready;const settings=f.project.settings;
   f.project.importFiles([{path:'/presets/edit.sid-voice.json',data:'{"voice":'}]);await f.files.selectFile('/presets/edit.sid-voice.json');

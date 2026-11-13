@@ -41,3 +41,5 @@ Diagnostics: `build/verification/fm-draft-reconnect-20261113/`.
 
 [Verification receipt](verification_synth_draft_db_reconnect_20261113.json).
 No physical listening, commit, push, tag or publication was performed.
+
+Follow-up: [SPU / SID / DMG rollout](todo_synth_draft_reconnect_rollout_20261113.md).
