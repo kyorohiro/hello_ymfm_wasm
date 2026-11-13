@@ -13,23 +13,23 @@ const implementation=source.slice(start,end);
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function preset(name,source='pulse'){return {...createDefaultPreset(),name,source};}
-function fixture({audio=true,blockedQueue=null,apply=async()=>{},read=async()=>{}}={}){
-  let running=true,owner={current:true},backend=readPreset(createDefaultPreset()),queue=Promise.resolve();
-  const calls=[],publishes=[];
+function fixture({audio=true,blockedQueue=null,apply=async()=>{},read=async()=>{},vgm=null}={}){
+  let running=!vgm,owner={current:true},backend=readPreset(createDefaultPreset()),queue=Promise.resolve();
+  const calls=[],publishes=[],songCalls=[];
   const engine={
     getGameboyClient(){const pinned=owner;return Promise.resolve({isCurrent:()=>pinned.current});},
     async applyCodePreset(value,options){calls.push({method:'apply',value:readPreset(value),isCurrent:options.isCurrent});await apply(value,options,()=>{backend=readPreset(value);});return true;},
     async read(){calls.push({method:'read'});await read();return {preset:readPreset(backend),voices:[]};},
     async command(method,args){calls.push({method,args});if(['setPreset','loadPreset'].includes(method))backend=readPreset(args[0]);return true;},
   };
-  const realm={readPreset,readGameboyChannelBank,updateGameboyChannelBank,channelBank:createGameboyChannelBank(createDefaultPreset()),applySequence:0,disposed:false,lastSongState:null,isSongChannelView:()=>false,isSongActive:()=>false,audition:null,
-    stopAudition:async()=>{},songControls:null,codeHost:{isRunning:()=>running,markSoundDirty(){publishes.push(readPreset(realm.preset));}},audio:audio?engine:null,
+  const realm={readPreset,readGameboyChannelBank,updateGameboyChannelBank,channelBank:createGameboyChannelBank(createDefaultPreset()),applySequence:0,disposed:false,lastSongState:vgm,isSongChannelView:()=>false,isSongActive:()=>Boolean(vgm),audition:null,
+    stopAudition:async()=>{},songControls:vgm?{stop(){songCalls.push({method:'stop'});},applyPreset(value,options){songCalls.push({method:'applyPreset',value:readPreset(value),options});}}:null,codeHost:{isRunning:()=>running,markSoundDirty(){publishes.push(readPreset(realm.preset));}},audio:audio?engine:null,
     preset:createDefaultPreset(),epoch:0,notes:new Map(),revision:0,updateKeys(){},codeLive:null,setPitchUi(){},updatePresetUi(){},status(){},
     enqueue(action){const task=queue.then(async()=>{if(blockedQueue)await blockedQueue;return action();});queue=task.catch(()=>{});return task;},
     readVoices(){},visualizer:{wake(){}},
   };
   vm.createContext(realm);vm.runInContext(implementation+'\nthis.apply=applyPreset;',realm);
-  return {realm,engine,calls,publishes,get backend(){return readPreset(backend);},
+  return {realm,engine,calls,publishes,songCalls,get backend(){return readPreset(backend);},
     stop(){running=false;owner.current=false;},restart(){owner.current=false;owner={current:true};running=true;},
     replaceEngine(value){realm.audio=value;},commit(value){backend=readPreset(value);}};
 }
@@ -37,6 +37,22 @@ function fixture({audio=true,blockedQueue=null,apply=async()=>{},read=async()=>{
 test('preset selected during initial Code preparation publishes a draft without dereferencing an absent audio engine',async()=>{
   const f=fixture({audio:false});const next=preset('Preparing Wave','wave');assert.equal(await f.realm.apply(next,{load:true}),true);
   assert.deepEqual(f.realm.preset,next);assert.equal(f.calls.length,0);assert.equal(f.publishes.length,1);
+});
+
+test('a full preset and a sparse common edit keep VGM running and target its pinned reference session after the author ACK',async()=>{
+  const f=fixture({vgm:{playback:'playing',playing:true,interaction:{runId:77}}}),next=preset('Live Wave','wave');
+  assert.equal(await f.realm.apply(next,{load:true}),true);
+  assert.equal(f.songCalls.length,1);assert.equal(f.songCalls[0].method,'applyPreset');assert.equal(f.songCalls[0].options.runId,77);assert.equal(f.songCalls[0].options.replace,true);
+  assert.deepEqual(f.backend,next);assert.deepEqual(f.realm.preset,next);
+  const changed=readPreset(next);changed.wave.level=.25;
+  assert.equal(await f.realm.apply(changed),true);assert.equal(f.songCalls[1].options.replace,false);assert.deepEqual(f.songCalls[1].options.previous,next);
+  assert(!f.songCalls.some(call=>call.method==='stop'));
+});
+
+test('a delayed preset carries its original VGM run identity even if another song replaces it before the author ACK',async()=>{
+  const gate=deferred(),f=fixture({blockedQueue:gate.promise,vgm:{playback:'playing',playing:true,interaction:{runId:11}}});
+  const pending=f.realm.apply(preset('Delayed'),{load:true});f.realm.lastSongState={playback:'playing',playing:true,interaction:{runId:22}};
+  gate.resolve();assert.equal(await pending,true);assert.equal(f.songCalls[0].options.runId,11,'preview rejects this stale run rather than touching 22');
 });
 
 test('Stop before a queued live preset dispatch keeps the previous editor and native checkpoint aligned',async()=>{

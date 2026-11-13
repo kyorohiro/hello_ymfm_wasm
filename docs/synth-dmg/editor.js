@@ -192,7 +192,15 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   pulseSvg.setAttribute('viewBox', '0 0 320 46'); pulseSvg.setAttribute('preserveAspectRatio', 'none'); pulseSvg.append(pulsePath); pulsePreview.append(pulseSvg); pulse.append(pulsePreview);
   envelope(pulse, 'pulse', 'pulse');
   const sweepFields = group(section(pulse, 'Hardware pitch sweep · CH1 only'));
-  const sweepEnabled = checkbox(sweepFields, 'Enable Sweep', 'sweepEnabled', value => value.pulse.sweep.enabled, (value, enabled) => {value.pulse.sweep.enabled = enabled;});
+  const sweepEnabled = checkbox(sweepFields, 'Enable Sweep', 'sweepEnabled', value => value.pulse.sweep.enabled, (value, enabled) => {
+    value.pulse.sweep.enabled = enabled;
+    // A live CH can report NR10=0, with no configured pace/shift to enable.
+    // Give this deliberate On gesture the same useful defaults as a new sound.
+    if(enabled&&liveChannel===0&&!value.pulse.sweep.period&&!value.pulse.sweep.shift){
+      const defaults=createDefaultPreset().pulse.sweep;
+      value.pulse.sweep.period=defaults.period;value.pulse.sweep.shift=defaults.shift;
+    }
+  });
   const sweepControls = [
     select(sweepFields, 'Direction', 'sweepDirection', [['up', 'Pitch up'], ['down', 'Pitch down']], value => value.pulse.sweep.direction, (value, direction) => {value.pulse.sweep.direction = direction;}),
     number(sweepFields, 'Pace · 0 = disabled', 'sweepPeriod', 0, 7, value => value.pulse.sweep.period, (value, period) => {value.pulse.sweep.period = period;}),

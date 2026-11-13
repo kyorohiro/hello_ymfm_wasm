@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createGameboySongPreview} from './song_preview.js';
+import {createGameboySongPreview} from './song_preview.js?v=dmg-vgm-manual-1';
 import {isGameboySongPath} from './code_project.js?dmg-json-code=1';
 import {prepareGameboySongVoice} from './song_voice.js';
 
@@ -79,6 +79,9 @@ export function setupGameboySongControls({project, getAudio, beforePlay,
     root.dataset.seekTargetSeconds=String(state.seekTargetSeconds??0);
     root.dataset.seekProgressSeconds=String(state.seekProgressSeconds??0);
     root.dataset.renderedFrames = String((state.positionFrames ?? 0) + (state.bufferedFrames ?? 0));
+    root.dataset.canInteract=String(Boolean(state.canInteract));
+    root.dataset.manualHeld=String(state.interaction?.voices?.length??0);
+    root.dataset.interactionRun=String(state.interaction?.runId??'');
     const channelEnabled=state.channelEnabled??[true,true,true,true];
     root.dataset.channelMuteMask=String(state.channelMuteMask??channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0));
     channelButtons.forEach((button,index)=>{
@@ -281,6 +284,12 @@ export function setupGameboySongControls({project, getAudio, beforePlay,
     getCapturePayload: pausedPayload, capture: captureCurrent, setView, setLiveEnabled, cancelPendingCapture,
     isActive: () => ['starting', 'seeking', 'playing', 'paused'].includes(preview.read().playback),
     isPlaying: () => preview.read().playing,
+    applyEdit:(...args)=>preview.applyEdit(...args),
+    applyPreset:(...args)=>preview.applyPreset(...args),
+    noteOn:(...args)=>preview.noteOn(...args),
+    noteOff:(...args)=>preview.noteOff(...args),
+    releaseKeyboard:(...args)=>preview.releaseKeyboard(...args),
+    setPitch:(...args)=>preview.setPitch(...args),
     async selectPath(path) {
       if (disposed || !isGameboySongPath(path) || !project.fs.has(path)) return false;
       attempted = ''; const pending = choose(path); project.select(path); return pending;

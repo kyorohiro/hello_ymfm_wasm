@@ -27,7 +27,7 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('DMG Code stopped','AbortError');
 export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySettings,stopKeyboard,
-  stopSong=async()=>{},beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
+  stopSong=async()=>{},beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createGameboyCodeProject({settings:getSettings(),getStarterCode:()=>GAMEBOY_STARTER_CODE});
   const audio=createGameboyCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -39,7 +39,7 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySett
     onActivity();
   }
   files=setupGameboyCodeFiles({project,getSettings,applySettings,setStatus,
-    async onBeforeSoundApply(){await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
+    async onBeforeSoundApply(){await beforeSoundApply();if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();}});
   function getRuntime(){
     if(runtime)return runtime;

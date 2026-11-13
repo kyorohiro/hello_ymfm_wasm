@@ -46,3 +46,11 @@ test('Stop after a native commit reconciles its latest authored field without re
   assert.equal(await f.run(next,before),false);assert.equal(f.read().pulse.duty,.25);assert.equal(f.context.preset.pulse.duty,.25);assert.equal(f.context.codeHost.isRunning(),false);
   assert.equal(f.context.channelBank[0].pulse.duty,.25);assert.equal(f.saved.at(-1)[0].pulse.duty,.25,'Save receives the committed CH bank after a late Stop');
 });
+
+test('a playing VGM CH edit writes only the sparse reference fields and keeps the author bank for Stop and Save',async()=>{
+  const f=fixture(),edits=[],before=createDefaultPreset(),next=readPreset(before);next.pulse.duty=.25;
+  f.context.channelContext=()=> 'vgm';f.context.lastSongState={playing:true,canInteract:true};f.context.songControls={applyEdit:edit=>edits.push(edit)};
+  assert.equal(await f.run(next,before),true);assert.equal(edits.length,1);assert.deepEqual(edits[0],{channel:0,changes:{'pulse.duty':.25}});
+  assert.equal(f.calls.length,0);assert.equal(f.saved.length,0);assert.deepEqual(f.context.channelBank,createGameboyChannelBank(before));
+  f.context.lastSongState={playing:false,paused:true,canInteract:false};assert.equal(await f.run(next,before),false);assert.equal(edits.length,1);
+});

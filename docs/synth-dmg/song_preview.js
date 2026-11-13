@@ -5,12 +5,21 @@ import {VgmPlayer} from '../js/vgmplayer.js';
 import {GameboyApuAudioEngine} from '../js/gameboyapuaudioengine.js';
 import factory from '../generated/gameboy_apu_wasm.js';
 import {createGameboySongTimeline} from './song_state.js';
+import {createGameboySongInteraction} from './song_interaction.js?v=dmg-vgm-manual-1';
+import {patchGameboySnapshotEdit} from './code_live.js?v=dmg-vgm-manual-1';
+import {readGameboyCodeEdit} from './code_parameter_edit.js';
 
 export const MAX_DMG_SONG_BYTES = 64 * 1024 * 1024;
 const nativeSchedule = globalThis.setTimeout.bind(globalThis), nativeCancel = globalThis.clearTimeout.bind(globalThis);
-const CHUNK = 2048, LOOKAHEAD = .2, START_DELAY = .01, INTERVAL = 50;
+// Keep input latency bounded without dropping already-generated song audio.
+// Live/DOM publication remains 20 Hz even though audio refills run more often.
+const CHUNK = 256, LOOKAHEAD = .035, START_DELAY = .01, INTERVAL = 8, LIVE_INTERVAL = .05;
 const aborted = () => new DOMException('DMG song operation cancelled','AbortError');
 const checkAbort = signal => {if(signal?.aborted)throw aborted();};
+const frozenSnapshot = state => {
+  Object.freeze(state.registers);Object.freeze(state.voice);Object.freeze(state.observation);
+  return Object.freeze(state);
+};
 const binary = source => {
   const bytes = source instanceof Uint8Array ? source : source instanceof ArrayBuffer ? new Uint8Array(source) : null;
   if (!bytes) throw new TypeError('Choose a binary VGM or VGZ file');
@@ -101,7 +110,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   let source=null,name='',active=null,generation=0,loadGeneration=0,loadController=null,loading=false,disposed=false;
   let playback='stopped',errorMessage='',positionFrames=0,sampleRate=44100,liveEnabled=true,liveVoice=0,liveSnapshot=null;
   let seeking=null,seekCleanup=Promise.resolve(),seekPreparing=0,seekMessage='';
-  let channelMuteMask=0;
+  let channelMuteMask=0,nextRunId=0;
   const appliedChannelMasks=new WeakMap();
   function applyChannelMask(engine,mask=channelMuteMask,force=false) {
     const previous=appliedChannelMasks.get(engine);
@@ -121,18 +130,43 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   };
   function observe(force=false) {
     if (!active || !['playing','paused'].includes(playback)) return liveSnapshot;
-    const state=active.timeline.read(position(active));
+    const frame=position(active),groups=new Map();let state=active.timeline.read(frame);
+    // Hand controls must not jump back to an older audible value between
+    // consecutive key/drag steps. Overlay only their not-yet-heard fields;
+    // every other field still follows the consumed song timeline.
+    for(const [key,pending]of active.pendingEdits){
+      if(pending.frame<=frame)active.pendingEdits.delete(key);
+      else if(force||liveEnabled||!liveSnapshot){
+        const {channel,changes}=pending.edit;
+        if(!groups.has(channel))groups.set(channel,{channel,changes:{}});
+        Object.assign(groups.get(channel).changes,changes);
+      }
+    }
+    for(const edit of groups.values())state=patchGameboySnapshotEdit(state,edit);
+    if(groups.size)state=frozenSnapshot(state);
     if (force || liveEnabled || !liveSnapshot) liveSnapshot=state;
     return liveSnapshot;
   }
+  function interactionMessage(interaction=active?.interaction.read()) {
+    if (disposed) return 'VGM song preview is disposed.';
+    if (seeking || seekPreparing) return 'Wait for the VGM seek to finish.';
+    if (loading || playback === 'starting') return 'Wait for VGM preparation to finish.';
+    if (playback !== 'playing' || !active) return 'Direct VGM interaction is available while the song is playing.';
+    if (active.eof || !active.player.isPlaying()) return 'Finishing song · already-rendered audio is retained.';
+    if (!interaction?.initialized) return 'VGM has powered off the APU.';
+    return '';
+  }
   function read() {
     observe(); const frame=position(active), present=['playing','paused'].includes(playback);
+    const interaction=active?{...active.interaction.read(),runId:active.runId}:null,message=interactionMessage(interaction);
     return {playback,playing:playback==='playing',paused:playback==='paused',busy:loading||playback==='starting'||Boolean(seeking)||seekPreparing>0,loading,
       hasSource:Boolean(source),name,errorMessage,sampleRate,positionFrames:frame,consumedFrames:frame,positionSeconds:frame/sampleRate,
       channelEnabled:Array.from({length:4},(_,channel)=>!(channelMuteMask&(1<<channel))),channelMuteMask,
       durationSeconds:(source?.totalSamples??0)/44100,totalSamples:source?.totalSamples??0,metadata:source?.metadata??null,warnings:source?.warnings??[],
       liveKind:'song',liveEnabled,liveVoice,liveActive:Boolean(present&&liveSnapshot),liveWaiting:Boolean(playback==='starting'||present&&!liveSnapshot),
       liveState:liveSnapshot,liveError:false,liveMessage:'',
+      canInteract:!message,interactionMessage:message,interaction,
+      pendingDisplayEdits:active?.pendingEdits.size??0,
       canPlay:Boolean(source&&!loading&&!seeking&&!seekPreparing&&playback!=='starting'&&playback!=='playing'),canPause:playback==='playing'&&!seeking,
       canResume:playback==='paused'&&!seeking&&!seekPreparing,canStop:Boolean(active||loading||playback==='starting'||seeking||seekPreparing),
       seeking:Boolean(seeking),seekPreparing:seekPreparing>0,canSeek:Boolean(source&&!loading&&playback!=='starting'&&(!seekPreparing||seeking)&&!seeking?.controller.signal.aborted&&!disposed),
@@ -153,7 +187,8 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
   }
   function release(run) {
     if(!run||run.released)return;run.released=true;cancelTimer(run);cancelNodes(run);run.segments=[];
-    try{run.gain?.disconnect();}finally{try{run.timeline.dispose();}finally{run.engine.dispose();}}
+    run.pendingEdits.clear();
+    try{run.gain?.disconnect();}finally{try{run.interaction.dispose();}finally{try{run.timeline.dispose();}finally{run.engine.dispose();}}}
   }
   function stop() {
     seeking?.controller.abort();seeking=null;seekMessage='';
@@ -190,7 +225,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     const at=run.clockStart+Math.max(0,segment.firstFrame-run.basePosition)/run.sampleRate;
     node.start(at,offset/run.sampleRate);
   }
-  function pump(run) {
+  function pump(run,forceEmit=false) {
     if(active!==run||playback!=='playing')return;
     try {
       const consumed=position(run);positionFrames=consumed;
@@ -219,11 +254,11 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
         run.eof=!run.player.isPlaying()&&run.player.queuedFrames===0;
         if(!frames)break;
       }
-      observe();
       if(run.eof&&position(run)>=run.renderedFrames){
         positionFrames=run.renderedFrames;liveSnapshot=run.timeline.read(positionFrames);active=null;playback='ended';release(run);emit();return;
       }
-      emit();if(active===run&&playback==='playing')run.timer=schedule(()=>{run.timer=null;pump(run);},INTERVAL);
+      if(forceEmit||run.lastEmitTime===null||run.context.currentTime-run.lastEmitTime>=LIVE_INTERVAL){run.lastEmitTime=run.context.currentTime;emit();}
+      if(active===run&&playback==='playing')run.timer=schedule(()=>{run.timer=null;pump(run);},INTERVAL);
     }catch(error){fail(error,run);}
   }
   function requestAudio() {
@@ -247,7 +282,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     if(playback==='paused')return resume();
     if(playback==='playing')return true;
     const ticket=++generation,selected=source;release(active);active=null;positionFrames=0;liveSnapshot=null;playback='starting';errorMessage='';emit();
-    let engine=null,timeline=null,gain=null;
+    let engine=null,timeline=null,interaction=null,gain=null;
     try {
       // load() has already validated the entire stream. Both trusted host
       // operations begin synchronously in this Play gesture, before awaits.
@@ -257,20 +292,23 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       engine=await createEngine(selected.header);if(!current(ticket)){engine.dispose();engine=null;return false;}
       const rate=engine.sampleRate();if(!Number.isInteger(rate)||rate<8000||rate>96000)throw new Error('Invalid DMG reference sample rate');sampleRate=rate;
       timeline=createGameboySongTimeline(engine,selected.header.gameBoyDmgClock);
+      interaction=createGameboySongInteraction(engine);
       const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(selected.bytes,{logger:null});player.reset();
       applyChannelMask(engine,channelMuteMask,true);
       gain=context.createGain();gain.gain.value=1;gain.connect(output);
-      const run={engine,timeline,player,context,output,gain,sampleRate:rate,basePosition:0,renderedFrames:0,clockStart:null,segments:[],timer:null,eof:false,released:false};
-      active=run;engine=timeline=gain=null;playback='playing';player.play();pump(run);return playback==='playing'||playback==='ended';
+      const run={engine,timeline,interaction,player,context,output,gain,runId:++nextRunId,sampleRate:rate,basePosition:0,renderedFrames:0,clockStart:null,segments:[],pendingEdits:new Map(),timer:null,eof:false,released:false,lastEmitTime:null};
+      active=run;engine=timeline=interaction=gain=null;playback='playing';player.play();pump(run,true);return playback==='playing'||playback==='ended';
     }catch(error){
-      try{gain?.disconnect();}finally{try{timeline?.dispose();}finally{engine?.dispose();}}
+      try{gain?.disconnect();}finally{try{interaction?.dispose();}finally{try{timeline?.dispose();}finally{engine?.dispose();}}}
       if(!current(ticket))return false;fail(error);return false;
     }
   }
   function pause() {
     checkOpen();const run=active;if(!run||playback!=='playing')return false;
+    run.pendingEdits.clear();
     run.basePosition=position(run);positionFrames=run.basePosition;liveSnapshot=run.timeline.read(positionFrames);
     cancelTimer(run);cancelNodes(run);run.segments=run.segments.filter(segment=>segment.firstFrame+segment.frames>positionFrames);
+    run.interaction.releaseKeyboard();
     run.player.pause();playback='paused';emit();return true;
   }
   async function resume() {
@@ -281,12 +319,12 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       if(host.context!==run.context||(host.songInputNode??host.output)!==run.output||run.context.state==='closed')throw new Error('Audio output changed; press Play to restart the song');
       run.clockStart=run.context.currentTime+START_DELAY;playback='playing';run.player.resume();
       for(const segment of run.segments)scheduleSegment(run,segment);
-      pump(run);return playback==='playing'||playback==='ended';
+      pump(run,true);return playback==='playing'||playback==='ended';
     }catch(error){if(current(ticket)&&active===run)fail(error,run);return false;}
   }
   function freezeRun(run) {
     const frame=position(run);
-    if(run){run.basePosition=frame;cancelTimer(run);cancelNodes(run);run.segments=run.segments.filter(segment=>segment.firstFrame+segment.frames>frame);run.player.pause();}
+    if(run){run.pendingEdits.clear();run.basePosition=frame;cancelTimer(run);cancelNodes(run);run.segments=run.segments.filter(segment=>segment.firstFrame+segment.frames>frame);run.player.pause();run.interaction.releaseKeyboard();}
     positionFrames=frame;
     if(run)liveSnapshot=run.timeline.read(frame);
     return frame;
@@ -298,11 +336,11 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     if(active&&playback==='playing') {
       active.clockStart=active.context.currentTime+START_DELAY;active.player.resume();
       for(const segment of active.segments)scheduleSegment(active,segment);
-      pump(active);
+      pump(active,true);
     }else emit();
   }
   async function runSeek(job,preceding) {
-    let candidate=null,engine=null,timeline=null;
+    let candidate=null,engine=null,timeline=null,interaction=null;
     const valid=()=>current(job.ticket)&&seeking===job&&!job.controller.signal.aborted&&source===job.source;
     const check=()=>{if(!valid())throw aborted();if(nowMs()-job.started>seekTimeoutMilliseconds)throw new Error('DMG seek timed out; the previous song position was kept.');};
     try {
@@ -326,10 +364,11 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       const rate=engine.sampleRate();if(!Number.isInteger(rate)||rate<8000||rate>96000)throw new Error('Invalid DMG reference sample rate');
       job.rate=rate;job.targetFrame=Math.round(job.targetSeconds*rate);
       timeline=createGameboySongTimeline(engine,job.source.header.gameBoyDmgClock);
+      interaction=createGameboySongInteraction(engine);
       const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);player.load(job.source.bytes,{logger:null});player.reset();player.play();
       applyChannelMask(engine,channelMuteMask,true);
-      candidate={engine,timeline,player,context,output,gain:null,sampleRate:rate,basePosition:job.targetFrame,renderedFrames:job.targetFrame,clockStart:null,segments:[],timer:null,eof:false,released:false};
-      engine=timeline=null;
+      candidate={engine,timeline,interaction,player,context,output,gain:null,runId:++nextRunId,sampleRate:rate,basePosition:job.targetFrame,renderedFrames:job.targetFrame,clockStart:null,segments:[],pendingEdits:new Map(),timer:null,eof:false,released:false,lastEmitTime:null};
+      engine=timeline=interaction=null;
       const left=new Float32Array(seekChunkFrames),right=new Float32Array(seekChunkFrames);
       let chunks=0,batchStarted=nowMs();
       while(job.progressFrame<job.targetFrame) {
@@ -347,8 +386,8 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       // Pull the target boundary's writes before observing, but retain these
       // future samples. They are never discarded or played during preparation.
       for(;;) {
-        check();applyChannelMask(candidate.engine);const frames=player.process(left,right,seekChunkFrames,{budgetMs:4});
-        if(!Number.isInteger(frames)||frames<0||frames>seekChunkFrames)throw new Error('Invalid DMG seek prefill length');
+        check();applyChannelMask(candidate.engine);const frames=player.process(left,right,CHUNK,{budgetMs:4});
+        if(!Number.isInteger(frames)||frames<0||frames>CHUNK)throw new Error('Invalid DMG seek prefill length');
         if(frames) {
           for(let i=0;i<frames;i++)if(!Number.isFinite(left[i])||!Number.isFinite(right[i]))throw new Error('DMG seek produced non-finite PCM');
           const buffer=context.createBuffer(2,frames,rate);buffer.copyToChannel(left.subarray(0,frames),0);buffer.copyToChannel(right.subarray(0,frames),1);
@@ -364,7 +403,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       sampleRate=rate;positionFrames=job.targetFrame;liveSnapshot=snapshot;errorMessage='';seekMessage='';seeking=null;
       playback=job.previous.phase==='playing'?'playing':'paused';
       if(playback==='playing') {
-        active.player.resume();for(const segment of active.segments)scheduleSegment(active,segment);pump(active);
+        active.player.resume();for(const segment of active.segments)scheduleSegment(active,segment);pump(active,true);
       }else{active.player.pause();emit();}
       return true;
     }catch(error){
@@ -374,7 +413,7 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
       }
       return false;
     }finally{
-      if(candidate)release(candidate);else{try{timeline?.dispose();}finally{engine?.dispose();}}
+      if(candidate)release(candidate);else{try{interaction?.dispose();}finally{try{timeline?.dispose();}finally{engine?.dispose();}}}
     }
   }
   async function seek(seconds) {
@@ -395,7 +434,47 @@ export function createGameboySongPreview({getAudio,beforePlay=async()=>{},onStat
     const job=seeking;if(!job){await seekCleanup;return false;}
     job.controller.abort();emit();await job.promise;return true;
   }
+  function rememberEdits(run,edits,result){
+    const frame=run.timeline.generatedFrames;
+    // Validated channel:path keys bound this map to the known editor fields,
+    // regardless of how many pointer/key-repeat events arrive at one frame.
+    for(const value of edits){const edit=readGameboyCodeEdit(value),changes=edit.changes;
+      // Sweep On/Off writes pace/shift codes; enabled is derived from them.
+      // Store that actual effect instead of replaying a stale logical flag
+      // over a later period-only or shift-only edit at the same audio frame.
+      if(Object.hasOwn(changes,'pulse.sweep.enabled')){
+        delete changes['pulse.sweep.enabled'];run.pendingEdits.delete('0:pulse.sweep.enabled');
+        changes['pulse.sweep.period']=result.voice[0]>>4&7;changes['pulse.sweep.shift']=result.voice[0]&7;
+      }
+      if(Object.hasOwn(changes,'pulse.sweep.period'))changes['pulse.sweep.period']=result.voice[0]>>4&7;
+      if(Object.hasOwn(changes,'pulse.sweep.shift'))changes['pulse.sweep.shift']=result.voice[0]&7;
+      if(Object.hasOwn(changes,'pulse.sweep.direction'))changes['pulse.sweep.direction']=result.voice[0]&8?'down':'up';
+      for(const [path,next]of Object.entries(edit.changes))run.pendingEdits.set(`${edit.channel}:${path}`,
+        {frame,edit:{channel:edit.channel,changes:{[path]:next}}});
+    }
+  }
+  function interact(method,args,{release=false,edits=null}={}) {
+    checkOpen();
+    if(!active||active.released||(!release&&interactionMessage()))return false;
+    const planned=edits?.map(readGameboyCodeEdit);
+    const result=active.interaction[method](...args);
+    const applied=planned??result?.edits??[];
+    rememberEdits(active,applied,result);
+    if(!liveEnabled&&liveSnapshot&&applied.length)liveSnapshot=frozenSnapshot(applied.reduce(patchGameboySnapshotEdit,liveSnapshot));
+    active.lastEmitTime=active.context.currentTime;emit();return result;
+  }
   return {load,clear,play,pause,resume,stop,seek,cancelSeek,whenIdle:()=>seekCleanup,read,getState:read,
+    applyEdit:edit=>interact('applyEdit',[edit],{edits:[edit]}),
+    applyPreset(value,{runId,...options}={}) {
+      checkOpen();if(runId!==undefined&&runId!==active?.runId)return false;
+      return interact('applyPreset',[value,options]);
+    },
+    noteOn:(id,midi,options)=>interact('noteOn',[id,midi,options]),
+    noteOff:id=>interact('noteOff',[id],{release:true}),
+    releaseKeyboard:()=>interact('releaseKeyboard',[],{release:true}),
+    // Releasing a wheel must clear its software bend even if the VGM just
+    // powered off the APU (and has already retired every manual gate).
+    setPitch:value=>interact('setPitch',[value],{release:value===0}),
     setChannelEnabled(channel,enabled) {
       checkOpen();
       if(!Number.isInteger(channel)||channel<0||channel>3)throw new RangeError('DMG song channel must be an integer 0..3');

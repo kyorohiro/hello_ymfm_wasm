@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js';
+import {createGameboyCodeLive,gameboyCodeLiveView,patchGameboySnapshotEdit} from './code_live.js';
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const state=(marker='first',frames=128)=>({marker,clock:4194304,positionFrames:frames,
@@ -46,6 +46,17 @@ test('manual edits patch only their fields into a frozen observation without pol
   f.live.commitEdit({channel:2,changes:{'wave.samples':Array.from({length:32},(_,i)=>i%16),'wave.level':.5}});
   assert.deepEqual(gameboyCodeLiveView(f.live.read().liveState,2).preset.wave,{samples:Array.from({length:32},(_,i)=>i%16),level:.5});
   assert.equal(f.live.read().liveState.voice[7],0x6b);f.live.dispose();
+});
+
+test('pending and frozen Sweep fields encode NR10 changes coherently even from a disabled register',()=>{
+  const original=state('sweep');original.registers.fill(0);original.voice.fill(0);original.registers[0]=original.voice[0]=0x88;
+  const enabled=patchGameboySnapshotEdit(original,{channel:0,changes:{'pulse.sweep.enabled':true,'pulse.sweep.period':3,'pulse.sweep.shift':3}});
+  assert.equal(enabled.registers[0],0xbb);assert.equal(enabled.voice[0],0xbb);
+  const off=patchGameboySnapshotEdit(enabled,{channel:0,changes:{'pulse.sweep.enabled':false}});assert.equal(off.registers[0],0x88);
+  const pace=patchGameboySnapshotEdit(off,{channel:0,changes:{'pulse.sweep.period':2}});
+  assert.equal(pace.registers[0],0xa8,'pace is a physical field, independent of the previously derived enabled flag');
+  assert.equal(gameboyCodeLiveView(pace,0).preset.pulse.sweep.enabled,true);
+  assert.equal(original.registers[0],0x88);assert.deepEqual(pace.registers.slice(1),original.registers.slice(1));
 });
 
 test('Code Live stays passive, polls at most once per interval and returns detached state',async()=>{

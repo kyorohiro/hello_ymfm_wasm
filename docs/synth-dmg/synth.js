@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-unified-channel-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-unified-channel-1';
-import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-unified-channel-1';
-import {createEditor} from './editor.js?v=dmg-unified-channel-1';
-import {createGameboyCodeEdit,applyGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-unified-channel-1';
-import {createGameboyChannelBank,readGameboyChannelBank,applyGameboyChannelEdit,updateGameboyChannelBank} from './channel_bank.js?v=dmg-unified-channel-1';
-import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-unified-channel-1';
+import {createAudio} from './audio.js?v=dmg-vgm-manual-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-vgm-manual-1';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-vgm-manual-1';
+import {createEditor} from './editor.js?v=dmg-vgm-manual-1';
+import {createGameboyCodeEdit,applyGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-vgm-manual-1';
+import {createGameboyChannelBank,readGameboyChannelBank,applyGameboyChannelEdit,updateGameboyChannelBank} from './channel_bank.js?v=dmg-vgm-manual-1';
+import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-vgm-manual-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {setupGameboySongControls} from './song_controls.js?v=dmg-unified-channel-1';
-import {createGameboySongAudition} from './song_audition.js?v=dmg-unified-channel-1';
-import {prepareGameboySongVoice} from './song_voice.js?v=dmg-unified-channel-1';
+import {setupGameboySongControls} from './song_controls.js?v=dmg-vgm-manual-1';
+import {createGameboySongAudition} from './song_audition.js?v=dmg-vgm-manual-1';
+import {prepareGameboySongVoice} from './song_voice.js?v=dmg-vgm-manual-1';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -26,7 +26,7 @@ let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let channelBank=createGameboyChannelBank(preset),channelTarget='synth',autoUpdate=true,editorLive=null;
 let queue = Promise.resolve(), captureWork = null;
 let vgmImport = null, codeHost = null, codeLive = null, applySequence = 0, liveSignature = null, songControls = null, lastSongState = null, audition = null, auditionSelectionKey = null, pausedVoiceCache = null;
-const notes = new Map(), auditionNotes = new Map(), fret = createFretboardState();
+const notes = new Map(), auditionNotes = new Map(), vgmNotes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
 visualizer.setMode('waveform');
@@ -37,7 +37,7 @@ const enqueue = action => {
 };
 const capacity = () => channelTarget!=='synth'?1:preset.source === 'pulse' && !channelBank[0].pulse.sweep.enabled ? 2 : 1;
 function updateKeys() {
-  const keys = new Set([...notes.values(),...auditionNotes.values()].map(note => note.key));
+  const keys = new Set([...notes.values(),...auditionNotes.values(),...vgmNotes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
     const active = keys.has(button.dataset.key);
     button.classList.toggle('is-active', active);
@@ -60,7 +60,13 @@ function selectedPreset(){return channelTarget==='synth'||channelContext()==='vg
 function updateCapacity() {
   const trial=pausedSongVoice();
   $('dmgKeyboardHint').textContent=lastSongState?.paused&&isSongChannelView()?trial?.playable?`Paused VGM CH ${lastSongState.liveVoice+1} · keyboard audition · one physical voice${trial.source==='noise'?' · keys retrigger the same Noise':''}.`:trial?.reason??'Select a playable VGM channel.':lastSongState?.playing?'Pause to audition a song channel.':'Every key plays the selected source. No keyboard split.';
-  if(isSongActive()&&isSongChannelView()){ $('voiceCapacity').textContent=`VGM CH ${lastSongState.liveVoice+1} · ${lastSongState.paused?'paused audition':'read-only'} · ${auditionNotes.size} held`; return; }
+  if(lastSongState?.playing){
+    const target=keyboardTarget();
+    $('voiceCapacity').textContent=`VGM + Keyboard · ${target.channel===null?`${target.source} round robin`:`CH ${target.channel+1}`} · ${vgmNotes.size} held`;
+    $('dmgKeyboardHint').textContent=lastSongState.canInteract?'Keyboard and controls write to the same four song channels. Later VGM writes can change them again.':lastSongState.interactionMessage??'Finishing the song…';
+    return;
+  }
+  if(isSongActive()&&isSongChannelView()){ $('voiceCapacity').textContent=`VGM CH ${lastSongState.liveVoice+1} · paused audition · ${auditionNotes.size} held`; return; }
   if(codeHost?.isRunning()){
     const target=keyboardTarget();
     $('voiceCapacity').textContent=target.channel===null?'Code + Keyboard · selected source · physical CH1–4':`Code + Keyboard · CH ${target.channel+1} · ${notes.size} held`;
@@ -130,8 +136,9 @@ async function ensureAudio() {
 async function applyPreset(value, {load = false, message, isCurrent = () => true, keepSongPaused = false} = {}) {
   const next = readPreset(value), request=++applySequence;
   if(!isCurrent())return false;
-  const retainPause=lastSongState?.paused&&(keepSongPaused||!isSongChannelView());
-  if(isSongActive()&&!retainPause&&!keepSongPaused)songControls?.stop();
+  const retainPause=Boolean(lastSongState?.paused),retainSong=Boolean(lastSongState?.playing);
+  const interactionRun=retainSong?lastSongState.interaction?.runId:null;
+  if(isSongActive()&&!retainPause&&!retainSong&&!keepSongPaused)songControls?.stop();
   if(audition?.isRunning())await stopAudition();
   if(disposed||request!==applySequence||!isCurrent())return false;
   // Sound selection changes the existing Code chip. Only workspace/song/Stop
@@ -179,8 +186,9 @@ async function applyPreset(value, {load = false, message, isCurrent = () => true
       const state = await engine.read();
       if (!current()) return false;
       readVoices(state);
+      if(retainSong&&interactionRun!==null&&interactionRun!==undefined)songControls?.applyPreset(next,{previous,replace:load,runId:interactionRun});
       visualizer.wake();
-      status(message ?? 'Instrument updated · play a new note to hear envelope and Sweep edits.');
+      status(message ?? (retainSong?'Instrument updated · VGM continues; later song writes can change it again.':'Instrument updated · play a new note to hear envelope and Sweep edits.'));
       return true;
     } catch (error) {
       await reconcile();
@@ -191,9 +199,12 @@ async function applyPreset(value, {load = false, message, isCurrent = () => true
 }
 async function applyEditorChange(value,{previous,channel,origin}={}) {
   if(channel===null||channel===undefined)return applyPreset(value);
-  if(origin==='VGM'||channelContext()==='vgm')return false;
   const edit=createGameboyCodeEdit(previous,value,channel);
   if(!Object.keys(edit.changes).length)return true;
+  if(origin==='VGM'||origin==='VGM live'||channelContext()==='vgm'){
+    if(!lastSongState?.playing||!lastSongState.canInteract)return false;
+    songControls.applyEdit(edit);visualizer.wake();status(`VGM CH ${channel+1} updated · playback continues.`);return true;
+  }
   if(!audio){
     channelBank=applyGameboyChannelEdit(channelBank,edit);preset=applyGameboyCodeEdit(preset,edit);revision++;
     codeHost?.markSoundDirty();renderChannelView();return true;
@@ -276,6 +287,7 @@ function renderKeyboard() {
 }
 function canPlay(midi) {
   if(lastSongState?.seeking||lastSongState?.seekPreparing)return false;
+  if(isSongActive()&&!lastSongState?.paused&&(!lastSongState?.playing||!lastSongState.canInteract))return false;
   const hz = 440*2**((midi-69)/12);
   const trial=pausedSongVoice();
   if(lastSongState?.paused&&isSongChannelView()&&(!trial?.playable||lastSongState.capturing))return false;
@@ -286,10 +298,22 @@ function keyboardTarget(){
   const channel=channelTarget==='synth'?null:channelTarget;
   return {channel,source:channel===null?preset.source:channel<2?'pulse':channel===2?'wave':'noise'};
 }
+function pressVgm(source,entry){
+  if(switchingAudioOutput||codeHost?.isCodeMode()||vgmNotes.has(source)||!canPlay(entry.midi))return;
+  const note={id:`dmg-vgm-key:${++sequence}`,key:entry.key,midi:entry.midi};
+  vgmNotes.set(source,note);
+  try{
+    const result=songControls.noteOn(note.id,note.midi,keyboardTarget());
+    if(!result){vgmNotes.delete(source);updateKeys();return;}
+    if(result.stolenId)for(const [key,old]of vgmNotes)if(old.id===result.stolenId)vgmNotes.delete(key);
+    updateKeys();status(`VGM CH ${result.channel+1} · keyboard plays alongside the song.`);
+  }catch(error){vgmNotes.delete(source);updateKeys();report(error);}
+}
 function press(source, entry) {
   if(lastSongState?.seekPreparing){status('Finishing the previous seek · try the keyboard again when ready.');return;}
+  if(lastSongState?.playing){pressVgm(source,entry);return;}
   if(lastSongState?.paused&&isSongChannelView()){pressAudition(source,entry);return;}
-  if(isSongActive()&&!lastSongState?.paused){status('Pause the VGM to audition a channel or play your edited instrument.');return;}
+  if(isSongActive()&&!lastSongState?.paused)return;
   if (switchingAudioOutput||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi)) return;
   const note = {id:`gameboy-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
   notes.set(source,note); updateKeys();
@@ -307,6 +331,7 @@ function press(source, entry) {
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
 function release(source) {
+  if(vgmNotes.has(source)){const note=vgmNotes.get(source);vgmNotes.delete(source);if(!disposed)songControls?.noteOff(note.id);updateKeys();return;}
   if(auditionNotes.has(source)){const note=auditionNotes.get(source);auditionNotes.delete(source);updateKeys();void audition.noteOff(note.id).catch(report);return;}
   const note = notes.get(source);
   if (!note) return;
@@ -316,7 +341,7 @@ function release(source) {
   });
 }
 function stopNotes(message) {
-  epoch++; notes.clear(); auditionNotes.clear(); updateKeys();
+  epoch++; notes.clear(); auditionNotes.clear();vgmNotes.clear();if(!disposed)songControls?.releaseKeyboard();updateKeys();
   const retiring=audition?.stop();
   return enqueue(async()=>{await retiring;if(audio)await audio.command(codeHost?.isRunning()?'releaseKeyboard':'stop');if(!codeHost?.isRunning()&&!lastSongState?.playing)visualizer.stop();if(message) status(message);});
 }
@@ -346,6 +371,10 @@ function setPitchUi(value) {
 function setPitch(value) {
   const previous=pitch;setPitchUi(value);
   if(lastSongState?.seekPreparing){setPitchUi(0);return;}
+  if(lastSongState?.playing){
+    if(keyboardTarget().source==='noise'){setPitchUi(0);return;}
+    try{songControls?.setPitch(value);visualizer.wake();}catch(error){setPitchUi(previous);report(error);}return;
+  }
   if(lastSongState?.paused&&isSongChannelView()){
     if(pausedSongVoice()?.source==='noise'){setPitchUi(0);return;}
     void Promise.resolve().then(()=>audition?.setPitch(value)).catch(error=>{if(pitch===value)setPitchUi(previous);report(error);});return;
@@ -422,7 +451,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){void stopAll();return;}
-  disposed=true;songControls?.dispose();void audition?.dispose().catch(()=>{});epoch++;applySequence++;notes.clear();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmImport.dispose();
+  disposed=true;songControls?.dispose();void audition?.dispose().catch(()=>{});epoch++;applySequence++;notes.clear();vgmNotes.clear();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmImport.dispose();
   const closing=audio;
   void Promise.resolve(codeHost?.dispose()).catch(()=>{}).finally(()=>closing?.dispose()).catch(()=>{});
   audio=null;
@@ -442,16 +471,16 @@ function renderChannelView(){
   const context=channelContext(),ch=channelTarget==='synth'?null:channelTarget,song=lastSongState;
   const observed=context==='code'?codeLive?.read():context==='synth'?editorLive?.read():null;
   const snapshot=context==='vgm'?song?.liveState:observed?.liveState;
-  const blocked=context==='vgm'&&ch!==null||context==='code'&&ch!==null&&!snapshot;
+  const blocked=context==='vgm'&&(Boolean(song?.seeking||song?.seekPreparing||song?.capturing)||song?.playing&&!song.canInteract||ch!==null&&!song?.playing)||context==='code'&&ch!==null&&!snapshot;
   $('dmgChannelSelect').value=String(channelTarget);
   $('dmgChannelSelect').disabled=Boolean(song?.capturing||song?.seeking);
   $('dmgAutoUpdate').checked=autoUpdate;
   $('dmgAutoUpdate').disabled=ch===null||Boolean(song?.capturing||song?.seeking);
   $('dmgSongCaptureButton').hidden=context!=='vgm';
   $('voiceEditor').inert=blocked;$('voiceEditor').dataset.readonly=String(blocked);
-  $('voiceEditor').setAttribute('aria-label',context==='vgm'&&ch!==null?'Read-only VGM channel settings':ch===null?'Round robin instrument editor':`Edit CH ${ch+1}`);
+  $('voiceEditor').setAttribute('aria-label',context==='vgm'&&ch!==null?blocked?'Read-only paused VGM channel settings':`Edit playing VGM CH ${ch+1}`:ch===null?'Round robin instrument editor':`Edit CH ${ch+1}`);
   $('instrumentName').readOnly=ch!==null;
-  for(const [wheel]of pitchWheels)wheel.disabled=Boolean(song?.seeking||song?.seekPreparing)||context==='vgm'&&(!song?.paused||ch!==null&&!pausedSongVoice()?.playable)||keyboardTarget().source==='noise';
+  for(const [wheel]of pitchWheels)wheel.disabled=Boolean(song?.seeking||song?.seekPreparing)||context==='vgm'&&(song?.playing?!song.canInteract:!song?.paused||ch!==null&&!pausedSongVoice()?.playable)||keyboardTarget().source==='noise';
   let value=preset,readout='',origin='Synth';
   if(ch!==null){
     if(snapshot){
@@ -459,16 +488,16 @@ function renderChannelView(){
       catch(error){readout=error.message;}
     }
     if(context==='synth')value=channelBank[ch];
-    origin=context==='vgm'?'VGM':context==='code'?'Code':'Synth';
+    origin=context==='vgm'?song?.playing?'VGM live':'VGM':context==='code'?'Code':'Synth';
   }
-  const targetKey=`${context}:${channelTarget}`,signature=JSON.stringify(value)+':'+targetKey;
+  const targetKey=`${context}:${channelTarget}${context==='vgm'?song?.playing?':playing':':paused':''}`,signature=JSON.stringify(value)+':'+targetKey;
   const sameTarget=liveSignature?.endsWith(':'+targetKey);
   if(signature!==liveSignature&&(!editor.isInteracting()||!sameTarget)){editor.update(value,{channel:ch,origin});liveSignature=signature;}
   const mixed=ch===null&&preset.source==='pulse'&&!channelBank[0].pulse.sweep.enabled&&
     JSON.stringify([channelBank[0].pulse.duty,channelBank[0].pulse.volume,channelBank[0].pulse.envelope,channelBank[0].pan])!==JSON.stringify([channelBank[1].pulse.duty,channelBank[1].pulse.volume,channelBank[1].pulse.envelope,channelBank[1].pan]);
   const source=context==='vgm'?`VGM · ${song?.paused?'Paused':song?.seeking?'Seeking':'Playing'}`:context==='code'?'Code · Run continues':'Synth';
   const target=ch===null?'Synth (Round robin)':`CH${ch+1} · ${ch<2?'Pulse':ch===2?'Wave':'Noise'}`;
-  const mode=ch===null?`edit common instrument${mixed?' · mixed CH settings':''}`:context==='vgm'?song?.paused?'read-only · keyboard auditions this CH':'read-only · Pause to audition':context==='code'&&!snapshot?'waiting for channel settings…':'edit and play this CH';
+  const mode=context==='vgm'&&song?.playing? song.canInteract?'edit and play · VGM continues':song.interactionMessage??'Finishing the song…':ch===null?`edit common instrument${mixed?' · mixed CH settings':''}`:context==='vgm'?'read-only · keyboard auditions this CH':context==='code'&&!snapshot?'waiting for channel settings…':'edit and play this CH';
   $('dmgChannelStatus').textContent=`${source} · ${target} · ${mode}${ch!==null&&!autoUpdate?' · Auto update Off':''}`;
   $('dmgChannelReadout').textContent=readout;
   updateKeys();
@@ -586,6 +615,8 @@ function isSongActive() {
 function renderSongLive(){renderChannelView();}
 function syncSongActivity(state){
   lastSongState=state;if(disposed)return;
+  if(!state.playing)vgmNotes.clear();
+  else if(state.interaction){const owners=new Set(state.interaction.voices.map(voice=>voice.id));for(const [key,note]of vgmNotes)if(!owners.has(note.id))vgmNotes.delete(key);}
   $('dmgSongPlayer').dataset.renderedFrames=String(state.renderedFrames??0);
   $('dmgSongPlayer').dataset.sampleRate=String(state.sampleRate??44100);
   syncAuditionSelection();syncChannelObservers();renderChannelView();
@@ -600,6 +631,7 @@ codeHost=setupGameboyCodeHost({ensureAudio,getAudio:()=>audio,getSettings:select
     // keeps its existing Code lease and must not send a keyboard-only edit.
     if(audio&&!codeHost?.isRunning())await audio.command('setPitch',[0]);
   },
+  beforeSoundApply:async()=>{songControls?.cancelPendingCapture();await captureWork?.catch(()=>{});await songControls?.whenIdle();await stopAudition();},
   onActivity:syncCodeActivity,setStatus:status});
 codeLive=createGameboyCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isRunning()),onUpdate:renderCodeLive,retainSnapshot:true});
 editorLive=createGameboyCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(audio&&channelContext()==='synth'),onUpdate:renderCodeLive,method:'observeEditor',retainSnapshot:true});

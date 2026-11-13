@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {gzipSync} from 'node:zlib';
 import {createGameboySongPreview,prepareGameboySongSource} from './song_preview.js';
 import {createDmgSongFixture} from '../../test/helpers/dmg_synth_song_fixture.mjs';
+import {createDefaultPreset} from './preset.js';
+import {gameboyCodeLiveView} from './code_live.js';
 
 function fixtureVgm(commands=[0xb3,22,128,0x61,0x44,0xac,0x66],{clock=4194304,otherClock=0}={}) {
   const bytes=new Uint8Array(256+commands.length),view=new DataView(bytes.buffer);
@@ -25,7 +27,7 @@ function hostFixture() {
 }
 function fakeEngine() {
   let frame=0;
-  return{disposed:0,writes:[],sampleRate:()=>44100,reset(){frame=0;},writeGameboyApu(...args){this.writes.push(args);},
+  return{disposed:0,writes:[],writeFrames:[],sampleRate:()=>44100,reset(){frame=0;},writeGameboyApu(...args){this.writes.push(args);this.writeFrames.push({frame,args});},
     processFrames(frames){const left=Float32Array.from({length:frames},()=>((frame++%1000)/1000-.5)*.1);return{left,right:left.slice()};},
     dispose(){this.disposed++;},get frames(){return frame;}};
 }
@@ -70,7 +72,7 @@ test('buffers use one unity gain into the existing calibrated bus; Pause preserv
   assert.equal(f.engines.length,1);assert.equal(f.gains.length,1);assert.equal(f.gains[0].gain.value,1);
   assert.equal(f.gains[0].output,f.host.songInputNode);assert.equal(f.host.songInputNode.gain.value,.28);
   assert(f.starts.every(node=>node.buffer.sampleRate===44100));assert.equal(f.starts[0].at,.01);
-  const initial=f.preview.read();assert(initial.renderedFrames>initial.positionFrames);assert(initial.bufferedFrames<=.2*44100+2048);
+  const initial=f.preview.read();assert(initial.renderedFrames>initial.positionFrames);assert(initial.bufferedFrames<=.05*44100);
   f.advance(.123);assert(f.preview.pause());const paused=f.preview.read();
   assert.equal(paused.positionFrames,Math.floor((.123-.01)*44100));assert.equal(paused.liveState.positionFrames,paused.positionFrames);
   const retained=f.starts.find(node=>node.at+node.buffer.length/44100>.123),beforeFrame=f.engines[0].frames;
@@ -282,4 +284,225 @@ test('retired engine creation never changes a newer run mask; unsupported engine
   const legacy=setup();await legacy.preview.load(fixtureVgm());assert(await legacy.preview.play());
   const before=legacy.preview.read();assert.throws(()=>legacy.preview.setChannelEnabled(0,false),/does not support channel/);assert.deepEqual(legacy.preview.read().channelEnabled,before.channelEnabled);assert.equal(legacy.preview.read().playback,'playing');legacy.preview.dispose();
   const configured=setup();configured.preview.setChannelEnabled(1,false);await configured.preview.load(fixtureVgm());assert.equal(await configured.preview.play(),false);assert.match(configured.preview.read().errorMessage,/does not support channel/);assert.equal(configured.engines[0].disposed,1);assert.equal(configured.starts.length,0);configured.preview.dispose();
+});
+
+test('low-latency refills keep every sample and bound generated lookahead without publishing Live faster than 20 Hz',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();
+  const started=f.states.length,first=f.starts[0].at;
+  for(let i=0;i<700;i++){
+    f.advance(.001);const state=f.preview.read();
+    assert(state.bufferedFrames<=.05*44100,'scheduled audio stays below 50 ms');
+    assert(f.engines[0].frames-state.positionFrames<=.06*44100,'including the player queue, native generation stays below 60 ms');
+  }
+  assert(f.states.length-started<=14,'the 8 ms refill must not repaint Live on every pump');
+  let cursor=0;
+  for(const node of f.starts){
+    assert(Math.abs(node.at-(first+cursor/44100))<1e-9,'every segment follows the preceding sample without skipping song time');
+    assert.equal(node.stopped,undefined);assert.equal(node.offset,0);
+    const pcm=node.buffer.getChannelData(0);
+    for(let i=0;i<pcm.length;i++)assert.equal(pcm[i],Math.fround((((cursor+i)%1000)/1000-.5)*.1));
+    cursor+=pcm.length;
+  }
+  assert.equal(cursor,f.preview.read().renderedFrames);f.preview.dispose();
+});
+
+test('manual fields display immediately while the generated timeline and queued PCM retain their original sample positions',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+  const before=f.preview.read(),engine=f.engines[0],native=engine.frames;
+  const retained=f.starts.map(node=>({node,pcm:node.buffer.getChannelData(0).slice()}));
+  assert(before.canInteract);assert(before.interaction.runId>0);
+  assert(f.preview.applyEdit({channel:0,changes:{'pulse.duty':.125}}));
+  const after=f.preview.read();assert.equal(after.playback,'playing');assert.equal(after.positionFrames,before.positionFrames);assert.equal(engine.frames,native);
+  assert.equal(after.interaction.registers[1]>>6,0);assert.equal(after.liveState.registers[1]>>6,0,'the deliberately edited field stays ready for the next key-repeat step');
+  for(let i=0;i<48;i++)if(i!==1)assert.equal(after.liveState.registers[i],before.liveState.registers[i]);
+  assert.deepEqual(engine.writeFrames.at(-1),{frame:native,args:[1,0]});
+  for(const {node,pcm}of retained){assert.equal(node.stopped,undefined);assert.deepEqual(node.buffer.getChannelData(0),pcm);}
+  while(f.preview.read().positionFrames<native)f.advance(.001);
+  assert.equal(f.preview.read().liveState.registers[1]>>6,0);
+  f.advance(1);assert.equal(f.preview.read().liveState.registers[1]>>6,3,'a later VGM register write wins naturally');
+  f.preview.dispose();
+});
+
+test('Auto update Off patches only the deliberately edited field and leaves the rest of its frozen four-channel snapshot intact',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.88);
+  const frozen=f.preview.setLiveEnabled(false).liveState;
+  while(f.preview.read().interaction.registers[1]>>6!==3)f.advance(.001);
+  const native=f.preview.read().interaction.registers;
+  assert.equal(frozen.registers[1]>>6,1);assert.equal(native[1]>>6,3,'native state has already processed a future VGM event');
+  assert(f.preview.applyEdit({channel:0,changes:{'pulse.volume':5}}));
+  const next=f.preview.read();
+  assert.equal(next.liveState.positionFrames,frozen.positionFrames);assert.equal(next.liveState.registers[2]>>4,5);
+  assert.equal(next.interaction.registers[2],0x50);
+  for(let i=0;i<48;i++)if(i!==2){assert.equal(next.liveState.registers[i],frozen.registers[i]);assert.equal(next.liveState.voice[i],frozen.voice[i]);}
+  assert(Object.isFrozen(next.liveState));assert(Object.isFrozen(next.liveState.registers));assert(Object.isFrozen(next.liveState.voice));
+  assert.throws(()=>{next.liveState.voice[1]=0;},TypeError);
+  f.advance(.25);assert.deepEqual(f.preview.read().liveState,next.liveState);
+  const following=f.preview.setLiveEnabled(true);assert.equal(following.liveState.registers[1]>>6,3);assert.equal(following.liveState.registers[2]>>4,5);
+  f.preview.dispose();
+});
+
+test('Pause and seek retire manual note identities without replacing retained PCM, and presets are pinned to their original run',async()=>{
+  const f=setup({yieldTask:async()=>{}});await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+  const firstRun=f.preview.read().interaction.runId;assert(f.preview.noteOn('keyboard',60,{channel:0}));
+  assert.equal(f.preview.read().interaction.voices.length,1);f.preview.pause();
+  const paused=f.preview.read(),native=f.engines[0].frames;
+  assert.deepEqual(paused.interaction.voices,[]);assert.equal(paused.canInteract,false);
+  assert.equal(f.preview.noteOn('not-paused-trial',64,{channel:0}),false);assert.equal(f.preview.applyEdit({channel:0,changes:{'pulse.duty':.5}}),false);
+  assert.equal(f.preview.noteOff('keyboard'),false);assert.equal(f.engines[0].frames,native);
+  assert(await f.preview.resume());assert.equal(f.preview.read().interaction.runId,firstRun);
+  assert(f.preview.noteOn('before-seek',62,{channel:1}));assert(await f.preview.seek(.4));
+  assert.deepEqual(f.preview.read().interaction.voices,[]);assert(f.preview.read().playing);
+  const second=f.preview.read(),writes=f.engines[1].writes.length;
+  assert(second.interaction.runId>firstRun);
+  assert.equal(f.preview.applyPreset({}, {runId:firstRun}),false,'a delayed stale preset skips even validation and native writes');
+  assert.equal(f.engines[1].writes.length,writes);assert.deepEqual(f.preview.read().interaction,second.interaction);
+  f.preview.stop();assert.equal(f.preview.read().interaction,null);assert(await f.preview.play());
+  assert(f.preview.read().interaction.runId>second.interaction.runId);
+  assert.equal(f.preview.applyPreset({}, {runId:second.interaction.runId}),false);f.preview.dispose();
+});
+
+test('a full-preset forwarding result patches only its planned fields in Auto update Off without unfreezing the song',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.15);
+  const frozen=f.preview.setLiveEnabled(false).liveState,previous=createDefaultPreset(),preset=structuredClone(previous);
+  preset.pulse.duty=.75;
+  const runId=f.preview.read().interaction.runId,result=f.preview.applyPreset(preset,{previous,replace:false,runId});
+  assert(result);assert(result.edits.length>0);
+  const next=f.preview.read();assert.equal(next.liveEnabled,false);assert.equal(next.liveState.positionFrames,frozen.positionFrames);
+  assert.equal(next.liveState.registers[1]>>6,3);assert.equal(next.liveState.registers[6]>>6,3);
+  for(let index=0;index<48;index++)if(index!==1&&index!==6){assert.equal(next.liveState.registers[index],frozen.registers[index]);assert.equal(next.liveState.voice[index],frozen.voice[index]);}
+  assert.equal(next.playback,'playing');assert.equal(next.interaction.runId,runId);f.preview.dispose();
+});
+
+test('generated EOF disables new interactions, permits safe releases, and retains exact original duration without a synthetic tail',async()=>{
+  const commands=[0xb3,22,128,0xb3,20,0x77,0xb3,21,0xff,0xb3,1,0x40,0xb3,2,0x70,0xb3,3,0x0b,0xb3,4,0x86,0x61,0xac,0x14,0x66];
+  const f=setup();await f.preview.load(fixtureVgm(commands));await f.preview.play();f.advance(.02);
+  assert(f.preview.noteOn('tail-key',60,{channel:0}));
+  for(let i=0;i<200&&f.preview.read().canInteract;i++)f.advance(.001);
+  const finishing=f.preview.read(),writes=f.engines[0].writes.length;
+  assert(finishing.playing);assert(!finishing.canInteract);assert.match(finishing.interactionMessage,/Finishing song/);
+  assert(finishing.positionFrames<5292);assert(5292-finishing.positionFrames<.06*44100);
+  assert.equal(f.preview.noteOn('too-late',64,{channel:0}),false);assert.equal(f.preview.applyEdit({channel:0,changes:{'pulse.duty':.75}}),false);
+  assert.equal(f.engines[0].writes.length,writes);assert.equal(f.preview.noteOff('tail-key'),true);
+  f.advance(.2);const ended=f.preview.read();assert.equal(ended.playback,'ended');assert.equal(ended.positionFrames,5292);
+  assert.equal(f.engines[0].frames,5292);assert.equal(f.engines[0].disposed,1);assert.equal(f.timers.size,0);
+  assert.equal(f.starts.reduce((frames,node)=>frames+node.buffer.length,0),5292);assert.equal(f.preview.releaseKeyboard(),false);f.preview.dispose();
+});
+
+test('VGM power-off intervals disable high-level interaction without touching the chip or preventing its later power-on',async()=>{
+  const commands=[0xb3,22,128,0xb3,20,0x77,0xb3,21,0xff,0xb3,1,0x40,0xb3,2,0x70,0xb3,3,0x0b,0xb3,4,0x86,
+    0x61,0x3a,0x11,0xb3,22,0,0x61,0x3a,0x11,0xb3,22,128,0xb3,2,0x70,0x61,0x3a,0x11,0x66];
+  const f=setup();await f.preview.load(fixtureVgm(commands));await f.preview.play();assert(f.preview.read().canInteract);
+  assert(f.preview.noteOn('before-power-off',60,{channel:0}));
+  assert(f.preview.setPitch(1));
+  for(let i=0;i<150&&f.preview.read().interaction.initialized;i++)f.advance(.001);
+  const off=f.preview.read(),writes=f.engines[0].writes.length;
+  assert(off.playing);assert.equal(off.interaction.initialized,false);assert.equal(off.canInteract,false);assert.match(off.interactionMessage,/powered off the APU/);
+  assert.deepEqual(off.interaction.voices,[]);
+  assert.equal(f.preview.noteOn('off',60,{channel:0}),false);assert.equal(f.preview.applyEdit({channel:0,changes:{'pulse.duty':.5}}),false);
+  assert.equal(f.preview.applyPreset(createDefaultPreset(),{runId:off.interaction.runId}),false);
+  assert.equal(f.preview.noteOff('before-power-off'),false);assert.equal(f.engines[0].writes.length,writes);
+  assert.equal(off.interaction.pitch,1);assert(f.preview.setPitch(0));assert.equal(f.preview.read().interaction.pitch,0);
+  assert.equal(f.engines[0].writes.length,writes,'wheel release clears its software value without touching a powered-off chip');
+  for(let i=0;i<150&&!f.preview.read().interaction.initialized;i++)f.advance(.001);
+  assert(f.preview.read().canInteract);assert(f.preview.noteOn('powered-on',64,{channel:0}));
+  const regs=f.preview.read().interaction.registers,period=regs[3]|((regs[4]&7)<<8);
+  assert.equal(period,Math.round(2048-4194304/(32*440*2**((64-69)/12))),'a fresh key after power-on is no longer bent');
+  assert(f.preview.noteOff('powered-on'));f.preview.dispose();
+});
+
+test('rapid sparse edits keep the latest desired display at one audio frame and retain at most one pending entry per field',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+  const before=f.preview.read(),native=f.engines[0].frames;
+  for(let i=0;i<1000;i++){
+    const shift=i<4?i:i%16;
+    f.preview.applyEdit({channel:3,changes:{'noise.shift':shift}});
+    const state=f.preview.read();assert.equal(state.liveState.registers[18]>>4,shift);
+    assert.equal(f.states.at(-1).liveState.registers[18]>>4,shift,'the actual synchronous onState editor update must not restore an old value');
+    assert.equal(state.pendingDisplayEdits,1);assert.equal(state.positionFrames,before.positionFrames);
+    for(let index=0;index<48;index++)if(index!==18)assert.equal(state.liveState.registers[index],before.liveState.registers[index]);
+  }
+  f.preview.applyEdit({channel:3,changes:{'noise.shift':3}});f.preview.applyEdit({channel:0,changes:{'pulse.duty':.125}});
+  assert.equal(f.preview.read().pendingDisplayEdits,2);assert.equal(f.engines[0].frames,native,'display retention never renders or drops PCM');
+  while(f.preview.read().positionFrames<native)f.advance(.001);
+  assert.equal(f.preview.read().pendingDisplayEdits,0);assert.equal(f.preview.read().liveState.registers[18]>>4,3);
+  f.advance(1);assert.equal(f.preview.read().liveState.registers[18]>>4,1,'a later recorded Noise write takes over after pending display expires');f.preview.dispose();
+});
+
+test('a VGM overwrite at the same generated frame becomes visible exactly when the manual pending field expires',async()=>{
+  const initial=[0xb3,22,128,0xb3,20,0x77,0xb3,21,0xff,0xb3,1,0x40,0xb3,2,0x70,0xb3,3,0x0b,0xb3,4,0x86];
+  const f=setup();await f.preview.load(fixtureVgm([...initial,0x61,0,16,0xb3,1,0xc0,0x61,0,32,0x66]));await f.preview.play();
+  while(f.engines[0].frames<4096)f.advance(.001);
+  assert.equal(f.engines[0].frames,4096);assert.equal(f.preview.read().interaction.registers[1]>>6,1);
+  f.preview.applyEdit({channel:0,changes:{'pulse.duty':.125}});assert.equal(f.preview.read().liveState.registers[1]>>6,0);
+  f.advance(.008);assert.equal(f.preview.read().interaction.registers[1]>>6,3,'the VGM has already overwritten the native value at the same boundary');
+  assert(f.engines[0].writeFrames.some(event=>event.frame===4096&&event.args[0]===1&&event.args[1]===0xc0));
+  assert.equal(f.preview.read().pendingDisplayEdits,1);assert.equal(f.preview.read().liveState.registers[1]>>6,0);
+  while(f.preview.read().positionFrames<4096)f.advance(.001);
+  assert.equal(f.preview.read().pendingDisplayEdits,0);assert.equal(f.preview.read().liveState.registers[1]>>6,3);f.preview.dispose();
+});
+
+test('pending manual fields survive Auto update Off to On, while Pause returns the exact raw audible snapshot',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+  const before=f.preview.setLiveEnabled(false).liveState;
+  f.preview.applyEdit({channel:3,changes:{'noise.shift':2}});
+  let state=f.preview.read();assert.equal(state.liveEnabled,false);assert.equal(state.liveState.registers[18]>>4,2);assert.equal(state.pendingDisplayEdits,1);
+  state=f.preview.setLiveEnabled(true);assert.equal(state.liveState.registers[18]>>4,2);assert.equal(state.liveState.positionFrames,before.positionFrames);
+  for(let index=0;index<48;index++)if(index!==18)assert.equal(state.liveState.registers[index],before.registers[index]);
+  assert(f.preview.pause());state=f.preview.read();assert(state.paused);assert.equal(state.pendingDisplayEdits,0);
+  assert.equal(state.liveState.registers[18]>>4,4,'Pause and Capture must inspect the actual heard settings, not the pending display intent');
+  assert.equal(state.liveState.positionFrames,state.positionFrames);assert.equal(state.interaction.registers[18]>>4,2,'returning to an exact snapshot does not undo the actual native edit');
+  assert(await f.preview.resume());assert.equal(f.preview.read().liveState.registers[18]>>4,4);
+  const head=f.engines[0].frames;while(f.preview.read().positionFrames<head)f.advance(.001);
+  assert.equal(f.preview.read().liveState.registers[18]>>4,2);f.preview.dispose();
+});
+
+test('preset edits use the same bounded pending fields, and seek/Stop/source replacement cannot carry those fields into a new run',async()=>{
+  const f=setup({yieldTask:async()=>{}}),source=createDmgSongFixture().bytes;await f.preview.load(source);await f.preview.play();f.advance(.12);
+  const before=f.preview.read(),previous=createDefaultPreset(),preset=structuredClone(previous);preset.pulse.duty=.75;
+  const result=f.preview.applyPreset(preset,{previous,replace:false,runId:before.interaction.runId});assert(result);
+  let state=f.preview.read();assert.equal(state.pendingDisplayEdits,2);assert.equal(state.liveState.registers[1]>>6,3);assert.equal(state.liveState.registers[6]>>6,3);
+  for(let index=0;index<48;index++)if(index!==1&&index!==6)assert.equal(state.liveState.registers[index],before.liveState.registers[index]);
+  assert(await f.preview.seek(.2));state=f.preview.read();assert.equal(state.pendingDisplayEdits,0);assert.equal(state.liveState.registers[1]>>6,1);
+  f.preview.applyEdit({channel:3,changes:{'noise.shift':1}});assert.equal(f.preview.read().pendingDisplayEdits,1);
+  f.preview.stop();assert.equal(f.preview.read().pendingDisplayEdits,0);assert(await f.preview.play());assert.equal(f.preview.read().pendingDisplayEdits,0);
+  f.preview.applyEdit({channel:3,changes:{'noise.shift':2}});assert.equal(f.preview.read().pendingDisplayEdits,1);
+  await f.preview.load(source,'replacement.vgm');assert.equal(f.preview.read().pendingDisplayEdits,0);assert(await f.preview.play());assert.equal(f.preview.read().liveState.registers[18]>>4,4);f.preview.dispose();
+});
+
+test('pending Sweep codes stay grouped and match native On/Off/period/shift order at one audible frame',async()=>{
+  for(const auto of [true,false]){
+    const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+    if(!auto)f.preview.setLiveEnabled(false);
+    const before=f.preview.read(),native=f.engines[0].frames;
+    const apply=(changes,expected)=>{
+      assert(f.preview.applyEdit({channel:0,changes}));const state=f.preview.read();
+      assert.equal(state.interaction.voice[0],expected,'reference APU receives the intended NR10 codes');
+      assert.equal(state.liveState.voice[0],expected,'the immediate editor update must agree with the native write');
+      assert.equal(state.liveState.registers[0],expected);assert.equal(state.positionFrames,before.positionFrames);
+      assert.equal(gameboyCodeLiveView(state.liveState,0).preset.pulse.sweep.enabled,Boolean(expected&0x77));
+      for(let i=1;i<48;i++)assert.equal(state.liveState.registers[i],before.liveState.registers[i]);
+      assert(state.pendingDisplayEdits<=3);assert.equal(f.engines[0].frames,native);
+    };
+    apply({'pulse.sweep.enabled':true,'pulse.sweep.period':3,'pulse.sweep.shift':3},0x33);
+    apply({'pulse.sweep.enabled':false},0);
+    apply({'pulse.sweep.enabled':true},0);
+    apply({'pulse.sweep.enabled':true,'pulse.sweep.period':3,'pulse.sweep.shift':3},0x33);
+    apply({'pulse.sweep.enabled':false},0);
+    apply({'pulse.sweep.period':2},0x20);
+    apply({'pulse.sweep.enabled':false},0);
+    apply({'pulse.sweep.shift':2},2);
+    apply({'pulse.sweep.period':3},0x32);
+    if(!auto)f.preview.setLiveEnabled(true);
+    assert.equal(f.preview.read().liveState.voice[0],0x32);
+    while(f.preview.read().positionFrames<native)f.advance(.001);
+    assert.equal(f.preview.read().pendingDisplayEdits,0);assert.equal(f.preview.read().liveState.voice[0],0x32);f.preview.dispose();
+  }
+});
+
+test('a period-only edit from disabled NR10 immediately derives enabled Sweep without inventing other pending fields',async()=>{
+  const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();f.advance(.12);
+  assert.equal(f.preview.read().liveState.voice[0],0);
+  f.preview.applyEdit({channel:0,changes:{'pulse.sweep.period':3}});
+  const state=f.preview.read();assert.equal(state.liveState.voice[0],0x30);assert.equal(state.interaction.voice[0],0x30);
+  assert.equal(gameboyCodeLiveView(state.liveState,0).preset.pulse.sweep.enabled,true);assert.equal(state.pendingDisplayEdits,1);f.preview.dispose();
 });

@@ -29,7 +29,8 @@ it does not replace their other settings. A mixed-settings indication explains
 when the physical channels differ.
 
 **Auto update** is On by default. It updates the displayed physical-CH values;
-Off freezes that display. It does not change the selected CH, keyboard routing,
+Off freezes automatic observation; deliberate edits still update their touched
+fields. It does not change the selected CH, keyboard routing,
 Code execution or song playback. Use this same selector and Auto update control
 for Code and VGM observation.
 
@@ -45,6 +46,12 @@ continues to address its explicitly chosen physical channels. Uploading new
 Wave RAM stops a held Wave note; the loop continues and can trigger it again.
 Explicit Stop retains the latest selected preset. Importing a project or
 starting a VGM song still stops Code before transferring ownership.
+
+Automatic performance is **VGM or Code**, with manual controls and keyboard
+available alongside either. Starting the other automatic source transfers
+ownership; moving a knob, playing a key or loading a sound keeps that source
+running. During VGM playback, hand operations use the reference APU's same four
+channels, and the next recorded write can change the same parameter again.
 
 Opening the page or editing a source does not start an audio device. Playing
 a key can also initialize audio. In Synth, all keyboard keys play the selected
@@ -238,16 +245,45 @@ preparation has a 30-second work limit. Checkpoint caching is not enabled.
 
 Use the common **Channel** selector to choose CH1–4 and follow recorded
 Pulse Duty / envelope settings, Wave RAM / level, Noise clock and routing in the
-same editor. VGM channel controls are read-only. Select Synth to show the
-editable authored sound. **Auto update** is On by default; Off freezes a coherent
-snapshot of all four channels, with the selected CH and paused keyboard route
-kept. Changing CH then shows the same frozen instant. Pause refreshes that
+same editor. While playing, change a control or play a key to intervene directly
+on that physical song channel. Synth uses the selected source's round-robin
+pool on this same reference APU. Keyboard notes use its current channel settings;
+they do not add another set of hardware voices. A later VGM write wins for its
+register, including a new recorded trigger replacing the keyboard note.
+Releasing an older key or returning its Pitch wheel cannot cut or bend that
+newer VGM note. Noise still ignores musical key pitch.
+
+These numbered-CH edits are temporary song interventions. They do not rewrite
+the original VGM or your authored preset. Synth controls and loading a preset
+also update the authored instrument for Stop / Save, and send that edit to the
+playing APU. A changed field is merged against the latest generated registers,
+so a frozen UI cannot restore another field's old pan, frequency or envelope.
+Wave RAM uploads can stop CH3; the other channels and song clock continue.
+
+**Auto update** is On by default; Off freezes automatic observation of all four
+channels, keeping the selected CH and keyboard route. Deliberate edits update
+only their touched fields; the other displayed fields stay frozen. Changing CH
+shows that same snapshot with its manual edits. Pause refreshes that
 snapshot to its exact audible position even with Auto update Off. Updates are
-capped at 20 per second and show consumed audio time rather than the ~200 ms
-render-ahead buffer. These are sent/configured registers, not measured hardware
+capped at 20 per second and follow consumed audio time. Deliberately edited
+fields appear immediately while that write waits for the queued audio prefix;
+other fields keep following the audible song. Once the write reaches playback,
+its temporary display override expires and later VGM writes are visible again.
+Hand edits affect future PCM after the short queued prefix: the foreground renderer targets 35 ms of
+lookahead, with small native slices, rather than discarding audio or skipping
+song time. This is a software scheduling target, not a sample-accurate or
+background latency guarantee. These are sent/configured registers, not measured hardware
 Envelope volume or current Sweep frequency.
 
-While paused, choose **CH1–4** and play the keyboard to audition that channel.
+Once the last few milliseconds have already been generated, **Finishing song**
+temporarily disables new intervention; it keeps the original duration and queued
+audio. Stop, a source change, a successful seek or switching to Code clears
+manual note ownership. Seeking reconstructs the original VGM at the destination
+without replaying earlier manual edits. A cancelled seek retains the old queued
+audio. Blur releases hand-played keys while the song continues.
+
+While paused, the numbered-CH controls are read-only. Choose **CH1–4** and play
+the keyboard to audition that frozen channel.
 The trial temporarily borrows the editor APU and restores its instrument and
 Wave RAM afterwards. It never changes the paused song APU, position or unheard
 PCM. CH1 / CH2 use their captured Pulse settings, CH3 its 32 Wave samples, and
@@ -267,8 +303,9 @@ counters or the elapsed Envelope / Sweep phase.
 **Song channels · software mute** provides separate On / Off switches for
 CH1 Pulse (+ hardware Sweep), CH2 Pulse, CH3 Wave and CH4 Noise. Leave only the
 channels you want to hear On. This is a reference-playback output control:
-recorded registers, channel observation, keyboard audition, Code and Capture keep
-their original settings. An Off channel can still be selected and auditioned
+recorded registers, channel observation, paused keyboard audition, Code and Capture keep
+their original settings. While playing, manual keys share the reference APU and
+follow the same channel mute. An Off channel can still be selected and auditioned
 while paused, or captured into an editable instrument.
 
 All four channels start On. Switches work before loading a song and stay set
@@ -280,8 +317,8 @@ resetting the oscillators, Envelope / Sweep and Noise state.
 
 The reference uses its own DMG APU, sharing the existing audio context, source
 balance, Master and output monitor. Master affects the song in real time. Starting
-Code or importing a project stops the reference song. Loading an instrument in a
-song CH view also stops it; edits in the paused **Synth** view keep the position.
+Code or importing a project stops the reference song. Loading an instrument
+keeps playback or Pause; edits in the paused **Synth** view keep the position.
 Repeated VGM loops are later work; this version plays the recorded command
 stream once.
 
@@ -327,7 +364,7 @@ settings, and left / right routing. The portable format is
 validates the file and adds it to Files; select its JSON there to apply it.
 Malformed or oversized files preserve the previous sound. Loading a full
 preset or resetting seeds all four authored channel sounds from that one
-instrument. It can release held notes while keeping Code Run. Merely choosing
+instrument. It can release held notes while keeping Code Run or VGM playback. Merely choosing
 Synth or another CH does not seed or unify settings.
 
 **Files → Save sound** and instrument JSON export save one ordinary single
@@ -382,6 +419,7 @@ npm run test:dmg-synth:song-seek-browser
 npm run test:dmg-synth:menu-browser
 npm run test:dmg-synth:song-channels-browser
 npm run test:dmg-synth:channel-browser
+npm run test:dmg-synth:vgm-manual-browser
 sh scripts/package_itch_dmg_synth.sh dev
 ```
 

@@ -1,0 +1,196 @@
+{
+  "date": "2026-11-13",
+  "status": "passed",
+  "task": "DMG Synth: keep VGM or Code running while a person edits parameters, selects sounds or plays the same physical channels.",
+  "implemented": [
+    "VGM and Code remain mutually exclusive automatic sources. UI and keyboard can coexist with either.",
+    "Playing VGM receives manual sparse parameter writes and keyboard triggers on its own four-channel reference APU. No extra APU is allocated for these keys.",
+    "CH1–4 use their physical source; Synth round robin uses the current source pool and actual CH1 Sweep restriction. VGM writes may overwrite manual parameters and acquire gate ownership again.",
+    "Sparse edits merge against the latest generation-head register shadow. Another field cannot be reverted from an older displayed snapshot.",
+    "Older key-ups, Pitch restoration and cleanup do not cut or retune a later VGM trigger. Full preset load updates the authored instrument and reference APU without stopping song transport; delayed forwarding is pinned to the reference run.",
+    "Foreground rendering targets 35 ms lookahead using 256-frame segments and an 8 ms refill timer. Automatic UI publication remains capped at 20 Hz. Queued PCM is retained rather than skipped.",
+    "Only pending manual fields appear immediately in the UI until their generated timestamp becomes audible. Entries are bounded by field count; coupled Sweep fields use physical period/shift codes. Later VGM writes then become visible again.",
+    "Pause retains exact queued PCM and freezes the raw audible snapshot for the existing isolated keyboard audition and Capture. Seek reconstructs the original VGM and clears manual ownership; canceled seek keeps its prior queue/view contract.",
+    "Native EOF already generated or APU powered off disables new intervention. The original song duration stays exact. A released Pitch wheel can still reset its software value without a powered-off register write.",
+    "Manual Sweep Off clears pace/shift while retaining Direction, avoiding an unintended native negate-clear channel shutoff."
+  ],
+  "node": {
+    "command": "npm run test:dmg-synth",
+    "passed": 258,
+    "failed": 0,
+    "receipt": "build/verification/dmg-vgm-manual-20261113/node-final-d.log",
+    "includes": "Actual WASM combined/manual PCM against independent direct-core render, unchanged VGM PCM, gate ownership, sparse RMW, Wave-only upload, low latency, continuous numeric edits, Sweep toggles, exact Pause/seek/Capture, EOF and power transitions."
+  },
+  "browser": {
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "completeRegression": {
+      "stage": "release/itch_dmg_synth_dmg-vgm-manual-20261113c-mKSIVV",
+      "profiles": [
+        {
+          "profile": "manual",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/manual-browser-final-c.json"
+        },
+        {
+          "profile": "channel",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/channel-browser-final.json"
+        },
+        {
+          "profile": "code",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/code-browser-final.json"
+        },
+        {
+          "profile": "song",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/song-browser-final.json"
+        },
+        {
+          "profile": "capture",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/capture-browser-final.json"
+        },
+        {
+          "profile": "seek",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/seek-browser-final.json"
+        },
+        {
+          "profile": "channels",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/channels-browser-final.json"
+        },
+        {
+          "profile": "menu",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/menu-browser-final.json"
+        },
+        {
+          "profile": "baseline",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/baseline-browser-final.json"
+        }
+      ],
+      "engineRuns": 18
+    },
+    "finalFocusedRegression": {
+      "stage": "release/itch_dmg_synth_dmg-vgm-manual-20261113d-MMgeIb",
+      "profiles": [
+        {
+          "profile": "manual",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/manual-browser-final-d.json"
+        },
+        {
+          "profile": "code",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/code-browser-final-d.json"
+        },
+        {
+          "profile": "channel",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/channel-browser-final-d.json"
+        },
+        {
+          "profile": "capture",
+          "passed": true,
+          "engines": [
+            "chromium",
+            "webkit"
+          ],
+          "receipt": "build/verification/dmg-vgm-manual-20261113/capture-browser-final-d.json"
+        }
+      ],
+      "engineRuns": 8,
+      "scope": "After the last coupled-field display correction; all other C-stage product JS/CSS is byte-identical."
+    },
+    "changedProductFilesAfterCompleteRegression": [
+      "synth-dmg/code_live.js",
+      "synth-dmg/song_preview.js"
+    ],
+    "measuredLookaheadSeconds": {
+      "chromium": 0.04034013605442177,
+      "webkit": 0.03970521541950114
+    },
+    "safety": "Headless Chromium and WebKit. Gain zero was inserted before application JS; Chromium also used --mute-audio. No ordinary desktop browser or OS volume control was used.",
+    "layoutWidths": [
+      1240,
+      390
+    ],
+    "manualEvidence": "Recorded manual KON and replacement pitch writes on the same reference engine; finite nonzero mixed PCM measured after its old queue prefix; independent Wave/Noise from silence; no editor-worklet keyboard noteOn during VGM."
+  },
+  "package": {
+    "stage": "release/itch_dmg_synth_dmg-vgm-manual-20261113d-MMgeIb",
+    "archive": "release/tetorica_dmg_synth_dmg-vgm-manual-20261113d_itch.zip",
+    "sha256": "025dccfa08f304b2df4d0a07ac07eeabb033b997b3934ecc218c4d0ea7704d5f",
+    "files": 129,
+    "readableModules": 24,
+    "equalityReceipt": "build/verification/dmg-vgm-manual-20261113/package-source-equality-final-d.json",
+    "sourceCheck": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    }
+  },
+  "statePolicy": {
+    "playingCHManualEdits": "Temporary reference-APU state; original VGM and authored preset unchanged. Pause then Capture to save the combined configured voice.",
+    "synthAndPresetEdits": "Also update the authored single-instrument preset for Stop and Save.",
+    "publicSDK": "Unchanged, including generated WASM/native core and JSON schema."
+  },
+  "limitations": [
+    "The short queued prefix introduces software scheduling latency; the foreground target is not a sample-accurate or background timing guarantee.",
+    "During VGM playback channel mute also mutes manually played keys on that same reference channel. Paused isolated audition remains independent.",
+    "Wave RAM uploads may end CH3; the VGM transport and other channels continue."
+  ],
+  "todo": "docs/issues/todo_dmg_synth_vgm_manual_01.md"
+}

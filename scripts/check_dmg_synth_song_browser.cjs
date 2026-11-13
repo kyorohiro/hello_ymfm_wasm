@@ -108,7 +108,8 @@ async function check(browser,name,origin,fixture,loadCassette){
     const history=[];await until(async()=>{const value=await state(page);history.push(value);return value.frame>=Math.round(1.05*44100);},'future register change becomes audible');
     const early=history.filter(value=>value.frame>4410&&value.frame<Math.round(.87*44100));assert(early.length>=2,'observed real pre-boundary playback');
     assert(early.every(value=>value.duty==='0.25'),'future Duty must not leak out of render-ahead');
-    assert(early.some(value=>value.rendered>39690),'actual queued audio passed the future write while Live stayed at the audible position');
+    assert(early.some(value=>value.rendered>value.frame),'short render-ahead is real, while Live retains the audible state');
+    const maximumAhead=Math.max(...history.map(value=>(value.rendered-value.frame)/44100));assert(maximumAhead>0&&maximumAhead<.07,'the new reference queue stays short: '+maximumAhead);measurements.maximumAheadSeconds=maximumAhead;
     const late=history.filter(value=>value.frame>=Math.round(.96*44100));assert(late.length&&late.every(value=>value.duty==='0.75'));
     measurements.liveBoundary=history;await pause(page);const frozen=await state(page);await wait(160);assert.equal((await state(page)).frame,frozen.frame);
     assert.equal(frozen.readonly,'true');assert(await page.locator('#voiceEditor').evaluate(node=>node.inert));assert.deepEqual((await read(page)).preset,author.preset);
@@ -134,15 +135,19 @@ async function check(browser,name,origin,fixture,loadCassette){
     await page.locator('#dmgAutoUpdate').check();await until(()=>page.locator('#noiseVolume').textContent().then(value=>value==='0'),'Live On catches up to the audible DAC-off event');
     await until(()=>state(page).then(value=>value.phase==='ended'),'song EOF');await pcm(page,false);assert.deepEqual((await read(page)).preset,author.preset);
 
-    step('The reference APU uses one Master / monitor path; keyboard cannot layer over the song');
+    step('The reference APU uses one Master / monitor path; keyboard writes the same song channels while playback continues');
     await page.locator('#dmgChannelSelect').selectOption('0');await play(page);await pcm(page);await wait(110);
     const normal=await page.evaluate(()=>__dmgSongAudit.output());
     await page.locator('#masterVolume').evaluate(input=>{input.value='.35';input.dispatchEvent(new Event('input',{bubbles:true}));});await wait(110);
     const half=await page.evaluate(()=>__dmgSongAudit.output());measurements.master={normal,half,ratio:half.rms/normal.rms};
     assert(half.rms/normal.rms>.35&&half.rms/normal.rms<.65,'Master scales the actual output once');
     await page.locator('#masterVolume').evaluate(input=>{input.value='.7';input.dispatchEvent(new Event('input',{bubbles:true}));});
-    await page.evaluate(()=>__dmgSongAudit.drain());await page.keyboard.down('z');await page.keyboard.up('z');
-    assert(!(await page.evaluate(()=>__dmgSongAudit.drain())).some(command=>command.method==='noteOn'),'song excludes ordinary keyboard auditions');
+    await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='keyboard'),'Keyboard view');
+    const beforeManual=await state(page);await page.evaluate(()=>__dmgSongAudit.drain());await page.keyboard.down('z');
+    await until(()=>page.locator('#dmgSongPlayer').getAttribute('data-manual-held').then(value=>value==='1'),'playing-song keyboard owner');
+    assert.equal((await state(page)).phase,'playing');assert((await state(page)).frame>=beforeManual.frame);assert.equal(await read(page,'observeCode'),null,'playing song keys do not borrow the authored Code APU');
+    await page.keyboard.up('z');await until(()=>page.locator('#dmgSongPlayer').getAttribute('data-manual-held').then(value=>value==='0'),'playing-song keyboard release');
+    assert(!(await page.evaluate(()=>__dmgSongAudit.drain())).some(command=>command.method==='noteOn'),'keys bypass the separate authored Worklet and edit the reference APU');
     const graph=await page.evaluate(()=>__dmgSongAudit.graph());assert.equal(graph.contexts,1);assert.equal(graph.editorWorklets,1);assert.equal(graph.destinationConnections,1);assert(graph.muted);measurements.graph=graph;
     await stop(page);assert.equal((await state(page)).readonly,'false');assert.deepEqual((await read(page)).preset,author.preset);
 

@@ -7,6 +7,37 @@ const nativeSchedule=globalThis.setTimeout.bind(globalThis);
 const nativeCancel=globalThis.clearTimeout.bind(globalThis);
 const copy=value=>value===null?null:structuredClone(value);
 
+/** Reflect a deliberate sparse edit in a frozen display without observing
+ * unrelated future writes. This function never touches an APU or transport. */
+export function patchGameboySnapshotEdit(snapshot,value){
+  const edit=readGameboyCodeEdit(value);
+  const next=copy(snapshot),ch=edit.channel,base=ch*5;
+  const preset=applyGameboyCodeEdit(gameboyCodeLiveView(next,ch).preset,edit);
+  const bits=(index,mask,value)=>{for(const bytes of [next.registers,next.voice])bytes[index]=(bytes[index]&~mask)|(value&mask);};
+  const env=ch<2?preset.pulse:preset.noise;
+  for(const path of Object.keys(edit.changes)){
+    if(path==='pulse.duty')bits(base+1,0xc0,[.125,.25,.5,.75].indexOf(preset.pulse.duty)<<6);
+    else if(path.endsWith('.volume'))bits(base+2,0xf0,env.volume<<4);
+    else if(path.endsWith('.envelope.direction'))bits(base+2,8,env.envelope.direction==='up'?8:0);
+    else if(path.endsWith('.envelope.period'))bits(base+2,7,env.envelope.period);
+    else if(path.startsWith('pulse.sweep.')){
+      const sweep=preset.pulse.sweep,key=path.split('.').at(-1);
+      const mask={enabled:0x77,direction:8,period:0x70,shift:7}[key];
+      // Enabled is derived from NR10's pace/shift bits in a live snapshot.
+      // Editing either code can enable Sweep even when the old NR10 was zero.
+      const disabled=Object.hasOwn(edit.changes,'pulse.sweep.enabled')&&!edit.changes['pulse.sweep.enabled'];
+      const value=(sweep.direction==='down'?8:0)|(disabled?0:(sweep.period<<4)|sweep.shift);
+      bits(0,mask,value);
+    }else if(path==='wave.level')bits(12,0x60,[0,1,.5,.25].indexOf(preset.wave.level)<<5);
+    else if(path==='wave.samples')for(let i=0;i<16;i++)bits(32+i,255,(preset.wave.samples[i*2]<<4)|preset.wave.samples[i*2+1]);
+    else if(path==='noise.divisor')bits(18,7,preset.noise.divisor);
+    else if(path==='noise.shift')bits(18,0xf0,preset.noise.shift<<4);
+    else if(path==='noise.width')bits(18,8,preset.noise.width===7?8:0);
+    else if(path.startsWith('pan.')){const mask=path==='pan.left'?16<<ch:1<<ch;bits(21,mask,preset.pan[path.slice(4)]?mask:0);}
+  }
+  return next;
+}
+
 export function createGameboyCodeLive({getAudio,isRunning,onUpdate=()=>{},schedule=nativeSchedule,cancel=nativeCancel,intervalMs=50,
   method='observeCode',retainSnapshot=false}={}) {
   for(const fn of [getAudio,isRunning,onUpdate,schedule,cancel])if(typeof fn!=='function')throw new TypeError('DMG Code Live needs host callbacks');
@@ -76,28 +107,7 @@ export function createGameboyCodeLive({getAudio,isRunning,onUpdate=()=>{},schedu
   function commitEdit(value){
     const edit=readGameboyCodeEdit(value);
     if(disposed||!snapshot)return read();
-    const next=copy(snapshot),ch=edit.channel,base=ch*5;
-    const preset=applyGameboyCodeEdit(gameboyCodeLiveView(next,ch).preset,edit);
-    const bits=(index,mask,value)=>{for(const bytes of [next.registers,next.voice])bytes[index]=(bytes[index]&~mask)|(value&mask);};
-    const env=ch<2?preset.pulse:preset.noise;
-    for(const path of Object.keys(edit.changes)){
-      if(path==='pulse.duty')bits(base+1,0xc0,[.125,.25,.5,.75].indexOf(preset.pulse.duty)<<6);
-      else if(path.endsWith('.volume'))bits(base+2,0xf0,env.volume<<4);
-      else if(path.endsWith('.envelope.direction'))bits(base+2,8,env.envelope.direction==='up'?8:0);
-      else if(path.endsWith('.envelope.period'))bits(base+2,7,env.envelope.period);
-      else if(path.startsWith('pulse.sweep.')){
-        const sweep=preset.pulse.sweep,key=path.split('.').at(-1);
-        const mask={enabled:0x77,direction:8,period:0x70,shift:7}[key];
-        const value=(sweep.direction==='down'?8:0)|(sweep.enabled?(sweep.period<<4)|sweep.shift:0);
-        bits(0,mask,value);
-      }else if(path==='wave.level')bits(12,0x60,[0,1,.5,.25].indexOf(preset.wave.level)<<5);
-      else if(path==='wave.samples')for(let i=0;i<16;i++)bits(32+i,255,(preset.wave.samples[i*2]<<4)|preset.wave.samples[i*2+1]);
-      else if(path==='noise.divisor')bits(18,7,preset.noise.divisor);
-      else if(path==='noise.shift')bits(18,0xf0,preset.noise.shift<<4);
-      else if(path==='noise.width')bits(18,8,preset.noise.width===7?8:0);
-      else if(path.startsWith('pan.')){const mask=path==='pan.left'?16<<ch:1<<ch;bits(21,mask,preset.pan[path.slice(4)]?mask:0);}
-    }
-    snapshot=next;notify();return read();
+    snapshot=patchGameboySnapshotEdit(snapshot,edit);notify();return read();
   }
   return {read,sync,setEnabled,setVoice,refresh,commitEdit,dispose(){if(disposed)return;disposed=true;epoch++;clearTimer();running=false;owner=null;snapshot=null;error='';}};
 }
