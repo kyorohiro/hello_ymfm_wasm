@@ -91,6 +91,15 @@ public:
     unsigned playCalls() const { return playCalls_; }
     unsigned skippedVbis() const { return skippedVbis_; }
     unsigned reg(unsigned r) const { return r < 32 ? registers_[r] : 0; }
+    // Software front-panel intervention at the current bus boundary. This
+    // changes only the SID; neither the CPU nor its clock/audio queue advances.
+    bool manualWrite(unsigned r, unsigned value) {
+        if (state_ != Running || r > 24 || value > 255) return false;
+        uint64_t pins = M6581_CS | r; M6581_SET_DATA(pins, value);
+        _m6581_write(&chip_, pins); registers_[r] = static_cast<uint8_t>(value);
+        return true;
+    }
+    unsigned sourceRevision(unsigned r) const { return r < 32 ? sourceRevisions_[r] : 0; }
     unsigned envelope(unsigned v) const { return v < 3 ? chip_.voice[v].env_cur_level & 255 : 0; }
     unsigned phase(unsigned v) const { return v < 3 ? chip_.voice[v].wav_accum : 0; }
     const TraceEntry* trace() const { return trace_.data(); }
@@ -101,7 +110,7 @@ private:
     void resetSound() {
         m6581_desc_t desc{};
         desc.tick_hz = clockHz; desc.sound_hz = sampleRate_; desc.magnitude = 1.f;
-        m6581_init(&chip_, &desc); registers_.fill(0);
+        m6581_init(&chip_, &desc); registers_.fill(0); sourceRevisions_.fill(0);
         queueRead_ = queueCount_ = 0;
         previousInput_ = previousOutput_ = 0;
         dcPole_ = std::exp(-2.0 * 3.14159265358979323846 * 12.0 / sampleRate_);
@@ -197,7 +206,7 @@ private:
                 else {
                     const uint8_t value = M6502_GET_DATA(cpuPins_);
                     sidPins = M6581_CS | reg; M6581_SET_DATA(sidPins, value);
-                    registers_[reg] = value; traceWrite(reg, value);
+                    registers_[reg] = value; ++sourceRevisions_[reg]; traceWrite(reg, value);
                 }
             } else if (cpuPins_ & M6502_RW) {
                 uint8_t value = 0;
@@ -231,6 +240,7 @@ private:
     m6581_t chip_{};
     std::array<uint8_t, 65536> input_{}, ram_{};
     std::array<uint8_t, 32> registers_{};
+    std::array<uint32_t, 32> sourceRevisions_{};
     std::array<float, outputCapacity> output_{};
     std::array<float, queueCapacity> queue_{};
     std::array<TraceEntry, traceCapacity> trace_{};

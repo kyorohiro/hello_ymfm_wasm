@@ -2,15 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {SidPlayerManual} from '../docs/sid-player/manual.js';
 
 const source=(await readFile(new URL('../docs/sid-player/processor.js',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture({backend='8580',stall=false,reject=false}={}){
   let Type,resolveReady,rejectReady,id=0;const messages=[],creates=[],calls=[];
   let loaded=false,disposed=0,frames=0;
+  const registers=Array(32).fill(0),revisions=Array(32).fill(0);registers[4]=0x21;
   const core={
     load(bytes,options){if(bytes?.[0]===255)throw new Error('Candidate rejected');loaded=true;calls.push(['load',options]);},
-    getState(){return {model:backend==='8580'?'8580':'6581',playing:loaded,positionFrames:frames,registers:[],voices:[{envelope:null,phase:null}]};},
+    getState(){return {loaded,model:backend==='8580'?'8580':'6581',clockHz:985248,playing:loaded,positionFrames:frames,registers:[...registers],voices:[{envelope:null,phase:null}]};},
+    readSourceRevisions(){return [...revisions];},manualWriteRegister(r,v){registers[r]=v;calls.push(['manualWrite',r,v]);},
     renderInto(output){if(core.renderError)throw new Error('Render failure');frames+=output.length;output.fill(.25);},
     stop(){loaded=false;calls.push(['stop']);},dispose(){disposed++;},
   };
@@ -18,13 +21,13 @@ function fixture({backend='8580',stall=false,reject=false}={}){
   const endpointBinary=Uint8Array.of(1).buffer,machineBinary=Uint8Array.of(2).buffer,wasmBinary=Uint8Array.of(3).buffer;
   const create=name=>({create(options){creates.push({name,options});return loading;}});
   vm.runInNewContext(source,{
-    SidPlayerCore:create('direct6581'),RsidPlayerCore:create('c646581'),Sid8580PlayerCore:create('c648580'),sampleRate:48000,
+    SidPlayerManual,SidPlayerCore:create('direct6581'),RsidPlayerCore:create('c646581'),Sid8580PlayerCore:create('c648580'),sampleRate:48000,
     AudioWorkletProcessor:class{constructor(){this.port={postMessage:data=>messages.push(data)};}},
     registerProcessor(name,value){assert.equal(name,'tetorica-sid-player');Type=value;},
   });
   const processor=new Type({processorOptions:{backend,endpointBinary,machineBinary,wasmBinary}});
   if(!stall){if(reject)rejectReady(new Error('Initialization failure'));else resolveReady();}
-  return {processor,core,messages,creates,calls,endpointBinary,machineBinary,wasmBinary,resolveReady,rejectReady,
+  return {processor,core,messages,creates,calls,registers,revisions,endpointBinary,machineBinary,wasmBinary,resolveReady,rejectReady,
     get disposed(){return disposed;},
     async command(method,args=[]){const request=++id;processor.receive({id:request,method,args});await processor.commands;return messages.find(message=>message.id===request);},
     render(){const left=new Float32Array(128).fill(9),right=new Float32Array(128).fill(9),alive=processor.process([],[[left,right]]);return{left,right,alive};},
@@ -35,8 +38,8 @@ test('SID processor selects its model-specific core and preserves the legacy sin
   for(const backend of ['psid','psid-cia','psid-vbi','rsid','8580']){
     const f=fixture({backend});await f.processor.ready;const created=f.creates[0];
     const ready=f.messages.find(message=>message.ready);
-    assert.equal(ready.transportProtocol,2);
-    assert.deepEqual(Array.from(ready.supportedCommands),['load','start','pause','resume','stop','read']);
+    assert.equal(ready.transportProtocol,3);
+    assert.deepEqual(Array.from(ready.supportedCommands),['load','start','pause','resume','stop','read','manualEdit','manualNoteOn','manualNoteOff','manualPitch','manualRelease']);
     assert.equal(created.name,backend==='8580'?'c648580':backend==='psid'?'direct6581':'c646581');
     assert.equal(created.options.sampleRate,48000);
     if(backend==='8580'){
@@ -63,6 +66,23 @@ test('Stop during WASM startup fences an earlier Start while a fresh load can re
   assert.equal(f.messages.find(message=>message.id===3).value.playing,false);assert(f.render().right.every(value=>value===0));
   const loaded=await f.command('load',[Uint8Array.of(1),{}]);assert.equal(loaded.value.playing,false);
   await f.command('start');assert(f.render().left.some(value=>value!==0));f.processor.dispose();
+});
+
+test('manual RPCs share the running core; Pause releases only owned keys and fences edits until Resume',async()=>{
+  const f=fixture();await f.processor.ready;await f.command('load',[Uint8Array.of(1),{}]);
+  assert.match((await f.command('manualNoteOn',['early',0,60])).error,/requires song playback/);
+  await f.command('start');const before=f.core.getState();
+  const on=await f.command('manualNoteOn',['held',0,60]);assert.equal(on.value.playing,true);assert.equal(on.value.manualVoices[0].gateOwned,true);
+  const edit=await f.command('manualEdit',[0,{voice:{attack:7}}]);assert.equal(edit.value.registers[5]>>4,7);
+  assert.equal(edit.value.positionFrames,before.positionFrames,'manual access does not render or replace a player');
+  await f.command('manualPitch',[2]);
+  const paused=await f.command('pause');assert.equal(paused.value.paused,true);assert.equal(paused.value.registers[4]&1,0);assert.deepEqual(Array.from(paused.value.manualVoices),[]);
+  assert.match((await f.command('manualEdit',[0,{voice:{attack:4}}])).error,/requires song playback/);
+  assert.equal((await f.command('manualRelease')).error,undefined);
+  await f.command('resume');await f.command('manualNoteOn',['stale',0,60]);
+  f.revisions[4]++;// A same-value source write belongs to the song again.
+  const again=await f.command('pause');assert.equal(again.value.registers[4]&1,1,'Pause never keys off a newer song owner');
+  f.processor.dispose();
 });
 
 test('rejected candidates and invalid Stop arguments preserve active playback and unknown RPCs fail',async()=>{
@@ -148,7 +168,7 @@ test('ordinary Player processor runs VBI, CIA and RSID through the actual two-WA
   for(const rate of [44100,48000,96000])for(const profile of ['psid-vbi','psid-cia','rsid-cia-irq']){
     let Type,id=0;const messages=[];
     vm.runInNewContext(source,{
-      Sid8580PlayerCore,sampleRate:rate,
+      SidPlayerManual,Sid8580PlayerCore,sampleRate:rate,
       SidPlayerCore:{create(){throw new Error('Unexpected 6581 core');}},RsidPlayerCore:{create(){throw new Error('Unexpected 6581 machine');}},
       AudioWorkletProcessor:class{constructor(){this.port={postMessage:data=>messages.push(data)};}},registerProcessor(_name,value){Type=value;},
     });
@@ -194,7 +214,7 @@ test('real 6581/8580 VBI/CIA/RSID machines stay frozen while paused and resume t
   for(const {backend,fixture,subtune}of cases){
     let Type,id=0;const messages=[],options={sampleRate:48000,...(backend==='8580'?{endpointBinary,machineBinary}:{wasmBinary})};
     vm.runInNewContext(source,{
-      RsidPlayerCore,Sid8580PlayerCore, sampleRate:48000,
+      SidPlayerManual,RsidPlayerCore,Sid8580PlayerCore, sampleRate:48000,
       SidPlayerCore:{create(){throw new Error('Unexpected direct-only backend');}},
       AudioWorkletProcessor:class{constructor(){this.port={postMessage:data=>messages.push(data)};}},registerProcessor(_name,value){Type=value;},
     });

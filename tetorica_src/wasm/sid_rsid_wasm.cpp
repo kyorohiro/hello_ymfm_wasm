@@ -34,6 +34,8 @@ EMSCRIPTEN_KEEPALIVE unsigned sidr_write_count(Instance* p) { return p->writeCou
 EMSCRIPTEN_KEEPALIVE unsigned sidr_pc(Instance* p) { return p->pc(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_ram_read(Instance* p,unsigned a) { return p->ramRead(a); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_register(Instance* p,unsigned r) { return p->reg(r); }
+EMSCRIPTEN_KEEPALIVE int sidr_manual_write(Instance* p,unsigned r,unsigned value) { return p->manualWrite(r,value); }
+EMSCRIPTEN_KEEPALIVE unsigned sidr_source_revision(Instance* p,unsigned r) { return p->sourceRevision(r); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_envelope(Instance* p,unsigned v) { return p->envelope(v); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_phase(Instance* p,unsigned v) { return p->phase(v); }
 EMSCRIPTEN_KEEPALIVE const Instance::TraceEntry* sidr_trace(Instance* p) { return p->trace(); }

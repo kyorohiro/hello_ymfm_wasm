@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 export const SID_PLAYER_BALANCE = 1;
-export const SID_PLAYER_TRANSPORT_PROTOCOL = 2;
+export const SID_PLAYER_TRANSPORT_PROTOCOL = 3;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read']);
+const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read','manualEdit','manualNoteOn','manualNoteOff','manualPitch','manualRelease']);
 const OUTDATED_AUDIO = 'SID audio files are out of date. Reload the page.';
 
 function validateVolume(value) {
@@ -72,15 +72,15 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
     // Resume inside the user gesture, before awaiting either asset load.
     const resumed = context.resume();
     const assetPaths = backend === '8580'
-      ? ['../generated/sid8580-machine/sid8580-endpoint.wasm', '../generated/sid8580-machine/sid8580-machine.wasm']
-      : [backend !== 'psid' ? '../generated/sid-rsid/sid-rsid.wasm' : '../generated/sid-player/sid-player.wasm'];
+      ? ['../generated/sid8580-machine/sid8580-endpoint.wasm?sid-manual=1', '../generated/sid8580-machine/sid8580-machine.wasm?sid-manual=1']
+      : [backend !== 'psid' ? '../generated/sid-rsid/sid-rsid.wasm?sid-manual=1' : '../generated/sid-player/sid-player.wasm?sid-manual=1'];
     const binaries = await boundedStartup(Promise.all([
       ...assetPaths.map(path => fetch(new URL(path, import.meta.url), {signal: controller.signal}).then(response => {
         if (!response.ok) throw new Error(`SID WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       })),
       // Keep transport UI/facade and Worklet on the same cache generation.
-      context.audioWorklet.addModule(new URL('./processor.js?sid-transport=2', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-manual=1', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });

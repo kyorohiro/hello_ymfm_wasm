@@ -22,6 +22,8 @@ EMSCRIPTEN_KEEPALIVE unsigned sidp_init_cycles(Instance* p) { return p->initCycl
 EMSCRIPTEN_KEEPALIVE unsigned sidp_play_calls(Instance* p) { return p->playCalls(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidp_skipped_vbis(Instance* p) { return p->skippedVbis(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidp_register(Instance* p, unsigned reg) { return p->reg(reg); }
+EMSCRIPTEN_KEEPALIVE int sidp_manual_write(Instance* p, unsigned reg, unsigned value) { return p->manualWrite(reg, value); }
+EMSCRIPTEN_KEEPALIVE unsigned sidp_source_revision(Instance* p, unsigned reg) { return p->sourceRevision(reg); }
 EMSCRIPTEN_KEEPALIVE unsigned sidp_envelope(Instance* p, unsigned voice) { return p->envelope(voice); }
 EMSCRIPTEN_KEEPALIVE unsigned sidp_phase(Instance* p, unsigned voice) { return p->phase(voice); }
 EMSCRIPTEN_KEEPALIVE const Instance::TraceEntry* sidp_trace(Instance* p) { return p->trace(); }

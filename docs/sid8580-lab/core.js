@@ -76,6 +76,14 @@ export class Sid8580MachineCore {
   }
   render(frames){integer(frames,0,this.sampleRate*600,'Frames');return this.renderInto(new Float32Array(frames));}
   stop(){this.assertOpen();if(this.handle)this.api.sid8m_stop(this.handle);return this.getState();}
+  manualWriteRegister(register,value){
+    this.assertOpen();integer(register,0,24,'SID manual register');integer(value,0,255,'SID manual byte');
+    if(!this.handle||!this.api.sid8m_manual_write?.(this.handle,register,value))throw new Error('SID manual access needs a playing, updated core');
+  }
+  readSourceRevisions(){
+    this.assertOpen();if(!this.handle||!this.api.sid8m_source_revision)throw new Error('SID manual access needs a loaded, updated core');
+    return Array.from({length:32},(_,r)=>this.api.sid8m_source_revision(this.handle,r));
+  }
   stateFor(h,p=this.parsed){
     const a=this.api,get=name=>h?a[`sid8m_${name}`](h):0,state=get('state'),mask=get('sid_observable_mask');
     return {loaded:!!h,playing:state===1,state,errorCode:get('error_code'),errorAddress:get('error_address'),

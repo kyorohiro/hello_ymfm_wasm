@@ -22,6 +22,7 @@
 #include "../../third_party/chips-c64/upstream/systems/c1541.h"
 #include "../../third_party/chips-c64/upstream/systems/c64.h"
 extern "C" uint64_t tetorica_rsid_machine_tick(c64_t* machine, uint64_t pins);
+extern "C" int tetorica_rsid_manual_write(m6581_t* sid, unsigned reg, unsigned value);
 
 namespace tetorica {
 class SidRsidCore {
@@ -70,7 +71,7 @@ private:
         previousInterrupts_ = 0; initReturned_ = initSeen_ = false;
         psid_ = psid; psidVbi_ = vbi; vbiInitStarted_ = false; driverAddress_ = 0; playAddress_ = playAddress; playCalls_ = 0; playPending_ = playActive_ = false;
         useRoms_ = useRoms != 0; basic_ = basic != 0; initAddress_ = initAddress;
-        discardAudio_ = useRoms_; clearAudio(); registers_.fill(0);
+        discardAudio_ = useRoms_; clearAudio(); registers_.fill(0); sourceRevisions_.fill(0);
         if (!useRoms_) prepareShim(initAddress, static_cast<uint8_t>(subtune));
         c64_desc_t desc{};
         desc.audio.sample_rate = sampleRate_; desc.audio.num_samples = 1; desc.audio.volume = 1.0f;
@@ -167,6 +168,14 @@ public:
     unsigned pc() const { return machine_.valid ? machine_.cpu.PC : 0; }
     unsigned ramRead(unsigned address) const { return machine_.valid && address < 65536 ? machine_.ram[address] : 0; }
     unsigned reg(unsigned r) const { return r < 32 ? registers_[r] : 0; }
+    // Do not step the CPU/CIA/VIC or consume/replace queued audio when a
+    // software front panel writes the chip between machine ticks.
+    bool manualWrite(unsigned r, unsigned value) {
+        if (state_ != Running || r > 24 || value > 255 || !machine_.valid) return false;
+        if (!tetorica_rsid_manual_write(&machine_.sid, r, value)) return false;
+        registers_[r] = static_cast<uint8_t>(value); return true;
+    }
+    unsigned sourceRevision(unsigned r) const { return r < 32 ? sourceRevisions_[r] : 0; }
     unsigned envelope(unsigned v) const { return v < 3 ? machine_.sid.voice[v].env_cur_level & 255 : 0; }
     unsigned phase(unsigned v) const { return v < 3 ? machine_.sid.voice[v].wav_accum : 0; }
     const TraceEntry* trace() const { return trace_.data(); }
@@ -364,7 +373,7 @@ private:
             const unsigned reg = address & 31;
             if (pins & M6502_RW) increase(readCount_);
             else {
-                const unsigned value = M6502_GET_DATA(pins); registers_[reg] = static_cast<uint8_t>(value); increase(writeCount_);
+                const unsigned value = M6502_GET_DATA(pins); registers_[reg] = static_cast<uint8_t>(value); ++sourceRevisions_[reg]; increase(writeCount_);
                 if (traceCount_ < traceCapacity) trace_[traceCount_++] = {static_cast<uint32_t>(cycles_),static_cast<uint32_t>(cycles_ >> 32),reg,value};
                 else increase(droppedTrace_);
             }
@@ -378,6 +387,7 @@ private:
     std::array<uint8_t,4096> chars_{};
     std::array<uint8_t,8192> basicRom_{},kernal_{},romAllowed_{};
     std::array<uint8_t,32> registers_{};
+    std::array<uint32_t,32> sourceRevisions_{};
     std::array<float,outputCapacity> output_{};
     std::array<float,queueCapacity> queue_{};
     std::array<TraceEntry,traceCapacity> trace_{};

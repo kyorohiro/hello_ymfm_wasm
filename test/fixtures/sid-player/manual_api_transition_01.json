@@ -1,0 +1,90 @@
+{
+  "format": "tetorica-sid-player-manual-api-transition",
+  "version": 1,
+  "change": "Added non-clocking manual SID access and source-write ownership revisions. Existing chip/CPU/timing/render algorithms are unchanged.",
+  "historicalProofsRetained": true,
+  "changes": {
+    "docs/generated/sid-player/sid-player.wasm": {
+      "previous": {
+        "bytes": 74312,
+        "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6"
+      },
+      "current": {
+        "bytes": 74221,
+        "sha256": "59ce178613fe86153f8a44d033b692c0cd0e8e4aeb932fadbb20f811fee29184"
+      }
+    },
+    "tetorica_src/runtime/generated/sid-rsid/sid-rsid.wasm": {
+      "previous": {
+        "bytes": 116117,
+        "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+      },
+      "current": {
+        "bytes": 116499,
+        "sha256": "a60c5d13fe26337fd9b48813c595c24405b91f6fa954154c89bf63af5192ea2c"
+      }
+    },
+    "docs/generated/sid-rsid/sid-rsid.wasm": {
+      "previous": {
+        "bytes": 116117,
+        "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+      },
+      "current": {
+        "bytes": 116499,
+        "sha256": "a60c5d13fe26337fd9b48813c595c24405b91f6fa954154c89bf63af5192ea2c"
+      }
+    },
+    "tetorica_src/wasm/sid_player_core.h": {
+      "previous": {
+        "bytes": 13501,
+        "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+      },
+      "current": {
+        "bytes": 14144,
+        "sha256": "15ada75bd756be087eb633f1a350a4cabcc0a8b0756e4f543c46128d9106e78f"
+      }
+    },
+    "tetorica_src/wasm/sid_rsid_core.h": {
+      "previous": {
+        "bytes": 25178,
+        "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+      },
+      "current": {
+        "bytes": 25888,
+        "sha256": "6fd229aedccfa0842d794d4ea2c79a1a045ffaea7dae4f013b2de7b03bde6d37"
+      }
+    },
+    "tetorica_src/wasm/sid_rsid_chip.cpp": {
+      "previous": {
+        "bytes": 191,
+        "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+      },
+      "current": {
+        "bytes": 428,
+        "sha256": "982291bc3191f1be4d1a31c030cbfe6a11bf7fcf5410e575b1c5231d1009fa12"
+      }
+    },
+    "scripts/check_sid_waveoff_c64.mjs": {
+      "previous": {
+        "bytes": 14088,
+        "sha256": "1769e60074ed42beed02189bd558047944aa28796401fc34171a3cf60a992cae"
+      },
+      "current": {
+        "bytes": 14222,
+        "sha256": "de73a03bc33e9df10c95d6b041278d2458ed6195292a7df2e1514c0647e1aa85"
+      }
+    }
+  },
+  "unchangedPcmCheck": {
+    "profiles": 12,
+    "frames": 196608,
+    "sampleRate": 48000,
+    "backends": [
+      "direct6581",
+      "c646581",
+      "c648580"
+    ],
+    "result": "PCM hashes and full hardware state unchanged; only linkedSidFunctions diagnostic adds sid8e_write",
+    "evidence": "build/verification/sid-song-manual-20261113/native-baseline-comparison.json"
+  }
+}

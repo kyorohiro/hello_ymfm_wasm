@@ -70,7 +70,7 @@ function instrumentation() {
 }
 
 async function checkEngine(name, engine, origin) {
-  const browser = await engine.launch({headless: true});
+  const browser = await engine.launch({headless: true, ...(name === 'chromium' ? {args:['--mute-audio']} : {})});
   const errors = [], consoleErrors = [], failed = [], external = [], checks = [], measurements = {};
   let page, stage = 'startup', holdWasm = true, releaseWasm;
   try {

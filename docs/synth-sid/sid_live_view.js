@@ -161,7 +161,7 @@ export function createSidLiveView({root}) {
     fieldRows.get('import').hidden = code;
     notice.textContent = code
       ? 'Code observations · up to 20 updates/s. Edit the displayed channel directly; only touched fields update its saved settings. Fast writes between observations may be missed. Position counts rendered Code frames. Frequency is oscillator tuning, not necessarily the sound’s perceived pitch.'
-      : 'Read-only Player observations · up to 20 updates/s. Fast writes between observations may be missed. Frequency is the oscillator tuning, not necessarily the sound’s perceived pitch.';
+      : 'Song observations · up to 20 updates/s. During playback, controls and keys act on this physical CH; later song writes take priority. Pause freezes the chip and keys audition a separate snapshot. Fast writes between observations may be missed. Frequency is oscillator tuning, not necessarily perceived pitch.';
     let observation = null;
     try {
       if (state.liveState) observation = readSidLiveVoice(state.liveState, voice);
@@ -192,10 +192,10 @@ export function createSidLiveView({root}) {
       ? state.liveMessage || 'Live observation failed. Last display kept.'
       : pausing ? 'Pausing the song. Waiting for its held channel state…'
       : resuming ? 'Resuming the same song position…'
-      : paused && observation ? `Paused · channel state${sourceLabel} is held. Inspect channels, Capture voices or Resume.`
+      : paused && observation ? `Paused · channel state${sourceLabel} is held. Keys audition this CH without moving the song. Capture voices or Resume.`
       : waiting ? `Waiting for current playback observation.${observation ? ` Previous observation${sourceLabel} remains shown.` : ''}`
-      : active && observation ? `Live · selected CH follows the playing SID${sourceLabel}.`
-      : observation ? `Frozen · ${enabled ? 'playback observation stopped' : 'Live display off'}. Last observed values${sourceLabel} are shown.`
+      : active && observation ? `Live · edit and play this song CH${sourceLabel}. Later song writes take priority.`
+      : observation ? `Frozen display · ${enabled ? 'playback observation stopped' : 'Auto update off'}. ${state.manualReady?'Controls and keys still edit this song CH.':'Last observed values are shown.'}`
       : enabled ? 'Play a SID to observe its selected CH.' : 'Live display off. Turn it on to observe a playing SID.';
     if (!observation) {
       clearFields();

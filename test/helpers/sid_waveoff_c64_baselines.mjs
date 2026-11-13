@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {assertSidManualTransition} from './sid_manual_transition.mjs';
 
 const root = new URL('../../', import.meta.url), sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const proofPath = 'docs/issues/sid_waveoff_c64_01.json';
@@ -33,7 +34,7 @@ export async function loadSidWaveoffC64Baseline(name) {
   assert.equal(sha(oldBytes), group.oldSha256, 'Historical C64 JSON is immutable');
   assert.equal(sha(correctedBytes), group.correctedSha256, 'Corrected C64 JSON needs an independent pin review');
   assert.equal(sha(proofBytes), proofSha256, 'Native C64 evidence needs an independent pin review');
-  assert.equal(sha(wasm), currentWasmSha256);assert(wasm.equals(servedWasm), 'Canonical and served C64 WASM must agree');
+  assertSidManualTransition('tetorica_src/runtime/generated/sid-rsid/sid-rsid.wasm',{sha256:currentWasmSha256},wasm);assert(wasm.equals(servedWasm), 'Canonical and served C64 WASM must agree');
   assert.equal(sha(header), markedHeaderSha256);assert.equal(sha(helper), nativeHelperSha256);
   const historical = JSON.parse(oldBytes), baseline = JSON.parse(correctedBytes), proof = JSON.parse(proofBytes);
   assert.equal(baseline.format, 'tetorica-c64-waveoff-corrected-baseline');assert.equal(baseline.version, 1);assert.equal(baseline.wasmSha256, currentWasmSha256);
@@ -41,7 +42,7 @@ export async function loadSidWaveoffC64Baseline(name) {
   assert.equal(baseline.nativeProof, proofPath);assert.equal(historical.cases.length, group.count);assert.equal(baseline.cases.length, group.count);
   assert.equal(proof.passed, true);assert.equal(proof.historicalFilesKept, true);assert.equal(proof.physicalOutputOpened, false);assert.equal(proof.currentWasm.sha256, currentWasmSha256);
   for (const [path, expected] of Object.entries(proof.sources)) {
-    const bytes = await readFile(new URL(path, root));assert.deepEqual({bytes: bytes.length, sha256: sha(bytes)}, expected, 'Reviewed Native C64 proof source differs: ' + path);
+    const bytes = await readFile(new URL(path, root));assertSidManualTransition(path,expected,bytes);
   }
   const proofBaseline = proof.correctedBaselines.find(item => item.path === correctedPath);
   assert.deepEqual(proofBaseline, {path: correctedPath, bytes: correctedBytes.length, sha256: group.correctedSha256});

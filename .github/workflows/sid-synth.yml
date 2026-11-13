@@ -9,6 +9,7 @@ on:
       - 'docs/sid-player/voice_snapshot.js'
       - 'docs/sid-player/**'
       - 'test/sid_player_voice*'
+      - 'test/sid_player_manual.test.mjs'
       - 'docs/tetorica_sid_synth.*'
       - 'docs/issues/tetorica_sid_icon_prompt_20261107.txt'
       - 'docs/index.html'
@@ -53,6 +54,7 @@ on:
       - 'docs/sid-player/voice_snapshot.js'
       - 'docs/sid-player/**'
       - 'test/sid_player_voice*'
+      - 'test/sid_player_manual.test.mjs'
       - 'docs/tetorica_sid_synth.*'
       - 'docs/issues/tetorica_sid_icon_prompt_20261107.txt'
       - 'docs/index.html'
@@ -98,11 +100,13 @@ jobs:
           node --test test/runtime/sid8580.test.mjs test/runtime/sidsynth.test.mjs
           node --test test/sid_player_voice_snapshot.test.mjs
           node --test test/sid_player_audio.test.mjs test/sid_player_processor.test.mjs
+          node --test test/sid_player_manual.test.mjs
           npm run test:sid-synth
           node scripts/check_sid_synth_browser.cjs --out release/sid-synth-source-browser.json --screenshots release/sid-synth-source-images
           node scripts/check_sid_synth_import_browser.cjs --out release/sid-synth-import-source-browser.json --screenshots release/sid-synth-import-source-images
           node scripts/check_sid_synth_transport_upgrade_browser.cjs --out release/sid-synth-transport-source-browser.json --screenshots release/sid-synth-transport-source-images
           node scripts/check_sid_synth_live_presets_browser.cjs --out release/sid-synth-live-presets-source-browser.json --screenshots release/sid-synth-live-presets-source-images
+          node scripts/check_sid_synth_song_manual_browser.cjs --out release/sid-synth-song-manual-source-browser.json --screenshots release/sid-synth-song-manual-source-images
       - name: Package and play the standalone SID Synth
         run: |
           sh scripts/package_itch_sid_synth.sh ci
@@ -111,6 +115,7 @@ jobs:
           node scripts/check_sid_synth_import_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-import-zip-browser.json --screenshots release/sid-synth-import-zip-images
           node scripts/check_sid_synth_transport_upgrade_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-transport-zip-browser.json --screenshots release/sid-synth-transport-zip-images
           node scripts/check_sid_synth_live_presets_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-live-presets-zip-browser.json --screenshots release/sid-synth-live-presets-zip-images
+          node scripts/check_sid_synth_song_manual_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-song-manual-zip-browser.json --screenshots release/sid-synth-song-manual-zip-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -133,4 +138,8 @@ jobs:
             release/sid-synth-live-presets-zip-browser.json
             release/sid-synth-live-presets-source-images/
             release/sid-synth-live-presets-zip-images/
+            release/sid-synth-song-manual-source-browser.json
+            release/sid-synth-song-manual-zip-browser.json
+            release/sid-synth-song-manual-source-images/
+            release/sid-synth-song-manual-zip-images/
           if-no-files-found: ignore

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // The existing research engine, adapted to the ordinary player's state shape.
-import {Sid8580MachineCore} from '../sid8580-lab/core.js';
+import {Sid8580MachineCore} from '../sid8580-lab/core.js?sid-manual=1';
 import {validateResearchSid} from '../sid8580-lab/parser.js';
 import {resolvePlayerTarget,require8580Machine,SidPlayerTargetError} from './model_policy.js';
 
@@ -38,6 +38,8 @@ export class Sid8580PlayerCore {
   renderInto(output) {return this.machine.renderInto(output);}
   render(frames) {return this.machine.render(frames);}
   stop() {this.machine.stop();return this.getState();}
+  manualWriteRegister(register,value) {return this.machine.manualWriteRegister(register,value);}
+  readSourceRevisions() {return this.machine.readSourceRevisions();}
   readRam(address) {return this.machine.readRam(address);}
   readTrace(options) {return this.machine.readTrace(options);}
   readSidReads(options) {return this.machine.readSidReads(options);}

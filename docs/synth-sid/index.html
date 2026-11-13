@@ -83,8 +83,8 @@
         <p id="sidChannelState" class="sid-help" hidden>CH settings differ · edits apply to all.</p>
         <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About channel selection and automatic updates">?</summary><div class="sid-help-panel">
           <p class="sid-help">CH 1 / 2 / 3 selects both the settings to edit and the physical channel played by the keyboard. Round robin keeps each channel's sound and allocates keys between them. When values differ, editing uses CH 1 as a reference. Changing a setting applies that setting to all three channels. Loading a voice preset replaces the complete sound on all three. Filter and model are shared hardware settings.</p>
-          <p class="sid-help">Auto update follows the selected SID song channel during playback or Pause. Playable settings are also kept for this keyboard; turn Auto update off to edit them. Round robin follows the last explicitly selected song CH and applies its playable settings to all three channels. Unsupported raw settings remain visible without replacing the last playable sound.</p>
-          <p class="sid-help">During Code playback, the same checkbox becomes Live from Code. CH buttons then select only the channel to observe, without stopping Code or changing your saved sound. Live is read-only; turn it off to edit the original sound while Code continues. Stop returns to the edited sound.</p>
+          <p class="sid-help">During a SID song, CH 1 / 2 / 3 edits and plays that physical song channel. Later song writes take priority. Auto update off freezes the display; controls and keys still act on the song CH. Synth · Round robin uses your separate saved sound while the song continues. Pause freezes the song; keys audition the selected snapshot without moving its position. Resume retires that temporary audition. Capture voices imports a sound explicitly.</p>
+          <p class="sid-help">During Code playback, the checkbox becomes Live from Code. CH buttons select the channel to display, edit and play. Edits touch only changed fields; Code keeps running. Live off shows your authored sound. Stop returns to the edited sound. Starting Code stops the song, and starting a song stops Code.</p>
           <p class="sid-help">Keyboard mode is a software performance setting for fixed CHs. Retrigger lowers and raises Gate for each new note. Legato keeps Gate high while keys overlap and returns to the last key still held; ADSR does not restart. Round robin uses Retrigger and retains your fixed-CH choice. No software envelope reset is added: very fast retriggers at Sustain 15 keep the SID hardware's envelope timing behavior.</p>
         </div></details>
       </div>
@@ -133,6 +133,6 @@
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>
-<script type="module" src="./synth.js?sid-transport=2&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1"></script>
+<script type="module" src="./synth.js?sid-transport=3&amp;sid-song-manual=1&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1"></script>
 </body>
 </html>

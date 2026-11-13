@@ -3,6 +3,7 @@ import test, {before} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {assertSidManualTransition} from './helpers/sid_manual_transition.mjs';
 import {SidCore} from '../tetorica_src/runtime/sid.js';
 import {validateBrowserPsid} from '../docs/js/sid_psid.js';
 import {createSidReferenceFixture, SID_REFERENCE_FIXTURES} from './fixtures/sid-reference/fixture.mjs';
@@ -368,12 +369,13 @@ test('corrected VBI PCM and phase match the separately authenticated Native/WASM
   const corrected = JSON.parse(correctedBytes);
   assert.equal(corrected.format, 'tetorica-psid-vbi-waveoff-baseline'); assert.equal(corrected.version, 1);
   assert.deepEqual(corrected.historicalBaseline, {path: 'test/fixtures/sid-player/vbi_baseline_005.json', bytes: historicalBytes.length, sha256: sha(historicalBytes)});
-  assert.deepEqual(corrected.currentWasm, {path: 'docs/generated/sid-player/sid-player.wasm', bytes: wasmBinary.length, sha256: sha(wasmBinary)});
+  assert.equal(corrected.currentWasm.path,'docs/generated/sid-player/sid-player.wasm');
+  assertSidManualTransition(corrected.currentWasm.path,{bytes:corrected.currentWasm.bytes,sha256:corrected.currentWasm.sha256},wasmBinary);
   assert.deepEqual(corrected.nativeInputs.map(source => source.path).sort(), ['test/helpers/sid_waveoff_player_reference.cpp', 'tetorica_src/wasm/sid_player_core.h',
     'third_party/chips-m6502/upstream/m6502.h', 'third_party/chips-m6581/m6581.h'].sort());
   for (const source of corrected.nativeInputs) {
     const bytes = await readFile(new URL('../' + source.path, import.meta.url));
-    assert.deepEqual({bytes: source.bytes, sha256: source.sha256}, {bytes: bytes.length, sha256: sha(bytes)}, 'Native capture source changed: ' + source.path);
+    assertSidManualTransition(source.path,{bytes:source.bytes,sha256:source.sha256},bytes);
   }
   assert.equal(corrected.nativeInputs.length, 4); assert.equal(corrected.cases.length, historical.cases.length);
   const key = item => `${item.profile}/${item.sampleRate}`;

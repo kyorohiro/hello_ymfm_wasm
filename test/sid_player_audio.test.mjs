@@ -5,8 +5,8 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../docs/sid-player/audio.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
-const transportCommands = ['load', 'start', 'pause', 'resume', 'stop', 'read'];
-const currentReady = () => ({ready:true,transportProtocol:2,supportedCommands:[...transportCommands]});
+const transportCommands = ['load', 'start', 'pause', 'resume', 'stop', 'read','manualEdit','manualNoteOn','manualNoteOff','manualPitch','manualRelease'];
+const currentReady = () => ({ready:true,transportProtocol:3,supportedCommands:[...transportCommands]});
 function fixture({stalledFetch = false, ready = true, readyMessage = currentReady(), duplicateReady = false, fetchFailure = false} = {}) {
   let createAudio, context, node, nextTimer = 0, mode = 'reply';
   const timers = new Map(), errors = [], events = [], messages = [], fetches = [], modules = [], releases = [];
@@ -52,7 +52,7 @@ function fixture({stalledFetch = false, ready = true, readyMessage = currentRead
       events.push('fetch'); const path = String(url); fetches.push({path, signal});
       const reply = {ok: true, arrayBuffer: async () => Uint8Array.of(path.includes('endpoint') ? 1 : path.includes('sid8580-machine.wasm') ? 2 : 3).buffer};
       if (stalledFetch) return new Promise(resolve => {releases.push(() => resolve(reply));});
-      return fetchFailure === true || typeof fetchFailure === 'string' && path.endsWith(fetchFailure) ? {ok: false, status: 503} : reply;
+      return fetchFailure === true || typeof fetchFailure === 'string' && new URL(path).pathname.endsWith(fetchFailure) ? {ok: false, status: 503} : reply;
     },
     setTimeout(fn, ms) {const id = ++nextTimer; timers.set(id, {fn, ms}); return id;},
     clearTimeout(id) {timers.delete(id);}, provide: value => {createAudio = value;},
@@ -77,13 +77,13 @@ test('SID player audio resumes before assets and has one unity-balanced post-Mas
 
 test('transport startup requires the current Worklet protocol and exposes detached capabilities before use',async()=>{
   const readyMessage=currentReady(),f=fixture({readyMessage}),audio=await f.create();
-  assert.equal(audio.transportProtocol,2);assert(Object.isFrozen(audio.supportedCommands));
+  assert.equal(audio.transportProtocol,3);assert(Object.isFrozen(audio.supportedCommands));
   assert.deepEqual(Array.from(audio.supportedCommands),transportCommands);
   readyMessage.supportedCommands.length=0;
   assert.deepEqual(Array.from(audio.supportedCommands),transportCommands,'caller cannot mutate accepted capabilities through the ready message');
   assert.equal(f.modules.length,1);const url=new URL(f.modules[0]);
-  assert(url.pathname.endsWith('/sid-player/processor.js'));assert.equal(url.search,'?sid-transport=2');
-  assert(f.fetches.every(({path})=>new URL(path).search===''),'Native/WASM URLs keep their existing cache identity');
+  assert(url.pathname.endsWith('/sid-player/processor.js'));assert.equal(url.search,'?sid-manual=1');
+  assert(f.fetches.every(({path})=>new URL(path).search==='?sid-manual=1'),'matching native APIs share the new cache generation');
   await audio.command('pause');await audio.command('resume');await audio.dispose();
 });
 
@@ -118,6 +118,7 @@ test('each SID backend fetches only its matching WASM and 8580 passes two distin
   for (const backend of ['psid', 'psid-cia', 'psid-vbi', 'rsid', '8580']) {
     const f = fixture(), audio = await f.create({backend});
     assert.equal(f.events[0], 'resume'); assert.equal(f.node.options.processorOptions.backend, backend);
+    assert(f.fetches.every(item=>new URL(item.path).search==='?sid-manual=1'),'all matching WASMs share the manual API cache generation');
     if (backend === '8580') {
       assert.deepEqual(f.fetches.map(item => new URL(item.path).pathname.split('/').slice(-2).join('/')),
         ['sid8580-machine/sid8580-endpoint.wasm', 'sid8580-machine/sid8580-machine.wasm']);
@@ -126,7 +127,7 @@ test('each SID backend fetches only its matching WASM and 8580 passes two distin
       assert.equal(f.node.options.processorOptions.wasmBinary, undefined);
     } else {
       assert.equal(f.fetches.length, 1);
-      assert(f.fetches[0].path.endsWith(backend === 'psid' ? '/sid-player/sid-player.wasm' : '/sid-rsid/sid-rsid.wasm'));
+      assert(new URL(f.fetches[0].path).pathname.endsWith(backend === 'psid' ? '/sid-player/sid-player.wasm' : '/sid-rsid/sid-rsid.wasm'));
       assert.deepEqual([...new Uint8Array(f.node.options.processorOptions.wasmBinary)], [3]);
       assert.equal(f.node.options.processorOptions.endpointBinary, undefined);
     }

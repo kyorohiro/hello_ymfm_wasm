@@ -8,7 +8,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const source='tetorica_src/wasm/sid_rsid_core.h';
-const expected='1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1';
+const expected='6fd229aedccfa0842d794d4ea2c79a1a045ffaea7dae4f013b2de7b03bde6d37';
 const c64='third_party/chips-c64/upstream/systems/c64.h';
 const expectedC64='a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c';
 const target='tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h';
@@ -26,6 +26,7 @@ patch('research-class','SidRsidCore','Sid8580MachineCore',4);
 patch('compatibility-sid-include','"../../third_party/chips-m6581/m6581.h"','"../sid_endpoint.h"');
 patch('relative-original-includes','"../../third_party/','"../../../../third_party/',text.split('"../../third_party/').length-1);
 patch('separate-machine-tick','tetorica_rsid_machine_tick','tetorica_sid8580_machine_tick',2);
+patch('separate-manual-sid-write','tetorica_rsid_manual_write','tetorica_sid8580_manual_write',2);
 patch('constructor-options','explicit Sid8580MachineCore(unsigned sampleRate) : sampleRate_(sampleRate) {}',
   'explicit Sid8580MachineCore(unsigned sampleRate,unsigned profiles) : sampleRate_(sampleRate),profiles_(profiles) {}');
 patch('sid-handle-lifecycle','if (machine_.valid) c64_discard(&machine_);',

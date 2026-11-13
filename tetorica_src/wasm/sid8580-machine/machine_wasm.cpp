@@ -38,6 +38,8 @@ EMSCRIPTEN_KEEPALIVE unsigned sid8m_write_count(Instance*p){return p->writeCount
 EMSCRIPTEN_KEEPALIVE unsigned sid8m_pc(Instance*p){return p->pc();}
 EMSCRIPTEN_KEEPALIVE unsigned sid8m_ram_read(Instance*p,unsigned address){return p->ramRead(address);}
 EMSCRIPTEN_KEEPALIVE unsigned sid8m_register(Instance*p,unsigned r){return p->reg(r);}
+EMSCRIPTEN_KEEPALIVE int sid8m_manual_write(Instance*p,unsigned r,unsigned value){return p->manualWrite(r,value);}
+EMSCRIPTEN_KEEPALIVE unsigned sid8m_source_revision(Instance*p,unsigned r){return p->sourceRevision(r);}
 EMSCRIPTEN_KEEPALIVE unsigned sid8m_envelope(Instance*p,unsigned v){return p->envelope(v);}
 EMSCRIPTEN_KEEPALIVE unsigned sid8m_phase(Instance*p,unsigned v){return p->phase(v);}
 EMSCRIPTEN_KEEPALIVE const Instance::TraceEntry* sid8m_trace(Instance*p){return p->trace();}

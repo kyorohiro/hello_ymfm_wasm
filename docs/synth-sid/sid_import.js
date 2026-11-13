@@ -5,7 +5,7 @@ import {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
 import {validatePlayerSid,createPlayerCore} from '../sid-player/models.js';
 // Keep the preview transport graph paired across an app update. Unversioned
 // browser modules from before Pause/Resume may still be present in the cache.
-import {createAudio as createPlayerAudio} from '../sid-player/audio.js?sid-transport=2';
+import {createAudio as createPlayerAudio} from '../sid-player/audio.js?sid-manual=1';
 import {createVoiceCapture} from '../sid-player/voice_capture.js?sid-waves=1';
 import {readPreset} from './preset.js?sid-waves=1';
 
@@ -49,8 +49,14 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
   let captureState={busy:false,voice:0,snapshot:null,selected:null,message:'',error:false};
   let liveEnabled=true,liveVoice=0,liveState=null,liveSource=null,liveMessage='Play a SID to follow its live channel settings.',liveError=false;
   let liveSerial=0,liveTimer=null,livePending=null,liveFresh=false;
+  let manualSequence=0,manualAck=0,manualState=null;
+  const manualPending=new Set();
   const closing=new Set(),disposals=new WeakMap(),reads=new WeakMap();
-  const canObserve=()=>!dead&&liveEnabled&&!!audio&&playing&&!transport&&!loading&&!starting&&!choosingFile&&!applying;
+  const canObserve=()=>!dead&&liveEnabled&&!!audio&&playing&&!transport&&!loading&&!starting&&!choosingFile&&!applying&&!manualPending.size;
+  // An open dialog/candidate/capture must not strand an already held Gate.
+  // Cleanup can still address the accepted engine; new notes and edits wait.
+  const canManual=(allowPaused=false,cleanup=false)=>!dead&&!!audio&&(playing||allowPaused&&paused)&&!transport&&
+    (cleanup||!loading&&!starting&&!choosingFile&&!applying&&!captureState.busy);
   const publicSelection=()=>selection?{
     name:selection.name,title:selection.parsed.metadata?.name||selection.name,
     author:selection.parsed.metadata?.author||'',released:selection.parsed.metadata?.released||'',
@@ -66,6 +72,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
       snapshot:captureState.snapshot,selected:captureState.selected,message,error,
       liveEnabled,liveVoice,liveState,liveSource,liveActive:canObserve()&&liveFresh&&!liveError,
       liveWaiting:canObserve()&&!liveFresh&&!liveError,liveMessage,liveError,
+      manualReady:canManual(),manualVoices:manualState?.manualVoices??[],manualPitch:manualState?.manualPitch??0,
       captureMessage:captureState.message,canPlay:!!selection&&!busy&&!playing&&!paused,
       canPause:!!audio&&playing&&!busy,canResume:!!audio&&paused&&!busy,
       canCapture:!!audio&&(playing||paused)&&!busy,canUse:!!captureState.selected?.preset&&!busy,
@@ -97,7 +104,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
       const task=(async()=>{
         try{
           const state=await readApplied(engine,current);if(!current())return;
-          liveState=clone(state);liveSource={name:tune.parsed.metadata?.name||tune.name,subtune:tune.parsed.subtune,model:tune.parsed.selectedModel};
+          liveState=clone(state);manualState=clone(state);liveSource={name:tune.parsed.metadata?.name||tune.name,subtune:tune.parsed.subtune,model:tune.parsed.selectedModel};
           liveFresh=true;liveMessage='Following the selected channel · sampled at up to 20 updates per second.';liveError=false;emit();
         }catch(cause){
           if(!current()||isAbort(cause))return;
@@ -122,6 +129,47 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     if(!Number.isInteger(value)||value<0||value>2)throw new RangeError('SID live channel must be 0, 1 or 2');
     if(dead)return;liveVoice=value;emit();
   }
+  /** Manual commands borrow the accepted running C64's physical SID. Their
+   * coherent ACK also refreshes ownership while Auto update is off. A pending
+   * observation is fenced before dispatch; no second polling queue is created.
+   */
+  async function manualCommand(method,args,{allowPaused=false,cleanup=false}={}){
+    if(!canManual(allowPaused,cleanup))return false;
+    const owner={engine:audio,tune:selection,play:playSerial,transport:transportSerial,sequence:++manualSequence,
+      load:loadSerial,use:useSerial,capture:captureSerial};
+    const current=()=>!dead&&audio===owner.engine&&selection===owner.tune&&playSerial===owner.play&&transportSerial===owner.transport&&!transport&&
+      (playing||allowPaused&&paused)&&(cleanup||!loading&&!starting&&!choosingFile&&!applying);
+    const ownsDisplay=()=>!loading&&!starting&&!choosingFile&&!applying&&!captureState.busy&&
+      loadSerial===owner.load&&useSerial===owner.use&&captureSerial===owner.capture;
+    manualPending.add(owner);
+    const previousLiveMessage=liveMessage,previousLiveError=liveError;
+    invalidateLive('Applying the selected channel edit…');
+    if(cleanup){liveMessage=previousLiveMessage;liveError=previousLiveError;}
+    try{
+      const state=await owner.engine.command(method,args);
+      if(!current()||owner.sequence<manualAck)return false;
+      manualAck=owner.sequence;manualState=clone(state);
+      // A cleanup ACK is ownership evidence, not a new dialog, candidate or
+      // capture observation. Keep that operation's status and fixed view.
+      if(cleanup&&!ownsDisplay())return clone(state);
+      liveState=clone(state);
+      liveSource={name:owner.tune.parsed.metadata?.name||owner.tune.name,subtune:owner.tune.parsed.subtune,model:owner.tune.parsed.selectedModel};
+      liveFresh=true;liveError=false;liveMessage=liveEnabled?'Selected channel updated. Later song writes take effect normally.':'Auto update off. The selected channel edit is applied; song playback continues.';
+      return clone(state);
+    }catch(cause){
+      if(!current()||isAbort(cause))return false;
+      if(!cleanup||ownsDisplay())liveMessage='Selected channel edit was rejected. Previous settings and song playback are kept.';
+      throw cause;
+    }finally{
+      manualPending.delete(owner);
+      if(current()){if(!cleanup||ownsDisplay())emit();scheduleLive();}
+    }
+  }
+  const manualEdit=(channel,patch,masks={})=>manualCommand('manualEdit',[channel,clone(patch),clone(masks)]);
+  const manualNoteOn=(id,channel,midi,pitch=0)=>manualCommand('manualNoteOn',[id,channel,midi,pitch]);
+  const manualNoteOff=id=>manualCommand('manualNoteOff',[id],{cleanup:true});
+  const manualPitch=value=>manualCommand('manualPitch',[value]);
+  const manualRelease=()=>manualCommand('manualRelease',[],{allowPaused:true,cleanup:true});
   function invalidateCapture(){captureSerial++;captureControl?.invalidate();}
   function cancelLoading(){loadSerial++;const previous=loading;loading=null;previous?.controller.abort();}
   function closeEngine(engine){
@@ -136,6 +184,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
   }
   function retirePreview(){
     playSerial++;transportSerial++;transport=null;invalidateCapture();invalidateLive();playing=false;paused=false;
+    manualState=null;manualPending.clear();
     const pending=starting,previous=audio;starting=null;audio=null;pending?.controller.abort();
     const tasks=[...closing];
     if(previous)tasks.push(closeEngine(previous));
@@ -257,6 +306,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     if(dead||!audio||loading||starting||transport||choosingFile||applying||captureState.busy||
       (kind==='pause'?!playing:!paused))return Promise.resolve(false);
     invalidateCapture();invalidateLive(kind==='pause'?'Waiting for the paused channel state…':'Waiting for playback to resume…');
+    manualPending.clear();
     const owner={kind,engine:audio,tune:selection,play:playSerial,serial:++transportSerial};transport=owner;
     const current=()=>!dead&&transport===owner&&audio===owner.engine&&selection===owner.tune&&playSerial===owner.play&&transportSerial===owner.serial;
     say(kind==='pause'?'Pausing the SID preview…':'Resuming the SID preview…');
@@ -272,9 +322,9 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
           owner.engine.setVolume(currentVolume());
           state=await owner.engine.command('resume');if(!current())return false;
         }
-        transport=null;paused=kind==='pause';playing=!paused;
+        transport=null;paused=kind==='pause';playing=!paused;manualState=clone(state);
         if(paused){
-          liveState=clone(state);liveSource={name:owner.tune.parsed.metadata?.name||owner.tune.name,subtune:owner.tune.parsed.subtune,model:owner.tune.parsed.selectedModel};
+          liveState=clone(state);manualState=clone(state);liveSource={name:owner.tune.parsed.metadata?.name||owner.tune.name,subtune:owner.tune.parsed.subtune,model:owner.tune.parsed.selectedModel};
           liveFresh=true;liveError=false;liveMessage='Paused · the channel state is fixed. Inspect another CH or capture it before resuming.';
         }else invalidateLive('Waiting for the next resumed channel observation…');
         // A file dialog/candidate may coexist with an already dispatched
@@ -332,6 +382,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     if(dead)return Promise.all([...closing]).then(()=>undefined);
     dead=true;cancelLoading();cancelUse();choosingFile=false;captureControl.dispose();return retirePreview();
   }
-  const control={read,loadFile,setSubtune,setModel,play,pause,resume,stop,capture,selectVoice,useVoice,setLiveEnabled,setLiveVoice,setVolume,beginFileSelection,cancelFileSelection,dispose};
+  const control={read,loadFile,setSubtune,setModel,play,pause,resume,stop,capture,selectVoice,useVoice,setLiveEnabled,setLiveVoice,setVolume,beginFileSelection,cancelFileSelection,
+    manualEdit,manualNoteOn,manualNoteOff,manualPitch,manualRelease,dispose};
   emit();return control;
 }

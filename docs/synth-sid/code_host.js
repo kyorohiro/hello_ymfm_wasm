@@ -75,7 +75,7 @@ liveLoop("filter", async () => {
 `;
 const aborted=()=>new DOMException('SID Code stopped','AbortError');
 export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings,stopKeyboard,stopSong,
-  beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}) {
+  beforeSoundApply=stopSong,beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSidCodeProject({settings:getSettings(),getStarterCode:()=>SID_STARTER_CODE});
   const audio=createSidCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -90,7 +90,7 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
     onActivity();
   }
   files=setupSidCodeFiles({project,getSettings,applySettings,setStatus,
-    async onBeforeSoundApply(){await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
+    async onBeforeSoundApply(){await beforeSoundApply();if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await stop();await stopSong();await stopKeyboard();}});
   function getRuntime() {
     if(runtime)return runtime;
@@ -132,7 +132,6 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
     async onModeChange(mode){
       const request=++modeEpoch;
       if(mode==='code'){
-        await stopSong();
         if(!disposed&&request===modeEpoch&&!runtime?.getState().running)await stopKeyboard();
       }else if(!disposed&&!runtime?.getState().running)audio.open();
       onActivity();

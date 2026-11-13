@@ -122,6 +122,14 @@ pub extern "C" fn sid8e_error(handle: u32) -> u32 {
 pub extern "C" fn sid8e_sample(handle: u32) -> i32 {
     with(handle, |e| e.sample).unwrap_or(0)
 }
+/// Front-panel access between machine ticks. No oscillator/CPU tick is added.
+#[no_mangle]
+pub extern "C" fn sid8e_write(handle: u32, register: u32, value: u32) -> u32 {
+    with(handle, |e| {
+        if e.error != 0 || register > 24 || value > 255 { return 0; }
+        u32::from(e.chip.write(register, value))
+    }).unwrap_or(0)
+}
 /// One completed chip tick, then the selected bus access. Result: read data
 /// bits0..7, sample-ready8, completed-tick9, error10..15, signed PCM16 bits16..31.
 #[no_mangle]

@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {assertSidManualTransition} from '../test/helpers/sid_manual_transition.mjs';
 import {join, dirname, resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -98,8 +99,8 @@ export async function checkSidWaveoffC64({baselineRoot, workDir, write = false, 
       const oldPath = fixtureRoot + group.old, oldBytes = await readFile(join(root, oldPath)), old = JSON.parse(oldBytes);
       assert.equal(sha(oldBytes), group.sha256, 'Never rewrite the historical C64 baseline: ' + group.old);assert.equal(old.wasmSha256, group.wasmSha256);
       const expected = write ? null : JSON.parse(await readFile(join(root, fixtureRoot + group.corrected)));
-      if (expected) {assert.equal(expected.historicalBaseline.sha256, group.sha256);assert.equal(expected.wasmSha256, sha(wasm));}
-      const corrected = {...old, format: 'tetorica-c64-waveoff-corrected-baseline', version: 1, wasmSha256: sha(wasm),
+      if (expected) {assert.equal(expected.historicalBaseline.sha256, group.sha256);assertSidManualTransition(wasmPath,{sha256:expected.wasmSha256},wasm);}
+      const corrected = {...old, format: 'tetorica-c64-waveoff-corrected-baseline', version: 1, wasmSha256: expected?.wasmSha256 ?? sha(wasm),
         source: 'Current Native C64 host and checked WASM after the no-wave phase fix; the unmodified earlier record is identified below.',
         historicalBaseline: {path: oldPath, sha256: group.sha256, wasmSha256: group.wasmSha256},
         change: 'No-wave oscillator phase now advances during frequency-before-wave startup; historical CPU trace, envelope and all non-phase state are unchanged.',

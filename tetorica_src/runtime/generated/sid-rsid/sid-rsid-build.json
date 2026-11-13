@@ -156,20 +156,20 @@
       "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
     },
     "tetorica_src/wasm/sid_rsid_core.h": {
-      "bytes": 25178,
-      "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+      "bytes": 25888,
+      "sha256": "6fd229aedccfa0842d794d4ea2c79a1a045ffaea7dae4f013b2de7b03bde6d37"
     },
     "tetorica_src/wasm/sid_rsid_wasm.cpp": {
-      "bytes": 3751,
-      "sha256": "99a4cefb9979922f5f1fec32416c0d85582432e9dd96f4e2b29cab77d06549b9"
+      "bytes": 3977,
+      "sha256": "b01a2989e77ed1ecfd1ca3cda4093eb87d7d3fe166d344614330f027b3365d72"
     },
     "tetorica_src/wasm/sid_rsid_machine.c": {
       "bytes": 1050,
       "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
     },
     "tetorica_src/wasm/sid_rsid_chip.cpp": {
-      "bytes": 191,
-      "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+      "bytes": 428,
+      "sha256": "982291bc3191f1be4d1a31c030cbfe6a11bf7fcf5410e575b1c5231d1009fa12"
     },
     "scripts/build_sid_rsid_wasm.sh": {
       "bytes": 1020,
@@ -185,7 +185,7 @@
     }
   },
   "output": {
-    "bytes": 116117,
-    "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+    "bytes": 116499,
+    "sha256": "a60c5d13fe26337fd9b48813c595c24405b91f6fa954154c89bf63af5192ea2c"
   }
 }

@@ -13,7 +13,7 @@ import {SID_RSID_BUILD_INPUTS} from './sid_rsid_artifacts.mjs';
 export const machineRoot=fileURLToPath(new URL('../',import.meta.url));
 export const machineDigest=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
 export const MACHINE_OUTPUTS=Object.freeze(['sid8580-endpoint.wasm','sid8580-machine.wasm','sid8580-machine']);
-export const MACHINE_SID_IMPORTS=Object.freeze(['sid8e_create','sid8e_destroy','sid8e_reset','sid8e_stop','sid8e_tick','sid8e_set_profiles','sid8e_error']);
+export const MACHINE_SID_IMPORTS=Object.freeze(['sid8e_create','sid8e_destroy','sid8e_reset','sid8e_stop','sid8e_tick','sid8e_write','sid8e_set_profiles','sid8e_error']);
 export const MACHINE_NEW_INPUTS=Object.freeze([
   'tetorica_src/wasm/sid8580-machine/endpoint.rs',
   'tetorica_src/wasm/sid8580-machine/sid_endpoint.h',

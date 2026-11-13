@@ -156,9 +156,9 @@ Player page:
 **Auto · file** follows a known 6581 / 8580 declaration. Unknown/either hints
 use PAL / 6581 by default; manual selection can resolve an unknown/either model.
 A known conflicting model or NTSC declaration is rejected without rewriting
-the file. With **Auto update from song** on, compatible observed settings also
-update the keyboard's selected target, including the model. With it off, use a
-captured Voice to import a sound explicitly.
+the file. **Auto update from song** follows the selected physical song CH.
+It does not replace the saved Synth patches. Use a captured Voice to import
+a sound explicitly.
 
 Preview supports PAL, single-SID PSID / RSID v2 through the existing C64
 machine's limited built-in environment. It does not accept user ROMs or offer
@@ -176,8 +176,13 @@ original phase, elapsed Envelope or later song automation. Independent
 Sync / Ring pairs retain their frequency-register ratio; the source's audible
 part is not imported. The same limits as Player snapshots below apply.
 
-Playing the song clears Synth notes; playing a Synth key stops a pending or
-active preview before the key sounds. **Stop all sound** stops both paths.
+Playing the song clears Synth notes. During playback, select **CH 1 / 2 / 3**
+to edit or play that physical channel in the song's SID. Subsequent C64 writes
+take priority; an older key-up or Pitch gesture cannot silence or retune the
+newer song note. Keys change only the carrier's frequency and Gate; they do not
+retune or silence the preceding Sync / Ring oscillator. **Synth · Round robin**
+edits and plays the separate authored instrument while the song continues.
+**Stop all sound** stops both paths. Code and SID songs remain exclusive.
 Master controls both. Cancelled/bad reads retain the preset, accepted SID and
 captured batch; an accepted replacement stops its previous preview only after
 validation succeeds. Opening a SID alone never replaces the keyboard instrument.
@@ -187,15 +192,17 @@ No song, ROM or PCM bytes are stored in a voice preset.
 
 **Pause** holds the current song position and CPU / SID state. Its button becomes
 **Resume**, which continues the same preview without reloading the file.
-With Auto update on, **Your sound** keeps the same read-only controls at the
-acknowledged pause point. Switch **CH 1 / CH 2 / CH 3** to inspect that held
-state, or turn Auto update off to edit the latest playable settings. No periodic
-reads are needed while paused.
+**Your sound** keeps the same read-only controls at the acknowledged pause
+point. Switch **CH 1 / CH 2 / CH 3** to inspect that held state. Keys audition
+a playable snapshot on the separate Synth, keeping the paused song's CPU,
+SID registers and position unchanged. Unavailable snapshots show their reason.
+No periodic reads are needed while paused. Resume retires this temporary
+audition and continues the original song chip.
 
 **Capture voices** works while paused and reads that same fixed machine state.
 You can Resume after capture, or select a captured Voice to stop the preview
-and load it into the keyboard. A Synth key and **Stop all sound** also close
-a paused preview. File cancellation or a failed replacement keeps it paused;
+and load it into the keyboard. **Stop all sound** closes a paused preview.
+File cancellation or a failed replacement keeps it paused;
 a successful file / model / subtune replacement starts ready for a new Play.
 
 Pause is acknowledged at an audio-processing boundary. A short 5 ms host-output
@@ -212,23 +219,25 @@ silently using an older cached audio module. If an already-open older page shows
 ### Automatically reflect a playing channel
 
 **Auto update from song** is on by default. During song preview, **Your sound**
-follows the selected physical **CH 1 / CH 2 / CH 3**. Compatible voice settings
-are kept in that channel's keyboard patch. In **Round robin**, the last explicitly
-selected song CH is observed and its compatible settings are applied to all three
-keyboard channels when those settings change. Selecting Round robin alone, or
-advancing to another observation of unchanged settings, does not copy them. The
-song itself is never changed.
+follows the selected physical **CH 1 / CH 2 / CH 3**. During playback, the same
+controls directly edit that channel: waveform flags, Pulse width, ADSR,
+Sync / Ring / TEST, and the shared filter. Only touched fields are written,
+using the latest chip registers to preserve other channels and packed bits.
+The calculated modulator ratio changes only the preceding oscillator's tuning.
+The song can overwrite any of these settings on its next register write.
 
-Turn Auto update off to keep the latest playable settings and edit or audition
-them. CH selection remains available. While paused, the same controls inspect
-the held state until Resume. Unsupported raw settings remain visible while Auto
-is on, with their reason; they do not overwrite the last playable patch. Loading
-a preset/setup or using Reset turns Auto update off so the explicit choice stays.
+Turn Auto update off to freeze the display while keeping controls and keys
+connected to the selected song CH. Turning it on reads the latest state.
+Selecting **Synth · Round robin**, loading a preset/setup, or using Reset
+shows the separate authored bank without stopping the song. Song observation
+and manual edits never overwrite saved patches. **Capture voices**, then
+selecting a captured Voice, remains the explicit import operation.
 
 Live and editing use the **same controls in the same positions**: waveform
 buttons, Pulse width, ADSR, filter and modulation controls update in place.
-Live values are read-only and changes are highlighted. Turning Auto update off
-keeps the same control nodes and folded sections and enables editing again.
+Changes are highlighted without replacing control nodes or folded sections.
+Model selection is locked in the song controls; choose the playback model in
+**Sounds from SID**. Paused song controls remain read-only.
 Long explanations are behind each section's **?** button, closed by default.
 
 The passive display shows the actual waveform flags (including combined or no
@@ -247,8 +256,9 @@ when both Sync and Ring are off. These values can continue changing even while
 they do not affect the current sound; the tooltip explains the inactive state.
 
 This uses the existing player's coherent Worklet read at up to 20 updates per
-second, with one read at a time. It never writes the song or starts keyboard
-audio merely to reflect settings. Fast register changes between observations can be
+second, with one read at a time. Observation alone never writes the song or
+starts keyboard audio. Explicit manual actions change the running chip only;
+the source file stays intact. Fast register changes between observations can be
 missed; this is a sampled view, not a complete register-write recording. Capture
 still reads one fixed batch, and the captured Voice buttons load that batch.
 

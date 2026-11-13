@@ -84,7 +84,7 @@ function instrument() {
 }
 
 async function checkBrowser(name, engine, origin, fixtures) {
-  const browser = await engine.launch({headless: true}), errors = [], consoleErrors = [], failed = [], external = [], checks = [], measurements = {};
+  const browser = await engine.launch({headless: true, ...(name === 'chromium' ? {args:['--mute-audio']} : {})}), errors = [], consoleErrors = [], failed = [], external = [], checks = [], measurements = {};
   let page, stage = 'startup', holdWasm = false, releaseWasm;
   try {
     page = await browser.newPage({viewport: {width: 1180, height: 1000}}); page.setDefaultTimeout(15000);

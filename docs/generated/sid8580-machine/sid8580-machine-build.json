@@ -81,64 +81,64 @@
       "sha256": "d488927cdf6bb9b3a0c75513b0bd2ac2a51b7d588a868a53800575144b01bfa8"
     },
     "scripts/prepare_sid8580_machine_core.mjs": {
-      "bytes": 7034,
-      "sha256": "b71d6cb44ffccd797504a98ebfd0192b95c7dbf3d1a1c8c38488df7f66ad9dde"
+      "bytes": 7133,
+      "sha256": "a7dd6b4ac78b15503a26446130beba9938507002e8b87a47e2fcfff22e01b021"
     },
     "scripts/sid_rsid_artifacts.mjs": {
       "bytes": 7593,
       "sha256": "83aab4cfc0ccda73bac874b488128b071ec23c259bb9888d1c106193538b89ee"
     },
     "scripts/sid8580_machine_artifacts.mjs": {
-      "bytes": 8892,
-      "sha256": "b6f35ca078385fab9f067e0e9d448f21d2d05b25e296eca71923a71c32af02ac"
+      "bytes": 8906,
+      "sha256": "d59ec75766fa4200b22d1b14ff861bf9d9379edbc25d352610079a0adc6cf6c3"
     },
     "scripts/sid8580_probe_artifacts.mjs": {
       "bytes": 6114,
       "sha256": "3b65c7b08adc135dca01b54947f1b457c84e99e2ba68775d46770c24b17cff53"
     },
     "tetorica_src/wasm/sid_rsid_chip.cpp": {
-      "bytes": 191,
-      "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+      "bytes": 428,
+      "sha256": "982291bc3191f1be4d1a31c030cbfe6a11bf7fcf5410e575b1c5231d1009fa12"
     },
     "tetorica_src/wasm/sid_rsid_core.h": {
-      "bytes": 25178,
-      "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+      "bytes": 25888,
+      "sha256": "6fd229aedccfa0842d794d4ea2c79a1a045ffaea7dae4f013b2de7b03bde6d37"
     },
     "tetorica_src/wasm/sid_rsid_machine.c": {
       "bytes": 1050,
       "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
     },
     "tetorica_src/wasm/sid_rsid_wasm.cpp": {
-      "bytes": 3751,
-      "sha256": "99a4cefb9979922f5f1fec32416c0d85582432e9dd96f4e2b29cab77d06549b9"
+      "bytes": 3977,
+      "sha256": "b01a2989e77ed1ecfd1ca3cda4093eb87d7d3fe166d344614330f027b3365d72"
     },
     "tetorica_src/wasm/sid8580-machine/endpoint.rs": {
-      "bytes": 4624,
-      "sha256": "0ab38fba23549b57f8770d4174fdcbb2e17f0e9111e5023ab29523928e47ddb3"
+      "bytes": 4959,
+      "sha256": "f8027f8077d2ad6848411ac964cb5eadeeaeb1dcbe542e500815f405f3139d1a"
     },
     "tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h": {
-      "bytes": 26966,
-      "sha256": "81eccc2619316b1056497785b2126271f497cdeb4085aad32fa68c5804d33ffb"
+      "bytes": 27682,
+      "sha256": "ee668ec2f7b406bd115402b3bcd3c107d442a36cded8e1c6dc0eec1bdfb263b6"
     },
     "tetorica_src/wasm/sid8580-machine/generated/source-manifest.json": {
-      "bytes": 2382,
-      "sha256": "35c776b620b95cba0db8246f7e5e158f34e06c57a0d6257f7d750fa339b5c8d9"
+      "bytes": 2461,
+      "sha256": "64b9edd1bf10cea8cc4279e1d5cfc4d8175f4376991258a32b54973cb14804cf"
     },
     "tetorica_src/wasm/sid8580-machine/machine_native.cpp": {
       "bytes": 6807,
       "sha256": "bb925b4819691fa8da7b1c02c038d177f0bb763785482b250db307053f48a6b1"
     },
     "tetorica_src/wasm/sid8580-machine/machine_wasm.cpp": {
-      "bytes": 4712,
-      "sha256": "8eb58dcbf0301030618281b72158dfb80e9d3d22d96e670e3e3f702d685c37ef"
+      "bytes": 4932,
+      "sha256": "82cc5ce3a92c14661284e37983ce338f6a7a561d69bfea04c3642a815804266c"
     },
     "tetorica_src/wasm/sid8580-machine/machine.c": {
       "bytes": 981,
       "sha256": "5860f9393b056927524487833642b57c8f15e454faa158510bdfa9a74c7db6f0"
     },
     "tetorica_src/wasm/sid8580-machine/sid_endpoint.cpp": {
-      "bytes": 3584,
-      "sha256": "9518f70534ef44e3d893c188c0aff7bc7c0a5b0047223cd1f81f714abeec1787"
+      "bytes": 3852,
+      "sha256": "7b69a01c74bc34f6bfbc9878ad83682234e8c1ba59efae54af7b773922e987bc"
     },
     "tetorica_src/wasm/sid8580-machine/sid_endpoint.h": {
       "bytes": 1230,
@@ -459,21 +459,26 @@
   },
   "outputs": {
     "sid8580-endpoint.wasm": {
-      "bytes": 1401752,
-      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+      "bytes": 1402110,
+      "sha256": "ea48a2460cc85103976ec84db3e14198796cedf77b1002974176931734aa3e37"
     },
     "sid8580-machine.wasm": {
-      "bytes": 112827,
-      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+      "bytes": 113468,
+      "sha256": "b4af959f11c8bcf65c96b39a75c0a385a6666ce57c215b719b67f8ab685b5b03"
     },
     "sid8580-machine": {
-      "bytes": 1421840,
-      "sha256": "1885573970af8e85f1fe355a340eac378058a564bdcaf684c5ecd386a3c7bdfd"
+      "bytes": 1421968,
+      "sha256": "8a0dff230524ca89f7870152f85d235bc582c1dcb97f4fa05d66ad05397c20d5"
     }
   },
   "wasmInterface": {
     "endpointImports": [],
     "machineImports": [
+      {
+        "module": "env",
+        "name": "sid8e_write",
+        "kind": "function"
+      },
       {
         "module": "env",
         "name": "sid8e_create",
@@ -521,6 +526,7 @@
       "sid8e_reset",
       "sid8e_stop",
       "sid8e_tick",
+      "sid8e_write",
       "sid8e_set_profiles",
       "sid8e_error"
     ],

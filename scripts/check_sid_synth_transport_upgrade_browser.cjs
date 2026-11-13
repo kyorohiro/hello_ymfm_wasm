@@ -90,7 +90,7 @@ function instrument(){
 }
 
 async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
-  const browser=await engine.launch({headless:true}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
+  const browser=await engine.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
   await context.addInitScript(instrument);
   const checks=[],errors=[],consoleErrors=[],external=[],requests=[],injections=[];
   let page,stage='startup',legacyRequests=0;
@@ -165,9 +165,9 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
     await page.locator('#sidSoundFileInput').setInputFiles({name:'transport-upgrade.sid',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
     await page.waitForFunction(()=>!document.getElementById('sidImportPlay').disabled);
     await play();
-    for(const file of ['/synth-sid/synth.js','/synth-sid/sid_import.js','/sid-player/audio.js'])
+    for(const [file,revision] of [['/synth-sid/synth.js','sid-song-manual'],['/synth-sid/sid_import.js','sid-song-manual'],['/sid-player/audio.js','sid-manual']])
       assert(requests.some(request=>{
-        const url=new URL(request,origin);return url.pathname===file&&url.searchParams.get('sid-transport')==='2';
+        const url=new URL(request,origin);return url.pathname===file&&url.searchParams.get(revision)==='1';
       }),`Current graph did not version ${file}`);
     assert(requests.some(request=>{
       const url=new URL(request,origin);return url.pathname==='/synth-sid/synth.js'&&url.searchParams.get('sid-channels')==='3';
@@ -184,18 +184,17 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
     const currentIdentity=await identity();
     const currentModules=await page.evaluate(index=>__sidUpgradeAudit.moduleLoads.filter(value=>value.context===index),currentIdentity.context);
     assert(currentModules.some(value=>{
-      const url=new URL(value.url);return url.pathname==='/sid-player/processor.js'&&url.search==='?sid-transport=2';
+      const url=new URL(value.url);return url.pathname==='/sid-player/processor.js'&&url.search==='?sid-manual=1';
     }),'Current audio context did not request the versioned Player Worklet');
-    assert(currentModules.every(value=>new URL(value.url).searchParams.get('sid-transport')==='2'));
+    assert(currentModules.every(value=>new URL(value.url).searchParams.get('sid-manual')==='1'));
     assert.equal(legacyRequests,1,'Current Synth requested the unversioned facade');
     assert.equal(injections.filter(value=>value.kind==='legacy-ready').length,0,'Current Synth requested an unversioned Worklet');
 
     check('Pause visibly becomes Resume, paused Capture matches the frozen core and Resume reuses its instance');
     const before=await identity(),held=await pause();
-    // Auto update now adopts the playable song sound into the keyboard. The
-    // fixed authored fixture keeps this paused snapshot stable across Resume;
-    // the untouched authoring preset above remains the legacy-probe baseline.
+    // Observation, Pause and Resume keep the authored keyboard preset intact.
     const songPreset=await savedPreset();
+    assert.deepEqual(songPreset,authored);
     assert.equal(held.paused,true);assert.equal(held.playing,false);
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'true');
     await page.waitForTimeout(200);assert.deepEqual(frozen(await read()),frozen(held));

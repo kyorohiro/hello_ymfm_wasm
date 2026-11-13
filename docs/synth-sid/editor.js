@@ -16,8 +16,7 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
   const locked=()=>observing&&(!editable||!observation);
   function commit(change) {
     if(disposed)return;
-    // Songs remain read-only. Code edits send only touched fields rather than
-    // turning the whole observed channel into an authored preset.
+    // Performance edits send touched fields, never a whole observed preset.
     if(locked()){render();return;}
     if(observing){
       try{
@@ -26,7 +25,10 @@ export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=(
           const values=Object.fromEntries(Object.entries(next[group]).filter(([key,value])=>value!==display[group][key]));
           if(Object.keys(values).length)patch[group]=values;
         }
-        if(Object.keys(patch).length)Promise.resolve(onLiveChange(patch,observation.voice)).catch(report);
+        const masks={};
+        if(patch.voice?.waveform!==undefined)masks.waveformBits=waveformBits(display.voice.waveform)^waveformBits(next.voice.waveform);
+        if(patch.filter?.mode!==undefined)masks.filterModeBits=filterModeBits(display.filter.mode)^filterModeBits(next.filter.mode);
+        if(Object.keys(patch).length)Promise.resolve(onLiveChange(patch,observation.voice,masks)).catch(report);
       }catch(error){report(error);}
       return;
     }

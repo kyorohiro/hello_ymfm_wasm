@@ -115,6 +115,15 @@ export class RsidPlayerCore {
     return this.renderInto(new Float32Array(frames));
   }
   stop() {this.assertOpen(); if (this.handle) this.exports.sidr_stop(this.handle); return this.getState();}
+  manualWriteRegister(register, value) {
+    this.assertOpen(); integer(register, 0, 24, 'SID manual register'); integer(value, 0, 255, 'SID manual byte');
+    if (!this.handle || !this.exports.sidr_manual_write?.(this.handle, register, value)) throw new Error('SID manual access needs a playing, updated core');
+  }
+  readSourceRevisions() {
+    this.assertOpen();
+    if (!this.handle || !this.exports.sidr_source_revision) throw new Error('SID manual access needs a loaded, updated core');
+    return Array.from({length:32}, (_, r) => this.exports.sidr_source_revision(this.handle, r));
+  }
   getState() {
     this.assertOpen();
     const api = this.exports, handle = this.handle, state = handle ? api.sidr_state(handle) : 0;

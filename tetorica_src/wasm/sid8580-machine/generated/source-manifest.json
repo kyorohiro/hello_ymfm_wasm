@@ -3,8 +3,8 @@
   "version": 1,
   "source": {
     "path": "tetorica_src/wasm/sid_rsid_core.h",
-    "bytes": 25178,
-    "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+    "bytes": 25888,
+    "sha256": "6fd229aedccfa0842d794d4ea2c79a1a045ffaea7dae4f013b2de7b03bde6d37"
   },
   "pristineC64": {
     "path": "third_party/chips-c64/upstream/systems/c64.h",
@@ -14,8 +14,8 @@
   },
   "output": {
     "path": "tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h",
-    "bytes": 26966,
-    "sha256": "81eccc2619316b1056497785b2126271f497cdeb4085aad32fa68c5804d33ffb"
+    "bytes": 27682,
+    "sha256": "ee668ec2f7b406bd115402b3bcd3c107d442a36cded8e1c6dc0eec1bdfb263b6"
   },
   "recipes": [
     {
@@ -32,6 +32,10 @@
     },
     {
       "name": "separate-machine-tick",
+      "occurrences": 2
+    },
+    {
+      "name": "separate-manual-sid-write",
       "occurrences": 2
     },
     {

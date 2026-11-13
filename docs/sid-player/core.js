@@ -93,6 +93,16 @@ export class SidPlayerCore {
     return this.renderInto(new Float32Array(frames));
   }
   stop() {this.assertOpen(); if (this.handle) this.exports.sidp_stop(this.handle); return this.getState();}
+  /** Software front-panel access at the current chip boundary; no CPU ticks. */
+  manualWriteRegister(register, value) {
+    this.assertOpen(); integer(register, 0, 24, 'SID manual register'); integer(value, 0, 255, 'SID manual byte');
+    if (!this.handle || !this.exports.sidp_manual_write?.(this.handle, register, value)) throw new Error('SID manual access needs a playing, updated core');
+  }
+  readSourceRevisions() {
+    this.assertOpen();
+    if (!this.handle || !this.exports.sidp_source_revision) throw new Error('SID manual access needs a loaded, updated core');
+    return Array.from({length:32}, (_, r) => this.exports.sidp_source_revision(this.handle, r));
+  }
   getState() {
     this.assertOpen();
     const api = this.exports, handle = this.handle, state = handle ? api.sidp_state(handle) : 0;

@@ -16,6 +16,10 @@ SID8_IMPORT(sid8e_stop) uint32_t sid8e_stop(uint32_t);
 SID8_IMPORT(sid8e_set_profiles) uint32_t sid8e_set_profiles(uint32_t,uint32_t);
 SID8_IMPORT(sid8e_error) uint32_t sid8e_error(uint32_t);
 SID8_IMPORT(sid8e_tick) uint32_t sid8e_tick(uint32_t,uint32_t,uint32_t,uint32_t);
+SID8_IMPORT(sid8e_write) uint32_t sid8e_write(uint32_t,uint32_t,uint32_t);
+}
+extern "C" int tetorica_sid8580_manual_write(m6581_t* sid,unsigned reg,unsigned value) {
+    return sid->handle && !sid->error && reg<=24 && value<=255 && sid8e_write(sid->handle,reg,value);
 }
 static void increase(uint32_t& n) { if(n!=std::numeric_limits<uint32_t>::max())++n; }
 void m6581_init(m6581_t* sid,const m6581_desc_t* desc) {

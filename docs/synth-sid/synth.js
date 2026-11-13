@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1&sid-live-preset=2&sid-code-keyboard=1';
-import {createEditor} from './editor.js?sid-waves=1&sid-keys=1&sid-code-keyboard=1';
+import {createEditor} from './editor.js?sid-song-manual=1';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js?sid-waves=1';
-import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
+import {createSidImport} from './sid_import.js?sid-song-manual=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
-import {createSidLiveView} from './sid_live_view.js?sid-waves=1&sid-code-live=1&sid-code-keyboard=1';
-import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2&ps1-vab-api=1&sid-live-preset=2&sid-code-keyboard=1';
+import {createSidLiveView} from './sid_live_view.js?sid-song-manual=1';
+import {setupSidCodeHost} from './code_host.js?sid-song-manual=1';
 import {createSidCodeLive} from './code_live.js?sid-code-live=1&sid-code-keyboard=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
@@ -22,7 +22,7 @@ let appliedPitch=0,pitchIntent=0,commandSequence=0,pitchAckSequence=0;
 let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
 let sidImporter=null,previewEngine=null;
 let switchingAudioOutput=false,desktopOutputHandler=null;
-let adoptedObservation=null;
+let songTarget=0,pausedKeyboard=false,lastSongPaused=false;
 let codeHost=null,codeLive=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
@@ -39,6 +39,8 @@ const paired=()=>channelPlaybackPlan(channelSettings).source!==null;
 const capacity=()=>channelPlaybackPlan(channelSettings).channels.length;
 const legato=()=>channelSettings.target!=='round-robin'&&channelSettings.keyboardMode==='legato';
 const heldKeys=()=>`${notes.size} ${notes.size===1?'key':'keys'} held`;
+const songOpen=(state=sidImporter?.read())=>Boolean(state&&(state.playing||state.paused||state.pausing||state.resuming||state.starting));
+const songChannel=(state=sidImporter?.read())=>songOpen(state)&&songTarget!=='round-robin';
 function updateNoteStatus(midi){
   if(legato()){
     const current=[...notes.values()].filter(note=>note.started).at(-1);
@@ -70,32 +72,36 @@ function acceptPitch(state,order,intent=null){
 function readVoices(state){
   if(!Array.isArray(state?.voices))return;
   const owners=new Set(state.voices.map(voice=>voice.id));
-  for(const[source,note]of notes)if(note.started&&!owners.has(note.id))notes.delete(source);
+  for(const[source,note]of notes)if(note.owner!=='song'&&note.started&&!owners.has(note.id))notes.delete(source);
   updateKeys();
 }
 function updateLiveDisplay(song=sidImporter?.read()??{}){
   if(disposed)return null;
   const coding=Boolean(codeHost?.isRunning()),state=coding?codeLive.read():song;
-  const observing=coding?state.liveEnabled: Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
+  const observing=coding?state.liveEnabled:songChannel(state);
   const observation=sidLiveView.update(state);
-  editor.observe(observing?observation:null,{active:observing,editable:coding});
+  editor.observe(observing?observation:null,{active:observing,editable:coding||Boolean(state.manualReady&&songChannel(state))});
+  const displayModel=observing&&observation?observation.model:preset.model;
+  $('sidModelBadge').textContent=displayModel;
+  $('sidModelStatus').textContent=displayModel==='8580'?'PAL · PREVIEW':'PAL · APPROXIMATION';
   $('instrumentName').disabled=observing;
   $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
   $('sidLiveEnabled').checked=coding?state.liveEnabled:state.liveEnabled!==false;
   const label=$('sidLiveEnabledLabel'),labelText=coding?'Live from Code':'Auto update from song';
   if(label.textContent!==labelText)label.textContent=labelText;
-  const channelLabel=$('sidLiveChannelLabel'),channelText=coding?'Code view':'Edit & play';
+  const channelLabel=$('sidLiveChannelLabel'),channelText=coding?'Code view':songOpen(song)?'Song CH / Synth':'Edit & play';
   if(channelLabel.textContent!==channelText)channelLabel.textContent=channelText;
-  $('sidKeyboardMode').hidden=coding;
+  $('sidKeyboardMode').hidden=coding||songChannel(song);
   for(const button of document.querySelectorAll('[data-sid-live-voice]')){
     button.hidden=coding&&button.dataset.sidLiveVoice==='round-robin';
-    button.setAttribute('aria-pressed',String(button.dataset.sidLiveVoice===String(coding?state.liveVoice:channelSettings.target)));
+    button.setAttribute('aria-pressed',String(button.dataset.sidLiveVoice===String(coding?state.liveVoice:songOpen(song)?songTarget:channelSettings.target)));
+    if(button.dataset.sidLiveVoice==='round-robin')button.textContent=songOpen(song)?'Synth · Round robin':'Round robin';
   }
   const mixed=channelSettings.target==='round-robin'&&channelSettings.channels.some(value=>JSON.stringify([value.voice,value.modulation])!==JSON.stringify([preset.voice,preset.modulation]));
-  $('sidChannelState').hidden=coding&&observing||!mixed;
+  $('sidChannelState').hidden=observing||!mixed;
   const editingHeading=channelSettings.target==='round-robin'?'Your sound · Round robin':`Your sound · CH ${channelSettings.target+1}`;
   $('voiceHeading').textContent=observing
-    ?coding?`Your sound · Code Live CH ${state.liveVoice+1}`:`Your sound · ${state.paused?'Paused':'Live'} CH ${(state.liveVoice??0)+1}`
+    ?coding?`Your sound · Code Live CH ${state.liveVoice+1}`:`Your sound · ${state.paused?'Paused':state.liveEnabled?'Live':'Frozen'} CH ${(state.liveVoice??0)+1}`
     :editingHeading;
   return observation;
 }
@@ -187,9 +193,10 @@ function applySettings(value,{load=false,message,fromSong=false,isCurrent=()=>tr
     if(disposed||audio!==target||editRevision!==revision||!isCurrent()||!editOwner()){await reconcile();return false;}
     try{
       // Coalescing a draft must preserve any earlier load/topology reset.
-      const hardReset=resetIntent>appliedResetIntent,resetAtDispatch=resetIntent;
+      const hardReset=pausedKeyboard||resetIntent>appliedResetIntent,resetAtDispatch=resetIntent;
       const pitchAtDispatch=resetPitchIntent,order=++commandSequence;
       const state=await target.command(hardReset?'loadChannelSettings':'setChannelSettings',[nextSettings]);
+      pausedKeyboard=false;
       if(disposed||audio!==target||editRevision!==revision||!isCurrent()||!editOwner()){await reconcile();return false;}
       if(hardReset)appliedResetIntent=Math.max(appliedResetIntent,resetAtDispatch);
       appliedChannelSettings=readChannelSettings(state?.channelSettings??nextSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
@@ -210,7 +217,10 @@ function applySettings(value,{load=false,message,fromSong=false,isCurrent=()=>tr
     }
   });
 }
-const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onLiveChange(patch,channel){
+const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onLiveChange(patch,channel,masks){
+  if(songChannel()&&sidImporter.read().manualReady){
+    return sidImporter.manualEdit(channel,patch,masks).then(()=>{visualizer.wake();});
+  }
   const target=audio,guard=target?.captureSoundEditGuard?.();
   if(!target||!codeHost?.isRunning())return;
   return enqueue(async()=>{
@@ -235,14 +245,17 @@ sidImporter=createSidImport({
   getVolume:()=>Number($('masterVolume').value),
   getInstrumentRevision:()=>`${revision}/${importSequence}`,
   onUpdate(state){
-    sidImportPanel.update(state);const observation=updateLiveDisplay(state);
-    const observing=!codeHost?.isRunning()&&Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
-    const fresh=state.liveActive||state.paused&&!state.loading&&!state.starting&&!state.choosingFile&&!state.applying&&!state.liveError&&!state.liveWaiting&&!state.pausing&&!state.resuming;
-    if(!state.liveEnabled||state.starting||!state.playing&&!state.paused&&!state.pausing&&!state.resuming)adoptedObservation=null;
-    if(observing&&fresh&&observation?.importable.available&&state.liveState){
-      const candidate=captureSidVoices(state.liveState,{name:state.liveSource?.name??state.selection?.name,subtune:state.liveSource?.subtune??1}).voices[state.liveVoice??0];
-      const observationKey=JSON.stringify([state.liveSource,state.liveVoice,candidate?.preset]);
-      if(candidate?.available&&observationKey!==adoptedObservation){adoptedObservation=observationKey;void applySettings(applyChannelPreset(channelSettings,candidate.preset),{fromSong:true}).catch(report);}
+    sidImportPanel.update(state);updateLiveDisplay(state);
+    // Observing a song never adopts a full snapshot into the authored bank.
+    if((state.pausing||state.resuming||state.playing&&lastSongPaused)&&pausedKeyboard){
+      void stopNotes().catch(report);
+      if(previewEngine){visualizer.disconnect();visualizer.connect(previewEngine.context,previewEngine.outputNode);}
+    }
+    lastSongPaused=Boolean(state.paused||state.pausing);
+    if(Array.isArray(state.liveState?.manualVoices)){
+      const owners=new Set(state.liveState.manualVoices.filter(voice=>voice.gateOwned).map(voice=>voice.id));
+      for(const[source,note]of notes)if(note.owner==='song'&&note.started&&!owners.has(note.id))notes.delete(source);
+      updateKeys();
     }
     if(previewEngine)visualizer.setRunning(Boolean(state.playing));
   },
@@ -252,12 +265,16 @@ sidImporter=createSidImport({
     if(disposed||!isCurrent())return;
     await stopNotes();
     if(disposed||!isCurrent()||engine.context.state==='closed')return;
+    songTarget=sidImporter.read().liveVoice??0;lastSongPaused=false;
     previewEngine=engine;visualizer.disconnect();visualizer.connect(engine.context,engine.outputNode);visualizer.setRunning(false);
     await prepareDesktopOutput(engine,()=>!disposed&&previewEngine===engine&&isCurrent()&&engine.context.state!=='closed');
   },
   onPreviewStop(engine){
     if(previewEngine!==engine)return;
-    previewEngine=null;if(disposed)return;
+    previewEngine=null;
+    for(const[source,note]of notes)if(note.owner==='song')notes.delete(source);
+    updateKeys();if(disposed)return;
+    if(pausedKeyboard)void stopNotes().catch(report);
     visualizer.setRunning(false);visualizer.disconnect();
     if(audio)visualizer.connect(audio.context,audio.outputNode);
     visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning()));
@@ -268,6 +285,12 @@ function chooseChannel(target){
   if(codeHost?.isRunning()){
     if(target!=='round-robin')codeLive.setVoice(target);
     return Promise.resolve();
+  }
+  if(songOpen()){
+    const released=stopNotes();songTarget=target;
+    if(target!=='round-robin')sidImporter.setLiveVoice(target);
+    else if(channelSettings.target!=='round-robin')void applySettings(selectChannelTarget(channelSettings,'round-robin')).catch(report);
+    updateLiveDisplay();return released;
   }
   const changed=applySettings(selectChannelTarget(channelSettings,target),{message:target==='round-robin'?'Round robin · channel settings kept. Edits apply to all three.':`CH ${target+1} · edit and play this channel.`});
   if(target!=='round-robin')sidImporter.setLiveVoice(target);
@@ -293,6 +316,7 @@ const keyboard=document.createElement('div');keyboard.className='keyboard';$('ke
 const tools=Object.fromEntries(['instrument','position','fret','strings','window'].map(name=>{const node=document.createElement('div');node.className=`fretboard-${name} ${['fret','strings'].includes(name)?'fret-display':'toolbar-group'}`;return[name,node];}));
 const toolbar=document.createElement('div');toolbar.className='fretboard-toolbar';const summary=document.createElement('div');summary.className='fretboard-row fretboard-summary';summary.append(tools.fret,tools.strings);const choices=document.createElement('div');choices.className='fretboard-row';for(const name of ['instrument','position','window'])choices.append(tools[name]);toolbar.append(summary,choices);$('keyboardFretboard').append(toolbar);
 function canPlay(midi){
+  if(songChannel())return midi>=0&&midi<=127&&440*2**((midi-69+pitch)/12)<=65535*985248/16777216;
   const plan=channelPlaybackPlan(channelSettings),sound=channelSettings.channels[plan.carrier];
   const hz=440*2**((midi-69+pitch)/12),source=plan.source!==null?hz*sound.modulation.ratio:hz;
   return midi>=0&&midi<=127&&hz>0&&Math.max(hz,source)<=65535*985248/16777216;
@@ -314,17 +338,41 @@ function renderKeyboard(){
 }
 function press(source,entry){
   if(disposed||switchingAudioOutput||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi))return;
-  // Fence a pending song start synchronously, preserving this key's gesture.
-  const songClosing=stopSongForKeyboard();
-  const note={id:`sid-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch:noteEpoch,started:false};notes.set(source,note);updateKeys();
+  const song=sidImporter.read(),reference=songChannel(song),owner=reference?(song.paused?'paused':'song'):'author';
+  if(reference&&(song.starting||song.pausing||song.resuming||!song.paused&&!song.manualReady)){status('Wait for the SID song to finish its transport operation.');return;}
+  const note={id:`sid-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch:noteEpoch,started:false,owner};notes.set(source,note);updateKeys();
+  if(owner==='song'){
+    void enqueue(async()=>{
+      if(notes.get(source)!==note||note.epoch!==noteEpoch)return;
+      note.started=true;await sidImporter.manualNoteOn(note.id,song.liveVoice,entry.midi,pitch);
+      if(notes.get(source)===note){visualizer.wake();status(`Song CH ${song.liveVoice+1} · ${midiToNoteName(note.midi)} · later song writes take priority.`);}
+    }).catch(error=>{if(notes.get(source)===note){notes.delete(source);updateKeys();}report(error);});return;
+  }
+  let pausedSound=null;
+  if(owner==='paused'){
+    try{pausedSound=captureSidVoices(song.liveState,{name:song.selection?.name}).voices[song.liveVoice??0];}
+    catch(error){notes.delete(source);updateKeys();report(error);return;}
+  }
+  if(owner==='paused'&&!pausedSound?.available){notes.delete(source);updateKeys();status(pausedSound?.reason??'Wait for the paused CH observation.',true);return;}
   const ready=ensureAudio();ready.catch(()=>{});
+  const songEngine=previewEngine;
   void enqueue(async()=>{
-    if(switchingAudioOutput||notes.get(source)!==note||note.epoch!==noteEpoch)return;
-    await songClosing;
+    const discard=()=>{if(notes.get(source)===note){notes.delete(source);updateKeys();}};
+    if(switchingAudioOutput||notes.get(source)!==note||note.epoch!==noteEpoch){discard();return;}
     const engine=await ready;
-    const current=()=>!disposed&&audio===engine&&notes.get(source)===note&&note.epoch===noteEpoch&&engine.context.state!=='closed';
-    if(switchingAudioOutput||!current())return;
-    await prepareDesktopOutput(engine,current);if(!current())return;
+    const current=()=>!disposed&&audio===engine&&notes.get(source)===note&&note.epoch===noteEpoch&&engine.context.state!=='closed'&&
+      (owner!=='paused'||previewEngine===songEngine&&sidImporter.read().paused&&!sidImporter.read().resuming);
+    if(switchingAudioOutput||!current()){discard();return;}
+    await prepareDesktopOutput(engine,current);if(!current()){discard();return;}
+    if(owner==='paused'){
+      const audition=selectChannelTarget(createChannelSettings(pausedSound.preset),song.liveVoice??0);
+      await engine.command('loadChannelSettings',[audition]);pausedKeyboard=true;
+      if(!current()){
+        await engine.command('loadChannelSettings',[channelSettings]);pausedKeyboard=false;
+        if(notes.get(source)===note){notes.delete(source);updateKeys();}return;
+      }
+      visualizer.disconnect();visualizer.connect(engine.context,engine.outputNode);
+    }else if(pausedKeyboard){await engine.command('loadChannelSettings',[channelSettings]);pausedKeyboard=false;if(!current())return;}
     const codeState=codeHost?.isRunning()?codeLive.read():null;
     note.started=true;await engine.command('noteOn',[note.id,note.midi,codeState?.liveEnabled?codeState.liveVoice:null]);
     if(audio!==engine||note.epoch!==noteEpoch)return;
@@ -335,6 +383,7 @@ function press(source,entry){
 function release(source){
   const note=notes.get(source);if(!note)return;notes.delete(source);updateKeys();
   if(note.started)void enqueue(async()=>{
+    if(note.owner==='song'){await sidImporter.manualNoteOff(note.id);return;}
     const target=audio;if(!target||note.epoch!==noteEpoch)return;
     await target.command('noteOff',[note.id]);
     if(audio!==target||note.epoch!==noteEpoch)return;
@@ -348,7 +397,10 @@ async function stopNotes(message){
   if(opening){const old=opening;opening=null;generation++;old.controller.abort();$('startAudio').disabled=false;$('startAudio').textContent='Enable audio';}
   const target=audio,stoppedEpoch=noteEpoch;
   try{
+    const songReleased=sidImporter?.manualRelease?.();
     if(target){const order=++commandSequence,state=await target.command(codeHost?.isRunning()?'releaseKeyboard':'stop');if(audio===target){acceptPitch(state,order,stopPitchIntent);if(noteEpoch===stoppedEpoch&&!notes.size)readVoices(state);}}
+    if(target&&pausedKeyboard&&noteEpoch===stoppedEpoch&&!notes.size){pausedKeyboard=false;await target.command('loadChannelSettings',[channelSettings]);}
+    await songReleased;
     // A Stop ACK belongs to the notes cleared above, never a later key press.
     if((!target||audio===target)&&noteEpoch===stoppedEpoch&&!notes.size){
       if(previewEngine&&sidImporter?.read().playing)visualizer.setRunning(true);
@@ -358,7 +410,7 @@ async function stopNotes(message){
   }
   catch(error){report(error);}
 }
-$('startAudio').addEventListener('click',()=>{$('startAudio').blur();const closing=stopSongForKeyboard(),ready=ensureAudio();void Promise.all([closing,ready]).catch(report);});
+$('startAudio').addEventListener('click',()=>{$('startAudio').blur();if(songOpen())return;void ensureAudio().catch(report);});
 $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopPerformances('Stopped · preset kept. Play to resume.').catch(report);});
 async function stopPerformances(message){await codeHost?.stop();await sidImporter.stop();await stopNotes(message);}
 for(const[id,delta]of [['octaveDown',-1],['octaveUp',1]])$(id).addEventListener('click',()=>{$(id).blur();void stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();});
@@ -373,6 +425,7 @@ window.addEventListener('blur',()=>{void stopNotes();});
 document.addEventListener('visibilitychange',()=>{codeLive.sync();if(document.hidden)void stopNotes();});
 function setPitch(value){
   if(disposed)return;const request=++pitchIntent,epoch=noteEpoch;setPitchUi(value);refreshPlayableKeys();const target=audio;
+  if(songChannel()&&sidImporter.read().manualReady){void enqueue(()=>sidImporter.manualPitch(value)).catch(report);return;}
   if(target)void enqueue(async()=>{
     if(audio!==target||epoch!==noteEpoch)return;
     try{const order=++commandSequence,state=await target.command('setPitch',[value]);if(audio===target){acceptPitch(state,order,request);if(epoch===noteEpoch)readVoices(state);visualizer.wake();}}
@@ -401,13 +454,13 @@ $('presetFileInput').addEventListener('change',async()=>{
     if(file.size>65536)throw new Error('SID preset must be at most 64 KiB');const value=JSON.parse(await file.text());
     const setup=value?.format==='tetorica-sid-channels',next=setup?readChannelSettings(value):readPreset(value);
     if(disposed||token!==importSequence||draftRevision!==manualRevision)return;
-    sidImporter.setLiveEnabled(false);
+    await stopNotes();if(songOpen())songTarget='round-robin';
     await (setup?applySettings:applyPreset)(next,{load:true,message:setup?'SID channel setup loaded · play the selected channel.':'SID preset loaded · play the keyboard.'});
     if(setup&&next.target!=='round-robin')sidImporter.setLiveVoice(next.target);
   }
   catch(error){if(!disposed&&token===importSequence)status(`${error.message??error} Current preset kept.`,true);}
 });
-$('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();sidImporter.setLiveEnabled(false);void applySettings(createChannelSettings(),{load:true,message:'Reset · Saw ready on all three channels.'}).catch(()=>{});});
+$('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();void (async()=>{await stopNotes();if(songOpen())songTarget='round-robin';await applySettings(createChannelSettings(),{load:true,message:'Reset · Saw ready on all three channels.'});})().catch(report);});
 $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();try{const code=channelSettingsToCode(channelSettings);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
@@ -431,6 +484,7 @@ function receivePlayerSnapshot(){
 }
 renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);
 codeHost=setupSidCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readChannelSettings(channelSettings),
+  async beforeSoundApply(){await stopNotes();if(songOpen()){songTarget='round-robin';updateLiveDisplay();}},
   async applySettings(value,{isCurrent=()=>true}={}){
     if(disposed||!isCurrent())throw new DOMException('SID project selection cancelled','AbortError');
     if(await applySettings(value,{load:true,isCurrent,message:'SID project sound loaded · play or run Code.'})===false)return false;

@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "task": "SID Synth song playback with manual controls",
+  "date": "2026-11-13",
+  "passed": true,
+  "baselineCommit": "85a8b0442247263415ac9796c3a409dadcf0ede4",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "published": false,
+  "behavior": [
+    "Selected song CH controls and keyboard write the actual C64 SID without stopping playback.",
+    "Partial field/bit edits merge against current registers; later C64 writes revoke stale keyboard Gate/Pitch ownership.",
+    "Auto update off freezes display while edits remain connected to the song CH.",
+    "Paused snapshot audition preserves the paused machine and restores the author bank on Resume.",
+    "Synth Round robin and sound-file selection preserve song playback; Code Run and SID songs remain exclusive.",
+    "File chooser, preflight and Capture still permit held-note cleanup on the accepted engine."
+  ],
+  "node": [
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/node-synth.log",
+        "bytes": 28149,
+        "sha256": "94d9ac9b426d2be06d420118139142bace6486d148bd36f797339529244d1323"
+      },
+      "passed": 247
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/npm-test-player.log",
+        "bytes": 17453,
+        "sha256": "131c430704237f242fd1186d3a973ba3578fdce5022b0b2c179c40612ea161fb"
+      },
+      "passed": 149
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/node-sid8580-endpoint.log",
+        "bytes": 646,
+        "sha256": "f50e31a875f199af55375fc97ace367b2fada10bd1c6ea33702df17d5f552a1d"
+      },
+      "passed": 5
+    }
+  ],
+  "browsers": [
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/song-manual-b.json",
+        "bytes": 18346,
+        "sha256": "3a465ee0b12951b539f734e35e76f026c5b11746cdae9fdd0c7ba97449d8d432"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 10
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 10
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/import-b.json",
+        "bytes": 42477,
+        "sha256": "876e88a2960b608ecd6174f88a91c7a6684659360f151df9a217d98f19786304"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 46
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 46
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/transport-b.json",
+        "bytes": 27688,
+        "sha256": "15a6b3ee1c80ba831d5f163c02946e936486bbdf0985ebd3330635479aed0a73"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 5
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 5
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/code-presets-b.json",
+        "bytes": 18509,
+        "sha256": "3cfd3aa56662f2d8ecf8eb6070afb902ce729192d995bd7bfb41ba21cbfc98e2"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 5
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 5
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/synth-b.json",
+        "bytes": 22784,
+        "sha256": "6a2805231dc57e63d7799b39d334fed2a3280a76c467f90566e12d3b6db794b5"
+      },
+      "results": [
+        {
+          "passed": true,
+          "checks": 20
+        },
+        {
+          "passed": true,
+          "checks": 20
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "build/verification/sid-song-manual-20261113/player-source.json",
+        "bytes": 995281,
+        "sha256": "bb688f445cc22ad30dc6a6d23462a3c75d4615e374d7d7fd9f9e4e5bb6a5d360"
+      },
+      "results": [
+        {
+          "passed": true,
+          "checks": 35
+        },
+        {
+          "passed": true,
+          "checks": 35
+        }
+      ]
+    }
+  ],
+  "unchangedPlayback": {
+    "profiles": 12,
+    "frames": 196608,
+    "exactPcm": true,
+    "exactHardwareState": true,
+    "ignoredDiagnosticField": "linkedSidFunctions: sid8e_write added"
+  },
+  "package": {
+    "passed": true,
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_sid_synth_sid-song-manual-20261113b-uEFCkT",
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_sid_synth_sid-song-manual-20261113b_itch.zip",
+    "files": 335,
+    "bundles": 5,
+    "archiveRecord": {
+      "bytes": 3502784,
+      "sha256": "c380285a2d8da7cbd8029d2a858b61bac288bfb61a0667bf1197f2181cbe6e05"
+    },
+    "integrity": {
+      "passed": true,
+      "files": 335,
+      "archiveCrc": true,
+      "allStageBytesMatchZip": true,
+      "readableManualModules": true,
+      "nativeManualExportsIncluded": true,
+      "archive": {
+        "bytes": 3502784,
+        "sha256": "c380285a2d8da7cbd8029d2a858b61bac288bfb61a0667bf1197f2181cbe6e05"
+      }
+    }
+  },
+  "implementation": [
+    {
+      "path": "docs/synth-sid/synth.js",
+      "bytes": 41462,
+      "sha256": "9d7488888c7b22ea89fb75eab22d2ed92257b4528ce4ddf3c768e3b7e1181366"
+    },
+    {
+      "path": "docs/synth-sid/editor.js",
+      "bytes": 21283,
+      "sha256": "a5da13011b57a9b4a1ddec57868520df32f635f393cba0dff4b8204f2be02119"
+    },
+    {
+      "path": "docs/synth-sid/sid_import.js",
+      "bytes": 26257,
+      "sha256": "8c246c1fc24fd4aeebb8adb193004a83a12ae5e8ec8661effa1bcc7f79211e0c"
+    },
+    {
+      "path": "docs/synth-sid/code_host.js",
+      "bytes": 6139,
+      "sha256": "e5ae5c951dbb8cf41a83124bdc8f9000a542bbc5581c26757d39f725cf71a0fd"
+    },
+    {
+      "path": "docs/sid-player/manual.js",
+      "bytes": 10325,
+      "sha256": "8ca7bdc868132949ec4bcfeddf3a826009f49f983b544dae9b0000a9009dfab1"
+    },
+    {
+      "path": "docs/sid-player/processor.js",
+      "bytes": 6128,
+      "sha256": "ebfa0b24bc9396218eb7d16f2f5552289725535f5e334bfce3beff2041ab5511"
+    },
+    {
+      "path": "docs/sid-player/audio.js",
+      "bytes": 8924,
+      "sha256": "d6d0298682277af7153efd82697fcbbc956e39463fa78ed1521ee68c5f405ce0"
+    },
+    {
+      "path": "docs/generated/sid-player/sid-player.wasm",
+      "bytes": 74221,
+      "sha256": "59ce178613fe86153f8a44d033b692c0cd0e8e4aeb932fadbb20f811fee29184"
+    },
+    {
+      "path": "docs/generated/sid-rsid/sid-rsid.wasm",
+      "bytes": 116499,
+      "sha256": "a60c5d13fe26337fd9b48813c595c24405b91f6fa954154c89bf63af5192ea2c"
+    },
+    {
+      "path": "docs/generated/sid8580-machine/sid8580-endpoint.wasm",
+      "bytes": 1402110,
+      "sha256": "ea48a2460cc85103976ec84db3e14198796cedf77b1002974176931734aa3e37"
+    },
+    {
+      "path": "docs/generated/sid8580-machine/sid8580-machine.wasm",
+      "bytes": 113468,
+      "sha256": "b4af959f11c8bcf65c96b39a75c0a385a6666ce57c215b719b67f8ab685b5b03"
+    }
+  ],
+  "limits": [
+    "Automated checks use original authored fixtures and muted PCM inspection, not human listening or exhaustive compatibility of every SID tune.",
+    "SPU PSF playback plus manual intervention remains a separate next task."
+  ]
+}

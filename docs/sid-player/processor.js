@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {SidPlayerCore} from './core.js';
-import {RsidPlayerCore} from './rsid_core.js';
-import {Sid8580PlayerCore} from './core8580.js';
+import {SidPlayerCore} from './core.js?sid-manual=1';
+import {RsidPlayerCore} from './rsid_core.js?sid-manual=1';
+import {Sid8580PlayerCore} from './core8580.js?sid-manual=1';
+import {SidPlayerManual} from './manual.js?sid-manual=1';
 
-const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read']);
-const TRANSPORT_PROTOCOL = 2;
+const MANUAL_COMMANDS=['manualEdit','manualNoteOn','manualNoteOff','manualPitch','manualRelease'];
+const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read',...MANUAL_COMMANDS]);
+const TRANSPORT_PROTOCOL = 3;
 class SidPlayerProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
     super(); this.dead = false; this.core = null; this.playing = false; this.paused = false; this.startEpoch = 0;
@@ -23,11 +25,12 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
     this.ready = Core.create(options).then(core => {
       if (this.dead) {core.dispose(); return;}
       this.core = core;
+      this.manual = new SidPlayerManual(core);
       this.port.postMessage({ready: true, transportProtocol: TRANSPORT_PROTOCOL, supportedCommands: [...COMMANDS]});
     }).catch(error => this.fail(error));
     this.commands = this.ready;
   }
-  state() {return {...this.core.getState(), playing: this.playing, paused: this.paused};}
+  state() {return {...this.core.getState(), playing: this.playing, paused: this.paused,...this.manual.describe()};}
   clearBridge() {this.bridgeRemaining = 0; this.bridgeFrom = 0; this.lastOutput = 0;}
   beginBridge() {this.bridgeFrom = this.lastOutput; this.bridgeRemaining = this.bridgeFrames;}
   dispose() {if (!this.dead) {this.dead = true; this.playing = false; this.paused = false; this.clearBridge(); this.core?.dispose(); this.core = null;}}
@@ -50,7 +53,7 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
         if (!COMMANDS.has(data?.method)) throw new Error('Unknown SID player command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('SID player arguments must be an array');
         const args = data.args ?? [];
-        if (data.method === 'load') {this.core.load(args[0], args[1]); this.playing = false; this.paused = false; this.clearBridge();}
+        if (data.method === 'load') {this.core.load(args[0], args[1]); this.manual.reset(); this.playing = false; this.paused = false; this.clearBridge();}
         if (['start', 'pause', 'resume'].includes(data.method) && startEpoch !== this.startEpoch)
           throw new Error(`SID ${data.method} was cancelled`);
         if (data.method === 'start' || data.method === 'resume') {
@@ -61,10 +64,16 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
         }
         if (data.method === 'pause') {
           if (!this.playing && !this.paused) throw new Error('Start a SID before pausing');
+          this.manual.release();
           if (this.playing) this.beginBridge();
           this.playing = false; this.paused = true;
         }
-        if (data.method === 'stop') {this.playing = false; this.paused = false; this.clearBridge(); this.core.stop();}
+        if (data.method === 'stop') {this.playing = false; this.paused = false; this.clearBridge(); this.manual.reset(); this.core.stop();}
+        if (MANUAL_COMMANDS.includes(data.method)) {
+          if (!this.playing && data.method !== 'manualRelease') throw new Error('SID manual input requires song playback');
+          const method={manualEdit:'edit',manualNoteOn:'noteOn',manualNoteOff:'noteOff',manualPitch:'setPitch',manualRelease:'release'}[data.method];
+          this.manual[method](...args);
+        }
         if (data.id !== undefined) this.port.postMessage({id: data.id, value: this.state()});
       } catch (error) {
         if (data?.id !== undefined) this.port.postMessage({id: data.id, error: error.message, name: error.name});

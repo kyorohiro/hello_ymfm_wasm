@@ -303,6 +303,133 @@ test('live view follows one coherent state without adopting presets, writing reg
   assert.throws(()=>h.controller.setLiveEnabled('true'),TypeError);await h.controller.dispose();assert.equal(h.timers.size,0);
 });
 
+test('manual controls borrow only the running accepted engine and forward detached sparse edits and masks',async()=>{
+  const h=harness(),control=h.controller;
+  assert.equal(control.read().manualReady,false);assert.equal(await control.manualNoteOn('early',0,60),false);
+  await control.loadFile(file(authored()));assert.equal(await control.manualEdit(0,{voice:{attack:5}}),false);
+  await control.play();assert.equal(control.read().manualReady,true);const engine=h.engines[0];
+  const patch={voice:{attack:5,waveform:'triangle+saw'},filter:{mode:'notch'}},masks={waveformBits:1,filterModeBits:4};
+  const edited=snapshot();edited.registers[5]=0x54;edited.manualVoices=[];edited.manualPitch=0;h.config.manualEditState=edited;
+  const pending=control.manualEdit(1,patch,masks);patch.voice.attack=15;masks.waveformBits=8;
+  const ack=await pending;assert.deepEqual(engine.messages.at(-1),{method:'manualEdit',args:[1,{voice:{attack:5,waveform:'triangle+saw'},filter:{mode:'notch'}},{waveformBits:1,filterModeBits:4}]});
+  assert.deepEqual(ack,edited);ack.registers[5]=0;assert.equal(control.read().liveState.registers[5],0x54);
+  const note={...snapshot(),manualVoices:[{id:'key',channel:1,midi:64,gateOwned:true,pitchOwned:true}],manualPitch:2};h.config.manualNoteOnState=note;
+  await control.manualNoteOn('key',1,64,2);assert.deepEqual(engine.messages.at(-1),{method:'manualNoteOn',args:['key',1,64,2]});
+  const state=control.read();assert.deepEqual(state.manualVoices,note.manualVoices);assert.equal(state.manualPitch,2);state.manualVoices[0].id='outside';assert.equal(control.read().manualVoices[0].id,'key');
+  await control.manualPitch(3);assert.deepEqual(engine.messages.at(-1),{method:'manualPitch',args:[3]});
+  await control.manualNoteOff('key');assert.deepEqual(engine.messages.at(-1),{method:'manualNoteOff',args:['key']});
+  await control.manualRelease();assert.deepEqual(engine.messages.at(-1),{method:'manualRelease',args:[]});
+  assert.equal(h.engines.length,1);assert.equal(h.used.length,0);assert(control.read().playing);assert.equal(engine.disposeCount,0);
+  await control.pause();assert.equal(control.read().manualReady,false);const count=engine.messages.length;
+  for(const result of [await control.manualEdit(0,{voice:{attack:9}}),await control.manualNoteOn('paused',0,60),await control.manualNoteOff('key'),await control.manualPitch(1)])assert.equal(result,false);
+  assert.equal(engine.messages.length,count);await control.manualRelease();assert.equal(engine.messages.at(-1).method,'manualRelease');assert(control.read().paused);
+  await control.dispose();
+});
+
+test('Auto update off preserves manual access and stores command ACK ownership without starting observation polls',async()=>{
+  const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();await h.tick();
+  control.setLiveEnabled(false);assert.equal(h.timers.size,0);assert(control.read().manualReady);
+  const ack={...snapshot(),positionFrames:16384,manualVoices:[{id:'manual',channel:2,midi:57,gateOwned:true,pitchOwned:false}],manualPitch:-1};h.config.manualEditState=ack;
+  await control.manualEdit(2,{voice:{pulseWidth:123}});const state=control.read();
+  assert.equal(state.liveEnabled,false);assert.equal(state.liveActive,false);assert.equal(state.liveWaiting,false);assert.equal(h.timers.size,0);
+  assert.deepEqual(state.liveState,ack);assert.deepEqual(state.manualVoices,ack.manualVoices);assert.equal(state.manualPitch,-1);assert(state.playing);
+  assert.equal(h.engines[0].messages.filter(row=>row.method==='read').length,1);assert.equal(h.used.length,0);
+  await control.dispose();
+});
+
+test('manual dispatch fences an older live read and leaves at most one observation pending after its ACK',async()=>{
+  const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();await h.tick();
+  const poll=deferred(),command=deferred();h.config.readWait=poll;await h.tick();h.config.manualEditWait=command;
+  const ack={...snapshot(),positionFrames:24000,manualVoices:[],manualPitch:0};h.config.manualEditState=ack;
+  const pending=control.manualEdit(0,{voice:{attack:4}});assert.equal(h.timers.size,0);
+  command.resolve();await pending;assert.deepEqual(control.read().liveState,ack);assert.equal(h.timers.size,0,'the earlier read still owns the sole observation slot');
+  poll.resolve({...snapshot(),positionFrames:100});await flush();assert.deepEqual(control.read().liveState,ack);assert.equal(h.timers.size,1);
+  const next={...snapshot(),positionFrames:30000,manualVoices:[{id:'key',channel:0,midi:60,gateOwned:false,pitchOwned:false}],manualPitch:0};h.config.readState=next;await h.tick();
+  assert.deepEqual(control.read().manualVoices,next.manualVoices,'ordinary observations track later source ownership writes');assert.equal(control.read().liveState.positionFrames,30000);
+  await control.dispose();
+});
+
+test('a delayed older manual ACK cannot replace a newer command state',async()=>{
+  const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();control.setLiveEnabled(false);
+  const wait=deferred();h.config.manualEditWait=wait;const older=control.manualEdit(0,{voice:{attack:3}});
+  const latest={...snapshot(),positionFrames:20000,manualVoices:[],manualPitch:0};h.config.manualEditState=latest;
+  assert.deepEqual(await control.manualEdit(1,{voice:{decay:7}}),latest);const updates=h.updates.length;
+  h.config.manualEditState={...snapshot(),positionFrames:50};wait.resolve();assert.equal(await older,false);
+  assert.deepEqual(control.read().liveState,latest);assert.equal(h.updates.length,updates+1,'a stale ACK can notify readiness but cannot replace state');
+  await control.dispose();
+});
+
+test('Stop, Pause, replacement and disposal fence delayed manual ACKs without reviving old ownership',async()=>{
+  for(const action of ['stop','pause','replacement','dispose']){
+    const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();await h.tick();
+    const wait=deferred();h.config.manualNoteOnWait=wait;const pending=control.manualNoteOn('late',0,60);
+    if(action==='stop')await control.stop();else if(action==='pause')await control.pause();
+    else if(action==='replacement'){await control.loadFile(file(authored('8580')));await control.play();}else await control.dispose();
+    const saved=control.read().liveState,updates=h.updates.length;h.config.manualNoteOnState={...snapshot(),positionFrames:90000,manualVoices:[{id:'late',channel:0,midi:60,gateOwned:true,pitchOwned:true}],manualPitch:0};
+    wait.resolve();assert.equal(await pending,false);assert.deepEqual(control.read().liveState,saved);assert.equal(h.updates.length,updates);assert.deepEqual(control.read().manualVoices,[]);
+    if(action==='replacement'){assert(control.read().playing);assert.equal(h.timers.size,1,'an old command cannot block observations of the replacement engine');}
+    if(action!=='dispose')await control.dispose();
+  }
+});
+
+test('key cleanup reaches the accepted player during chooser, candidate load or capture without replacing their UI',async()=>{
+  for(const operation of ['chooser','candidate','capture']){
+    const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();await h.tick();
+    const held={...snapshot(),manualVoices:[{id:'held',channel:0,midi:60,gateOwned:true,pitchOwned:true}],manualPitch:1};
+    h.config.manualNoteOnState=held;await control.manualNoteOn('held',0,60,1);
+    const saved=control.read().snapshot,frozen=control.read().liveState,engine=h.engines[0];
+    let finish,pending,token;
+    if(operation==='chooser')token=control.beginFileSelection();
+    else if(operation==='candidate'){
+      finish=deferred();h.config.preflightWait=finish;pending=control.loadFile(file(authored('8580'),'candidate.sid'));await flush();assert(control.read().loading);
+    }else{
+      control.setLiveEnabled(false);finish=deferred();h.config.readWait=finish;pending=control.capture();await flush();assert(control.read().capturing);
+    }
+    const before=control.read(),updates=h.updates.length,count=engine.messages.length;assert.equal(before.manualReady,false);
+    assert.equal(await control.manualEdit(0,{voice:{attack:9}}),false);assert.equal(await control.manualNoteOn('new',0,64),false);assert.equal(await control.manualPitch(2),false);
+    assert.equal(engine.messages.length,count,'busy operations reject edits, new notes and pitch');
+    const released={...snapshot(),positionFrames:32768,manualVoices:[],manualPitch:0};h.config.manualNoteOffState=released;h.config.manualReleaseState=released;
+    assert.deepEqual(await control.manualNoteOff('held'),released);assert.equal(engine.messages.at(-1).method,'manualNoteOff');
+    assert.deepEqual(await control.manualRelease(),released);assert.equal(engine.messages.at(-1).method,'manualRelease');
+    const after=control.read();assert.equal(after.message,before.message);assert.equal(after.liveMessage,before.liveMessage);
+    assert.deepEqual(after.liveState,frozen);assert.deepEqual(after.snapshot,saved);assert.deepEqual(after.manualVoices,[]);assert.equal(h.updates.length,updates,'cleanup must not replace the busy operation display');
+    assert.equal(engine.disposeCount,0);assert(after.playing);
+    if(operation==='chooser'){assert(control.cancelFileSelection(token));assert.equal(h.timers.size,1);}
+    else if(operation==='candidate'){h.config.preflightError=Error('rejected candidate');finish.resolve();assert.equal(await pending,false);assert.equal(control.read().selection.model,'6581');assert.equal(h.timers.size,1);}
+    else{finish.resolve(released);assert.equal(await pending,true);assert.equal(control.read().snapshot.positionFrames,released.positionFrames);}
+    assert.equal(engine.disposeCount,0);assert.equal(h.used.length,0);await control.dispose();
+  }
+});
+
+test('cleanup already in flight preserves a later chooser and cannot cross an accepted engine replacement',async()=>{
+  for(const operation of ['chooser','replacement']){
+    const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();await h.tick();
+    const old=h.engines[0],wait=deferred();h.config.manualReleaseWait=wait;
+    const pending=control.manualRelease();const frozen=control.read().liveState;
+    let token;
+    if(operation==='chooser')token=control.beginFileSelection();
+    else{await control.loadFile(file(authored('8580'),'replacement.sid'));await control.play();}
+    const before=control.read(),updates=h.updates.length;
+    const ack={...snapshot(),positionFrames:90000,manualVoices:[],manualPitch:0};h.config.manualReleaseState=ack;wait.resolve();
+    const result=await pending;
+    if(operation==='chooser'){
+      assert.deepEqual(result,ack);assert(control.read().choosingFile);assert.equal(control.read().message,before.message);assert.equal(control.read().liveMessage,before.liveMessage);
+      assert.deepEqual(control.read().liveState,frozen);assert.equal(h.updates.length,updates);assert(control.cancelFileSelection(token));
+    }else{
+      assert.equal(result,false);assert.deepEqual(control.read().liveState,before.liveState);assert.equal(h.updates.length,updates);
+      assert.equal(h.engines[1].messages.some(message=>message.method==='manualRelease'),false);assert.equal(control.read().selection.model,'8580');assert.equal(h.timers.size,1);
+    }
+    assert.equal(old.messages.filter(message=>message.method==='manualRelease').length,1);await control.dispose();
+  }
+});
+
+test('manual command rejection keeps the running song and retries normal observation without applying a preset',async()=>{
+  const h=harness(),control=h.controller;await control.loadFile(file(authored()));await control.play();await h.tick();const previous=control.read().liveState;
+  h.config.manualEditError=new RangeError('Invalid ratio');await assert.rejects(control.manualEdit(0,{modulation:{ratio:99}}),/Invalid ratio/);
+  assert(control.read().playing);assert(control.read().manualReady);assert.deepEqual(control.read().liveState,previous);assert.equal(h.engines[0].disposeCount,0);assert.equal(h.used.length,0);assert.equal(h.timers.size,1);
+  await h.tick();assert(control.read().liveActive);await control.dispose();
+});
+
 test('slow live reads never create interval backlogs and an explicit capture waits for its own newer read',async()=>{
   const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();const wait=deferred();h.config.readWait=wait;
   await h.tick();assert.equal(h.engines[0].messages.filter(row=>row.method==='read').length,1);assert.equal(h.timers.size,0);

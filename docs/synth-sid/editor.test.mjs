@@ -38,16 +38,17 @@ function editorFixture(t,options={}){
   return{root,doc,changes,errors,editor};
 }
 
-test('editable Code observations emit only touched fields for the displayed CH while song observations stay read-only',async t=>{
-  const edits=[],f=editorFixture(t,{onLiveChange:(patch,voice)=>edits.push({patch,voice})}),saved=f.editor.getPreset();
+test('editable performance observations emit touched fields and packed-bit masks while locked observations stay read-only',async t=>{
+  const edits=[],f=editorFixture(t,{onLiveChange:(patch,voice,masks)=>edits.push({patch,voice,masks})}),saved=f.editor.getPreset();
   const registers=new Array(32).fill(0);registers[7]=45;registers[8]=12;registers[11]=0x43;registers[12]=0x98;registers[13]=0x76;registers[23]=0x92;registers[24]=0x18;
   const observation=readSidLiveVoice({model:'6581',clockHz:985248,sampleRate:48000,positionFrames:100,registers,voices:[{envelope:0},{envelope:90},{envelope:0}]},1);
   f.editor.observe(observation,{active:true,editable:true});
   assert.equal(find(f.root,'attack').disabled,false);assert.equal(choice(f.root,'sidModel','6581').disabled,true);
-  await step(f.root,'attack',1).fire('click');assert.deepEqual(edits.at(-1),{patch:{voice:{attack:10}},voice:1});
-  const cutoff=find(f.root,'filterCutoffRange');cutoff.value='876';await cutoff.fire('input');assert.deepEqual(edits.at(-1),{patch:{filter:{cutoff:876}},voice:1});
+  await step(f.root,'attack',1).fire('click');assert.deepEqual(edits.at(-1),{patch:{voice:{attack:10}},voice:1,masks:{}});
+  const cutoff=find(f.root,'filterCutoffRange');cutoff.value='876';await cutoff.fire('input');assert.deepEqual(edits.at(-1),{patch:{filter:{cutoff:876}},voice:1,masks:{}});
   const dry=structuredClone(observation);dry.filter.routed=false;f.editor.observe(dry,{active:true,editable:true});
-  await find(f.root,'filterBandpass').fire('click');assert.deepEqual(edits.at(-1),{patch:{filter:{enabled:true,mode:'lowpass+bandpass'}},voice:1},'a dry selected CH preserves the shared LP output used by another CH');
+  await find(f.root,'filterBandpass').fire('click');assert.deepEqual(edits.at(-1),{patch:{filter:{enabled:true,mode:'lowpass+bandpass'}},voice:1,masks:{filterModeBits:2}},'a dry selected CH preserves the shared LP output used by another CH');
+  await choice(f.root,'waveform','triangle').fire('click');assert.deepEqual(edits.at(-1),{patch:{voice:{waveform:'triangle+pulse'}},voice:1,masks:{waveformBits:1}});
   assert.deepEqual(f.editor.getPreset(),saved);assert.equal(f.changes.length,0);
   f.editor.observe(observation,{active:true});assert.equal(find(f.root,'attack').disabled,true);
   const count=edits.length;await step(f.root,'attack',1).fire('click');assert.equal(edits.length,count);
@@ -307,7 +308,7 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:selector==='[data-sid-keyboard-mode]'?keyboardModes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
   const visualEvents=[];
   const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
-  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0},observations=[];
+  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0},observations=[],editorHooks={};
   const codeLive={state:{liveKind:'code',liveEnabled:true,liveVoice:0,liveActive:false,liveWaiting:false,liveState:null},
     read(){return {...this.state};},
     sync(){if(!this.hooks.isRunning())Object.assign(this.state,{liveState:null,liveActive:false,liveWaiting:false});},
@@ -341,22 +342,27 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
   };
   const createAudio=({signal,model})=>{audioOptions.push({model});const engine=makeEngine(model);if(!isStalled)return Promise.resolve(engine);return new Promise((resolve,reject)=>{const item={resolve:()=>resolve(engine),reject,engine};pending.push(item);signal.addEventListener('abort',()=>{engine.disposed=true;reject(new DOMException('cancelled','AbortError'));},{once:true});});};
   const entries=[{key:'a',label:'A',midi:60},{key:'s',label:'S',midi:64},{key:'d',label:'D',midi:67},{key:'f',label:'F',midi:71}];
-  const importState={playing:false,starting:false,paused:false,pausing:false,resuming:false},importCalls=[];
-  const importer={state:importState,calls:importCalls,read:()=>({...importState}),setVolume(){},dispose:async()=>{},
+  const importState={playing:false,starting:false,paused:false,pausing:false,resuming:false,liveEnabled:true,liveVoice:0,manualReady:false},importCalls=[],manualCalls=[],manualOwners=new Map();
+  const importer={state:importState,calls:importCalls,manualCalls,read:()=>({...importState}),setVolume(){},dispose:async()=>{},
+    async manualEdit(...args){manualCalls.push(['manualEdit',...args]);return importState.liveState;},
+    async manualNoteOn(id,channel,midi,pitch){manualCalls.push(['manualNoteOn',id,channel,midi,pitch]);manualOwners.set(id,{id,channel,midi,gateOwned:true,pitchOwned:true});importState.liveState={...importState.liveState,manualVoices:[...manualOwners.values()]};importer.hooks.onUpdate(importer.read());return importState.liveState;},
+    async manualNoteOff(id){manualCalls.push(['manualNoteOff',id]);manualOwners.delete(id);importState.liveState={...importState.liveState,manualVoices:[...manualOwners.values()]};importer.hooks.onUpdate(importer.read());return importState.liveState;},
+    async manualPitch(value){manualCalls.push(['manualPitch',value]);return importState.liveState;},
+    async manualRelease(){manualCalls.push(['manualRelease']);manualOwners.clear();return importState.liveState;},
     setLiveVoice(voice){importState.liveVoice=voice;importer.hooks.onUpdate(importer.read());},
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
   const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,
-    setupSidCodeHost:hooks=>{code.activity=hooks.onActivity;return{ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,
+    setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,
       async stop(){code.running=false;code.stops++;code.activity();await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}};},
     createSidCodeLive:hooks=>{codeLive.hooks=hooks;return codeLive;},
-    createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active});},dispose(){}}),
-    createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:hooks=>{importer.panelHooks=hooks;return{update(){},dispose(){}};},createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
+    createEditor:hooks=>{Object.assign(editorHooks,hooks);return{update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active,editable:options?.editable});},dispose(){}};},
+    createSidImport:hooks=>{importer.hooks={...hooks,onUpdate(state){Object.assign(importState,{playing:false,starting:false,paused:false,pausing:false,resuming:false,manualReady:false},state);hooks.onUpdate({...importState});}};return importer;},createSidImportPanel:hooks=>{importer.panelHooks=hooks;return{update(){},dispose(){}};},createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,Event,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
   vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,updateKeys,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,codeLive,observations,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
+  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,codeLive,observations,editorHooks,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
 }
 
 test('Code Live selects only an observed physical channel and never adopts its raw settings into the authored sound',async()=>{
@@ -371,7 +377,7 @@ test('Code Live selects only an observed physical channel and never adopts its r
   await f.ui.chooseChannel(1);assert.equal(f.observations.at(-1).value.pulseWidth,86);
   assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.calls.length,writes);assert.equal(f.code.dirty,dirty);assert.equal(f.code.stops,0);
   assert.equal(f.importer.panelHooks.onLiveChange(false),true);assert.equal(f.observations.at(-1).active,false);assert.equal(f.code.running,true);
-  assert.equal(f.importer.state.liveEnabled,undefined,'Code checkbox does not change the song Auto preference');
+  assert.equal(f.importer.state.liveEnabled,true,'Code checkbox does not change the song Auto preference');
   f.code.running=false;f.code.activity();assert.equal(f.doc.getElementById('sidLiveEnabledLabel').textContent,'Auto update from song');
   assert.equal(f.doc.getElementById('sidLiveChannelLabel').textContent,'Edit & play');assert.equal(f.observations.at(-1).active,false);
   assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.importer.panelHooks.onLiveChange(true),false);
@@ -475,26 +481,79 @@ test('desktop preview routing selects its separate graph before playback and pre
   f.importer.hooks.onPreviewStop(preview);assert.equal(f.bridge.getOutput(),null);
 });
 
-test('a keyboard gesture fences song preview immediately and waits for its close before sounding the Synth',async()=>{
-  const f=appFixture();let finish;f.importer.holdStop=new Promise(resolve=>{finish=resolve;});f.importer.state.playing=true;
-  f.ui.press('pointer:1',f.entries[0]);
-  assert.equal(f.importer.state.playing,false,'song ownership is retired synchronously');
-  assert.equal(f.audioOptions.length,1,'Synth audio still opens in the original gesture');
-  await flush();assert.equal(f.calls.some(call=>call[1]==='noteOn'),false,'song close gates the new audible note');
-  finish();await flush();await flush();assert.equal(f.calls.filter(call=>call[1]==='noteOn').length,1);
-  await f.doc.getElementById('stopAudio').fire('click');await flush();
-  assert.equal(f.importer.calls.length,2,'global Stop also retires the song');assert.equal(f.ui.getNotes().length,0);
+test('song CH keys, Pitch and touched controls reach the running player without author allocation or stopping playback',async()=>{
+  const f=appFixture(),saved=readChannelSettings(f.ui.getSettings());
+  f.importer.hooks.onUpdate({playing:true,manualReady:true,liveVoice:1,liveState:autoState()});await f.ui.chooseChannel(1);
+  f.ui.press('pointer:1',f.entries[0]);await flush();await flush();
+  const attack=f.importer.manualCalls.find(call=>call[0]==='manualNoteOn');assert(attack);assert.deepEqual(attack.slice(2),[1,60,0]);
+  assert.equal(f.importer.state.playing,true);assert.equal(f.importer.calls.length,0);assert.equal(f.audioOptions.length,0);assert.equal(f.ui.getNotes().length,1);
+  f.ui.setPitch(1);await flush();assert.deepEqual(f.importer.manualCalls.at(-1),['manualPitch',1]);
+  await f.editorHooks.onLiveChange({voice:{attack:9}},1,{});assert.deepEqual(f.importer.manualCalls.at(-1),['manualEdit',1,{voice:{attack:9}},{}]);
+  f.ui.release('pointer:1');await flush();assert.deepEqual(f.importer.manualCalls.at(-1),['manualNoteOff',attack[1]]);
+  assert.deepEqual(readChannelSettings(f.ui.getSettings()),saved);assert.equal(f.engines.length,0);
+  await f.doc.getElementById('stopAudio').fire('click');await flush();assert.equal(f.importer.calls.length,1,'global Stop still retires the song');assert.equal(f.ui.getNotes().length,0);
 });
 
-test('keyboard attacks retire paused or changing preview ownership before sounding the Synth',async()=>{
-  for(const mode of ['paused','pausing','resuming']){
-    const f=appFixture();let finish;f.importer.state[mode]=true;
-    f.importer.holdStop=new Promise(resolve=>{finish=resolve;});
-    f.ui.press('pointer:1',f.entries[0]);
-    assert.equal(f.importer.state[mode],false);assert.equal(f.audioOptions.length,1);
-    await flush();assert.equal(f.calls.some(call=>call[1]==='noteOn'),false);
-    finish();await flush();await flush();assert.equal(f.calls.filter(call=>call[1]==='noteOn').length,1);
+test('song transport transitions reject keys and a paused CH auditions its frozen sound without moving the song',async()=>{
+  for(const mode of ['starting','pausing','resuming']){
+    const f=appFixture();f.importer.hooks.onUpdate({[mode]:true,paused:mode==='resuming',manualReady:false});
+    f.ui.press('transition',f.entries[0]);await flush();assert.equal(f.importer.state[mode],true);assert.equal(f.engines.length,0);assert.equal(f.ui.getNotes().length,0);assert.equal(f.importer.calls.length,0);
   }
+  const f=appFixture(),saved=readChannelSettings(f.ui.getSettings()),frozen=autoState();
+  f.importer.hooks.onUpdate({paused:true,liveVoice:0,liveState:frozen});
+  f.ui.press('paused',f.entries[0]);await flush();await flush();
+  assert.equal(f.importer.state.paused,true);assert.equal(f.importer.calls.length,0);assert.equal(f.engines.length,1);
+  const audition=await f.engines[0].read();assert.equal(audition.preset.voice.waveform,'pulse');assert.equal(audition.voices.length,1);
+  assert.deepEqual(readChannelSettings(f.ui.getSettings()),saved,'temporary audition never becomes the author preset');assert.deepEqual(f.importer.state.liveState,frozen);
+  f.ui.release('paused');await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,0);
+  await f.ui.stopNotes();assert.deepEqual((await f.engines[0].read()).channelSettings,saved);assert.equal(f.importer.state.paused,true);
+  const empty=appFixture();empty.importer.hooks.onUpdate({paused:true,liveVoice:0,liveState:null});
+  assert.doesNotThrow(()=>empty.ui.press('empty',empty.entries[0]));assert.equal(empty.ui.getNotes().length,0);assert.equal(empty.engines.length,0);
+});
+
+test('later song ownership removes stale key indicators and an author read cannot remove a live player owner',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();
+  f.importer.hooks.onUpdate({playing:true,manualReady:true,liveVoice:0,liveState:autoState()});
+  f.ui.press('song',f.entries[0]);await flush();await flush();assert.equal(f.ui.getNotes().length,1);
+  const edited=readPreset(f.ui.getPreset());edited.voice.attack++;
+  await f.ui.applyPreset(edited);assert.equal(f.ui.getNotes().length,1,'an author state read ignores player-owned IDs');
+  const source={...f.importer.state.liveState,manualVoices:[]};f.importer.hooks.onUpdate({...f.importer.read(),liveState:source});
+  assert.equal(f.ui.getNotes().length,0,'a later source write retires the keyboard indicator');
+  const releases=f.importer.manualCalls.filter(call=>call[0]==='manualNoteOff').length;
+  f.ui.release('song');await flush();assert.equal(f.importer.manualCalls.filter(call=>call[0]==='manualNoteOff').length,releases,'old key-up does not issue a new physical release');
+});
+
+test('Resume retires temporary paused audition and restores the complete authored bank without stopping the song',async()=>{
+  const f=appFixture(),saved=readChannelSettings(f.ui.getSettings());
+  f.importer.hooks.onUpdate({paused:true,liveVoice:0,liveState:autoState()});
+  f.ui.press('paused',f.entries[0]);await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,1);
+  f.importer.hooks.onUpdate({...f.importer.read(),paused:false,resuming:true});await flush();await flush();
+  assert.equal(f.ui.getNotes().length,0);assert.equal((await f.engines[0].read()).voices.length,0);assert.deepEqual((await f.engines[0].read()).channelSettings,saved);
+  f.importer.hooks.onUpdate({...f.importer.read(),resuming:false,playing:true,manualReady:true});
+  f.ui.release('paused');await flush();assert.equal(f.importer.calls.length,0);assert.equal(f.importer.state.playing,true);assert.deepEqual(readChannelSettings(f.ui.getSettings()),saved);
+});
+
+test('Resume before a paused audition startup completes cannot start a temporary note or replace authored settings',async()=>{
+  const f=appFixture({stall:true}),saved=readChannelSettings(f.ui.getSettings()),preview={context:{state:'running'},outputNode:{}};
+  await f.importer.hooks.onPreviewStart(preview,{isCurrent:()=>true});
+  f.importer.hooks.onUpdate({paused:true,liveVoice:0,liveState:autoState()});
+  f.ui.press('pending-paused',f.entries[0]);await flush();assert.equal(f.pending.length,1);assert.equal(f.calls.some(call=>call[1]==='noteOn'),false);
+  f.importer.hooks.onUpdate({...f.importer.read(),paused:true,resuming:true});
+  f.pending[0].resolve();await flush();await flush();await flush();
+  assert.equal(f.calls.some(call=>call[1]==='noteOn'),false);assert.deepEqual((await f.engines[0].read()).channelSettings,saved);
+  assert.deepEqual(readChannelSettings(f.ui.getSettings()),saved);assert.equal(f.importer.calls.length,0);assert.equal(f.importer.state.resuming,true);
+  assert.equal(f.ui.getNotes().length,0,'a cancelled startup must clear its pending key indicator');
+  f.ui.release('pending-paused');await flush();assert.equal(f.calls.some(call=>call[1]==='noteOff'),false);
+});
+
+test('closing the preview preserves a held Synth Round robin key and its later release',async()=>{
+  const f=appFixture(),preview={context:{state:'running'},outputNode:{}};
+  await f.importer.hooks.onPreviewStart(preview,{isCurrent:()=>true});
+  f.importer.hooks.onUpdate({playing:true,manualReady:true,liveVoice:0,liveState:autoState()});await f.ui.chooseChannel('round-robin');
+  f.ui.press('author',f.entries[0]);await flush();await flush();assert.equal(f.ui.getNotes().length,1);
+  f.importer.state.playing=false;f.importer.hooks.onPreviewStop(preview);
+  assert.equal(f.ui.getNotes().length,1,'preview closure only retires player-owned keys');assert.equal((await f.engines[0].read()).voices.length,1);
+  f.ui.release('author');await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,0);
 });
 
 test('stopping Synth notes preserves the live song monitor, while global Stop still stops it',async()=>{
@@ -519,7 +578,8 @@ test('Live CH observation shares the visible editor without changing the authore
   assert.deepEqual(f.ui.getPreset(),before);assert.equal(f.engines.length,0);
   f.importer.hooks.onUpdate({playing:true,liveEnabled:false,liveVoice:2});
   assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
-  assert.equal(f.doc.getElementById('sidLiveView').hidden,true);
+  assert.equal(f.doc.getElementById('sidLiveView').hidden,false,'Live Off freezes the selected song CH instead of changing the target');
+  assert.match(f.doc.getElementById('voiceHeading').textContent,/Frozen CH 3/);
   f.importer.hooks.onUpdate({playing:false,liveEnabled:true,liveVoice:2});
   assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
   assert.equal(f.doc.getElementById('patchStatus').hidden,false);
@@ -597,7 +657,7 @@ test('voice loads and Auto preserve keyboard mode while channel setup files rest
   const f=appFixture();await f.ui.chooseChannel(0);await f.ui.chooseKeyboardMode('legato');
   const voice=readPreset(f.ui.getPreset());voice.voice.waveform='triangle';await f.ui.applyPreset(voice,{load:true});assert.equal(f.ui.getSettings().keyboardMode,'legato');
   f.importer.hooks.onUpdate({playing:true,liveEnabled:true,liveActive:true,liveVoice:0,liveState:autoState(),liveSource:{name:'Auto source',subtune:1}});
-  assert.equal(f.ui.getPreset().voice.waveform,'pulse');assert.equal(f.ui.getSettings().keyboardMode,'legato');
+  assert.equal(f.ui.getPreset().voice.waveform,'triangle','song observation does not replace the authored voice');assert.equal(f.ui.getSettings().keyboardMode,'legato');
   const setup=selectKeyboardMode(selectChannelTarget(createChannelSettings(),2),'legato'),input=f.doc.getElementById('presetFileInput');
   input.files=[{size:1000,text:async()=>JSON.stringify(setup)}];await input.fire('change');assert.deepEqual(f.ui.getSettings(),setup);
   const legacy={...setup,version:1};delete legacy.keyboardMode;input.files=[{size:1000,text:async()=>JSON.stringify(legacy)}];await input.fire('change');
@@ -610,31 +670,32 @@ function autoState(){
   const registers=[...state.registers];registers[4]=0x41;
   return {model:state.model,clockHz:state.clockHz,sampleRate:state.sampleRate,positionFrames:state.positionFrames,registers};
 }
-test('Auto adopts only fresh playable song settings, freezes them for editing and preserves drafts on stale transitions',async()=>{
-  const f=appFixture();await f.ui.chooseChannel(0);const authored=f.ui.getPreset(),liveState=autoState();
-  const frame={playing:true,liveEnabled:true,liveVoice:0,liveState,liveSource:{name:'Auto source',subtune:1}};
-  f.importer.hooks.onUpdate({...frame,liveActive:false,liveWaiting:true});assert.deepEqual(f.ui.getPreset(),authored);
-  f.importer.hooks.onUpdate({...frame,liveActive:true});const adopted=f.ui.getPreset();
-  assert.equal(adopted.voice.waveform,'pulse');assert.equal(adopted.voice.attack,9);
-  assert.equal(f.ui.getSettings().channels[1].voice.waveform,'saw');assert.equal(f.engines.length,0);
-  f.importer.hooks.onUpdate({...frame,liveEnabled:false,liveActive:false});assert.deepEqual(f.ui.getPreset(),adopted);
-  const edited=readPreset(adopted);edited.voice.attack=4;await f.ui.applyPreset(edited);
+test('song Live, frozen and transport observations preserve every author setting while sparse edits target the player',async()=>{
+  const f=appFixture();await f.ui.chooseChannel(0);const authored=readChannelSettings(f.ui.getSettings()),liveState=autoState();
+  const frame={playing:true,manualReady:true,liveEnabled:true,liveVoice:0,liveState,liveSource:{name:'Auto source',subtune:1}};
+  f.importer.hooks.onUpdate({...frame,liveActive:false,liveWaiting:true});assert.deepEqual(readChannelSettings(f.ui.getSettings()),authored);
+  f.importer.hooks.onUpdate({...frame,liveActive:true});assert.equal(f.observations.at(-1).value.waveformMask,0x40);assert.equal(f.observations.at(-1).editable,true);
+  f.importer.hooks.onUpdate({...frame,liveEnabled:false,liveActive:false});assert.equal(f.observations.at(-1).active,true);assert.equal(f.observations.at(-1).editable,true);
+  await f.editorHooks.onLiveChange({voice:{waveform:'triangle+pulse'},filter:{mode:'notch'}},0,{waveformBits:1,filterModeBits:4});
+  assert.deepEqual(f.importer.manualCalls.at(-1),['manualEdit',0,{voice:{waveform:'triangle+pulse'},filter:{mode:'notch'}},{waveformBits:1,filterModeBits:4}]);
   for(const pending of [{starting:true},{loading:true},{choosingFile:true},{pausing:true},{resuming:true}]){
-    f.importer.hooks.onUpdate({...frame,playing:false,paused:true,liveActive:false,...pending});assert.equal(f.ui.getPreset().voice.attack,4);
+    f.importer.hooks.onUpdate({...frame,playing:false,paused:true,manualReady:false,liveActive:false,...pending});assert.deepEqual(readChannelSettings(f.ui.getSettings()),authored);
   }
-  f.importer.hooks.onUpdate({...frame,playing:false,paused:true,liveActive:false});assert.equal(f.ui.getPreset().voice.attack,9,'a stable Pause frame is adopted immediately');
+  f.importer.hooks.onUpdate({...frame,playing:false,paused:true,manualReady:false,liveActive:false});
+  assert.equal(f.observations.at(-1).editable,false,'the paused song state stays frozen');assert.deepEqual(readChannelSettings(f.ui.getSettings()),authored);assert.equal(f.engines.length,0);
 });
 
-test('selecting Round robin under Auto does not reapply the same settings from Pause or later playback frames',async()=>{
-  const f=appFixture();await f.ui.chooseChannel(0);const liveState=autoState();
-  const frame={playing:false,paused:true,liveEnabled:true,liveVoice:0,liveState,liveSource:{name:'Auto source',subtune:1}};
-  f.importer.hooks.onUpdate(frame);const before=f.ui.getSettings().channels;
-  assert.notDeepEqual(before[0].voice,before[1].voice);
-  await f.ui.chooseChannel('round-robin');f.importer.hooks.onUpdate(frame);assert.deepEqual(f.ui.getSettings().channels,before);
-  assert.equal(f.doc.getElementById('sidChannelState').hidden,false,'the paused song still explains that channel settings differ');
-  f.importer.hooks.onUpdate({...frame,paused:false,playing:true,liveActive:true,liveState:{...liveState,positionFrames:12000}});
-  assert.deepEqual(f.ui.getSettings().channels,before,'time advancing alone cannot overwrite the saved CH values');
-  assert.equal(f.doc.getElementById('sidChannelState').hidden,false,'song Live must keep the mixed-channel notice visible');
+test('song CH selection preserves authorship and Synth Round robin auditions the author alongside playback',async()=>{
+  const f=appFixture();await f.ui.chooseChannel(0);const patch=readPreset(f.ui.getPreset());patch.voice.waveform='triangle';await f.ui.applyPreset(patch);
+  const before=readChannelSettings(f.ui.getSettings()),liveState=autoState();
+  const frame={paused:true,liveEnabled:true,liveVoice:0,liveState,liveSource:{name:'Auto source',subtune:1}};f.importer.hooks.onUpdate(frame);
+  await f.ui.chooseChannel(2);assert.equal(f.importer.state.liveVoice,2);assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.engines.length,0);
+  await f.ui.chooseChannel('round-robin');assert.deepEqual(f.ui.getSettings().channels,before.channels);assert.equal(f.observations.at(-1).active,false);
+  f.importer.hooks.onUpdate({...frame,paused:false,playing:true,manualReady:true,liveActive:true,liveState:{...liveState,positionFrames:12000}});
+  assert.equal(f.observations.at(-1).active,false);assert.equal(f.doc.getElementById('sidChannelState').hidden,false);
+  f.ui.press('author',f.entries[0]);await flush();await flush();assert.equal(f.engines.length,1);assert.equal(f.importer.state.playing,true);assert.equal(f.importer.calls.length,0);assert.equal(f.importer.manualCalls.some(call=>call[0]==='manualNoteOn'),false);
+  f.ui.release('author');await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,0);
+  assert.deepEqual(f.ui.getSettings().channels,before.channels,'neither advancing playback nor author audition replaces saved channel patches');
 });
 
 test('an explicit setup file wins over Auto observations while its text is being read',async()=>{
@@ -645,7 +706,9 @@ test('an explicit setup file wins over Auto observations while its text is being
   f.importer.hooks.onUpdate({playing:true,liveEnabled:true,liveActive:true,liveVoice:0,liveState:autoState(),liveSource:{name:'Auto source',subtune:1}});
   finish();await reading;
   assert.equal(f.ui.getSettings().target,2);assert.equal(f.ui.getPreset().voice.waveform,'triangle');
-  assert.equal(f.importer.state.liveEnabled,false,'explicit loading stops automatic replacement');
+  assert.equal(f.importer.state.liveEnabled,true,'loading an author preset preserves the song follow preference');
+  assert.equal(f.importer.calls.length,0,'preset loading does not stop the song');
+  assert.equal(f.observations.at(-1).active,false,'explicit preset loading selects the author route');
 });
 
 test('selecting 8580 before enabling audio initializes that model and exposes Preview without an audio side effect',async()=>{

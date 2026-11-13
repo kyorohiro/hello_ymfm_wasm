@@ -73,12 +73,12 @@
       "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
     },
     "tetorica_src/wasm/sid_player_core.h": {
-      "bytes": 13501,
-      "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+      "bytes": 14144,
+      "sha256": "15ada75bd756be087eb633f1a350a4cabcc0a8b0756e4f543c46128d9106e78f"
     },
     "tetorica_src/wasm/sid_player_wasm.cpp": {
-      "bytes": 2262,
-      "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+      "bytes": 2500,
+      "sha256": "f586d3d03853d3cb1bdf8d69869fdeb89ced175d9899bee3916d76f059eb186e"
     },
     "scripts/build_sid_player_wasm.sh": {
       "bytes": 721,
@@ -94,7 +94,7 @@
     }
   },
   "output": {
-    "bytes": 74312,
-    "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6"
+    "bytes": 74221,
+    "sha256": "59ce178613fe86153f8a44d033b692c0cd0e8e4aeb932fadbb20f811fee29184"
   }
 }

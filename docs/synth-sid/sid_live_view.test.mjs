@@ -263,8 +263,8 @@ test('Code channel changes and return to song keep nodes, focus and help while s
   assert.equal(f.field('frequencyRegister').dataset.changed,'true');assert.equal(help.open,true);assert.equal(f.doc.activeElement,summary);
   f.view.update({liveEnabled:true,liveActive:true,liveVoice:1,liveState:raw,liveSource:{name:'Tune',subtune:1}});
   const importRow=walk(f.root).find(node=>node.children.includes(f.field('import')));
-  assert.equal(importRow.hidden,false);assert.equal(f.root.dataset.liveKind,'song');assert.match(f.status(),/playing SID from Tune/);
-  assert.match(help.children[1].textContent,/Read-only Player observations/);assert.doesNotMatch(help.children[1].textContent,/Code/);
+  assert.equal(importRow.hidden,false);assert.equal(f.root.dataset.liveKind,'song');assert.match(f.status(),/song CH from Tune/);
+  assert.match(help.children[1].textContent,/Song observations/);assert.doesNotMatch(help.children[1].textContent,/Code/);
   assert.deepEqual(walk(f.root),nodes);assert.equal(help.open,true);assert.equal(f.doc.activeElement,summary);
 });
 
