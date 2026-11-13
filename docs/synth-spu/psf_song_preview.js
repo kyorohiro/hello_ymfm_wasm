@@ -12,6 +12,7 @@ const nativeNow=globalThis.performance?.now.bind(globalThis.performance)??Date.n
 const nativeYield=()=>new Promise(resolve=>nativeSchedule(resolve,0));
 const LIVE_INTERVAL_FRAMES=2205; // 44,100 Hz / 20; independent of AudioBuffer size.
 const SPU_RAM_BYTES=512*1024;
+const MANUAL_METHODS=['edit','noteOn','noteOff','setPitchBend','releaseAll','describe'];
 
 function abortable(value,signal) {
   return new Promise((resolve,reject)=>{
@@ -81,7 +82,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
   if(!Number.isInteger(seekChunkFrames)||seekChunkFrames<1||seekChunkFrames>2048)throw new RangeError('PSF seek slices must be 1..2048 frames');
   if(!Number.isFinite(seekMaxSeconds)||seekMaxSeconds<=0||seekMaxSeconds>1800)throw new RangeError('PSF seek range must be greater than zero and at most 1800 seconds');
   if(!Number.isFinite(seekTimeoutMilliseconds)||seekTimeoutMilliseconds<1||seekTimeoutMilliseconds>120000)throw new RangeError('PSF seek timeout must be 1..120000 milliseconds');
-  let source=null,starting=null,run=null,generation=0,disposed=false,liveEnabled=true,liveVoice=0,monitorEnabled=false;
+  let source=null,starting=null,run=null,generation=0,manualSequence=0,disposed=false,liveEnabled=true,liveVoice=0,monitorEnabled=false;
   let seeking=null,seekMessage='',seekCleanup=Promise.resolve(),seekCleanupPending=0;
   let message='Open a PSF set and choose an entry to play.',error=false;
   const disposals=new WeakMap(),closing=new Set(),seekPreparations=new Set();
@@ -107,7 +108,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
     const playing=run?.phase==='playing',paused=run?.phase==='paused',resuming=run?.phase==='resuming';
     const seekPreparing=seekPreparations.size>0;
     const liveState=liveEnabled&&run?audibleObservation(run):null,liveError=liveEnabled?run?.liveError??'':'';
-    const capture=captureStatus(),retained=run?retainedObservations(run):[];
+    const capture=captureStatus(),retained=run?retainedObservations(run):[],manual=manualStatus();
     return {selection:source?{entry:source.entry,title:source.title}:null,name:source?.entry??'',
       playing,paused,resuming,starting:Boolean(starting),busy:Boolean(starting||resuming||seeking||seekPreparing),
       positionSeconds:run?position()/run.rate:0,message,error,
@@ -124,6 +125,8 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
       monitorEnabled,monitorSwitching:Boolean(run?.monitorSwitching),monitorVoice:run?.monitorVoice??null,
       monitorAvailable:Boolean(run?.monitorAvailable),monitorError:Boolean(run?.monitorError),monitorMessage:run?.monitorError??'',
       monitorBufferedBytes:run?run.segments.reduce((bytes,value)=>bytes+(value.voices?.byteLength??0)+(value.selectedBuffer?value.selectedBuffer.length*8:0),0):0,
+      manualAvailable:manual.available,manualReason:manual.reason,manualSession:run?.manualSession??null,
+      manualFrame:run?.rendered??null,manualHeldCount:run?.manualNotes.size??0,
       liveSource:{name:source?.title??'PSF',entry:source?.entry??''}};
   }
   function emit(){if(!disposed)onUpdate(read());}
@@ -144,8 +147,78 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
     item.nextTime=null;
   }
   function cancelRefill(item){if(item.timer!==null){cancel(item.timer);item.timer=null;}}
+  function hasManual(item) {return MANUAL_METHODS.every(name=>typeof item?.core?.manual?.[name]==='function');}
+  function manualStatus() {
+    if(disposed||!run)return {available:false,reason:'Play a PSF song to use its physical channel controls.'};
+    if(seeking||seekPreparations.size)return {available:false,reason:'Wait for PSF seeking to finish before editing a channel.'};
+    if(run.phase!=='playing')return {available:false,reason:'Paused PSF channels use independent keyboard audition. Resume to edit the running chip.'};
+    if(!hasManual(run))return {available:false,reason:'This PSF engine does not expose manual SPU controls. Song playback is kept.'};
+    return {available:true,reason:''};
+  }
+  function manualRun() {
+    const state=manualStatus();
+    if(!state.available) {
+      if(!run||run.phase!=='playing'||seeking||seekPreparations.size)throw new DOMException(state.reason,'AbortError');
+      throw new Error(state.reason);
+    }
+    return run;
+  }
+  function manualChanged(item) {
+    if(run!==item||!current(item))return;
+    // All earlier PCM is already owned by the schedule. The next ordinary
+    // 20 Hz snapshot observes accepted writes without displaying future state.
+    // Preserve its cadence: pointer traffic must not copy RAM per event or
+    // exceed the bounded lookahead history's observation budget.
+    emit();
+  }
+  function editVoice(channel,patch) {
+    const item=manualRun(),result=item.core.manual.edit(channel,patch);
+    if(result!==false)manualChanged(item);
+    return result;
+  }
+  function noteOn(id,channel,midi,options={}) {
+    const item=manualRun(),result=item.core.manual.noteOn(id,channel,midi,options);
+    if(result&&run===item&&current(item)) {
+      if(result.stolenId)item.manualNotes.delete(result.stolenId);
+      item.manualNotes.add(id);manualChanged(item);
+      return {...result,manualSession:item.manualSession,manualFrame:item.rendered};
+    }
+    return result;
+  }
+  function noteOff(id) {
+    const item=run;
+    if(!item||!current(item)||!item.manualNotes.has(id)||!hasManual(item))return false;
+    const result=item.core.manual.noteOff(id);item.manualNotes.delete(id);
+    if(result)manualChanged(item);else emit();
+    return result;
+  }
+  function setPitchBend(value) {
+    const state=manualStatus(),item=run;
+    if(!state.available||!item.manualNotes.size)return false;
+    const result=item.core.manual.setPitchBend(value);
+    if(result)manualChanged(item);
+    return result;
+  }
+  function releaseItemManual(item,{notify=true}={}) {
+    if(!item?.manualNotes.size)return false;
+    // Drop transport ownership before calling out. Even a rejected cleanup
+    // cannot let a late key-up address another run or a fresh source lease.
+    item.manualNotes.clear();
+    if(!hasManual(item))return false;
+    const result=item.core.manual.releaseAll();
+    if(notify&&result)manualChanged(item);else if(notify)emit();
+    return result;
+  }
+  function releaseManual() {return run&&current(run)?releaseItemManual(run):false;}
+  function describeVoice(channel) {
+    if(!Number.isInteger(channel)||channel<0||channel>23)throw new RangeError('PSF manual channel must be an integer 0..23');
+    const state=manualStatus();
+    if(!state.available)return {playable:false,reason:state.reason,channel};
+    return run.core.manual.describe(channel);
+  }
   function retire(item) {
     if(!item)return Promise.resolve();
+    try{releaseItemManual(item,{notify:false});}catch{}
     cancelRefill(item);stopNodes(item);item.controller.abort();item.phase='stopped';
     item.segments=[];clearLive(item);item.monitorOutput.dispose();try{item.monitorGate.disconnect();}catch{}try{item.output.disconnect();}catch{}
     return disposeCore(item.core);
@@ -363,7 +436,8 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
         audio,context,output,monitorGate,rate:44100,segments:[],rendered:frame,consumed:frame,
         monitorAvailable,monitorVoice:monitorEnabled&&monitorAvailable?liveVoice:null,monitorSwitching:false,monitorTask:null,
         monitorError:monitorEnabled&&!monitorAvailable?'Selected-channel listening is unavailable in this PSF engine. Full song playback is kept.':'',
-        nextTime:null,phase,timer:null,liveHistory:[],livePaused:null,liveError:'',nextLiveFrame:frame};
+        nextTime:null,phase,timer:null,liveHistory:[],livePaused:null,liveError:'',nextLiveFrame:frame,
+        manualSession:++manualSequence,manualNotes:new Set()};
       item.monitorOutput=createOutput({getContext:()=>run===item&&current(item)?item.context:null,
         getGain:()=>run===item&&current(item)?item.monitorGate:null});
       return item;
@@ -509,6 +583,9 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
     if(run!==item||!current(item)||item.phase!=='playing')return false;
     trim(item);item.livePaused=liveEnabled?audibleEntry(item):null;
     cancelRefill(item);stopNodes(item);item.phase='paused';
+    // Already-rendered manual PCM remains queued for Resume. Only the future
+    // native boundary releases our still-owned gates; CPU replacements survive.
+    try{releaseItemManual(item,{notify:false});}catch{}
     say(`Paused ${source.title}.`);return true;
   }
   function pause() {return !seeking&&run?pauseRun(run):false;}
@@ -536,6 +613,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
   function setLiveEnabled(value) {
     if(typeof value!=='boolean')throw new TypeError('PSF Live enabled must be boolean');
     if(disposed||liveEnabled===value)return read();
+    if(!value)releaseManual();
     liveEnabled=value;
     if(run) {
       // Off releases lookahead history. One already-audible frozen Pause
@@ -552,6 +630,7 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
   function setLiveVoice(value) {
     if(!Number.isInteger(value)||value<0||value>23)throw new RangeError('PSF Live channel must be an integer 0..23');
     if(disposed||liveVoice===value)return read();
+    releaseManual();
     liveVoice=value;if(run&&monitorEnabled)void requestMonitorSwitch(run);emit();return read();
   }
   async function setMonitorEnabled(value) {
@@ -569,5 +648,6 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
     if(disposed)return;
     disposed=true;await stop();source=null;
   }
-  return {read,setSource,play,pause,resume,stop,dispose,seek,cancelSeek,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused};
+  return {read,setSource,play,pause,resume,stop,dispose,seek,cancelSeek,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused,
+    editVoice,noteOn,noteOff,setPitchBend,releaseManual,describeVoice};
 }

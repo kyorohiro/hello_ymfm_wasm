@@ -30,7 +30,7 @@ constexpr uint32_t cyclesPerSample = 768; // 33,868,800 / 44,100, exactly.
 struct BusEvent { uint32_t frame, kind, address, value; };
 static_assert(sizeof(BusEvent) == 16, "Diagnostic trace ABI");
 
-// Only the CPU bus wiring is added here. Gaussian interpolation, decoding,
+// CPU bus wiring and unclocked editor writes are added here. Gaussian interpolation, decoding,
 // envelopes, mixing, PMON, Noise and reverb remain in the unchanged fixed core.
 class PsfSpu final : public spu_device {
   // A build-only, read-only callback in generate_voice fills this optional
@@ -137,6 +137,12 @@ struct PsfPlayer {
   uint64_t clocks=0, nextFrame=0;
   uint32_t refresh=60, renderedFrames=0;
   uint32_t keyGateMask=0;
+  // Source ownership is independent of the optional bounded diagnostic trace.
+  // Equal-value CPU writes still represent a new source instruction.
+  uint64_t sourceSequence=0;
+  std::array<uint64_t,512> sourceRegisters{};
+  std::array<uint16_t,512> sourceValues{};
+  std::array<uint64_t,24> sourceGates{},sourcePitches{};
   int64_t cpuDebt=0;
   std::string failure;
   uint32_t traceLimit=0;
@@ -153,7 +159,7 @@ struct PsfPlayer {
     // I_STAT is latched independently: clearing SPUSTAT deasserts the source,
     // while the CPU still acknowledges I_STAT through its own register.
   }
-  void write16(uint32_t offset,uint16_t value) {
+  void write16(uint32_t offset,uint16_t value,bool manual=false) {
     const bool volume=(offset<0x180 && (offset&15)<4) || offset==0x180 || offset==0x182;
     const bool sampleAddress=offset<0x180 && ((offset&15)==6 || (offset&15)==14);
     const char* unsupported = volume && (value&0x8000) ? "volume sweeps" :
@@ -164,8 +170,23 @@ struct PsfPlayer {
       std::snprintf(context,sizeof(context)," (SPU +0x%03x = 0x%04x)",offset,unsigned(value));
       throw std::runtime_error(std::string("PSF fixed SPU does not support ")+unsupported+context+".");
     }
-    event(1,offset,value);
+    if(!manual)event(1,offset,value);
     spu.writeBus(offset,value);
+    if(!manual) {
+      const uint64_t revision=++sourceSequence;
+      if(offset<=0x3fe&&!(offset&1)) {
+        sourceRegisters[offset/2]=revision;sourceValues[offset/2]=value;
+      }
+      if(offset<0x180) {
+        const uint32_t channel=offset/16,reg=offset&15;
+        if(reg==4)sourcePitches[channel]=revision;
+        if(reg==6||reg==14)sourceGates[channel]=sourcePitches[channel]=revision;
+      } else if(offset>=0x188&&offset<=0x18e) {
+        const uint32_t shift=(offset&2)?16:0;
+        for(uint32_t channel=shift;channel<std::min<uint32_t>(shift+16,24);channel++)
+          if(value&(1u<<(channel-shift)))sourceGates[channel]=revision;
+      }
+    }
     if (offset==0x188 || offset==0x18a)
       keyGateMask|=(uint32_t(value)<<(offset==0x18a ? 16 : 0))&0xffffff;
     else if (offset==0x18c || offset==0x18e)
@@ -241,7 +262,7 @@ static void registerFunctions() {
   R::RegisterFunction(reinterpret_cast<uintptr_t>(&SWR_Proxy), "_SWR_Proxy", "viii");
   ready = true;
 }
-extern "C" uint32_t psf_abi_version() { return 4; }
+extern "C" uint32_t psf_abi_version() { return 5; }
 extern "C" uint32_t psf_spu_model() { return 1; } // fixed MAME-derived Tetorica SPU
 extern "C" const char* psf_last_error() { return lastError.c_str(); }
 extern "C" PsfPlayer* psf_create(const uint8_t* ram, const uint8_t* coverage, uint32_t pc, uint32_t gp, uint32_t sp, uint32_t refresh) {
@@ -324,6 +345,32 @@ extern "C" uint32_t psf_spu_read(PsfPlayer* p,uint32_t offset) {
 extern "C" uint32_t psf_spu_frames(PsfPlayer* p) { return p ? p->renderedFrames : 0; }
 extern "C" uint32_t psf_spu_key_gates(PsfPlayer* p) { return p ? p->keyGateMask : 0; }
 extern "C" uint32_t psf_spu_active_mask(PsfPlayer* p) { return p ? p->spu.activeMask() : 0; }
+// Manual scalar/gate writes do not clock the CPU/SPU, touch RAM, add source
+// trace entries or advance source ownership. No raw transfer/control API is
+// exposed to the editor.
+extern "C" int psf_spu_write_manual(PsfPlayer* p,uint32_t offset,uint32_t value) {
+  if(!p||offset>0x3fe||(offset&1)||value>0xffff)return 0;
+  const uint32_t reg=offset&15;
+  const bool voice=offset<0x180&&(reg==0||reg==2||reg==4||reg==8||reg==10);
+  const bool gate=offset==0x188||offset==0x18a||offset==0x18c||offset==0x18e;
+  if(!voice&&!gate)return 0;
+  if(voice&&((reg<4&&(value&0x8000))||(reg==4&&value>0x3fff)))return 0;
+  if(gate&&(offset&2)&&value>0xff)return 0;
+  try {p->write16(offset,uint16_t(value),true);return 1;}
+  catch(const std::exception& error){lastError=error.what();return 0;}
+}
+extern "C" double psf_spu_source_revision(PsfPlayer* p,uint32_t offset) {
+  return p&&offset<=0x3fe&&!(offset&1)?double(p->sourceRegisters[offset/2]):-1;
+}
+extern "C" uint32_t psf_spu_source_value(PsfPlayer* p,uint32_t offset) {
+  return p&&offset<=0x3fe&&!(offset&1)?p->sourceValues[offset/2]:0xffffffffu;
+}
+extern "C" double psf_spu_gate_revision(PsfPlayer* p,uint32_t channel) {
+  return p&&channel<24?double(p->sourceGates[channel]):-1;
+}
+extern "C" double psf_spu_pitch_revision(PsfPlayer* p,uint32_t channel) {
+  return p&&channel<24?double(p->sourcePitches[channel]):-1;
+}
 extern "C" int psf_spu_read_ram(PsfPlayer* p,uint32_t address,uint8_t* out,uint32_t length) {
   if (!p || !out || address>spuRamSize || length>spuRamSize-address) return 0;
   p->spu.read_ram(address,out,length); return 1;

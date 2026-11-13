@@ -1,13 +1,21 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 // Synchronous PSF1 machine rendering, independent of browser audio scheduling.
-import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-monitor-spu-1';
+import createPsfPlayerModule from '../generated/psf-player/psf_player.js?v=psf-manual-spu-1';
 import {readPsfLiveSnapshot} from './psf_live_snapshot.js?v=psf-live-spu-1';
+import {createPsfSongInteraction} from './psf_song_interaction.js?v=psf-manual-spu-1';
 
 const RAM_BYTES=2*1024*1024;
 const SPU_RAM_BYTES=512*1024;
-const backend=Object.freeze({abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
-const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-monitor-spu-1',import.meta.url).href;
+const backend=Object.freeze({abi:5,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+const wasmUrl=new URL('../generated/psf-player/psf_player.wasm?v=psf-manual-spu-1',import.meta.url).href;
+// Capture the host loader before Code installs its temporary network guards.
+// A PSF is preflighted before Code stops, so the factory must not resolve its
+// internal WASM fetch through the guarded user-code global at that time.
+const hostFetch=globalThis.fetch?.bind(globalThis);
+const nodeLoader=typeof process==='object'&&Boolean(process?.versions?.node)&&process.type!=='renderer';
+const browserLoader=!nodeLoader&&(typeof window!=='undefined'||typeof WorkerGlobalScope!=='undefined');
+const moduleDirectory=new URL('../generated/psf-player/',import.meta.url).href;
 const abort=signal=>signal?.throwIfAborted();
 function validateImage(image) {
   if(!image||!(image.ram instanceof Uint8Array)||image.ram.byteLength!==RAM_BYTES||
@@ -29,12 +37,24 @@ function validateImage(image) {
  */
 export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptions={}}={}) {
   abort(signal);validateImage(image);
-  const module=await createPsfPlayerModule({
+  const options={
     locateFile:path=>path.endsWith('.wasm')?wasmUrl:new URL(path,import.meta.url).href,
     ...moduleOptions,...(wasmBinary?{wasmBinary}:{}),print:()=>{},printErr:()=>{},
-  });
+  };
+  // Keep explicit bytes, custom instantiation and Node's ordinary fs loader
+  // unchanged. Supplying host-fetched bytes prevents Emscripten from making a
+  // second request through global fetch/instantiateStreaming while Code runs.
+  if(browserLoader&&!options.wasmBinary&&!options.instantiateWasm&&hostFetch) {
+    const target=typeof options.locateFile==='function'?options.locateFile('psf_player.wasm',moduleDirectory):new URL('psf_player.wasm',moduleDirectory).href;
+    const response=await hostFetch(target,{signal,credentials:'same-origin'});
+    if(!response.ok)throw new Error(`PSF playback WASM HTTP ${response.status}`);
+    options.wasmBinary=new Uint8Array(await response.arrayBuffer());
+    abort(signal);
+  }
+  const module=await createPsfPlayerModule(options);
   abort(signal);
-  if(module._psf_abi_version?.()!==backend.abi||module._psf_spu_model?.()!==1||typeof module._psf_render_stems!=='function')
+  if(module._psf_abi_version?.()!==backend.abi||module._psf_spu_model?.()!==1||
+      ['_psf_render_stems','_psf_spu_write_manual','_psf_spu_source_revision','_psf_spu_source_value','_psf_spu_gate_revision','_psf_spu_pitch_revision'].some(name=>typeof module[name]!=='function'))
     throw new Error('PSF playback components are out of date. Reload the page to load the matching MAME SPU player.');
   let source=0,mask=0,handle=0,output=0,observationBuffer=0,captureBuffer=0,voiceOutput=0,voiceCapacity=0,closed=false,position=0;
   const error=()=>new Error(`PSF playback: ${module.UTF8ToString(module._psf_last_error())||'machine failed'}`);
@@ -75,8 +95,20 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
     if(!withVoices)return pcm;
     return {pcm,voices:module.HEAPF32.slice(voiceOutput/4,voiceOutput/4+frames*24*2)};
   }
+  const manual=createPsfSongInteraction({
+    isOpen:()=>!closed&&!signal?.aborted,
+    read:offset=>module._psf_spu_read(handle,offset),
+    write(offset,value) {
+      if(!module._psf_spu_write_manual(handle,offset,value))throw new Error('PSF manual register write was rejected.');
+    },
+    revision:offset=>module._psf_spu_source_revision(handle,offset),
+    sourceValue:offset=>module._psf_spu_source_value(handle,offset),
+    gateRevision:channel=>module._psf_spu_gate_revision(handle,channel),
+    pitchRevision:channel=>module._psf_spu_pitch_revision(handle,channel),
+  });
   return {
     backend,
+    manual,
     sampleRate:44100,
     get position(){return position;},
     /** Detached, exact SPU RAM at the current native boundary. Capture history
@@ -113,11 +145,14 @@ export async function createPsfPlaybackCore({image,signal,wasmBinary,moduleOptio
     renderWithVoices(frames) {return renderFrames(frames,true);},
     dispose() {
       if(closed)return;
-      closed=true;
-      module._psf_destroy(handle);module._free(output);module._free(observationBuffer);
-      if(captureBuffer)module._free(captureBuffer);
-      if(voiceOutput)module._free(voiceOutput);
-      handle=0;output=0;observationBuffer=0;captureBuffer=0;voiceOutput=0;voiceCapacity=0;
+      try {manual.dispose();}
+      finally {
+        closed=true;
+        module._psf_destroy(handle);module._free(output);module._free(observationBuffer);
+        if(captureBuffer)module._free(captureBuffer);
+        if(voiceOutput)module._free(voiceOutput);
+        handle=0;output=0;observationBuffer=0;captureBuffer=0;voiceOutput=0;voiceCapacity=0;
+      }
     },
   };
 }

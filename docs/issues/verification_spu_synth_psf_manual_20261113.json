@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "SPU Synth manual channel controls during PSF playback",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Playing PSF CH view edits signed voice L/R volume, raw PITCH and partial ADSR on the existing CPU/SPU machine; keyboard and Pitch wheels use that physical voice.",
+    "Later CPU writes take priority, including equal-value gate/PITCH writes. Older hand releases and bend resets cannot overwrite a newer source-owned note.",
+    "No manual action discards or rerenders scheduled PCM. Commands enter the next native render boundary with about 0.2 seconds of retained lookahead plus device latency. Live observations retain their 20 Hz cadence and bounded RAM history.",
+    "Sample RAM, Start/Repeat, shared Noise, PMON and reverb remain read-only in PSF CH view. PMON sources and other channels keep running.",
+    "Synth view uses the separate authored bank and keyboard while PSF plays or remains paused. Explicit source/preset/sample loads retain their existing PSF Stop behavior; Code and PSF stay mutually exclusive.",
+    "CH/reference/view/blur, Pause/Resume, Capture, Seek and source changes retire only appropriate manual owners. Paused audition and the authored instrument remain independent.",
+    "Cold Code-to-PSF startup preloads trusted WASM through a captured host fetch without weakening the running user-code network guard.",
+    "Readable original frontend modules, matching ABI 5 WASM, native rebuild sources and licenses are packaged together. Fixed DSP arithmetic and public SDK calibration are unchanged."
+  ],
+  "node": {
+    "passed": 393,
+    "failed": 0,
+    "command": "node --test docs/synth-spu/*.test.mjs scripts/check_psf_batch.test.mjs scripts/psf_batch_worker.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/spu-psf-manual-20261113/node-tests.log",
+      "bytes": 43463,
+      "sha256": "d15092e232b4628ebfa737bb6fca6ad5c94a043320580b52ee17fa2e22c2e495"
+    }
+  },
+  "nonIntervention": {
+    "legacyAbi": 4,
+    "currentAbi": 5,
+    "profiles": 10,
+    "monoSamples": 655360,
+    "registersAndFullSpuRamExact": true,
+    "currentWasmSha256": "11867e9152328c66899f11a02717b0a539d22ffc98387a22cedaed6ad1b1ca05",
+    "receipt": {
+      "path": "build/verification/spu-psf-manual-20261113/nonintervention.json",
+      "bytes": 3384,
+      "sha256": "6c4389ab36d2a3e345bff3bcb4f20048002b3f95d3677d4b40c376c4d8dee1bb"
+    }
+  },
+  "browsers": {
+    "suites": 7,
+    "runs": 14,
+    "checks": 140,
+    "results": [
+      {
+        "suite": "manual",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/manual-c.json",
+          "bytes": 20108,
+          "sha256": "e963c650a14fa88e268590524e8e2da947fad926c2b4edc74d126142d401fb0d"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 9
+          },
+          {
+            "name": "webkit",
+            "checks": 9
+          }
+        ]
+      },
+      {
+        "suite": "playback",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/legacy-playback-c.json",
+          "bytes": 23470,
+          "sha256": "f60b5d8bc8a0aa0f5413ced3b7d4ff194e7abbc8b353b56c4a9874b239aded07"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 10
+          },
+          {
+            "name": "webkit",
+            "checks": 10
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/legacy-live-c.json",
+          "bytes": 29972,
+          "sha256": "26b442c868370ccf868d0fed58325553c00c6f43be5b6824def24bc80689fac2"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 12
+          },
+          {
+            "name": "webkit",
+            "checks": 12
+          }
+        ]
+      },
+      {
+        "suite": "paused-audition",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/legacy-paused-audition-c.json",
+          "bytes": 50381,
+          "sha256": "d6a68bd4b2c64a38ccbf4db26601d1ae30ee6d450b90ee07c56c5a1842b791d5"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 10
+          },
+          {
+            "name": "webkit",
+            "checks": 10
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/legacy-capture-c.json",
+          "bytes": 14346,
+          "sha256": "f9b6eb7362bc80ec7a437e873a5fbfaf20fb5afc9065daccd6edc013562f6c8a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 11
+          },
+          {
+            "name": "webkit",
+            "checks": 11
+          }
+        ]
+      },
+      {
+        "suite": "seek",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/legacy-seek-c.json",
+          "bytes": 17245,
+          "sha256": "d0c213fdfa8b66671e191286a427bb4b1de3f43618b95ae37dc74d409862304e"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/spu-psf-manual-20261113/legacy-code-c.json",
+          "bytes": 21364,
+          "sha256": "ad1dd3e5bfe89fc39042d85ab479e907d8c516dc30cb590c47a6baeecb0ff015"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 10
+          },
+          {
+            "name": "webkit",
+            "checks": 10
+          }
+        ]
+      }
+    ]
+  },
+  "package": {
+    "zip": "release/tetorica_spu_synth_psf-manual-20261113c_itch.zip",
+    "stage": "release/itch_spu_synth_psf-manual-20261113c-TSMWsk",
+    "files": 344,
+    "bytes": 7137416,
+    "sha256": "a070848497edac9e22e6c6e130fe6676e0d8351fc6a0a52216086609086a593c",
+    "crcPassed": true,
+    "stageMatchesZip": true,
+    "liveSourceMatches": true,
+    "nativeWasmMatches": true,
+    "receipt": {
+      "path": "build/verification/spu-psf-manual-20261113/zip-integrity.json",
+      "bytes": 294,
+      "sha256": "88bbd5a31121a4e41eb062fd39103de59624d0e4d26ebf6e222697fdce450769"
+    }
+  },
+  "scope": "No physical listening, commit, push, tag or publication. No game assets, public npm API, fixed DSP gain/arithmetic or external-input changes. Files immediate-editing semantics remain a separate deferred TODO."
+}

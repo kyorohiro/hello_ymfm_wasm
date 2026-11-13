@@ -1444,7 +1444,7 @@ function WasmCreateModule(code, size) {
 }
 
 // Imports from the Wasm binary.
-var _EmptyBlockHandler, _MemoryUtils_GetByteProxy, _MemoryUtils_GetHalfProxy, _MemoryUtils_GetWordProxy, _MemoryUtils_SetByteProxy, _MemoryUtils_SetHalfProxy, _MemoryUtils_SetWordProxy, _LWL_Proxy, _LWR_Proxy, _SWL_Proxy, _SWR_Proxy, _malloc, _free, _psf_abi_version, _psf_spu_model, _psf_last_error, _psf_create, _psf_render, _psf_render_stems, _psf_spu_read, _psf_spu_frames, _psf_spu_key_gates, _psf_spu_active_mask, _psf_spu_read_ram, _psf_cpu_read_ram, _psf_trace_start, _psf_trace_count, _psf_trace_read, _psf_trace_overflow, _psf_destroy, ___getTypeName, _setThrew, __emscripten_tempret_set, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, ___cxa_decrement_exception_refcount, ___cxa_increment_exception_refcount, ___cxa_can_catch, ___cxa_get_exception_ptr, memory, __indirect_function_table, wasmMemory, wasmTable;
+var _EmptyBlockHandler, _MemoryUtils_GetByteProxy, _MemoryUtils_GetHalfProxy, _MemoryUtils_GetWordProxy, _MemoryUtils_SetByteProxy, _MemoryUtils_SetHalfProxy, _MemoryUtils_SetWordProxy, _LWL_Proxy, _LWR_Proxy, _SWL_Proxy, _SWR_Proxy, _malloc, _free, _psf_abi_version, _psf_spu_model, _psf_last_error, _psf_create, _psf_render, _psf_render_stems, _psf_spu_read, _psf_spu_frames, _psf_spu_key_gates, _psf_spu_active_mask, _psf_spu_write_manual, _psf_spu_source_revision, _psf_spu_source_value, _psf_spu_gate_revision, _psf_spu_pitch_revision, _psf_spu_read_ram, _psf_cpu_read_ram, _psf_trace_start, _psf_trace_count, _psf_trace_read, _psf_trace_overflow, _psf_destroy, ___getTypeName, _setThrew, __emscripten_tempret_set, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, ___cxa_decrement_exception_refcount, ___cxa_increment_exception_refcount, ___cxa_can_catch, ___cxa_get_exception_ptr, memory, __indirect_function_table, wasmMemory, wasmTable;
 
 function assignWasmExports(wasmExports) {
   _EmptyBlockHandler = Module["_EmptyBlockHandler"] = wasmExports["EmptyBlockHandler"];
@@ -1470,6 +1470,11 @@ function assignWasmExports(wasmExports) {
   _psf_spu_frames = Module["_psf_spu_frames"] = wasmExports["psf_spu_frames"];
   _psf_spu_key_gates = Module["_psf_spu_key_gates"] = wasmExports["psf_spu_key_gates"];
   _psf_spu_active_mask = Module["_psf_spu_active_mask"] = wasmExports["psf_spu_active_mask"];
+  _psf_spu_write_manual = Module["_psf_spu_write_manual"] = wasmExports["psf_spu_write_manual"];
+  _psf_spu_source_revision = Module["_psf_spu_source_revision"] = wasmExports["psf_spu_source_revision"];
+  _psf_spu_source_value = Module["_psf_spu_source_value"] = wasmExports["psf_spu_source_value"];
+  _psf_spu_gate_revision = Module["_psf_spu_gate_revision"] = wasmExports["psf_spu_gate_revision"];
+  _psf_spu_pitch_revision = Module["_psf_spu_pitch_revision"] = wasmExports["psf_spu_pitch_revision"];
   _psf_spu_read_ram = Module["_psf_spu_read_ram"] = wasmExports["psf_spu_read_ram"];
   _psf_cpu_read_ram = Module["_psf_cpu_read_ram"] = wasmExports["psf_cpu_read_ram"];
   _psf_trace_start = Module["_psf_trace_start"] = wasmExports["psf_trace_start"];

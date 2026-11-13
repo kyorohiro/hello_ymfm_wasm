@@ -97,7 +97,7 @@ export async function diagnosePsfBatchEntry(job,{onProgress=()=>{}}={}){
   let phase='load',phaseStarted=started,core=null,beforeRam=null,lastNative=null,error=null,notifiedFrames=0;
   const result={entry:typeof job?.entry==='string'?job.entry.slice(0,1024):'',title:'',status:'error',phase,
     loadedFiles:[],sources:[],metadata:{sourceCount:0,sourcesTruncated:false,loadedFileCount:0,loadedFilesTruncated:false,titleTruncated:false},
-    backend:{abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:RATE},
+    backend:{abi:5,engine:'play-hle+mame-ps1-spu',sampleRate:RATE},
     metrics:{targetFrames:0,renderedFrames:0,sampleRate:RATE,pcm:null,
       nativeFrames:{initial:null,final:null,expectedFinal:null,monotonic:true,matchedProgress:true,observations:0},elapsedMs:{}},
     snapshots:{first:null,final:null},activity,spuRam:{before:null,after:null,changedBytes:null}};
@@ -134,7 +134,7 @@ export async function diagnosePsfBatchEntry(job,{onProgress=()=>{}}={}){
     const wasmBinary=new Uint8Array(await readFile(new URL('../docs/generated/psf-player/psf_player.wasm',import.meta.url)));
     Object.assign(result.backend,{wasmBytes:wasmBinary.byteLength,wasmSha256:sha(wasmBinary)});
     core=await createPsfPlaybackCore({image,wasmBinary,moduleOptions:{print:()=>{},printErr:()=>{}}});
-    if(core.sampleRate!==RATE||core.backend.abi!==4)throw diagnostic('unsupported-runtime','PSF batch worker needs the current ABI4 44100 Hz backend.');
+    if(core.sampleRate!==RATE||core.backend.abi!==5)throw diagnostic('unsupported-runtime','PSF batch worker needs the current ABI5 44100 Hz backend.');
     observe();beforeRam=core.copySpuRam();result.spuRam.before=ramSummary(beforeRam);
     changePhase('render');
     while(result.metrics.renderedFrames<result.metrics.targetFrames){

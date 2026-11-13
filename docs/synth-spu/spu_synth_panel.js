@@ -44,6 +44,28 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     section.setAttribute('aria-labelledby', `instrumentTab-${name}`);
     section.hidden = index !== 0;
   });
+  // Keep physical PSF controls separate from the authored instrument. These
+  // ranges remain usable with performance keys while the mouse edits a level.
+  const psfVoice=root.ownerDocument.createElement('section');psfVoice.className='chip-section spu-psf-voice';
+  psfVoice.dataset.psfManualControls='';psfVoice.hidden=true;
+  const psfHeading=root.ownerDocument.createElement('h3');psfVoice.append(psfHeading);
+  const psfFields=root.ownerDocument.createElement('div');psfFields.className='chip-fields';psfVoice.append(psfFields);
+  const psfInputs=new Map();
+  for(const [key,label,min,max,step]of [['pitch','PITCH',0,16383,1],['volumeLeft','Left volume',-1,1,.01],['volumeRight','Right volume',-1,1,.01]]){
+    const field=root.ownerDocument.createElement('label'),name=root.ownerDocument.createElement('span');name.className='chip-field-label';name.textContent=label;
+    const input=root.ownerDocument.createElement('input');input.type='range';input.min=String(min);input.max=String(max);input.step=String(step);
+    input.dataset.chipControl=key==='pitch'?'ps1-pitch':key==='volumeLeft'?'ps1-volume-left':'ps1-volume-right';input.setAttribute('aria-label',`Selected PSF CH ${label}`);
+    const output=root.ownerDocument.createElement('output');output.dataset.psfManualOutput=key;field.append(name,input,output);psfFields.append(field);psfInputs.set(key,{input,output});
+    input.addEventListener('input',()=>{
+      const value=Number(input.value);output.textContent=key==='pitch'?String(value):value.toFixed(3);
+      if(!morphUiState?.observation?.editable)return;
+      void Promise.resolve(invoke('setInstrumentPreset',[{[key]:value}])).catch(error=>options.onError?.(error));
+    });
+  }
+  sections[0].before(psfVoice);
+  const retrigger=root.querySelector('[data-chip-control="ps1-retrigger"]');let psfRetrigger=null;
+  const reverbFields=root.querySelector('[data-chip-control="ps1-reverb-preset"]').closest('.chip-fields');
+  const reverbGuard=root.ownerDocument.createElement('fieldset');reverbGuard.className='spu-psf-effect-guard';reverbFields.before(reverbGuard);reverbGuard.append(reverbFields);
   const sampleEditors=[...sections[0].children];
   const morph=root.ownerDocument.createElement('fieldset');morph.className='spu-morph';
   const shapeOptions=MORPH_SHAPES.map(shape=>`<option value="${shape}">${shape[0].toUpperCase()+shape.slice(1)}</option>`).join('');
@@ -94,6 +116,22 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   function observationLabels() {
     const observing=morphUiState?.observation?.kind==='psf';
     const voice=morphUiState?.channels?.[0],noise=Boolean(morphUiState?.noise?.enabled);
+    const editable=observing&&Boolean(morphUiState.observation.editable);
+    psfVoice.hidden=!observing;psfHeading.textContent=`PSF CH ${(morphUiState?.observation?.voice??0)+1} · ${editable?'edit this channel':'read-only'}`;
+    for(const [key,{input,output}]of psfInputs){
+      input.disabled=!editable||key==='pitch'&&noise;
+      if(input!==root.ownerDocument.activeElement)input.value=String(voice?.[key]??0);
+      const value=Number(input.value);output.textContent=key==='pitch'?String(value):value.toFixed(3);
+      input.title=key==='pitch'&&noise?'Noise uses the shared Clock; PITCH does not set its frequency.':'Temporary PSF channel edit; later song writes can replace it.';
+    }
+    source.disabled=pmon.disabled=reverbGuard.disabled=Boolean(observing);
+    for(const node of sections[0].querySelectorAll('[data-chip-control^="ps1-wave-"],[data-chip-action^="ps1-wave-"]')){
+      if(node.tagName==='BUTTON')node.disabled=Boolean(observing);
+      else if(observing&&node.tagName==='INPUT')node.disabled=true;
+    }
+    pcmCanvas.inert=Boolean(observing);
+    if(observing){if(psfRetrigger===null)psfRetrigger=retrigger.checked;retrigger.checked=true;retrigger.disabled=true;}
+    else if(psfRetrigger!==null){retrigger.checked=psfRetrigger;retrigger.disabled=false;psfRetrigger=null;}
     const full=fullEditor.read(),preview=!observing&&!noise&&!morphDraft.enabled&&!voice?.waveform?appliedSpuAdpcmPreview(voice):null;
     pcmCanvas.dataset.waveformView=noise?'noise':observing?'psf-adpcm-preview':full.active?'sample-pcm':preview?'adpcm-preview':morphDraft.enabled?'morph-pcm':voice?.waveform?'editable-pcm':'unavailable';
     pcmCanvas.dataset.readonly=String(full.active?!full.ready:observing||Boolean(preview)||noise||!voice?.waveform&&!morphDraft.enabled);
@@ -143,7 +181,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
       }
     }
     if(label)label.textContent=observing?'Selected CH reverb send':'Enable reverb';
-    adsrCanvas.setAttribute('aria-label',observing?'Read-only song ADSR settings. Stage widths are illustrative, not the current envelope stage.':adsrCanvasLabel);
+    adsrCanvas.setAttribute('aria-label',observing?`${editable?'Editable selected-channel':'Read-only song'} ADSR settings. Stage widths are illustrative, not the current envelope stage.`:adsrCanvasLabel);
     pmon.querySelector('[data-pmon-label]').textContent=observing?'Selected CH hardware PMON':'Enable PMON';
     for(const input of root.querySelectorAll('[data-chip-control="ps1-reverb-left"],[data-chip-control="ps1-reverb-right"]'))input.min=observing?'-1':'0';
     pmon.querySelector('.pmon-fields').hidden=observing;

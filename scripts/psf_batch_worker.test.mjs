@@ -19,7 +19,7 @@ async function fixture(t,options={}){
 }
 const floatHash=pcm=>{const words=new Uint32Array(pcm.buffer,pcm.byteOffset,pcm.length),bytes=Buffer.allocUnsafe(pcm.byteLength);for(let i=0;i<words.length;i++)bytes.writeUInt32LE(words[i],i*4);return createHash('sha256').update(bytes).digest('hex');};
 
-test('worker PCM hash is chunk-independent and equals direct ABI4 output, without preview or sample payloads',async t=>{
+test('worker PCM hash is chunk-independent and equals direct ABI5 output, without preview or sample payloads',async t=>{
   const job=await fixture(t,{transfer:'dma-roundtrip',pmon:true,carrier:23,reverb:true}),progress=[];
   const result=await diagnosePsfBatchEntry(job,{onProgress:value=>progress.push(value)}),other=await diagnosePsfBatchEntry({...job,chunkFrames:441});
   assert.equal(result.status,'rendered');assert.equal(result.metrics.renderedFrames,882);assert.equal(result.metrics.pcm.silent,false);assert.deepEqual(result.metrics.pcm,other.metrics.pcm);

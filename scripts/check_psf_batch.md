@@ -1,6 +1,6 @@
 # PSFフォルダーの無音バッチ診断
 
-展開済みのPSF1／MiniPSFセットを短時間ずつ実行し、依存不足・未対応処理・時間切れと、PCM／SPUの観測結果をJSONへ記録します。SPU Synthと同じPlay! CPU/HLE＋MAME由来SPUのABI 4コアを使います。ブラウザー、音声デバイス、ネットワーク、WASMの再ビルドは不要です。Node.js 22以降でrepositoryのルートから実行します。
+展開済みのPSF1／MiniPSFセットを短時間ずつ実行し、依存不足・未対応処理・時間切れと、PCM／SPUの観測結果をJSONへ記録します。SPU Synthと同じPlay! CPU/HLE＋MAME由来SPUのABI 5コアを使います。ブラウザー、音声デバイス、ネットワーク、WASMの再ビルドは不要です。Node.js 22以降でrepositoryのルートから実行します。
 
 ```sh
 npm run psf:batch -- "/path/to/extracted-game-set" --out /private/tmp/game-playback.json

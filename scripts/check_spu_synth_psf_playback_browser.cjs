@@ -113,7 +113,7 @@ async function check(browser,name,origin,fixture){
     step('The matching MAME SPU ABI loads from versioned local assets and stale components fail before machine allocation');
     measurements.backend=await page.evaluate(async text=>{
       const script=document.querySelector('script[src*="synth.js"]');
-      const url=new URL('./psf_playback_core.js?v=psf-channel-monitor-1',new URL(script.src,location.href));
+      const url=new URL('./psf_playback_core.js?v=psf-manual-2',new URL(script.src,location.href));
       const {createPsfPlaybackCore}=await import(url.href),bytes=Uint8Array.from(atob(text),value=>value.charCodeAt(0));
       const ram=new Uint8Array(2*1024*1024),coverage=new Uint8Array(ram.length);
       ram.set(bytes,0x10000);coverage.fill(1,0x10000,0x10000+bytes.length);
@@ -128,7 +128,7 @@ async function check(browser,name,origin,fixture){
       }}});}catch(reason){error=reason.message;}
       return {...measured,staleAbi:{allocations,error}};
     },fixture.textBase64);
-    assert.deepEqual(measurements.backend.backend,{abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert.deepEqual(measurements.backend.backend,{abi:5,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
     assert(measurements.backend.frozen&&measurements.backend.finite&&measurements.backend.peak>.001);
     assert.equal(measurements.backend.staleAbi.allocations,0);assert.match(measurements.backend.staleAbi.error,/out of date/);
     assert.equal((await graph(page)).contexts,0,'numeric core checks do not open an audio device');
@@ -177,15 +177,20 @@ async function check(browser,name,origin,fixture){
     await until(()=>page.locator('#vabStatus').getAttribute('data-error').then(value=>value==='true'),'bad PSF reports an error');
     assert.equal(await page.locator('#psfEntry').inputValue(),'second.psf');assert.equal(await page.locator('#psfEntry option').count(),2);
     assert.equal(await page.locator('#psfPlaySong').isEnabled(),true);assert.deepEqual(await instrument(page),authored);
-    step('A quick keyboard release while song Stop is pending never leaves an orphaned note');
+    step('A quick selected-CH keyboard release keeps the PSF playing without an authored orphan or pending song Stop');
     await play(page);await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();
-    const delayed=(await graph(page)).stopDelays;await page.evaluate(()=>__spuPsfAudit.armStopDelay(180));
-    await page.keyboard.down('a');await until(async()=>(await graph(page)).stopDelays===delayed+1,'keyboard awaits song Stop');
-    await page.keyboard.up('a');await stopped(page);await wait(220);
+    await until(()=>page.locator('#spuVoicePanel').evaluate(root=>!root.inert&&root.dataset.observationKind==='psf'),'selected PSF CH ready for manual input');
+    const quickKeyBefore=await graph(page),quickKeyPosition=await position(page),quickKeyCommands=await page.evaluate(()=>__spuPsfAudit.commands().length);
+    await page.keyboard.down('a');await page.keyboard.up('a');await wait(220);
+    assert.equal(await page.locator('#psfPauseSong').textContent(),'Pause');assert(await page.locator('#psfPauseSong').isEnabled());assert(await page.locator('#psfPlaySong').isDisabled());
+    assert(await position(page)>quickKeyPosition,'the original PSF continues after the manual key');
+    const quickKeyAfter=await graph(page);assert.equal(quickKeyAfter.stopDelays,quickKeyBefore.stopDelays);assert.equal(quickKeyAfter.bufferStops,quickKeyBefore.bufferStops,'manual input never stops scheduled source PCM');
     const keyboardState=await page.evaluate(()=>__spuPsfAudit.read());assert.equal(keyboardState.auditions.length,0,'released key has no retained audition');
-    assert.equal(await page.locator('.key.is-active').count(),0);await silent(page);
+    const quickCommands=(await page.evaluate(()=>__spuPsfAudit.commands())).slice(quickKeyCommands);
+    assert(!quickCommands.some(command=>['stop','instrumentNoteOn','auditionOn'].includes(command.method)),'the source CH is used without an authored-keyboard replacement');
+    assert.equal(await page.locator('.key.is-active').count(),0);measurements.quickKeyOutput=await page.evaluate(()=>__spuPsfAudit.output());assert(measurements.quickKeyOutput.finite&&measurements.quickKeyOutput.muted);assert.deepEqual(await instrument(page),authored);
     step('Code Run retires the song; starting another song stops Code and returns its authored instrument');
-    await play(page);await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
+    await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
     await page.locator('#synthCodeEditor').fill(`const ps1=await useSoundChip('ps1');\nawait ps1.noteOn(CH1,'C4');\nlog('psf-code-owner');`);
     await page.locator('#synthCodeRunButton').click();await until(async()=>{
       const error=await page.locator('#synthCodeError').textContent();if(error)throw Error(error);return /Running/.test(await page.locator('#synthCodeState').textContent());
@@ -242,7 +247,7 @@ const server=http.createServer(async(request,response)=>{
   try{
     for(const name of engines){const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio','--autoplay-policy=no-user-gesture-required']}:{} )});try{results.push(await check(browser,name,origin,fixture));}finally{await browser.close();}}
     assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert.deepEqual(httpErrors,[]);
-    for(const [asset,version] of [['psf_playback_core.js','psf-channel-monitor-1'],['psf_player.js','psf-monitor-spu-1'],['psf_player.wasm','psf-monitor-spu-1']]) {
+    for(const [asset,version] of [['psf_playback_core.js','psf-manual-2'],['psf_player.js','psf-manual-spu-1'],['psf_player.wasm','psf-manual-spu-1']]) {
       const urls=psfRequests.filter(url=>new URL(url,origin).pathname.endsWith('/'+asset));
       assert(urls.length,asset+' was fetched locally');assert(urls.every(url=>new URL(url,origin).searchParams.get('v')===version),asset+' has the matching cache identity');
     }

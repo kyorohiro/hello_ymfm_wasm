@@ -429,3 +429,6 @@ footer a { color: #4a5e74; }
 .psf-song-player #psfPlaybackStatus {margin:6px 0 0;font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #psfPlaybackStatus[data-error="true"] {color:var(--error, #b33631);}
 .psf-song-player #psfPlaybackStatus[data-error="true"] {white-space:normal;overflow-wrap:anywhere;}
+.spu-psf-effect-guard { border:0; padding:0; margin:0; min-width:0; }
+.spu-psf-voice input[type=range] { width:100%; }
+.spu-psf-voice output { font-variant-numeric:tabular-nums; }

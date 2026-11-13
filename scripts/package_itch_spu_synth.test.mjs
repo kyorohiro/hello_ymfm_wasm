@@ -53,7 +53,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert.equal(info.browser.codeEffects.sourceRoot,'sources/code-effects');
     assert.equal(info.browser.codeEffects.recipe,'sources/code-effects/scripts/build_native_audio_effect.sh');
     for(const path of ['generated/psf-player/psf_player.js','generated/psf-player/psf_player.wasm',
-      'synth-spu/psf_song_preview.js','synth-spu/psf_song_source.js','synth-spu/psf_playback_core.js','synth-spu/psf_live_snapshot.js','synth-spu/psf_capture.js','synth-spu/psf_paused_audition.js',
+      'synth-spu/psf_song_preview.js','synth-spu/psf_song_interaction.js','synth-spu/psf_song_source.js','synth-spu/psf_playback_core.js','synth-spu/psf_live_snapshot.js','synth-spu/psf_capture.js','synth-spu/psf_paused_audition.js',
       'sources/psf-player/third_party/play-psf/provenance.json','sources/psf-player/third_party/play-psf/Source/psx/PsxBios.cpp',
       'sources/psf-player/tetorica_src/wasm/psf_player/psf_player.cpp','sources/psf-player/scripts/build_psf_player.mjs',
       ...['spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h','standalone_support.h','LICENSE'].map(name=>'sources/psf-player/third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/'+name),
@@ -63,7 +63,8 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     assert.equal(info.browser.psfPlayer.artifact.sha256,hash(await readFile(join(result.stage,'generated/psf-player/psf_player.wasm'))));
     assert.equal(info.browser.psfPlayer.provenance.license,'BSD-2-Clause');
     assert.equal(info.browser.psfPlayer.engine,'Play! PSF1 HLE + MAME PS1 SPU');
-    assert.equal(info.browser.psfPlayer.abi,4);
+    assert.equal(info.browser.psfPlayer.abi,5);
+    assert.deepEqual(info.browser.psfPlayer.manualControls,{voiceVolume:true,pitch:true,adsr:true,keyboard:true,sourceWriteOwnership:true,registerOnly:true,preservesScheduledPcm:true,sharedEffects:false});
     assert.deepEqual(info.browser.psfPlayer.selectedChannelMonitor,{defaultEnabled:false,mode:'dry',voiceCount:24,frameMajorFloats:48,sharedReverb:'full-mix-only',retainsFullMix:true,buildOnlyTap:true});
     assert.deepEqual(info.browser.psfPlayer.pausedAudition,{source:'synth-spu/psf_paused_audition.js',checkpoint:'editor',sourceStateUnchanged:true,ordinaryAdpcmOnly:false,noise:true});
     assert.deepEqual(info.browser.psfPlayer.noiseCapture,{clock:'shared-6-bit',supportLoopBytes:64,copiesRunningPhase:false,referenceKey:false,pmonCarrier:false});
@@ -124,7 +125,9 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
       }
       for(const match of bytes.toString().matchAll(/new\s+URL\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g)) {
         const url=new URL(match[2],new URL(module.path,'https://standalone.invalid/'));
-        assert(info.names.includes(decodeURIComponent(url.pathname.slice(1))),`${module.path}: runtime asset ${match[2]} is inside the ZIP`);
+        const path=decodeURIComponent(url.pathname.slice(1));
+        const included=path.endsWith('/')?info.names.some(name=>name.startsWith(path)&&name.length>path.length):info.names.includes(path);
+        assert(included,`${module.path}: runtime asset ${match[2]} is inside the ZIP`);
       }
     }
     assert(info.browser.modules.some(module=>module.path==='synth-spu/synth.css'),'the original stylesheet is part of the editable graph');

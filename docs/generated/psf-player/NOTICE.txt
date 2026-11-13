@@ -7,6 +7,10 @@ The Play! SPU renderer is inactive; the fixed Synth SPU supplies all audio.
 ABI 4 adds passive per-voice Dry monitoring. The build script verifies the
 pinned DSP input, then compiles a temporary copy with a read-only output tap.
 The pinned SDK files and the ordinary full-mix DSP expressions are unchanged.
+ABI 5 adds unclocked, validated manual voice edits and keyboard Gate/Pitch
+commands. CPU-only write revisions protect later source notes from stale
+manual releases and Pitch resets, independently of diagnostic trace limits.
+No DSP arithmetic or emulated CPU/SPU clock advancement is added by an edit.
 Rebuild: node scripts/build_psf_player.mjs
 
 No Sony BIOS image or game code/data is included. The PS1 BIOS is HLE.

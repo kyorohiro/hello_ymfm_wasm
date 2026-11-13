@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {createPsfPlaybackCore} from './psf_playback_core.js';
+import {createPsfSongInteraction} from './psf_song_interaction.js';
 import {preparePsfSongSource} from './psf_song_source.js';
 import {readPsfFileSet} from '../playground/playground_ps1_psf.js';
 import createPsfPlayerModule from '../generated/psf-player/psf_player.js';
@@ -29,7 +30,7 @@ test('original PSF MIPS program executes and produces finite stereo PCM',async()
   const core=await create();
   try {
     assert.equal(core.sampleRate,44100);
-    assert.deepEqual(core.backend,{abi:4,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
+    assert.deepEqual(core.backend,{abi:5,engine:'play-hle+mame-ps1-spu',sampleRate:44100});
     assert.ok(Object.isFrozen(core.backend),'the backend identity is read-only metadata');
     const samples=core.render(8820);
     assert.equal(samples.length,17640);
@@ -97,13 +98,16 @@ test('stale or mismatched CPU/SPU WASM is rejected before a machine is created',
     {abi:1,model:1},
     {abi:2,model:1},
     {abi:3,model:1},
-    {abi:4,model:0},
+    {abi:4,model:1},
+    {abi:5,model:0},
+    {abi:5,model:1,missing:'_psf_spu_write_manual'},
     {abi:undefined,model:1},
   ]) {
     let allocationAttempt=false;
     await assert.rejects(create(standalone,{moduleOptions:{onRuntimeInitialized(){
       this._psf_abi_version=replacement.abi===undefined?undefined:()=>replacement.abi;
       this._psf_spu_model=()=>replacement.model;
+      if(replacement.missing)this[replacement.missing]=undefined;
       this._malloc=()=>{allocationAttempt=true;throw new Error('Native allocation reached');};
     }}}),/components are out of date/);
     assert.equal(allocationAttempt,false,'ABI validation must run before native allocation');
@@ -123,7 +127,7 @@ const featureImage=async fixture=>preparePsfSongSource(await readPsfFileSet(fixt
 async function nativeMachine(fixture,{traceLimit=4096}={}) {
   const image=await featureImage(fixture);
   const module=await createPsfPlayerModule({wasmBinary,print:()=>{},printErr:()=>{}});
-  assert.equal(module._psf_abi_version(),4,'PSF sound bridge ABI must identify the unified fixed core');
+  assert.equal(module._psf_abi_version(),5,'PSF sound bridge ABI must identify the unified fixed core');
   assert.equal(module._psf_spu_model(),1,'CPU playback must use the same MAME-derived SPU as Synth');
   const input=module._malloc(image.ram.length),coverage=module._malloc(image.coverage.length);
   let handle;
@@ -173,6 +177,92 @@ async function nativeMachine(fixture,{traceLimit=4096}={}) {
     dispose(){module._psf_destroy(handle);module._free(output);module._free(scratch);if(stems)module._free(stems);},
   };
 }
+
+function manualMachine(machine) {
+  const {module,handle}=machine;
+  return createPsfSongInteraction({read:offset=>module._psf_spu_read(handle,offset),
+    write:(offset,value)=>assert.equal(module._psf_spu_write_manual(handle,offset,value),1),
+    revision:offset=>module._psf_spu_source_revision(handle,offset),sourceValue:offset=>module._psf_spu_source_value(handle,offset),
+    gateRevision:channel=>module._psf_spu_gate_revision(handle,channel),pitchRevision:channel=>module._psf_spu_pitch_revision(handle,channel)});
+}
+
+test('native manual edits are unclocked, sparse, preserve live ENV/RAM and do not enter the CPU trace',async()=>{
+  const machine=await nativeMachine(createPsfSpuFeatureFixture({pair:true,pmon:true,reverb:true}));
+  const manual=manualMachine(machine);
+  try {
+    machine.render(128);const before=machine.registers(),ram=machine.spuRam(0,0x80000),count=machine.trace().length,frames=machine.frames;
+    const gateStamp=machine.module._psf_spu_gate_revision(machine.handle,1),pitchStamp=machine.module._psf_spu_pitch_revision(machine.handle,1);
+    manual.edit(1,{volumeRight:-.25,envelope:{attackRate:42,sustainRate:30}});
+    assert.equal(machine.frames,frames);assert.deepEqual(machine.spuRam(0,0x80000),ram);
+    const after=machine.registers();
+    // 0x206 is the core's read-only current-volume mirror for CH2 right.
+    for(let i=0;i<512;i++)if(![9,12,13,0x206/2].includes(i))assert.equal(after[i],before[i],`untouched word ${i}`);
+    assert.equal(after[9],(-4096)&0x7fff);assert.equal(after[14],before[14],'current ENV is not reset');
+    assert.equal(machine.trace().length,count);assert.equal(machine.module._psf_spu_gate_revision(machine.handle,1),gateStamp);
+    assert.equal(machine.module._psf_spu_pitch_revision(machine.handle,1),pitchStamp);
+    assert(machine.render(1024).every(Number.isFinite));
+  }finally{manual.dispose();machine.dispose();}
+});
+
+test('native manual ABI rejects global/sample/invalid writes without changing the accepted PSF machine',async()=>{
+  const machine=await nativeMachine(createPsfSpuFeatureFixture());
+  try {
+    machine.render(128);const regs=machine.registers(),ram=machine.spuRam(0,0x80000),frames=machine.frames;
+    for(const [offset,value]of [[0x180,0],[6,0x400],[0x194,1],[4,0x4000],[0,0x8000],[0x18a,0xffff],[0x3ff,0],[0,0x10000]])
+      assert.equal(machine.module._psf_spu_write_manual(machine.handle,offset,value),0);
+    assert.deepEqual(machine.registers(),regs);assert.deepEqual(machine.spuRam(0,0x80000),ram);assert.equal(machine.frames,frames);
+    assert(peak(machine.render(256))>.001,'invalid editor requests never poison the CPU render');
+  }finally{machine.dispose();}
+});
+
+test('real same-value CPU KON and sample writes revoke old manual releases even after the diagnostic trace overflows',async()=>{
+  for(const {carrier,offset,value}of [{carrier:0,offset:0x188,value:1},{carrier:17,offset:0x18a,value:2},
+    {carrier:0,offset:6,value:PSF_FIXTURE_SPU_ADDRESS/8},{carrier:0,offset:14,value:PSF_FIXTURE_SPU_ADDRESS/8}]) {
+    const machine=await nativeMachine(createPsfSpuFeatureFixture({carrier,steps:[{delay:65535,writes:[[offset,value]]}]}),{traceLimit:1});
+    const manual=manualMachine(machine);
+    try {
+      machine.render(64);assert(machine.gates()&(1<<carrier));
+      const result=manual.noteOn('held',carrier,60);assert.equal(result.channel,carrier);
+      const stamp=machine.module._psf_spu_gate_revision(machine.handle,carrier);
+      machine.render(1024);assert(machine.module._psf_spu_gate_revision(machine.handle,carrier)>stamp);
+      assert.equal(machine.module._psf_trace_overflow(machine.handle),1);
+      const before=machine.registers(),gates=machine.gates(),frames=machine.frames;
+      assert.equal(manual.noteOff('held'),false);assert.equal(manual.setPitchBend(0),false);
+      assert.deepEqual(machine.registers(),before);assert.equal(machine.gates(),gates);assert.equal(machine.frames,frames);
+    }finally{manual.dispose();machine.dispose();}
+  }
+});
+
+test('real CPU PITCH refreshes stable tuning and steals only Pitch without stealing a manual Gate',async()=>{
+  const machine=await nativeMachine(createPsfSpuFeatureFixture({steps:[{delay:65535,writes:[[4,0x2000]]}]}));
+  const manual=manualMachine(machine);
+  try {
+    machine.render(64);manual.noteOn('held',0,60);manual.setPitchBend(12);assert.equal(machine.read(4),0x2000);
+    const gateStamp=machine.module._psf_spu_gate_revision(machine.handle,0),pitchStamp=machine.module._psf_spu_pitch_revision(machine.handle,0);
+    machine.render(1024);assert.equal(machine.module._psf_spu_gate_revision(machine.handle,0),gateStamp);
+    assert(machine.module._psf_spu_pitch_revision(machine.handle,0)>pitchStamp);
+    assert.equal(manual.setPitchBend(0),false);assert.equal(machine.read(4),0x2000);
+    assert(manual.noteOff('held'));assert.equal(machine.gates()&1,0);
+    manual.noteOn('next',0,60);assert.equal(machine.read(4),0x2000,'latest source pitch becomes the next keyboard reference');
+    manual.noteOff('next');manual.noteOn('again',0,72);assert.equal(machine.read(4),0x3fff);
+    manual.noteOff('again');manual.noteOn('original-key',0,60);assert.equal(machine.read(4),0x2000,'manual transposition does not compound');
+  }finally{manual.dispose();machine.dispose();}
+});
+
+test('native Noise keyboard does not write Pitch or shared Clock and PMON keyboard preserves its modulator',async()=>{
+  for(const options of [{noise:true,pitch:0x1000},{pmon:true,pair:true,carrier:1}]){
+    const core=await create(await featureImage(createPsfSpuFeatureFixture(options)));
+    try {
+      core.render(128);const before=core.observe(),channel=options.carrier??0,description=core.manual.describe(channel);
+      assert(description.playable);core.manual.noteOn('n',channel,72);core.manual.setPitchBend(2);
+      const after=core.observe();assert.equal(after.observation.control,before.observation.control);
+      assert.equal(after.observation.noiseMask,before.observation.noiseMask);assert.equal(after.observation.pmonMask,before.observation.pmonMask);
+      if(options.noise)assert.equal(after.channels[channel].pitch,before.channels[channel].pitch);
+      if(options.pmon)assert.deepEqual(after.channels[0].rawRegisters,before.channels[0].rawRegisters);
+      assert(core.render(512).every(Number.isFinite));assert(core.manual.noteOff('n'));
+    }finally{core.dispose();}
+  }
+});
 
 /**
  * Re-execute CPU bus events at their native-frame boundary with the ordinary

@@ -71,7 +71,7 @@ test('real mixed PSF/MiniPSF batch continues after CRC, missing library and unsu
   assert.deepEqual(report.results.map(r=>r.status),['rendered','rendered','rendered','error','error','error']);
   assert.equal(report.summary.rendered,3);assert.equal(report.summary.errors,3);assert.equal(report.summary.remaining,0);
   for(const result of report.results.slice(0,3)) {
-    assert.equal(result.backend.abi,4);assert.equal(result.metrics.targetFrames,frames);
+    assert.equal(result.backend.abi,5);assert.equal(result.metrics.targetFrames,frames);
     assert.equal(result.metrics.renderedFrames,frames);assert.equal(result.metrics.sampleRate,44100);
     assert.equal(result.metrics.pcm.samples,frames*2);assert.equal(result.metrics.pcm.nonFiniteSamples,0);
     assert.equal(result.metrics.nativeFrames.final,frames);assert.equal(result.metrics.nativeFrames.monotonic,true);

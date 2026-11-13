@@ -58,5 +58,5 @@ modules and matching native rebuild inputs remain readable in the package.
 Record: [verification_sid_synth_song_manual_20261113.json](verification_sid_synth_song_manual_20261113.json).
 Detailed logs: `build/verification/sid-song-manual-20261113/`.
 
-Next: expand the same automatic-performance/manual-control behavior to SPU's
-PSF playback. Existing SPU Code/manual and paused-audition behavior is retained.
+SPU follow-up: [manual controls during PSF playback](todo_spu_synth_psf_manual_01.md).
+Existing SPU Code/manual and paused-audition behavior is retained.

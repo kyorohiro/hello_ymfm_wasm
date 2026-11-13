@@ -25,6 +25,9 @@ on:
       - 'docs/playground/playground_ps1_*.js'
       - 'docs/synth/synth_keyboard.js'
       - 'docs/generated/ps1_spu*'
+      - 'docs/generated/psf-player/**'
+      - 'tetorica_src/wasm/psf_player/**'
+      - 'scripts/build_psf_player.mjs'
       - 'docs/sources/**'
       - 'docs/licenses/mame-ps1-spu/**'
       - 'docs/favicon.ico'
@@ -58,6 +61,9 @@ on:
       - 'docs/playground/playground_ps1_*.js'
       - 'docs/synth/synth_keyboard.js'
       - 'docs/generated/ps1_spu*'
+      - 'docs/generated/psf-player/**'
+      - 'tetorica_src/wasm/psf_player/**'
+      - 'scripts/build_psf_player.mjs'
       - 'docs/sources/**'
       - 'docs/licenses/mame-ps1-spu/**'
       - 'docs/favicon.ico'
@@ -117,6 +123,9 @@ jobs:
           node scripts/check_spu_synth_parameters_keyboard_browser.cjs \
             --root=release/spu-synth-browser --entry=/index.html \
             --out=release/spu-parameters-keyboard-browser.json --screenshots=release/spu-parameters-keyboard-images
+          node scripts/check_spu_synth_psf_manual_browser.cjs \
+            --root=release/spu-synth-browser --entry=/index.html \
+            --out=release/spu-psf-manual-browser.json --screenshots=release/spu-psf-manual-images
       - name: Retain the ZIP, diagnostics and screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -132,3 +141,5 @@ jobs:
             release/spu-live-presets-images/
             release/spu-parameters-keyboard-browser.json
             release/spu-parameters-keyboard-images/
+            release/spu-psf-manual-browser.json
+            release/spu-psf-manual-images/

@@ -55,7 +55,7 @@ additional free RAM.
 Software morph remains a **112-sample cycle** feature. Its enable control is
 disabled for a full sample, so it cannot silently replace the imported sound
 with Sine. Choosing a shape explicitly creates a new short cycle and restores
-cycle drawing and Morph. PSF Live observations remain read-only; PSF
+cycle drawing and Morph. PSF sample RAM previews remain read-only; PSF
 Live previews still use only the first four packets. Noise does not display
 its silent support loop.
 **Audio** sets the root note and looping option for recordings loaded from
@@ -179,8 +179,8 @@ old keyboard key-up / blur cannot stop a newer Code note, and an old Code
 Raw `keyOff()` and `allNotesOff()` remain explicit physical gate actions. Code
 parameter automation does not steal a keyboard note; when Code and a knob both
 write the same setting, the last write wins. No extra SPU or virtual voice is
-created. PSF reference Live remains read-only and keeps its existing ownership
-transitions.
+created. PSF playback has its own CPU-write ownership for selected-channel
+manual controls, described below.
 
 **Files** stores `/index.js`, local modules, text/JSON and binary data separately
 from other Synths. Code and text edits save locally. Use relative `await import()`
@@ -348,7 +348,12 @@ the loaded set. Selecting a song does not play it. Select a **PSF entry** and ch
 beginning. File selection never starts audio. Master and the output monitor
 also apply to the song. The separate Play! HLE player needs no external BIOS;
 it keeps the edited SPU sample and settings intact. While the song is running,
-playing the keyboard or editing the instrument stops the preview. Loading another
+choose a PSF CH to edit its Volume, PITCH and ADSR and play that same physical
+voice from the keyboard. Later PSF CPU writes can take ownership again; an older
+key release or Pitch reset cannot stop or retune their replacement. The source
+sample RAM, programmed Start/Repeat and other 23 voices are kept. Noise keys
+trigger the envelope without assigning a musical pitch, and a PMON carrier
+keeps its preceding modulator running without transposing that pair. Loading another
 instrument, **Reset instrument**, running Code or **Stop all sound** also stops it.
 While paused in **PSF CH** view with **Live On**, the keyboard temporarily auditions the selected
 CH using the same ADPCM / Reference key or Noise Clock rules as Capture, keeping the song,
@@ -379,10 +384,21 @@ observations; turning it On returns to the remembered PSF CH. While paused in
 only the edited instrument, keeping the original song position and frozen CH state.
 Switch to a PSF CH to compare its original sound, then back to Synth to continue
 with your latest edits. **Resume** continues the original song from the paused position.
-Edits during song playback and loading another preset, VAB Tone or audio sample
-still stop the song. Stop also returns
+In Synth view, panel edits and the keyboard use the separate authored instrument
+while the source keeps playing or stays paused. Loading another preset, VAB Tone
+or audio sample retains its existing Stop behavior. Stop also returns
 to the editor. Pause and choose **Capture to Synth** to edit or save an ADPCM or Noise channel. PSF2 is not supported. Compatibility depends on the HLE
 driver environment, so not every game's PSF is guaranteed to play correctly.
+
+Live channel changes are temporary and do not rewrite saved instruments. Voice
+Volume, raw PITCH and partial ADSR edits enter the next unrendered native boundary,
+preserving the current sample cursor and envelope level. Already queued audio is
+kept: expect up to about 0.2 seconds of playback lookahead plus device latency;
+the audible Live view samples state at up to 20 Hz. Pitch wheels affect only
+still-owned manual notes. CH/Reference changes, blur and Pause release owned hand
+notes. Seek reconstructs the source program and discards temporary channel edits.
+Shared Noise, PMON, reverb and sample/topology editing remain read-only in PSF CH
+view; choose Synth to change the separate author bank.
 The active song SPU uses the same fixed MAME-derived DSP sources as the
 keyboard Synth: ADPCM, four-point Gaussian interpolation, ADSR, Noise, PMON,
 hardware main / reverb output volumes and shared reverb. The CPU's SPU register
@@ -431,7 +447,7 @@ The Live PCM graph is a read-only preview of up to 112 ADPCM samples from the
 programmed Start address, decoded with zero initial history. It is not the
 currently audible waveform, a full sample extraction or an inferred root note.
 Start / Repeat are programmed addresses, not playback cursors. Gate shows the
-last CPU KON / KOFF request; Core active is separate, and ENDX can also mark a
+last accepted CPU or manual KON / KOFF request; Core active is separate, and ENDX can also mark a
 looping block. ADSR stage widths remain illustrative. Noise and PMON show the
 selected voice's hardware flags; the Noise clock, main volumes and reverb are
 shared. Software PMON waveform / ratio / depth / decay helpers cannot be inferred
