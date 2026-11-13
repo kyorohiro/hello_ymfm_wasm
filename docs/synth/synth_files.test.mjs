@@ -30,6 +30,59 @@ const tick=()=>new Promise(resolve=>queueMicrotask(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return{promise,resolve};};
 async function until(check){const deadline=performance.now()+5000;do{if(check())return;await new Promise(resolve=>setImmediate(resolve));}while(performance.now()<deadline);assert.fail('operation did not reach expected state');}
 
+function draftDatabase(store) {
+  const control={connections:[],openCount:0,readCount:0,writeCount:0,commits:0,pending:[],holdWrites:0,failStarts:0,failReads:0};
+  const events=target=>{
+    const listeners=new Map();
+    target.addEventListener=(name,handler)=>{if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(handler);};
+    target.removeEventListener=(name,handler)=>listeners.get(name)?.delete(handler);
+    target.emit=name=>{const event={target,preventDefault(){}};target['on'+name]?.(event);for(const handler of listeners.get(name)??[])handler(event);};
+    return target;
+  };
+  const finish=(entry,abort=false,error=null)=>{
+    if(entry.done)return;entry.done=true;
+    const at=control.pending.indexOf(entry);if(at>=0)control.pending.splice(at,1);
+    entry.db.transactions.delete(entry);
+    if(abort){entry.transaction.error=error??new DOMException('Draft transaction aborted by a forced connection close.','AbortError');if(entry.request)entry.request.error=entry.transaction.error;entry.transaction.emit('abort');return;}
+    if(entry.kind==='write'){store.saved=structuredClone(entry.value);control.commits++;}
+    else {entry.request.result=structuredClone(store.saved);entry.request.onsuccess?.();}
+    entry.transaction.emit('complete');
+  };
+  control.releaseWrite=()=>{const entry=control.pending.find(value=>value.kind==='write');assert(entry,'a write must be held');finish(entry);};
+  control.closeSilently=(db=control.connections.at(-1))=>{db.closing=true;};
+  control.forceClose=(db=control.connections.at(-1))=>{
+    db.closing=true;
+    for(const entry of [...db.transactions])queueMicrotask(()=>finish(entry,true));
+    queueMicrotask(()=>db.emit('close'));
+  };
+  control.versionChange=(db=control.connections.at(-1))=>db.emit('versionchange');
+  control.indexedDB={open(){
+    control.openCount++;
+    const db=events({closing:false,transactions:new Set(),objectStoreNames:{contains:()=>true},createObjectStore(){},close(){this.closing=true;}});
+    db.transaction=()=>{
+      if(db.closing||control.failStarts>0){if(control.failStarts>0)control.failStarts--;throw new DOMException('The database connection is closing.','InvalidStateError');}
+      const transaction=events({error:null,abort(){const entry=[...db.transactions].find(value=>value.transaction===transaction);if(entry)finish(entry,true);}});
+      transaction.objectStore=()=>({
+        put(value){
+          control.writeCount++;const entry={db,transaction,kind:'write',value:structuredClone(value),done:false};db.transactions.add(entry);
+          if(control.holdWrites>0){control.holdWrites--;control.pending.push(entry);}else queueMicrotask(()=>finish(entry));
+          return {result:'current'};
+        },
+        get(){
+          control.readCount++;const request={result:undefined},entry={db,transaction,kind:'read',request,done:false};db.transactions.add(entry);
+          if(control.failReads>0){control.failReads--;queueMicrotask(()=>finish(entry,true,new DOMException('Saved project could not be read.','UnknownError')));}
+          else queueMicrotask(()=>finish(entry));
+          return request;
+        },
+      });
+      return transaction;
+    };
+    control.connections.push(db);
+    const request={result:db};queueMicrotask(()=>{if(control.openCount===1)request.onupgradeneeded?.();request.onsuccess?.();});return request;
+  }};
+  return control;
+}
+
 function harness(store={saved:null,journal:new Map()},options={}) {
   const globals=['document','window','indexedDB','localStorage','setTimeout','clearTimeout'],previous=new Map(globals.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const elements=new Map(),body=new Element('body'),editor=new Element();editor.className='synth-editor';body.append(editor);
@@ -41,11 +94,7 @@ function harness(store={saved:null,journal:new Map()},options={}) {
   globalThis.document=document;globalThis.window=window;
   globalThis.localStorage={getItem:key=>store.journal.get(key)??null,setItem:(key,value)=>store.journal.set(key,String(value)),removeItem:key=>store.journal.delete(key)};
   globalThis.setTimeout=fn=>{timers.set(++timerId,fn);return timerId;};globalThis.clearTimeout=id=>timers.delete(id);
-  const database={createObjectStore(){},transaction(){const transaction={};transaction.objectStore=()=>({
-    put(value){store.saved=structuredClone(value);queueMicrotask(()=>transaction.oncomplete?.());},
-    get(){const request={result:structuredClone(store.saved)};queueMicrotask(()=>request.onsuccess?.());return request;},
-  });return transaction;}};
-  globalThis.indexedDB={open(){const request={result:database};queueMicrotask(()=>{request.onupgradeneeded?.();request.onsuccess?.();});return request;}};
+  const database=draftDatabase(store);globalThis.indexedDB=database.indexedDB;
   const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({}),pcm:createPcmBuiltinPreset('sine')},ids={fm:'one-op-basic',psg:'psg-default',pcm:'pcm-sine'},messages=[],applied=[];
   let kind='fm';
   function applySnapshot(preset,id){applied.push(id);kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
@@ -66,7 +115,7 @@ function harness(store={saved:null,journal:new Map()},options={}) {
     for(let i=0;i<50&&!dialog.open;i++)await tick();assert(dialog.open);
     byId('synthFileNameInput').value=name;dialog.querySelector('[data-file-name-confirm]').click();await idle();
   }
-  return {store,project,patches,ids,files,messages,applied,byId,action,rename,get kind(){return kind;},forceKind:value=>{kind=value;},
+  return {store,project,patches,ids,files,messages,applied,byId,action,rename,database,get kind(){return kind;},forceKind:value=>{kind=value;},
     cleanup(){for(const [name,descriptor]of previous)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
 
@@ -520,4 +569,106 @@ test('a full PCM sample and checkpoint recover the last edit without overwriting
     await h.files.selectPreset('pcm-sine');assert.equal(h.kind,'pcm');assert.equal(h.files.activeTonePath,null);
     assert.equal(store.saved.editorContexts.pcm.presetId,'pcm-sine');
   } finally {h.cleanup();}
+});
+
+test('a closing or invalidated draft connection reopens without restoring old Files or applying its old sound',async()=>{
+  for(const mode of ['silent-closing','close-event','versionchange']) {
+    const h=harness();
+    try {
+      await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Keep my current edit');await h.action('sync');
+      const path=h.files.activeTonePath,checkpoint=h.project.fs.get('/.tet.ss'+path).data.slice();
+      h.project.fs.writeBinary('/samples/keep.bin',new Uint8Array([0,255,128,17]));
+      h.project.fs.writeText('/index.js','context.latest = 37;\n');
+      const code=attachCode(h);await h.files.selectFile('/index.js');
+      h.patches.fm.feedback=6;h.files.markDirty();
+      const before=h.project.snapshot(),workspace=h.files.workspaceId,applied=h.applied.length,reads=h.database.readCount;
+      assert(h.store.journal.has('tetorica-fm2612-synth-pending-tone'));
+      if(mode==='silent-closing')h.database.closeSilently();
+      else if(mode==='close-event'){h.database.forceClose();await tick();}
+      else h.database.versionChange();
+      assert.equal(await h.files.persistCode(),true,mode);
+      assert.equal(h.database.openCount,2,mode+' opens a fresh connection exactly once');
+      assert.equal(h.database.readCount,reads,'reconnect must not read and replay the persisted project');
+      assert.equal(h.applied.length,applied,'reconnect must not reapply a previous preset');
+      assert.equal(h.files.workspaceId,workspace);assert.equal(h.files.activeTonePath,path);
+      assert.equal(h.patches.fm.feedback,6);assert.deepEqual(h.project.snapshot(),before);
+      assert.deepEqual(h.store.saved.project,before);assert.equal(h.store.saved.editorContexts.fm.preset.feedback,6);
+      assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index.js'});
+      assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+      assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      assert.equal(h.store.journal.has('tetorica-fm2612-synth-pending-tone'),false,'the committed latest edit can retire its recovery journal');
+      assert(!h.messages.some(message=>/Could not save|File operation failed|Local draft unavailable/.test(message)));
+    } finally {h.cleanup();}
+  }
+});
+
+test('a forced connection close retries an older transaction before a newer draft and keeps its recovery journal until the latest commit',async()=>{
+  const h=harness();let older,newer;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:1},'Pending writes');await h.action('sync');
+    const path=h.files.activeTonePath,checkpoint=h.project.fs.get('/.tet.ss'+path).data.slice();
+    h.project.fs.writeText('/index.js','context.version = 1;\n');
+    h.database.holdWrites=1;
+    older=h.files.persistCode();older.catch(()=>{});await until(()=>h.database.pending.length===1);
+    const oldConnection=h.database.connections.at(-1),oldSnapshot=structuredClone(h.database.pending[0].value),applied=h.applied.length;
+    h.project.fs.writeText('/index.js','context.version = 2;\n');
+    h.project.fs.writeBinary('/samples/latest.bin',new Uint8Array([4,0,255,128]));
+    h.patches.fm.feedback=7;h.files.markDirty();
+    const journal=h.store.journal.get('tetorica-fm2612-synth-pending-tone');assert(journal);
+    const current=h.project.snapshot();newer=h.files.persistCode();newer.catch(()=>{});
+    h.database.holdWrites=2;h.database.forceClose(oldConnection);
+    await until(()=>h.database.pending.length===1&&h.database.pending[0].db!==oldConnection);
+    assert.equal(h.store.journal.get('tetorica-fm2612-synth-pending-tone'),journal,'aborting the older write retains the newer recovery journal');
+    assert.deepEqual(h.database.pending[0].value,oldSnapshot,'the retry writes the snapshot owned by its original caller');
+    h.database.releaseWrite();assert.equal(await older,true);
+    await until(()=>h.database.pending.length===1);
+    assert.equal(h.store.saved.editorContexts.fm.preset.feedback,1,'the older commit cannot silently contain a later mutable edit');
+    assert.equal(h.store.journal.get('tetorica-fm2612-synth-pending-tone'),journal,'an older completed save must not clear a newer tone journal');
+    assert.deepEqual(h.project.snapshot(),current,'reopening and retrying never restore old files over the current project');
+    assert.equal(h.applied.length,applied);assert.equal(h.patches.fm.feedback,7);
+    h.database.releaseWrite();assert.equal(await newer,true);
+    assert.deepEqual(h.store.saved.project,current);assert.equal(h.store.saved.editorContexts.fm.preset.feedback,7);
+    assert.equal(h.store.journal.has('tetorica-fm2612-synth-pending-tone'),false);
+    assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+    assert.equal(h.database.openCount,2);assert.equal(h.database.readCount,1,'only startup reads the saved project');
+  } finally {
+    h.database.holdWrites=0;while(h.database.pending.length)h.database.releaseWrite();
+    await Promise.allSettled([older,newer].filter(Boolean));h.cleanup();
+  }
+});
+
+test('repeated connection failure leaves the in-memory project and last tone recovery available for a later save',async()=>{
+  const h=harness();
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:1},'Unsaved sound');
+    h.patches.fm.feedback=5;h.files.markDirty();h.project.fs.writeText('/index.js','// keep unsaved source\n');
+    const journal=h.store.journal.get('tetorica-fm2612-synth-pending-tone'),before=h.project.snapshot(),saved=structuredClone(h.store.saved);
+    h.database.failStarts=2;
+    await assert.rejects(h.files.persistCode(),error=>error.name==='InvalidStateError');
+    assert.deepEqual(h.project.snapshot(),before);assert.deepEqual(h.store.saved,saved);
+    assert.equal(h.store.journal.get('tetorica-fm2612-synth-pending-tone'),journal);
+    assert.equal(h.patches.fm.feedback,5);
+    assert.equal(await h.files.persistCode(),true,'a future explicit save can recover without a page reload');
+    assert.deepEqual(h.store.saved.project,before);assert.equal(h.store.journal.has('tetorica-fm2612-synth-pending-tone'),false);
+  } finally {h.cleanup();}
+});
+
+test('an unreadable startup draft is never replaced by default project data or later automatic saves',async()=>{
+  const store={saved:null,journal:new Map()};let h=harness(store);
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:6},'Unread protected sound');
+    h.project.fs.writeBinary('/samples/protected.bin',new Uint8Array([0,255,42,128]));
+    h.project.fs.writeText('/index.js','// keep this persisted source\n');await h.files.persistCode();
+  }finally{h.cleanup();}
+  const saved=structuredClone(store.saved);h=harness(store);h.database.failReads=1;
+  try {
+    await h.files.ready;
+    assert(h.messages.some(message=>message.includes('Local draft unavailable')));
+    assert.deepEqual(store.saved,saved,'startup failure must not write the empty default project over unread data');
+    assert.equal(h.database.writeCount,0);assert.equal(h.database.openCount,1,'unknown storage failures are not retried as closing connections');
+    h.project.fs.writeText('/new-work.js','// still editable and exportable\n');h.patches.fm.feedback=3;h.files.markDirty();
+    assert.equal(await h.files.persistCode(),false,'unsafe autosave remains disabled for this session');
+    assert.equal(h.project.fs.get('/new-work.js').data,'// still editable and exportable\n');
+    assert.deepEqual(store.saved,saved);assert.equal(h.database.writeCount,0);
+  }finally{h.cleanup();}
 });

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "FM2612 Synth draft storage reconnect after IDBDatabase connection closes",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "cause": "FM Files retained a raw IndexedDB connection indefinitely. A closed/closing connection caused subsequent transaction() calls to fail with InvalidStateError.",
+  "behavior": [
+    "Existing database name, schema version, object store and current key are unchanged; no database reset or data migration.",
+    "Closed/version-changing connections are invalidated. A transaction-start InvalidStateError or aborted rollback retries the entire storage operation once on a reopened connection.",
+    "Transactions, including retry, are serialized. Detached snapshots retain FM/PSG/PCM editor state, binary files, Code and workspace/generation without replaying startup restoration.",
+    "Load and save resolve only after transaction completion. The synchronous tone recovery journal is cleared only after the matching workspace/generation/pending snapshot commits.",
+    "QuotaExceededError, DataCloneError and VersionError remain visible rather than being retried as connection failures. Failed opens do not poison future saves on an existing store.",
+    "An unrecoverable initial read disables autosave instead of writing defaults over an unread stored project. Cassette export remains available.",
+    "Frontend cache identities and the standalone Synth package include the readable new helper. CI runs the native IndexedDB fault-injection checker on the extracted package."
+  ],
+  "node": {
+    "passed": 671,
+    "failed": 0,
+    "newStorageHelperTests": 12,
+    "newFilesIntegrationTests": 4,
+    "command": "node --test docs/synth/*.test.mjs",
+    "receipt": {
+      "path": "build/verification/fm-draft-reconnect-20261113/node-tests.log",
+      "bytes": 74804,
+      "sha256": "703149b8d47bd0f5c918bd40bc442082fafc9a7784e1d75741fb74649851f04e"
+    }
+  },
+  "browsers": {
+    "faultInjection": {
+      "receipt": {
+        "path": "build/verification/fm-draft-reconnect-20261113/browser-c.json",
+        "bytes": 61181,
+        "sha256": "3d293135120218d77f0adf77b3cc88179dfa2e73caa454672c523c19c5b7088a"
+      },
+      "checker": {
+        "path": "scripts/check_synth_draft_reconnect_browser.cjs",
+        "bytes": 18005,
+        "sha256": "136900ad47989d28041fb673fc6446d58b200e20a20bc846bc0a809299faae79"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 6,
+          "nativeClosingErrors": [
+            {
+              "name": "InvalidStateError",
+              "message": "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing."
+            },
+            {
+              "name": "InvalidStateError",
+              "message": "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing."
+            }
+          ],
+          "audioContexts": 0
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 6,
+          "nativeClosingErrors": [
+            {
+              "name": "InvalidStateError",
+              "message": "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing."
+            },
+            {
+              "name": "InvalidStateError",
+              "message": "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing."
+            }
+          ],
+          "audioContexts": 0
+        }
+      ],
+      "cases": [
+        "native raw connection close before autosave",
+        "Files Sync after native close",
+        "actual versionchange via rolled-back upgrade",
+        "native transaction abort with newer queued edit and journal ownership",
+        "exact FM/4096-frame PCM/UTF-8 text/binary restore without startup audio"
+      ]
+    },
+    "standaloneSmoke": {
+      "receipt": {
+        "path": "build/verification/fm-draft-reconnect-20261113/smoke-a.json",
+        "bytes": 25505,
+        "sha256": "40fbb597340cde0404e3d52fe79123e64b89d36e181cf84b930cc51c4bcdf256"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "passed": true
+        }
+      ],
+      "actualKeyboardPcm": true,
+      "quietReleaseAndReplay": true
+    }
+  },
+  "package": {
+    "passed": true,
+    "zip": "release/hello_ymfm_wasm_draft-reconnect-20261113a_itch_synth.zip",
+    "stage": "release/itch_synth_draft-reconnect-20261113a",
+    "files": 293,
+    "bytes": 1126248,
+    "sha256": "fbc5b4c903921196ab8a09e429ffea0a01992d16b23916e0b4e3429d50b0d65a",
+    "stageMatchesZip": true,
+    "newHelperMatchesSource": true,
+    "crcPassed": true,
+    "receipt": {
+      "path": "build/verification/fm-draft-reconnect-20261113/zip-integrity-a.json",
+      "bytes": 355,
+      "sha256": "62f934821f798360675de9f44fc290e92bba66270a50c471a2c694879b9f3faf"
+    }
+  },
+  "helper": {
+    "path": "docs/synth/synth_draft_store.js",
+    "bytes": 3656,
+    "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+  },
+  "scope": "FM2612 Synth persistence only. Other Synth/Playground schemas were inspected but not migrated. No user storage, game assets, DSP/WASM/API/gain or Files editing semantics changes; no commit, push, tag or publication."
+}

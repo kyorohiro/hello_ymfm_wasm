@@ -107,6 +107,13 @@ jobs:
             --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html --checks=keyboard \
             --out="$RUNNER_TEMP/itch-web/synth-code-keyboard.json" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-code-keyboard.log"
+      - name: Recover Synth draft saves after an IndexedDB connection closes
+        run: |
+          node scripts/check_synth_draft_reconnect_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
+            --out="$RUNNER_TEMP/itch-web/synth-draft-reconnect.json" \
+            --screenshots="$RUNNER_TEMP/itch-web/synth-draft-reconnect-images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-draft-reconnect.log"
       - name: Play VGM and edit the same FM channels manually
         run: |
           node scripts/check_synth_song_manual_browser.cjs \

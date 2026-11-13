@@ -4,6 +4,7 @@ import {isPsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {isPcmPreset} from './synth_pcm.js?v=pcm-live-draw-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=pcm-live-draw-1';
+import {openSynthDraftStore} from './synth_draft_store.js?v=draft-reconnect-1';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';
@@ -16,17 +17,6 @@ const extensionForKind=kind=>kind==='pcm'?'.pcm.json':kind==='psg'?'.psg.json':'
 const toneExtension=path=>String(path).match(/\.(?:psg|pcm)\.json$|\.(?:tfi|vgi)$/i)?.[0].toLowerCase();
 const isCodePath=path=>/\.m?js$/i.test(String(path))&&!String(path).split('/').includes('.git')&&!isCheckpointPath(path);
 const newWorkspaceId = () => globalThis.crypto?.randomUUID?.() || `synth-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-// Structured snapshots keep binary files binary; no base64/JSON round trip.
-async function openDraftStore() {
-  if (!globalThis.indexedDB) return null;
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('tetorica-fm2612-synth-drafts', 1);
-    request.onupgradeneeded = () => request.result.createObjectStore('projects');
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
 
 export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,applySnapshot,onSaved,onListChanged,onWorkspaceReplaced,
   getEditorKind=()=> 'fm',setEditorKind=()=>{},getDefaultPresetId=()=> 'one-op-basic',getPresetKind=()=>null,isObserving=()=>false,
@@ -114,27 +104,18 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     }
   }
 
-  function writeDraft() {
-    return new Promise((resolve,reject) => {
-      try {
-        const savedWorkspace = workspaceId, savedGeneration = generation, savedPending = pendingTone;
-        const transaction = draftStore.transaction('projects', 'readwrite');
-        transaction.objectStore('projects').put({project:project.snapshot(),activeTonePath,editorKind,editorContexts:savedEditors(),codeState:codeControls?.captureState?.()??savedCodeState,filesVisible:!panel.hidden,workspaceId:savedWorkspace,generation:savedGeneration},'current');
-        transaction.oncomplete = () => {
-          if (workspaceId === savedWorkspace && generation === savedGeneration && pendingTone === savedPending) {
-            unprotectedChanges = false;
-            if (savedPending) {
-              try {if (localStorage.getItem(RECOVERY_KEY) === savedPending) localStorage.removeItem(RECOVERY_KEY);} catch {}
-              pendingTone = null;
-            }
-            updateButtons();
-          }
-          resolve(true);
-        };
-        transaction.onerror = () => reject(transaction.error);
-        transaction.onabort = () => reject(transaction.error || Error('Draft save aborted.'));
-      } catch (error) {reject(error);}
-    });
+  async function writeDraft() {
+    const savedWorkspace=workspaceId,savedGeneration=generation,savedPending=pendingTone;
+    await draftStore.save({project:project.snapshot(),activeTonePath,editorKind,editorContexts:savedEditors(),codeState:codeControls?.captureState?.()??savedCodeState,filesVisible:!panel.hidden,workspaceId:savedWorkspace,generation:savedGeneration});
+    if(workspaceId===savedWorkspace&&generation===savedGeneration&&pendingTone===savedPending) {
+      unprotectedChanges=false;
+      if(savedPending) {
+        try{if(localStorage.getItem(RECOVERY_KEY)===savedPending)localStorage.removeItem(RECOVERY_KEY);}catch{}
+        pendingTone=null;
+      }
+      updateButtons();
+    }
+    return true;
   }
   function remember(immediate=false) {
     if (restoring || !draftLoaded || !draftStore) return Promise.resolve(false);
@@ -669,9 +650,11 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
   render();
 
   const ready=(async()=>{
+    let readComplete=false;
     try{
-      draftStore=await openDraftStore();
-      const saved=draftStore?await new Promise((resolve,reject)=>{const request=draftStore.transaction('projects','readonly').objectStore('projects').get('current');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);}):null;
+      draftStore=await openSynthDraftStore();
+      const saved=draftStore?await draftStore.load():null;
+      readComplete=true;
       workspaceId=saved?.workspaceId||newWorkspaceId();generation=Number.isSafeInteger(saved?.generation)?saved.generation:0;
       savedCodeState=saved?.codeState??null;
       restoring=true;
@@ -718,7 +701,12 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       if(recovered)setStatus('Recovered the last instrument edit.');
       else if(saved?.project)setStatus('Restored local Cassette draft.');
       else if(!draftStore)setStatus('Local draft storage is unavailable. Export Cassette to keep your project.');
-    }catch(error){restoring=false;setStatus(`Local draft unavailable: ${error.message}. Cassette import/export is still available.`);}
+    }catch(error){
+      // If the initial read never committed, saving the default workspace
+      // could overwrite an existing draft which we have not safely restored.
+      if(!readComplete){draftStore?.close();draftStore=null;}
+      restoring=false;setStatus(`Local draft unavailable: ${error.message}. Cassette import/export is still available.`);
+    }
     finally{draftLoaded=true;busy=false;if(dirty)persistCurrentTone();render();remember();}
   })();
   return {ready,selectFile,selectPreset,switchEditor,importInstruments,createFromPreset,saveFromPreset,setVisible,isVisible:()=>!panel.hidden,

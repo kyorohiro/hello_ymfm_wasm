@@ -41,6 +41,7 @@ synth_modulation.js
 synth_pitch_bend.js
 synth_project.js
 synth_files.js
+synth_draft_store.js
 synth_recovery.js
 synth_song_controls.js
 synth_psg.js

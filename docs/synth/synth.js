@@ -1,6 +1,6 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=channel-presets-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=pcm-frames-2';
+import {setupSynthFiles} from './synth_files.js?v=draft-reconnect-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-keyboard-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
 import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';
