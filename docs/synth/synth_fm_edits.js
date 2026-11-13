@@ -4,26 +4,31 @@
 // not update YM2612Synth.channels, but its packed companions must survive edits.
 // Install before the initial author patch. Future scheduleWrites() entries run
 // inside the worklet and are not observable here until a later immediate write.
-import {createYm2612RegisterState} from './synth_song_state.js';
-import {readSynthSongEdit} from './synth_song_interaction.js';
+import {createSynthSongInteraction,readSynthSongEdit} from './synth_song_interaction.js?v=channel-view-1';
+import {createSynthLocalChannelVoice} from './synth_local_channel_voice.js?v=channel-view-1';
 
 export function createSynthFmEdits(synth) {
   const transport=synth?.transport;
   if(typeof transport?.write!=='function')throw new TypeError('Expected a YM2612Synth transport');
   const originalWrite=transport.write,originalReset=transport.reset;
-  const decoder=createYm2612RegisterState(synth.clock??7670454);
+  const engine={
+    writeYm2612(port,register,value){return originalWrite.length>=3?originalWrite.call(transport,port,register,value)
+      :originalWrite.call(transport,{port,register,value});},
+    processFrames(){},reset(...args){return originalReset?.apply(transport,args);},
+  };
+  const interaction=createSynthSongInteraction(engine,{clockHz:synth.clock??7670454});
   let disposed=false;
   // Keep a three-argument signature: YM2612Synth uses arity to distinguish its
   // two supported transport protocols. The underlying transport keeps its own.
   function write(port,register,value) {
     if(port&&typeof port==='object')({port,register,value}=port);
-    const result=originalWrite.length>=3?originalWrite.call(this,port,register,value)
-      :originalWrite.call(this,{port,register,value});
-    if(!disposed)decoder.write(port,register,value);
-    return result;
+    // Local frame is write order, not rendered audio time. It separates a
+    // future freeze from older manual overlays without adding a hardware tick.
+    engine.processFrames(1);
+    return engine.writeYm2612(port,register,value);
   }
   function reset(...args) {
-    const result=originalReset?.apply(this,args);decoder.reset();return result;
+    return engine.reset(...args);
   }
   transport.write=write;
   if(typeof originalReset==='function')transport.reset=reset;
@@ -32,7 +37,7 @@ export function createSynthFmEdits(synth) {
     const edit=readSynthSongEdit({channel,changes});
     if(Object.keys(edit.changes).some(path=>path==='keyMask'||path.startsWith('gates.')))throw new TypeError('FM gate selections use the performance interface');
     if(!Object.keys(edit.changes).length)return false;
-    const current=decoder.snapshot().channels[channel].preset,own=path=>Object.hasOwn(edit.changes,path);
+    const current=interaction.read().channels[channel].preset,own=path=>Object.hasOwn(edit.changes,path);
     const operators=new Map();
     for(const [path,value]of Object.entries(edit.changes))if(path.startsWith('operators.')){
       const [,number,field]=path.split('.'),index=Number(number);
@@ -64,6 +69,10 @@ export function createSynthFmEdits(synth) {
     if(disposed)return;disposed=true;
     if(transport.write===write)transport.write=originalWrite;
     if(transport.reset===reset)transport.reset=originalReset;
+    interaction.dispose();
   }
-  return {apply,read:()=>decoder.snapshot(),dispose};
+  return {apply,read:()=>interaction.read(),
+    readWrittenSnapshot:frozen=>interaction.readSnapshot(frozen,interaction.generatedFrames,{frozen:true}),
+    editWrittenChannel:(channel,changes)=>interaction.applyEdit({channel,changes}),
+    channelKeyboard:createSynthLocalChannelVoice(interaction,{prefix:'local-fm'}),dispose};
 }

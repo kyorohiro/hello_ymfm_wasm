@@ -1,5 +1,6 @@
 // Exercise copied OP masks / CH3 pitches through the published Synth controls.
 // Self-authored music only. Every speaker edge is metered and physically muted.
+const {selectSynthChannel,copySynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const http=require('node:http');
@@ -170,11 +171,11 @@ async function files(page) {return evaluate(page,()=>new Promise((resolve,reject
 async function copySong(page,name,channel) {
   if(['loading','playing','paused'].includes((await transport(page)).state))await page.locator('#synthSongStopButton').click();
   await page.locator('#synthSongSelect').selectOption('/vgm/'+name);
-  await page.locator('#synthSongChannelSelect').selectOption(String(channel));
+  await selectSynthChannel(page,String(channel));
   await page.locator('#synthSongPlayButton').click();await state(page,'playing');await pause(220);
   await page.locator('#synthSongPlayButton').click();await state(page,'paused');
   await until(page,async()=>!await page.locator('#synthSongCopyButton').isDisabled(),'Copy becomes available');
-  await page.locator('#synthSongCopyButton').click();await ready(page);
+  await copySynthChannel(page);await ready(page);
   await until(page,async()=>(await transport(page)).target==='synth','Copy selects Synth');
   assert.equal(await page.locator('#looperStartButton').isDisabled(),false,'Copied tone supports Looper');
   assert.equal(await page.locator('#eventRecordStartButton').isDisabled(),false,'Copied tone supports Event Rec');
@@ -288,7 +289,7 @@ async function assertReferenceLock(page,playing=true) {
   for(const id of ['looperStartButton','eventRecordStartButton','eventRecordPlayButton'])assert.equal(await page.locator('#'+id).isDisabled(),playing,id+' follows VGM transport lock');
 }
 async function checkExclusivity(page,reference) {
-  await selectTone(page,'sine');await page.locator('#synthSongSelect').selectOption('/vgm/Reference.vgm');await page.locator('#synthSongChannelSelect').selectOption('synth');
+  await selectTone(page,'sine');await page.locator('#synthSongSelect').selectOption('/vgm/Reference.vgm');await selectSynthChannel(page,'synth');
   await page.locator('#looperStartButton').click();await page.locator('#looperRecordButton').click();
   await page.keyboard.down('a');await keyState(page,'a',true);await pause(200);
   await page.locator('#synthSongPlayButton').click();await state(page,'playing');await assertReferenceLock(page);
@@ -322,7 +323,7 @@ async function checkPendingStart(browser,origin,reference) {
   const released=new Promise(resolve=>{release=resolve;}),captured=new Promise(resolve=>{heldResolve=resolve;});
   try {
     await page.locator('#tfiFile').setInputFiles({name:'Reference.vgm',mimeType:'application/octet-stream',buffer:reference.bytes});await ready(page);
-    await page.locator('#synthSongChannelSelect').selectOption('synth');
+    await selectSynthChannel(page,'synth');
     await page.route('**/*ym2612_wasm.wasm*',async route=>{
       if(!held){held=true;heldResolve();await released;}await route.continue();
     });

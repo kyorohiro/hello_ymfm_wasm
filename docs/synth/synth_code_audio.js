@@ -491,7 +491,13 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
     }).finally(()=>{if(stopping===task)stopping=null;});
     stopping=task;return task;
   }
-  return {prepare,useSoundChip,fx,keyboardTarget,getFm:()=>client('ym2612',fmOverrides,getFm),syncFmVoice,syncPsgSettings,syncPcmSettings,pcmSourceChanged,beforePcmSampleEdit,
+  return {prepare,useSoundChip,fx,keyboardTarget,
+    claimKeyboard(chip,channel){
+      const maximum={ym2612:5,segapsg:3,rf5c164:7}[chip];
+      if(maximum===undefined)throw TypeError('Unknown keyboard chip');integer(channel,maximum,'keyboard channel');
+      gates.set(gateKey(chip,channel),'keyboard');
+    },
+    getFm:()=>client('ym2612',fmOverrides,getFm),syncFmVoice,syncPsgSettings,syncPcmSettings,pcmSourceChanged,beforePcmSampleEdit,
     setMaster(value){
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw RangeError('Code Master must be 0..3.8');
       pwmMaster=value;if(pwmOwner)pwmOwner.gain.gain.value=value*pwmSourceVolume;

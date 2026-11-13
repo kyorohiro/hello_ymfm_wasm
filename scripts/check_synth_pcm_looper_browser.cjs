@@ -4,6 +4,7 @@
 // node scripts/check_synth_pcm_looper_browser.cjs [--root=docs]
 //   [--entry=/synth/index.html] [--engines=chromium,webkit]
 //   [--out=/tmp/pcm-looper.json] [--screenshots=/tmp/pcm-looper]
+const {selectSynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
@@ -398,13 +399,13 @@ async function run(browser,name,origin) {
     steps.push('Event Rec and Looper stop one another while retaining their data; FM, PSG and PCM resume independent layer collections');
 
     const vgm=authoredReference();await page.locator('#tfiFile').setInputFiles({name:'PCM Looper reference.vgm',mimeType:'application/octet-stream',buffer:vgm});await ready(page);
-    await page.locator('#synthSongChannelSelect').selectOption('synth');await page.locator('#synthSongPlayButton').click();
+    await selectSynthChannel(page,'synth');await page.locator('#synthSongPlayButton').click();
     await until(page,async()=>(await ui(page)).song==='playing','Reference VGM starts');assert((await ui(page)).loopBlocked);assert(!running(await ui(page)));await silence(page,'loop');
-    await page.locator('#synthSongChannelSelect').selectOption('pcm:0');assert((await ui(page)).loopBlocked);
+    await selectSynthChannel(page,'pcm:0');assert((await ui(page)).loopBlocked);
     await page.locator('#synthSongPlayButton').click();await until(page,async()=>(await ui(page)).song==='paused','Reference pauses');assert((await ui(page)).loopBlocked);
     await page.locator('#synthSongSeek').evaluate(node=>{node.value='2.5';node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));});
     await until(page,async()=>{const state=await ui(page);return state.song==='paused'&&Math.abs(state.songFrame-2.5*53267)<500;},'Reference seek finishes');
-    assert((await ui(page)).loopBlocked);await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');await chip(page,'pcm');
+    assert((await ui(page)).loopBlocked);await page.locator('#synthSongStopButton').click();await selectSynthChannel(page,'synth');await chip(page,'pcm');
     await startLoop(page);await count(page,2);assert.deepEqual((await owner(page)).units.map(unit=>unit.id).sort(),retainedIds);await stopLoop(page);await silence(page);
     assert.deepEqual(await exportPcm(page),retainedPcm);assert.deepEqual(await exportEvent(page),retainedEvent);
     steps.push('VGM Play / Live / Pause CH / Seek stop layers and exclude capture, then Synth resumes the retained PCM layers');

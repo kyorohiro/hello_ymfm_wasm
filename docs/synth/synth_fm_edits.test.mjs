@@ -58,3 +58,47 @@ test('transport reset clears shadow; disposal restores both protocols without a 
   observer.dispose();observer.dispose();assert.notEqual(transport.write,wrapped);assert.equal(writes.length,count);
   synth.write(0,0x30,5);assert.deepEqual(writes.at(-1),[0,0x30,5]);assert.throws(()=>observer.apply(0,{feedback:1}),/disposed/);
 });
+
+test('physical FM keyboard keeps the actual OP mask, sparse CH edits and later Code ownership',()=>{
+  const {synth,observer,writes}=host();try{
+    synth.setFrequency(4,4,1000);synth.keyOn(4,[0,2]);
+    observer.editWrittenChannel(4,{'gates.2':true,'operators.1.tl':18});
+    const before=observer.read();assert.equal(before.channels[4].selectedKeyMask,7);
+    observer.channelKeyboard.noteOn(4,3,900);
+    assert.equal(observer.read().channels[4].keyMask,7,'the physical OP selection survives keyboard attack');
+    assert.equal(observer.read().channels[4].preset.operators[1].tl,18);
+    observer.channelKeyboard.setFrequency(4,3,1000);const tuned=observer.read().channels[4];assert.equal(tuned.fnum*2**tuned.block,1000*2**3);
+    synth.setFrequency(4,4,1100);const count=writes.length;
+    assert.equal(observer.channelKeyboard.setFrequency(4,3,900),false,'Code frequency writes steal Pitch only');
+    assert.equal(writes.length,count);assert(observer.channelKeyboard.noteOff(4));
+    observer.channelKeyboard.noteOn(4,3,900);synth.keyOn(4,[3]);const owned=writes.length;
+    assert.equal(observer.channelKeyboard.noteOff(4),false,'an old key-up cannot clear a later Code gate');
+    assert.equal(writes.length,owned);assert.equal(observer.read().channels[4].keyMask,8);
+  }finally{observer.dispose();}
+});
+
+test('physical FM keyboard keeps CH3 ratios and rejects DAC/CSM without writing',()=>{
+  const {synth,observer,writes}=host();try{
+    synth.write(0,0x27,0x40);
+    for(const [register,value]of [[0xac,0x21],[0xa8,0x80],[0xad,0x22],[0xa9,0x40],[0xae,0x23],[0xaa,0x20],[0xa6,0x24],[0xa2,0x80]])synth.write(0,register,value);
+    const before=observer.read().channels[2].specialFrequencies.map(p=>p.fnum*2**p.block);
+    observer.channelKeyboard.noteOn(2,3,800);const after=observer.read().channels[2].specialFrequencies.map(p=>p.fnum*2**p.block);
+    for(let i=0;i<3;i++)assert(Math.abs(after[i]/after[3]-before[i]/before[3])<.003);
+    synth.write(0,0x27,0x80);synth.setDacEnabled(true);const count=writes.length;
+    assert.throws(()=>observer.channelKeyboard.noteOn(2,3,800),/CSM/);
+    assert.throws(()=>observer.channelKeyboard.noteOn(5,3,800),/DAC/);assert.equal(writes.length,count);
+  }finally{observer.dispose();}
+});
+
+test('frozen local FM view projects touched manual fields without leaking Code or reviving an older freeze overlay',()=>{
+  const {synth,observer}=host();try{
+    synth.setAlgo(0,2,1);synth.setPan(0,true,false,0,0);const frozen=observer.read();
+    observer.editWrittenChannel(0,{feedback:4});synth.setPan(0,false,true,1,2);synth.setAlgo(0,3,2);
+    const projected=observer.readWrittenSnapshot(frozen).channels[0].preset;
+    assert.equal(projected.feedback,4);assert.equal(projected.algorithm,2);assert.deepEqual(projected.pan,{left:true,right:false});
+    const fresh=observer.read();assert(fresh.frame>frozen.frame);
+    assert.equal(observer.readWrittenSnapshot(fresh).channels[0].preset.feedback,2,'older pending feedback cannot overwrite a later Live-on snapshot');
+    observer.editWrittenChannel(0,{algorithm:6});const edited=observer.readWrittenSnapshot(fresh).channels[0].preset;
+    assert.equal(edited.algorithm,6);assert.equal(edited.feedback,2);
+  }finally{observer.dispose();}
+});

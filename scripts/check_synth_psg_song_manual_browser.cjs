@@ -1,6 +1,7 @@
 // FM2612 Synth: a VGM and a person write to the same reference Sega PSG.
 // Self-authored fixtures only. Every destination is intercepted before app JS
 // at gain zero; Chromium is additionally launched with --mute-audio.
+const {selectSynthChannel,copySynthChannel,setSynthLive}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
@@ -65,7 +66,7 @@ const view=page=>page.evaluate(()=>{const root=document.getElementById('synthSon
   status:document.getElementById('synthSongLiveStatus').textContent,inputMode:document.getElementById('synthInputSection').dataset.inputMode,code:document.getElementById('synthCodeState').textContent};});
 const readOutput=page=>page.evaluate(()=>__psgManualOutput.read());
 async function pcm(page,audible=true){let readings;await until(async()=>{readings=await readOutput(page);return readings.every(value=>value.muted&&value.finite)&&(audible?readings.some(value=>value.acRms>.0001):readings.every(value=>value.acRms<1e-7));},audible?'actual muted PCM':'actual output silence');return readings[0];}
-const channel=(page,value)=>page.locator('#synthSongChannelSelect').selectOption(String(value));
+const channel=(page,value)=>selectSynthChannel(page,String(value));
 async function change(node,direction,count=1){await node.scrollIntoViewIfNeeded();await node.locator('..').locator('.param-button').nth(direction>0?1:0).evaluate((button,count)=>{for(let i=0;i<count;i++)button.click();},count);}
 async function range(page,selector,value){await page.locator(selector).first().evaluate((node,value)=>{node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));},value);}
 async function keyboard(page){await page.locator('#synthInputKeyboardTab').click();await until(()=>view(page).then(value=>value.inputMode==='keyboard'),'Keyboard mode');}
@@ -165,14 +166,14 @@ async function check(browser,name,origin,presetBytes,fmPresetBytes){
     await until(()=>reference(page).then(value=>value.psg.periods[0]===407),'manual period reaches Tone1');assert.equal(await period(page).textContent(),'407');
 
     step('Live Off keeps observation frozen while sparse Noise edits preserve the latest source clock');
-    await channel(page,'psg:3');await seek(page,4.15);await page.locator('#synthSongLiveToggle').uncheck();
+    await channel(page,'psg:3');await seek(page,4.15);await setSynthLive(page,false);
     assert(await selected(noiseRate(page,'low')));await change(attenuation(page),-1);
     await until(()=>reference(page).then(value=>value.psg.attenuations[3]===14),'manual Noise volume between source noise bytes');
     const noiseWritesBefore=(await reference(page)).psg.noiseWrites;
     await until(()=>view(page).then(value=>value.frame>5.12*RATE),'source unlatched noise data');native=await reference(page);assert.equal(native.psg.noiseMode,7);assert.equal(native.psg.attenuations[3],14,'Source noise data does not become volume data');assert.equal(native.psg.noiseWrites,noiseWritesBefore+1,'No extra LFSR reset to restore the source latch');
     assert(await selected(noiseRate(page,'low')),'Noise observation remains frozen');await noiseType(page,'periodic').click();
     await until(()=>reference(page).then(value=>value.psg.noiseMode===3),'manual type preserves current Tone3 clock');
-    assert(await selected(noiseRate(page,'low')));assert(await selected(noiseType(page,'periodic')));await page.locator('#synthSongLiveToggle').check();
+    assert(await selected(noiseRate(page,'low')));assert(await selected(noiseType(page,'periodic')));await setSynthLive(page,true);
     await until(()=>selected(noiseRate(page,'tone3')),'Live catches up to Tone3 dependency');
 
     step('Later source volume data defeats old keyboard key-up and Pitch cleanup without a layered PSG');
@@ -199,7 +200,7 @@ async function check(browser,name,origin,presetBytes,fmPresetBytes){
     await until(()=>page.locator('#keyboard').getAttribute('data-song-audition').then(value=>value==='ready'),'Independent paused PSG audition');
     const paused=await reference(page),pausedFrame=(await view(page)).frame;await keyboard(page);await page.keyboard.down('a');await pressed(page,'a',true);await pcm(page);await page.keyboard.up('a');
     assert.equal((await reference(page)).writes.length,paused.writes.length);assert.equal((await view(page)).frame,pausedFrame);
-    await page.locator('#synthSongCopyButton').click();await ready(page);assert.equal((await view(page)).state,'paused');assert.equal((await view(page)).target,'synth');
+    await copySynthChannel(page);await ready(page);assert.equal((await view(page)).state,'paused');assert.equal((await view(page)).target,'synth');
     await page.locator('#synthSongPlayButton').click();await until(()=>view(page).then(value=>value.state==='playing'),'Resume');await channel(page,'psg:0');await seek(page,1);
     await until(()=>reference(page).then(value=>value.psg.attenuations[0]===6&&value.psg.periods[0]===254),'Seek restores original PSG registers');measurements.cache=await cacheState(page);
 
@@ -225,12 +226,15 @@ async function check(browser,name,origin,presetBytes,fmPresetBytes){
 
     step('Code and VGM remain exclusive while manual PSG edits and Keyboard view preserve running Code');
     await code(page,`const psg=await useSoundChip('segapsg');globalThis.__psgManualCode={ticks:0};psg.tone(0,{period:254,attenuation:6});liveLoop('clock',async()=>{__psgManualCode.ticks++;await sleep(.05);});`);await runCode(page);
-    await until(()=>view(page).then(value=>value.state==='stopped'),'Code retires VGM');const codeSound=await pcm(page),ticks=await page.evaluate(()=>__psgManualCode.ticks);await keyboard(page);await change(attenuation(page),1);await wait(150);
-    assert(await page.evaluate(()=>__psgManualCode.ticks)>ticks);const quieter=await pcm(page);assert(quieter.acRms<codeSound.acRms,'Upper attenuation changes the Code-owned PSG');
+    await until(()=>view(page).then(value=>value.state==='stopped'),'Code retires VGM');
+    // The 8192-frame analyser must contain the new Code source rather than a
+    // partial window from the fading VGM that just closed (especially WebKit).
+    await wait(220);const codeSound=await pcm(page),ticks=await page.evaluate(()=>__psgManualCode.ticks);await keyboard(page);await change(attenuation(page),1);await wait(220);
+    assert(await page.evaluate(()=>__psgManualCode.ticks)>ticks);const quieter=await pcm(page);measurements.codeAttenuation={before:codeSound,after:quieter};assert(quieter.acRms<codeSound.acRms,'Upper attenuation changes the Code-owned PSG');
     await page.locator('#synthSongSelect').selectOption('/vgm/PSG other reference.vgm');await channel(page,'psg:0');await page.locator('#synthSongPlayButton').click();await until(()=>view(page).then(value=>value.state==='playing'),'VGM retires Code');
     assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/i);const stoppedTicks=await page.evaluate(()=>__psgManualCode.ticks);await wait(150);assert.equal(await page.evaluate(()=>__psgManualCode.ticks),stoppedTicks);
     await keyboard(page);await page.keyboard.down('a');await pressed(page,'a',true);await page.locator('#synthSongStopButton').click();await until(()=>view(page).then(value=>value.state==='stopped'),'Stop');await page.keyboard.up('a');await pcm(page,false);
-    assert.equal(await page.locator('#synthPsgEnvelopeEnabled').isDisabled(),false,'Stopping VGM restores author Software Envelope controls');
+    await channel(page,'synth');assert.equal(await page.locator('#synthPsgEnvelopeEnabled').isDisabled(),false,'Auto restores author Software Envelope controls after VGM stops');
     for(const width of [1240,390]){await page.setViewportSize({width,height:1050});await page.locator('#synthSongPlayer').scrollIntoViewIfNeeded();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-${width}.png`)});}
     const finalFiles=new Map((await storedFiles(page)).map(file=>[file.path,file]));for(const file of originalFiles.filter(file=>file.path.startsWith('/vgm/')))assert.deepEqual(finalFiles.get(file.path),file);
     assert.equal(await page.locator('#synthCodeError').textContent(),'');assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert((await page.evaluate(()=>__psgManualOutput.graph())).muted);

@@ -16,7 +16,8 @@ const channelNumber=value=>value==='synth'?null:Number(value.includes(':')?value
 const hexAddress=value=>Number.isInteger(value)?`$${value.toString(16).padStart(4,'0').toUpperCase()}`:'—';
 
 /** Keep reference-song selection separate from the instrument editor. */
-export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume,mix,
+export function setupSynthSongControls({project, getAudio, getVolume, getLocalState=()=>null, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume,mix,
+  scheduleLocal=(callback,delay)=>setTimeout(callback,delay),unscheduleLocal=timer=>clearTimeout(timer),
   createPreview=createSynthSongPreview,setupSeek=setupSynthSongSeekControls,setupMix=setupSynthSongMixControls}) {
   const root = document.getElementById('synthSongPlayer');
   const select = document.getElementById('synthSongSelect');
@@ -27,36 +28,70 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   const channel = document.getElementById('synthSongChannelSelect');
   const liveStatus = document.getElementById('synthSongLiveStatus');
   const copy=document.getElementById('synthSongCopyButton');
+  const localRoot=document.getElementById('synthChannelControls');
+  const tabs=document.getElementById('synthChannelTabs');
+  const sourceBadge=document.getElementById('synthChannelSource');
   const formatInfo = document.querySelector('.synth-file-format-note');
   let selectedPath = null, selectedRevision = -1, listRevision = '', disposed = false;
   const frozenSnapshots={ym2612:null,psg:null,pcm:null};
-  const lastChannels={ym2612:'0',psg:'psg:0',pcm:'pcm:0'};
+  const localSnapshots={ym2612:null,psg:null,pcm:null};
+  const lastTargets={ym2612:'synth',psg:'synth',pcm:'synth'};
   let selectedChip='ym2612';
   let copying=false, mixControls=null, seekControls=null;
+  let localTimer=null,lastContext=null,localPollReady=false;
+  const tabButtons=[];
   const text = (node, value) => {if (node.textContent !== value) node.textContent = value;};
   const snapshotFor=(state,chip)=>chip==='pcm'?state.pcmLiveState:chip==='psg'?state.psgLiveState:state.liveState;
   const resetFrozen=()=>{for(const chip of Object.keys(chips))frozenSnapshots[chip]=null;};
   function rememberChannel() {
-    if(channel.value!=='synth')lastChannels[selectedChip]=channel.value;
+    lastTargets[selectedChip]=channel.value;
   }
   function setChipOptions(chip,value) {
-    if(chip!==selectedChip) {
+    if(chip!==selectedChip||!tabButtons.length) {
       selectedChip=chip;
       const values=chips[chip].targets;
       channel.replaceChildren(...['synth',...values].map((target,index)=>{
         const option=document.createElement('option');option.value=target;
-        option.textContent=!index?'Synth':chip==='psg'?(index===4?'Noise':`Tone ${index}`):`CH${index}`;
+        option.textContent=!index?'Auto':chip==='psg'?(index===4?'Noise':`Tone ${index}`):`CH${index}`;
         return option;
       }));
-      channel.title=chip==='pcm'?'Synth: edit and play your own sample bank. PCM CH1–CH8: edit and play that song channel using its existing RAM. Pause for independent audition.'
-        :chip==='psg'?'Synth: edit your Tone or Noise instrument. Tone 1–3 / Noise: view, edit and play that song channel. Pause for independent audition.'
-        :'Synth: edit and play all FM channels. CH1–CH6: view, edit and play that song channel. Pause for independent audition.';
+      tabButtons.length=0;
+      tabs.replaceChildren(...Array.from(channel.options,option=>{
+        const button=document.createElement('button');button.type='button';button.textContent=option.textContent;
+        button.dataset.synthChannelTarget=option.value;button.setAttribute('role','tab');
+        button.setAttribute('aria-controls',chip==='pcm'?'synthChipPcm':chip==='psg'?'synthChipPsg':'synthChipYm2612');
+        button.title=option.value==='synth'?'Automatic keyboard allocation; edit the authored instrument.':`View, edit and play ${option.textContent} on ${chips[chip].label}.`;
+        button.addEventListener('pointerdown',event=>{if(event.button===0){event.preventDefault();document.activeElement?.blur();}});
+        button.addEventListener('click',()=>{chooseTarget(option.value);button.blur();});
+        button.addEventListener('keydown',event=>{
+          const index=tabButtons.indexOf(button);let next;
+          if(['ArrowRight','ArrowDown'].includes(event.key))next=(index+1)%tabButtons.length;
+          else if(['ArrowLeft','ArrowUp'].includes(event.key))next=(index+tabButtons.length-1)%tabButtons.length;
+          else if(event.key==='Home')next=0;else if(event.key==='End')next=tabButtons.length-1;else return;
+          event.preventDefault();event.stopPropagation();chooseTarget(tabButtons[next].dataset.synthChannelTarget);tabButtons[next].focus();
+        });
+        tabButtons.push(button);return button;
+      }));
+      channel.title='Auto allocates keyboard voices. A physical CH shares its display, controls and keyboard with the current Normal, Code or VGM sound source.';
     }
     channel.value=value;
   }
 
+  function chooseTarget(value){
+    if(copying||channel.disabled)return;
+    channel.value=value;rememberChannel();showState(preview.getState());
+  }
+  function updateLocalPolling(){
+    const wanted=!disposed&&!localRoot.hidden&&!document.hidden&&localPollReady&&live.checked&&channel.value!=='synth';
+    if(!wanted&&localTimer!==null){unscheduleLocal(localTimer);localTimer=null;}
+    if(!wanted||localTimer!==null)return;
+    localTimer=scheduleLocal(()=>{localTimer=null;if(!disposed)showState(preview.getState());},50);
+    localTimer?.unref?.();
+  }
+
 
   function showState(state) {
+    if(disposed)return;
     root.dataset.state = status.dataset.state = state.playback;
     root.dataset.consumedFrames = String(state.consumedFrames ?? 0);
     text(play, state.playback === 'playing' ? 'Pause' : state.playback === 'paused' ? 'Resume' : 'Play');
@@ -72,6 +107,11 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     status.title = status.textContent;
     seekControls?.update(state);
     const running = ['playing', 'paused'].includes(state.playback);
+    const vgm=['loading','playing','paused','seeking'].includes(state.playback);
+    const local=vgm?null:getLocalState();
+    const context=vgm?'vgm':local?.source==='code'?'code':'normal';
+    if(context!==lastContext){for(const chip of Object.keys(chips))localSnapshots[chip]=null;lastContext=context;}
+    text(sourceBadge,vgm?'VGM':context==='code'?'Code':'Normal');
     // Keep all channels at the same observation instant. Live Off freezes the
     // current settings instead of sending the user back to the editor. Pause
     // always captures its exact audible position, including when Live is Off.
@@ -79,31 +119,44 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     for(const chip of Object.keys(chips)) {
       const next=snapshotFor(state,chip);
       if(running&&next&&(live.checked||!frozenSnapshots[chip]||state.playback==='paused'))frozenSnapshots[chip]=next;
+      const localNext=local?.snapshots?.[chip];
+      if(!vgm&&localNext&&(live.checked||!localSnapshots[chip]))localSnapshots[chip]=localNext;
     }
-    const target = !selectedPath || channel.value === 'synth' ? 'synth' : selectedChip==='ym2612'?Number(channel.value):channel.value;
+    const target = channel.value === 'synth' ? 'synth' : selectedChip==='ym2612'?Number(channel.value):channel.value;
     const selectedChannel = target === 'synth' ? null : channelNumber(String(target));
-    const frozen = running ? frozenSnapshots[selectedChip] : null;
-    const snapshot = state.playback==='playing'
+    const frozen = vgm?(running ? frozenSnapshots[selectedChip] : null):localSnapshots[selectedChip];
+    const snapshot = !vgm?(frozen?(local?.projectSnapshot?.(selectedChip,frozen)??frozen):null):state.playback==='playing'
       ? (selectedChip==='ym2612'?preview.readFmSnapshot?.(frozen,state.consumedFrames)
         :selectedChip==='psg'?preview.readPsgSnapshot?.(frozen,state.consumedFrames)
           :selectedChip==='pcm'?preview.readPcmSnapshot?.(frozen,state.consumedFrames):frozen) ?? frozen : frozen;
     const voice = selectedChannel === null ? null : snapshot?.channels[selectedChannel];
-    const editable=state.playback==='playing'&&Boolean(selectedChip==='ym2612'?state.manualReady:selectedChip==='psg'?state.psgManualReady:selectedChip==='pcm'?state.pcmManualReady:false);
-    const view = voice ? {chip:selectedChip,snapshot, channel:selectedChannel, paused:state.playback==='paused', following:live.checked,editable} : null;
+    const editable=!vgm||state.playback==='playing'&&Boolean(selectedChip==='ym2612'?state.manualReady:selectedChip==='psg'?state.psgManualReady:selectedChip==='pcm'?state.pcmManualReady:false);
+    const view = voice ? {source:vgm?'vgm':'local',chip:selectedChip,snapshot, channel:selectedChannel, paused:vgm&&state.playback==='paused', following:live.checked,editable} : null;
     root.dataset.live = String(Boolean(voice));
     root.dataset.target = String(target);
     root.dataset.chip=selectedChip;
     root.dataset.manualReady=String(Boolean(state.manualReady));
     root.dataset.psgManualReady=String(Boolean(state.psgManualReady));
     root.dataset.pcmManualReady=String(Boolean(state.pcmManualReady));
+    localRoot.dataset.source=context;localRoot.dataset.chip=selectedChip;localRoot.dataset.target=String(target);
+    localPollReady=Boolean(!vgm&&local?.snapshots?.[selectedChip]);
     channel.disabled = copying || seeking;
     live.disabled = seeking;
+    for(const button of tabButtons){
+      const active=button.dataset.synthChannelTarget===channel.value;
+      button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;button.disabled=channel.disabled;
+    }
     const description=voice?chips[selectedChip].describe(snapshot,selectedChannel):null;
     copy.disabled=copying||state.playback!=='paused'||!description?.playable;
     copy.title=copying?'Copying…':description&&!description.playable?description.reason:
-      state.playback==='paused'&&voice?'Copy this CH into a new editable Synth instrument. Your previous instrument is kept.':`Pause and select a ${chips[selectedChip].label} channel to copy its sound to Synth.`;
+      state.playback==='paused'&&voice?'Copy this CH into a new authored instrument and select Auto. Your previous instrument is kept.':`Pause and select a ${chips[selectedChip].label} channel to copy its sound to Auto.`;
     mixControls?.update(state.mix);
-    if(voice&&selectedChip==='pcm') {
+    if(!vgm){
+      const source=context==='code'?'Code':'Normal',name=selectedChannel===null?'Auto':selectedChip==='psg'?(selectedChannel===3?'Noise':`Tone ${selectedChannel+1}`):`CH${selectedChannel+1}`;
+      text(liveStatus,selectedChannel===null?`${source} · Auto · edit and play`:
+        voice?`${source} · ${live.checked?'Live':'Frozen'} ${name} · controls and keyboard: this CH`:
+        `${source} · ${name} · enable audio or run Code to view this CH`);
+    } else if(voice&&selectedChip==='pcm') {
       const mode=state.playback==='paused'?'Paused':live.checked?'Live':'Frozen';
       const rate=snapshot.clockHz/384*voice.step/2048;
       const signal=`Step ${voice.step} · Rate ${Number.isFinite(rate)?rate.toFixed(1)+' Hz':'—'}`;
@@ -138,14 +191,17 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
       const mode = state.playback === 'paused' ? 'Paused' : live.checked ? 'Live' : 'Frozen';
       text(liveStatus, `${mode} CH${selectedChannel + 1} · ${note} · ${gate} · ${pan.left ? 'L' : ''}${pan.right ? 'R' : ''}${!pan.left && !pan.right ? 'Muted' : ''} · ${audition}${editable?' · temporary edits; later VGM writes take over':' · read-only'}`);
     } else {
-      text(liveStatus, target === 'synth' ? selectedChip==='pcm'&&state.playback==='playing'?'Synth · edit and play your own sample bank; song RAM is separate':'Synth · edit and play' :
-        running && !snapshotFor(state,selectedChip) ? `No ${chips[selectedChip].label} in this VGM · choose Synth to play` : 'Synth keyboard · Play, then Pause to play this CH');
+      text(liveStatus, target === 'synth' ? selectedChip==='pcm'&&state.playback==='playing'?'Auto · edit and play your own sample bank; song RAM is separate':'Auto · edit and play' :
+        running && !snapshotFor(state,selectedChip) ? `No ${chips[selectedChip].label} in this VGM · choose Auto to play` : 'Play to edit or play this CH · Pause for independent audition');
     }
     // The keyboard owner needs transport/target changes even before a chip
     // snapshot exists. Notify it first so stale held notes cannot cross modes.
-    onTargetState({target,chip:selectedChip, playback:state.playback, manualReady:Boolean(state.manualReady),psgManualReady:Boolean(state.psgManualReady),pcmManualReady:Boolean(state.pcmManualReady), view});
+    onTargetState({source:vgm?'vgm':'local',target,chip:selectedChip, playback:state.playback, manualReady:Boolean(state.manualReady),psgManualReady:Boolean(state.psgManualReady),pcmManualReady:Boolean(state.pcmManualReady), view});
     onLiveView(view);
+    updateLocalPolling();
   }
+  setChipOptions(selectedChip,channel.value||'synth');
+  rememberChannel();
   const preview = createPreview({getAudio, onState:showState, onStatus, beforeResume,...(mix===undefined?{}:{mix})});
   mixControls=setupMix({preview});
   seekControls=setupSeek({preview,onStatus});
@@ -219,7 +275,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
       const preset=chips[chip].copy(snapshot,number);
       const suffix=chip==='pcm'?`PCM-CH${number+1}`:chip==='psg'?`PSG-${number===3?'Noise':'Tone'+(number+1)}`:`CH${number+1}`;
       const copied=await onCopyToSynth(preset,`${state.name.replace(/\.(?:vgm|vgz)$/i,'')}-${suffix}`);
-      if(copied)channel.value='synth';
+      if(copied){channel.value='synth';rememberChannel();}
     } catch(error) {onStatus(`Copy failed: ${error.message}`);}
     finally {copying=false;showState(preview.getState());copy.blur();}
   });
@@ -227,10 +283,14 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   live.addEventListener('change', () => {showState(preview.getState()); live.blur();});
   channel.addEventListener('change', () => {rememberChannel();showState(preview.getState()); channel.blur();});
   for (const control of [live, channel]) control.addEventListener('keydown', event => event.stopPropagation());
+  const visibilityChanged=()=>{if(!document.hidden)showState(preview.getState());else updateLocalPolling();};
+  document.addEventListener?.('visibilitychange',visibilityChanged);
 
   refresh();
   showState(preview.getState());
   return {
+    refreshLocal:()=>showState(preview.getState()),
+    setVisible(value){localRoot.hidden=!value;updateLocalPolling();},
     stop: () => preview.stop(),
     editFm: edit=>preview.editFm?.(edit),
     applyFmPreset: (channel,preset)=>preview.applyFmPreset?.(channel,preset),
@@ -256,8 +316,8 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     selectChip(chip) {
       if(!Object.hasOwn(chips,chip)||copying)return false;
       if(chip===selectedChip)return true;
-      const synth=channel.value==='synth';rememberChannel();
-      setChipOptions(chip,synth?'synth':lastChannels[chip]);
+      rememberChannel();
+      setChipOptions(chip,lastTargets[chip]);
       showState(preview.getState());return true;
     },
     selectTarget(value) {
@@ -270,6 +330,6 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     },
     setVolume: value => preview.setVolume(value),
     reset() {preview.stop();selectedRevision=-1;mixControls.close();refresh();},
-    dispose() {disposed = true; unsubscribe(); seekControls.dispose();preview.dispose();mixControls.dispose();},
+    dispose() {if(disposed)return;disposed = true;if(localTimer!==null)unscheduleLocal(localTimer);localTimer=null;document.removeEventListener?.('visibilitychange',visibilityChanged);unsubscribe(); seekControls.dispose();preview.dispose();mixControls.dispose();},
   };
 }

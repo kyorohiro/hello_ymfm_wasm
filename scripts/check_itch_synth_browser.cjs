@@ -119,7 +119,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin=`http://127.0.0.1:${server.address().port}`;
  try{
   const selected=args.includes('--chromium')?[['chromium',chromium]]:args.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
-  for(const[name,type]of selected){const browser=await type.launch({headless:true});try{report.cases.push(await check(browser,name,origin,images));console.log(`PASS ${name}: packaged Synth startup, TFI import, actual keyboard PCM, quiet release and replay`);}finally{await browser.close();}}
+  for(const[name,type]of selected){const browser=await type.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})});try{report.cases.push(await check(browser,name,origin,images));console.log(`PASS ${name}: packaged Synth startup, TFI import, actual keyboard PCM, quiet release and replay`);}finally{await browser.close();}}
   report.passed=true;
  }catch(error){report.passed=false;if(error.caseResult)report.cases.push(error.caseResult);report.failure=String(error.stack??error);console.error(report.failure);process.exitCode=1;}
  finally{await new Promise(resolve=>server.close(resolve));report.servedFiles=Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)));await fs.mkdir(path.dirname(out),{recursive:true});await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({report:out,passed:report.passed,cases:report.cases.length,servedFiles:served.size,sha256:sha(await fs.readFile(out))}));}

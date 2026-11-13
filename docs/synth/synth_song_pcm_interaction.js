@@ -103,6 +103,21 @@ export function createSynthPcmSongInteraction(engine,{clockHz=12500000}={}) {
     const result=original.load.call(this,data,offset);
     for(let index=0;index<data.length;index++)put(address+index,data[index]);return result;
   }
+  // Local endpoints acknowledge absolute uploads asynchronously. Record only
+  // accepted bytes, independently of the chip's current CPU RAM-bank latch.
+  function observeAbsoluteMemory(data,address=0) {
+    open();if(!(data instanceof Uint8Array))throw new TypeError('PCM RAM needs Uint8Array bytes');
+    integer(address,65535,'PCM absolute RAM address');if(address+data.length>RAM_BYTES)throw new RangeError('PCM absolute RAM exceeds 64 KiB');
+    for(let index=0;index<data.length;index++)put(address+index,data[index]);
+  }
+  // Semantic key commands alter one gate, unlike register 8's whole-chip mask.
+  function observeChannelGate(channel,on) {
+    open();channelNumber(channel);if(typeof on!=='boolean')throw new TypeError('PCM gate must be boolean');
+    channelMask=on?channelMask&~(1<<channel):channelMask|(1<<channel);revision++;forget(channel);
+  }
+  function observeChannelSelection(channel) {
+    open();channelNumber(channel);selectedChannel=channel;enabled=true;sourceControl=0xc0|channel;revision++;
+  }
   function clearMemory(...args) {
     const result=original.clear.apply(this,args);ram.fill(0);known.fill(0);revision++;memoryRevision++;
     cachedRam=null;sampleChecks.clear();return result;
@@ -190,7 +205,18 @@ export function createSynthPcmSongInteraction(engine,{clockHz=12500000}={}) {
   }
   function noteOff(id) {
     open();const current=voices.get(id);if(!current||slots[current.channel]!==current)return false;
-    send(8,channelMask|(1<<current.channel));forget(current.channel);return true;
+    if(typeof engine.releaseRf5c164Channel==='function') {
+      engine.releaseRf5c164Channel(current.channel);observe(8,channelMask|(1<<current.channel));
+    }else send(8,channelMask|(1<<current.channel));
+    forget(current.channel);return true;
+  }
+  function forgetKeyboard(id) {open();const current=voices.get(id);if(!current)return false;forget(current.channel);return true;}
+  function retuneKeyboard(id,note,{pitchClock=7670454}={}) {
+    open();const block=integer(note?.block,7,'Keyboard block'),fnum=integer(note?.fnum,2047,'Keyboard fnum');
+    if(!fnum||!Number.isFinite(pitchClock)||pitchClock<=0)throw new RangeError('PCM keyboard needs a positive pitch and clock');
+    const current=voices.get(id);if(!current||slots[current.channel]!==current||!current.pitchOwned)return false;
+    current.ratio=fnum*pitchClock*2**(block-1)/(144*2**20)/C4_HZ;
+    const step=noteStep(current,0);setStep(current.channel,step);return {channel:current.channel,step,baseStep:current.baseStep};
   }
   function releaseKeyboard() {open();const ids=[...voices.keys()];for(const id of ids)noteOff(id);pitch=0;return ids.length?{...read(),released:ids}:false;}
   function setPitch(value) {
@@ -233,6 +259,6 @@ export function createSynthPcmSongInteraction(engine,{clockHz=12500000}={}) {
     if(engine.processFrames===process)engine.processFrames=original.process;
     if(engine.reset===reset)engine.reset=original.reset;
   }
-  return {applyEdit,applySettings,applyPreset:applySettings,noteOn,noteOff,releaseKeyboard,setPitch,read,readSnapshot,
-    describe:description,description,saveState,loadState,dispose,get generatedFrames(){return generatedFrames;}};
+  return {applyEdit,applySettings,applyPreset:applySettings,noteOn,noteOff,forgetKeyboard,retuneKeyboard,observeAbsoluteMemory,observeChannelGate,observeChannelSelection,releaseKeyboard,setPitch,read,readSnapshot,
+    describe:description,description,saveState,loadState,dispose,get generatedFrames(){return generatedFrames;},get selectedChannel(){return selectedChannel;}};
 }

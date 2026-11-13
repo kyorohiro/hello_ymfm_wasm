@@ -1,5 +1,6 @@
 // Exercise reference-song seeking and bounded in-memory checkpoints through the published UI.
 // Self-authored music only. Every speaker edge is metered and physically muted.
+const {selectSynthChannel,copySynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const http=require('node:http');
@@ -215,7 +216,7 @@ async function checkBrowser(browser,name,origin) {
     await page.goto(origin+config.entry);await ready(page);
     await page.locator('#tfiFile').setInputFiles([{name:'Seek.vgm',mimeType:'application/octet-stream',buffer:fixture.bytes},
       {name:'Other.vgm',mimeType:'application/octet-stream',buffer:other.bytes}]);await ready(page);
-    await page.locator('#synthSongSelect').selectOption('/vgm/Seek.vgm');await page.locator('#synthSongChannelSelect').selectOption('0');
+    await page.locator('#synthSongSelect').selectOption('/vgm/Seek.vgm');await selectSynthChannel(page,'0');
     await until(page,async()=>{const value=await transport(page);return !value.seek.disabled&&Math.abs(value.seek.max-DURATION)<1e-6;},'Metadata enables exact-duration seek before Play');
     const metadata=await transport(page);assert.equal(metadata.state,'stopped');assert(metadata.time.includes('0:00')&&metadata.time.includes('0:24'),'Time shows current and total duration');
     assert.equal(metadata.cache.count,0,'Metadata inspection creates no checkpoints');assert.equal(metadata.cache.bytes,0);
@@ -254,7 +255,7 @@ async function checkBrowser(browser,name,origin) {
 
     // Copy at the paused destination is the one explicit file-creating action.
     await until(page,async()=>!await page.locator('#synthSongCopyButton').isDisabled(),'Paused destination can be copied');
-    await page.locator('#synthSongCopyButton').click();await ready(page);await until(page,async()=>(await transport(page)).target==='synth','Copy chooses the editable Synth');
+    await copySynthChannel(page);await ready(page);await until(page,async()=>(await transport(page)).target==='synth','Copy chooses the editable Synth');
     const copied=await ui(page);assert.notEqual(copied.path,originalUi.path);assert.equal(copied.common.find(([label])=>label==='FB')[1],'2');
     await pause(650);const copiedFiles=await files(page),byPath=new Map(copiedFiles.map(file=>[file.path,file]));
     for(const file of originalFiles)assert.deepEqual(byPath.get(file.path),file,'Copy preserves original '+file.path);
@@ -262,7 +263,7 @@ async function checkBrowser(browser,name,origin) {
     const pausedFrame=(await transport(page)).frame,hz=await keyboardHz(page);await page.locator('#synthSongSeek').focus();await drainWrites(page);await page.keyboard.down('a');
     await keyState(page,'a',true);await sounding(page,hz);assert((await drainWrites(page)).some(write=>write.register===0x28&&(write.value>>4)===4),'Destination copy auditions its partial OP mask with seek slider focused');
     await page.keyboard.up('a');await silence(page);assert.equal((await transport(page)).frame,pausedFrame,'Musical letter keys do not commit or advance a seek');
-    await page.locator('#synthSongChannelSelect').selectOption('0');
+    await selectSynthChannel(page,'0');
     steps.push('Copy uses the paused destination patch and OP mask; letter-key audition still works with the seek range focused');
 
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');await seek(page,9,'paused');await silence(page);

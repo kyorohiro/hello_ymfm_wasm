@@ -109,7 +109,7 @@ export function setupSynthPsgControls({
     selected(rateButtons, 'psgNoiseRate', settings.noiseRate);
     for(const button of sourceButtons) {
       button.disabled=observed;
-      button.title=observed?'Tone 1–3 and Noise are fixed hardware channels. Select another song CH above.':'';
+      button.title=observed?'Tone 1–3 and Noise are fixed hardware channels. Select another CH tab above.':'';
     }
     const periodVoice=observation?.snapshot.channels[observation.channel];
     periodRow.hidden=!periodVoice||(periodVoice.source==='noise'&&settings.noiseRate!=='tone3');
@@ -129,12 +129,12 @@ export function setupSynthPsgControls({
     envelopePanel.inert=hardware||observed;
     envelopeCaption.textContent=hardware
       ? 'VGM manual input uses hardware levels. Software Envelope stays in the author preset; stop the VGM to use it.'
-      : observed?'Captured hardware settings · no captured software envelope'
+      : observed?'Physical channel settings · choose Auto for the software envelope'
       : 'Software control · not a hardware PSG envelope';
     envelopePanel.hidden = !settings.envelope.enabled;
     for (const [field, control] of envelopeControls) control.updateVisual(settings.envelope[field]);
     const text = observed
-      ? `${settings.source==='tone'?`Tone ${observation.channel+1}`:'Noise'} · ${observation.editable?'edit and play this song CH':'frozen hardware settings'}${settings.source==='noise'&&settings.noiseRate==='tone3'?' · shares Tone 3 period; its level is kept':''}.`
+      ? `${settings.source==='tone'?`Tone ${observation.channel+1}`:'Noise'} · ${observation.editable?'edit and play this CH':'frozen hardware settings'}${settings.source==='noise'&&settings.noiseRate==='tone3'?' · shares Tone 3 period; its level is kept':''}.`
       : settings.source === 'tone'
       ? 'Tone · 3 hardware channels · round robin.'
       : settings.noiseRate === 'tone3'

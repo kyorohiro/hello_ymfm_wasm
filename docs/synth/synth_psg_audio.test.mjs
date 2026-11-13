@@ -29,6 +29,51 @@ const eventTake=()=>({format:'tetorica-sega-psg-recording-v1',version:1,duration
   initialState:{settings:normalizeSynthPsgSettings({}),pitchClock:7670454},
   commands:[{type:'noteOn',time:0,channel:0,block:4,fnum:1083},{type:'noteOff',time:.05,channel:0}]});
 
+test('physical PSG observations retain raw continuation targets through partial edits without resetting Noise',async()=>{
+  const f=fixture(),h=host(),pending=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await pending;api.write(0x85);
+  const before=api.readWrittenState();assert.equal(before.periods[0],5);
+  api.editWrittenChannel(3,{noiseType:'white',noiseRate:'tone3'});
+  api.editWrittenChannel(1,{attenuation:3});
+  const count=api.readWrittenState().noiseWriteCount;
+  api.write(0x12);const state=api.readWrittenState();
+  assert.equal(state.periods[0],0x125);assert.equal(state.channels[1].attenuation,3);
+  assert.equal(state.noiseWriteCount,count,'restoring a source tone latch never resets the Noise LFSR');
+  assert.equal(state.noiseMode,7);assert.equal(api._getState().latched,0);
+  const writes=request.writes.length;
+  assert.throws(()=>api.editWrittenChannel(0,{period:700,attenuation:16}));assert.equal(request.writes.length,writes);
+  f.audio.dispose();
+});
+
+test('physical PSG keys use their selected Tone/Noise settings and later Code writes own the gate or pitch',async()=>{
+  const f=fixture(),h=host(),pending=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await pending;api.setAttenuation(2,4);api.setNoise({type:'periodic',rate:'tone3'});api.setAttenuation(3,7);
+  const keys=api.channelKeyboard;keys.noteOn(3,4,1000);const playing=api.readWrittenState();
+  assert.equal(playing.channels[2].attenuation,4,'Noise keyboard does not silence the audible Tone3 source');
+  assert.equal(playing.channels[3].attenuation,7);assert.equal(playing.noiseMode,3);
+  keys.setFrequency(3,4,1200);assert.notEqual(api.readWrittenState().periods[2],playing.periods[2]);
+  api.setFrequency(2,300);const count=request.writes.length;
+  assert.equal(keys.setFrequency(3,4,1000),false,'Tone3 source pitch takes over keyboard Pitch');
+  assert.equal(request.writes.length,count);assert(keys.noteOff(3),'the same write does not steal Noise Gate');
+  keys.noteOn(1,4,1000);api.tone(1,{frequency:500,attenuation:2});const takeover=request.writes.length;
+  assert.equal(keys.noteOff(1),false);assert.equal(request.writes.length,takeover);assert.equal(api.readWrittenState().channels[1].attenuation,2);
+  keys.noteOn(1,4,1000);assert(keys.forgetNote(1));assert.equal(keys.noteOff(1),false);f.audio.dispose();
+});
+
+test('frozen local PSG view merges manual fields only and a later freeze uses the current Code settings',async()=>{
+  const f=fixture(),h=host(),pending=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await pending;api.tone(0,{period:100,attenuation:6});api.setNoise({type:'white',rate:'medium'});
+  const frozen=api.readWrittenState();api.editWrittenChannel(0,{attenuation:3});
+  api.setPeriod(0,300);api.setNoise({type:'periodic',rate:'high'});
+  const projected=api.readWrittenSnapshot(frozen);
+  assert.equal(projected.channels[0].attenuation,3);assert.equal(projected.periods[0],100);
+  assert.equal(projected.channels[3].noiseType,'white');assert.equal(projected.channels[3].noiseRate,'medium');
+  api.setAttenuation(0,7);const current=api.readWrittenState();assert(current.frame>frozen.frame);
+  assert.equal(api.readWrittenSnapshot(current).channels[0].attenuation,7);
+  api.editWrittenChannel(0,{period:123});const next=api.readWrittenSnapshot(current);
+  assert.equal(next.periods[0],123);assert.equal(next.channels[0].attenuation,7);f.audio.dispose();
+});
+
 test('shared PSG source volume is absolute, independent of Master, and follows pending/replaced endpoints',async()=>{
   const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setSourceVolume(1.6);f.audio.setVolume(2);
   const pending=f.audio.prepare(h.context,h.output);await turn();

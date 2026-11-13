@@ -198,6 +198,13 @@ export function createSynthPsgSongInteraction(engine,{clockHz=3579545}={}) {
     open();const voice=voices.get(id);if(!voice||slots[voice.channel]!==voice)return false;
     send(0x90|(voice.channel<<5)|15);forget(voice.channel);return true;
   }
+  function forgetKeyboard(id) {open();const voice=voices.get(id);if(!voice)return false;forget(voice.channel);return true;}
+  function retuneKeyboard(id,note,{pitchClock=7670454}={}) {
+    open();const block=integer(note?.block,7,'Keyboard block'),fnum=integer(note?.fnum,2047,'Keyboard fnum');
+    if(!fnum||!Number.isFinite(pitchClock)||pitchClock<=0)throw new RangeError('PSG keyboard needs a positive pitch and clock');
+    const voice=voices.get(id);if(!voice||slots[voice.channel]!==voice||!voice.pitchOwned||pitchSlots[voice.pitchChannel]!==voice)return false;
+    Object.assign(voice,{block,fnum,pitchClock});return updateFrequency(voice,0);
+  }
   function releaseKeyboard() {open();const ids=[...voices.keys()];for(const id of ids)noteOff(id);pitch=0;return ids.length?{...read(),released:ids}:false;}
   function setPitch(value) {
     open();if(!Number.isFinite(value)||value< -24||value>24)throw new RangeError('Keyboard Pitch must be -24..24 semitones');
@@ -234,6 +241,6 @@ export function createSynthPsgSongInteraction(engine,{clockHz=3579545}={}) {
     if(engine.processFrames===process)engine.processFrames=original.process;
     if(engine.reset===reset)engine.reset=original.reset;
   }
-  return {applyEdit,applyPreset,noteOn,noteOff,releaseKeyboard,setPitch,read,readSnapshot,description,describe:description,
+  return {applyEdit,applyPreset,noteOn,noteOff,forgetKeyboard,retuneKeyboard,releaseKeyboard,setPitch,read,readSnapshot,description,describe:description,
     saveState,loadState,dispose,get generatedFrames(){return generatedFrames;}};
 }

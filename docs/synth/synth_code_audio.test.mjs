@@ -75,6 +75,23 @@ test('borrowed FM stays shared with its editor and Code disposal never closes th
   await f.audio.stop();assert.equal(f.context.closeCalls,0);assert(f.input.edges.has(f.output));await f.audio.dispose();
 });
 
+test('physical-channel keyboard claims block older Code Off until its next Note On on that channel',async()=>{
+  const f=fixture();
+  for(const name of ['ym2612','segapsg','rf5c164']){
+    const api=await f.audio.useSoundChip(name),ch=1;
+    if(name==='ym2612')api.noteOn(ch,4,644);else api.noteOn(ch,'C4');
+    f.audio.claimKeyboard(name,ch);
+    const before=f.events.length;
+    assert.equal(api.noteOff(ch),false,name+' keeps its newer physical keyboard owner');
+    assert.equal(f.events.length,before,'old Code Off sends no hardware command');
+    if(name==='ym2612')api.noteOn(ch,4,800);else api.noteOn(ch,'E4');
+    const next=f.events.length;api.noteOff(ch);assert(f.events.length>next,'a newer Code note regains its release');
+  }
+  assert.throws(()=>f.audio.claimKeyboard('pwm',0),/Unknown keyboard chip/);
+  assert.throws(()=>f.audio.claimKeyboard('segapsg',4),/keyboard channel/);
+  await f.audio.dispose();
+});
+
 test('FM, PSG and PCM Code share keyboard channels with last-KeyOn ownership, while explicit allNotesOff remains physical',async()=>{
   const f=fixture();
   for(const [name,count]of [['ym2612',6],['segapsg',4],['rf5c164',8]]){

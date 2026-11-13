@@ -5,6 +5,7 @@
 // node scripts/check_synth_pcm_live_browser.cjs [--root=docs]
 //   [--entry=/synth/index.html] [--engines=chromium,webkit]
 //   [--out=/tmp/pcm-live.json] [--screenshots=/tmp/pcm-live]
+const {selectSynthChannel,copySynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {tmpdir}=require('node:os'),{createHash}=require('node:crypto'),{pathToFileURL}=require('node:url');
@@ -241,10 +242,10 @@ async function run(browser,name,origin) {
       {name:'PCM Unsafe.vgm',mimeType:'application/octet-stream',buffer:unsafe},
       {name:'No PCM.vgm',mimeType:'application/octet-stream',buffer:noPcm},
     ]);await ready(page);
-    await chooseFile(page,pcmPath);await page.locator('#synthSongChannelSelect').selectOption('synth');
+    await chooseFile(page,pcmPath);await selectSynthChannel(page,'synth');
     const before=await cassette(page),retained=new Map([fmPath,psgPath,pcmPath,'/vgm/PCM Timed.vgm','/vgm/PCM Unsafe.vgm','/vgm/No PCM.vgm'].map(p=>[p,archiveBytes(before,p)]));
     assert.equal(digest(retained.get('/vgm/PCM Timed.vgm')),digest(timed),'Original VGM source bytes retained');
-    await page.locator('#synthSongSelect').selectOption('/vgm/PCM Timed.vgm');await page.locator('#synthSongChannelSelect').selectOption('pcm:0');
+    await page.locator('#synthSongSelect').selectOption('/vgm/PCM Timed.vgm');await selectSynthChannel(page,'pcm:0');
     assert(await page.locator('#synthSongLiveToggle').isChecked(),'Live defaults On');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await until(page,async()=>{const s=await ui(page);return s.volume===64&&s.step===1024;},'Initial PCM CH1 source values');await sounding(page);
@@ -292,12 +293,12 @@ async function run(browser,name,origin) {
     await checkbox(page,'synthSongHighlightToggle',true);
     steps.push('Live Off freezes / Live On catches up; RAM patch visibility, selected-channel RAM-ACK audition, recorded speed/Pan and Resume/Seek cancellation');
 
-    await page.locator('#synthSongChannelSelect').selectOption('pcm:7');await auditionReady(page);await silence(page);
+    await selectSynthChannel(page,'pcm:7');await auditionReady(page);await silence(page);
     const ch8=await ui(page);assert.equal(ch8.volume,80);assert.equal(ch8.step,2048);assert.match(ch8.sample,/512 frames.*Start \$0400.*Loop \$0400/);
     await drain(page);await down(page,key.key);await keyState(page,key.key,true);await sounding(page,'rf');const ch8On=(await drain(page)).filter(e=>e.kind==='keyOn');assert(ch8On.length&&ch8On.every(e=>e.ch===7),'CH8 is auditioned on physical channel 7 only');
     await page.keyboard.up(key.key);await keyState(page,key.key,false);await silence(page);
     const ch8Release=await drain(page);assert(ch8Release.some(event=>event.kind==='releaseNote'&&event.ch===7),'Paused CH8 uses the same sample-clock software release as the editor');assert(!ch8Release.some(event=>event.kind==='keyOff'),'An ordinary audition release does not hard-cut the hardware voice');
-    assert(!await page.locator('#synthSongCopyButton').isDisabled());await page.locator('#synthSongCopyButton').click();await ready(page);
+    assert(!await page.locator('#synthSongCopyButton').isDisabled());await copySynthChannel(page);await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&/-PCM-CH8\.pcm\.json$/.test((await transport(page)).path),'PCM Copy saves a new editable instrument');
     const copied=await exportPcm(page),copyPath=(await transport(page)).path;
     assert.equal(copied.kind,'tetorica-rf5c164');assert.equal(copied.settings.volume,80);assert.equal(copied.settings.panLeft,0);assert.equal(copied.settings.panRight,15);
@@ -312,22 +313,23 @@ async function run(browser,name,origin) {
     steps.push('CH8 physical audition and Copy preserve 512 source bytes/settings in self-contained PCM JSON; all source/editor/FM/PSG files remain intact');
 
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');
-    await page.locator('#synthSongSelect').selectOption('/vgm/PCM Unsafe.vgm');await page.locator('#synthSongChannelSelect').selectOption('pcm:0');await page.locator('#synthSongPlayButton').click();await state(page,'playing');
+    await page.locator('#synthSongSelect').selectOption('/vgm/PCM Unsafe.vgm');await selectSynthChannel(page,'pcm:0');await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await until(page,async()=>/incomplete|not prepared/i.test((await transport(page)).status),'Unknown source RAM is explained');await page.locator('#synthSongPlayButton').click();await state(page,'paused');
     assert(await page.locator('#synthSongCopyButton').isDisabled());assert.match((await ui(page)).sample,/Sample unavailable|waveform unavailable/);
     assert.match((await audit(page)).canvasLabels.join(' '),/incomplete/,'Unsafe capture clears the old sample instead of showing stale waveform');
     await drain(page);await down(page,key.key);await pause(70);await keyState(page,key.key,false);await page.keyboard.up(key.key);assert.equal((await drain(page)).filter(e=>e.kind==='keyOn').length,0);
-    await page.locator('#synthSongStopButton').click();await state(page,'stopped');await page.locator('#synthSongChannelSelect').selectOption('synth');assert.deepEqual(await exportPcm(page),originalPcm);
-    // A song without PCM must still let the user select PCM reference targets,
-    // then restore the actual prior FM editor when Synth is chosen.
-    await chooseFile(page,fmPath);await page.locator('#synthSongSelect').selectOption('/vgm/No PCM.vgm');await page.locator('#synthSongChannelSelect').selectOption('0');
-    await page.locator('#synthSongPlayButton').click();await state(page,'playing');await chip(page,'pcm');assert.equal((await transport(page)).target,'pcm:0');
-    assert.match((await transport(page)).status,/No Mega CD PCM/);await page.locator('#synthSongChannelSelect').selectOption('synth');
-    await until(page,async()=>(await transport(page)).chip==='ym2612','Missing PCM view restores actual FM editor');assert.equal((await transport(page)).path,fmPath);
+    await page.locator('#synthSongStopButton').click();await state(page,'stopped');await selectSynthChannel(page,'synth');assert.deepEqual(await exportPcm(page),originalPcm);
+    // A missing reference chip must not bounce its remembered Auto tab back to
+    // the previous document's chip. Each chip keeps its own Auto/CH choice.
+    await chooseFile(page,fmPath);await page.locator('#synthSongSelect').selectOption('/vgm/No PCM.vgm');await selectSynthChannel(page,'0');
+    await page.locator('#synthSongPlayButton').click();await state(page,'playing');await chip(page,'pcm');await selectSynthChannel(page,'pcm:0');assert.equal((await transport(page)).target,'pcm:0');
+    assert.match((await transport(page)).status,/No Mega CD PCM/);await selectSynthChannel(page,'synth');
+    await until(page,async()=>(await transport(page)).chip==='pcm','Auto stays on the selected PCM chip');
+    await chip(page,'ym2612');await selectSynthChannel(page,'synth');assert.equal((await transport(page)).path,fmPath);
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');await chooseFile(page,pcmPath);assert.deepEqual(await exportPcm(page),originalPcm);await silence(page);
-    steps.push('Unknown / missing source RAM and absent PCM chip show explicit reasons, disable audition/Copy, clear stale wave and restore the prior editor');
+    steps.push('Unknown / missing source RAM and absent PCM chip show explicit reasons, disable audition/Copy, clear stale wave and retain per-chip Auto selection');
 
-    await page.locator('#synthSongSelect').selectOption('/vgm/PCM Timed.vgm');await page.locator('#synthSongChannelSelect').selectOption('pcm:7');await page.locator('#synthSongPlayButton').click();await state(page,'playing');
+    await page.locator('#synthSongSelect').selectOption('/vgm/PCM Timed.vgm');await selectSynthChannel(page,'pcm:7');await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await until(page,async()=>(await ui(page)).step===2048,'CH8 live layout ready');await page.locator('#synthSongPlayButton').click();await state(page,'paused');await auditionReady(page);
     const layouts=[];await fs.mkdir(config.screenshots,{recursive:true});for(const width of [1240,390]) {
       await page.setViewportSize({width,height:1100});await page.locator('#synthPcmSettings').scrollIntoViewIfNeeded();const box=await page.locator('#synthPcmSettings').boundingBox();

@@ -1,5 +1,6 @@
 // Exercise editable OP1–OP4 key gates through the published Synth controls.
 // Self-authored music only. Every speaker edge is metered and physically muted.
+const {selectSynthChannel,copySynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const http=require('node:http');
@@ -156,7 +157,7 @@ async function setMask(page,mask) {
   assert.equal(await gateMask(page),mask,'All four visible OP gate states match the requested mask');
 }
 async function selectEditableSynth(page) {
-  await page.locator('#synthSongChannelSelect').selectOption('synth');
+  await selectSynthChannel(page,'synth');
   await evaluate(page,()=>document.activeElement?.blur?.());
 }
 const operatorUi=page=>evaluate(page,()=>[...document.querySelectorAll('#operatorControls .operator-row')].map(row=>[...row.querySelectorAll('.param-value')].map(node=>[node.getAttribute('aria-label'),node.textContent])));
@@ -281,14 +282,14 @@ async function checkLoop(page) {
   return {sampleWindows:snapshots.length};
 }
 async function checkLive(page) {
-  await page.locator('#synthSongSelect').selectOption('/vgm/Gates.vgm');await page.locator('#synthSongChannelSelect').selectOption('0');
+  await page.locator('#synthSongSelect').selectOption('/vgm/Gates.vgm');await selectSynthChannel(page,'0');
   await page.locator('#synthSongPlayButton').click();await state(page,'playing');
   await until(page,async()=>(await gateMask(page))===8,'Live shows source OP4 only');
   for(let op=1;op<=4;op++)assert.equal(await gate(page,op).isDisabled(),true,'Live OP mask is read-only');
   await until(page,async()=>(await gateMask(page))===0,'Live shows the actual all-Off gate, rather than its last nonzero mask');
   await page.locator('#synthSongPlayButton').click();await state(page,'paused');
   assert.equal(await gateMask(page),0,'Pause freezes the actual source gate state');
-  await page.locator('#synthSongCopyButton').click();await ready(page);await until(page,async()=>(await transport(page)).target==='synth','Copy selects Synth');
+  await copySynthChannel(page);await ready(page);await until(page,async()=>(await transport(page)).target==='synth','Copy selects Synth');
   assert.equal(await gateMask(page),8,'Copy between notes uses the last sounding OP mask for audition');
   await gate(page,1).click();assert.equal(await gateMask(page),9,'Copied gate masks are editable through the same controls');
   await page.locator('#synthSongStopButton').click();await selectTone(page,'sine');assert.equal(await gateMask(page),15);

@@ -1,5 +1,6 @@
 // Live parameter highlighting on the published FM2612 UI. Self-authored VGM
 // writes drive the real chips. Every physical speaker edge is metered/muted.
+const {selectSynthChannel,setSynthLive}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const http=require('node:http');
@@ -189,7 +190,7 @@ async function checkBrowser(browser,name,origin) {
     ]);await ready(page);await pause(650);
     const originalFiles=await files(page);
     await page.locator('#synthSongSelect').selectOption('/vgm/Highlight.vgm');
-    await page.locator('#synthSongChannelSelect').selectOption('0');
+    await selectSynthChannel(page,'0');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await at(page,.15);
     await noAnimations(page);
     assert.equal(await common(page,'ALGO').textContent(),'7');
@@ -232,18 +233,18 @@ async function checkBrowser(browser,name,origin) {
     await until(page,()=>operator(page,4,'AR').evaluate(node=>node.classList.contains('is-live-changed')),'A new change after re-enabling highlights');
     await page.locator('#synthSongPlayButton').click();await state(page,'paused');await noAnimations(page);
     const paused=await transport(page);await pause(120);assert.equal((await transport(page)).frame,paused.frame);
-    await page.locator('#synthSongChannelSelect').selectOption('1');await noAnimations(page);
-    await page.locator('#synthSongChannelSelect').selectOption('0');await noAnimations(page);
-    await page.locator('#synthSongLiveToggle').uncheck();await noAnimations(page);
+    await selectSynthChannel(page,'1');await noAnimations(page);
+    await selectSynthChannel(page,'0');await noAnimations(page);
+    await setSynthLive(page,false);await noAnimations(page);
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await noAnimations(page);
     await at(page,8.7);await noAnimations(page);
-    await page.locator('#synthSongLiveToggle').check();await noAnimations(page);
-    await page.locator('#synthSongChannelSelect').selectOption('synth');await noAnimations(page);
+    await setSynthLive(page,true);await noAnimations(page);
+    await selectSynthChannel(page,'synth');await noAnimations(page);
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');await noAnimations(page);
     await pause(650);assert.deepEqual(await files(page),originalFiles,'Display changes do not write the project or any tone sidecar');
     steps.push('Off immediately cancels effects, persists locally and creates no interval; On re-baselines; Pause/CH/frozen Live/Synth/Stop clear highlights without affecting audio or files');
 
-    await page.locator('#synthSongChannelSelect').selectOption('0');
+    await selectSynthChannel(page,'0');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await at(page,3.7);
     await evaluate(page,()=>__highlightAudit.clear());await at(page,5.85);
     burstEvents=await evaluate(page,()=>__highlightAudit.events());
@@ -262,7 +263,7 @@ async function checkBrowser(browser,name,origin) {
     await page.locator('#synthSongPlayButton').click();await state(page,'ended');await noAnimations(page);
     steps.push('48 rapid changes coalesce into at most four pulses; pitch-only refreshes do not rewrite value text; source switches and natural completion leave no effects');
 
-    await page.locator('#synthSongChannelSelect').selectOption('synth');
+    await selectSynthChannel(page,'synth');
     await toggleHighlight(page,false);
     await page.keyboard.down('a');await until(page,()=>page.locator('#keyboard .key[data-key="a"]').evaluate(node=>node.classList.contains('is-active')),'Keyboard works immediately after toggling the setting');
     await page.keyboard.up('a');await noAnimations(page);

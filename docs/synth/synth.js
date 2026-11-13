@@ -3,21 +3,21 @@ import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
 import {setupSynthFiles} from './synth_files.js?v=pcm-manual-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-keyboard-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=pcm-manual-1';
-import {createSynthFmEdits} from './synth_fm_edits.js';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';
+import {createSynthFmEdits} from './synth_fm_edits.js?v=channel-view-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-manual-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio,PCM_NATIVE_RATE} from './synth_pcm.js?v=pcm-manual-1';
 import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-draw-1';
 import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-live-draw-1';
 import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-draw-1';
 import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-live-draw-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=channel-mixer-1';
-import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-mixer-1';
+import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-view-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-manual-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=pcm-manual-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=channel-view-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -28,8 +28,8 @@ import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1'
 import {SynthPsgLooper} from './synth_psg_looper.js?v=pcm-looper-1';
 import {renderSynthPsgLoop} from './synth_psg_loop_render.js?v=psg-looper-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=synth-code-keyboard-1';
-import {createSynthPsgAudio} from './synth_psg_audio.js?v=channel-mixer-1';
-import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-manual-1';
+import {createSynthPsgAudio} from './synth_psg_audio.js?v=channel-view-1';
+import {setupSynthPsgControls} from './synth_psg_controls.js?v=channel-view-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { modulationSettings } from "./synth_modulation.js";
@@ -490,7 +490,7 @@ function showEditorTab(button) {
 }
 function selectEditorChip(button) {
   if(button.dataset.synthChip==='mixer'){
-    showEditorTab(button);operatorEnvelopeView.setVisible(false);return;
+    showEditorTab(button);songControls?.setVisible(false);operatorEnvelopeView.setVisible(false);return;
   }
   const changed = editorChip !== button.dataset.synthChip;
   if (changed) {
@@ -499,6 +499,7 @@ function selectEditorChip(button) {
     void stopRecordingForReference({keepCode:codeActive});
   }
   editorChip = button.dataset.synthChip;
+  songControls?.setVisible(['ym2612','psg','pcm'].includes(editorChip));
   showEditorTab(button);
   psgAudio.setEnabled(codeActive||editorChip === 'psg');
   psgEventAudio.setEnabled(editorChip === 'psg');
@@ -520,7 +521,7 @@ async function switchEditorChip(button) {
   const chip = button.dataset.synthChip;
   if(chip==='mixer'){selectEditorChip(button);return true;}
   const kind = chip === 'ym2612' ? 'fm' : chip === 'psg' ? 'psg' : chip === 'pcm' ? 'pcm' : null;
-  if (kind && isSongChannelTarget()) {
+  if (kind && (isSongChannelTarget()||isLocalChannelTarget())) {
     selectEditorChip(button);
     songControls.selectChip(chip);
     return true;
@@ -762,7 +763,7 @@ commonMix.onDidChange((_state,change)=>{
 psgControls = setupSynthPsgControls({
   voice:psgVoice,
   getObservation:()=>songPsgLiveView,
-  onObservationEdit:changes=>canEditSongPsg()&&songControls.editPsg({channel:songPsgLiveView.channel,changes}),
+  onObservationEdit:editObservedPsg,
   isHardwarePlayback:isPsgSongPlaying,
   onBeforeSourceChange:() => {if(codeActive)psgVoice.stop();else stopAllNotes();},
   onBeforeEnvelopeToggle:() => {if(codeActive)psgVoice.stop();else stopAllNotes();},
@@ -775,7 +776,7 @@ psgControls = setupSynthPsgControls({
   },
 });
 pcmControls=setupSynthPcmControls({voice:pcmVoice,
-  onObservationEdit:changes=>canEditSongPcm()&&songControls.editPcm({channel:songPcmLiveView.channel,changes}),
+  onObservationEdit:editObservedPcm,
   onBuiltin:shape=>{
   if(applyPcmEditPreset(createPcmBuiltinPreset(shape)))setStatus(`PCM ${shape} selected.`);
 },
@@ -843,7 +844,7 @@ async function loadPcmWav(file) {
 }
 
 function refreshChipAvailability() {
-  const observing = isSongChannelTarget();
+  const observing = isSongChannelTarget()||isLocalChannelTarget();
   const pcmObserving=observing&&songTargetState.chip==='pcm';
   const fm = observing?songTargetState.chip==='ym2612':activeInstrumentKind==='fm';
   const pcm=pcmObserving||!observing&&activeInstrumentKind==='pcm';
@@ -1018,7 +1019,7 @@ function getCodeRuntime() {
       onLog:line=>codeControls?.appendLog(line),
       onState:state=>{
         if(typeof state.running==='boolean')codeActive=state.running||state.stopping;
-        codeControls?.updateRuntimeState(state);updateCodeAudioRouting();
+        codeControls?.updateRuntimeState(state);updateCodeAudioRouting();refreshLocalChannels();
       },
     });
   }
@@ -1027,14 +1028,58 @@ function getCodeRuntime() {
 
 async function beforeCodeRun({apply=false}={}) {
   if(switchingAudioOutput)throw Error('Wait for the audio output change before running Code.');
-  songControls?.stop();songControls?.selectTarget('synth');
+  songControls?.stop();
   await stopRecordingForReference({keepCode:true});
   if(!codeActive)stopAllNotes();
 }
 
 function isSongChannelTarget() {
-  return songTargetState.target !== 'synth' && ['loading','playing','paused','seeking'].includes(songTargetState.playback);
+  return songTargetState.source!=='local'&&songTargetState.target !== 'synth' && ['loading','playing','paused','seeking'].includes(songTargetState.playback);
 }
+
+function isLocalChannelTarget() {return songTargetState.source==='local'&&songTargetState.target!=='synth'&&songTargetState.chip===editorChip;}
+function localChannel() {return Number(String(songTargetState.target).split(':').at(-1));}
+function localChannelKeyboard() {
+  const target=editorChip==='psg'?psgAudio.getPsg()?.channelKeyboard:editorChip==='pcm'?localPcmKeyboard:fmEdits?.channelKeyboard;
+  if(!target)return null;
+  return {
+    noteOn(channel,block,fnum){
+      const value=target.noteOn(channel,block,fnum);
+      if(codeActive&&value!==false&&value!==null)codeAudio?.claimKeyboard(editorChip==='psg'?'segapsg':editorChip==='pcm'?'rf5c164':'ym2612',channel);
+      return value;
+    },
+    noteOff:(...args)=>target.noteOff(...args),setFrequency:(...args)=>target.setFrequency(...args),describe:(...args)=>target.describe(...args),
+  };
+}
+function refreshLocalChannels(){songControls?.refreshLocal();}
+function localChannelDescription(){return localChannelKeyboard()?.describe?.(localChannel());}
+function getLocalChannelState(){return {source:codeActive?'code':'normal',snapshots:{
+  ym2612:fmEdits?.read()??null,psg:psgAudio.getPsg()?.readWrittenState?.()??null,pcm:pcmAudio.getPcm()?.readWrittenState?.()??null,
+},projectSnapshot:(chip,frozen)=>chip==='ym2612'?fmEdits?.readWrittenSnapshot?.(frozen)??frozen:
+  (chip==='psg'?psgAudio.getPsg():pcmAudio.getPcm())?.readWrittenSnapshot?.(frozen)??frozen};}
+// A new normal PCM slot has no registers yet. Initialize that one slot on its
+// first key only. Configured Code slots retain their RAM and recorded tuning.
+const localPcmKeyboard={
+  describe(channel){
+    const api=pcmAudio.getPcm(),voice=api?.readWrittenState?.().channels[channel];
+    if(voice&&!voice.tuningConfigured&&!codeActive)return {playable:true,reason:'',channel};
+    return api?.channelKeyboard?.describe(channel);
+  },
+  noteOn(channel,block,fnum){
+    const api=pcmAudio.getPcm(),voice=api?.readWrittenState?.().channels[channel];
+    if(!api?.channelKeyboard)return null;
+    if(voice&&!voice.tuningConfigured&&!codeActive){
+      const preset=pcmVoice.getPreset(),s=preset.settings;
+      const step=Math.max(1,Math.min(65535,Math.round(preset.sample.sampleRate/PCM_NATIVE_RATE*2048*2**((60-s.rootNote)/12))));
+      const mask=voice.writtenMask??0;
+      api.setChannel(channel,{start:0,loopStart:s.loopEnabled?s.loopStart:s.loopEnd+1,
+        ...(mask&1?{}:{volume:s.volume}),...(mask&2?{}:{pan:{left:s.panLeft,right:s.panRight}}),step});
+    }
+    return api.channelKeyboard.noteOn(channel,block,fnum);
+  },
+  noteOff:channel=>pcmAudio.getPcm()?.channelKeyboard?.noteOff(channel),
+  setFrequency:(...args)=>pcmAudio.getPcm()?.channelKeyboard?.setFrequency(...args),
+};
 
 // During Play the keyboard writes into the reference YM2612 itself. Pause
 // deliberately keeps the existing independent, frozen audition instrument.
@@ -1074,7 +1119,23 @@ const pcmSongManualVoice={
 
 function editSongFm(changes) {
   if(!canEditSongFm())return false;
+  if(songLiveView.source==='local'){
+    const result=fmEdits?.editWrittenChannel?.(songLiveView.channel,changes);refreshLocalChannels();return result;
+  }
   return songControls.editFm({channel:songLiveView.channel,changes});
+}
+
+function editObservedPsg(changes){
+  if(!canEditSongPsg())return false;
+  const result=songPsgLiveView.source==='local'?psgAudio.getPsg()?.editWrittenChannel?.(songPsgLiveView.channel,changes)
+    :songControls.editPsg({channel:songPsgLiveView.channel,changes});
+  if(songPsgLiveView.source==='local')refreshLocalChannels();return result;
+}
+function editObservedPcm(changes){
+  if(!canEditSongPcm())return false;
+  const result=songPcmLiveView.source==='local'?pcmAudio.getPcm()?.editWrittenChannel?.(songPcmLiveView.channel,changes)
+    :songControls.editPcm({channel:songPcmLiveView.channel,changes});
+  if(songPcmLiveView.source==='local')refreshLocalChannels();return result;
 }
 
 function forwardAuthorFmEdit(changes) {
@@ -1094,6 +1155,7 @@ function forwardAuthorPsgSettings(patch) {
 }
 
 function isPerformanceInputEnabled() {
+  if(isLocalChannelTarget()&&localChannelDescription()?.playable===false)return false;
   let referenceKeyboard=isReferenceKeyboard();
   if(referenceKeyboard&&isSongChannelTarget()) {
     if(editorChip!==songTargetState.chip)referenceKeyboard=false;
@@ -1118,13 +1180,14 @@ function recordingBlocked() {
 
 function eventRecordingBlocked() {
   return codeActive||Boolean(codeControls?.isCodeMode())||switchingAudioOutput||Boolean(referenceRecordingStop)||
-    ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget();
+    ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget()||isLocalChannelTarget();
 }
 
 function recordingUnavailableReason() {
   if(codeActive)return 'Stop Code to use Looper or Event Rec.';
   if(codeControls?.isCodeMode())return 'Choose Keyboard to use Looper or Event Rec.';
-  return 'Pause or Stop the VGM and choose Synth to record your instrument.';
+  if(isLocalChannelTarget())return 'Choose Auto to record your instrument.';
+  return 'Pause or Stop the VGM and choose Auto to record your instrument.';
 }
 
 function recordingOperationCurrent(epoch,chip=editorChip) {return epoch===recordingEpoch&&chip===editorChip&&!recordingBlocked();}
@@ -1228,6 +1291,18 @@ function ensureSongAuditionReady() {
 }
 
 function setSongTargetState(next) {
+  if(next.source==='local'){
+    const changed=songTargetState.source!=='local'||next.target!==songTargetState.target||next.chip!==songTargetState.chip;
+    songTargetState=next;
+    if(changed){
+      if(activeKeys.size||activePointers.size||voices.some(voice=>voice.held))stopAllNotes();
+      ++songAuditionGeneration;songAuditionVoice=null;songAuditionSignature='';songAuditionPreparing=false;
+      pcmSongAudio.setEnabled(false);if(songAuditionBus)songAuditionBus.gain.value=0;
+      updatePitchBend(0);
+    }
+    pcmAudio.setEnabled(codeActive||editorChip==='pcm');
+    updateKeyboardAvailability();updateLooperUi();updateEventRecordUi();return;
+  }
   const wasPlaying=['loading','playing','seeking'].includes(songTargetState.playback);
   const startingSeek=next.playback==='seeking'&&songTargetState.playback!=='seeking';
   const recordingStateChanged=next.playback!==songTargetState.playback||next.target!==songTargetState.target;
@@ -1344,6 +1419,10 @@ function setFmSongLiveView(next) {
 }
 
 function setSongLiveView(next) {
+  for(const [chip,id]of [['ym2612','synthChipYm2612'],['psg','synthChipPsg'],['pcm','synthChipPcm']]){
+    const waiting=isLocalChannelTarget()&&songTargetState.chip===chip&&!next;
+    document.getElementById(id).inert=waiting;
+  }
   const hadView=Boolean(songLiveView||songPsgLiveView||songPcmLiveView);
   const hadPsgView=Boolean(songPsgLiveView);
   const hadPsgEditable=Boolean(songPsgLiveView?.editable);
@@ -1376,12 +1455,9 @@ function setSongLiveView(next) {
   }
   pcmLiveHighlighter?.update(songPcmLiveView);
   if(hadPcmView!==Boolean(songPcmLiveView)||hadPcmEditable!==Boolean(songPcmLiveView?.editable))synthFiles?.refresh();
-  document.querySelector('.synth-editor').dataset.liveView=String(isSongChannelTarget());
+  document.querySelector('.synth-editor').dataset.liveView=String(isSongChannelTarget()||isLocalChannelTarget());
   document.querySelector('.synth-editor').dataset.liveEditable=String(Boolean(next?.editable));
-  if(!next&&(hadView||songObservationMode!=='editor')&&!isSongChannelTarget()) {
-    selectEditorChip(editorButtonForKind(activeInstrumentKind));
-  }
-  const mode=isSongChannelTarget()?(songTargetState.chip??'ym2612'):'editor';
+  const mode=isSongChannelTarget()||isLocalChannelTarget()?(songTargetState.chip??'ym2612'):'editor';
   if(mode!==songObservationMode) {songObservationMode=mode;refreshChipAvailability();}
 }
 
@@ -1533,7 +1609,7 @@ function updateEventRecordUi() {
 
   if (eventRecordStartButton) {
     eventRecordStartButton.disabled=eventRecordingBlocked();
-    eventRecordStartButton.title=eventRecordingBlocked()?'Pause or Stop the VGM and choose Synth to record your instrument.':
+    eventRecordStartButton.title=eventRecordingBlocked()?recordingUnavailableReason():
       editorChip==='pcm'?'Software Event Rec · records notes, samples and sound-setting changes.':'';
     eventRecordStartButton.textContent =
       eventRecordSessionActive
@@ -2195,12 +2271,14 @@ function updateKeyboardAvailability() {
   );
   const enabled = isPerformanceInputEnabled();
   const manual=isReferenceKeyboard();
+  keyboard.dataset.channelSource=isLocalChannelTarget()?'local':channel?'vgm':'auto';
+  keyboard.dataset.channelTarget=String(songTargetState.target);
   keyboard.dataset.songAudition = manual?(enabled?'live':'unavailable'):!channel ? 'off' : songAuditionVoice ? 'ready' : songAuditionPreparing?'loading':'unavailable';
   keyboard.setAttribute('aria-disabled', String(!enabled));
   const targetName = songTargetState.chip === 'psg'
     ? ['Tone 1','Tone 2','Tone 3','Noise'][Number(String(songTargetState.target).split(':')[1])]
     : songTargetState.chip==='pcm'?`PCM CH${Number(String(songTargetState.target).split(':')[1])+1}`:`CH${songTargetState.target + 1}`;
-  keyboard.setAttribute('aria-label', channel
+  keyboard.setAttribute('aria-label', isLocalChannelTarget()?`${targetName} keyboard · ${codeActive?'Code':'Normal'} physical channel`:channel
     ? `${targetName} keyboard${manual&&enabled?' · writes into the playing song':songAuditionVoice ? ' audition' : ' unavailable; pause the song to audition this channel'}`
     : editorChip==='pcm'?'Mega CD PCM 8-channel keyboard':editorChip === 'psg' ? `Sega PSG ${psgVoice.getSettings().source} keyboard` : 'Synth keyboard');
   keyboard.classList.toggle('is-song-unavailable', !enabled);
@@ -2418,7 +2496,7 @@ function applyPresetData(preset, presetName, {restoreEditor=false}={}) {
   selectEditorChip(editorButtonForKind(kind));
   if(kind==='pcm') {
     ++pcmLoadGeneration;
-    if(!codeActive||JSON.stringify(pcmVoice.getPreset())!==JSON.stringify(pcmPreset)) {
+    if(!restoreEditor&&!codeActive||JSON.stringify(pcmVoice.getPreset())!==JSON.stringify(pcmPreset)) {
       pcmVoice.setPreset(pcmPreset);codeAudio?.pcmSourceChanged?.();
     }
     currentPcmPresetName=presetName;pcmPresetSelect.value=presetName;pcmControls.update();
@@ -2481,7 +2559,7 @@ function applyPresetData(preset, presetName, {restoreEditor=false}={}) {
 
   // Returning to an editor tab restores its authoring UI. Its chip is already
   // present during Code, including any live code register and CH3 pitch edits.
-  if (synth&&!(restoreEditor&&codeActive)) {
+  if (synth&&!restoreEditor) {
     applyPatchToVoices();
   }
   if(!restoreEditor&&isFmSongPlaying()) {
@@ -3126,6 +3204,9 @@ function renderFretboardUi() {
 }
 
 function stopAllNotes() {
+  fmEdits?.channelKeyboard?.releaseKeyboard();
+  psgAudio.getPsg()?.channelKeyboard?.releaseKeyboard();
+  pcmAudio.getPcm()?.channelKeyboard?.releaseKeyboard();
   songControls?.releaseFmKeyboard();
   songControls?.releasePsgKeyboard();
   songControls?.releasePcmKeyboard();
@@ -3154,6 +3235,7 @@ function stopAllNotes() {
 }
 
 function getPlayableSynth() {
+  if(isLocalChannelTarget())return localChannelKeyboard();
   if(isPcmReferenceKeyboard())return pcmSongManualVoice;
   if(isPsgSongPlaying()&&editorChip==='psg')return psgSongManualVoice;
   if(isFmSongPlaying()&&editorChip==='ym2612')return songManualVoice;
@@ -3441,7 +3523,7 @@ function clearLooper() {
 
 function togglePrimaryRecordAction() {
   if (eventRecordSessionActive) {
-    if(eventRecordingBlocked()) {setStatus('Pause or Stop the VGM and choose Synth to record your instrument.');return;}
+    if(eventRecordingBlocked()) {setStatus(recordingUnavailableReason());return;}
     void toggleEventTakeRecording();
     return;
   }
@@ -3602,7 +3684,7 @@ async function ensureAudioReady({announce=true}={}) {
     const pcm=await pcmAudio.prepare(audioContext,performanceOutputBus);
     updateKeyboardAvailability();
     try {
-      while(editorChip==='pcm'&&!pcmVoice.isReady()) {
+      while(editorChip==='pcm'&&!pcmVoice.isReady()&&!(codeActive&&isLocalChannelTarget())) {
         if(pcmAudio.getPcm()!==pcm)return;
         await pcmVoice.install(pcm);
       }
@@ -3610,6 +3692,7 @@ async function ensureAudioReady({announce=true}={}) {
     } finally {updateKeyboardAvailability();}
   }
 
+  refreshLocalChannels();
 }
 
 function buildKeyboard() {
@@ -3830,7 +3913,8 @@ inputController =
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,
-    chooseVoice: available => isPcmReferenceKeyboard()?available[Number(String(songTargetState.target).split(':')[1])]
+    chooseVoice: available => isLocalChannelTarget()?available[localChannel()]
+      :isPcmReferenceKeyboard()?available[Number(String(songTargetState.target).split(':')[1])]
       : isPsgSongPlaying()&&editorChip==='psg'
       ? isSongChannelTarget()?available[Number(String(songTargetState.target).split(':')[1])]
         :chooseVoice(available.filter(voice=>psgVoice.getChannels().includes(voice.channel)&&songControls.describePsg(voice.channel)?.playable))
@@ -4030,16 +4114,17 @@ synthFiles = setupSynthFiles({
   },
   onListChanged:syncFilePresetOptions,
   onWorkspaceReplaced:()=>songControls?.reset(),
-  isObserving:isSongChannelTarget,
+  isObserving:()=>isSongChannelTarget()||isLocalChannelTarget(),
   canEditObservation:canEditSongFm,
   canEditPsgObservation:canEditSongPsg,
   canEditPcmObservation:canEditSongPcm,
-  canLoadWhileObserving:()=>isFmSongPlaying()||isPsgSongPlaying()||isPcmSongPlaying(),
+  canLoadWhileObserving:()=>isLocalChannelTarget()||isFmSongPlaying()||isPsgSongPlaying()||isPcmSongPlaying(),
   isChipModeLocked:isFmSongPlaying,
   stopAllNotes:()=>{if(!codeActive&&!isFmSongPlaying()&&!isPsgSongPlaying()&&!isPcmSongPlaying())stopAllNotes();},
   setStatus,
 });
 songControls = setupSynthSongControls({
+  getLocalState:getLocalChannelState,
   mix:commonMix,
   project:synthProject,
   getAudio:async()=>{
@@ -4057,6 +4142,10 @@ songControls = setupSynthSongControls({
       if (editorChip !== chip) selectEditorChip(editorButtonForKind(chip==='ym2612'?'fm':chip));
     }
     setSongTargetState(state);
+    if(state.target==='synth'&&!editorSwitchPending){
+      const kind=state.chip==='pcm'?'pcm':state.chip==='psg'?'psg':'fm';
+      if(kind!==activeInstrumentKind)void switchEditorChip(editorButtonForKind(kind));
+    }
   },
   async onCopyToSynth(preset,name) {
     const copied = await synthFiles.createFromPreset(preset,name);

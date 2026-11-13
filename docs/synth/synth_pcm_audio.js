@@ -1,6 +1,8 @@
 import {watchAudioEndpoint} from '../js/playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
 import {RF5C164Synth} from '../js/rf5c164synth.js?v=audio-stability-2';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
+import {createSynthPcmSongInteraction} from './synth_song_pcm_interaction.js?v=channel-view-1';
+import {createSynthLocalChannelVoice} from './synth_local_channel_voice.js?v=channel-view-1';
 
 async function createSynthPcmDevice(context,output,{signal,onError}={}) {
   signal?.throwIfAborted();
@@ -107,6 +109,7 @@ export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmD
           owner.cleanupPort=()=>{if(port.onmessage===listener)port.onmessage=previous??null;};
         }
         port.start?.();
+        let interaction,api;
         const loadMemory=(bytes,address)=>{
           if(owner.closed)return Promise.reject(owner.abort.signal.reason??cancelled());
           // A detached copy fixes the bytes associated with this FIFO request;
@@ -117,18 +120,48 @@ export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmD
             timer.unref?.();owner.requests.set(id,{resolve,reject,timer});
             try {port.postMessage({id,method:'loadMemory',args:[copy,address]});}
             catch(error) {clearTimeout(timer);owner.requests.delete(id);reject(error);}
-          });
+          }).then(value=>{if(!owner.closed){engine.processFrames(1);interaction.observeAbsoluteMemory(copy,address);}return value;});
         };
-        const api=new RF5C164Synth({transport:{write:(register,value)=>post('writeRegister',[register,value]),loadMemory,reset:()=>post('reset')}});
+        const writtenMasks=new Uint8Array(8);
+        const engine={
+          writeRf5c164(register,value){
+            post('writeRegister',[register,value]);
+            // Private keyboard mask writes bypass RF5C164Synth.writeRegister.
+            // Keep its public logical mask coherent with the same chip.
+            if(register===8&&api)api.channelMask=value;
+          },
+          writeRf5c164Memory(){throw new Error('Local PCM memory uses absolute acknowledged uploads');},
+          loadRf5c164Memory(){throw new Error('Local PCM memory uses absolute acknowledged uploads');},
+          processFrames(){},reset(){writtenMasks.fill(0);post('reset');},
+          releaseRf5c164Channel(ch){post('releaseNote',[ch]);api.channelMask|=1<<ch;},
+        };
+        interaction=createSynthPcmSongInteraction(engine);
+        api=new RF5C164Synth({transport:{write:(register,value)=>{
+          if(register<7)writtenMasks[interaction.selectedChannel]|=1<<register;
+          engine.processFrames(1);
+          return engine.writeRf5c164(register,value);
+        },loadMemory,reset:()=>engine.reset()}});
+        api.readWrittenState=()=>{
+          const state=interaction.read({includeRam:true});
+          return {...state,channels:state.channels.map(voice=>({...voice,configured:writtenMasks[voice.channel]!==0,
+            writtenMask:writtenMasks[voice.channel],tuningConfigured:Boolean(writtenMasks[voice.channel]&124)}))};
+        };
+        api.readWrittenSnapshot=frozen=>interaction.readSnapshot(frozen,interaction.generatedFrames,{frozen:true});
+        api.editWrittenChannel=(channel,changes)=>{
+          const result=interaction.applyEdit({channel,changes});
+          if(result)for(const field of Object.keys(changes))writtenMasks[channel]|={volume:1,panLeft:2,panRight:2,step:12}[field]??0;
+          return result;
+        };
+        api.channelKeyboard=createSynthLocalChannelVoice(interaction,{prefix:'local-pcm'});
         const channel=value=>{
           if(!Number.isInteger(value)||value<0||value>7)throw RangeError('PCM channel must be 0..7');
           return value;
         };
         // Keep the author's logical mask separate from the Worklet's physical
         // mask during a release tail. A new note cannot revive an old channel.
-        api.keyOn=value=>{const ch=channel(value);post('keyOn',[ch]);api.channelMask&=~(1<<ch);};
-        api.keyOff=value=>{const ch=channel(value);post('keyOff',[ch]);api.channelMask|=1<<ch;};
-        api.releaseNote=value=>{const ch=channel(value);post('releaseNote',[ch]);api.channelMask|=1<<ch;};
+        api.keyOn=value=>{const ch=channel(value);post('keyOn',[ch]);api.channelMask&=~(1<<ch);engine.processFrames(1);interaction.observeChannelSelection(ch);interaction.observeChannelGate(ch,true);};
+        api.keyOff=value=>{const ch=channel(value);post('keyOff',[ch]);api.channelMask|=1<<ch;engine.processFrames(1);interaction.observeChannelGate(ch,false);};
+        api.releaseNote=value=>{const ch=channel(value);post('releaseNote',[ch]);api.channelMask|=1<<ch;engine.processFrames(1);interaction.observeChannelGate(ch,false);};
         api.allNotesOff=()=>api.writeRegister(8,255);
         api.allNotesOff();
         channelMutes.forEach((muted,ch)=>{if(muted)post('setChannelMuted',[ch,true]);});

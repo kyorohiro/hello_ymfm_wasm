@@ -1,6 +1,7 @@
 // FM2612 Synth: a VGM and a person write to the same reference YM2612.
 // Self-authored fixtures only. Every destination is intercepted before app JS
 // at gain zero; Chromium is additionally launched with --mute-audio.
+const {selectSynthChannel,copySynthChannel,setSynthLive}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
@@ -58,7 +59,7 @@ const view=page=>page.evaluate(()=>{const root=document.getElementById('synthSon
   status:document.getElementById('synthSongLiveStatus').textContent,inputMode:document.getElementById('synthInputSection').dataset.inputMode,code:document.getElementById('synthCodeState').textContent};});
 const readOutput=page=>page.evaluate(()=>__fmManualOutput.read());
 async function pcm(page,audible=true){let readings;await until(async()=>{readings=await readOutput(page);return readings.every(value=>value.muted&&value.finite)&&(audible?readings.some(value=>value.acRms>.0001):readings.every(value=>value.acRms<1e-7));},audible?'actual muted PCM':'actual output silence');return readings[0];}
-const channel=(page,value)=>page.locator('#synthSongChannelSelect').selectOption(String(value));
+const channel=(page,value)=>selectSynthChannel(page,String(value));
 const common=(page,label)=>page.locator(`#commonControls .param-value[aria-label="${label}"]`);
 const operator=(page,number,label)=>page.locator(`#operatorControls .param-value[aria-label="${label}"]`).nth(number-1);
 async function change(node,direction,count=1){await node.scrollIntoViewIfNeeded();await node.locator('..').locator('.param-button').nth(direction>0?1:0).evaluate((button,count)=>{for(let i=0;i<count;i++)button.click();},count);}
@@ -127,14 +128,14 @@ async function check(browser,name,origin,presetBytes){
     await releaseHandle.press('ArrowRight');await until(()=>reference(page).then(value=>(value.registers[0][0x8c]&15)===14),'Envelope graph edit reaches the playing selected CH');
 
     step('Live Off freezes observation but sparse edits preserve newer packed register fields');
-    await seek(page,2.8);await until(()=>common(page,'ALGO').textContent().then(value=>value==='7'),'seek initial patch');await page.locator('#synthSongLiveToggle').uncheck();
+    await seek(page,2.8);await until(()=>common(page,'ALGO').textContent().then(value=>value==='7'),'seek initial patch');await setSynthLive(page,false);
     const frozen={multi:await operator(page,1,'MULTI').textContent(),dt:await operator(page,1,'DT').textContent(),rs:await operator(page,1,'RS').textContent(),algo:await common(page,'ALGO').textContent()};
     await until(()=>view(page).then(value=>value.frame>4.12*RATE),'programmed 4-second update');native=await reference(page);assert.equal(native.registers[0][0x30],0x73);assert.equal(native.registers[0][0xb0],52);
     assert.equal(await common(page,'ALGO').textContent(),frozen.algo);assert.equal(await operator(page,1,'DT').textContent(),frozen.dt);
     await change(operator(page,1,'MULTI'),1);await change(operator(page,1,'AR'),-1);await change(common(page,'FB'),1);
     await until(()=>reference(page).then(value=>value.registers[0][0x30]===0x72&&value.registers[0][0x50]===0xde&&value.registers[0][0xb0]===12),'manual MULTI/AR/FB use newest DT/RS/ALGO');
     assert.equal(await operator(page,1,'DT').textContent(),frozen.dt);assert.equal(await operator(page,1,'RS').textContent(),frozen.rs);assert.equal(await common(page,'ALGO').textContent(),frozen.algo);
-    await page.locator('#synthSongLiveToggle').check();await until(()=>common(page,'ALGO').textContent().then(value=>value==='4'),'Live catches up');
+    await setSynthLive(page,true);await until(()=>common(page,'ALGO').textContent().then(value=>value==='4'),'Live catches up');
 
     step('Manual key is on the same physical CH; later VGM KON defeats its stale key-up');
     await seek(page,7);await keyboard(page);await page.evaluate(()=>__fmManualOutput.drain());const before=await reference(page);
@@ -157,7 +158,7 @@ async function check(browser,name,origin,presetBytes){
     await until(()=>page.locator('#keyboard').getAttribute('data-song-audition').then(value=>value==='ready'),'paused trial ready');
     const paused=await view(page),pausedWrites=(await reference(page)).writes.length;await keyboard(page);await page.keyboard.down('a');await pressed(page,'a',true);await pcm(page);await page.keyboard.up('a');await pressed(page,'a',false);await pcm(page,false);
     assert.equal((await view(page)).frame,paused.frame);assert.equal((await reference(page)).writes.length,pausedWrites,'paused trial never writes frozen reference chip');
-    await page.locator('#synthSongCopyButton').click();await ready(page);assert.equal((await view(page)).state,'paused');await channel(page,0);
+    await copySynthChannel(page);await ready(page);assert.equal((await view(page)).state,'paused');await channel(page,0);
     await page.locator('#synthSongPlayButton').click();await until(()=>view(page).then(value=>value.state==='playing'),'Resume');await seek(page,.7);assert.equal((await reference(page)).registers[0][0xb0],7,'seek reconstructs original data rather than manual patch');
 
     step('CH3 ratios and partial OP gates remain hardware values; DAC and CSM explain unavailable keys');
@@ -172,7 +173,7 @@ async function check(browser,name,origin,presetBytes){
 
     step('Code and VGM are exclusive while mode switches and manual control preserve the chosen automatic source');
     await code(page,`const fm=await useSoundChip('ym2612');globalThis.__fmManualCode={ticks:0};fm.setAlgo(CH1,4,6);fm.setPan(CH1,true,true,3,7);fm.setOperator(CH1,0,{dt:7,multi:3,rs:3,ar:17});fm.noteOn(CH1,'E3');liveLoop('clock',async()=>{__fmManualCode.ticks++;await sleep(.05);});`);await runCode(page);
-    await until(()=>view(page).then(value=>value.state==='stopped'),'Code retires VGM');await pcm(page);const ticks=await page.evaluate(()=>__fmManualCode.ticks);await keyboard(page);await page.evaluate(()=>__fmManualOutput.drain());
+    await until(()=>view(page).then(value=>value.state==='stopped'),'Code retires VGM');await channel(page,'synth');await pcm(page);const ticks=await page.evaluate(()=>__fmManualCode.ticks);await keyboard(page);await page.evaluate(()=>__fmManualOutput.drain());
     await change(common(page,'FB'),1);await change(common(page,'AMS'),1);await change(operator(page,1,'MULTI'),1);await change(operator(page,1,'AR'),-1);await change(operator(page,4,'TL'),1);await wait(120);
     const codeWrites=await page.evaluate(()=>__fmManualOutput.drain()),last=(register)=>codeWrites.findLast(value=>value.port===0&&value.register===register)?.value;
     assert.equal(last(0xb0),12,'Manual Code feedback preserves latest Code ALGO');assert.equal(last(0xb4),0xd7,'Manual Code AMS preserves latest Code PMS');

@@ -22,6 +22,7 @@ synth_code_project.js
 synth_code_audio.js
 synth_fm_mute.js
 synth_fm_edits.js
+synth_local_channel_voice.js
 synth_fm_worklet.js
 synth_fm_worklet_nuked.js
 synth_pcm_mute.js

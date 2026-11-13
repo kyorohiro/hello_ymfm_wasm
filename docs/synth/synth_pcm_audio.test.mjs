@@ -4,6 +4,9 @@ import {createSynthPcmAudio} from './synth_pcm_audio.js';
 import {RF5C164Synth} from '../js/rf5c164synth.js?v=audio-stability-2';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js';
 import {Worker} from 'node:worker_threads';
+import {createSynthPcmRelease} from './synth_pcm_release.js';
+import {createSynthCodeAudio} from './synth_code_audio.js';
+import {createPcmBuiltinPreset} from './synth_pcm.js';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 const turn=()=>Promise.resolve();
@@ -31,6 +34,97 @@ async function ready(f,h) {
   const pending=f.audio.prepare(h.context,h.output);await turn();const request=f.requests.at(-1);request.task.resolve(request.device);
   return {api:await pending,request};
 }
+
+test('physical PCM observation commits acknowledged absolute RAM and sparse edits preserve selectors and other channels',async()=>{
+  const f=fixture(),h=host(),{api,request}=await ready(f,h);
+  api.setChannel(6,{start:256,loopStart:4096,step:2048,volume:73,pan:{left:3,right:9}});
+  api.writeRegister(7,0x81);const before=api.readWrittenState();
+  assert(before.channels[6].configured);assert(!before.channels[2].configured);assert.equal(before.bank,4096);
+  api.editWrittenChannel(6,{panLeft:7});const edited=api.readWrittenState();
+  assert.equal(edited.selectedChannel,6);assert.equal(edited.bank,4096);assert.equal(edited.sourceControl,0x81);
+  assert.equal(edited.channels[6].panLeft,7);assert.equal(edited.channels[6].panRight,9);
+  assert.equal(edited.channels[6].step,2048);assert.equal(edited.channelMask,255);
+  api.writeRegister(0,74);assert.equal(api.readWrittenState().channels[6].volume,74);
+  const data=Uint8Array.of(128,129,255),loading=api.loadMemory(data,256),command=request.writes.at(-1);
+  data[0]=250;assert.equal(api.readWrittenState().known[256],0,'unacknowledged samples are not reported as installed');
+  request.port.emit({id:command.id,value:true});await loading;
+  const loaded=api.readWrittenState();assert.equal(loaded.ram[256],128);assert.equal(loaded.known[256],1);
+  assert.equal(loaded.known[4352],0,'absolute upload ignores the selected CPU RAM bank');
+  const stable=loaded.ram;api.editWrittenChannel(6,{volume:76,step:2100});assert.equal(api.readWrittenState().ram,stable);
+  f.audio.dispose();
+});
+
+test('physical PCM keys retain sample/loop/Pan, release softly and ignore later Code gate/pitch owners',async()=>{
+  const f=fixture(),h=host(),{api,request}=await ready(f,h),memory=new Uint8Array(65536).fill(255);
+  memory.set([128,160,192,160],256);memory.set([128,150,180,150],4096);
+  const loading=api.loadMemory(memory,0),load=request.writes.at(-1);request.port.emit({id:load.id,value:true});await loading;
+  api.setChannel(6,{start:256,loopStart:4096,step:2048,volume:73,pan:{left:3,right:9}});api.keyOn(2);
+  const before=api.readWrittenState(),keys=api.channelKeyboard;
+  keys.noteOn(6,4,1083);const playing=api.readWrittenState();
+  for(const field of ['start','loopStart','volume','panLeft','panRight'])assert.equal(playing.channels[6][field],before.channels[6][field]);
+  assert.equal(playing.ram,before.ram);assert.equal(playing.channels[2].keyOn,true);
+  keys.setFrequency(6,4,1200);assert.notEqual(api.readWrittenState().channels[6].step,playing.channels[6].step);
+  api.setPitch(6,1900);const count=request.writes.length;assert.equal(keys.setFrequency(6,4,1083),false);assert.equal(request.writes.length,count);
+  assert(keys.noteOff(6));assert.deepEqual(request.writes.at(-1),{method:'releaseNote',args:[6]},'local keyboard retains the existing software release');
+  keys.noteOn(6,4,1083);api.keyOn(6);const owned=request.writes.length;assert.equal(keys.noteOff(6),false);assert.equal(request.writes.length,owned);
+  api.setPitch(6,0);assert.throws(()=>keys.noteOn(6,4,1083),/zero playback step/);f.audio.dispose();
+});
+
+test('PCM written masks distinguish untouched tuning from scalar edits and freeze overlays preserve unrelated fields/RAM',async()=>{
+  const f=fixture(),h=host(),{api}=await ready(f,h);
+  api.editWrittenChannel(4,{volume:80,panLeft:3});let ch=api.readWrittenState().channels[4];
+  assert(ch.configured);assert.equal(ch.tuningConfigured,false);assert.equal(ch.writtenMask,3);
+  api.writeRegister(7,0xc4);api.writeRegister(2,0);ch=api.readWrittenState().channels[4];
+  assert(ch.tuningConfigured,'explicit zero Step differs from a completely untouched channel');assert.equal(ch.writtenMask,7);
+  api.setChannel(6,{start:256,loopStart:4096,step:2048,volume:90,pan:{left:3,right:9}});
+  const frozen=api.readWrittenState(),ram=frozen.ram;api.editWrittenChannel(6,{panLeft:7});api.setChannel(6,{volume:88});
+  const projected=api.readWrittenSnapshot(frozen);
+  assert.equal(projected.channels[6].panLeft,7);assert.equal(projected.channels[6].panRight,9);assert.equal(projected.channels[6].volume,90);
+  assert.equal(projected.ram,ram);const current=api.readWrittenState();assert(current.frame>frozen.frame);
+  assert.equal(api.readWrittenSnapshot(current).channels[6].volume,88);assert.equal(api.readWrittenSnapshot(current).channels[6].panLeft,7);
+  api.editWrittenChannel(6,{step:1900});const next=api.readWrittenSnapshot(current);
+  assert.equal(next.channels[6].step,1900);assert.equal(next.channels[6].volume,88);assert.equal(next.ram,ram);f.audio.dispose();
+});
+
+test('physical PCM and Code share coherent logical masks, target-only gate ownership and the real software release path',async()=>{
+  const h=host(),registers=new Uint8Array(56),memory=new Uint8Array(65536),commands=[];
+  let selected=0,physicalMask=255;const listeners=new Set();
+  const raw=new RF5C164Synth({transport:{
+    write(register,value){if(register===7&&value&64)selected=value&7;if(register<7)registers[selected*7+register]=value;if(register===8)physicalMask=value;},
+    loadMemory(bytes,address){memory.set(bytes,address);},reset(){registers.fill(0);physicalMask=255;selected=0;},
+  }});
+  const release=createSynthPcmRelease({pcm:raw,sampleRate:48000,renderAudio:(left,right)=>{left.fill(.1);right.fill(.1);}});
+  const port={
+    addEventListener(type,listener){if(type==='message')listeners.add(listener);},removeEventListener(type,listener){listeners.delete(listener);},start(){},
+    postMessage(command){
+      commands.push(command);if(command.method==='dispose')return;
+      const value=release.pcm[command.method](...command.args);
+      if(command.id!==undefined)queueMicrotask(()=>{for(const listener of listeners)listener({data:{id:command.id,value}});});
+    },
+  };
+  const endpoint=createSynthPcmAudio({createDevice:async()=>({port,dispose(){}})}),api=await endpoint.prepare(h.context,h.output);
+  const bytes=new Uint8Array(65536).fill(255);bytes.set([128,150,180,150]);await api.loadMemory(bytes,0);
+  const preset=createPcmBuiltinPreset('sine'),voice={getPreset:()=>preset,getSettings:()=>preset.settings,isReady:()=>true};
+  const code=createSynthCodeAudio({getContext:()=>h.context,getInput:()=>h.output,getOutput:()=>h.output,getFm:()=>null,
+    getPsg:()=>null,getPsgVoice:()=>null,getPcm:()=>api,getPcmVoice:()=>voice});
+  try{
+    const pcm=await code.useSoundChip('rf5c164'),keys=api.channelKeyboard;
+    keys.noteOn(7,4,1083);code.claimKeyboard('rf5c164',7);
+    assert.equal(api.channelMask,127);assert.equal(api.readWrittenState().channelMask,127);assert.equal(physicalMask,127);
+    pcm.keyOn(0);assert.equal(api.channelMask,126);assert.equal(api.readWrittenState().channelMask,126);assert.equal(physicalMask,126);
+    assert.equal(api.readWrittenState().selectedChannel,0,'semantic Worklet keyOn also selects and enables this CH');
+    assert.equal(api.readWrittenState().sourceControl,0xc0);
+    pcm.writeRegister(0,77);assert.equal(api.readWrittenState().channels[0].volume,77);assert.equal(registers[0],77);
+    const prior=commands.length;assert.equal(pcm.noteOff(7),false);assert.equal(commands.length,prior,'old Code Off cannot release the claimed keyboard CH');
+    assert(keys.noteOff(7));assert.equal(api.channelMask,254);assert.equal(api.readWrittenState().channelMask,254);
+    assert.equal(physicalMask,126,'the released CH remains in the 4-ms hardware tail only');
+    pcm.keyOn(1);assert.equal(api.channelMask,252);assert.equal(api.readWrittenState().channelMask,252);assert.equal(physicalMask,124,'Code keyOn preserves the other CH tail');
+    release.render(new Float32Array(256),new Float32Array(256));assert.equal(physicalMask,252);assert.equal(api.channelMask,252);
+    keys.noteOn(7,4,1083);code.claimKeyboard('rf5c164',7);assert.equal(api.channelMask,124);assert.equal(physicalMask,124);
+    pcm.keyOn(7);const takeover=commands.length;assert.equal(keys.noteOff(7),false);assert.equal(commands.length,takeover);
+    pcm.writeRegister(8,255);assert.equal(api.channelMask,255);assert.equal(api.readWrittenState().channelMask,255);assert.equal(physicalMask,255);
+  }finally{await code.dispose();endpoint.dispose();}
+});
 
 test('shared PCM source volume replaces its System default and survives pending/new routes independently of Master',async()=>{
   const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setSourceVolume(1.6);f.audio.setVolume(2);

@@ -125,6 +125,13 @@ jobs:
             --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
             --out="$RUNNER_TEMP/itch-web/synth-pcm-song-manual.json" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-pcm-song-manual.log"
+      - name: Use persistent Auto and chip channel tabs during Keyboard, Code and VGM
+        run: |
+          node scripts/check_synth_channel_view_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
+            --out="$RUNNER_TEMP/itch-web/synth-channel-view.json" \
+            --screenshots="$RUNNER_TEMP/itch-web/synth-channel-images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-channel-view.log"
       - name: Test the packaged Playground in Chromium and WebKit
         run: |
           node scripts/check_itch_playground_bundle_browser.cjs \

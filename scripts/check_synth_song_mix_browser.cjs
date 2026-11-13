@@ -1,6 +1,7 @@
 // Published Synth UI: common channel On/Off, group volume and VGM -> new instrument.
 // All source music is generated here. Real chip PCM is metered and muted at
 // every speaker edge; no human listening or copyrighted fixture is implied.
+const {selectSynthChannel,copySynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const http = require('node:http');
@@ -402,7 +403,7 @@ async function checkBrowser(browser,name,origin) {
     await page.locator('#commonControls .param-value[aria-label="FB"]').locator('..').locator('.param-button').last().click();await ready(page);
     await pause(650);const original=await ui(page),originalFiles=await files(page);
     await page.locator('#synthSongSelect').selectOption('/vgm/Mix.vgm');
-    await page.locator('#synthSongPlayButton').click();await state(page,'playing');
+    await selectSynthChannel(page,'0');await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await openMix(page);
     const ids=await page.locator('[data-song-mute]').evaluateAll(nodes=>nodes.map(node=>node.dataset.songMute));
     assert.deepEqual(ids.slice().sort(),mixed.tones.map(tone=>tone.id).sort(),'Exactly six FM, four PSG, eight PCM and two stereo PWM outputs');
@@ -445,11 +446,11 @@ async function checkBrowser(browser,name,origin) {
     await setGroupVolume(page,'psg',150);await pause(150);assert.equal((await transport(page)).frame,paused.frame,'Paused mixer leaves source position fixed');
     // Range controls retain normal arrow adjustment while letter keys continue
     // to reach the Synth, even when the range itself has keyboard focus.
-    await page.locator('#synthSongChannelSelect').selectOption('synth');
+    await selectSynthChannel(page,'synth');
     await groupVolume(page,'ym2612').focus();await drainWrites(page);await page.keyboard.down('a');
     await until(page,async()=>documentKeyActive(page,'a'),'Focused group volume still permits keyboard performance');
     assert((await drainWrites(page)).some(item=>item.register===0x28&&(item.value&0xf0)),'Focused range keyboard note reaches the actual chip');
-    await page.keyboard.up('a');await silence(page);await page.locator('#synthSongChannelSelect').selectOption('0');
+    await page.keyboard.up('a');await silence(page);await selectSynthChannel(page,'0');
     const adjustedVolumes={...retainedVolumes,psg:150};assert.deepEqual(await volumeSettings(page),adjustedVolumes);
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await pause(450);
     assert.deepEqual(await volumeSettings(page),adjustedVolumes,'Pause/Resume retains group volume');
@@ -487,7 +488,7 @@ async function checkBrowser(browser,name,origin) {
     await muteExcept(page,['ym2612:5']);
     const beforeNewSourceVolumes=await volumeSettings(page);
     const beforeNewSourceChannels=await channelSettings(page);
-    await page.locator('#synthSongSelect').selectOption('/vgm/DAC.vgm');await page.locator('#synthSongChannelSelect').selectOption('5');
+    await page.locator('#synthSongSelect').selectOption('/vgm/DAC.vgm');await selectSynthChannel(page,'5');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await hasSound(page,{id:'DAC',hz:220.5});
     await openMix(page);
@@ -510,11 +511,11 @@ async function checkBrowser(browser,name,origin) {
 
     // Explicit copy is tested last: it is the only operation allowed to add a
     // new instrument. Every original edited file must remain byte-identical.
-    await page.locator('#synthSongSelect').selectOption('/vgm/Copy.vgm');await page.locator('#synthSongChannelSelect').selectOption('3');
+    await page.locator('#synthSongSelect').selectOption('/vgm/Copy.vgm');await selectSynthChannel(page,'3');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');assert.equal(await page.locator('#synthSongCopyButton').isDisabled(),true);
     await page.locator('#synthSongPlayButton').click();await state(page,'paused');
     await until(page,async()=>!await page.locator('#synthSongCopyButton').isDisabled(),'Paused FM copy becomes available');
-    await page.locator('#synthSongCopyButton').click();await ready(page);
+    await copySynthChannel(page);await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&(await ui(page)).path!==original.path,'Copy switches to a new editable Synth tone');
     await showFm(page);
     const copied=await ui(page);assert.notEqual(copied.path,original.path);assert.notEqual(copied.preset,original.preset);
@@ -537,10 +538,10 @@ async function checkBrowser(browser,name,origin) {
     steps.push('paused FM Copy creates a new editable tone while preserving all previous VFS bytes');
 
     await pause(650);const beforeSpecialFiles=await files(page);
-    await page.locator('#synthSongSelect').selectOption('/vgm/Special.vgm');await page.locator('#synthSongChannelSelect').selectOption('2');
+    await page.locator('#synthSongSelect').selectOption('/vgm/Special.vgm');await selectSynthChannel(page,'2');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await page.locator('#synthSongPlayButton').click();await state(page,'paused');
     await until(page,async()=>!await page.locator('#synthSongCopyButton').isDisabled(),'Manual CH3 special copy is available');
-    await page.locator('#synthSongCopyButton').click();await ready(page);
+    await copySynthChannel(page);await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&(await ui(page)).path!==copied.path,'Special copy becomes a second new Synth instrument');
     await showFm(page);
     const special=await ui(page);await pause(650);const specialFiles=await files(page),specialByPath=new Map(specialFiles.map(item=>[item.path,item]));
@@ -575,10 +576,10 @@ async function checkBrowser(browser,name,origin) {
     const editedWeights=[[0xa9,0xad],[0xaa,0xae],[0xa8,0xac],[0xa2,0xa6]].map(([low,high])=>editedWeight(low,high));
     for(const [index,ratio] of [1,1.5,2,1].entries())assert(Math.abs(editedWeights[index]/editedWeights[3]-ratio)<.002,'Edited CH3 Note On keeps OP'+(index+1)+' canonical ratio');
     await page.keyboard.up('a');assert.equal(await op1Block.textContent(),'4');
-    await page.locator('#synthSongSelect').selectOption('/vgm/CSM.vgm');await page.locator('#synthSongChannelSelect').selectOption('2');
+    await page.locator('#synthSongSelect').selectOption('/vgm/CSM.vgm');await selectSynthChannel(page,'2');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await page.locator('#synthSongPlayButton').click();await state(page,'paused');
     assert.equal(await page.locator('#synthSongCopyButton').isDisabled(),true,'Timer CSM is not silently converted into a normal FM preset');
-    await page.locator('#synthSongChannelSelect').selectOption('synth');await page.locator('#presetSelect').selectOption(original.preset);await ready(page);
+    await selectSynthChannel(page,'synth');await page.locator('#presetSelect').selectOption(original.preset);await ready(page);
     assert.equal(await page.locator('#looperStartButton').isDisabled(),false,'Returning to an ordinary tone restores Looper');
     assert.equal(await page.locator('#eventRecordStartButton').isDisabled(),false,'Returning to an ordinary tone restores Event Rec');
     steps.push('CH3 partial mask, canonical ratios and edits survive Mode Off/On; captured recording is available and timer CSM copy stays unavailable');

@@ -166,12 +166,13 @@ function song(ymClock=7670454) {
   return bytes;
 }
 function host() {
+  const scheduled=[];
   const context={currentTime:0,async resume(){},
     createGain(){return {context,gain:{value:1},connect(){},disconnect(){}};},
     createBuffer(channels,length,sampleRate){return {length,sampleRate,copyToChannel(){}};},
-    createBufferSource(){return {buffer:null,connect(){},disconnect(){},start(){},stop(){},onended:null};},
+    createBufferSource(){return {buffer:null,connect(){},disconnect(){},start(when,offset){scheduled.push({when,offset,length:this.buffer.length});},stop(){},onended:null};},
   };
-  return {context,output:{context}};
+  return {context,output:{context},scheduled};
 }
 
 test('reference live state follows consumed audio despite VgmPlayer render-ahead, and freezes on Pause', async () => {
@@ -184,10 +185,20 @@ test('reference live state follows consumed audio despite VgmPlayer render-ahead
   try {
     preview.load(song(),'timed.vgm');await preview.play();
     assert.equal(preview.getState().liveState.channels[0].preset.algorithm,1);
+    const waitScheduled=async count=>{
+      const deadline=Date.now()+1000;
+      while(audio.scheduled.length<count&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+      assert(audio.scheduled.length>=count,'audio buffers were actually rendered and scheduled before advancing the fake device');
+    };
+    // play() can finish after processing commands but before a time-budgeted
+    // producer delivers its first PCM block. Wait for real scheduled buffers;
+    // otherwise jumping the fake clock invokes underrun recovery instead of
+    // testing the original queue's audible observation boundary.
+    await waitScheduled(1);
     // Advance the fake device in increments inside the low-latency queue, so
     // the producer reaches the next patch while the audible cursor stays
     // before it. Do not require the old 200-ms startup render-ahead.
-    audio.context.currentTime=.04;await new Promise(resolve=>setTimeout(resolve,35));
+    audio.context.currentTime=.04;await waitScheduled(2);
     audio.context.currentTime=.08;
     const deadline=Date.now()+1000;
     while(!writes.some(write=>write.register===0xb0&&write.value===5)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,15));

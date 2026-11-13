@@ -2,6 +2,7 @@
 // intercepted before the app loads and physically pass through gain zero.
 // Actual worklet output is measured only as numeric arrays; no listening.
 // node scripts/check_synth_code_browser.cjs --root=release/itch_synth_dev --entry=/index.html
+const {selectSynthChannel}=require('./synth_channel_browser_helpers.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
@@ -195,7 +196,7 @@ async function mixerChecks(page,name){
   await page.locator('#synthInputKeyboardTab').click();await chip(page,'fm');await openMixer();
   await toggle('ym2612:0').click();
   await page.locator('#tfiFile').setInputFiles({name:'First paused FM.vgm',mimeType:'application/octet-stream',buffer:mixerFmVgm()});await ready(page);
-  await page.locator('#synthSongChannelSelect').selectOption('0');await page.locator('#synthSongPlayButton').click();
+  await selectSynthChannel(page,'0');await page.locator('#synthSongPlayButton').click();
   await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'FM reference starts');
   await page.locator('#synthSongPlayButton').click();
   await until(()=>page.locator('#keyboard').getAttribute('data-song-audition').then(v=>v==='ready'),'First paused FM audition is ready');
@@ -211,7 +212,7 @@ async function mixerChecks(page,name){
   await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'Reference starts');const song=await sounding(page);
   await openMixer();await mixerVolume(page,'psg',17.5);await pause(550);const softer=await reading(page);assert(Math.abs(softer.left.rms/song.left.rms-.5)<.07);
   await toggle('psg:0').click();await pause(550);await silence(page);assert.equal(await toggle('psg:0').getAttribute('aria-pressed'),'false');
-  await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');
+  await page.locator('#synthSongStopButton').click();await selectSynthChannel(page,'synth');
   await toggle('psg:0').focus();await page.keyboard.down('a');await silence(page);await toggle('psg:0').click();await sounding(page);await page.keyboard.up('a');await silence(page);
   await toggle('psg:0').click();await page.locator('#tfiFile').setInputFiles({name:'Shared mixer second.vgm',mimeType:'application/octet-stream',buffer:fixture});await ready(page);await openMixer();
   assert.equal(Number(await page.locator('#synthSongGroupVolume-psg').inputValue()),17.5);assert.equal(await toggle('psg:0').getAttribute('aria-pressed'),'false','New song retains shared CH Off');
@@ -550,7 +551,7 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     const keyboardKey=page.locator('#keyboard .key[data-key="a"]');await keyboardKey.scrollIntoViewIfNeeded();const keyBox=await keyboardKey.boundingBox();
     await page.mouse.move(keyBox.x+keyBox.width/2,keyBox.y+keyBox.height*.8);await page.mouse.down();await sounding(page);await page.mouse.up();await sounding(page);await stop(page);
     await code(page,KEEP_FM);await execute(page);await sounding(page);
-    await page.locator('#tfiFile').setInputFiles({name:'Authored Code reference.vgm',mimeType:'application/octet-stream',buffer:authoredVgm()});await ready(page);await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'VGM starts');assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');await silence(page);
+    await page.locator('#tfiFile').setInputFiles({name:'Authored Code reference.vgm',mimeType:'application/octet-stream',buffer:authoredVgm()});await ready(page);await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'VGM starts');assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);await page.locator('#synthSongStopButton').click();await selectSynthChannel(page,'synth');await silence(page);
     steps.push('Stopped handles and delayed promises cannot restart audio; Keyboard shares the running Code session; VGM still takes ownership and recording cannot collide with Code');
 
     await page.locator('#tfiFile').setInputFiles({name:'notes.js',mimeType:'text/javascript',buffer:Buffer.from(`export const pitch='D4';\n`)});await ready(page);await choose(page,'/index.js');

@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "FM2612 Synth persistent Auto and physical channel child tabs",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Always-visible child tabs: YM2612 Auto/CH1–6, PSG Auto/Tone1–3/Noise, RF5C164 Auto/CH1–8.",
+    "Per-chip selection including Auto persists across chip changes and Code/VGM transport changes.",
+    "Normal, Code and VGM share selected physical channel display, sparse edits and keyboard routing.",
+    "Live Off freezes untouched fields while projecting manual changes against the latest packed registers.",
+    "Later source writes take ownership; older semantic Code Off and old hand releases cannot silence a newer owner.",
+    "PCM preserves custom RAM, start/loop registers, CH/RAM cursors, masks and existing 4ms release; fresh normal tuning initializes on first key.",
+    "Auto restores the chosen chip author without bouncing back to global FM; original files and Code context/loops/FX are retained."
+  ],
+  "node": {
+    "passed": 620,
+    "failed": 0,
+    "receipt": {
+      "path": "build/verification/fm-channel-view-20261113/node-tests.log",
+      "bytes": 68965,
+      "sha256": "9888be3257bb36994c4639d66301dfbf5d8dc43443513024edc7174436dde382"
+    }
+  },
+  "browsers": {
+    "suites": 11,
+    "runs": 22,
+    "results": [
+      {
+        "name": "pcm-live",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/pcm-live-d.json",
+          "bytes": 32354,
+          "sha256": "643019e071e495226c0d4f6f2ec5a7519fb2d657f2a315b1d731939d39f6b9c5"
+        },
+        "results": [
+          {
+            "browser": "chromium"
+          },
+          {
+            "browser": "webkit"
+          }
+        ]
+      },
+      {
+        "name": "mixer",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/mixer-d.json",
+          "bytes": 54169,
+          "sha256": "18d5a453a938686618ed7b036e340e6f078539675bd497ab888212849ac211de"
+        },
+        "results": [
+          {
+            "browser": "chromium"
+          },
+          {
+            "browser": "webkit"
+          }
+        ]
+      },
+      {
+        "name": "channel",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/channel-d.json",
+          "bytes": 30425,
+          "sha256": "b69b3400a53e25cb161c2ba8de00484a4ec352c30f4448780854104afe498a4a"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 10
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 10
+          }
+        ]
+      },
+      {
+        "name": "code-keyboard",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/code-keyboard-d.json",
+          "bytes": 49189,
+          "sha256": "990eb13b7d2b71d8bd384aa1e1059df5cea678d8a8ba35342792a2015b92d1c4"
+        },
+        "results": [
+          {
+            "browser": "chromium"
+          },
+          {
+            "browser": "webkit"
+          }
+        ]
+      },
+      {
+        "name": "code-live-presets",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/code-live-presets-d.json",
+          "bytes": 28918,
+          "sha256": "9d20ce6049ab62cac92b1391168cf0caaa1b4ae4c97fb7866c5374b0988105c4"
+        },
+        "results": [
+          {
+            "browser": "chromium"
+          },
+          {
+            "browser": "webkit"
+          }
+        ]
+      },
+      {
+        "name": "fm-manual",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/fm-manual-d.json",
+          "bytes": 104266,
+          "sha256": "482260a2893f475aa6aa712f84e4f8949491f3aeaca4e214f8b26397cb75345f"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "name": "psg-manual",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/psg-manual-d.json",
+          "bytes": 35537,
+          "sha256": "c162a6c263dccc117dbf29182156a9990822a41a49a60401d626b69dfcea4f0b"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 9
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 9
+          }
+        ]
+      },
+      {
+        "name": "pcm-manual",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/pcm-manual-d.json",
+          "bytes": 64605,
+          "sha256": "f653d825f039172794f0007ae529f974525de33fe7ce4a1098b0bfa608a14bce"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 9
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 9
+          }
+        ]
+      },
+      {
+        "name": "standard",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/standard-d.json",
+          "bytes": 25360,
+          "sha256": "cd4beb004630a576f2d605675bd9d9f3c449be11fc5b0843f12dee484041bd16"
+        },
+        "results": [
+          {
+            "browser": "chromium",
+            "passed": true
+          },
+          {
+            "browser": "webkit",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "name": "seek",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/seek-d.json",
+          "bytes": 30844,
+          "sha256": "85d3f1f511b62e80fb0268a0505e89dc7b44a019f3b8a4a09f7dcfd30b48026d"
+        },
+        "results": [
+          {
+            "browser": "chromium"
+          },
+          {
+            "browser": "webkit"
+          }
+        ]
+      },
+      {
+        "name": "song-live",
+        "receipt": {
+          "path": "build/verification/fm-channel-view-20261113/song-live-d.json",
+          "bytes": 29876,
+          "sha256": "62250df14e94ed938ab963ac170439c0e8b09a0450876295d9ec85bbc2e30366"
+        },
+        "results": [
+          {
+            "browser": "chromium"
+          },
+          {
+            "browser": "webkit"
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "path": "build/verification/fm-channel-view-20261113/browser-regressions-d-summary.json",
+      "bytes": 5718,
+      "sha256": "92d7bec5258ff6b79344ae649433b5de161708e2f514d26f36235c62568a727d"
+    }
+  },
+  "package": {
+    "archive": {
+      "path": "release/hello_ymfm_wasm_channel-view-20261113d_itch_synth.zip",
+      "bytes": 1122110,
+      "sha256": "c53636d247aff812eb4749c9065caa5cd69fefdca70999b4ce68a4374525413a"
+    },
+    "passed": true,
+    "files": 292,
+    "allStageBytesMatchZip": true,
+    "crc": true,
+    "readableHelperIncluded": true,
+    "bytes": 1122110,
+    "sha256": "c53636d247aff812eb4749c9065caa5cd69fefdca70999b4ce68a4374525413a",
+    "previousCandidate": "channel-view-20261113c",
+    "changedFiles": [
+      "synth.js"
+    ],
+    "changes": [
+      "Retain the explicitly selected chip Auto instead of restoring a global FM author tab.",
+      "Restore the selected chip author when Auto is selected during VGM.",
+      "Contextual recording guidance says choose Auto."
+    ],
+    "allDspAndEndpointFilesIdenticalToC": true
+  },
+  "source": [
+    {
+      "path": "docs/synth/index.html",
+      "bytes": 92917,
+      "sha256": "facbce1d842708d484aaaca51079bd2829e96d52e75d7edeed37c2aad6163ff5"
+    },
+    {
+      "path": "docs/synth/synth.js",
+      "bytes": 149011,
+      "sha256": "d6f42a4903f31e6b27f17cc554d11a35ea78d7890510b7fd183a90166129a8bc"
+    },
+    {
+      "path": "docs/synth/synth_song_controls.js",
+      "bytes": 22405,
+      "sha256": "58b160e95d4b79aca1728492042bc3dc2ef499deed4cace839a94f04d7e88798"
+    },
+    {
+      "path": "docs/synth/synth_local_channel_voice.js",
+      "bytes": 1235,
+      "sha256": "ae0dc8c970bcf5a2fc08b8893921a2c73ca4057d7eb647c15a23907ba1438f37"
+    },
+    {
+      "path": "docs/synth/synth_code_audio.js",
+      "bytes": 30419,
+      "sha256": "423712e5580857a41174330005168f7b8833d512ed23a2c8e8f71efab15c792a"
+    },
+    {
+      "path": "docs/synth/synth_fm_edits.js",
+      "bytes": 4519,
+      "sha256": "8e16e649af795d3a4d1e49206af67612ec32ea4f4b3ddcd86b0ace31a2db76c6"
+    },
+    {
+      "path": "docs/synth/synth_psg_audio.js",
+      "bytes": 13384,
+      "sha256": "3f8ebe19297b7754c8cdf2cdb4103118bb53940345ed7919c356b2cf1f0bfd0b"
+    },
+    {
+      "path": "docs/synth/synth_pcm_audio.js",
+      "bytes": 11747,
+      "sha256": "a6e9e2f3133e031975d07e264c85cb56b6e3bd7bf98cb22b431579a33855b4b2"
+    },
+    {
+      "path": "docs/synth/CODE.md",
+      "bytes": 16612,
+      "sha256": "25d55a54ce64a591669c5ca218c0150074fd82ecc1a599e33b965437d7cb9140"
+    },
+    {
+      "path": "scripts/package_itch_synth.sh",
+      "bytes": 12956,
+      "sha256": "4b09f62e67ac6e2a9ef3a3c730e5ac36adad87f6429e8241b37797a68af5c369"
+    },
+    {
+      "path": "scripts/check_synth_channel_view_browser.cjs",
+      "bytes": 29719,
+      "sha256": "d60250c48b5a5ca2c5a260bfc4e3f653c4513d58e7e1c7624e942cf9b600a5ba"
+    },
+    {
+      "path": "scripts/synth_channel_browser_helpers.cjs",
+      "bytes": 1925,
+      "sha256": "c60f459b80257898e3c003392d704fb0dbbe34713bbda1ad15db15cc2990671b"
+    }
+  ],
+  "dsp": "No WASM or native SDK changes. Shared calibration checks pass; rendering sizes and output gain policy retained.",
+  "limits": [
+    "The local display observes immediate Main-thread written registers, not future scheduled Worklet writes or internal oscillator/envelope state.",
+    "Physical-channel edits are session state. Auto holds the saved instrument; Copy remains the paused-VGM import operation.",
+    "Automated tests use gain-zero audio graphs; human listening and long-session validation were not performed."
+  ]
+}

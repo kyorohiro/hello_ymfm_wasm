@@ -15,11 +15,48 @@ Replacing sample RAM can end a held PCM note, so trigger the next note from
 the continuing loop. Project replacement and reference-song playback still
 stop Code before taking ownership of the chips.
 
+## Auto and physical channel tabs
+
+The chip tabs have a second row that stays available without a VGM file:
+
+- **YM2612:** Auto, CH1–CH6.
+- **PSG:** Auto, Tone 1–3, Noise.
+- **RF5C164:** Auto, CH1–CH8.
+
+**Auto** keeps the authored instrument controls and automatic keyboard
+allocation. Editing that instrument applies the touched settings across its
+voices; Auto does not mean playing every channel in unison. Each chip remembers
+its selected tab, including Auto. Selecting a tab alone never copies or unifies
+channel settings.
+
+A physical channel tab shares its display, edits and keyboard with that actual
+CH. The small **Normal / Code / VGM** badge identifies the current source.
+Normal and Code views observe the existing editor endpoints; they do not create
+extra sound chips. Raw and high-level Code writes update the same written-state
+view, at up to 20 updates per second. Worklet-scheduled future register writes
+and internal oscillator/envelope state are not inferred by this Main-thread view.
+
+**Live** off freezes the display while sound and keyboard input keep running.
+Manual edits update only their touched fields in the frozen view, merging
+packed register companions against the latest actual writes. Later Code or VGM
+writes can take ownership; old key-up and Pitch resets cannot affect the newer
+owner. Switching Keyboard / Code views or channel tabs keeps loops, context and
+FX running. Choose Auto to edit/export the saved instrument; physical-channel
+edits are session chip state. **Copy** remains the paused-VGM import operation.
+
+Physical PSG channels use hardware attenuation, with Software Envelope retained
+in Auto. Noise can use Tone 3's clock without muting its audible square wave.
+RF5C164 keys retain the selected channel's Start, Loop, Volume, Pan and sample
+RAM. C4 uses its current Step as reference speed. A fresh normal slot initializes
+missing tuning from the author sample on its first key; configured Code slots
+are kept intact, including zero Step or custom RAM. Sample/Root/drawing controls
+remain in Auto because all PCM channels share the same RAM.
+
 ## Play a VGM and change its FM sound
 
 During VGM playback, **CH1–CH6** selects the same YM2612 channel for viewing,
 knob edits and the keyboard. Hand edits are temporary: later VGM writes can
-replace them. **Synth** keeps the authoring sound visible; its FM edits and
+replace them. **Auto** keeps the authoring sound visible; its FM edits and
 preset selections also reach all six song channels, and its keyboard uses the
 available song channels in round robin. No extra FM keyboard chip is mixed in
 while the song plays. The original VGM file is never changed.
@@ -60,7 +97,7 @@ chip. Later source writes take ownership, so an old key-up or Pitch reset
 cannot silence or retune their replacement. Tone 3 source pitch changes retire
 the hand's Noise pitch control while keeping its independent key-up usable.
 
-In **Synth**, PSG author presets and hardware edits reach the active Tone group
+In **Auto**, PSG author presets and hardware edits reach the active Tone group
 or Noise. Idle muted channels stay muted; their selected level is used at the
 next manual note. A direct selected-CH attenuation edit is a physical register
 edit and can unmute that channel. VGM manual input uses hardware levels;
@@ -84,7 +121,7 @@ or wheel reset cannot undo those new instructions. Live Off freezes unrelated
 fields while showing deliberate edits. Hardware Key Off has no software fade
 on the playing reference chip.
 
-PCM **Synth** uses its separate author sample bank and keyboard. Author edits,
+PCM **Auto** uses its separate author sample bank and keyboard. Author edits,
 WAV/preset loading and Code continue to use that bank without replacing song
 RAM; loading an instrument selects Synth and keeps the VGM running. Root note,
 sample drawing and Range/Loop edits belong to this author instrument. The song

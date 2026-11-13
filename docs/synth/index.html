@@ -179,11 +179,18 @@
       #synthSongSeek:disabled { opacity: .4; cursor: default; }
       #synthSongStatus { color: #a8bfba; min-width: 0; overflow-wrap: anywhere; }
       #synthSongStatus[data-state="error"] { color: #ffbdad; flex-basis: 100%; }
-      .synth-song-live-controls { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 5px; }
-      .synth-song-live-controls label { display: inline-flex; align-items: center; gap: 4px; color: #b8cac6; }
-      .synth-song-live-controls input { margin: 0; }
-      #synthSongChannelSelect { font: inherit; border: 1px solid #41615b; border-radius: 999px; color: #e4eee8; background: #1b2929; padding: 4px 6px; }
-      #synthSongLiveStatus { color: #8bd9ca; font-size: .65rem; overflow-wrap: anywhere; }
+      .synth-channel-controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; margin:0 0 10px; padding:7px 8px; border:1px solid #41615b; border-radius:0 0 10px 10px; background:#172423; font-size:.7rem; }
+      .synth-channel-controls[hidden] { display:none; }
+      .synth-channel-source { color:#a8bfba; font-size:.65rem; min-width:38px; }
+      .synth-channel-tabs { display:flex; flex:1 1 240px; gap:4px; min-width:0; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; }
+      .synth-channel-tabs button { flex:none; min-width:40px; min-height:27px; padding:4px 8px; border:1px solid #41615b; border-radius:7px 7px 0 0; color:#b8cac6; background:#233432; font:inherit; font-weight:800; cursor:pointer; }
+      .synth-channel-tabs button[aria-selected="true"] { color:#fff; background:#47776b; border-color:#7bcfc1; box-shadow:inset 0 -2px #7bcfc1; }
+      .synth-channel-tabs button:focus-visible { outline:2px solid #b7d9d1; outline-offset:-2px; }
+      .synth-channel-live { display:inline-flex; flex:none; align-items:center; gap:4px; color:#b8cac6; }
+      .synth-channel-live input { margin:0; }
+      .synth-channel-controls .toolbar-button { flex:none; min-height:26px; padding:3px 9px; font-size:inherit; }
+      #synthSongChannelSelect[hidden] { display:none; }
+      #synthSongLiveStatus { flex:1 1 100%; color:#8bd9ca; font-size:.65rem; overflow-wrap:anywhere; }
       #synthSongMixPanel { box-sizing: border-box; min-width:0; padding:12px; background:#172423; color:#e4eee8; border:1px solid #41615b; border-radius:12px; font-size:.75rem; }
       .synth-song-mix-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
       #synthSongMixChannelStatus { color:#a8bfba; margin-left:auto; font-size:.68rem; }
@@ -1475,16 +1482,6 @@
                 <input id="synthSongSeek" type="range" min="0" max="0" step="any" value="0" aria-label="Reference playback position in seconds" disabled>
                 <output id="synthSongTime" aria-label="Reference playback time">0:00 / 0:00</output>
                 <span id="synthSongStatus" role="status">Stopped.</span>
-                <span class="synth-song-live-controls">
-                  <label title="Automatically follow the song settings. Turn off to freeze the current view. Choose Synth to edit your instrument."><input id="synthSongLiveToggle" type="checkbox" checked>Live</label>
-                  <select id="synthSongChannelSelect" aria-label="View, edit and keyboard channel" title="Synth: edit all FM channels. CH1–CH6: edit and play that song channel during playback. Pause for independent audition.">
-                    <option value="synth">Synth</option>
-                    <option value="0" selected>CH1</option><option value="1">CH2</option><option value="2">CH3</option>
-                    <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
-                  </select>
-                  <button id="synthSongCopyButton" class="toolbar-button" type="button" aria-label="Copy selected channel to Synth" title="Pause to copy the selected FM channel into a new editable Synth instrument." disabled>Copy</button>
-                </span>
-                <output id="synthSongLiveStatus">Play to edit or play this FM CH · Pause for independent audition</output>
               </div>
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
@@ -1500,6 +1497,18 @@
                 <button id="synthChipTabPcm" class="toolbar-button" type="button" role="tab" data-synth-chip="pcm" aria-selected="false" aria-controls="synthChipPcm" tabindex="-1">RF5C164</button>
                 <button id="synthChipTabPwm" class="toolbar-button" type="button" role="tab" data-synth-chip="pwm" aria-selected="false" aria-controls="synthChipPwm" tabindex="-1">32X PWM</button>
                 <button id="synthSongMixButton" class="toolbar-button" type="button" role="tab" data-synth-chip="mixer" aria-selected="false" aria-controls="synthChipMixer" tabindex="-1" title="Shared chip volumes and channel On / Off for Keyboard, Code and VGM.">Mixer</button>
+            </div>
+            <div id="synthChannelControls" class="synth-channel-controls" aria-label="Live channel controls">
+              <span id="synthChannelSource" class="synth-channel-source">Normal</span>
+              <div id="synthChannelTabs" class="synth-channel-tabs" role="tablist" aria-label="Keyboard and parameter channel"></div>
+              <label class="synth-channel-live" title="Automatically follow the selected physical channel. Turn off to freeze its displayed settings."><input id="synthSongLiveToggle" type="checkbox" checked>Live</label>
+              <button id="synthSongCopyButton" class="toolbar-button" type="button" aria-label="Copy selected channel to Auto" title="Pause a VGM and select a channel to copy its sound to Auto." disabled>Copy</button>
+              <select id="synthSongChannelSelect" aria-label="View, edit and keyboard channel" hidden tabindex="-1">
+                <option value="synth" selected>Auto</option>
+                <option value="0">CH1</option><option value="1">CH2</option><option value="2">CH3</option>
+                <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
+              </select>
+              <output id="synthSongLiveStatus">Auto · edit and play</output>
             </div>
             <div id="synthChipYm2612" class="synth-chip-panel" role="tabpanel" aria-labelledby="synthChipTabYm2612">
             <div class="card visual-card">
@@ -1829,7 +1838,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=pcm-manual-1";
+      import "./synth.js?v=channel-view-1";
     </script>
   </body>
 </html>

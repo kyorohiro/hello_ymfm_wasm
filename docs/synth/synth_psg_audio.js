@@ -6,6 +6,8 @@ import {normalizeSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-
 import {normalizePsgRecording} from './synth_psg_recording.js?v=psg-event-rec-1';
 import {normalizeSynthPsgSettings} from './synth_psg.js?v=psg-event-rec-1';
 import {normalizeSynthPsgLoopConfig,prepareSynthPsgLoopUnit,PSG_LOOP_MAX_UNITS,PSG_LOOP_MAX_PCM_BYTES} from './synth_psg_loop_player.js?v=pcm-looper-1';
+import {createSynthPsgSongInteraction} from './synth_song_psg_interaction.js?v=channel-view-1';
+import {createSynthLocalChannelVoice} from './synth_local_channel_voice.js?v=channel-view-1';
 
 /** Lazy PSG endpoint on the host's existing AudioContext/output bus. */
 export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAudio}={}) {
@@ -65,12 +67,18 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
         const preparedLoops=new WeakMap();
         const channel=value=>{if(!Number.isInteger(value)||value<0||value>3)throw new RangeError('PSG envelope channel must be 0..3');};
         const attenuation=value=>{if(!Number.isInteger(value)||value<0||value>15)throw new RangeError('PSG attenuation must be 0..15');};
-        const write=value=>{
+        const rawWrite=value=>{
           if(value&128)latched=(value>>4)&7;
           post('write',[value],envelopesUsed&&!(value&128)?{psgRegister:latched}:{});
         };
-        const api=createSegaPsgApi({clock:SEGAPSG_CLOCK,write,
-          reset:()=>{api.stopLooperPlayback();api.stopRecordingPlayback();post('reset');},resetAll:()=>{api.stopLooperPlayback();api.stopRecordingPlayback();post('reset');}});
+        const engine={writePsg:rawWrite,processFrames(){},reset(){latched=0;post('reset');}};
+        const interaction=createSynthPsgSongInteraction(engine,{clockHz:SEGAPSG_CLOCK});
+        const reset=()=>{api.stopLooperPlayback();api.stopRecordingPlayback();engine.reset();};
+        const api=createSegaPsgApi({clock:SEGAPSG_CLOCK,write:value=>{engine.processFrames(1);return engine.writePsg(value);},reset,resetAll:reset});
+        api.readWrittenState=()=>interaction.read();
+        api.readWrittenSnapshot=frozen=>interaction.readSnapshot(frozen,interaction.generatedFrames,{frozen:true});
+        api.editWrittenChannel=(channel,changes)=>interaction.applyEdit({channel,changes});
+        api.channelKeyboard=createSynthLocalChannelVoice(interaction,{prefix:'local-psg'});
         const validSession=value=>{if(!Number.isSafeInteger(value)||value<1)throw new RangeError('PSG loop session must be positive');};
         api.startLooper=value=>{
           const configuration=normalizeSynthPsgLoopConfig(value,{sampleRate:context.sampleRate??48000});

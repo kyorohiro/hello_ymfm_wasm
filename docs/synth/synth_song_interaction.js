@@ -217,6 +217,12 @@ export function createSynthSongInteraction(engine,{clockHz=7670454}={}) {
   }
   function noteOff(id) {open();const voice=voices.get(id);if(!voice||slots[voice.channel]!==voice)return false;
     send(0,0x28,KEY_CHANNEL[voice.channel]);forget(voice.channel);return true;}
+  function forgetKeyboard(id) {open();const voice=voices.get(id);if(!voice)return false;forget(voice.channel);return true;}
+  function retuneKeyboard(id,note) {
+    open();const next={block:integer(note?.block,7,'YM2612 block'),fnum:integer(note?.fnum,2047,'YM2612 fnum')};
+    const voice=voices.get(id);if(!voice||slots[voice.channel]!==voice||!voice.pitchOwned)return false;
+    voice.rawPitch=next;voice.pitchAtStart=0;updateFrequency(voice,0);return next;
+  }
   function releaseKeyboard() {open();const ids=[...voices.keys()];for(const id of ids)noteOff(id);pitch=0;return ids.length?{...read(),released:ids}:false;}
   function setPitch(value) {
     open();if(!Number.isFinite(value)||value< -24||value>24)throw new RangeError('Keyboard Pitch must be -24..24 semitones');
@@ -252,6 +258,6 @@ export function createSynthSongInteraction(engine,{clockHz=7670454}={}) {
     if(engine.processFrames===process)engine.processFrames=original.process;
     if(engine.reset===reset)engine.reset=original.reset;
   }
-  return {applyEdit,applyPreset,noteOn,noteOff,releaseKeyboard,setPitch,description,describe:description,read,readSnapshot,saveState,loadState,dispose,
+  return {applyEdit,applyPreset,noteOn,noteOff,forgetKeyboard,retuneKeyboard,releaseKeyboard,setPitch,description,describe:description,read,readSnapshot,saveState,loadState,dispose,
     get generatedFrames(){return generatedFrames;}};
 }
