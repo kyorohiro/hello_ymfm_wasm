@@ -261,6 +261,7 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
       if(typeof pcm?.releaseNote==='function')pcm.releaseNote(ch);else pcm?.keyOff(ch);
       held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;
     },
+    forgetNote(ch){channel(ch);const removed=held.delete(ch);if(removed)emit();return removed;},
     setFrequency(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),pcm=getPcm();if(!pcm||installed!==pcm)return null;
       pcm.setPitch(ch,note.step);if(held.has(ch))held.set(ch,{channel:ch,...note});

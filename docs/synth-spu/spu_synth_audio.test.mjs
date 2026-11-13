@@ -19,7 +19,7 @@ import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {validateHostPcm} from './spu_synth_long_audio.js';
 import {createSpuAdpcmPreviewCache} from './spu_adpcm_preview.js';
-import {planSpuInstrument} from './spu_instrument_plan.js';
+import {planSpuInstrument,planSpuParameterEdit,SPU_PARAMETER_METHODS} from './spu_instrument_plan.js';
 import {readSpuInstrument} from './spu_synth_instrument.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 
@@ -55,7 +55,7 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
     disconnect() {}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm, '').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./spu_synth_audio.js', import.meta.url).href)) + '\nprovide(createSpuAudio);', {
-    readPmon, pmonPcm, readMorph, morphPcm, readSpuInstrument, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
+    readPmon, pmonPcm, readMorph, morphPcm, readNoise, readSpuInstrument, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
     preparePs1Waveform:pcm => {encodes++; return preparePs1Waveform(pcm);},
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1', volume:.128832}]}}},
     URL, fetch:async () => ({ok:true, arrayBuffer:async () => wasmBinary.buffer}),
@@ -120,7 +120,7 @@ test('main-thread Code client borrows one SPU route and fences delayed acknowled
     connect(target){this.connections.push(target);}disconnect(){}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(new URL('./spu_synth_audio.js',import.meta.url).href))+'\nprovide(createSpuAudio);',{
-    readPmon,pmonPcm,readMorph,morphPcm,readSpuInstrument,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
+    readPmon,pmonPcm,readMorph,morphPcm,readNoise,readSpuInstrument,SPU_SYNTH_MIX_HEADROOM,preparePs1Waveform,AudioContext:Context,AudioWorkletNode:WorkletNode,
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1',volume:.128832}]}}},URL,fetch:async()=>({ok:true,arrayBuffer:async()=>wasmBinary.buffer}),
     setTimeout,clearTimeout,provide:value=>{createAudio=value;},
   });
@@ -191,7 +191,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {SPU_SYNTH_MIX_HEADROOM} from ${url('./spu_synth_levels.js')};
     import {validateHostPcm} from ${url('./spu_synth_long_audio.js')};
     import {createSpuAdpcmPreviewCache} from ${url('./spu_adpcm_preview.js')};
-    import {planSpuInstrument} from ${url('./spu_instrument_plan.js')};
+    import {planSpuInstrument,planSpuParameterEdit,SPU_PARAMETER_METHODS} from ${url('./spu_instrument_plan.js')};
     import {noteToHz} from ${url('../js/soundchip_pitch.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
@@ -199,7 +199,7 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, planSpuParameterEdit, SPU_PARAMETER_METHODS, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -230,7 +230,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, preparePs1ADPCM, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, decodePs1Envelope, noteToHz, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, createSpuAdpcmPreviewCache, planSpuInstrument, planSpuParameterEdit, SPU_PARAMETER_METHODS, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -353,6 +353,134 @@ test('software audio sound selection remains on the same Code client and Stop ke
   p.command('code',[session,'noteOn',[0,60]]);assert(peak(p.render(2048).left)>.001);
   p.command('stop');assert.deepEqual(p.command('getInstrument',[0]),selected);
   p.command('instrumentNoteOn',[60,'host-after-stop']);assert(peak(p.render(2048).left)>.001);
+});
+
+test('Code Live scalar edits touch one CH without gate, pitch, sample or other-CH writes, and Stop retains the edited field',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});
+  const sessions=[a,b].map(p=>p.command('beginCode').session);
+  for(const[index,p]of[a,b].entries())for(const ch of[0,2]){p.command('code',[sessions[index],'setEnvelope',[ch,{attackRate:0,sustainLevel:15,sustainRate:127}]]);p.command('code',[sessions[index],'noteOn',[ch,ch===0?60:67]]);}
+  assert.deepEqual(a.render(512),b.render(512));
+  const core=a.processor.synth.core,old=Array.from({length:256},(_,i)=>core.read(i*2)),native=core.nativeFrames,writes=[],write=core.write;
+  core.write=function(address,value){writes.push([address,value]);return write.call(this,address,value);};
+  a.command('editInstrument',[sessions[0],2,'setInstrumentPreset',[{volumeLeft:.25}]]);core.write=write;
+  assert.deepEqual(writes.map(item=>item[0]),[32]);assert.equal(core.nativeFrames,native);
+  assert.equal(core.read(2*16+12),old[(2*16+12)/2]);assert.equal(core.read(4),old[2]);assert.equal(core.read(2*16+4),old[18]);
+  b.processor.synth.core.write(32,Math.round(.25*0x3fff));assert.deepEqual(a.render(2048),b.render(2048),'actual PCM equals the single raw volume write');
+  const source=a.command('getInstrument',[0]);assert.equal(source.preset.volumeLeft,.25);assert.equal(a.command('code',[sessions[0],'getPreset',[0]]).volumeLeft,.75,'other live CH is untouched');
+  const before=core.read(2*16+12),pitch=core.read(2*16+4);
+  a.command('editInstrument',[sessions[0],2,'setInstrumentEnvelope',[{releaseRate:9},{live:true}]]);
+  assert.equal(core.read(2*16+12),before);assert.equal(core.read(2*16+4),pitch);assert(a.processor.codeGates.has(2));
+  a.command('editInstrument',[sessions[0],2,'setReverb',[{preset:'room',volumeLeft:.2,volumeRight:.3}]]);
+  a.command('stop');const saved=a.command('getInstrument',[0]);assert.equal(saved.preset.volumeLeft,.25);assert.equal(saved.preset.adsr2&31,9);assert.equal(saved.reverb.preset,'room');
+});
+
+test('Code and keyboard share physical CHs: the latest Note On owns it; old other-performer releases and keyboard blur cannot stop Code',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);
+  call('noteOn',0,60);call('noteOn',3,67);p.render(256);
+  p.command('instrumentNoteOn',[64,'keyboard-1',0,0]);assert(p.processor.keyboardOwners.has(0));assert.equal(call('noteOff',0),false);
+  assert(p.processor.synth.gates[0]);assert(peak(p.render(512).left)>.001);assert(p.processor.codeGates.has(3));
+  call('setEnvelope',0,{releaseRate:7});assert(p.processor.keyboardOwners.has(0),'parameter automation does not steal the keyboard note');
+  call('noteOn',0,69);assert.equal(p.command('instrumentNoteOff',['keyboard-1']),false);assert(p.processor.codeGates.has(0));
+  const pitch=p.processor.synth.core.read(4);p.command('setInstrumentPitchBend',[1]);assert.equal(p.processor.synth.core.read(4),pitch,'old keyboard note cannot bend a newer Code voice');
+  p.command('instrumentAllNotesOff');assert(p.processor.codeGates.has(0)&&p.processor.codeGates.has(3));assert(p.processor.synth.gates[0]&&p.processor.synth.gates[3]);
+  p.command('instrumentNoteOn',[64,'keyboard-2',0,0]);call('keyOff',0);assert.equal(p.processor.keyboardOwners.has(0),false,'raw keyOff stays an explicit physical gate action');
+  assert.equal(p.command('instrumentNoteOff',['keyboard-2']),false);call('allNotesOff');assert.equal(p.processor.codeGates.size,0);p.command('stop');
+});
+
+test('selected Noise edits use one NON bit, share only the clock, and preserve Code/ENV during clock changes after clearRam',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  const support=preparePs1Waveform(Array(112).fill(0));p.command('editInstrument',[session,2,'setInstrumentNoise',[{enabled:true,clock:49},['enabled'],support]]);
+  assert.equal(p.processor.synth.core.read(0x194),4);assert.equal(p.processor.synth.core.read(0x196),0);call('noteOn',2,20);assert(peak(p.render(2048).left)>.001);
+  const core=p.processor.synth.core,env=core.read(44),writes=[],write=core.write;core.write=function(address,value){writes.push(address);return write.call(this,address,value);};
+  p.command('editInstrument',[session,2,'setInstrumentNoise',[{enabled:true,clock:51},['clock'],support]]);core.write=write;
+  assert.equal(core.read(44),env);assert(p.processor.codeGates.has(2));assert(!writes.some(address=>address<0x180),'shared clock does not rewrite any voice');
+  const state=call('getState');assert.equal(state.channels[2].noise,true);assert.equal(state.channels[0].noise,false);assert.equal(state.channels[2].noiseClock,51);
+  p.command('stop');assert.equal(p.command('getInstrument',[0]).noise.clock,51);assert.equal(p.command('getInstrument',[0]).noise.enabled,true);
+});
+
+test('selected PMON depth owns a private source while another carrier and its decoded PCM remain identical',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});const config=readPmon({enabled:true,decayMs:0}),prepared=preparePs1Waveform(pmonPcm(config.depth,config.waveform));
+  for(const p of[a,b])p.command('setInstrumentPmon',[config,prepared]);const sessions=[a,b].map(p=>p.command('beginCode').session);
+  for(const[index,p]of[a,b].entries()){p.command('code',[sessions[index],'setPreset',[1,{volumeLeft:0,volumeRight:0}]]);for(const ch of[1,3])p.command('code',[sessions[index],'noteOn',[ch,60]]);}
+  assert.deepEqual(a.render(512),b.render(512));const core=a.processor.synth.core,source=core.read(2*16+6)*8,bytes=core.readRam(source,64),other=Array.from({length:8},(_,i)=>core.read(3*16+i*2));
+  a.command('editInstrument',[sessions[0],1,'setInstrumentPmon',[{...config,ratio:1.5},prepared,['ratio']]]);assert.equal(a.processor.pmonFor(1).private,false,'ratio alone does not claim a shared waveform as a private slot');
+  const next={...config,depth:.2},wave=preparePs1Waveform(pmonPcm(next.depth,next.waveform));a.command('editInstrument',[sessions[0],1,'setInstrumentPmon',[next,wave,['depth']]]);
+  assert.equal(a.processor.codeGates.has(1),false,'the first physical source fork releases this carrier for its next KON');assert(a.processor.codeGates.has(3));
+  assert.notEqual(core.read(6)*8,source);assert.deepEqual(core.readRam(source,64),bytes);assert.deepEqual(Array.from({length:8},(_,i)=>core.read(3*16+i*2)),other);
+  assert.deepEqual(a.render(2048),b.render(2048),'silent selected carrier changes leave the other PMON pair PCM exact');
+  assert.equal(a.command('code',[sessions[0],'getState']).channels[1].pmonSettings.depth,.2);
+  a.command('code',[sessions[0],'noteOn',[1,60]]);const address=a.processor.synth.nextAddress,env=core.read(28),id=a.processor.pmonFor(1).sampleId;
+  a.command('editInstrument',[sessions[0],1,'setInstrumentPmon',[{...next,depth:.4},preparePs1Waveform(pmonPcm(.4,next.waveform)),['depth']]]);
+  assert.equal(a.processor.pmonFor(1).sampleId,id);assert.equal(a.processor.synth.nextAddress,address);assert.equal(core.read(28),env);assert(a.processor.codeGates.has(1),'later depth edits update the private RAM without releasing the held carrier');
+  a.command('stop');assert.equal(a.command('getInstrument',[0]).pmon.depth,.4);
+});
+
+test('selected cycle edits retain held frequency and ENV, preserve other CH resources, and fail atomically on a full Code bank',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);call('noteOn',2,60);p.render(512);
+  const core=p.processor.synth.core,env=core.read(44),pitch=core.read(36),other=core.readRam(p.processor.synth.samples[0].startAddress,64),wave=preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?.3:-.3));
+  p.command('editInstrument',[session,2,'setInstrumentWaveform',[wave,{retrigger:false}]]);assert.equal(core.read(44),env);assert.equal(core.read(36),pitch);assert(p.processor.codeGates.has(2));assert.deepEqual(core.readRam(p.processor.synth.samples[0].startAddress,64),other);
+  call('reset',{clearRam:true});const bytes=new Uint8Array(524288-p.processor.synth.nextAddress);for(let at=0;at<bytes.length;at+=16)bytes[at]=12;bytes[bytes.length-15]=1;const full=call('loadADPCM',bytes,{baseFrequencyHz:440});call('setPreset',0,{sample:full});call('noteOn',0,60);
+  const before=core.readRam(),author=p.command('getInstrument',[0]);assert.throws(()=>p.command('editInstrument',[session,0,'setInstrumentWaveform',[wave]]),/RAM is full/);assert.deepEqual(core.readRam(),before);assert.deepEqual(p.command('getInstrument',[0]),author);assert(p.processor.codeGates.has(0));
+});
+
+test('full imported-sample edits keep Run and the cached Code resources, reuse one private slot per bank, and survive Stop',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const input=sine().adpcm;
+  const original=p.command('loadADPCM',[input,{baseFrequencyHz:311,loopStartSamples:0}]);p.command('setInstrumentPreset',[{sample:original}]);
+  const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  const custom=call('loadADPCM',input,{baseFrequencyHz:440,loopStartSamples:0});call('setPreset',0,{sample:custom});call('noteOn',0,60);
+  const bytes=input.slice();bytes[2]^=1;let source=p.command('getInstrumentSample',[0]);
+  p.command('setInstrumentSample',[{sourceSampleId:source.sampleId,sourceToken:source.token,adpcm:bytes},session]);
+  const first=p.command('getInstrumentSample',[0]),authorAddress=p.processor.codeCheckpoint.nextAddress,liveAddress=p.processor.synth.nextAddress;
+  assert.deepEqual(first.adpcm,bytes);assert.equal(p.processor.codeEpoch,session);
+  assert.deepEqual(p.processor.synth.sampleBytes[custom.id],input,'a retained Code upload is immutable');
+  source=p.command('getInstrumentSample',[0]);bytes[3]^=2;
+  p.command('setInstrumentSample',[{sourceSampleId:source.sampleId,sourceToken:source.token,adpcm:bytes},session]);
+  assert.equal(p.processor.codeCheckpoint.nextAddress,authorAddress);assert.equal(p.processor.synth.nextAddress,liveAddress);
+  call('noteOn',0,60);assert(peak(p.render(2048).left)>.001);p.command('stop');
+  assert.deepEqual(p.command('getInstrument',[0]).sample.adpcm,bytes);assert.equal(p.command('getInstrument',[0]).sample.baseFrequencyHz,311);
+});
+
+test('a newer keyboard or Code note on a PMON source survives every older carrier release with exact source PCM',async t=>{
+  for(const scenario of ['keyboard-carrier/keyboard-source','keyboard-carrier/code-source','code-carrier/keyboard-source']) {
+    const a=await setup(44100),b=await setup(44100);t.after(()=>{a.close();b.close();});
+    const sessions=[];
+    for(const p of[a,b]) {
+      const settings=readPmon({enabled:true,decayMs:0});p.command('setInstrumentPmon',[settings,preparePs1Waveform(pmonPcm(settings.depth,settings.waveform))]);
+      const session=p.command('beginCode').session;sessions.push(session);const call=(method,...args)=>p.command('code',[session,method,args]);
+      call('setPreset',1,{volumeLeft:0,volumeRight:0});
+      if(scenario.startsWith('keyboard-carrier'))p.command('instrumentNoteOn',[60,'carrier',0,1]);else call('noteOn',1,60);
+      call('setPreset',0,{volumeLeft:.5,volumeRight:.5});
+      if(scenario.endsWith('keyboard-source'))p.command('instrumentNoteOn',[72,'new-source',0,0]);else call('noteOn',0,72);
+    }
+    assert.deepEqual(a.render(256),b.render(256));
+    if(scenario.startsWith('keyboard-carrier'))a.command('instrumentNoteOff',['carrier']);else a.command('code',[sessions[0],'noteOff',[1]]);
+    assert(a.processor.hasKeyboardOwner(0)||a.processor.codeGates.has(0));
+    assert.deepEqual(a.render(2048),b.render(2048),scenario);
+  }
+});
+
+test('Code keyboard/parameter replies keep the authored display separate from physical observations, including after a cleared bank',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const original=p.command('getEditorState'),session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);
+  call('setEnvelope',0,{attackRate:11});call('setEnvelope',1,{attackRate:22});call('noteOn',0,60);
+  p.command('instrumentAllNotesOff');let display=p.messages.at(-1).state;
+  assert.equal(display.channels[0].envelopeParameters.attackRate,original.channels[0].envelopeParameters.attackRate);
+  assert.equal(call('getState').channels[1].envelopeParameters.attackRate,22,'observations still show the actual DSP');
+  p.command('editInstrument',[session,1,'setInstrumentEnvelope',[{releaseRate:9}]]);display=p.messages.at(-1).state;
+  assert.equal(display.channels[0].envelopeParameters.attackRate,original.channels[0].envelopeParameters.attackRate);assert.equal(display.channels[0].envelopeParameters.releaseRate,9);
+  assert.equal(call('getState').channels[1].envelopeParameters.attackRate,22);
+  call('reset',{clearRam:true});const custom=call('loadADPCM',sine().adpcm,{baseFrequencyHz:440,loopStartSamples:0});call('setPreset',0,{sample:custom});
+  display=p.command('getEditorState');assert.equal(display.samples.length,original.samples.length);assert.equal(display.channels[0].waveform.pcm.length,112);assert.equal(call('getState').samples.length,1);
+});
+
+test('scalar and clock edits keep a temporary Code Noise binding valid and a clock-only edit does not pin its mode',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());const session=p.command('beginCode').session,call=(method,...args)=>p.command('code',[session,method,args]);call('reset',{clearRam:true});
+  const loop=call('loadADPCM',sine().adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});call('setPreset',0,{sample:loop});call('_setAuditionNoise',{enabled:true,clock:49},loop.id);call('noteOn',0,60);
+  p.command('editInstrument',[session,0,'setInstrumentEnvelope',[{releaseRate:9}]]);call('setPreset',0,{volumeLeft:.5});
+  const address=p.processor.synth.nextAddress;
+  p.command('editInstrument',[session,0,'setInstrumentNoise',[{enabled:true,clock:51},['clock'],preparePs1Waveform(Array(112).fill(0))]]);
+  assert.equal(p.processor.synth.nextAddress,address,'a shared-clock-only edit does not allocate another support sample');
+  assert.equal(p.processor.codeNoiseSample,p.processor.synth.samples[loop.id]);assert(peak(p.render(2048).left)>.001);
+  call('_setAuditionNoise',{enabled:false,clock:51},null);assert.equal(p.processor.synth.core.read(0x194),0);assert.equal(p.processor.synth.core.read(0x196),0);
 });
 
 // Ten packets deliberately differ from the fixed four-packet cycle editor.

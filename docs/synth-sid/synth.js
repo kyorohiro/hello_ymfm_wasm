@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1&sid-live-preset=2';
-import {createEditor} from './editor.js?sid-waves=1&sid-keys=1';
+import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1&sid-code-live=1&sid-live-preset=2&sid-code-keyboard=1';
+import {createEditor} from './editor.js?sid-waves=1&sid-keys=1&sid-code-keyboard=1';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js?sid-waves=1';
 import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2&sid-code-live=1';
-import {createSidLiveView} from './sid_live_view.js?sid-waves=1&sid-code-live=1';
-import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2&ps1-vab-api=1&sid-live-preset=2';
-import {createSidCodeLive} from './code_live.js?sid-code-live=1';
+import {createSidLiveView} from './sid_live_view.js?sid-waves=1&sid-code-live=1&sid-code-keyboard=1';
+import {setupSidCodeHost} from './code_host.js?sid-code=1&sid-starter=2&ps1-vab-api=1&sid-live-preset=2&sid-code-keyboard=1';
+import {createSidCodeLive} from './code_live.js?sid-code-live=1&sid-code-keyboard=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';
@@ -78,7 +78,7 @@ function updateLiveDisplay(song=sidImporter?.read()??{}){
   const coding=Boolean(codeHost?.isRunning()),state=coding?codeLive.read():song;
   const observing=coding?state.liveEnabled: Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
   const observation=sidLiveView.update(state);
-  editor.observe(observing?observation:null,{active:observing});
+  editor.observe(observing?observation:null,{active:observing,editable:coding});
   $('instrumentName').disabled=observing;
   $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
   $('sidLiveEnabled').checked=coding?state.liveEnabled:state.liveEnabled!==false;
@@ -166,7 +166,10 @@ function applySettings(value,{load=false,message,fromSong=false,isCurrent=()=>tr
   const nextSettings=readChannelSettings(value),next=selectedChannelPreset(nextSettings),previous=preset;
   if(!load&&JSON.stringify(nextSettings)===JSON.stringify(channelSettings))return Promise.resolve(true);
   const changedTopology=load||channelSettings.target!==nextSettings.target||channelSettings.keyboardMode!==nextSettings.keyboardMode||topology(previous)!==topology(next);
-  if(changedTopology){clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
+  // A Code-owned model candidate may fail without touching the current chip.
+  // Keep keyboard IDs releasable until an acknowledged replacement retires
+  // them through readVoices(); an optimistic clear would strand a held Gate.
+  if(changedTopology){if(!codeHost?.isRunning())clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
   if(!fromSong)manualRevision++;
   channelSettings=nextSettings;preset=next;const editRevision=++revision;updatePresetUi();
   if(!audio){if(!fromSong){codeHost?.markSoundDirty();patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return Promise.resolve(true);}
@@ -207,10 +210,22 @@ function applySettings(value,{load=false,message,fromSong=false,isCurrent=()=>tr
     }
   });
 }
-const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onError:report});
+const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onLiveChange(patch,channel){
+  const target=audio,guard=target?.captureSoundEditGuard?.();
+  if(!target||!codeHost?.isRunning())return;
+  return enqueue(async()=>{
+    const current=()=>!disposed&&audio===target&&codeHost?.isRunning()&&(!guard||guard());
+    if(!current())return;
+    const state=await target.editCodeVoice(channel,patch,{isCurrent:current});
+    if(!current())return;
+    channelSettings=readChannelSettings(state.channelSettings);preset=selectedChannelPreset(channelSettings);
+    appliedChannelSettings=readChannelSettings(channelSettings);appliedPreset=readPreset(preset);revision++;manualRevision++;
+    editor.update(preset);codeHost.markSoundDirty();visualizer.wake();
+  });
+},onError:report});
 const sidLiveView=createSidLiveView({root:$('sidLiveView')});
 codeLive=createSidCodeLive({getAudio:()=>audio,
-  isRunning:()=>Boolean(codeHost?.isCodeMode()&&codeHost?.isRunning()&&!document.hidden),
+  isRunning:()=>Boolean(codeHost?.isRunning()&&!document.hidden),
   onUpdate:()=>updateLiveDisplay(),
 });
 const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),liveRoot:$('sidLiveTools'),getController:()=>sidImporter,
@@ -310,7 +325,8 @@ function press(source,entry){
     const current=()=>!disposed&&audio===engine&&notes.get(source)===note&&note.epoch===noteEpoch&&engine.context.state!=='closed';
     if(switchingAudioOutput||!current())return;
     await prepareDesktopOutput(engine,current);if(!current())return;
-    note.started=true;await engine.command('noteOn',[note.id,note.midi]);
+    const codeState=codeHost?.isRunning()?codeLive.read():null;
+    note.started=true;await engine.command('noteOn',[note.id,note.midi,codeState?.liveEnabled?codeState.liveVoice:null]);
     if(audio!==engine||note.epoch!==noteEpoch)return;
     const state=await engine.read();if(audio!==engine||note.epoch!==noteEpoch)return;
     readVoices(state);visualizer.wake();updateNoteStatus(note.midi);
@@ -332,7 +348,7 @@ async function stopNotes(message){
   if(opening){const old=opening;opening=null;generation++;old.controller.abort();$('startAudio').disabled=false;$('startAudio').textContent='Enable audio';}
   const target=audio,stoppedEpoch=noteEpoch;
   try{
-    if(target){const order=++commandSequence,state=await target.command('stop');if(audio===target){acceptPitch(state,order,stopPitchIntent);if(noteEpoch===stoppedEpoch&&!notes.size)readVoices(state);}}
+    if(target){const order=++commandSequence,state=await target.command(codeHost?.isRunning()?'releaseKeyboard':'stop');if(audio===target){acceptPitch(state,order,stopPitchIntent);if(noteEpoch===stoppedEpoch&&!notes.size)readVoices(state);}}
     // A Stop ACK belongs to the notes cleared above, never a later key press.
     if((!target||audio===target)&&noteEpoch===stoppedEpoch&&!notes.size){
       if(previewEngine&&sidImporter?.read().playing)visualizer.setRunning(true);
@@ -353,8 +369,8 @@ window.addEventListener('keydown',event=>{
   event.preventDefault();if(!event.repeat)press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
 });
 window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLowerCase()}`));
-window.addEventListener('blur',()=>{if(!codeHost?.isRunning())void stopNotes();});
-document.addEventListener('visibilitychange',()=>{codeLive.sync();if(document.hidden&&!codeHost?.isRunning())void stopNotes();});
+window.addEventListener('blur',()=>{void stopNotes();});
+document.addEventListener('visibilitychange',()=>{codeLive.sync();if(document.hidden)void stopNotes();});
 function setPitch(value){
   if(disposed)return;const request=++pitchIntent,epoch=noteEpoch;setPitchUi(value);refreshPlayableKeys();const target=audio;
   if(target)void enqueue(async()=>{

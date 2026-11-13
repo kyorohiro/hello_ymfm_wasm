@@ -146,7 +146,7 @@ globalThis.__spuSaved=ps1;log('spu-live-ready');
 async function observed(page,channel,attack){
   await until(()=>page.locator('#spuVoicePanel').getAttribute('data-observing').then(value=>value==='true'),'Code Live active');
   await until(()=>page.locator('#spuVoicePanel').getAttribute('data-observation-channel').then(value=>value===String(channel)),'observed CH '+(channel+1));
-  assert(await page.locator('#spuVoicePanel').evaluate(node=>node.inert),'Live controls are read-only');
+  await until(()=>page.locator('#spuVoicePanel').evaluate(node=>!node.inert),'Code Live snapshot makes the selected CH editable');
   if(attack!==undefined)await until(()=>page.locator(control('attack-rate')).inputValue().then(value=>value===String(attack)),'live attack '+attack);
 }
 async function editable(page){
@@ -205,7 +205,7 @@ for(let channel=0;channel<3;channel++)await ps1.noteOn(channel,notes[channel]);l
     const savedWhileRunning=await page.locator('#spuFilesSelected').textContent();await page.locator('#spuFileDeleteButton').click();await page.locator('#spuFileNameConfirm').click();await until(()=>page.locator('#spuFilesTree [data-file-path='+JSON.stringify(savedWhileRunning)+']').count().then(value=>value===0),'saved JSON deleted while old JS plays');assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);await sounding(page);assert(await page.locator('#synthCodeStopButton').isEnabled());await stop(page);state=await snapshot(page);assert(state.channels.every(value=>!value.gate));
     assert.deepEqual(state.samples,initialState.samples);assert.equal(state.nextAddress,initialState.nextAddress);
 
-    step('Code Live follows applied CH values, is read-only and preserves authored sample data');
+    step('Code Live follows applied CH values with editable controls and preserves authored sample data');
     await source(page,LIVE);await execute(page);await observed(page,0,11);
     assert(await page.locator('#spuLiveEnabled').isChecked(),'Code Live defaults to On');
     assert.deepEqual(await savedSound(page),baseline);const before=await snapshot(page);await page.evaluate(()=>__spuCodeAudit.drain());
@@ -258,7 +258,7 @@ const bytes=new Uint8Array(16);bytes[0]=12;bytes[1]=1;
 const sample=await ps1.loadADPCM(bytes,{baseFrequencyHz:440});await ps1.setPreset(CH1,{sample});log('temporary-bank');`);
     await execute(page);assert((await snapshot(page)).samples.length<initialState.samples.length);await stop(page);
     state=await snapshot(page);assert.deepEqual(state.samples,initialState.samples);assert.equal(state.nextAddress,initialState.nextAddress);assert.deepEqual(await savedSound(page),baseline);
-    await source(page,HOLD);await execute(page);await page.locator('#synthInputKeyboardTab').click();await silent(page);
+    await source(page,HOLD);await execute(page);await page.locator('#synthInputKeyboardTab').click();await sounding(page);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);assert(await page.locator('#synthCodeStopButton').isVisible(),'Keyboard keeps the shared Code transport');await stop(page);
     const key=await page.locator('#keyboardKeys .key:not([disabled])').first().getAttribute('data-key');assert(key);
     await page.keyboard.down(key);await stateIs(page,value=>value.auditions.length>0,'keyboard note after Code');await sounding(page);await page.keyboard.up(key);await page.locator('#stopAudio').click();await silent(page);
 

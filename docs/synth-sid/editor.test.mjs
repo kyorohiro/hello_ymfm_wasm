@@ -38,6 +38,21 @@ function editorFixture(t,options={}){
   return{root,doc,changes,errors,editor};
 }
 
+test('editable Code observations emit only touched fields for the displayed CH while song observations stay read-only',async t=>{
+  const edits=[],f=editorFixture(t,{onLiveChange:(patch,voice)=>edits.push({patch,voice})}),saved=f.editor.getPreset();
+  const registers=new Array(32).fill(0);registers[7]=45;registers[8]=12;registers[11]=0x43;registers[12]=0x98;registers[13]=0x76;registers[23]=0x92;registers[24]=0x18;
+  const observation=readSidLiveVoice({model:'6581',clockHz:985248,sampleRate:48000,positionFrames:100,registers,voices:[{envelope:0},{envelope:90},{envelope:0}]},1);
+  f.editor.observe(observation,{active:true,editable:true});
+  assert.equal(find(f.root,'attack').disabled,false);assert.equal(choice(f.root,'sidModel','6581').disabled,true);
+  await step(f.root,'attack',1).fire('click');assert.deepEqual(edits.at(-1),{patch:{voice:{attack:10}},voice:1});
+  const cutoff=find(f.root,'filterCutoffRange');cutoff.value='876';await cutoff.fire('input');assert.deepEqual(edits.at(-1),{patch:{filter:{cutoff:876}},voice:1});
+  const dry=structuredClone(observation);dry.filter.routed=false;f.editor.observe(dry,{active:true,editable:true});
+  await find(f.root,'filterBandpass').fire('click');assert.deepEqual(edits.at(-1),{patch:{filter:{enabled:true,mode:'lowpass+bandpass'}},voice:1},'a dry selected CH preserves the shared LP output used by another CH');
+  assert.deepEqual(f.editor.getPreset(),saved);assert.equal(f.changes.length,0);
+  f.editor.observe(observation,{active:true});assert.equal(find(f.root,'attack').disabled,true);
+  const count=edits.length;await step(f.root,'attack',1).fire('click');assert.equal(edits.length,count);
+});
+
 test('passive SID editor uses compact stepper/buttons, keeps folds and enables a chosen filter mode',async t=>{
   const f=editorFixture(t);
   assert.equal(f.changes.length,0);assert.equal(find(f.root,'filterCard').open,true);assert.equal(find(f.root,'voiceCard').open,true);assert.equal(find(f.root,'modulationCard').open,false);
@@ -368,7 +383,7 @@ test('Code mode keeps typing out of the keyboard allocator and background blur l
   assert.equal(f.ui.getNotes().length,0);assert.equal(f.calls.length,before);
   assert.equal(f.doc.getElementById('pitchBend').disabled,true);assert.equal(f.doc.getElementById('keyboardPitchBend').disabled,true);
   await f.window.fire('blur');f.doc.hidden=true;await f.doc.fire('visibilitychange');await flush();
-  assert.equal(f.code.running,true);assert.equal(f.calls.length,before,'Code is not reset as a keyboard focus cleanup');
+  assert.equal(f.code.running,true);assert(f.calls.slice(before).every(call=>call[1]==='releaseKeyboard'),'focus cleanup only releases keyboard owners, never Code');
   f.code.mode=false;f.code.running=false;f.ui.updateKeys();assert.equal(f.doc.getElementById('pitchBend').disabled,false);
 });
 
@@ -379,6 +394,24 @@ test('ordinary edits, sound loads and model changes preserve the running Code ho
   const before=f.calls.length,next=readPreset(live);next.model='8580';const changing=f.ui.applyPreset(next);
   await changing;assert.equal(f.code.stops,0);assert.equal(f.calls.length,before+1);assert.equal(f.ui.getPreset().model,'8580');assert.equal(f.code.running,true);
   await f.ui.applyPreset({...next,name:'Loaded while running'},{load:true});assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
+});
+
+test('a rejected or cancelled Code-time topology selection preserves the held keyboard identity for its later key-up',async()=>{
+  for(const fail of ['reject','cancel']){
+    const f=appFixture();await f.ui.ensureAudio();f.code.running=true;
+    f.ui.press('held-before-load',f.entries[0]);await flush();await flush();
+    const id=f.ui.getNotes()[0].id;assert(f.ui.getNotes()[0].started);
+    const next=readChannelSettings(f.ui.getSettings());next.channels[0].voice.test=true;let current=true;
+    if(fail==='reject'){
+      f.engines[0].rejectPatch=true;await assert.rejects(f.ui.applySettings(next,{load:true}));
+    }else{
+      const changing=f.ui.applySettings(next,{load:true,isCurrent:()=>current});current=false;assert.equal(await changing,false);
+    }
+    assert.equal(f.ui.getNotes()[0]?.id,id,'failed/cancelled candidate keeps the release identity');
+    f.ui.release('held-before-load');await flush();await flush();
+    assert.equal(f.ui.getNotes().length,0);assert(f.calls.some(call=>call[1]==='noteOff'&&call[2]===id));
+    assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
+  }
 });
 
 test('a queued sound intent cannot enter a newer Run and reconciles the actual author bank instead of leaving an unapplied draft',async()=>{

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared Code runtime/editor over the upper editor's existing physical APU.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-code-keyboard-1';
 import {selectGameboyCodeDeclarations} from './code_declarations.js';
 import {createGameboyCodeAudio} from './code_audio.js';
 import {createGameboyCodeProject,GAMEBOY_PROJECT_FILE_BYTES} from './code_project.js';
-import {setupGameboyCodeFiles} from './code_files.js?v=dmg-live-preset-1';
+import {setupGameboyCodeFiles} from './code_files.js?v=dmg-code-keyboard-1';
 
 export const GAMEBOY_STARTER_CODE=`const gb = await useSoundChip("gameboy");
 setBpm(120);
@@ -55,11 +55,16 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySett
       readFile:(...args)=>project.readFile(...args),prepareSource:(...args)=>project.prepareSource(...args),
       onLog:line=>controls?.appendLog(line),onState:state=>{controls?.setRuntimeState(state);onActivity();},
       beforeStopSoundChips(){epoch++;return audio.beforeStop();},
-      async stopSoundChips(){await audio.stop();if(!getAudio())await stopKeyboard();},
+      async stopSoundChips(){
+        const token=epoch,owner=getAudio();await audio.stop();
+        if(!getAudio())await stopKeyboard();
+        else if(!disposed&&token===epoch&&owner===getAudio()&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+      },
     });
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
+    keepRunningOnKeyboard:true,
     allowTextFiles:true,maxTextLength:GAMEBOY_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'gameboy',transformDeclarations:selectGameboyCodeDeclarations,
     journalKey:'tetorica-dmg-synth-pending-code',getStarterCode:()=>GAMEBOY_STARTER_CODE,

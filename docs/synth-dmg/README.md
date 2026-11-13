@@ -71,7 +71,9 @@ the audio engine fails, select **Enable audio** to reconnect.
 Select **Code** beside Keyboard to edit `/index.js` in the same Synth. **Run**
 starts a fresh performance, **Apply** updates named loops while preserving
 `context` and `livePrepare`, and **Stop** fades the software output and restores
-your edited instrument and Wave RAM. Switching back to Keyboard also stops Code.
+your edited instrument and Wave RAM. Switching between Keyboard and Code keeps
+Run, loops, `context`, preparations and FX running. The shared transport stays
+visible in Keyboard, including explicit Stop.
 Code borrows the same APU, Master and output display; it does not create extra
 hardware voices. Instrument edits and preset selection keep Code running on
 this APU; a Wave RAM replacement can release a held Wave note.
@@ -102,13 +104,27 @@ settings; omit them when keeping the upper editor sound. `setClock` accepts
 only the fixed DMG clock in this standalone Synth.
 
 **Live from Code** is On by default. Select CH1–4 above the output display to
-view that channel in the existing Pulse / Wave / Noise controls. These are
-read-only sent/configured register values, including the configured initial
+view and edit that physical channel in the existing Pulse / Wave / Noise controls.
+These are sent/configured register values, including the configured initial
 volume, Wave RAM and base pitch. They are not measurements of the current
 hardware envelope volume or Sweep frequency. Observation is capped at 20 Hz,
 with only one request at a time. Live Off returns to the editable instrument
-while Code continues; instrument edits apply to the same APU. Live never rewrites
-the stored preset. `liveLoop`, `beat`, `tween`, `context`, scheduling and `liveFx`
+while Code continues; instrument edits apply to the same APU. Live observation
+does not rewrite the stored preset. A deliberate edit changes only the fields
+you touch on the selected channel, keeping other channels, pitch and Gate.
+Those fields also update your authored instrument for Stop and Save sound.
+Wave RAM replacement can end a held Wave note. The physical CH determines
+Pulse / Wave / Noise, and Sweep remains CH1-only.
+
+Keyboard works alongside Code on this same APU. Live On plays the selected
+physical CH using its current settings; Live Off uses the authored source pool.
+The latest Key On owns a physical channel. An older Code release or keyboard
+key-up cannot cut its replacement; releasing it does not restore an older note.
+Blur releases keyboard notes while Code continues. Explicit Stop ends both.
+Code can also automate Duty, pan or Noise clock while you play the keyboard.
+If Code and a knob write the same parameter repeatedly, the latest write wins.
+
+`liveLoop`, `beat`, `tween`, `context`, scheduling and `liveFx`
 are software facilities, separate from APU Envelope / Sweep.
 
 **Files** opens the project tree. Add code, local modules or data; right-click

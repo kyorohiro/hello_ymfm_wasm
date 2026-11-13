@@ -1,12 +1,12 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-live-draw-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
 import {setupSynthFiles} from './synth_files.js?v=pcm-live-draw-1';
-import {setupSynthCodeControls} from './synth_code_controls.js?v=shared-pcm-notes-1';
+import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-keyboard-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=pcm-live-draw-1';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=synth-code-keyboard-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-live-draw-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=synth-code-keyboard-1';
 import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-draw-1';
 import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-live-draw-1';
 import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-draw-1';
@@ -26,7 +26,7 @@ import {SynthPsgRecordingManager} from './synth_psg_recording.js?v=psg-event-rec
 import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
 import {SynthPsgLooper} from './synth_psg_looper.js?v=pcm-looper-1';
 import {renderSynthPsgLoop} from './synth_psg_loop_render.js?v=psg-looper-1';
-import {createSynthPsgVoice} from './synth_psg.js?v=psg-event-rec-1';
+import {createSynthPsgVoice} from './synth_psg.js?v=synth-code-keyboard-1';
 import {createSynthPsgAudio} from './synth_psg_audio.js?v=channel-mixer-1';
 import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-envelope-1';
 import { setupSynthMenu } from './synth_menu.js';
@@ -285,7 +285,7 @@ function updatePitchBend(value) {
   for (const wheel of pitchBendWheels) wheel.value = String(value);
   for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
   if (synth) {
-    const target=isSongChannelTarget() ? songAuditionVoice : editorChip === 'pcm' ? pcmVoice : editorChip === 'psg' ? psgVoice : getEditorPlayableSynth();
+    const target=getPlayableSynth();
     if(target)applyPitchBend(target,voices,pitchBendSemitones);
   }
 }
@@ -482,7 +482,7 @@ function selectEditorChip(button) {
   const changed = editorChip !== button.dataset.synthChip;
   if (changed) {
     ++pcmLoadGeneration;
-    if(!codeActive)stopAllNotes();
+    stopAllNotes();
     void stopRecordingForReference({keepCode:codeActive});
   }
   editorChip = button.dataset.synthChip;
@@ -965,6 +965,15 @@ async function ensureCodeReady() {
     getPcm:()=>pcmAudio.getPcm(),getPcmVoice:()=>pcmVoice,
     getInput:()=>performanceOutputBus,getOutput:()=>performanceMasterBus,getMaster:()=>codeActive?1:masterVolume,
     onLog:line=>codeControls?.appendLog(line),
+    onCodeGate(chip,channel){
+      if(chip==='segapsg')psgVoice.forgetNote(channel);
+      if(chip==='rf5c164')pcmVoice.forgetNote(channel);
+      const kind=chip==='segapsg'?'psg':chip==='rf5c164'?'pcm':'ym2612';
+      if(editorChip!==kind)return;
+      for(const [key,ch]of activeKeys)if(ch===channel){activeKeys.delete(key);heldKeys.delete(key);}
+      if(voices[channel]){voices[channel].held=false;voices[channel].key=null;voices[channel].startedAt=0;}
+      updateKeyboardVisuals();
+    },
   });
   await codeAudio.prepare();check();
   // Trusted assets finish loading before user-code execution installs the
@@ -1008,7 +1017,7 @@ function isSongChannelTarget() {
 }
 
 function isPerformanceInputEnabled() {
-  return !codeActive&&!codeControls?.isCodeMode()&&!editorSwitchPending && !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (!isSongChannelTarget() || Boolean(songAuditionVoice));
+  return !codeControls?.isCodeMode()&&!editorSwitchPending && !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (!isSongChannelTarget() || Boolean(songAuditionVoice));
 }
 
 function getCurrentPerformanceVoice() {
@@ -1027,7 +1036,8 @@ function eventRecordingBlocked() {
 }
 
 function recordingUnavailableReason() {
-  if(codeActive||codeControls?.isCodeMode())return 'Choose Keyboard to use Looper or Event Rec.';
+  if(codeActive)return 'Stop Code to use Looper or Event Rec.';
+  if(codeControls?.isCodeMode())return 'Choose Keyboard to use Looper or Event Rec.';
   return 'Pause or Stop the VGM and choose Synth to record your instrument.';
 }
 
@@ -2983,6 +2993,11 @@ function renderFretboardUi() {
 }
 
 function stopAllNotes() {
+  if(codeActive&&codeAudio){
+    for(const [name,target,count]of [['segapsg',psgVoice,4],['rf5c164',pcmVoice,8],['ym2612',editorPerformanceTarget,6]])
+      for(let ch=0;ch<count;ch++)codeAudio.keyboardTarget(name,target).noteOff(ch);
+    clearInputState();return;
+  }
   pcmVoice.stop();
   psgVoice.stop();
   if(looper?.recording)for(const voice of voices)if(voice.channel<6&&voice.held)looper.noteOff(voice.channel);
@@ -3006,8 +3021,8 @@ function getPlayableSynth() {
   if (isSongChannelTarget()) return songAuditionVoice;
   // Key-up must still reach a held PCM voice while an End RAM update is
   // awaiting acknowledgement. Key-down waits for ensureAudioReady itself.
-  if(editorChip==='pcm')return pcmAudio.getPcm()?pcmVoice:null;
-  if (editorChip === 'psg') return psgAudio.getPsg() ? psgVoice : null;
+  if(editorChip==='pcm')return pcmAudio.getPcm()?(codeActive&&codeAudio?codeAudio.keyboardTarget('rf5c164',pcmVoice):pcmVoice):null;
+  if (editorChip === 'psg') return psgAudio.getPsg() ? codeActive&&codeAudio?codeAudio.keyboardTarget('segapsg',psgVoice):psgVoice : null;
   if (looper?.running) {
     return looper;
   }
@@ -3018,7 +3033,7 @@ function getPlayableSynth() {
 // OP gates and CH3 pitch ratios share the keyboard and recording path.
 // The existing parameter controls still program the chip directly.
 function getEditorPlayableSynth() {
-  return synth?editorPerformanceTarget:null;
+  return synth?(codeActive&&codeAudio?codeAudio.keyboardTarget('ym2612',editorPerformanceTarget):editorPerformanceTarget):null;
 }
 
 async function ensureLooper() {
@@ -3906,6 +3921,7 @@ songControls = setupSynthSongControls({
   onStatus:setStatus,
 });
 codeControls=setupSynthCodeControls({
+  keepRunningOnKeyboard:true,
   project:synthProject,files:synthFiles,getRuntime:getCodeRuntime,onBeforeRun:beforeCodeRun,
   onModeChange:mode=>{
     if(mode==='code'&&!codeActive)void stopRecordingForReference({keepCode:true});

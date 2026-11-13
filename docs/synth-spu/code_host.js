@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared software scheduler/editor over the upper instrument's existing SPU.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?spu-json-code=1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-code-keyboard-1';
 import {selectSpuCodeDeclarations} from './code_declarations.js?spu-click-guard=1';
 import {createSpuCodeAudio} from './code_audio.js?spu-code=1';
 import {createSpuCodeProject,SPU_PROJECT_FILE_BYTES} from './code_project.js?spu-json-code=1';
@@ -53,11 +53,16 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
       readFile:(...args)=>project.readFile(...args),prepareSource:(...args)=>project.prepareSource(...args),
       onLog:line=>controls?.appendLog(line),onState:state=>{controls?.setRuntimeState(state);onActivity();},
       beforeStopSoundChips(){epoch++;return audio.beforeStop();},
-      async stopSoundChips(){await audio.stop();if(!getAudio())await stopKeyboard();},
+      async stopSoundChips(){
+        const token=epoch,request=modeEpoch,owner=getAudio();await audio.stop();
+        if(!getAudio())await stopKeyboard();
+        else if(!disposed&&token===epoch&&request===modeEpoch&&owner===getAudio()&&!controls?.isCodeMode())audio.open();
+      },
     });
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
+    keepRunningOnKeyboard:true,
     allowTextFiles:true,maxTextLength:SPU_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'ps1',transformDeclarations:selectSpuCodeDeclarations,
     journalKey:'tetorica-spu-synth-pending-code',getStarterCode:()=>SPU_STARTER_CODE,

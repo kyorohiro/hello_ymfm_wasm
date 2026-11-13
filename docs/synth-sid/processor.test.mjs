@@ -262,6 +262,13 @@ test('real Code RPC shares physical SID voices and preserves the same session th
       for(const preset of authored.channels){preset.filter.enabled=true;preset.filter.mode='notch';preset.filter.cutoff=1234;}
       await command('setChannelSettings',[authored]);
       const live=(await command('code',[session,'getState',[]])).value;assert.equal(live.filter.cutoff,1234);assert.equal(live.channels[2].gate,true);
+      const beforeEdit=processor.instrument.observeCode(),patchResult=await command('editCodeVoice',[session,2,{voice:{attack:7},filter:{cutoff:999}}]);
+      assert.equal(patchResult.error,undefined);assert.equal(processor.instrument.observeCode().positionFrames,beforeEdit.positionFrames);
+      const patched=(await command('code',[session,'getState',[]])).value;assert.equal(patched.channels[2].gate,true);assert.equal(patched.filter.cutoff,999);
+      assert.equal((await command('noteOn',['keyboard',64,2])).error,undefined);
+      assert.equal((await command('code',[session,'noteOff',[2]])).value,false);
+      assert.equal((await command('releaseKeyboard')).error,undefined);
+      assert.equal((await command('code',[session,'getState',[]])).value.channels[2].gate,false);
       await command('stop');assert.equal((await command('observeCode')).value,null);assert.equal((await command('code',[session,'keyOn',[0]])).name,'AbortError');
       const fresh=(await command('beginCode')).value.session;assert.notEqual(fresh,session);
       assert.equal((await command('code',[fresh,'noteOn',[0,69]])).error,undefined);

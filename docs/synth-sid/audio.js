@@ -6,7 +6,7 @@ const nativeSetTimer=globalThis.setTimeout.bind(globalThis);
 const nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 export const SID_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'releaseKeyboard', 'editCodeVoice', 'setPitch', 'stop', 'beginCode', 'code']);
 const CODE_METHODS=['setNote','setFrequency','noteOn','noteOff','keyOn','keyOff','allNotesOff',
   'setVoice','setFilter','writeRegister','readRegister','getRegisterSnapshot','getState','initialize','reset','setClock'];
 const codeCancelled=()=>new DOMException('SID Code session was stopped or its instrument changed','AbortError');
@@ -90,7 +90,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -171,6 +171,15 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
     return {
       context, outputNode: master, codeInputNode:balance, codeOutputNode:codeFade, codeFadeNode:codeFade,
       sampleRate: context.sampleRate, command, read: () => command('read'),getSidClient,
+      async editCodeVoice(channel,patch,{isCurrent=()=>true}={}){
+        assertOpen();const owner=codeOwner,generation=codeGeneration;
+        if(!owner||!isCurrent())throw codeCancelled();
+        await owner.promise;
+        const current=()=>!disposed&&!fatalError&&codeOwner===owner&&codeGeneration===generation&&isCurrent();
+        if(!current())throw codeCancelled();
+        const value=await command('editCodeVoice',[owner.metadata.session,channel,patch]);
+        if(!current())throw codeCancelled();return value;
+      },
       captureSoundEditGuard(){
         assertOpen();const owner=codeOwner,generation=codeGeneration;
         return ()=>!disposed&&!fatalError&&context.state!=='closed'&&codeOwner===owner&&codeGeneration===generation;

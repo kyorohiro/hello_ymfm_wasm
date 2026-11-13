@@ -123,7 +123,7 @@
         <p id="synthCodeEditorNote" class="sid-help">Code is saved in Files. Loading a project never runs it automatically.</p>
         <pre id="synthCodeError" class="sid-code-error" role="alert"></pre>
         <details class="sid-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
-        <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About SID Code">?</summary><div class="sid-help-panel"><p class="sid-help">Use <code>const sid = await useSoundChip("sid")</code> and await its methods. Code addresses physical CH1 / CH2 / CH3 directly. Run starts fresh; Apply keeps context and named loops; Stop fades the software output and restores your edited sound. Keyboard allocation, Legato and the modulator ratio are keyboard tools. Code can set the source oscillator explicitly for hardware Sync / Ring.</p><p class="sid-help">Code register edits do not overwrite the preset controls. The upper controls still edit this same chip. Model or connection changes stop Code; starting a SID song also stops Code. The hardware SID filter is shared by all three voices; liveFx is a separate software effect.</p></div></details>
+        <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About SID Code">?</summary><div class="sid-help-panel"><p class="sid-help">Use <code>const sid = await useSoundChip("sid")</code> and await its methods. Code addresses physical CH1 / CH2 / CH3 directly. Run starts fresh; Apply keeps context and named loops; Stop fades the software output and restores your edited sound. Keyboard allocation, Legato and the modulator ratio are keyboard tools. Code can set the source oscillator explicitly for hardware Sync / Ring.</p><p class="sid-help">Code register edits do not overwrite the preset controls. The upper controls edit this same chip. Keyboard / Code changes the view without stopping loops or FX. Code Live edits only the touched fields of the displayed CH. Preset changes keep Code running; starting a SID song stops Code. The hardware SID filter is shared by all three voices; liveFx is a separate software effect.</p></div></details>
       </div>
     </section>
       </div>
@@ -133,6 +133,6 @@
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>
-<script type="module" src="./synth.js?sid-transport=2&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2"></script>
+<script type="module" src="./synth.js?sid-transport=2&amp;sid-channels=3&amp;sid-waves=1&amp;sid-keys=1&amp;sid-desktop=1&amp;sid-code=1&amp;sid-code-live=1&amp;sid-starter=2&amp;ps1-vab-api=1&amp;sid-live-preset=2&amp;sid-code-keyboard=1"></script>
 </body>
 </html>

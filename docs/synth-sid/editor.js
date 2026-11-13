@@ -7,17 +7,29 @@ import {createDefaultPreset,readPreset,filterModeBits,filterModeFromBits,wavefor
 const ratioText=value=>{const display=Number(value.toPrecision(6));return display===value?String(value):`≈ ${display}`;};
 
 /** Passive patch editor. It never creates or resumes an audio device. */
-export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
+export function createEditor({root,onChange=()=>{},onLiveChange=()=>{},onError=()=>{}}) {
   const doc=root.ownerDocument, cleanups=[], controls=[], helpPanels=new Map();
-  let preset=createDefaultPreset(), display=preset, observation=null, observing=false, disposed=false;
+  let preset=createDefaultPreset(), display=preset, observation=null, observing=false, editable=false, disposed=false;
   const make=(tag,className,text)=>{const node=doc.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,event,handler,options)=>{node.addEventListener(event,handler,options);cleanups.push(()=>node.removeEventListener(event,handler,options));};
   const report=error=>{if(!disposed)onError(error);};
+  const locked=()=>observing&&(!editable||!observation);
   function commit(change) {
     if(disposed)return;
-    // Observations are display state, never an editable portable preset. This
-    // guard also rejects synthetic input events on disabled live controls.
-    if(observing){render();return;}
+    // Songs remain read-only. Code edits send only touched fields rather than
+    // turning the whole observed channel into an authored preset.
+    if(locked()){render();return;}
+    if(observing){
+      try{
+        const next=structuredClone(display);change(next);const patch={};
+        for(const group of ['voice','modulation','filter']){
+          const values=Object.fromEntries(Object.entries(next[group]).filter(([key,value])=>value!==display[group][key]));
+          if(Object.keys(values).length)patch[group]=values;
+        }
+        if(Object.keys(patch).length)Promise.resolve(onLiveChange(patch,observation.voice)).catch(report);
+      }catch(error){report(error);}
+      return;
+    }
     try {const next=readPreset(preset);change(next);preset=readPreset(next);render();Promise.resolve(onChange(readPreset(preset))).catch(report);}
     catch(error){render();report(error);}
   }
@@ -47,8 +59,8 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       listen(button,'click',()=>commit(next=>set(next,value)));group.append(button);return button;
     });
     listen(group,'keydown',event=>{
-      if(observing){event.preventDefault();event.stopPropagation();return;}
-      const current=buttons.findIndex(button=>button.dataset.value===get(preset));let next;
+      if(locked()){event.preventDefault();event.stopPropagation();return;}
+      const current=buttons.findIndex(button=>button.dataset.value===get(display));let next;
       if(['ArrowRight','ArrowDown'].includes(event.key))next=(current+1)%buttons.length;
       else if(['ArrowLeft','ArrowUp'].includes(event.key))next=(current+buttons.length-1)%buttons.length;
       else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;
@@ -57,14 +69,14 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
     controls.push(()=>{
       for(const button of buttons){
         const active=button.dataset.value===get(display);
-        button.disabled=observing;button.tabIndex=observing?-1:active?0:-1;button.setAttribute('aria-checked',String(active));markChanged(button,active);
+        button.disabled=locked()||observing&&id==='sidModel';button.tabIndex=button.disabled?-1:active?0:-1;button.setAttribute('aria-checked',String(active));markChanged(button,active);
       }
     });
   }
   function toggle(parent,label,id,get,set) {
     const row=make('label','sid-field sid-check'),input=make('input');input.type='checkbox';input.id=id;row.append(input,make('span','',label));parent.append(row);
     listen(input,'change',()=>{commit(next=>set(next,input.checked));input.blur();});
-    controls.push(()=>{input.checked=Boolean(get(display));input.disabled=observing;markChanged(input,input.checked);});return input;
+    controls.push(()=>{input.checked=Boolean(get(display));input.disabled=locked();markChanged(input,input.checked);});return input;
   }
   function waveforms(parent){
     const row=field(parent,'Waveforms · combine','waveform','sid-choice-field'),group=make('div','sid-choice-group');
@@ -75,12 +87,12 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       listen(button,'click',()=>commit(next=>{next.voice.waveform=waveformFromBits(waveformBits(next.voice.waveform)^bit);}));
       controls.push(()=>{
         const bits=observing&&observation?observation.waveformMask>>4:waveformBits(display.voice.waveform);
-        const active=Boolean(bits&bit);button.disabled=observing;button.tabIndex=observing?-1:0;button.setAttribute('aria-pressed',String(active));markChanged(button,active);
+        const active=Boolean(bits&bit);button.disabled=locked();button.tabIndex=locked()?-1:0;button.setAttribute('aria-pressed',String(active));markChanged(button,active);
       });
       buttons.push(button);group.append(button);
     }
     listen(group,'keydown',event=>{
-      if(observing){event.preventDefault();event.stopPropagation();return;}
+      if(locked()){event.preventDefault();event.stopPropagation();return;}
       const current=Math.max(0,buttons.indexOf(doc.activeElement));let next;
       if(['ArrowRight','ArrowDown'].includes(event.key))next=(current+1)%buttons.length;
       else if(['ArrowLeft','ArrowUp'].includes(event.key))next=(current+buttons.length-1)%buttons.length;
@@ -94,23 +106,23 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
     for(const [bit,id,label]of [[1,'filterLowpass','LP · Low-pass'],[2,'filterBandpass','BP · Band-pass'],[4,'filterHighpass','HP · High-pass']]){
       const button=make('button','',label);button.id=id;button.type='button';button.dataset.filterBit=String(bit);pointerFocus(button);
       listen(button,'click',()=>commit(next=>{
-        const bits=(next.filter.enabled?filterModeBits(next.filter.mode):0)^bit;
+        const bits=(observing||next.filter.enabled?filterModeBits(next.filter.mode):0)^bit;
         next.filter.mode=filterModeFromBits(bits);next.filter.enabled=bits!==0;
       }));
-      controls.push(()=>{const active=observing&&observation?Boolean(observation.filter.modeMask&bit):preset.filter.enabled&&!!(filterModeBits(preset.filter.mode)&bit);button.setAttribute('aria-pressed',String(active));button.disabled=observing;markChanged(button,active);});
+      controls.push(()=>{const active=observing&&observation?Boolean(observation.filter.modeMask&bit):preset.filter.enabled&&!!(filterModeBits(preset.filter.mode)&bit);button.setAttribute('aria-pressed',String(active));button.disabled=locked();markChanged(button,active);});
       group.append(button);
     }
   }
   function number(parent,label,id,min,max,step,get,set,{slider=false,enabled=()=>true,inactiveReason='',observedLabel=label,observedDescription='',rangeStep=step,format=String}={}) {
-    const change=value=>{if(observing||!enabled(preset)){render();return;}commit(next=>set(next,value));};
+    const change=value=>{if(locked()||!enabled(display)||observing&&!Number.isFinite(get(display))){render();return;}commit(next=>set(next,value));};
     const row=field(parent,label,id,slider?'sid-slider':''),control=createParamControl({label,min,max,step,value:get(preset),showLabel:false,wheelAdjust:false,onChange:change});
     const title=row.children[0];
     const [minus,value,plus]=control.element.children;value.id=id;value.setAttribute('role','spinbutton');value.setAttribute('aria-labelledby',`${id}Label`);value.setAttribute('aria-valuemin',String(min));value.setAttribute('aria-valuemax',String(max));
     for(const [button,delta] of [[minus,-1],[plus,1]]){button.dataset.stepperFor=id;button.dataset.stepperDelta=String(delta);button.setAttribute('aria-label',`${delta<0?'Decrease':'Increase'} ${label}`);pointerFocus(button);}
     pointerFocus(value);row.append(control.element);
     const keyAdjust=event=>{
-      if(observing||!enabled(preset)){event.preventDefault();event.stopPropagation();render();return;}
-      const current=get(preset);let next;
+      if(locked()||!enabled(display)){event.preventDefault();event.stopPropagation();render();return;}
+      const current=get(display);let next;
       if(['ArrowRight','ArrowUp'].includes(event.key))next=current+step;else if(['ArrowLeft','ArrowDown'].includes(event.key))next=current-step;
       else if(event.key==='PageUp')next=current+step*10;else if(event.key==='PageDown')next=current-step*10;
       else if(event.key==='Home')next=min;else if(event.key==='End')next=max;else return;
@@ -129,8 +141,8 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       value.setAttribute('aria-valuetext',finite?format(current):'Unavailable: carrier frequency is zero');
       if(finite){value.setAttribute('aria-valuenow',String(current));value.setAttribute('aria-valuemin',String(observing?Math.min(min,current):min));value.setAttribute('aria-valuemax',String(observing?Math.max(max,current):max));}
       else{value.removeAttribute('aria-valuenow');value.removeAttribute('aria-valuemin');value.removeAttribute('aria-valuemax');}
-      value.disabled=observing||!active;minus.disabled=observing||!active||current<=min;plus.disabled=observing||!active||current>=max;row.dataset.disabled=String(!active);
-      if(range){range.dataset.unavailable=String(observing&&!inRange);range.value=String(inRange?current:min);range.title=description;if(description)range.setAttribute('aria-description',description);else range.removeAttribute('aria-description');if(rangeStep==='any'){if(finite)range.setAttribute('aria-valuenow',String(current));else range.removeAttribute('aria-valuenow');}range.disabled=observing||!active;}
+      value.disabled=locked()||!active||!finite;minus.disabled=locked()||!active||!finite||current<=min;plus.disabled=locked()||!active||!finite||current>=max;row.dataset.disabled=String(!active);
+      if(range){range.dataset.unavailable=String(observing&&!inRange);range.value=String(inRange?current:min);range.title=description;if(description)range.setAttribute('aria-description',description);else range.removeAttribute('aria-description');if(rangeStep==='any'){if(finite)range.setAttribute('aria-valuenow',String(current));else range.removeAttribute('aria-valuenow');}range.disabled=locked()||!active;}
     });
   }
 
@@ -177,7 +189,7 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
         cutoff:observation.filter.cutoff,resonance:observation.filter.resonance,volume:observation.filter.volume},
       modulation:{sync:observation.sync,ring:observation.ring,ratio:observation.source.ratio},
     }:preset;
-    root.dataset.observing=String(observing);root.dataset.observationVoice=observing&&observation?String(observation.voice):'';
+    root.dataset.observing=String(observing);root.dataset.liveEditable=String(observing&&editable&&!locked());root.dataset.observationVoice=observing&&observation?String(observation.voice):'';
     root.dataset.observationWaveformMask=observing&&observation?String(observation.waveformMask):'';
     for(const update of controls)update();
     const outputs=[[1,'LP'],[2,'BP'],[4,'HP']].filter(([bit])=>filterModeBits(display.filter.mode)&bit).map(([,label])=>label).join(' + ');
@@ -204,7 +216,7 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   render();
   return {
     update(value){if(disposed)return;preset=readPreset(value);render();},
-    observe(value,{active=value!==null}={}){if(disposed)return;if(value!==null)observation=value;observing=Boolean(active);if(!observing)observation=null;render();},
+    observe(value,{active=value!==null,editable:canEdit=false}={}){if(disposed)return;editable=Boolean(canEdit);if(value!==null)observation=value;observing=Boolean(active);if(!observing)observation=null;render();},
     getPreset:()=>readPreset(preset),
     dispose(){if(disposed)return;disposed=true;for(const cleanup of cleanups)cleanup();},
   };

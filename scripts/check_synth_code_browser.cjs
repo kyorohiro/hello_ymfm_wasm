@@ -7,14 +7,18 @@ const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{t
 const {chromium,webkit}=require('playwright');
 const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth/index.html',engines:'chromium,webkit',checks:'all',out:path.join(tmpdir(),'fm2612-synth-code-browser.json'),screenshots:path.join(tmpdir(),'fm2612-synth-code-browser')};
 for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|checks|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown argument '+arg);config[m[1]]=m[2];}config.root=path.resolve(config.root);
-assert(['all','stop','baseline-stop','mixer','pcm-notes','live-presets'].includes(config.checks));
+assert(['all','stop','baseline-stop','mixer','pcm-notes','live-presets','keyboard'].includes(config.checks));
 assert(config.entry.startsWith('/'));assert(config.engines.split(',').every(name=>['chromium','webkit'].includes(name)));
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),hash=b=>createHash('sha256').update(b).digest('hex');
 async function bounded(task,label,ms=30000){let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Timeout '+label)),ms);})]);}finally{clearTimeout(timer);}}
 const evaluate=(page,fn,arg)=>bounded(page.evaluate(fn,arg),'page evaluation');
 async function until(test,label,ms=20000){const end=Date.now()+ms;while(Date.now()<end){if(await test())return;await pause(40);}throw Error(label);}
 function installAudit(){
-  const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,meters=[],commands=[];
+  const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,meters=[],commands=[],contexts=[],worklets=[];
+  const Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode;
+  window.AudioContext=class extends Context{constructor(...args){super(...args);contexts.push(this);}};
+  if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext;
+  window.AudioWorkletNode=class extends Worklet{constructor(context,name,...args){super(context,name,...args);worklets.push({node:this,name});}};
   let capture=null,captureSerial=0;
   AudioNode.prototype.connect=function(destination,...args){
     if(destination!==this.context.destination)return connect.call(this,destination,...args);
@@ -71,6 +75,7 @@ function installAudit(){
   window.__synthCodeAudit={beginCapture,markStop(){assertCapture(capture,'No capture');capture.mark=Math.round(capture.source.context.currentTime*capture.source.context.sampleRate);},finishCapture,
     read(){const rows=meters.map(({left,right,mute})=>({left:channel(left),right:channel(right),muted:mute.gain.value===0}));
       return rows.sort((a,b)=>(b.left.rms+b.right.rms)-(a.left.rms+a.right.rms))[0]??null;},
+    graph(){return {contexts:contexts.length,openContexts:contexts.filter(context=>context.state!=='closed').length,worklets:worklets.map(item=>item.name),destinations:meters.length};},
     drain(){return commands.splice(0);},muted:()=>meters.every(m=>m.mute.gain.value===0),meterCount:()=>meters.length};
 }
 const served=new Map(),missing=[],external=[],expectedCdn=[];
@@ -358,8 +363,111 @@ liveLoop('preset-melody',async()=>{const p=__livePreset;p.ticks++;prepared.visit
   await stop(page);result.steps.push('FM / PSG / PCM Files presets and the FM preset dropdown preserve Run, context, livePrepare and software FX; explicit Stop still silences output');
   assert(await evaluate(page,()=>__synthCodeAudit.muted()));return result;
 }
+function keyboardSource(kind,{held=false}={}) {
+  const chip={fm:'ym2612',psg:'segapsg',pcm:'rf5c164'}[kind];
+  // A PSG level is also its gate. Keep its parameter-only loop on a muted
+  // tone's period instead of accidentally starting a fourth test melody.
+  const parameter={fm:'sound.write(0,0x4c,16+(prepared.ticks%2));',psg:'sound.setFrequency(2,500+prepared.ticks%7);',pcm:'sound.setChannel(0,{volume:64+(prepared.ticks%2)});'}[kind];
+  return `const sound=await useSoundChip('${chip}');
+context.boots=(context.boots??0)+1;
+const prepared=await livePrepare('keyboard-proof',()=>({ticks:0}));
+globalThis.__keyboardProbe={context,prepared,sound,on:(channel,note)=>sound.noteOn(channel,note),off:channel=>sound.noteOff(channel)};
+liveFx('keyboard-level',{context:{gain:.5},process(input,output,state,context){for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.gain;}});
+${held?"sound.noteOn(0,'A4');":''}
+liveLoop('parameters',async()=>{prepared.ticks++;${parameter}await sleep(.07);});
+`;
+}
+async function keyboardChecks(page,name) {
+  const result={browser:name,steps:[],chips:[]};
+  const running=async()=>{
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/,'Tabs and keyboard keep Code running');
+    assert.equal(await page.locator('#synthCodeError').textContent(),'');
+    assert(await evaluate(page,()=>__keyboardProbe===__keyboardIdentity&&__keyboardProbe.context.boots===1),'One Run, context, prepared value and chip facade survive');
+  };
+  const keyboard=async()=>{
+    await page.locator('#synthInputKeyboardTab').click();
+    await until(()=>page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(value=>value==='true'),'Keyboard view flushes without stopping');
+    assert(await page.locator('#synthCodeStopButton').isVisible(),'The shared Code Stop is reachable from Keyboard');
+    await page.locator('#synthInputKeyboardTab').focus();
+  };
+  const press=async()=>{
+    await page.keyboard.down('a');
+    await until(()=>page.locator('#keyboard .key[data-key="a"]').getAttribute('class').then(value=>value.includes('is-active')),'A genuine keyboard press owns a note');
+    const status=await page.locator('#status').textContent(),match=/channel (\d+)/i.exec(status);
+    assert(match,'Keyboard reports its physical channel: '+status);
+    return Number(match[1])-1;
+  };
+  const sameFrequency=(a,b,label)=>assert(Math.abs(a.left.frequency-b.left.frequency)<Math.max(3,a.left.frequency*.025),label+': '+JSON.stringify({before:a,after:b}));
+  const begin=async(kind,held=false)=>{
+    await code(page,keyboardSource(kind,{held}));await execute(page);
+    await until(()=>evaluate(page,()=>__keyboardProbe.prepared.ticks>=2),'Parameter loop starts');
+    await evaluate(page,()=>{window.__keyboardIdentity=__keyboardProbe;__synthCodeAudit.drain();});
+    await keyboard();await running();
+    return evaluate(page,()=>__synthCodeAudit.graph());
+  };
+  await range(page,'#masterVolumeRange',100);
+  for(const kind of ['fm','psg','pcm']) {
+    await chip(page,kind);
+    if(kind==='fm'){await page.locator('#presetSelect').selectOption('sine');await ready(page);}
+    if(kind==='psg'){
+      if(await page.locator('#synthPsgEnvelopeEnabled').getAttribute('aria-pressed')==='true')await page.locator('#synthPsgEnvelopeEnabled').click();
+      await field(page,'synthPsgAttenuation',6);
+    }
+    if(kind==='pcm'){
+      await page.locator('[data-pcm-builtin="sine"]').click();await ready(page);
+      for(const[id,value]of [['synthPcmVolume',64],['synthPcmPanLeft',15],['synthPcmPanRight',15],['synthPcmRootNote',60]])await field(page,id,value);
+    }
+    const row={chip:kind},graph=await begin(kind);
+    assert.equal(graph.contexts,1,'All Code chips and Keyboard borrow one AudioContext');
+    await silence(page);
+    const before=await evaluate(page,()=>__keyboardProbe.prepared.ticks),channel=await press();
+    assert.equal(channel,0,'A fresh performance starts its keyboard allocator at physical CH1');
+    row.keyboard=await sounding(page);
+    await until(()=>evaluate(page,before=>__keyboardProbe.prepared.ticks>=before+3,before),'Code parameter loop advances while Keyboard holds a note');
+    await range(page,'#pitchBendWheel',1000);row.bent=await sounding(page);
+    assert(Math.abs(row.bent.left.frequency/row.keyboard.left.frequency-2**(2/12))<.035,'Keyboard Pitch remains usable alongside Code '+kind+': '+JSON.stringify(row));
+    await range(page,'#pitchBendWheel',0);sameFrequency(row.keyboard,await sounding(page),'Keyboard Pitch returns without restarting Code');
+    await page.keyboard.up('a');await silence(page);await running();
+    const commands=await evaluate(page,()=>__synthCodeAudit.drain());
+    assert(!commands.some(item=>item.op==='live-fx'&&item.action==='dispose'),'Keyboard never disposes liveFx');
+    assert(kind==='fm'?commands.some(item=>item.type==='write'&&item.register===0x4c):kind==='psg'?commands.some(item=>item.method==='write'&&(item.args?.[0]&0xf0)===0xc0):commands.some(item=>item.method==='writeRegister'&&item.args?.[0]===0&&[64,65].includes(item.args?.[1])),'The Code loop sends real non-gate hardware parameters '+kind);
+    await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});await running();
+    await keyboard();await running();
+    assert.deepEqual(await evaluate(page,()=>__synthCodeAudit.graph()),graph,'Code / Keyboard round trips do not create another graph or context');
+    await stop(page);
+
+    // Code owns CH1 first. Keyboard takes that very channel, then an old
+    // Code Note Off must not release the newer physical keyboard note.
+    await begin(kind,true);row.codeFirst=await sounding(page);
+    assert.equal(await press(),0);row.keyboardTakeover=await sounding(page);
+    assert(Math.abs(row.codeFirst.left.frequency-row.keyboardTakeover.left.frequency)>20,'The keyboard actually replaces the Code pitch on the same channel');
+    await evaluate(page,()=>__keyboardProbe.off(0));row.afterOldCodeOff=await sounding(page);
+    sameFrequency(row.keyboardTakeover,row.afterOldCodeOff,'Old Code Off cannot release or retune a Keyboard owner');
+    await page.keyboard.up('a');await silence(page);await running();await stop(page);
+
+    // The reverse direction: Code's new key owns the physical gate. A late
+    // key-up, Pitch reset and window blur may clean only keyboard-owned gates.
+    await begin(kind);assert.equal(await press(),0);await sounding(page);
+    await evaluate(page,()=>__keyboardProbe.on(0,'G4'));row.codeTakeover=await sounding(page);
+    assert(Math.abs(row.codeTakeover.left.frequency-391.9954)<12,'Code really retakes the selected physical voice '+kind);
+    await page.keyboard.up('a');row.afterOldKeyUp=await sounding(page);sameFrequency(row.codeTakeover,row.afterOldKeyUp,'Old key-up cannot release a newer Code gate');
+    row.blurKeyboardChannel=await press();
+    assert.notEqual(row.blurKeyboardChannel,0,'Blur also has a separate real keyboard-owned gate to clean');
+    await sounding(page);
+    await range(page,'#pitchBendWheel',1000);await range(page,'#pitchBendWheel',0);
+    await evaluate(page,()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('a');row.afterBlur=await sounding(page);
+    sameFrequency(row.codeTakeover,row.afterBlur,'Keyboard Pitch and blur cleanup do not affect a Code-owned note');
+    await running();await stop(page);row.stopped=true;
+    assert.equal(await evaluate(page,()=>{try{__keyboardProbe.on(0,'A4');return 'accepted';}catch(error){return error.name;}}),'AbortError','Stopped Code handles cannot resurrect a note');
+    await silence(page);result.chips.push(row);console.log('PASS '+name+' keyboard '+kind+': parameter loop, both gate-owner directions, Pitch / blur and shared Stop');
+  }
+  result.steps.push('FM / PSG / RF5C164 parameter loops and liveFx continue through Keyboard melody, Pitch and Code / Keyboard tab changes with one context and unchanged prepared state');
+  result.steps.push('Both same-channel takeover directions honor the newest gate; old Code Off, key-up and blur cannot silence another owner; Keyboard-side Stop ends Run and real PCM');
+  assert(await evaluate(page,()=>__synthCodeAudit.muted()));return result;
+}
 async function run(browser,name,origin){const {page,errors}=await open(browser,origin),steps=[],result={browser:name,steps};
   try{
+    if(config.checks==='keyboard'){const checked=await keyboardChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks==='live-presets'){const checked=await livePresetChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks==='mixer'){const checked=await mixerChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks==='pcm-notes'){const checked=await pcmNoteChecks(page,name);assert.deepEqual(errors,[]);return checked;}
@@ -437,13 +545,13 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     assert.equal(await evaluate(page,()=>{try{__oldCodeHandle();return 'accepted';}catch(error){return error.name;}}),'AbortError');await silence(page);
     await code(page,`const fm=await useSoundChip('ym2612');fm.noteOn(0,4,644);await new Promise(resolve=>{globalThis.__finishCode=resolve;});fm.noteOn(0,4,700);`);await page.locator('#synthCodeRunButton').click();await until(()=>evaluate(page,()=>typeof __finishCode==='function'),'Pending Code promise');await sounding(page);await stop(page);await evaluate(page,()=>__finishCode());await pause(200);await silence(page);assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);
     await code(page,KEEP_FM);await execute(page);await sounding(page);assert(await page.locator('#eventRecordStartButton').isDisabled(),'Event recording disabled while Code owns chips');assert(await page.locator('#looperStartButton').isDisabled(),'Looper disabled while Code owns chips');
-    await page.locator('#synthCodeExpandButton').click();await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(v=>v==='true'),'Keyboard tab');await silence(page);
+    await page.locator('#synthCodeExpandButton').click();await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(v=>v==='true'),'Keyboard tab');await sounding(page);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/,'Keyboard is another view of the running performance');
     assert(await page.locator('.synth-editor').isVisible());assert(await page.locator('#synthExpandedCodeSlot').isHidden(),'Keyboard restores the original layout');
     const keyboardKey=page.locator('#keyboard .key[data-key="a"]');await keyboardKey.scrollIntoViewIfNeeded();const keyBox=await keyboardKey.boundingBox();
-    await page.mouse.move(keyBox.x+keyBox.width/2,keyBox.y+keyBox.height*.8);await page.mouse.down();await sounding(page);await page.mouse.up();await silence(page);
+    await page.mouse.move(keyBox.x+keyBox.width/2,keyBox.y+keyBox.height*.8);await page.mouse.down();await sounding(page);await page.mouse.up();await sounding(page);await stop(page);
     await code(page,KEEP_FM);await execute(page);await sounding(page);
     await page.locator('#tfiFile').setInputFiles({name:'Authored Code reference.vgm',mimeType:'application/octet-stream',buffer:authoredVgm()});await ready(page);await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'VGM starts');assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');await silence(page);
-    steps.push('Stopped handles and delayed promises cannot restart audio; Keyboard / VGM take ownership and recording cannot collide with Code');
+    steps.push('Stopped handles and delayed promises cannot restart audio; Keyboard shares the running Code session; VGM still takes ownership and recording cannot collide with Code');
 
     await page.locator('#tfiFile').setInputFiles({name:'notes.js',mimeType:'text/javascript',buffer:Buffer.from(`export const pitch='D4';\n`)});await ready(page);await choose(page,'/index.js');
     const moduleSource=`const {pitch}=await import('./notes.js');const text=await file('./notes.js');log('module-note',pitch,text.includes('D4'));const fm=await useSoundChip('ym2612');fm.noteOn(0,pitch);liveLoop('module',async()=>{await sleep(1);});`;
@@ -457,6 +565,7 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     await page.locator('#synthFileRenameButton').click();await page.locator('#synthFileNameInput').fill('main.js');await page.locator('[data-file-name-confirm]').click();await ready(page);assert.equal(await page.locator('#synthActiveFilePath').textContent(),'/main.js');assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'));
     steps.push('Files JS import / selection, dynamic modules / file(), Cmd/Ctrl+S, local draft recovery, Cassette round trip and code rename preserve independent text and tone state');
     result.livePresets=await livePresetChecks(page,name);
+    result.keyboard=await keyboardChecks(page,name);
     await fs.mkdir(config.screenshots,{recursive:true});
     for(const width of [1240,390]){await page.setViewportSize({width,height:1100});await page.locator('#synthInputCodeTab').scrollIntoViewIfNeeded();await pause(120);assert(await evaluate(page,()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow '+width);await page.screenshot({path:path.join(config.screenshots,`${name}-synth-code-${width}.png`)});}
     assert(await evaluate(page,()=>__synthCodeAudit.muted()));assert.deepEqual(errors,[]);result.expectedCdnFallback=true;return result;
@@ -473,5 +582,5 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin=`http://127.0.0.1:${server.address().port}`,results=[];
   try{for(const name of config.engines.split(',')){const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);try{results.push(await run(browser,name,origin));console.log('PASS '+name+': Synth Code, actual muted PCM, shared UI chips, FX, files and lifecycle');}finally{await browser.close();}}}
   finally{server.closeIdleConnections?.();server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}
-  assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert(expectedCdn.length>0,'Monaco CDN fallback exercised');await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.writeFile(config.out,JSON.stringify({passed:true,physicalOutputMuted:true,listeningPerformed:false,results,expectedBlockedMonacoCdn:expectedCdn,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))},null,2)+'\n');console.log('PASS receipt '+config.out);
-})().catch(error=>{console.error(error);process.exitCode=1;});
+  assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert(expectedCdn.length>0,'Monaco CDN fallback exercised');await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.writeFile(config.out,JSON.stringify({passed:true,root:config.root,entry:config.entry,checks:config.checks,checkerSha256:hash(await fs.readFile(__filename)),physicalOutputMuted:true,listeningPerformed:false,results,expectedBlockedMonacoCdn:expectedCdn,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))},null,2)+'\n');console.log('PASS receipt '+config.out);
+})().catch(async error=>{console.error(error);process.exitCode=1;await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.writeFile(config.out,JSON.stringify({passed:false,root:config.root,entry:config.entry,checks:config.checks,checkerSha256:hash(await fs.readFile(__filename)),physicalOutputMuted:true,listeningPerformed:false,error:error.stack??String(error),assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b)))},null,2)+'\n');});

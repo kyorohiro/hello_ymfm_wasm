@@ -178,8 +178,8 @@ async function check(browser,name,origin,loadCassette){
     measurements.fourChannels=await pcm(page);
     const graph=await page.evaluate(()=>__dmgCodeAudit.graph());assert.equal(graph.contexts,1);assert.equal(graph.editorWorklets,1);assert.equal(graph.destinationConnections,1);assert(graph.muted);
 
-    step('Live uses the same read-only controls for all four sent / configured channel views');
-    await until(()=>page.locator('#voiceEditor').getAttribute('data-readonly').then(value=>value==='true'),'Live readonly');
+    step('Live uses editable controls for each physical channel without applying untouched fields');
+    await until(()=>page.locator('#voiceEditor').getAttribute('data-readonly').then(value=>value==='false'),'Live editable');
     const startCommands=await page.evaluate(()=>__dmgCodeAudit.drain());
     assert.equal(await page.locator('#instrumentName').evaluate(input=>input.readOnly),true);
     await page.locator('#instrumentName').focus();await page.keyboard.press('Enter');
@@ -188,7 +188,8 @@ async function check(browser,name,origin,loadCassette){
     for(const [channel,kind]of [[0,'Pulse'],[1,'Pulse'],[2,'Wave'],[3,'Noise']]){
       await page.locator('#dmgLiveChannel').selectOption(String(channel));
       await until(()=>page.locator('#dmgLiveReadout').textContent().then(value=>value.includes(`CH ${channel+1} · ${kind}`)),'Live '+kind);
-      assert.equal(await page.locator('#voiceEditor').evaluate(node=>node.inert),true);
+      assert.equal(await page.locator('#voiceEditor').evaluate(node=>node.inert),false);
+      assert(await page.locator('[data-choice-for="source"][data-choice-value="pulse"]').isDisabled(),'Physical source is chosen by CH');
       if(channel===2){await fs.mkdir(config.screenshots,{recursive:true});await page.locator('#dmgCodeLiveTools').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(config.screenshots,name+'-live-ch3.png')});}
     }
     const afterViews=await page.evaluate(()=>__dmgCodeAudit.drain());
@@ -252,6 +253,61 @@ await sleep(.12);if(source==='noise')await gb.noise.keyOff();else if(source==='w
     assert(!liveCommands.some(command=>['stop','beginCode','loadPreset','setPreset'].includes(command.method)),'Preset selection must not replace Code ownership');
     await stop(page);assert.equal((await read(page)).preset.source,'noise');assert.equal(await read(page,'observeCode'),null);
     measurements.livePresets=presetSignals;
+
+    step('Code melody survives direct edits to CH2 Duty, Envelope and pan, CH3 Wave RAM and CH4 Noise clock');
+    await selectFile(page,'/Live pulse.dmg.json');
+    await source(page,`const gb=await useSoundChip('gameboy');
+await gb.pulse.setVoice(0,{duty:.25,volume:5,envelope:{direction:'down',period:0}});
+await gb.pulse.setVoice(1,{duty:.5,volume:6,envelope:{direction:'down',period:0}});
+await gb.pulse.noteOn(1,'A3');await gb.setPan(0,true,true);await gb.setPan(1,true,true);
+context.boots=(context.boots??0)+1;const prepared=await livePrepare('direct-edit',()=>({ticks:0}));
+globalThis.__dmgEditProbe={gb,context,prepared};
+liveFx('edit-level',{context:{gain:.5},process(input,output,state,context){for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.gain;}});
+liveLoop('melody',async()=>{prepared.ticks++;await gb.pulse.noteOn(0,prepared.ticks%2?'C4':'E4');await sleep(.12);await gb.pulse.keyOff(0);await sleep(.03);});`);
+    await execute(page);await pcm(page);await page.locator('#dmgLiveChannel').selectOption('1');
+    await until(()=>page.locator('#pulseVolume').textContent().then(value=>value==='6'),'CH2 volume view');
+    const beforeEdit=await read(page,'observeCode');await page.evaluate(()=>{window.__dmgEditIdentity=__dmgEditProbe;__dmgCodeAudit.drain();});
+    await page.locator('[data-choice-for="pulseDuty"][data-choice-value="0.75"]').click();
+    await page.locator('[data-stepper-for="pulseVolume"][data-stepper-delta="1"]').click();
+    await page.locator('#panLeft').uncheck();
+    await until(async()=>{const value=await read(page,'observeCode');return value.voice[6]>>6===3&&value.voice[7]>>4===7&&!(value.registers[21]&32);},'direct CH2 edits');
+    const afterEdit=await read(page,'observeCode');assert.equal(afterEdit.voice[1],beforeEdit.voice[1]);assert.equal(afterEdit.voice[2],beforeEdit.voice[2]);
+    assert.deepEqual(afterEdit.registers.slice(8,10),beforeEdit.registers.slice(8,10),'CH2 keeps its held pitch');assert.equal(afterEdit.registers[21]&16,beforeEdit.registers[21]&16,'CH1 pan is kept');
+    assert(await page.locator('#sweepEnabled').isDisabled(),'CH2 cannot acquire CH1 Sweep');
+    await page.locator('#dmgLiveChannel').selectOption('2');await until(()=>page.locator('#waveCanvas').isVisible(),'CH3 editor');
+    await page.locator('[data-wave-shape="triangle"]').click();
+    await until(async()=>{const value=await read(page);return value.preset.wave.samples[0]===0&&value.preset.wave.samples[16]===15;},'CH3 wave applied');
+    await page.locator('#dmgLiveChannel').selectOption('3');await until(()=>page.locator('#noiseShift').isVisible(),'CH4 editor');
+    const noiseShift=Number(await page.locator('#noiseShift').textContent());await page.locator('[data-stepper-for="noiseShift"][data-stepper-delta="1"]').click();
+    await until(async()=>((await read(page,'observeCode')).voice[18]>>4)===noiseShift+1,'CH4 Noise clock applied');
+    await until(()=>page.evaluate(()=>__dmgEditProbe.prepared.ticks>2),'Code melody continues after edits');
+    assert(await page.evaluate(()=>__dmgEditProbe===__dmgEditIdentity&&__dmgEditProbe.context.boots===1&&__dmgEditProbe.gb.isCurrent()));
+    const editCommands=await page.evaluate(()=>__dmgCodeAudit.drain());assert(editCommands.filter(item=>item.method==='applyCodeEdit').length>=5);
+    assert(!editCommands.some(item=>['stop','beginCode','loadPreset','setPreset'].includes(item.method)));
+    measurements.directEdits={before:beforeEdit.voice.slice(0,10),after:afterEdit.voice.slice(0,10),signal:await pcm(page)};
+    await stop(page);const editedAuthor=await read(page);assert.equal(editedAuthor.preset.pulse.duty,.75);assert.equal(editedAuthor.preset.pulse.volume,7);assert.equal(editedAuthor.preset.noise.shift,noiseShift+1);
+
+    step('Keyboard and Code are views: parameter-only Code keeps running while real keys own and release notes');
+    await source(page,`const gb=await useSoundChip('gameboy');await gb.pulse.setVoice(0,{volume:7,envelope:{direction:'down',period:0}});await gb.setPan(0,true,true);
+const prepared=await livePrepare('keyboard-motion',()=>({ticks:0}));context.boots=(context.boots??0)+1;
+globalThis.__dmgParamProbe={gb,prepared,context};
+liveLoop('motion',async()=>{prepared.ticks++;await gb.pulse.setDuty(0,prepared.ticks%2?.25:.5);await sleep(.04);});`);
+    await execute(page);await pcm(page,false);await page.locator('#dmgLiveChannel').selectOption('0');
+    const tabBefore=await read(page,'observeCode'),ticks=await page.evaluate(()=>__dmgParamProbe.prepared.ticks);
+    await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='keyboard'),'Keyboard view');assert(await page.locator('#synthCodeStopButton').isVisible());
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    await page.keyboard.down('z');await pcm(page);await until(async()=>(await read(page)).voices.length===1,'Keyboard borrows Code-owned APU');
+    const heldId=(await read(page)).voices[0].id;await wait(150);assert.equal((await read(page)).voices[0].id,heldId,'Parameter automation does not steal the keyboard gate');
+    assert(await page.evaluate(before=>__dmgParamProbe.prepared.ticks>before,ticks));
+    assert((await read(page,'observeCode')).positionFrames>tabBefore.positionFrames);
+    await page.locator('#synthInputCodeTab').click();await pcm(page);await page.keyboard.up('z');await pcm(page,false);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='keyboard'),'Keyboard view again');await page.keyboard.down('z');await pcm(page);
+    await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await pcm(page,false);await page.keyboard.up('z');
+    assert(await read(page,'observeCode'),'Blur releases only Keyboard notes');
+    await stop(page);assert.equal(await read(page,'observeCode'),null);
+    await page.keyboard.down('z');await pcm(page);await page.keyboard.up('z');await pcm(page,false);
+    assert.equal(await read(page,'observeCode'),null,'Keyboard resumes after the shared Code Stop');
 
     step('Software Stop fades the real output to silence and reaches the physical restore fence');
     await source(page,FADE);await execute(page);await pcm(page);await wait(130);

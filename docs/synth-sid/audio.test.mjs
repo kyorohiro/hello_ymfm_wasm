@@ -127,7 +127,7 @@ test('Code observation RPC stays passive and does not acquire or invalidate a ph
 
 test('channel settings use the paired processor revision and preserve FIFO request data',async()=>{
   const f=fixture(),audio=await f.create(),setup={format:'tetorica-sid-channels',version:1,target:2,channels:[1,2,3]};
-  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1'));
+  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1'));
   const begin=f.messages.length;
   const replies=await Promise.all([audio.command('loadChannelSettings',[setup]),audio.command('setChannelSettings',[setup]),audio.read()]);
   assert.deepEqual(f.messages.slice(begin).map(value=>value.method),['loadChannelSettings','setChannelSettings','read']);
@@ -221,4 +221,19 @@ test('sound-edit intent guards fence Stop/new Run and an old preset ACK cannot u
   f.node.port.onmessage({data:{id:old.id,value:{model:'8580'}}});await pending;
   assert.equal(fresh.model,'6581','the late reply belongs to the retired request owner');
   await fresh.noteOn(0,'C4');await audio.dispose();
+});
+
+test('Code Live patch and keyboard release retain the same client, with Stop fencing a delayed patch ACK',async()=>{
+  const f=fixture(),audio=await f.create(),sid=await audio.getSidClient();
+  await audio.command('releaseKeyboard');await sid.noteOn(1,'A3');
+  await audio.editCodeVoice(1,{voice:{attack:7}});
+  const edit=f.messages.find(message=>message.method==='editCodeVoice');
+  assert.deepEqual(JSON.parse(JSON.stringify(edit.args)),[1,1,{voice:{attack:7}}]);
+  assert.equal(await audio.getSidClient(),sid);
+  f.mode('drop');const pending=audio.editCodeVoice(1,{filter:{cutoff:987}});await flush();
+  const old=f.messages.at(-1),rejected=assert.rejects(pending,{name:'AbortError'});
+  f.mode('reply');await audio.command('stop');const fresh=await audio.getSidClient();
+  f.node.port.onmessage({data:{id:old.id,value:{}}});await rejected;await fresh.keyOn(0);
+  await assert.rejects(audio.editCodeVoice(0,{voice:{attack:1}},{isCurrent:()=>false}),{name:'AbortError'});
+  await audio.dispose();
 });

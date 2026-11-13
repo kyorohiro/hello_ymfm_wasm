@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createGameboyCodeClient,gameboyCodeCancelled} from './code_endpoint.js';
 import {createDefaultPreset,readPreset} from './preset.js';
+import {readGameboyCodeEdit} from './code_parameter_edit.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -54,7 +55,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
   }
   const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   const realm = {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled, readPreset,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController, DOMException, createGameboyCodeClient, gameboyCodeCancelled, readPreset, readGameboyCodeEdit,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
@@ -221,4 +222,17 @@ test('Stop or a newer lease invalidates pending preset dispatch/ACK without touc
   const f=fixture(),audio=await f.create(),client=await audio.getGameboyClient(),preset=createDefaultPreset();
   f.mode('hold');const old=audio.applyCodePreset(preset);await Promise.resolve();await Promise.resolve();assert(f.messages.some(message=>message.method==='applyCodePreset'));
   f.mode('reply');await audio.command('stop');const next=await audio.getGameboyClient();f.release();await assert.rejects(old,{name:'AbortError'});assert(!client.isCurrent());assert(next.isCurrent());await next.pulse.noteOn(0,'C4');await audio.dispose();
+});
+
+test('channel-edit and keyboard-only RPCs keep the same cached Code client; stale edit ACK cannot affect a newer lease',async()=>{
+  const f=fixture(),audio=await f.create(),client=await audio.getGameboyClient();
+  const edit={channel:1,changes:{'pulse.duty':.25}};
+  await audio.applyCodeEdit(edit);let request=f.messages.find(message=>message.method==='applyCodeEdit');assert.deepEqual(Array.from(request.args),[1,edit]);
+  await audio.command('noteOn',['keyboard',60,{channel:1}]);await audio.command('setPitch',[1]);await audio.command('releaseKeyboard');
+  assert(client.isCurrent());assert.equal(await audio.getGameboyClient(),client);await client.pulse.setDuty(0,.75);
+  const count=f.messages.length;await assert.rejects(audio.applyCodeEdit({channel:1,changes:{'pulse.sweep.period':3}}));
+  await assert.rejects(audio.applyCodeEdit(edit,{isCurrent:()=>false}),{name:'AbortError'});assert.equal(f.messages.length,count);
+  f.mode('hold');const pending=audio.applyCodeEdit(edit);await Promise.resolve();await Promise.resolve();
+  f.mode('reply');await audio.command('stop');const fresh=await audio.getGameboyClient();f.release();await assert.rejects(pending,{name:'AbortError'});
+  assert(fresh.isCurrent());await fresh.wave.keyOn();await audio.dispose();
 });

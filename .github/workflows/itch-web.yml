@@ -103,6 +103,10 @@ jobs:
             --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html --checks=live-presets \
             --out="$RUNNER_TEMP/itch-web/synth-live-presets.json" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-live-presets.log"
+          node scripts/check_synth_code_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html --checks=keyboard \
+            --out="$RUNNER_TEMP/itch-web/synth-code-keyboard.json" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-code-keyboard.log"
       - name: Test the packaged Playground in Chromium and WebKit
         run: |
           node scripts/check_itch_playground_bundle_browser.cjs \

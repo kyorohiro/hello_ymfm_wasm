@@ -6,12 +6,13 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=r
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
 const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth-sid/index.html',engines:'chromium,webkit',
-  out:path.join(tmpdir(),'sid-synth-code-browser.json'),screenshots:path.join(tmpdir(),'sid-synth-code-browser')};
+  checks:'baseline',out:path.join(tmpdir(),'sid-synth-code-browser.json'),screenshots:path.join(tmpdir(),'sid-synth-code-browser')};
 for(const arg of process.argv.slice(2)){
-  const match=/^--(root|entry|engines|out|screenshots)=(.+)$/.exec(arg);assert(match,'Unknown argument '+arg);config[match[1]]=match[2];
+  const match=/^--(root|entry|engines|out|screenshots|checks)=(.+)$/.exec(arg);assert(match,'Unknown argument '+arg);config[match[1]]=match[2];
 }
 config.root=path.resolve(config.root);assert(config.entry.startsWith('/')&&!/[?#]/.test(config.entry));
 const engines=config.engines.split(',');assert(engines.length&&engines.every(name=>['chromium','webkit'].includes(name)));
+assert(['baseline','keyboard','all'].includes(config.checks),'Unknown check group');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const served=new Map(),missing=[],external=[],blockedMonaco=[],httpErrors=[],results=[];
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm':'application/wasm','.json':'application/json',
@@ -43,13 +44,13 @@ function installSilentAudit(){
     const active=meters.filter(item=>item.source.context.state==='running').map(item=>sample(item)).sort((a,b)=>b.rms-a.rms);
     return{...(active[0]??{rms:0,peak:0,finite:true}),muted:muted()};
   };
-  async function read(){
+  async function read(method='read'){
     const node=nodes.findLast(item=>item.name==='tetorica-sid-synth')?.node;if(!node)throw Error('SID editor Worklet missing');
     const id=--sequence;
     return new Promise((resolve,reject)=>{
       const timeout=setTimeout(()=>{node.port.removeEventListener('message',receive);reject(Error('SID audit read timed out'));},5000);
       function receive({data}){if(data?.id!==id)return;clearTimeout(timeout);node.port.removeEventListener('message',receive);data.error?reject(Error(data.error)):resolve(data.value);}
-      node.port.addEventListener('message',receive);node.port.start();node.port.postMessage({id,method:'read',args:[]});
+      node.port.addEventListener('message',receive);node.port.start();node.port.postMessage({id,method,args:[]});
     });
   }
   async function beginCapture(){
@@ -83,7 +84,7 @@ function installSilentAudit(){
     return{frames:values.length,sampleRate:rate,beforePeak,beforeJump,maxJump,normalizedJump:maxJump/beforePeak,tailPeak,
       lastNonzeroAfterStopMs:lastNonzero===null?null:1000*(lastNonzero-item.mark)/rate,muted:muted()};
   }
-  window.__sidCodeAudit={read,output:readOutput,beginCapture,finishCapture,markStop(){if(!capture)throw Error('Capture missing');capture.mark=Math.round(capture.source.context.currentTime*capture.source.context.sampleRate);},
+  window.__sidCodeAudit={read,observe:()=>read('observeCode'),output:readOutput,beginCapture,finishCapture,markStop(){if(!capture)throw Error('Capture missing');capture.mark=Math.round(capture.source.context.currentTime*capture.source.context.sampleRate);},
     graph(){return{contexts:contexts.length,runningContexts:contexts.filter(item=>item.state==='running').length,editorWorklets:nodes.filter(item=>item.name==='tetorica-sid-synth').length,
       destinationConnections:meters.length,captureBranches:captureMutes.length,muted:muted()};},drain(){return commands.splice(0);}};
 }
@@ -174,7 +175,7 @@ log('files-ready',context.marker);`);
     assert.deepEqual(await savedSound(page),initialSound,'temporary voice/filter edits stay outside authoring JSON');
     await range(page,'masterVolume',1);const full=await output(page);await range(page,'masterVolume',.5);const half=await output(page);
     assert(Math.abs(half.rms/full.rms-.5)<.08,'Master applies once');await range(page,'masterVolume',1);
-    // Live uses the same controls read-only. Turn it off before deliberately
+    // Turn Code Live off before deliberately
     // editing the authored sound, keeping the running Code session unchanged.
     if(await page.locator('#sidLiveEnabled').isChecked())await page.locator('#sidLiveEnabled').uncheck();
     await until(()=>page.locator('#voiceEditor').getAttribute('data-observing').then(value=>value==='false'),'Code Live returns to authoring');
@@ -212,7 +213,8 @@ await new Promise(resolve=>globalThis.__sidLateRelease=resolve);try{await sid.no
       assert.match(await page.locator('#synthCodeState').textContent(),/Running/,'model changes keep the Code host');await stop(page);
       assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,1);
     }
-    await source(page,HOLD);await execute(page);await page.locator('#synthInputKeyboardTab').click();await silent(page);
+    await source(page,HOLD);await execute(page);await page.locator('#synthInputKeyboardTab').click();await sounding(page);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running/);assert(await page.locator('#synthCodeStopButton').isVisible());await stop(page);
     const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
     await page.keyboard.down(key);await stateIs(page,value=>value.voices.length>0,'keyboard after Code');await sounding(page);await page.keyboard.up(key);await page.locator('#stopAudio').click();await silent(page);
     await page.keyboard.down(key);await stateIs(page,value=>value.voices.length>0,'keyboard reopens output after header Stop');
@@ -260,6 +262,75 @@ await new Promise(resolve=>globalThis.__sidLateRelease=resolve);try{await sid.no
   }finally{await page.close();}
 }
 
+async function checkKeyboard(browser,name,origin){
+  const page=await browser.newPage({viewport:{width:1240,height:1050},serviceWorkers:'block'}),errors=[],checks=[];let stage='startup';
+  page.setDefaultTimeout(20000);page.on('pageerror',error=>errors.push(error.stack??error.message));
+  page.on('response',response=>{if(response.status()>=400)httpErrors.push({url:response.url(),status:response.status()});});
+  await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname==='cdnjs.cloudflare.com'){blockedMonaco.push(url.href);return route.abort();}
+    if(url.origin!==origin&&!['data:','blob:'].includes(url.protocol)){external.push(url.href);return route.abort();}return route.continue();});
+  await page.addInitScript(installSilentAudit);
+  const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name} keyboard: ${label}`);};
+  try{
+    await page.goto(origin+config.entry);assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,0);
+    step('melody, context and FX keep running across Keyboard / Code views');
+    await source(page,`const sid=await useSoundChip('sid');context.tick??=0;context.motion??=0;context.marker??={id:'same'};
+globalThis.__sidTogether={sid,context};
+await sid.setVoice(CH1,{waveform:'triangle',attack:0,decay:1,sustain:10,release:2});
+await sid.setVoice(CH2,{waveform:'pulse',pulseWidth:1200,attack:4,decay:8,sustain:10,release:3});
+await sid.setFilter({mode:'off',routing:0,volume:8});
+liveFx('half',{process(input,output){for(let c=0;c<output.length;c++)for(let i=0;i<output[c].length;i++)output[c][i]=(input[c]?.[i]??0)*.5;}});
+liveLoop('melody',async()=>{if(!context.hold){await sid.noteOn(CH1,'A3');await sleep(.12);await sid.noteOff(CH1);context.tick++;}await sleep(.08);});
+liveLoop('motion',async()=>{context.motion++;await sid.setFilter({cutoff:200+context.motion%500});await sleep(.04);});`);
+    await execute(page);await sounding(page);await until(()=>page.evaluate(()=>__sidTogether.context.tick>=2),'melody advances');
+    await page.locator('[data-sid-live-voice="1"]').click();
+    await page.locator('#synthInputKeyboardTab').click();assert(await page.locator('#synthCodeStopButton').isVisible());
+    const first=await page.evaluate(()=>({tick:__sidTogether.context.tick,motion:__sidTogether.context.motion,identity:__sidTogether.context.marker.id}));
+    await until(()=>page.evaluate(previous=>__sidTogether.context.tick>previous,first.tick),'melody continues behind Keyboard');
+    assert.match(await page.locator('#synthCodeState').textContent(),/Playing/);assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,1);
+
+    step('Code Live edits only touched fields on the selected physical CH and preserves ongoing loops');
+    await until(()=>page.locator('#voiceEditor').getAttribute('data-live-editable').then(value=>value==='true'),'Code Live editable');
+    const before=await snapshot(page),frameBefore=await page.evaluate(async()=> (await __sidCodeAudit.observe()).positionFrames);
+    const attack=Number(await page.locator('#attack').getAttribute('data-value'));assert.equal(attack,4);
+    await page.locator('[data-stepper-for="attack"][data-stepper-delta="1"]').click();
+    await stateIs(page,value=>value.registers[12]>>4===5,'selected CH2 Attack applied');
+    await range(page,'filterResonanceRange',11);const edited=await stateIs(page,value=>value.registers[23]>>4===11,'shared resonance applied');
+    assert.equal(edited.channelSettings.channels[1].voice.attack,5);assert.equal(edited.channelSettings.channels[0].voice.attack,before.channelSettings.channels[0].voice.attack);
+    assert.equal(edited.registers[12]&15,8);assert.equal(edited.channelSettings.channels[1].voice.waveform,before.channelSettings.channels[1].voice.waveform,'raw Pulse was not adopted by editing Attack');
+    assert.equal(edited.registers[9]|(edited.registers[10]&15)<<8,1200);
+    assert((await page.evaluate(async()=> (await __sidCodeAudit.observe()).positionFrames))>frameBefore);
+    await until(()=>page.evaluate(previous=>__sidTogether.context.motion>previous,first.motion),'parameter loop remains active');
+
+    step('Code parameter updates coexist with Keyboard and both stale Note Off directions are protected');
+    await page.evaluate(()=>{__sidTogether.context.hold=true;});await wait(250);
+    const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
+    await page.keyboard.down(key);let played=await stateIs(page,value=>value.voices.some(voice=>voice.channel===1)&&gate(value,1),'Keyboard targets Live CH2');
+    const keyboardFrequency=frequency(played,1);
+    await page.evaluate(async()=>{await __sidTogether.sid.setVoice(1,{pulseWidth:1700});await __sidTogether.sid.noteOff(1);});
+    played=await snapshot(page);assert(gate(played,1));assert.equal(frequency(played,1),keyboardFrequency);assert.equal(played.registers[9]|(played.registers[10]&15)<<8,1700);
+    await page.evaluate(()=>__sidTogether.sid.noteOn(1,'E4'));const codeFrequency=frequency(await snapshot(page),1);
+    await page.keyboard.up(key);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await wait(80);
+    played=await snapshot(page);assert(gate(played,1));assert.equal(frequency(played,1),codeFrequency,'old key-up and blur preserve Code owner');
+    await page.keyboard.down(key);await stateIs(page,value=>value.voices.some(voice=>voice.channel===1),'new Keyboard owner');
+    await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await stateIs(page,value=>!gate(value,1),'blur releases keyboard only');await page.keyboard.up(key);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Playing/);assert((await page.evaluate(()=>__sidTogether.context.motion))>first.motion);
+    await page.locator('#synthInputCodeTab').click();await page.locator('#synthInputKeyboardTab').click();
+    const graph=await page.evaluate(()=>__sidCodeAudit.graph());assert.equal(graph.contexts,1);assert.equal(graph.editorWorklets,1);assert(graph.muted);
+    await fs.mkdir(config.screenshots,{recursive:true});for(const width of [1240,390]){
+      await page.setViewportSize({width,height:1050});await wait(50);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      await page.screenshot({path:path.join(config.screenshots,`${name}-sid-keyboard-${width}.png`),fullPage:true});
+    }
+    step('explicit shared Stop retires Code and restores the latest edited author');
+    await stop(page);const restored=await snapshot(page);assert.equal(restored.channelSettings.channels[1].voice.attack,5);assert([0,1,2].every(ch=>!gate(restored,ch)));
+    assert.equal(await page.locator('#synthCodeError').textContent(),'');assert.deepEqual(errors,[]);
+    return{browser:name,group:'keyboard',passed:true,checks,graph,framesBefore:frameBefore,errors};
+  }catch(error){
+    await fs.mkdir(config.screenshots,{recursive:true});try{await page.screenshot({path:path.join(config.screenshots,`${name}-sid-keyboard-failure.png`),fullPage:true});}catch{}
+    let diagnostic=null;try{diagnostic={state:await snapshot(page),graph:await page.evaluate(()=>__sidCodeAudit.graph()),commands:await page.evaluate(()=>__sidCodeAudit.drain().slice(-30))};}catch{}
+    error.receipt={browser:name,group:'keyboard',passed:false,stage,error:error.stack??String(error),checks,diagnostic,errors};throw error;
+  }finally{await page.close();}
+}
+
 const server=http.createServer(async(req,res)=>{try{
   const pathname=new URL(req.url,'http://localhost').pathname;if(pathname==='/favicon.ico'){res.writeHead(204).end();return;}
   const filename=path.resolve(config.root,'.'+decodeURIComponent(pathname));assert(filename.startsWith(config.root+path.sep));
@@ -274,13 +345,16 @@ const server=http.createServer(async(req,res)=>{try{
   let failure=null;
   try{
     for(const name of engines){const browser=await({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})});
-      try{results.push(await check(browser,name,origin,loadPlaygroundCassette,createSidReferenceFixture('tone').bytes));}
+      try{
+        if(config.checks!=='keyboard')results.push(await check(browser,name,origin,loadPlaygroundCassette,createSidReferenceFixture('tone').bytes));
+        if(config.checks!=='baseline')results.push(await checkKeyboard(browser,name,origin));
+      }
       catch(error){results.push(error.receipt??{browser:name,passed:false,error:error.stack});throw error;}
       finally{await browser.close();}}
     assert.deepEqual(missing,[]);assert.deepEqual(external,[]);assert.deepEqual(httpErrors,[]);assert(blockedMonaco.length,'Monaco fallback was exercised');
   }catch(error){failure=error;}
   finally{server.closeIdleConnections?.();server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}
-  const receipt={schemaVersion:1,passed:!failure,root:config.root,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,
+  const receipt={schemaVersion:1,passed:!failure,root:config.root,entry:config.entry,checkGroup:config.checks,physicalOutputMuted:true,listeningPerformed:false,
     results,missing,external,httpErrors,expectedBlockedMonaco:blockedMonaco,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),...(failure?{error:failure.stack??String(failure)}:{})};
   await fs.mkdir(path.dirname(path.resolve(config.out)),{recursive:true});await fs.writeFile(config.out,JSON.stringify(receipt,null,2)+'\n');
   if(failure)throw failure;console.log('PASS receipt '+config.out);

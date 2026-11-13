@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "passed": true,
+  "baseCommit": "cf8c2ab86ebb42ef4bf489d23ca91012525c6c50",
+  "scope": "Code演奏／パラメータ補助とKeyboard・Liveつまみ編集を同じphysical chipで併用する。",
+  "behavior": [
+    "Code／Keyboard切替でRun・context・liveLoop・livePrepare・FXを維持し、共通Run／Apply／StopをKeyboard側にも表示。",
+    "DMG／SID／SPUのCode Liveでは表示CHの触ったパラメータだけを直接編集。曲のLiveは読み取り専用。",
+    "Codeのパラメータ操作だけを動かしながらKeyboardでメロディを演奏できる。パラメータ操作だけではGate所有権を奪わない。",
+    "同じphysical CHは最後のKey Onを優先し、旧Code Note Off／旧keyboard key-up／blurが別の所有者の音を止めない。",
+    "Stop後にKeyboardの通常再発音を復帰。読み込み失敗／取消では離鍵IDを維持。Code実状態とLive Off作者表示を分離。",
+    "FM2612の初回Run時のadapter未準備、SIDのLegato/Pitch旧owner、SPUのPMONsource所有権と一時Noise bindingも検証。"
+  ],
+  "hardwareBoundaries": [
+    "DMG Sourceはphysical CHで固定、SweepはCH1のみ。",
+    "SID FilterとSPU Reverb／Noise clockは共有回路。SID Sync/Ring ratioとSPU PMONは直前のphysical oscillatorに影響する。",
+    "Wave RAM／sample／PMON source差し替えでは必要な音またはpairを停止する場合がある。CodeのRunは継続する。",
+    "Codeが同じパラメータを繰り返し書く場合は最後の書き込みが反映される。以前の音へ自動復帰する仮想voiceは追加しない。"
+  ],
+  "nodeSuites": [
+    {
+      "synth": "DMG",
+      "passed": 206,
+      "failed": 0,
+      "log": "build/verification/synth-code-parameters-keyboard-20261113/dmg-code-keyboard-node-final.log"
+    },
+    {
+      "synth": "FM2612",
+      "passed": 526,
+      "failed": 0,
+      "log": "build/verification/synth-code-parameters-keyboard-20261113/fm-code-keyboard-all-node-c.log"
+    },
+    {
+      "synth": "SID",
+      "passed": 237,
+      "failed": 0,
+      "log": "build/verification/synth-code-parameters-keyboard-20261113/sid-code-keyboard-all-node-c.log"
+    },
+    {
+      "synth": "SPU",
+      "passed": 341,
+      "failed": 0,
+      "log": "build/verification/synth-code-parameters-keyboard-20261113/spu-code-parameters-node.log"
+    }
+  ],
+  "nodeTestsPassed": 1310,
+  "browserChecks": [
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/dmg-code-keyboard-browser-final.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_dmg_synth_dmg-code-keyboard-20261113c-SP641F",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/fm-code-keyboard-browser-c.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_synth_synth-code-keyboard-20261113c",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/fm-code-all-browser-c.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_synth_synth-code-keyboard-20261113c",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/sid-code-keyboard-browser.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_sid_synth_sid-code-keyboard-20261113b-vgiLjB",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/sid-code-keyboard-c-browser.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_sid_synth_sid-code-keyboard-20261113c-pByiG5",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/spu-code-parameters-browser.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_spu_synth_spu-code-parameters-final-20261113-K5ihy9",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "receipt": "build/verification/synth-code-parameters-keyboard-20261113/spu-code-parameters-code-browser.json",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_spu_synth_spu-code-parameters-final-20261113-K5ihy9",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    }
+  ],
+  "packages": [
+    {
+      "synth": "DMG",
+      "archive": "release/tetorica_dmg_synth_dmg-code-keyboard-20261113c_itch.zip",
+      "stage": "release/itch_dmg_synth_dmg-code-keyboard-20261113c-SP641F",
+      "bytes": 1854140,
+      "sha256": "3fbcad2bbb408e228ec3a462ec7de0f444fa4e4bc20ea95d91a401b0e4cbcd5e",
+      "readableOriginalModules": true
+    },
+    {
+      "synth": "FM2612",
+      "archive": "release/hello_ymfm_wasm_synth-code-keyboard-20261113c_itch_synth.zip",
+      "stage": "release/itch_synth_synth-code-keyboard-20261113c",
+      "bytes": 1090347,
+      "sha256": "3084f71e9153d3d0cdb0973d36502a95a773d92ee2141faa549e69b84fc718c7",
+      "readableOriginalModules": true
+    },
+    {
+      "synth": "SID",
+      "archive": "release/tetorica_sid_synth_sid-code-keyboard-20261113c_itch.zip",
+      "stage": "release/itch_sid_synth_sid-code-keyboard-20261113c-pByiG5",
+      "bytes": 3486473,
+      "sha256": "260c7bfe822bccedef4359edac9b35862b1f6f262bc6ad161401df79f4128b86",
+      "readableOriginalModules": true
+    },
+    {
+      "synth": "SPU",
+      "archive": "release/tetorica_spu_synth_spu-code-parameters-final-20261113_itch.zip",
+      "stage": "release/itch_spu_synth_spu-code-parameters-final-20261113-K5ihy9",
+      "bytes": 7121773,
+      "sha256": "938724d9b07708ee94142723620b55e3d80c099a30c5e93d6beed9b73de29cb1",
+      "readableOriginalModules": true
+    }
+  ],
+  "sourceEqualityReceipt": "build/verification/synth-code-parameters-keyboard-20261113/package-source-equality.json",
+  "sidBaselineNote": "SID full既存Code／Files／FXの回帰はBで両engine成功。Cの失敗時keyboard ID保持は追加Node回帰＋CのKeyboard／Live targetで再確認。",
+  "sharedChipApiChanged": false,
+  "wasmOrNativeChanged": false,
+  "normalBrowserOrNativeAppOperated": false,
+  "listeningPerformed": false,
+  "committed": false,
+  "pushed": false,
+  "published": false
+}

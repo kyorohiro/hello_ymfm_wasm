@@ -102,8 +102,8 @@ test('invalid calls, preset validation failure and stale keyboard releases canno
     ['noise.setVoice',[{volume:9,width:8}]],['constructor',[]]]) assert.throws(() => instrument.code(metadata.session,method,args));
   const invalid = structuredClone(instrument.read().preset); invalid.wave.samples[3] = 16;
   assert.throws(() => instrument.setPreset(invalid)); assert.throws(() => instrument.loadPreset(invalid));
-  assert.throws(() => instrument.noteOn('late-key',60),{name:'AbortError'});
-  assert.throws(() => instrument.setPitch(2),{name:'AbortError'});
+  assert.throws(() => instrument.noteOn('invalid-key',128),{name:'RangeError'});
+  assert.throws(() => instrument.setPitch(25),{name:'RangeError'});
   assert.equal(instrument.noteOff('old-key'),false);
   assert.equal(writes.length,beforeWrites); assert.deepEqual(await client.getState(),state); assert(client.isCurrent());
   const native = core.saveState(), expected = core.generateStereo(1024); core.loadState(native);

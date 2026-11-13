@@ -94,6 +94,7 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
       else psg?.setAttenuation(ch,15);
       held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;
     },
+    forgetNote(ch){integer(ch,3,'PSG channel');const removed=held.delete(ch);if(removed)emit();return removed;},
     setFrequency(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),psg=getPsg();if(!psg)return null;
       const period=setPitch(psg,ch,note),voice={channel:ch,...note,period};

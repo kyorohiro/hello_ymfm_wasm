@@ -61,6 +61,29 @@ test('borrowed FM stays shared with its editor and Code disposal never closes th
   await f.audio.stop();assert.equal(f.context.closeCalls,0);assert(f.input.edges.has(f.output));await f.audio.dispose();
 });
 
+test('FM, PSG and PCM Code share keyboard channels with last-KeyOn ownership, while explicit allNotesOff remains physical',async()=>{
+  const f=fixture();
+  for(const [name,count]of [['ym2612',6],['segapsg',4],['rf5c164',8]]){
+    const code=await f.audio.useSoundChip(name),calls=[];
+    const keyboard=f.audio.keyboardTarget(name,{noteOn:(...args)=>calls.push(['on',...args]),noteOff:(...args)=>calls.push(['off',...args]),setFrequency:(...args)=>calls.push(['frequency',...args])});
+    const channel=name==='segapsg'?1:2;
+    if(name==='ym2612')code.noteOn(channel,4,644);else if(name==='segapsg')code.noteOn(channel,'C4');else code.noteOn(channel,'C4');
+    if(name==='ym2612'){
+      const start=f.events.length;assert.throws(()=>keyboard.noteOn(channel,4,9999),RangeError);assert.equal(f.events.length,start,'invalid keyboard pitch does not release the Code owner');
+    }
+    keyboard.noteOn(channel,4,700);const before=f.events.length;
+    if(name==='ym2612')assert.deepEqual(f.events.at(-1),['fm-off',channel],'keyboard retrigger releases the previous Code envelope first');
+    assert.equal(code.noteOff(channel),false,`${name} old Code Off cannot release keyboard`);assert.equal(f.events.length,before);
+    if(name==='ym2612')code.noteOn(channel,4,800);else code.noteOn(channel,'E4');
+    const previous=calls.length;assert.equal(keyboard.noteOff(channel),false);assert.equal(keyboard.setFrequency(channel,3,100),false);
+    assert.equal(calls.length,previous,`${name} old keyboard release/bend cannot change the Code owner`);
+    keyboard.noteOn(channel,4,700);code.allNotesOff();assert.equal(keyboard.noteOff(channel),false);
+    assert.equal(f.context.closeCalls,0);assert.equal(await f.audio.useSoundChip(name),code);
+    assert(count>channel);
+  }
+  await f.audio.dispose();
+});
+
 test('PSG Code notes inherit the current UI level and envelope; knob changes affect held Code channels',async()=>{
   const f=fixture(),psg=await f.audio.useSoundChip('segapsg');
   psg.tone(1,{note:'C4'});assert.deepEqual(f.events.at(-1),['psg-tone',1,{note:'C4',attenuation:6}]);

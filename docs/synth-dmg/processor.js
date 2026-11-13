@@ -2,9 +2,9 @@
 // Copyright (c) 2026 kyorohiro.
 import factory from '../generated/gameboy_apu_wasm.js';
 import {GameboyApu} from '../js/gameboyapu.js';
-import {GameboyInstrument} from './instrument.js?v=dmg-live-preset-1';
+import {GameboyInstrument} from './instrument.js?v=dmg-code-keyboard-1';
 
-const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'applyCodePreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'applyCodePreset', 'applyCodeEdit', 'releaseKeyboard', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 const cancelled = () => {const error = new Error('Game Boy command cancelled by Stop or a newer Code session');error.name='AbortError';return error;};
 
 class GameboySynthProcessor extends AudioWorkletProcessor {
@@ -68,12 +68,12 @@ class GameboySynthProcessor extends AudioWorkletProcessor {
           const metadata = this.instrument.beginCode();
           const owner = this.codeOwner = {session:++this.codeSerial,token:metadata.session,instrument:this.instrument};
           value = {...metadata,session:owner.session};
-        } else if (data.method === 'code' || data.method === 'applyCodePreset') {
+        } else if (data.method === 'code' || data.method === 'applyCodePreset' || data.method === 'applyCodeEdit') {
           const [session,method,parameters] = args, owner = this.codeOwner;
           if (!owner || owner.session !== session || owner.instrument !== this.instrument) throw cancelled();
-          if (data.method === 'applyCodePreset') {
+          if (data.method === 'applyCodePreset' || data.method === 'applyCodeEdit') {
             if (args.length !== 2) throw new TypeError('Game Boy Code preset takes a session and preset');
-            value = await this.instrument.applyCodePreset(owner.token,method);
+            value = await this.instrument[data.method](owner.token,method);
           } else value = await this.instrument.code(owner.token,method,parameters);
           if (epoch !== this.commandEpoch || this.codeOwner !== owner) throw cancelled();
           if (data.method === 'code' && method === 'dispose') this.codeOwner = null;

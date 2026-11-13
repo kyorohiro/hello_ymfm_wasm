@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Glue for the shared Code editor/scheduler and this Synth's existing SID.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?sid-code=1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=synth-code-keyboard-1';
 import {selectSidCodeDeclarations} from './code_declarations.js?sid-code=1';
 import {createSidCodeAudio} from './code_audio.js?sid-code=1';
 import {createSidCodeProject} from './code_project.js?sid-code=1';
@@ -108,15 +108,20 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
       onLog:line=>controls?.appendLog(line),onState:state=>{controls?.setRuntimeState(state);onActivity();},
       beforeStopSoundChips(){epoch++;return audio.beforeStop();},
       async stopSoundChips(){
+        const token=epoch,engine=getAudio();
         await audio.stop();
         // Retire a gesture-created engine which has not yet been adopted.
         // This runs after the output fade for any existing performance.
         if(!getAudio())await stopKeyboard();
+        // The common Stop is also reachable in Keyboard view. Its Code fade
+        // must not leave the restored, silent author route closed to new keys.
+        if(!disposed&&token===epoch&&getAudio()===engine&&!controls?.isCodeMode())audio.open();
       },
     });
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
+    keepRunningOnKeyboard:true,
     editorChip:'c64',transformDeclarations:selectSidCodeDeclarations,
     journalKey:'tetorica-sid-synth-pending-code',getStarterCode:()=>SID_STARTER_CODE,
     async onBeforeRun(){

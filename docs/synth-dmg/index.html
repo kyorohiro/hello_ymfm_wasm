@@ -10,7 +10,7 @@
   <title>Tetorica DMG Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_dmg_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=dmg-live-preset-1">
+  <link rel="stylesheet" href="./synth.css?v=dmg-code-keyboard-1">
 </head>
 <body>
   <main>
@@ -119,9 +119,9 @@
 
       <section id="dmgCodeLiveTools" class="dmg-code-live-tools" aria-label="Code channel view" hidden>
         <div class="dmg-live-controls">
-          <label for="dmgLiveChannel">Code view <select id="dmgLiveChannel"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
+          <label for="dmgLiveChannel">Code channel <select id="dmgLiveChannel"><option value="0">CH 1 · Pulse</option><option value="1">CH 2 · Pulse</option><option value="2">CH 3 · Wave</option><option value="3">CH 4 · Noise</option></select></label>
           <label><input id="dmgLiveEnabled" type="checkbox" checked> Live from Code</label>
-          <details class="dmg-inline-help"><summary aria-label="About Code Live">?</summary><p>Live shows the selected physical channel in the same controls below. Values are sent register settings, not measured hardware envelope volume or Sweep position. Live Off returns to your edited sound; editing stops Code. Observation does not change saved presets.</p></details>
+          <details class="dmg-inline-help"><summary aria-label="About Code Live">?</summary><p>Live shows and edits the selected physical channel using the controls below. Values are sent register settings, not measured hardware envelope volume or Sweep position. Only the fields you touch are changed; other channels, pitch and Gate keep running. Wave RAM changes can end a held Wave note. Edited fields are also saved in your instrument for Stop and Save sound. Source is fixed by the physical channel; CH1 alone supports Sweep. Live Off edits your common instrument. Keyboard / Code changes the view while Run continues, and Stop stays available. With Live On, keys play the selected channel using its live settings; with Live Off, keys use the instrument's source pool. The latest Key On owns a physical channel; old releases cannot cut its new note. Code and knobs that repeatedly write the same parameter follow the latest write.</p></details>
         </div>
         <p id="dmgLiveStatus" role="status">Code stopped · edit your sound.</p>
         <p id="dmgLiveReadout"></p>
@@ -203,6 +203,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=dmg-live-preset-1"></script>
+  <script type="module" src="./synth.js?v=dmg-code-keyboard-1"></script>
 </body>
 </html>

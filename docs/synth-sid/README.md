@@ -74,7 +74,9 @@ liveLoop("melody", async () => {
 
 **Run** starts a fresh context; **Apply** keeps `context` and named preparations.
 **Stop** cancels pending work, fades the output and restores the current authored
-channel setup. Returning to Keyboard also stops Code. The Code tab supports
+channel setup. Keyboard / Code changes the input view while the same loops,
+context and FX continue. The shared Run / Apply / Stop row stays visible above
+the keyboard. The Code tab supports
 `livePrepare()`, `tween()`, `liveFx()` and the common music helpers. Effects run
 after the chip in host software. There is no implicit `play()` or independent
 chip factory here; acquire the SID through `useSoundChip("sid")` and await its
@@ -94,11 +96,19 @@ particular settings on its next iteration.
 While Code runs, **Live from Code** is On by default. The existing **Your sound**
 controls show the selected Code channel's applied waveform flags, Pulse width,
 hardware ADSR and shared filter, with the same change highlights as song Live.
-These observations are read-only. The **CH 1 / CH 2 / CH 3** buttons select the
-channel to inspect without stopping Code, changing its notes or replacing the
-keyboard's saved channel target. Turn Live off to edit the authored sound while
-Code continues. Stop or return to Keyboard to restore the authored display.
-Observation never replaces a saved preset or Files sound. Updates are limited
+The **CH 1 / CH 2 / CH 3** buttons choose the physical channel to inspect and
+play from Keyboard. While Live is on, editing a control changes only that field
+on the displayed channel and its authored settings; frequency, Gate and other
+channels keep running. The hardware filter remains shared. Turn Live off to
+edit the authored sound and use its keyboard allocation. Stop restores the
+authored display. Observing alone never replaces a saved preset or Files sound.
+
+Keyboard can play alongside Code. The most recent Key On owns a physical
+channel: an older Code Note Off or keyboard key-up cannot stop its newer owner,
+and old notes do not return automatically. Keyboard Pitch only retunes keyboard
+owners. Parameter edits do not claim a gate; raw register writes and explicit
+allNotesOff remain physical controls. Blur releases keyboard notes while Code
+keeps running. Updates are limited
 to 20/s, so register writes between observations can be missed; 8580 continues
 to show its unavailable Envelope as unavailable.
 

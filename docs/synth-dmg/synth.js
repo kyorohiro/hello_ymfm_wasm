@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=dmg-live-preset-1';
-import {setupGameboyCodeHost} from './code_host.js?v=dmg-live-preset-1';
-import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-live-preset-1';
-import {createEditor} from './editor.js?v=dmg-live-preset-1';
-import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-live-preset-1';
+import {createAudio} from './audio.js?v=dmg-code-keyboard-1';
+import {setupGameboyCodeHost} from './code_host.js?v=dmg-code-keyboard-1';
+import {createGameboyCodeLive,gameboyCodeLiveView} from './code_live.js?v=dmg-code-keyboard-1';
+import {createEditor} from './editor.js?v=dmg-code-keyboard-1';
+import {createGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-code-keyboard-1';
+import {setupGameboyVgmImport} from './vgm_library.js?v=dmg-code-keyboard-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
-import {setupGameboySongControls} from './song_controls.js?v=dmg-live-preset-1';
-import {createGameboySongAudition} from './song_audition.js?v=dmg-live-preset-1';
-import {prepareGameboySongVoice} from './song_voice.js?v=dmg-live-preset-1';
+import {setupGameboySongControls} from './song_controls.js?v=dmg-code-keyboard-1';
+import {createGameboySongAudition} from './song_audition.js?v=dmg-code-keyboard-1';
+import {prepareGameboySongVoice} from './song_voice.js?v=dmg-code-keyboard-1';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -55,7 +56,12 @@ function updateCapacity() {
   const trial=pausedSongVoice();
   $('dmgKeyboardHint').textContent=lastSongState?.paused&&isSongChannelView()?trial?.playable?`Paused VGM CH ${lastSongState.liveVoice+1} · keyboard audition · one physical voice${trial.source==='noise'?' · keys retrigger the same Noise':''}.`:trial?.reason??'Select a playable VGM channel.':lastSongState?.playing?'Pause to audition a song channel.':'Every key plays the selected source. No keyboard split.';
   if(isSongActive()&&isSongChannelView()){ $('voiceCapacity').textContent=`VGM CH ${lastSongState.liveVoice+1} · ${lastSongState.paused?'paused audition':'read-only'} · ${auditionNotes.size} held`; return; }
-  if(codeHost?.isRunning()){ $('voiceCapacity').textContent='Code · physical CH1 / CH2 Pulse · CH3 Wave · CH4 Noise'; return; }
+  if(codeHost?.isRunning()){
+    const target=keyboardTarget();
+    $('voiceCapacity').textContent=target.channel===null?'Code + Keyboard · selected source · physical CH1–4':`Code + Keyboard · CH ${target.channel+1} · ${notes.size} held`;
+    $('dmgKeyboardHint').textContent=target.channel===null?'Keyboard uses the selected source. Code continues; the latest Key On owns each physical channel.':`Keyboard plays CH ${target.channel+1}, using its live settings. The latest Key On owns this physical channel.`;
+    return;
+  }
   const description = preset.source === 'pulse' ? preset.pulse.sweep.enabled ? 'Pulse · CH1 Sweep' : 'Pulse · CH1 / CH2'
     : preset.source === 'wave' ? 'Wave · CH3' : 'Noise · CH4 · keys trigger the same noise';
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
@@ -125,7 +131,9 @@ async function applyPreset(value, {load = false, message, isCurrent = () => true
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source || previous.pulse.sweep.enabled !== next.pulse.sweep.enabled
     || JSON.stringify(previous.wave.samples) !== JSON.stringify(next.wave.samples);
-  if (replacesVoices) {epoch++;notes.clear();updateKeys();}
+  // A rejected atomic Code edit leaves its keyboard leases alive. Keep their
+  // key-up IDs until the acknowledged native state says they were retired.
+  if (replacesVoices&&!keepCode) {epoch++;notes.clear();updateKeys();}
   let editRevision=revision;
   function publish(value){
     preset=readPreset(value);revision++;editRevision=revision;
@@ -169,7 +177,37 @@ async function applyPreset(value, {load = false, message, isCurrent = () => true
     }
   });
 }
-const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report});
+async function applyEditorChange(value,{previous,channel,origin}={}) {
+  if(origin!=='Code'||channel===null||channel===undefined||!codeHost?.isRunning())return applyPreset(value);
+  const edit=createGameboyCodeEdit(previous,value,channel);
+  if(!Object.keys(edit.changes).length)return true;
+  // Keep successive knob edits in order; a later whole-instrument load may
+  // cancel them, but a second field edit must not discard the first field.
+  const engine=audio,request=applySequence,client=engine?.getGameboyClient();
+  void client?.catch(()=>{});
+  if(!engine||!client)return false;
+  return enqueue(async()=>{
+    let lease;
+    const current=()=>!disposed&&audio===engine&&request===applySequence&&lease?.isCurrent()&&codeHost?.isRunning();
+    try{
+      lease=await client;if(!current())return false;
+      const state=await engine.applyCodeEdit(edit,{isCurrent:current});
+      if(disposed||audio!==engine||request!==applySequence)return false;
+      preset=readPreset(state.preset);revision++;codeHost.markSoundDirty();
+      readVoices(state);visualizer.wake();
+      status(`Code CH ${channel+1} updated · Run continues.`);return true;
+    }catch(error){
+      // A Stop can win after the native edit commits but before its reply.
+      if(!disposed&&audio===engine&&request===applySequence){
+        const state=await engine.read();
+        if(!disposed&&audio===engine&&request===applySequence){preset=readPreset(state.preset);revision++;codeHost.markSoundDirty();updatePresetUi();}
+      }
+      if(error.name==='AbortError')return false;
+      throw error;
+    }
+  });
+}
+const editor = createEditor({root: $('voiceEditor'), onChange: applyEditorChange, onError: report});
 setupSynthMenu({document,window});
 vgmImport = setupGameboyVgmImport({root:$('vgmImport'),onStatus:status,
   onSource:(source,options)=>codeHost.files.saveSongSource(source,options),
@@ -220,8 +258,13 @@ function canPlay(midi) {
   const hz = 440*2**((midi-69)/12);
   const trial=pausedSongVoice();
   if(lastSongState?.paused&&isSongChannelView()&&(!trial?.playable||lastSongState.capturing))return false;
-  const source=trial?.source??preset.source;
+  const source=trial?.source??keyboardTarget().source;
   return midi>=0 && midi<=127 && (source==='noise' || hz>=(source==='wave'?32:64));
+}
+function keyboardTarget(){
+  const live=codeHost?.isRunning()?codeLive?.read():null;
+  const channel=live?.liveEnabled?live.liveVoice:null;
+  return {channel,source:channel===null?preset.source:channel<2?'pulse':channel===2?'wave':'noise'};
 }
 function press(source, entry) {
   if(lastSongState?.seekPreparing){status('Finishing the previous seek · try the keyboard again when ready.');return;}
@@ -235,7 +278,8 @@ function press(source, entry) {
     const engine = await ensureAudio();
     if (switchingAudioOutput||notes.get(source)!==note||note.epoch!==epoch) return;
     note.started = true;
-    const result = await engine.command('noteOn',[note.id,note.midi]);
+    const target=keyboardTarget();
+    const result = await engine.command('noteOn',[note.id,note.midi,...(target.channel===null?[]:[{channel:target.channel}])]);
     if (audio!==engine||note.epoch!==epoch) return;
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
@@ -254,7 +298,7 @@ function release(source) {
 function stopNotes(message) {
   epoch++; notes.clear(); auditionNotes.clear(); updateKeys();
   const retiring=audition?.stop();
-  return enqueue(async()=>{await retiring;if(audio&&!codeHost?.isRunning()) await audio.command('stop'); if(!codeHost?.isRunning()&&!lastSongState?.playing)visualizer.stop();if(message) status(message);});
+  return enqueue(async()=>{await retiring;if(audio)await audio.command(codeHost?.isRunning()?'releaseKeyboard':'stop');if(!codeHost?.isRunning()&&!lastSongState?.playing)visualizer.stop();if(message) status(message);});
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
 $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopAll('Stopped · instrument retained. Play to resume.').catch(report);});
@@ -286,7 +330,7 @@ function setPitch(value) {
     if(pausedSongVoice()?.source==='noise'){setPitchUi(0);return;}
     void Promise.resolve().then(()=>audition?.setPitch(value)).catch(error=>{if(pitch===value)setPitchUi(previous);report(error);});return;
   }
-  if(audio&&!codeHost?.isRunning()&&(!isSongActive()||lastSongState?.paused&&!isSongChannelView())) void enqueue(async()=>{
+  if(audio&&(!isSongActive()||lastSongState?.paused&&!isSongChannelView())) void enqueue(async()=>{
     try{await audio?.command('setPitch',[value]);visualizer.wake();}
     catch(error){if(pitch===value) setPitchUi(previous);throw error;}
   });
@@ -375,26 +419,28 @@ async function stopAll(message) {
 function renderCodeLive(state) {
   if(disposed)return;
   if(isSongActive()&&isSongChannelView()){renderSongLive(lastSongState);return;}
-  const running=Boolean(codeHost?.isRunning()),readonly=running&&state.liveEnabled;
+  const running=Boolean(codeHost?.isRunning()),readonly=running&&state.liveEnabled&&!state.liveActive;
   $('dmgCodeLiveTools').hidden=isSongActive()||!codeHost?.isCodeMode()&&!running;
   $('dmgLiveEnabled').checked=state.liveEnabled;
   $('dmgLiveChannel').value=String(state.liveVoice);
   $('voiceEditor').inert=readonly;
   $('voiceEditor').dataset.readonly=String(readonly);
-  $('voiceEditor').setAttribute('aria-label',readonly?'Read-only Code channel settings':'Instrument editor');
-  $('instrumentName').readOnly=readonly;
-  for(const [wheel] of pitchWheels)wheel.disabled=running||lastSongState?.playing||lastSongState?.seeking||lastSongState?.seekPreparing||preset.source==='noise';
+  $('voiceEditor').setAttribute('aria-label',running&&state.liveEnabled?'Edit selected Code channel':'Instrument editor');
+  $('instrumentName').readOnly=running&&state.liveEnabled;
+  for(const [wheel] of pitchWheels)wheel.disabled=lastSongState?.playing||lastSongState?.seeking||lastSongState?.seekPreparing||keyboardTarget().source==='noise';
   let view=null;
   if(state.liveActive){
     try{view=gameboyCodeLiveView(state.liveState,state.liveVoice,preset);}
     catch(error){$('dmgLiveStatus').textContent=`Code Live: ${error.message}`;return;}
   }
   const signature=JSON.stringify(view?.preset??preset)+':'+(view?.channel??'edit');
-  if(signature!==liveSignature){editor.update(view?.preset??preset,{channel:view?.channel??null});liveSignature=signature;}
+  const sameTarget=liveSignature?.endsWith(':'+(view?.channel??'edit'));
+  if(signature!==liveSignature&&(!editor.isInteracting()||!sameTarget)){editor.update(view?.preset??preset,{channel:view?.channel??null});liveSignature=signature;}
   $('dmgLiveStatus').textContent=state.liveError?state.liveMessage:!running?'Code stopped · edit your sound.':
-    !state.liveEnabled?'Live Off · your edited sound. Editing stops Code.':state.liveWaiting?'Waiting for Code channel settings…':
-    `Live · Code CH ${state.liveVoice+1} · read-only sent / configured settings`;
+    !state.liveEnabled?'Live Off · edit your sound while Code continues.':state.liveWaiting?'Waiting for Code channel settings…':
+    `Live · edit Code CH ${state.liveVoice+1} · sent / configured settings`;
   $('dmgLiveReadout').textContent=view?.readout??'';
+  updateKeys();
 }
 function isSongChannelView() {return lastSongState?.view!=='synth';}
 function pausedSongVoice() {

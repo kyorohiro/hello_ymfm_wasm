@@ -3,6 +3,7 @@
 import {GameboySynth, GameboyDirectTransport} from '../js/gameboysynth.js';
 import {createDefaultPreset, readPreset} from './preset.js';
 import {validateGameboyCodeCall,gameboyCodeCancelled} from './code_endpoint.js';
+import {readGameboyCodeEdit,applyGameboyCodeEdit} from './code_parameter_edit.js?v=dmg-code-keyboard-1';
 
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const poolFor = preset => preset.source === 'pulse' ? preset.pulse.sweep.enabled ? [0] : [0, 1] : preset.source === 'wave' ? [2] : [3];
@@ -19,10 +20,14 @@ export class GameboyInstrument {
     this.pitch = 0; this.cursor = 0; this.sequence = 0;
     this.voices = new Map(); this.slots = Array(4).fill(null); this.disposed = false;
     this.codeEpoch = 0; this.codeActive = false; this.codeCheckpoint = null; this.codeFrames = 0;
+    this.gateOwners=Array(4).fill(null);
     this._apply(null, this.preset);
     this.stop();
   }
   _open() { if (this.disposed) throw new Error('Game Boy instrument is disposed'); }
+  _pool(){return this.codeActive&&this.preset.source==='pulse'&&(this.synth._getState().voice[0]&0x77)?[0]:poolFor(this.preset);}
+  _forgetKeyboard(channel){const voice=this.slots[channel];if(voice)this.voices.delete(voice.id);this.slots[channel]=null;}
+  _ownCode(channel){this._forgetKeyboard(channel);this.gateOwners[channel]='code';}
   _frequency(midi, pitch = this.pitch, source = this.preset.source) {
     const hz = 440 * 2 ** ((midi - 69 + pitch) / 12), divisor = source === 'wave' ? 64 : 32;
     const period = Math.round(2048 - this.synth.clock / (divisor * hz));
@@ -54,7 +59,7 @@ export class GameboyInstrument {
   read() {
     this._open();
     return {preset: readPreset(this.preset), voices: [...this.voices.values()].map(({id, midi, channel}) => ({id, midi, channel})),
-      capacity: poolFor(this.preset).length, pitch: this.pitch,
+      capacity: this._pool().length, pitch: this.pitch,
       registers: Array.from(this.codeCheckpoint?.synth.registers ?? this.synth._getState().registers)};
   }
   setPreset(value) {
@@ -75,17 +80,28 @@ export class GameboyInstrument {
   /** Replace editor settings without retiring the borrowed Code APU. Native
    * checkpoint work is synchronous; no audio frames are generated between
    * saving the live machine, preparing Stop's new editor state and restoring it. */
-  applyCodePreset(session, value) {
+  applyCodePreset(session, value, edit = null) {
     this._open();
     if (!this.codeActive || session !== this.codeEpoch) throw gameboyCodeCancelled();
+    if(edit)edit=readGameboyCodeEdit(edit);
     const next = readPreset(value), previous = this.preset, checkpoint = this.codeCheckpoint;
     const native = this.core.saveState(), shadow = this.synth._getState(), pitch = this.pitch;
+    if(edit&&!shadow.initialized)throw new Error('Initialize the Game Boy APU before editing Code channel parameters');
+    const voices=new Map(this.voices),slots=this.slots.slice(),owners=this.gateOwners.slice(),cursor=this.cursor;
     try {
       this.core.loadState(checkpoint.native); this.synth._adoptState(checkpoint.synth);
+      this.slots=Array(4).fill(null);
       this._apply(null, next);
       for (let channel = 0; channel < 4; channel++) this.synth.keyOff(channel);
       const restored = {native:this.core.saveState(),synth:this.synth._getState(),pitch:0};
       this.core.loadState(native); this.synth._adoptState(shadow);
+      this.slots=slots.slice();
+      if(edit){
+        this._applyCodeFields(edit,next,shadow);
+        this.preset=next;this.codeCheckpoint=restored;
+        return this.read();
+      }
+      this.releaseKeyboard();
       if (!shadow.initialized) this.synth.initialize();
       const live = this.synth._getState();
       const {duty,volume,envelope,sweep} = next.pulse;
@@ -115,17 +131,43 @@ export class GameboyInstrument {
     } catch (error) {
       this.core.loadState(native); this.synth._adoptState(shadow);
       this.preset = previous; this.pitch = pitch; this.codeCheckpoint = checkpoint;
+      this.voices=voices;this.slots=slots;this.gateOwners=owners;this.cursor=cursor;
       throw error;
     }
   }
-  noteOn(id, midi) {
+  applyCodeEdit(session,edit){
+    this._open();if(!this.codeActive||session!==this.codeEpoch)throw gameboyCodeCancelled();
+    const validated=readGameboyCodeEdit(edit),next=applyGameboyCodeEdit(this.preset,validated);
+    return Object.keys(validated.changes).length?this.applyCodePreset(session,next,validated):this.read();
+  }
+  _applyCodeFields({channel,changes},next,live){
+    const own=key=>Object.hasOwn(changes,key),pulse={},noise={};
+    for(const key of ['duty','volume'])if(own('pulse.'+key))pulse[key]=changes['pulse.'+key];
+    for(const key of ['direction','period'])if(own('pulse.envelope.'+key))(pulse.envelope??={})[key]=changes['pulse.envelope.'+key];
+    if(Object.keys(pulse).length)this.synth.pulse.setVoice(channel,pulse);
+    if(Object.keys(changes).some(key=>key.startsWith('pulse.sweep.'))){
+      const bits=live.voice[0],sweep={direction:bits&8?'down':'up',period:bits>>4&7,shift:bits&7};
+      for(const key of ['direction','period','shift'])if(own('pulse.sweep.'+key))sweep[key]=changes['pulse.sweep.'+key];
+      this.synth.pulse.setSweep(own('pulse.sweep.enabled')&&!changes['pulse.sweep.enabled']?{direction:'up',period:0,shift:0}:sweep);
+    }
+    if(own('wave.samples')){this.synth.wave.stopAndSetWaveform(next.wave.samples);this._forgetKeyboard(2);this.gateOwners[2]=null;}
+    if(own('wave.level'))this.synth.wave.setLevel(next.wave.level);
+    for(const key of ['volume','divisor','shift','width'])if(own('noise.'+key))noise[key]=changes['noise.'+key];
+    for(const key of ['direction','period'])if(own('noise.envelope.'+key))(noise.envelope??={})[key]=changes['noise.envelope.'+key];
+    if(Object.keys(noise).length)this.synth.noise.setVoice(noise);
+    if(own('pan.left')||own('pan.right'))this.synth.setPan(channel,own('pan.left')?changes['pan.left']:Boolean(live.voice[21]&(16<<channel)),own('pan.right')?changes['pan.right']:Boolean(live.voice[21]&(1<<channel)));
+  }
+  noteOn(id, midi, options = {}) {
     this._open();
-    if (this.codeActive) throw gameboyCodeCancelled();
+    if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(key=>key!=='channel'))throw new TypeError('Expected keyboard channel options');
+    if(options.channel!==undefined&&(!this.codeActive||!Number.isInteger(options.channel)||options.channel<0||options.channel>3))throw new RangeError('An explicit keyboard channel requires an active Code channel 0..3');
     if (typeof id !== 'string' || !id.length || id.length > 128) throw new TypeError('Expected a note identity of 1–128 characters');
     if (this.voices.has(id)) throw new Error('Note identity is already active');
     if (!Number.isInteger(midi) || midi < 0 || midi > 127) throw new RangeError('Expected a MIDI note 0–127');
-    const source = this.preset.source, hz = source === 'noise' ? null : this._frequency(midi);
-    const pool = poolFor(this.preset);
+    const pool=options.channel===undefined?this._pool():[options.channel];
+    const source=options.channel===undefined?this.preset.source:options.channel<2?'pulse':options.channel===2?'wave':'noise';
+    const hz=source==='noise'?null:this._frequency(midi,this.pitch,source);
+    if(this.codeActive&&!this.synth._getState().initialized)throw new Error('Initialize the Game Boy APU before playing its keyboard');
     let channel;
     for (let offset = 0; offset < pool.length; offset++) {
       const candidate = pool[(this.cursor + offset) % pool.length];
@@ -134,7 +176,10 @@ export class GameboyInstrument {
     if (channel === undefined) channel = pool.reduce((oldest, candidate) => this.slots[candidate].order < this.slots[oldest].order ? candidate : oldest, pool[0]);
     const previous = this.slots[channel];
     if (previous) { this.synth.keyOff(channel); this.voices.delete(previous.id); }
-    if (source === 'pulse') {
+    if(this.codeActive){
+      if(source!=='noise')this.synth.setFrequency(channel,hz);
+      this.synth.keyOn(channel);
+    } else if (source === 'pulse') {
       const {duty, volume, envelope} = this.preset.pulse;
       this.synth.pulse.setVoice(channel, {duty, volume, envelope});
       if (channel === 0) {
@@ -148,23 +193,23 @@ export class GameboyInstrument {
     } else {
       this.synth.noise.setVoice(this.preset.noise); this.synth.noise.keyOn();
     }
-    const voice = {id, midi, channel, order: ++this.sequence};
+    const voice = {id, midi, channel, source, order: ++this.sequence};
+    this.gateOwners[channel]=voice;
     this.slots[channel] = voice; this.voices.set(id, voice); this.cursor = (pool.indexOf(channel) + 1) % pool.length;
     return {channel, stolenId: previous?.id ?? null};
   }
   noteOff(id) {
     this._open();
-    if (this.codeActive) return false;
     const voice = this.voices.get(id);
-    if (!voice || this.slots[voice.channel] !== voice) return false;
+    if (!voice || this.slots[voice.channel] !== voice || this.gateOwners[voice.channel]!==voice) return false;
     this.synth.keyOff(voice.channel); this.voices.delete(id); this.slots[voice.channel] = null;
+    this.gateOwners[voice.channel]=null;
     return true;
   }
   setPitch(semitones) {
     this._open();
-    if (this.codeActive) throw gameboyCodeCancelled();
     if (!Number.isFinite(semitones) || semitones < -24 || semitones > 24) throw new RangeError('Pitch must be between -24 and +24 semitones');
-    const updates = this.preset.source === 'noise' ? [] : [...this.voices.values()].map(voice => [voice.channel, this._frequency(voice.midi, semitones)]);
+    const updates=[...this.voices.values()].filter(voice=>this.gateOwners[voice.channel]===voice&&voice.source!=='noise').map(voice=>[voice.channel,this._frequency(voice.midi,semitones,voice.source)]);
     for (const [channel, hz] of updates) this.synth.setFrequency(channel, hz);
     this.pitch = semitones;
     return this.read();
@@ -174,11 +219,18 @@ export class GameboyInstrument {
     const restored = this._endCode();
     if (!restored) for (let ch = 0; ch < 4; ch++) this.synth.keyOff(ch);
     this.voices.clear(); this.slots.fill(null); this.cursor = 0;
+    this.gateOwners.fill(null);
     return this.read();
+  }
+  releaseKeyboard(...args){
+    this._open();if(args.length)throw new TypeError('Game Boy keyboard release takes no arguments');
+    for(const voice of this.voices.values())if(this.gateOwners[voice.channel]===voice){this.synth.keyOff(voice.channel);this.gateOwners[voice.channel]=null;}
+    this.voices.clear();this.slots.fill(null);this.cursor=0;this.pitch=0;return this.read();
   }
   _endCode() {
     const checkpoint = this.codeCheckpoint;
     this.codeEpoch++; this.codeActive = false; this.codeCheckpoint = null;
+    this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);
     if (!checkpoint) return false;
     this.core.loadState(checkpoint.native);
     this.synth._adoptState(checkpoint.synth);
@@ -207,9 +259,27 @@ export class GameboyInstrument {
     if (method === 'getState') return {...this.synth._getState(),editorSource:this.preset.source,positionFrames:this.codeFrames};
     if (method === 'dispose') { this._endCode(); return this.read(); }
     if (method === 'setClock') return this.synth.clock;
-    if (method === 'allNotesOff') { for (let ch = 0; ch < 4; ch++) this.synth.keyOff(ch); return; }
+    if (method === 'allNotesOff') { for (let ch = 0; ch < 4; ch++) this.synth.keyOff(ch);this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);return; }
+    const on=['noteOn','keyOn','pulse.noteOn','pulse.keyOn','wave.noteOn','wave.keyOn','noise.keyOn'].includes(method);
+    const off=['keyOff','pulse.keyOff','wave.keyOff','noise.keyOff'].includes(method);
+    const channel=method.startsWith('wave.')?2:method.startsWith('noise.')?3:args[0];
+    if(off&&this.slots[channel]&&this.gateOwners[channel]===this.slots[channel])return false;
     const [group, member] = method.split('.');
-    return member ? this.synth[group][member](...args) : this.synth[group](...args);
+    const result=member ? this.synth[group][member](...args) : this.synth[group](...args);
+    if(on)this._ownCode(channel);
+    else if(off)this.gateOwners[channel]=null;
+    else if(method==='initialize'||method==='reset'){
+      this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);this.cursor=0;
+    }else if(method==='wave.setWaveform'||method==='wave.stopAndSetWaveform'){
+      this._forgetKeyboard(2);this.gateOwners[2]=null;
+    }else if(method==='writeRegister'){
+      const [register,value]=args;
+      if([4,9,14,19].includes(register)&&(value&128))this._ownCode([4,9,14,19].indexOf(register));
+      else if(register===22&&!(value&128)){this.voices.clear();this.slots.fill(null);this.gateOwners.fill(null);}
+      else if([2,7,17].includes(register)&&!(value&0xf8)){const ch={2:0,7:1,17:3}[register];this._forgetKeyboard(ch);this.gateOwners[ch]=null;}
+      else if(register===10&&!(value&128)){this._forgetKeyboard(2);this.gateOwners[2]=null;}
+    }
+    return result;
   }
   generateStereo(frames) {
     this._open(); const pcm = this.core.generateStereo(frames);

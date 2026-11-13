@@ -27,6 +27,8 @@ function fixture({source,storedState=null,journal=new Map(),factory,before,save=
   byId('synthWorkspace').append(upperEditor,byId('synthExpandedCodeSlot'));
   upperEditor.append(home);home.append(byId('synthInputSection'));
   byId('synthInputSection').append(byId('synthKeyboardPanel'),byId('synthCodePanel'));
+  const transport=new Element();transport.append(byId('synthCodeRunButton'),byId('synthCodeApplyButton'),byId('synthCodeStopButton'),byId('synthCodeState'));
+  byId('synthCodePanel').append(transport);
   byId('synthCodePanel').append(byId('synthCodeEditor'),byId('synthCodeEditorHost'));
   byId('synthExpandedCodeSlot').hidden=true;
   byId('synthCodeExpandButton').hidden=true;
@@ -55,6 +57,31 @@ function fixture({source,storedState=null,journal=new Map(),factory,before,save=
   return {project,files,controls,calls,byId,journal,runtime,editor,home,upperEditor,get storedState(){return state;},
     cleanup(){controls.dispose();for(const[name,descriptor]of old)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
+
+test('opt-in Keyboard is a view change with a shared transport, preserving a running session',async()=>{
+  const f=fixture({source:'context.count = 1;',hostOptions:{keepRunningOnKeyboard:true}});
+  try{
+    await f.controls.ready;await f.controls.setMode('code');
+    f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.runs.length===1&&!f.byId('synthCodeRunButton').disabled);
+    const context=f.runtime.getContext(),transport=f.byId('synthCodeStopButton').parentNode;
+    await f.controls.setMode('keyboard');
+    assert.equal(f.calls.stops,0);assert.equal(f.runtime.getContext(),context);assert.equal(f.runtime.getState().state,'running');
+    assert.equal(transport.parentNode,f.byId('synthInputSection'));assert.equal(transport.dataset.codeTransport,'shared');
+    assert.equal(f.byId('synthKeyboardPanel').hidden,false);assert.equal(f.byId('synthCodePanel').hidden,true);
+    await f.controls.setMode('code');assert.equal(f.calls.runs.length,1);assert.equal(f.calls.stops,0);
+    f.byId('synthCodeStopButton').fire('click');await until(()=>f.calls.stops===1);
+  }finally{f.cleanup();}
+});
+
+test('opt-in Keyboard does not cancel a Run waiting for its runtime, while workspace replacement still stops it',async()=>{
+  const pending=deferred(),f=fixture({source:'// same pending Run',factory:()=>pending.promise,hostOptions:{keepRunningOnKeyboard:true}});
+  try{
+    await f.controls.ready;await f.controls.setMode('code');f.byId('synthCodeRunButton').fire('click');await until(()=>f.calls.factories===1);
+    await f.controls.setMode('keyboard');pending.resolve(f.runtime);await until(()=>f.calls.runs.length===1);
+    assert.equal(f.calls.stops,0);assert.equal(f.controls.isCodeMode(),false);
+    await f.controls.workspaceReplaced();assert.equal(f.calls.stops,1);assert.equal(f.controls.activePath,null);
+  }finally{f.cleanup();}
+});
 
 test('Code opens lazily, preserves an existing index, and edits the Cassette independently from instruments',async()=>{
   const f=fixture({source:'// authored\n'});

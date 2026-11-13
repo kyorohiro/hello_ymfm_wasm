@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {SidCore} from '../js/sid.js';
 import {Sid8580Core} from '../js/sid8580.js';
-import {SidInstrument} from './instrument.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1';
+import {SidInstrument} from './instrument.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code-live=1&sid-live-preset=1&sid-code-keyboard=1';
 import {readPreset} from './preset.js?sid-waves=1';
 import {readChannelSettings,applyChannelPreset,editChannelPreset} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 
-const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const COMMANDS = new Set(['read', 'observeCode', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'releaseKeyboard', 'editCodeVoice', 'setPitch', 'stop', 'beginCode', 'code']);
 const cancelled=message=>{const error=new Error(message);error.name='AbortError';return error;};
 
 class SidSynthProcessor extends AudioWorkletProcessor {
@@ -88,10 +88,11 @@ class SidSynthProcessor extends AudioWorkletProcessor {
           const metadata=this.instrument.beginCode();
           const owner=this.codeOwner={session:++this.codeSerial,instrument:this.instrument,token:metadata.session};
           value={...metadata,session:owner.session};
-        }else if(data.method==='code'){
+        }else if(data.method==='code'||data.method==='editCodeVoice'){
+          if(data.method==='editCodeVoice'&&args.length!==3)throw new TypeError('SID Code edit requires session, channel and fields');
           const [session,method,parameters]=args,owner=this.codeOwner;
           if(!owner||owner.session!==session||owner.instrument!==this.instrument)throw cancelled('SID Code session cancelled');
-          value=await this.instrument.code(owner.token,method,parameters);
+          value=await (data.method==='editCodeVoice'?this.instrument.editCodeVoice(owner.token,method,parameters):this.instrument.code(owner.token,method,parameters));
         }else value=await (['setPreset','loadPreset','setChannelSettings','loadChannelSettings'].includes(data.method)
           ?this.applyPreset(data.method,args[0],epoch):this.instrument[data.method](...args));
         if (!this.dead && data.id !== undefined) this.port.postMessage({id: data.id, value});

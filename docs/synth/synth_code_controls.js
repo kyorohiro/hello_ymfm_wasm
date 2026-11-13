@@ -27,17 +27,24 @@ function textFile(project,path,allowTextFiles=false) {
 
 export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=async()=>{},onModeChange=()=>{},setStatus=()=>{},getStarterCode=()=>DEFAULT_CODE,
   editorChip='ym2612',transformDeclarations=selectSynthCodeDeclarations,journalKey=JOURNAL_KEY,definitionRuntimeFile='playground_code_runtime.js',
-  allowTextFiles=false,maxTextLength=MAX_CODE_LENGTH,writeText=(path,source)=>project.fs.writeText(path,source),
+  allowTextFiles=false,keepRunningOnKeyboard=false,maxTextLength=MAX_CODE_LENGTH,writeText=(path,source)=>project.fs.writeText(path,source),
   loadEditor=async()=>({initializePlaygroundMonaco})}={}) {
   if(!project?.fs||typeof getRuntime!=='function')throw TypeError('Code input needs a project and runtime factory.');
   if(typeof editorChip!=='string'||!editorChip||typeof journalKey!=='string'||!journalKey||
     typeof definitionRuntimeFile!=='string'||!definitionRuntimeFile||typeof transformDeclarations!=='function')throw TypeError('Code input needs editor and recovery settings.');
-  if(typeof allowTextFiles!=='boolean'||!Number.isSafeInteger(maxTextLength)||maxTextLength<1||typeof writeText!=='function')throw TypeError('Code input needs valid text editing settings.');
+  if(typeof allowTextFiles!=='boolean'||typeof keepRunningOnKeyboard!=='boolean'||!Number.isSafeInteger(maxTextLength)||maxTextLength<1||typeof writeText!=='function')throw TypeError('Code input needs valid text editing settings.');
   const byId=id=>document.getElementById(id),section=byId('synthInputSection');
   const keyboardTab=byId('synthInputKeyboardTab'),codeTab=byId('synthInputCodeTab');
   const keyboardPanel=byId('synthKeyboardPanel'),codePanel=byId('synthCodePanel');
   const textarea=byId('synthCodeEditor'),editorHost=byId('synthCodeEditorHost'),note=byId('synthCodeEditorNote');
   const runButton=byId('synthCodeRunButton'),applyButton=byId('synthCodeApplyButton'),stopButton=byId('synthCodeStopButton');
+  // These hosts treat the tabs as views of one performance. Keep the existing
+  // transport (and its event bindings) reachable while the keyboard is shown.
+  const transport=runButton.parentNode;
+  if(keepRunningOnKeyboard&&transport&&keyboardPanel.parentNode){
+    transport.dataset.codeTransport='shared';
+    keyboardPanel.parentNode.insertBefore(transport,keyboardPanel);
+  }
   const stateLabel=byId('synthCodeState'),errorLog=byId('synthCodeError'),log=byId('synthCodeLog');
   const workspace=byId('synthWorkspace'),expandedSlot=byId('synthExpandedCodeSlot');
   const expandButton=byId('synthCodeExpandButton'),expandIcon=byId('synthCodeExpandIcon');
@@ -241,7 +248,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(next==='code'){if(!await ensureFile())return false;showMode('code');adapter.focus();void loadMonaco();}
     else {
       await flush();if(disposed||request!==workspaceOperation)return false;
-      if(!await stop()||disposed||request!==workspaceOperation)return false;
+      if(!keepRunningOnKeyboard&&(!await stop()||disposed||request!==workspaceOperation))return false;
       showMode('keyboard');
     }
     return true;

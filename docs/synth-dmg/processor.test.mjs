@@ -16,6 +16,8 @@ function fixture() {
     stop() {this.stopCount++;this.codeActive=false;this.codeEpoch++;return this.read();}
     beginCode() {this.stop();this.codeActive=true;return {session:this.codeEpoch,clock:4194304,channels:4,editorSource:'pulse'};}
     applyCodePreset(session,value) {if(!this.codeActive||session!==this.codeEpoch){const error=new Error('stale');error.name='AbortError';throw error;}this.calls.push(['applyCodePreset',value]);return {preset:value};}
+    applyCodeEdit(session,value){if(!this.codeActive||session!==this.codeEpoch){const error=new Error('stale');error.name='AbortError';throw error;}this.calls.push(['applyCodeEdit',value]);return {preset:value};}
+    releaseKeyboard(){this.calls.push(['releaseKeyboard']);return this.read();}
     observeCode() {return this.codeActive ? {clock:4194304,registers:Array(48).fill(0),voice:Array(48).fill(0)} : null;}
     code(session,method,args) {
       if (!this.codeActive || session !== this.codeEpoch) {const error = new Error('stale');error.name='AbortError';throw error;}
@@ -159,4 +161,16 @@ test('Stop preempts a pending live-preset ACK and cannot publish a stale success
   const session=f.messages.find(message=>message.id===1).value.session;let finish;f.processor.instrument.applyCodePreset=()=>new Promise(resolve=>finish=resolve);
   f.processor.receive({id:2,method:'applyCodePreset',args:[session,{}]});await Promise.resolve();assert.equal(typeof finish,'function');
   f.processor.receive({id:3,method:'stop'});finish({});await f.processor.commands;assert.equal(f.messages.find(message=>message.id===2).name,'AbortError');assert.equal(f.processor.codeOwner,null);f.processor.dispose();
+});
+
+test('selected channel edits and keyboard-only cleanup use the same Code session and preserve explicit physical channel options',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;f.processor.receive({id:1,method:'beginCode'});await f.processor.commands;
+  const owner=f.processor.codeOwner,session=f.messages.find(message=>message.id===1).value.session;
+  f.processor.receive({id:2,method:'applyCodeEdit',args:[session,{channel:1,changes:{'pulse.duty':.25}}]});
+  f.processor.receive({id:3,method:'noteOn',args:['keyboard',64,{channel:1}]});
+  f.processor.receive({id:4,method:'releaseKeyboard',args:[]});await f.processor.commands;
+  assert.equal(f.processor.codeOwner,owner);assert(f.processor.instrument.codeActive);
+  assert.deepEqual(f.processor.instrument.calls,[['applyCodeEdit',{channel:1,changes:{'pulse.duty':.25}}],['keyboard',64,{channel:1}],['releaseKeyboard']]);
+  f.processor.receive({id:5,method:'stop'});f.processor.receive({id:6,method:'applyCodeEdit',args:[session,{channel:0,changes:{'pulse.duty':.5}}]});await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===6).name,'AbortError');f.processor.dispose();
 });

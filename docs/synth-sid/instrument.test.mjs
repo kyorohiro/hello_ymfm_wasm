@@ -26,6 +26,65 @@ async function setup8580(t,rate=48000){
 }
 const render=(instrument,frames=4096)=>instrument.renderInto(new Float32Array(frames));
 
+test('Code and keyboard share physical voices with last-KeyOn ownership and keyboard-only focus cleanup',async t=>{
+  for(const setupModel of [setup,setup8580]){
+    const {instrument}=await setupModel(t),token=instrument.beginCode();
+    instrument.code(token.session,'noteOn',[1,'C4']);
+    instrument.noteOn('keyboard',67,1);
+    assert.equal(instrument.code(token.session,'noteOff',[1]),false);
+    assert.equal(instrument.code(token.session,'getState').channels[1].gate,true);
+    instrument.code(token.session,'keyOn',[1]);
+    assert.equal(instrument.noteOff('keyboard'),false);
+    instrument.releaseKeyboard();assert.equal(instrument.code(token.session,'getState').channels[1].gate,true);
+    instrument.noteOn('last-key',60,2);instrument.releaseKeyboard();
+    const state=instrument.code(token.session,'getState');assert.equal(state.channels[2].gate,false);assert.equal(state.channels[1].gate,true);
+    instrument.noteOn('forced',60,1);instrument.code(token.session,'allNotesOff');
+    assert.equal(instrument.code(token.session,'getState').channels[1].gate,false,'explicit allNotesOff remains physical');
+    assert.equal(instrument.codeActive,true);
+  }
+});
+
+test('Code Live sparse edits affect only selected fields and update the Stop author without touching frequency or gates',async t=>{
+  for(const setupModel of [setup,setup8580]){
+    const {instrument}=await setupModel(t),token=instrument.beginCode();
+    instrument.code(token.session,'setVoice',[1,{waveform:'pulse',attack:9,decay:8,sustain:7,release:6}]);
+    instrument.code(token.session,'noteOn',[1,'A3']);instrument.code(token.session,'noteOn',[0,'E3']);render(instrument,512);
+    const before=instrument.observeCode(),frames=before.positionFrames,authored=instrument.read().channelSettings;
+    instrument.editCodeVoice(token.session,1,{voice:{attack:3},filter:{cutoff:1234},modulation:{sync:true}});
+    const after=instrument.observeCode();assert.equal(after.positionFrames,frames);
+    for(let i=0;i<32;i++)if(![11,12,21,22].includes(i))assert.equal(after.registers[i],before.registers[i],`register ${i}`);
+    assert.equal(after.registers[12],0x38,'unselected Decay is current raw 8, not author Decay');
+    assert.equal(after.registers[11]&1,1);assert.equal(after.registers[11]&2,2);
+    assert.equal(instrument.read().channelSettings.channels[0].voice.attack,authored.channels[0].voice.attack);
+    assert.equal(instrument.read().channelSettings.channels[1].voice.attack,3);
+    const stable=instrument.observeCode();assert.throws(()=>instrument.editCodeVoice(token.session,1,{voice:{attack:99}}));
+    assert.deepEqual(instrument.observeCode(),stable);
+    instrument.stop();assert.equal(instrument.read().channelSettings.channels[1].voice.attack,3);
+    assert.equal(instrument.read().channelSettings.channels[0].filter.cutoff,1234);
+    assert.throws(()=>instrument.editCodeVoice(token.session,1,{voice:{attack:4}}),{name:'AbortError'});
+  }
+});
+
+test('Code takeover clears every old Legato keyboard owner before Pitch or old keyups can retune it',async t=>{
+  const {instrument}=await setup(t);const settings=selectChannelTarget(instrument.read().channelSettings,1);settings.keyboardMode='legato';
+  instrument.loadChannelSettings(settings);const token=instrument.beginCode();
+  instrument.noteOn('older',60,1);instrument.noteOn('newer',64,1);instrument.code(token.session,'noteOn',[1,'A4']);
+  const before=instrument.observeCode().registers;
+  assert.deepEqual(instrument.read().voices,[]);instrument.setPitch(2);instrument.releaseKeyboard();
+  assert.equal(instrument.noteOff('newer'),false);assert.equal(instrument.noteOff('older'),false);
+  assert.deepEqual(instrument.observeCode().registers,before);
+});
+
+test('Code-session keyboard Pitch/Legato leave an authored Sync source owned by Code untouched and validate before release',async t=>{
+  const {instrument}=await setup(t),settings=selectChannelTarget(instrument.read().channelSettings,1);settings.keyboardMode='legato';
+  settings.channels[1].modulation.sync=true;instrument.loadChannelSettings(settings);const token=instrument.beginCode();
+  instrument.code(token.session,'noteOn',[0,'A3']);instrument.noteOn('first',60,1);instrument.noteOn('second',64,1);
+  const source=instrument.observeCode().registers.slice(0,7);instrument.setPitch(2);instrument.noteOff('second');
+  assert.deepEqual(instrument.observeCode().registers.slice(0,7),source);
+  instrument.setPitch(24);const before=instrument.observeCode();
+  assert.throws(()=>instrument.noteOn('invalid-high',127,1),RangeError);assert.deepEqual(instrument.observeCode(),before);
+});
+
 test('Code observations read actual hardware coherently without clocks, writes, audio changes or authoring mutation',async t=>{
   for(const model of ['6581','8580']){
     const setupModel=model==='6581'?setup:setup8580;
@@ -64,7 +123,6 @@ test('physical Code voices share the authored SID and match direct raw writes in
     instrument.noteOn('keyboard',60);
     const token=instrument.beginCode();reference.beginCode();
     assert.equal(token.clock,SID_PAL_CLOCK);assert.equal(token.model,model);assert.deepEqual(instrument.read().voices,[]);
-    assert.throws(()=>instrument.noteOn('blocked',60),/Code owns/);
     const calls=[['setVoice',[2,{waveform:'triangle',attack:0,sustain:12}]],['setNote',[2,'A3']],
       ['noteOn',[0,'C4']],['noteOn',[2,69]],['setFrequency',[0,523.25]],
       ['setFilter',[{mode:'lowpass+bandpass',cutoff:900,resonance:9,routing:5}]]];

@@ -55,7 +55,7 @@ additional free RAM.
 Software morph remains a **112-sample cycle** feature. Its enable control is
 disabled for a full sample, so it cannot silently replace the imported sound
 with Sine. Choosing a shape explicitly creates a new short cycle and restores
-cycle drawing and Morph. PSF / Code Live observations remain read-only; PSF
+cycle drawing and Morph. PSF Live observations remain read-only; PSF
 Live previews still use only the first four packets. Noise does not display
 its silent support loop.
 **Audio** sets the root note and looping option for recordings loaded from
@@ -135,7 +135,7 @@ behavior.
 
 **Run** starts a fresh context; **Apply** retains `context`, named preparations
 and loops. **Stop** fades the software output and restores the edited instrument,
-sample bank, Noise, PMON and Software audio. Returning to Keyboard stops Code.
+sample bank, Noise, PMON and Software audio. Keyboard / Code changes only the input view; Run, named loops, context and FX continue. The shared Run / Apply / Stop bar remains available in Keyboard.
 Code uploads and raw changes are temporary; they do not overwrite the edited
 instrument. Selecting a sound JSON, saved VAB Tone, **Load selected Tone** or
 **Reset to Sine** keeps Run, `context`, named preparations, loops and software
@@ -143,7 +143,7 @@ FX. The next note uses the new sound; replacing sample data can end held notes.
 Stop keeps that newly selected editor sound. Code-uploaded samples retain
 their existing IDs until Stop, even if Code cleared its own RAM bank. Invalid
 sounds and insufficient RAM leave both banks and Run untouched. Ordinary
-control edits still stop Code first. Master stays available during Code.
+parameter edits also keep Code. Master stays available during Code.
 Shortcuts are Ctrl/Cmd+Enter for Run
 and Ctrl/Cmd+Shift+Enter for Apply. Maximize Code places the editor beside Files.
 
@@ -154,15 +154,33 @@ independent chip factory here. Monaco provides PS1-specific types, completion
 and navigation to readable API sources; a textarea remains available when its
 CDN cannot load.
 
-**Live from Code** is On by default. Choose CH1–CH24 to observe that channel's
-applied PCM, ADSR and shared FX in the same controls. Observation is read-only,
-does not allocate another voice and is limited to 20 updates/s; intermediate
-register writes can be missed. Turn Live off to show the edited instrument
-while Code continues. Editing its controls then stops Code first; selecting
-another saved instrument keeps Run. Stop
-returns to the authored display. Software morph appears only when its blend
-still matches the observed PCM; imported ADPCM does not have an editable
-112-point source waveform.
+**Live from Code** is On by default. Choose CH1–CH24 to see and edit that
+physical channel in the same PCM / ADSR / FX controls. Only the touched
+parameter changes: scalar edits keep its gate, sample position and musical
+pitch, and do not change another channel. Reverb and Noise clock are shared
+hardware settings. Enabling Noise changes only this CH's NON bit. PMON uses
+the preceding physical CH as a source; its helper edits that source too. CH1
+has no predecessor and cannot enable PMON. A depth edit owns its support
+sample so another carrier's modulation is not overwritten.
+
+Each touched setting is also saved to the common authored keyboard sound,
+which Stop restores. Live Off shows and edits that common sound across all
+24 channels while Code continues. Changing sample data or topology can end
+held notes, without stopping the runtime. The full imported-sample editor is
+available in the authored view; Code Live ADPCM remains a bounded sample-start
+preview, while a 112-point cycle can be edited directly. Software morph appears
+only when its blend matches the displayed cycle. Snapshots run at most 20 times
+per second, so intermediate writes can be missed.
+
+In Keyboard with Live On, keys play the selected CH. Live Off uses the existing
+round robin over the same 24 physical voices. The latest Note On owns a CH:
+old keyboard key-up / blur cannot stop a newer Code note, and an old Code
+`noteOff()` cannot stop a newer keyboard note. The previous note is not resumed.
+Raw `keyOff()` and `allNotesOff()` remain explicit physical gate actions. Code
+parameter automation does not steal a keyboard note; when Code and a knob both
+write the same setting, the last write wins. No extra SPU or virtual voice is
+created. PSF reference Live remains read-only and keeps its existing ownership
+transitions.
 
 **Files** stores `/index.js`, local modules, text/JSON and binary data separately
 from other Synths. Code and text edits save locally. Use relative `await import()`

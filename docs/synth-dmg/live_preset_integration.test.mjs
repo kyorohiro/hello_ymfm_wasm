@@ -44,6 +44,13 @@ test('Stop before a queued live preset dispatch keeps the previous editor and na
   assert.equal(f.realm.preset.name,'Pulse');assert.equal(f.backend.name,'Pulse');assert(!f.calls.some(call=>call.method==='apply'));
 });
 
+test('a rejected preset keeps the key-up identity of a keyboard note sharing the Code APU',async()=>{
+  const f=fixture({apply:async()=>{throw new RangeError('Not enough memory');}}),note={id:'held-key',started:true};
+  f.realm.notes.set('key:KeyZ',note);const epoch=f.realm.epoch;
+  await assert.rejects(f.realm.apply(preset('Rejected Wave','wave'),{load:true}),/Not enough memory/);
+  assert.equal(f.realm.notes.get('key:KeyZ'),note);assert.equal(f.realm.epoch,epoch);assert.equal(f.realm.preset.name,'Pulse');
+});
+
 test('Stop after native preset commit reconciles the latest checkpoint instead of rolling the editor back',async()=>{
   const gate=deferred(),entered=deferred(),f=fixture({apply:async(_value,_options,commit)=>{commit();entered.resolve();await gate.promise;}});
   const next=preset('Committed Wave','wave'),pending=f.realm.apply(next,{load:true});await entered.promise;

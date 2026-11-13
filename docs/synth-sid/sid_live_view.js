@@ -160,7 +160,7 @@ export function createSidLiveView({root}) {
     // not offer a second path for replacing the authored keyboard patch.
     fieldRows.get('import').hidden = code;
     notice.textContent = code
-      ? 'Read-only Code observations · up to 20 updates/s. Fast writes between observations may be missed. Position counts rendered Code frames. Frequency is oscillator tuning, not necessarily the sound’s perceived pitch. Observing never changes the saved sound.'
+      ? 'Code observations · up to 20 updates/s. Edit the displayed channel directly; only touched fields update its saved settings. Fast writes between observations may be missed. Position counts rendered Code frames. Frequency is oscillator tuning, not necessarily the sound’s perceived pitch.'
       : 'Read-only Player observations · up to 20 updates/s. Fast writes between observations may be missed. Frequency is the oscillator tuning, not necessarily the sound’s perceived pitch.';
     let observation = null;
     try {
@@ -184,7 +184,7 @@ export function createSidLiveView({root}) {
     status.textContent = code ? state.liveError
       ? state.liveMessage || 'Code Live observation failed. Last display kept.'
       : waiting ? `Waiting for current Code observation.${observation ? ' Previous Code observation remains shown.' : ''}`
-      : active && observation ? 'Live · selected CH follows Code. Display only; your saved sound is unchanged.'
+      : active && observation ? 'Live · edit the selected Code CH. Untouched values and other channels keep running.'
       : !enabled ? 'Code Live off · the editor shows your saved sound. Code keeps running.'
       : observation ? 'Code observation stopped. Last observed values are shown.'
       : 'Run Code to observe its selected CH.'

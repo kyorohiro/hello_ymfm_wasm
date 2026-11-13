@@ -4,6 +4,7 @@ import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-cyclic-1';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readPmon, pmonPcm} from './spu_synth_pmon.js';
+import {readNoise} from './spu_synth_noise.js';
 import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 import {readSpuInstrument} from './spu_synth_instrument.js?v=spu-split-vab-1';
 
@@ -11,7 +12,7 @@ export const SPU_SYNTH_CALIBRATED_GAIN = SOUNDCHIP_MIXER_PRESETS.calibrated.fact
 export const SPU_SYNTH_OUTPUT_GAIN = SPU_SYNTH_CALIBRATED_GAIN * SPU_SYNTH_MIX_HEADROOM;
 const initialWaveform = () => preparePs1Waveform(Array.from({length:112}, (_, i) => .65 * Math.sin(2 * Math.PI * i / 112)));
 const CODE_METHODS=['loadADPCM','getPreset','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','snapshot','_setAuditionNoise'];
-const READ_METHODS=new Set(['inspect','getState','getPreset','getInstrument','getInstrumentSample','snapshot','findADPCM']);
+const READ_METHODS=new Set(['inspect','getState','getEditorState','getPreset','getInstrument','getInstrumentSample','snapshot','findADPCM']);
 const codeCancelled=()=>{const error=new Error('SPU Code session stopped');error.name='AbortError';return error;};
 
 /** A standalone Web Audio instrument. Startup creates a suspended context;
@@ -75,7 +76,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-live-presets-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-code-parameters-6', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -95,7 +96,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (data.error) {
           const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error);
         } else {
-          if (data.state) publish(data.state);
+          if (data.state&&request.canPublish()) publish(data.state);
           request.resolve(data.value);
         }
       };
@@ -111,15 +112,23 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     const request = (method, args = [], transfer = []) => {
       assertOpen();
       const id = ++nextId;
+      const owner=['editInstrument','applyInstrument','setInstrumentSample'].includes(method)?codeOwner:null;
       return new Promise((resolve, reject) => {
         const timer=setTimeout(()=>fail(new Error(`SPU synth command timed out (${method}). Enable audio to restart.`)),15000);
-        pending.set(id, {resolve, reject,timer});
+        pending.set(id, {resolve, reject,timer,canPublish:()=>!owner||codeOwner===owner&&owner.generation===codeGeneration});
         try {node.port.postMessage({id, method, args}, transfer);} catch (error) {pending.delete(id);clearTimeout(timer);reject(error);}
       });
     };
     async function command(method,args=[]) {
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
-      if(!['beginCode','code','observeCode','setClickGuard','applyInstrument'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
+      if(!['beginCode','code','observeCode','setClickGuard','applyInstrument','editInstrument','setInstrumentSample','instrumentNoteOn','instrumentNoteOff','instrumentAllNotesOff','setInstrumentPitchBend'].includes(method)&&!READ_METHODS.has(method))invalidateCode();
+      else if(!codeOwner&&['applyInstrument','setInstrumentSample','instrumentNoteOn','instrumentNoteOff','instrumentAllNotesOff','setInstrumentPitchBend'].includes(method))invalidateCode();
+      const editing=method==='editInstrument',editOwner=codeOwner;let editSession,editTarget,editMethod;
+      if(editing){
+        [editSession,editTarget,editMethod,args]=args;
+        if(!Number.isSafeInteger(editSession)||editSession!==codeOwner?.session)throw codeCancelled();
+        if(!Array.isArray(args))throw new TypeError('SPU editor arguments must be an array');method=editMethod;
+      }
       // The encoder must not run in the real-time audio processor.
       if(method==='applyInstrument') {
         const session=args.length>1?args[1]:codeOwner?.session??null;
@@ -135,13 +144,15 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
       else if (method === 'setInstrumentWaveform') args = [preparePs1Waveform(args[0]), args[1]];
       else if (method === 'setInstrumentMorph') {
         const settings=readMorph(args[0]);
-        args=[settings,settings.enabled ? preparePs1Waveform(morphPcm(settings)) : undefined];
+        args=[settings,settings.enabled ? preparePs1Waveform(morphPcm(settings)) : undefined,args[1]];
       }
       else if (method === 'setInstrumentPmon') {
         const settings=readPmon(args[0]);
-        const needsWaveform=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);
-        args=[settings, needsWaveform ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined];
+        const needsWaveform=settings.enabled && (editing||!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);
+        args=[settings, needsWaveform ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined,args[1]];
       }
+      else if(editing&&method==='setInstrumentNoise')args=[readNoise(args[0]),args[1],preparePs1Waveform(Array(112).fill(0))];
+      if(editing){const value=await request('editInstrument',[editSession,editTarget,editMethod,args]);if(codeOwner!==editOwner||editOwner.generation!==codeGeneration){const error=codeCancelled();error.committed=true;throw error;}return value;}
       return request(method,args,method==='loadHostPCM'?[args[0].buffer]:[]);
     }
     function getPs1Client() {
@@ -180,7 +191,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
       codeInputNode:node,codeOutputNode:codeFade,codeFadeNode:codeFade,getPs1Client,
       get codeSession(){return codeOwner?.session??null;},
       get state() {return state;},
-      async inspect() {const value = await request('inspect'); if(!codeOwner)publish(value); return value;},
+      async inspect() {const value = await request(codeOwner?'getEditorState':'inspect'); if(!codeOwner)publish(value); return value;},
       command,
       async resume() {assertOpen(); await context.resume(); assertOpen();},
       stop() {return command('stop');},

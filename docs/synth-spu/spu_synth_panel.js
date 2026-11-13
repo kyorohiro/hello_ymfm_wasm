@@ -150,6 +150,9 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     const pmonNotes=pmon.querySelectorAll('p');
     pmonNotes[0].textContent=observing?'Hardware PMON uses the preceding physical voice’s output. There are no hardware waveform, ratio, depth or decay controls; those editor helpers cannot be inferred from the song.':'A silent waveform modulates each note. Waveform, Ratio and Depth update sounding notes. Decay applies to new notes; zero holds the modulation. High ratios are limited by the SPU pitch range.';
     pmonNotes[1].hidden=observing;
+    pmonNotes[1].textContent=Number.isInteger(morphUiState?.codeEditChannel)
+      ?morphUiState.codeEditChannel===0?'CH1 has no preceding physical CH for PMON. Choose CH2–24.':'PMON uses this carrier and the preceding physical CH. Switching On or Off, or first separating a shared source sample, releases only these two voices; Code, loops and other channels continue. Later Depth edits reuse the private source while held.'
+      :'PMON uses two voices per note: 12 notes total. Switching On or Off stops current notes.';
     sourceNotes.forEach(node=>{node.hidden=observing;});
     source.querySelector('[data-noise-info]').textContent=observing?'This CH uses the shared hardware Noise clock. Noise replaces ADPCM output; PITCH does not set its frequency.':'Noise clock is shared by all 24 voices. Keys trigger the ADSR envelope, not a musical pitch. Use ADSR to shape drums and effects. Your PCM/audio sample is kept. Noise and PMON switch each other off.';
   }
@@ -279,7 +282,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
       // The audio reply can arrive before the coalesced UI snapshot is drawn.
       // Keep its confirmed settings so finishing a change cannot briefly
       // restore the previous checkbox/slider value until that next frame.
-      lastMorph=readMorph(await invoke('setInstrumentMorph',[morphDraft]));
+      lastMorph=readMorph(await invoke('setInstrumentMorph',[morphDraft,Object.keys(patch)]));
     }
     catch(error){options.onError?.(error);}
     finally {if(--morphInFlight===0){morphDraft=readMorph(lastMorph);displayMorph();}}
@@ -302,9 +305,9 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   sourceNotes.push(...source.querySelectorAll('p:not([data-noise-info])'));
   const displayNoise=()=>{source.querySelector('[data-noise-output="clock"]').textContent=`${noiseClock.value} · Shift ${Number(noiseClock.value)>>2} / Step ${Number(noiseClock.value)&3}`;};
   let lastNoise=readNoise(),noisePending=0;
-  async function changeNoise() {
+  async function changeNoise(event) {
     const revision=++noisePending;
-    try {await invoke('setInstrumentNoise',[readNoise({enabled:sourceSelect.value==='noise',clock:Number(noiseClock.value)})]);}
+    try {await invoke('setInstrumentNoise',[readNoise({enabled:sourceSelect.value==='noise',clock:Number(noiseClock.value)}),event?.target?[event.target===sourceSelect?'enabled':'clock']:undefined]);}
     catch(error) {
       if(revision===noisePending){sourceSelect.value=lastNoise.enabled?'noise':'sample';noiseClock.value=String(lastNoise.clock);displayNoise();}
       options.onError?.(error);
@@ -334,11 +337,11 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     pmon.querySelector('[data-pmon-output="decayMs"]').textContent = Number(controls.decayMs.value) ? `≈ ${controls.decayMs.value} ms` : 'Hold';
   };
   let pmonPending = 0, lastPmon=readPmon();
-  async function changePmon() {
+  async function changePmon(event) {
     const revision = ++pmonPending;
     try {
       const value = readPmon({enabled:controls.enabled.checked,waveform:controls.waveform.value,ratio:Number(controls.ratio.value),depth:Number(controls.depth.value),decayMs:Number(controls.decayMs.value)});
-      await invoke('setInstrumentPmon',[value]);
+      await invoke('setInstrumentPmon',[value,Array.isArray(event)?event:event?.target?.dataset.pmon?[event.target.dataset.pmon]:undefined]);
     } catch(error) {
       if (revision === pmonPending) for(const [key,node] of Object.entries(controls)) {
         if(key==='enabled')node.checked=lastPmon.enabled;else node.value=String(lastPmon[key]);
@@ -350,7 +353,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     node.addEventListener('input',displayPmon);
     node.addEventListener('change',changePmon);
   }
-  for (const button of pmon.querySelectorAll('[data-pmon-ratio]')) button.addEventListener('click',() => {controls.ratio.value=button.dataset.pmonRatio; void changePmon();});
+  for (const button of pmon.querySelectorAll('[data-pmon-ratio]')) button.addEventListener('click',() => {controls.ratio.value=button.dataset.pmonRatio; void changePmon(['ratio']);});
   let activeSection = 'pcm', visible = true;
   displayMorph();
   return {...panel, setSection(name) {
@@ -395,6 +398,8 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     displayNoise();
     syncPcmEditor();
     const settings=readPmon(state.pmon); lastPmon=settings;
+    controls.enabled.disabled=state.codeEditChannel===0;
+    controls.enabled.title=state.codeEditChannel===0?'CH1 has no preceding physical voice for hardware PMON. Choose CH2–24.':'';
     for (const [key,node] of Object.entries(controls)) {
       if (node === root.ownerDocument.activeElement) continue;
       if (key === 'enabled') node.checked=settings.enabled; else node.value=String(settings[key]);

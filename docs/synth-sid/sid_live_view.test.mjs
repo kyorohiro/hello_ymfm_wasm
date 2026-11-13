@@ -242,12 +242,12 @@ test('Code observations use the same decoded hardware state without song-capture
   assert.equal(f.field('frequencyRegister').dataset.value,'7000');assert.equal(f.field('envelope').dataset.value,'123');
   const importRow=walk(f.root).find(node=>node.children.includes(f.field('import')));
   assert.equal(importRow.hidden,true,'Code does not offer song capture as a way to replace the saved patch');
-  assert.match(f.status(),/Live.*Code.*saved sound is unchanged/);
+  assert.match(f.status(),/Live.*selected Code CH.*other channels keep running/);
   assert.doesNotMatch(f.status(),/song|Previous song|Capture|Resume/);
   assert.equal(f.root.dataset.liveSourceName,'');assert.equal(f.root.dataset.liveSourceSubtune,'');
   const heading=walk(f.root).find(node=>node.className==='sid-live-heading');assert.match(heading.textContent,/^Code · Live CH 1/);
   const help=walk(f.root).find(node=>node.className==='sid-live-help');
-  assert.match(help.children[1].textContent,/Read-only Code observations.*20 updates\/s.*Fast writes/);
+  assert.match(help.children[1].textContent,/Code observations.*20 updates\/s.*Fast writes/);
   assert.deepEqual(raw,edited,'rendering does not alter the observation');assert.notDeepEqual(raw,before,'the test changed actual hardware values');
 });
 

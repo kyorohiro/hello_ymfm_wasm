@@ -4,7 +4,7 @@ Open **Code** below the instrument editor. The first visit creates `/index.js` o
 
 - **Run** starts a fresh session.
 - **Apply** updates the source while retaining `context`, prepared resources and named live loops/effects.
-- **Stop** cancels loops and pending waits immediately, fades Code output over 8 ms, then releases notes and effects and clears the live session. This is a software output fade. Keyboard mode also stops Code.
+- **Stop** cancels loops and pending waits immediately, fades Code output over 8 ms, then releases notes and effects and clears the live session. This is a software output fade. Keyboard / Code switches only the input view; the same loops, context and FX keep running. The shared Run / Apply / Stop row stays visible with the keyboard.
 
 `context` is live memory, not Cassette data. Save source and local data files to keep a performance. Monaco loads when Code is opened; the plain-text editor and execution remain available if the editor service is unavailable.
 
@@ -15,7 +15,7 @@ Replacing sample RAM can end a held PCM note, so trigger the next note from
 the continuing loop. Project replacement and reference-song playback still
 stop Code before taking ownership of the chips.
 
-Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout and stops Code. Maximized layout is temporary and is not restored after a reload.
+Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout while Code keeps playing. Maximized layout is temporary and is not restored after a reload.
 
 Open the **Mixer** tab after 32X PWM for shared YM2612, Sega PSG, Mega CD PCM and 32X PWM volumes and channel **On / Off**. All 20 channel switches are available before loading a VGM and apply to live Keyboard, Code and VGM output. These are software output controls, applied once before Master; they stay in this session rather than the Cassette. Live highlight and Seek cache remain VGM options. The Mixer button in maximized Code restores the view and opens this tab without stopping Code.
 
@@ -116,4 +116,4 @@ The effect runs in the audio processor. Pass its adjustable values through its `
 
 Use `await import("./helper.js")` for local modules, and `await file("./data.json", {type:"json"})` for local data. `file()` also supports text (default) and `arrayBuffer`. Paths are relative to the current file, as in Playground. Entry code supports top-level `await`; it is evaluated as a performance script rather than a static ES module.
 
-This first integration uses Playground's shared Main execution components. The audio processors and PWM reservations still run on the audio clock; JavaScript loops follow the browser's Main-thread scheduling. Worker execution is a separate extension. Keyboard recording/Looper and Code have separate ownership, and starting reference VGM playback stops Code.
+This first integration uses Playground's shared Main execution components. The audio processors and PWM reservations still run on the audio clock; JavaScript loops follow the browser's Main-thread scheduling. Worker execution is a separate extension. Keyboard can play alongside Code on the same physical channels. The most recent Key On owns a channel: an older Code Note Off or keyboard key-up cannot silence its newer owner, and no old note is automatically resumed. Parameters alone do not claim a gate; raw register writes and explicit allNotesOff remain physical controls. Blur releases keyboard-owned notes without stopping Code. Looper / Event Rec require Code to be stopped. Starting reference VGM playback stops Code.
