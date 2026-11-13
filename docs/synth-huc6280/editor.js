@@ -7,7 +7,7 @@ import {decodeDdaData, MAX_AUDIO_FILE_BYTES} from './dda_pcm.js';
 export function createEditor({root, onChange = () => {}, onError = () => {},
   onLoadAudio = async () => {throw new Error('Audio loading is not connected');}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
-  const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
+  const cleanups = [], fields = new Map(), pointerControls = new WeakSet(), parameterDrags=new Set();
   let preset = createDefaultPreset(), disposed = false, stroke = null, target = 'main';
   let importRate = 11025, loadRequest = 0, loadController = null;
   let ddaPreviewData = null, ddaPreview = null, ddaDrawn = null;
@@ -148,6 +148,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if (disabled || event.button !== 0) return;
       event.preventDefault(); doc.activeElement?.blur();
       drag = {id: event.pointerId, x: event.clientX, value: get(preset)};
+      parameterDrags.add(output);
       output.setPointerCapture(event.pointerId); output.classList.add('is-dragging');
     });
     listen(output, 'pointermove', event => {
@@ -156,6 +157,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     function endDrag(event) {
       if (!drag || event?.pointerId !== undefined && event.pointerId !== drag.id) return;
       const pointer = drag.id; drag = null; output.classList.remove('is-dragging');
+      parameterDrags.delete(output);
       if (output.hasPointerCapture?.(pointer)) output.releasePointerCapture(pointer);
     }
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) listen(output, type, endDrag);
@@ -464,6 +466,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   }
   render();
   return {
+    isInteracting:()=>Boolean(stroke||parameterDrags.size),
     update(value) {
       if (disposed) return;
       const next = readPreset(value);

@@ -12,6 +12,13 @@ on:
       - 'docs/js/vgm_file.js'
       - 'docs/generated/huc6280*'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
+      - 'docs/playground/playground_monaco*'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'docs/js/playground_code_runtime.js'
+      - 'docs/js/native*fx*'
+      - 'tetorica_src/native/audio_effect/**'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/huc6280*'
@@ -34,6 +41,11 @@ on:
       - 'docs/js/**'
       - 'docs/generated/**'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
+      - 'docs/playground/playground_monaco*'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'tetorica_src/native/audio_effect/**'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
@@ -63,6 +75,7 @@ jobs:
           sh scripts/package_itch_huc6280_synth.sh ci
           python3 -m zipfile -e release/tetorica_huc6280_synth_ci_itch.zip release/huc6280-synth-browser
           node scripts/check_huc6280_synth_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-browser.json --screenshots release/huc6280-synth-images
+          node scripts/check_huc6280_synth_code_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-code-browser.json --screenshots release/huc6280-synth-code-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -71,4 +84,6 @@ jobs:
             release/tetorica_huc6280_synth_ci_itch.zip
             release/huc6280-synth-browser.json
             release/huc6280-synth-images/
+            release/huc6280-synth-code-browser.json
+            release/huc6280-synth-code-images/
           if-no-files-found: ignore

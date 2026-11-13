@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
+import {readPreset} from './preset.js';
+import {readHuc6280CodeEdit} from './code_parameter_edit.js';
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop']);
+const COMMANDS = new Set(['read','observeCode','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('HuC6280 Master must be from 0 to 3.8');
@@ -20,7 +23,9 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
   const controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, master = null, disposed = false, closing = null;
+  let node = null, balance = null, codeFade=null, master = null, disposed = false, closing = null;
+  let codeGeneration=0,codeOwner=null;
+  const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
   let acceptedDdaData = '';
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
@@ -39,6 +44,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   function dispose() {
     if (closing) return closing;
     disposed = true;
+    invalidateCode();
     acceptedDdaData = '';
     clearTimeout(startupTimer);
     controller.abort();
@@ -53,6 +59,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       node.port.close();
     }
     balance?.disconnect();
+    codeFade?.disconnect();
     master?.disconnect();
     closing = (async () => { if (context.state !== 'closed') await context.close(); })();
     return closing;
@@ -82,7 +89,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
         if (!response.ok) throw new Error(`HuC6280 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?v=wave-held-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=huc-code-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();
@@ -116,18 +123,21 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     assertOpen();
     clearTimeout(startupTimer);
     balance = context.createGain(); balance.gain.value = HUC6280_SYNTH_BALANCE;
+    codeFade=context.createGain();codeFade.gain.value=1;
     master = context.createGain(); master.gain.value = volume;
-    node.connect(balance); balance.connect(master); master.connect(context.destination);
+    node.connect(balance); balance.connect(codeFade);codeFade.connect(master); master.connect(context.destination);
 
     async function command(method, args = []) {
       assertOpen();
       if (!COMMANDS.has(method)) throw new Error(`Unknown HuC6280 command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('HuC6280 command arguments must be an array');
-      const changesPreset = method === 'setPreset' || method === 'loadPreset';
-      const presetData = changesPreset && typeof args[0]?.dda?.data === 'string' ? args[0].dda.data : undefined;
+      if(method==='stop'){if(args.length)throw TypeError('HuC6280 Stop takes no arguments');invalidateCode();}
+      const changesPreset = ['setPreset','loadPreset','applyCodePreset','applyCodeEdit'].includes(method);
+      const candidate=method==='applyCodePreset'?args[1]?.dda?.data:method==='applyCodeEdit'?args[1]?.changes?.['dda.data']:args[0]?.dda?.data;
+      const presetData = changesPreset && typeof candidate === 'string' ? candidate : undefined;
       // Concurrent preset mutations carry their own data, preserving FIFO
       // semantics when another edit may replace the remote reference first.
-      const ddaDataUnchanged = presetData !== undefined && presetData !== '' && presetData === acceptedDdaData &&
+      const ddaDataUnchanged = ['setPreset','loadPreset'].includes(method) && presetData !== undefined && presetData !== '' && presetData === acceptedDdaData &&
         ![...pending.values()].some(request => request.changesPreset);
       if (ddaDataUnchanged) {
         const {data:_data, ...dda} = args[0].dda;
@@ -139,10 +149,38 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
         pending.set(id, {resolve, reject, timer, changesPreset, presetData});
         try { node.port.postMessage({id, method, args, ...(ddaDataUnchanged ? {ddaDataUnchanged:true} : {})}); }
         catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
-      });
+      }).then(value=>{if(method==='loadPreset'||method==='setPreset')invalidateCode();return value;});
+    }
+    function getHuc6280Client(){
+      assertOpen();if(codeOwner?.closed)return codeOwner.ending.then(getHuc6280Client);if(codeOwner)return codeOwner.promise;
+      const owner=codeOwner={generation:codeGeneration,promise:null,closed:false,ending:null,releasedGeneration:null};
+      const current=()=>!disposed&&!fatalError&&codeOwner===owner&&owner.generation===codeGeneration&&!owner.closed;
+      const check=()=>{assertOpen();if(!current())throw huc6280CodeCancelled();};
+      owner.promise=command('beginCode').then(metadata=>{
+        check();owner.session=metadata.session;
+        return createHuc6280CodeClient({metadata,isCurrent:current,
+          ownsOutput:()=>current()||!disposed&&!fatalError&&codeOwner===null&&owner.releasedGeneration===codeGeneration,
+          invoke(method,args){check();return command('code',[metadata.session,method,args]);},
+          dispose(){check();owner.closed=true;owner.ending=command('code',[metadata.session,'dispose',[]]).then(value=>{if(codeOwner===owner){invalidateCode();owner.releasedGeneration=codeGeneration;}return value;},error=>{if(codeOwner===owner)invalidateCode();throw error;});return owner.ending;},
+        });
+      }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
+      return owner.promise;
+    }
+    async function applyCodePreset(value,{isCurrent=()=>true,replace=true}={}){
+      assertOpen();const next=readPreset(value),owner=codeOwner;
+      if(typeof isCurrent!=='function'||typeof replace!=='boolean')throw TypeError('HuC6280 preset requires ownership and replacement options');
+      const check=()=>{assertOpen();if(!owner||owner!==codeOwner||owner.closed||owner.generation!==codeGeneration||!isCurrent())throw huc6280CodeCancelled();};
+      check();await owner.promise;check();const result=await command('applyCodePreset',[owner.session,next,{replace}]);check();return result;
+    }
+    async function applyCodeEdit(value,{isCurrent=()=>true}={}){
+      assertOpen();const edit=readHuc6280CodeEdit(value),owner=codeOwner;
+      if(typeof isCurrent!=='function')throw TypeError('HuC6280 edit requires an ownership callback');
+      const check=()=>{assertOpen();if(!owner||owner!==codeOwner||owner.closed||owner.generation!==codeGeneration||!isCurrent())throw huc6280CodeCancelled();};
+      check();await owner.promise;check();const result=await command('applyCodeEdit',[owner.session,edit]);check();return result;
     }
     return {
-      context, outputNode:master, command, read:() => command('read'),
+      context, outputNode:master,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),getHuc6280Client,applyCodePreset,applyCodeEdit,
+      get codeSession(){return codeOwner?.session??null;},
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); }

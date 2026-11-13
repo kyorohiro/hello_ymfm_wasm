@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "HuC6280 Synth Keyboard / Code, shared-chip manual controls and Files",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Keyboard and Code use one existing physical six-channel HuC6280 and one AudioContext, with the unchanged balance and final Master / desktop output.",
+    "Awaitable useSoundChip(\"huc6280\") supports Wave, Noise on CH5/CH6, fixed CH2-to-CH1 hardware LFO, register writes and existing software-fed DDA. noteOn/noteOff use the authored Software Envelope; keyOn/keyOff are raw gates.",
+    "Run starts fresh; Apply retains context, named loops, livePrepare and the prepared software FX rack. Code continues through Keyboard view, manual control/wave edits and instrument selection.",
+    "Physical channel readback is bounded to 20 Hz and can be disabled. Sparse manual edits retain only touched authored fields; raw Code writes do not overwrite the authored preset. Large PCM stays out of observation messages.",
+    "Latest Code/hand ownership protects gates and Pitch from old releases. Stop fades actual output to silence, retires stale clients, releases notes and restores authored settings.",
+    "Files supports original JSON presets, text, binary assets, context-menu actions, Cassette roundtrip and reconnect-safe local recovery. Restored Code never executes automatically. Direct audio/preset input remains 32 MiB; whole expanded Cassette including metadata is limited to 16 MiB.",
+    "Monaco declarations expose six channels and shared runtime helpers without independent chip factories or global play. Software note/state definitions navigate to the authored host implementation; hardware methods navigate to the existing chip source.",
+    "Standalone packaging preserves byte-identical readable frontend modules, source inputs, type resources, software FX binary/C rebuild sources, authenticated native core sources and licenses."
+  ],
+  "node": {
+    "passed": 284,
+    "failed": 0,
+    "suites": [
+      {
+        "passed": 254,
+        "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs docs/playground/playground_monaco_definitions.test.mjs docs/playground/playground_monaco_assets.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+        "receipt": {
+          "path": "build/verification/huc-code-20261113/node-tests-c.log",
+          "bytes": 27025,
+          "sha256": "bf893f64552dc36e9ffd751fb2992d1775eade6fb380e3b1d7803fe323a9e39a"
+        }
+      },
+      {
+        "passed": 30,
+        "command": "node --test docs/playground/playground_monaco_models.test.mjs docs/playground/playground_monaco_completion.test.mjs",
+        "receipt": {
+          "path": "build/verification/huc-code-20261113/monaco-tests-c.log",
+          "bytes": 2936,
+          "sha256": "2e9ad6545280bc3b6662ae9b063118a6b5c6127ee950eb84961905af8a172db6"
+        }
+      }
+    ]
+  },
+  "browsers": {
+    "suites": 2,
+    "runs": 4,
+    "checks": 76,
+    "results": [
+      {
+        "suite": "Code and Files",
+        "receipt": {
+          "path": "build/verification/huc-code-20261113/browser-c.json",
+          "bytes": 18635,
+          "sha256": "5c11bb8e7b065bca5b190131c8d99a4ba0e068267287cabbed38c9c2fb510fd7"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "Existing keyboard, import and DDA",
+        "receipt": {
+          "path": "build/verification/huc-code-20261113/browser-legacy-c.json",
+          "bytes": 7834,
+          "sha256": "e61436627d633e118048b71799830199b98853fd40f2f22e244e54ea6c4b0baa"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "monaco": "Browser checks intentionally block the external Monaco CDN and verify the fallback editor; declarations, strict TypeScript and source navigation are covered in Node.",
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsVisuallyInspected": true
+  },
+  "package": {
+    "zip": "release/tetorica_huc6280_synth_huc-code-20261113c_itch.zip",
+    "stage": "release/itch_huc6280_synth_huc-code-20261113c-b32Kaz",
+    "files": 127,
+    "bytes": 1698921,
+    "sha256": "140683d69494805ec9e74fca1ae8ffbfd4ec0d6f5898510b73ce79cbf6e53182",
+    "integrityReceipt": {
+      "path": "build/verification/huc-code-20261113/zip-integrity-c.json",
+      "bytes": 165,
+      "sha256": "63b38bb1d005edd4acabb6f471ad0561e6b3a7141edcc6db071c1efcedf3ec03"
+    },
+    "sourceParityReceipt": {
+      "path": "build/verification/huc-code-20261113/source-parity-c.json",
+      "bytes": 229,
+      "sha256": "f4b962c9489d33bce729ca57658b5c91570d5ed2057bf66cee9f813287cdff78"
+    },
+    "nativeWasmSha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+  },
+  "ci": "The HuC6280 workflow now runs the new muted Code checker against the extracted standalone ZIP in addition to the existing browser checks. GitHub Actions has not been dispatched in this task.",
+  "scope": "No physical listening, game assets, new VGM song playback, public npm API change, native DSP change, commit, push, tag or publication. DDA asset replacement is available in Synth view; physical channels edit playback parameters on the current asset. Manual browser listening and desktop-specific release verification remain optional follow-up checks."
+}

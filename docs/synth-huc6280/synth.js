@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=wave-held-1';
-import {createEditor} from './editor.js?v=wave-held-1';
+import {createAudio} from './audio.js?v=huc-code-1';
+import {createEditor} from './editor.js?v=huc-code-1';
+import {setupHuc6280CodeHost} from './code_host.js?v=huc-code-1';
+import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-code-1';
+import {createHuc6280CodeEdit} from './code_parameter_edit.js?v=huc-code-1';
+import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createVgmLibrary} from './vgm_library.js?v=wave-held-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
 import {prepareDdaAudio} from './audio_import.js';
@@ -18,7 +22,7 @@ const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
-let vgmLibrary = null;
+let vgmLibrary = null, codeHost = null, codeLive = null, codeWasRunning=false, channelTarget = 0, displayedPreset = null, liveSignature = null;
 const notes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -36,7 +40,7 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0);
+  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning()));
   updateCapacity();
 }
 function readVoices(state) {
@@ -46,6 +50,7 @@ function readVoices(state) {
   updateCapacity();
 }
 function updateCapacity() {
+  if(codeHost?.isRunning()){ $('voiceCapacity').textContent=channelTarget==='synth'?`Code continues · common instrument · ${notes.size} hand keys`:`Code continues · CH ${channelTarget+1} · ${notes.size} hand keys`;return;}
   const description = preset.source === 'noise' ? 'Noise · CH5 / CH6 · keys trigger the same noise'
     : preset.source === 'dda' ? 'DDA PCM · CH1–CH6 · software sample feed'
       : preset.lfo.enabled ? 'Wave + Hardware LFO · CH2 → CH1' : 'Wave · CH1–CH6';
@@ -53,19 +58,19 @@ function updateCapacity() {
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held${recorded ? ' · C4 = recorded pitch' : ''}`;
 }
 function updatePresetUi() {
-  editor.update(preset);
+  renderCodeLive();
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) {
     if (preset.source === 'dda') {$('codeOutput').hidden=true;$('codeOutput').value='';}
     else $('codeOutput').value = presetToCode(preset);
   }
   $('copyCode').textContent = preset.source === 'dda' ? 'Copy DDA preset JS' : 'Copy JavaScript';
-  for (const [wheel] of pitchWheels) wheel.disabled = preset.source === 'noise';
   updateCapacity();
   if (!layout || keyboardSource !== keyboardMode()) renderKeyboard();
   else updateKeys();
 }
 function audioFailed(error) {
+  void codeHost?.stop();
   epoch++;
   notes.clear(); updateKeys();
   const failed = audio; audio = null;
@@ -103,35 +108,45 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
+function applyPreset(value, {load = false, message, fromVgm = false, isCurrent=()=>true} = {}) {
   const next = readPreset(value);
+  if(disposed||!isCurrent())return Promise.resolve(false);
   if (!fromVgm) vgmLibrary?.clearSelection();
-  const previous = preset;
+  const previous = preset, engineAtSelection=audio, keepCode=Boolean(audio&&codeHost?.isRunning());
+  let session=audio?.codeSession;
   const waveOnly=!load&&isWaveOnlyEdit(previous,next);
   const replacesVoices = load || !waveOnly&&(previous.source !== next.source || previous.lfo.enabled !== next.lfo.enabled
     || previous.lfo.mode !== next.lfo.mode || previous.lfo.output.enabled !== next.lfo.output.enabled
     || previous.envelope.enabled !== next.envelope.enabled || JSON.stringify(previous.wave) !== JSON.stringify(next.wave)
     || JSON.stringify(previous.lfo.wave) !== JSON.stringify(next.lfo.wave) || previous.dda.data !== next.dda.data);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
-  preset = next; revision++;
+  const performanceEpoch=epoch;
+  if(!keepCode)preset = next; revision++;
   const editRevision = revision;
   if (load || previous.source !== next.source) setPitchUi(0);
-  updatePresetUi();
-  if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return Promise.resolve();}
+  if(!keepCode){updatePresetUi();codeHost?.markSoundDirty();}
+  if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return Promise.resolve(true);}
   return enqueue(async () => {
     const engine = audio;
-    if (!engine) return;
+    if (!engine) return false;
     try {
-      await engine.command(load ? 'loadPreset' : 'setPreset', [next]);
+      const current=()=>!disposed&&isCurrent()&&audio===engine&&revision===editRevision&&(!keepCode||epoch===performanceEpoch&&codeHost?.isRunning()&&engine===engineAtSelection&&(session==null||engine.codeSession===session));
+      if(!current())return false;
+      if(keepCode&&session==null){await engine.getHuc6280Client();if(!current())return false;session=engine.codeSession;}
+      if(keepCode)await engine.applyCodePreset(next,{replace:load,isCurrent:current});
+      else await engine.command(load ? 'loadPreset' : 'setPreset', [next]);
+      if(!current())return false;
       if (load || previous.source !== next.source) await engine.command('setPitch', [0]);
       const state = await engine.read();
-      if (audio !== engine) return;
+      if (!current()) return false;
+      if(keepCode&&current()){preset=readPreset(state.preset);updatePresetUi();codeHost.markSoundDirty();}
       readVoices(state);
       visualizer.wake();
       if (revision === editRevision) status(message ?? (waveOnly
         ? 'Wave updated · held notes and Software envelope continue.' : replacesVoices
         ? 'Wave or routing updated · previous notes stopped. Play the keyboard.'
         : 'Instrument updated · volume, pan, Noise clock and LFO rate apply live.'));
+      return true;
     } catch (error) {
       if (audio === engine && revision === editRevision) {
         preset = (await engine.read()).preset;
@@ -142,6 +157,7 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   });
 }
 async function loadDdaAudio(file,{sampleRate,signal,onCommit}) {
+  if(codeHost?.isRunning()&&channelTarget!=='synth')throw Error('Choose Synth to load the shared DDA sample; channel controls keep using the current sample.');
   const token=++importSequence, draftRevision=revision;
   const prepared=await prepareDdaAudio(file,{sampleRate,signal});
   if (signal?.aborted) throw new DOMException('Audio import cancelled','AbortError');
@@ -154,7 +170,7 @@ async function loadDdaAudio(file,{sampleRate,signal,onCommit}) {
   await applyPreset(next,{load:true,message:`Loaded ${prepared.name} · DDA PCM · play the keyboard.`});
   return `Loaded ${prepared.name} · 5-bit PCM at ${prepared.sampleRate.toLocaleString()} Hz.`;
 }
-const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);},
+const editor = createEditor({root: $('voiceEditor'), onChange: value => {void editVisiblePreset(value).catch(report);},
   onError:report,onLoadAudio:loadDdaAudio});
 vgmLibrary = createVgmLibrary({root:$('vgmImport'), onSelect:value => applyPreset(value, {
   load:true, fromVgm:true, message:`${value.name} loaded from VGM · Software Envelope off · play the keyboard.`,
@@ -202,20 +218,25 @@ function renderKeyboard() {
   updateKeys();
 }
 function canPlay(midi) {
+  const sound=codeHost?.isRunning()&&channelTarget!=='synth'?(displayedPreset??preset):preset;
   const hz = 440*2**((midi-69)/12);
-  if(preset.source==='dda') return midi>=0&&midi<=127&&Boolean(preset.dda.data);
-  return midi>=0 && midi<=127 && (preset.source==='noise' || preset.lfo.enabled && preset.lfo.mode==='recorded' || hz >= 3579545 / (32 * 4096));
+  if(sound.source==='dda') return midi>=0&&midi<=127&&Boolean(sound.dda.data);
+  return midi>=0 && midi<=127 && (sound.source==='noise' || sound.lfo.enabled && sound.lfo.mode==='recorded' || hz >= 3579545 / (32 * 4096));
 }
 function press(source, entry) {
-  if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
-  const note = {id:`huc6280-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
+  const phase=codeHost?.getState?.();
+  if (switchingAudioOutput||phase?.busy||phase?.stopping||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi)) return;
+  const codeAtPress=Boolean(codeHost?.isRunning()),engineAtPress=audio,sessionAtPress=audio?.codeSession;
+  const note = {id:`huc6280-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false,channel:codeAtPress&&channelTarget!=='synth'?channelTarget:undefined};
+  const current=()=>!switchingAudioOutput&&notes.get(source)===note&&note.epoch===epoch&&
+    (codeAtPress?codeHost?.isRunning()&&audio===engineAtPress&&audio?.codeSession===sessionAtPress:!codeHost?.isRunning());
   notes.set(source,note); updateKeys();
   void enqueue(async () => {
-    if (switchingAudioOutput || notes.get(source)!==note || note.epoch!==epoch) return;
+    if (!current()) return;
     const engine = await ensureAudio();
-    if (switchingAudioOutput||notes.get(source)!==note||note.epoch!==epoch) return;
+    if (!current()) return;
     note.started = true;
-    const result = await engine.command('noteOn',[note.id,note.midi]);
+    const result = await engine.command('noteOn',[note.id,note.midi,note.channel]);
     if (audio!==engine||note.epoch!==epoch) return;
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
@@ -234,10 +255,10 @@ function release(source) {
 }
 function stopNotes(message) {
   epoch++; notes.clear(); updateKeys();
-  return enqueue(async()=>{if(audio) await audio.command('stop'); visualizer.stop();if(message) status(message);});
+  return enqueue(async()=>{if(audio) await audio.command(codeHost?.isRunning()?'releaseKeyboard':'stop'); if(!codeHost?.isRunning())visualizer.stop();if(message) status(message);});
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();stopNotes('Stopped · instrument retained. Play to resume.');});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void(async()=>{await codeHost?.stop();setPitchUi(0);await stopNotes('Stopped · instrument retained. Play to resume.');})().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
@@ -246,7 +267,7 @@ function editing(target) {
   return control && !control.matches?.('input[type="range"],input[type="checkbox"],input[type="radio"]');
 }
 window.addEventListener('keydown',event=>{
-  if(event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
+  if(codeHost?.isCodeMode()||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);
   if(!entry) return;
   event.preventDefault(); if(!event.repeat) press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
@@ -315,8 +336,10 @@ $('presetFileInput').addEventListener('change',async()=>{
     const next=readPreset(JSON.parse(await file.text()));
     if(disposed||token!==importSequence||draftRevision!==revision) return;
     await applyPreset(next,{load:true,message:'Preset loaded · play the keyboard.'});
+    if(codeHost&&file.size<16*1024*1024){try{await codeHost.files.importFiles([file],{announce:false,isCurrent:()=>!disposed&&token===importSequence});}catch(error){status(`Instrument loaded. Files copy unavailable: ${error.message}`,true);}}
   }catch(error){report(error);}
 });
+$('saveSoundToFiles').addEventListener('click',()=>{void codeHost.files.saveSound().catch(report);});
 $('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();void applyPreset(createDefaultPreset(),{load:true,message:'Instrument reset · Sine ready.'}).catch(report);});
 $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();
@@ -328,9 +351,46 @@ $('copyCode').addEventListener('click',async()=>{
   }catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
+  if(event.persisted){stopNotes();void codeHost?.stop();return;}
+  disposed=true;epoch++;notes.clear();codeLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.resolve(codeHost?.dispose()).catch(()=>{}).finally(()=>closing?.dispose()).catch(()=>{});
 });
+function renderCodeLive() {
+  const running=Boolean(codeHost?.isRunning()),view=codeLive?.read(),physical=running&&channelTarget!=='synth';
+  $('hucCodeLiveTools').hidden=!running;
+  $('hucChannelSelect').value=String(channelTarget);$('hucLiveEnabled').checked=view?.liveEnabled??true;
+  $('instrumentName').readOnly=physical;$('saveSoundToFiles').disabled=physical;
+  $('loadDdaAudio').disabled=physical;$('ddaAudioFileInput').disabled=physical;
+  $('loadDdaAudio').title=physical?'Choose Synth to replace the shared DDA sample.':'Load audio for the authored instrument.';
+  let value=preset,readout='';
+  if(physical&&view?.liveState){try{const shown=huc6280CodeLiveView(view.liveState,channelTarget,preset);value=shown.preset;readout=shown.readout;}catch(error){readout=error.message;}}
+  const waiting=physical&&!view?.liveState;
+  $('voiceEditor').inert=Boolean(waiting);$('voiceEditor').dataset.readonly=String(Boolean(waiting));
+  $('voiceEditor').setAttribute('aria-label',physical?`Edit Code CH ${channelTarget+1}`:'HuC6280 instrument editor');
+  const {data:_data,...dda}=value.dda;
+  const signature=JSON.stringify({...value,dda})+':'+revision+':'+(physical?channelTarget:'synth');
+  if(signature!==liveSignature&&!editor.isInteracting()) {editor.update(value);displayedPreset=readPreset(value);liveSignature=signature;}
+  for(const [wheel]of pitchWheels)wheel.disabled=value.source==='noise';
+  if(layout)for(const button of keyboard.querySelectorAll('.key')){const entry=layout.entries.find(item=>item.key===button.dataset.key);if(entry)button.disabled=!canPlay(entry.midi+octave*12);}
+  $('hucChannelStatus').textContent=physical?`Code · CH ${channelTarget+1} · edit and play this channel${view?.liveEnabled?'':' · Auto update Off'}`:'Code continues · edit your common keyboard instrument';
+  $('hucChannelReadout').textContent=view?.liveError?view.liveMessage:waiting?'Waiting for channel settings…':readout;
+  updateKeys();
+}
+async function editVisiblePreset(value) {
+  const next=readPreset(value);
+  if(!codeHost?.isRunning()||channelTarget==='synth')return applyPreset(next);
+  const edit=createHuc6280CodeEdit(displayedPreset??preset,next,channelTarget);if(!edit)return;
+  const engine=audio,session=engine?.codeSession,token=epoch;
+  const current=()=>!disposed&&audio===engine&&engine?.codeSession===session&&token===epoch&&codeHost?.isRunning();
+  try{await enqueue(async()=>{if(!current())return;const state=await engine.applyCodeEdit(edit,{isCurrent:current});if(!current())return;preset=readPreset(state.preset);revision++;codeHost.markSoundDirty();liveSignature=null;await codeLive.refresh();visualizer.wake();});}
+  catch(error){liveSignature=null;renderCodeLive();throw error;}
+}
+codeHost=setupHuc6280CodeHost({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
+  getSettings:()=>readPreset(preset),applySettings:(value,options={})=>applyPreset(value,{...options,load:true}),stopKeyboard:()=>stopNotes(),
+  onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){epoch++;notes.clear();codeWasRunning=running;updateKeys();}codeLive?.sync();renderCodeLive();visualizer.wake();},setStatus:status});
+codeLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isRunning()),onUpdate:()=>renderCodeLive()});
+$('hucChannelSelect').addEventListener('change',()=>{const value=$('hucChannelSelect').value;void(async()=>{await stopNotes();channelTarget=value==='synth'?'synth':Number(value);if(channelTarget!=='synth')codeLive.setVoice(channelTarget);liveSignature=null;renderCodeLive();if(channelTarget!=='synth')await codeLive.refresh();})().catch(report);$('hucChannelSelect').blur();});
+$('hucLiveEnabled').addEventListener('change',()=>{codeLive.setEnabled($('hucLiveEnabled').checked);liveSignature=null;renderCodeLive();if(!codeLive.read().liveState)void codeLive.refresh().catch(report);});
+setupSynthMenu({document,window});
 updatePresetUi();setVolume();setPitchUi(0);
 
 // Desktop adapters change only the final Master bus. The HuC6280 PSG, allocator
@@ -343,7 +403,7 @@ if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
-      await stopNotes();
+      await codeHost?.stop();await stopNotes();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});

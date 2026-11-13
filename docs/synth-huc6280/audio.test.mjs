@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
+import {readPreset} from './preset.js';
+import {readHuc6280CodeEdit} from './code_parameter_edit.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -58,9 +61,9 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     connect(value) { this.connections.push(value); }
     disconnect() { this.disconnected = true; }
   }
-  const transformed = source.replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
+  const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,DOMException,structuredClone,createHuc6280CodeClient,huc6280CodeCancelled,readPreset,readHuc6280CodeEdit,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
@@ -74,10 +77,10 @@ test('HuC6280 audio is lazy and routes one fixed balance before the user Master 
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
-  const [balance, master] = f.context.gains;
-  assert.equal(balance.gain.value,1); assert.equal(master.gain.value,.7);
+  const [balance, fade, master] = f.context.gains;
+  assert.equal(balance.gain.value,1);assert.equal(fade.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]);assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
@@ -118,12 +121,12 @@ test('concurrent preset mutations carry full PCM so a changed remote reference c
 
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
   const f = fixture(), audio = await f.create({volume:.7});
-  const [balance, master] = f.context.gains, monitor = {}, desktopTap = {};
+  const [balance, fade, master] = f.context.gains, monitor = {}, desktopTap = {};
   master.connect(monitor);
   audio.outputNode.disconnect(audio.context.destination);
   audio.outputNode.connect(desktopTap);
   assert.deepEqual(master.connections,[monitor, desktopTap]);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]);assert.deepEqual(fade.connections,[master]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
   await audio.command('stop'); await audio.command('setPitch',[0]);
   audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);

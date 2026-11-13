@@ -15,6 +15,45 @@ and controls that leave the computer keys available for playing.
 2. Choose **Wave**, **Noise** or **DDA PCM**. Every key plays the selected source.
 3. Draw a waveform, change the controls, then save a preset or copy JavaScript.
 
+## Code and Files
+
+Choose **Code**, then **Run** to play the same physical HuC6280 used by the
+controls above. The starter `index.js` uses `await useSoundChip("huc6280")`,
+`liveLoop`, musical scales and the chip object's methods. **Apply** updates code
+while retaining `context`, named loops and `livePrepare` values. Run starts a
+fresh performance. Switching back to **Keyboard** keeps Code running, so you can
+play keys, edit controls or load another sound during the loop.
+
+The channel selector offers **Synth** and **CH1–CH6** while Code runs. Synth
+edits the authored instrument; a physical channel shows and edits that channel.
+**Auto update** reads the configured wave and sent registers at up to 20 Hz;
+turn it off to reduce readback. This is an observation of software writes, not
+an oscillator-phase measurement. Manual channel edits retain their changed
+fields in the authored instrument. Raw Code register writes do not overwrite
+the saved instrument. **Stop** fades the software output briefly, cancels Code
+and restores the authored settings with all notes released.
+
+`noteOn(channel, note)` / `noteOff(channel)` use this Synth's **Software
+Envelope**; `keyOn(channel)` / `keyOff(channel)` operate the raw hardware gate.
+Noise is available on CH5 / CH6 and does not follow note pitch. Hardware LFO
+still has the fixed CH2 → CH1 route: Code must explicitly set CH2's period when
+it should follow a melody. DDA uses the current shared PCM asset and software
+sample feeding. Choose Synth to replace that asset; physical-channel controls
+can adjust its playback settings. `liveFx` effects run in software after the PSG.
+Completion, type hints and source navigation distinguish these host tools from
+the chip API.
+
+**Files** holds `index.js`, presets, text and binary assets. Selecting a sound
+loads it without stopping Code; selecting JSON while Keyboard is visible keeps
+the Keyboard tab. Right-click a file for duplicate, rename, delete and creation
+actions. Save sound stores a portable preset under `presets/`. The menu imports
+and exports files or a whole Cassette project. Local recovery and project import
+restore editable data without running Code or opening audio. Cassette projects
+are limited to **16 MiB expanded**, including settings and metadata; the existing
+direct audio / preset imports retain their **32 MiB** input limit. A large sound
+can therefore be played and saved separately even if it exceeds the project
+limit.
+
 ## Sounds from VGM
 
 Use **Load VGM / VGZ…** in the collapsible **Sounds from VGM** section.
@@ -93,11 +132,13 @@ key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
 | --- | --- | --- |
 | Wave, LFO off | Six, CH1–CH6 | 32 five-bit samples, volume and left / right balance |
 | Wave, LFO on | One CH1 / CH2 pair | CH2's waveform modulates CH1; optional CH2 output has its own level / balance |
-| Noise | Two, CH5 / CH6 | Shared noise-clock code, volume and left / right balance |
+| Noise | Two, CH5 / CH6 | Per-channel noise-clock code, volume and left / right balance |
 | DDA PCM | Six, CH1–CH6 | Five-bit direct DAC; samples are supplied by software |
 
 Allocation uses available channels in round-robin order and replaces an old
 voice when the pool is full. Releasing a replaced key cannot stop its new owner.
+The common keyboard instrument applies its Noise settings to both noise channels;
+Code and physical-channel edits can set them independently.
 Changing source or the LFO routing can stop held notes; play a new note after
 those changes. Editing only the Main or LFO wave keeps the held keys and the
 software envelope's progress. There is no separate Apply button.
@@ -202,7 +243,8 @@ Master ranges from **0 to 380%**, with an orange bar above 100%.
 Both **Pitch** wheels bend Wave notes by up to two semitones, stay synchronized
 and return to center on release. Noise disables them. **Octave − / +** and the
 shared Guitar / Bass / Ukulele layouts change the visible playing range.
-**Stop all sound**, hiding the page or leaving its window stops held notes.
+Hiding the page or leaving its window releases manual keys while Code continues.
+**Stop all sound** releases held notes and stops Code.
 If the audio engine fails, use **Enable audio** to reconnect.
 
 ## Presets and JavaScript
@@ -231,6 +273,7 @@ CD-DA, song playback and full PC Engine emulation are not included.
 - [npm API catalog](../../packages/fm2612/README.md#api-entry-points): musical helpers and low-level APIs.
 - [Huc6280Synth](../../tetorica_src/runtime/huc6280synth.js) and [Huc6280AudioEngine](../../tetorica_src/runtime/huc6280audioengine.js): authoring and synchronous register / PCM access.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
+- [Code host and starter](code_host.js), [shared-chip client / software FX](code_audio.js), [Live channel view](code_live.js), [types](code_declarations.js), [project format](code_project.js) and [Files](code_files.js).
 - [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js), [direct DAC PCM extraction](vgm_direct_pcm.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
@@ -247,6 +290,7 @@ From the repository root:
 ```sh
 npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
+npm run test:huc6280-synth:code-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -270,6 +314,12 @@ Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
 Software Envelopeはソフト側の音量制御で、実機のADSRではありません。
 プリセット保存・読込とPlayground向けJavaScript出力に対応します。
+Keyboard／Codeを切り替え、同じHuC6280を`useSoundChip("huc6280")`で操作できます。
+Code実行中も鍵盤・つまみ・波形編集・音色の読込を使えます。
+CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込、型補完・実装への移動に対応します。
+Runは新規実行、Applyはcontext等を保持、Stopは短くフェードして編集用設定へ戻します。
+CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲート操作です。
+liveFxやDDAのデータ供給もソフト側の機能です。復元したCodeを勝手に実行することはありません。
 VGM／VGZからWave／Noise、CH1・CH2を組にしたLFO音色、対応する完全なDAC streamや一定間隔の直接DAC write区間のPCMを抽出できます。
 Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
 両周期・速度・深さ・Reset・CH2の出力を保持します。

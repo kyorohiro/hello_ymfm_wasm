@@ -16,7 +16,7 @@ test('HuC6280 ZIP runs original editable modules with standalone deterministic r
   const directory=await mkdtemp(join(tmpdir(),'huc6280-synth-package-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const a=await packageHuc6280Synth({version:'test',releaseDir:join(directory,'a')});
   const b=await packageHuc6280Synth({version:'test',releaseDir:join(directory,'b')});
-  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,3);
+  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
   const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -45,6 +45,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.equal(info.receipt.builder.dependencyAnalyzer.name,'esbuild');
   assert.equal(typeof info.receipt.builder.dependencyAnalyzer.version,'string');
   assert(info.receipt.modules.length>info.receipt.bundles.length);
+  for(const path of ['synth-huc6280/code_host.js','synth-huc6280/code_audio.js','synth-huc6280/code_project.js','synth-huc6280/code_files.js',
+    'synth/synth_code_controls.js','synth/synth_project_store.js','synth/synth_draft_store.js',
+    'playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-huc6280.d.ts','playground/tetorica-shell.d.ts',
+    'js/native-fx-worklet.js','js/native_audio_effect.wasm','sources/code-effects/scripts/build_native_audio_effect.sh',
+    'sources/code-effects/LICENSE','playground/vendor/fflate-LICENSE','licenses/tetorica-virtual-files/LICENSE'])
+    assert(info.names.includes(path),`${path}: Code, Files, editor and reusable source assets are included`);
+  assert.deepEqual(await readFile(join(a.stage,'js/native_audio_effect.wasm')),await readFile(new URL('../tetorica_src/runtime/generated/effects/gain.wasm',import.meta.url)));
   let staticAssets=0;
   for(const module of info.receipt.modules) {
     assert.equal(module.path,module.sourcePath.slice('docs/'.length));

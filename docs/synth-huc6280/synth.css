@@ -78,6 +78,26 @@ input[type="range"] { accent-color:#458eb8; }
 footer { line-height:1.65; }
 footer p { flex:1 1 600px; }
 footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
+.huc-files-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.huc-files-heading h2 { margin:0; font-size:.78rem; letter-spacing:.15em; }
+.huc-files-toolbar,.huc-files-actions { display:flex; flex-wrap:wrap; gap:5px; }
+.huc-files-toolbar button,.huc-files-actions button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.huc-files-actions { padding-top:9px; margin-top:8px; border-top:1px solid var(--line); }
+.huc-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
+.huc-files-path { display:none; }
+#hucFilesTree { min-height:80px; max-height:55vh; overflow:auto; }
+#hucFilesTree .file-tree { list-style:none; margin:0; padding:0; }
+#hucFilesTree .file-tree .file-tree { padding-left:12px; }
+#hucFilesTree summary { cursor:pointer; font-size:.75rem; padding:5px 2px; overflow-wrap:anywhere; }
+#hucFilesTree .file-tree-root { font-size:.7rem; color:var(--muted); margin:0 0 6px; padding:5px; border-bottom:1px solid var(--line); }
+#hucFilesTree button { display:block; width:100%; text-align:left; min-height:0; height:auto; padding:6px; border:0; border-radius:6px; background:transparent; color:var(--ink); box-shadow:none; font:inherit; font-size:.74rem; line-height:1.4; overflow-wrap:anywhere; }
+#hucFilesTree button[aria-selected="true"],#hucFilesTree button[aria-current="true"] { background:#f2dfce; }
+#hucFilesTree button:hover,#hucFilesTree summary:hover { background:#f1e6dc; }
+.huc-input-tabs > button[aria-selected="true"],.huc-code-workspace .spu-input-tabs > button[aria-selected="true"] { background:#f2e4d7; border-bottom-color:#f2e4d7; color:#87451e; }
+#hucCodeLiveTools[hidden] { display:none; }
+#hucChannelStatus,#hucChannelReadout { margin:7px 0; font-size:.73rem; overflow-wrap:anywhere; }
+#hucChannelSelect,#hucPresetSelect { min-width:0; max-width:100%; }
+@media(max-width:760px) { #hucFilesTree { max-height:240px; } }
 @media(max-width:640px) {
   h1 { font-size:1.68rem; }
   .huc-card > summary { padding:12px 11px; }

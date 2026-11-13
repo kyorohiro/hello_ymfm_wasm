@@ -85,7 +85,7 @@ test('real HuC6280 worklet initializes and renders WASM with no Node or URL glob
     let Constructor;
     globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage:value=>{this.last=value;}};}};
     globalThis.registerProcessor=(name,value)=>{assert.equal(name,'tetorica-huc6280-synth');Constructor=value;};
-    globalThis.sampleRate=48000;globalThis.URL=undefined;globalThis.process=undefined;globalThis.atob=undefined;globalThis.btoa=undefined;
+    globalThis.sampleRate=48000;globalThis.URL=undefined;globalThis.process=undefined;globalThis.atob=undefined;globalThis.btoa=undefined;globalThis.structuredClone=undefined;globalThis.DOMException=undefined;
     await import(${JSON.stringify(new URL('./processor.js',import.meta.url).href)});
     const processor=new Constructor({processorOptions:{wasmBinary}});await processor.ready;
     assert.equal(processor.last.ready,true);
@@ -103,6 +103,15 @@ test('real HuC6280 worklet initializes and renders WASM with no Node or URL glob
     const {data:_data,...dda}=preset.dda;
     processor.receive({id:4,method:'setPreset',args:[{...preset,dda:{...dda,speed:.5}}],ddaDataUnchanged:true});await new Promise(resolve=>queueMicrotask(resolve));
     assert.equal(processor.last.error,undefined);assert.equal(processor.last.ddaDataOmitted,true);
+    processor.receive({id:5,method:'beginCode',args:[]});await processor.commands;
+    assert.equal(processor.last.error,undefined);const session=processor.last.value.session;
+    processor.receive({id:6,method:'applyCodeEdit',args:[session,{channel:2,changes:{volume:13,'pan.left':7}}]});await processor.commands;
+    assert.equal(processor.last.error,undefined);assert.equal(processor.last.value.registers[2][4]&31,13);
+    processor.receive({id:7,method:'applyCodePreset',args:[session,{...preset,volume:9},{replace:false}]});await processor.commands;
+    assert.equal(processor.last.error,undefined);assert.equal(processor.last.value.preset.volume,9);
+    processor.receive({id:8,method:'stop',args:[]});await processor.commands;
+    processor.receive({id:9,method:'code',args:[session,'keyOn',[0]]});await processor.commands;
+    assert.equal(processor.last.name,'AbortError');
     processor.receive({method:'dispose'});assert.equal(processor.process([],[[left,right]]),false);
   `;
   const child=spawnSync(process.execPath,['--input-type=module','-e',script],{encoding:'utf8',timeout:20000});

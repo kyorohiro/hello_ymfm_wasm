@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css">
+  <link rel="stylesheet" href="./synth.css?v=huc-code-1">
 </head>
 <body>
   <main>
@@ -37,8 +37,16 @@
         </div>
         <div class="audio-toolbar">
           <div class="transport-actions">
+            <details id="synthMenu" class="synth-menu">
+              <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
+              <div id="synthMenuPanel" class="synth-menu-panel">
+                <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><div id="hucMenuProjectImport"></div><div id="hucMenuFilesImport"></div></div></section>
+                <section class="synth-menu-section"><h2>Export</h2><div class="synth-menu-actions"><div id="hucMenuProjectExport"></div><div id="hucMenuFileExport"></div></div></section>
+              </div>
+            </details>
             <button id="startAudio" class="primary" type="button">Enable audio</button>
             <button id="stopAudio" type="button">Stop all sound</button>
+            <button id="hucFilesToggle" type="button" aria-expanded="false" aria-controls="hucFilesPanel">Files</button>
           </div>
           <label class="master-control" for="masterVolume"><span>Master</span>
             <input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent">
@@ -48,6 +56,9 @@
         <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
       </header>
 
+      <div id="synthWorkspace" class="spu-code-workspace huc-code-workspace">
+        <aside id="hucFilesPanel" class="spu-files-panel huc-files-panel" aria-label="Project files" hidden></aside>
+        <div id="hucSynthMain" class="spu-main huc-main">
       <section class="spu-monitor huc-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
@@ -97,12 +108,22 @@
         </div>
       </details>
 
+      <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Code channel controls" hidden>
+        <div class="spu-code-live-row">
+          <label>View / keyboard <select id="hucChannelSelect" aria-label="Code channel or authored instrument"><option value="synth">Synth · edit and play</option><option value="0" selected>CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
+          <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
+          <details class="spu-code-help"><summary aria-label="About Code channel controls">?</summary><p>Selected CH shares its settings and keyboard with Code. Later Code writes can change it again. Auto update follows sent register settings up to 20 times per second; it does not read the current oscillator phase. LFO uses shared CH1 / CH2 hardware; Noise is available on CH5 / CH6. Synth edits your common keyboard instrument. Code and Keyboard tabs keep Run, context and named loops. Scheduling, Software Envelope, DDA sample supply and liveFx run in software.</p></details>
+        </div>
+        <p id="hucChannelStatus" class="subtext" role="status"></p><p id="hucChannelReadout" class="subtext"></p>
+      </section>
       <section class="instrument-workspace huc-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Wavetable · 6 voices · round robin</p></div>
         <div id="voiceEditor"></div>
       </section>
 
       <section class="instrument-toolbar" aria-label="Instrument files">
+        <label class="instrument-name-control" for="hucPresetSelect">Preset <select id="hucPresetSelect" aria-label="HuC6280 presets in Files"><option value="">No playable presets</option></select></label>
+        <button id="saveSoundToFiles" type="button">Save to Files</button>
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
         <div class="preset-actions">
           <button id="loadPreset" type="button">Load preset…</button>
@@ -114,8 +135,15 @@
         <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
       </section>
 
-      <section class="keyboard-section" aria-labelledby="keyboardHeading">
-        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays the selected source. No keyboard split.</p></div>
+      <section id="synthInputSection" class="keyboard-section spu-input-section" aria-labelledby="keyboardHeading" data-input-mode="keyboard">
+        <h2 id="keyboardHeading" class="spu-sr-only">Performance input</h2>
+        <div class="spu-input-tabs" role="tablist" aria-label="Performance input">
+          <button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+          <button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+          <button id="synthCodeExpandButton" class="spu-code-expand" type="button" aria-label="Maximize Code" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+        </div>
+        <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
+        <p id="hucKeyboardHint" class="subtext">Every key plays the selected source. No keyboard split.</p>
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
@@ -133,7 +161,21 @@
           </label>
           <div id="keyboard" class="keyboard-mount"></div>
         </div>
+        </div>
+        <div id="synthCodePanel" class="spu-code-panel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+          <div class="spu-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
+          <p class="huc-help spu-code-caption">Software performance · the same HuC6280 as the controls above. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
+          <div id="synthCodeEditorHost" class="spu-code-editor-host"></div>
+          <textarea id="synthCodeEditor" class="spu-code-editor" spellcheck="false" aria-label="HuC6280 performance JavaScript" rows="12" readonly></textarea>
+          <p id="synthCodeEditorNote" class="huc-help">Code is saved in Files. Loading a project never runs it automatically.</p>
+          <pre id="synthCodeError" class="spu-code-error" role="alert"></pre>
+          <details class="spu-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
+          <details class="spu-code-help"><summary aria-label="About HuC6280 Code">?</summary><p>Use <code>const pce = await useSoundChip("huc6280")</code> and await its methods. CH1–CH6 share one PSG. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6. noteOn / noteOff use the authored Software Envelope and DDA sample; keyOn / keyOff are raw hardware gates. Run starts fresh; Apply keeps context and named loops. Stop fades the software output and restores your edited instrument. Wave uploads reset channel phase. Timing, envelope, DDA playback and liveFx are software features.</p></details>
+        </div>
       </section>
+        </div>
+        <div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
+      </div>
       <footer>
         <p>One HuC6280: six 32-sample, 5-bit wavetable / DAC channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. DDA uses the chip’s five-bit DAC with software PCM supply, rate, pitch and Loop. Envelope, round robin and waveform drawing are software tools. CD-ROM² audio and song playback are not included.</p>
         <div><a href="../playground/index.html?mode=huc6280">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/huc6280synth.js">JavaScript source</a></div>
@@ -141,6 +183,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=wave-held-1"></script>
+  <script type="module" src="./synth.js?v=huc-code-1"></script>
 </body>
 </html>
