@@ -8,8 +8,8 @@ Open **Code** below the instrument editor. The first visit creates `/index.js` o
 
 `context` is live memory, not Cassette data. Save source and local data files to keep a performance. Monaco loads when Code is opened; the plain-text editor and execution remain available if the editor service is unavailable.
 
-Selecting an FM, PSG or PCM sound in Files or the preset lists changes the
-shared instrument while Code keeps running. It preserves live loops, context,
+Selecting an FM, PSG or PCM sound in Files or the preset lists selects that
+chip's **Auto** instrument, even from a physical CH view, while Code keeps running. It preserves live loops, context,
 `livePrepare()` and software FX; explicit Stop keeps the latest editor sound.
 Replacing sample RAM can end a held PCM note, so trigger the next note from
 the continuing loop. Project replacement and reference-song playback still
@@ -41,8 +41,14 @@ Manual edits update only their touched fields in the frozen view, merging
 packed register companions against the latest actual writes. Later Code or VGM
 writes can take ownership; old key-up and Pitch resets cannot affect the newer
 owner. Switching Keyboard / Code views or channel tabs keeps loops, context and
-FX running. Choose Auto to edit/export the saved instrument; physical-channel
-edits are session chip state. **Copy** remains the paused-VGM import operation.
+FX running. Physical-channel edits are session chip state. **Save CH** in Normal
+or Code saves that CH as a new instrument in Files without loading it, changing
+the selected CH, or stopping the performance. Live on captures fresh written
+settings at the click; Live off saves the frozen display plus manual changes.
+FM saves VGI with Synth metadata for OP masks and CH3 pitch ratios, PSG saves
+`.psg.json`, and RF5C164 saves `.pcm.json` with its sample and loop. Saving an
+unsupported voice or an unbounded PCM sample is unavailable with a reason
+in the button tooltip. **Copy** remains the paused-VGM import into Auto.
 
 Physical PSG channels use hardware attenuation, with Software Envelope retained
 in Auto. Noise can use Tone 3's clock without muting its audible square wave.
@@ -123,7 +129,7 @@ on the playing reference chip.
 
 PCM **Auto** uses its separate author sample bank and keyboard. Author edits,
 WAV/preset loading and Code continue to use that bank without replacing song
-RAM; loading an instrument selects Synth and keeps the VGM running. Root note,
+RAM; loading an instrument selects Auto and keeps the VGM running. Root note,
 sample drawing and Range/Loop edits belong to this author instrument. The song
 sample display is read-only, with Waveform/Spectrum available during hardware
 edits. Pause keeps the separate captured audition and its software release;

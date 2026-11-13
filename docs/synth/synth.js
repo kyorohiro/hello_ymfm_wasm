@@ -1,10 +1,10 @@
-import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-live-draw-1';
+import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=channel-presets-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=pcm-manual-1';
+import {setupSynthFiles} from './synth_files.js?v=channel-presets-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-keyboard-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
 import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-view-1';
-import {createSynthFmEdits} from './synth_fm_edits.js?v=channel-view-1';
+import {createSynthFmEdits} from './synth_fm_edits.js?v=channel-presets-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
 import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,normalizePcmSampleEdit,serializePcmPreset,pcmPresetFromAudio,PCM_NATIVE_RATE} from './synth_pcm.js?v=pcm-manual-1';
@@ -17,7 +17,7 @@ import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-view-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-manual-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-draw-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=channel-view-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=channel-presets-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -2485,18 +2485,23 @@ function applyPresetState(
 
 function applyPresetData(preset, presetName, {restoreEditor=false}={}) {
   const kind = isPcmPreset(preset)?'pcm':isPsgPreset(preset) ? 'psg' : 'fm';
-  // Loading an author instrument leaves the reference transport running. Its
-  // FM patch is sent to the same six song channels; VGM remains free to replace
-  // those registers on its next writes. Merely restoring a tab is not a load.
-  if(!restoreEditor&&['playing','paused'].includes(songTargetState.playback))songControls?.selectTarget('synth');
   const psgPreset = kind === 'psg' ? normalizePsgPreset(preset) : null;
   const pcmPreset=kind==='pcm'?normalizePcmPreset(preset):null;
   if (kind !== activeInstrumentKind&&!codeActive) stopAllNotes();
   activeInstrumentKind = kind;
   selectEditorChip(editorButtonForKind(kind));
+  // A chosen preset is the authored Auto instrument, including when a local
+  // physical CH was being inspected. Keep Code / VGM running and choose the
+  // preset's chip first; restoring an editor tab alone must retain its target.
+  if(!restoreEditor) {
+    songControls?.selectChip(editorChip);
+    songControls?.selectTarget('synth');
+  }
   if(kind==='pcm') {
     ++pcmLoadGeneration;
-    if(!restoreEditor&&!codeActive||JSON.stringify(pcmVoice.getPreset())!==JSON.stringify(pcmPreset)) {
+    // Explicit reload also replaces Code-owned RAM when this is the same
+    // authored preset. A passive tab restore must leave that RAM untouched.
+    if(!restoreEditor||JSON.stringify(pcmVoice.getPreset())!==JSON.stringify(pcmPreset)) {
       pcmVoice.setPreset(pcmPreset);codeAudio?.pcmSourceChanged?.();
     }
     currentPcmPresetName=presetName;pcmPresetSelect.value=presetName;pcmControls.update();
@@ -4118,7 +4123,7 @@ synthFiles = setupSynthFiles({
   canEditObservation:canEditSongFm,
   canEditPsgObservation:canEditSongPsg,
   canEditPcmObservation:canEditSongPcm,
-  canLoadWhileObserving:()=>isLocalChannelTarget()||isFmSongPlaying()||isPsgSongPlaying()||isPcmSongPlaying(),
+  canLoadWhileObserving:()=>codeActive||isLocalChannelTarget()||isFmSongPlaying()||isPsgSongPlaying()||isPcmSongPlaying(),
   isChipModeLocked:isFmSongPlaying,
   stopAllNotes:()=>{if(!codeActive&&!isFmSongPlaying()&&!isPsgSongPlaying()&&!isPcmSongPlaying())stopAllNotes();},
   setStatus,
@@ -4147,7 +4152,8 @@ songControls = setupSynthSongControls({
       if(kind!==activeInstrumentKind)void switchEditorChip(editorButtonForKind(kind));
     }
   },
-  async onCopyToSynth(preset,name) {
+  async onCopyToSynth(preset,name,metadata) {
+    if(metadata?.source==='local')return synthFiles.saveFromPreset(preset,name);
     const copied = await synthFiles.createFromPreset(preset,name);
     // Copy auditions an FM instrument. OP metadata on an ordinary saved tone
     // must not otherwise change the chip-wide DAC switch when it is opened.

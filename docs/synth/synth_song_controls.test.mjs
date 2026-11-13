@@ -41,21 +41,21 @@ function fixture(copyResult=true,{empty=false,mix,local=null,target='0'}={}) {
   const channel=byId('synthSongChannelSelect');channel.children=['synth','0','1','2','3','4','5'].map(value=>Object.assign(new Element(),{value}));channel.value=target;
   byId('synthSongLiveToggle').checked=true;
   let state={playback:'stopped',name:'tune.vgm',consumedFrames:0,...snapshots(0)},emit,previewOptions;
-  const views=[],targets=[],copies=[],messages=[],mixUpdates=[],mixCloses=[];
+  const views=[],targets=[],copies=[],messages=[],mixUpdates=[],mixCloses=[],transport=[];
   const project={selectedPath:empty?null:'/vgm/tune.vgm',listEntries:()=>empty?[]:[{path:'/vgm/tune.vgm',type:'file',revision:1}],
     fs:{getRevision:()=>1,get:()=>({type:'binary',data:new Uint8Array()})},onDidChange:()=>()=>{}};
   const controls=setupSynthSongControls({project,getAudio:()=>{},getVolume:()=>1,mix,getLocalState:()=>local,
     scheduleLocal:(callback,delay)=>{const id=++timerId;timers.set(id,{callback,delay});return id;},unscheduleLocal:id=>timers.delete(id),
     onLiveView:view=>views.push(view),onTargetState:target=>targets.push(target),
-    onCopyToSynth:async(preset,name)=>{copies.push({preset,name});return copyResult;},onStatus:message=>messages.push(message),
+    onCopyToSynth:async(preset,name,metadata)=>{copies.push({preset,name,metadata});return typeof copyResult==='function'?copyResult(preset,name,metadata):copyResult;},onStatus:message=>messages.push(message),
     createPreview:options=>{
       previewOptions=options;const {onState}=options;
       emit=patch=>{state={...state,...patch};onState(state);};
-      return {getState:()=>state,load(){},clear(){},setVolume(){},stop:()=>emit({playback:'stopped'}),pause:()=>emit({playback:'paused'}),
-        play:async()=>emit({playback:'playing'}),resume:async()=>emit({playback:'playing'}),dispose(){}};
+      return {getState:()=>state,load(){},clear(){},setVolume(){},stop:()=>{transport.push('stop');emit({playback:'stopped'});},pause:()=>{transport.push('pause');emit({playback:'paused'});},
+        play:async()=>{transport.push('play');emit({playback:'playing'});},resume:async()=>{transport.push('resume');emit({playback:'playing'});},dispose(){}};
     },setupSeek:()=>({update(){},cancelDraft(){},dispose(){}}),setupMix:()=>({update:value=>mixUpdates.push(value),close:()=>mixCloses.push(true),dispose(){}}),
   });
-  return {controls,emit,views,targets,copies,messages,mixUpdates,mixCloses,byId,channel,timers,
+  return {controls,emit,views,targets,copies,messages,mixUpdates,mixCloses,byId,channel,timers,transport,
     setLocal(value,refresh=true){local=value;if(refresh)controls.refreshLocal();},tick(){const [id,task]=timers.entries().next().value??[];if(task){timers.delete(id);task.callback();}},
     visibility(value){globalThis.document.hidden=value;for(const fn of visibility)fn();},get previewOptions(){return previewOptions;},
     cleanup(){controls.dispose();old?Object.defineProperty(globalThis,'document',old):delete globalThis.document;}};
@@ -304,4 +304,150 @@ test('a local manual projection updates touched fields while Live Off retains ev
     assert.equal(initial.snapshots.ym2612.channels[1].preset.feedback,frozen.channels[1].preset.feedback,'projection never rewrites a saved frozen snapshot');
     assert.equal(h.timers.size,0,'manual refresh does not restart disabled following');
   }finally{h.cleanup();}
+});
+
+test('Normal and Code Save CH capture fresh FM, PSG and PCM state without selecting Auto or touching transport',async()=>{
+  for(const source of ['normal','code'])for(const [chip,target,number,suffix] of [
+    ['ym2612','1',1,'CH2'],['psg','psg:2',2,'PSG-Tone3'],['pcm','pcm:7',7,'PCM-CH8'],
+  ]) {
+    const initial=localState(source,10,4,64),h=fixture(true,{empty:true,target:'synth',local:initial});
+    try {
+      h.controls.selectTarget(target);
+      const copy=h.byId('synthSongCopyButton');
+      assert.equal(copy.disabled,false);assert.equal(copy.textContent,'Save CH');
+      assert.equal(copy.getAttribute('aria-label'),'Save selected channel to presets');
+      const next=structuredClone(localState(source,20,11,96));next.snapshots.ym2612.channels[1].preset.algorithm=6;
+      h.setLocal(next,false); // Save must not wait for the next display poll.
+      assert.equal(h.views.at(-1).snapshot.frame,10);
+      await copy.fire('click');
+      assert.equal(h.copies.length,1);
+      const saved=h.copies[0];
+      assert.equal(saved.name,`${source==='code'?'Code':'Normal'}-${suffix}`);
+      assert.deepEqual(saved.metadata,{source:'local',context:source,chip,channel:number,frame:20,following:true});
+      if(chip==='ym2612')assert.equal(saved.preset.algorithm,6);
+      if(chip==='psg'){assert.equal(saved.preset.settings.attenuation,11);assert.equal(saved.preset.settings.envelope.enabled,false);}
+      if(chip==='pcm'){assert.equal(saved.preset.settings.volume,103);assert.equal(pcmSampleBytes(saved.preset.sample).length,256);}
+      assert.equal(h.channel.value,target);assert.equal(h.targets.at(-1).source,'local');
+      assert.equal(h.byId('synthChannelSource').textContent,source==='code'?'Code':'Normal');
+      assert.equal(h.byId('synthSongPlayer').dataset.state,'stopped');assert.deepEqual(h.transport,[]);
+      assert.equal(copy.disabled,false,'saving keeps the physical channel available');
+      assert.deepEqual(initial,localState(source,10,4,64),'capturing never edits the source settings');
+    }finally{h.cleanup();}
+  }
+});
+
+test('Live Off Save CH captures the visible frozen state with manual edits instead of later automatic writes',async()=>{
+  for(const [chip,target] of [['ym2612','1'],['psg','psg:1'],['pcm','pcm:1']]) {
+    let edited=false;
+    const projectSnapshot=(selected,frozen)=>!edited||selected!==chip?frozen:{...frozen,
+      channels:frozen.channels.map((voice,index)=>index!==1?voice:chip==='ym2612'?{...voice,preset:{...voice.preset,feedback:7}}:
+        chip==='psg'?{...voice,attenuation:7}:{...voice,volume:88})};
+    const initial={...localState('code',10,4,64),projectSnapshot},h=fixture(true,{empty:true,target:'synth',local:initial});
+    try {
+      h.controls.selectTarget(target);
+      h.byId('synthSongLiveToggle').checked=false;await h.byId('synthSongLiveToggle').fire('change');
+      edited=true;
+      const next=structuredClone(localState('code',20,12,96));next.snapshots.ym2612.channels[1].preset.algorithm=6;
+      h.setLocal({...next,projectSnapshot});
+      const visible=structuredClone(h.views.at(-1).snapshot);
+      await h.byId('synthSongCopyButton').fire('click');
+      const saved=h.copies[0];assert.equal(saved.metadata.frame,10);assert.equal(saved.metadata.following,false);
+      if(chip==='ym2612'){
+        assert.equal(saved.preset.algorithm,visible.channels[1].preset.algorithm);assert.notEqual(saved.preset.algorithm,6);
+        assert.equal(saved.preset.feedback,7);
+      }
+      if(chip==='psg')assert.equal(saved.preset.settings.attenuation,7);
+      if(chip==='pcm')assert.equal(saved.preset.settings.volume,88);
+      assert.equal(h.views.at(-1).snapshot.frame,10);assert.equal(h.channel.value,target);assert.deepEqual(h.transport,[]);
+    }finally{h.cleanup();}
+  }
+});
+
+test('a local capture stays detached while Code advances and rejects duplicate saves or target changes until completion',async()=>{
+  let finish;
+  const pending=new Promise(resolve=>{finish=resolve;}),initial=structuredClone(localState('code',10,4,64));
+  const h=fixture(()=>pending,{empty:true,target:'synth',local:initial});
+  try {
+    h.controls.selectTarget('pcm:7');
+    const copying=h.byId('synthSongCopyButton').fire('click');
+    assert.equal(h.copies.length,1);assert.equal(h.byId('synthSongCopyButton').disabled,true);
+    assert.equal(h.channel.disabled,true);assert.equal(h.controls.selectTarget('0'),false);assert.equal(h.controls.selectChip('psg'),false);
+    await h.byId('synthSongCopyButton').fire('click');assert.equal(h.copies.length,1);
+    const captured=structuredClone(h.copies[0]);
+    initial.snapshots.pcm.ram.fill(0);initial.snapshots.pcm.channels[7].volume=0;
+    h.setLocal(localState('code',20,8,100));
+    assert.equal(h.views.at(-1).snapshot.frame,20,'Code continues to update its physical channel during the save');
+    assert.deepEqual(h.copies[0],captured,'the captured PCM and settings are owned by the pending save');
+    finish(true);await copying;
+    assert.equal(h.channel.value,'pcm:7');assert.equal(h.channel.disabled,false);assert.equal(h.views.at(-1).snapshot.frame,20);
+    assert.equal(h.byId('synthChannelSource').textContent,'Code');assert.deepEqual(h.transport,[]);
+  }finally{h.cleanup();}
+});
+
+test('an unfinished local save retains its capture when the performance source changes',async()=>{
+  let finish;const pending=new Promise(resolve=>{finish=resolve;});
+  const h=fixture(()=>pending,{local:localState('code',10),target:'1'});
+  try {
+    const copying=h.byId('synthSongCopyButton').fire('click');
+    h.emit({playback:'paused',...snapshots(30)});
+    assert.equal(h.byId('synthChannelSource').textContent,'VGM');
+    finish(true);await copying;
+    assert.equal(h.copies[0].metadata.source,'local');assert.equal(h.copies[0].metadata.context,'code');assert.equal(h.copies[0].metadata.frame,10);
+    assert.equal(h.channel.value,'1');assert.equal(h.views.at(-1).snapshot.frame,30);
+    assert.equal(h.byId('synthChannelSource').textContent,'VGM');assert.deepEqual(h.transport,[]);
+  }finally{h.cleanup();}
+});
+
+test('local unavailable snapshots and Auto cannot create a preset even through a synthetic click',async()=>{
+  const h=fixture(true,{empty:true,target:'synth',local:localState('code',10)});
+  try {
+    await h.byId('synthSongCopyButton').fire('click');assert.equal(h.copies.length,0);
+    assert.match(h.byId('synthSongCopyButton').title,/Select a YM2612 channel/);
+    for(const [target,chip,mutate,reason] of [
+      ['5','ym2612',snapshot=>{snapshot.dacEnabled=true;},/DAC/],
+      ['psg:1','psg',snapshot=>{snapshot.channels[1].period=0;},/constant output/],
+      ['pcm:2','pcm',snapshot=>{snapshot.channels[2].step=0;},/step|speed|rate/i],
+    ]) {
+      const state=structuredClone(localState('code',20));mutate(state.snapshots[chip]);h.setLocal(state);h.controls.selectTarget(target);
+      assert.equal(h.byId('synthSongCopyButton').disabled,true);assert.match(h.byId('synthSongCopyButton').title,reason);
+      await h.byId('synthSongCopyButton').fire('click');assert.equal(h.copies.length,0);assert.equal(h.channel.value,target);
+    }
+    h.setLocal({source:'code',snapshots:{}});assert.equal(h.byId('synthSongCopyButton').disabled,true);
+    await h.byId('synthSongCopyButton').fire('click');assert.equal(h.copies.length,0);assert.deepEqual(h.transport,[]);
+  }finally{h.cleanup();}
+});
+
+test('local save rejection or failure keeps the channel, source and current settings',async()=>{
+  for(const result of [false,()=>{throw Error('Storage unavailable');}]) {
+    const state=localState('code',10),h=fixture(result,{empty:true,target:'1',local:state});
+    try {
+      const before=structuredClone(state);
+      await h.byId('synthSongCopyButton').fire('click');
+      assert.equal(h.copies.length,1);assert.equal(h.channel.value,'1');assert.deepEqual(state,before);
+      assert.equal(h.byId('synthChannelSource').textContent,'Code');assert.equal(h.byId('synthSongCopyButton').disabled,false);
+      assert.equal(h.channel.disabled,false);assert.deepEqual(h.transport,[]);
+      if(typeof result==='function')assert.match(h.messages.at(-1),/Save failed: Storage unavailable/);
+    }finally{h.cleanup();}
+  }
+});
+
+test('an older VGM copy completion cannot choose Auto after a newer transport, source or target session',async()=>{
+  for(const change of ['transport','source','target']) {
+    let finish;const pending=new Promise(resolve=>{finish=resolve;});
+    const h=fixture(()=>pending,{local:localState('code',40)});
+    try {
+      h.emit({playback:'paused',...snapshots(10)});h.controls.selectTarget('1');
+      const copying=h.byId('synthSongCopyButton').fire('click');
+      assert.equal(h.copies[0].metadata.source,'vgm');
+      if(change==='transport'){h.emit({playback:'playing'});h.emit({playback:'paused',...snapshots(20)});}
+      if(change==='source'){h.emit({playback:'stopped'});h.emit({playback:'paused',...snapshots(20)});}
+      if(change==='target'){
+        // Native UI disables the control while busy; an external controller
+        // may still move the hidden compatibility select.
+        h.channel.value='2';await h.channel.fire('change');
+      }
+      finish(true);await copying;
+      assert.equal(h.channel.value,change==='target'?'2':'1');assert.equal(h.byId('synthSongPlayer').dataset.state,'paused');
+    }finally{h.cleanup();}
+  }
 });

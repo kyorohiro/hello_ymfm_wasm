@@ -132,6 +132,13 @@ jobs:
             --out="$RUNNER_TEMP/itch-web/synth-channel-view.json" \
             --screenshots="$RUNNER_TEMP/itch-web/synth-channel-images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-channel-view.log"
+      - name: Save channel presets without interrupting Code and apply PCM presets
+        run: |
+          node scripts/check_synth_channel_presets_browser.cjs \
+            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
+            --out="$RUNNER_TEMP/itch-web/synth-channel-presets.json" \
+            --screenshots="$RUNNER_TEMP/itch-web/synth-channel-preset-images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-channel-presets.log"
       - name: Test the packaged Playground in Chromium and WebKit
         run: |
           node scripts/check_itch_playground_bundle_browser.cjs \

@@ -28,7 +28,7 @@ class Element {
 const fm=()=>({algorithm:7,feedback:0,operators:Array.from({length:4},(_,i)=>({dt:0,multi:1,tl:i===3?16:127,rs:0,ar:31,am:false,d1r:0,d2r:0,sl:0,rr:15,ssg:0}))});
 const tick=()=>new Promise(resolve=>queueMicrotask(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return{promise,resolve};};
-async function until(check){for(let i=0;i<200;i++){if(check())return;await new Promise(resolve=>setImmediate(resolve));}assert.fail('operation did not reach expected state');}
+async function until(check){const deadline=performance.now()+5000;do{if(check())return;await new Promise(resolve=>setImmediate(resolve));}while(performance.now()<deadline);assert.fail('operation did not reach expected state');}
 
 function harness(store={saved:null,journal:new Map()},options={}) {
   const globals=['document','window','indexedDB','localStorage','setTimeout','clearTimeout'],previous=new Map(globals.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
@@ -101,6 +101,90 @@ function attachCode(h) {
   };
   h.files.setCodeControls(controls);return {controls,opened,changes,flushes};
 }
+
+test('reselecting the active FM / PSG / PCM Files preset reapplies its sound during Code, including Auto, without replacing the Code file',async()=>{
+  for(const preset of [fm(),createPsgPreset({attenuation:7}),createPcmBuiltinPreset('triangle')])for(const route of ['file','preset']) {
+    let running=false,stops=0;
+    const h=harness(undefined,{isObserving:()=>false,canLoadWhileObserving:()=>running,stopAllNotes:()=>{if(!running)stops++;}});
+    try {
+      await h.files.ready;
+      const tone=h.project.createTone(preset,'Shared author sound');
+      assert(await h.files.selectFile(tone.path));const count=h.applied.length,stopCount=stops;
+      assert(await h.files.selectFile(tone.path));assert.equal(h.applied.length,count,'Normal Auto keeps the current authoring sound when the file is already selected');
+      h.project.fs.writeText('/index.js','// keep this running source\n');const code=attachCode(h);
+      assert(await h.files.selectFile('/index.js'));running=true;
+      const before=h.applied.length,bytes=h.project.fs.get(tone.path).data.slice();
+      assert(await (route==='file'?h.files.selectFile(tone.path):h.files.selectPreset('vfs:'+tone.path)));
+      assert.equal(h.applied.length,before+1,'Code Auto reselect must reach the explicit preset application');
+      assert.equal(h.applied.at(-1),'vfs:'+tone.path);assert.equal(h.files.activeTonePath,tone.path);
+      assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+      assert.equal(h.project.fs.get('/index.js').data,'// keep this running source\n');
+      assert.deepEqual(h.project.fs.get(tone.path).data,bytes,'reselection never rewrites the preset');
+      assert.equal(stops,stopCount+1,'only the Normal reselection before Run requested a stop');
+      assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index.js'});
+    } finally {h.cleanup();}
+  }
+});
+
+test('saving a physical CH appends a unique detached preset without loading it or changing Code, author files or selection',async()=>{
+  let observing=false,stops=0;
+  const h=harness(undefined,{isObserving:()=>observing,stopAllNotes(){stops++;}});
+  try {
+    await h.files.ready;await h.files.createFromPreset(fm(),'Author');
+    h.patches.fm.feedback=5;h.files.markDirty();
+    const authorPath=h.files.activeTonePath;
+    h.project.fs.writeText('/index.js','context.keep = 23;\n');
+    const code=attachCode(h);await h.files.selectFile('/index.js');observing=true;
+    const before=h.project.snapshot(),patches=structuredClone(h.patches),ids={...h.ids};
+    const count=h.applied.length,stopCount=stops,flushes=code.flushes.length;
+    const pcm=createPcmBuiltinPreset('triangle');pcm.settings.volume=39;pcm.settings.loopStart=17;
+    const captures=[{...fm(),feedback:2},createPsgPreset({source:'noise',noiseType:'periodic',attenuation:4}),pcm];
+    const paths=[];
+    for(const preset of captures) {
+      const prior=new Set(h.project.listTones().map(file=>file.path));
+      const saving=h.files.saveFromPreset(preset,'Code CH');
+      // The document owns its bytes before asynchronous persistence completes.
+      if(isPcmPreset(preset))preset.sample.data=createPcmBuiltinPreset('sine').sample.data;
+      assert.equal(await saving,true);
+      const path=h.project.listTones().find(file=>!prior.has(file.path)).path;paths.push(path);
+      assert.equal(h.files.activeTonePath,authorPath);assert.equal(h.project.selectedPath,'/index.js');
+      assert.equal(h.kind,'fm');assert.deepEqual(h.patches,patches);assert.deepEqual(h.ids,ids);
+      assert.equal(h.applied.length,count);assert.equal(stops,stopCount);assert.equal(code.flushes.length,flushes);
+      assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+    }
+    assert.deepEqual(paths,['/presets/Code CH.vgi','/presets/Code CH.psg.json','/presets/Code CH.pcm.json']);
+    assert.equal(h.project.readTone(paths[0]).preset.feedback,2);
+    assert.equal(h.project.readTone(paths[1]).preset.settings.noiseType,'periodic');
+    const stored=h.project.readTone(paths[2]).preset;
+    assert.equal(stored.settings.volume,39);assert.equal(stored.settings.loopStart,17);
+    assert.equal(stored.sample.data,createPcmBuiltinPreset('triangle').sample.data);
+    assert.equal(await h.files.saveFromPreset({...fm(),feedback:6},'Code CH'),true);
+    assert.equal(h.project.readTone('/presets/Code CH-2.vgi').preset.feedback,6);
+    assert.equal(h.project.readTone(paths[0]).preset.feedback,2);
+    for(const file of before.files)assert.deepEqual(h.project.fs.get(file.path).data,file.data);
+    assert.equal(h.store.saved.activeTonePath,authorPath);assert.equal(h.store.saved.project.selectedPath,'/index.js');
+    assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index.js'});
+    assert.match(h.messages.at(-1),/Current sound and performance kept/);
+    const countBefore=h.project.listEntries().length;
+    assert.equal(await h.files.saveFromPreset({...pcm,version:999},'Invalid'),false);
+    assert.equal(h.project.listEntries().length,countBefore,'invalid capture leaves no partial file');
+  } finally {h.cleanup();}
+});
+
+test('a saved channel snapshot survives draft reload while retaining the previous author instrument',async()=>{
+  const store={saved:null,journal:new Map()};let h=harness(store),authorPath;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:5},'Author');authorPath=h.files.activeTonePath;
+    assert(await h.files.saveFromPreset(createPcmBuiltinPreset('triangle'),'Normal-PCM-CH8'));
+  }finally{h.cleanup();}
+  h=harness(store);
+  try {
+    await h.files.ready;
+    assert.equal(h.kind,'fm');assert.equal(h.files.activeTonePath,authorPath);assert.equal(h.project.selectedPath,authorPath);
+    assert.equal(h.patches.fm.feedback,5);
+    assert.equal(h.project.readTone('/presets/Normal-PCM-CH8.pcm.json').preset.sample.data,createPcmBuiltinPreset('triangle').sample.data);
+  }finally{h.cleanup();}
+});
 
 test('Cassette import waits for Code fade before replacing files or applying a new authoring sound, and aborts stale retirement',async()=>{
   for(const completed of [true,false]) {

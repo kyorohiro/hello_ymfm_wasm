@@ -14,6 +14,8 @@ const chips={
 };
 const channelNumber=value=>value==='synth'?null:Number(value.includes(':')?value.split(':')[1]:value);
 const hexAddress=value=>Number.isInteger(value)?`$${value.toString(16).padStart(4,'0').toUpperCase()}`:'—';
+const isVgmPlayback=state=>['loading','playing','paused','seeking'].includes(state.playback);
+const projectLocalSnapshot=(local,chip,snapshot)=>snapshot?(local?.projectSnapshot?.(chip,snapshot)??snapshot):null;
 
 /** Keep reference-song selection separate from the instrument editor. */
 export function setupSynthSongControls({project, getAudio, getVolume, getLocalState=()=>null, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume,mix,
@@ -39,6 +41,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, getLocalSt
   let selectedChip='ym2612';
   let copying=false, mixControls=null, seekControls=null;
   let localTimer=null,lastContext=null,localPollReady=false;
+  let viewRevision=0,lastViewIdentity='';
   const tabButtons=[];
   const text = (node, value) => {if (node.textContent !== value) node.textContent = value;};
   const snapshotFor=(state,chip)=>chip==='pcm'?state.pcmLiveState:chip==='psg'?state.psgLiveState:state.liveState;
@@ -107,9 +110,11 @@ export function setupSynthSongControls({project, getAudio, getVolume, getLocalSt
     status.title = status.textContent;
     seekControls?.update(state);
     const running = ['playing', 'paused'].includes(state.playback);
-    const vgm=['loading','playing','paused','seeking'].includes(state.playback);
+    const vgm=isVgmPlayback(state);
     const local=vgm?null:getLocalState();
     const context=vgm?'vgm':local?.source==='code'?'code':'normal';
+    const viewIdentity=JSON.stringify([context,selectedPath,selectedRevision,selectedChip,channel.value,state.playback]);
+    if(viewIdentity!==lastViewIdentity){lastViewIdentity=viewIdentity;viewRevision++;}
     if(context!==lastContext){for(const chip of Object.keys(chips))localSnapshots[chip]=null;lastContext=context;}
     text(sourceBadge,vgm?'VGM':context==='code'?'Code':'Normal');
     // Keep all channels at the same observation instant. Live Off freezes the
@@ -120,12 +125,12 @@ export function setupSynthSongControls({project, getAudio, getVolume, getLocalSt
       const next=snapshotFor(state,chip);
       if(running&&next&&(live.checked||!frozenSnapshots[chip]||state.playback==='paused'))frozenSnapshots[chip]=next;
       const localNext=local?.snapshots?.[chip];
-      if(!vgm&&localNext&&(live.checked||!localSnapshots[chip]))localSnapshots[chip]=localNext;
+      if(!vgm&&(live.checked||!localSnapshots[chip]))localSnapshots[chip]=localNext??null;
     }
     const target = channel.value === 'synth' ? 'synth' : selectedChip==='ym2612'?Number(channel.value):channel.value;
     const selectedChannel = target === 'synth' ? null : channelNumber(String(target));
     const frozen = vgm?(running ? frozenSnapshots[selectedChip] : null):localSnapshots[selectedChip];
-    const snapshot = !vgm?(frozen?(local?.projectSnapshot?.(selectedChip,frozen)??frozen):null):state.playback==='playing'
+    const snapshot = !vgm?projectLocalSnapshot(local,selectedChip,frozen):state.playback==='playing'
       ? (selectedChip==='ym2612'?preview.readFmSnapshot?.(frozen,state.consumedFrames)
         :selectedChip==='psg'?preview.readPsgSnapshot?.(frozen,state.consumedFrames)
           :selectedChip==='pcm'?preview.readPcmSnapshot?.(frozen,state.consumedFrames):frozen) ?? frozen : frozen;
@@ -147,9 +152,13 @@ export function setupSynthSongControls({project, getAudio, getVolume, getLocalSt
       button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;button.disabled=channel.disabled;
     }
     const description=voice?chips[selectedChip].describe(snapshot,selectedChannel):null;
-    copy.disabled=copying||state.playback!=='paused'||!description?.playable;
-    copy.title=copying?'Copying…':description&&!description.playable?description.reason:
-      state.playback==='paused'&&voice?'Copy this CH into a new authored instrument and select Auto. Your previous instrument is kept.':`Pause and select a ${chips[selectedChip].label} channel to copy its sound to Auto.`;
+    copy.disabled=copying||(vgm&&state.playback!=='paused')||!description?.playable;
+    text(copy,vgm?'Copy':'Save CH');
+    copy.setAttribute('aria-label',vgm?'Copy selected channel to Auto':'Save selected channel to presets');
+    copy.title=copying?(vgm?'Copying…':'Saving…'):description&&!description.playable?description.reason:
+      !vgm?voice?'Save this CH as a new preset. Playback, the selected CH and the current instrument stay unchanged.':
+        selectedChannel===null?`Select a ${chips[selectedChip].label} channel to save its sound as a new preset.`:'Enable audio or run Code to save this CH.':
+        state.playback==='paused'&&voice?'Copy this CH into a new authored instrument and select Auto. Your previous instrument is kept.':`Pause and select a ${chips[selectedChip].label} channel to copy its sound to Auto.`;
     mixControls?.update(state.mix);
     if(!vgm){
       const source=context==='code'?'Code':'Normal',name=selectedChannel===null?'Auto':selectedChip==='psg'?(selectedChannel===3?'Noise':`Tone ${selectedChannel+1}`):`CH${selectedChannel+1}`;
@@ -268,15 +277,32 @@ export function setupSynthSongControls({project, getAudio, getVolume, getLocalSt
   stop.addEventListener('click', () => preview.stop());
   copy.addEventListener('click',async()=>{
     const state=preview.getState(),number=channelNumber(channel.value);
-    const chip=selectedChip,snapshot=snapshotFor(state,chip);
-    if(copying||state.playback!=='paused'||number===null||!snapshot)return;
-    copying=true;showState(state);
+    const chip=selectedChip,vgm=isVgmPlayback(state);
+    if(disposed||copying||(vgm&&state.playback!=='paused')||number===null)return;
     try {
-      const preset=chips[chip].copy(snapshot,number);
+      const local=vgm?null:getLocalState(),context=local?.source==='code'?'code':'normal';
+      // A Live capture reads the chip at the click, rather than the last 20 Hz
+      // display poll. Frozen capture uses exactly the visible settings plus
+      // explicit manual edits; it never samples newer automatic writes.
+      const snapshot=vgm?snapshotFor(state,chip):projectLocalSnapshot(local,chip,
+        live.checked||context!==lastContext?local?.snapshots?.[chip]:localSnapshots[chip]);
+      if(!snapshot||!chips[chip].describe(snapshot,number).playable)return;
+      // Finish conversion before yielding. Later Code/VGM writes cannot alter
+      // the captured settings or PCM sample while the file is being saved.
+      const preset=structuredClone(chips[chip].copy(snapshot,number));
       const suffix=chip==='pcm'?`PCM-CH${number+1}`:chip==='psg'?`PSG-${number===3?'Noise':'Tone'+(number+1)}`:`CH${number+1}`;
-      const copied=await onCopyToSynth(preset,`${state.name.replace(/\.(?:vgm|vgz)$/i,'')}-${suffix}`);
-      if(copied){channel.value='synth';rememberChannel();}
-    } catch(error) {onStatus(`Copy failed: ${error.message}`);}
+      const name=`${vgm?state.name.replace(/\.(?:vgm|vgz)$/i,''):context==='code'?'Code':'Normal'}-${suffix}`;
+      const metadata={source:vgm?'vgm':'local',context:vgm?'vgm':context,chip,channel:number,frame:snapshot.frame,following:live.checked};
+      copying=true;showState(state);
+      const revision=viewRevision;
+      const copied=await onCopyToSynth(preset,name,metadata);
+      // Local Save only writes a file. Keep the original VGM-Pause Copy
+      // transition, but never let an older completion select Auto in a newer
+      // song, source, target or transport session.
+      if(copied&&vgm&&!disposed&&revision===viewRevision&&preview.getState().playback==='paused'){
+        channel.value='synth';rememberChannel();
+      }
+    } catch(error) {onStatus(`${vgm?'Copy':'Save'} failed: ${error.message}`);}
     finally {copying=false;showState(preview.getState());copy.blur();}
   });
   select.addEventListener('keydown', event => event.stopPropagation());

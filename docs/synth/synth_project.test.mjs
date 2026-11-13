@@ -11,6 +11,20 @@ const patch = {
   operators: { 1: { ar: 23, tl: 12, dt: 3 }, 2: { tl: 31 }, 3: { tl: 45 }, 4: { tl: 22 } },
 };
 const instrument = (name, data = createTfiFromPreset(patch)) => ({ name, async arrayBuffer() { return data.slice().buffer; } });
+
+test('saving a channel document preserves selection throughout its atomic file notification',()=>{
+  const project=createSynthProject();project.fs.writeText('/index.js','// keep editing');project.select('/index.js');
+  const seen=[];project.onDidChange(()=>seen.push(project.selectedPath));
+  const first=project.createTone(patch,'Normal-CH1',{select:false});
+  const second=project.createTone({...patch,feedback:6},'Normal-CH1',{select:false});
+  assert.deepEqual(seen,['/index.js','/index.js']);
+  assert.equal(project.selectedPath,'/index.js');
+  assert.equal(first.path,'/presets/Normal-CH1.vgi');assert.equal(second.path,'/presets/Normal-CH1-2.vgi');
+  assert.equal(project.readTone(first.path).preset.feedback,2);
+  assert.equal(project.readTone(second.path).preset.feedback,6);
+  project.createTone(patch,'Loaded');assert.equal(project.selectedPath,'/presets/Loaded.vgi','loading copies retain existing default');
+});
+
 function vgm(algorithm = 4) {
   const commands = [0x52, 0xb0, algorithm, 0x52, 0x28, 0xf0, 0x52, 0x28, 0xf0, 0x66];
   const bytes = new Uint8Array(256 + commands.length), view = new DataView(bytes.buffer);

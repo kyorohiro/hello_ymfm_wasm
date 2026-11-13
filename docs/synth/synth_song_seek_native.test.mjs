@@ -113,7 +113,12 @@ async function mixedNativeSong() {
 }
 async function renderedPrefix(host,from,frames=4096) {
   const deadline=Date.now()+1000;
-  while(host.starts.slice(from).reduce((sum,node)=>sum+node.buffer.length,0)<frames&&Date.now()<deadline)await tick();
+  while(host.starts.slice(from).reduce((sum,node)=>sum+node.buffer.length,0)<frames&&Date.now()<deadline) {
+    // Budgeted rendering may fill the lookahead with fewer than 4096 frames.
+    // Advance this fake audio clock so the scheduler can refill that prefix.
+    host.context.currentTime+=.01;
+    await tick();
+  }
   const left=new Float32Array(frames),right=new Float32Array(frames);let offset=0;
   for(const node of host.starts.slice(from)) {
     const count=Math.min(node.buffer.length,frames-offset);

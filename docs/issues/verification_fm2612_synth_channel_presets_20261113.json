@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "FM2612 Synth selected-channel preset saving and PCM preset application",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Normal/Code Save CH appends a unique instrument without loading it, changing Auto/CH or Files selection, releasing held keys, or stopping Code/context/loops/FX.",
+    "Live On saves a fresh coherent written state; Live Off saves the visible frozen state plus manual changes. Conversion completes synchronously before persistence.",
+    "FM VGI plus Synth sidecar retains OP mask and CH3 special-frequency ratios; PSG and PCM typed presets retain hardware settings, PCM sample bytes and loop.",
+    "Explicit preset selection chooses the preset chip Auto target from physical Normal/Code/VGM views. PCM reinstall also handles same preset and Code-owned RAM; passive editor restoration keeps custom RAM.",
+    "Paused VGM Copy retains its previous load-to-Auto behavior and transport position. Stale callbacks cannot change a later source or target.",
+    "FM high-level frequency writeBatch is observed without extra hardware writes or splitting the original batch; custom write fallback and both transport protocols are retained."
+  ],
+  "node": {
+    "passed": 642,
+    "failed": 0,
+    "receipt": {
+      "path": "build/verification/fm-channel-presets-20261113/node-tests.log",
+      "bytes": 71605,
+      "sha256": "37a57f5318da13968a1ccec747bcd466f919eef9955db8d4c38a387a4a5472d3"
+    }
+  },
+  "browsers": {
+    "suites": 6,
+    "runs": 12,
+    "results": [
+      {
+        "suite": "channel-presets",
+        "receipt": {
+          "path": "build/verification/fm-channel-presets-20261113/channel-presets-b.json",
+          "bytes": 33511,
+          "sha256": "09286311fe39af8c11990b66784ef82404fa2d35df7e8b41047db4bec8fdb5f1"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 12
+          },
+          {
+            "name": "webkit",
+            "checks": 12
+          }
+        ]
+      },
+      {
+        "suite": "channel",
+        "receipt": {
+          "path": "build/verification/fm-channel-presets-20261113/channel-b.json",
+          "bytes": 30429,
+          "sha256": "95a1cae77ebc6cf50e9832b668c11d42ee09bca8c867bcd52214c6e5206cb5a8"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 10
+          },
+          {
+            "name": "webkit",
+            "checks": 10
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/fm-channel-presets-20261113/code-b.json",
+          "bytes": 73555,
+          "sha256": "3b97fbbc422207e6b0a9c918700b27dcec58a683bbdd775732250f23b88f41ff"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": null
+          },
+          {
+            "name": "webkit",
+            "checks": null
+          }
+        ]
+      },
+      {
+        "suite": "pcm-manual",
+        "receipt": {
+          "path": "build/verification/fm-channel-presets-20261113/pcm-manual-b.json",
+          "bytes": 64604,
+          "sha256": "9df0e9d4235564af1c8043667675ca47259ff4afa44ecab93be18365502f96af"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": 9
+          },
+          {
+            "name": "webkit",
+            "checks": 9
+          }
+        ]
+      },
+      {
+        "suite": "song-live",
+        "receipt": {
+          "path": "build/verification/fm-channel-presets-20261113/song-live-b.json",
+          "bytes": 29985,
+          "sha256": "75780a4edb2edf8b11c32b363a24cdfb0e46e7eea23045079125f9ce08f7b517"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": null
+          },
+          {
+            "name": "webkit",
+            "checks": null
+          }
+        ]
+      },
+      {
+        "suite": "standard",
+        "receipt": {
+          "path": "build/verification/fm-channel-presets-20261113/standard-b.json",
+          "bytes": 25369,
+          "sha256": "e130af7a1cebdb0fa9195f692cc1a9f2036625794d6a8da127c730fff002bb22"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "checks": null
+          },
+          {
+            "name": "webkit",
+            "checks": null
+          }
+        ]
+      }
+    ]
+  },
+  "package": {
+    "zip": "release/hello_ymfm_wasm_channel-presets-20261113b_itch_synth.zip",
+    "stage": "release/itch_synth_channel-presets-20261113b",
+    "files": 292,
+    "bytes": 1123819,
+    "sha256": "1f508502dab650537291175d3b6545352811681df9f88cd531ed39acdb9c58ea",
+    "crcPassed": true,
+    "changedSourcesMatchAfterPathRelocation": true
+  },
+  "testReliability": "Files import waits use a bounded wall-clock deadline. The native seek fixture advances its fake audio clock while collecting the exact prefix, preventing partial-chunk lookahead stalls; bit-exact PCM assertions remain unchanged.",
+  "scope": "No public SDK, WASM or gain calibration changed. Scheduled future worklet writes and internal envelope/oscillator state remain outside the Main-thread view. Existing portable PCM sample bounds still apply."
+}

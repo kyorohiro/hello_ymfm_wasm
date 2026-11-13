@@ -204,7 +204,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
     },
     uniquePath,
     /** Append an editable copy without replacing an existing tone or sidecar. */
-    createTone(preset, name='Captured') {
+    createTone(preset, name='Captured', {select=true}={}) {
       const psg=isPsgPreset(preset),pcm=isPcmPreset(preset),json=psg||pcm;
       if(psg)normalizePsgPreset(preset);
       else if(pcm)normalizePcmPreset(preset);
@@ -215,7 +215,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       let path=`/presets/${stem}${extension}`,suffix=2;
       const candidates=()=>json?[path,CHECKPOINT_ROOT+path]:[path,synthStatePath(path),CHECKPOINT_ROOT+path,CHECKPOINT_ROOT+synthStatePath(path)];
       while(candidates().some(candidate=>occupied.has(candidate)))path=`/presets/${stem}-${suffix++}${extension}`;
-      return project.writeTone(path,preset,{overwrite:false});
+      return project.writeTone(path,preset,{overwrite:false,select});
     },
     /** File-tree metadata without copying binary samples or Git objects. */
     listEntries() {
@@ -250,7 +250,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       else preset=mergeState(preset,extraState(preset,format));
       return { path, format, preset, bytes };
     },
-    writeTone(path, preset, { format, overwrite = true, expectedRevision, baselinePreset } = {}) {
+    writeTone(path, preset, { format, overwrite = true, expectedRevision, baselinePreset, select=true } = {}) {
       path = resolvePath(path);
       if (!isSynthTonePath(path)) throw new Error('Instrument file names must end in .tfi or .vgi, .psg.json or .pcm.json.');
       const previous = fs.get(path);
@@ -260,7 +260,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
         if(format!==undefined&&format!==kind)throw Error(`A .${kind}.json instrument requires ${kind.toUpperCase()} format.`);
         const text=serializeJsonTone(path,preset);
         if(previous)project.readTone(path);
-        mutate(()=>{fs.writeFiles([{path,data:text,expectedRevision}]);selectedPath=path;});
+        mutate(()=>{fs.writeFiles([{path,data:text,expectedRevision}]);if(select)selectedPath=path;});
         return project.readTone(path);
       }
       if(isPsgPreset(preset)||isPcmPreset(preset)||preset?.kind!==undefined)throw Error('PSG / PCM presets must use their .psg.json / .pcm.json file type.');
@@ -312,7 +312,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
           if(legacyText!==null)fs.writeText(CHECKPOINT_ROOT+sidecar,legacyText);
         }
         fs.writeFiles([{path,data:bytes,expectedRevision},{path:sidecar,data:text}],{checkpointChanges:false});
-        selectedPath = path;
+        if(select)selectedPath = path;
       });
       return project.readTone(path);
     },

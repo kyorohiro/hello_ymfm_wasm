@@ -2,12 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSynthFmEdits} from './synth_fm_edits.js';
 import {YM2612Synth} from '../js/ym2612synth.js';
+import {createSynthSongCopyPreset} from './synth_song_copy.js';
 
 function host(objectProtocol=false){
   const writes=[],transport={write:objectProtocol?function(command){writes.push([command.port,command.register,command.value]);}
     :function(port,register,value){writes.push([port,register,value]);},reset(){writes.push('reset');}};
   const synth=new YM2612Synth({transport});writes.length=0;
   const observer=createSynthFmEdits(synth);return {synth,observer,writes,transport};
+}
+
+function batchedHost(objectProtocol=false,fallback=false){
+  const writes=[],batches=[],batchResult=Symbol('batch result');
+  const transport={write:objectProtocol?function(command){writes.push([command.port,command.register,command.value]);}
+    :function(port,register,value){writes.push([port,register,value]);},
+    writeBatch(commands){
+      assert.equal(this,transport,'the original batch transport retains its receiver');
+      batches.push(commands.map(command=>Array.isArray(command)?[...command]:[command.port,command.register,command.value]));
+      for(const command of commands){
+        const [port,register,value]=Array.isArray(command)?command:[command.port,command.register,command.value];
+        if(fallback){if(this.write.length>=3)this.write(port,register,value);else this.write({port,register,value});}
+        else writes.push([port,register,value]);
+      }
+      return batchResult;
+    },reset(){writes.push('reset');}};
+  const synth=new YM2612Synth({transport});writes.length=0;batches.length=0;
+  const originalBatch=transport.writeBatch,observer=createSynthFmEdits(synth);
+  return {synth,observer,writes,batches,transport,originalBatch,batchResult};
 }
 
 for(const objectProtocol of [false,true])test(`Code raw writes keep packed companions on sparse editor changes (${objectProtocol?'object':'three-argument'} transport)`,()=>{
@@ -101,4 +121,58 @@ test('frozen local FM view projects touched manual fields without leaking Code o
     observer.editWrittenChannel(0,{algorithm:6});const edited=observer.readWrittenSnapshot(fresh).channels[0].preset;
     assert.equal(edited.algorithm,6);assert.equal(edited.feedback,2);
   }finally{observer.dispose();}
+});
+
+for(const objectProtocol of [false,true])for(const fallback of [false,true])test(`public batched FM frequencies reach CH3 capture without duplicate writes (${objectProtocol?'object':'three-argument'}, ${fallback?'this.write fallback':'direct batch'})`,()=>{
+  const {synth,observer,writes,batches}=batchedHost(objectProtocol,fallback);
+  try{
+    synth.setChannel3SpecialMode(true);
+    const pitches=[{block:2,fnum:600},{block:3,fnum:900},{block:4,fnum:1200},{block:3,fnum:1000}];
+    for(const [operator,{block,fnum}]of pitches.entries())synth.setChannel3SpecialFrequency(operator,block,fnum);
+    synth.keyOn(2,[0,2]);
+    const state=observer.read(),voice=state.channels[2];
+    assert.equal(batches.length,4);assert.equal(writes.length,10,'one mode write, four frequency pairs and one gate write');
+    assert.equal(state.frame,10,'each physical write is observed exactly once');
+    assert.equal(voice.specialMode,true);assert.deepEqual(voice.specialFrequencies.map(({block,fnum})=>({block,fnum})),pitches);
+    assert.equal(voice.keyMask,5);assert.equal(voice.lastKeyMask,5);assert.equal(voice.fnum,1000);assert.equal(voice.block,3);
+    const captured=createSynthSongCopyPreset(state,2);
+    assert.equal(captured.capturedVoice.keyMask,5);assert.equal(captured.capturedVoice.specialMode,true);
+    assert.deepEqual(captured.capturedVoice.specialFrequencies,pitches);
+    synth.setFrequency(4,4,1100);
+    const later=observer.read();assert.equal(later.channels[4].fnum,1100);assert.equal(later.channels[4].block,4);
+    assert.equal(later.frame,12);assert.equal(writes.length,12);assert.equal(batches.length,5);
+    assert.deepEqual(later.channels[2].specialFrequencies,voice.specialFrequencies,'an ordinary CH pitch cannot replace CH3 ratios');
+  }finally{observer.dispose();}
+});
+
+test('array batches retain their original return value and update packed registers, masks and special pitch in order',()=>{
+  const {observer,writes,batches,transport,batchResult}=batchedHost(true,true);
+  try{
+    const result=transport.writeBatch([[0,0x27,0x40],[0,0xa6,0x1b],[0,0xa2,0xe8],[0,0x28,0x52],[0,0x30,0x73]]);
+    assert.equal(result,batchResult);assert.equal(batches.length,1);assert.equal(writes.length,5);assert.equal(observer.read().frame,5);
+    const voice=observer.read().channels[2];assert.equal(voice.fnum,1000);assert.equal(voice.block,3);assert.equal(voice.keyMask,5);
+    observer.apply(0,{'operators.1.multi':4});assert.deepEqual(writes.at(-1),[0,0x30,0x74]);
+    assert.equal(observer.read().frame,6,'one sparse companion update is one observed write');
+  }finally{observer.dispose();}
+});
+
+test('failed batches do not fabricate accepted register state and disposal restores the batch method without writes',()=>{
+  const {synth,observer,writes,batches,transport,originalBatch}=batchedHost();
+  const wrappedBatch=transport.writeBatch;
+  try{
+    synth.setFrequency(2,3,1000);assert.equal(observer.read().channels[2].fnum,1000);
+    const count=writes.length;
+    observer.dispose();observer.dispose();assert.equal(transport.writeBatch,originalBatch);assert.notEqual(transport.writeBatch,wrappedBatch);
+    assert.equal(writes.length,count,'disposal is silent');
+    synth.setFrequency(2,4,1200);assert.equal(writes.length,count+2);assert.equal(batches.length,2);
+  }finally{observer.dispose();}
+  const failure=Error('Batch rejected'),failedTransport={write(){throw Error('unexpected individual write');},writeBatch(){throw failure;},reset(){}};
+  // A minimal host avoids YM2612Synth constructor initialization before the
+  // deliberately rejecting transport can be observed.
+  const failed=createSynthFmEdits({clock:7670454,transport:failedTransport});
+  try{
+    const before=failed.read();
+    assert.throws(()=>failedTransport.writeBatch([{port:0,register:0xa6,value:0x1b},{port:0,register:0xa2,value:0xe8}]),error=>error===failure);
+    assert.deepEqual(failed.read(),before);
+  }finally{failed.dispose();}
 });

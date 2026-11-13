@@ -10,10 +10,12 @@ import {createSynthLocalChannelVoice} from './synth_local_channel_voice.js?v=cha
 export function createSynthFmEdits(synth) {
   const transport=synth?.transport;
   if(typeof transport?.write!=='function')throw new TypeError('Expected a YM2612Synth transport');
-  const originalWrite=transport.write,originalReset=transport.reset;
+  const originalWrite=transport.write,originalWriteBatch=transport.writeBatch,originalReset=transport.reset;
+  let forwardingBatch=0,observingBatch=false;
+  const forwardWrite=(port,register,value)=>originalWrite.length>=3?originalWrite.call(transport,port,register,value)
+    :originalWrite.call(transport,{port,register,value});
   const engine={
-    writeYm2612(port,register,value){return originalWrite.length>=3?originalWrite.call(transport,port,register,value)
-      :originalWrite.call(transport,{port,register,value});},
+    writeYm2612(port,register,value){if(!observingBatch)return forwardWrite(port,register,value);},
     processFrames(){},reset(...args){return originalReset?.apply(transport,args);},
   };
   const interaction=createSynthSongInteraction(engine,{clockHz:synth.clock??7670454});
@@ -22,15 +24,37 @@ export function createSynthFmEdits(synth) {
   // two supported transport protocols. The underlying transport keeps its own.
   function write(port,register,value) {
     if(port&&typeof port==='object')({port,register,value}=port);
+    // Some custom batch transports forward through this.write(). The batch
+    // wrapper observes that group once, after the original transport accepts it.
+    if(forwardingBatch)return forwardWrite(port,register,value);
     // Local frame is write order, not rendered audio time. It separates a
     // future freeze from older manual overlays without adding a hardware tick.
     engine.processFrames(1);
     return engine.writeYm2612(port,register,value);
   }
+  function writeBatch(commands,...args) {
+    // Keep the original hardware transaction intact. Only its register shadow
+    // is replayed here, never a second transport write. Capture command fields
+    // first because a custom transport may consume or mutate its input array.
+    const observed=commands.map(command=>Array.isArray(command)?{port:command[0],register:command[1],value:command[2]}:
+      {port:command.port,register:command.register,value:command.value});
+    const nested=forwardingBatch>0;
+    let result;
+    forwardingBatch++;
+    try{result=originalWriteBatch.call(transport,commands,...args);}
+    finally{forwardingBatch--;}
+    if(!nested){
+      observingBatch=true;
+      try{for(const {port,register,value}of observed){engine.processFrames(1);engine.writeYm2612(port,register,value);}}
+      finally{observingBatch=false;}
+    }
+    return result;
+  }
   function reset(...args) {
     return engine.reset(...args);
   }
   transport.write=write;
+  if(typeof originalWriteBatch==='function')transport.writeBatch=writeBatch;
   if(typeof originalReset==='function')transport.reset=reset;
   function apply(channel,changes) {
     if(disposed)throw new Error('FM editor writes are disposed');
@@ -68,6 +92,7 @@ export function createSynthFmEdits(synth) {
   function dispose(){
     if(disposed)return;disposed=true;
     if(transport.write===write)transport.write=originalWrite;
+    if(transport.writeBatch===writeBatch)transport.writeBatch=originalWriteBatch;
     if(transport.reset===reset)transport.reset=originalReset;
     interaction.dispose();
   }
