@@ -86,7 +86,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     const menu=html.indexOf('id="synthMenuPanel"'),importButton=html.indexOf('id="loadVgm"'),menuEnd=html.indexOf('</details>',menu);
     assert(menu>=0&&importButton>menu&&importButton<menuEnd,'VGM import belongs to the hamburger menu');
     const sounds=html.indexOf('id="vgmImport"'),channels=html.indexOf('id="hucCodeLiveTools"'),monitor=html.indexOf('aria-label="Instrument display"');
-    assert(sounds>=0&&sounds<channels&&channels<monitor,'Sounds card, Channel / Auto update and monitor stay in reading order');
+    const player=html.indexOf('id="hucSongPlayer"'),mix=html.indexOf('id="hucSongChannels"');
+    assert(player>=0&&player<channels&&channels<mix&&mix<sounds&&sounds<monitor,'Channel / Auto update and VGM outputs belong next to the transport, before Sounds and the monitor');
+    for(let channel=1;channel<=6;channel++)assert.match(html,new RegExp(`id="hucSongChannel${channel}Toggle"[^>]*aria-pressed="true"`));
     assert.match(html,/<button id="hucSongCaptureButton"[^>]*>Capture to Synth<\/button>/);
     assert.match(html,/<meta name="application-name" content="Tetorica HuC6280 Synth">/);
     assert.match(html,/<link rel="icon"[^>]+tetorica_huc6280_synth\.webp/);

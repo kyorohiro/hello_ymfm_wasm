@@ -135,9 +135,10 @@ async function check(browser,name,origin,fixture,loadCassette){
     assert.equal(await page.locator('#loadVgm').evaluate(node=>Boolean(node.closest('#synthMenu'))),true);
     assert(await page.locator('#loadVgm').isHidden());
     const order=await page.evaluate(()=>{
-      const a=document.querySelector('#hucSongPlayer'),b=document.querySelector('#vgmImport'),c=document.querySelector('#hucCodeLiveTools'),d=document.querySelector('.huc-monitor');
-      return [a,b,c].every((node,index)=>Boolean(node.compareDocumentPosition([b,c,d][index])&Node.DOCUMENT_POSITION_FOLLOWING));
-    });assert(order,'song → sounds → channel controls → waveform/spectrum');
+      const transport=document.querySelector('#hucSongPlayer'),channels=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');
+      return transport.contains(channels)&&transport.contains(live)&&Boolean(live.compareDocumentPosition(channels)&Node.DOCUMENT_POSITION_FOLLOWING)&&
+        Boolean(transport.compareDocumentPosition(sounds)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(sounds.compareDocumentPosition(monitor)&Node.DOCUMENT_POSITION_FOLLOWING);
+    });assert(order,'song contains channel controls → mixer; Sounds and monitor follow');
     await openMenu(page);const chooser=page.waitForEvent('filechooser');await page.locator('#loadVgm').click();
     await(await chooser).setFiles({name:'capture-source.vgm',mimeType:'application/octet-stream',buffer:fixture.bytes});
     await until(()=>page.locator('#hucSongSelect option[value="/vgm/capture-source.vgm"]').count().then(Boolean),'menu import stored source');

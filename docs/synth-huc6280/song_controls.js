@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-live-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-mixer-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
@@ -15,6 +15,8 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   const $=id=>doc.getElementById(id),root=$('hucSongPlayer'),select=$('hucSongSelect');
   const play=$('hucSongPlayButton'),stop=$('hucSongStopButton'),status=$('hucSongStatus'),position=$('hucSongPosition');
   const capture=$('hucSongCaptureButton'),captureStatus=$('hucSongCaptureStatus');
+  const channelButtons=Array.from({length:6},(_,index)=>$(`hucSongChannel${index+1}Toggle`));
+  const channelGroup=$('hucSongChannels');
   if(!root||!select||!play||!stop||!status)throw Error('HuC6280 song controls mount is missing.');
   const listeners=[];
   let disposed=false,selectedPath=null,selectedRevision=-1,attempted='',listSignature='',selection=0,choosing=false,selectionError='',pending=null;
@@ -32,6 +34,14 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     root.dataset.renderedFrames=String((state.positionFrames??0)+(state.bufferedFrames??0));
     root.dataset.liveEnabled=String(state.liveEnabled!==false);
     root.dataset.livePositionFrames=String(state.liveState?.positionFrames??'');
+    const channelEnabled=state.channelEnabled??Array(6).fill(true);
+    if(channelGroup)channelGroup.hidden=!state.hasSource;
+    root.dataset.channelMuteMask=String(state.channelMuteMask??channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0));
+    channelButtons.forEach((button,index)=>{
+      if(!button)return;const enabled=channelEnabled[index]!==false;
+      text(button,`CH ${index+1} · ${enabled?'On':'Off'}`);
+      button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',`VGM CH${index+1} output ${enabled?'On':'Off'}`);
+    });
     text(play,state.playing?'Pause':state.paused?'Resume':'Play');
     play.disabled=Boolean(choosing||state.loading||state.busy||!state.hasSource);
     stop.disabled=!(choosing||state.loading||state.canStop||['starting','playing','paused'].includes(state.playback));
@@ -112,6 +122,17 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     void Promise.resolve(state.paused?preview.resume():preview.play()).catch(report);
   });
   listen(stop,'click',()=>{stop.blur();stopCurrent();});
+  function setChannelEnabled(channel,enabled){
+    if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('VGM channel must be CH1–CH6.');
+    if(typeof enabled!=='boolean')throw TypeError('VGM channel enabled must be boolean.');
+    if(disposed)return false;
+    return decorate(preview.setChannelEnabled(channel,enabled));
+  }
+  channelButtons.forEach((button,index)=>{
+    if(!button)return;
+    listen(button,'pointerdown',event=>{if(event.button===0)event.preventDefault();});
+    listen(button,'click',()=>{button.blur();try{setChannelEnabled(index,read().channelEnabled?.[index]===false);}catch(error){report(error);}});
+  });
   function getPausedSelection(state=read()){
     if(disposed||choosing||state.loading||state.busy||!state.paused||!state.hasSource||state.liveError||viewTarget==='synth'||!selectedPath||
       !state.liveState||state.liveState.positionFrames!==state.positionFrames)return null;
@@ -152,7 +173,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   refresh();showState(read());
   return{
     getState:()=>decorate(read()),read:()=>decorate(read()),isPlaying:()=>Boolean(read().playing),
-    getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,
+    getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,setChannelEnabled,
     isActive:()=>Boolean(choosing||read().loading||['starting','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
     setLiveEnabled(value){if(disposed)return false;return decorate(preview.setLiveEnabled(value));},

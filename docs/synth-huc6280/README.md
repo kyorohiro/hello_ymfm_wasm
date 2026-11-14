@@ -71,9 +71,10 @@ Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
 **Wave** / **Noise** / **LFO** / **PCM** list. Analysis alone keeps the current instrument; only an
 explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
-The resulting **Sounds from VGM** card sits above the shared **Channel / Auto
-update** controls, followed by the **Waveform / Spectrum** monitor. Collapse
-the sound list while following the same channel settings and output display.
+The shared **Channel / Auto update** controls sit inside the VGM transport
+container, close to Play / Pause / Stop. The collapsible **Sounds from VGM**
+card follows, then the **Waveform / Spectrum** monitor. Collapse the sound list
+while following the same channel settings and output display.
 
 **Wave / PCM: keep loudest volume variant** optionally groups Wave or PCM entries whose data
 and all other sound settings match, showing the highest channel-volume version.
@@ -154,6 +155,20 @@ monitor. VGM loop points do not automatically repeat. The reference chip is
 independent of the authored instrument; Pause retains unheard PCM and its exact
 offset so Resume continues at the heard song position.
 
+**VGM output: CH1–CH6 On / Off** lets you hear each part separately. These
+software listening switches affect only the reference song mix, independently
+of the Channel view selector. All six start On. Turning a channel Off does not
+stop its oscillator, change its recorded Gate/volume/Wave/Noise/DDA settings,
+or disable CH2's hardware LFO modulation of CH1. Live and Capture continue to
+show the recorded sound. Keyboard audition, the edited Synth and Code remain
+separate.
+
+Changes apply to newly generated PCM after already buffered audio has played;
+Pause retains that same buffered tail for Resume. On / Off never restarts the
+song or changes its position. Flags remain selected across Pause / Resume,
+Stop / Play and song changes in this session; they are not instrument preset
+fields and are not saved in a Cassette.
+
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
 both. While paused, select **Synth** to play or adjust your edited instrument.
@@ -204,8 +219,8 @@ A DDA snapshot contains one changing DAC value, not a complete PCM sample, so
 it cannot be captured or auditioned as a sample. Use static PCM extraction when
 a complete supported interval exists. A known but gated-off or muted sound can
 still be captured, while its paused keyboard audition is disabled. Oscillator
-phase and elapsed automation are not captured. CH On / Off, Seek and direct VGM
-editing remain later steps.
+phase and elapsed automation are not captured. Seek and direct VGM editing
+remain later steps.
 
 The player accepts VGM **1.61–1.72** and requires one HuC6280 at the normal
 **3,579,545 Hz** PC Engine clock. Other chips,
@@ -392,6 +407,7 @@ npm run test:huc6280-synth:code-browser
 npm run test:huc6280-synth:song-browser
 npm run test:huc6280-synth:live-browser
 npm run test:huc6280-synth:capture-browser
+npm run test:huc6280-synth:mixer-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -422,7 +438,8 @@ Runは新規実行、Applyはcontext等を保持、Stopは短くフェードし�
 CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲート操作です。
 liveFxやDDAのデータ供給もソフト側の機能です。復元したCodeを勝手に実行することはありません。
 ハンバーガーメニューのImport → VGM / VGZ…から読み込みます。
-音色一覧 → Channel／Auto update → Waveform／Spectrumの順に並び、一覧は折りたためます。
+Channel／Auto update／CaptureはVGM・Play／Stopと同じコンテナ内です。
+その下に折りたたみ式の音色一覧、Waveform／Spectrumが続きます。
 VGM／VGZからWave／Noise、CH1・CH2を組にしたLFO音色、対応する完全なDAC streamや一定間隔の直接DAC write区間のPCMを抽出できます。
 Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
 両周期・速度・深さ・Reset・CH2の出力を保持します。
@@ -435,6 +452,11 @@ PCM一覧に由来・rate・時間・Loopを表示し、C4で記録時の速度�
 間隔が変わる／終端が不明な直接DAC区間、未対応stream、不明な設定は理由付きで省略します。
 VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲一覧からPlay／Pause／Resume／Stopできます。
 模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
+VGM outputのCH1–CH6 On／Offは、曲の聴き分け用のソフト側スイッチです。初期値は全CH On。
+表示対象のChannel選択とは独立し、通常Synth／Code／Pause試奏には適用しません。
+発振器・Noise・DDA・CH2→CH1のLFOと記録設定は保ち、出力だけを変更します。
+生成済みPCMを保持し、その先の音から反映します。Pause中の変更も未再生の短いbufferの後から反映されます。
+Pause／Resume、Stop／Play、曲切替でも選択を保持します。セッション内の状態で、音色presetやCassetteには保存しません。
 Codeと曲再生は排他的で、RunとPlayが互いの演奏を停止します。Pauseは未再生PCMとoffsetを保持します。
 CH1–CH6を選ぶと、聞こえた位置の設定を同じ音色UIへ読み取り専用で表示します。
 未記録Wave RAMは空欄、DDAは最後に書かれたDAC値を表示し、元のPCM音色や音階を推測しません。

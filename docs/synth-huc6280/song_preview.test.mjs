@@ -19,6 +19,15 @@ function setup(options = {}) {
   return {...graph,preview,engines,states,statuses,get audioCalls(){return audioCalls;},get beforeCalls(){return beforeCalls;}};
 }
 const song = () => vgm([...write(0,0),...write(1,255),...wait(22050)]);
+function mixerEngine(){
+  const engine=counterEngine(),generate=engine.processFrames,reset=engine.reset;
+  engine.muted=Array(6).fill(false);engine.mixCalls=[];
+  engine.reset=function(){reset.call(this);this.muted.fill(false);};
+  engine.setChannelMuted=function(channel,muted){this.mixCalls.push([channel,muted]);this.muted[channel]=muted;
+    if(this.failMute){this.failMute=false;throw Error('Mixer request failed');}};
+  engine.processFrames=function(frames){const pcm=generate.call(this,frames);if(this.muted[0]){pcm.left.fill(0);pcm.right.fill(0);}return pcm;};
+  return engine;
+}
 
 test('construction and complete-file load are passive; invalid/cancelled replacement preserves accepted song and running transport',async()=>{
   const f=setup();assert.equal(f.audioCalls,0);assert.equal(f.preview.read().hasSource,false);
@@ -154,6 +163,49 @@ test('Live AutoOff retains a full-chip snapshot for CH switching, On refreshes, 
   f.preview.setLiveEnabled(true);assert.equal(f.preview.read().liveState.positionFrames,at);
   f.preview.stop();assert.equal(f.preview.read().liveState,null);assert.equal(f.preview.read().liveActive,false);
   await f.preview.play();await f.preview.load(song(),'replacement');assert.equal(f.preview.read().liveState,null);f.preview.dispose();
+});
+
+test('six output flags default On, return detached state and persist passively across source/load/Stop/clear',async()=>{
+  const f=setup();assert.deepEqual(f.preview.read().channelEnabled,Array(6).fill(true));assert.equal(f.preview.read().channelMuteMask,0);
+  const view=f.preview.read();view.channelEnabled[0]=false;assert.equal(f.preview.read().channelEnabled[0],true);
+  f.preview.setChannelEnabled(0,false);f.preview.setChannelEnabled(5,false);assert.equal(f.preview.read().channelMuteMask,33);assert.equal(f.audioCalls,0);assert.equal(f.engines.length,0);
+  await f.preview.load(song());f.preview.stop();f.preview.clear();assert.equal(f.preview.read().channelMuteMask,33);assert.equal(f.audioCalls,0);
+  for(const channel of[-1,6,.5,'0'])assert.throws(()=>f.preview.setChannelEnabled(channel,true),RangeError);
+  assert.throws(()=>f.preview.setChannelEnabled(0,1),TypeError);f.preview.dispose();assert.throws(()=>f.preview.setChannelEnabled(0,true),/disposed/);
+});
+
+test('latest output flags apply after initialization/reset, survive Pause/Resume/Stop/Play, and stale startup cannot apply an older mask',async()=>{
+  const first=deferred(),created=[];let count=0;
+  const f=setup({createEngine:async()=>{if(++count===1)return first.promise;const engine=mixerEngine();created.push(engine);return engine;}});
+  await f.preview.load(song());const old=f.preview.play();await turn();f.preview.setChannelEnabled(0,false);f.preview.stop();
+  f.preview.setChannelEnabled(4,false);assert.equal(await f.preview.play(),true);const live=created[0];assert.deepEqual(live.muted,[true,false,false,false,true,false]);
+  const stale=mixerEngine();first.resolve(stale);assert.equal(await old,false);assert.equal(stale.disposals,1);assert.equal(stale.mixCalls.length,0,'retired engine never applies a mask or attaches');
+  f.preview.pause();f.preview.setChannelEnabled(0,true);assert.equal(f.preview.read().channelMuteMask,16);await f.preview.resume();
+  assert.deepEqual(live.muted,[false,false,false,false,true,false]);f.preview.stop();await f.preview.play();assert.equal(f.preview.read().channelMuteMask,16);
+  assert.deepEqual(created.at(-1).muted,[false,false,false,false,true,false]);f.preview.dispose();
+});
+
+test('a failed native output toggle rolls back its gate and leaves published flags/PCM/Live/transport untouched',async()=>{
+  const engine=mixerEngine(),f=setup({createEngine:async()=>engine});await f.preview.load(song());await f.preview.play();
+  const before=f.preview.read(),snapshot=before.liveState,buffers=f.buffers.map(buffer=>buffer.data.map(side=>side.slice()));engine.failMute=true;
+  assert.throws(()=>f.preview.setChannelEnabled(0,false),/Mixer request failed/);
+  assert.equal(f.preview.read().channelMuteMask,0);assert.equal(engine.muted[0],false);assert.equal(f.preview.read().liveState,snapshot);
+  assert.equal(f.preview.read().playback,before.playback);assert.equal(f.preview.read().positionFrames,before.positionFrames);
+  for(let i=0;i<buffers.length;i++)assert.deepEqual(f.buffers[i].data,buffers[i]);assert(f.preview.read().playing);f.preview.dispose();
+  const missing=setup();await missing.preview.load(song());await missing.preview.play();assert.throws(()=>missing.preview.setChannelEnabled(2,false),/does not support/);
+  assert.equal(missing.preview.read().channelMuteMask,0);missing.preview.dispose();
+});
+
+test('On/Off preserves already rendered and paused PCM offsets; only future native chunks use the new mix',async()=>{
+  const engine=mixerEngine(),f=setup({createEngine:async()=>engine});await f.preview.load(song());await f.preview.play();
+  const initial=f.sources()[0],rendered=f.buffers.reduce((sum,buffer)=>sum+buffer.length,0),retained=f.buffers.map(buffer=>buffer.data.map(side=>side.slice()));
+  f.context.currentTime=initial.at+100/44100;f.preview.pause();const paused=f.preview.read(),sourceCount=f.sources().length;
+  f.preview.setChannelEnabled(0,false);assert.equal(f.preview.read().positionFrames,100);assert.equal(f.preview.read().bufferedFrames,paused.bufferedFrames);
+  assert.equal(f.preview.read().liveState,paused.liveState);for(let i=0;i<retained.length;i++)assert.deepEqual(f.buffers[i].data,retained[i]);
+  await f.preview.resume();const resumed=f.sources()[sourceCount];assert.equal(resumed.buffer,initial.buffer);near(resumed.offset,100/44100);
+  for(let i=retained.length;i<f.buffers.length;i++)assert(f.buffers[i].data[0].every(value=>value===0),'new lookahead is muted');
+  f.context.currentTime=20;f.tick(0);const future=f.buffers.filter((_,index)=>index>=retained.length);assert(future.length>0);assert(future.every(buffer=>buffer.data[0].every(value=>value===0)));
+  assert(engine.cursor>rendered,'the native oscillator continues to run while muted');f.preview.dispose();
 });
 
 const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));

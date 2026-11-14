@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "task": "HuC6280 Synth VGM channel output switches and common transport container",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Channel / Auto update / Capture are inside the same VGM / Play / Pause / Stop container, followed by VGM output switches. Sounds from VGM is below this container and above the existing monitor. The common Channel selector remains available in normal and Code contexts.",
+    "Six independent VGM output CH On/Off buttons default On and apply only the existing reference-engine channel mute flags. They do not change recorded register settings, oscillator phase, Noise seed, DDA/stream progress or CH2-to-CH1 LFO modulation.",
+    "Already generated/scheduled PCM and its exact read offset remain intact; the new mix is heard after that buffered tail. Playback never restarts or seeks on a toggle. The latest flags survive Pause/Resume, Stop/Play and source changes during this session; presets/Cassettes do not persist them.",
+    "Flags can be changed passively without acquiring audio, and during async initialization. Stale initialization cannot apply flags to newer performers. Failed setters leave published state unchanged and restore the prior mask where possible.",
+    "VGM output is independent of the displayed Channel and Auto update. Muting does not invalidate an exact paused Capture ticket or mute the separate paused audition, authored Synth or Code sound.",
+    "Native PCM verifies all-On identity with the original player, isolation and summed output of all six channels, CH2-muted LFO carrier, continued CH2 phase while CH1 is muted, exact future PCM after unmute, Wave/Noise continuity and unchanged DAC stream observation.",
+    "Muted browser analyser confirms exact zero on the isolated left/right output, all-Off silence with progressing song position, Noise/DDA/LFO output, focus behavior, persisted flags and normal paused audition/Capture under all reference mutes.",
+    "Menu import, sound extraction and Wave / PCM keep-loudest-volume-variant remain available. Readable standalone modules, authenticated sources, existing WASM bytes, SDK 0.1.7, Master calibration and output graph are retained."
+  ],
+  "node": {
+    "passed": 353,
+    "failed": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-mixer-20261114/node-tests-a.log",
+      "bytes": 38540,
+      "sha256": "5a5bcc780990c34eaeb1a5dec489fa444d9d120321ccaf5935a7823fac642f5e"
+    }
+  },
+  "browsers": {
+    "suites": 6,
+    "runs": 12,
+    "checks": 138,
+    "results": [
+      {
+        "suite": "mixer",
+        "receipt": {
+          "path": "build/verification/huc-mixer-20261114/mixer-a.json",
+          "bytes": 28172,
+          "sha256": "82c9ad68cf76bac2212fb860eac484ab1cc54705c152d3c64a148f2542dd6d4f"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "receipt": {
+          "path": "build/verification/huc-mixer-20261114/capture-a.json",
+          "bytes": 35666,
+          "sha256": "932da91fe75b66b3fc25521fc087a89416313c925883db99db897299edb4228c"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "receipt": {
+          "path": "build/verification/huc-mixer-20261114/live-a.json",
+          "bytes": 106834,
+          "sha256": "1707c7ddfdefb4aee8b5a794627ccc833772d463f5f7e96e6b13b57c5216b5e3"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/huc-mixer-20261114/code-a.json",
+          "bytes": 19801,
+          "sha256": "1e944a0fe9169e165a57483baeb54fa1a1cb07f7ecb4a8fa7a3f88efbd8dfebe"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "song",
+        "receipt": {
+          "path": "build/verification/huc-mixer-20261114/song-a.json",
+          "bytes": 29390,
+          "sha256": "b10fdaec2d381a7c3ec7dcab492f7c1250f534b8c80fb5dd06b8a9af291142c6"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "legacy",
+        "receipt": {
+          "path": "build/verification/huc-mixer-20261114/legacy-a.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsVisuallyInspected": true
+  },
+  "package": {
+    "zip": "release/tetorica_huc6280_synth_huc-mixer-20261114a_itch.zip",
+    "stage": "release/itch_huc6280_synth_huc-mixer-20261114a-IMMeHf",
+    "files": 135,
+    "bytes": 1794101,
+    "sha256": "ee09e1c3f339d69563c50350c1cda8574d72f2647783d8ba330ce2927223af50",
+    "sourceCheck": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    },
+    "integrityReceipt": {
+      "path": "build/verification/huc-mixer-20261114/zip-integrity-a.json",
+      "bytes": 137,
+      "sha256": "381f1f6dd588b158536278fd090baec312dd7cf3c0e482a5a8bde512811618ec"
+    },
+    "sourceParityReceipt": {
+      "path": "build/verification/huc-mixer-20261114/source-parity-a.json",
+      "bytes": 334,
+      "sha256": "c9fba2df40ce830dff5196e6543f74d884412800dbb9740032d4c59e54104a04"
+    }
+  },
+  "ci": "HuC6280 workflow includes the new muted Mixer checker and artifacts alongside existing suites on the extracted standalone ZIP. GitHub Actions was not dispatched.",
+  "scope": "No physical listening, long-duration test, commercial-game comparison, user project storage changes, commit, push, tag, publication, Tauri update or public npm/native API change. Seek/cache and direct VGM interaction remain future tasks."
+}

@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-capture-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-mixer-1">
 </head>
 <body>
   <main>
@@ -68,6 +68,26 @@
           <details class="spu-code-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a VGM / VGZ from Menu or add it to Files. The original file is kept under vgm/. Play runs one HuC6280 reference performance through Master; your edited instrument is kept. Code and song playback run one at a time. Pause stops at the heard position; Resume continues from there. Playback runs once. While paused, choose a CH to audition its configured sound, or Synth to play your edited instrument. Capture to Synth keeps the song paused; Resume continues from the same position. Loading another preset or extracted sound stops the song.</p></details>
         </div>
         <p id="hucSongStatus" class="subtext" role="status">Add a VGM / VGZ to hear a reference performance.</p>
+        <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Channel controls">
+          <div class="spu-code-live-row">
+            <label>Channel <select id="hucChannelSelect" aria-label="Channel or authored instrument"><option value="synth" selected>Synth · edit and play</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
+            <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
+            <button id="hucSongCaptureButton" type="button" disabled hidden>Capture to Synth</button>
+            <details class="spu-code-help"><summary aria-label="About channel controls">?</summary><p>Synth edits your common round-robin instrument. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 show read-only settings at the heard position; Pause freezes that position and lets the keyboard audition a known Wave, Noise or CH1 LFO pair through the same Master. Capture to Synth copies that configured sound for editing and saving, keeping the song paused. DDA samples and unknown Wave RAM cannot be reconstructed from this snapshot. Auto update follows at up to 20 times per second, and Off retains the last observation. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p></details>
+          </div>
+          <p id="hucChannelStatus" class="subtext" role="status"></p><p id="hucChannelReadout" class="subtext"></p>
+          <p id="hucSongCaptureStatus" class="subtext" role="status" hidden></p>
+        </section>
+        <div id="hucSongChannels" class="huc-song-channels" role="group" aria-label="VGM channel outputs" hidden>
+          <span class="huc-song-channels-label">VGM output</span>
+          <button id="hucSongChannel1Toggle" type="button" aria-pressed="true" aria-label="VGM CH 1 output" title="Toggle VGM CH 1 output">CH 1 · On</button>
+          <button id="hucSongChannel2Toggle" type="button" aria-pressed="true" aria-label="VGM CH 2 output" title="Toggle VGM CH 2 output">CH 2 · On</button>
+          <button id="hucSongChannel3Toggle" type="button" aria-pressed="true" aria-label="VGM CH 3 output" title="Toggle VGM CH 3 output">CH 3 · On</button>
+          <button id="hucSongChannel4Toggle" type="button" aria-pressed="true" aria-label="VGM CH 4 output" title="Toggle VGM CH 4 output">CH 4 · On</button>
+          <button id="hucSongChannel5Toggle" type="button" aria-pressed="true" aria-label="VGM CH 5 output" title="Toggle VGM CH 5 output">CH 5 · On</button>
+          <button id="hucSongChannel6Toggle" type="button" aria-pressed="true" aria-label="VGM CH 6 output" title="Toggle VGM CH 6 output">CH 6 · On</button>
+          <details class="spu-code-help"><summary aria-label="About VGM channel outputs">?</summary><p>These software listening switches change only a channel's contribution to VGM song output. Wave, Noise, DDA and CH2 → CH1 hardware LFO keep running; Live and Capture still show the recorded settings. Already buffered audio plays first, then the new mix is heard. These switches keep their settings across Pause, Stop and song changes. Keyboard and Code output are separate.</p></details>
+        </div>
       </section>
       <details id="vgmImport" class="huc-card huc-vgm-import">
         <summary>Sounds from VGM</summary>
@@ -98,16 +118,6 @@
         </div>
       </details>
 
-      <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Channel controls">
-        <div class="spu-code-live-row">
-          <label>Channel <select id="hucChannelSelect" aria-label="Channel or authored instrument"><option value="synth" selected>Synth · edit and play</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
-          <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
-          <button id="hucSongCaptureButton" type="button" disabled hidden>Capture to Synth</button>
-          <details class="spu-code-help"><summary aria-label="About channel controls">?</summary><p>Synth edits your common round-robin instrument. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 show read-only settings at the heard position; Pause freezes that position and lets the keyboard audition a known Wave, Noise or CH1 LFO pair through the same Master. Capture to Synth copies that configured sound for editing and saving, keeping the song paused. DDA samples and unknown Wave RAM cannot be reconstructed from this snapshot. Auto update follows at up to 20 times per second, and Off retains the last observation. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p></details>
-        </div>
-        <p id="hucChannelStatus" class="subtext" role="status"></p><p id="hucChannelReadout" class="subtext"></p>
-        <p id="hucSongCaptureStatus" class="subtext" role="status" hidden></p>
-      </section>
       <section class="spu-monitor huc-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
@@ -193,6 +203,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-capture-1"></script>
+  <script type="module" src="./synth.js?v=huc-mixer-1"></script>
 </body>
 </html>

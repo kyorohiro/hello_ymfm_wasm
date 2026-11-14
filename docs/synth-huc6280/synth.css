@@ -23,6 +23,12 @@ input[type="range"] { accent-color:#458eb8; }
 #hucSongPosition { color:var(--muted); font-size:.73rem; font-variant-numeric:tabular-nums; }
 #hucSongStatus { margin:7px 0 0; font-size:.71rem; overflow-wrap:anywhere; }
 #hucSongStatus[data-error="true"] { color:#a02f31; }
+.huc-song-player .spu-code-live-tools { margin:9px 0 0; padding:10px 0 0; border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; }
+.huc-song-channels { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:9px 0 0; }
+.huc-song-channels-label { color:var(--muted); font-size:.73rem; margin-right:4px; }
+.huc-song-channels > button { min-height:30px; padding:5px 9px; font-size:.7rem; font-variant-numeric:tabular-nums; }
+.huc-song-channels > button[aria-pressed="false"] { color:var(--muted); background:#e4e9ed; box-shadow:none; }
+
 .huc-vgm-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:8px 0; min-width:0; }
 .huc-vgm-actions .subtext { margin:0; }
 .huc-vgm-option { display:flex; align-items:center; gap:8px; margin:12px 0 6px; font-size:.76rem; }

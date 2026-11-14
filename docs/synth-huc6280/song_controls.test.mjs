@@ -8,20 +8,22 @@ import {createHuc6280RegisterState} from './song_state.js';
 import {wave} from './song_test_helpers.mjs';
 
 class Element{
-  constructor(){this.listeners=new Map();this.children=[];this.dataset={};this.value='';this.textContent='';}
+  constructor(){this.listeners=new Map();this.children=[];this.dataset={};this.attributes={};this.value='';this.textContent='';}
   addEventListener(type,fn){this.listeners.set(type,fn);}removeEventListener(type){this.listeners.delete(type);}
-  replaceChildren(...nodes){this.children=nodes;}blur(){this.blurred=true;}fire(type){return this.listeners.get(type)?.({});}
+  replaceChildren(...nodes){this.children=nodes;}blur(){this.blurred=true;}fire(type,event={}){return this.listeners.get(type)?.(event);}
+  setAttribute(name,value){this.attributes[name]=String(value);}getAttribute(name){return this.attributes[name]??null;}
 }
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
 const add=(project,name,value=1)=>project.importFiles([{path:'/vgm/'+name,type:'binary',data:Uint8Array.of(value)}]);
-function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture}={}){
+function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture,mixer=false}={}){
   const ids=['Player','Select','PlayButton','StopButton','Status','Position','CaptureButton','CaptureStatus'],nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));
+  if(mixer){nodes.Channels=new Element();for(let ch=1;ch<=6;ch++)nodes[`Channel${ch}Toggle`]=new Element();}
   const doc={getElementById:id=>nodes[id.slice('hucSong'.length)],createElement:()=>new Element()},calls=[],states=[],statuses=[],views=[],captures=[];
   let notify,generation=0,audioRequests=0,beforeCalls=0;
-  let state={playback:'stopped',hasSource:false,playing:false,paused:false,loading:false,busy:false,positionFrames:0,positionSeconds:0,bufferedFrames:0,durationSeconds:2};
+  let state={playback:'stopped',hasSource:false,playing:false,paused:false,loading:false,busy:false,positionFrames:0,positionSeconds:0,bufferedFrames:0,durationSeconds:2,channelEnabled:Array(6).fill(true),channelMuteMask:0};
   const emit=patch=>{state={...state,...patch};notify?.({...state});};
-  const preview={getState:()=>({...state}),
+  const preview={getState:()=>({...state,channelEnabled:[...state.channelEnabled]}),
     async load(bytes,name,{signal}={}){
       const token=++generation;calls.push(['load',name,bytes.slice()]);emit({loading:true});
       try{await load?.(bytes,name);if(signal?.aborted||token!==generation)throw new DOMException('Cancelled','AbortError');emit({loading:false,hasSource:true,name,playback:'stopped',playing:false,paused:false});return true;}
@@ -33,6 +35,8 @@ function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),lo
     stop(){generation++;calls.push(['stop']);emit({playback:'stopped',playing:false,paused:false,loading:false,positionFrames:0,positionSeconds:0});},
     clear(){calls.push(['clear']);emit({hasSource:false,name:'',playback:'stopped',playing:false,paused:false});},
     setLiveEnabled(value){calls.push(['live',value]);emit({liveEnabled:value});return {...state};},
+    setChannelEnabled(channel,enabled){calls.push(['channel',channel,enabled]);const channelEnabled=[...state.channelEnabled];channelEnabled[channel]=enabled;
+      emit({channelEnabled,channelMuteMask:channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0)});return {...state,channelEnabled:[...channelEnabled]};},
     dispose(){generation++;calls.push(['dispose']);},
   };
   let options;
@@ -162,4 +166,35 @@ test('an observed paused-position change cannot revive an old capture by returni
   add(f.project,'source.vgm');await turn();f.controls.setView(0,{notify:false});pauseAt(f);const result=f.controls.capture();assert(current());
   pauseAt(f,124);assert.equal(current(),false);pauseAt(f,123);assert.equal(current(),false,'invalidated operation stays invalid');
   gate.resolve();assert.equal(await result,false);assert.equal(f.controls.read().viewTarget,0);
+});
+
+test('optional VGM channel buttons start On, retain keyboard focus behavior and change only passive mixer flags',async t=>{
+  const f=fixture(t,{mixer:true}),project=f.project.snapshot();assert.equal(f.nodes.Channels.hidden,true);
+  for(let ch=1;ch<=6;ch++){const button=f.nodes[`Channel${ch}Toggle`];assert.equal(button.textContent,`CH ${ch} · On`);assert.equal(button.getAttribute('aria-pressed'),'true');assert.equal(button.getAttribute('aria-label'),`VGM CH${ch} output On`);}
+  let prevented=false;f.nodes.Channel3Toggle.fire('pointerdown',{button:0,preventDefault(){prevented=true;}});assert(prevented);
+  f.nodes.Channel3Toggle.fire('click');assert(f.nodes.Channel3Toggle.blurred);assert.equal(f.nodes.Channel3Toggle.textContent,'CH 3 · Off');assert.equal(f.nodes.Channel3Toggle.getAttribute('aria-pressed'),'false');
+  assert.equal(f.nodes.Player.dataset.channelMuteMask,'4');assert.deepEqual(f.calls,[['channel',2,false]]);assert.equal(f.audioRequests,0);assert.equal(f.beforeCalls,0);assert.deepEqual(f.project.snapshot(),project);
+  const state=f.controls.setChannelEnabled(5,false);state.channelEnabled[0]=false;assert.equal(f.controls.read().channelEnabled[0],true);assert.equal(f.controls.read().channelMuteMask,36);
+  assert.throws(()=>f.controls.setChannelEnabled(6,true),/CH1–CH6/);assert.throws(()=>f.controls.setChannelEnabled(0,1),/boolean/);
+});
+
+test('mixer changes preserve paused view, Auto update, exact capture binding and source frame',async t=>{
+  const gate=deferred();let current;const f=fixture(t,{mixer:true,onCapture:async(_payload,{isCurrent})=>{current=isCurrent;await gate.promise;return false;}});
+  add(f.project,'source.vgm');await turn();assert.equal(f.nodes.Channels.hidden,false);f.controls.setView(0,{notify:false});pauseAt(f);f.controls.setLiveEnabled(false);
+  const selection=f.controls.getPausedSelection(),capturing=f.controls.capture(),before=f.controls.read();assert(current());
+  f.nodes.Channel1Toggle.fire('click');f.nodes.Channel2Toggle.fire('click');assert(current());
+  const after=f.controls.read();assert.equal(after.positionFrames,before.positionFrames);assert.equal(after.viewTarget,0);assert.equal(after.liveEnabled,false);assert.equal(after.capturing,true);assert.equal(f.controls.getPausedSelection(),selection);
+  assert.equal(after.selectedPath,'/vgm/source.vgm');assert.equal(after.channelMuteMask,3);assert.equal(f.views.length,0);
+  gate.resolve();assert.equal(await capturing,false);assert.equal(f.controls.read().viewTarget,0);assert.equal(f.controls.read().positionFrames,123);
+});
+
+test('latest mixer flags persist through cancelled validation, Stop, clear and a new accepted source',async t=>{
+  const gate=deferred(),f=fixture(t,{mixer:true,load:async bytes=>{if(bytes[0]===2)await gate.promise;}});add(f.project,'one.vgm',1);await turn();
+  f.controls.setChannelEnabled(3,false);add(f.project,'two.vgm',2);const selecting=f.controls.selectPath('/vgm/two.vgm');await turn();
+  assert.equal(f.nodes.Channels.hidden,false,'a retained accepted source keeps the output controls available during validation');
+  f.nodes.Channel6Toggle.fire('click');assert.equal(f.controls.read().channelMuteMask,40);f.controls.stop();gate.resolve();assert.equal(await selecting,false);
+  assert.equal(f.controls.read().channelMuteMask,40);assert.equal(f.controls.read().selectedPath,'/vgm/one.vgm');
+  f.project.fs.remove('/vgm/one.vgm');f.project.fs.remove('/vgm/two.vgm');await turn();assert.equal(f.nodes.Channels.hidden,true);assert.equal(f.controls.read().channelMuteMask,40);
+  add(f.project,'new.vgm',3);await turn();assert.equal(f.controls.read().selectedPath,'/vgm/new.vgm');assert.equal(f.controls.read().channelMuteMask,40);
+  assert.equal(f.nodes.Channel4Toggle.getAttribute('aria-pressed'),'false');assert.equal(f.nodes.Channel6Toggle.getAttribute('aria-pressed'),'false');assert.equal(f.nodes.Channels.hidden,false);assert.equal(f.audioRequests,0);
 });

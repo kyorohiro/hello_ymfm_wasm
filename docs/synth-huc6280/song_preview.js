@@ -26,6 +26,28 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   let loadController = null, loading = false, disposed = false, playback = 'stopped';
   let errorMessage = '', positionFrames = 0, sampleRate = 44100;
   let liveEnabled = true, liveState = null, liveMessage = '';
+  let channelMuteMask=0;
+  const appliedChannelMasks=new WeakMap();
+  function applyChannelMask(engine,mask=channelMuteMask,force=false) {
+    const previous=appliedChannelMasks.get(engine);
+    if(previous===mask&&!force)return;
+    if(typeof engine.setChannelMuted!=='function'){
+      if(mask)throw Error('HuC6280 reference engine does not support channel On/Off');
+      appliedChannelMasks.set(engine,0);return;
+    }
+    const attempted=[];
+    try{
+      for(let channel=0;channel<6;channel++)if(force||previous===undefined||((previous^mask)&(1<<channel))){
+        attempted.push(channel);engine.setChannelMuted(channel,Boolean(mask&(1<<channel)));
+      }
+    }catch(error){
+      // Do not publish a half-applied user toggle. A native setter normally
+      // cannot fail; compatible injected engines can still reject a request.
+      if(previous!==undefined)for(const channel of attempted)try{engine.setChannelMuted(channel,Boolean(previous&(1<<channel)));}catch{}
+      throw error;
+    }
+    appliedChannelMasks.set(engine,mask);
+  }
   const open = () => {if (disposed) throw new Error('HuC6280 song preview is disposed');};
   const current = ticket => !disposed && ticket === generation;
   const notify = message => {try {onStatus(message);} catch {}};
@@ -52,6 +74,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       canPause:!disposed && playback === 'playing', canResume:!disposed && !busy && playback === 'paused',
       canStop:!disposed && (busy || active !== null || frames > 0),
       bufferedFrames:active ? Math.max(0, active.renderedFrames - frames) : 0,
+      channelEnabled:Array.from({length:6},(_,channel)=>!(channelMuteMask&(1<<channel))),channelMuteMask,
       liveKind:'song',liveEnabled,liveState,liveError:Boolean(liveMessage),liveMessage,
       liveActive:Boolean(liveState&&!liveMessage&&['playing','paused','ended'].includes(playback))};
   }
@@ -129,6 +152,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       for (let chunks = 0; !run.eof && chunks < 12 && nowMs() < deadline; chunks++) {
         if ((run.renderedFrames - position(run)) / run.sampleRate >= LOOKAHEAD) break;
         const left = new Float32Array(CHUNK), right = new Float32Array(CHUNK);
+        applyChannelMask(run.engine);
         const frames = run.player.process(left, right, CHUNK, {budgetMs:4});
         if (!Number.isInteger(frames) || frames < 0 || frames > CHUNK) throw new Error('Invalid HuC6280 reference render length');
         if (frames) {
@@ -160,6 +184,17 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     if(typeof value!=='boolean')throw TypeError('HuC6280 song Live enabled must be boolean');
     open();if(liveEnabled===value)return getState();
     liveEnabled=value;if(value&&active)publishLive(active,position(active),true);emit();return getState();
+  }
+  function setChannelEnabled(channel,enabled) {
+    open();
+    if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('HuC6280 song channel must be an integer 0..5');
+    if(typeof enabled!=='boolean')throw TypeError('HuC6280 song channel enabled must be boolean');
+    const next=enabled?channelMuteMask&~(1<<channel):channelMuteMask|(1<<channel);
+    if(next===channelMuteMask)return getState();
+    // Output only: parser/registers, LFO/Noise phase and retained PCM are kept.
+    // The changed mix reaches the output after already rendered PCM drains.
+    if(active&&!active.released)applyChannelMask(active.engine,next);
+    channelMuteMask=next;emit();return getState();
   }
   function requestAudio() {
     const requested = getAudio();
@@ -207,6 +242,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       const player = new VgmPlayer(engine);
       player.setPrefetchFactor(1); player.setLoopEnabled(false);
       player.load(selected.bytes, {logger:{warn:message => {throw new Error(message);}}}); player.reset();
+      applyChannelMask(engine,channelMuteMask,true);
       gain = context.createGain(); gain.gain.value = 1; gain.connect(output);
       const run = {engine, timeline,player, context, output, gain, sampleRate:rate, basePosition:0, renderedFrames:0,
         segments:[], nextTime:null, timer:null, eof:false, released:false, lastEmitTime:null};
@@ -239,5 +275,5 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     } catch (error) {if (current(ticket) && active === run) fail(error, run); return false;}
   }
   function dispose() {if (disposed) return; stop(); disposed = true; source = null; name = ''; emit();}
-  return {load, play, pause, resume, stop, clear, getState, read:getState,setLiveEnabled, dispose};
+  return {load, play, pause, resume, stop, clear, getState, read:getState,setLiveEnabled,setChannelEnabled, dispose};
 }

@@ -30,7 +30,10 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [x] **Pause中の試奏と取り込み**: 選択CHの音で鍵盤を試奏し、編集用Synthや
       Filesのプリセットへ取り込める。元曲のPause位置とResumeを保つ。
       Noise、LFOペア、DDAで再現できる設定・できない状態を区別する。
-- [ ] **再生を調べる操作**: CH別On／Off、Seek、必要な再構築キャッシュを追加する。
+- [x] **CH別On／Off**: VGMのCH1–CH6を出力だけ切り替える。既存PCMと内部状態を保ち、
+      Pause／Resume・Stop／Play・曲切替でも選択を保持。共有LFOを止めない。
+      [実装TODO](todo_huc6280_synth_channel_mixer_01.md)。
+- [ ] **Seekと再構築キャッシュ**: 気になる位置へ戻る操作を追加する。
       設定したMuteは表示・Seek後も保ち、共有LFOへの影響を確認する。
 - [ ] **自動演奏＋手動操作**: VGMまたはCodeを動かしたまま同じCHを編集・発音できる。
       VGMとCodeの同時実行は行わず、手動操作だけがそれぞれに加わる。
@@ -77,3 +80,12 @@ Tauriへの固定ZIP取り込みと公開も未実行。
 Import VGMはMenuへ、Sounds from VGMとChannel／Auto updateはモニター上へ移動。
 Wave／PCMの音量違いをまとめる機能を維持。CH別On／Off、Seek、VGMへの直接操作、
 最終的なTauri反映は残作業。検証記録は今回の詳細TODOから参照する。
+
+## CH別On／Off・共通操作のコンテナ整理（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_channel_mixer_01.md)。VGM出力の6CH On／Offを追加し、
+記録レジスタ・発振器・Noise・DDA・LFO・Live／Captureは維持する。
+通常Synth／Code／Pause試奏とは独立。既存PCMを保ち、新しい出力設定はその先から反映する。
+Channel／Auto update／CaptureはVGM・Play／Stopと同じコンテナにまとめ、
+Sounds from VGMより上へ移した。音量違いをまとめる機能は維持。
+次はSeekと再構築キャッシュ。VGMへの直接操作・最終Tauri反映は後続。
