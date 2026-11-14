@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createSnesLooper} from './looper.js';
 import {setupSnesLooperControls} from './looper_controls.js';
-import {createSpcLiveInspector} from './spc_live.js';
+import {createSpcLiveInspector} from './spc_live.js?v=sound-library-1';
 import {setupSnesMenu} from './menu.js';
 import {createSnesSongPlayer} from './song_player.js?v=spc-live-1';
 import {setupSnesSongControls} from './song_controls.js';
-import {setupSnesCodeHost} from './code_host.js?v=sdsp-looper-1';
+import {setupSnesCodeHost} from './code_host.js?v=sound-library-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=sdsp-spc-menu-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
@@ -222,7 +222,7 @@ async function selectSpc(candidate,{includeEcho=false,includePmon=false,signal,o
   return `Loaded CH${candidate.voice.index+1} · ${sourceLabel} · ${echoLabel}. ${tuningHint}`;
 }
 spcBrowser=createSpcBrowser({root:$('spcBrowser'),onOpen:openSpc,onSelect:selectSpc,onError:report});
-liveInspector=createSpcLiveInspector({root:spcBrowser.liveRoot,onError:report,async onCapture(index){
+liveInspector=createSpcLiveInspector({root:spcBrowser.liveRoot,onError:report,onSave:()=>codeHost?.files.askSaveSound(),async onCapture(index){
   const token=++importSequence,draftRevision=revision,options=spcBrowser.getImportOptions();
   const captured=await songPlayer.capture();
   const current=()=>!disposed&&draftRevision===revision&&captured.isCurrent();

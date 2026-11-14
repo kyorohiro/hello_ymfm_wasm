@@ -10,7 +10,7 @@
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=spc-live-1">
+  <link rel="stylesheet" href="./synth.css?v=sound-library-1">
 </head>
 <body>
   <main>
@@ -109,6 +109,10 @@
 
       <section class="instrument-toolbar" aria-label="Instrument files">
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
+        <div class="snes-sound-library" aria-label="Saved project sounds">
+          <label class="instrument-preset-control" for="snesPresetSelect">Saved sounds <select id="snesPresetSelect" disabled><option value="">No playable presets</option></select></label>
+          <button id="snesSaveSoundAs" type="button" disabled>Save sound as…</button>
+        </div>
         <div class="preset-actions">
           <button id="copyCode" type="button">Copy JavaScript</button>
           <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
@@ -169,6 +173,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=spc-live-1"></script>
+  <script type="module" src="./synth.js?v=sound-library-1"></script>
 </body>
 </html>

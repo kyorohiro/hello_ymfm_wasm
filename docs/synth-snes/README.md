@@ -386,6 +386,23 @@ existing saved sound. Select a sound JSON to apply it; editing its JSON alone
 keeps the current instrument until you select it again. Existing portable v1–v5
 presets still load through **Load preset…**.
 
+After importing an SPC voice, choose **Save sound as…** beside **Saved sounds**
+in the instrument toolbar, or **Save current sound as…** below the live capture
+result. Enter a sound name to create `/presets/<name>.sdsp.json`. The dialog
+keeps a copy of the instrument from when it opened; Cancel writes no sound.
+The saved copy gets the entered name without renaming or applying the current
+instrument. Unsafe filename characters are replaced and duplicate names receive
+numbered suffixes, so earlier captures remain intact. **Files → Save sound**
+retains its existing quick-save behavior using the current instrument name.
+
+Use **Saved sounds** to load a saved preset directly without entering Code.
+Changing the instrument clears that selection and does not rewrite the saved
+file. All samples are embedded in the preset, including both BRR samples for
+PMON; the original SPC is not required after capture. Multiple saved sounds are
+retained in local Files across reloads and included in the Project / Cassette ZIP.
+This uses the existing `.sdsp.json` format and local store in both Web and Tauri;
+it adds no separate native menu, storage backend or audio route.
+
 Sound edits, Files and Code save locally. Reopening restores the project without
 opening audio or running JavaScript. **Export project** / **Import project…** use
 a Cassette ZIP with the sound, Code and binary files together. Export the project

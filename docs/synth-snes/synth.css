@@ -250,3 +250,11 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
   .sdsp-spc-live td:nth-child(6) { grid-column: 1 / -1; }
   .sdsp-spc-live td[data-label]::before { content: attr(data-label) ': '; font-weight: 700; }
 }
+
+.snes-sound-library { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.snes-sound-library .instrument-preset-control { min-width: 0; flex: 1; }
+#snesPresetSelect { width: 100%; min-width: 0; max-width: min(420px, 100%); font-size: .75rem; padding: 6px; color: var(--ink); }
+@media (max-width: 600px) {
+  .snes-sound-library { width: 100%; }
+  .snes-sound-library .instrument-preset-control { flex-basis: 100%; flex-wrap: nowrap; }
+}

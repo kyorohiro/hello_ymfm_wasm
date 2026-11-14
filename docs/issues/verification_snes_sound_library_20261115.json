@@ -1,0 +1,243 @@
+{
+  "date": "2026-11-15",
+  "baseCommit": "d433a517",
+  "scope": "Named copies and Saved sounds UI over existing Files / .sdsp.json / local project store; no Event Rec or Tauri adapter change.",
+  "unitTests": {
+    "passed": 164,
+    "failed": 0
+  },
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-sound-library-review/itch_sdsp_synth_sound-library-final-20261115-JQw916",
+    "archive": "/private/tmp/snes-sound-library-review/tetorica_sdsp_synth_sound-library-final-20261115_itch.zip",
+    "files": 144,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1530789,
+      "sha256": "c8b60763d32e41a736deddf3051ef87d958dad0ba8f11e3d89f158a3c80d28f6"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-state"
+    }
+  },
+  "currentInputHashesMatchPackage": 116,
+  "browser": {
+    "passed": true,
+    "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+    "results": [
+      {
+        "engine": "chromium",
+        "native": false,
+        "passed": true,
+        "checks": [
+          "visible library saves and cancels named copies without starting audio or changing the current instrument",
+          "current SPC sound saves complete BRR via the nearby shortcut",
+          "same-name PMON / Echo capture adds another file and keeps the earlier sample",
+          "dropdown restores independent sounds for real keyboard audition through one Master",
+          "editing a loaded sound does not overwrite saved copies; blank names and Cancel add no file",
+          "reload retains named files and switching without the SPC source remains passive",
+          "project ZIP restores multiple named sounds with their binary samples and leaves Code stopped",
+          "library and name dialog fit narrow screens; Tauri reuses one menu"
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "chromium",
+        "native": true,
+        "passed": true,
+        "checks": [
+          "visible library saves and cancels named copies without starting audio or changing the current instrument",
+          "current SPC sound saves complete BRR via the nearby shortcut",
+          "same-name PMON / Echo capture adds another file and keeps the earlier sample",
+          "dropdown restores independent sounds for real keyboard audition through one Master",
+          "editing a loaded sound does not overwrite saved copies; blank names and Cancel add no file",
+          "reload retains named files and switching without the SPC source remains passive",
+          "project ZIP restores multiple named sounds with their binary samples and leaves Code stopped",
+          "library and name dialog fit narrow screens; Tauri reuses one menu"
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "native": false,
+        "passed": true,
+        "checks": [
+          "visible library saves and cancels named copies without starting audio or changing the current instrument",
+          "current SPC sound saves complete BRR via the nearby shortcut",
+          "same-name PMON / Echo capture adds another file and keeps the earlier sample",
+          "dropdown restores independent sounds for real keyboard audition through one Master",
+          "editing a loaded sound does not overwrite saved copies; blank names and Cancel add no file",
+          "reload retains named files and switching without the SPC source remains passive",
+          "project ZIP restores multiple named sounds with their binary samples and leaves Code stopped",
+          "library and name dialog fit narrow screens; Tauri reuses one menu"
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "native": true,
+        "passed": true,
+        "checks": [
+          "visible library saves and cancels named copies without starting audio or changing the current instrument",
+          "current SPC sound saves complete BRR via the nearby shortcut",
+          "same-name PMON / Echo capture adds another file and keeps the earlier sample",
+          "dropdown restores independent sounds for real keyboard audition through one Master",
+          "editing a loaded sound does not overwrite saved copies; blank names and Cancel add no file",
+          "reload retains named files and switching without the SPC source remains passive",
+          "project ZIP restores multiple named sounds with their binary samples and leaves Code stopped",
+          "library and name dialog fit narrow screens; Tauri reuses one menu"
+        ],
+        "physicalOutputMuted": true
+      }
+    ]
+  },
+  "nativeOnIdenticalRuntimeBeforeMobileCssAdjustment": {
+    "package": {
+      "passed": true,
+      "stage": "/private/tmp/snes-sound-library-review/itch_sdsp_synth_sound-library-complete-20261115-8vUtZI",
+      "archive": "/private/tmp/snes-sound-library-review/tetorica_sdsp_synth_sound-library-complete-20261115_itch.zip",
+      "files": 144,
+      "bundles": 6,
+      "archiveRecord": {
+        "bytes": 1530806,
+        "sha256": "86ec9c83e5d06564d370c4fa11f3d87904c02dbe9f6e29ee6870c8b8273c3c87"
+      },
+      "sourceCheck": {
+        "inputs": 43,
+        "sdkVersion": "0.1.8-huc-state"
+      }
+    },
+    "runtimeJavaScriptModulesMatch": 81,
+    "report": {
+      "passed": true,
+      "rows": [
+        {
+          "engine": "chromium",
+          "desktopToolbar": true,
+          "pin": true,
+          "nativePresetBinarySave": true,
+          "reloadCancel": true,
+          "spcMenuChooser": true,
+          "presetFileImport": true,
+          "keyboardAfterMenus": true,
+          "nativeCapturePcm": true,
+          "switchPreservesPreset": true,
+          "nativeFailureFallback": true,
+          "switchStopsAllSourcesAndPitch": true,
+          "switchBlocksPerformance": true,
+          "nativeSaveCancel": true,
+          "presetLoadCancel": true,
+          "presetV5": true,
+          "spcPmonPairImport": true,
+          "capturedPitches": [
+            2048,
+            3072
+          ],
+          "waveDrawing": true,
+          "brrMenuImport": true,
+          "wavMenuImport": true,
+          "audioImportCancelKeepsSound": true,
+          "embeddedDualBrrSave": true,
+          "allSourcesQuiesce": true,
+          "eightWaveVoices": true,
+          "eightNoiseVoices": true,
+          "fourPmonPairs": true,
+          "oneAudioContext": true,
+          "spcNativeSharedRoute": true,
+          "looperNativeSharedRoute": true,
+          "mobileOverflow": 0,
+          "nativeCredits": 9,
+          "nativePrefillPackets": 4,
+          "mockedDeviceRate": 48000,
+          "nativePackets": 45,
+          "nativePeak": 0.06512676179409027,
+          "nativeFinite": true,
+          "pageErrors": [],
+          "missingAssets": [],
+          "nativeHost": "mocked Tauri IPC; no CPAL device",
+          "physicalOutput": "muted"
+        },
+        {
+          "engine": "webkit",
+          "desktopToolbar": true,
+          "pin": true,
+          "nativePresetBinarySave": true,
+          "reloadCancel": true,
+          "spcMenuChooser": true,
+          "presetFileImport": true,
+          "keyboardAfterMenus": true,
+          "nativeCapturePcm": true,
+          "switchPreservesPreset": true,
+          "nativeFailureFallback": true,
+          "switchStopsAllSourcesAndPitch": true,
+          "switchBlocksPerformance": true,
+          "nativeSaveCancel": true,
+          "presetLoadCancel": true,
+          "presetV5": true,
+          "spcPmonPairImport": true,
+          "capturedPitches": [
+            2048,
+            3072
+          ],
+          "waveDrawing": true,
+          "brrMenuImport": true,
+          "wavMenuImport": true,
+          "audioImportCancelKeepsSound": true,
+          "embeddedDualBrrSave": true,
+          "allSourcesQuiesce": true,
+          "eightWaveVoices": true,
+          "eightNoiseVoices": true,
+          "fourPmonPairs": true,
+          "oneAudioContext": true,
+          "spcNativeSharedRoute": true,
+          "looperNativeSharedRoute": true,
+          "mobileOverflow": 0,
+          "nativeCredits": 9,
+          "nativePrefillPackets": 4,
+          "mockedDeviceRate": 48000,
+          "nativePackets": 40,
+          "nativePeak": 0.06512969732284546,
+          "nativeFinite": true,
+          "pageErrors": [],
+          "missingAssets": [],
+          "nativeHost": "mocked Tauri IPC; no CPAL device",
+          "physicalOutput": "muted"
+        }
+      ]
+    }
+  },
+  "regressionsOnPrecedingPreview": {
+    "code": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 13
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 13
+      }
+    ],
+    "live": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 8
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 8
+      }
+    ]
+  },
+  "nativeHarnessNote": "Failure injection and synthetic held-key input are armed in the same event loop, avoiding a race where silent native packets failed before the test keydown. Tauri repository files were not edited.",
+  "limits": [
+    "All physical output muted; no listening or physical CPAL test.",
+    "Saved sounds use local project storage. Export Project ZIP for a portable copy.",
+    "Original SPC source and Looper audio remain session-only; only materialized sound presets are saved.",
+    "No commit, push, release, version change or Tauri dist import."
+  ]
+}

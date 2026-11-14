@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=sdsp-cod
 import {selectSnesCodeDeclarations} from './code_declarations.js';
 import {createSnesCodeAudio} from './code_audio.js';
 import {createSnesCodeProject,SNES_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
-import {setupSnesCodeFiles} from './code_files.js?v=draft-reconnect-1';
+import {setupSnesCodeFiles} from './code_files.js?v=sound-library-1';
 
 export const SNES_STARTER_CODE=`const snes = await useSoundChip("snes");
 setBpm(120);

@@ -39,7 +39,7 @@ function copyPath(project,path){
 export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
   onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},setStatus=()=>{},store=createSnesProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('snesFilesPanel'),toggle=doc.getElementById('snesFilesToggle'),workspace=doc.getElementById('synthWorkspace');
-  const presetSelect=doc.getElementById('snesPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
+  const saveSoundAs=doc.getElementById('snesSaveSoundAs'),presetSelect=doc.getElementById('snesPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('S-DSP Files mount is missing.');
   const win=doc.defaultView??globalThis,main=doc.querySelector?.('.snes-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
   let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
@@ -68,7 +68,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   const dialog=make('dialog','snesFileNameDialog'),form=make('form'),label=make('label','snesFileNameLabel','File path'),nameInput=make('input','snesFileNameInput');
   label.htmlFor=nameInput.id;const confirm=make('button','snesFileNameConfirm','Create'),cancel=make('button','snesFileNameCancel','Cancel');confirm.type='submit';cancel.type='button';form.append(label,nameInput,confirm,cancel);dialog.append(form);
   panel.append(heading,tree,actions,selected,info,fileInput,projectInput,dialog);
-  let dialogAction=null,dialogPath=null;
+  let dialogAction=null,dialogPath=null,dialogSound=null;
   const say=message=>{if(!disposed){info.textContent=message;setStatus(message);}};
   const report=error=>{if(error?.name!=='AbortError')say(`Files: ${error?.message??error}`);};
   const allowed=path=>{path=normalizeVirtualPath(path);if(path==='/'||path===SNES_PROJECT_MANIFEST||isCheckpointPath(path))throw Error('That path is reserved.');return path;};
@@ -100,7 +100,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   }
   function render(){
     if(disposed)return;const selectedPath=project.selectedPath??'';if(selected.textContent!==selectedPath)selected.textContent=selectedPath;
-    panel.setAttribute('aria-busy',String(busy));
+    panel.setAttribute('aria-busy',String(busy));if(saveSoundAs)saveSoundAs.disabled=busy;
     const files=project.fs.list().filter(file=>!isCheckpointPath(file.path));renderPresets(files);
     renderFileTree(tree,[...files,...project.fs.listDirectories().filter(path=>path!=='/'&&!isCheckpointPath(path)).map(path=>({path,type:'directory'}))],{
       selectedPath:project.selectedPath,expanded,onOpen:path=>void selectFile(path).catch(report),
@@ -222,11 +222,16 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
       await persistCode();say(`Created ${path}.`);return true;
     }finally{if(!disposed)setBusy(false);}
   }
-  async function saveSound({path:requestedPath}={}){
-    if(disposed||busy)return false;const token=++operation;setBusy(true,{lockMain:false});
+  async function saveSound({path:requestedPath,name:requestedName,sound:requestedSound}={}){
+    if(disposed||busy)return false;const token=++operation,saveEditRevision=editRevision;setBusy(true,{lockMain:false});
     try{
       if(requestedPath!==undefined){requestedPath=allowed(requestedPath);if(!/\.sdsp\.json$/i.test(requestedPath))throw Error('Use a .sdsp.json instrument file name.');if(occupied(project,requestedPath))throw Error('That path already exists.');}
-      const sound=readSnesProjectSound(getSettings());if(!sound)throw Error('Expected a S-DSP instrument.');
+      let sound=readSnesProjectSound(requestedSound??getSettings());if(!sound)throw Error('Expected a S-DSP instrument.');
+      if(requestedName!==undefined){
+        if(requestedPath!==undefined)throw Error('Choose a sound name or a file path, not both.');
+        if(typeof requestedName!=='string'||!requestedName.trim())throw Error('Enter a sound name.');
+        sound=readSnesProjectSound({...sound,name:requestedName});
+      }
       if(disposed||token!==operation)return false;
       const path=requestedPath??newSoundPath(project,sound.name);
       if(occupied(project,path))throw Error('That path already exists.');
@@ -238,16 +243,19 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
       await code?.openFile?.(path,{show:false});if(disposed||token!==operation)return false;
       const persisted=await persistCode();
       say('Current S-DSP instrument saved to '+path+(persisted===false?' in Files. Local save unavailable; export the project to keep it.':''));return path;
-    }finally{if(!disposed)setBusy(false);}
+    }finally{if(!disposed){setBusy(false);if(token===operation&&saveEditRevision!==editRevision){project.setSettings(getSettings());schedule();}}}
   }
   function download(bytes,filename,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),link=make('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function ask(action,path=project.selectedPath){
     if(disposed||busy)return;dialogAction=action;dialogPath=path;
+    dialogSound=action==='save-sound'?readSnesProjectSound(getSettings()):null;
     const directory=path&&project.fs.stat(path).type==='directory'?path:path?dirname(path):'/';
-    label.textContent={delete:'Delete this project path?',rename:'New file path',instrument:'New instrument · .sdsp.json path',folder:'New folder path',new:'New JavaScript file path'}[action];
-    nameInput.value=action==='new'?`${directory==='/'?'':directory}/untitled.js`:action==='folder'?`${directory==='/'?'':directory}/New folder/`:action==='instrument'?`${directory==='/'?'/presets':directory}/Untitled.sdsp.json`:(path??'');
-    nameInput.readOnly=action==='delete';confirm.textContent=action==='delete'?'Delete':action==='rename'?'Rename':'Create';dialog.showModal();nameInput.focus();nameInput.select?.();
+    label.textContent={'save-sound':'Sound name',delete:'Delete this project path?',rename:'New file path',instrument:'New instrument · .sdsp.json path',folder:'New folder path',new:'New JavaScript file path'}[action];
+    nameInput.value=action==='save-sound'?(dialogSound.name||'Untitled'):action==='new'?`${directory==='/'?'':directory}/untitled.js`:action==='folder'?`${directory==='/'?'':directory}/New folder/`:action==='instrument'?`${directory==='/'?'/presets':directory}/Untitled.sdsp.json`:(path??'');
+    nameInput.required=action==='save-sound';nameInput.maxLength=action==='save-sound'?80:524288;
+    nameInput.readOnly=action==='delete';confirm.textContent=action==='save-sound'?'Save':action==='delete'?'Delete':action==='rename'?'Rename':'Create';dialog.showModal();nameInput.focus();nameInput.select?.();
   }
+  function askSaveSound(){if(disposed||busy)return false;setVisible(true);ask('save-sound');return true;}
   const contextMenu=installSnesFileContextMenu({root:tree,document:doc,isBusy:()=>disposed||busy,onError:report,
     onTarget:path=>{if(project.fs.stat(path))project.select(path);},
     getActions:path=>[['duplicate','Duplicate'],['rename','Rename…'],['delete','Delete'],['instrument','New instrument…'],['new','New JavaScript file…'],['folder','New folder…']].map(([id,label])=>({id,label,disabled:path==='/'&&['duplicate','rename','delete'].includes(id)})),
@@ -255,13 +263,15 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   });
   listen(toggle,'click',()=>setVisible(panel.hidden));listen(panel,'keydown',event=>event.stopPropagation());
   listen(tree,'click',event=>{const summary=event.target?.closest?.('summary[data-file-path]');if(!summary||busy)return;event.preventDefault();const path=summary.getAttribute('data-file-path');expanded.set(path,!summary.parentNode.open);project.select(path);render();schedule();});
-  listen(form,'submit',event=>{event.preventDefault();const action=dialogAction,value=nameInput.value,path=dialogPath;dialog.close();void Promise.resolve().then(()=>{
+  listen(form,'submit',event=>{event.preventDefault();const action=dialogAction,value=nameInput.value,path=dialogPath,sound=dialogSound;dialog.close();void Promise.resolve().then(()=>{
+    if(action==='save-sound')return saveSound({name:value,sound});
     if(action==='new'){if(!isSnesCodePath(value))throw Error('Use a .js or .mjs file name.');return createFile(value);}
     if(action==='folder')return createFile(value.replace(/\/$/,'')+'/');
     if(action==='instrument')return saveSound({path:value});
     return action==='rename'?move(path,value):remove(path);
   }).catch(report);});
-  listen(cancel,'click',()=>dialog.close());
+  listen(cancel,'click',()=>dialog.close());listen(dialog,'close',()=>{dialogSound=null;});
+  listen(saveSoundAs,'click',()=>{saveSoundAs.blur();try{askSaveSound();}catch(error){report(error);}});
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
   for(const[id,fn]of [['snesFileNewButton',()=>ask('new')],['snesFileRenameButton',()=>ask('rename')],['snesFileDeleteButton',()=>ask('delete')],['snesFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['snesProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['snesFileSaveSoundButton',()=>void saveSound().catch(report)],['snesProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['snesFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
@@ -270,7 +280,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

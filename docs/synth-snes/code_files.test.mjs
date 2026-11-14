@@ -18,6 +18,7 @@ function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.snes-main'?main:null;
   for(const id of ['snesFilesPanel','snesFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='snesFilesPanel';doc.append(node);}
+  const saveAs=new Element(doc,'button');saveAs.id='snesSaveSoundAs';doc.append(saveAs);
   const select=new Element(doc,'select');select.id='snesPresetSelect';doc.append(select);
   const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
   let settings=readPreset(options.settings??createDefaultPreset());const project=options.project??createSnesCodeProject({settings,starterCode:'// kept'}),writes=[],calls=[],opened=[],statuses=[];
@@ -140,4 +141,25 @@ test('S-DSP unread or invalid initial drafts cannot be overwritten by later edit
     assert.equal(copy.fs.get('/index.js').data,'// unsaved current edit');assert.deepEqual(copy.settings,edited);
     await f.files.dispose();assert.equal(writes.length,0,'shutdown must not save defaults over an unread draft');
   });
+});
+
+test('named sound copies preserve the captured instrument, resolve filename collisions and never replace existing presets',async t=>{
+ const f=fixture(t);await f.files.ready;const original=createDefaultPreset(),snapshot=structuredClone(original);snapshot.name='Captured SPC';snapshot.source='noise';snapshot.noise.clock=19;
+ const one=await f.files.saveSound({name:'Bass / CH1',sound:snapshot});assert.equal(one,'/presets/Bass _ CH1.sdsp.json');assert.equal(JSON.parse(f.project.fs.get(one).data).name,'Bass / CH1');assert.equal(JSON.parse(f.project.fs.get(one).data).noise.clock,19);snapshot.noise.clock=1;
+ const two=await f.files.saveSound({name:'bass / ch1',sound:snapshot});assert.equal(two,'/presets/bass _ ch1 (2).sdsp.json');assert.equal(JSON.parse(f.project.fs.get(one).data).noise.clock,19);assert.deepEqual(f.project.settings,original);assert.deepEqual(f.calls,[]);
+ await f.files.selectFile(one);assert.equal(f.project.settings.name,'Bass / CH1');assert.equal(f.project.settings.noise.clock,19);assert.equal(f.doc.getElementById('snesPresetSelect').value,one);
+});
+test('invalid sound names leave files, selection and active sound intact',async t=>{
+ const f=fixture(t);await f.files.ready;const before=f.project.snapshot();
+ for(const name of ['', '   ', 'x'.repeat(81), 'bad\nname']){await assert.rejects(f.files.saveSound({name}));assert.deepEqual(f.project.snapshot(),before);}
+ assert.equal(f.doc.getElementById('snesSaveSoundAs').disabled,false);
+});
+test('Save sound as dialog freezes its source at open and Cancel adds no file',async t=>{
+ const f=fixture(t);await f.files.ready;const button=f.doc.getElementById('snesSaveSoundAs');await button.fire('click');const dialog=f.doc.getElementById('snesFileNameDialog'),input=f.doc.getElementById('snesFileNameInput');assert.equal(dialog.open,true);assert.equal(input.value,'Sine');
+ await f.doc.getElementById('snesFileNameCancel').fire('click');assert.equal(f.project.fs.list().length,1);
+ await button.fire('click');const changed=createDefaultPreset();changed.source='noise';changed.noise.clock=12;f.setSettings(changed);f.files.markSoundDirty();input.value='Captured before later edit';await dialog.children[0].fire('submit');await new Promise(r=>setImmediate(r));const saved=JSON.parse(f.project.fs.get('/presets/Captured before later edit.sdsp.json').data);assert.equal(saved.source,'wave');assert.equal(saved.name,'Captured before later edit');assert.deepEqual(f.project.settings,changed);assert.deepEqual(f.calls,[]);
+});
+
+test('edits during a slow sound save remain current and do not rewrite the saved copy',async t=>{
+ const gate=deferred(),entered=deferred(),writes=[];const f=fixture(t,{store:{read:async()=>null,write:async snapshot=>{writes.push(structuredClone(snapshot));entered.resolve();await gate.promise;return true;},close:async()=>{}}});await f.files.ready;const saving=f.files.saveSound({name:'Before edit'});await entered.promise;const changed=createDefaultPreset();changed.source='noise';changed.noise.clock=9;f.setSettings(changed);f.files.markSoundDirty();gate.resolve();await saving;assert.deepEqual(f.project.settings,changed);assert.equal(JSON.parse(f.project.fs.get('/presets/Before edit.sdsp.json').data).source,'wave');await f.files.persistCode();assert.deepEqual(writes.at(-1).settings,changed);
 });
