@@ -53,6 +53,8 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
       [詳細TODO](todo_huc6280_synth_cdrom2_01.md)。配布ZIP・Chromium／WebKitの検証を完了。
 - [x] **MSM5205基本UI**: FilesのWAV／ADPCM、実復号波形、Play／Stop、Loop／Rate、
       Codeとの編集用RAM共有。[詳細TODO](todo_huc6280_synth_msm5205_ui_01.md)。
+- [x] **CD-DA基本UI**: Files／長いsession WAV、Track、Play／Pause／Resume／Stop／Seek、
+      Codeと同じsource／cursor。[詳細TODO](todo_huc6280_synth_cdda_ui_01.md)。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
       保存・出力経路を確認する。公開・tag・pushは別のユーザー指示で行う。
 
@@ -62,8 +64,9 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 
 ## 今回の完成条件に含めない拡張候補
 
-CD-ROM² ADPCM／CD-DAは、2026-11-14にタブ・Code API・VGM再生までを上記の工程へ追加した。
-専用の音作りUI、実CD-ROM読込、可変間隔DDAの音色抽出、圧縮bankの音色抽出、
+CD-ROM² ADPCM／CD-DAは、2026-11-14にタブ・Code API・基本再生UIまでを上記の工程へ追加した。
+VGMはHuC6280／MSM5205を再生し、CD-DAは別トラックから扱う。
+波形編集・新しい音色形式、実CD-ROM読込、可変間隔DDAの音色抽出、圧縮bankの音色抽出、
 Software morphは引き続き別の機能追加として扱う。既存のSoftware FXはCodeで利用可能。
 
 物理出力を鳴らさずに検証する。実聴・長時間試奏・実ゲーム比較は未実行なら
@@ -164,3 +167,14 @@ Files読込・実ADPCM復号波形・使用量・Play／Stop・Loop／Rateの画
 画面とCodeは同じ編集用RAMを使い、Code Stop後もサンプルを保持する。Rate／Loopは次のPlayへ反映。
 VGMのMSM5205は別の参照decoderとして保持する。CD-DA専用UIはまだ工事中。
 Node542件、実配布ZIPのChromium／WebKitで12 suite／24 run／222項目が成功。SDK／WASMは変更しない。
+
+## CD-DAの基本UIと長いWAV（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_cdda_ui_01.md)。CD-DAの工事中表示をSource／Track選択、
+Play／Pause／Resume／Stop、時間表示とSeekへ置き換えた。FilesのWAV／manifestと、
+容量の大きい音声を一時参照するOpen session WAVs…に対応する。
+session音声はProject／Cassetteへ保存せず、元ファイルを再度開く必要があると明示する。
+UIとCodeはsource／cursorと既存Mixer／Masterを共有し、Code Stop後も音声を保持する。
+Node604件、最終ZIPのChromium／WebKitで13 suite／26 run／236項目がすべて成功した。
+[検証記録](verification_huc6280_synth_cdda_ui_20261114.json)。
+Tauri反映・公開・人の実聴／実ゲーム比較／長時間試奏は未実行。

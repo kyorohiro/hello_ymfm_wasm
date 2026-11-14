@@ -113,6 +113,7 @@
     "test:huc6280-synth:code-browser": "node scripts/check_huc6280_synth_code_browser.cjs",
     "test:huc6280-synth:cdrom2-browser": "node scripts/check_huc6280_synth_cdrom2_browser.cjs",
     "test:huc6280-synth:msm5205-browser": "node scripts/check_huc6280_synth_msm5205_browser.cjs",
+    "test:huc6280-synth:cdda-browser": "node scripts/check_huc6280_synth_cdda_browser.cjs",
     "test:huc6280-synth:manual-browser": "node scripts/check_huc6280_synth_manual_browser.cjs",
     "test:huc6280-synth:vgm-manual-browser": "node scripts/check_huc6280_synth_vgm_manual_browser.cjs",
     "test:huc6280-synth:song-browser": "node scripts/check_huc6280_synth_song_browser.cjs",

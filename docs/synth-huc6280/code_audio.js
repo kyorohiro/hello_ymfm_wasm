@@ -1,4 +1,4 @@
-// Code borrows the editor's HuC6280/shared ADPCM and owns its FX rack and CD-DA.
+// Code borrows the editor's HuC6280/shared CD media and owns its FX rack.
 import {createNativeFXRack} from '../js/native_fx_rack.js?v=prepared-fx-rerun-2';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
 import {createHuc6280Cdrom2Audio} from './cdrom2_audio.js?v=huc-cdrom2-1';
@@ -17,7 +17,7 @@ export function resolveHuc6280CodeNoteTarget(client,target,method,args){
  * No independent HuC6280, AudioContext or speaker connection is created.
  */
 export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},createFxRack=createNativeFXRack,
-  createOutput=createSynthCodeOutput,readFile,createMedia=createHuc6280Cdrom2Audio,msm5205Source}={}) {
+  createOutput=createSynthCodeOutput,readFile,readCddaFile,resolveCddaPath,createMedia=createHuc6280Cdrom2Audio,msm5205Source,cddaSource}={}) {
   for(const callback of [ensureReady,getAudio,onLog,createFxRack,createOutput,createMedia])
     if(typeof callback!=='function')throw new TypeError('HuC6280 Code audio requires host callbacks');
   let epoch=0,owner=null,disposed=false,stopping=null;
@@ -51,7 +51,7 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     if(!context||context.state==='closed'||!input||!destination||typeof engine.getHuc6280Client!=='function')throw new Error('HuC6280 Code needs the editor audio route');
     if(owner?.engine===engine&&!owner.closed)return owner.promise;
     retire(owner);
-    const item=owner={engine,context,input,destination,client:null,rack:null,media:null,msmClient:null,closed:false,routed:false,names:new Set(),promise:null};
+    const item=owner={engine,context,input,destination,client:null,rack:null,media:null,msmClient:null,cddaClient:null,closed:false,routed:false,names:new Set(),promise:null};
     const current=()=>!disposed&&epoch===token&&owner===item&&!item.closed&&getAudio()===engine;
     const rack=Promise.resolve().then(()=>createFxRack(context)).then(rack=>{
       if(!current()){rack.dispose();throw cancelled();}
@@ -70,13 +70,14 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     if(!['huc6280','msm5205','cdda'].includes(name))throw new Error('HuC6280 Synth Code supports huc6280, msm5205 and cdda');
     const token=epoch,item=await prepare();check(token);
     if(name==='huc6280')return item.client;
-    if(name==='msm5205'&&msm5205Source){
-      if(!item.msmClient){
-        const pending=msm5205Source.useCodeClient({readFile,isCurrent:()=>!disposed&&epoch===token&&owner===item&&!item.closed&&getAudio()===item.engine,
-          onDispose(){if(item.msmClient===pending)item.msmClient=null;}});
-        item.msmClient=pending;
+    const source=name==='msm5205'?msm5205Source:cddaSource,slot=name==='msm5205'?'msmClient':'cddaClient';
+    if(source){
+      if(!item[slot]){
+        const pending=source.useCodeClient({readFile:name==='cdda'?(readCddaFile??readFile):readFile,resolvePath:name==='cdda'?resolveCddaPath:undefined,isCurrent:()=>!disposed&&epoch===token&&owner===item&&!item.closed&&getAudio()===item.engine,
+          onDispose(){if(item[slot]===pending)item[slot]=null;}});
+        item[slot]=pending;
       }
-      const client=await item.msmClient;check(token);return client;
+      const client=await item[slot];check(token);return client;
     }
     item.media??=createMedia({engine:item.engine,readFile,isCurrent:()=>!disposed&&epoch===token&&owner===item&&!item.closed&&getAudio()===item.engine,
       onError:error=>onLog(`[CD-ROM²] ${error?.message??String(error)}`)});
@@ -108,7 +109,9 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     retire(item);
     const engine=item?.engine??getAudio();
     const task=Promise.resolve().then(async()=>{
-      try{await msm5205Source?.stopCode();}finally{await engine?.command('stop');}
+      const results=await Promise.allSettled([msm5205Source,cddaSource].map(source=>Promise.resolve().then(()=>source?.stopCode())));
+      try{await engine?.command('stop');}catch(reason){results.push({status:'rejected',reason});}
+      const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
     }).then(()=>undefined);
     stopping=task.finally(()=>{if(stopping===result)stopping=null;});const result=stopping;
     return result;
@@ -117,6 +120,14 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     if(disposed)return;
     disposed=true;output.dispose();await stop();
   }
+  function beforeStop(){
+    // Revoke pending Code work immediately. Native voices/FX keep running
+    // through the shared output fade; their physical Stop follows afterward.
+    epoch++;const errors=[];
+    for(const source of [msm5205Source,cddaSource])try{source?.revokeCode?.();}catch(reason){errors.push(reason);}
+    let fading;try{fading=output.fadeOut();}catch(reason){return Promise.reject(reason);}
+    return Promise.resolve(fading).then(value=>{if(errors.length)throw errors[0];return value;});
+  }
   return {prepare,useSoundChip,fx,resolveNoteTarget:(target,method,args)=>resolveHuc6280CodeNoteTarget(owner?.client,target,method,args),
-    beforeStop:()=>output.fadeOut(),open:()=>output.open(),stop,dispose};
+    beforeStop,open:()=>output.open(),stop,dispose};
 }

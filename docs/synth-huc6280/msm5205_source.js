@@ -14,7 +14,7 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
   if([ensureAudio,getAudio,onState,onError,prepareAsset,createAudio,createPlayer].some(fn=>typeof fn!=='function')||
     readFile!==undefined&&typeof readFile!=='function')throw TypeError('MSM5205 source requires the Synth audio owner and callbacks');
   const sourceId=`huc6280-synth:msm5205-source:${++nextSource}`,listeners=new Set(),leases=new Set();
-  let dead=false,revision=0,rateRevision=0,asset=null,defaults={rate:12,loop:false},actual=null,error=null;
+  let dead=false,authority=0,revision=0,rateRevision=0,asset=null,defaults={rate:12,loop:false},actual=null,error=null;
   let pendingLoad=null,loadSerial=0,operation=0,codeEpoch=0,leaseSerial=0,endpoint=null,starting=null,tail=Promise.resolve(),stopping=null;
   const checkLease=lease=>{if(dead||lease&&(lease.closed||lease.epoch!==codeEpoch||!lease.isCurrent()))throw aborted();};
   const check=(token,lease)=>{checkLease(lease);if(token!==operation)throw aborted();};
@@ -40,6 +40,7 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
     return endpoint;
   };
   async function rpc(item,token,run){
+    item.pendingRpcs=(item.pendingRpcs??0)+1;
     try{return await run();}catch(reason){
       // Errors from a retired operation (for example a scheduled Play rejected
       // by Stop) do not invalidate the same node's newer authorized operation.
@@ -47,12 +48,12 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
       // endpoint on the existing Synth clock from the retained authored bytes.
       if(!isAbort(reason)&&token===operation&&endpoint===item&&!item.closed){retire(item);fail(reason);}
       throw reason;
-    }
+    }finally{item.pendingRpcs--;}
   }
-  function cancelLoad(){
+  function cancelLoad({retireUpload=true}={}){
     if(!pendingLoad)return;
     const old=pendingLoad;pendingLoad=null;old.controller.abort(aborted());
-    if(endpoint?.uploadOwner===old)retire(endpoint);
+    if(endpoint?.uploadOwner===old){if(retireUpload)retire(endpoint);else endpoint.retireAfterCodeFade=true;}
     emit();
   }
   const checkLoad=item=>{checkLease(item.lease);item.signal.throwIfAborted();if(pendingLoad!==item)throw aborted();};
@@ -67,7 +68,10 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
       await rpc(item,token,()=>item.player.loadMemory(value.data));check(token,lease);owner&&checkLoad(owner);
       if(endpoint!==item||item.closed)throw aborted();
       item.installedAsset=value;
-    }catch(reason){const current=token===operation&&(endpoint===item||starting===item)&&!item.closed;retire(item);if(current)fail(reason);throw reason;}
+    }catch(reason){const current=token===operation&&(endpoint===item||starting===item)&&!item.closed;
+      if(isAbort(reason)&&lease?.closed&&item.retireAfterCodeFade){/* Physical cleanup belongs after the host's fade. */}
+      else retire(item);
+      if(current)fail(reason);throw reason;}
     finally{item.preparing=false;item.uploadOwner=null;}
   }
   async function ensureEndpoint(token,lease){
@@ -106,7 +110,7 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
     ...actual,
     sourceId,revision,sample:asset?.info??null,defaults:{...defaults}};}
   async function load(source,options,format,lease){
-    checkLease(lease);cancelLoad();error=null;
+    checkLease(lease);authority++;cancelLoad();error=null;
     const controller=new AbortController(),signal=options.signal?AbortSignal.any([controller.signal,options.signal]):controller.signal;
     const item={serial:++loadSerial,controller,signal,lease,rateRevision};pendingLoad=item;emit();
     try{
@@ -140,6 +144,7 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
     if(!Number.isSafeInteger(parameters.offset)||parameters.offset<0||!Number.isSafeInteger(parameters.length)||parameters.length<1||
       parameters.offset+parameters.length>asset.data.length*2||!Number.isInteger(parameters.rate)||parameters.rate<0||parameters.rate>15||typeof parameters.loop!=='boolean'||
       parameters.at!==undefined&&(!Number.isFinite(parameters.at)||parameters.at<0))throw RangeError('Invalid MSM5205 sample range/rate');
+    authority++;
     return serial(async token=>{
       const item=await ensureEndpoint(token,lease);check(token,lease);
       validateTiming(parameters);
@@ -153,7 +158,8 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
     const item=existing();
     // A transferred upload may finish after a cancellation. Closing that one
     // node makes it inaudible; the retained authored asset reuploads on Play.
-    if(item?.preparing)retire(item);
+    const immediate=options.at===undefined||options.at<=(getAudio()?.context?.currentTime??0);
+    if(item&&(item.preparing||item.retireAfterCodeFade||immediate&&item.pendingRpcs))retire(item);
     const physical=existing();
     const task=Promise.resolve().then(async()=>{
       if(physical&&!physical.closed){
@@ -165,10 +171,13 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
     const settled=task.finally(()=>{if(stopping===settled)stopping=null;});stopping=settled;return settled;
   }
   function stop(options={}){checkLease();cancelLoad();return stopPhysical(options);}
-  function stopCode(){
-    if(dead)return Promise.resolve();codeEpoch++;
+  function revokeCode(){
+    if(dead)return;codeEpoch++;
     for(const lease of leases)lease.closed=true;leases.clear();
-    if(pendingLoad?.lease)cancelLoad();return stopPhysical();
+    if(pendingLoad?.lease)cancelLoad({retireUpload:false});
+  }
+  function stopCode(){
+    if(dead)return Promise.resolve();revokeCode();return stopPhysical();
   }
   async function reset(options={},lease){
     checkLease(lease);options=validateTiming(options);cancelLoad();await stopPhysical(options);checkLease(lease);
@@ -196,7 +205,7 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
   }
   async function useCodeClient({isCurrent=()=>true,readFile:codeReadFile,onDispose=()=>{}}={}){
     if(typeof isCurrent!=='function'||typeof onDispose!=='function'||codeReadFile!==undefined&&typeof codeReadFile!=='function')throw TypeError('MSM5205 Code lease requires host callbacks');
-    const lease={epoch:codeEpoch,serial:++leaseSerial,closed:false,isCurrent,readFile:codeReadFile};checkLease(lease);leases.add(lease);
+    const lease={epoch:codeEpoch,serial:++leaseSerial,closed:false,isCurrent,readFile:codeReadFile};checkLease(lease);authority++;leases.add(lease);
     const client={id:`${sourceId}:code:${lease.serial}`,chip:'msm5205',sourceId,
       loadMemory:(source,options={})=>load(source,options,'adpcm',lease),
       loadSample:(source,options={})=>load(source,options,'wav',lease),
@@ -209,8 +218,8 @@ export function createMsm5205Source({ensureAudio,getAudio,readFile,onState=()=>{
   }
   return{read,subscribe(listener){if(typeof listener!=='function')throw TypeError('Expected an MSM5205 source listener');listeners.add(listener);return()=>listeners.delete(listener);},
     loadMemory:(source,options={})=>load(source,options,'adpcm'),loadSample:(source,options={})=>load(source,options,'wav'),
-    setDefaults,play,stop,reset,writeRegister,getState,useCodeClient,stopCode,cancelLoad,
-    async clear(){checkLease();cancelLoad();await stopCode();retire(endpoint);asset=null;revision++;actual=null;error=null;emit();},
+    setDefaults,play,stop,reset,writeRegister,getState,useCodeClient,revokeCode,stopCode,cancelLoad,
+    async clear(){checkLease();const ticket=++authority;cancelLoad();try{await stopCode();}finally{if(authority===ticket){retire(endpoint);asset=null;revision++;actual=null;error=null;emit();}}return authority===ticket;},
     async dispose(){if(dead)return;cancelLoad();try{await stopCode();}finally{dead=true;retire(starting);retire(endpoint);listeners.clear();}},
   };
 }

@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "scope": "HuC6280 Synth CD-DA basic UI, shared Code transport and bounded long session WAVs",
+  "passed": true,
+  "baseCommit": "5e2d15c549792e9ad9f64c8359573fdba27bb820",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "The CD-DA construction page is replaced with Files/session source and track selectors, Play/Pause/Resume/Stop, elapsed/total position and Seek. Project loads, track selection and ready Seek do not create an AudioContext.",
+    "The existing parser validates 44.1kHz stereo uncompressed PCM16 WAV and track manifests. Relative track paths are fixed to their manifest before later Code entry changes. Invalid, cancelled or stale preparation retains the prior source.",
+    "Open session WAVs keeps bounded File references outside the unchanged16MiB Project/Cassette format. Only the selected track is read; unselected files are never decoded or read. Session audio is explicitly excluded from Project export, reload and recovery.",
+    "Session inputs permit99 files,512MiB aggregate references and269484032 bytes per file (256MiB PCM plus1MiB header allowance). Selected files larger than256MiB undergo bounded header preflight before whole-file allocation; the existing256MiB PCM track limit remains authoritative.",
+    "Reserved session paths are never reused after Clear and never fall back to similarly named Project files. Late reads cannot publish after session clear. Clear session keeps an independent current Project source, Project files and other chips.",
+    "UI and guarded Code use one authored source, selected track and cursor on the existing context, Mixer, Code FX/fade, Master and monitor. Code list and getState track records are detached snapshots usable through the runtime guard.",
+    "Code Stop immediately revokes old Code leases and Code-origin pending loads, then physically stops after the fade. Independent UI loads remain valid. Loaded audio is retained and rewound for replay or the next Run. Apply retains the shared source/cursor.",
+    "Same-turn Stop, source replacement, workspace replacement and output change revoke old actions. Cancelled native PCM uploads and expired state requests cannot retire a newer replay. Timeout recovery retires only its current endpoint and preserves the authored source.",
+    "Seek preview is cancelled by window/control blur, hidden state, Escape, pointercancel or source revision change. A fresh gesture can commit; Home/End target exact frame endpoints. Stale change events and duplicate pointer release cannot seek an unrelated source.",
+    "The authored CD-DA track remains distinct from VGM reference playback. Existing HuC/MSM mixing, VGM/manual edits, live views, paused audition/Capture, Seek and exact-state cache pass on the same immutable package.",
+    "All112 readable modules,152 original input records and6 runtime artifacts match the final193-file ZIP and current source. SDK0.1.8-huc-state, shared WASM/native code, common Monaco/runtime and existing calibration receipts are unchanged."
+  ],
+  "node": {
+    "passed": 604,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": {
+      "path": "build/huc6280-cdda-ui-20261114/node-tests-b.log",
+      "bytes": 65145,
+      "sha256": "0148f125f43b2b47dc1cf351f8897b9f971024487bcb9a359a51f002c922aac6"
+    },
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/playground/playground_monaco*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/package_itch_huc6280_synth.test.mjs"
+  },
+  "browsers": {
+    "suites": 13,
+    "runs": 26,
+    "checks": 236,
+    "summary": {
+      "path": "build/huc6280-cdda-ui-20261114/browser-summary-zip2.json",
+      "bytes": 6662,
+      "sha256": "b46417fc1b933ffb6eee2a2e1e510ce46c70610fcfbbad0b0d2cfe07ae1db084"
+    },
+    "results": [
+      {
+        "suite": "cdda",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/cdda-zip2.json",
+        "sha256": "e506d03f5044e76d6db202cd4ee7f23ac9040f637720cf8719db0027cb6cc57b",
+        "assets": 119,
+        "screenshots": "build/huc6280-cdda-ui-20261114/cdda-zip2-b-images"
+      },
+      {
+        "suite": "msm5205",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/msm5205-zip2.json",
+        "sha256": "181bebfef7aa1b69b5141ab1c3a708daaea448c908f38e8d7cdd1d3a70496fbb",
+        "assets": 117,
+        "screenshots": "build/huc6280-cdda-ui-20261114/msm5205-zip2-b-images"
+      },
+      {
+        "suite": "cdrom2",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/cdrom2-zip2.json",
+        "sha256": "84870048c13773a79c01e18138ad1ac3455d40f5dcc925b2120a2252ffe010d5",
+        "assets": 122,
+        "screenshots": "build/huc6280-cdda-ui-20261114/cdrom2-zip2-images"
+      },
+      {
+        "suite": "manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/manual-zip2.json",
+        "sha256": "d81823b571946f9d0f0c9999b52fc787cd8342f666fe82fda62eb6c36ff7875f",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/manual-zip2-images"
+      },
+      {
+        "suite": "code",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/code-zip2.json",
+        "sha256": "ad69b6c1e49e0830ab59728aac600798660ef1338c7462175c8e754c00e4c036",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/code-zip2-images"
+      },
+      {
+        "suite": "live",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/live-zip2.json",
+        "sha256": "374abe2f8e5dead0ec708f899ae4fdc4368a82b45f36e0ea614a4b23d04e77f8",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/live-zip2-images"
+      },
+      {
+        "suite": "capture",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/capture-zip2.json",
+        "sha256": "0f811f9863e878559bbf90925a34733e6e70c23c9b8b903487e5f9d15730aed3",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/capture-zip2-images"
+      },
+      {
+        "suite": "legacy",
+        "checks": 60,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/legacy-zip2.json",
+        "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a",
+        "assets": 0,
+        "screenshots": "build/huc6280-cdda-ui-20261114/legacy-zip2-images"
+      },
+      {
+        "suite": "song",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/song-zip2.json",
+        "sha256": "e3fbf6558e59acb84cee67d3a8602b580d57fb22c4868a09b4815c2eec5be6d8",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/song-zip2-images"
+      },
+      {
+        "suite": "mixer",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/mixer-zip2.json",
+        "sha256": "7e7d5a2650887b99527439984d0112f2bd8944adb66d54cfa87ce32628a5a57a",
+        "assets": 108,
+        "screenshots": "build/huc6280-cdda-ui-20261114/mixer-zip2-images"
+      },
+      {
+        "suite": "seek",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/seek-zip2.json",
+        "sha256": "b3db58e21039816e3d75be9b9dcfcf81eb80a648631588e54cbdf295e74a5777",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/seek-zip2-images"
+      },
+      {
+        "suite": "cache",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/cache-zip2.json",
+        "sha256": "ef3d2851071744b181b20a1629010119799a19cdbed8d48b1ffca4fd9d64d162",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/cache-zip2-images"
+      },
+      {
+        "suite": "vgm_manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdda-ui-20261114/vgm_manual-zip2.json",
+        "sha256": "8b328ca05da95593c621bfedb9e4fc6c6dd1b4b2b043a339d7bc8eea61308a39",
+        "assets": 115,
+        "screenshots": "build/huc6280-cdda-ui-20261114/vgm_manual-zip2-images"
+      }
+    ],
+    "screenshots": [
+      {
+        "browser": "chromium",
+        "width": 1240,
+        "file": "build/huc6280-cdda-ui-20261114/cdda-zip2-b-images/chromium-1240.png",
+        "bytes": 702195,
+        "sha256": "c7e2dc5a412fe64b6e4b183c0c31740e7283ba5b2eee45a40b3ee6369322ab86"
+      },
+      {
+        "browser": "chromium",
+        "width": 390,
+        "file": "build/huc6280-cdda-ui-20261114/cdda-zip2-b-images/chromium-390.png",
+        "bytes": 422620,
+        "sha256": "8ce20461b46af9e80c729925e76ef8886faba96faba9455c361a9d43f585f2e4"
+      },
+      {
+        "browser": "webkit",
+        "width": 1240,
+        "file": "build/huc6280-cdda-ui-20261114/cdda-zip2-b-images/webkit-1240.png",
+        "bytes": 2021457,
+        "sha256": "05521965acef1d876f0176b093cbcb8a7372c82de7f860089cd8b1175a9100f7"
+      },
+      {
+        "browser": "webkit",
+        "width": 390,
+        "file": "build/huc6280-cdda-ui-20261114/cdda-zip2-b-images/webkit-390.png",
+        "bytes": 947309,
+        "sha256": "7abb629bd0f073c31b400157a98bd191cef7101e5003734ef3c73e0a1ec30c70"
+      }
+    ],
+    "failureInjection": "Held actual Worklet HTTP startup, cancelled and late-released actual native PCM transfer, and dropped state requests until the existing20-second adapter timeout. A replay also survives beyond the old request deadline. No fake decoder or replacement PCM engine.",
+    "checkerAdjustments": "CD-DA and existing MSM filechooser probes wait for their synthetic empty selection import to settle before importing the next fixture; initial checker-only races are retained separately as diagnostics."
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_cdda-ui-check2-20261114_itch.zip",
+      "bytes": 2043622,
+      "sha256": "a3e290ff2c010654181f971d188de55a33b9a45f0432ddd378e0fb174a7d76c5"
+    },
+    "files": 193,
+    "entries": 6,
+    "readableModules": 112,
+    "originalInputs": 152,
+    "sdkVersion": "0.1.8-huc-state",
+    "browserReceipt": {
+      "path": "build/huc6280-cdda-ui-20261114/zip2/sources/huc6280-synth-browser.json",
+      "bytes": 64477,
+      "sha256": "f80d84c794de2282807e3fb6583980d07dc16d9a2a12c57fba6e053f858a7a2c"
+    },
+    "assetIntegrity": {
+      "path": "build/huc6280-cdda-ui-20261114/asset-integrity-zip2.json",
+      "bytes": 90,
+      "sha256": "f391379cec8f03fbd8554008b66d6aa68d891b910c360b919274bd2cf9042da2"
+    },
+    "runtimeArtifacts": [
+      {
+        "path": "generated/cdda_wasm.js",
+        "bytes": 304,
+        "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f"
+      },
+      {
+        "path": "generated/cdda_wasm.wasm",
+        "bytes": 2257,
+        "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+      },
+      {
+        "path": "generated/huc6280_wasm.js",
+        "bytes": 14044,
+        "sha256": "7786bb5620b24884aa2aba4d8078d5b480c03987ba2cce638fb3c3874a05cf45"
+      },
+      {
+        "path": "generated/huc6280_wasm.wasm",
+        "bytes": 11000,
+        "sha256": "35631309996a62c5c92241fe714c2d5a51330a29e9fc6a07871df090fd25d021"
+      },
+      {
+        "path": "generated/msm5205_wasm.js",
+        "bytes": 317,
+        "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+      },
+      {
+        "path": "generated/msm5205_wasm.wasm",
+        "bytes": 3590,
+        "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+      }
+    ]
+  },
+  "limitations": [
+    "Session WAVs are temporary and absent from Project/Cassette export and reload recovery. Keep and reopen the original files. Current source selection and cursor are session state, including when original WAV/manifest files are saved in the Project.",
+    "Accepted audio is44.1kHz stereo uncompressed PCM16 WAV. Compressed audio conversion, disc/ISO/CUE loading, game execution and track pitch/rate are outside this stage.",
+    "The existing custom dispose source-navigation target can still lead to the older CD-ROM2 helper; app-local CDDA metadata types do not change the shared Monaco navigation layer."
+  ],
+  "notPerformed": [
+    "Human listening, real-game comparison and long-duration trial",
+    "SDK rebuild, Tauri import, npm/GitHub/itch publication, git staging or commit"
+  ]
+}

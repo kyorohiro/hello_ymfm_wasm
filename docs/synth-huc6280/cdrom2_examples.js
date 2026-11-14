@@ -14,6 +14,8 @@ await adpcm.play({loop: true});
 // Stop ends this Code session; Apply keeps the current session.
 `,
   '/examples/cdda.js': `const cd = await useSoundChip("cdda");
+// To play the track already loaded in the CD-DA tab, use await cd.play().
+// The generated example below replaces that shared UI track.
 // A Files path is also accepted: await cd.load("/audio/track.wav");
 // Use a 44.1 kHz stereo PCM16 WAV, or a track manifest. CD-DA is separate
 // from VGM; it has no oscillator or noteOn API.

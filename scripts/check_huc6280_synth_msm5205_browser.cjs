@@ -62,7 +62,7 @@ async function check(browser,name,origin,f){
   try{
     await page.goto(origin+config.entry);await files(page);await tab(page,'msm5205');
     step('Files and WAV/raw ADPCM loading are passive and display actual decoded waveform and bounded capacity');
-    const chooser=page.waitForEvent('filechooser');await page.locator('#msmAddFiles').click();await(await chooser).setFiles([]);assert.equal((await graph(page)).contexts,0);
+    const chooser=page.waitForEvent('filechooser');await page.locator('#msmAddFiles').click();await(await chooser).setFiles([]);await until(()=>page.locator('#hucFilesStatus').textContent().then(x=>/Added 0 file/i.test(x)),'empty chooser import settled');assert.equal((await graph(page)).contexts,0);
     const names=['tone440.wav','tone660.wav','tone440.adpcm','invalid.wav','oversize.adpcm'],buffers=[f.original,f.other,f.raw,f.bad,f.oversize];await page.locator('#hucFilesInput').setInputFiles(names.map((filename,i)=>({name:filename,mimeType:filename.endsWith('.wav')?'audio/wav':'application/octet-stream',buffer:buffers[i]})));
     for(const filename of names)await until(()=>page.locator(`#msmSampleSelect option[value="/${filename}"]`).count().then(Boolean),'sample selector '+filename);assert.equal((await graph(page)).contexts,0);await rate(page,12);
     const draft=await page.locator('#synthCodeEditor').inputValue(),first=await load(page,'/tone440.wav','wav'),firstWave=await wave(page);assert.equal(first.assetBytes,String(f.raw.length));assert.equal(first.assetFrames,String(f.raw.length*2));assert(Number(firstWave.binCount)>0&&Number(firstWave.peak)>0);assert.match(await page.locator('#msmSampleInfo').textContent(),/64\s*(?:KiB|KB)|65536|65,536/);assert.equal((await graph(page)).contexts,0);

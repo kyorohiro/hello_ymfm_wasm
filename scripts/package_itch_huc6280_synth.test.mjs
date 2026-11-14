@@ -79,6 +79,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for(const path of ['synth-huc6280/code_host.js','synth-huc6280/code_audio.js','synth-huc6280/code_project.js','synth-huc6280/code_files.js',
     'synth-huc6280/cdrom2_audio.js','synth-huc6280/song_engine.js',
     'synth-huc6280/msm5205_asset.js','synth-huc6280/msm5205_source.js','synth-huc6280/msm5205_controls.js',
+    'synth-huc6280/cdda_controls.js','synth-huc6280/cdda_source.js','synth-huc6280/cdda_session_files.js','synth-huc6280/cdda_inputs.js',
     'js/msm5205_audio.js','js/msm5205_worklet.js','js/msm5205_pcm.js','js/msm5205_player.js','js/msm5205_sample.js','js/msm5205audioengine.js',
     'js/cdda_audio.js','js/cdda_worklet.js','js/cdda_pcm.js','js/cdda_player.js','js/cdda_source.js',
     'synth/synth_code_controls.js','synth/synth_project_store.js','synth/synth_draft_store.js',
@@ -142,7 +143,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     const msmPanel=html.slice(html.indexOf('id="msm5205ChipPanel"'),html.indexOf('id="cddaChipPanel"'));
     assert(!msmPanel.includes('Under construction'),'MSM5205 has the actual sample controls');
     const cddaPanel=html.slice(html.indexOf('id="cddaChipPanel"'),html.indexOf('id="mixerChipPanel"'));
-    assert(cddaPanel.includes('Under construction'),'CD-DA retains its explicit unfinished UI');
+    assert(!cddaPanel.includes('Under construction'),'CD-DA includes the actual track transport');
+    for(const id of ['cddaControls','cddaSourceState','cddaSourceSelect','cddaLoadSource','cddaAddFiles','cddaOpenSession','cddaSessionInput',
+      'cddaClearSession','cddaCancelLoad','cddaStorageNote','cddaTrackSelect','cddaPlay','cddaStop','cddaSeek','cddaPosition','cddaSourceInfo','cddaSourceStatus'])
+      assert(cddaPanel.includes(`id="${id}"`),`${entry}: standalone CD-DA UI includes ${id}`);
+    assert.match(cddaPanel,/<input id="cddaSessionInput"[^>]*type="file"[^>]*multiple/);
+    assert.match(cddaPanel,/<input id="cddaSeek"[^>]*type="range"[^>]*step="0\.01"/);
+    assert(cddaPanel.includes('session audio is not saved or exported with the Project'),'the standalone UI distinguishes temporary long audio from portable Files');
     for(let channel=1;channel<=6;channel++)assert.match(html,new RegExp(`id="hucSongChannel${channel}Toggle"[^>]*aria-pressed="true"`));
     assert.match(html,/<button id="hucSongCaptureButton"[^>]*>Capture to Synth<\/button>/);
     assert.match(html,/<input id="hucSongSeek"[^>]*type="range"[^>]*step="0\.01"/);

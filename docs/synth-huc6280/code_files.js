@@ -3,7 +3,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installHuc6280FileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
-import {createHuc6280CodeProject,createHuc6280ProjectStore,readHuc6280ProjectSound,isHuc6280CodePath,isHuc6280TextPath,isHuc6280SongPath,HUC6280_PROJECT_MANIFEST,HUC6280_PROJECT_CODE_LENGTH,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-song-1';
+import {createHuc6280CodeProject,createHuc6280ProjectStore,readHuc6280ProjectSound,isHuc6280CodePath,isHuc6280TextPath,isHuc6280SongPath,HUC6280_PROJECT_MANIFEST,HUC6280_PROJECT_CODE_LENGTH,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-cdda-ui-1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -50,7 +50,7 @@ function copyPath(project,path){
   return result;
 }
 export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
-  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},setStatus=()=>{},store=createHuc6280ProjectStore(),document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},getExportNotice=()=>'',setStatus=()=>{},store=createHuc6280ProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('hucFilesPanel'),toggle=doc.getElementById('hucFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const presetSelect=doc.getElementById('hucPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('HuC6280 Files mount is missing.');
@@ -168,7 +168,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
     if(disposed||!isCurrent())return[];
     if(typeof announce!=='boolean')throw TypeError('Import announcement must be boolean.');
     await api.ready;if(disposed||busy||!isCurrent())return[];const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
-    const imported=[];for(const file of files){if(!current())return[];if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB. Use Load preset for a larger audio instrument.');const bytes=new Uint8Array(await file.arrayBuffer());if(!current())return[];
+    const imported=[];for(const file of files){if(!current())return[];if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB. Use Open session WAVs in CD-DA for long audio, or Load preset for a larger HuC6280 instrument.');const bytes=new Uint8Array(await file.arrayBuffer());if(!current())return[];
       const filename=basename(file.name),type=isHuc6280TextPath(filename)?'text':'binary',data=type==='text'?decoder.decode(bytes):bytes;
       let sound=false;if(type==='text'&&/\.json$/i.test(filename)){try{sound=Boolean(readHuc6280ProjectSound(data));}catch{}}
       imported.push({filename,type,data,sound});}
@@ -209,7 +209,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
       await code?.restoreState?.(project.getCodeState());await persistCode();say('HuC6280 project imported. Code was not run.');return true;
     }finally{if(!disposed)setBusy(false);}
   }
-  async function exportProject(){await api.ready;await code?.flush?.();project.setSettings(getSettings());return project.exportProject();}
+  async function exportProject(){await api.ready;await code?.flush?.();project.setSettings(getSettings());const bytes=project.exportProject();const notice=getExportNotice();if(notice)say(`Project exported. ${notice}`);return bytes;}
   async function move(source,destination,copy=false){
     if(disposed||busy)return false;const token=++operation;await code?.flush?.();if(disposed||token!==operation)return false;source=allowed(source);destination=allowed(destination);setBusy(true,{lockMain:!copy});
     try{

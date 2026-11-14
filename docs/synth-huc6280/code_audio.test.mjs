@@ -10,8 +10,9 @@ test('HuC6280 note ownership resolves only physical channels on the shared chip'
   const client={};for(const channel of[0,1,2,3,4,5])for(const method of['noteOn','keyOn','noteOff','keyOff'])assert.deepEqual(resolveHuc6280CodeNoteTarget(client,client,method,[channel]),{target:client,channel});
   assert.equal(resolveHuc6280CodeNoteTarget(client,client,'noteOn',[6]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,client,'setNote',[0]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,{},'keyOn',[0]),null);
 });
-function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false,msm5205Source}={}){
+function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false,pendingFade=false,msm5205Source,cddaSource,readCddaFile,resolveCddaPath}={}){
   const events=[],racks=[],clients=[],contexts=[],outputCalls=[],media=[];let engine,stops=0,active=0,serial=0,stopTask=null;
+  const fadeTask=deferred();
   function node(name,context,gain=1){return{name,context,gain:{value:gain},edges:new Set(),connect(target){this.edges.add(target);events.push(['connect',name,target.name]);},
     disconnect(target){if(target){assert(this.edges.delete(target),'existing route '+name);}else this.edges.clear();events.push(['disconnect',name,target?.name]);}};}
   function makeEngine(){
@@ -29,7 +30,7 @@ function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=fa
   }
   engine=makeEngine();
   const host=createHuc6280CodeAudio({ensureReady:async()=>{events.push(['ensure']);},getAudio:()=>engine,
-    msm5205Source,
+    msm5205Source,cddaSource,readCddaFile,resolveCddaPath,
     createFxRack:async context=>{
       const task=deferred(),names=new Map();let chain=[];
       const rack={node:node('fx'+racks.length,context),stops:0,disposals:0,
@@ -41,7 +42,7 @@ function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=fa
         get factor(){return [...names.values()].reduce((a,b)=>a*b,1)*chain.reduce((a,b)=>a*b.gain,1);}};
       rack.node.factor=()=>rack.factor;racks.push({task,rack});if(!pendingFirstRack||racks.length>1)task.resolve(rack);return task.promise;
     },createOutput:options=>({open(){outputCalls.push('open');options.getGain().gain.value=1;},
-      fadeOut(){outputCalls.push('fade');events.push(['fade']);options.getGain().gain.value=0;return Promise.resolve(true);},
+      fadeOut(){outputCalls.push('fade');events.push(['fade']);options.getGain().gain.value=0;return pendingFade?fadeTask.promise:Promise.resolve(true);},
       dispose(){outputCalls.push('dispose');options.getGain().gain.value=0;}}),
     readFile:async path=>new TextEncoder().encode(path).buffer,
     createMedia(options){const item={options,closed:false,clients:new Map(),
@@ -54,7 +55,7 @@ function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=fa
     return value(engine.codeInputNode,.2);
   };
   return{host,events,racks,clients,contexts,outputCalls,media,signal,get engine(){return engine;},get stops(){return stops;},
-    replace(){engine=makeEngine();return engine;},releaseStop(){pendingStop=false;stopTask.resolve();}};
+    replace(){engine=makeEngine();return engine;},releaseStop(){pendingStop=false;stopTask.resolve();},releaseFade(){pendingFade=false;fadeTask.resolve(true);}};
 }
 
 test('HuC6280 Code shares one engine and routes every effect before one fade and one Master',async()=>{
@@ -158,4 +159,48 @@ test('physical Code Stop reaches shared MSM even when only the UI used it, and a
     await f.host.prepare();await f.host.beforeStop();await f.host.stop();assert.equal(stopCalls,1);assert.equal(f.stops,1);
     await f.host.prepare();throwStop=true;await assert.rejects(f.host.stop(),/MSM failed/);assert.equal(stopCalls,2);assert.equal(f.stops,2);
   }finally{throwStop=false;await f.host.dispose();}
+});
+
+test('Code borrows both authored CD sources with a dedicated CDDA reader and disposes/reborrows only that lease',async()=>{
+  const sources={};for(const chip of ['msm5205','cdda'])sources[chip]={borrows:[],stops:0,async useCodeClient(options){
+    let closed=false;const value={id:`${chip}:${this.borrows.length}`,sourceId:`shared:${chip}`,async getState(){if(closed||!options.isCurrent())throw new DOMException('Old lease','AbortError');return{track:7,revision:2};},async dispose(){closed=true;options.onDispose();}};
+    this.borrows.push({options,value});return value;},async stopCode(){this.stops++;}};
+  const f=fixture({msm5205Source:sources.msm5205,cddaSource:sources.cdda,readCddaFile:async path=>new TextEncoder().encode('CDDA:'+path),resolveCddaPath:path=>'/code/'+path});
+  try{
+    const m=await f.host.useSoundChip('msm5205'),cd=await f.host.useSoundChip('cdda');assert.equal(cd,await f.host.useSoundChip('cdda'));assert.equal(f.media.length,0);
+    assert.equal(new TextDecoder().decode(await sources.msm5205.borrows[0].options.readFile('/project.adpcm')),'/project.adpcm');
+    assert.equal(new TextDecoder().decode(await sources.cdda.borrows[0].options.readFile('/session-cdda/song.wav')),'CDDA:/session-cdda/song.wav');
+    assert.equal(sources.cdda.borrows[0].options.resolvePath('album.json'),'/code/album.json');assert.equal(sources.msm5205.borrows[0].options.resolvePath,undefined);
+    await cd.dispose();const next=await f.host.useSoundChip('cdda');assert.notEqual(next,cd);assert.equal(next.sourceId,cd.sourceId);assert.equal((await m.getState()).revision,2);
+    await f.host.beforeStop();await f.host.stop();assert.equal(sources.msm5205.stops,1);assert.equal(sources.cdda.stops,1);await assert.rejects(next.getState(),{name:'AbortError'});
+  }finally{await f.host.dispose();}
+});
+
+test('Code Stop attempts both UI-owned CD sources and PSG even if one source rejects synchronously or asynchronously',async()=>{
+  for(const first of ['msm5205','cdda']){
+    const calls=[],f=fixture({msm5205Source:{stopCode(){calls.push('msm5205');if(first==='msm5205')throw Error('MSM failed');}},
+      cddaSource:{async stopCode(){calls.push('cdda');if(first==='cdda')throw Error('CDDA failed');}}});
+    await assert.rejects(f.host.stop(),/failed/);assert.deepEqual(calls.sort(),['cdda','msm5205']);assert.equal(f.stops,1);
+    // No dispose call here: the deliberately broken injected source keeps
+    // rejecting. The assertions above already verify physical host cleanup.
+  }
+});
+
+test('Code beforeStop revokes both borrowed sources before its held fade, without stopping their physical playback',async()=>{
+  const calls=[],sources={};for(const chip of ['msm5205','cdda'])sources[chip]={playing:true,revokes:0,stops:0,async useCodeClient(options){return{async getState(){if(!options.isCurrent())throw new DOMException('Old lease','AbortError');return{};}};},
+    revokeCode(){this.revokes++;calls.push(chip+':revoke');},async stopCode(){this.stops++;this.playing=false;calls.push(chip+':stop');}};
+  const f=fixture({msm5205Source:sources.msm5205,cddaSource:sources.cdda,pendingFade:true});try{
+    const m=await f.host.useSoundChip('msm5205'),cd=await f.host.useSoundChip('cdda');const fading=f.host.beforeStop();
+    assert.deepEqual(calls,['msm5205:revoke','cdda:revoke']);assert(f.outputCalls.includes('fade'));assert(sources.msm5205.playing&&sources.cdda.playing);assert.equal(f.stops,0);
+    await assert.rejects(m.getState(),{name:'AbortError'});await assert.rejects(cd.getState(),{name:'AbortError'});
+    f.releaseFade();await fading;await f.host.stop();assert.equal(sources.msm5205.stops,1);assert.equal(sources.cdda.stops,1);assert.equal(f.stops,1);
+  }finally{f.releaseFade();await f.host.dispose();}
+});
+
+test('beforeStop attempts both revocations and always fades even when a source revoke hook throws',async()=>{
+  const calls=[],f=fixture({pendingFade:true,msm5205Source:{revokeCode(){calls.push('msm');throw Error('Revoke failed');},stopCode(){}},
+    cddaSource:{revokeCode(){calls.push('cdda');},stopCode(){}}});try{
+    const fading=f.host.beforeStop(),rejected=assert.rejects(fading,/Revoke failed/);assert.deepEqual(calls,['msm','cdda']);assert(f.outputCalls.includes('fade'));assert.equal(f.stops,0);
+    f.releaseFade();await rejected;await f.host.stop();assert.equal(f.stops,1);
+  }finally{f.releaseFade();await f.host.dispose();}
 });

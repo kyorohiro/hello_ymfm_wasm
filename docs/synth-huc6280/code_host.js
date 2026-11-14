@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Software scheduling over the existing PSG/shared ADPCM and Code-owned CD-DA.
+// Software scheduling over the existing PSG and shared authored CD media.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-cdrom2-1';
-import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-msm-ui-1';
-import {createHuc6280CodeAudio} from './code_audio.js?v=huc-msm-ui-1';
-import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-song-1';
-import {setupHuc6280CodeFiles} from './code_files.js?v=huc-song-1';
+import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-cdda-ui-1';
+import {createHuc6280CodeAudio} from './code_audio.js?v=huc-cdda-ui-1';
+import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-cdda-ui-1';
+import {setupHuc6280CodeFiles} from './code_files.js?v=huc-cdda-ui-1';
+import {resolveCddaInputPath} from './cdda_inputs.js';
 
 export const HUC6280_STARTER_CODE=`const pce = await useSoundChip("huc6280");
 setBpm(120);
@@ -26,10 +27,13 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('HuC6280 Code stopped','AbortError');
 export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySettings,
-  stopKeyboard,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{},msm5205Source}={}) {
+  stopKeyboard,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{},msm5205Source,cddaSource,readCddaFile,
+  getExportNotice=()=>'',onBeforeWorkspaceReplace:beforeWorkspaceReplace=async()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null;
   const project=createHuc6280CodeProject({settings:getSettings(),getStarterCode:()=>HUC6280_STARTER_CODE});
-  const audio=createHuc6280CodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line),msm5205Source,
+  const audio=createHuc6280CodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line),msm5205Source,cddaSource,
+    readCddaFile:readCddaFile?(path,options)=>readCddaFile(path,options??{}, {path:controls?.executionPath??'/index.js'}):undefined,
+    resolveCddaPath:path=>resolveCddaInputPath(path,controls?.executionPath??'/index.js'),
     readFile:path=>project.readFile(path,{type:'arrayBuffer'},{path:controls?.executionPath??'/index.js'})});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
   async function stop() {
@@ -38,9 +42,15 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
     if(!disposed&&request===modeEpoch&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  const files=setupHuc6280CodeFiles({project,getSettings,applySettings,setStatus,
+  const files=setupHuc6280CodeFiles({project,getSettings,applySettings,setStatus,getExportNotice,
     async onBeforeSoundApply(){if(!runtime?.getState().running)await stopKeyboard();},
-    async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();await msm5205Source?.clear();}});
+    async onBeforeWorkspaceReplace(){
+      const results=[];
+      for(const action of [stopSong,stop,stopKeyboard,()=>Promise.allSettled([msm5205Source,cddaSource].map(source=>Promise.resolve().then(()=>source?.clear()))).then(items=>{
+        const failed=items.find(item=>item.status==='rejected');if(failed)throw failed.reason;
+      }),beforeWorkspaceReplace]){try{await action();}catch(reason){results.push(reason);}}
+      if(results.length)throw results[0];
+    }});
   function getRuntime() {
     if(runtime)return runtime;
     runtime=createPlaygroundCodeRuntime({supportedSoundChips:['huc6280','msm5205','cdda'],

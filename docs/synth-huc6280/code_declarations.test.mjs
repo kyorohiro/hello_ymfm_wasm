@@ -44,6 +44,10 @@ const adpcmPlayback:'empty'|'ready'|'playing'|'ended'=adpcmState.state;
 // @ts-expect-error source identity belongs to the host
 adpcm.sourceId='other';
 const cd=await useSoundChip('cdda');await cd.load('/audio/track.wav');await cd.play(1,{offset:.1});await cd.pause();await cd.resume();await cd.seek(0);await cd.list();await cd.getState();await cd.stop();await cd.dispose();
+const cdId:string=cd.sourceId;const cdState=await cd.getState();const cdSourceId:string=cdState.sourceId;const cdRevision:number=cdState.revision;
+const cdPlayback:'empty'|'ready'|'playing'|'paused'|'ended'=cdState.state;const trackNumber:number|undefined=cdState.tracks[0]?.number;
+// @ts-expect-error source identity belongs to the host
+cd.sourceId='other';
 // @ts-expect-error unsupported chips remain unavailable
 await useSoundChip('sid');
 // @ts-expect-error ADPCM rate is a 0..15 hardware field

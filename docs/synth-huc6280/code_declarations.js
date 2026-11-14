@@ -34,8 +34,8 @@ type Huc6280CodeMsm5205=PlaygroundMsm5205API & {
   dispose():Promise<void>;
 };
 type Huc6280CodeCdda=PlaygroundCddaAPI & {
-  readonly id:string;readonly chip:'cdda';
-  /** Close this Code-owned audio track without closing the Synth clock. */
+  readonly id:string;readonly chip:'cdda';readonly sourceId:string;
+  /** Release this Code lease; the UI's track selection and Synth clock remain. */
   dispose():Promise<void>;
 };
 type Huc6280CodeSoundChipMap={huc6280:Huc6280CodeClient;msm5205:Huc6280CodeMsm5205;cdda:Huc6280CodeCdda};
@@ -48,7 +48,7 @@ declare const pg:Huc6280CodeAPI;
 `;
 export function selectHuc6280CodeDeclarations(source) {
   return selectCodeHostDeclarations(source,{globals:HUC6280_CODE_GLOBALS,customTypes:TYPES,apiName:'Huc6280CodeAPI',
-    banner:'PC Engine CD-ROM² Synth Code: shared HuC6280/MSM5205, Code-owned CD-DA; no independent clock.',transformTypes(types){
+    banner:'PC Engine CD-ROM² Synth Code: shared HuC6280/MSM5205/CD-DA; no independent clock.',transformTypes(types){
       const type=types.get('PlaygroundHuc6280');if(!type)throw Error('Shared HuC6280 declarations are missing.');
       types.set(type.name,{...type,text:type.text.replace(/^(\s+\w+\([^\n]*\)):\s*void;/gm,'$1: Promise<void>;')
         .replace(/^(\s+\w+\([^\n]*\)):\s*number;/gm,'$1: Promise<number>;')});
@@ -57,5 +57,8 @@ export function selectHuc6280CodeDeclarations(source) {
       types.set(state.name,{...state,text:state.text.replace("state:'ready'|'playing'|'ended'","state:'empty'|'ready'|'playing'|'ended'")
         .replace(/=\s*\{/,`= {\n  sourceId:string;revision:number;defaults:{rate:PlaygroundMsm5205Rate;loop:boolean};`)});
       types.set(sample.name,{...sample,text:sample.text.replace(/=\s*\{/,`= {\n  name:string;path:string|null;format:'wav'|'adpcm';paddedDuration:number;`)});
+      const cdda=types.get('PlaygroundCddaState');if(!cdda)throw Error('Shared CD-DA declarations are missing.');
+      types.set(cdda.name,{...cdda,text:cdda.text.replace("state:'ready'|'playing'|'paused'|'ended'","state:'empty'|'ready'|'playing'|'paused'|'ended'")
+        .replace(/=\s*\{/,`= {\n  sourceId:string;revision:number;`)});
     }});
 }

@@ -29,7 +29,8 @@ function fixture(options={}){
       const adapter={index:adapters.length,node:node(context),core,prepares:0,disposals:0,dead:false,
         async prepare(bytes){this.prepares++;const copy=bytes.slice();events.push(['prepare',this.index]);await options.beforePrepare?.(this);
           if(this.dead||signal.aborted)throw new DOMException('Adapter retired','AbortError');core.prepare(copy);},
-        async command(action){if(this.dead)throw Error('MSM5205 endpoint closed');events.push([action.type,this.index]);await options.beforeCommand?.(this,action);
+        async command(action,timing={}){if(this.dead)throw Error('MSM5205 endpoint closed');events.push([action.type,this.index]);await options.beforeCommand?.(this,action,timing);
+          if(options.scheduleFuture&&timing.at>context.currentTime)return{...core.readState(),scheduled:true};
           if(action.type==='state')return core.readState();if(action.type==='play')core.play(action);
           else if(action.type==='write-register')core.writeRegister(action.register,action.value);else core[action.type]();return core.readState();},
         dispose(){if(this.dead)return;this.dead=true;this.disposals++;this.node.disconnect();core.dispose();events.push(['dispose',this.index]);},
@@ -246,4 +247,53 @@ test('dispose always disconnects its endpoint and revokes leases even when its S
   assert.equal(f.adapters[0].disposals,1);assert.equal(f.adapters[0].node.edges.size,0);assert.equal(f.source.read().asset.name,'Retained');
   await assert.rejects(f.source.play(),{name:'AbortError'});await assert.rejects(client.getState(),{name:'AbortError'});assert.equal(f.engine.context.state,'running');
   await f.source.dispose();assert.equal(f.adapters[0].disposals,1);
+});
+
+test('an old workspace clear cannot erase a newer load or newly borrowed Code performance',async t=>{
+  for(const nextAction of ['load','code'])await t.test(nextAction,async()=>{
+    const gate=deferred();let delayStop=false;
+    const f=fixture({beforeCommand:(_adapter,command)=>{if(delayStop&&command.type==='stop'){delayStop=false;return gate.promise;}}});
+    try{
+      await f.source.loadMemory(new Uint8Array([0x77,0xff]),{name:'Previous'});await f.source.play({loop:true});delayStop=true;
+      const clearing=f.source.clear();await turn();
+      const next=nextAction==='load'?f.source.loadMemory(new Uint8Array([0x11,0x22]),{name:'New'}):f.source.useCodeClient().then(client=>client.play({loop:true}));
+      gate.resolve();assert.equal(await clearing,false);await next;
+      assert.equal(f.source.read().asset.name,nextAction==='load'?'New':'Previous');if(nextAction==='code')assert.equal((await f.source.getState()).state,'playing');
+    }finally{gate.resolve();await f.source.dispose();}
+  });
+});
+
+test('an old RPC deadline that disposes its own adapter cannot close the fresh MSM replay after immediate Stop',async()=>{
+  const gate=deferred();let hold=false;
+  const f=fixture({beforeCommand:(_adapter,action)=>{if(hold&&action.type==='state'){hold=false;return gate.promise;}}});
+  try{await f.source.loadMemory(new Uint8Array([0x77,0xff]),{name:'Retained'});await f.source.play({loop:true});hold=true;
+    const pending=f.source.getState(),rejected=assert.rejects(pending,/timed out/);await turn();const old=f.adapters[0];await f.source.stop();
+    assert.equal(old.disposals,1);await f.source.play({loop:true});const current=f.adapters[1];assert.equal(current.node.context,old.node.context);assert(peak(current.render())>.01);
+    old.dispose();gate.reject(Error('MSM5205 audio command timed out'));await rejected;
+    assert.equal(current.disposals,0);assert.equal((await f.source.getState()).state,'playing');assert.equal(f.source.read().asset.name,'Retained');assert.equal(f.source.read().error,null);
+  }finally{gate.resolve();await f.source.dispose();}
+});
+
+test('a valid future scheduled MSM Stop preserves the healthy active endpoint',async()=>{
+  const f=fixture({scheduleFuture:true});try{await f.source.loadMemory(new Uint8Array([0x77,0xff]));await f.source.play({loop:true});
+    await f.source.stop({at:5});assert.equal(f.adapters[0].disposals,0);assert.equal(f.adapters.length,1);assert.equal((await f.source.getState()).state,'playing');
+  }finally{await f.source.dispose();}
+});
+
+test('revoking Code at fade start cancels only its imports and leaves current MSM playback running until physical Stop',async t=>{
+  for(const beforePhysical of [true,false])await t.test(beforePhysical?'late read during fade':'late read after fade',async()=>{
+    const gate=deferred(),f=fixture();try{
+      await f.source.loadMemory(new Uint8Array([0x77,0xff]),{name:'Previous'});await f.source.play({loop:true});
+      const old=await f.source.useCodeClient({readFile:()=>gate.promise}),loading=old.loadMemory('/old.adpcm'),rejected=assert.rejects(loading,{name:'AbortError'});
+      f.source.revokeCode();assert(!f.source.read().busy);await assert.rejects(old.getState(),{name:'AbortError'});
+      assert.equal(f.adapters[0].core.readState().state,'playing');assert(peak(f.adapters[0].render())>.01);assert.equal(f.adapters[0].disposals,0);
+      if(!beforePhysical)await f.source.stopCode();gate.resolve(new Uint8Array([0x11,0x22]));await rejected;
+      assert.equal(f.source.read().asset.name,'Previous');if(beforePhysical)await f.source.stopCode();assert.equal((await f.source.getState()).state,'ready');
+    }finally{gate.resolve();await f.source.dispose();}
+  });
+  const uiGate=deferred(),f=fixture({readFile:()=>uiGate.promise});try{
+    await f.source.loadMemory(new Uint8Array([0x77]),{name:'Previous'});await f.source.play({loop:true});
+    const loading=f.source.loadMemory('/ui.adpcm',{name:'UI'});f.source.revokeCode();assert(f.source.read().busy);assert.equal(f.adapters[0].core.readState().state,'playing');
+    uiGate.resolve(new Uint8Array([0x11,0x22]));await loading;await f.source.stopCode();assert.equal(f.source.read().asset.name,'UI');
+  }finally{uiGate.resolve();await f.source.dispose();}
 });

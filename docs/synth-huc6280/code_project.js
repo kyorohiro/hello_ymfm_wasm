@@ -44,7 +44,7 @@ function validateFiles(fs){
     if(isHuc6280SongPath(file.path)&&file.type!=='binary')throw Error('VGM / VGZ reference songs must keep their original binary bytes.');
     if(isHuc6280CodePath(file.path)&&(file.type!=='text'||file.data.length>MAX_TEXT))throw Error('JavaScript files must be UTF-8 text no larger than 2 MiB.');
   }
-  if(total>HUC6280_PROJECT_FILE_BYTES)throw Error('Code project files exceed the 16 MiB cassette limit. Use Save preset for a larger audio instrument.');
+  if(total>HUC6280_PROJECT_FILE_BYTES)throw Error('Code project files exceed the 16 MiB cassette limit. Use Open session WAVs in CD-DA for long audio, or Save preset for a larger HuC6280 instrument.');
 }
 export function createHuc6280CodeProject({settings=createDefaultPreset(),snapshot,starterCode,getStarterCode}={}){
   const fs=createVirtualFileSystem(),listeners=new Set();
@@ -65,7 +65,7 @@ export function createHuc6280CodeProject({settings=createDefaultPreset(),snapsho
       if(isHuc6280CodePath(path)&&source.length>MAX_TEXT)throw Error('JavaScript files must be UTF-8 text no larger than 2 MiB.');
       const encoder=new TextEncoder();let total=encoder.encode(source).byteLength;
       for(const file of fs.list())if(file.path!==path)total+=file.type==='text'?encoder.encode(file.data).byteLength:file.data.byteLength;
-      if(total>HUC6280_PROJECT_FILE_BYTES)throw Error('Code project files exceed the 16 MiB cassette limit. Use Save preset for a larger audio instrument.');
+      if(total>HUC6280_PROJECT_FILE_BYTES)throw Error('Code project files exceed the 16 MiB cassette limit. Use Open session WAVs in CD-DA for long audio, or Save preset for a larger HuC6280 instrument.');
       fs.writeText(path,source);
     },
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
@@ -95,7 +95,7 @@ export function createHuc6280CodeProject({settings=createDefaultPreset(),snapsho
       validateFiles(fs);const {filesystem,...manifest}=project.snapshot();
       const metadata=JSON.stringify(manifest,null,2)+'\n';
       const total=new TextEncoder().encode(metadata).byteLength+fs.list().reduce((bytes,file)=>bytes+(file.type==='text'?new TextEncoder().encode(file.data).byteLength:file.data.byteLength),0);
-      if(total>16*1024*1024)throw Error('Code project exceeds the 16 MiB expanded cassette limit. Use Save preset for a larger audio instrument.');
+      if(total>16*1024*1024)throw Error('Code project exceeds the 16 MiB expanded cassette limit. Use Open session WAVs in CD-DA for long audio, or Save preset for a larger HuC6280 instrument.');
       return createPlaygroundCassetteZip([...fs.list(),{path:HUC6280_PROJECT_MANIFEST,type:'text',data:metadata}],{directories:fs.listDirectories(),preserveMetadataFiles:true});
     },
   };

@@ -9,8 +9,8 @@ as a preset or JavaScript. The English-language browser UI follows Tetorica's
 SPU / DMG Synths: output monitor, compact keyboard, two Pitch wheels, Octave,
 and controls that leave the computer keys available for playing.
 The CD-ROM² sources share the same clock and final output. MSM5205 has a basic
-sample player; CD-DA playback is available from Code while its dedicated UI
-remains under construction.
+sample player, and CD-DA has a WAV / track-manifest transport. Both share their
+authored sources with Code.
 
 ## Play and edit
 
@@ -22,8 +22,8 @@ remains under construction.
 
 The source tabs above the monitor are **HuC6280 / MSM5205 / CD-DA / Mixer**.
 HuC6280 keeps the existing waveform, Noise, LFO, DDA and keyboard editor.
-MSM5205 loads and plays an authored ADPCM sample from Files. CD-DA currently
-shows **Under construction** for its dedicated UI; its playback API works from Code.
+MSM5205 loads and plays an authored ADPCM sample from Files. CD-DA loads WAV
+tracks or track manifests, with Play / Pause / Resume / Stop and Seek.
 Changing tabs alone neither opens audio nor stops a performance.
 
 **Mixer** gives each of the three sources an independent volume and **Mute**.
@@ -83,6 +83,64 @@ preset format, keyboard instrument, waveform editor or VGM sample extraction.
 The MSM5205 inside a VGM has its **own reference decoder**: this tab does not
 show that recorded source as a Live authored sample.
 
+## CD-DA tracks and long session WAVs
+
+The **CD-DA** tab plays **44,100 Hz, stereo, uncompressed PCM16 RIFF WAV**.
+There is no compressed-audio decoding, resampling or game-disc access.
+
+For portable assets, use **Add to Files…**, choose a WAV or track manifest in
+**Source in Files or session**, then press **Load selected source**. The picker
+separates **Project Files** and **Session WAVs**. Loading a source or choosing a
+track prepares it silently; press **Play** to hear it. The button becomes
+**Pause** while playing and **Resume** while paused. **Stop** rewinds and keeps
+the selected source. The position bar shows elapsed / total time. Seeking a
+ready track sets its next starting position without opening audio; seeking a
+playing or paused track retains its transport state.
+
+Manifests use the existing format, for example `album.cdda.json`:
+
+```json
+{"tracks":[{"number":3,"file":"track03.wav","title":"Track three"},
+           {"number":7,"file":"track07.wav","startFrame":44100,"endFrame":132300}]}
+```
+
+Track numbers are explicit, unique **1–99**; frame ranges are half-open at
+44,100 frames per second. Relative WAV paths resolve from the manifest's folder.
+Code resolves a relative source path from the executing Code file **at load
+time**. Switching Code files later does not change that loaded album's paths.
+Only the selected track's PCM is retained; selecting another track reads and
+validates its candidate before replacing the current track. It does not cache
+every WAV in an album or convert whole tracks into Float32 arrays.
+
+**Files / Cassette retain their 16 MiB total limit.** For a longer song, use
+**Open session WAVs…** to choose local WAV files. This retains File references
+outside the Project, then loads the selected WAV without starting playback.
+Unselected files are not read. The session limits are **99 files**, **512 MiB
+of referenced files in total**, and **256 MiB of PCM per track**. The per-file
+byte ceiling is **256 MiB plus a 1 MiB header allowance**. For files above
+256 MiB, a bounded header-only preflight rejects excess PCM before reading the
+complete file; those large files additionally allow at most 1 MiB of non-audio
+headers and 256 RIFF chunks.
+
+Session audio is **not saved, exported, backed up in local Project recovery or
+restored on reload**. Keep the original WAVs and reopen them after restoring a
+Project. Session paths use the CD-DA-only `/session-cdda/` namespace; they are
+not ordinary Project Files. **Clear session WAVs** releases those references.
+It also clears a loaded source that depends on a session file, while retaining
+an independent Project-only source. Project files and other sound chips remain
+available. The current CD-DA source, selected track and cursor are session state.
+
+The UI and `await useSoundChip("cdda")` share **one authored track and cursor**.
+UI transport operations do not stop Code, HuC6280, MSM5205 or VGM. A later Code
+command can operate the same player; Apply retains it. **Code Stop keeps the
+loaded CD-DA source and rewinds it**, so UI Play or a later Code run can reuse it.
+For example, after loading a long session WAV in the tab, Code can simply call
+`const cd = await useSoundChip("cdda"); await cd.play();` without importing it
+into Files. Pending old Code operations cannot replace a newer UI source.
+CD-DA uses the existing Mixer / Master / monitor route and remains separate
+from a VGM recording. This player does not open CDs, ISO, CUE, BIOS or games,
+and does not turn tracks into pitched keyboard instruments.
+
 ## Code and Files
 
 Choose **Code**, then **Run** to play the same physical HuC6280 used by the
@@ -131,12 +189,12 @@ the chip API.
 
 Code also accepts `await useSoundChip("msm5205")` and
 `await useSoundChip("cdda")`, using the existing Playground APIs on the Synth's
-AudioContext. MSM5205 borrows the authored sample player above; CD-DA remains
-a Code-owned track player. **Apply** keeps prepared sources. **Run** creates a
-fresh Code performance while retaining the authored MSM5205 sample. **Stop**
-fades the Code mix, cancels pending Code loads and stops playback: the MSM5205
-asset remains available, while CD-DA's Code-owned player closes. Tab changes
-do not create extra players. Types and source navigation cover all three objects.
+AudioContext. MSM5205 and CD-DA borrow their authored players above. **Apply**
+keeps prepared sources. **Run** creates a fresh Code performance while retaining
+the authored media. **Stop** fades the Code mix, cancels pending Code loads,
+stops MSM5205 and rewinds CD-DA; both loaded sources remain available. Tab
+changes do not create extra players. Types and source navigation cover all
+three objects.
 
 In the MSM5205 or CD-DA tab, **Add Code examples to Files** adds
 `examples/msm5205.js` and `examples/cdda.js`. Select one in Code, then Run.
@@ -554,9 +612,9 @@ code stays visible for manual copying when the clipboard is unavailable.
 
 Irregular or incomplete direct-write PCM extraction, unsupported DAC stream
 forms and full PC Engine emulation are not included. MSM5205 has a basic sample
-player and Code API; CD-DA has a Code playback API. Waveform editing, an MSM5205
-keyboard instrument / preset format, the dedicated CD-DA UI and actual CD-ROM
-access are not included.
+player and Code API; CD-DA has a shared UI / Code track player. Waveform editing,
+an MSM5205 keyboard instrument / preset format, compressed CD-DA input and
+actual CD-ROM access are not included.
 
 ## API, sources and licenses
 
@@ -568,6 +626,7 @@ access are not included.
 - [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js), [Files song controls](song_controls.js), [strict configured-voice capture](song_voice.js) and [isolated paused audition](song_audition.js).
 - [HuC6280 / MSM5205 reference mix](song_engine.js), [Code media sources](cdrom2_audio.js), [MSM5205 decoder](../js/msm5205audioengine.js) and [CD-DA source](../js/cdda_player.js).
 - [MSM5205 sample preparation and decoded waveform](msm5205_asset.js), [shared UI / Code source](msm5205_source.js), [sample controls](msm5205_controls.js) and [shared offline WASM renderer](../js/msm5205_pcm.js).
+- [CD-DA controls](cdda_controls.js), [shared UI / Code source](cdda_source.js), [temporary session references](cdda_session_files.js) and [Project / session routing](cdda_inputs.js): app-local ownership and long-track inputs without changing Files / Cassette storage.
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
@@ -586,6 +645,7 @@ npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
 npm run test:huc6280-synth:cdrom2-browser
 npm run test:huc6280-synth:msm5205-browser
+npm run test:huc6280-synth:cdda-browser
 npm run test:huc6280-synth:manual-browser
 npm run test:huc6280-synth:vgm-manual-browser
 npm run test:huc6280-synth:song-browser
@@ -619,16 +679,24 @@ WAVは選択Rateでmonoへ変換してADPCMへ符号化し、packed ADPCMはhigh
 波形は共有WASMの実復号結果で、表示のためのAudioContextやspeaker接続は追加しません。
 Rateは0–15と実効Hzを表示し、Loopとともに次のPlayから反映します。再生中の値をその場で変更しません。
 Codeと画面は同じ編集用MSM5205を共有し、UIのPlayやサンプル変更でCode／HuC6280を止めません。
-Code Stop後もMSM5205素材を保持します。CD-DAは引き続きCode所有で、Stop時にplayerを閉じます。
+Code Stop後もMSM5205素材を保持します。CD-DAも画面とCodeで同じsource／track／cursorを共有し、Code Stop後は音声を保って先頭へ戻します。
 元ファイルはFiles／Cassetteへ保存し、現在のADPCM選択・再生設定はsession限定です。
-VGMのMSM5205は別の参照decoderで、この画面へのLive表示ではありません。CD-DAの専用UIは工事中です。
+VGMのMSM5205は別の参照decoderで、この画面へのLive表示ではありません。
+CD-DAタブはFilesのWAV／track manifestをLoadし、Track選択とPlay／Pause／Resume／Stop／時間表示／Seekを使えます。
+source読込とtrack選択だけでは再生せず、Ready中のSeekも音源を開きません。UI操作でCodeや他の音源は止めません。
+WAVは44.1kHz stereo PCM16のみ。manifestのWAV相対パスはmanifest基準、Codeのsource相対パスは読込時の実行ファイル基準で固定します。
+長い音声はOpen session WAVs…でFile参照を保持し、選択したtrackだけを読み込みます。Files／Cassetteの合計16MiB制限は変えません。
+sessionは最大99ファイル・参照合計512MiB、1trackのPCMは256MiB。1WAV全体の上限は256MiB＋header余裕1MiBです。
+256MiBを超えるFileは本文を読む前にheaderだけで容量を確認し、その大きいFileの非音声headerを1MiB・header walkを256chunkまでに制限します。
+session音声はProject保存・export・local recovery・再読込に含まれません。元WAVを保管して、必要時に再度開いてください。
+Clear session WAVsはsession依存のsourceを消し、独立したProject source・Projectファイル・他音源は保ちます。
 `useSoundChip()`の引数に`"huc6280"`／`"msm5205"`／`"cdda"`を指定して選択し、同じAudioContext・Master・FXを共有します。
 Mixerの初期値はPlaygroundと同じ絶対値でHuC6280が44%、MSM5205／CD-DAが100%。
 従来の単体SynthのHuC6280等倍より小さくなり、Masterは引き続き0–380%です。
 VGM1.72のMSM5205 clock／flags／0x32命令を含む曲をHuC6280と一緒に再生でき、MSM単独も受け付けます。
 MSMを含むVGMは完全なペア状態がないためSeekを先頭から再構築し、Pause／Resumeは同じ再生状態を保ちます。
-CD-DAはVGMには含まれず、Files等から読み込んだ音声トラックとしてCodeで再生します。
-MSM5205の波形お絵描き・鍵盤音程・専用preset、CD-DA専用UI、ディスク／BIOS／ゲーム実行は今回の範囲外です。
+CD-DAはVGMには含まれず、Filesやsessionから読み込んだ音声トラックとして再生します。
+MSM5205の波形お絵描き・鍵盤音程・専用preset、圧縮音声の変換、ディスク／ISO／CUE／BIOS／ゲーム実行は今回の範囲外です。
 Waveは6声、Noiseは実機のCH5／CH6を使う2声。波形は32点・5bitで、
 Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
