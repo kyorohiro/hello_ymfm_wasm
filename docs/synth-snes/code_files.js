@@ -55,7 +55,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
     const button=make('button',id,label);button.type='button';
     (id==='snesFileNewButton'||id==='snesFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='snesFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
-    const destination={snesProjectImportButton:['snesMenuProjectImport','Project · ZIP…'],snesProjectExportButton:['snesMenuProjectExport','Project · ZIP'],snesFileImportButton:['snesMenuFilesImport','Project files…'],snesFileExportButton:['snesMenuFileExport','Selected file']}[id];
+    const destination={snesProjectImportButton:['snesMenuProjectImport','Cassette…'],snesProjectExportButton:['snesMenuProjectExport','Cassette · ZIP'],snesFileImportButton:['snesMenuFilesImport','Files…'],snesFileExportButton:['snesMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();if(id!=='snesFileSaveSoundButton'||!code?.isCodeMode?.())doc.activeElement?.blur?.();}});

@@ -5,7 +5,7 @@ import {createSpcLiveInspector} from './spc_live.js?v=sound-library-1';
 import {setupSnesMenu} from './menu.js';
 import {createSnesSongPlayer} from './song_player.js?v=spc-live-1';
 import {setupSnesSongControls} from './song_controls.js';
-import {setupSnesCodeHost} from './code_host.js?v=sound-library-1';
+import {setupSnesCodeHost} from './code_host.js?v=menu-labels-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=sdsp-spc-menu-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';

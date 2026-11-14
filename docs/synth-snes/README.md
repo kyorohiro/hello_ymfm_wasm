@@ -117,7 +117,7 @@ file import / export. **Files** still opens the project browser. Desktop builds
 reuse this same menu: their Audio output, Reload and Pin controls mount once,
 without a second menu or second speaker connection.
 
-Choose **Menu → Import → Song / sounds · SPC file…**, or **Sounds from SPC →
+Choose **Menu → Import → SPC…**, or **Sounds from SPC →
 Load SPC…**. A valid load prepares both the original snapshot's sound candidates
 and the SPC player. It keeps the edited instrument and remains silent until you
 press **Play SPC**.
@@ -404,7 +404,7 @@ This uses the existing `.sdsp.json` format and local store in both Web and Tauri
 it adds no separate native menu, storage backend or audio route.
 
 Sound edits, Files and Code save locally. Reopening restores the project without
-opening audio or running JavaScript. **Export project** / **Import project…** use
+opening audio or running JavaScript. **Menu → Export → Cassette · ZIP** / **Menu → Import → Cassette…** use
 a Cassette ZIP with the sound, Code and binary files together. Export the project
 to keep a portable copy; browser storage failures are shown beside Files. A failed
 initial restore keeps the unread project and does not overwrite it with defaults.
