@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {setupSnesCodeHost} from './code_host.js?v=sdsp-code-review-1';
+import {setupSnesMenu} from './menu.js';
+import {createSnesSongPlayer} from './song_player.js';
+import {setupSnesSongControls} from './song_controls.js';
+import {setupSnesCodeHost} from './code_host.js?v=sdsp-spc-menu-1';
 import {createSnesCodeClient} from './code_client.js';
-import {createAudio} from './audio.js?v=sdsp-code-files-1';
+import {createAudio} from './audio.js?v=sdsp-spc-menu-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
 import {parseSpcVoices,MAX_SPC_BYTES} from './spc_import.js?v=sdsp-live-wave-1';
-import {createSpcBrowser} from './spc_browser.js';
+import {createSpcBrowser} from './spc_browser.js?v=sdsp-spc-menu-1';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -18,7 +21,9 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
-let codeHost=null;
+let codeHost=null,songControls=null;
+const menu=setupSnesMenu();
+const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);visualizer.setRunning(state.playing||notes.size>0||Boolean(codeHost?.isRunning()));}});
 let audio = null, opening = null, spcBrowser = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
@@ -39,7 +44,7 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning()));
+  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning())||songPlayer.read().playing);
   updateCapacity();
 }
 function readVoices(state) {
@@ -79,6 +84,7 @@ function updatePresetUi() {
 function audioFailed(error) {
   epoch++;
   notes.clear(); updateKeys();
+  songPlayer.audioClosed();
   const failed = audio; audio = null;
   visualizer.disconnect();
   if (failed) void failed.dispose().catch(() => {});
@@ -183,7 +189,9 @@ async function openSpc(file,{signal}={}) {
   if(!Number.isSafeInteger(file?.size)||file.size<0||file.size>MAX_SPC_BYTES) throw new RangeError('SPC must be at most 16 MiB');
   const data=await file.arrayBuffer();
   if(disposed||signal?.aborted) throw spcCancelled();
-  return parseSpcVoices(data,{name:file.name});
+  const candidates=parseSpcVoices(data,{name:file.name});
+  songPlayer.loadSource(data,{name:file.name,isCurrent:()=>!disposed&&!signal?.aborted});
+  return candidates;
 }
 async function selectSpc(candidate,{includeEcho=false,includePmon=false,signal,onCommit}={}) {
   if(disposed||signal?.aborted) throw spcCancelled();
@@ -288,17 +296,17 @@ function stopNotes(message) {
   const held=[...notes.values()];epoch++;notes.clear();updateKeys();
   return enqueue(async()=>{
     if(audio)for(const note of held)if(note.started)await audio.command('noteOff',[note.id]);
-    if(!codeHost?.isRunning())visualizer.stop();if(message)status(message);
+    if(!codeHost?.isRunning()&&!songPlayer.read().playing)visualizer.stop();if(message)status(message);
   });
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void (async()=>{await codeHost.stop();await stopNotes();if(audio)await audio.command('stop');status('Stopped · instrument retained. Play to resume.');})().catch(report);});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void (async()=>{await songPlayer.stop();await codeHost.stop();await stopNotes();if(audio)await audio.command('stop');status('Stopped · instrument retained. Play to resume.');})().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   if(preset.source==='noise') return;
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {
-  if(target?.closest?.('#synthCodeEditorHost,.monaco-editor,#snesFilesPanel'))return true;
+  if(target?.closest?.('#synthCodeEditorHost,.monaco-editor,#snesFilesPanel,#synthMenu[open]'))return true;
   const control = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');
   return control && !control.matches?.('input[type="range"],input[type="checkbox"],input[type="radio"]');
 }
@@ -389,13 +397,14 @@ $('copyCode').addEventListener('click',async()=>{
   }catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void codeHost?.stop();stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
+  if(event.persisted){void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
+  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();menu.dispose();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
+songControls=setupSnesSongControls({player:songPlayer,onError:report});
 updatePresetUi();setVolume();setPitchUi(0);
 codeHost=setupSnesCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
   applySettings:async(value,{isCurrent=()=>true}={})=>{if(!isCurrent())return false;await applyPreset(value,{load:true});return isCurrent();},
-  stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning()));}});
+  stopSong:()=>songPlayer.stop(),stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing);}});
 void codeHost.ready.catch(report);
 
 // Desktop adapters change only the final Master bus. The S-DSP, allocator
@@ -408,7 +417,7 @@ if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
-      await codeHost.stop();await stopNotes();
+      await songPlayer.pause();await codeHost.stop();await stopNotes();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});

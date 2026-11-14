@@ -271,7 +271,7 @@ async function checkEngine(name, engine, origin) {
     assert.equal(state.voices[0].id,echoOwner);await page.locator('#echoSend').check();await wait(s=>s.echoRegisters.eon===255);
     await page.waitForTimeout(120);await page.keyboard.up(keys[1]);await wait(s=>s.voices.length===0);
     await page.waitForTimeout(120);assert((await page.evaluate(()=>audit.sample())).rms>.00001,'Echo remains after the dry hardware KOFF release');
-    const echoDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const echoDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const echoSaved=JSON.parse(await fs.readFile(await(await echoDownload).path(),'utf8'));
     assert.equal(echoSaved.version,5);assert.equal(echoSaved.echo.enabled,true);assert.equal(echoSaved.echo.volumeRight,-128);
     await page.locator('#copyCode').click();const echoCode=await page.locator('#codeOutput').inputValue();
@@ -316,7 +316,7 @@ async function checkEngine(name, engine, origin) {
     assert.equal(state.voices[0].id,noiseEchoOwner);assert.equal(state.generation,noiseEchoGeneration);
     await page.waitForTimeout(120);await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);
     await page.waitForTimeout(120);assert((await page.evaluate(()=>audit.sample())).rms>.000001,'Noise is sent through the real Echo path');
-    const noiseDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const noiseDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const noiseSaved=JSON.parse(await fs.readFile(await(await noiseDownload).path(),'utf8'));
     assert.equal(noiseSaved.version,5);assert.equal(noiseSaved.source,'noise');assert.equal(noiseSaved.noise.clock,30);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/writeDsp\(0x3d,\s*1\)/);
@@ -412,7 +412,7 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.up(keys[0]);await radio('source','wave').click();state=await wait(s=>s.pmon.active&&s.capacity===4);
     assert.equal(state.pmonRegisters.mask,0xaa);assert.equal(await page.locator('#pmonEnabled').isEnabled(),true);
     check('PMON portable preset, legacy v3 and invalid / over-budget edits retain the right routing and previous sound');
-    const pmonDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const pmonDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const pmonSaved=JSON.parse(await fs.readFile(await(await pmonDownload).path(),'utf8'));
     assert.equal(pmonSaved.version,5);assert.equal(pmonSaved.pmon.enabled,true);assert.equal(pmonSaved.pmon.envelope.gainLevel,63);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/writeDsp\(0x2d,\s*(2|0x0?2)\)/);
@@ -472,7 +472,7 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.locator('#spcCandidate1').getAttribute('aria-pressed'),'false');
     await page.locator('#spcCandidate1').click();state=await wait(s=>s.pmon.active&&s.preset.echo.enabled&&s.preset.echo.feedback===-40);
     assert.equal(state.echoRegisters.eon,0xaa);await page.keyboard.up(pairRootKey);await page.keyboard.down(pairRootKey);await wait(s=>s.voices.length===1);await sound();
-    const pairDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const pairDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const pairSaved=JSON.parse(await fs.readFile(await(await pairDownload).path(),'utf8'));
     assert.equal(pairSaved.version,5);assert.equal(Buffer.from(pairSaved.brr.data,'base64').length,18);assert.equal(Buffer.from(pairSaved.pmon.brr.data,'base64').length,18);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/const modBrr = Uint8Array|const modBytes = Uint8Array/);
@@ -500,7 +500,7 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#brrFileInput').setInputFiles({name:'replacement-mod.brr',mimeType:'application/octet-stream',buffer:rawBrr});
     await page.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('Loaded replacement-mod.brr'));
     state=await wait(s=>s.preset.pmon.brr.name==='replacement-mod.brr');assert.equal(state.voices.length,0);assert.equal(state.preset.brr.name,pairSaved.brr.name);
-    const modLoadDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const modLoadDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const modLoaded=JSON.parse(await fs.readFile(await(await modLoadDownload).path(),'utf8'));
     assert.equal(modLoaded.brr.data,pairSaved.brr.data);assert.equal(modLoaded.pmon.brr.data,rawBrr.toString('base64'));
     await page.keyboard.up(pairRootKey);
@@ -571,7 +571,7 @@ async function checkEngine(name, engine, origin) {
     const carrierCommands=await page.evaluate(from=>audit.noteCommands.slice(from),carrierCommandStart);assert(!carrierCommands.some(command=>['noteOn','noteOff','stop','loadPreset'].includes(command.method)));
     heldWaveEdits.push({target:'carrier',owner:heldCarrier.voices[0],generation:heldCarrier.generation,nativeFramesBefore:heldCarrier.nativeFrames,nativeFramesAfter:state.nativeFrames,commands:carrierCommands,keyUpReleased:true});
     await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);await silent();
-    const saved=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const saved=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     assert.deepEqual(JSON.parse(await fs.readFile(await(await saved).path(),'utf8')),authored);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/useSoundChip\('snes'\)/);
     await page.locator('#presetFileInput').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"format":"bad"}')});
@@ -610,7 +610,7 @@ async function checkEngine(name, engine, origin) {
     assert.match(await page.locator('#importStatus').textContent(),/Applying/);assert.equal(await page.locator('#cancelImport').isVisible(),false);
     await page.evaluate(()=>audit.releaseDdaCommit());await page.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('Loaded slow-commit.wav'));
     state=await wait(s=>s.preset.brr.name==='slow-commit.wav');
-    const brrDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const brrDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const brrSaved=JSON.parse(await fs.readFile(await(await brrDownload).path(),'utf8'));
     const brrData=Buffer.from(brrSaved.brr.data,'base64');assert(brrData.length>9&&brrData.length<=64512);
     assert.equal(brrData.length%9,0);assert(brrData[brrData.length-9]&1);
@@ -692,7 +692,7 @@ async function checkEngine(name, engine, origin) {
     await page.evaluate(()=>audit.releaseSpcCommit());
     await wait(s=>s.preset.brr.basePitch===4096&&s.preset.volume.left===16);
     await page.waitForFunction(()=>!document.querySelector('#spcCandidate0').disabled);
-    const spcDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const spcDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const spcSaved=JSON.parse(await fs.readFile(await(await spcDownload).path(),'utf8'));
     assert.equal(spcSaved.brr.loopStartSamples,16);assert.equal(spcSaved.brr.basePitch,4096);assert.equal(spcSaved.brr.rootNote,60);
     assert.deepEqual(Buffer.from(spcSaved.brr.data,'base64'),rawBrr);
@@ -738,7 +738,7 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.down(rootKey);await wait(s=>s.voices.length===1);await sound();await page.waitForTimeout(120);
     await page.keyboard.up(rootKey);await wait(s=>s.voices.length===0);await page.waitForTimeout(120);
     assert((await page.evaluate(()=>audit.sample())).rms>.00001,'imported Echo produces a tail after KOFF');
-    const importedEchoDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const importedEchoDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const importedEchoSaved=JSON.parse(await fs.readFile(await(await importedEchoDownload).path(),'utf8'));
     assert.deepEqual(importedEchoSaved.echo,capturedEcho);
     await page.locator('#copyCode').click();const importedEchoCode=await page.locator('#codeOutput').inputValue();
@@ -806,7 +806,7 @@ async function checkEngine(name, engine, origin) {
       await page.setViewportSize({width:1180,height:1000});
     }
     await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);
-    const spcNoiseDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const spcNoiseDownload=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#savePreset').click();
     const spcNoiseSaved=JSON.parse(await fs.readFile(await(await spcNoiseDownload).path(),'utf8'));
     assert.equal(spcNoiseSaved.source,'noise');assert.equal(spcNoiseSaved.noise.clock,29);assert.equal(spcNoiseSaved.echo.feedback,-40);
     await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');

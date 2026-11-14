@@ -97,7 +97,7 @@ async function check(name,engine,origin){
    mark('Cassette roundtrip preserves Code, full sound and binary files');
    if(await page.locator('#snesFilesPanel').isHidden())await page.locator('#snesFilesToggle').click();
    await page.locator('#snesFilesInput').setInputFiles({name:'test.brr',mimeType:'application/octet-stream',buffer:Buffer.from([1,255,0,128])});await page.waitForTimeout(150);
-   const downloading=page.waitForEvent('download');await page.locator('#snesProjectExportButton').click();const download=await downloading,archive=await fs.readFile(await download.path());
+   const downloading=page.waitForEvent('download');await page.locator('#synthMenuButton').click();await page.locator('#snesProjectExportButton').click();const download=await downloading,archive=await fs.readFile(await download.path());
    const {loadPlaygroundCassette}=await import('../docs/playground/playground_cassette.js');const cassette=await loadPlaygroundCassette(new Uint8Array(archive));
    assert.deepEqual(JSON.parse(new TextDecoder().decode(cassette.files.get('snes-synth.project.json'))).settings,expectedSound,'Cassette retains both BRR payloads and all live edits');assert.deepEqual([...cassette.files.get('test.brr')],[1,255,0,128]);
    await setCode('// changed');await page.locator('#snesProjectFileInput').setInputFiles({name:'saved.cassette.zip',mimeType:'application/zip',buffer:archive});

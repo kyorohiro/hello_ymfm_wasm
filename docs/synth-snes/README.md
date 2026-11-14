@@ -110,6 +110,40 @@ notes and Echo tails. Ratio, Envelope / GAIN and Pitch edits retain their owners
 Noise temporarily pauses PMON because Noise output is not tuned by sample PITCH;
 returning to Wave / BRR restores the remembered setting.
 
+## Menu and SPC song playback
+
+The **Menu** button in the heading groups preset, SPC, audio / BRR, project and
+file import / export. **Files** still opens the project browser. Desktop builds
+reuse this same menu: their Audio output, Reload and Pin controls mount once,
+without a second menu or second speaker connection.
+
+Choose **Menu → Import → Song / sounds · SPC file…**, or **Sounds from SPC →
+Load SPC…**. A valid load prepares both the original snapshot's sound candidates
+and the SPC player. It keeps the edited instrument and remains silent until you
+press **Play SPC**.
+
+The song player executes the SPC700 driver and S-DSP from the file's RAM / DSP
+snapshot. **Pause** keeps the position; **Play SPC** resumes it; **Stop** returns
+to the original snapshot. Drag the position slider to seek up to 3,600 seconds.
+Seek rebuilds the machine from the file and runs forward; long seeks can take
+time, and Stop cancels them. Seeking from Pause stays paused. The eight CH
+buttons mute only the song's physical voices. A duration marked **(tag)** comes
+from file metadata and is informational: it does not force a stop or fade.
+
+Song playback uses a separate SPC700 / S-DSP machine from the authored instrument,
+through the existing AudioContext and common Master / monitor / desktop output.
+You can play the edited sound with Keyboard or Code over the song. Code Stop
+releases Code notes; **Stop all sound** also stops the song. Desktop output
+changes pause the song before handing over the common Master route. The song
+is independent of Code BPM, Pitch wheels and the instrument's software FX.
+
+The sound-candidate list shows the file's initial snapshot. It does not follow
+the current playback position. Choosing a candidate edits the instrument for
+keyboard / Code audition, without rewriting the song. The loaded song is held
+for this session; reopen its SPC file after reloading the page. No recording or
+automatic event export is included. SPC playback and file loads do not modify
+existing saved presets or Code.
+
 ## Sounds from SPC
 
 1. Open **Sounds from SPC → Load SPC…** and choose an `.spc` file (up to 16 MiB).
@@ -333,8 +367,8 @@ shared Echo / FIR.
 Drawing, audio conversion, sample management and keyboard allocation are
 software authoring tools.
 
-SPC pair import supports isolated adjacent BRR pairs. No SPC700 driver or song
-playback is included in this Synth.
+SPC pair import supports isolated adjacent BRR pairs. Use the separate SPC song
+player above to execute the SPC700 driver; importing an instrument itself stays passive.
 
 ## Files and Code performance
 
@@ -396,8 +430,8 @@ Code uses the shared Synth editor, with text editing available if Monaco cannot
 load. In Monaco, Go to Definition followed by View implementation opens the
 actual S-DSP performance client for note and state methods. Local modules can be imported from Files and `file()` reads project assets.
 Maximize Code to edit beside Files. JavaScript is limited to 2 MiB, and the project
-reserves room for the full sound within the 16 MiB Cassette limit. Looper / Event
-Rec and SPC song playback are outside this first Files / Code update.
+reserves room for the full sound within the 16 MiB Cassette limit. Event Rec
+is intentionally excluded from this Synth. SPC song playback is provided by the separate transport above.
 
 ## Code follow-up verification
 
@@ -453,7 +487,7 @@ GAINの減衰モードは初期Envelopeを自動で増やさず、新しい発�
 ADSR／GAINを取り込み、BRRは保存時点のPITCHをC4の再生基準として宣言します。
 元の音階を推測したものではないため、必要ならRoot noteを調整してください。
 一覧は折りたためます。不正ファイルやCancel、古い読み込み結果では今の音色を保ちます。
-SPCの曲再生やdriverの時間変化は再現せず、BRRのPITCH0・不正Loop等は理由を
+音色抽出はdriverの時間変化を復元しません。曲は上部のSPCプレーヤーで再生できます。BRRのPITCH0・不正Loop等は理由を
 表示して選択不可にします。Noise候補は共有clock・左右音量・ADSR／GAINを取り込み、
 PITCH0や不正なSRCN／BRRでも選択できます。Noiseの内部LFSR状態は復元せず、
 本Synth側のgeneratorで試奏します。PMON／Echoを省略する候補には説明を表示します。

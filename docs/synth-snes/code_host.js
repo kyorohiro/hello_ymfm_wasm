@@ -20,7 +20,7 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('S-DSP Code stopped','AbortError');
 export function setupSnesCodeHost({ensureAudio,getAudio,getSettings,applySettings,stopKeyboard,
-  onActivity=()=>{},setStatus=()=>{}}={}){
+  stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSnesCodeProject({settings:getSettings(),getStarterCode:()=>SNES_STARTER_CODE});
   const audio=createSnesCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -38,7 +38,7 @@ export function setupSnesCodeHost({ensureAudio,getAudio,getSettings,applySetting
   }
   files=setupSnesCodeFiles({project,getSettings,applySettings,setStatus,
     async onBeforeSoundApply(){if(!runtime?.getState().running)await stopKeyboard();},
-    async onBeforeWorkspaceReplace(){await stop();await stopKeyboard();}});
+    async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();}});
   function getRuntime(){
     if(runtime)return runtime;
     runtime=createPlaygroundCodeRuntime({supportedSoundChips:['snes'],

@@ -87,7 +87,7 @@ export async function packageSnesSynth({version='dev',releaseDir=join(root,'rele
   try{await readFile(archive);throw new Error(`Archive already exists: ${archive}`);}catch(error){if(error.code!=='ENOENT')throw error;}
   const stage=await mkdtemp(join(releaseDir,`itch_sdsp_synth_${version}-`));
   const browser=await copyReadableModules({root,stage,
-    entries:['docs/synth-snes/synth.js','docs/synth-snes/processor.js','docs/synth-snes/synth.css','docs/js/native-fx-worklet.js'],
+    entries:['docs/synth-snes/synth.js','docs/synth-snes/processor.js','docs/synth-snes/synth.css','docs/js/native-fx-worklet.js','docs/js/spc-worklet.js'],
     factories:['docs/generated/spc_wasm.js']});
   const inputs=new Set(browser.inputs),home='https://kyorohiro.github.io/hello_ymfm_wasm/',icon='tetorica_sdsp_synth.webp';
   for(const name of ['tetorica-playground-globals.d.ts','tetorica-shell.d.ts']){

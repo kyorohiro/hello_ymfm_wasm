@@ -56,7 +56,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   const metadata = make('p', 'sdsp-spc-metadata'); metadata.id = 'spcMetadata'; metadata.hidden = true; content.append(metadata);
   const warnings = make('ul', 'sdsp-spc-warnings'); warnings.id = 'spcWarnings'; warnings.hidden = true; content.append(warnings);
   const list = make('div', 'sdsp-spc-candidates'); list.id = 'spcCandidates'; content.append(list);
-  content.append(make('p', 'sdsp-help', 'Snapshot voice settings only: no song playback, SPC700 driver updates, or restoration of the current envelope phase. For BRR voices, C4 is a declared audition reference at the captured PITCH, not the original musical root. Noise uses the shared clock instead of musical pitch. Activity is only an ENVX / OUTX snapshot heuristic; inactive voices may still contain usable settings.'));
+  content.append(make('p', 'sdsp-help', 'This list shows the loaded file’s initial voice settings. Play SPC above runs the song separately; the list does not follow its playback position or restore the current envelope phase. For BRR voices, C4 is a declared audition reference at the captured PITCH, not the original musical root. Noise uses the shared clock instead of musical pitch. Activity is only an ENVX / OUTX snapshot heuristic; inactive voices may still contain usable settings.'));
   root.append(section);
 
   function setStatus(message, error = false) {

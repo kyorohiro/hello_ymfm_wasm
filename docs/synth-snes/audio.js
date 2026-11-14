@@ -20,7 +20,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
   const controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, master = null, codeInput = null, codeFade = null, disposed = false, closing = null;
+  let node = null, balance = null, master = null, codeInput = null, codeFade = null, songInput = null, disposed = false, closing = null;
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
   let acceptedBrrData = '', acceptedModBrrData = '';
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
@@ -53,7 +53,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       node.port.close();
     }
     balance?.disconnect();
-    master?.disconnect();
+    master?.disconnect();songInput?.disconnect();
     codeInput?.disconnect();codeFade?.disconnect();
     closing = (async () => { if (context.state !== 'closed') await context.close(); })();
     return closing;
@@ -126,6 +126,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     master = context.createGain(); master.gain.value = volume;
     codeInput=context.createGain();codeInput.gain.value=1;
     codeFade=context.createGain();codeFade.gain.value=1;
+    songInput=context.createGain();songInput.gain.value=1;songInput.connect(master);
     node.connect(balance);balance.connect(codeInput);codeInput.connect(codeFade);codeFade.connect(master);master.connect(context.destination);
 
     async function command(method, args = []) {
@@ -158,7 +159,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       });
     }
     return {
-      context, outputNode:master, codeInputNode:codeInput,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),
+      context, outputNode:master, songInputNode:songInput, codeInputNode:codeInput,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); }

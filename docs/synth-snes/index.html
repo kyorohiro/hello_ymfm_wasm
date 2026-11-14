@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices and PMON pairs, explore BRR, hardware Noise, Pitch Modulation, ADSR / GAIN and shared Echo / FIR.">
+  <meta name="description" content="Tetorica S-DSP Synth — play SPC songs, import voices and PMON pairs, and edit BRR, Noise, ADSR / GAIN and Echo / FIR.">
   <meta name="theme-color" content="#dfe2e2">
   <meta name="application-name" content="Tetorica S-DSP Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica S-DSP Synth">
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=sdsp-code-files-1">
+  <link rel="stylesheet" href="./synth.css?v=sdsp-spc-menu-1">
 </head>
 <body>
   <main>
@@ -25,6 +25,29 @@
     <article class="synth-shell" aria-labelledby="synthTitle">
       <header class="synth-heading">
         <div class="title-row">
+          <div id="synthDesktopTools" data-web-menu="true">
+            <details id="synthMenu" class="synth-menu">
+              <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
+              <div id="synthMenuPanel" class="synth-menu-panel">
+                <section class="synth-menu-section synth-menu-actions"><h2>Import</h2>
+                  <button id="loadPreset" type="button" data-close-synth-menu>Instrument · S-DSP preset…</button>
+                  <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a S-DSP instrument preset">
+                  <button id="synthMenuSpc" type="button" data-close-synth-menu>Song / sounds · SPC file…</button>
+                  <button id="synthMenuAudioImport" type="button" data-close-synth-menu>Selected sample · Audio file…</button>
+                  <button id="synthMenuBrrImport" type="button" data-close-synth-menu>Selected sample · BRR file…</button>
+                  <div id="snesMenuFilesImport"></div><div id="snesMenuProjectImport"></div>
+                </section>
+                <section class="synth-menu-section synth-menu-actions"><h2>Export</h2>
+                  <button id="savePreset" type="button" data-close-synth-menu>Instrument · S-DSP preset</button>
+                  <div id="snesMenuFileExport"></div><div id="snesMenuProjectExport"></div>
+                </section>
+                <section id="synthMenuAudio" class="synth-menu-section"><p>Audio output · System default (Web Audio)</p></section>
+                <section class="synth-menu-section synth-menu-actions"><button type="button" data-reset-offline-cache data-close-synth-menu>Reload</button></section>
+              </div>
+            </details>
+            <button id="synthPinButton" class="synth-icon-button" type="button" aria-label="Pin window on top" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path class="pin-head" d="M9 3h6v5l3 5v2H6v-2l3-5z"/><path d="M12 15v7"/></svg></button>
+          </div>
+
           <div class="product-identity">
             <img class="product-icon" src="../tetorica_sdsp_synth.webp" width="112" height="112" alt="" decoding="async">
             <div class="product-copy">
@@ -52,6 +75,13 @@
       <div id="synthWorkspace" class="snes-code-workspace">
         <aside id="snesFilesPanel" class="snes-files-panel" aria-label="Project files" hidden></aside>
         <div class="snes-main">
+      <section id="spcSongPlayer" class="snes-song-player" aria-label="SPC song playback">
+        <div class="snes-song-transport"><strong id="spcSongTitle">No SPC loaded</strong><button id="spcSongPlay" type="button" disabled>Play SPC</button><button id="spcSongPause" type="button" disabled>Pause</button><button id="spcSongStop" type="button" disabled>Stop</button></div>
+        <div class="snes-song-seek"><input id="spcSongSeek" type="range" min="0" max="180" step="0.1" value="0" aria-label="SPC playback position in seconds" disabled><output id="spcSongPosition">0:00</output></div>
+        <div id="spcSongChannels" class="snes-song-channels" role="group" aria-label="SPC channel On / Off"></div>
+        <p id="spcSongStatus" role="status">Load SPC from Menu or Sounds from SPC. Loading is silent.</p>
+      </section>
+
       <section class="spu-monitor sdsp-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
@@ -80,9 +110,6 @@
       <section class="instrument-toolbar" aria-label="Instrument files">
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
         <div class="preset-actions">
-          <button id="loadPreset" type="button">Load preset…</button>
-          <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a S-DSP instrument preset">
-          <button id="savePreset" type="button">Save preset…</button>
           <button id="copyCode" type="button">Copy JavaScript</button>
           <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
         </div>
@@ -131,12 +158,12 @@
         <div id="synthExpandedCodeSlot" class="snes-expanded-code" hidden></div>
       </div>
       <footer>
-        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN, shared Echo / FIR and adjacent-voice Pitch Modulation. PMON uses two voices per note for four playable notes; the modulator's Envelope / GAIN controls its strength. Noise uses one shared clock, without musical pitch. SPC import reads saved voice settings and optional isolated PMON pairs for audition. Song playback, elapsed envelopes and longer modulation chains are not restored. Wave drawing, audio conversion, ratio settings, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory. Active PMON counts both samples; its drawn modulator uses 72 BRR bytes, while an imported BRR uses its full size.</p>
+        <p>Instrument: one SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN, shared Echo / FIR and adjacent-voice Pitch Modulation. PMON uses two voices per note for four playable notes; the modulator's Envelope / GAIN controls its strength. Noise uses one shared clock, without musical pitch. SPC import reads saved voice settings and optional isolated PMON pairs for audition. SPC song playback uses a separate SPC700 + S-DSP machine through the common Master. Instrument import does not restore elapsed envelopes or longer modulation chains. Wave drawing, audio conversion, ratio settings, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory. Active PMON counts both samples; its drawn modulator uses 72 BRR bytes, while an imported BRR uses its full size.</p>
         <div><a href="../playground/index.html?mode=snes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/snessynth.js">JavaScript source</a></div>
       </footer>
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=sdsp-code-review-1"></script>
+  <script type="module" src="./synth.js?v=sdsp-spc-menu-1"></script>
 </body>
 </html>

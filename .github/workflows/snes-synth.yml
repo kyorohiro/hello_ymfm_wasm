@@ -10,6 +10,7 @@ on:
       - 'docs/js/spc*'
       - 'docs/js/snes*'
       - 'docs/js/*snes*'
+      - 'docs/js/*spc*'
       - 'docs/js/playground_performance_sender.js'
       - 'docs/playground/tetorica-playground-globals.d.ts'
       - 'docs/js/wav.js'
@@ -22,8 +23,10 @@ on:
       - 'tetorica_src/runtime/spc*'
       - 'tetorica_src/runtime/snes*'
       - 'tetorica_src/runtime/*snes*'
+      - 'tetorica_src/runtime/*spc*'
       - 'tetorica_src/runtime/playground_performance_sender.js'
       - 'test/runtime/*snes*'
+      - 'test/runtime/*spc*'
       - 'test/types/playground-mode-snes.ts'
       - 'test/types/fm2612*.mts'
       - 'tetorica_src/runtime/wav.js'
@@ -53,6 +56,7 @@ on:
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
       - 'test/runtime/*snes*'
+      - 'test/runtime/*spc*'
       - 'test/types/playground-mode-snes.ts'
       - 'test/types/fm2612*.mts'
       - 'docs/playground/tetorica-playground-globals.d.ts'
@@ -86,11 +90,13 @@ jobs:
         run: |
           npm run test:snes-synth
           node scripts/check_snes_synth_browser.cjs --out release/snes-synth-source-browser.json --screenshots release/snes-synth-source-images
+          node scripts/check_snes_synth_spc_browser.cjs --out release/snes-spc-source-browser.json
       - name: Package and play the independent ZIP
         run: |
           sh scripts/package_itch_snes_synth.sh ci
           python3 -m zipfile -e release/tetorica_sdsp_synth_ci_itch.zip release/snes-synth-browser
           node scripts/check_snes_synth_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-synth-browser.json --screenshots release/snes-synth-images
+          node scripts/check_snes_synth_spc_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-spc-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -101,4 +107,6 @@ jobs:
             release/snes-synth-source-images/
             release/snes-synth-browser.json
             release/snes-synth-images/
+            release/snes-spc-*.json
+            release/snes-spc-*.png
           if-no-files-found: ignore

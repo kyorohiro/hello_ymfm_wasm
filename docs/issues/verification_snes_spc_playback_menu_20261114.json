@@ -1,0 +1,262 @@
+{
+  "date": "2026-11-14",
+  "baseCommit": "8d27e340",
+  "scope": "SPC song playback, shared Web/Tauri Menu and Master; Event Rec excluded",
+  "unitTests": {
+    "parent": 184,
+    "tauriPython": 39,
+    "tauriNode": 42
+  },
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-spc-menu-review/itch_sdsp_synth_spc-menu-complete-20261114-yBlNsY",
+    "archive": "/private/tmp/snes-spc-menu-review/tetorica_sdsp_synth_spc-menu-complete-20261114_itch.zip",
+    "files": 140,
+    "bundles": 5,
+    "archiveRecord": {
+      "bytes": 1507248,
+      "sha256": "e3598b84c14f5464383e7fc0c9627eb6f986b734f84baa51108b38e609eea975"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-state"
+    }
+  },
+  "currentSourceMatchesPackagedInputs": 112,
+  "browser": {
+    "passed": true,
+    "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+    "results": [
+      {
+        "engine": "chromium",
+        "native": false,
+        "passed": true,
+        "checks": [
+          "one shared Menu, passive source selection and no Event Rec",
+          "actual SPC700 playback through one context and Master",
+          "Pause freezes position, paused seek stays paused and Stop resets",
+          "channel On/Off and Master mute affect the SPC route once",
+          "invalid replacement retains the playing source and edited instrument",
+          "SPC, Code and keyboard share output; Code Stop leaves SPC playing",
+          "SPC processor failure is isolated and Play retries on the same context",
+          "menu, controls and seek fit narrow screens"
+        ],
+        "cpuSnapshot": {
+          "value": 10234,
+          "frames": 3840,
+          "position": 0.11733333333333333
+        },
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "chromium",
+        "native": true,
+        "passed": true,
+        "checks": [
+          "one shared Menu, passive source selection and no Event Rec",
+          "actual SPC700 playback through one context and Master",
+          "Pause freezes position, paused seek stays paused and Stop resets",
+          "channel On/Off and Master mute affect the SPC route once",
+          "invalid replacement retains the playing source and edited instrument",
+          "SPC, Code and keyboard share output; Code Stop leaves SPC playing",
+          "SPC processor failure is isolated and Play retries on the same context",
+          "desktop mount reuses Web menu and native export/Pin handlers once",
+          "menu, controls and seek fit narrow screens"
+        ],
+        "cpuSnapshot": {
+          "value": 10575,
+          "frames": 3968,
+          "position": 0.12266666666666667
+        },
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "native": false,
+        "passed": true,
+        "checks": [
+          "one shared Menu, passive source selection and no Event Rec",
+          "actual SPC700 playback through one context and Master",
+          "Pause freezes position, paused seek stays paused and Stop resets",
+          "channel On/Off and Master mute affect the SPC route once",
+          "invalid replacement retains the playing source and edited instrument",
+          "SPC, Code and keyboard share output; Code Stop leaves SPC playing",
+          "SPC processor failure is isolated and Play retries on the same context",
+          "menu, controls and seek fit narrow screens"
+        ],
+        "cpuSnapshot": {
+          "value": 10575,
+          "frames": 3968,
+          "position": 0.12
+        },
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "native": true,
+        "passed": true,
+        "checks": [
+          "one shared Menu, passive source selection and no Event Rec",
+          "actual SPC700 playback through one context and Master",
+          "Pause freezes position, paused seek stays paused and Stop resets",
+          "channel On/Off and Master mute affect the SPC route once",
+          "invalid replacement retains the playing source and edited instrument",
+          "SPC, Code and keyboard share output; Code Stop leaves SPC playing",
+          "SPC processor failure is isolated and Play retries on the same context",
+          "desktop mount reuses Web menu and native export/Pin handlers once",
+          "menu, controls and seek fit narrow screens"
+        ],
+        "cpuSnapshot": {
+          "value": 11257,
+          "frames": 4224,
+          "position": 0.13066666666666665
+        },
+        "physicalOutputMuted": true
+      }
+    ]
+  },
+  "desktop": {
+    "passed": true,
+    "rows": [
+      {
+        "engine": "chromium",
+        "desktopToolbar": true,
+        "pin": true,
+        "nativePresetBinarySave": true,
+        "reloadCancel": true,
+        "spcMenuChooser": true,
+        "presetFileImport": true,
+        "keyboardAfterMenus": true,
+        "nativeCapturePcm": true,
+        "switchPreservesPreset": true,
+        "nativeFailureFallback": true,
+        "switchStopsAllSourcesAndPitch": true,
+        "switchBlocksPerformance": true,
+        "nativeSaveCancel": true,
+        "presetLoadCancel": true,
+        "presetV5": true,
+        "spcPmonPairImport": true,
+        "capturedPitches": [
+          2048,
+          3072
+        ],
+        "waveDrawing": true,
+        "brrMenuImport": true,
+        "wavMenuImport": true,
+        "audioImportCancelKeepsSound": true,
+        "embeddedDualBrrSave": true,
+        "allSourcesQuiesce": true,
+        "eightWaveVoices": true,
+        "eightNoiseVoices": true,
+        "fourPmonPairs": true,
+        "oneAudioContext": true,
+        "spcNativeSharedRoute": true,
+        "mobileOverflow": 0,
+        "nativeCredits": 9,
+        "nativePrefillPackets": 4,
+        "mockedDeviceRate": 48000,
+        "nativePackets": 26,
+        "nativePeak": 0.04175274819135666,
+        "nativeFinite": true,
+        "pageErrors": [],
+        "missingAssets": [],
+        "nativeHost": "mocked Tauri IPC; no CPAL device",
+        "physicalOutput": "muted"
+      },
+      {
+        "engine": "webkit",
+        "desktopToolbar": true,
+        "pin": true,
+        "nativePresetBinarySave": true,
+        "reloadCancel": true,
+        "spcMenuChooser": true,
+        "presetFileImport": true,
+        "keyboardAfterMenus": true,
+        "nativeCapturePcm": true,
+        "switchPreservesPreset": true,
+        "nativeFailureFallback": true,
+        "switchStopsAllSourcesAndPitch": true,
+        "switchBlocksPerformance": true,
+        "nativeSaveCancel": true,
+        "presetLoadCancel": true,
+        "presetV5": true,
+        "spcPmonPairImport": true,
+        "capturedPitches": [
+          2048,
+          3072
+        ],
+        "waveDrawing": true,
+        "brrMenuImport": true,
+        "wavMenuImport": true,
+        "audioImportCancelKeepsSound": true,
+        "embeddedDualBrrSave": true,
+        "allSourcesQuiesce": true,
+        "eightWaveVoices": true,
+        "eightNoiseVoices": true,
+        "fourPmonPairs": true,
+        "oneAudioContext": true,
+        "spcNativeSharedRoute": true,
+        "mobileOverflow": 0,
+        "nativeCredits": 9,
+        "nativePrefillPackets": 4,
+        "mockedDeviceRate": 48000,
+        "nativePackets": 23,
+        "nativePeak": 0.04163939878344536,
+        "nativeFinite": true,
+        "pageErrors": [],
+        "missingAssets": [],
+        "nativeHost": "mocked Tauri IPC; no CPAL device",
+        "physicalOutput": "muted"
+      }
+    ]
+  },
+  "regressionsOnPreviousPreview": {
+    "instrument-final": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 25
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 25
+      }
+    ],
+    "code-final": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 13
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 13
+      }
+    ],
+    "monaco-final": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 6
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 6
+      }
+    ]
+  },
+  "tauriChanges": {
+    "desktop/desktop-interface.js": "b54e32facb649f5376f6455e12621a6ec8e77bbdffcbaf0cc385e51dc16f7122",
+    "scripts/check-desktop-browser.cjs": "0b78ec926e28a8e7cdf7256ff40d7b2b0d8b1886a8e866619e96eee10a000d89"
+  },
+  "limits": [
+    "Physical audio output muted; no listening or CPAL device verification.",
+    "SPC source is session-only; reopen after reload.",
+    "Instrument candidates show the original snapshot, not live playback.",
+    "Seek is limited to one hour; tagged duration does not automatically stop or fade playback.",
+    "No commit, push, tag, release, or Tauri dist import performed."
+  ]
+}
