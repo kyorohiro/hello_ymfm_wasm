@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {createSnesLooper} from './looper.js';
+import {setupSnesLooperControls} from './looper_controls.js';
 import {setupSnesMenu} from './menu.js';
 import {createSnesSongPlayer} from './song_player.js';
 import {setupSnesSongControls} from './song_controls.js';
-import {setupSnesCodeHost} from './code_host.js?v=sdsp-spc-menu-1';
+import {setupSnesCodeHost} from './code_host.js?v=sdsp-looper-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=sdsp-spc-menu-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
@@ -21,9 +23,10 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
-let codeHost=null,songControls=null;
+let codeHost=null,songControls=null,looperControls=null;
+let looper=null;
 const menu=setupSnesMenu();
-const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);visualizer.setRunning(state.playing||notes.size>0||Boolean(codeHost?.isRunning()));}});
+const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);visualizer.setRunning(state.playing||Boolean(looper?.read().running)||notes.size>0||Boolean(codeHost?.isRunning()));}});
 let audio = null, opening = null, spcBrowser = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
@@ -44,7 +47,7 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning())||songPlayer.read().playing);
+  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));
   updateCapacity();
 }
 function readVoices(state) {
@@ -84,7 +87,7 @@ function updatePresetUi() {
 function audioFailed(error) {
   epoch++;
   notes.clear(); updateKeys();
-  songPlayer.audioClosed();
+  songPlayer.audioClosed();looper?.audioClosed();
   const failed = audio; audio = null;
   visualizer.disconnect();
   if (failed) void failed.dispose().catch(() => {});
@@ -296,11 +299,11 @@ function stopNotes(message) {
   const held=[...notes.values()];epoch++;notes.clear();updateKeys();
   return enqueue(async()=>{
     if(audio)for(const note of held)if(note.started)await audio.command('noteOff',[note.id]);
-    if(!codeHost?.isRunning()&&!songPlayer.read().playing)visualizer.stop();if(message)status(message);
+    if(!codeHost?.isRunning()&&!songPlayer.read().playing&&!looper?.read().running)visualizer.stop();if(message)status(message);
   });
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void (async()=>{await songPlayer.stop();await codeHost.stop();await stopNotes();if(audio)await audio.command('stop');status('Stopped · instrument retained. Play to resume.');})().catch(report);});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void (async()=>{looper.stop();await songPlayer.stop();await codeHost.stop();await stopNotes();if(audio)await audio.command('stop');status('Stopped · instrument retained. Play to resume.');})().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   if(preset.source==='noise') return;
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
@@ -397,14 +400,18 @@ $('copyCode').addEventListener('click',async()=>{
   }catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();menu.dispose();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
+  if(event.persisted){looper.stop();void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
+  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
+looper=createSnesLooper({ensureAudio,releaseNotes:()=>stopNotes(),
+  beforeStart:async()=>{if(switchingAudioOutput)throw new Error('Wait for audio output switching.');if(codeHost?.isCodeMode()||codeHost?.isRunning())throw new Error('Stop Code and choose Keyboard to use Looper.');await stopNotes();},
+  onChange:()=>{looperControls?.update();visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));}});
+looperControls=setupSnesLooperControls({looper,isBlocked:()=>switchingAudioOutput||Boolean(codeHost?.isCodeMode()||codeHost?.isRunning()),onError:report});
 songControls=setupSnesSongControls({player:songPlayer,onError:report});
 updatePresetUi();setVolume();setPitchUi(0);
 codeHost=setupSnesCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
   applySettings:async(value,{isCurrent=()=>true}={})=>{if(!isCurrent())return false;await applyPreset(value,{load:true});return isCurrent();},
-  stopSong:()=>songPlayer.stop(),stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing);}});
+  stopLooper:()=>looper.stop(),clearLooper:()=>looper.clear(),stopSong:()=>songPlayer.stop(),stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{looperControls?.update();visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));}});
 void codeHost.ready.catch(report);
 
 // Desktop adapters change only the final Master bus. The S-DSP, allocator
@@ -413,11 +420,11 @@ const localDesktop = (location.protocol === 'tauri:' && location.hostname === 'l
   (['http:', 'https:'].includes(location.protocol) && location.hostname === 'tauri.localhost');
 if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
   Object.defineProperty(window, 'tetoricaSynthAudio', {value:Object.freeze({
-    setSwitching(value) {switchingAudioOutput = value === true;},
+    setSwitching(value) {switchingAudioOutput = value === true;looperControls?.update();},
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
-      await songPlayer.pause();await codeHost.stop();await stopNotes();
+      looper.stop();await songPlayer.pause();await codeHost.stop();await stopNotes();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});

@@ -561,3 +561,13 @@ JavaScript出力ではBRR読込前に `await snes.setEcho(...)` を実行し、
 既存の `snes.writeDsp(...)` でNoiseのNON／FLGやPMON隣接routingを設定します。
 既存APIだけを使い、共有runtime／WASM／npmの更新は不要です。SPCから取り込んだ
 pairやEcho設定も、このpanelで編集・保存できます。
+
+## Software Looper
+
+In Keyboard, choose **Looper Start**, then **Record** (or Space) and play. Press **Stop recording** / Space to repeat the take. The first take defines the period; later takes add independent stereo PCM layers at the current loop position. Each layer retains the recorded Wave / BRR / Noise sound, PMON, live Pitch and Echo edits. A 0.25 second release / Echo tail is captured and wrapped into the next cycle; longer tails are truncated. This is software audio layering beyond one S-DSP's eight voices.
+
+The capture tap reads only the live instrument before Master. SPC songs and previous layers are excluded, so overdubbing does not re-record them. All layers play through the existing AudioContext and common Master / monitor / Tauri output route. Changing Master does not alter the recorded audio. The tap itself outputs silence and never creates another speaker connection.
+
+**Undo** cancels a take in progress or removes the last layer. **Clear** removes all layers. Looper Stop / Start, Stop all sound and native output switching retain completed layers. Output switching cancels an unfinished take and stops loop playback before changing the final route. Entering Code stops the Looper and retains completed layers; loading a project clears it. Looper is unavailable while Code runs. Space inside text fields, buttons, menus and editors keeps its normal meaning.
+
+Limits: 16 layers, a 120 second period / take, 128 MiB of retained stereo audio, and a minimum 0.05 second first take. The remaining memory budget can shorten recording; recording stops automatically at its limit. Layers live only in this session and are not included in preset / Cassette exports or restored after reload. No Event Rec or event JSON import / export is added.

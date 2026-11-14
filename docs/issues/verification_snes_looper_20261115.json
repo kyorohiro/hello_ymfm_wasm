@@ -1,0 +1,228 @@
+{
+  "date": "2026-11-15",
+  "baseCommit": "44c8258a",
+  "unitTests": {
+    "passed": 154,
+    "failed": 0
+  },
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-looper-review/itch_sdsp_synth_looper-verified-20261115-Ok6Drn",
+    "archive": "/private/tmp/snes-looper-review/tetorica_sdsp_synth_looper-verified-20261115_itch.zip",
+    "files": 143,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1520600,
+      "sha256": "56c7e8f5819a681b4d62e677ebd1b6db7d3037be49d81387ac9cbf8b593eee8a"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-state"
+    }
+  },
+  "currentInputHashesMatchPackage": 115,
+  "browser": {
+    "passed": true,
+    "results": [
+      {
+        "engine": "chromium",
+        "native": false,
+        "passed": true,
+        "checks": [
+          "passive startup, single Menu, no Event Rec",
+          "actual S-DSP take and repeat through one context / Master",
+          "silent overdub excludes prior layers; Undo removes only the newest layer",
+          "Master affects retained audio once; edits leave the recorded buffer intact",
+          "Stop / Start retains layers; Stop all silences them",
+          "SPC is excluded from capture; Stop Looper leaves SPC playing",
+          "Code switch cancels capture and retains layers; Space respects text focus",
+          "capture failure is isolated; retry reuses context and one output",
+          "controls fit mobile width; reload does not restore session audio"
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "chromium",
+        "native": true,
+        "passed": true,
+        "checks": [
+          "passive startup, single Menu, no Event Rec",
+          "actual S-DSP take and repeat through one context / Master",
+          "silent overdub excludes prior layers; Undo removes only the newest layer",
+          "Master affects retained audio once; edits leave the recorded buffer intact",
+          "Stop / Start retains layers; Stop all silences them",
+          "SPC is excluded from capture; Stop Looper leaves SPC playing",
+          "Code switch cancels capture and retains layers; Space respects text focus",
+          "capture failure is isolated; retry reuses context and one output",
+          "controls fit mobile width; reload does not restore session audio"
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "native": false,
+        "passed": true,
+        "checks": [
+          "passive startup, single Menu, no Event Rec",
+          "actual S-DSP take and repeat through one context / Master",
+          "silent overdub excludes prior layers; Undo removes only the newest layer",
+          "Master affects retained audio once; edits leave the recorded buffer intact",
+          "Stop / Start retains layers; Stop all silences them",
+          "SPC is excluded from capture; Stop Looper leaves SPC playing",
+          "Code switch cancels capture and retains layers; Space respects text focus",
+          "capture failure is isolated; retry reuses context and one output",
+          "controls fit mobile width; reload does not restore session audio"
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "engine": "webkit",
+        "native": true,
+        "passed": true,
+        "checks": [
+          "passive startup, single Menu, no Event Rec",
+          "actual S-DSP take and repeat through one context / Master",
+          "silent overdub excludes prior layers; Undo removes only the newest layer",
+          "Master affects retained audio once; edits leave the recorded buffer intact",
+          "Stop / Start retains layers; Stop all silences them",
+          "SPC is excluded from capture; Stop Looper leaves SPC playing",
+          "Code switch cancels capture and retains layers; Space respects text focus",
+          "capture failure is isolated; retry reuses context and one output",
+          "controls fit mobile width; reload does not restore session audio"
+        ],
+        "physicalOutputMuted": true
+      }
+    ]
+  },
+  "mockNative": {
+    "passed": true,
+    "rows": [
+      {
+        "engine": "chromium",
+        "desktopToolbar": true,
+        "pin": true,
+        "nativePresetBinarySave": true,
+        "reloadCancel": true,
+        "spcMenuChooser": true,
+        "presetFileImport": true,
+        "keyboardAfterMenus": true,
+        "nativeCapturePcm": true,
+        "switchPreservesPreset": true,
+        "nativeFailureFallback": true,
+        "switchStopsAllSourcesAndPitch": true,
+        "switchBlocksPerformance": true,
+        "nativeSaveCancel": true,
+        "presetLoadCancel": true,
+        "presetV5": true,
+        "spcPmonPairImport": true,
+        "capturedPitches": [
+          2048,
+          3072
+        ],
+        "waveDrawing": true,
+        "brrMenuImport": true,
+        "wavMenuImport": true,
+        "audioImportCancelKeepsSound": true,
+        "embeddedDualBrrSave": true,
+        "allSourcesQuiesce": true,
+        "eightWaveVoices": true,
+        "eightNoiseVoices": true,
+        "fourPmonPairs": true,
+        "oneAudioContext": true,
+        "spcNativeSharedRoute": true,
+        "looperNativeSharedRoute": true,
+        "mobileOverflow": 0,
+        "nativeCredits": 9,
+        "nativePrefillPackets": 4,
+        "mockedDeviceRate": 48000,
+        "nativePackets": 44,
+        "nativePeak": 0.06512730568647385,
+        "nativeFinite": true,
+        "pageErrors": [],
+        "missingAssets": [],
+        "nativeHost": "mocked Tauri IPC; no CPAL device",
+        "physicalOutput": "muted"
+      },
+      {
+        "engine": "webkit",
+        "desktopToolbar": true,
+        "pin": true,
+        "nativePresetBinarySave": true,
+        "reloadCancel": true,
+        "spcMenuChooser": true,
+        "presetFileImport": true,
+        "keyboardAfterMenus": true,
+        "nativeCapturePcm": true,
+        "switchPreservesPreset": true,
+        "nativeFailureFallback": true,
+        "switchStopsAllSourcesAndPitch": true,
+        "switchBlocksPerformance": true,
+        "nativeSaveCancel": true,
+        "presetLoadCancel": true,
+        "presetV5": true,
+        "spcPmonPairImport": true,
+        "capturedPitches": [
+          2048,
+          3072
+        ],
+        "waveDrawing": true,
+        "brrMenuImport": true,
+        "wavMenuImport": true,
+        "audioImportCancelKeepsSound": true,
+        "embeddedDualBrrSave": true,
+        "allSourcesQuiesce": true,
+        "eightWaveVoices": true,
+        "eightNoiseVoices": true,
+        "fourPmonPairs": true,
+        "oneAudioContext": true,
+        "spcNativeSharedRoute": true,
+        "looperNativeSharedRoute": true,
+        "mobileOverflow": 0,
+        "nativeCredits": 9,
+        "nativePrefillPackets": 4,
+        "mockedDeviceRate": 48000,
+        "nativePackets": 42,
+        "nativePeak": 0.06512973457574844,
+        "nativeFinite": true,
+        "pageErrors": [],
+        "missingAssets": [],
+        "nativeHost": "mocked Tauri IPC; no CPAL device",
+        "physicalOutput": "muted"
+      }
+    ]
+  },
+  "regressionsOnPrecedingPreview": {
+    "spc": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 8
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 8
+      }
+    ],
+    "code": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 13
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 13
+      }
+    ]
+  },
+  "limits": [
+    "All physical output muted; no listening or physical CPAL verification.",
+    "Session-only layers; preset/Cassette exports do not retain them.",
+    "16 layers, 120 second period/take, 128 MiB retained stereo PCM.",
+    "Release/Echo tail limited to 0.25 seconds and folded over the cycle.",
+    "No Event Rec, event JSON, release, commit or Tauri dist import."
+  ],
+  "tauriAdapterChanges": false
+}

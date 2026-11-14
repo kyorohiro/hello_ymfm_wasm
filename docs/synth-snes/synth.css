@@ -222,3 +222,8 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #spcSongStatus { margin:8px 0 0;font-size:.72rem;line-height:1.5;color:var(--muted);overflow-wrap:anywhere; }
 #spcSongStatus[data-error="true"] { color:#ac302b; }
 @media(max-width:640px) { .snes-song-channels { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+
+.snes-looper { margin: 12px 0; padding: 12px; border: 1px solid var(--line, #334155); border-radius: 10px; }
+.snes-looper-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.snes-looper p { margin: 8px 0; overflow-wrap: anywhere; }
+.snes-looper [data-error="true"] { color: #ffb4b4; }

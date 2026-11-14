@@ -20,7 +20,7 @@ test('S-DSP ZIP preserves readable dependency closure, matching WASM and complet
   const temporary=await mkdtemp(join(tmpdir(),'sdsp-synth-package-'));t.after(()=>rm(temporary,{recursive:true,force:true}));
   const a=await packageSnesSynth({version:'test',releaseDir:join(temporary,'a')});
   const b=await packageSnesSynth({version:'test',releaseDir:join(temporary,'b')});
-  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,5);
+  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,6);
   const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:

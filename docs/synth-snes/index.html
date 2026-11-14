@@ -10,7 +10,7 @@
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=sdsp-spc-menu-1">
+  <link rel="stylesheet" href="./synth.css?v=sdsp-looper-1">
 </head>
 <body>
   <main>
@@ -133,6 +133,11 @@
           </div>
           <p id="keyboardHint" class="keyboard-hint">When full, the oldest note is replaced.</p>
         </div>
+        <section class="snes-looper" aria-label="Software Looper">
+          <div class="snes-looper-actions"><button id="looperStartButton" type="button">Looper Start</button><button id="looperRecordButton" type="button" hidden>Record [Space]</button><button id="looperUndoButton" type="button" disabled>Undo</button><button id="looperClearButton" type="button" disabled>Clear</button></div>
+          <p id="looperState" role="status">Looper idle.</p>
+          <details class="snes-inline-help"><summary aria-label="About Looper">?</summary><p>Record the keyboard, then Stop recording or Space to repeat. The first take sets the period; later takes add independent audio layers. Each take keeps live edits, Pitch, PMON and Echo. SPC and existing layers are excluded from recording; Master applies during playback. A 0.25 second release tail wraps into the next cycle. Stop / Start retains layers; Undo removes the latest take, Clear removes all. Up to 16 layers, 120 seconds per take and 128 MiB of retained audio, in this session only. Switching to Code stops the Looper and retains completed layers. Loading a project clears it. Stop all sound and output switching stop it while retaining completed layers.</p></details>
+        </section>
         <div id="keyboardFretboard"></div>
         <div class="performance-keyboard">
           <label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center.">
@@ -164,6 +169,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=sdsp-spc-menu-1"></script>
+  <script type="module" src="./synth.js?v=sdsp-looper-1"></script>
 </body>
 </html>
