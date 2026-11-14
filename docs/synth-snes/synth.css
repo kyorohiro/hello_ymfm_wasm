@@ -275,3 +275,14 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .snes-spc-edit-fields label { display:grid; gap:5px; font-size:.76rem; }
 .snes-spc-edit-fields input,.snes-spc-edit-fields select { min-width:0; width:100%; box-sizing:border-box; padding:7px; }
 #spcChannelEditStatus[data-error="true"] { color:#a72f25; }
+#spcSongSeek {
+  appearance:none; -webkit-appearance:none; height:6px; margin:12px 0; padding:0;
+  border:1px solid var(--line); border-radius:999px; cursor:ew-resize;
+  background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--seek-position,0%),#d5dada var(--seek-position,0%),#d5dada 100%);
+}
+#spcSongSeek::-webkit-slider-runnable-track { height:6px; background:transparent; border:0; }
+#spcSongSeek::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:14px; height:14px; margin-top:-4px; border:1px solid var(--accent-dark); border-radius:50%; background:var(--accent); }
+#spcSongSeek::-moz-range-track { height:6px; background:transparent; border:0; }
+#spcSongSeek::-moz-range-thumb { width:12px; height:12px; border:1px solid var(--accent-dark); border-radius:50%; background:var(--accent); }
+#spcSongSeek:focus-visible { outline:2px solid var(--accent); outline-offset:5px; }
+#spcSongSeek:disabled { opacity:.5; cursor:default; }

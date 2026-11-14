@@ -124,9 +124,18 @@ press **Play SPC**.
 
 The song player executes the SPC700 driver and S-DSP from the file's RAM / DSP
 snapshot. **Pause** keeps the position; **Play SPC** resumes it; **Stop** returns
-to the original snapshot. Drag the position slider to seek up to 3,600 seconds.
+to the original snapshot. The position bar and time display follow playback.
+Dragging previews the destination; releasing commits one seek. Arrow keys move
+1 second (Shift: 10 seconds), Page Up / Down move 10 seconds, and Home / End
+select the bar endpoints. Key repeats preview until keyup; leaving the control
+commits, while Escape or pointer cancellation discards the draft. Stop and source
+replacement discard unfinished drafts. An unknown duration displays **—** and
+allows seeking up to 3,600 seconds; tagged files use their tagged span, extending
+if playback continues beyond it, within the same one-hour seek limit.
 Seek rebuilds the machine from the file and runs forward; long seeks can take
-time, and Stop cancels them. Seeking from Pause stays paused. The eight CH
+time, and Stop cancels them. The bar shows the pending destination, and a newer
+seek can replace an unfinished seek. Seeking from Pause stays paused; a seek
+while playing resumes playback at the destination. The eight CH
 buttons mute only the song's physical voices. A duration marked **(tag)** comes
 from file metadata and is informational: it does not force a stop or fade.
 

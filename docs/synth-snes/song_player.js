@@ -11,14 +11,14 @@ const nativeSetTimeout=globalThis.setTimeout.bind(globalThis),nativeClearTimeout
  * pre-Master input. Source selection is passive; no independent speaker route. */
 export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},createEndpoint=createSpcAudio,createClient=createSpcClient,
   schedule=nativeSetTimeout,cancel=nativeClearTimeout}={}){
-  let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='',analysis=null,analysisRevision=0,sourceSequence=0,inspectionEpoch=0,editOwner=0;
-  const read=()=>({mode,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,muteMask,error,analysisRevision,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
+  let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='',analysis=null,analysisRevision=0,sourceSequence=0,inspectionEpoch=0,editOwner=0,seekTarget=null;
+  const read=()=>({mode,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,seekTargetSeconds:seekTarget,muteMask,error,analysisRevision,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
     source:source?{id:source.id,name:source.name,title:display(source.metadata.title),game:display(source.metadata.game),artist:display(source.metadata.artist),durationSeconds:source.metadata.durationSeconds??null}:null});
   const notify=()=>{if(!disposed)onChange(read());};
   const clearTimer=()=>{if(timer!==null){cancel(timer);timer=null;}};
   function retire(){generation++;analysis=null;inspection=null;inspectionError='';clearTimer();const previous=route;route=null;const pending=opening;opening=null;pending?.controller.abort(aborted());for(const owner of [previous,pending]){owner?.cleanup?.();owner?.client?.dispose();owner?.endpoint?.dispose();}}
   function check(token){if(disposed||token!==operation)throw aborted();}
-  function apply(state,next){position=state.positionSeconds??position;mode=next??(state.playing?'playing':'paused');error='';notify();pollLater();}
+  function apply(state,next){position=state.positionSeconds??position;mode=next??(state.playing?'playing':'paused');seekTarget=null;error='';notify();pollLater();}
   function pollLater(){clearTimer();if(disposed||mode!=='playing'||!route)return;timer=schedule(()=>{timer=null;void poll();},200);}
   async function inspect(owner,token){
     const epoch=inspectionEpoch;try{const snapshot=await owner.client.snapshot();
@@ -30,7 +30,7 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
     try{const state=await current.client.getState();await inspect(current,token);if(!disposed&&token===operation&&current===route)apply(state);}
     catch(cause){if(!disposed&&token===operation&&current===route)fail(cause);}
   }
-  function fail(cause){retire();mode=source?'stopped':'empty';error=cause?.message??String(cause);notify();}
+  function fail(cause){seekTarget=null;retire();mode=source?'stopped':'empty';error=cause?.message??String(cause);notify();}
   async function ready(){
     if(route&&route.engine===getAudio()&&route.engine.context.state!=='closed')return route;
     if(opening)return opening.promise;
@@ -55,8 +55,8 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
     })();
     try{return await item.promise;}finally{if(opening===item)opening=null;}
   }
-  async function perform(action,next){
-    if(!source)throw Error('Load an SPC file before playback');const token=++operation;clearTimer();mode=next;error='';notify();
+  async function perform(action,next,target=null){
+    if(!source)throw Error('Load an SPC file before playback');const token=++operation;clearTimer();seekTarget=target;mode=next;error='';notify();
     try{const owner=await ready();check(token);const result=await action(owner.client);check(token);if(owner!==route)throw aborted();await inspect(owner,token);check(token);if(owner!==route)throw aborted();apply(result);return true;}
     catch(cause){if(cause?.name==='AbortError'||disposed||token!==operation)return false;fail(cause);throw cause;}
   }
@@ -83,29 +83,29 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
     },
     loadSource(input,{name='SPC file',isCurrent=()=>true}={}){
       const parsed=parseSpcFile(input);if(disposed||!isCurrent())return false;
-      operation++;retire();analysisRevision++;source={id:++sourceSequence,name:display(name),bytes:parsed.originalBytes.slice(),metadata:{...parsed.metadata},initial:{ram:parsed.ram,dsp:parsed.dsp,positionSeconds:0}};mode='stopped';position=0;muteMask=0;error='';notify();return true;
+      operation++;seekTarget=null;retire();analysisRevision++;source={id:++sourceSequence,name:display(name),bytes:parsed.originalBytes.slice(),metadata:{...parsed.metadata},initial:{ram:parsed.ram,dsp:parsed.dsp,positionSeconds:0}};mode='stopped';position=0;muteMask=0;error='';notify();return true;
     },
     play:()=>perform(client=>client.play(),'loading'),
     async pause(){
-      if(disposed||!source)return false;const token=++operation;clearTimer();
+      if(disposed||!source)return false;const token=++operation;clearTimer();seekTarget=null;
       if(!route){retire();mode='paused';notify();return true;}
       const owner=route;
       try{const state=await owner.client.pause();check(token);if(owner===route){await inspect(owner,token);check(token);if(owner===route)apply(state,'paused');}return true;}
       catch(cause){if(cause?.name==='AbortError'||disposed||token!==operation)return false;fail(cause);throw cause;}
     },
     async stop(){
-      if(disposed||!source)return false;const token=++operation;clearTimer();
+      if(disposed||!source)return false;const token=++operation;clearTimer();seekTarget=null;
       if(!route){retire();position=0;mode='stopped';error='';notify();return true;}
       const owner=route;
       try{const state=await owner.client.stop();check(token);if(owner===route){await inspect(owner,token);check(token);if(owner===route)apply(state,'stopped');}return true;}
       catch(cause){if(cause?.name==='AbortError'||disposed||token!==operation)return false;fail(cause);throw cause;}
     },
-    seek(seconds){if(!Number.isFinite(seconds)||seconds<0||seconds>3600)throw RangeError('SPC seek position must be 0–3600 seconds');return perform(client=>client.seek(seconds),'seeking');},
+    seek(seconds){if(!Number.isFinite(seconds)||seconds<0||seconds>3600)throw RangeError('SPC seek position must be 0–3600 seconds');return perform(client=>client.seek(seconds),'seeking',seconds);},
     async setMuteMask(value){
       if(!Number.isInteger(value)||value<0||value>255)throw RangeError('SPC mute mask must be 0..255');muteMask=value;notify();
       const owner=route;if(owner){try{await owner.client.setMuteMask(value);if(owner===route)notify();}catch(cause){if(!disposed&&owner===route)throw cause;}}
     },
-    audioClosed(){if(disposed)return;operation++;retire();mode=source?'stopped':'empty';position=0;notify();},
+    audioClosed(){if(disposed)return;seekTarget=null;operation++;retire();mode=source?'stopped':'empty';position=0;notify();},
     dispose(){if(disposed)return;disposed=true;operation++;retire();source=null;},
   };
   return api;

@@ -79,3 +79,12 @@ test('channel edits prepare a paused machine silently and never mutate the origi
 test('Stop and channel-owner changes reject delayed edit replies without restoring stale analysis',async t=>{
  const f=fixture(t,{holdEdit:true});f.player.loadSource(createSyntheticSpc());await f.player.play();let current=true;const editing=f.player.editVoice(0,{volumeLeft:0},{isCurrent:()=>current});await new Promise(r=>setImmediate(r));await f.player.stop();current=false;f.editGate.resolve();await assert.rejects(editing,{name:'AbortError'});assert.equal(f.player.read().mode,'stopped');assert.equal(f.player.read().inspection.voices[0].volumeLeft,64);
 });
+
+test('pending seek publishes its target; Stop, source replacement and output close clear it',async t=>{
+ const f=fixture(t,{holdSeek:true});f.player.loadSource(createSyntheticSpc());await f.player.play();const pending=f.player.seek(20);await new Promise(r=>setImmediate(r));assert.equal(f.player.read().seekTargetSeconds,20);assert.equal(f.player.read().mode,'seeking');await f.player.stop();assert.equal(f.player.read().seekTargetSeconds,null);f.seekGate.resolve();assert.equal(await pending,false);assert.equal(f.player.read().seekTargetSeconds,null);
+ await f.player.seek(3);assert.equal(f.player.read().seekTargetSeconds,null);f.player.audioClosed();assert.equal(f.player.read().seekTargetSeconds,null);f.player.loadSource(createSyntheticSpc(),{name:'replacement.spc'});assert.equal(f.player.read().seekTargetSeconds,null);
+});
+
+test('a replacement seek during cold audio preparation uses one route and only the newest target',async t=>{
+ const f=fixture(t,{holdEndpoint:true});f.player.loadSource(createSyntheticSpc());const first=f.player.seek(20);await new Promise(r=>setImmediate(r));const second=f.player.seek(3);assert.equal(f.player.read().seekTargetSeconds,3);f.endpointGate.resolve();assert.equal(await first,false);assert.equal(await second,true);assert.equal(f.routeCount,1);assert.equal(f.events.filter(e=>e==='seek').length,1);assert.equal(f.player.read().positionSeconds,3);assert.equal(f.player.read().playing,false);assert.equal(f.player.read().seekTargetSeconds,null);
+});

@@ -10,7 +10,7 @@
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=spc-channel-edit-1">
+  <link rel="stylesheet" href="./synth.css?v=spc-seek-controls-1">
 </head>
 <body>
   <main>
@@ -77,7 +77,7 @@
         <div class="snes-main">
       <section id="spcSongPlayer" class="snes-song-player" aria-label="SPC song playback">
         <div class="snes-song-transport"><label for="snesSongSelect">SPC</label><select id="snesSongSelect" aria-label="SPC in Files"><option value="">Load SPC…</option></select><strong id="spcSongTitle">No SPC loaded</strong><button id="spcSongPlay" type="button" disabled>Play SPC</button><button id="spcSongPause" type="button" disabled>Pause</button><button id="spcSongStop" type="button" disabled>Stop</button></div>
-        <div class="snes-song-seek"><input id="spcSongSeek" type="range" min="0" max="180" step="0.1" value="0" aria-label="SPC playback position in seconds" disabled><output id="spcSongPosition">0:00</output></div>
+        <div class="snes-song-seek"><input id="spcSongSeek" type="range" min="0" max="180" step="0.1" value="0" aria-label="SPC playback position in seconds" disabled><output id="spcSongPosition" for="spcSongSeek">0:00 / —</output></div>
         <p id="spcSongStatus" role="status">Load SPC from Menu or Sounds from SPC. Loading is silent.</p>
       </section>
 
@@ -182,6 +182,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=spc-channel-edit-1"></script>
+  <script type="module" src="./synth.js?v=spc-seek-controls-1"></script>
 </body>
 </html>
