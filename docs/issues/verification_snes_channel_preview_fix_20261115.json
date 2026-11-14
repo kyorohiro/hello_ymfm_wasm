@@ -1,0 +1,181 @@
+{
+  "date": "2026-11-15",
+  "baseCommit": "082794bd",
+  "problem": "Selecting an SPC CH hid the original sound panel, including decoded BRR/PCM waveform and sample metadata.",
+  "fix": [
+    "Restore the existing read-only sound panel for playable CH snapshots alongside direct register controls.",
+    "Unhide the preview before rendering its canvas, and prevent custom keyboard steppers from mutating Auto.",
+    "Refresh browser entry/editor cache URLs."
+  ],
+  "unitTests": {
+    "passed": 203,
+    "failed": 0
+  },
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-channel-preview-fix/itch_sdsp_synth_channel-preview-fix-20261115-7VMYad",
+    "archive": "/private/tmp/snes-channel-preview-fix/tetorica_sdsp_synth_channel-preview-fix-20261115_itch.zip",
+    "files": 149,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1560259,
+      "sha256": "2460ba1052f1478ad80ac1194e52c7d6873fb41df04a024a5e7f612cd50aac55"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-spc-edit"
+    }
+  },
+  "currentBrowserInputsMatchPackage": 121,
+  "browser": {
+    "channelEditZip": {
+      "passed": true,
+      "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+      "results": [
+        {
+          "engine": "chromium",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "chromium",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    "seekZip": {
+      "passed": true,
+      "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+      "results": [
+        {
+          "engine": "chromium",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "unknown SPC duration remains explicit and passive",
+            "real pointer drag previews silently then performs one paused seek",
+            "keyboard repeat previews; keyup commits once; Shift steps ten seconds",
+            "playing drag survives polling; Escape cancels without a later seek",
+            "a newer seek supersedes a held native seek and keeps playing intent",
+            "Stop cancels a held native seek and late replies cannot restore position",
+            "same-name replacement discards a pending draft; blur and pointer cancellation work",
+            "one shared context, speaker route and Menu; narrow seek layout"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "chromium",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "unknown SPC duration remains explicit and passive",
+            "real pointer drag previews silently then performs one paused seek",
+            "keyboard repeat previews; keyup commits once; Shift steps ten seconds",
+            "playing drag survives polling; Escape cancels without a later seek",
+            "a newer seek supersedes a held native seek and keeps playing intent",
+            "Stop cancels a held native seek and late replies cannot restore position",
+            "same-name replacement discards a pending draft; blur and pointer cancellation work",
+            "one shared context, speaker route and Menu; narrow seek layout"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "unknown SPC duration remains explicit and passive",
+            "real pointer drag previews silently then performs one paused seek",
+            "keyboard repeat previews; keyup commits once; Shift steps ten seconds",
+            "playing drag survives polling; Escape cancels without a later seek",
+            "a newer seek supersedes a held native seek and keeps playing intent",
+            "Stop cancels a held native seek and late replies cannot restore position",
+            "same-name replacement discards a pending draft; blur and pointer cancellation work",
+            "one shared context, speaker route and Menu; narrow seek layout"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "unknown SPC duration remains explicit and passive",
+            "real pointer drag previews silently then performs one paused seek",
+            "keyboard repeat previews; keyup commits once; Shift steps ten seconds",
+            "playing drag survives polling; Escape cancels without a later seek",
+            "a newer seek supersedes a held native seek and keeps playing intent",
+            "Stop cancels a held native seek and late replies cannot restore position",
+            "same-name replacement discards a pending draft; blur and pointer cancellation work",
+            "one shared context, speaker route and Menu; narrow seek layout"
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    }
+  },
+  "reviewDirectory": "build/verification/snes-channel-preview-fix-20261115",
+  "limitations": [
+    "A snapshot without a playable preset still reports its existing reason; this fix restores the previous supported-CH preview.",
+    "Physical speaker output muted; Tauri adapter uses mocked IPC; no physical CPAL-device or human listening test."
+  ],
+  "sdkOrWasmChanges": false,
+  "tauriCheckoutChanges": false,
+  "committed": false,
+  "released": false
+}

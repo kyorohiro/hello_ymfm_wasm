@@ -6,7 +6,7 @@ import {decodeBase64, encodeBase64} from './sample.js';
 import {decodeBrr} from '../js/snes_brr.js';
 
 /** Passive sound editor: drawing and file conversion do not open an audio device. */
-export function createEditor({root, onChange = () => {}, onError = () => {},
+export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, onError = () => {},
   onLoadAudio = async () => {throw new Error('Audio loading is not connected');},
   onLoadBrr = async () => {throw new Error('BRR loading is not connected');}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
@@ -26,7 +26,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   };
   const report = error => { if (!disposed) onError(error); };
   function commit(mutator) {
-    if (disposed) return;
+    if (disposed || isReadOnly()) return;
     try {
       cancelLoad('Conversion cancelled after editing the instrument. Current sample kept.');
       const next = readPreset(preset); mutator(next);

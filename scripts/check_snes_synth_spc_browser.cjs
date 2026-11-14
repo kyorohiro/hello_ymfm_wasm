@@ -34,6 +34,12 @@ async function check(name,engine,origin,fixture,native){
  const load=async(bytes,name='authored.spc')=>{await menu();const chooser=page.waitForEvent('filechooser');await page.locator('#synthMenuSpc').click();await(await chooser).setFiles({name,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});};
  try{
   await page.goto(base+config.entry);await page.waitForFunction(()=>!document.querySelector('.snes-main').inert);
+  mark('Cassette, SPC and BRR lead the menu; import ellipses follow FM2612');await menu();
+  assert.deepEqual(await page.locator('#synthMenuPanel button').evaluateAll(nodes=>nodes.slice(0,3).map(n=>n.textContent)),['Cassette…','SPC…','BRR…']);
+  assert.equal(await page.locator('#snesProjectExportButton').textContent(),'Cassette · ZIP');
+  const brrChooser=page.waitForEvent('filechooser');await page.locator('#synthMenuBrrImport').click();await(await brrChooser).setFiles([]);assert.equal(await page.locator('#synthMenu').evaluate(e=>e.open),false);await menu();
+  assert(await page.evaluate(()=>parseFloat(getComputedStyle(document.querySelector('#loadPreset')).fontSize)<parseFloat(getComputedStyle(document.querySelector('#snesProjectImportButton')).fontSize)));
+  await page.locator('#synthMenuPanel').screenshot({path:config.out.replace(/\.json$/,'-menu-'+name+(native?'-tauri':'-web')+'.png')});
   mark('one shared Menu, passive source selection and no Event Rec');assert.equal(await page.locator('#synthMenu').count(),1);assert.equal(await page.locator('#synthMenuAudio').count(),1);assert.equal(await page.locator('[id^="eventRecord"]').count(),0);
   await load(fixture);await page.waitForFunction(()=>document.querySelector('#spcSongTitle').textContent.includes('authored.spc'));assert.equal(await page.evaluate(()=>spcAudit.contexts.length),0);assert.equal(await page.locator('#spcSongSeek').getAttribute('max'),'3600','unknown-length SPC can seek up to one hour');assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
   mark('actual SPC700 playback through one context and Master');await page.locator('#spcSongPlay').click();await wait(s=>s.playing&&s.positionSeconds>.1);await page.waitForFunction(()=>spcAudit.peak()>.0001);

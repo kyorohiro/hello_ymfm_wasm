@@ -10,7 +10,7 @@
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=spc-seek-controls-1">
+  <link rel="stylesheet" href="./synth.css?v=spc-menu-priority-1">
 </head>
 <body>
   <main>
@@ -29,20 +29,28 @@
             <details id="synthMenu" class="synth-menu">
               <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
               <div id="synthMenuPanel" class="synth-menu-panel">
-                <section class="synth-menu-section synth-menu-actions"><h2>Import</h2>
-                  <button id="loadPreset" type="button" data-close-synth-menu>Instrument · S-DSP JSON…</button>
-                  <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a S-DSP instrument preset">
+                <section class="synth-menu-section synth-menu-actions synth-menu-primary-import"><h2>Import</h2>
+                  <div id="snesMenuProjectImport"></div>
                   <button id="synthMenuSpc" type="button" data-close-synth-menu>SPC…</button>
-                  <button id="synthMenuAudioImport" title="Import audio into the selected Carrier / Modulator sample" type="button" data-close-synth-menu>Audio sample…</button>
-                  <button id="synthMenuBrrImport" title="Import BRR into the selected Carrier / Modulator sample" type="button" data-close-synth-menu>BRR sample…</button>
-                  <div id="snesMenuProjectImport"></div><div id="snesMenuFilesImport"></div>
+                  <button id="synthMenuBrrImport" title="Import BRR into the selected Carrier / Modulator sample" type="button" data-close-synth-menu>BRR…</button>
                 </section>
                 <section class="synth-menu-section synth-menu-actions"><h2>Export</h2>
-                  <button id="savePreset" type="button" data-close-synth-menu>Instrument · S-DSP JSON</button>
-                  <div id="snesMenuProjectExport"></div><div id="snesMenuFileExport"></div>
+                  <div id="snesMenuProjectExport"></div>
+                </section>
+                <section class="synth-menu-section synth-menu-secondary" aria-label="Other file actions">
+                  <div class="synth-menu-actions"><h3>Import</h3>
+                    <button id="loadPreset" type="button" data-close-synth-menu>Instrument JSON…</button>
+                    <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a S-DSP instrument preset">
+                    <button id="synthMenuAudioImport" title="Import audio into the selected Carrier / Modulator sample" type="button" data-close-synth-menu>Audio sample…</button>
+                    <div id="snesMenuFilesImport"></div>
+                  </div>
+                  <div class="synth-menu-actions"><h3>Export</h3>
+                    <button id="savePreset" type="button" data-close-synth-menu>Instrument JSON</button>
+                    <div id="snesMenuFileExport"></div>
+                  </div>
                 </section>
                 <section id="synthMenuAudio" class="synth-menu-section"><p>Audio output · System default (Web Audio)</p></section>
-                <section class="synth-menu-section synth-menu-actions"><button type="button" data-reset-offline-cache data-close-synth-menu>Reload</button></section>
+                <section class="synth-menu-section synth-menu-actions synth-menu-utility"><button type="button" data-reset-offline-cache data-close-synth-menu>Reload</button></section>
               </div>
             </details>
             <button id="synthPinButton" class="synth-icon-button" type="button" aria-label="Pin window on top" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path class="pin-head" d="M9 3h6v5l3 5v2H6v-2l3-5z"/><path d="M12 15v7"/></svg></button>
@@ -182,6 +190,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=spc-seek-controls-1"></script>
+  <script type="module" src="./synth.js?v=spc-menu-priority-1"></script>
 </body>
 </html>

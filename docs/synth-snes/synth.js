@@ -8,10 +8,10 @@ import {createSpcLiveInspector} from './spc_live.js?v=sound-library-1';
 import {setupSnesMenu} from './menu.js';
 import {createSnesSongPlayer} from './song_player.js?v=spc-seek-controls-1';
 import {setupSnesSongControls} from './song_controls.js?v=spc-seek-controls-1';
-import {setupSnesCodeHost} from './code_host.js?v=spc-channel-edit-1';
+import {setupSnesCodeHost} from './code_host.js?v=spc-menu-priority-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=spc-channel-edit-1';
-import {createEditor} from './editor.js?v=sdsp-live-wave-1';
+import {createEditor} from './editor.js?v=spc-channel-preview-fix-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
 import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-live-1';
@@ -71,9 +71,11 @@ function updateCapacity() {
 }
 function updatePresetUi() {
   const preset=performancePreset();
+  const viewing=channelView?.read().selected!==null&&Boolean(channelView);
+  $('snesVoiceFields').disabled=viewing;$('snesVoiceFields').hidden=false;$('voiceEditor').hidden=viewing&&!audition;$('voiceEditor').dataset.readonly=String(viewing);
   editor.update(preset);
   channelEditor?.update(channelView.read());
-  const viewing=channelView?.read().selected!==null&&Boolean(channelView);$('snesVoiceFields').disabled=viewing;$('snesVoiceFields').hidden=viewing;$('voiceEditor').hidden=viewing&&!audition;document.querySelector('.instrument-toolbar').inert=viewing;
+  document.querySelector('.instrument-toolbar').inert=viewing;
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) {
     if (preset.source === 'brr' || pmonActive(preset) && preset.pmon.source === 'brr') {$('codeOutput').hidden=true;$('codeOutput').value='';}
@@ -195,7 +197,7 @@ async function loadSample(file,options,isBrr) {
   await applyPreset(next,{load:true,message:`Loaded ${prepared.name} · ${target} BRR sample · play the keyboard.`});
   return `Loaded ${prepared.name} into ${target}. Root note and base PITCH declare tuning; BRR does not store them.`;
 }
-const editor=createEditor({root:$('voiceEditor'),onChange:value=>{void applyPreset(value).catch(report);},onError:report,
+const editor=createEditor({root:$('voiceEditor'),isReadOnly:()=>channelView?.read().selected!==null&&Boolean(channelView),onChange:value=>{void applyPreset(value).catch(report);},onError:report,
   onLoadAudio:(file,options)=>loadSample(file,options,false),onLoadBrr:(file,options)=>loadSample(file,options,true)});
 const spcCancelled = () => new DOMException('SPC import cancelled','AbortError');
 async function openSpc(file,{signal,onCommit=()=>{}}={}) {
