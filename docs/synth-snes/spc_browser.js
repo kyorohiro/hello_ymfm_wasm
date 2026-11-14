@@ -41,6 +41,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   input.setAttribute('aria-label', 'Choose SPC snapshot for sound extraction');
   const cancel = make('button', '', 'Cancel'); cancel.id = 'cancelSpcImport'; cancel.type = 'button'; cancel.hidden = true;
   actions.append(load, input, cancel); content.append(actions);
+  const liveRoot=make('div');liveRoot.id='spcLiveInspector';content.append(liveRoot);
   const hint = make('p', 'sdsp-help', 'Opening a file keeps the current instrument. Select a sound below to load it, then play the keyboard, edit it or save a preset.');
   content.append(hint);
   const echoOption = make('label', 'sdsp-spc-echo-option');
@@ -237,6 +238,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   });
   refresh();
   return {
+    liveRoot,getImportOptions:()=>({includeEcho:includeEcho.checked,includePmon:includePmon.checked}),
     clearSelection() {if (!disposed) {selectedId = null; selectedMode = null; refresh();}},
     dispose() {
       if (disposed) return;

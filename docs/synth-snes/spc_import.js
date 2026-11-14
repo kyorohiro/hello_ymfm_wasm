@@ -41,7 +41,19 @@ export function parseSpcVoices(input, {name = 'SPC snapshot'} = {}) {
   if ((input instanceof ArrayBuffer || ArrayBuffer.isView(input)) && input.byteLength > MAX_SPC_BYTES) {
     throw new RangeError('SPC exceeds the 16 MiB file limit');
   }
-  const image = parseSpcFile(input), voices = readSnesVoices(image);
+  return parseVoiceImage(parseSpcFile(input), {name});
+}
+
+/** Analyze copied live RAM/DSP without claiming it is a restorable SPC file. */
+export function parseSpcSnapshotVoices(snapshot, {name="SPC playback", metadata={}} = {}) {
+  if(typeof name!=="string")throw new TypeError("SPC name must be a string");
+  if(!(snapshot?.ram instanceof Uint8Array)||snapshot.ram.length!==65536||!(snapshot.dsp instanceof Uint8Array)||snapshot.dsp.length!==128)throw new TypeError("SPC analysis needs 65,536 RAM and 128 DSP bytes");
+  const image={ram:snapshot.ram.slice(),dsp:snapshot.dsp.slice(),metadata:{...metadata},warnings:[]};
+  return {...parseVoiceImage(image,{name}),positionSeconds:snapshot.positionSeconds??null};
+}
+
+function parseVoiceImage(image,{name}) {
+  const voices = readSnesVoices(image);
   const dsp = image.dsp, noiseClock = dsp[0x6c] & 31;
   const echo = {enabled:!(dsp[0x6c] & 0x20), delay:dsp[0x7d] & 15,
     feedback:signed(dsp[0x0d]), volumeLeft:signed(dsp[0x2c]), volumeRight:signed(dsp[0x3c]),

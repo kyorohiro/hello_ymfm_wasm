@@ -4,7 +4,7 @@ import {createSnesSongPlayer} from './song_player.js';
 import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 const deferred=()=>{let resolve;return {promise:new Promise(r=>resolve=r),resolve:value=>resolve(value)};};
 function fixture(t,{holdEndpoint=false,holdSeek=false}={}){
-  const events=[],updates=[],timers=new Map();let timer=0,routeCount=0,playing=false,position=0,mask=0,client,endpoint;
+  const events=[],updates=[],timers=new Map();let timer=0,routeCount=0,playing=false,position=0,mask=0,client,endpoint,snapshotGate=null,snapshotError=null;
   const engine={context:{state:'running'},songInputNode:{name:'shared pre-Master'}},endpointGate=deferred(),seekGate=deferred();
   const player=createSnesSongPlayer({ensureAudio:async()=>{events.push('ensureAudio');return engine;},getAudio:()=>engine,
     schedule:fn=>{timers.set(++timer,fn);return timer;},cancel:id=>timers.delete(id),onChange:value=>updates.push(value),
@@ -13,10 +13,11 @@ function fixture(t,{holdEndpoint=false,holdSeek=false}={}){
       async loadSPC(bytes){events.push('load');assert(bytes instanceof Uint8Array);position=0;playing=false;return state();},
       async play(){events.push('play');playing=true;return state();},async pause(){events.push('pause');playing=false;return state();},
       async stop(){events.push('stop');playing=false;position=0;return state();},async seek(seconds){events.push('seek');const resume=playing;playing=false;if(holdSeek)await seekGate.promise;position=seconds;playing=resume;return state();},
+      async snapshot(){events.push('snapshot');if(snapshotError)throw snapshotError;if(snapshotGate)await snapshotGate.promise;const bytes=createSyntheticSpc();return {ram:bytes.slice(0x100,0x10100),dsp:bytes.slice(0x10100,0x10180),positionSeconds:position};},
       async setMuteMask(value){mask=value;events.push('mute');return state();},async getState(){if(playing)position+=.2;return state();},dispose(){playing=false;events.push('disposeClient');},
     };},
   });t.after(()=>player.dispose());
-  return{player,events,updates,timers,engine,endpointGate,seekGate,get routeCount(){return routeCount;},get client(){return client;},get endpoint(){return endpoint;},tick:async()=>{const fn=[...timers.values()][0];timers.clear();fn?.();await new Promise(r=>setImmediate(r));}};
+  return{player,events,updates,timers,engine,endpointGate,seekGate,get routeCount(){return routeCount;},get client(){return client;},get endpoint(){return endpoint;},failSnapshot(error){snapshotError=error;},holdSnapshot(){snapshotGate=deferred();return snapshotGate;},tick:async()=>{const fn=[...timers.values()][0];timers.clear();fn?.();await new Promise(r=>setImmediate(r));}};
 }
 test('SPC selection validates and detaches bytes without creating audio; invalid/cancelled inputs preserve the source',async t=>{
   const f=fixture(t),bytes=createSyntheticSpc();assert(f.player.loadSource(bytes,{name:'first.spc'}));bytes[0]=0;assert.deepEqual(f.events,[]);
@@ -54,4 +55,19 @@ test('a failed SPC processor retires only its route and old failure callbacks ca
   const f=fixture(t);f.player.loadSource(createSyntheticSpc(),{name:'kept.spc'});await f.player.play();const old=f.endpoint.node;
   old.dispatchEvent(new Event('processorerror'));assert.equal(f.player.read().mode,'stopped');assert.match(f.player.read().error,/retry/);assert.equal(f.timers.size,0);
   await f.player.play();assert.equal(f.player.read().mode,'playing');assert.equal(f.routeCount,2);old.dispatchEvent(new Event('processorerror'));assert.equal(f.player.read().mode,'playing');assert.equal(f.player.read().source.name,'kept.spc');
+});
+
+test('inspection follows playback, freezes on Pause and resets on Stop without exposing mutable RAM',async t=>{
+ const f=fixture(t);f.player.loadSource(createSyntheticSpc());assert.equal(f.player.read().inspection,null);await f.player.play();assert.equal(f.player.read().inspection.voices.length,8);await f.tick();assert.equal(f.player.read().inspection.positionSeconds,.2);const copy=f.player.read();copy.inspection.voices[0].pitch=1;assert.equal(f.player.read().inspection.voices[0].pitch,4096);await f.player.pause();const count=f.events.filter(e=>e==='snapshot').length;await f.tick();assert.equal(f.events.filter(e=>e==='snapshot').length,count);await f.player.seek(3);assert.equal(f.player.read().inspection.positionSeconds,3);await f.player.stop();assert.equal(f.player.read().inspection.positionSeconds,0);
+});
+test('fresh capture is fenced against transport changes and source replacement',async t=>{
+ const f=fixture(t);f.player.loadSource(createSyntheticSpc());await f.player.play();const captured=await f.player.capture();assert(captured.isCurrent());assert.equal(captured.snapshot.ram.length,65536);await f.player.pause();assert.equal(captured.isCurrent(),false);
+ await f.player.play();const gate=f.holdSnapshot(),pending=f.player.capture();await new Promise(r=>setImmediate(r));f.player.loadSource(createSyntheticSpc(),{name:'replacement.spc'});gate.resolve();await assert.rejects(pending,{name:'AbortError'});assert.equal(f.player.read().inspection,null);assert.equal(f.player.read().source.name,'replacement.spc');
+});
+test('late inspection responses cannot resurrect an old polling loop',async t=>{
+ const f=fixture(t);f.player.loadSource(createSyntheticSpc());await f.player.play();const gate=f.holdSnapshot(),poll=f.tick();await new Promise(r=>setImmediate(r));f.player.audioClosed();gate.resolve();await poll;assert.equal(f.player.read().inspection,null);assert.equal(f.timers.size,0);assert.equal(f.player.read().mode,'stopped');
+});
+
+test('an inspection failure reports stale display data without stopping healthy playback and can recover',async t=>{
+ const f=fixture(t);f.player.loadSource(createSyntheticSpc());await f.player.play();const stamp=f.player.read().inspection.positionSeconds;f.failSnapshot(new Error('Analysis temporarily unavailable'));await f.tick();assert.equal(f.player.read().playing,true);assert.equal(f.player.read().inspection.positionSeconds,stamp);assert.match(f.player.read().inspectionError,/temporarily/);f.failSnapshot(null);await f.tick();assert.equal(f.player.read().inspectionError,'');assert(f.player.read().inspection.positionSeconds>stamp);
 });

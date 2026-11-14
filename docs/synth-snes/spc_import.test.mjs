@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {parseSpcVoices, MAX_SPC_BYTES} from './spc_import.js';
+import {parseSpcVoices, parseSpcSnapshotVoices, MAX_SPC_BYTES} from './spc_import.js';
 import {readPreset, envelopeRegisters, modulatorEnvelopeRegisters, presetToCode, ECHO_BRR_MAX_BYTES} from './preset.js';
 import {decodeBase64, MAX_BRR_BYTES} from './sample.js';
 import {SnesInstrument} from './instrument.js';
@@ -556,4 +556,14 @@ test('Echo-imported preset renders the captured parameters in real S-DSP, starts
   assert(tail.slice(512,3072).some(value=>Math.abs(value)>.00001),'captured Echo continues after dry KOFF release');
   instrument.loadPreset(candidate.preset);instrument.noteOn('dry',60);instrument.renderInto(left,right);instrument.noteOff('dry');instrument.renderInto(tail,tailRight);
   assert(tail.slice(512).every(value=>value===0),'dry variant does not pick up imported Echo settings');
+});
+
+test('live RAM/DSP analysis uses changed registers and sample bytes at the captured time, without mutating the source',()=>{
+ const initial=pmonImage(),snapshot={ram:initial.slice(RAM,DSP),dsp:initial.slice(DSP,DSP+128),positionSeconds:12.5};
+ snapshot.dsp[0]=0xe0;snapshot.dsp[2]=0x34;snapshot.dsp[3]=0x12;snapshot.ram[0x2401]=0x11;
+ const before=snapshot.ram.slice(),batch=parseSpcSnapshotVoices(snapshot,{name:'current.spc',metadata:{title:'Current song'}});assert.equal(batch.positionSeconds,12.5);assert.equal(batch.candidates[0].voice.volumeLeft,-32);assert.equal(batch.candidates[0].voice.pitch,0x1234);assert.equal(decodeBase64(batch.candidates[0].preset.brr.data)[1],0x11);assert(batch.candidates[1].pmonEchoVariant.preset);assert.deepEqual(snapshot.ram,before);snapshot.ram.fill(0);assert.equal(decodeBase64(batch.candidates[0].preset.brr.data)[1],0x11);
+ assert.throws(()=>parseSpcSnapshotVoices({ram:new Uint8Array(8),dsp:new Uint8Array(128)}),/RAM/);
+});
+test('live import keeps invalid channel reasons and handles Noise independently of sample RAM',()=>{
+ const data=image(),snapshot={ram:data.slice(RAM,DSP),dsp:data.slice(DSP,DSP+128)};snapshot.dsp[2]=snapshot.dsp[3]=0;snapshot.dsp[0x3d]=2;snapshot.dsp[0x6c]=31;snapshot.ram.fill(0);const batch=parseSpcSnapshotVoices(snapshot);assert.match(batch.candidates[0].reason,/PITCH/);assert.equal(batch.candidates[0].preset,null);assert.equal(batch.candidates[1].preset.source,'noise');assert.equal(batch.candidates[1].preset.noise.clock,31);
 });

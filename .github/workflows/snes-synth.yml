@@ -91,6 +91,7 @@ jobs:
           npm run test:snes-synth
           node scripts/check_snes_synth_browser.cjs --out release/snes-synth-source-browser.json --screenshots release/snes-synth-source-images
           node scripts/check_snes_synth_spc_browser.cjs --out release/snes-spc-source-browser.json
+          node scripts/check_snes_synth_spc_live_browser.cjs --out release/snes-spc-live-source-browser.json
           node scripts/check_snes_synth_looper_browser.cjs --out release/snes-looper-source-browser.json
       - name: Package and play the independent ZIP
         run: |
@@ -98,6 +99,7 @@ jobs:
           python3 -m zipfile -e release/tetorica_sdsp_synth_ci_itch.zip release/snes-synth-browser
           node scripts/check_snes_synth_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-synth-browser.json --screenshots release/snes-synth-images
           node scripts/check_snes_synth_spc_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-spc-browser.json
+          node scripts/check_snes_synth_spc_live_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-spc-live-browser.json
           node scripts/check_snes_synth_looper_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-looper-browser.json
       - uses: actions/upload-artifact@v4
         if: always()

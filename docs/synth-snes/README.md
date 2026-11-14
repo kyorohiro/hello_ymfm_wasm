@@ -137,7 +137,11 @@ releases Code notes; **Stop all sound** also stops the song. Desktop output
 changes pause the song before handing over the common Master route. The song
 is independent of Code BPM, Pitch wheels and the instrument's software FX.
 
-The sound-candidate list shows the file's initial snapshot. It does not follow
+**Playback channels** in **Sounds from SPC** follows all eight physical channels about five times per second. It shows sampled ENVX / OUTX activity, signed L / R volumes, PITCH, SRCN and Noise / PMON / Echo flags. Muted channels remain observable; activity is not a complete note-on history or an output loudness meter. Pause freezes inspection; Seek refreshes it at the new position; Stop shows the initial state.
+
+Choose a channel's **Load sound** to take a fresh atomic RAM / DSP snapshot and adopt its current instrument. The **Import Echo / FIR settings** and **Import PMON pairs** options below apply to this action as well. The capture time is displayed after import. Unsupported samples or pairs report a reason and keep the edited instrument. Display updates never adopt a sound automatically. A newer edit, source replacement, Stop or Seek supersedes an unfinished capture.
+
+The sound-candidate list below shows the file's initial snapshot. It does not follow
 the current playback position. Choosing a candidate edits the instrument for
 keyboard / Code audition, without rewriting the song. The loaded song is held
 for this session; reopen its SPC file after reloading the page. No recording or
@@ -456,7 +460,8 @@ CDN access is reported separately from an application failure.
 
 - [preset.js](preset.js), [instrument.js](instrument.js): validation and owned hardware voices.
 - [sample.js](sample.js), [audio_import.js](audio_import.js): bounded sample preparation.
-- [spc_import.js](spc_import.js), [spc_browser.js](spc_browser.js): passive SPC snapshot extraction and explicit voice selection.
+- [spc_import.js](spc_import.js), [spc_browser.js](spc_browser.js): passive file / live RAM-DSP snapshot extraction and explicit voice selection.
+- [spc_live.js](spc_live.js): sampled playback channel display and explicit current-sound capture.
 - [editor.js](editor.js), [synth.js](synth.js): UI and performance controls.
 - [audio.js](audio.js), [processor.js](processor.js): single-context AudioWorklet host.
 - [Implementation TODO](../issues/todo_snes_synth_01.md).

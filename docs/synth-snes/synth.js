@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createSnesLooper} from './looper.js';
 import {setupSnesLooperControls} from './looper_controls.js';
+import {createSpcLiveInspector} from './spc_live.js';
 import {setupSnesMenu} from './menu.js';
-import {createSnesSongPlayer} from './song_player.js';
+import {createSnesSongPlayer} from './song_player.js?v=spc-live-1';
 import {setupSnesSongControls} from './song_controls.js';
 import {setupSnesCodeHost} from './code_host.js?v=sdsp-looper-1';
 import {createSnesCodeClient} from './code_client.js';
@@ -10,8 +11,8 @@ import {createAudio} from './audio.js?v=sdsp-spc-menu-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
-import {parseSpcVoices,MAX_SPC_BYTES} from './spc_import.js?v=sdsp-live-wave-1';
-import {createSpcBrowser} from './spc_browser.js?v=sdsp-spc-menu-1';
+import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-live-1';
+import {createSpcBrowser} from './spc_browser.js?v=spc-live-1';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -23,10 +24,10 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
-let codeHost=null,songControls=null,looperControls=null;
+let codeHost=null,songControls=null,looperControls=null,liveInspector=null;
 let looper=null;
 const menu=setupSnesMenu();
-const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);visualizer.setRunning(state.playing||Boolean(looper?.read().running)||notes.size>0||Boolean(codeHost?.isRunning()));}});
+const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);liveInspector?.update(state);visualizer.setRunning(state.playing||Boolean(looper?.read().running)||notes.size>0||Boolean(codeHost?.isRunning()));}});
 let audio = null, opening = null, spcBrowser = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
@@ -188,6 +189,7 @@ const editor=createEditor({root:$('voiceEditor'),onChange:value=>{void applyPres
   onLoadAudio:(file,options)=>loadSample(file,options,false),onLoadBrr:(file,options)=>loadSample(file,options,true)});
 const spcCancelled = () => new DOMException('SPC import cancelled','AbortError');
 async function openSpc(file,{signal}={}) {
+  importSequence++;
   if(disposed||signal?.aborted) throw spcCancelled();
   if(!Number.isSafeInteger(file?.size)||file.size<0||file.size>MAX_SPC_BYTES) throw new RangeError('SPC must be at most 16 MiB');
   const data=await file.arrayBuffer();
@@ -220,6 +222,18 @@ async function selectSpc(candidate,{includeEcho=false,includePmon=false,signal,o
   return `Loaded CH${candidate.voice.index+1} · ${sourceLabel} · ${echoLabel}. ${tuningHint}`;
 }
 spcBrowser=createSpcBrowser({root:$('spcBrowser'),onOpen:openSpc,onSelect:selectSpc,onError:report});
+liveInspector=createSpcLiveInspector({root:spcBrowser.liveRoot,onError:report,async onCapture(index){
+  const token=++importSequence,draftRevision=revision,options=spcBrowser.getImportOptions();
+  const captured=await songPlayer.capture();
+  const current=()=>!disposed&&draftRevision===revision&&captured.isCurrent();
+  if(token!==importSequence||!current())throw spcCancelled();
+  const batch=parseSpcSnapshotVoices(captured.snapshot,{name:captured.name,metadata:captured.metadata});
+  const candidate=batch.candidates[index];
+  if(!candidate)throw new Error('SPC channel is unavailable');
+  const message=await selectSpc(candidate,{...options,onCommit(){if(!current())throw spcCancelled();spcBrowser.clearSelection();}});
+  return `Captured CH${index+1} at ${Number(batch.positionSeconds??0).toFixed(2)} s · ${message}`;
+}});
+liveInspector.update(songPlayer.read());
 
 const keyboard = document.createElement('div'); keyboard.className = 'keyboard';
 $('keyboard').append(keyboard);
@@ -401,7 +415,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){looper.stop();void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
-  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
+  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
 looper=createSnesLooper({ensureAudio,releaseNotes:()=>stopNotes(),
   beforeStart:async()=>{if(switchingAudioOutput)throw new Error('Wait for audio output switching.');if(codeHost?.isCodeMode()||codeHost?.isRunning())throw new Error('Stop Code and choose Keyboard to use Looper.');await stopNotes();},
