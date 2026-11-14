@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel,copyHucChannel}=require('./huc6280_channel_browser_helpers.cjs');
 // Original HuC6280 VGM / VGZ fixtures and the real WASM/audio route. No speaker
 // receives audio: intercept every destination before application JS, use gain 0,
 // and also launch Chromium with --mute-audio. This is not a listening test.
@@ -108,13 +109,13 @@ const view=page=>page.evaluate(()=>({tools:{...document.querySelector('#hucCodeL
   volume:Number(document.querySelector('#volume').textContent),readout:document.querySelector('#hucChannelReadout').textContent,
   capture:document.querySelector('#hucSongCaptureStatus')?.textContent??'',captureDisabled:document.querySelector('#hucSongCaptureButton')?.disabled,
   wave:__hucSongAudit.wave()}));
-async function channel(page,value){await page.locator('#hucChannelSelect').selectOption(String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
+async function channel(page,value){await selectHucChannel(page,String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
 async function openMenu(page){if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();}
 async function download(page,selector){if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu'))))await openMenu(page);
   const pending=page.waitForEvent('download');await page.locator(selector).click();const item=await pending,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return Buffer.concat(chunks);}
 async function press(page,key){await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();await page.keyboard.down(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)>0),'paused audition note');await pcm(page);}
 async function release(page,key){await page.keyboard.up(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)===0),'audition release');await pcm(page,false);}
-async function capture(page){await page.locator('#hucSongCaptureButton').click();await until(()=>view(page).then(v=>v.channel==='synth'&&!/capturing/i.test(v.capture)),'captured Synth view');}
+async function capture(page){await copyHucChannel(page);await until(()=>view(page).then(v=>v.channel==='synth'&&!/capturing/i.test(v.capture)),'captured Synth view');}
 function sameBank(actual,expected){assert.deepEqual(actual.waveforms,expected.waveforms);assert.deepEqual(actual.registers,expected.registers);
   // Register0 is only the chip's selected-write cursor, which author-side Stop
   // may advance while visiting all6 channels before reference playback starts.
@@ -131,14 +132,14 @@ async function check(browser,name,origin,fixture,loadCassette){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
     await page.goto(origin+config.entry);await files(page);
-    step('Import VGM lives in the menu; sounds and channel controls precede the monitor, and loudest Wave/PCM grouping remains passive');
+    step('Import VGM lives in the menu; channel child tabs follow the chip tabs, and loudest Wave/PCM grouping remains passive');
     assert.equal(await page.locator('#loadVgm').evaluate(node=>Boolean(node.closest('#synthMenu'))),true);
     assert(await page.locator('#loadVgm').isHidden());
     const order=await page.evaluate(()=>{
       const transport=document.querySelector('#hucSongPlayer'),channels=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');
-      return document.querySelector('#mixerChipPanel').contains(channels)&&!transport.contains(channels)&&transport.contains(live)&&
-        Boolean(transport.compareDocumentPosition(sounds)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(sounds.compareDocumentPosition(monitor)&Node.DOCUMENT_POSITION_FOLLOWING);
-    });assert(order,'song contains channel controls; output switches belong to Mixer; Sounds and monitor follow');
+      return document.querySelector('#mixerChipPanel').contains(channels)&&!transport.contains(channels)&&!transport.contains(live)&&
+        Boolean(transport.compareDocumentPosition(sounds)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(document.querySelector('.huc-chip-tabs').compareDocumentPosition(live)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(live.compareDocumentPosition(monitor)&Node.DOCUMENT_POSITION_FOLLOWING);
+    });assert(order,'child channel controls follow source tabs; output switches belong to Mixer; transport stays separate');
     assert.equal((await page.locator('#hucChannelSelect option[value="synth"]').textContent()).trim(),'Auto');
     assert.equal(await page.locator('#hucVgmImportHelp').evaluate(node=>node.open),false);
     assert.equal(await page.locator('#hucChannelHelp').evaluate(node=>node.open),false);
@@ -169,7 +170,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     assert((await page.locator('#vgmWarnings').textContent()).length>0,'extraction explanations remain available');assert(await page.locator('#vgmWarnings').isHidden(),'long extraction explanations are hidden by default');
     await page.locator('#hucVgmImportHelp > summary').click();assert(await page.locator('#vgmWarnings').isVisible());await page.locator('#hucVgmImportHelp > summary').click();assert(await page.locator('#vgmWarnings').isHidden());
     assert.equal(await page.locator('#hucSongCaptureInfo').evaluate(node=>Boolean(node.closest('#hucChannelHelp'))),true);
-    const all=await page.locator('[data-vgm-voice]').count();assert(all>2);
+    await page.locator('#vgmKeepLoudestPcm').uncheck();const all=await page.locator('[data-vgm-voice]').count();assert(all>2);
     await page.locator('#vgmKeepLoudestPcm').check();const grouped=await page.locator('[data-vgm-voice]').count();assert(grouped<all,'volume-only Wave variants group');
     await page.locator('#vgmKeepLoudestPcm').uncheck();assert.equal(await page.locator('[data-vgm-voice]').count(),all);
     assert.equal((await graph(page)).contexts,0);assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
@@ -273,7 +274,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     step('Capture and compact reference controls fit desktop/mobile; pagehide closes the shared context and every temporary source');
     await page.locator('#synthInputKeyboardTab').click();await play(page);await until(()=>state(page).then(v=>v.frame>48510),'final LFO snapshot');await pause(page);await channel(page,0);
     for(const width of[1240,390]){await page.setViewportSize({width,height:1050});await page.locator('#hucCodeLiveTools').scrollIntoViewIfNeeded();
-      const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#hucCodeLiveTools select,#hucCodeLiveTools input,#hucCodeLiveTools button,#hucSongPlayer select,#hucSongPlayer button')].filter(node=>!node.hidden&&node.getClientRects().length).map(node=>({id:node.id,left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));
+      const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#hucCodeLiveTools select,#hucCodeLiveTools input,#hucCodeLiveTools button,#hucSongPlayer select,#hucSongPlayer button')].filter(node=>!node.hidden&&node.getClientRects().length&&!node.closest('#hucChannelTabs')).map(node=>({id:node.id,left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));
       assert(bounds.scroll<=width+1);assert(bounds.controls.every(item=>item.left>=-1&&item.right<=width+1));measurements['layout'+width]=bounds;
       await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});}
     await press(page,c4);measurements.finalGraph=await graph(page);assert.equal(measurements.finalGraph.contexts,1);assert.equal(measurements.finalGraph.destinationConnections,1);assert(measurements.finalGraph.muted);

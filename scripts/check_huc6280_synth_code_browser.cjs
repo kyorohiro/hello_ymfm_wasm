@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel}=require('./huc6280_channel_browser_helpers.cjs');
 // Real one-chip HuC6280 Code/Files checks, with all destinations muted before JS.
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
@@ -103,6 +104,11 @@ async function download(page,selector){
   const pending=page.waitForEvent('download');await page.locator(selector).click();const item=await pending,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{name:item.suggestedFilename(),bytes:Buffer.concat(chunks)};
 }
 const sine=Array.from({length:32},(_,i)=>Math.round(15.5+15.5*Math.sin(i*Math.PI/16))),otherWave=Array.from({length:32},(_,i)=>(i*7)%32);
+function makeImportVgm(){
+  const write=(register,value)=>[0xb9,register,value],commands=[...write(1,255),...write(9,0)];
+  for(const volume of [9,29])commands.push(...write(0,0),...write(4,64),...write(4,0),...sine.flatMap(value=>write(6,value)),...write(5,255),...write(2,254),...write(3,0),...write(7,0),...write(4,128|volume),0x61,0x44,0xac,...write(4,0));
+  commands.push(0x66);const bytes=Buffer.alloc(256+commands.length);bytes.write('Vgm ');bytes.writeUInt32LE(bytes.length-4,4);bytes.writeUInt32LE(0x171,8);bytes.writeUInt32LE(0xcc,0x34);bytes.writeUInt32LE(3579545,0xa4);bytes.writeUInt32LE(88200,0x18);bytes.set(commands,256);return bytes;
+}
 const HOLD=`const pce=await useSoundChip('huc6280');
 const {notes}=await import('./notes.mjs');
 const data=await file('./data.json',{type:'json'});
@@ -172,7 +178,7 @@ async function check(browser,name,origin,fixture){
     await page.evaluate(()=>__hucCodeAudit.drain());await page.locator('#synthCodeEditor').fill(HOLD+'\nawait pce.setVolume(CH3,11);\n');await execute(page,true);
     await until(()=>page.locator('#synthCodeLog').textContent().then(text=>/huc-apply-count 2/.test(text)),'retained Apply context');
     assert.equal((await observe(page)).registers[2][4]&31,11);assert(!(await page.evaluate(()=>__hucCodeAudit.drain())).some(cmd=>cmd.method==='beginCode'));
-    await page.locator('#hucChannelSelect').selectOption('2');await until(()=>page.locator('#hucChannelReadout').textContent().then(text=>/CH\s*3/.test(text)),'physical CH3 view');
+    await selectHucChannel(page,'2');await until(()=>page.locator('#hucChannelReadout').textContent().then(text=>/CH\s*3/.test(text)),'physical CH3 view');
     const before=await observe(page);await page.locator('[data-stepper-for="volume"][data-stepper-delta="1"]').click();
     await until(async()=>{if(await page.locator('#audioStatus').getAttribute('data-error')==='true')throw Error(await page.locator('#audioStatus').textContent());return(await observe(page)).registers[2][4]%32===12;},'sparse physical channel volume');
     state=await observe(page);assert.equal(state.registers[2][2],before.registers[2][2]);assert.equal(state.registers[2][3],before.registers[2][3]);assert.equal(state.registers[2][5],before.registers[2][5]);assert.deepEqual(state.registers[0],before.registers[0]);assert.deepEqual(state.registers[4],before.registers[4]);
@@ -186,7 +192,7 @@ async function check(browser,name,origin,fixture){
     assert.equal(await page.evaluate(async()=>{try{await __hucSaved.noteOn(0,'C5');return'allowed';}catch(error){return error.name;}}),'AbortError');
 
     step('Code and Keyboard views share physical CH ownership; an old release cannot cut the newer performer');
-    await source(page,OWNER);await execute(page);await pcm(page);await page.locator('#hucChannelSelect').selectOption('0');await page.locator('#synthInputKeyboardTab').click();
+    await source(page,OWNER);await execute(page);await pcm(page);await selectHucChannel(page,'0');await page.locator('#synthInputKeyboardTab').click();
     const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
     await page.locator('#synthTitle').click();await page.keyboard.down(key);await until(async()=>Boolean((await observe(page)).registers[0][4]&128),'manual selected CH gate');
     await page.evaluate(()=>__hucSaved.noteOff(0));assert((await observe(page)).registers[0][4]&128,'older Code off does not stop manual key');
@@ -195,7 +201,20 @@ async function check(browser,name,origin,fixture){
     assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);await page.locator('#synthInputCodeTab').click();await stop(page);
 
     step('Independent software loops, tween and liveFx continue through preset loads and manual editor changes');
-    await source(page,MOTION.replace('context:{gain:.5}','context:{gain:0}'));await execute(page);await page.locator('#hucChannelSelect').selectOption('synth');await until(()=>page.evaluate(()=>__hucMotion.ticks>=2),'liveLoop ticks');
+    await source(page,MOTION.replace('context:{gain:.5}','context:{gain:0}'));await execute(page);await selectHucChannel(page,'synth');await until(()=>page.evaluate(()=>__hucMotion.ticks>=2),'liveLoop ticks');
+    step('VGM import saves grouped Files presets while the running Code, selected file, input mode and authored sound remain unchanged');
+    const beforeVgm={preset:(await read(page)).preset,selection:await page.locator('#hucFilesSelected').textContent(),mode:await page.locator('#synthInputSection').getAttribute('data-input-mode'),ticks:await page.evaluate(()=>__hucMotion.ticks)},vgmImportBytes=makeImportVgm();
+    await page.locator('#vgmFileInput').setInputFiles({name:'code-import-variants.vgm',mimeType:'application/octet-stream',buffer:vgmImportBytes});
+    await until(()=>page.locator('#vgmStatus').textContent().then(text=>/1 preset\(s\) saved/.test(text)),'grouped import persisted');
+    await until(()=>page.evaluate(ticks=>__hucMotion.ticks>ticks,beforeVgm.ticks),'Code continues after VGM import');
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);assert.deepEqual((await read(page)).preset,beforeVgm.preset);
+    assert.equal(await page.locator('#hucFilesSelected').textContent(),beforeVgm.selection);assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),beforeVgm.mode);
+    const automaticExport=await download(page,'#hucProjectExportButton'),automaticProject=await fixture.loadCassette(automaticExport.bytes);
+    const automaticPaths=[...automaticProject.files.keys()].filter(path=>path.startsWith('presets/code-import-variants/')&&/\.huc6280\.json$/i.test(path));assert.equal(automaticPaths.length,1);
+    const automaticPreset=JSON.parse(Buffer.from(automaticProject.files.get(automaticPaths[0])).toString('utf8'));assert.equal(automaticPreset.volume,29);assert.deepEqual(automaticPreset.wave,sine);assert.equal(automaticPreset.envelope.enabled,false);
+    assert.deepEqual(Buffer.from(automaticProject.files.get('vgm/code-import-variants.vgm')),vgmImportBytes);
+    measurements.automaticVgmPreset={path:automaticPaths[0],volume:automaticPreset.volume,sourceBytes:vgmImportBytes.length};
+
     measurements.fxSilence=await pcm(page,false);await page.evaluate(()=>{globalThis.__hucPreparedBefore=__hucMotion.prepared;globalThis.__hucContextBefore=__hucMotion.context;});
     await page.locator('#synthCodeEditor').fill(MOTION);await execute(page,true);await until(()=>page.evaluate(()=>__hucMotion.ticks>=2),'loop after FX context Apply');measurements.fxOutput=await pcm(page);
     assert(await page.evaluate(()=>__hucPreparedBefore===__hucMotion.prepared&&__hucContextBefore===__hucMotion.context),'Apply retains prepared objects and live context');
@@ -234,10 +253,12 @@ async function check(browser,name,origin,fixture){
     const projectDownload=await download(page,'#hucProjectExportButton'),project=await fixture.loadCassette(projectDownload.bytes);
     for(const filename of ['index.js','notes.mjs','data.json','support.bin','huc6280-synth.project.json'])assert(project.files.has(filename),filename);
     assert.deepEqual(Buffer.from(project.files.get('support.bin')),Buffer.from([0,1,16,31,128,255]));
+    assert.deepEqual(project.files.get(automaticPaths[0]),automaticProject.files.get(automaticPaths[0]),'automatic VGM preset survives subsequent edits and project export');
     await page.locator('#hucProjectFileInput').setInputFiles({name:'huc-project.zip',mimeType:'application/zip',buffer:projectDownload.bytes});
     await until(()=>page.locator('#hucFilesStatus').textContent().then(text=>/HuC6280 project imported/.test(text)),'project import');await selectFile(page,'/index.js',{code:true});await page.keyboard.press('Control+s');await wait(200);
     await page.reload();await files(page);await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
     assert.match(await page.locator('#synthCodeEditor').inputValue(),/hucUnexpectedAutoRun/);assert.equal(await page.evaluate(()=>globalThis.__hucUnexpectedAutoRun),undefined);assert.equal((await graph(page)).contexts,0);assert.match(await page.locator('#synthCodeState').textContent(),/Idle|Stopped/);
+    for(const file of automaticPaths)assert.equal(await page.locator('#hucFilesTree [data-file-path='+JSON.stringify('/'+file)+']').count(),1,'automatic preset survives Cassette import and local reload');
     for(const width of [1240,390]){
       await page.setViewportSize({width,height:1050});await page.locator('#synthCodeExpandButton').click();assert(await page.locator('#synthExpandedCodeSlot #synthCodeEditor').isVisible());assert(await page.locator('#hucFilesPanel').isVisible());
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'expanded layout fits '+width);await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});

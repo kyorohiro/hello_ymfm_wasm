@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel,setHucLive,copyHucChannel}=require('./huc6280_channel_browser_helpers.cjs');
 // Original HuC6280 VGM / VGZ fixtures and the real WASM/audio route. No speaker
 // receives audio: intercept every destination before application JS, use gain 0,
 // and also launch Chromium with --mute-audio. This is not a listening test.
@@ -104,13 +105,13 @@ const view=page=>page.evaluate(()=>({tools:{...document.querySelector('#hucCodeL
   volume:Number(document.querySelector('#volume').textContent),noise:Number(document.querySelector('#noiseFrequency').textContent),readout:document.querySelector('#hucChannelReadout').textContent,
   capture:document.querySelector('#hucSongCaptureStatus')?.textContent??'',captureDisabled:document.querySelector('#hucSongCaptureButton')?.disabled,
   wave:__hucSongAudit.wave()}));
-async function channel(page,value){await page.locator('#hucChannelSelect').selectOption(String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
+async function channel(page,value){await selectHucChannel(page,String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
 async function openMenu(page){if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();}
 async function download(page,selector){if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu'))))await openMenu(page);
   const pending=page.waitForEvent('download');await page.locator(selector).click();const item=await pending,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return Buffer.concat(chunks);}
 async function press(page,key){await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();await page.keyboard.down(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)>0),'paused audition note');await pcm(page);}
 async function release(page,key){await page.keyboard.up(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)===0),'audition release');await pcm(page,false);}
-async function capture(page){await page.locator('#hucSongCaptureButton').click();await until(()=>view(page).then(v=>v.channel==='synth'&&!/capturing/i.test(v.capture)),'captured Synth view');}
+async function capture(page){await copyHucChannel(page);await until(()=>view(page).then(v=>v.channel==='synth'&&!/capturing/i.test(v.capture)),'captured Synth view');}
 async function frozen(page,expected){const now=await state(page);assert.equal(now.phase,'paused');assert.equal(now.frame,expected.frame);assert.equal(now.rendered,expected.rendered);assert.equal(now.source,expected.source);}
 
 async function check(browser,name,origin,fixture){
@@ -151,7 +152,7 @@ async function check(browser,name,origin,fixture){
     assert.deepEqual((await read(page)).preset.wave,wave);measurements.waveSeek={frame:wavePause.frame,rendered:wavePause.rendered};
 
     step('A paused Seek forces the new snapshot even with Auto update Off, preserving CH/mute choices and capturing the complete destination LFO pair');
-    await channel(page,0);await page.locator('#hucLiveEnabled').uncheck();await page.locator('[data-huc-chip-tab="mixer"]').click();assert(await page.locator('#hucSongChannels').isVisible());await page.locator('#hucSongChannel2Toggle').click();await page.locator('[data-huc-chip-tab="huc6280"]').click();assert.equal(await mask(),'2');await seek(2);await settled(2);await exactSnapshot(2);assert.equal(await page.locator('#hucChannelSelect').inputValue(),'0');assert.equal(await page.locator('#hucLiveEnabled').isChecked(),false);assert.equal(await mask(),'2');
+    await channel(page,0);await setHucLive(page,false);await page.locator('[data-huc-chip-tab="mixer"]').click();assert(await page.locator('#hucSongChannels').isVisible());await page.locator('#hucSongChannel2Toggle').click();await page.locator('[data-huc-chip-tab="huc6280"]').click();assert.equal(await mask(),'2');await seek(2);await settled(2);await exactSnapshot(2);assert.equal(await page.locator('#hucChannelSelect').inputValue(),'0');assert.equal(await page.locator('#hucLiveEnabled').isChecked(),false);assert.equal(await mask(),'2');
     assert.equal((await view(page)).volume,17);assert.deepEqual((await view(page)).wave,laterWave);const lfoPause=await state(page),c4=await page.locator('#keyboard .key').evaluateAll(nodes=>nodes.find(node=>node.querySelector('span:last-child')?.textContent==='C4')?.dataset.key);assert(c4);
     await press(page,c4);let sounding=await trial(page);assert(sounding.preset.lfo.enabled);assert.equal(sounding.preset.lfo.carrierPeriod,250);assert.equal(sounding.preset.lfo.modulatorPeriod,713);await release(page,c4);await capture(page);await frozen(page,lfoPause);const captured=(await read(page)).preset;assert(captured.lfo.enabled);
     await channel(page,4);await exactSnapshot(2);assert.equal((await view(page)).noise,3);assert.equal((await view(page)).editor.source,'noise');

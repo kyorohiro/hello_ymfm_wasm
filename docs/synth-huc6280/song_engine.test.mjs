@@ -28,6 +28,26 @@ function playback(engine,bytes,frames=4000){
 }
 const peak=pcm=>Math.max(...pcm.left.map(Math.abs),...pcm.right.map(Math.abs));
 
+async function scheduledPcmPrefix(preview,graph,frames=1024){
+  const position=preview.read().positionFrames,firstSource=graph.sources().length;
+  assert(await preview.resume());
+  const sources=()=>graph.sources().slice(firstSource).filter(node=>!node.stopped);
+  const unread=node=>node.buffer.length-Math.round(node.offset*node.buffer.sampleRate);
+  // A bounded parser slice may split the same source interval differently.
+  // Drive real refills without advancing the fake device/heard clock, then
+  // compare a fixed interval of scheduled PCM, including retained offsets.
+  for(let refills=0;sources().reduce((total,node)=>total+unread(node),0)<frames&&refills<100;refills++)graph.tick(0);
+  const nodes=sources();assert(nodes.reduce((total,node)=>total+unread(node),0)>=frames,'actual scheduled audio covers the full comparison interval');
+  const pcm=[new Float32Array(frames),new Float32Array(frames)];let copied=0;
+  for(const node of nodes){
+    const offset=Math.round(node.offset*node.buffer.sampleRate),count=Math.min(frames-copied,node.buffer.length-offset);
+    for(let side=0;side<2;side++)pcm[side].set(node.buffer.getChannelData(side).subarray(offset,offset+count),copied);
+    copied+=count;if(copied===frames)break;
+  }
+  assert.equal(copied,frames);assert.equal(preview.read().positionFrames,position,'refilling does not consume or skip any source frames');
+  preview.pause();return pcm;
+}
+
 test('mixed VGM renders exact independent HuC and MSM contributions with per-source gain and mute',async()=>{
   const bytes=mixed(),source=await prepareHuc6280SongSource(bytes);
   const huc=await Huc6280AudioEngine.create({moduleFactory,clock:3579545,outputSampleRate:44100,masterVolume:1});
@@ -61,15 +81,31 @@ test('pure HuC keeps exact old PCM and opaque state while its source gain partic
   }finally{a.dispose();b.dispose();raw.dispose();}
 });
 
-test('MSM-only playback uses no recorded PSG and retains ADPCM time through normal replay Seek',async()=>{
-  const graph=fakeAudio();let opens=0;
-  const preview=createHuc6280SongPreview({getAudio:()=>{opens++;return graph.audio;},schedule:graph.schedule,cancel:graph.cancel,yieldTask:async()=>{},nowMs:()=>0,createEngine:create});
+for(const forceBudgetYield of [false,true])test(`MSM-only playback uses no recorded PSG and retains ADPCM time through normal replay Seek${forceBudgetYield?' after a parser budget yield':''}`,async t=>{
+  const graph=fakeAudio();let opens=0,clock=0,creations=0,forced=false;
+  if(forceBudgetYield)t.mock.method(performance,'now',()=>clock);
+  const createReference=async header=>{
+    const engine=await create(header);
+    if(forceBudgetYield&&creations++===0){
+      let rendered=0;const process=engine.processFrames.bind(engine),write=engine.writeMsm5205.bind(engine);
+      engine.processFrames=frames=>{const pcm=process(frames);rendered+=frames;return pcm;};
+      // Advance only VgmPlayer's real cooperative-budget clock by 8 ms
+      // during the first Seek's prime. No sleep, retry or product budget change.
+      engine.writeMsm5205=(...args)=>{if(!forced&&rendered>=982){clock+=8;forced=true;}return write(...args);};
+    }
+    return engine;
+  };
+  const preview=createHuc6280SongPreview({getAudio:()=>{opens++;return graph.audio;},schedule:graph.schedule,cancel:graph.cancel,yieldTask:async()=>{},nowMs:()=>0,createEngine:createReference});
   try{
     await preview.load(mixed({huc:false}),'ADPCM only');preview.setSourceMix({huc6280:{volume:.44},msm5205:{volume:1}});assert.equal(opens,0);
     assert(await preview.seek(.02));const state=preview.read();assert(state.paused);assert.equal(state.seekCache.available,false);assert.equal(state.seekCache.count,0);
     assert.match(state.cacheUnavailableReason,/MSM5205.*snapshot/);assert.deepEqual(state.sourceChips,{huc6280:false,msm5205:true,cdda:false});assert(!state.manualReady);
-    const first=graph.buffers[0].data.map(side=>side.slice());assert(first.some(side=>side.some(v=>Math.abs(v)>.01)));
-    assert(await preview.seek(.02));assert.deepEqual(graph.buffers.at(-1).data,first,'normal Seek repeats exact complete ADPCM state');
+    assert.equal(state.positionFrames,882);const firstPrime=graph.buffers.at(-1).length;
+    const first=await scheduledPcmPrefix(preview,graph);assert(first.some(side=>side.some(v=>Math.abs(v)>.01)));
+    assert(await preview.seek(.02));assert.equal(preview.read().positionFrames,882);const secondPrime=graph.buffers.at(-1).length;
+    if(forceBudgetYield){assert(forced);assert(firstPrime<256,'the forced cooperative yield splits the first prime');assert.equal(secondPrime,256,'the second prime has a different segmentation');}
+    assert.deepEqual(await scheduledPcmPrefix(preview,graph),first,'normal Seek repeats all 1024 ADPCM samples at the same source frames');
+    t.diagnostic(JSON.stringify({sourceFirstFrame:882,comparedFrames:1024,firstPrimeFrames:firstPrime,secondPrimeFrames:secondPrime,forcedBudgetYield:forceBudgetYield}));
     assert(await preview.resume());for(let i=0;i<100&&preview.read().playing;i++)graph.tick(.008);assert.equal(preview.read().playback,'ended');
   }finally{preview.dispose();await preview.whenIdle();}
 });

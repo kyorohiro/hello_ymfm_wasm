@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel}=require('./huc6280_channel_browser_helpers.cjs');
 // Focused one-chip HuC6280 Code/manual checks, with all destinations muted before JS.
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
@@ -90,7 +91,7 @@ liveLoop('melody',async()=>{
 const period=registers=>(registers[2]|(registers[3]&15)<<8)||4096;
 const ticks=page=>page.evaluate(()=>__hucManual.motion.ticks);
 const commands=page=>page.evaluate(()=>__hucCodeAudit.drain());
-const channel=async(page,value)=>{await page.locator('#hucChannelSelect').selectOption(String(value));await until(()=>page.locator('#hucCodeLiveTools').getAttribute('data-channel').then(v=>v===String(value)),'selected CH');};
+const channel=async(page,value)=>{await selectHucChannel(page,String(value));await until(()=>page.locator('#hucCodeLiveTools').getAttribute('data-channel').then(v=>v===String(value)),'selected CH');};
 async function progressing(page,before=0){await until(()=>ticks(page).then(n=>n>before),'independent melody keeps ticking');assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);}
 async function idleHand(page){await until(async()=>!(await read(page)).voices.some(v=>String(v.id).startsWith('huc6280-synth:')),'hand note retired');}
 async function computerDown(page,key='a'){

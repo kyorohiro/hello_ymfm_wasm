@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel,setHucLive}=require('./huc6280_channel_browser_helpers.cjs');
 // Original HuC6280 VGM / VGZ fixtures and the real WASM/audio route. No speaker
 // receives audio: intercept every destination before application JS, use gain 0,
 // and also launch Chromium with --mute-audio. This is not a listening test.
@@ -105,7 +106,7 @@ const view=page=>page.evaluate(()=>({tools:{...document.querySelector('#hucCodeL
   volume:Number(document.querySelector('#volume').textContent),noise:Number(document.querySelector('#noiseFrequency').textContent),readout:document.querySelector('#hucChannelReadout').textContent,
   capture:document.querySelector('#hucSongCaptureStatus')?.textContent??'',captureDisabled:document.querySelector('#hucSongCaptureButton')?.disabled,
   wave:__hucSongAudit.wave()}));
-async function channel(page,value){await page.locator('#hucChannelSelect').selectOption(String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
+async function channel(page,value){await selectHucChannel(page,String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
 async function openMenu(page){if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();}
 async function download(page,selector){if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu'))))await openMenu(page);
   const pending=page.waitForEvent('download');await page.locator(selector).click();const item=await pending,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return Buffer.concat(chunks);}
@@ -142,7 +143,7 @@ async function check(browser,name,origin,fixtures){
     step('Cache defaults On; preference and Clear are passive and do not initialize audio before a performance');
     assert(await cacheCheckbox.isChecked());empty(await cacheStats(page));await importSource('main');await importSource('other');await choose(page,'/vgm/cache-main.vgm');
     await setCache(false);empty(await cacheStats(page));await setCache(true);empty(await cacheStats(page));await clearCache();assert.equal((await graph(page)).contexts,0);
-    const projectBytes=await download(page,'#hucProjectExportButton');await channel(page,0);await page.locator('#hucLiveEnabled').uncheck();
+    const projectBytes=await download(page,'#hucProjectExportButton');await channel(page,0);await setHucLive(page,false);
 
     step('A cold cache-Off seek reconstructs Wave, LFO, Noise and looping DAC-stream state and provides a real stereo PCM baseline');
     const target=92.34;await setCache(false);measurements.coldOff=await seekPaused(target);empty(await cacheStats(page));const author=(await read(page)).preset,goldenSnapshot=await signature(),golden=await sample();assert(goldenSnapshot.lfo);assert.equal(goldenSnapshot.period,'240');measurements.goldenPcm={frames:golden.frames,sha256:pcmHash(golden)};

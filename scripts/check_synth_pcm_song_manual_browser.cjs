@@ -2,7 +2,8 @@
 // Self-authored fixtures only. Every destination is intercepted before app JS
 // at gain zero; Chromium is additionally launched with --mute-audio.
 const {selectSynthChannel,copySynthChannel,setSynthLive}=require('./synth_channel_browser_helpers.cjs');
-const {samplePcmReferenceTiming}=require('./synth_pcm_reference_timing.cjs');
+const {samplePcmReferenceTiming,createPcmReferenceTools,pcmCaptureWorkletSource,installPcmWindowAudit,renderPcmScheduledWindow}=require('./synth_pcm_reference_timing.cjs');
+const pcmReferenceTools=createPcmReferenceTools();
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
@@ -18,23 +19,24 @@ async function until(predicate,label,timeout=20000){const end=Date.now()+timeout
 const ready=page=>page.waitForFunction(()=>document.querySelector('.synth-editor')?.getAttribute('aria-busy')==='false');
 
 function installSilentAudit(){
-  const connect=AudioNode.prototype.connect,Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode,post=MessagePort.prototype.postMessage,start=AudioBufferSourceNode.prototype.start;
-  const contexts=[],worklets=[],meters=[],commands=[],schedules=[];
+  const connect=AudioNode.prototype.connect,Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode,post=MessagePort.prototype.postMessage,start=AudioBufferSourceNode.prototype.start,disconnect=AudioNode.prototype.disconnect;
+  const contexts=[],worklets=[],meters=[],commands=[],schedules=[],connections=new WeakMap();let graphConnections=0,graphDisconnections=0;
   window.AudioContext=class extends Context{constructor(...args){super(...args);contexts.push(this);}};
   if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext;
   window.AudioWorkletNode=class extends Worklet{constructor(context,name,...args){super(context,name,...args);worklets.push(name);}};
   AudioBufferSourceNode.prototype.start=function(when=0,offset=0,...args){
-    schedules.push({when,offset,contextTime:this.context.currentTime,frames:this.buffer?.length??0,sampleRate:this.buffer?.sampleRate??0});
-    if(schedules.length>256)schedules.shift();return start.call(this,when,offset,...args);
+    if(typeof this.context.startRendering!=='function'){schedules.push({when,offset,contextTime:this.context.currentTime,frames:this.buffer?.length??0,sampleRate:this.buffer?.sampleRate??0});if(schedules.length>256)schedules.shift();}return start.call(this,when,offset,...args);
   };
   MessagePort.prototype.postMessage=function(data,...args){for(const command of Array.isArray(data)?data:[data])if(command?.type==='write'||command?.method)commands.push({port:command.port,register:command.register,value:command.value,method:command.method,args:command.method==='loadMemory'?[command.args?.[0]?.length,command.args?.[1]]:command.args});if(commands.length>15000)commands.splice(0,commands.length-15000);return post.call(this,data,...args);};
   AudioNode.prototype.connect=function(destination,...args){
+    if(destination&&typeof destination==='object'){let edges=connections.get(this);if(!edges){edges=new Set();connections.set(this,edges);}edges.add(destination);graphConnections++;}
     if(destination!==this.context.destination)return connect.call(this,destination,...args);
     const split=this.context.createChannelSplitter(2),left=this.context.createAnalyser(),right=this.context.createAnalyser(),mute=this.context.createGain();left.fftSize=right.fftSize=8192;mute.gain.value=0;
-    connect.call(this,split,...args);connect.call(split,left,0);connect.call(split,right,1);connect.call(left,mute);connect.call(right,mute);connect.call(mute,destination);meters.push({source:this,left,right,mute});return destination;
+    connect.call(this,split,...args);connect.call(split,left,0);connect.call(split,right,1);connect.call(left,mute);connect.call(right,mute);connect.call(mute,destination);meters.push({source:this,destination,active:true,left,right,mute});return destination;
   };
+  AudioNode.prototype.disconnect=function(...args){const result=disconnect.apply(this,args);graphDisconnections++;for(const meter of meters)if(meter.source===this&&(!args.length||args[0]===meter.destination||typeof args[0]==='number'))meter.active=false;if(!args.length)connections.delete(this);else if(args[0]&&typeof args[0]==='object')connections.get(this)?.delete(args[0]);else connections.delete(this);return result;};
   const sample=analyser=>{const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);let sum=0,squares=0,peak=0;for(const value of values){sum+=value;squares+=value*value;peak=Math.max(peak,Math.abs(value));}const mean=sum/values.length;return{finite:values.every(Number.isFinite),peak,mean,acRms:Math.sqrt(Math.max(0,squares/values.length-mean*mean))};};
-  window.__pcmManualOutput={drain:()=>commands.splice(0),schedules:()=>schedules.slice(),graph:()=>({contexts:contexts.length,worklets:worklets.slice(),destinations:meters.length,muted:meters.every(item=>item.mute.gain.value===0)}),read(){return meters.map(({source,left,right,mute})=>{const l=sample(left),r=sample(right);return{sampleRate:source.context.sampleRate,contextTime:source.context.currentTime,windowFrames:left.fftSize,state:source.context.state,muted:mute.gain.value===0,finite:l.finite&&r.finite,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2),left:l,right:r};}).sort((a,b)=>b.acRms-a.acRms);}};
+  window.__pcmManualOutput={primitives:()=>({connect,start,disconnect}),connections:()=>connections,meterNodes:()=>meters,drain:()=>commands.splice(0),schedules:()=>schedules.slice(),graph:()=>({contexts:contexts.length,worklets:worklets.slice(),destinations:meters.length,graphConnections,graphDisconnections,muted:meters.every(item=>item.mute.gain.value===0)}),read(){return meters.map(({source,left,right,mute})=>{const l=sample(left),r=sample(right);return{sampleRate:source.context.sampleRate,contextTime:source.context.currentTime,windowFrames:left.fftSize,state:source.context.state,muted:mute.gain.value===0,finite:l.finite&&r.finite,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2),left:l,right:r};}).sort((a,b)=>b.acRms-a.acRms);}};
 }
 
 // Audit the actual native reference engine without another renderer or a RAM
@@ -43,7 +45,7 @@ async function installReferenceAudit(page){await page.evaluate(async()=>{
   const url=performance.getEntriesByType('resource').map(item=>item.name).find(name=>/\/genesisaudioengine\.js(?:\?|$)/.test(name));if(!url)throw Error('GenesisAudioEngine module missing');
   const {GenesisAudioEngine}=await import(url),prototype=GenesisAudioEngine.prototype,records=[],entries=new WeakMap();let next=0;
   const empty=()=>({selected:0,bank:0,enabled:false,mask:255,control:0,channels:Array.from({length:8},()=>Array(7).fill(0))});
-  function entry(engine){let item=entries.get(engine);if(!item){item={id:++next,closed:false,resets:0,frames:0,processCalls:0,finite:true,rf:empty(),ram:new Uint8Array(65536),known:new Uint8Array(65536),memoryWrites:0,ramRevision:0,ramHash:null,writes:[],fmWrites:[],left:[],right:[]};entries.set(engine,item);records.push(item);}return item;}
+  function entry(engine){let item=entries.get(engine);if(!item){item={id:++next,closed:false,resets:0,frames:0,sampleRate:engine.sampleRate(),processCalls:0,finite:true,rf:empty(),ram:new Uint8Array(65536),known:new Uint8Array(65536),memoryWrites:0,ramRevision:0,ramHash:null,writes:[],fmWrites:[],left:[],right:[]};entries.set(engine,item);records.push(item);}return item;}
   const write=prototype.writeRf5c164,memory=prototype.writeRf5c164Memory,load=prototype.loadRf5c164Memory,fm=prototype.writeYm2612,reset=prototype.reset,process=prototype.processFrames,dispose=prototype.dispose;
   prototype.writeRf5c164=function(register,value){const item=entry(this),result=write.call(this,register,value),rf=item.rf;if(register<7)rf.channels[rf.selected][register]=value;else if(register===7){rf.enabled=Boolean(value&128);rf.control=value;if(value&64)rf.selected=value&7;else rf.bank=(value&15)<<12;}else rf.mask=value;item.writes.push({frame:item.frames,register,value,selected:rf.selected,bank:rf.bank});if(item.writes.length>20000)item.writes.shift();return result;};
   const put=(item,address,bytes)=>{item.ram.set(bytes,address);item.known.fill(1,address,address+bytes.length);item.memoryWrites+=bytes.length;item.ramRevision++;item.ramHash=null;};
@@ -56,7 +58,7 @@ async function installReferenceAudit(page){await page.evaluate(async()=>{
   const sample=values=>{let sum=0,squares=0,peak=0;for(const value of values){sum+=value;squares+=value*value;peak=Math.max(peak,Math.abs(value));}const mean=values.length?sum/values.length:0;return{frames:values.length,mean,peak,acRms:values.length?Math.sqrt(Math.max(0,squares/values.length-mean*mean)):0};};
   function snapshot(item){if(!item)return null;const {left,right,ram,known,...value}=item;if(item.ramHash===null){let digest=2166136261;for(let i=0;i<ram.length;i++)digest=Math.imul(digest^ram[i],16777619)>>>0;item.ramHash=digest.toString(16);value.ramHash=item.ramHash;}const l=sample(left),r=sample(right);return structuredClone({...value,rf:{...item.rf,channels:item.rf.channels.map((bytes,ch)=>({channel:ch,volume:bytes[0],panLeft:bytes[1]&15,panRight:bytes[1]>>4,step:bytes[2]|bytes[3]<<8,loopStart:bytes[4]|bytes[5]<<8,start:bytes[6]<<8,keyOn:!(item.rf.mask&(1<<ch))}))},signal:{left:l,right:r,firstFrame:item.frames-l.frames,endFrame:item.frames,frames:l.frames,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2)}});}
   const current=()=>records.findLast(item=>!item.closed);
-  window.__pcmManualReference={read:()=>records.map(snapshot),current:()=>snapshot(current()),ram:(address,length)=>Array.from(current().ram.slice(address,address+length))};
+  window.__pcmManualReference={nativePcm:()=>{const item=current();if(!item)throw Error('No native reference PCM');return{id:item.id,resets:item.resets,sampleRate:item.sampleRate,firstFrame:item.frames-item.left.length,left:item.left,right:item.right};},read:()=>records.map(snapshot),current:()=>snapshot(current()),ram:(address,length)=>Array.from(current().ram.slice(address,address+length))};
 });}
 const reference=page=>page.evaluate(()=>__pcmManualReference.current());
 const view=page=>page.evaluate(()=>{const root=document.getElementById('synthSongPlayer');return{state:root.dataset.state,frame:Number(root.dataset.consumedFrames),
@@ -67,6 +69,7 @@ async function pcm(page,audible=true){let readings;await until(async()=>{reading
 const channel=(page,value)=>selectSynthChannel(page,String(value));
 async function change(node,direction,count=1){await node.locator('..').locator('.param-button').nth(direction>0?1:0).evaluate((button,count)=>{for(let i=0;i<count;i++)button.click();},count);}
 async function range(page,selector,value){await page.locator(selector).first().evaluate((node,value)=>{node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));},value);}
+async function captureMasterWindow(page,value){return page.evaluate(async value=>{const node=document.getElementById('masterVolumeRange');node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));const afterTime=__pcmWindowAudit.time();return __pcmWindowAudit.capture(afterTime);},value);}
 async function keyboard(page){await page.locator('#synthInputKeyboardTab').click();await until(()=>view(page).then(value=>value.inputMode==='keyboard'),'Keyboard mode');}
 async function pressed(page,key,value){await until(()=>page.locator(`#keyboard .key[data-key="${key}"]`).evaluate((node,value)=>node.classList.contains('is-active')===value,value),`Keyboard ${key} ${value}`);}
 async function seek(page,seconds,state='playing'){await page.locator('#synthSongSeek').evaluate((node,value)=>{node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));},seconds);
@@ -120,7 +123,7 @@ async function chooseSong(page,path,target='pcm:0'){if((await view(page)).state=
 async function check(browser,name,origin,presetBytes,fmPresetBytes){
   const page=await browser.newPage({viewport:{width:1240,height:1100},acceptDownloads:true,serviceWorkers:'block'}),errors=[],consoleErrors=[],checks=[],measurements={};let stage='startup';
   page.setDefaultTimeout(20000);page.on('pageerror',error=>errors.push(error.stack??error.message));page.on('console',message=>{if(message.type()==='error'&&!/cdnjs|Failed to load resource/.test(message.text()+' '+message.location().url))consoleErrors.push(message.text());});page.on('response',response=>{if(response.status()>=400)httpErrors.push({url:response.url(),status:response.status()});});
-  await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname==='cdnjs.cloudflare.com'){blockedMonaco.push(url.href);return route.abort();}if(url.origin!==origin&&!['data:','blob:'].includes(url.protocol)){external.push(url.href);return route.abort();}return route.continue();});await page.addInitScript(installSilentAudit);
+  await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname==='cdnjs.cloudflare.com'){blockedMonaco.push(url.href);return route.abort();}if(url.origin!==origin&&!['data:','blob:'].includes(url.protocol)){external.push(url.href);return route.abort();}return route.continue();});await page.addInitScript({content:`(${installSilentAudit.toString()})();(${installPcmWindowAudit.toString()})((${createPcmReferenceTools.toString()})(),${JSON.stringify(pcmCaptureWorkletSource())},${renderPcmScheduledWindow.toString()});`});
   const mark=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
     await page.goto(origin+config.entry);await ready(page);await installReferenceAudit(page);
@@ -131,13 +134,17 @@ async function check(browser,name,origin,presetBytes,fmPresetBytes){
     await page.locator('#synthChipTabPcm').click();await chooseSong(page,'/vgm/PCM manual reference.vgm');await keyboard(page);await until(()=>view(page).then(value=>value.pcmManualReady==='true'&&value.frame>RATE*.1),'PCM manual ready');await until(()=>volume(page).textContent().then(value=>value==='64'),'initial volume');
     assert.equal(await page.locator('#keyboard').getAttribute('aria-disabled'),'false');assert.equal(await page.locator('#keyboard').getAttribute('data-song-audition'),'live');assert(!await locked(volume(page)));assert(!await locked(stepControl(page)));
     for(const selector of['#synthPcmCanvas','#synthPcmRootNote','#synthPcmLoopEnabled','#synthPcmLoopStart','#synthPcmLoopEnd','#synthPcmLoadButton','[data-pcm-builtin="sine"]'])assert(await locked(page.locator(selector)),selector+' cannot replace source RAM or sample routing');
-    await range(page,'#masterVolumeRange',100);await wait(250);measurements.initial=await pcm(page);
+    await page.evaluate(()=>__pcmWindowAudit.prepare());
+    measurements.calibrationInitial=await captureMasterWindow(page,100);measurements.initial=measurements.calibrationInitial.actual;
     const timing=await page.evaluate(samplePcmReferenceTiming),initial=timing.reference,identity={id:initial.id,resets:initial.resets};
+    assert.equal(initial.sampleRate,RATE,'The native render rate remains the calibrated RF5C164 fixture rate');
     measurements.native=initial.signal;measurements.referenceTiming={id:initial.id,renderedFrames:initial.frames,consumedFrames:timing.consumedFrames,playback:timing.playback,sampleRate:RATE};measurements.initialSchedules=await page.evaluate(()=>__pcmManualOutput.schedules());
     measurements.renderAheadSeconds=(initial.frames-timing.consumedFrames)/RATE;
     assert(measurements.renderAheadSeconds>=0&&measurements.renderAheadSeconds<.11,'coherent native/consumed reference timing: '+JSON.stringify(measurements.referenceTiming));
-    assert(Math.abs(measurements.initial.acRms/initial.signal.acRms-1)<.15);assert(measurements.initial.peak<=initial.signal.peak*1.15+.0001);
-    await range(page,'#masterVolumeRange',50);await wait(250);measurements.half=await pcm(page);assert(Math.abs(measurements.half.acRms/measurements.initial.acRms-.5)<.07);await range(page,'#masterVolumeRange',100);
+    pcmReferenceTools.calibratedPair(measurements.calibrationInitial);
+    measurements.calibrationHalf=await captureMasterWindow(page,50);measurements.half=measurements.calibrationHalf.actual;
+    measurements.calibrationGains=pcmReferenceTools.calibratedPair(measurements.calibrationInitial,measurements.calibrationHalf);
+    await page.evaluate(()=>__pcmWindowAudit.finish());await range(page,'#masterVolumeRange',100);
     await change(volume(page),1,3);await until(()=>volume(page).textContent().then(value=>value==='67'),'rapid volume retains latest edit');let native=await reference(page);assert.equal(native.rf.channels[0].volume,67);assert.equal(native.id,identity.id);assert.equal(native.resets,identity.resets);assert.equal(native.rf.selected,7);assert.equal(native.rf.bank,0x1000);assert(native.rf.enabled);
 
     mark('Manual CH writes restore both source channel and RAM bank; following implicit writes reach their original destinations');

@@ -114,7 +114,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.match(main,/import \{createAudio\} from '\.\/audio\.js(?:\?v=[A-Za-z0-9._-]+)?'/);
   assert.match(await readFile(join(a.stage,'synth-huc6280/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
-  for(const name of ['vgm_import.js','vgm_library.js','song_source.js','song_preview.js','song_controls.js','song_state.js','song_live.js','song_voice.js','song_audition.js','song_cache.js','song_checkpoint.js','song_manual.js','song_paused_edit.js','selected_preset.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
+  for(const name of ['vgm_import.js','vgm_library.js','channel_tabs.js','song_source.js','song_preview.js','song_controls.js','song_state.js','song_live.js','song_voice.js','song_audition.js','song_cache.js','song_checkpoint.js','song_manual.js','song_paused_edit.js','selected_preset.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
   for(const name of ['ym2612vgm.js','vgm_file.js']) assert(info.receipt.modules.some(module=>module.path===`js/${name}`));
   for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs',
     'scripts/copy_msm5205_sources.mjs','scripts/copy_cdda_sources.mjs','scripts/copy_application_audio_sources.mjs',
@@ -127,7 +127,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     assert(menu>=0&&importButton>menu&&importButton<menuEnd,'VGM import belongs to the hamburger menu');
     const sounds=html.indexOf('id="vgmImport"'),channels=html.indexOf('id="hucCodeLiveTools"'),monitor=html.indexOf('aria-label="Instrument display"');
     const player=html.indexOf('id="hucSongPlayer"'),mix=html.indexOf('id="hucSongChannels"');
-    assert(player>=0&&player<channels&&channels<sounds&&sounds<monitor,'Channel / Auto update stays next to the transport, before Sounds and the monitor');
+    const chipTabs=html.indexOf('class="huc-chip-tabs"');
+    assert(player>=0&&player<sounds&&sounds<chipTabs&&chipTabs<channels&&channels<monitor,
+      'CH child tabs belong below the source tabs, outside the song transport and before the monitor');
+    assert(channels>html.indexOf('</section>',player),'CH controls remain available outside the VGM player');
+    assert.match(html,/id="vgmKeepLoudestPcm"[^>]*\bchecked\b/);
+    for(const id of ['hucChannelTabs','hucChannelAutoTab','hucChannel6Tab','msm5205ChannelTab','cddaChannelTab'])
+      assert(html.includes(`id="${id}"`),'the standalone ZIP contains visible source/channel child tabs');
     const mixer=html.indexOf('id="mixerChipPanel"');
     assert(mixer>monitor&&mix>mixer&&mix<html.indexOf('</section>',mixer),'VGM output switches belong to the Mixer panel');
     assert.match(html,/id="hucChannelSelect"[^>]*>[\s\S]*?<option value="synth" selected>Auto<\/option>/);

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel,setHucLive,copyHucChannel}=require('./huc6280_channel_browser_helpers.cjs');
 // Original HuC6280 VGM / VGZ fixtures and the real WASM/audio route. No speaker
 // receives audio: intercept every destination before application JS, use gain 0,
 // and also launch Chromium with --mute-audio. This is not a listening test.
@@ -108,11 +109,11 @@ const view=page=>page.evaluate(()=>({tools:{...document.querySelector('#hucCodeL
   volume:Number(document.querySelector('#volume').textContent),readout:document.querySelector('#hucChannelReadout').textContent,
   capture:document.querySelector('#hucSongCaptureStatus')?.textContent??'',captureDisabled:document.querySelector('#hucSongCaptureButton')?.disabled,
   wave:__hucSongAudit.wave()}));
-async function channel(page,value){await page.locator('#hucChannelSelect').selectOption(String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
+async function channel(page,value){await selectHucChannel(page,String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
 async function openMenu(page){if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();}
 async function press(page,key){await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();await page.keyboard.down(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)>0),'paused audition note');await pcm(page);}
 async function release(page,key){await page.keyboard.up(key);await until(()=>view(page).then(v=>Number(v.tools.heldCount)===0),'audition release');await pcm(page,false);}
-async function capture(page){await page.locator('#hucSongCaptureButton').click();await until(()=>view(page).then(v=>v.channel==='synth'&&!/capturing/i.test(v.capture)),'captured Synth view');}
+async function capture(page){await copyHucChannel(page);await until(()=>view(page).then(v=>v.channel==='synth'&&!/capturing/i.test(v.capture)),'captured Synth view');}
 async function frozen(page,expected){const now=await state(page);assert.equal(now.phase,'paused');assert.equal(now.frame,expected.frame);assert.equal(now.rendered,expected.rendered);assert.equal(now.source,expected.source);}
 
 async function check(browser,name,origin,fixtures){
@@ -145,7 +146,7 @@ async function check(browser,name,origin,fixtures){
     assert(await page.locator('#hucSongChannels').isHidden());await importSource('wave',{menu:true});assert(await page.locator('#hucSongChannels').isHidden(),'VGM output switches live only in Mixer');await chip('mixer');assert(await page.locator('#hucSongChannels').isVisible());
     assert.deepEqual(await enabled(),Array(6).fill(true));for(let ch=0;ch<6;ch++){assert.equal(await toggle(ch).evaluate(node=>Boolean(node.closest('#mixerChipPanel'))),true);await setEnabled(ch,false);await setEnabled(ch,true);}
     await chip('huc6280');assert(await page.locator('#hucSongChannels').isHidden());assert.equal((await graph(page)).contexts,0);assert.equal(await page.locator('#synthMenu').evaluate(node=>node.open),false);
-    const all=await page.locator('[data-vgm-voice]').count();await page.locator('#vgmKeepLoudestPcm').check();const grouped=await page.locator('[data-vgm-voice]').count();assert(grouped<all);await page.locator('#vgmKeepLoudestPcm').uncheck();
+    await page.locator('#vgmKeepLoudestPcm').uncheck();const all=await page.locator('[data-vgm-voice]').count();await page.locator('#vgmKeepLoudestPcm').check();const grouped=await page.locator('[data-vgm-voice]').count();assert(grouped<all);await page.locator('#vgmKeepLoudestPcm').uncheck();
     measurements.grouping={all,grouped};
 
     step('CH1 left and CH3 right mute independently while playback time advances, preserving the authored instrument and one shared Master route');
@@ -156,9 +157,9 @@ async function check(browser,name,origin,fixtures){
     const route=await graph(page);assert.equal(route.contexts,1);assert.equal(route.destinationConnections,1);assert.equal(route.editorWorklets,1);assert(route.muted);measurements.route=route;
 
     step('Mixer switches are independent of selected CH and Auto update; frozen source settings do not change when its output is muted');
-    await page.locator('#hucLiveEnabled').uncheck();const live=await view(page);await setEnabled(0,false);await channel(page,2);assert.equal(await toggle(0).getAttribute('aria-pressed'),'false');await channel(page,0);
+    await setHucLive(page,false);const live=await view(page);await setEnabled(0,false);await channel(page,2);assert.equal(await toggle(0).getAttribute('aria-pressed'),'false');await channel(page,0);
     const unchanged=await view(page);assert.equal(unchanged.volume,live.volume);assert.deepEqual(unchanged.wave,live.wave);assert.equal(unchanged.editor.positionFrames,live.editor.positionFrames);
-    await page.locator('#hucLiveEnabled').check();await pause(page);const paused=await state(page);await setAll(false);await frozen(page,paused);
+    await setHucLive(page,true);await pause(page);const paused=await state(page);await setAll(false);await frozen(page,paused);
 
     step('All reference channels Off do not mute paused CH audition, Capture, or the captured Synth keyboard voice');
     const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);await press(page,key);await frozen(page,paused);await release(page,key);
@@ -183,8 +184,8 @@ async function check(browser,name,origin,fixtures){
     await channel(page,0);assert.equal((await view(page)).editor.readonly,'false');
 
     step('Mixer, Channel/Auto/Capture, Sounds and monitor keep compact order at 1240/390px; pagehide releases the only muted output route');
-    assert.equal(await page.locator('#hucCodeLiveTools').evaluate(node=>Boolean(node.closest('#hucSongPlayer'))),true);
-    assert(await page.evaluate(()=>{const mixer=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),song=document.querySelector('#hucSongPlayer'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');return document.querySelector('#mixerChipPanel').contains(mixer)&&!song.contains(mixer)&&song.contains(live)&&Boolean(song.compareDocumentPosition(sounds)&4)&&Boolean(sounds.compareDocumentPosition(monitor)&4);}));
+    assert.equal(await page.locator('#hucCodeLiveTools').evaluate(node=>Boolean(node.closest('#hucSongPlayer'))),false);
+    assert(await page.evaluate(()=>{const mixer=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),song=document.querySelector('#hucSongPlayer'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');return document.querySelector('#mixerChipPanel').contains(mixer)&&!song.contains(mixer)&&!song.contains(live)&&Boolean(song.compareDocumentPosition(sounds)&4)&&Boolean(document.querySelector('.huc-chip-tabs').compareDocumentPosition(live)&4)&&Boolean(live.compareDocumentPosition(monitor)&4);}));
     for(const width of[1240,390]){await page.setViewportSize({width,height:1050});await page.locator('#hucSongPlayer').scrollIntoViewIfNeeded();const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#hucSongPlayer button,#hucSongPlayer select,#hucSongPlayer input')].filter(node=>node.getClientRects().length).map(node=>({id:node.id,left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));
       assert(bounds.scroll<=width+1);assert(bounds.controls.every(item=>item.left>=-1&&item.right<=width+1));measurements['layout'+width]=bounds;await chip('mixer');
       const mixerBounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,buttons:[...document.querySelectorAll('#hucSongChannels button')].map(node=>({left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));

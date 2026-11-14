@@ -1,0 +1,663 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "8e5adcb096e2eff853fa2c0c92ea0e0397f56bfd",
+  "localFeatureValidationPassed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "longDurationTestingPerformed": false,
+  "behavior": {
+    "menuVgmImport": "Archive the original VGM/VGZ under vgm/ and grouped HuC6280 instruments under presets/<source-stem>/ in one validated filesystem commit. Import never applies a preset or stops Code.",
+    "volumePolicy": "Keep loudest Wave/PCM only when all non-volume sound settings match. Preserve distinct pan/rate/wave/loop and Noise/LFO sounds.",
+    "listOption": "Default On; Off expands the library list without changing saved presets.",
+    "collisions": "Number new source/bank paths; never overwrite existing files.",
+    "workspaceSafety": "Cancel or superseding workspace/import fences pending commit and stale status. Durable save failure keeps memory files and explicitly offers export.",
+    "ordinaryFileImport": "Add files archives a VGM source; Menu VGM import extracts and saves its instruments.",
+    "channels": {
+      "huc6280": [
+        "Auto",
+        "CH1",
+        "CH2",
+        "CH3",
+        "CH4",
+        "CH5",
+        "CH6"
+      ],
+      "msm5205": [
+        "CH1"
+      ],
+      "cdda": [
+        "Stereo"
+      ],
+      "mixer": []
+    },
+    "channelBehavior": "Same targets for normal/Code/VGM display, editing and keyboard. Choosing tabs does not copy settings or stop playback. Actual visible tabs support arrows, Home/End and safe pointer focus.",
+    "narrowLayout": "Reused SPU instrument-preset-control to bound long native-select options. Actual 390px check failed before and passes after this fix."
+  },
+  "node": {
+    "synthCommand": "npm run test:huc6280-synth",
+    "synthTests": 558,
+    "guardTests": 6,
+    "fail": 0,
+    "skip": 0,
+    "seekRegression": {
+      "schemaVersion": 1,
+      "passed": true,
+      "productChanged": false,
+      "physicalAudioOpened": false,
+      "cause": "Seek prime returns the first positive cooperative parser slice, whose buffer length depends on the actual 4ms VgmPlayer budget. Comparing complete first buffers compared different source interval lengths.",
+      "before": {
+        "failed": true,
+        "firstPrimeFrames": 108,
+        "secondPrimeFrames": 256,
+        "diagnostic": "Original whole-buffer equality fails with a deterministic 8ms advance of the parser budget clock."
+      },
+      "after": {
+        "tests": 5,
+        "pass": 5,
+        "fail": 0,
+        "skip": 0,
+        "sourceFirstFrame": 882,
+        "comparedFramesPerChannel": 1024,
+        "comparison": "All 1024 scheduled PCM frames on both channels, retaining source offsets and driving actual refills without advancing the heard clock.",
+        "forcedParserBudgetYield": true
+      },
+      "artifacts": [
+        {
+          "path": "docs/synth-huc6280/song_engine.test.mjs",
+          "bytes": 9614,
+          "sha256": "75fa9551f6f6cf7af21316ef5816cbc71005624ac9df08d7b345b78f1f8a164d"
+        },
+        {
+          "path": "build/huc6280-import-tabs-20261114/msm-seek-before.log",
+          "bytes": 13803,
+          "sha256": "bd7ddbeb688aa82179d01c506db6d24f312f1ab912f0eb0870d4bed860796181"
+        },
+        {
+          "path": "build/huc6280-import-tabs-20261114/msm-seek-after.log",
+          "bytes": 925,
+          "sha256": "9c3f74642e2fa7f3f985a8e6872912de4f3aaaf32cc1caa51b3b03dc62179984"
+        }
+      ]
+    }
+  },
+  "package": {
+    "path": "release/tetorica_huc6280_synth_import-tabs-layout-20261114_itch.zip",
+    "bytes": 2062521,
+    "sha256": "fe630c08ab95952e88892c48aff4299ac7e6b249aeb006de32eaf9428f477eb3"
+  },
+  "browser": {
+    "suites": 13,
+    "runs": 26,
+    "uniqueCheckGroups": 248,
+    "results": [
+      {
+        "suite": "base",
+        "checker": "check_huc6280_synth_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/base-browser.json",
+          "bytes": 8112,
+          "sha256": "db8fc5232331a7195bbbb9e0a21dff772ce4bc4d07fd561e66f244c77f848897"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 31
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 31
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "checker": "check_huc6280_synth_code_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/code-browser.json",
+          "bytes": 24576,
+          "sha256": "45f9f782c1164c6f59f05d9babb1d21eb911224ebb97203071ea357670c8e3b0"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 9
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 9
+          }
+        ]
+      },
+      {
+        "suite": "cdrom2",
+        "checker": "check_huc6280_synth_cdrom2_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/cdrom2-browser.json",
+          "bytes": 36375,
+          "sha256": "043f487ae06fb798039cbe13612ad3350856c5c0d279a54008b8bb4bffcabd95"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 7
+          }
+        ]
+      },
+      {
+        "suite": "msm5205",
+        "checker": "check_huc6280_synth_msm5205_browser.cjs",
+        "receipt": {
+          "path": "build/huc6280-import-tabs-20261114/msm5205-browser-fixed.json",
+          "bytes": 26850,
+          "sha256": "fac0da9ca2a64571e734f65ac13e980ee237bf30d49ad23cb073b8af0753a94b"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 7
+          }
+        ]
+      },
+      {
+        "suite": "cdda",
+        "checker": "check_huc6280_synth_cdda_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/cdda-browser.json",
+          "bytes": 25299,
+          "sha256": "4184a9bb1f26fb8957bc1f01166b0c0c82fcbc89cb2e60e1cec689e90f3769d1"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 7
+          }
+        ]
+      },
+      {
+        "suite": "manual",
+        "checker": "check_huc6280_synth_manual_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/manual-browser.json",
+          "bytes": 20595,
+          "sha256": "9f84d88ec7c01da747c6dc81f189f6d0593ada81ee3b7ca0f2f277c634c67b4d"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 6
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 6
+          }
+        ]
+      },
+      {
+        "suite": "vgm-manual",
+        "checker": "check_huc6280_synth_vgm_manual_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/vgm-manual-browser.json",
+          "bytes": 21599,
+          "sha256": "3526fd66c940a117293f2d03fda2b0958d3252ed1c14bb8a18dfa795e5fb1c9e"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 7
+          }
+        ]
+      },
+      {
+        "suite": "song",
+        "checker": "check_huc6280_synth_song_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/song-browser.json",
+          "bytes": 30198,
+          "sha256": "4adaa8f0045a5c565c69ad3df82d87ab6d64534f0cc8601c35e520decf12c3f9"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 7
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "checker": "check_huc6280_synth_live_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/live-browser.json",
+          "bytes": 108590,
+          "sha256": "c7f7c299fb072610e8ffe5bad3a756ee40affbb6635e5479514a7b49971a0e4d"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 9
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 9
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "checker": "check_huc6280_synth_capture_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/capture-browser.json",
+          "bytes": 38471,
+          "sha256": "2c449aeb29346bda111f89ce28c525bc48dde7efe86e6552764d5a1af1d89d4c"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 10
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 10
+          }
+        ]
+      },
+      {
+        "suite": "mixer",
+        "checker": "check_huc6280_synth_mixer_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/mixer-browser.json",
+          "bytes": 31686,
+          "sha256": "19ac32e3e0b31c02ae81e37912dcaa1392de91459090c9952b4109eed13804f8"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 8
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 8
+          }
+        ]
+      },
+      {
+        "suite": "seek",
+        "checker": "check_huc6280_synth_seek_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/seek-browser.json",
+          "bytes": 26951,
+          "sha256": "f4f123f66697bb71153b8beac3055a6149f46294c475bba76d1e9a5488621757"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 8
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 8
+          }
+        ]
+      },
+      {
+        "suite": "cache",
+        "checker": "check_huc6280_synth_cache_browser.cjs",
+        "receipt": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/huc6280-import-tabs-20261114/cache-browser.json",
+          "bytes": 32468,
+          "sha256": "f0dd80dd7a95b93b2bbac5d7c630617ccd16527104583a370a03a8733453f3bf"
+        },
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checkGroups": 8
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checkGroups": 8
+          }
+        ]
+      }
+    ],
+    "additionalMsmValidation": "MSM suite rerun after the explicit physical-source preparation fix; final receipt replaces the earlier successful precondition-dependent run.",
+    "additionalDmgValidation": {
+      "receipt": {
+        "path": "build/huc6280-import-tabs-20261114/dmg-song-browser.json",
+        "bytes": 48111,
+        "sha256": "341ecf6ad5717427b7199866d072aca9af5d6fe133f60d16d93ef5a7b05d3587"
+      },
+      "checkGroups": 14,
+      "purpose": "Pending file read held until real Cancel click, including a deliberate wait past the previous 500ms race window; no late source/preset files."
+    }
+  },
+  "regressions": [
+    "Nine Wave/PCM volume variants become six saved presets, with exact data and loudest volumes.",
+    "Non-volume differences remain separate.",
+    "Library checkbox Off leaves saved files unchanged.",
+    "Repeated same-name imports keep original files and save a separate complete bank.",
+    "Current sound, selected file, Code mode, running loop and prepared context persist during import.",
+    "Cassette export/import and reload retain generated instruments and original VGM bytes.",
+    "Tabs retain Pause position, individual edits and actual keyboard allocation; narrow view reaches every tab."
+  ],
+  "independentReadOnlyReview": {
+    "agent": "/root/huc_channel_tabs",
+    "blockingFindings": 0,
+    "scope": "Import grouping, exact source persistence, active Code/selection, cancellation/workspace replacement, durable-save failure reporting."
+  },
+  "invariants": {
+    "nativeCoreChanged": false,
+    "publicNpmApiChanged": false,
+    "calibrationGainChanged": false,
+    "verificationBoundsRelaxed": false
+  },
+  "ciFollowup": {
+    "pushedHead": "8e5adcb096e2eff853fa2c0c92ea0e0397f56bfd",
+    "runs": [
+      {
+        "conclusion": "success",
+        "databaseId": 43575632508,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632508",
+        "workflowName": "SBI export tests"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632440,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632440",
+        "workflowName": "pages-build-deployment"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632595,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632595",
+        "workflowName": "VGM parser and player tests"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43575632560,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632560",
+        "workflowName": "DMG Synth"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632511,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632511",
+        "workflowName": "Verify npm sound-chip package"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43575632499,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632499",
+        "workflowName": "HuC6280 Synth"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632512,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632512",
+        "workflowName": "WASM SDK build and parity"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43575632531,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632531",
+        "workflowName": "itch web release ZIPs"
+      }
+    ],
+    "dmgCancellationCheckerLocallyFixed": true,
+    "msmUploadPreconditionCheckerLocallyFixed": true,
+    "rf5c164RmsFailure": "Locally corrected and verified: independent pilot establishes the exact PCM window; all 18 browser groups pass with original gain/lookahead bounds. See verification_github_actions_20261114_second_followup.json. Remote validation awaits another push."
+  },
+  "sources": [
+    {
+      "path": "docs/synth-huc6280/README.md",
+      "bytes": 59387,
+      "sha256": "ed4429f8a118d070ce9b76c3abf065dab2fe03d61f6dba6f06681a03cd0d1dec"
+    },
+    {
+      "path": "docs/synth-huc6280/channel_tabs.js",
+      "bytes": 1659,
+      "sha256": "4c461d1a79c3d871df8cf5b4eb71e85f42ac868591bc103fe512381759391f7f"
+    },
+    {
+      "path": "docs/synth-huc6280/channel_tabs.test.mjs",
+      "bytes": 4133,
+      "sha256": "10d929e7fc2012471e5a2ff4e3855e7a92129340514f2c834e4502d2b0408945"
+    },
+    {
+      "path": "docs/synth-huc6280/code_files.js",
+      "bytes": 35100,
+      "sha256": "f0dc50657a33ff78923737581038262d0a0a97259d7d155638ad30a57cc56bb0"
+    },
+    {
+      "path": "docs/synth-huc6280/code_files.test.mjs",
+      "bytes": 40741,
+      "sha256": "08754b92130951ca8fa4404b87f694de2ada7622c8982edea917e18bc3f2295d"
+    },
+    {
+      "path": "docs/synth-huc6280/index.html",
+      "bytes": 33486,
+      "sha256": "087d66751f164ab0a622d0042a4bc886db0e245acdffd60f8fe23db242d58cbd"
+    },
+    {
+      "path": "docs/synth-huc6280/song_engine.test.mjs",
+      "bytes": 9614,
+      "sha256": "75fa9551f6f6cf7af21316ef5816cbc71005624ac9df08d7b345b78f1f8a164d"
+    },
+    {
+      "path": "docs/synth-huc6280/synth.css",
+      "bytes": 16369,
+      "sha256": "05fc6d9c17213ef847ce27ae9e4bc91c2cb001febc4ff0807749904e2d57c46d"
+    },
+    {
+      "path": "docs/synth-huc6280/synth.js",
+      "bytes": 51639,
+      "sha256": "9792c04f4869c335db11dea9db768dad8437a3d29933032fe5dff7f6ceb31922"
+    },
+    {
+      "path": "docs/synth-huc6280/vgm_library.js",
+      "bytes": 10821,
+      "sha256": "54febb361b8cf3242e069594d3059debacf0b8e1fabf86348c1302de06a7da9c"
+    },
+    {
+      "path": "docs/synth-huc6280/vgm_library.test.mjs",
+      "bytes": 11037,
+      "sha256": "2c8d62451d91dc6d4b38362eeae37a70f35adc46f2dd5738cd42770cd0cc251b"
+    },
+    {
+      "path": "scripts/check_dmg_synth_song_browser.cjs",
+      "bytes": 27539,
+      "sha256": "5059e0c8d315df73db98dcad70767004333bc679b19aecded6e615b4718fa570"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_browser.cjs",
+      "bytes": 65177,
+      "sha256": "ee522935eeb5237fc6926a7c33441147f75a85ebb199da658cd5f5c1a1d6fd65"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_cache_browser.cjs",
+      "bytes": 33103,
+      "sha256": "6ccda05a0ed2cdab03cd6869f755ad68aa46bbfe4ff3e7c4b930384c537f7964"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_capture_browser.cjs",
+      "bytes": 40337,
+      "sha256": "5d3ed78c0a5a63ea53e3f28248f601c41e803101ca950ceb33e2fc0b6b2e75a2"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_code_browser.cjs",
+      "bytes": 34661,
+      "sha256": "b351c00143b67fe471930233f438ef7f0b5c69042620c0518ab8eb1ffc9df400"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_live_browser.cjs",
+      "bytes": 33211,
+      "sha256": "efc7fb1d852e790dc5f022bbbd5e418da207c56424aa4dadba1f2f2eb73cb02a"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_manual_browser.cjs",
+      "bytes": 21699,
+      "sha256": "1e54fcc7c15b748a804be26e8208f98b12db966cb229fae42edac2f46409af7d"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_mixer_browser.cjs",
+      "bytes": 28822,
+      "sha256": "07b40b8a323990c8fb234e4b62abc24841fe43a657e2cf50ed15428516204fd2"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_msm5205_browser.cjs",
+      "bytes": 28645,
+      "sha256": "9e89d1316e76eb46721de859d3372efb5e5b9bb1590d773ea8fa16bc9f7de43a"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_seek_browser.cjs",
+      "bytes": 32191,
+      "sha256": "1c81ed4d7c7c9fadafccc50a4d22baa7d787b4b6bdaa6b9c80d474d960a9f1ca"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_vgm_manual_browser.cjs",
+      "bytes": 29476,
+      "sha256": "1ffdbf597e46cba11370d22656e35603ef2269b1626df9d2bca6d1cb9d4cfc0c"
+    },
+    {
+      "path": "scripts/huc6280_channel_browser_helpers.cjs",
+      "bytes": 1473,
+      "sha256": "3c3a4bd7eab3a6a8d3dac582b266317100834ed68e9e620a9e0fb6b65c6eb4ef"
+    },
+    {
+      "path": "scripts/package_itch_huc6280_synth.test.mjs",
+      "bytes": 16870,
+      "sha256": "c8347167112b64bccbb9ddf2fbc1e551530d46b01aaf79fe37f01e9ef6c5aa44"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "build/huc6280-import-tabs-20261114/node-tests-final3.log",
+      "bytes": 61440,
+      "sha256": "b6d37159017c589f6f39779e9dfacaa8a196a7b4591d1929ac940e6854809ba6"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/calibration-guard-tests.log",
+      "bytes": 809,
+      "sha256": "37aca1161f9e91eeb1a4f01f97fcbda8ba8e527df625896190da10bde49ce913"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/msm-seek-test-evidence.json",
+      "bytes": 1447,
+      "sha256": "47b81025c845956a5e97082e991f73337d66d5e49f32ad9a6f33bb24c20279c9"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/msm_upload_precondition_proof.json",
+      "bytes": 1227,
+      "sha256": "7a0ca52321d9e2e1fbb1128a90f0b3f03bd264d1e4550826065d588a6097308b"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/dmg-song-browser.json",
+      "bytes": 48111,
+      "sha256": "341ecf6ad5717427b7199866d072aca9af5d6fe133f60d16d93ef5a7b05d3587"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/dmg-song-browser.log",
+      "bytes": 1560,
+      "sha256": "e1f207988bdc3b924bb1359fc7c6c448539d4e8c4584f91856aee268c53bfa4e"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/dmg-ci-failure.log",
+      "bytes": 228742,
+      "sha256": "82273d9bfed816bc58eae35f2d37e1ef2d0e72a080935e6f57c335764782a085"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/huc-ci-failure.log",
+      "bytes": 445692,
+      "sha256": "9175a1ea5d272ce5001c59e733743f26f316447435c79fac925a394c03245ecc"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/actions-after-push.json",
+      "bytes": 1500,
+      "sha256": "27cd6141769d2b6abefd9b0e40d3c6a5ae29c3110bba55e59547f0b2738e9bc3"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/package-final.log",
+      "bytes": 527,
+      "sha256": "f74aeeb7966bf7f1d3e626c38a7692e687e835f482df0c1c0ca484664c8f38af"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/browser-suite-results.json",
+      "bytes": 4800,
+      "sha256": "8ffc4402f40371b76bcf7b452b1f8e365a8d61823fe7feccb300471dedbe8243"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/msm5205-browser-fixed.log",
+      "bytes": 1951,
+      "sha256": "9fe6da512016382ef940e59a489933b326e882b3d0e9bac37fd0e74046f329b3"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/base-browser-before-layout.log",
+      "bytes": 2528,
+      "sha256": "56dc4bdb7b45d237200ef4dac438f0ca3d3a45dd828313991c4db2e9eb83980e"
+    }
+  ],
+  "operations": {
+    "commitPerformed": false,
+    "pushPerformed": false,
+    "tagOrReleasePerformed": false,
+    "tauriImportStarted": false,
+    "browserCheckersExited": true
+  },
+  "limits": [
+    "macOS Chromium/WebKit headless verification; Linux CI needs another push of current changes.",
+    "No actual listening or long-duration test."
+  ]
+}

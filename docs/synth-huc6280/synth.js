@@ -20,6 +20,7 @@ import {createHuc6280SongAudition} from './song_audition.js?v=huc-capture-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
 import {prepareDdaAudio} from './audio_import.js';
 import {prepareHuc6280SelectedPreset} from './selected_preset.js?v=huc-channel-ui-1';
+import {setupHuc6280ChannelTabs} from './channel_tabs.js';
 import {MAX_PRESET_BYTES} from './dda_pcm.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -45,6 +46,7 @@ const unsubscribeSourceMix=sourceMix.onChange(value=>{
 });
 let audition=null,auditionSelectionKey=null,channelSelection=0;
 let selectedPresetKey='',selectedPresetResult=null,savingSelectedPreset=false;
+let channelTabs=null;
 const notes = new Map(), auditionNotes=new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -224,7 +226,7 @@ async function loadDdaAudio(file,{sampleRate,signal,onCommit}) {
 }
 const editor = createEditor({root: $('voiceEditor'), onChange: value => {void editVisiblePreset(value).catch(report);},
   onError:report,onLoadAudio:loadDdaAudio});
-vgmLibrary = createVgmLibrary({root:$('vgmImport'),onSource:({bytes,name},options)=>codeHost.files.importSong(bytes,name,{...options,announce:false}), onSelect:value => applyPreset(value, {
+vgmLibrary = createVgmLibrary({root:$('vgmImport'),onSource:(source,options)=>codeHost.files.importVgm(source,{...options,announce:false}), onSelect:value => applyPreset(value, {
   load:true, fromVgm:true, message:`${value.name} loaded from VGM · Software Envelope off · play the keyboard.`,
 })});
 
@@ -493,7 +495,7 @@ $('copyCode').addEventListener('click',async()=>{
 window.addEventListener('pagehide',event=>{
   songControls?.stop();
   if(event.persisted){stopNotes();void codeHost?.stop();void msmSource?.stop().catch(()=>{});void cddaSource?.stop().catch(()=>{});return;}
-  disposed=true;msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
+  disposed=true;channelTabs?.dispose();msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
 });
 function selectedPresetFor(context,snapshot){
   const key=channelTarget==='synth'?`auto:${revision}`:JSON.stringify([context,channelTarget,snapshot?.clock,snapshot?.positionFrames,snapshot?.revision,snapshot?.registers,snapshot?.globals,snapshot?.waveforms,snapshot?.envelopes]);
@@ -510,10 +512,11 @@ function renderCodeLive() {
   const observed=context==='vgm'?songState:observer?.read(),snapshot=observed?.liveState;
   const songEditable=physical&&context==='vgm'&&(songState?.playing||songState?.paused)&&songState?.manualReady;
   const readOnly=physical&&context==='vgm'&&!songEditable,waiting=physical&&!snapshot;
-  const tools=$('hucCodeLiveTools');tools.hidden=false;tools.dataset.origin=context;tools.dataset.context=context;tools.dataset.channel=String(channelTarget);
+  const tools=$('hucCodeLiveTools');tools.hidden=chipView!=='huc6280';tools.dataset.origin=context;tools.dataset.context=context;tools.dataset.channel=String(channelTarget);
+  for(const row of document.querySelectorAll('[data-huc-channel-tools]'))row.hidden=row.dataset.hucChannelTools!==chipView;
   const trial=audition?.read();tools.dataset.auditionState=trial?.state??'idle';tools.dataset.heldCount=String(trial?.heldCount??0);tools.dataset.auditionSource=trial?.source??'';
   tools.dataset.positionFrames=String(snapshot?.positionFrames??'');tools.dataset.renderedFrames=String(context==='vgm'?(songState?.positionFrames??0)+(songState?.bufferedFrames??0):snapshot?.positionFrames??'');
-  $('hucChannelSelect').value=String(channelTarget);$('hucLiveEnabled').checked=autoUpdate;
+  $('hucChannelSelect').value=String(channelTarget);channelTabs?.sync(channelTarget);$('hucLiveEnabled').checked=autoUpdate;
   $('instrumentName').readOnly=physical;$('saveSoundToFiles').disabled=physical;
   $('loadDdaAudio').disabled=physical;$('ddaAudioFileInput').disabled=physical;
   $('loadDdaAudio').title=physical?'Choose Auto to replace the shared DDA sample.':'Load audio for the authored instrument.';
@@ -658,6 +661,12 @@ $('hucSaveSelectedPreset').addEventListener('click',()=>{
   void codeHost.files.saveSound({sound:selected.sound,select:false}).then(path=>{if(path&&!disposed)status(`Saved to ${path}. Channel and playback kept.`);}).catch(report).finally(()=>{savingSelectedPreset=false;renderCodeLive();});
 });
 $('hucChannelSelect').addEventListener('change',()=>{const value=$('hucChannelSelect').value;$('hucChannelSelect').blur();void setChannelTarget(value).catch(report);});
+channelTabs=setupHuc6280ChannelTabs({root:$('hucChannelTabs'),panel:$('voiceEditor'),onSelect:value=>setChannelTarget(value),onError:report});
+for(const tab of document.querySelectorAll('[data-huc-single-channel]')){
+  tab.addEventListener('pointerdown',event=>{if(event.button===0)event.preventDefault();});
+  tab.addEventListener('click',()=>tab.blur());
+  tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();tab.focus();}});
+}
 $('hucLiveEnabled').addEventListener('change',()=>{autoUpdate=$('hucLiveEnabled').checked;$('hucLiveEnabled').blur();songControls.setLiveEnabled(autoUpdate);syncChannelObservers();liveSignature=null;renderCodeLive();});
 setupSynthMenu({document,window});
 updatePresetUi();setVolume();setPitchUi(0);

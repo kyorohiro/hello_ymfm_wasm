@@ -1,0 +1,651 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "8e5adcb096e2eff853fa2c0c92ea0e0397f56bfd",
+  "localValidationPassed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": "Three later failures reached after pushing the first CI fixes, and the cooperative Seek test discovered during the HuC6280 feature validation. Checker/test changes only; no additional product-audio/gain changes.",
+  "cases": [
+    {
+      "area": "DMG cancellation browser check",
+      "failedRun": 43575632560,
+      "cause": "A fixed 500ms fake read completed before WebKit could click the real Cancel control.",
+      "fix": "Hold the actual file-read promise, wait past the former deadline, click the real Cancel button, then release and verify no source or presets were committed.",
+      "checks": 14,
+      "passed": true,
+      "receipt": "build/huc6280-import-tabs-20261114/dmg-song-browser.json"
+    },
+    {
+      "area": "HuC6280 MSM upload check",
+      "failedRun": 43575632499,
+      "cause": "Stop retires a physical endpoint if its state RPC is pending. The next load can validly update host RAM without issuing the native transfer the checker waited for. The failing artifact shows ready/idle host RAM and disconnected MSM output.",
+      "fix": "Await actual guarded Play and require exactly one connected MSM endpoint before holding its next upload. Preserve strict cancellation/state/PCM and real RPC timeout checks.",
+      "checks": 14,
+      "passed": true,
+      "receipt": "build/huc6280-import-tabs-20261114/msm5205-browser-fixed.json"
+    },
+    {
+      "area": "HuC6280 Seek test",
+      "cause": "The real cooperative parser budget partitions identical source PCM into differently sized prime buffers.",
+      "proof": {
+        "schemaVersion": 1,
+        "passed": true,
+        "productChanged": false,
+        "physicalAudioOpened": false,
+        "cause": "Seek prime returns the first positive cooperative parser slice, whose buffer length depends on the actual 4ms VgmPlayer budget. Comparing complete first buffers compared different source interval lengths.",
+        "before": {
+          "failed": true,
+          "firstPrimeFrames": 108,
+          "secondPrimeFrames": 256,
+          "diagnostic": "Original whole-buffer equality fails with a deterministic 8ms advance of the parser budget clock."
+        },
+        "after": {
+          "tests": 5,
+          "pass": 5,
+          "fail": 0,
+          "skip": 0,
+          "sourceFirstFrame": 882,
+          "comparedFramesPerChannel": 1024,
+          "comparison": "All 1024 scheduled PCM frames on both channels, retaining source offsets and driving actual refills without advancing the heard clock.",
+          "forcedParserBudgetYield": true
+        },
+        "artifacts": [
+          {
+            "path": "docs/synth-huc6280/song_engine.test.mjs",
+            "bytes": 9614,
+            "sha256": "75fa9551f6f6cf7af21316ef5816cbc71005624ac9df08d7b345b78f1f8a164d"
+          },
+          {
+            "path": "build/huc6280-import-tabs-20261114/msm-seek-before.log",
+            "bytes": 13803,
+            "sha256": "bd7ddbeb688aa82179d01c506db6d24f312f1ab912f0eb0870d4bed860796181"
+          },
+          {
+            "path": "build/huc6280-import-tabs-20261114/msm-seek-after.log",
+            "bytes": 925,
+            "sha256": "9c3f74642e2fa7f3f985a8e6872912de4f3aaaf32cc1caa51b3b03dc62179984"
+          }
+        ]
+      },
+      "fix": "Compare all 1024 stereo samples from the same source frame, using actually scheduled buffers and their offsets; force unequal prime sizes in the regression."
+    },
+    {
+      "area": "RF5C164 scheduled/output PCM measurement",
+      "failedRun": 43575632531,
+      "cause": "The output analyser window contains real refill silence whereas the compared native tail is an uninterrupted, different source-time window. WebKit ratio .653566 with unchanged peak1.0; the output window is about59.1% silence, with zero overlap/past scheduling.",
+      "fix": {
+        "actual": "8192 actual post-Master samples passively captured at instrument input0; capture outputs only zeros.",
+        "absoluteFrames": "Independent sample-aligned AudioBufferSource pilot reaches capture input1 only. All8192 pilot samples must increment exactly1; callback ordinal/length and pilot source range are checked. Raw currentFrame errors remain recorded, never corrected or retried.",
+        "pilotPreparation": "Generate all relative pilot PCM first, then choose a sample-aligned start250ms in the future and assert it remains future at the real start.",
+        "native": "Every scheduled reference buffer sample is independently compared with the corresponding actual native render prefix. Actual native sampleRate must equal buffer.sampleRate and the calibrated53267Hz rate.",
+        "expected": "The same absolute interval is rendered in OfflineAudioContext at the device rate from native-verified buffers and original when/offset, including real zeros during refill gaps. Original start/connect bypass live audits and physical mute. Actual Master gain never enters expected PCM.",
+        "outputSelection": "Follow current connect/disconnect graph from the latest live verified source to one live destination meter. Neither loudness nor waveform values select the route.",
+        "master": "Capture a whole window after the Master-change audio frame and pilot start; exactly one window per level, no signal-pass retry."
+      },
+      "unchangedBounds": {
+        "initialRmsAbsoluteGainErrorLessThan": 0.15,
+        "initialPeak": "actual <= expected*1.15 + .0001",
+        "masterHalfRatioErrorLessThan": 0.07,
+        "renderAheadSeconds": "0 <= ahead < .11",
+        "allOriginalManualMixerMemoryGateSeekBoundaryChecks": true
+      },
+      "node": {
+        "command": "node --test scripts/synth_pcm_reference_timing.test.mjs",
+        "tests": 7,
+        "passed": 7,
+        "failed": 0,
+        "log": "build/huc6280-import-tabs-20261114/pcm-helper-tests.log",
+        "negativeCases": [
+          "postgain2x",
+          "pilot mixed into real input0",
+          "native-to-buffer2x scaling",
+          "native sample drop",
+          "wrong buffer sampleRate",
+          "source prefix missing/repeated",
+          "past or overlapping source scheduling",
+          "independent pilot sample repetition",
+          "incomplete callback sequence",
+          "disconnected or unrelated output meter"
+        ]
+      },
+      "checks": 18,
+      "passed": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "groups": 9,
+          "renderAheadSeconds": 0.06782811121332157,
+          "calibrationGains": {
+            "initialGain": 0.9995587592552514,
+            "halfGain": 0.49990526033026067,
+            "masterGainRatio": 0.5001259362708489
+          },
+          "graph": {
+            "contexts": 1,
+            "worklets": [
+              "ym2612-processor",
+              "ym2612-processor",
+              "pcm-check-capture",
+              "tetorica-synth-pcm",
+              "tetorica-synth-pcm",
+              "tetorica-native-fx",
+              "tetorica-pwm32x",
+              "tetorica-segapsg"
+            ],
+            "destinations": 2,
+            "graphConnections": 241,
+            "graphDisconnections": 219,
+            "muted": true
+          },
+          "windows": {
+            "calibrationInitial": {
+              "firstFrame": 24960,
+              "endFrame": 33152,
+              "afterFrame": 24837,
+              "sampleRate": 53267,
+              "pilotStart": {
+                "frame": 24837,
+                "when": 0.4662736778868718,
+                "observedTime": 0.21626898454953347,
+                "sampleRate": 53267
+              },
+              "clock": {
+                "firstFrame": 24960,
+                "endFrame": 33152,
+                "frames": 8192,
+                "quanta": 64,
+                "pilotContinuous": true,
+                "pilotStartFrame": 24837,
+                "pilotFirstCounter": 123,
+                "rawClockContinuous": true,
+                "rawClockDifferences": [],
+                "observedClockAnomalies": []
+              },
+              "routing": {
+                "instrumentInput": 0,
+                "pilotInput": 1,
+                "zeroOutput": true
+              },
+              "nativePrefixVerifiedSamples": 65536,
+              "scheduleBuffers": 16,
+              "scheduleGapCount": 0,
+              "scheduleGapSeconds": 0,
+              "windowGapSeconds": 0,
+              "pastWhenCount": 0,
+              "overlapCount": 0
+            },
+            "calibrationHalf": {
+              "firstFrame": 33920,
+              "endFrame": 42112,
+              "afterFrame": 33920,
+              "sampleRate": 53267,
+              "pilotStart": {
+                "frame": 24837,
+                "when": 0.4662736778868718,
+                "observedTime": 0.21626898454953347,
+                "sampleRate": 53267
+              },
+              "clock": {
+                "firstFrame": 33920,
+                "endFrame": 42112,
+                "frames": 8192,
+                "quanta": 64,
+                "pilotContinuous": true,
+                "pilotStartFrame": 24837,
+                "pilotFirstCounter": 9083,
+                "rawClockContinuous": true,
+                "rawClockDifferences": [],
+                "observedClockAnomalies": []
+              },
+              "routing": {
+                "instrumentInput": 0,
+                "pilotInput": 1,
+                "zeroOutput": true
+              },
+              "nativePrefixVerifiedSamples": 81920,
+              "scheduleBuffers": 20,
+              "scheduleGapCount": 0,
+              "scheduleGapSeconds": 0,
+              "windowGapSeconds": 0,
+              "pastWhenCount": 0,
+              "overlapCount": 0
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "groups": 9,
+          "renderAheadSeconds": 0.056902021889725346,
+          "calibrationGains": {
+            "initialGain": 1.0000000426094033,
+            "halfGain": 0.5000000260281755,
+            "masterGainRatio": 0.5000000047234736
+          },
+          "graph": {
+            "contexts": 1,
+            "worklets": [
+              "ym2612-processor",
+              "ym2612-processor",
+              "pcm-check-capture",
+              "tetorica-synth-pcm",
+              "tetorica-synth-pcm",
+              "tetorica-native-fx",
+              "tetorica-pwm32x",
+              "tetorica-segapsg"
+            ],
+            "destinations": 2,
+            "graphConnections": 582,
+            "graphDisconnections": 596,
+            "muted": true
+          },
+          "windows": {
+            "calibrationInitial": {
+              "firstFrame": 148352,
+              "endFrame": 156544,
+              "afterFrame": 148229,
+              "sampleRate": 53267,
+              "pilotStart": {
+                "frame": 148229,
+                "when": 2.782754801284097,
+                "observedTime": 2.5327501079467587,
+                "sampleRate": 53267
+              },
+              "clock": {
+                "firstFrame": 148352,
+                "endFrame": 156544,
+                "frames": 8192,
+                "quanta": 64,
+                "pilotContinuous": true,
+                "pilotStartFrame": 148229,
+                "pilotFirstCounter": 123,
+                "rawClockContinuous": true,
+                "rawClockDifferences": [],
+                "observedClockAnomalies": []
+              },
+              "routing": {
+                "instrumentInput": 0,
+                "pilotInput": 1,
+                "zeroOutput": true
+              },
+              "nativePrefixVerifiedSamples": 310292,
+              "scheduleBuffers": 76,
+              "scheduleGapCount": 1,
+              "scheduleGapSeconds": 0.047872040850808206,
+              "windowGapSeconds": 0,
+              "pastWhenCount": 0,
+              "overlapCount": 0
+            },
+            "calibrationHalf": {
+              "firstFrame": 166400,
+              "endFrame": 174592,
+              "afterFrame": 166400,
+              "sampleRate": 53267,
+              "pilotStart": {
+                "frame": 148229,
+                "when": 2.782754801284097,
+                "observedTime": 2.5327501079467587,
+                "sampleRate": 53267
+              },
+              "clock": {
+                "firstFrame": 166400,
+                "endFrame": 174592,
+                "frames": 8192,
+                "quanta": 64,
+                "pilotContinuous": true,
+                "pilotStartFrame": 148229,
+                "pilotFirstCounter": 18171,
+                "rawClockContinuous": true,
+                "rawClockDifferences": [],
+                "observedClockAnomalies": []
+              },
+              "routing": {
+                "instrumentInput": 0,
+                "pilotInput": 1,
+                "zeroOutput": true
+              },
+              "nativePrefixVerifiedSamples": 351252,
+              "scheduleBuffers": 86,
+              "scheduleGapCount": 1,
+              "scheduleGapSeconds": 0.047872040850808206,
+              "windowGapSeconds": 0,
+              "pastWhenCount": 0,
+              "overlapCount": 0
+            }
+          }
+        }
+      ],
+      "prechecksPreserved": [
+        {
+          "receipt": "build/huc6280-import-tabs-20261114/pcm-browser-window-fixed.json",
+          "reason": "Stopped before any measured window because the app has two actual output branches, invalidating the initial one-meter assumption."
+        },
+        {
+          "receipt": "build/huc6280-import-tabs-20261114/pcm-browser-window-final.json",
+          "reason": "Initial calibration passed, but half capture exposed Chromium repeated currentFrame25088 then25344. The strict API-clock witness was replaced with an independent PCM pilot; the capture was not retried to obtain a passing clock."
+        }
+      ],
+      "diagnostic": [
+        {
+          "browser": "chromium",
+          "mode": "normal",
+          "rejected": false,
+          "error": null,
+          "gain": 0.9994312884337605,
+          "rawClockContinuous": false,
+          "pilotContinuous": true,
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "mode": "double-gain",
+          "rejected": true,
+          "error": "Calibrated native/output RMS differs by 15% or more",
+          "gain": 1.998862576867521,
+          "rawClockContinuous": false,
+          "pilotContinuous": true,
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "mode": "broken-pilot",
+          "rejected": true,
+          "error": "Independent pilot PCM is missing or repeated at captured sample 4096",
+          "gain": null,
+          "rawClockContinuous": null,
+          "pilotContinuous": null,
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "mode": "normal",
+          "rejected": false,
+          "error": null,
+          "gain": 1.0,
+          "rawClockContinuous": false,
+          "pilotContinuous": true,
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "mode": "double-gain",
+          "rejected": true,
+          "error": "Calibrated native/output RMS differs by 15% or more",
+          "gain": 2.0,
+          "rawClockContinuous": false,
+          "pilotContinuous": true,
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "mode": "broken-pilot",
+          "rejected": true,
+          "error": "Independent pilot PCM is missing or repeated at captured sample 4096",
+          "gain": null,
+          "rawClockContinuous": null,
+          "pilotContinuous": null,
+          "physicalOutputMuted": true
+        }
+      ],
+      "review": {
+        "reviewer": "/root/ci_followup_dmg",
+        "blockingFindings": 0,
+        "scope": "Independent native rate, all-point PCM prefix, live output route, pilot separation/absolute frames, raw clock preservation, Offline bypass and gain independence."
+      }
+    }
+  ],
+  "relatedFeatureValidation": {
+    "record": "docs/issues/verification_huc6280_synth_import_presets_tabs_20261114.json",
+    "huC6280NodeTests": 558,
+    "calibrationGuardTests": 6,
+    "huC6280BrowserCheckGroups": 248,
+    "note": "The 248 HuC groups already include the final MSM14; these counts are not added twice."
+  },
+  "invariants": {
+    "productAudioChangedByTheseCiFixes": false,
+    "nativeCoreChanged": false,
+    "gainChanged": false,
+    "boundsRelaxed": false,
+    "passDependentWindowReselection": false,
+    "rawClockAnomaliesDiscarded": false,
+    "independentNativeCopyRatePilotScheduleChecks": true
+  },
+  "remoteValidation": {
+    "observedRuns": [
+      {
+        "conclusion": "success",
+        "databaseId": 43575632508,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632508",
+        "workflowName": "SBI export tests"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632440,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632440",
+        "workflowName": "pages-build-deployment"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632595,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632595",
+        "workflowName": "VGM parser and player tests"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43575632560,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632560",
+        "workflowName": "DMG Synth"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632511,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632511",
+        "workflowName": "Verify npm sound-chip package"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43575632499,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632499",
+        "workflowName": "HuC6280 Synth"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43575632512,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632512",
+        "workflowName": "WASM SDK build and parity"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43575632531,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43575632531",
+        "workflowName": "itch web release ZIPs"
+      }
+    ],
+    "fixesCommitted": false,
+    "fixesPushed": false,
+    "newRunStarted": false,
+    "next": "Commit/push the current local feature and checker fixes, then confirm Actions before importing the HuC6280 Tauri ZIP."
+  },
+  "sourceFiles": [
+    {
+      "path": "scripts/check_dmg_synth_song_browser.cjs",
+      "bytes": 27539,
+      "sha256": "5059e0c8d315df73db98dcad70767004333bc679b19aecded6e615b4718fa570"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_msm5205_browser.cjs",
+      "bytes": 28645,
+      "sha256": "9e89d1316e76eb46721de859d3372efb5e5b9bb1590d773ea8fa16bc9f7de43a"
+    },
+    {
+      "path": "docs/synth-huc6280/song_engine.test.mjs",
+      "bytes": 9614,
+      "sha256": "75fa9551f6f6cf7af21316ef5816cbc71005624ac9df08d7b345b78f1f8a164d"
+    },
+    {
+      "path": "scripts/check_synth_pcm_song_manual_browser.cjs",
+      "bytes": 45319,
+      "sha256": "ea9866b42a5aaaeff342fd45cda27954f100d62d58b3a30061779c4946dd4a1a"
+    },
+    {
+      "path": "scripts/synth_pcm_reference_timing.cjs",
+      "bytes": 16276,
+      "sha256": "77edaeb6787debf6dcc06c8cb38ffeda4be786877cc187ba4b53404d4d35117f"
+    },
+    {
+      "path": "scripts/synth_pcm_reference_timing.test.mjs",
+      "bytes": 10137,
+      "sha256": "986a1da938d0e5b6d3a8982eeaf15605920e07715f224c5d3d551e5c55a62e75"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "build/huc6280-import-tabs-20261114/dmg-ci-failure.log",
+      "bytes": 228742,
+      "sha256": "82273d9bfed816bc58eae35f2d37e1ef2d0e72a080935e6f57c335764782a085"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/huc-ci-failure.log",
+      "bytes": 445692,
+      "sha256": "9175a1ea5d272ce5001c59e733743f26f316447435c79fac925a394c03245ecc"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/itch-ci-failure.log",
+      "bytes": 7675,
+      "sha256": "3f19c7957338667d2779697c9df1bffd7a7f6ab23f37c3e507fb6c6a8567bc05"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/actions-after-push.json",
+      "bytes": 1500,
+      "sha256": "27cd6141769d2b6abefd9b0e40d3c6a5ae29c3110bba55e59547f0b2738e9bc3"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/dmg-song-browser.json",
+      "bytes": 48111,
+      "sha256": "341ecf6ad5717427b7199866d072aca9af5d6fe133f60d16d93ef5a7b05d3587"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/msm5205-browser-fixed.json",
+      "bytes": 26850,
+      "sha256": "fac0da9ca2a64571e734f65ac13e980ee237bf30d49ad23cb073b8af0753a94b"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/msm_upload_precondition_proof.json",
+      "bytes": 1227,
+      "sha256": "7a0ca52321d9e2e1fbb1128a90f0b3f03bd264d1e4550826065d588a6097308b"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/msm-seek-test-evidence.json",
+      "bytes": 1447,
+      "sha256": "47b81025c845956a5e97082e991f73337d66d5e49f32ad9a6f33bb24c20279c9"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/node-tests-final3.log",
+      "bytes": 61440,
+      "sha256": "b6d37159017c589f6f39779e9dfacaa8a196a7b4591d1929ac940e6854809ba6"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/calibration-guard-tests.log",
+      "bytes": 809,
+      "sha256": "37aca1161f9e91eeb1a4f01f97fcbda8ba8e527df625896190da10bde49ce913"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-final-verification.json",
+      "bytes": 14356,
+      "sha256": "79bf8eba5e5eece1949b21347d223a30f11fb1445352322f373195e8646f4f8d"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-ci-window-analysis.json",
+      "bytes": 1737,
+      "sha256": "a17cca2a83e46f5270481f698ec5dc95ee5299a7025099e5b9047b093873d9bd"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-window-diagnostic.json",
+      "bytes": 8103,
+      "sha256": "1489646a927b671a73efb50aeff0dec88d95acc08e975f34e432b26f772ccc8e"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-window-pilot-diagnostic.json",
+      "bytes": 12968,
+      "sha256": "75069e3dac0817766af212c822f6eaa4eaefc085d7b30a6edc1c1f549388c722"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-browser-window-fixed.json",
+      "bytes": 43261,
+      "sha256": "e670203fdae64eeb046c11480ceda398cbe00dc2f142bb53a4d1c8da62d572c3"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-browser-window-final.json",
+      "bytes": 53422,
+      "sha256": "282233c8f8f8ea63e516e7c4f705eff8bbb38598c1360672773803df3b547a50"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-browser-pilot-final.json",
+      "bytes": 95177,
+      "sha256": "c2e06588eb74bf379aa54b19f2b684931e8d49c18eb01a3be11090b34d2e87dd"
+    },
+    {
+      "path": "build/huc6280-import-tabs-20261114/pcm-helper-tests.log",
+      "bytes": 841,
+      "sha256": "4022554e19dae0b1e3ccc23bd292a526184c8c14b340cd36fa1867c76aeebb09"
+    }
+  ],
+  "rfProductProvenance": {
+    "root": "build/ci-followup-20261114/pcm-zip-fixed",
+    "entry": "/index.html",
+    "productRevision": "8e5adcb0 product unchanged",
+    "files": [
+      {
+        "path": "docs/synth/synth_song_preview.js",
+        "bytes": 36998,
+        "sha256": "4dfcd817e3169757fd953848bed0e0242ef3a0b55bc23ec209c1d1adf261bce1"
+      },
+      {
+        "path": "build/ci-followup-20261114/pcm-zip-fixed/synth_song_preview.js",
+        "bytes": 36986,
+        "sha256": "e70858bf0e53aae31d844d4e66dedf131cdf9fdac959a1c54de9721f9de2aed6"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ci-followup-pcm-fixed-20261114_itch_synth.zip",
+        "bytes": 1126849,
+        "sha256": "fe0ba3ad80e5a9edea839cc4f6aef1d3e9490d0aa5bdaf0b7ac2e793f83ced08"
+      },
+      {
+        "path": "scripts/check_synth_pcm_song_manual_browser.cjs",
+        "bytes": 45319,
+        "sha256": "ea9866b42a5aaaeff342fd45cda27954f100d62d58b3a30061779c4946dd4a1a"
+      },
+      {
+        "path": "scripts/synth_pcm_reference_timing.cjs",
+        "bytes": 16276,
+        "sha256": "77edaeb6787debf6dcc06c8cb38ffeda4be786877cc187ba4b53404d4d35117f"
+      },
+      {
+        "path": "scripts/synth_pcm_reference_timing.test.mjs",
+        "bytes": 10137,
+        "sha256": "986a1da938d0e5b6d3a8982eeaf15605920e07715f224c5d3d551e5c55a62e75"
+      }
+    ]
+  },
+  "cleanup": {
+    "finalExecSession": 32410,
+    "exitCode": 0,
+    "browserAndServer": "All final checker browsers and HTTP server closed in finally; checker process completed.",
+    "additionalRunsPlanned": false
+  },
+  "limitations": [
+    "Local macOS Chromium/WebKit validation; the modified checks have not run on GitHub Linux yet.",
+    "Main-thread starvation can still produce real silent scheduling gaps; measurement distinguishes those gaps from incorrect gain.",
+    "No listening or long-duration test, publication, tag or Tauri import was performed."
+  ]
+}

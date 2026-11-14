@@ -15,6 +15,8 @@ class Element{
   async fire(type,extra={}){const event={target:this,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(type)??[])await fn(event);}
 }
 const walk=node=>[node,...node.children.flatMap(walk)],deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
+const extractedVoice=(kind,name,volume=31,changes={})=>({kind,id:name,channel:1,occurrences:1,firstTime:0,
+  preset:{...createDefaultPreset(),source:kind==='pcm'?'dda':kind==='noise'?'noise':'wave',name,volume,...changes}});
 function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.huc-main'?main:null;
@@ -35,6 +37,99 @@ test('HuC6280 saves named presets without acquiring audio, applying or changing 
   f.project.fs.mkdir('/presets/SINE (2).huc6280.json');const two=await f.files.saveSound();assert.equal(two,'/presets/Sine (3).huc6280.json');
   assert.deepEqual(f.opened,[one,two].map(path=>({path,options:{show:false}})));assert.deepEqual(f.calls,[]);assert.equal(f.doc.getElementById('hucFilesPanel').hidden,false);
   assert.equal(f.doc.getElementById('hucFileTextEditor'),undefined);assert.equal(f.doc.getElementById('hucPresetSelect').value,'','Saving does not imply a preset was loaded');
+});
+
+test('VGM archive saves grouped portable presets and original bytes atomically without applying, selecting or stopping Code',async t=>{
+  const f=fixture(t);await f.files.ready;
+  f.project.select('/index.js');f.project.setCodeState({mode:'code',path:'/index.js'});
+  const selection=f.project.selectedPath,codeState=f.project.getCodeState(),settings=f.project.settings;
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,setBusy(){},flush:async()=>true,
+    openFile:()=>assert.fail('Import must not open a preset'),stop:()=>assert.fail('Import must not stop Code'),workspaceReplaced:()=>assert.fail('Import must not replace Code')});
+  const quiet=extractedVoice('wave','Quiet',3),loud=extractedVoice('wave','Loud',27),pan=extractedVoice('wave','Different balance',31,{pan:{left:2,right:7}});
+  const pcmQuiet=extractedVoice('pcm','PCM quiet',2),pcmLoud=extractedVoice('pcm','PCM loud',19);
+  const noiseA=extractedVoice('noise','Noise A',3),noiseB=extractedVoice('noise','Noise B',27);
+  const lfoA=extractedVoice('lfo','LFO A',4),lfoB=extractedVoice('lfo','LFO B',29);
+  const raw=Uint8Array.of(99,31,139,8,255,88).subarray(1,5),voices=[quiet,loud,pan,pcmQuiet,pcmLoud,noiseA,noiseB,lfoA,lfoB];
+  const result=await f.files.importVgm({name:'Song.vgz',bytes:raw,voices},{announce:false});
+  assert.equal(result.songPath,'/vgm/Song.vgz');assert.equal(result.presetDirectory,'/presets/Song');assert.equal(result.keepLoudestVolume,true);assert.equal(result.persisted,true);
+  assert.equal(result.presetPaths.length,7);assert.deepEqual(f.project.fs.get(result.songPath).data,raw);
+  const sounds=result.presetPaths.map(path=>JSON.parse(f.project.fs.get(path).data));
+  assert.deepEqual(sounds.map(sound=>sound.name),['Loud','Different balance','PCM loud','Noise A','Noise B','LFO A','LFO B']);
+  assert.deepEqual(sounds[0],readPreset(loud.preset));assert.deepEqual(sounds[2],readPreset(pcmLoud.preset));
+  assert.equal(quiet.preset.volume,3);assert.equal(pcmQuiet.preset.volume,2,'grouping does not scale or mutate canonical sample data');
+  assert.deepEqual(f.project.settings,settings);assert.equal(f.project.selectedPath,selection);assert.deepEqual(f.project.getCodeState(),codeState);assert.deepEqual(f.calls,[]);assert.deepEqual(f.opened,[]);
+  assert.equal(f.doc.getElementById('hucPresetSelect').children.length,8,'all seven saved sounds immediately enter the preset picker');
+  const exported=await f.files.exportProject(),restored=createHuc6280CodeProject();restored.restore(await restored.prepareImport(exported));
+  assert.deepEqual(restored.fs.get(result.songPath).data,raw);
+  for(const path of result.presetPaths)assert.deepEqual(readHuc6280ProjectSoundForTest(restored.fs.get(path).data),readHuc6280ProjectSoundForTest(f.project.fs.get(path).data));
+});
+
+function readHuc6280ProjectSoundForTest(data){return readPreset(JSON.parse(data));}
+
+test('VGM preset directories and voice files avoid case-folded files and folders without overwriting earlier imports',async t=>{
+  const f=fixture(t);await f.files.ready;
+  f.project.importFiles([{path:'/presets/SONG',data:'user file'},{path:'/vgm/SONG.VGM',type:'binary',data:Uint8Array.of(7)}]);
+  const one=await f.files.importVgm({name:'Song.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('noise','A/B'),extractedVoice('noise','A\\B')]});
+  assert.equal(one.songPath,'/vgm/Song (2).vgm');assert.equal(one.presetDirectory,'/presets/Song (2)');
+  assert.deepEqual(one.presetPaths,['/presets/Song (2)/A_B.huc6280.json','/presets/Song (2)/A_B (2).huc6280.json']);
+  const two=await f.files.importVgm({name:'song.vgm',bytes:Uint8Array.of(2),voices:[extractedVoice('wave','CON')]});
+  assert.equal(two.presetDirectory,'/presets/song (3)');assert.equal(two.presetPaths[0],'/presets/song (3)/_CON.huc6280.json');
+  assert.equal(f.project.fs.get('/presets/SONG').data,'user file');assert.deepEqual(f.project.fs.get('/vgm/SONG.VGM').data,Uint8Array.of(7));
+  assert.deepEqual(f.project.fs.get(one.songPath).data,Uint8Array.of(1));
+});
+
+test('VGM archive validation and cassette limits leave no source or partial preset files',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot();
+  const bad=extractedVoice('wave','Invalid');bad.preset.wave=[1];
+  await assert.rejects(f.files.importVgm({name:'invalid.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('wave','Valid'),bad]}),/exactly 32 samples/);
+  assert.deepEqual(f.project.snapshot(),before);
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(HUC6280_PROJECT_FILE_BYTES-100)}]);const full=f.project.snapshot();
+  await assert.rejects(f.files.importVgm({name:'full.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('wave','Sine')]}),/16 MiB/);
+  assert.deepEqual(f.project.snapshot(),full);
+});
+
+test('VGM archive cancellation, replacement and disposal during Code flush cannot insert late files',async t=>{
+  const f=fixture(t);await f.files.ready;const original=f.project.snapshot();let current=true;
+  const gate=deferred();f.files.setCodeControls({flush:()=>gate.promise,setBusy(){}});
+  const pending=f.files.importVgm({name:'cancelled.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('wave','Cancelled')]},{isCurrent:()=>current});
+  await new Promise(resolve=>setImmediate(resolve));current=false;gate.resolve();await assert.rejects(pending,{name:'AbortError'});assert.deepEqual(f.project.snapshot(),original);
+  const old=deferred();let flushes=0;f.files.setCodeControls({flush:async()=>{if(++flushes===1)await old.promise;},setBusy(){}});
+  const first=f.files.importVgm({name:'old.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('wave','Old')]});
+  await new Promise(resolve=>setImmediate(resolve));const latest=await f.files.importVgm({name:'latest.vgm',bytes:Uint8Array.of(2),voices:[extractedVoice('wave','Latest')]});old.resolve();
+  await assert.rejects(first,{name:'AbortError'});assert(f.project.fs.has(latest.songPath));assert(!f.project.fs.has('/vgm/old.vgm'));
+  const closing=deferred();let turns=0;f.files.setCodeControls({flush:async()=>{if(++turns===1)await closing.promise;},setBusy(){}});
+  const late=f.files.importVgm({name:'closed.vgm',bytes:Uint8Array.of(3),voices:[extractedVoice('wave','Closed')]});
+  await new Promise(resolve=>setImmediate(resolve));await f.files.dispose();closing.resolve();await assert.rejects(late,{name:'AbortError'});assert(!f.project.fs.has('/vgm/closed.vgm'));
+});
+
+test('song-only VGM import preserves compatibility and failed durable storage keeps exportable memory files',async t=>{
+  let fail=false;const f=fixture(t,{store:{read:async()=>null,write:async()=>{if(fail)throw Error('quota');return true;},close:async()=>{}}});await f.files.ready;fail=true;
+  const result=await f.files.importVgm({name:'silent.vgm',bytes:Uint8Array.of(1),voices:[]});
+  assert.deepEqual(result.presetPaths,[]);assert.equal(result.presetDirectory,null);assert.equal(result.persisted,false);
+  assert.deepEqual(f.project.fs.get(result.songPath).data,Uint8Array.of(1));assert.match(f.statuses.at(-1),/Local save unavailable.*export the project/);
+  const exported=await f.files.exportProject(),copy=createHuc6280CodeProject();copy.restore(await copy.prepareImport(exported));assert.deepEqual(copy.fs.get(result.songPath).data,Uint8Array.of(1));
+  assert.equal(await f.files.importSong(Uint8Array.of(9),'legacy.vgm',{announce:false}),'/vgm/legacy.vgm','existing importSong still returns a string');
+});
+
+test('workspace replacement during archive storage cannot publish old paths or roll back the new project',async t=>{
+  const durable=deferred(),started=deferred();let writes=0;
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>{if(++writes===1){started.resolve();await durable.promise;}return true;},close:async()=>{}}});await f.files.ready;
+  const pending=f.files.importVgm({name:'old.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('wave','Old')]});
+  await started.promise;assert(f.project.fs.has('/vgm/old.vgm'),'the old batch committed before its durable write yielded');
+  const fresh=createHuc6280CodeProject({starterCode:'// replacement project'});
+  assert(await f.files.importProject(fresh.exportProject()));
+  const latest=f.statuses.at(-1),snapshot=f.project.snapshot();durable.resolve();
+  await assert.rejects(pending,{name:'AbortError'});
+  assert.deepEqual(f.project.snapshot(),snapshot);assert.equal(f.statuses.at(-1),latest);assert.match(latest,/project imported/);
+  assert(!f.project.fs.has('/vgm/old.vgm'));assert.equal(f.project.fs.get('/index.js').data,'// replacement project');
+});
+
+test('archive cancellation during Code flush is also guarded by project replacement',async t=>{
+  const f=fixture(t);await f.files.ready;const gate=deferred(),begun=deferred();let flushes=0;
+  f.files.setCodeControls({flush:async()=>{if(++flushes===1){begun.resolve();await gate.promise;}},setBusy(){}});
+  const pending=f.files.importVgm({name:'late.vgm',bytes:Uint8Array.of(1),voices:[extractedVoice('wave','Late')]});
+  await begun.promise;const fresh=createHuc6280CodeProject({starterCode:'// latest project'});assert(await f.files.importProject(fresh.exportProject()));
+  const snapshot=f.project.snapshot();gate.resolve();await assert.rejects(pending,{name:'AbortError'});assert.deepEqual(f.project.snapshot(),snapshot);
 });
 
 test('saving a selected channel snapshot keeps the common sound, editor path and running Code untouched',async t=>{

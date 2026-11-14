@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+const {selectHucChannel,setHucLive}=require('./huc6280_channel_browser_helpers.cjs');
 // Original HuC6280 VGM / VGZ fixtures and the real WASM/audio route. No speaker
 // receives audio: intercept every destination before application JS, use gain 0,
 // and also launch Chromium with --mute-audio. This is not a listening test.
@@ -102,7 +103,7 @@ const view=page=>page.evaluate(()=>({tools:{...document.querySelector('#hucCodeL
   left:Number(document.querySelector('#panLeft').textContent),right:Number(document.querySelector('#panRight').textContent),noise:Number(document.querySelector('#noiseFrequency').textContent),
   lfo:document.querySelector('#lfoEnabled').checked,lfoRate:Number(document.querySelector('#lfoFrequency').textContent),
   status:document.querySelector('#hucChannelStatus').textContent,readout:document.querySelector('#hucChannelReadout').textContent,wave:__hucSongAudit.wave()}));
-async function channel(page,value){await page.locator('#hucChannelSelect').selectOption(String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
+async function channel(page,value){await selectHucChannel(page,String(value));await until(()=>view(page).then(v=>v.channel===String(value)&&v.tools.channel===String(value)),'view '+value);}
 async function releaseCode(page){await page.locator('#synthCodeStopButton').click();await until(()=>page.locator('#synthCodeState').textContent().then(text=>/Stopped|Idle/.test(text)),'Code Stop');await pcm(page,false);}
 
 async function check(browser,name,origin,fixture){
@@ -119,6 +120,21 @@ async function check(browser,name,origin,fixture){
     assert(await page.locator('#hucCodeLiveTools').isVisible());assert.equal(await page.locator('#hucChannelSelect').inputValue(),'synth');
     assert.equal((await page.locator('#hucChannelSelect option[value="synth"]').textContent()).trim(),'Auto');assert(await page.locator('#hucLiveEnabled').isChecked());assert.equal(await page.locator('#hucChannelSelect option').count(),7);assert.equal((await graph(page)).contexts,0);
     assert.equal((await view(page)).tools.context,'synth');assert.match(await page.locator('#lfoCarrierPeriodLabel').textContent(),/CH1 period at C4/);
+    step('Nested channel tabs use pointer and keyboard navigation, retain the selected HuC channel through other sources, and never initialize audio');
+    assert(await page.locator('#hucChannelSelect').isHidden());assert.equal(await page.locator('#hucChannelTabs [role="tab"]').count(),7);
+    assert.deepEqual(await page.locator('#hucChannelTabs [role="tab"]').allTextContents(),['Auto','CH1','CH2','CH3','CH4','CH5','CH6']);
+    await channel(page,2);assert.equal(await page.locator('#hucChannel3Tab').getAttribute('aria-selected'),'true');assert.equal(await page.locator('#hucChannel3Tab').evaluate(node=>node.ownerDocument.activeElement===node),false,'pointer selection releases typing focus');
+    await page.locator('#hucChannel3Tab').focus();await page.keyboard.press('ArrowRight');await until(()=>view(page).then(v=>v.channel==='3'),'ArrowRight chooses CH4');
+    assert.equal(await page.locator('#hucChannel4Tab').getAttribute('aria-selected'),'true');assert.equal(await page.locator('#hucChannel4Tab').evaluate(node=>node.ownerDocument.activeElement===node),true);
+    await page.keyboard.press('Home');await until(()=>view(page).then(v=>v.channel==='synth'),'Home chooses Auto');await page.keyboard.press('End');await until(()=>view(page).then(v=>v.channel==='5'),'End chooses CH6');
+    for(const [chip,single,label]of [['msm5205','#msm5205ChannelTab','CH1'],['cdda','#cddaChannelTab','Stereo']]){
+      await page.locator('[data-huc-chip-tab="'+chip+'"]').click();assert(await page.locator('#hucCodeLiveTools').isHidden());assert(await page.locator(single).isVisible());assert.equal(await page.locator(single).textContent(),label);assert.equal(await page.locator(single).getAttribute('aria-selected'),'true');assert.equal(await page.locator('#hucChannelSelect').inputValue(),'5');
+    }
+    await page.locator('[data-huc-chip-tab="mixer"]').click();assert(await page.locator('#hucCodeLiveTools').isHidden());assert(await page.locator('#msm5205ChannelTools').isHidden());assert(await page.locator('#cddaChannelTools').isHidden());
+    // The same action helper must use visible tabs and return to Mixer, rather
+    // than silently manipulating the compatibility select in a hidden panel.
+    await channel(page,2);assert.equal(await page.locator('[data-huc-chip-tab="mixer"]').getAttribute('aria-selected'),'true');
+    await page.locator('[data-huc-chip-tab="huc6280"]').click();assert.equal(await page.locator('#hucChannel3Tab').getAttribute('aria-selected'),'true');await channel(page,'synth');assert.equal((await graph(page)).contexts,0);
     await page.locator('#startAudio').click();await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'author Worklet ready');
     const original=(await read(page)).preset;
 
@@ -186,10 +202,10 @@ async function check(browser,name,origin,fixture){
     assert(!(await page.evaluate(()=>__hucSongAudit.drain())).some(cmd=>['noteOn','noteOff','setPreset','loadPreset','applyEditorEdit','applyCodeEdit'].includes(cmd.method)),'VGM observation never writes author chip');assert.deepEqual((await read(page)).preset,author);
 
     step('Auto Off freezes the entire six-CH snapshot across channel changes; On catches up, and Synth can audition while source stays paused');
-    await channel(page,0);await page.locator('#hucLiveEnabled').uncheck();const frozenView=await view(page);await play(page);
+    await channel(page,0);await setHucLive(page,false);const frozenView=await view(page);await play(page);
     await until(()=>state(page).then(v=>v.frame>132300),'song advances past later changes');await channel(page,2);await until(()=>view(page).then(v=>v.volume===22),'frozen CH3 snapshot');
     await channel(page,0);assert.equal((await view(page)).volume,7);assert.equal(Number((await view(page)).editor.positionFrames),Number(frozenView.editor.positionFrames));
-    await page.locator('#hucLiveEnabled').check();await until(()=>view(page).then(v=>v.volume===20&&Number(v.editor.period)===333),'Auto catches up');await channel(page,2);await until(()=>view(page).then(v=>v.volume===13),'Auto catches current CH3');
+    await setHucLive(page,true);await until(()=>view(page).then(v=>v.volume===20&&Number(v.editor.period)===333),'Auto catches up');await channel(page,2);await until(()=>view(page).then(v=>v.volume===13),'Auto catches current CH3');
     await pause(page);const auditionFrame=(await state(page)).frame;await channel(page,'synth');await until(()=>view(page).then(v=>v.editor.readonly==='false'),'paused common editor');
     assert.equal((await view(page)).volume,author.volume);await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();await page.keyboard.down(key);await pcm(page);await page.keyboard.up(key);await pcm(page,false);
     assert.equal((await state(page)).frame,auditionFrame);assert.deepEqual((await read(page)).preset,author);await channel(page,5);assert.equal((await view(page)).editor.readonly,'false');
@@ -200,6 +216,12 @@ async function check(browser,name,origin,fixture){
     for(const width of[1240,390]){await page.setViewportSize({width,height:1050});await page.locator('#hucCodeLiveTools').scrollIntoViewIfNeeded();
       const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#hucCodeLiveTools select,#hucCodeLiveTools input,#hucSongPlayer select,#hucSongPlayer button')].map(node=>({id:node.id,left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));
       assert(bounds.scroll<=width+1,'Live layout fits '+width);assert(bounds.controls.every(item=>item.left>=-1&&item.right<=width+1));measurements['layout'+width]=bounds;
+      const tabs=page.locator('#hucChannelTabs'),tabBounds=await tabs.boundingBox();assert(tabBounds&&tabBounds.x>=-1&&tabBounds.x+tabBounds.width<=width+1,'channel scroller fits '+width);
+      for(const tab of await tabs.locator('[role="tab"]').all()){
+        await tab.scrollIntoViewIfNeeded();const box=await tab.boundingBox();assert(box&&box.x>=tabBounds.x-1&&box.x+box.width<=tabBounds.x+tabBounds.width+1,'every child tab can be brought into view');
+      }
+      await page.locator('#hucChannel6Tab').scrollIntoViewIfNeeded();assert.equal(await page.locator('#hucChannel6Tab').getAttribute('aria-selected'),'true');
+
       await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});}
     measurements.graph=await graph(page);assert.equal(measurements.graph.contexts,1);assert.equal(measurements.graph.editorWorklets,1);assert.equal(measurements.graph.destinationConnections,1);assert(measurements.graph.muted);
     await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pagehide')));await until(()=>graph(page).then(v=>v.runningContexts===0&&v.liveSources===0),'pagehide retires route');

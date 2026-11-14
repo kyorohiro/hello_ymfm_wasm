@@ -5,6 +5,7 @@ import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installHuc6280FileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
 import {createHuc6280CodeProject,createHuc6280ProjectStore,readHuc6280ProjectSound,isHuc6280CodePath,isHuc6280TextPath,isHuc6280SongPath,HUC6280_PROJECT_MANIFEST,HUC6280_PROJECT_CODE_LENGTH,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-cdda-ui-1';
 import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
+import {mergeVgmVolumeVariants} from './vgm_pcm_variants.js';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -38,6 +39,16 @@ function importedSongPath(filename,used){
   if(!extension)throw Error('Choose a .vgm or .vgz reference song.');
   let index=1,path=`/vgm/${stem}${extension}`;
   while(used.has(foldedPath(path)))path=`/vgm/${stem} (${++index})${extension}`;
+  used.add(foldedPath(path));return path;
+}
+function importedPresetDirectory(filename,used){
+  const stem=soundFileStem(filename,/\.vg[mz]$/i);let index=1,path='/presets/'+stem;
+  while(used.has(foldedPath(path)))path=`/presets/${stem} (${++index})`;
+  used.add(foldedPath(path));return path;
+}
+function importedVoicePath(directory,sound,used){
+  const stem=soundFileStem(sound.name);let index=1,path=`${directory}/${stem}.huc6280.json`;
+  while(used.has(foldedPath(path)))path=`${directory}/${stem} (${++index}).huc6280.json`;
   used.add(foldedPath(path));return path;
 }
 const foldedPath=path=>path.normalize('NFC').toLowerCase();
@@ -199,6 +210,45 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
     if(path&&announce)say(`Reference song saved to ${path}. Press Play in the song player; current instrument and Code are kept.`);
     return path;
   }
+  /** Archive one validated VGM and its detached, loudest-volume instruments.
+   * Prepare and validate the entire candidate before one synchronous FS commit;
+   * saving never applies a sound or changes the editor/keyboard selection. */
+  async function importVgm({bytes:data,name,voices=[]},{isCurrent=()=>true,signal,announce=true}={}){
+    if(typeof announce!=='boolean')throw TypeError('Import announcement must be boolean.');
+    if(disposed||!isCurrent()||signal?.aborted)return null;
+    if(typeof name!=='string'||!/\.vg[mz]$/i.test(name))throw Error('Choose a .vgm or .vgz reference song.');
+    if(!(data instanceof ArrayBuffer)&&!ArrayBuffer.isView(data))throw TypeError('Reference song data must be binary bytes.');
+    if(!Array.isArray(voices))throw TypeError('Extracted VGM sounds must be an array.');
+    const source=data instanceof ArrayBuffer?new Uint8Array(data):new Uint8Array(data.buffer,data.byteOffset,data.byteLength);
+    if(source.byteLength>16*1024*1024)throw Error('Reference song exceeds the 16 MiB project file limit. It can still be extracted directly with Import VGM.');
+    const bytes=source.slice(),sounds=mergeVgmVolumeVariants(voices).map(voice=>{
+      const sound=readHuc6280ProjectSound(voice.preset);if(!sound)throw Error('Expected a HuC6280 instrument.');return sound;
+    });
+    await api.ready;if(disposed||busy||!isCurrent()||signal?.aborted)return null;
+    const token=++operation,workspace=identity,current=()=>!disposed&&token===operation&&workspace===identity&&isCurrent()&&!signal?.aborted;
+    const ensureCurrent=()=>{if(!current())throw Object.assign(Error('VGM archive was superseded.'),{name:'AbortError'});};
+    await code?.flush?.();ensureCurrent();
+    const candidate=createHuc6280CodeProject({snapshot:project.snapshot()}),used=new Set([...candidate.listEntries().map(file=>file.path),...candidate.fs.listDirectories()].map(foldedPath));
+    const songPath=importedSongPath(name,used),presetDirectory=sounds.length?importedPresetDirectory(name,used):null;
+    const entries=[{path:songPath,type:'binary',data:bytes}],presetPaths=[];
+    for(const sound of sounds){
+      const path=importedVoicePath(presetDirectory,sound,used);presetPaths.push(path);
+      entries.push({path,type:'text',data:JSON.stringify(sound,null,2)+'\n'});
+    }
+    candidate.importFiles(entries);ensureCurrent();
+    // Only the filesystem changes. Host settings, Code state and selected file
+    // can keep evolving while the asynchronous durable save is in progress.
+    project.fs.restore(candidate.fs.snapshot());
+    for(const path of [songPath,...presetPaths])reveal(path);render();
+    const persisted=await persistCode();
+    // The commit is not rolled back if a new import or project replacement
+    // wins during durable storage. Its old paths must not be reported as the
+    // result for the new workspace or overwrite that operation's status.
+    ensureCurrent();
+    const result={songPath,presetPaths,presetDirectory,keepLoudestVolume:true,persisted};
+    if(announce&&current())say(`Reference song saved to ${songPath}; ${presetPaths.length} preset(s) saved${presetDirectory?' to '+presetDirectory:''}.${persisted===false?' Local save unavailable; export the project to keep these files.':''} Current instrument and Code are kept.`);
+    return result;
+  }
   async function importProject(bytes){
     await api.ready;if(disposed||busy)return false;const token=++operation;
     const candidate=await project.prepareImport(bytes);if(disposed||token!==operation)return false;
@@ -312,7 +362,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importSong,importProject,exportProject,createFile,move,duplicate,remove,saveSound,addExamples,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importSong,importVgm,importProject,exportProject,createFile,move,duplicate,remove,saveSound,addExamples,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

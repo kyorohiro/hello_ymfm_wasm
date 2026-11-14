@@ -6,6 +6,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const {gzipSync} = require('node:zlib');
+const {pathToFileURL} = require('node:url');
 
 // Self-authored register sequences; no commercial game files or recordings.
 const vgmWave = Array.from({length:32},(_,i)=>i<8?31:i<16?3:i<24?20:8);
@@ -93,6 +94,21 @@ for (let i = 2; i < process.argv.length; i++) {
 const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm':'application/wasm',
   '.json':'application/json','.webp':'image/webp','.png':'image/png'};
 
+async function exportProject(page) {
+  const shown=await page.locator('#hucFilesPanel').isVisible();
+  if(!shown)await page.locator('#hucFilesToggle').click();
+  await page.locator('#hucFileImportButton').waitFor({state:'attached'});
+  if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();
+  const pending=page.waitForEvent('download');await page.locator('#hucProjectExportButton').click();
+  const download=await pending,bytes=await fs.readFile(await download.path());
+  if(!shown)await page.locator('#hucFilesToggle').click();
+  const {loadPlaygroundCassette}=await import(pathToFileURL(path.join(__dirname,'../docs/playground/playground_cassette.js')).href);
+  return{bytes,project:await loadPlaygroundCassette(bytes)};
+}
+function presetEntries(project) {
+  return [...project.files].filter(([name])=>name.startsWith('presets/')&&/\.huc6280\.json$/i.test(name));
+}
+
 async function checkEngine(name, engine, origin) {
   const browser = await engine.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})});
   const errors = [], failed = [], external = [], checks = [],heldWaveEdits=[];
@@ -177,7 +193,7 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#synthMenuButton').click();
     assert(await page.locator('#loadVgm').isVisible());
     await page.locator('#synthMenuButton').click();
-    assert.equal(await page.locator('#vgmKeepLoudestPcm').isChecked(),false);
+    assert.equal(await page.locator('#vgmKeepLoudestPcm').isChecked(),true);
     await page.locator('#vgmFileInput').setInputFiles({name:'original-pce.vgm',mimeType:'application/octet-stream',buffer:makeVgm()});
     await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
@@ -565,9 +581,39 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.down(c4);await wait(s=>s.voices.length===1);await page.locator('#stopAudio').click();
     await wait(s=>s.voices.length===0);await silent();await page.keyboard.up(c4);
     if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-dda-1180.png`),fullPage:true});
+    check('VGM import saves actual loudest Wave/PCM presets with exact data and source bytes, independently of the reversible list option');
+    const beforeImport=await exportProject(page),priorPaths=new Set(beforeImport.project.files.keys());
+    const beforeImportPreset=(await read()).preset,originalSelection=await page.locator('#hucFilesSelected').textContent(),originalMode=await page.locator('#synthInputSection').getAttribute('data-input-mode');
+    const importBytes=makePcmVolumeVariantsVgm();
+    await page.locator('#vgmKeepLoudestPcm').check();
+    await page.locator('#vgmFileInput').setInputFiles({name:'volume-variants.vgm',mimeType:'application/octet-stream',buffer:importBytes});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='volume-variants.vgm'&&document.querySelector('#vgmLibrary').dataset.loading==='false');
+    assert.match(await page.locator('#vgmStatus').textContent(),/6 preset\(s\) saved to \/presets\/volume-variants/);
+    assert.equal(await page.locator('[data-vgm-voice]').count(),6);
+    assert.deepEqual((await read()).preset,beforeImportPreset);assert.equal(await page.locator('#hucFilesSelected').textContent(),originalSelection);assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),originalMode);
+    const groupedProject=await exportProject(page),added=presetEntries(groupedProject.project).filter(([file])=>!priorPaths.has(file));
+    assert.equal(added.length,6);assert(added.every(([file])=>file.startsWith('presets/volume-variants/')));
+    assert.deepEqual(Buffer.from(groupedProject.project.files.get('vgm/volume-variants.vgm')),importBytes);
+    const sounds=added.map(([file,bytes])=>({file,preset:JSON.parse(Buffer.from(bytes).toString('utf8'))})),pcmSounds=sounds.filter(x=>x.preset.source==='dda'),waveSounds=sounds.filter(x=>x.preset.source==='wave');
+    assert.equal(pcmSounds.length,3);assert.equal(waveSounds.length,3);
+    for(const {preset}of pcmSounds){assert.equal(preset.volume,27);assert.deepEqual(Buffer.from(preset.dda.data,'base64'),Buffer.from(streamPcm.map(value=>value&31)));assert.equal(preset.envelope.enabled,false);}
+    assert.deepEqual(pcmSounds.map(x=>[x.preset.pan.left,x.preset.pan.right,x.preset.dda.sampleRate]).sort(),[[12,11,7000],[12,11,8000],[11,13,7000]].sort());
+    for(const {preset}of waveSounds)assert.equal(preset.volume,24);
+    assert.equal(waveSounds.filter(x=>JSON.stringify(x.preset.wave)===JSON.stringify(vgmWave)).length,2);
+    assert.equal(waveSounds.filter(x=>JSON.stringify(x.preset.wave)===JSON.stringify(secondWave)).length,1);
+    await page.locator('#vgmKeepLoudestPcm').uncheck();
+    const rawViewProject=await exportProject(page);assert.deepEqual(presetEntries(rawViewProject.project),presetEntries(groupedProject.project),'changing the list option never changes saved preset data');
+    // Repeat with the visible grouping option Off: disk presets still use the
+    // requested loudest policy and preserve every earlier file byte-for-byte.
+    await page.locator('#vgmFileInput').setInputFiles({name:'volume-variants.vgm',mimeType:'application/octet-stream',buffer:importBytes});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&/\/presets\/volume-variants \(2\)/.test(document.querySelector('#vgmStatus').textContent));
+    const repeated=await exportProject(page);
+    for(const [file,bytes]of groupedProject.project.files)assert.deepEqual(repeated.project.files.get(file),bytes,'repeat import keeps '+file);
+    const repeatedPresets=presetEntries(repeated.project).filter(([file])=>!groupedProject.project.files.has(file));
+    assert.equal(repeatedPresets.length,6);assert(repeatedPresets.every(([file])=>file.startsWith('presets/volume-variants (2)/')));
+    assert.deepEqual(repeatedPresets.map(([,bytes])=>JSON.parse(Buffer.from(bytes).toString('utf8'))),added.map(([,bytes])=>JSON.parse(Buffer.from(bytes).toString('utf8'))));
+    assert.deepEqual(Buffer.from(repeated.project.files.get('vgm/volume-variants (2).vgm')),importBytes);
     check('optional loudest PCM grouping preserves different pan/rates and never changes a held sound');
-    await page.locator('#vgmFileInput').setInputFiles({name:'volume-variants.vgm',mimeType:'application/octet-stream',buffer:makePcmVolumeVariantsVgm()});
-    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='volume-variants.vgm');
     assert.equal(await page.locator('[data-vgm-voice]').count(),9);
     await page.locator('[data-vgm-filter="pcm"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),5);
     await page.locator('[data-vgm-voice="1"]').click();state=await wait(s=>s.preset.source==='dda'&&s.preset.volume===12);

@@ -39,7 +39,16 @@ function installSilentAudit(){
   CanvasRenderingContext2D.prototype.stroke=function(...args){if(this.canvas.id==='waveCanvas'&&this.strokeStyle==='#c6dd95'){
     const points=paths.get(this);if(points?.length===64)lastWave=Array.from({length:32},(_,i)=>Math.round((this.canvas.height-25-points[i*2][1])/(this.canvas.height-43)*15));
   }return stroke.apply(this,args);};
-  const arrayBuffer=File.prototype.arrayBuffer;File.prototype.arrayBuffer=async function(){if(this.name==='slow.vgm')await new Promise(resolve=>setTimeout(resolve,500));return arrayBuffer.call(this);};
+  // Keep the actual read pending until the real Cancel interaction completes.
+  // A fixed delay races WebKit's menu layout/actionability checks on CI.
+  let releaseSlowRead=null;
+  const slowRead={pending:false,completed:false,release(){if(!releaseSlowRead)throw Error('Slow file read is not pending');const release=releaseSlowRead;releaseSlowRead=null;release();}};
+  window.__dmgSlowFileRead=slowRead;
+  const arrayBuffer=File.prototype.arrayBuffer;File.prototype.arrayBuffer=async function(){
+    if(this.name!=='slow.vgm')return arrayBuffer.call(this);
+    slowRead.pending=true;await new Promise(resolve=>{releaseSlowRead=resolve;});
+    const bytes=await arrayBuffer.call(this);slowRead.completed=true;return bytes;
+  };
   async function read(method='read'){
     const node=nodes.findLast(item=>item.name==='tetorica-gameboy-synth')?.node;if(!node)throw Error('DMG editor Worklet missing');const id=--sequence;
     return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{node.port.removeEventListener('message',receive);reject(Error('DMG audit read timed out'));},5000);
@@ -97,8 +106,19 @@ async function check(browser,name,origin,fixture,loadCassette){
     await until(()=>page.locator('#vgmStatus').textContent().then(value=>/failed|extraction:/i.test(value)),'invalid input reported');
     assert.equal(await page.locator('#dmgSongSelect').inputValue(),'/vgm/reference.vgm');
     await page.locator('#vgmFileInput').setInputFiles({name:'slow.vgm',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.bytes)});
+    await page.waitForFunction(()=>__dmgSlowFileRead.pending);
+    // Deliberately exceed the old 500 ms window: cancellation must still be
+    // available while the underlying file read is unresolved.
+    await wait(650);assert.equal(await page.evaluate(()=>__dmgSlowFileRead.completed),false);
     if(!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();
-    await page.locator('#cancelVgm').click();await wait(650);assert.equal(await page.locator('#dmgSongSelect option[value="/vgm/slow.vgm"]').count(),0);
+    await page.locator('#cancelVgm').click();
+    assert.match(await page.locator('#vgmStatus').textContent(),/cancelled/i);
+    await page.evaluate(()=>__dmgSlowFileRead.release());await page.waitForFunction(()=>__dmgSlowFileRead.completed);
+    assert.equal(await page.locator('#dmgSongSelect option[value="/vgm/slow.vgm"]').count(),0);
+    const afterCancel=await loadCassette(await download(page,'#dmgProjectExportButton'));
+    assert(!afterCancel.files.has('vgm/slow.vgm'));
+    assert(![...afterCancel.files.keys()].some(path=>/^presets\/slow(?:\/|$)/.test(path)),'cancelled reads cannot save late presets');
+    measurements.cancelledRead={heldBeyondOldTimeout:true,sourceSaved:false,presetsSaved:false};
     assert.equal((await page.evaluate(()=>__dmgSongAudit.graph())).contexts,0);
     await page.locator('#startAudio').click();await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'author APU');
     const author=await read(page);await page.locator('#dmgFilesToggle').click();

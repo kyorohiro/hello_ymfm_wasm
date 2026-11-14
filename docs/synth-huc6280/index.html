@@ -74,18 +74,6 @@
           <label class="huc-song-cache-toggle"><input id="hucSongCacheEnabled" type="checkbox" checked>Cache</label>
         </div>
         <p id="hucSongStatus" class="subtext" role="status">Add a VGM / VGZ to hear a reference performance.</p>
-        <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Channel controls">
-          <div class="spu-code-live-row">
-            <label>Channel <select id="hucChannelSelect" aria-label="Auto or physical channel"><option value="synth" selected>Auto</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
-            <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
-            <button id="hucSongCaptureButton" type="button" disabled hidden>Copy to Auto</button>
-            <button id="hucSaveSelectedPreset" type="button" disabled>Save to presets</button>
-            <details id="hucChannelHelp" class="spu-code-help huc-inline-help"><summary aria-label="About channel controls">?</summary><p>Auto edits your common instrument and allocates keyboard notes by round robin. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 edit hardware and use keys on that same reference chip. Already-generated audio is kept, and the controls follow the heard position. Software Envelope and PCM assets belong to Auto. DDA level and balance are editable, but its transient DAC value is not a keyboard sample; Pause freezes the song position while the selected CH remains individually editable. The keyboard auditions its known Wave, Noise or CH1 LFO pair through the same Master. Copy to Auto copies that configured sound into Auto, keeping the song paused. Save to presets stores the selected sound under Files/presets/ without changing the current view or song position. A transient DDA value or unknown Wave RAM cannot be saved as a playable sound. Auto update follows at up to 20 times per second, and Off retains the last observation. Manual edits still get one update when their audio boundary is heard. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p><p id="hucChannelReadout" class="subtext"></p><p id="hucSongCaptureInfo" class="subtext"></p></details>
-          </div>
-          <p id="hucChannelStatus" class="subtext" role="status"></p>
-          <p id="hucSongCaptureStatus" class="subtext" role="status" hidden></p>
-        </section>
-
       </section>
       <details id="vgmImport" class="huc-card huc-vgm-import">
         <summary>Sounds from VGM</summary>
@@ -95,9 +83,9 @@
             <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Import a VGM from Menu, then choose a sound.</p>
           </div>
           <div class="huc-vgm-option-row">
-            <label class="huc-vgm-option"><input id="vgmKeepLoudestPcm" type="checkbox">Wave / PCM: keep loudest volume variant</label>
+            <label class="huc-vgm-option"><input id="vgmKeepLoudestPcm" type="checkbox" checked>Wave / PCM: keep loudest volume variant</label>
             <details id="hucVgmImportHelp" class="spu-code-help huc-inline-help"><summary aria-label="About sounds from VGM">?</summary>
-              <p class="subtext">Groups Wave or PCM sounds with identical data and settings, keeping the highest channel volume. Turn off to show every volume variant.</p>
+              <p class="subtext">Groups Wave or PCM sounds with identical data and settings, keeping the highest channel volume. Turn off to show every volume variant. Import saves grouped sounds to Files/presets/&lt;song&gt;/. This switch changes the library list; saved presets stay grouped.</p>
               <p class="subtext">Opening a file keeps the current instrument. Select a sound to load it, then edit its settings or save a preset. Software Envelope is off for imported sounds.</p>
               <p class="subtext">Imports recorded Wave / Noise settings, complete CH1 + CH2 LFO pairs, supported PCM DAC streams and uniform direct DAC intervals with known boundaries. C4 plays the recorded LFO carrier pitch or PCM rate; LFO CH2 keeps its original period. Direct DAC imports are one-shots; Loop and the original note pitch are not inferred. Song timing, elapsed phase and later software envelopes are not replayed. Irregular or incomplete DAC intervals, unsupported streams and unknown settings are omitted with an explanation.</p>
             <p id="vgmWarnings" class="subtext huc-vgm-warnings" hidden></p>
@@ -127,6 +115,33 @@
         <button id="mixerChipTab" type="button" role="tab" data-huc-chip-tab="mixer" aria-controls="mixerChipPanel" aria-selected="false" tabindex="-1">Mixer</button>
       </div>
 
+      <section id="hucCodeLiveTools" class="spu-code-live-tools huc-channel-controls" aria-label="HuC6280 channel controls">
+        <div class="spu-code-live-row">
+          <select id="hucChannelSelect" aria-label="Auto or physical channel" hidden aria-hidden="true" tabindex="-1"><option value="synth" selected>Auto</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select>
+          <div id="hucChannelTabs" class="huc-channel-tabs" role="tablist" aria-label="HuC6280 keyboard and parameter channel">
+            <button id="hucChannelAutoTab" type="button" role="tab" data-huc-channel="synth" aria-selected="true" aria-controls="voiceEditor">Auto</button>
+            <button id="hucChannel1Tab" type="button" role="tab" data-huc-channel="0" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH1</button>
+            <button id="hucChannel2Tab" type="button" role="tab" data-huc-channel="1" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH2</button>
+            <button id="hucChannel3Tab" type="button" role="tab" data-huc-channel="2" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH3</button>
+            <button id="hucChannel4Tab" type="button" role="tab" data-huc-channel="3" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH4</button>
+            <button id="hucChannel5Tab" type="button" role="tab" data-huc-channel="4" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH5</button>
+            <button id="hucChannel6Tab" type="button" role="tab" data-huc-channel="5" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH6</button>
+          </div>
+          <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
+          <button id="hucSongCaptureButton" type="button" disabled hidden>Copy to Auto</button>
+          <button id="hucSaveSelectedPreset" type="button" disabled>Save to presets</button>
+          <details id="hucChannelHelp" class="spu-code-help huc-inline-help"><summary aria-label="About channel controls">?</summary><p>Auto edits your common instrument and allocates keyboard notes by round robin. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 edit hardware and use keys on that same reference chip. Already-generated audio is kept, and the controls follow the heard position. Software Envelope and PCM assets belong to Auto. DDA level and balance are editable, but its transient DAC value is not a keyboard sample; Pause freezes the song position while the selected CH remains individually editable. The keyboard auditions its known Wave, Noise or CH1 LFO pair through the same Master. Copy to Auto copies that configured sound into Auto, keeping the song paused. Save to presets stores the selected sound under Files/presets/ without changing the current view or song position. A transient DDA value or unknown Wave RAM cannot be saved as a playable sound. Auto update follows at up to 20 times per second, and Off retains the last observation. Manual edits still get one update when their audio boundary is heard. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p><p id="hucChannelReadout" class="subtext"></p><p id="hucSongCaptureInfo" class="subtext"></p></details>
+        </div>
+        <p id="hucChannelStatus" class="subtext" role="status"></p>
+        <p id="hucSongCaptureStatus" class="subtext" role="status" hidden></p>
+      </section>
+      <div id="msm5205ChannelTools" class="huc-single-channel-controls" data-huc-channel-tools="msm5205" hidden>
+        <div class="huc-channel-tabs" role="tablist" aria-label="MSM5205 channel"><button id="msm5205ChannelTab" type="button" role="tab" aria-selected="true" aria-controls="msm5205Controls" data-huc-single-channel>CH1</button></div>
+      </div>
+      <div id="cddaChannelTools" class="huc-single-channel-controls" data-huc-channel-tools="cdda" hidden>
+        <div class="huc-channel-tabs" role="tablist" aria-label="CD-DA output"><button id="cddaChannelTab" type="button" role="tab" aria-selected="true" aria-controls="cddaControls" data-huc-single-channel>Stereo</button></div>
+      </div>
+
       <section class="spu-monitor huc-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
@@ -148,11 +163,11 @@
       <div id="huc6280ChipPanel" role="tabpanel" aria-labelledby="huc6280ChipTab" data-huc-chip-panel="huc6280">
       <section class="instrument-workspace huc-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Wavetable · 6 voices · round robin</p></div>
-        <div id="voiceEditor"></div>
+        <div id="voiceEditor" role="tabpanel" aria-labelledby="hucChannelAutoTab"></div>
       </section>
 
       <section class="instrument-toolbar" aria-label="Instrument files">
-        <label class="instrument-name-control" for="hucPresetSelect">Preset <select id="hucPresetSelect" aria-label="HuC6280 presets in Files"><option value="">No playable presets</option></select></label>
+        <label class="instrument-preset-control" for="hucPresetSelect">Preset <select id="hucPresetSelect" aria-label="HuC6280 presets in Files"><option value="">No playable presets</option></select></label>
         <button id="saveSoundToFiles" type="button">Save to Files</button>
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
         <div class="preset-actions">
@@ -167,7 +182,7 @@
 
       </div>
       <section id="msm5205ChipPanel" class="huc-msm-panel" role="tabpanel" aria-labelledby="msm5205ChipTab" data-huc-chip-panel="msm5205" hidden>
-        <div id="msm5205Controls">
+        <div id="msm5205Controls" role="tabpanel" aria-labelledby="msm5205ChannelTab">
           <div class="section-heading"><h2>MSM5205 ADPCM</h2><output id="msmSourceState" role="status">Empty</output></div>
           <p class="huc-help">PC Engine-style sample player · software transport controls</p>
           <div class="huc-msm-files">
@@ -200,7 +215,7 @@
         </div>
       </section>
       <section id="cddaChipPanel" class="huc-cdda-panel" role="tabpanel" aria-labelledby="cddaChipTab" data-huc-chip-panel="cdda" hidden>
-        <div id="cddaControls">
+        <div id="cddaControls" role="tabpanel" aria-labelledby="cddaChannelTab">
           <div class="section-heading"><h2>CD-DA</h2><output id="cddaSourceState" role="status">Empty</output></div>
           <p class="huc-help">Audio tracks · software transport · 44.1 kHz stereo PCM16 WAV</p>
           <div class="huc-cdda-files">

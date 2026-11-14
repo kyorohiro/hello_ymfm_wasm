@@ -68,3 +68,79 @@ failure was run `43570789090`. Latest SDK, npm, VGM, SBI and Pages runs succeede
 These outcomes predate the local fixes; remote success is still pending a new push.
 After the new CI runs pass, continue the remaining Tauri item in
 [HuC6280 completion TODO](todo_huc6280_synth_finish_01.md).
+
+## Follow-up after push 8e5adcb0
+
+- [x] DMG Node tests now pass in run `43575632560`.
+- [x] Fix its subsequent WebKit cancellation-check race. The fake `slow.vgm`
+      read finished after a fixed 500 ms before Playwright could click the real
+      Cancel button. Hold that test read until cancellation is clicked, then
+      release it and verify no source/preset files were committed.
+- [x] Verify that actual-package song browser check in both browsers, muted.
+- [x] HuC run `43575632499`: investigate the later WebKit MSM5205
+      `held native RAM transfer` timeout; the previous shared-FX check now passes.
+- [x] HuC local regression: compare a fixed complete PCM span across Seek,
+      rather than assuming cooperative parser slices always return equal-sized
+      first buffers. Force a budget yield and preserve exact sample equality.
+- [x] itch run `43575632531`: coherent RF5C164 lookahead now passes, but the
+      later WebKit initial/native RMS comparison fails. Inspect its actual
+      output window and scheduled buffers before changing measurement or playback.
+- [x] Verify the corresponding scheduled-PCM/output window comparison in both
+      browsers, with independent native-copy/rate/clock/overlap checks and the
+      original RMS/peak/Master bounds. Keep failed diagnostic receipts.
+
+This is a checker synchronization fix; keep real user input and all original
+cancellation/PCM assertions. HuC6280 UI/import work is tracked separately in
+[the current TODO](todo_huc6280_synth_import_presets_tabs_01.md).
+
+DMG's actual-package check now passes 14 Chromium/WebKit groups. The read remains
+held past the previous 500 ms deadline until the real Cancel click, then settles
+without late source or preset files.
+
+The MSM artifact confirms that Stop safely retired an endpoint with a pending
+state read: the subsequent file load correctly updated host RAM with no native
+upload. The checker now awaits real Play and asserts one connected MSM endpoint
+before holding its next transfer. All 14 groups pass in both browsers; the
+20-second RPC timeout, strict held-count and PCM bounds remain unchanged.
+
+The Seek test now compares every sample in the same 1024-frame stereo interval.
+A forced budget yield gives prime buffers of 108 and 256 frames; their differently
+partitioned continuations still match exactly. The former whole-buffer assertion
+fails on that same forced split. The final HuC Node suite passes 558 tests.
+
+The new RF artifact has output/native RMS ratio 0.653566 and peak ratio 1.0,
+with no past starts or overlapping buffers. Its 8192-frame device window
+contains a real refill gap, while the old native reference is a contiguous
+future window. Capture exact output frames with a passive AudioWorklet and
+reconstruct that same scheduled window, including gaps, with OfflineAudioContext.
+Verify the original native PCM independently against every scheduled sample,
+and reject incorrect rates, missing/duplicate frames and discontinuous capture
+clocks. This changes measurement only; real main-thread starvation can still
+leave silent gaps, as recorded separately from calibration gain.
+
+Working evidence: `build/huc6280-import-tabs-20261114/pcm-ci-window-analysis.json`
+and `pcm-window-diagnostic.json`. The controlled diagnostic contains about 78 ms
+of gap; unity gain compares near 1.0 and doubled gain is rejected near 2.0.
+The initial full-app capture attempt stopped before recording because the app
+has separate authored/reference output branches. The final audit must follow
+the verified reference BufferSource's actual graph to its unique live output,
+rather than assuming the whole app has one meter or selecting by amplitude.
+
+Final RF verification passes 18 groups across Chromium/WebKit, with 7 helper
+Node tests. The initial RMS transfer is approximately 0.999559 / 1.000000;
+the half-Master transfer ratio is approximately 0.500126 / 0.500000. Original
+RMS ±15%, peak 1.15 plus 0.0001, Master ±0.07, and lookahead 0–0.11 s remain.
+
+The strict raw-currentFrame attempt exposed Chromium repeating 25088 and then
+jumping to 25344. The final capture therefore uses an independent PCM pilot on
+input 1, never mixed into instrument input 0 or any audible output. Its known
+sample-aligned future start plus all 8192 consecutive counter samples establishes
+the absolute capture interval. Raw clock anomalies remain recorded separately.
+Pilot repetition is rejected at the exact sample; doubled gain, modified native
+copies, wrong rates, missing/duplicate source frames, overlaps and disconnected
+output paths remain independent failures. Diagnostic and failed setup receipts
+are retained; no window is reselected based on its measured gain.
+
+All three subsequently reached CI failures are now locally corrected and
+verified. See [the second follow-up record](verification_github_actions_20261114_second_followup.json).
+Current changes still require commit/push and a new remote Actions confirmation.

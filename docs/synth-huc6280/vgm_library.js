@@ -140,13 +140,18 @@ export function createVgmLibrary({root, onSelect, onSource, extract=extractVgmIn
       let sourceMessage='',sourceFailed=false;
       if(onSource){
         try{
-          const path=await onSource({name:file.name,bytes:new Uint8Array(bytes)}, {isCurrent:current,signal:controller.signal});
+          // Archive a stable loudest-volume snapshot even when the user later
+          // expands the library view to inspect every volume variant.
+          const saved=await onSource({name:file.name,bytes:new Uint8Array(bytes),voices:mergeVgmVolumeVariants(result.voices)}, {isCurrent:current,signal:controller.signal});
           if(!current())return;
+          const path=typeof saved==='string'?saved:saved?.songPath;
           if(!path)throw Error('The source was not added to Files.');
           sourceMessage=` Reference song saved to ${path}; press Play in the song player.`;
+          if(saved?.presetPaths?.length)sourceMessage+=` ${saved.presetPaths.length} preset(s) saved to ${saved.presetDirectory??'/presets/'} with loudest Wave / PCM volume variants.`;
+          if(saved?.persisted===false){sourceFailed=true;sourceMessage+=' Files are available in memory; local save unavailable. Export the project to keep them.';}
         }catch(error){
           if(!current()||error.name==='AbortError')return;
-          sourceFailed=true;sourceMessage=` Extracted sounds remain available. Reference song not saved to Files: ${error.message}`;
+          sourceFailed=true;sourceMessage=` Extracted sounds remain available. Reference song and presets not saved to Files: ${error.message}`;
         }
       }
       if(!current())return;

@@ -157,7 +157,7 @@ normal keyboard input. A later Code note can take over the same channel without
 being cut by an older hand-key release. Code frequency changes also survive
 returning the manual Pitch wheel to center.
 
-The channel selector offers **Auto** and **CH1–CH6** in normal, Code and VGM modes.
+The child tabs below **HuC6280** offer **Auto** and **CH1–CH6** in normal, Code and VGM modes.
 Auto edits the common instrument and uses its automatic keyboard allocation
 (round robin for an ordinary Wave sound);
 a physical channel aligns the displayed settings, edits and keyboard with that CH.
@@ -165,6 +165,8 @@ Normal and Code modes allow editing. VGM channels remain individually editable
 while playing or paused; Pause uses the heard-position settings for its separate
 keyboard audition. The adjacent **?** holds detailed channel explanations and
 register readouts, closed by default.
+The **MSM5205** tab has one **CH1** source and **CD-DA** has one **Stereo** source;
+their child tabs describe those single outputs. Mixer has no channel editor.
 **Auto update** reads the configured wave and sent registers at up to 20 Hz;
 turn it off to reduce readback. This is an observation of software writes, not
 an oscillator-phase measurement. During Code, manual channel edits retain their changed
@@ -258,17 +260,25 @@ Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
 **Wave** / **Noise** / **LFO** / **PCM** list. Analysis alone keeps the current instrument; only an
 explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
-The shared **Channel / Auto update** controls sit inside the VGM transport
-container, close to Play / Pause / Stop. The collapsible **Sounds from VGM**
-card follows, then the **Waveform / Spectrum** monitor. Extraction explanations
+Import also saves the original file under `vgm/` and the extracted instruments
+under `presets/<VGM name>/`. Saved Wave/PCM sounds always keep the loudest volume
+variant when their other settings match. Existing files are retained; importing
+the same name creates a numbered folder. Select a saved preset in Files to load it.
+Adding a VGM through the general **Add files** action only archives its source;
+use **Menu → Import → VGM / VGZ…** to extract and save its instruments.
+The shared **Auto / CH1–CH6** child tabs and **Auto update** controls sit below
+the sound-source tabs, and remain available when a song is not playing.
+The collapsible **Sounds from VGM** card stays near the VGM transport.
+Extraction explanations
 and the volume-grouping explanation are behind **?**, closed by default, while
 the sound choices and **keep loudest volume variant** option remain available.
 Collapse the sound list while following the same channel settings and output display.
 
 **Wave / PCM: keep loudest volume variant** optionally groups Wave or PCM entries whose data
 and all other sound settings match, showing the highest channel-volume version.
-It is off by default and can be toggled after loading; turning it off restores
-every entry. Different pan, rate, Loop or other sound settings remain separate,
+It is on by default and can be toggled after loading; turning it off restores
+every entry in the library list without changing the automatically saved presets.
+Different pan, rate, Loop or other sound settings remain separate,
 as do Noise / LFO sounds. The representative retains its own channel,
 timestamp and preset; uses, origins and warnings are combined. Equal volumes
 keep the first entry. Switching the option keeps the current instrument and
@@ -736,7 +746,8 @@ Keyboard／Codeを切り替えてもloop・context・接続は維持します。
 つまみや背景へFocusを移すと鍵盤演奏ができます。編集欄・文字入力・select・dialog内は演奏しません。
 古い手動離鍵やPitch解除で新しいCodeの発音・周波数を巻き戻さず、Octave／CH変更は手動Releaseも解放します。
 CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込、型補完・実装への移動に対応します。
-Channelの選択はAuto／CH1–CH6です。Autoは共通音色と自動割当、各CHは表示・編集・鍵盤の対象を揃えます。
+HuC6280タブの下の子タブでAuto／CH1–CH6を選びます。Autoは共通音色と自動割当、各CHは表示・編集・鍵盤の対象を揃えます。
+MSM5205は単一のCH1、CD-DAはStereoの音源を表示し、MixerにはCH編集タブを出しません。
 FilesのExamplesボタンから`examples/huc6280.js`／`msm5205.js`／`cdda.js`を明示追加できます。
 既存ファイルを上書きせず、不足分だけ追加し、選択・Keyboard／Code・実行中のCodeは変えません。
 例を追加しただけでは実行せず、Codeでファイルを選んでRunします。
@@ -744,7 +755,11 @@ Runは新規実行、Applyはcontext等を保持、Stopは短くフェードし�
 CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲート操作です。
 liveFxやDDAのデータ供給もソフト側の機能です。復元したCodeを勝手に実行することはありません。
 ハンバーガーメニューのImport → VGM / VGZ…から読み込みます。
-Channel／Auto update／CaptureはVGM・Play／Stopと同じコンテナ内です。
+読み込んだ元VGMはvgm/へ、抽出した音色はpresets/のVGM名フォルダーへ自動保存します。
+同名ファイルは上書きせず、音量だけが異なるWave／PCMは最大音量のものを残します。
+keep loudestは初期Onです。Offにすると一覧の全音量バリエーションを表示しますが、保存済み音色は変えません。
+一般のAdd filesはVGMの元ファイルだけを保存するので、音色の抽出・保存はMenuのVGM Importを使います。
+Auto／CH1–CH6とAuto update／Captureは、音源タブ直下で通常時・Code・VGMに共通です。
 Channelの詳細説明・レジスタ表示とSounds from VGMの長い説明は、初期状態で閉じた?へまとめています。
 VGM再生中は選択CHのhardware設定・鍵盤を同じ参照音源へ送れます。後のVGM命令が優先され、
 先読み済みPCMの後から音と表示へ反映します。Auto update Offでも手動変更は聞こえた時点で一度表示します。

@@ -58,6 +58,9 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [x] **CH操作とFilesの導線**: Auto／CH1–CH6、Pause中のCH個別編集、直接presets保存、
       FilesのExamples、Mixer内のVGM出力、説明の「?」への収納。
       [詳細TODO](todo_huc6280_synth_channel_ui_01.md)。
+- [x] **取り込み音色の保存と子タブ**: VGM読み込み時に音量違いをまとめた音色を
+      presets/へ自動保存し、音源タブ内のAuto／CH選択で表示・編集・鍵盤を揃える。
+      [詳細と検証](todo_huc6280_synth_import_presets_tabs_01.md)。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
       保存・出力経路を確認する。公開・tag・pushは別のユーザー指示で行う。
       直前のCI失敗への[修正と検証](todo_github_actions_20261114_followup.md)は完了。

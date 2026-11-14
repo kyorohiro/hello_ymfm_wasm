@@ -29,7 +29,7 @@ function fixture(t,options={}){
 test('validated VGM source callback keeps exact original bytes and never applies the extracted instrument',async t=>{
   const raw=Uint8Array.of(31,139,8,255),events=[];
   const f=fixture(t,{extract:async(bytes,options)=>{assert.deepEqual(new Uint8Array(bytes),raw);assert.equal(options.allowEmpty,true);events.push('extract');return{voices:[voice()],warnings:[]};},
-    onSource:async(source,{isCurrent,signal})=>{assert.deepEqual(source,{name:'original.vgz',bytes:raw});assert(isCurrent());assert(!signal.aborted);events.push('source');return'/vgm/original.vgz';}});
+    onSource:async(source,{isCurrent,signal})=>{assert.deepEqual(source,{name:'original.vgz',bytes:raw,voices:[voice()]});assert(isCurrent());assert(!signal.aborted);events.push('source');return'/vgm/original.vgz';}});
   await f.read('original.vgz',raw);assert.deepEqual(events,['extract','source']);
   assert.match(f.nodes.vgmStatus.textContent,/1 sounds found.*saved to \/vgm\/original.vgz.*Current instrument kept/);
   assert.equal(f.nodes.vgmStatus.dataset.error,'false');assert.equal(f.nodes.vgmVoices.children.length,1);
@@ -41,6 +41,36 @@ test('source copy failure reports independent Files failure and preserves select
   assert.match(f.nodes.vgmStatus.textContent,/1 sounds found.*Extracted sounds remain available.*not saved to Files.*16 MiB/);
   assert.doesNotMatch(f.nodes.vgmStatus.textContent,/VGM import failed/);assert.equal(f.nodes.vgmStatus.dataset.error,'true');
   await f.nodes.vgmVoices.children[0].fire('click');assert.equal(selected,1);
+});
+
+test('automatic archive always receives loudest Wave/PCM sounds while the visible library can show all variants',async t=>{
+  const low=voice(),high=voice();low.preset.volume=3;high.id=2;high.preset.volume=27;high.preset.name='Loud';
+  let archived;const f=fixture(t,{extract:async()=>({voices:[low,high],warnings:[]}),onSource:async source=>{
+    archived=source;return{songPath:'/vgm/variants.vgm',presetPaths:['/presets/variants/Loud.huc6280.json'],presetDirectory:'/presets/variants',persisted:true};
+  }});
+  f.nodes.vgmKeepLoudestPcm.checked=false;
+  await f.read('variants.vgm',Uint8Array.of(1));
+  assert.equal(f.nodes.vgmVoices.children.length,2,'unchecked library still displays all canonical variants');
+  assert.equal(archived.voices.length,1);assert.equal(archived.voices[0].preset.volume,27);assert.deepEqual(archived.voices[0].preset,high.preset);
+  assert.equal(low.preset.volume,3);assert.match(f.nodes.vgmStatus.textContent,/1 preset\(s\) saved to \/presets\/variants.*loudest/);
+  f.nodes.vgmKeepLoudestPcm.checked=true;await f.nodes.vgmKeepLoudestPcm.fire('change');
+  assert.equal(f.nodes.vgmVoices.children.length,1);
+});
+
+test('committed memory files with failed durable storage are reported distinctly from a failed archive',async t=>{
+  const f=fixture(t,{onSource:async()=>({songPath:'/vgm/memory.vgm',presetPaths:['/presets/memory/Sine.huc6280.json'],presetDirectory:'/presets/memory',persisted:false})});
+  await f.read('memory.vgm',Uint8Array.of(1));
+  assert.match(f.nodes.vgmStatus.textContent,/Reference song saved.*preset\(s\) saved.*available in memory.*Export the project/);
+  assert.equal(f.nodes.vgmStatus.dataset.error,'true');assert.doesNotMatch(f.nodes.vgmStatus.textContent,/not saved to Files/);
+});
+
+test('an archive superseded by workspace replacement cannot overwrite the current workspace status',async t=>{
+  const gate=deferred(),begun=deferred();
+  const f=fixture(t,{onSource:async()=>{begun.resolve();await gate.promise;throw Object.assign(Error('VGM archive was superseded.'),{name:'AbortError'});}});
+  const pending=f.read('old.vgm',Uint8Array.of(1));await begun.promise;
+  f.nodes.vgmStatus.textContent='Replacement project active.';gate.resolve();await pending;
+  assert.equal(f.nodes.vgmStatus.textContent,'Replacement project active.');
+  assert.doesNotMatch(f.nodes.vgmStatus.textContent,/not saved|old.vgm/);
 });
 
 test('voice selection waits for host acknowledgement even when the native preset is already visible',async t=>{
