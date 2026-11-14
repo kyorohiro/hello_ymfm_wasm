@@ -119,6 +119,7 @@ function parseVoiceImage(image,{name}) {
       } catch (error) {echoReason = error.message;}
     }
     return {id:`voice-${voice.index}`, voice, sample:sampleMetadata(source),
+      samplePreview:source?{...sampleMetadata(source),pcm:source.pcm,loop:source.loop,loopResolved:source.loopResolved}:null,
       preset, reason, warnings, echoVariant:{preset:echoPreset, reason:echoReason, warnings:echoWarnings}};
   });
   for (const candidate of candidates) {

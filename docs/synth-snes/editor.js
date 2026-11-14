@@ -11,7 +11,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
   onLoadBrr = async () => {throw new Error('BRR loading is not connected');}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
-  let preset = createDefaultPreset(), disposed = false, stroke = null, waveTarget = 'carrier';
+  let preset = createDefaultPreset(), disposed = false, stroke = null, waveTarget = 'carrier', snapshotPreview=null;
   let importRate = 16000, loadRequest = 0, loadController = null, committingImport = false;
   const previews = new Map();let previewBins = null;
   const make = (tag, className, text) => {
@@ -405,6 +405,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
   listen(cancelImport, 'click', () => {cancelImport.blur();cancelLoad('Import cancelled. Current sample kept.');});
 
   function decodedSample(target = 'carrier') {
+    if(snapshotPreview)return snapshotPreview;
     const data = (target === 'modulator' ? preset.pmon.brr : preset.brr).data;
     let cached = previews.get(target);
     if (!cached || cached.data !== data) {
@@ -413,8 +414,9 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     }
     return cached.decoded;
   }
-  function selectedTarget() {return pmonActive(preset) && waveTarget === 'modulator' ? 'modulator' : 'carrier';}
+  function selectedTarget() {if(snapshotPreview)return 'carrier';return pmonActive(preset) && waveTarget === 'modulator' ? 'modulator' : 'carrier';}
   function editableTarget() {
+    if(snapshotPreview)return null;
     if (selectedTarget() === 'modulator') return preset.pmon.source === 'wave' ? 'modulator' : null;
     return preset.source === 'wave' ? 'carrier' : null;
   }
@@ -427,7 +429,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     return true;
   }
   function drawWave(samples = stroke?.samples) {
-    if (disposed || preset.source === 'noise' || !canvasVisible()) return;
+    if (disposed || (!snapshotPreview&&preset.source === 'noise') || !canvasVisible()) return;
     const target = editableTarget(), displayedTarget = selectedTarget();
     const width = canvas.width, height = canvas.height, left = 28, right = width - 15, top = 16, bottom = height - 28;
     const y = value => top + (1 - value) / 2 * (bottom - top), context = canvas.getContext('2d');if (!context) return;
@@ -532,12 +534,12 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
       if(field.update){field.update();continue;}
       if(field.input.type==='checkbox')field.input.checked=field.get(preset);
     }
-    const isWave=preset.source==='wave',isBrr=preset.source==='brr',isNoise=preset.source==='noise',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
+    const isWave=!snapshotPreview&&preset.source==='wave',isBrr=Boolean(snapshotPreview)||preset.source==='brr',isNoise=!snapshotPreview&&preset.source==='noise',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
     const activePmon=pmonActive(preset),target=editableTarget(),displayedTarget=selectedTarget(),isModulator=displayedTarget==='modulator';
     const modBrr=preset.pmon.source==='brr',hasModBrr=Boolean(preset.pmon.brr.data);
     sampleCard.summary.textContent=isReadOnly()?'Sample · decoded BRR / PCM':'Sample · software preparation / BRR playback';
     const displayedBrr=isModulator?preset.pmon.brr:preset.brr;
-    capturedLoopInfo.textContent=displayedBrr.loopStartSamples===null?'One-shot · no sample loop':`Loop start · sample frame ${displayedBrr.loopStartSamples.toLocaleString('en-US')}`;
+    capturedLoopInfo.textContent=snapshotPreview?(snapshotPreview.loop?(snapshotPreview.loopResolved?`Loop start · sample frame ${snapshotPreview.loopStartSamples}`:`Loop address · 0x${snapshotPreview.loopAddress.toString(16).padStart(4,'0')} · unresolved`):'One-shot · no sample loop'):displayedBrr.loopStartSamples===null?'One-shot · no sample loop':`Loop start · sample frame ${displayedBrr.loopStartSamples.toLocaleString('en-US')}`;
     noiseCard.element.hidden=!isNoise;sampleCard.element.hidden=isNoise;
     noiseHint.textContent=preset.noise.clock===0
       ?'Clock 0 holds the generator’s current value instead of advancing it. This can be a steady DC level; choose a nonzero clock for a changing noise texture.'
@@ -597,7 +599,10 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
             :'Increase grows modulation depth from zero. Rate code 0 holds the current envelope.';
     const modRegisters=modulatorEnvelopeRegisters(preset);
     pmonRegisterInfo.textContent='Modulator register settings · ADSR1 '+hex(modRegisters.adsr1)+' · ADSR2 '+hex(modRegisters.adsr2)+' · GAIN '+hex(modRegisters.gain);
-    if(isModulator&&!modBrr){
+    if(snapshotPreview){
+      sampleInfo.textContent=`SRCN ${snapshotPreview.sourceNumber} · ${snapshotPreview.frames.toLocaleString('en-US')} decoded frames · ${snapshotPreview.bytes.toLocaleString('en-US')} BRR bytes · start 0x${snapshotPreview.startAddress.toString(16).padStart(4,'0')}`;
+      waveReadout.textContent='Decoded BRR overview · sample data only; this CH has no playable preset.';
+    }else if(isModulator&&!modBrr){
       sampleInfo.textContent='Modulator · 128 authored PCM points · one BRR loop · silent stereo gain · hardware envelope controls depth.';
       if(!stroke)waveReadout.textContent='Modulator · 128 points · release a stroke to apply';
     }else if(isWave&&!isModulator){
@@ -617,9 +622,9 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
   }
   render();
   return {
-    update(value) {
+    update(value,{samplePreview=null}={}) {
       if(disposed)return;
-      const next=readPreset(value);
+      const next=readPreset(value);snapshotPreview=isReadOnly()?samplePreview:null;
       if(loadController&&(presetBankKey(next)!==presetBankKey(preset)||next.pmon.enabled!==preset.pmon.enabled))
         cancelLoad('Import cancelled after changing the instrument. Current sample kept.');
       cancelStroke();

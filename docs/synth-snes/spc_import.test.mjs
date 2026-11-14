@@ -567,3 +567,8 @@ test('live RAM/DSP analysis uses changed registers and sample bytes at the captu
 test('live import keeps invalid channel reasons and handles Noise independently of sample RAM',()=>{
  const data=image(),snapshot={ram:data.slice(RAM,DSP),dsp:data.slice(DSP,DSP+128)};snapshot.dsp[2]=snapshot.dsp[3]=0;snapshot.dsp[0x3d]=2;snapshot.dsp[0x6c]=31;snapshot.ram.fill(0);const batch=parseSpcSnapshotVoices(snapshot);assert.match(batch.candidates[0].reason,/PITCH/);assert.equal(batch.candidates[0].preset,null);assert.equal(batch.candidates[1].preset.source,'noise');assert.equal(batch.candidates[1].preset.noise.clock,31);
 });
+
+test('PITCH-zero and unresolved-loop voices retain detached decoded sample data without inventing a playable preset',()=>{
+ const data=image();voice(data,0,{pitch:0});const original=data.slice(),candidate=parseSpcVoices(data).candidates[0];assert.equal(candidate.voice.pitch,0);assert.equal(candidate.preset,null);assert.match(candidate.reason,/PITCH is 0/);assert.equal(candidate.samplePreview.frames,32);assert.equal(candidate.samplePreview.bytes,18);assert(candidate.samplePreview.pcm.some(value=>value!==0));assert.equal(candidate.samplePreview.loopStartSamples,0);candidate.samplePreview.pcm.fill(0);assert.deepEqual(data,original);assert(parseSpcVoices(data).candidates[0].samplePreview.pcm.some(value=>value!==0));
+ sample(data,0,0x2000,BRR,0x2100);voice(data,0,{pitch:4096});const invalid=parseSpcVoices(data).candidates[0];assert.equal(invalid.preset,null);assert(invalid.samplePreview.pcm.length>0);assert.equal(invalid.samplePreview.loopResolved,false);assert.equal(invalid.samplePreview.loopAddress,0x2100);
+});

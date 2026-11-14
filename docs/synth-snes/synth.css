@@ -300,3 +300,8 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #voiceEditor[data-readonly="true"] :is(.sdsp-source-bar,#levelSection,#envelopeSection,.sdsp-sample-authoring) { display:none; }
 .sdsp-captured-loop { display:none; margin:0 0 8px; color:var(--muted); font-size:.76rem; }
 #voiceEditor[data-readonly="true"] .sdsp-captured-loop { display:block; }
+
+#snesChannelTabs button[data-pitch-zero="true"] { color:#99402f; border-color:#bc826b; background:#fff1e6; }
+#snesChannelTabs button[data-pitch-zero="true"]::after { content:' · 0'; font-size:.65rem; font-weight:800; }
+#snesChannelTabs button[data-pitch-zero="true"][aria-selected="true"] { background:#99402f; color:#fff; }
+#voiceEditor[data-sample-only="true"] :is(#noiseSection,#echoSection,#pmonSection) { display:none; }

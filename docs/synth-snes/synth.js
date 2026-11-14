@@ -1,5 +1,5 @@
 import {createSnesChannelEditor} from './channel_edit.js';
-import {createSnesChannelView,spcVariant} from './channel_view.js?v=spc-channel-edit-1';
+import {createSnesChannelView,spcVariant} from './channel_view.js?v=spc-sample-inspection-1';
 import {createSnesMixer,setupSnesChipTabs} from './mixer.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {createSnesLooper} from './looper.js';
@@ -11,10 +11,10 @@ import {setupSnesSongControls} from './song_controls.js?v=spc-seek-controls-1';
 import {setupSnesCodeHost} from './code_host.js?v=spc-menu-priority-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=spc-channel-edit-1';
-import {createEditor} from './editor.js?v=spc-channel-display-1';
+import {createEditor} from './editor.js?v=spc-sample-inspection-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
-import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-live-1';
+import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-sample-inspection-1';
 import {createSpcBrowser} from './spc_browser.js?v=spc-channel-edit-1';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
@@ -72,8 +72,9 @@ function updateCapacity() {
 function updatePresetUi() {
   const preset=performancePreset();
   const viewing=channelView?.read().selected!==null&&Boolean(channelView);
-  $('snesVoiceFields').disabled=viewing;$('snesVoiceFields').hidden=false;$('voiceEditor').hidden=viewing&&!audition;$('voiceEditor').dataset.readonly=String(viewing);
-  editor.update(preset);
+  const samplePreview=viewing&&!audition?channelView.read().view?.candidate?.samplePreview:null;
+  $('snesVoiceFields').disabled=viewing;$('snesVoiceFields').hidden=false;$('voiceEditor').hidden=viewing&&!audition&&!samplePreview;$('voiceEditor').dataset.readonly=String(viewing);$('voiceEditor').dataset.sampleOnly=String(Boolean(samplePreview));
+  editor.update(preset,{samplePreview});
   channelEditor?.update(channelView.read());
   document.querySelector('.instrument-toolbar').inert=viewing;
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
