@@ -1,0 +1,392 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "5ab74a3d049ae2ee4798f0e5a7ccdce809e01e48",
+  "localValidationPassed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "scope": "Two failures in the latest pushed15da4ac3 workflows. Browser checker sequencing fixes only; pre-existing staged tempo/keyboard feature changes are preserved.",
+  "remoteObservedRuns": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581438980,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581438980",
+      "workflowName": "SBI export tests"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581438677,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581438677",
+      "workflowName": "pages-build-deployment"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581438982,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581438982",
+      "workflowName": "Verify npm sound-chip package"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581438968,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581438968",
+      "workflowName": "VGM parser and player tests"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581439015,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581439015",
+      "workflowName": "DMG Synth"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581439017,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581439017",
+      "workflowName": "WASM SDK build and parity"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581439023,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581439023",
+      "workflowName": "HuC6280 Synth"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-11-14T09:37:33Z",
+      "databaseId": 43581438992,
+      "headSha": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581438992",
+      "workflowName": "itch web release ZIPs"
+    }
+  ],
+  "cases": [
+    {
+      "area": "HuC6280 Synth CD-DA source preparation",
+      "failedRun": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581439023",
+      "before": {
+        "error": "locator.waitFor: Timeout 25000ms exceeded.\nCall log:\n  - waiting for locator('#synthCodeEditor') to be visible\n    3 × locator resolved to hidden <textarea readonly rows=\"12\" spellcheck=\"false\" id=\"synthCodeEditor\" class=\"spu-code-editor\" aria-label=\"HuC6280 performance JavaScript\"></textarea>\n    51 × locator resolved to hidden <textarea rows=\"12\" spellcheck=\"false\" id=\"synthCodeEditor\" class=\"spu-code-editor\" aria-label=\"HuC6280 performance JavaScript\"></textarea>\n\n    at source (/home/runner/work/hello_ymfm_wasm/hello_ymfm_wasm/scripts/check_huc6280_synth_cdda_browser.cjs:47:213)\n    at async check (/home/runner/work/hello_ymfm_wasm/hello_ymfm_wasm/scripts/check_huc6280_synth_cdda_browser.cjs:98:5)\n    at async main (/home/runner/work/hello_ymfm_wasm/hello_ymfm_wasm/scripts/check_huc6280_synth_cdda_browser.cjs:120:170)",
+        "receipt": {
+          "path": "build/ci-15da4ac3-20261114/huc-ci/huc6280-synth-cdda-browser.json",
+          "bytes": 26207,
+          "sha256": "5d6f811a41165b0ae60de0f9abbdb069188937519a278e4f8cb8b5d67e1d5b6b"
+        },
+        "log": {
+          "path": "build/ci-15da4ac3-20261114/huc-failed.log",
+          "bytes": 463673,
+          "sha256": "f24578f5ff9ab55fe4c1055e1140907db913c798f6dba9beb1e227d628c93465"
+        }
+      },
+      "cause": "Files selection reached openFile(show:false) after first Code initialization started. Its newer workspace operation fenced the older Code-tab request, leaving the textarea hidden. Reopening the already selected index.js could also fence a following Apply preparation.",
+      "fix": "Finish Code initialization before file selection, await selected document/editor readiness, and skip redundant reopening of selected index.js. Existing stale-view fencing regression remains intact.",
+      "after": {
+        "checks": 14,
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ],
+        "receipt": {
+          "path": "build/ci-15da4ac3-20261114/huc-cdda-browser-final.json",
+          "bytes": 25282,
+          "sha256": "c9ff685a090822467d2ccde2e9093b14d3a6fe1bfa7a8e651982facdfb7fe9a8"
+        },
+        "log": {
+          "path": "build/ci-15da4ac3-20261114/huc-cdda-browser-final.log",
+          "bytes": 2004,
+          "sha256": "fec050913515351e7804b9ae186eefde7b5989799631482868b3e086caf2edcd"
+        }
+      },
+      "intermediateValidation": {
+        "receipt": {
+          "path": "build/ci-15da4ac3-20261114/huc-cdda-browser-fixed.json",
+          "bytes": 25282,
+          "sha256": "db85ec0bdee8e69716fcd97e7ee169846a38e59b845eb0a7290c20c9cd6fc71d"
+        },
+        "finalSourceVersion": false,
+        "note": "Passed before review removed an unnecessary second file-open. Final source was subsequently rerun in both browsers."
+      }
+    },
+    {
+      "area": "itch ZIP RF5C164 manual Step/source continuation",
+      "failedRun": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43581438992",
+      "before": {
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n2101 !== 4917\n\n    at check (/home/runner/work/hello_ymfm_wasm/hello_ymfm_wasm/scripts/check_synth_pcm_song_manual_browser.cjs:157:137)\n    at async /home/runner/work/hello_ymfm_wasm/hello_ymfm_wasm/scripts/check_synth_pcm_song_manual_browser.cjs:213:170",
+        "observedWrites": [
+          {
+            "frame": 532670,
+            "register": 3,
+            "value": 19,
+            "selected": 0,
+            "bank": 4096
+          },
+          {
+            "frame": 553387,
+            "register": 2,
+            "value": 53,
+            "selected": 0,
+            "bank": 4096
+          },
+          {
+            "frame": 553387,
+            "register": 3,
+            "value": 8,
+            "selected": 0,
+            "bank": 4096
+          }
+        ],
+        "receipt": {
+          "path": "build/ci-15da4ac3-20261114/itch-ci/_temp/itch-web/synth-pcm-song-manual.json",
+          "bytes": 148959,
+          "sha256": "cb34700498e19c055d5653c66efcfbde54edd79c90fcd0772a3d97b5b1fc4856"
+        },
+        "log": {
+          "path": "build/ci-15da4ac3-20261114/itch-failed.log",
+          "bytes": 8135,
+          "sha256": "0a848e4b5691759dd30dd497f00351a3df7c5a6531a2c3b0511d8b4e65ed3d8c"
+        }
+      },
+      "cause": "After Seek9, multiple Playwright operations delayed the manual edit until frame553387, after the source high-byte write at frame532670. The later hand edit correctly restored high byte8, contradicting the intended test order.",
+      "fix": "Observe the Seek transition before initiating it; click the actual Live checkbox and Step button in the first resumed browser task. Require actual native manual writes inside9–10s and the later source high byte at exactly10s. Preserve all original gain, PCM, Pan and frozen UI comparisons.",
+      "after": {
+        "checks": 18,
+        "runs": [
+          {
+            "browser": "chromium",
+            "passed": true,
+            "checks": 9,
+            "handEdit": {
+              "beforeFrame": 483792,
+              "afterFrame": 483792,
+              "beforeStep": 2100,
+              "afterStep": 2101,
+              "displayedBefore": "2100",
+              "displayedAfter": "2101",
+              "live": false,
+              "writeStart": 204,
+              "writeEnd": 209,
+              "writes": [
+                {
+                  "frame": 483792,
+                  "register": 7,
+                  "value": 192,
+                  "selected": 0,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 2,
+                  "value": 53,
+                  "selected": 0,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 3,
+                  "value": 8,
+                  "selected": 0,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 7,
+                  "value": 199,
+                  "selected": 7,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 7,
+                  "value": 129,
+                  "selected": 7,
+                  "bank": 4096
+                }
+              ]
+            },
+            "sourceHighByte": {
+              "frame": 532670,
+              "register": 3,
+              "value": 19,
+              "selected": 0,
+              "bank": 4096
+            },
+            "calibrationGains": {
+              "initialGain": 0.9999430941077014,
+              "halfGain": 0.49982263994754716,
+              "masterGainRatio": 0.4998510844195225
+            },
+            "renderAheadSeconds": 0.07984305479940676
+          },
+          {
+            "browser": "webkit",
+            "passed": true,
+            "checks": 9,
+            "handEdit": {
+              "beforeFrame": 483792,
+              "afterFrame": 483792,
+              "beforeStep": 2100,
+              "afterStep": 2101,
+              "displayedBefore": "2100",
+              "displayedAfter": "2101",
+              "live": false,
+              "writeStart": 204,
+              "writeEnd": 209,
+              "writes": [
+                {
+                  "frame": 483792,
+                  "register": 7,
+                  "value": 192,
+                  "selected": 0,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 2,
+                  "value": 53,
+                  "selected": 0,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 3,
+                  "value": 8,
+                  "selected": 0,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 7,
+                  "value": 199,
+                  "selected": 7,
+                  "bank": 4096
+                },
+                {
+                  "frame": 483792,
+                  "register": 7,
+                  "value": 129,
+                  "selected": 7,
+                  "bank": 4096
+                }
+              ]
+            },
+            "sourceHighByte": {
+              "frame": 532670,
+              "register": 3,
+              "value": 19,
+              "selected": 0,
+              "bank": 4096
+            },
+            "calibrationGains": {
+              "initialGain": 1.000000008612466,
+              "halfGain": 0.5000000303795757,
+              "masterGainRatio": 0.5000000260733425
+            },
+            "renderAheadSeconds": 0.06555653594157734
+          }
+        ],
+        "receipt": {
+          "path": "build/ci-15da4ac3-20261114/pcm-browser-fixed.json",
+          "bytes": 98510,
+          "sha256": "b7402ca3ac24ae8ca8745bb4a8cc1ca2103ffb5b17f879cd17e80003ee1b34d4"
+        },
+        "log": {
+          "path": "build/ci-15da4ac3-20261114/pcm-browser-fixed.log",
+          "bytes": 2327,
+          "sha256": "09023a4165735570d3b454aaf27eebbb0a3c165a4fcc62cee229bb5cdaee060f"
+        }
+      }
+    }
+  ],
+  "node": {
+    "command": [
+      "node",
+      "--test",
+      "docs/synth/synth_code_controls.test.mjs"
+    ],
+    "tests": 30,
+    "pass": 30,
+    "fail": 0,
+    "skip": 0,
+    "log": {
+      "path": "build/ci-15da4ac3-20261114/huc-code-controls.log",
+      "bytes": 3426,
+      "sha256": "634b09335e79c0324e7069585da4e0669a32a351126f3d8c251719fb0d143fe4"
+    }
+  },
+  "packages": [
+    {
+      "path": "release/hello_ymfm_wasm_tempo-keys-20261114_itch_synth.zip",
+      "bytes": 1127753,
+      "sha256": "bb92f2ec007ee454ef705851b241d6dee3297de8ac52d00f2c95b61e736ba55d"
+    },
+    {
+      "path": "release/tetorica_huc6280_synth_tempo-keys-20261114_itch.zip",
+      "bytes": 2063919,
+      "sha256": "8ae0abe215b89fcc614ff5221f1c561b922d67a122f7efb251f89c03a7ed87d8"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "scripts/check_huc6280_synth_cdda_browser.cjs",
+      "bytes": 37857,
+      "sha256": "3b06971625712fcf457365158ad474abd3d1ccfae5d3645a74478cd60a4906f7"
+    },
+    {
+      "path": "scripts/check_synth_pcm_song_manual_browser.cjs",
+      "bytes": 48125,
+      "sha256": "959c518fd26118c159cdf6277475245769e19698838976d24525aba069e1232c"
+    }
+  ],
+  "acceptanceCriteria": {
+    "gainBoundsRelaxed": false,
+    "timeoutsIncreased": false,
+    "assertionsDropped": false,
+    "productAudioModifiedByThisFollowup": false,
+    "nativeOrWasmModified": false
+  },
+  "operations": {
+    "indexPreserved": true,
+    "originalStagedPatchSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "commitPerformed": false,
+    "pushPerformed": false,
+    "tagOrReleasePerformed": false,
+    "browsersAndServersClosed": true,
+    "preexistingFeatureCommitObserved": "5ab74a3d049ae2ee4798f0e5a7ccdce809e01e48",
+    "indexPreservationNote": "The pre-existing staged patch matched byte-for-byte in before/final snapshots. The user subsequently committed the feature as5ab74a3d during this task; the agent performed no index/commit/push operation."
+  },
+  "remoteValidation": {
+    "currentFixesRunOnGitHub": false,
+    "next": "Commit and push the checker changes, then confirm both workflows on the new commit. The recorded remote failures belong to15da4ac3, before these changes."
+  },
+  "limitations": [
+    "Local macOS Chromium/WebKit validation using existing standalone ZIPs, not a new Linux Actions run.",
+    "No listening or long-duration test."
+  ]
+}

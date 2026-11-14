@@ -44,7 +44,23 @@ function installSilentAudit(){
 const graph=page=>page.evaluate(()=>__cddaUiAudit.graph()),ui=page=>page.locator('#cddaControls').evaluate(node=>({...node.dataset})),audio=page=>page.evaluate(()=>__cddaUiAudit.take());
 async function tab(page,id='cdda'){await page.locator(`[data-huc-chip-tab="${id}"]`).click();assert.equal(await page.locator(`[data-huc-chip-tab="${id}"]`).getAttribute('aria-selected'),'true');}
 async function files(page){if(await page.locator('#hucFilesPanel').isHidden())await page.locator('#hucFilesToggle').click();await until(()=>page.locator('#hucFileImportButton').isEnabled(),'Files ready');}
-async function source(page,text){await files(page);await page.locator('#hucFilesTree [data-file-path="/index.js"]').click();await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});await page.locator('#synthCodeEditor').fill(text);}
+async function source(page,text){
+  await files(page);
+  // Finish first-time Code initialization before Files starts another async
+  // open. A later hidden file selection intentionally fences a stale Code-tab
+  // request; this transport check needs a settled editor, not competing views.
+  const editor=page.locator('#synthCodeEditor');
+  await page.locator('#synthInputCodeTab').click();await editor.waitFor({state:'visible'});
+  await until(()=>editor.isEditable(),'Code editor initialized');
+  // Reopening the already selected document would start an unnecessary flush
+  // that could outlive this helper and fence the following Apply preparation.
+  if(await page.locator('#hucFilesSelected').textContent()!=='/index.js'){
+    await page.locator('#hucFilesTree [data-file-path="/index.js"]').click();
+    await until(async()=>await page.locator('#hucFilesSelected').textContent()==='/index.js'&&
+      await page.locator('#synthCodeRunButton').isEnabled()&&await editor.isEditable(),'index.js editor ready');
+  }
+  await editor.fill(text);
+}
 async function selectSource(page,filename){const value=await page.locator('#cddaSourceSelect option').evaluateAll((nodes,name)=>nodes.find(x=>x.value===name||x.textContent.includes(name))?.value,filename);assert(value,'Source option '+filename);await page.locator('#cddaSourceSelect').selectOption(value);return value;}
 async function load(page,filename){await selectSource(page,filename);const revision=(await ui(page)).revision;await page.locator('#cddaLoadSource').click();await until(()=>ui(page).then(x=>x.busy==='false'&&x.revision!==revision),'CD-DA load '+filename);return ui(page);}
 async function phase(page,state){await until(()=>ui(page).then(x=>(x.sourceState??x.state)===state),'CD-DA '+state);}

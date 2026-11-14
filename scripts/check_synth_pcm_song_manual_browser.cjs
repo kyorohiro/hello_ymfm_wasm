@@ -74,6 +74,33 @@ async function keyboard(page){await page.locator('#synthInputKeyboardTab').click
 async function pressed(page,key,value){await until(()=>page.locator(`#keyboard .key[data-key="${key}"]`).evaluate((node,value)=>node.classList.contains('is-active')===value,value),`Keyboard ${key} ${value}`);}
 async function seek(page,seconds,state='playing'){await page.locator('#synthSongSeek').evaluate((node,value)=>{node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));},seconds);
   await until(()=>view(page).then(value=>value.state===state&&value.frame/RATE>=seconds-.002&&value.frame/RATE<seconds+.6),'seek '+seconds);}
+// The source changes Step's high byte at 10 s. Slow Playwright RPCs must not
+// let the hand edit happen after that source write: act on the first resumed
+// browser task, before another pump or automation round trip can advance time.
+async function seekAndFreezeStep(page){return page.evaluate(rate=>new Promise((resolve,reject)=>{
+  const root=document.getElementById('synthSongPlayer'),range=document.getElementById('synthSongSeek');
+  const timer=setTimeout(()=>finish(Error('Timed out waiting for the Step-edit seek transition')),20000);
+  let seeking=false;
+  const observer=new MutationObserver(records=>{
+    seeking ||= root.dataset.state==='seeking'||records.some(record=>record.oldValue==='seeking');
+    if(!seeking||root.dataset.state!=='playing')return;
+    try{
+      const before=__pcmManualReference.current(),toggle=document.getElementById('synthSongLiveToggle');
+      if(before.frames<9*rate||before.frames>=10*rate)throw Error('Step hand edit missed the source-free 9–10 second interval');
+      if(toggle.checked)toggle.click();
+      const step=document.getElementById('synthPcmStep'),button=step.parentElement.querySelectorAll('.param-button')[1];
+      if(!button||button.disabled||button.closest('[inert]'))throw Error('Step hand-edit control is unavailable after Seek');
+      const displayedBefore=step.textContent;button.click();
+      const after=__pcmManualReference.current();
+      finish(null,{beforeFrame:before.frames,afterFrame:after.frames,beforeStep:before.rf.channels[0].step,afterStep:after.rf.channels[0].step,
+        displayedBefore,displayedAfter:step.textContent,live:toggle.checked,writeStart:before.writes.length,writeEnd:after.writes.length,
+        writes:after.writes.slice(before.writes.length)});
+    }catch(error){finish(error);}
+  });
+  function finish(error,value){clearTimeout(timer);observer.disconnect();if(error)reject(error);else resolve(value);}
+  observer.observe(root,{attributes:true,attributeFilter:['data-state'],attributeOldValue:true});
+  range.value='9';range.dispatchEvent(new Event('input',{bubbles:true}));range.dispatchEvent(new Event('change',{bubbles:true}));
+}),RATE);}
 async function chooseFile(page,file){if(!await page.locator('#synthFilesPanel').isVisible())await page.locator('#synthFilesToggle').click();
   for(let i=0;i<16;i++){const closed=page.locator('#synthFilesTree details:not([open]) > summary[data-file-path]');if(!await closed.count())break;await closed.first().click();}
   await page.locator('#synthFilesTree button.file-entry').locator(`xpath=self::*[@data-file-path=${JSON.stringify(file)}]`).click();await ready(page);}
@@ -153,8 +180,11 @@ async function check(browser,name,origin,presetBytes,fmPresetBytes){
     await until(()=>view(page).then(value=>value.frame>6.15*RATE),'source RAM continuation');assert.equal((await page.evaluate(()=>__pcmManualReference.ram(0x1020,1)))[0],0xab);assert.equal((await page.evaluate(()=>__pcmManualReference.ram(0x20,1)))[0],0);
 
     mark('Live Off freezes observations while packed Pan and partial 16-bit source Step keep the latest native companions');
-    await seek(page,9);await setSynthLive(page,false);await change(stepControl(page),1);await until(()=>reference(page).then(value=>value.rf.channels[0].step===0x0835),'manual step before source high byte');await until(()=>page.locator('#synthPcmSampleInfo').textContent().then(value=>value.includes('C4 reference step '+0x0835)),'Live Off derived C4 metadata follows hand Step');
+    measurements.liveOffEdit=await seekAndFreezeStep(page);const handStep=measurements.liveOffEdit;
+    assert(handStep.beforeFrame>=9*RATE&&handStep.afterFrame<10*RATE);assert.equal(handStep.beforeStep,0x0834);assert.equal(handStep.afterStep,0x0835);assert.equal(handStep.displayedBefore,String(0x0834));assert.equal(handStep.displayedAfter,String(0x0835));assert.equal(handStep.live,false);assert.deepEqual(handStep.writes.filter(value=>value.register===2||value.register===3).map(({register,value})=>[register,value]),[[2,0x35],[3,8]]);
+    await until(()=>page.locator('#synthPcmSampleInfo').textContent().then(value=>value.includes('C4 reference step '+0x0835)),'Live Off derived C4 metadata follows hand Step');
     await until(()=>view(page).then(value=>value.frame>10.15*RATE),'source Pan and Step high byte');native=await reference(page);assert.equal(native.rf.channels[0].step,0x1335);assert.equal(native.rf.channels[0].panLeft,4);assert.equal(native.rf.channels[0].panRight,14);assert.equal(await stepControl(page).textContent(),String(0x0835));assert.equal(await rightPan(page).textContent(),'11');
+    const laterSourceHighByte=native.writes.slice(handStep.writeEnd).find(value=>value.register===3&&value.value===0x13);assert(laterSourceHighByte,'The real VGM high-byte write follows the manual low-byte edit');assert.equal(laterSourceHighByte.frame,10*RATE);measurements.sourceHighByteAfterEdit=laterSourceHighByte;
     await change(leftPan(page),1);await until(()=>reference(page).then(value=>value.rf.channels[0].panLeft===6),'left Pan sparse edit');native=await reference(page);assert.equal(native.rf.channels[0].panRight,14);assert.equal(await rightPan(page).textContent(),'11');await setSynthLive(page,true);await until(()=>rightPan(page).textContent().then(value=>value==='14'),'Live catches up');
 
     mark('Keyboard reuses the selected sample at recorded C4 speed and stale key-up cannot overwrite later VGM gates');
