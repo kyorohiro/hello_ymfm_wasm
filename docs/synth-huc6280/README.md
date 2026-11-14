@@ -8,8 +8,9 @@ Play the PC Engine's six-channel PSG, draw a wavetable and take the sound away
 as a preset or JavaScript. The English-language browser UI follows Tetorica's
 SPU / DMG Synths: output monitor, compact keyboard, two Pitch wheels, Octave,
 and controls that leave the computer keys available for playing.
-The first CD-ROM² slice adds MSM5205 ADPCM and CD-DA playback to the same clock
-and final output, while their dedicated instrument editors remain under construction.
+The CD-ROM² sources share the same clock and final output. MSM5205 has a basic
+sample player; CD-DA playback is available from Code while its dedicated UI
+remains under construction.
 
 ## Play and edit
 
@@ -21,8 +22,8 @@ and final output, while their dedicated instrument editors remain under construc
 
 The source tabs above the monitor are **HuC6280 / MSM5205 / CD-DA / Mixer**.
 HuC6280 keeps the existing waveform, Noise, LFO, DDA and keyboard editor.
-MSM5205 and CD-DA currently show **Under construction** for their dedicated
-sound-editing UI; their existing playback APIs are available from Code.
+MSM5205 loads and plays an authored ADPCM sample from Files. CD-DA currently
+shows **Under construction** for its dedicated UI; its playback API works from Code.
 Changing tabs alone neither opens audio nor stops a performance.
 
 **Mixer** gives each of the three sources an independent volume and **Mute**.
@@ -34,6 +35,53 @@ Waveform / Spectrum observe the completed mix after Master. The sources share
 one AudioContext and one speaker connection. A mixer change does not stop the
 chip or restart a track; already rendered VGM PCM keeps its prior mix until it
 has passed through the output.
+
+## MSM5205 sample playback
+
+Open the **MSM5205** tab, then:
+
+1. Use **Add samples to Files…** or the Files import controls to add a WAV or
+   packed ADPCM file to your project.
+2. Choose **Sample in Files** and **Load as**: **WAV → ADPCM** converts supported
+   PCM/float WAV data; **Packed ADPCM** uses the file bytes unchanged.
+3. Press **Load selected sample**. Loading is silent; press **Play** to start.
+   During playback the same button becomes **Replay**, which starts again from
+   the beginning. **Stop** stops only this authored ADPCM source.
+
+WAV conversion is software: channels are averaged to mono, resampled at the
+selected Rate and encoded as four-bit ADPCM using the shared sample helper.
+Packed ADPCM uses the **high nibble first** and must contain **1–65,536 bytes**.
+The Files picker recognizes `.wav`, `.adpcm`, `.adp`, `.msm`, `.msm5205` and `.bin`.
+Choose the format explicitly; an invalid WAV is not retried as packed data.
+The memory meter shows the encoded usage against **64 KiB**, with sample count
+and duration. An odd source count can occupy one extra packed padding nibble;
+playback and the waveform use the original source count.
+
+The waveform comes from the **actual shared offline WASM decoder**, summarized
+into compact min/max intervals. Viewing it does not create an AudioContext or
+an extra speaker connection. It shows the complete decoded authored sample,
+without waveform drawing or trimming controls.
+
+**Rate** uses the hardware code **0–15**, with its effective frequency displayed:
+`1,536,000 / (48 × (16 − Rate))` Hz, from 2,000 to 32,000 Hz. Buttons and horizontal
+dragging adjust it without taking the computer keys away from playing.
+Changing Rate changes speed and pitch together. **Rate and Loop take effect on
+the next Play**, without changing a sample already playing.
+
+The tab and `await useSoundChip("msm5205")` share **one physical authored source**.
+UI Play does not start or stop Code. Code loops and the HuC6280 continue while
+you replace a sample; replacement stops only the authored MSM5205. Cancelled,
+failed or superseded preparation keeps the previous sample. Code may replace
+or play this same source, and its state appears in the tab. **Code Stop stops
+playback but keeps the loaded MSM5205 sample** for another UI Play or Code run.
+Its Mixer / Master / Waveform / Spectrum route is the same shared output.
+
+Original sample files persist in Files and Cassette projects. The currently
+loaded ADPCM selection and playback defaults are **session state**, outside the
+HuC6280 voice preset and project settings. This stage does not add an MSM5205
+preset format, keyboard instrument, waveform editor or VGM sample extraction.
+The MSM5205 inside a VGM has its **own reference decoder**: this tab does not
+show that recorded source as a Live authored sample.
 
 ## Code and Files
 
@@ -82,11 +130,13 @@ Completion, type hints and source navigation distinguish these host tools from
 the chip API.
 
 Code also accepts `await useSoundChip("msm5205")` and
-`await useSoundChip("cdda")`. These are Code-owned sources on the same Synth
-AudioContext, using the existing Playground APIs. **Apply** keeps their prepared
-players; **Run** creates a fresh performance. **Stop** fades the Code mix and
-closes its media players, including pending sample/track loads. Tab changes do
-not create extra players. Types and source navigation cover all three objects.
+`await useSoundChip("cdda")`, using the existing Playground APIs on the Synth's
+AudioContext. MSM5205 borrows the authored sample player above; CD-DA remains
+a Code-owned track player. **Apply** keeps prepared sources. **Run** creates a
+fresh Code performance while retaining the authored MSM5205 sample. **Stop**
+fades the Code mix, cancels pending Code loads and stops playback: the MSM5205
+asset remains available, while CD-DA's Code-owned player closes. Tab changes
+do not create extra players. Types and source navigation cover all three objects.
 
 In the MSM5205 or CD-DA tab, **Add Code examples to Files** adds
 `examples/msm5205.js` and `examples/cdda.js`. Select one in Code, then Run.
@@ -503,8 +553,10 @@ to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
 Irregular or incomplete direct-write PCM extraction, unsupported DAC stream
-forms and full PC Engine emulation are not included. MSM5205 / CD-DA have Code
-playback APIs; dedicated sound editors and actual CD-ROM access are not included.
+forms and full PC Engine emulation are not included. MSM5205 has a basic sample
+player and Code API; CD-DA has a Code playback API. Waveform editing, an MSM5205
+keyboard instrument / preset format, the dedicated CD-DA UI and actual CD-ROM
+access are not included.
 
 ## API, sources and licenses
 
@@ -515,6 +567,7 @@ playback APIs; dedicated sound editors and actual CD-ROM access are not included
 - [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js), [direct DAC PCM extraction](vgm_direct_pcm.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
 - [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js), [Files song controls](song_controls.js), [strict configured-voice capture](song_voice.js) and [isolated paused audition](song_audition.js).
 - [HuC6280 / MSM5205 reference mix](song_engine.js), [Code media sources](cdrom2_audio.js), [MSM5205 decoder](../js/msm5205audioengine.js) and [CD-DA source](../js/cdda_player.js).
+- [MSM5205 sample preparation and decoded waveform](msm5205_asset.js), [shared UI / Code source](msm5205_source.js), [sample controls](msm5205_controls.js) and [shared offline WASM renderer](../js/msm5205_pcm.js).
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
@@ -532,6 +585,7 @@ npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
 npm run test:huc6280-synth:cdrom2-browser
+npm run test:huc6280-synth:msm5205-browser
 npm run test:huc6280-synth:manual-browser
 npm run test:huc6280-synth:vgm-manual-browser
 npm run test:huc6280-synth:song-browser
@@ -559,14 +613,22 @@ unchanged under `generated/`, with corresponding C/C++ under `sources/`.
 
 PC EngineのHuC6280を、SPU Synthと同じ流れで試せるシンセです。
 CD-ROM²向けにHuC6280／MSM5205／CD-DA／Mixerタブを追加しています。
-MSM5205・CD-DAの専用音作りUIは工事中で、まずCodeから既存の再生APIを使えます。
+MSM5205はFilesのWAV／packed ADPCMを読み込み、実際の復号波形・64KiB使用量・サンプル数・時間を表示してPlay／Stopできます。
+Add samples to Files…で素材を追加し、Sample in FilesとLoad asを選んでLoad selected sampleを押します。読込だけでは音を出しません。
+WAVは選択Rateでmonoへ変換してADPCMへ符号化し、packed ADPCMはhigh nibble firstで元のbytesを保持します。
+波形は共有WASMの実復号結果で、表示のためのAudioContextやspeaker接続は追加しません。
+Rateは0–15と実効Hzを表示し、Loopとともに次のPlayから反映します。再生中の値をその場で変更しません。
+Codeと画面は同じ編集用MSM5205を共有し、UIのPlayやサンプル変更でCode／HuC6280を止めません。
+Code Stop後もMSM5205素材を保持します。CD-DAは引き続きCode所有で、Stop時にplayerを閉じます。
+元ファイルはFiles／Cassetteへ保存し、現在のADPCM選択・再生設定はsession限定です。
+VGMのMSM5205は別の参照decoderで、この画面へのLive表示ではありません。CD-DAの専用UIは工事中です。
 `useSoundChip()`の引数に`"huc6280"`／`"msm5205"`／`"cdda"`を指定して選択し、同じAudioContext・Master・FXを共有します。
 Mixerの初期値はPlaygroundと同じ絶対値でHuC6280が44%、MSM5205／CD-DAが100%。
 従来の単体SynthのHuC6280等倍より小さくなり、Masterは引き続き0–380%です。
 VGM1.72のMSM5205 clock／flags／0x32命令を含む曲をHuC6280と一緒に再生でき、MSM単独も受け付けます。
 MSMを含むVGMは完全なペア状態がないためSeekを先頭から再構築し、Pause／Resumeは同じ再生状態を保ちます。
 CD-DAはVGMには含まれず、Files等から読み込んだ音声トラックとしてCodeで再生します。
-専用編集UI・ディスク／BIOS／ゲーム実行は今回の範囲外です。
+MSM5205の波形お絵描き・鍵盤音程・専用preset、CD-DA専用UI、ディスク／BIOS／ゲーム実行は今回の範囲外です。
 Waveは6声、Noiseは実機のCH5／CH6を使う2声。波形は32点・5bitで、
 Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。

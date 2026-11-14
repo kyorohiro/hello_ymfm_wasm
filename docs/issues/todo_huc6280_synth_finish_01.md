@@ -51,6 +51,8 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [x] **CD-ROM²の入口**: HuC6280／MSM5205／CD-DA／MixerタブとCode用音源を追加し、
       HuC6280＋MSM5205のVGMを再生する。専用編集UIは工事中と明示する。
       [詳細TODO](todo_huc6280_synth_cdrom2_01.md)。配布ZIP・Chromium／WebKitの検証を完了。
+- [x] **MSM5205基本UI**: FilesのWAV／ADPCM、実復号波形、Play／Stop、Loop／Rate、
+      Codeとの編集用RAM共有。[詳細TODO](todo_huc6280_synth_msm5205_ui_01.md)。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
       保存・出力経路を確認する。公開・tag・pushは別のユーザー指示で行う。
 
@@ -152,3 +154,13 @@ VGM 1.72のHuC6280＋MSM5205／MSM5205単独を扱い、CD-DAは別トラック�
 MSM5205を含む場合は両音源を一緒に保存する形式がないため、Seekは先頭から再構築する。
 既存の単一HuC6280の正確なcacheを保つ。実装統合後のNode494件が成功した。
 [検証記録](verification_huc6280_synth_cdrom2_20261114.json)。Node501件＋保護検証6件、実配布ZIPで11 suite／22 run／208項目が成功。Tauri・公開・人の実聴は未実行。
+
+
+## MSM5205の基本UI（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_msm5205_ui_01.md)、
+[検証記録](verification_huc6280_synth_msm5205_ui_20261114.json)。MSM5205の工事中表示を
+Files読込・実ADPCM復号波形・使用量・Play／Stop・Loop／Rateの画面へ置き換えた。
+画面とCodeは同じ編集用RAMを使い、Code Stop後もサンプルを保持する。Rate／Loopは次のPlayへ反映。
+VGMのMSM5205は別の参照decoderとして保持する。CD-DA専用UIはまだ工事中。
+Node542件、実配布ZIPのChromium／WebKitで12 suite／24 run／222項目が成功。SDK／WASMは変更しない。

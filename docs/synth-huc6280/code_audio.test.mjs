@@ -10,7 +10,7 @@ test('HuC6280 note ownership resolves only physical channels on the shared chip'
   const client={};for(const channel of[0,1,2,3,4,5])for(const method of['noteOn','keyOn','noteOff','keyOff'])assert.deepEqual(resolveHuc6280CodeNoteTarget(client,client,method,[channel]),{target:client,channel});
   assert.equal(resolveHuc6280CodeNoteTarget(client,client,'noteOn',[6]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,client,'setNote',[0]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,{},'keyOn',[0]),null);
 });
-function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false}={}){
+function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false,msm5205Source}={}){
   const events=[],racks=[],clients=[],contexts=[],outputCalls=[],media=[];let engine,stops=0,active=0,serial=0,stopTask=null;
   function node(name,context,gain=1){return{name,context,gain:{value:gain},edges:new Set(),connect(target){this.edges.add(target);events.push(['connect',name,target.name]);},
     disconnect(target){if(target){assert(this.edges.delete(target),'existing route '+name);}else this.edges.clear();events.push(['disconnect',name,target?.name]);}};}
@@ -29,6 +29,7 @@ function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=fa
   }
   engine=makeEngine();
   const host=createHuc6280CodeAudio({ensureReady:async()=>{events.push(['ensure']);},getAudio:()=>engine,
+    msm5205Source,
     createFxRack:async context=>{
       const task=deferred(),names=new Map();let chain=[];
       const rack={node:node('fx'+racks.length,context),stops:0,disposals:0,
@@ -129,4 +130,32 @@ test('Code media uses the current session and Files callback, and retires before
     await assert.rejects(m.getState(),{name:'AbortError'});assert.equal(f.contexts[0].closeCalls,0);
     const fresh=await f.host.useSoundChip('cdda');assert.notEqual(fresh,cd);assert.equal(f.media.length,2);
   }finally{await f.host.dispose();}
+});
+
+test('Code borrows the authored MSM controller, fades first and retains its sample while CD-DA stays Code-owned',async()=>{
+  const borrows=[];let stops=0,sourceRevision=1;
+  const source={async useCodeClient(options){let closed=false;const facade={id:'borrow'+borrows.length,sourceId:'shared-msm',async getState(){if(closed||!options.isCurrent())throw new DOMException('Old lease','AbortError');return{revision:sourceRevision};},async dispose(){closed=true;options.onDispose();}};borrows.push({options,facade});return facade;},
+    async stopCode(){stops++;f.events.push(['shared-msm-stop']);}};
+  const f=fixture({msm5205Source:source});try{
+    const m=await f.host.useSoundChip('msm5205');assert.equal(m,await f.host.useSoundChip('msm5205'));assert.equal(borrows.length,1);assert.equal(f.media.length,0);
+    assert.equal(new TextDecoder().decode(await borrows[0].options.readFile('/sample.adpcm')),'/sample.adpcm');
+    sourceRevision=2;assert.equal((await m.getState()).revision,2,'UI sample edits remain visible through the borrowed Code client');
+    await m.dispose();const reborrowed=await f.host.useSoundChip('msm5205');assert.notEqual(reborrowed,m);assert.equal(reborrowed.sourceId,m.sourceId);assert.equal((await reborrowed.getState()).revision,2);
+    await assert.rejects(m.getState(),{name:'AbortError'});
+    await f.host.useSoundChip('cdda');assert.equal(f.media.length,1);assert.deepEqual([...f.media[0].clients.keys()],['cdda']);
+    await f.host.beforeStop();await f.host.stop();assert.equal(stops,1);await assert.rejects(m.getState(),{name:'AbortError'});
+    assert(f.events.findIndex(event=>event[0]==='fade')<f.events.findIndex(event=>event[0]==='shared-msm-stop'));
+    assert(f.events.findIndex(event=>event[0]==='shared-msm-stop')<f.events.findIndex(event=>event[0]==='stop'));
+    assert(f.media[0].closed);assert.equal(sourceRevision,2);
+    const next=await f.host.useSoundChip('msm5205');assert.notEqual(next,m);assert.equal((await next.getState()).revision,2);
+  }finally{await f.host.dispose();}
+});
+
+test('physical Code Stop reaches shared MSM even when only the UI used it, and a source error cannot skip PSG cleanup',async()=>{
+  let stopCalls=0,throwStop=false;
+  const f=fixture({msm5205Source:{async stopCode(){stopCalls++;if(throwStop)throw Error('MSM failed');}}});
+  try{
+    await f.host.prepare();await f.host.beforeStop();await f.host.stop();assert.equal(stopCalls,1);assert.equal(f.stops,1);
+    await f.host.prepare();throwStop=true;await assert.rejects(f.host.stop(),/MSM failed/);assert.equal(stopCalls,2);assert.equal(f.stops,2);
+  }finally{throwStop=false;await f.host.dispose();}
 });

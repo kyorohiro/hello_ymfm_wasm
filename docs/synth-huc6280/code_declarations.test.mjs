@@ -37,6 +37,12 @@ await tween({seconds:2},async value=>{await pce.setVolume(CH1,Math.round(31*valu
 const adpcm=await useSoundChip('msm5205');
 await adpcm.loadMemory('/audio/drum.adpcm');await adpcm.loadSample({sampleRate:8000,channels:[new Float32Array(800)]},{rate:12});
 await adpcm.play({offset:0,length:100,loop:true,rate:12});await adpcm.writeRegister(1,7);const adpcmState=await adpcm.getState();adpcmState.positionNibbles;await adpcm.stop();
+const sourceId:string=adpcm.sourceId;const stateId:string=adpcmState.sourceId;const revision:number=adpcmState.revision;
+const rate:PlaygroundMsm5205Rate=adpcmState.defaults.rate;const loop:boolean=adpcmState.defaults.loop;
+const sampleName:string|undefined=adpcmState.sample?.name;const format:'wav'|'adpcm'|undefined=adpcmState.sample?.format;
+const adpcmPlayback:'empty'|'ready'|'playing'|'ended'=adpcmState.state;
+// @ts-expect-error source identity belongs to the host
+adpcm.sourceId='other';
 const cd=await useSoundChip('cdda');await cd.load('/audio/track.wav');await cd.play(1,{offset:.1});await cd.pause();await cd.resume();await cd.seek(0);await cd.list();await cd.getState();await cd.stop();await cd.dispose();
 // @ts-expect-error unsupported chips remain unavailable
 await useSoundChip('sid');

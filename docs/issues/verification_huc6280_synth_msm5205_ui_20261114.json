@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "scope": "HuC6280 Synth MSM5205 basic authored sample UI shared with Code",
+  "passed": true,
+  "baseCommit": "5999ed7da221c20699b26b8cab296c013b504baf",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "MSM5205 tab imports WAV or high-nibble-first packed ADPCM from Files. Candidate file selection and waveform preparation never create an AudioContext. Original files, HuC instrument and Code editor/mode are preserved.",
+    "WAV conversion reuses the bounded shared PCM-to-ADPCM encoder. One authored sample fits 1..65536 encoded bytes; malformed, oversized, cancelled and superseded loads retain the previous sample. Odd WAV frame count remains distinct from packed padding.",
+    "The actual shared offline WASM decoder renders bounded chunks at32kHz into at most512 min/max waveform bins. No full decoded PCM, second speaker route or approximate independent ADPCM decoder is introduced.",
+    "Play/Replay, Stop, Loop, numeric Rate0..15 plus effectiveHz, capacity and duration controls use the existing source. Rate/Loop affect the next Play; they do not falsely claim live parameter setters. Stepper clicks, drag and arrow/Home/End keys avoid numeric text-entry focus conflicts.",
+    "One authored MSM5205 source/RAM is shared by UI and revocable Code leases on the existing Synth context, per-source Mixer, Code FX/fade and Master. UI Play/Stop/load does not stop HuC Code loops. Code loadSample/loadMemory changes the shown sample; Code.play without arguments uses the UI next-Play defaults.",
+    "Code Stop cancels Code-origin loads and leases while retaining the authored sample and valid independent UI imports. UI can replay it; new Run receives a fresh guarded lease of the same source. Global Stop cancels UI work too. Explicit project replacement clears the source. Context/output changes retire old nodes and reupload only the retained current asset.",
+    "Cancellation of a transferred native upload closes only that endpoint. An old acknowledgement cannot overwrite a newer sample or restart a retired node. Latest UI rate edits remain authoritative when an older conversion finishes.",
+    "Synchronous Play guards capture the controller operation before a same-turn Stop; a pending UI Play enables local Stop and uses a gesture ticket. Stop, VGM start, Code stop, page disposal and output changes invalidate old pending UI completions.",
+    "Non-Abort transport failures retire only the matching endpoint/current operation, clear stale playing state, keep the sample and permit replay on a fresh node. Old RPC failures cannot retire a newer run. Disposal always releases nodes even if Stop fails.",
+    "VGM keeps its separate reference MSM decoder. The authored sample UI never claims to be a live view or extraction of a VGM stream. Existing exact HuC state/cache, VGM/manual interaction, paused audition, Capture and CDDA Code playback remain covered.",
+    "All108 readable modules and three device runtime pairs in the final189-file ZIP match the current source and their hash receipts. SDK0.1.8-huc-state/native/WASM/common runtime/Monaco and historical calibration reports were unchanged."
+  ],
+  "node": {
+    "passed": 542,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": {
+      "path": "build/huc6280-msm5205-ui-20261114/node-tests-b.log",
+      "bytes": 58666,
+      "sha256": "9a925fec88b47744e6fd5e5642214f27227af07080474e66540146e421119051"
+    },
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/playground/playground_monaco*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/package_itch_huc6280_synth.test.mjs"
+  },
+  "browsers": {
+    "suites": 12,
+    "runs": 24,
+    "checks": 222,
+    "summary": {
+      "path": "build/huc6280-msm5205-ui-20261114/browser-summary-zip2.json",
+      "bytes": 4283,
+      "sha256": "50e1e8917149ea1b6dcdb8f9587d9b33956936f6b829d074377794c56419a340"
+    },
+    "results": [
+      {
+        "suite": "msm5205",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/msm5205-zip2.json",
+        "sha256": "5cb1189c1a069ba5ff8358888fc755dea1503bb1eec0424709b880e6bf0ca6c6",
+        "assets": 113
+      },
+      {
+        "suite": "cdrom2",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/cdrom2-zip2.json",
+        "sha256": "5894528098d2a18005dc70bb85dc22a31654ec862b9e9c32971852bc4f8d279b",
+        "assets": 118
+      },
+      {
+        "suite": "manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/manual-zip2.json",
+        "sha256": "85596a870c057c126fdcb96da2e41532bf6e4b18eb6240d2abf341c5f2b29bb9",
+        "assets": 111
+      },
+      {
+        "suite": "code",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/code-zip2.json",
+        "sha256": "f72429f21959715675b561cbe4dc595a85cf6aa2343b8b8efb5280f4f622ffe0",
+        "assets": 111
+      },
+      {
+        "suite": "live",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/live-zip2.json",
+        "sha256": "806214b7617a5b20584772bb0d1ca8f47733fd02b3f896c8ce5dc6a16a08ed5e",
+        "assets": 111
+      },
+      {
+        "suite": "capture",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/capture-zip2.json",
+        "sha256": "c8f7aa682abf39e2839a9598807484b1f21b0ed4cfbfbe27110fc42151b5dc01",
+        "assets": 111
+      },
+      {
+        "suite": "legacy",
+        "checks": 60,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/legacy-zip2.json",
+        "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a",
+        "assets": 0
+      },
+      {
+        "suite": "song",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/song-zip2.json",
+        "sha256": "f2bb1a4b29f2b85d6c2e129cab2189d7d5ca7a3c30f9897f6aa2a4af4c279f37",
+        "assets": 111
+      },
+      {
+        "suite": "mixer",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/mixer-zip2.json",
+        "sha256": "34fda67abbc2c713992303a64e304f94afe1c8d3963a6e999c269379840d84f8",
+        "assets": 104
+      },
+      {
+        "suite": "seek",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/seek-zip2.json",
+        "sha256": "e5377ff58405637c2cd95da14a48a3c0f153bee0e447b9d6dafe87dfccb05795",
+        "assets": 111
+      },
+      {
+        "suite": "cache",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/cache-zip2.json",
+        "sha256": "2ddea7e60786e01dc0ec6637d425afd2d680d77630e42364e4698b4d2ca918ac",
+        "assets": 111
+      },
+      {
+        "suite": "vgm_manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-msm5205-ui-20261114/vgm_manual-zip2.json",
+        "sha256": "26eb90ee1ba3a72dddcadc8358d53d5ebeb660f3a12e5e3202505622725c3109",
+        "assets": 111
+      }
+    ],
+    "failureInjection": "Actual native RAM transfer held/cancelled/late-released; actual first Worklet HTTP response held across local Stop; exactly one real MSM state request dropped until the existing20-second adapter timeout. No decoder or application command was replaced with fake PCM."
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_msm5205-ui-check2-20261114_itch.zip",
+      "bytes": 2002745,
+      "sha256": "87a38b561006fd26d07a73faf3964342df94a2d63c1efe51feb7394b239e14f0"
+    },
+    "files": 189,
+    "entries": 6,
+    "readableModules": 108,
+    "sdkVersion": "0.1.8-huc-state",
+    "browserReceipt": {
+      "path": "build/huc6280-msm5205-ui-20261114/zip2/sources/huc6280-synth-browser.json",
+      "bytes": 62184,
+      "sha256": "eae265c917dfc5d195af57b057111294bca7683f58cc1eee97afc9f5458fe449"
+    },
+    "runtimeArtifacts": [
+      {
+        "path": "generated/cdda_wasm.js",
+        "bytes": 304,
+        "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f"
+      },
+      {
+        "path": "generated/cdda_wasm.wasm",
+        "bytes": 2257,
+        "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+      },
+      {
+        "path": "generated/huc6280_wasm.js",
+        "bytes": 14044,
+        "sha256": "7786bb5620b24884aa2aba4d8078d5b480c03987ba2cce638fb3c3874a05cf45"
+      },
+      {
+        "path": "generated/huc6280_wasm.wasm",
+        "bytes": 11000,
+        "sha256": "35631309996a62c5c92241fe714c2d5a51330a29e9fc6a07871df090fd25d021"
+      },
+      {
+        "path": "generated/msm5205_wasm.js",
+        "bytes": 317,
+        "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+      },
+      {
+        "path": "generated/msm5205_wasm.wasm",
+        "bytes": 3590,
+        "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+      }
+    ]
+  },
+  "limitations": [
+    "Current authored MSM selection, RAM and Rate/Loop defaults are session state; original files are persisted/exported in the project.",
+    "Rate/Loop changes apply at the next Play; replay starts at the requested beginning.",
+    "CDDA dedicated UI, VGM ADPCM material extraction, MSM pitched keyboard/wave drawing and a new preset format remain later work."
+  ],
+  "notPerformed": [
+    "Human listening, real-game comparison and long-duration trial",
+    "SDK rebuild, Tauri import, npm/GitHub/itch publication, git staging or commit"
+  ]
+}

@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-cdrom2-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-msm-ui-1">
 </head>
 <body>
   <main>
@@ -170,9 +170,38 @@
       </section>
 
       </div>
-      <section id="msm5205ChipPanel" class="huc-chip-placeholder" role="tabpanel" aria-labelledby="msm5205ChipTab" data-huc-chip-panel="msm5205" hidden>
-        <h2>MSM5205 ADPCM</h2><p>Under construction</p>
-        <p class="subtext">The sound editor is being prepared. Code can already use <code>await useSoundChip("msm5205")</code>. Try <code>examples/msm5205.js</code> in Files.</p><button type="button" data-add-cdrom2-examples>Add Code examples to Files</button>
+      <section id="msm5205ChipPanel" class="huc-msm-panel" role="tabpanel" aria-labelledby="msm5205ChipTab" data-huc-chip-panel="msm5205" hidden>
+        <div id="msm5205Controls">
+          <div class="section-heading"><h2>MSM5205 ADPCM</h2><output id="msmSourceState" role="status">Empty</output></div>
+          <p class="huc-help">PC Engine-style sample player · software transport controls</p>
+          <div class="huc-msm-files">
+            <label for="msmSampleSelect">Sample in Files <select id="msmSampleSelect"><option value="">No WAV / ADPCM files</option></select></label>
+            <label for="msmSampleFormat">Load as <select id="msmSampleFormat"><option value="wav">WAV → ADPCM</option><option value="adpcm">Packed ADPCM</option></select></label>
+            <button id="msmLoadSample" type="button" disabled>Load selected sample</button>
+            <button id="msmAddFiles" type="button">Add samples to Files…</button>
+            <button id="msmCancelLoad" type="button" hidden>Cancel load</button>
+          </div>
+          <p id="msmSampleInfo" class="subtext">No sample loaded · choose a WAV or packed ADPCM file from Files.</p>
+          <progress id="msmSampleCapacity" value="0" max="65536" aria-label="ADPCM sample memory used, maximum 64 KiB"></progress>
+          <p class="huc-help">Decoded ADPCM · mono</p>
+          <canvas id="msmSampleWave" width="900" height="180" role="img" aria-label="Actual decoded ADPCM sample waveform"></canvas>
+          <div class="huc-msm-transport">
+            <button id="msmPlay" class="primary" type="button" disabled>Play</button>
+            <button id="msmStop" type="button" disabled>Stop</button>
+            <label class="huc-check"><input id="msmLoop" type="checkbox">Loop</label>
+            <div class="huc-field"><span id="msmRateLabel">Rate · 0–15</span>
+              <div class="huc-stepper" role="group" aria-labelledby="msmRateLabel">
+                <button class="huc-stepper-button" data-msm-rate-delta="-1" type="button" aria-label="Decrease ADPCM Rate">−</button>
+                <output id="msmRate" class="huc-stepper-value" role="spinbutton" tabindex="0" aria-labelledby="msmRateLabel" aria-valuemin="0" aria-valuemax="15" aria-valuenow="12">12</output>
+                <button class="huc-stepper-button" data-msm-rate-delta="1" type="button" aria-label="Increase ADPCM Rate">+</button>
+              </div><output id="msmRateHz" for="msmRate">8,000 Hz</output>
+            </div>
+          </div>
+          <p id="msmNextPlayHint" class="huc-help">Rate and Loop apply on the next Play. Replay starts from the beginning.</p>
+          <p id="msmSourceStatus" class="huc-help" role="status"></p>
+          <details class="spu-code-help"><summary aria-label="About MSM5205 sample playback">?</summary><p>This is your authored sample, shared with <code>await useSoundChip("msm5205")</code>. VGM playback has a separate reference decoder. WAV conversion is software: channels are mixed to mono, resampled at the selected Rate and encoded as four-bit ADPCM. Packed data uses the high nibble first and fits in 64 KiB. Rate changes playback speed and pitch together; Loop and Rate take effect at the next Play. Replacing a sample stops only this ADPCM player. Code loops and the HuC6280 continue. Code Stop keeps the loaded sample for another Play. Original files are saved in the project; the current ADPCM selection and playback settings are session state.</p></details>
+          <button type="button" data-add-cdrom2-examples>Add Code examples to Files</button>
+        </div>
       </section>
       <section id="cddaChipPanel" class="huc-chip-placeholder" role="tabpanel" aria-labelledby="cddaChipTab" data-huc-chip-panel="cdda" hidden>
         <h2>CD-DA</h2><p>Under construction</p>
@@ -227,12 +256,12 @@
         <div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
       </div>
       <footer>
-        <p>HuC6280: six 32-sample, 5-bit wavetable / DAC channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. DDA uses the chip’s five-bit DAC with software PCM supply, rate, pitch and Loop. Envelope, round robin and waveform drawing are software tools. VGM reference playback supports HuC6280 and MSM5205. Code can also load separate CD-DA tracks. MSM5205 and CD-DA editing panels are under construction; this does not run a CD-ROM² game or disc image.</p>
+        <p>HuC6280: six 32-sample, 5-bit wavetable / DAC channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. DDA uses the chip’s five-bit DAC with software PCM supply, rate, pitch and Loop. Envelope, round robin and waveform drawing are software tools. VGM reference playback supports HuC6280 and MSM5205. Code can also load separate CD-DA tracks. MSM5205 plays authored ADPCM samples; the CD-DA editing panel is under construction; this does not run a CD-ROM² game or disc image.</p>
         <div><a href="../playground/index.html?mode=huc6280">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/huc6280synth.js">JavaScript source</a></div>
       </footer>
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-cdrom2-1"></script>
+  <script type="module" src="./synth.js?v=huc-msm-ui-1"></script>
 </body>
 </html>

@@ -78,6 +78,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert(info.receipt.modules.length>info.receipt.bundles.length);
   for(const path of ['synth-huc6280/code_host.js','synth-huc6280/code_audio.js','synth-huc6280/code_project.js','synth-huc6280/code_files.js',
     'synth-huc6280/cdrom2_audio.js','synth-huc6280/song_engine.js',
+    'synth-huc6280/msm5205_asset.js','synth-huc6280/msm5205_source.js','synth-huc6280/msm5205_controls.js',
     'js/msm5205_audio.js','js/msm5205_worklet.js','js/msm5205_pcm.js','js/msm5205_player.js','js/msm5205_sample.js','js/msm5205audioengine.js',
     'js/cdda_audio.js','js/cdda_worklet.js','js/cdda_pcm.js','js/cdda_player.js','js/cdda_source.js',
     'synth/synth_code_controls.js','synth/synth_project_store.js','synth/synth_draft_store.js',
@@ -132,6 +133,16 @@ with zipfile.ZipFile(sys.argv[1]) as z:
       assert.match(html,new RegExp(`id="${id}ChipPanel"[^>]*role="tabpanel"[^>]*hidden`));
       assert(html.includes(`await useSoundChip(&quot;${id}&quot;)`)||html.includes(`await useSoundChip("${id}")`));
     }
+    for(const id of ['msm5205Controls','msmSourceState','msmSampleSelect','msmSampleFormat','msmLoadSample','msmAddFiles','msmCancelLoad',
+      'msmSampleInfo','msmSampleCapacity','msmSampleWave','msmPlay','msmStop','msmLoop','msmRate','msmRateHz','msmNextPlayHint','msmSourceStatus'])
+      assert(html.includes(`id="${id}"`),`${entry}: the standalone MSM5205 UI includes ${id}`);
+    assert.match(html,/<canvas id="msmSampleWave"[^>]*aria-label="Actual decoded ADPCM sample waveform"/);
+    assert.match(html,/<progress id="msmSampleCapacity"[^>]*max="65536"/);
+    assert.match(html,/<output id="msmRate"[^>]*aria-valuemin="0"[^>]*aria-valuemax="15"/);
+    const msmPanel=html.slice(html.indexOf('id="msm5205ChipPanel"'),html.indexOf('id="cddaChipPanel"'));
+    assert(!msmPanel.includes('Under construction'),'MSM5205 has the actual sample controls');
+    const cddaPanel=html.slice(html.indexOf('id="cddaChipPanel"'),html.indexOf('id="mixerChipPanel"'));
+    assert(cddaPanel.includes('Under construction'),'CD-DA retains its explicit unfinished UI');
     for(let channel=1;channel<=6;channel++)assert.match(html,new RegExp(`id="hucSongChannel${channel}Toggle"[^>]*aria-pressed="true"`));
     assert.match(html,/<button id="hucSongCaptureButton"[^>]*>Capture to Synth<\/button>/);
     assert.match(html,/<input id="hucSongSeek"[^>]*type="range"[^>]*step="0\.01"/);

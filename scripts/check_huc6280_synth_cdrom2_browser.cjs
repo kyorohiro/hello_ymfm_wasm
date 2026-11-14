@@ -132,9 +132,9 @@ async function check(browser,name,origin,fixture,track){
   const step=text=>{stage=text;checks.push(text);console.log(`CHECK ${name}: ${text}`);};
   try{
     await page.goto(origin+config.entry);await files(page);
-    step('Four compact tabs are passive; non-HuC keyboard pages are under construction while Code remains reachable');
+    step('Four compact tabs are passive; MSM sample controls and the CD-DA construction page keep Code reachable');
     assert.deepEqual(await page.locator('[data-huc-chip-tab]').allTextContents().then(x=>x.map(v=>v.trim())),['HuC6280','MSM5205','CD-DA','Mixer']);
-    for(const id of ['msm5205','cdda']){await tab(page,id);assert.match(await page.locator(`[data-huc-chip-panel="${id}"]`).textContent(),/under construction|work in progress|工事中/i);await page.locator('#synthTitle').click();await page.keyboard.press('a');assert.equal((await graph(page)).contexts,0);}
+    for(const id of ['msm5205','cdda']){await tab(page,id);if(id==='cdda')assert.match(await page.locator(`[data-huc-chip-panel="${id}"]`).textContent(),/under construction|work in progress|工事中/i);else assert(await page.locator('#msm5205Controls').isVisible());await page.locator('#synthTitle').click();await page.keyboard.press('a');assert.equal((await graph(page)).contexts,0);}
     const selectedBefore=await page.locator('#hucFilesSelected').textContent(),modeBefore=await page.locator('#synthInputSection').getAttribute('data-input-mode');
     await page.locator('[data-huc-chip-panel="cdda"] [data-add-cdrom2-examples]').click();
     for(const filename of ['/examples/msm5205.js','/examples/cdda.js'])await until(()=>page.locator(`#hucFilesTree [data-file-path="${filename}"]`).count().then(Boolean),'passive Code example '+filename);

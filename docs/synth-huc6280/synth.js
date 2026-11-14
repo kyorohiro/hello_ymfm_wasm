@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js?v=cdrom2-1';
+import {createMsm5205Source} from './msm5205_source.js';
+import {setupMsm5205Controls} from './msm5205_controls.js';
 import {createPcEngineSourceMix,setupPcEngineSourceMix} from './source_mix.js';
 import {addPcEngineCodeExamples} from './cdrom2_examples.js';
 import {createEditor} from './editor.js?v=huc-vgm-manual-2';
-import {setupHuc6280CodeHost} from './code_host.js?v=huc-cdrom2-1';
+import {setupHuc6280CodeHost} from './code_host.js?v=huc-msm-ui-1';
 import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-live-1';
 import {createHuc6280CodeEdit} from './code_parameter_edit.js?v=huc-code-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
@@ -28,6 +30,7 @@ let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, imp
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
 let vgmLibrary = null, codeHost = null, codeLive = null, editorLive=null, codeWasRunning=false, channelTarget = 'synth', autoUpdate=true, displayedPreset = null, liveSignature = null;
+let msmSource=null,msmControls=null;
 let songControls=null, songState=null, chipView='huc6280';
 const sourceMix=createPcEngineSourceMix();
 const sourceMixerUi=setupPcEngineSourceMix({root:$('hucSourceMixer'),mix:sourceMix});
@@ -54,7 +57,7 @@ function updateKeys() {
     button.setAttribute('aria-pressed', String(active));
   }
   const trial=audition?.read();
-  visualizer.setRunning(notes.size > 0 || auditionNotes.size>0 || Boolean(trial?.soundingCount) || trial?.state==='preparing' || trial?.state==='stopping' || Boolean(codeHost?.isRunning()) || Boolean(songState?.playing));
+  visualizer.setRunning(notes.size > 0 || auditionNotes.size>0 || Boolean(trial?.soundingCount) || trial?.state==='preparing' || trial?.state==='stopping' || Boolean(codeHost?.isRunning()) || Boolean(songState?.playing) || msmSource?.read().state==='playing');
   updateCapacity();
 }
 function readVoices(state) {
@@ -86,8 +89,9 @@ function updatePresetUi() {
   else updateKeys();
 }
 function audioFailed(error) {
+  msmControls?.cancelPlay();
   songControls?.stop();
-  void codeHost?.stop();
+  void codeHost?.stop();void msmSource?.stop().catch(()=>{});
   epoch++;
   notes.clear(); updateKeys();
   const failed = audio; audio = null;
@@ -216,6 +220,10 @@ const editor = createEditor({root: $('voiceEditor'), onChange: value => {void ed
 vgmLibrary = createVgmLibrary({root:$('vgmImport'),onSource:({bytes,name},options)=>codeHost.files.importSong(bytes,name,{...options,announce:false}), onSelect:value => applyPreset(value, {
   load:true, fromVgm:true, message:`${value.name} loaded from VGM · Software Envelope off · play the keyboard.`,
 })});
+
+msmSource=createMsm5205Source({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
+  readFile:path=>codeHost.project.readFile(path,{type:'arrayBuffer'},{path:'/index.js'}),
+  onState(){if(!disposed){updateKeys();visualizer.wake();}},onError:report});
 
 const keyboard = document.createElement('div'); keyboard.className = 'keyboard';
 $('keyboard').append(keyboard);
@@ -354,7 +362,7 @@ function stopNotes(message) {
   return enqueue(async()=>{await retiring;await retiringSong;if(audio) await audio.command(codeHost?.isRunning()?'releaseKeyboard':'stop'); if(!codeHost?.isRunning()&&!songState?.playing)visualizer.stop();if(message) status(message);});
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();songControls?.stop();void(async()=>{await codeHost?.stop();setPitchUi(0);await stopNotes('Stopped · instrument retained. Play to resume.');})().catch(report);});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();msmControls?.cancelPlay();songControls?.stop();void(async()=>{await Promise.all([codeHost?.stop(),msmSource?.stop()]);setPitchUi(0);await stopNotes('Stopped · instrument retained. Play to resume.');})().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
@@ -464,8 +472,8 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   songControls?.stop();
-  if(event.persisted){stopNotes();void codeHost?.stop();return;}
-  disposed=true;sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([codeHost?.dispose(),audition?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
+  if(event.persisted){stopNotes();void codeHost?.stop();void msmSource?.stop().catch(()=>{});return;}
+  disposed=true;msmControls?.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([codeHost?.dispose(),audition?.dispose(),msmSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
 });
 function renderCodeLive() {
   if(disposed)return;
@@ -503,7 +511,8 @@ function renderCodeLive() {
   $('hucSongCaptureButton').hidden=context!=='vgm'||!physical;$('hucSongCaptureStatus').hidden=context!=='vgm'||!physical;
   $('hucKeyboardHint').textContent=songState?.seeking||songState?.seekPreparing?'Preparing the VGM position · keyboard audition resumes when ready.':context==='vgm'?physical?songState?.paused?paused?.playable?`Paused VGM CH ${channelTarget+1} · keyboard auditions this configured sound${paused.source==='noise'?' · Noise pitch is fixed':''}.`:paused?.reason??'The selected paused channel cannot be auditioned.':liveVoice?.playable?`Keyboard writes into VGM CH ${channelTarget+1}; later song writes take over${liveVoice.source==='noise'?' · Noise pitch is fixed':''}.`:liveVoice?.reason??'The playing channel is not ready for keyboard input.':songState?.playing?'VGM continues · keyboard plays your edited instrument.':'Reference song paused · keyboard plays your edited instrument.':physical?context==='synth'&&channelTarget===1&&value.lfo.enabled?'CH2 is reserved as the hardware LFO source. Play CH1 for the carrier.':`Keyboard plays CH ${channelTarget+1}.`:'Every key plays the selected source. No keyboard split.';
   $('hucKeyboardControls').hidden=!['huc6280','mixer'].includes(chipView);
-  if(!['huc6280','mixer'].includes(chipView))$('hucKeyboardHint').textContent='Keyboard editor under construction · use Code for MSM5205 and CD-DA playback. Switching tabs keeps the performance running.';
+  if(chipView==='msm5205')$('hucKeyboardHint').textContent='MSM5205 plays samples using Play / Stop above or Code. It has no keyboard noteOn instrument here.';
+  else if(chipView==='cdda')$('hucKeyboardHint').textContent='Keyboard editor under construction · use Code for CD-DA playback. Switching tabs keeps the performance running.';
   updateKeys();
 }
 async function editVisiblePreset(value) {
@@ -553,17 +562,23 @@ async function capturePausedVoice(payload,{isCurrent=()=>true}={}){
   await stopNotes();if(!isCurrent()||!songState?.paused)return false;
   return applyPreset(payload.preset,{load:true,keepSongPaused:true,atomic:true,isCurrent,message:'Captured VGM sound · song stays paused. Edit the Synth or save it to Files.'});
 }
-codeHost=setupHuc6280CodeHost({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
+codeHost=setupHuc6280CodeHost({msm5205Source:msmSource,ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
   getSettings:()=>readPreset(preset),applySettings:(value,options={})=>applyPreset(value,{...options,load:true}),stopKeyboard:()=>stopNotes(),
   stopSong:async()=>{songControls?.stop();await stopAudition();},
-  onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){epoch++;notes.clear();setPitchUi(0);codeWasRunning=running;updateKeys();}syncChannelObservers();renderCodeLive();visualizer.wake();},setStatus:status});
+  onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){if(!running)msmControls?.cancelPlay();epoch++;notes.clear();setPitchUi(0);codeWasRunning=running;updateKeys();}syncChannelObservers();renderCodeLive();msmControls?.refresh();visualizer.wake();},setStatus:status});
+msmControls=setupMsm5205Controls({root:$('msm5205Controls'),source:msmSource,project:codeHost.project,
+  addFiles:()=>{$('hucFileImportButton').click();},onStatus:status,onOutput:()=>{updateKeys();visualizer.wake();},
+  isVisible:()=>chipView==='msm5205'&&!document.hidden,
+  beforePlay(){const phase=codeHost.getState();if(disposed||switchingAudioOutput||phase.busy||phase.stopping)throw Error('Wait for the current audio operation before playing ADPCM.');},
+  afterPlay(){if(!codeHost.isRunning())codeHost.openOutput();},
+});
 codeLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>channelContext()==='code'&&channelTarget!=='synth',onUpdate:()=>renderCodeLive()});
 editorLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>Boolean(audio)&&channelContext()==='synth'&&channelTarget!=='synth',method:'observeEditor',onUpdate:()=>renderCodeLive()});
 audition=createHuc6280SongAudition({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,getSelection:pausedSelection,
   onUpdate(){if(!disposed){renderCodeLive();visualizer.wake();}}});
 songControls=setupHuc6280SongControls({project:codeHost.project,getAudio:()=>enqueue(ensureAudio),
   onCapture:capturePausedVoice,onViewChange:(target)=>{void setChannelTarget(target,{fromSong:true}).catch(report);},
-  beforePlay:async({isCurrent=()=>true}={})=>{if(!isCurrent())return;await codeHost.stop();if(!isCurrent())return;setPitchUi(0);await stopNotes();},
+  beforePlay:async({isCurrent=()=>true}={})=>{if(!isCurrent())return;msmControls?.cancelPlay();await codeHost.stop();if(!isCurrent())return;await msmSource.stop();if(!isCurrent())return;setPitchUi(0);await stopNotes();},
   onState(state){const previousState=songState,previous=songState?.playback;songState=state;syncSongManualState(previousState);syncAuditionSelection();syncChannelObservers();renderCodeLive();if(state.playing)visualizer.wake();
     if(state.playback!==previous){
       if(state.seeking)status('Seeking VGM · Cancel keeps the previous position.');
@@ -579,7 +594,7 @@ for(const tab of document.querySelectorAll('[data-huc-chip-tab]')){
     chipView=tab.dataset.hucChipTab;$('hucSynthMain').dataset.chipView=chipView;
     for(const button of document.querySelectorAll('[data-huc-chip-tab]')){const active=button===tab;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}
     for(const panel of document.querySelectorAll('[data-huc-chip-panel]'))panel.hidden=panel.dataset.hucChipPanel!==chipView;
-    renderCodeLive();visualizer.wake();
+    renderCodeLive();msmControls?.refresh();visualizer.wake();
   };
   tab.addEventListener('click',()=>{tab.blur();select();});
   tab.addEventListener('keydown',event=>{
@@ -605,9 +620,9 @@ if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
     setSwitching(value) {switchingAudioOutput = value === true;},
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
-      setPitchUi(0);
+      msmControls?.cancelPlay();setPitchUi(0);
       songControls?.stop();
-      await codeHost?.stop();await stopNotes();
+      await codeHost?.stop();await msmSource?.stop();await stopNotes();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});
