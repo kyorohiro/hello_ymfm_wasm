@@ -165,7 +165,7 @@ async function check(browser,name,origin,fixture){
     assert(history.some(v=>v.rendered>v.frame),'audible observation is tested against real render-ahead');measurements.heardBoundary=history;
     assert.deepEqual((await read(page)).preset,author);await pause(page);const frozenFrame=(await state(page)).frame;assert(frozenFrame<110250);
 
-    step('Paused VGM CH1–6 show original Wave / Noise / LFO / raw DAC and unknown Wave RAM, without author-side writes or keys');
+    step('Paused VGM CH1–6 preserve read-only source settings; configured Wave/Noise/LFO permit audition while DDA, unknown RAM and reserved CH2 remain blocked');
     const expected=[{ch:0,source:'wave',volume:7,left:6,right:12,period:250,wave:futureWave},{ch:1,source:'wave',volume:0,left:15,right:15,period:713,wave:futureWave},
       {ch:2,source:'wave',volume:22,left:15,right:15,period:1000,wave:thirdWave},{ch:3,source:'dda',volume:20,left:12,right:11,period:444,dac:27},
       {ch:4,source:'noise',volume:11,left:8,right:15,noise:3},{ch:5,source:'unknown',volume:12,left:9,right:15,period:666,unknown:true}];
@@ -177,7 +177,9 @@ async function check(browser,name,origin,fixture){
       if(item.wave)assert.deepEqual(shown.wave,item.wave);if(item.dac!==undefined){assert.equal(Number(shown.editor.ddaValue),item.dac);assert.match(shown.readout,/DAC|DDA/);}
       if(item.unknown){assert.equal(shown.editor.waveKnown,'false');assert.equal(shown.wave,null,'unknown RAM has no invented waveform');assert.match(shown.readout,/unknown/i);}
       else if(item.wave)assert.equal(shown.editor.waveKnown,'true');
-      assert.equal((await state(page)).frame,frozenFrame);assert.equal(await page.locator('#keyboard .key:not([disabled])').count(),0);measurements.pausedViews.push(shown);
+      assert.equal((await state(page)).frame,frozenFrame);const playable=[0,2,4].includes(item.ch),availableKeys=await page.locator('#keyboard .key:not([disabled])').count();
+      assert.equal(availableKeys>0,playable,'paused configured audition eligibility CH'+(item.ch+1));
+      assert.equal(await page.locator('#hucSongCaptureButton').isEnabled(),playable,'paused capture eligibility CH'+(item.ch+1));measurements.pausedViews.push(shown);
     }
     await page.locator('#synthTitle').click();await page.keyboard.down(key);await wait(80);await page.keyboard.up(key);await pcm(page,false);
     assert(!(await page.evaluate(()=>__hucSongAudit.drain())).some(cmd=>['noteOn','noteOff','setPreset','loadPreset','applyEditorEdit','applyCodeEdit'].includes(cmd.method)),'VGM observation never writes author chip');assert.deepEqual((await read(page)).preset,author);

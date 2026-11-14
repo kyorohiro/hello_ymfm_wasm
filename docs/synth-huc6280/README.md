@@ -66,11 +66,14 @@ limit.
 
 ## Sounds from VGM
 
-Use **Load VGM / VGZ…** in the collapsible **Sounds from VGM** section.
+Open the hamburger **Menu → Import → VGM / VGZ…**.
 Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
 **Wave** / **Noise** / **LFO** / **PCM** list. Analysis alone keeps the current instrument; only an
 explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
+The resulting **Sounds from VGM** card sits above the shared **Channel / Auto
+update** controls, followed by the **Waveform / Spectrum** monitor. Collapse
+the sound list while following the same channel settings and output display.
 
 **Wave / PCM: keep loudest volume variant** optionally groups Wave or PCM entries whose data
 and all other sound settings match, showing the highest channel-volume version.
@@ -137,7 +140,7 @@ oscillator phases and elapsed LFO counters are not reconstructed.
 
 ## VGM reference playback
 
-Import a VGM / VGZ in **Sounds from VGM**, or use the menu's **Project files…**.
+Import with **Menu → Import → VGM / VGZ…**, or add a VGM through **Project files…**.
 The original file is saved under `vgm/` in Files with a unique name. The **VGM**
 selector above Waveform / Spectrum lists these files. Select a song, then press
 **Play**. The same button becomes **Pause**, then **Resume**. **Stop** returns to
@@ -153,8 +156,9 @@ offset so Resume continues at the heard song position.
 
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
-both. Pause or Stop the song to play your edited instrument on the keyboard.
-Changing or loading an instrument stops the reference song.
+both. While paused, select **Synth** to play or adjust your edited instrument.
+Loading another sound normally stops the reference song; Capture deliberately
+keeps it paused.
 
 Select **CH1–CH6** to see the VGM's Wave, Noise, LFO, level, stereo balance,
 period and Gate in the same instrument UI. This view is read-only and follows
@@ -166,9 +170,42 @@ These observations never replace your authored instrument.
 **Auto update** starts On and publishes at up to 20 Hz. Off retains a full-chip
 snapshot, so changing CH views uses the same observation time. On catches up to
 the heard position. Pause publishes one exact consumed-position snapshot even
-when automatic updates are Off; Resume continues playback. To audition your
-authored instrument while paused, select Synth. Selected-song-CH keyboard
-audition / Capture, CH On / Off, Seek and direct VGM editing remain later steps.
+when automatic updates are Off; Resume continues playback.
+
+While paused, select a recorded **CH1–CH6** and play the keyboard to audition
+its configured sound. Wave uses ordinary keyboard pitch. Noise retriggers the
+recorded hardware clock and does not transpose. An active hardware LFO is
+auditioned from **CH1** as the full recorded CH1 / CH2 pair: C4 reproduces the
+carrier period, other notes transpose CH1 and CH2 keeps its recorded period.
+Choose CH1 rather than its reserved CH2 modulator.
+
+Audition uses one temporary, monophonic instrument in a dedicated Worklet on
+the **same AudioContext and Master bus**. The newest key owns it. Its private
+gain fades before retrigger, release and cleanup. It does not borrow the Code
+chip or modify the edited instrument, normal per-channel settings, reference
+position, native song state or unheard PCM. Changing views, Resume, Stop,
+starting Code or replacing a project retires that trial instrument. No second
+speaker connection is added.
+
+Choose **Capture to Synth** to copy the configured Wave, Noise or CH1 LFO pair
+into the editable common instrument. The song stays paused at the same position
+and the view returns to **Synth**. Adjust it, then choose **Files → Save sound**
+to keep a preset. Capture itself does not create a file or resume the song.
+Captured presets start with **Software Envelope Off**, keeping the recorded
+hardware configuration separate from the song driver's later volume changes.
+The recorded global left/right balance is folded into the preset's channel
+volume and balance; both LFO outputs are handled separately. Exact attenuation
+is preferred, with any quieter quantization disclosed. Neither output is made
+louder, and the application's Master setting is unchanged.
+
+Only known settings can be captured or auditioned. Incomplete Wave RAM, unknown
+required registers and the active CH2-only LFO view explain what is missing.
+A DDA snapshot contains one changing DAC value, not a complete PCM sample, so
+it cannot be captured or auditioned as a sample. Use static PCM extraction when
+a complete supported interval exists. A known but gated-off or muted sound can
+still be captured, while its paused keyboard audition is disabled. Oscillator
+phase and elapsed automation are not captured. CH On / Off, Seek and direct VGM
+editing remain later steps.
 
 The player accepts VGM **1.61–1.72** and requires one HuC6280 at the normal
 **3,579,545 Hz** PC Engine clock. Other chips,
@@ -335,7 +372,7 @@ forms, CD-ROM² ADPCM / CD-DA and full PC Engine emulation are not included.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
 - [Code host and starter](code_host.js), [shared-chip client / software FX](code_audio.js), [Live channel view](code_live.js), [types](code_declarations.js), [project format](code_project.js) and [Files](code_files.js).
 - [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js), [direct DAC PCM extraction](vgm_direct_pcm.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
-- [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js) and [Files song controls](song_controls.js).
+- [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js), [Files song controls](song_controls.js), [strict configured-voice capture](song_voice.js) and [isolated paused audition](song_audition.js).
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
@@ -354,6 +391,7 @@ npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
 npm run test:huc6280-synth:song-browser
 npm run test:huc6280-synth:live-browser
+npm run test:huc6280-synth:capture-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -383,6 +421,8 @@ CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込�
 Runは新規実行、Applyはcontext等を保持、Stopは短くフェードして編集用設定へ戻します。
 CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲート操作です。
 liveFxやDDAのデータ供給もソフト側の機能です。復元したCodeを勝手に実行することはありません。
+ハンバーガーメニューのImport → VGM / VGZ…から読み込みます。
+音色一覧 → Channel／Auto update → Waveform／Spectrumの順に並び、一覧は折りたためます。
 VGM／VGZからWave／Noise、CH1・CH2を組にしたLFO音色、対応する完全なDAC streamや一定間隔の直接DAC write区間のPCMを抽出できます。
 Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
 両周期・速度・深さ・Reset・CH2の出力を保持します。
@@ -402,6 +442,15 @@ CH1–CH6を選ぶと、聞こえた位置の設定を同じ音色UIへ読み取
 Pause時は自動更新Offでも、実際に止まった位置を一度表示します。
 通常時もCHごとに表示・設定・鍵盤を揃え、CHやSynthの選択だけで値を統一しません。
 通常CH設定は一時的な状態で、単一音色presetには含めません。Code開始・終了では共通音色へ戻します。
-鍵盤で編集用音色を弾くには曲をPauseしてSynthを選ぶか、Stopします。選択CHの試奏／Capture・Seekは後続です。
+Pause中にCHを選んで鍵盤を弾くと、その時点のWave／Noiseを試奏できます。
+LFO有効時はCH1でCH1・CH2の組を試奏し、C4で記録時のCH1周期、CH2は固定です。
+試奏は専用Workletとフェード用Gainを使い、同じAudioContext・Masterへ接続します。
+曲の停止位置・未再生PCM・編集中の共通音色・通常CH設定は変更しません。
+Capture to Synthは曲をPauseのまま設定だけを編集用音色へ取り込み、Synth表示へ戻します。
+保存する場合は、その後FilesのSave soundを使います。Captureだけではファイルを作りません。
+曲の全体左右音量はプリセットの音量・左右balanceへ反映し、必要な量子化は音が大きくならない側へ丸めて説明します。
+LFOはCH1とCH2の両出力を扱い、アプリのMaster値は変更しません。
+未記録Wave RAMや必須設定が不明な音、DDAの単一DAC値は試奏・Captureできません。
+既知のミュート／Gate Off音色はCaptureできますが試奏は無効です。Seekなどは後続です。
 他チップの音を黙って省略せず、単一HuC6280以外や未対応データは理由付きで拒否します。
 CD-ROM²音源は対象外です。

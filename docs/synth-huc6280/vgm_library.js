@@ -7,7 +7,7 @@ import {prepareHuc6280SongSource} from './song_source.js';
 /** Passive file analysis. Only choosing a sound asks the host to replace its
  * instrument; opening, failing, cancelling or closing a library never does. */
 export function createVgmLibrary({root, onSelect, onSource, extract=extractVgmInstruments,prepareSong=prepareHuc6280SongSource}) {
-  const doc = root.ownerDocument, $ = id => root.querySelector(`#${id}`);
+  const doc = root.ownerDocument, $ = id => root.querySelector(`#${id}`)??doc.getElementById?.(id);
   const events = new AbortController(), pageSize = 24;
   const pcmInfo = new WeakMap();
   let library = null, filter = 'all', page = 0, selected = null;
@@ -115,6 +115,7 @@ export function createVgmLibrary({root, onSelect, onSource, extract=extractVgmIn
     const file = $('vgmFileInput').files?.[0];
     $('vgmFileInput').value = ''; $('vgmFileInput').blur();
     if (!file || disposed) return;
+    root.open=true;
     cancel();
     const token = request, controller = new AbortController(); pending = controller;
     $('vgmLibrary').dataset.loading = 'true'; $('cancelVgm').hidden = false;

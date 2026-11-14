@@ -28,6 +28,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
   let acceptedDdaData = '';
+  const auditions=new Set();
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   // A fatal error can also occur after startup has returned to the UI.
   void startupFailure.catch(() => {});
@@ -50,6 +51,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     controller.abort();
     context.removeEventListener('statechange', stateChanged);
     rejectPending(fatalError ?? new Error('HuC6280 audio was disposed'));
+    for(const audition of [...auditions])audition.dispose();
     if (node) {
       node.onprocessorerror = null;
       node.port.onmessage = null;
@@ -187,8 +189,66 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       const check=()=>{assertOpen();if(codeOwner||generation!==codeGeneration||!isCurrent())throw huc6280CodeCancelled();};
       check();const result=await command('applyEditorEdit',[edit]);check();return result;
     }
+    async function createAuditionVoice(value,{isCurrent=()=>true,signal,onError=()=>{}}={}){
+      assertOpen();const preset=readPreset(value);
+      if(typeof isCurrent!=='function'||typeof onError!=='function')throw TypeError('Audition requires ownership and error callbacks');
+      if(signal!==undefined&&(!signal||typeof signal.addEventListener!=='function'))throw TypeError('Audition signal must be an AbortSignal');
+      const aborted=()=>new DOMException('Paused HuC6280 audition cancelled','AbortError');
+      const methods=new Set(['read','loadPreset','noteOn','noteOff','setPitch','stop']);
+      let trialNode=null,outputGain=null,closed=false,failure=null,timer=null,serial=0,resolveReady,rejectReady,trialDdaData=preset.dda.data;
+      const requests=new Map(),ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
+      // Disposal may precede the first await (including a constructor error).
+      void ready.catch(()=>{});
+      const current=()=>!closed&&!disposed&&!fatalError&&!signal?.aborted&&isCurrent()!==false;
+      function check(){assertOpen();if(failure)throw failure;if(!current())throw aborted();}
+      function close(reason=aborted()){
+        if(closed)return;closed=true;clearTimeout(timer);signal?.removeEventListener('abort',cancel);
+        rejectReady(reason);for(const request of requests.values()){clearTimeout(request.timer);request.reject(reason);}requests.clear();
+        if(outputGain){
+          const parameter=outputGain.gain,at=context.currentTime;
+          try{parameter.cancelScheduledValues?.(at);parameter.setValueAtTime?.(0,at);parameter.value=0;}catch{}
+          try{outputGain.disconnect();}catch{}
+        }
+        if(trialNode){trialNode.onprocessorerror=null;trialNode.port.onmessage=null;trialNode.port.onmessageerror=null;
+          try{trialNode.port.postMessage({method:'dispose'});}catch{}try{trialNode.disconnect();}catch{}try{trialNode.port.close();}catch{}}
+        auditions.delete(handle);
+      }
+      const cancel=()=>close(aborted());
+      const failTrial=error=>{if(closed)return;failure=error instanceof Error?error:new Error(String(error));close(failure);try{onError(failure);}catch{}};
+      async function trialCommand(method,args=[]){
+        check();if(!methods.has(method))throw Error('Unknown HuC6280 audition command');if(!Array.isArray(args))throw TypeError('Audition command arguments must be an array');
+        const id=++serial;
+        const result=await new Promise((resolve,reject)=>{
+          const deadline=setTimeout(()=>failTrial(new Error(`HuC6280 audition command timed out (${method})`)),DEADLINE_MS);
+          requests.set(id,{resolve,reject,timer:deadline,presetData:method==='loadPreset'?args[0]?.dda?.data:undefined});
+          try{trialNode.port.postMessage({id,method,args});}catch(error){requests.delete(id);clearTimeout(deadline);reject(error);}
+        });check();return result;
+      }
+      const handle={context,get outputGain(){return outputGain;},isCurrent:current,command:trialCommand,read:()=>trialCommand('read'),
+        noteOn:(id,midi)=>trialCommand('noteOn',[id,midi]),noteOff:id=>trialCommand('noteOff',[id]),setPitch:value=>trialCommand('setPitch',[value]),dispose:()=>close()};
+      auditions.add(handle);signal?.addEventListener('abort',cancel,{once:true});
+      try{
+        check();
+        outputGain=context.createGain();outputGain.gain.value=0;outputGain.connect(master);
+        trialNode=new AudioWorkletNode(context,'tetorica-huc6280-synth',{
+          numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary},
+        });
+        trialNode.onprocessorerror=()=>failTrial(new Error('HuC6280 audition processor failed'));
+        trialNode.port.onmessageerror=()=>failTrial(new Error('HuC6280 audition reply could not be read'));
+        trialNode.port.onmessage=({data})=>{
+          if(closed)return;if(data?.fatal){failTrial(new Error(data.error??'HuC6280 audition processor failed'));return;}
+          if(data?.ready){resolveReady();return;}
+          const request=requests.get(data?.id);if(!request)return;requests.delete(data.id);clearTimeout(request.timer);
+          if(data.error){const error=new Error(data.error);error.name=data.name??'Error';request.reject(error);}
+          else{let result=data.value;if(typeof result?.preset?.dda?.data==='string')trialDdaData=result.preset.dda.data;else if(typeof request.presetData==='string')trialDdaData=request.presetData;
+            if(data.ddaDataOmitted&&result?.preset?.dda)result={...result,preset:{...result.preset,dda:{...result.preset.dda,data:trialDdaData}}};request.resolve(result);}
+        };
+        trialNode.connect(outputGain);timer=setTimeout(()=>failTrial(new Error('HuC6280 audition initialization timed out')),DEADLINE_MS);
+        await ready;clearTimeout(timer);check();await trialCommand('loadPreset',[preset]);check();return handle;
+      }catch(error){close(error);throw error;}
+    }
     return {
-      context, outputNode:master,songInputNode:songInput,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),observeEditor:()=>command('observeEditor'),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,
+      context, outputNode:master,songInputNode:songInput,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),observeEditor:()=>command('observeEditor'),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,createAuditionVoice,
       get codeSession(){return codeOwner?.session??null;},
       async resume() {
         assertOpen();

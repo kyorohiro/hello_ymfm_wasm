@@ -76,13 +76,18 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.match(main,/import \{createAudio\} from '\.\/audio\.js(?:\?v=[A-Za-z0-9._-]+)?'/);
   assert.match(await readFile(join(a.stage,'synth-huc6280/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
-  for(const name of ['vgm_import.js','vgm_library.js','song_source.js','song_preview.js','song_controls.js','song_state.js','song_live.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
+  for(const name of ['vgm_import.js','vgm_library.js','song_source.js','song_preview.js','song_controls.js','song_state.js','song_live.js','song_voice.js','song_audition.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
   for(const name of ['ym2612vgm.js','vgm_file.js']) assert(info.receipt.modules.some(module=>module.path===`js/${name}`));
   for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs']) assert(info.receipt.originalInputs.some(input=>input.path===path));
   for(const entry of ['index.html','synth-huc6280/index.html']) {
     const html=await readFile(join(a.stage,entry),'utf8');
     assert.match(html,/<title>Tetorica HuC6280 Synth<\/title>/);
-    assert.match(html,/id="loadVgm"[^>]*>Load VGM \/ VGZ…/);
+    assert.match(html,/id="loadVgm"[^>]*>VGM \/ VGZ…/);
+    const menu=html.indexOf('id="synthMenuPanel"'),importButton=html.indexOf('id="loadVgm"'),menuEnd=html.indexOf('</details>',menu);
+    assert(menu>=0&&importButton>menu&&importButton<menuEnd,'VGM import belongs to the hamburger menu');
+    const sounds=html.indexOf('id="vgmImport"'),channels=html.indexOf('id="hucCodeLiveTools"'),monitor=html.indexOf('aria-label="Instrument display"');
+    assert(sounds>=0&&sounds<channels&&channels<monitor,'Sounds card, Channel / Auto update and monitor stay in reading order');
+    assert.match(html,/<button id="hucSongCaptureButton"[^>]*>Capture to Synth<\/button>/);
     assert.match(html,/<meta name="application-name" content="Tetorica HuC6280 Synth">/);
     assert.match(html,/<link rel="icon"[^>]+tetorica_huc6280_synth\.webp/);
     assert.match(html,/<link rel="apple-touch-icon"[^>]+tetorica_huc6280_synth\.webp/);

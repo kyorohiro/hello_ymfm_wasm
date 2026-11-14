@@ -10,24 +10,36 @@ import {createHuc6280CodeEdit} from './code_parameter_edit.js';
 const source=await readFile(new URL('./synth.js',import.meta.url),'utf8');
 const contextSource=source.match(/^const channelContext=.*$/m)[0];
 const apply=source.slice(source.indexOf('function applyPreset('),source.indexOf('const editor = createEditor('));
-const keyboard=source.slice(source.indexOf('function press('),source.indexOf("$('startAudio').addEventListener"));
+const keyboard=source.slice(source.indexOf('function pausedSelection('),source.indexOf("$('startAudio').addEventListener"));
+const pitchSource=source.slice(source.indexOf('function setPitch(value)'),source.indexOf('for (const [wheel] of pitchWheels)'));
 const edit=source.slice(source.indexOf('async function editVisiblePreset('),source.indexOf('codeHost=setupHuc6280CodeHost('));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
+const turn=()=>new Promise(resolve=>setImmediate(resolve));
 
 function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
-  const calls=[],errors=[],notes=new Map();let pending=Promise.resolve(),scope;
+  const calls=[],errors=[],notes=new Map(),auditionNotes=new Map();let pending=Promise.resolve(),scope;
   const engine={codeSession:session,state:{preset:createDefaultPreset(),voices:[]},
-    async command(method,args=[]){calls.push(['command',method,structuredClone(args)]);return{channel};},
+    async command(method,args=[]){calls.push(['command',method,structuredClone(args)]);
+      if(['loadPreset','setPreset'].includes(method)){engine.state.preset=readPreset(args[0]);if(engine.pendingCommand)await engine.pendingCommand;}
+      return{channel};},
     async getHuc6280Client(){calls.push(['prepareClient']);if(engine.pendingPrepare)await engine.pendingPrepare;engine.codeSession=7;return{};},
     async applyCodePreset(value,options){assert(options.isCurrent());calls.push(['preset',structuredClone(value),options.replace]);engine.state.preset=readPreset(value);if(engine.pendingPreset)await engine.pendingPreset;},
     async applyCodeEdit(value,options){assert(options.isCurrent());calls.push(['edit',structuredClone(value)]);if(engine.pendingEdit)await engine.pendingEdit;return structuredClone(engine.state);},
     async applyEditorEdit(value,options){assert(options.isCurrent());calls.push(['editorEdit',structuredClone(value)]);return structuredClone(engine.state);},
-    async read(){calls.push(['read']);return structuredClone(engine.state);},
+    async read(){calls.push(['read']);if(engine.pendingRead)await engine.pendingRead;
+      if(engine.readFailure){const error=engine.readFailure;engine.readFailure=null;throw error;}
+      return structuredClone(engine.state);},
   };
   const host={running,mode:false,phase:{busy:false,stopping:false},getState(){return this.phase;},isRunning(){return this.running;},isCodeMode(){return this.mode;},markSoundDirty(){calls.push(['dirty']);}};
+  const audition={active:false,async noteOn(id,midi,options){calls.push(['auditionOn',id,midi]);audition.lastGuard=options.isCurrent;
+      if(audition.pendingOn)await audition.pendingOn;return options.isCurrent();},
+    async noteOff(id){calls.push(['auditionOff',id]);},async setPitch(value){calls.push(['auditionPitch',value]);},
+    read(){return{active:this.active};},async stop(){calls.push(['auditionStop']);if(audition.pendingStop)await audition.pendingStop;this.active=false;},
+  };
+  const observer=name=>({async refresh(){calls.push([name+'Refresh']);},setEnabled(){},sync(){},setVoice(value){calls.push([name+'Voice',value]);},read:()=>({liveState:{}})});
   scope=vm.createContext({Promise,DOMException,Map,Set,Array,Number,JSON,structuredClone,
     audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,
-    codeHost:host,songControls:null,songState:null,channelTarget:channel,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,
+    codeHost:host,songControls:null,songState:null,channelTarget:channel,channelSelection:0,autoUpdate:true,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,auditionNotes,audition,auditionSelectionKey:null,
     readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,
     enqueue(action){const task=pending.then(action);pending=task.catch(error=>errors.push(error));return task;},
     ensureAudio:async()=>{await ready;return engine;},
@@ -35,14 +47,14 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
     setPitchUi(value){scope.pitch=value;calls.push(['pitchUi',value]);},
     vgmLibrary:{clearSelection(){calls.push(['clearVgm']);}},
     visualizer:{wake(){calls.push(['wake']);},stop(){calls.push(['visualStop']);}},
-    codeLive:{async refresh(){calls.push(['refresh']);}},
-    editorLive:{async refresh(){calls.push(['editorRefresh']);}},
+    codeLive:{...observer('code'),async refresh(){calls.push(['refresh']);}},
+    editorLive:observer('editor'),renderCodeLive(){calls.push(['renderLive']);},
     status(message){calls.push(['status',message]);},report:error=>errors.push(error),
     canPlay:()=>true,capacity:()=>6,midiToNoteName:note=>String(note),
     async prepareDdaAudio(){calls.push(['prepareDda']);return{name:'unused',data:'',sampleRate:8000};},
   });
-  vm.runInContext(contextSource+'\n'+apply+'\n'+keyboard+'\n'+edit,scope);
-  return{scope,engine,host,calls,errors,notes,idle:()=>pending};
+  vm.runInContext(contextSource+'\n'+apply+'\n'+keyboard+'\n'+pitchSource+'\n'+edit,scope);
+  return{scope,engine,host,audition,calls,errors,notes,auditionNotes,idle:()=>pending};
 }
 
 test('author preset/source loads keep Code running and route through its current session',async()=>{
@@ -151,7 +163,7 @@ test('an explicit sound load ends reference playback before applying to the auth
 test('an author load made while Code is preparing waits for its session without restarting or losing the selection',async()=>{
   const gate=deferred(),h=harness({session:null}),next=createDefaultPreset();next.name='Prepared noise';next.source='noise';
   h.engine.pendingPrepare=gate.promise;
-  const loading=h.scope.applyPreset(next,{load:true});await Promise.resolve();await Promise.resolve();
+  const loading=h.scope.applyPreset(next,{load:true});await turn();
   assert(h.calls.some(call=>call[0]==='prepareClient'),'the host prepares the existing Code client');
   assert(!h.calls.some(call=>call[0]==='preset'));assert.equal(h.scope.preset.name,'Sine','author checkpoint waits for acknowledgement');
   gate.resolve();assert.equal(await loading,true);
@@ -163,7 +175,7 @@ test('an author load made while Code is preparing waits for its session without 
 test('Code Stop during client preparation discards the old selection without checkpointing an unapplied sound',async()=>{
   const gate=deferred(),h=harness({session:null}),next=createDefaultPreset();next.name='Stale selection';next.source='noise';
   h.engine.pendingPrepare=gate.promise;const before=readPreset(h.scope.preset),loading=h.scope.applyPreset(next,{load:true});
-  await Promise.resolve();await Promise.resolve();assert(h.calls.some(call=>call[0]==='prepareClient'));
+  await turn();assert(h.calls.some(call=>call[0]==='prepareClient'));
   h.host.running=false;h.scope.epoch++;gate.resolve();assert.equal(await loading,false);
   assert.deepEqual(h.scope.preset,before);assert(!h.calls.some(call=>['preset','dirty'].includes(call[0])));
 });
@@ -176,8 +188,115 @@ test('Files selection cancellation reports false and cannot publish a stale auth
 
   const gate=deferred(),h=harness();let selected=true;h.engine.pendingPreset=gate.promise;
   const loading=h.scope.applyPreset(next,{load:true,isCurrent:()=>selected});
-  await Promise.resolve();await Promise.resolve();assert(h.calls.some(call=>call[0]==='preset'));
+  await turn();assert(h.calls.some(call=>call[0]==='preset'));
   selected=false;gate.resolve();assert.equal(await loading,false);
   assert.deepEqual(h.scope.preset,before,'a backend acknowledgement cannot overwrite the newly selected file');
   assert(!h.calls.some(call=>['read','dirty','wake'].includes(call[0])));
+});
+
+function pausedHarness({channel=0,playable=true,source='wave'}={}){
+  const h=harness({channel,running:false,session:null});
+  const captured=createDefaultPreset();captured.name='Paused reference';captured.volume=17;captured.wave.fill(9);captured.envelope.enabled=false;
+  if(source==='noise'){captured.source='noise';captured.noise.frequency=7;}
+  let selection={key:`song:${channel}:123`,channel,snapshot:{positionFrames:123},positionFrames:123,
+    prepared:{preset:captured,channel,source,positionFrames:123,playable,capturable:true,reason:playable?'':'Muted channel'}};
+  h.scope.songState={playback:'paused',paused:true,playing:false,busy:false,canStop:true,positionFrames:123};
+  h.scope.songControls={read:()=>h.scope.songState,getPausedSelection:()=>selection,
+    stop(){h.calls.push(['songStop']);h.scope.songState={playback:'stopped',paused:false,playing:false,busy:false,canStop:false,positionFrames:0};selection=null;},
+    setView(target){h.calls.push(['songView',target]);},
+  };
+  return{...h,captured,get selection(){return selection;},replaceSelection(value){selection=value;}};
+}
+
+test('actual Capture applies an acknowledged authored preset while retaining the reference Pause/frame and stopping only its private audition',async()=>{
+  const h=pausedHarness(),before=readPreset(h.scope.preset);h.audition.active=true;
+  const payload={...h.selection.prepared,capturable:true};assert.equal(await h.scope.capturePausedVoice(payload),true);
+  assert.equal(h.scope.songState.playback,'paused');assert.equal(h.scope.songState.positionFrames,123);assert(!h.calls.some(call=>call[0]==='songStop'));
+  assert.equal(h.calls.filter(call=>call[0]==='auditionStop').length,1);
+  assert.deepEqual(h.engine.state.preset,h.captured);assert.deepEqual(h.scope.preset,h.captured);assert.notDeepEqual(h.scope.preset,before);
+  assert(h.calls.some(call=>call[0]==='dirty'));assert(h.calls.findIndex(call=>call[0]==='auditionStop')<h.calls.findIndex(call=>call[0]==='command'&&call[1]==='loadPreset'));
+});
+
+test('atomic Capture cancellation during load ACK or read ACK restores the previous native author checkpoint without publishing capture',async()=>{
+  for(const boundary of['command','read']){
+    const h=pausedHarness(),before=readPreset(h.scope.preset),gate=deferred();let current=true;
+    if(boundary==='command')h.engine.pendingCommand=gate.promise;else h.engine.pendingRead=gate.promise;
+    const loading=h.scope.applyPreset(h.captured,{load:true,keepSongPaused:true,atomic:true,isCurrent:()=>current});await turn();
+    assert(h.calls.some(call=>call[0]==='command'&&call[1]==='loadPreset'));assert.deepEqual(h.engine.state.preset,h.captured,'native capture is awaiting acknowledgement');
+    assert.deepEqual(h.scope.preset,before,'author UI/checkpoint has not committed before acknowledgement');
+    current=false;gate.resolve();assert.equal(await loading,false,boundary);
+    const loads=h.calls.filter(call=>call[0]==='command'&&call[1]==='loadPreset');assert.equal(loads.length,2);assert.deepEqual(loads[1][2],[before]);
+    assert.deepEqual(h.engine.state.preset,before);assert.deepEqual(h.scope.preset,before);assert(!h.calls.some(call=>['dirty','wake'].includes(call[0])));
+    assert.equal(h.scope.songState.playback,'paused');assert.equal(h.scope.songState.positionFrames,123);
+  }
+});
+
+test('a cancelled atomic Capture cannot publish its stale native state when the pending read rejects before a later read succeeds',async()=>{
+  const h=pausedHarness(),before=readPreset(h.scope.preset),gate=deferred();let current=true;
+  h.engine.pendingRead=gate.promise;h.engine.readFailure=new DOMException('Snapshot request cancelled','AbortError');
+  const loading=h.scope.applyPreset(h.captured,{load:true,keepSongPaused:true,atomic:true,isCurrent:()=>current});await turn();
+  assert(h.calls.some(call=>call[0]==='read'));assert.deepEqual(h.engine.state.preset,h.captured);assert.deepEqual(h.scope.preset,before);
+  current=false;gate.resolve();await loading.catch(()=>false);
+  assert.deepEqual(h.scope.preset,before,'a recovery read must not publish cancelled capture state');
+  assert.deepEqual(h.engine.state.preset,before,'an acknowledged native load must roll back when its atomic capture is cancelled');
+  assert(!h.calls.some(call=>call[0]==='dirty'));assert.equal(h.scope.songState.playback,'paused');
+});
+
+test('a retiring Capture never rolls an acknowledged newer Synth edit back to its older checkpoint',async()=>{
+  const h=pausedHarness(),gate=deferred();let current=true;h.engine.pendingCommand=gate.promise;
+  const capturing=h.scope.applyPreset(h.captured,{load:true,keepSongPaused:true,atomic:true,isCurrent:()=>current});await turn();
+  current=false;h.scope.channelTarget='synth';const next=readPreset(h.scope.preset);next.name='Newer Synth edit';next.volume=9;
+  const editing=h.scope.editVisiblePreset(next);gate.resolve();assert.equal(await capturing,false);await editing;
+  assert.deepEqual(h.scope.preset,next);assert.deepEqual(h.engine.state.preset,next);
+  assert.equal(h.calls.filter(call=>call[0]==='command'&&call[1]==='loadPreset').length,1,'retiring capture does not roll back across a newer author revision');
+  assert.equal(h.scope.songState.playback,'paused');
+});
+
+test('Capture cancellation before/while private audition shutdown cannot address the author chip',async()=>{
+  const h=pausedHarness(),gate=deferred();let current=true;h.audition.active=true;h.audition.pendingStop=gate.promise;
+  const loading=h.scope.capturePausedVoice(h.selection.prepared,{isCurrent:()=>current});await turn();
+  assert(h.calls.some(call=>call[0]==='auditionStop'));assert(!h.calls.some(call=>call[0]==='command'));
+  current=false;gate.resolve();assert.equal(await loading,false);assert(!h.calls.some(call=>call[0]==='command'&&['loadPreset','setPreset'].includes(call[1])));
+  assert.equal(h.scope.songState.playback,'paused');
+});
+
+test('Synth knobs keep Pause, while an explicit preset load stops the song before applying the authored sound',async()=>{
+  const knob=pausedHarness();knob.scope.channelTarget='synth';const next=readPreset(knob.scope.preset);next.volume=11;
+  await knob.scope.editVisiblePreset(next);assert(!knob.calls.some(call=>call[0]==='songStop'));
+  assert.equal(knob.scope.songState.playback,'paused');assert.equal(knob.scope.songState.positionFrames,123);
+  assert(knob.calls.some(call=>call[0]==='command'&&call[1]==='setPreset'));assert.equal(knob.scope.preset.volume,11);
+  const loaded=pausedHarness();loaded.scope.channelTarget='synth';await loaded.scope.applyPreset(next,{load:true});
+  const stop=loaded.calls.findIndex(call=>call[0]==='songStop'),load=loaded.calls.findIndex(call=>call[0]==='command'&&call[1]==='loadPreset');
+  assert(stop>=0&&stop<load);assert.equal(loaded.scope.songState.playback,'stopped');
+});
+
+test('paused physical keyboard and Pitch use the isolated audition endpoint; Synth still uses the authored endpoint while Pause survives',async()=>{
+  const h=pausedHarness({channel:3});h.scope.press('key:KeyA',{key:'a',midi:64});await turn();
+  const note=h.auditionNotes.get('key:KeyA');assert(note);assert.equal(h.notes.size,0);
+  assert.deepEqual(h.calls.find(call=>call[0]==='auditionOn'),['auditionOn',note.id,64]);assert(!h.calls.some(call=>call[0]==='command'));
+  h.scope.setPitch(.5);await turn();assert(h.calls.some(call=>call[0]==='auditionPitch'&&call[1]===.5));assert(!h.calls.some(call=>call[0]==='command'));
+  h.scope.release('key:KeyA');await turn();assert.equal(h.auditionNotes.size,0);assert(h.calls.some(call=>call[0]==='auditionOff'&&call[1]===note.id));
+  assert.equal(h.scope.songState.playback,'paused');assert.equal(h.scope.songState.positionFrames,123);
+  const authored=pausedHarness();authored.scope.channelTarget='synth';authored.scope.press('key:KeyA',{key:'a',midi:64});await authored.idle();
+  assert(authored.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));assert(!authored.calls.some(call=>call[0]==='auditionOn'));assert.equal(authored.scope.songState.playback,'paused');
+});
+
+test('muted paused voices block audition and Noise keeps its fixed hardware clock while Pitch returns to zero',async()=>{
+  const muted=pausedHarness({playable:false});muted.scope.press('key:KeyA',{key:'a',midi:64});await turn();assert.equal(muted.auditionNotes.size,0);assert.equal(muted.calls.length,0);
+  const noise=pausedHarness({source:'noise',channel:4});noise.scope.press('key:KeyA',{key:'a',midi:1});await turn();assert(noise.calls.some(call=>call[0]==='auditionOn'));
+  noise.scope.setPitch(.5);await turn();assert.equal(noise.scope.pitch,0);assert(!noise.calls.some(call=>call[0]==='auditionPitch'));
+});
+
+test('a delayed paused-key audition cannot cross release, selection changes, Resume, Code Run or output transition',async()=>{
+  for(const transition of['release','channel','resume','code','output']){
+    const h=pausedHarness(),gate=deferred();h.audition.pendingOn=gate.promise;h.scope.press('key:KeyA',{key:'a',midi:64});
+    assert(h.audition.lastGuard());
+    if(transition==='release')h.scope.release('key:KeyA');
+    if(transition==='channel'){h.scope.channelTarget=1;h.replaceSelection({...h.selection,key:'song:1:123',channel:1});h.scope.syncAuditionSelection();}
+    if(transition==='resume')h.scope.songState={...h.scope.songState,playback:'playing',playing:true,paused:false};
+    if(transition==='code'){h.host.running=true;h.scope.songState={playback:'stopped',paused:false,playing:false};}
+    if(transition==='output')h.scope.switchingAudioOutput=true;
+    assert.equal(h.audition.lastGuard(),false,transition);gate.resolve();await turn();
+    assert.equal(h.auditionNotes.size,0);assert(!h.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));
+  }
 });

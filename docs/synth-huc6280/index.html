@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-live-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-capture-1">
 </head>
 <body>
   <main>
@@ -40,7 +40,7 @@
             <details id="synthMenu" class="synth-menu">
               <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
               <div id="synthMenuPanel" class="synth-menu-panel">
-                <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><div id="hucMenuProjectImport"></div><div id="hucMenuFilesImport"></div></div></section>
+                <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><button id="loadVgm" type="button" data-close-synth-menu>VGM / VGZ…</button><input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with HuC6280 sound"><div id="hucMenuProjectImport"></div><div id="hucMenuFilesImport"></div></div></section>
                 <section class="synth-menu-section"><h2>Export</h2><div class="synth-menu-actions"><div id="hucMenuProjectExport"></div><div id="hucMenuFileExport"></div></div></section>
               </div>
             </details>
@@ -65,34 +65,14 @@
           <button id="hucSongPlayButton" class="primary" type="button" disabled>Play</button>
           <button id="hucSongStopButton" type="button" disabled>Stop</button>
           <output id="hucSongPosition" aria-label="Song position">0:00</output>
-          <details class="spu-code-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a VGM / VGZ below or add it to Files. The original file is kept under vgm/. Play runs one HuC6280 reference performance through Master; your edited instrument is kept. Code and song playback run one at a time. Pause stops at the heard position; Resume continues from there. Playback runs once. Pause or Stop to play your edited instrument; changing a sound stops the reference song.</p></details>
+          <details class="spu-code-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a VGM / VGZ from Menu or add it to Files. The original file is kept under vgm/. Play runs one HuC6280 reference performance through Master; your edited instrument is kept. Code and song playback run one at a time. Pause stops at the heard position; Resume continues from there. Playback runs once. While paused, choose a CH to audition its configured sound, or Synth to play your edited instrument. Capture to Synth keeps the song paused; Resume continues from the same position. Loading another preset or extracted sound stops the song.</p></details>
         </div>
         <p id="hucSongStatus" class="subtext" role="status">Add a VGM / VGZ to hear a reference performance.</p>
       </section>
-      <section class="spu-monitor huc-monitor" aria-label="Instrument display">
-        <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
-          <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
-          <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
-        </div>
-        <p id="visualizerDescription">Live output after Master volume.</p>
-        <div class="monitor-body">
-          <div class="monitor-plot">
-            <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live HuC6280 audio visualization"></canvas>
-          </div>
-          <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
-            <span>Pitch</span>
-            <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend, minus two to plus two semitones">
-            <output id="pitchValue" for="pitchBend">0.00</output>
-          </label>
-        </div>
-      </section>
-
-      <details id="vgmImport" class="huc-card huc-vgm-import" open>
+      <details id="vgmImport" class="huc-card huc-vgm-import">
         <summary>Sounds from VGM</summary>
         <div class="huc-card-content">
           <div class="huc-vgm-actions">
-            <button id="loadVgm" type="button">Load VGM / VGZ…</button>
-            <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with HuC6280 sound">
             <button id="cancelVgm" type="button" hidden>Cancel import</button>
             <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Choose a PC Engine VGM, then select a Wave, Noise, LFO or PCM sound to play.</p>
           </div>
@@ -122,10 +102,30 @@
         <div class="spu-code-live-row">
           <label>Channel <select id="hucChannelSelect" aria-label="Channel or authored instrument"><option value="synth" selected>Synth · edit and play</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
           <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
-          <details class="spu-code-help"><summary aria-label="About channel controls">?</summary><p>Synth edits your common round-robin instrument. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 show read-only settings at the heard position; Pause freezes that position. Auto update follows at up to 20 times per second, and Off retains the last observation. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p></details>
+          <button id="hucSongCaptureButton" type="button" disabled hidden>Capture to Synth</button>
+          <details class="spu-code-help"><summary aria-label="About channel controls">?</summary><p>Synth edits your common round-robin instrument. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 show read-only settings at the heard position; Pause freezes that position and lets the keyboard audition a known Wave, Noise or CH1 LFO pair through the same Master. Capture to Synth copies that configured sound for editing and saving, keeping the song paused. DDA samples and unknown Wave RAM cannot be reconstructed from this snapshot. Auto update follows at up to 20 times per second, and Off retains the last observation. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p></details>
         </div>
         <p id="hucChannelStatus" class="subtext" role="status"></p><p id="hucChannelReadout" class="subtext"></p>
+        <p id="hucSongCaptureStatus" class="subtext" role="status" hidden></p>
       </section>
+      <section class="spu-monitor huc-monitor" aria-label="Instrument display">
+        <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
+          <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
+          <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+        </div>
+        <p id="visualizerDescription">Live output after Master volume.</p>
+        <div class="monitor-body">
+          <div class="monitor-plot">
+            <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live HuC6280 audio visualization"></canvas>
+          </div>
+          <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+            <span>Pitch</span>
+            <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend, minus two to plus two semitones">
+            <output id="pitchValue" for="pitchBend">0.00</output>
+          </label>
+        </div>
+      </section>
+
       <section class="instrument-workspace huc-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Wavetable · 6 voices · round robin</p></div>
         <div id="voiceEditor"></div>
@@ -193,6 +193,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-live-1"></script>
+  <script type="module" src="./synth.js?v=huc-capture-1"></script>
 </body>
 </html>

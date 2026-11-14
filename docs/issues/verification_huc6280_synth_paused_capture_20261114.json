@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "task": "HuC6280 Synth paused selected-channel audition/Capture and reference UI alignment",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Import VGM / VGZ is in the hamburger Menu. Order is song transport, collapsible Sounds from VGM, Channel / Auto update / Capture, then the existing monitor. Import opens the sounds card and preserves Wave / PCM keep-loudest-volume-variant grouping.",
+    "Paused Wave and Noise audition uses a lazy private monophonic Worklet on the existing AudioContext and Master. The newest key owns it; obsolete releases cannot cut a later note. No extra speaker route or Code lease is created.",
+    "The trial fades before retrigger, release and retirement. Native song state, consumed frame, unheard PCM, common instrument and normal channel bank stay intact. View change, Resume, Stop, Code Run, project replacement, output transitions and pagehide retire trials and cancel late preparation.",
+    "Wave uses keyboard pitch; Noise retains its hardware clock. Active LFO uses a complete CH1/CH2 pair with both waves, recorded periods/rate/depth/output levels. C4 reproduces the carrier period; CH2 retains its recorded period.",
+    "Capture commits the current acknowledged single-voice preset, selects Synth and retains exact Pause position for Resume. Synth knob edits keep Pause; explicit external sound loads stop it. Save to Files preserves the captured preset for later selection.",
+    "Capture tickets bind source revision, paused frame, snapshot and channel. Failed or cancelled acknowledgements cannot publish stale state. Native rollback is limited to the same authored revision and cannot overwrite a newer edit.",
+    "Unknown required registers, incomplete Wave RAM, a DDA-only DAC snapshot and the active CH2-only LFO modulator explain unavailable trial/Capture. Known muted or gated-off settings can capture but do not audition. Software Envelope starts Off; phase and elapsed automation are not restored.",
+    "Recorded global L/R attenuation is folded into existing preset volume/pan fields for both LFO outputs independently. Exact attenuation is preferred; any conservative quieter quantization is disclosed. Neither side becomes louder. Preset format and Master calibration are unchanged.",
+    "Standalone ZIP retains readable source modules and authenticated rebuild/source archives. Native WASM bytes and SDK 0.1.7 are unchanged."
+  ],
+  "node": {
+    "passed": 341,
+    "failed": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-capture-20261114/node-tests-b.log",
+      "bytes": 37079,
+      "sha256": "0d04709146969dd6cba0678ccf3976cb339f065929cb32977261ba237ce34227"
+    }
+  },
+  "browsers": {
+    "suites": 5,
+    "runs": 10,
+    "checks": 122,
+    "results": [
+      {
+        "suite": "Paused audition and Capture",
+        "receipt": {
+          "path": "build/verification/huc-capture-20261114/capture-b.json",
+          "bytes": 32290,
+          "sha256": "e3799da7807b3e853ecf1310c9042d2db984f1dc242c50140360904ed54a36b5"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "Normal/Code/VGM Live channels",
+        "receipt": {
+          "path": "build/verification/huc-capture-20261114/live-b.json",
+          "bytes": 102913,
+          "sha256": "de539d48ce224141de72fb8c290247c88d34f6f9a41cc5f8e3b8898599c9b3f6"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "Code and Files",
+        "receipt": {
+          "path": "build/verification/huc-capture-20261114/code-b.json",
+          "bytes": 19810,
+          "sha256": "aa4570ebf013dfbfcd0465b407d90d542c4f4736a1ef5dab8cc80e20842c7d21"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "VGM transport",
+        "receipt": {
+          "path": "build/verification/huc-capture-20261114/song-b.json",
+          "bytes": 24983,
+          "sha256": "448f27438720b9ad53a0bb7cb66d152705d15276ae59373fe527f3cd669f74a5"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "Keyboard and VGM extraction",
+        "receipt": {
+          "path": "build/verification/huc-capture-20261114/legacy-b.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsVisuallyInspected": true
+  },
+  "package": {
+    "zip": "release/tetorica_huc6280_synth_huc-capture-20261114b_itch.zip",
+    "stage": "release/itch_huc6280_synth_huc-capture-20261114b-4StgIB",
+    "files": 135,
+    "bytes": 1788853,
+    "sha256": "ab6a9e8b0e8918f8f408177949a47bdd52ed0d9d6c510f129c5faf01ef935c76",
+    "sourceCheck": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    },
+    "integrityReceipt": {
+      "path": "build/verification/huc-capture-20261114/zip-integrity-b.json",
+      "bytes": 144,
+      "sha256": "6bf29d3aae2f8f5f7c00b1bf690f3df902eaec33fcd2f3d112d70a9bc61f5f06"
+    },
+    "sourceParityReceipt": {
+      "path": "build/verification/huc-capture-20261114/source-parity-b.json",
+      "bytes": 310,
+      "sha256": "69ca44e6dcfd7286f26c132a545b8792249659b52331a7e92e6bcc6e8cbc98f1"
+    }
+  },
+  "ci": "HuC6280 workflow includes the muted Capture checker and artifacts sequentially with existing suites. GitHub Actions was not dispatched.",
+  "scope": "No physical listening, long-duration test, commercial-game comparison, user project storage changes, commit, push, tag, publication, Tauri update or public npm API change. VGM editing during playback, channel mute, Seek and dynamic DDA sample reconstruction remain future tasks."
+}

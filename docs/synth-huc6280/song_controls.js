@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createHuc6280SongPreview} from './song_preview.js?v=huc-live-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
+import {prepareHuc6280SongVoice} from './song_voice.js';
 
 const time=seconds=>{
   const value=Math.max(0,Number.isFinite(seconds)?seconds:0);
@@ -10,18 +11,21 @@ const time=seconds=>{
 /** Files are validated passively. Only the transport's Play gesture acquires
  * audio; it never applies a song's registers to the authored instrument. */
 export function setupHuc6280SongControls({project,getAudio,beforePlay,
-  onState=()=>{},onStatus=()=>{},createPreview=createHuc6280SongPreview,document:doc=globalThis.document}={}){
+  onState=()=>{},onStatus=()=>{},onCapture=async()=>false,onViewChange=()=>{},createPreview=createHuc6280SongPreview,document:doc=globalThis.document}={}){
   const $=id=>doc.getElementById(id),root=$('hucSongPlayer'),select=$('hucSongSelect');
   const play=$('hucSongPlayButton'),stop=$('hucSongStopButton'),status=$('hucSongStatus'),position=$('hucSongPosition');
+  const capture=$('hucSongCaptureButton'),captureStatus=$('hucSongCaptureStatus');
   if(!root||!select||!play||!stop||!status)throw Error('HuC6280 song controls mount is missing.');
   const listeners=[];
   let disposed=false,selectedPath=null,selectedRevision=-1,attempted='',listSignature='',selection=0,choosing=false,selectionError='',pending=null;
+  let viewTarget='synth',capturing=false,captureOperation=0,captureMessage='',captureBinding=null,pausedSelectionCache=null;
   const text=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value;};
-  const decorate=state=>({...state,selectedPath,choosing});
+  const decorate=state=>({...state,selectedPath,choosing,viewTarget,capturing,captureMessage,pausedVoice:getPausedSelection(state)?.prepared??null});
   let preview;
   const read=()=>preview?.getState?.()??preview?.read?.()??{playback:'stopped',hasSource:false};
   function showState(state){
     if(disposed)return;
+    if(capturing&&captureBinding&&getPausedSelection(state)?.key!==captureBinding)cancelPendingCapture();
     root.dataset.state=state.playback;
     root.dataset.loading=String(Boolean(choosing||state.loading));
     root.dataset.positionFrames=String(state.positionFrames??0);
@@ -38,6 +42,11 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
       'Add a VGM / VGZ to Files to hear a reference song.');
     text(status,message);status.dataset.error=String(Boolean(selectionError||state.playback==='error'));
     text(position,`${time(state.positionSeconds)}${state.durationSeconds!=null?` / ${time(state.durationSeconds)}`:''}`);
+    const payload=getCapturePayload(state);
+    if(capture){capture.disabled=capturing||!payload?.capturable;text(capture,capturing?'Capturing…':'Capture to Synth');}
+    text(captureStatus,captureMessage||(payload?payload.capturable?payload.playable?payload.description:`Capture available. ${payload.reason}`:payload.reason:
+      state.paused?'Choose a recorded CH to audition or capture its configured sound.':'Pause a song and choose a CH to capture its configured sound.'));
+    root.dataset.capturePending=String(capturing);root.dataset.capturable=String(Boolean(payload?.capturable));root.dataset.viewTarget=String(viewTarget);
     onState(decorate(state));
   }
   const report=error=>{if(!disposed&&error?.name!=='AbortError'){selectionError=error?.message??String(error);showState(read());onStatus(`VGM: ${selectionError}`);}};
@@ -45,7 +54,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   const listen=(node,type,fn)=>{node.addEventListener(type,fn);listeners.push(()=>node.removeEventListener(type,fn));};
   function stopCurrent(){
     if(disposed)return false;
-    selection++;pending?.abort();pending=null;choosing=false;selectionError='';select.value=selectedPath??'';
+    cancelPendingCapture();selection++;pending?.abort();pending=null;choosing=false;selectionError='';select.value=selectedPath??'';
     preview.stop();showState(read());return true;
   }
   async function choose(path){
@@ -58,7 +67,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
       attempted=key;select.value=path;return true;
     }
     if(attempted===key)return selectedPath===path&&selectedRevision===entry.revision;
-    attempted=key;const token=++selection;pending?.abort();const controller=new AbortController();pending=controller;
+    cancelPendingCapture();attempted=key;const token=++selection;pending?.abort();const controller=new AbortController();pending=controller;
     choosing=true;selectionError='';select.value=path;showState(read());
     try{
       const file=project.fs.get(path);
@@ -99,17 +108,55 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   listen(play,'click',()=>{
     play.blur();selectionError='';const state=read();
     if(choosing||state.loading||state.busy||!state.hasSource)return;
-    if(state.playing){preview.pause();return;}
+    cancelPendingCapture();if(state.playing){preview.pause();return;}
     void Promise.resolve(state.paused?preview.resume():preview.play()).catch(report);
   });
   listen(stop,'click',()=>{stop.blur();stopCurrent();});
+  function getPausedSelection(state=read()){
+    if(disposed||choosing||state.loading||state.busy||!state.paused||!state.hasSource||state.liveError||viewTarget==='synth'||!selectedPath||
+      !state.liveState||state.liveState.positionFrames!==state.positionFrames)return null;
+    const snapshot=state.liveState,channel=viewTarget;
+    const key=JSON.stringify([selectedPath,selectedRevision,state.positionFrames,channel,snapshot.revision??null]);
+    if(pausedSelectionCache?.key===key&&pausedSelectionCache.snapshot===snapshot)return pausedSelectionCache;
+    let prepared;
+    try{prepared=prepareHuc6280SongVoice(snapshot,channel);}
+    catch(error){prepared={preset:null,channel,source:'unknown',positionFrames:state.positionFrames,playable:false,capturable:false,reason:error.message,description:error.message};}
+    return pausedSelectionCache={key,snapshot,channel,positionFrames:state.positionFrames,sourcePath:selectedPath,sourceRevision:selectedRevision,prepared};
+  }
+  function getCapturePayload(state=read()){
+    const selection=getPausedSelection(state);if(!selection)return null;
+    return{...selection.prepared,key:selection.key,frame:selection.positionFrames,sourcePath:selection.sourcePath,sourceRevision:selection.sourceRevision,snapshot:selection.snapshot};
+  }
+  function cancelPendingCapture(){captureOperation++;capturing=false;captureMessage='';captureBinding=null;}
+  function setView(value,{notify=true,reason='api'}={}){
+    if(value!=='synth'){if(typeof value==='string'&&/^[0-5]$/.test(value))value=Number(value);if(!Number.isInteger(value)||value<0||value>5)throw RangeError('Song view must be Synth or CH1–CH6');}
+    if(disposed)return false;if(value===viewTarget)return decorate(read());
+    cancelPendingCapture();viewTarget=value;showState(read());if(notify)onViewChange(value,{reason});return decorate(read());
+  }
+  async function captureCurrent(){
+    if(disposed||capturing)return false;
+    const payload=getCapturePayload();
+    if(!payload?.capturable){if(payload?.reason){captureMessage=payload.reason;showState(read());onStatus(payload.reason);}return false;}
+    const token=++captureOperation,boundKey=payload.key;
+    const isCurrent=()=>!disposed&&token===captureOperation&&getPausedSelection()?.key===boundKey;
+    capturing=true;captureBinding=boundKey;captureMessage='';showState(read());let succeeded=false;
+    try{
+      const result=await onCapture(payload,{isCurrent});
+      if(!isCurrent()||result===false)return false;
+      viewTarget='synth';succeeded=true;captureMessage='Captured to Synth. The reference song remains paused.';return true;
+    }finally{
+      if(!disposed&&token===captureOperation){capturing=false;captureBinding=null;showState(read());if(succeeded)onViewChange('synth',{reason:'capture'});}
+    }
+  }
+  if(capture)listen(capture,'click',()=>{capture.blur();void captureCurrent().catch(report);});
   refresh();showState(read());
   return{
     getState:()=>decorate(read()),read:()=>decorate(read()),isPlaying:()=>Boolean(read().playing),
+    getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,
     isActive:()=>Boolean(choosing||read().loading||['starting','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
-    setLiveEnabled:value=>decorate(preview.setLiveEnabled(value)),
+    setLiveEnabled(value){if(disposed)return false;return decorate(preview.setLiveEnabled(value));},
     stop:stopCurrent,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
-    dispose(){if(disposed)return;disposed=true;selection++;pending?.abort();unsubscribe();for(const remove of listeners)remove();preview.dispose();},
+    dispose(){if(disposed)return;disposed=true;cancelPendingCapture();selection++;pending?.abort();unsubscribe();for(const remove of listeners)remove();preview.dispose();},
   };
 }

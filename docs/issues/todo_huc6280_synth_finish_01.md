@@ -27,7 +27,7 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
       `Synth · edit and play / CH1–CH6`選択を用意し、表示・設定・鍵盤の対象を揃える。
       CH表示は既存のWave／Noise／LFO／DDA操作を使い、自動更新をOn／Offできる。
       表示対象の変更だけで別CHの設定を統一しない。
-- [ ] **Pause中の試奏と取り込み**: 選択CHの音で鍵盤を試奏し、編集用Synthや
+- [x] **Pause中の試奏と取り込み**: 選択CHの音で鍵盤を試奏し、編集用Synthや
       Filesのプリセットへ取り込める。元曲のPause位置とResumeを保つ。
       Noise、LFOペア、DDAで再現できる設定・できない状態を区別する。
 - [ ] **再生を調べる操作**: CH別On／Off、Seek、必要な再構築キャッシュを追加する。
@@ -68,3 +68,12 @@ Tauriへの固定ZIP取り込みと公開も未実行。
 [検証記録](verification_huc6280_synth_live_channels_20261113.json)。
 通常CHは個別編集・鍵盤・Stop後の保持に対応。VGM CHは読み取り専用で、聞こえた位置を表示する。
 次はPause中の選択CH試奏とCapture。現状ではPause中の鍵盤はSynth選択時の編集用音色のみ。
+
+## Pause中のCH試奏・Captureと配置整理（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_paused_capture_01.md)。既知Wave／Noise／CH1 LFOペアを
+同じMasterへつないだ専用voiceで試奏し、Capture後も曲のPause位置を保つ。
+取り込んだ音はSynthで編集し、Filesへ保存する。VGMのDDA値からPCMは推測しない。
+Import VGMはMenuへ、Sounds from VGMとChannel／Auto updateはモニター上へ移動。
+Wave／PCMの音量違いをまとめる機能を維持。CH別On／Off、Seek、VGMへの直接操作、
+最終的なTauri反映は残作業。検証記録は今回の詳細TODOから参照する。

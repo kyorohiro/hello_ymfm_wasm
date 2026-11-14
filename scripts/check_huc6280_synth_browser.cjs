@@ -173,7 +173,10 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.evaluate(() => window.audit.contexts.length),0);
     assert(await page.locator('.product-icon').evaluate(img => img.complete&&img.naturalWidth===1254));
     check('VGM analysis is passive and the import control is discoverable');
+    assert(await page.locator('#loadVgm').isHidden());
+    await page.locator('#synthMenuButton').click();
     assert(await page.locator('#loadVgm').isVisible());
+    await page.locator('#synthMenuButton').click();
     assert.equal(await page.locator('#vgmKeepLoudestPcm').isChecked(),false);
     await page.locator('#vgmFileInput').setInputFiles({name:'original-pce.vgm',mimeType:'application/octet-stream',buffer:makeVgm()});
     await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);

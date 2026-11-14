@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
-import {readPreset} from './preset.js';
+import {readPreset,createDefaultPreset} from './preset.js';
 import {readHuc6280CodeEdit} from './code_parameter_edit.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
-function fixture({resumeError = false, fetchFailure = false, stalledFetch = false, presetReplies = false} = {}) {
+function fixture({resumeError = false, fetchFailure = false, stalledFetch = false, presetReplies = false,stalledTrialReady=false} = {}) {
   let createAudio, context, node, timerId = 0, mode = 'reply';
-  const timers = new Map(), errors = [], events = [], messages = [];
+  const timers = new Map(), errors = [], events = [], messages = [],nodes=[];
   let remoteData = '', remotePreset = {dda:{data:''}};
   class Context {
     constructor() {
@@ -35,10 +35,11 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     }
   }
   class Node {
-    constructor() {
+    constructor(...args) {
       node = this; this.connections = []; this.disposed = 0;
+      this.options=args[2];this.messages=[];nodes.push(this);
       this.port = {postMessage:message => {
-        messages.push(message);
+        messages.push(message);this.messages.push(message);
         if (message.method === 'dispose') { this.disposed++; return; }
         if (mode === 'throw') throw new Error('Cannot clone');
         if (mode === 'drop') return;
@@ -56,7 +57,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
           } else this.port.onmessage?.({data:{id:message.id,value:message.method === 'read' ? {voices:[]} : true}});
         });
       }, close(){this.closed = true;}};
-      queueMicrotask(() => this.port.onmessage?.({data:{ready:true}}));
+      if(!stalledTrialReady||nodes.length===1)queueMicrotask(() => this.port.onmessage?.({data:{ready:true}}));
     }
     connect(value) { this.connections.push(value); }
     disconnect() { this.disconnected = true; }
@@ -69,7 +70,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
   });
   return {create:options => createAudio({onError:error => errors.push(error), ...options}),
-    get context(){return context;}, get node(){return node;}, errors, timers, events, messages,
+    get context(){return context;}, get node(){return node;}, errors, timers, events, messages,nodes,
     mode(value){mode = value;}, expire(){const [id, timer] = timers.entries().next().value; assert.equal(timer.ms,15000);timers.delete(id);timer.fn();}};
 }
 
@@ -195,4 +196,43 @@ test('normal editor edits acquire no Code lease and stale Stop/session replies c
   await assert.rejects(audio.applyEditorEdit(edit),{name:'AbortError'});
   assert(!f.messages.some(message=>message.method==='applyEditorEdit'&&message.args[0].channel!==3));
   await audio.dispose();assert.equal(f.timers.size,0);
+});
+
+test('a paused audition gets a lazy private worklet and fade gain on the same Master/context only',async()=>{
+  const f=fixture(),audio=await f.create(),author=f.node,master=audio.outputNode,preset=createDefaultPreset();
+  const connections=[...author.connections];assert.equal(f.nodes.length,1);
+  const trial=await audio.createAuditionVoice(preset),node=f.node;
+  assert.equal(f.nodes.length,2);assert.equal(trial.context,audio.context);assert.equal(trial.outputGain.gain.value,0);
+  assert.deepEqual(node.connections,[trial.outputGain]);assert.deepEqual(trial.outputGain.connections,[master]);
+  assert.deepEqual(author.connections,connections);assert.deepEqual(master.connections,[f.context.destination]);
+  const authorCalls=author.messages.length;await trial.noteOn('trial',60);await trial.setPitch(2);await trial.noteOff('trial');
+  assert.equal(author.messages.length,authorCalls);assert(node.messages.some(message=>message.method==='loadPreset'));
+  assert(node.messages.some(message=>message.method==='noteOn'&&message.args[0]==='trial'));assert.equal(audio.codeSession,null);
+  trial.outputGain.gain.value=1;trial.dispose();assert.equal(trial.outputGain.gain.value,0);assert.equal(trial.outputGain.disconnected,true);assert.equal(node.disposed,1);
+  assert.equal(author.disposed,0);assert.equal(f.context.closeCount,0);assert.deepEqual(await audio.read(),{voices:[]});await audio.dispose();
+});
+
+test('cancelled or late audition startup disposes only its own node and leaves author audio available',async()=>{
+  const f=fixture({stalledTrialReady:true}),audio=await f.create(),author=f.node,controller=new AbortController();
+  const pending=audio.createAuditionVoice(createDefaultPreset(),{signal:controller.signal}),rejected=assert.rejects(pending,{name:'AbortError'}),trial=f.node;
+  assert.equal(f.timers.size,1);controller.abort();await rejected;assert.equal(trial.disposed,1);assert.equal(trial.disconnected,true);assert.equal(f.timers.size,0);
+  assert.equal(author.disposed,0);assert.equal(f.context.closeCount,0);assert.deepEqual(await audio.read(),{voices:[]});
+  await assert.rejects(audio.createAuditionVoice(createDefaultPreset(),{signal:controller.signal}),{name:'AbortError'});assert.equal(f.nodes.length,2);
+  await audio.dispose();
+});
+
+test('audition failures/deadlines reject private RPC without failing or closing the shared author context',async()=>{
+  for(const fault of ['processor','reply','deadline']){
+    const f=fixture(),audio=await f.create(),author=f.node,trial=await audio.createAuditionVoice(createDefaultPreset()),node=f.node;
+    f.mode('drop');const reading=trial.read(),rejected=assert.rejects(reading,fault==='deadline'?/audition command timed out/:/audition (processor|reply)/);
+    if(fault==='processor')node.onprocessorerror();else if(fault==='reply')node.port.onmessageerror();else f.expire();
+    await rejected;assert.equal(node.disposed,1);assert.equal(author.disposed,0);assert.equal(f.errors.length,0);assert.equal(f.context.state,'running');assert.equal(f.timers.size,0);
+    f.mode('reply');assert.deepEqual(await audio.read(),{voices:[]});await audio.dispose();
+  }
+});
+
+test('closing the parent also cancels a preparing audition without a second context or late readiness',async()=>{
+  const f=fixture({stalledTrialReady:true}),audio=await f.create(),creating=audio.createAuditionVoice(createDefaultPreset());
+  const rejected=assert.rejects(creating,{name:'AbortError'}),trial=f.node;await audio.dispose();await rejected;
+  assert.equal(trial.disposed,1);assert.equal(f.nodes[0].disposed,1);assert.equal(f.context.closeCount,1);assert.equal(f.timers.size,0);
 });
