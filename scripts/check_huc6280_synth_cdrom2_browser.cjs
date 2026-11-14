@@ -12,6 +12,22 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
 const served=new Map(),missing=[],external=[],httpErrors=[],blockedMonaco=[],results=[];
 const write=(register,value)=>[0xb9,register,value],adpcm=(register,value)=>[0x32,(register<<4)|value];
 
+// Compare the same rendered frames at both sides of FX. An ADPCM decoder keeps
+// its predictor/step through a loop, so two wall-clock windows need not contain
+// the same source amplitude even when the encoded RAM contains a sine.
+function assertSharedFxPair(pair,gain,master){
+  assert(pair.muted&&Number.isSafeInteger(pair.startFrame)&&pair.startFrame>=0&&pair.frames>=4096);
+  assert(Number.isFinite(master)&&master>0);
+  const ratios={};
+  for(const[index,side]of [[0,'left'],[1,'left'],[2,'left'],[3,'right']]){
+    const input=pair.input[side][index],output=pair.output[side][index];
+    assert(Number.isFinite(input)&&Number.isFinite(output)&&input>.001,`shared FX has a real input at ${side}/${index}`);
+    const ratio=output/input/master;ratios[side+'/'+index]=ratio;
+    assert(ratio>gain-.15&&ratio<gain+.15,`shared liveFx processes every source at the same frame: ${side}/${index} ${ratio}`);
+  }
+  return ratios;
+}
+
 function wav(seconds=8){
   const rate=44100,frames=Math.round(rate*seconds),bytes=Buffer.alloc(44+frames*4);
   bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);bytes.writeUInt16LE(1,20);bytes.writeUInt16LE(2,22);bytes.writeUInt32LE(rate,24);bytes.writeUInt32LE(rate*4,28);bytes.writeUInt16LE(4,32);bytes.writeUInt16LE(16,34);bytes.write('data',36);bytes.writeUInt32LE(frames*4,40);
@@ -36,12 +52,13 @@ async function makeFixture(){
 
 function installSilentAudit(){
   const Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode,connect=AudioNode.prototype.connect,disconnect=AudioNode.prototype.disconnect;
-  const contexts=[],worklets=[],meters=[],captureMutes=[],info=new WeakMap();let request=0,capture=null;
+  const contexts=[],worklets=[],meters=[],captureMutes=[],info=new WeakMap();let request=0,capture=null,fxInput=null,fxCapture=null;
   window.AudioContext=class extends Context{constructor(...args){super(...args);contexts.push(this);}};
   if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext;
   window.AudioWorkletNode=class extends Worklet{constructor(context,name,...args){super(context,name,...args);const value={node:this,name,connected:false};worklets.push(value);info.set(this,value);}};
   AudioNode.prototype.connect=function(destination,...args){
     const value=info.get(this);if(value)value.connected=true;
+    if(info.get(destination)?.name==='tetorica-native-fx')fxInput=this;
     if(destination!==this.context.destination)return connect.call(this,destination,...args);
     const analyser=this.context.createAnalyser(),mute=this.context.createGain();analyser.fftSize=4096;mute.gain.value=0;
     connect.call(this,analyser,...args);connect.call(analyser,mute);connect.call(mute,destination);meters.push({source:this,analyser,mute});return destination;
@@ -71,7 +88,26 @@ function installSilentAudit(){
     data.rate=meters.findLast(x=>x.source.context.state==='running').source.context.sampleRate;
     return{sampleRate:data.rate,frames:left.length,peak,rms:Math.sqrt(energy/left.length/2),left:[220,440,660,880].map(hz=>amplitude(left,hz)),right:[220,440,660,880].map(hz=>amplitude(right,hz)),muted:muted()};
   }
-  window.__hucCdAudit={mediaState,take,graph:()=>({contexts:contexts.length,runningContexts:contexts.filter(x=>x.state==='running').length,destinationConnections:meters.length,muted:muted(),worklets:worklets.filter(x=>!x.name.startsWith('huc-cdrom2-audit')).map(({name,connected})=>({name,connected}))})};
+  async function takeFx(){
+    if(!fxCapture){
+      const source=meters.findLast(x=>x.source.context.state==='running')?.source;
+      if(!source||!fxInput||fxInput.context!==source.context)throw Error('Shared FX input/output route missing');
+      const name='huc-cdrom2-audit-fx-'+Math.abs(--request),url=URL.createObjectURL(new Blob([`class Capture extends AudioWorkletProcessor{constructor(){super();this.p=null;this.port.onmessage=({data})=>{this.p={id:data.id,channels:Array.from({length:4},()=>new Float32Array(data.frames)),at:0,startFrame:null};};}process(inputs,outputs){for(const x of outputs[0])x.fill(0);const p=this.p;if(!p)return true;if(p.startFrame===null)p.startFrame=currentFrame;const n=Math.min(128,p.channels[0].length-p.at);for(let side=0;side<4;side++)for(let i=0;i<n;i++)p.channels[side][p.at+i]=inputs[side>>1]?.[side&1]?.[i]??0;p.at+=n;if(p.at===p.channels[0].length){this.p=null;this.port.postMessage(p,p.channels.map(x=>x.buffer));}return true;}}registerProcessor('${name}',Capture);`],{type:'text/javascript'}));
+      try{await source.context.audioWorklet.addModule(url);}finally{URL.revokeObjectURL(url);}
+      const node=new AudioWorkletNode(source.context,name,{numberOfInputs:2,numberOfOutputs:1,outputChannelCount:[2]}),mute=source.context.createGain();mute.gain.value=0;captureMutes.push(mute);
+      // Passive, synchronized branches: input0 is the mixed pre-FX signal;
+      // input1 is its real post-FX/fade/Master output in this same quantum.
+      connect.call(fxInput,node,0,0);connect.call(source,node,0,1);connect.call(node,mute);connect.call(mute,source.context.destination);
+      let pending=null;node.port.onmessage=({data})=>{if(pending?.id===data.id){const item=pending;pending=null;clearTimeout(item.timer);item.resolve(data);}};
+      fxCapture={rate:source.context.sampleRate,take(frames){return new Promise((resolve,reject)=>{if(pending)throw Error('Concurrent paired capture');const id=--request,timer=setTimeout(()=>{pending=null;reject(Error('Paired FX capture timed out'));},8000);pending={id,resolve,reject,timer};node.port.postMessage({id,frames});});}};
+    }
+    const data=await fxCapture.take(12288),values=data.channels.map(channel=>channel.subarray(2048)),frequencies=[220,440,660,880];
+    const analyse=channel=>{let peak=0;for(const value of channel){if(!Number.isFinite(value))throw Error('Nonfinite paired FX PCM');peak=Math.max(peak,Math.abs(value));}
+      return{peak,amplitudes:frequencies.map(hz=>{let s=0,c=0;for(let i=0;i<channel.length;i++){const phase=i*2*Math.PI*hz/fxCapture.rate;s+=channel[i]*Math.sin(phase);c+=channel[i]*Math.cos(phase);}return 2*Math.hypot(s,c)/channel.length;})};};
+    const channels=values.map(analyse),describe=offset=>({peak:Math.max(channels[offset].peak,channels[offset+1].peak),left:channels[offset].amplitudes,right:channels[offset+1].amplitudes});
+    return{sampleRate:fxCapture.rate,startFrame:data.startFrame+2048,frames:values[0].length,input:describe(0),output:describe(2),muted:muted()};
+  }
+  window.__hucCdAudit={mediaState,take,takeFx,graph:()=>({contexts:contexts.length,runningContexts:contexts.filter(x=>x.state==='running').length,destinationConnections:meters.length,muted:muted(),worklets:worklets.filter(x=>!x.name.startsWith('huc-cdrom2-audit')).map(({name,connected})=>({name,connected}))})};
 }
 
 const graph=page=>page.evaluate(()=>__hucCdAudit.graph());
@@ -148,8 +184,11 @@ async function check(browser,name,origin,fixture,track){
     await source(page,CODE);await tab(page,'msm5205');await run(page);await mix(page,'all');measurements.all=await capture(page);
     positive(measurements.all,0);positive(measurements.all,1);positive(measurements.all,2);positive(measurements.all,3,true);
     assert.equal((await graph(page)).contexts,1);assert.equal((await graph(page)).destinationConnections,1);assert((await graph(page)).muted);
-    await page.evaluate(()=>__pceCdProbe.setGain(.5));await wait(100);measurements.halfFx=await capture(page);
-    for(const[index,right]of [[0,false],[1,false],[2,false],[3,true]]){const side=right?'right':'left',ratio=measurements.halfFx[side][index]/measurements.all[side][index];assert(ratio>.35&&ratio<.65,'shared liveFx processes every source: '+side+'/'+index+' '+ratio);}
+    const masterGain=Number(await page.locator('#masterVolume').inputValue());
+    await page.evaluate(()=>__pceCdProbe.setGain(1));await wait(100);measurements.unityFxPair=await page.evaluate(()=>__hucCdAudit.takeFx());
+    measurements.unityFxRatios=assertSharedFxPair(measurements.unityFxPair,1,masterGain);
+    await page.evaluate(()=>__pceCdProbe.setGain(.5));await wait(100);measurements.halfFxPair=await page.evaluate(()=>__hucCdAudit.takeFx());
+    measurements.halfFx=measurements.halfFxPair.output;measurements.halfFxRatios=assertSharedFxPair(measurements.halfFxPair,.5,masterGain);
     await page.evaluate(()=>__pceCdProbe.setGain(1));await wait(100);
     const status=await media(page);assert.equal(status.adpcm.state,'playing');assert.equal(status.cdda.state,'playing');assert.equal(status.cdda.track,1);
     await source(page,APPLY);await page.locator('#synthCodeApplyButton').click();await until(async()=>{const error=await page.locator('#synthCodeError').textContent();if(error)throw Error(error);return page.evaluate(()=>Boolean(__pceCdProbe.applied));},'Apply keeps the same three source clients');
@@ -204,5 +243,5 @@ async function main(){
   const receipt={schemaVersion:1,passed:!failure,root:config.root,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,checkerSha256:hash(await fs.readFile(__filename)),fixture:{vgmBytes:fixture.bytes.length,vgmSha256:hash(fixture.bytes),vgmSamples:fixture.samples,encodedBytes:fixture.encodedBytes,wavBytes:track.length,wavSha256:hash(track)},results,missing,external,httpErrors,expectedBlockedMonaco:blockedMonaco,assets:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),...(failure?{error:failure.stack}: {})};
   await fs.mkdir(path.dirname(config.out),{recursive:true});await fs.writeFile(config.out,JSON.stringify(receipt,null,2)+'\n');if(failure)throw failure;console.log(JSON.stringify({passed:true,runs:results.length,checks:results.reduce((n,x)=>n+x.checks.length,0),out:config.out}));
 }
-module.exports={makeFixture,wav};
+module.exports={makeFixture,wav,assertSharedFxPair};
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});

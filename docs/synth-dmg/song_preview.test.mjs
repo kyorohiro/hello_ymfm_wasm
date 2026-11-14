@@ -22,6 +22,7 @@ function hostFixture() {
   const host={context,songInputNode:{context,gain:{value:.28}}};
   return {host,context,starts,gains,timers,
     schedule(fn,ms){const id=++timerId;timers.set(id,{fn,at:context.currentTime+ms/1000});return id;},cancel(id){timers.delete(id);},
+    refill(){const next=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];assert(next,'A playing reference must retain its next refill');timers.delete(next[0]);next[1].fn();},
     advance(seconds){const end=context.currentTime+seconds;let count=0;for(;;){const next=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];if(!next||next[1].at>end)break;assert(++count<10000);timers.delete(next[0]);context.currentTime=next[1].at;next[1].fn();}context.currentTime=end;},
   };
 }
@@ -37,6 +38,16 @@ function setup(options={}) {
     createEngine:async()=>{const engine=fakeEngine();engines.push(engine);return engine;},
     onState:state=>states.push(state),onStatus:value=>statuses.push(value),schedule:host.schedule,cancel:host.cancel,nowMs:()=>0,...options});
   return{...host,preview,engines,states,statuses,get audioRequests(){return audioRequests;},get ownershipRequests(){return ownershipRequests;}};
+}
+async function firstScheduledSource(f) {
+  // play() commits the run, but a bounded parser slice can yield before PCM.
+  // Drive its actual scheduled refill while leaving the fake audio clock still.
+  for(let pump=0;pump<100;pump++){
+    const source=f.starts.find(node=>!node.stopped);if(source)return source;
+    const state=f.preview.read();assert.equal(state.playback,'playing',state.errorMessage||'Waiting for initial DMG PCM');
+    f.refill();await new Promise(resolve=>setImmediate(resolve));
+  }
+  assert.fail('DMG reference did not schedule PCM after 100 cooperative refills');
 }
 
 test('VGM and VGZ validate passively, retain owned bytes, and reject unsupported/dual/variant/streams before requesting audio',async()=>{
@@ -69,6 +80,7 @@ test('validation is cooperatively cancellable, and a cancelled load never replac
 
 test('buffers use one unity gain into the existing calibrated bus; Pause preserves exact PCM offset without another APU/render',async()=>{
   const f=setup();await f.preview.load(createDmgSongFixture().bytes,'reference.vgm');assert(await f.preview.play());
+  await firstScheduledSource(f);
   assert.equal(f.engines.length,1);assert.equal(f.gains.length,1);assert.equal(f.gains[0].gain.value,1);
   assert.equal(f.gains[0].output,f.host.songInputNode);assert.equal(f.host.songInputNode.gain.value,.28);
   assert(f.starts.every(node=>node.buffer.sampleRate===44100));assert.equal(f.starts[0].at,.01);
@@ -84,6 +96,26 @@ test('buffers use one unity gain into the existing calibrated bus; Pause preserv
   assert.equal(resumed.at,f.context.currentTime+.01);assert.equal(f.engines.length,1);
   assert.equal(f.preview.read().positionFrames,paused.positionFrames);
   f.preview.dispose();assert.equal(f.engines[0].disposed,1);assert.equal(f.context.closes,0);assert.equal(f.timers.size,0);
+});
+
+test('a parser budget yield before the first PCM continues the same run at frame zero on its scheduled refill',async()=>{
+  const engine=fakeEngine(),write=engine.writeGameboyApu;let first=true,creations=0;
+  engine.writeGameboyApu=function(...args){
+    if(first){first=false;const end=performance.now()+8;while(performance.now()<end){}}
+    return write.apply(this,args);
+  };
+  const f=setup({createEngine:async()=>{creations++;return engine;}});
+  try{
+    await f.preview.load(createDmgSongFixture().bytes);assert(await f.preview.play());
+    assert.equal(f.starts.length,0,'the slow first register write exhausts VgmPlayer\'s 4 ms parser budget before a wait produces PCM');
+    assert.equal(engine.frames,0);assert.equal(f.preview.read().bufferedFrames,0);
+    const source=await firstScheduledSource(f);
+    assert.equal(creations,1,'refill continues the existing core rather than retrying Play');
+    assert.equal(f.audioRequests,1);assert.equal(f.context.currentTime,0);assert.equal(f.preview.read().positionFrames,0);
+    assert.equal(source.at,.01);assert.equal(source.offset,0);
+    const pcm=source.buffer.getChannelData(0);
+    for(let i=0;i<pcm.length;i++)assert.equal(pcm[i],Math.fround(((i%1000)/1000-.5)*.1),'the first generated PCM starts at source frame zero');
+  }finally{f.preview.dispose();}
 });
 
 test('Live Off freezes all channels; Pause updates to the consumed position and CH changes never touch the song APU',async()=>{
@@ -288,6 +320,7 @@ test('retired engine creation never changes a newer run mask; unsupported engine
 
 test('low-latency refills keep every sample and bound generated lookahead without publishing Live faster than 20 Hz',async()=>{
   const f=setup();await f.preview.load(createDmgSongFixture().bytes);await f.preview.play();
+  await firstScheduledSource(f);
   const started=f.states.length,first=f.starts[0].at;
   for(let i=0;i<700;i++){
     f.advance(.001);const state=f.preview.read();

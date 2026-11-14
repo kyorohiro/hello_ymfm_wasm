@@ -38,7 +38,7 @@ function audioHost() {
     createBufferSource() {
       return {buffer:null,onended:null,stopped:false,disconnected:false,
         connect(output) {this.output=output;}, disconnect() {this.disconnected=true;},
-        start(when,offset) {this.when=when;this.offset=offset;starts.push(this);},
+        start(when,offset) {this.when=when;this.offset=offset;this.startedAt=context.currentTime;starts.push(this);},
         stop() {this.stopped=true;}};
     },
   };
@@ -59,6 +59,91 @@ function fixture({getAudio, createEngine, beforeResume}={}) {
   return {host,engines,states,statuses,preview};
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,35));
+
+// Drive actual refill callbacks and the audio-device clock independently.
+// A stalled main thread must not turn late whole buffers into overlapping audio.
+function deterministicRefills(t) {
+  let refill;
+  t.mock.method(globalThis,'setInterval',callback=>{refill=callback;return 1;});
+  t.mock.method(globalThis,'clearInterval',()=>{});
+  t.mock.method(performance,'now',()=>0);
+  return ()=>{assert(refill,'the preview installed its refill');refill();};
+}
+function assertNoScheduledOverlap(nodes) {
+  for(let index=0;index<nodes.length;index++) {
+    const node=nodes[index];
+    assert(node.when>=node.startedAt,'no BufferSource starts in the past');
+    if(index) {
+      const prior=nodes[index-1];
+      const priorEnd=Math.max(prior.when,prior.startedAt)+prior.buffer.length/prior.buffer.sampleRate-prior.offset;
+      assert(node.when>=priorEnd-1e-12,'successive source buffers never overlap');
+    }
+  }
+}
+for(const gap of [.005,.05])test(`refill underruns of ${gap*1000}ms retain every sample, monotonic cursor and exact Pause offsets`,async t=>{
+  const refill=deterministicRefills(t),f=fixture();
+  try {
+    await f.preview.load(vgm(),'underrun.vgm');await f.preview.play();
+    const initial=[...f.host.starts],rendered=initial.reduce((sum,node)=>sum+node.buffer.length,0);
+    const end=Math.max(...initial.map(node=>node.when+node.buffer.length/44100));
+    f.host.context.currentTime=end+gap;
+    const before=f.preview.getState();assert.equal(before.consumedFrames,rendered);
+    refill();
+    const after=f.preview.getState(),restartTime=f.host.context.currentTime;
+    assert(f.host.starts.length>initial.length);
+    const firstNew=f.host.starts[initial.length];
+    f.host.context.currentTime=Math.max(firstNew.when,firstNew.startedAt)+.01;refill();
+    const next=f.host.starts.slice(initial.length);
+    assert(next.length>=2);assertNoScheduledOverlap(f.host.starts);
+    assert.equal(after.consumedFrames,rendered,'a refill gap never skips or rewinds the song cursor');
+    assert(Math.abs(next[0].when-(restartTime+.01))<1e-12);
+    assert(Math.abs(next[1].when-next[0].when-next[0].buffer.length/44100)<1e-12);
+    const pcm=f.host.starts.flatMap(node=>[...node.buffer.getChannelData(0)]);
+    assert.deepEqual(pcm,Array.from({length:pcm.length},(_,phase)=>Math.fround(Math.sin(2*Math.PI*220*phase/44100)*.1)),
+      'the unchanged PCM prefix has no omitted or duplicated source samples');
+    assert.equal(after.cache.manualDirty,before.cache.manualDirty);
+    assert.equal(after.cache.count,before.cache.count,'rebasing does not discard source seek checkpoints');
+    f.host.context.currentTime=next[0].when+513.25/44100;
+    f.preview.pause();const paused=f.preview.getState();
+    assert.equal(paused.consumedFrames,rendered+513);
+    const firstResume=f.host.starts.length;f.host.context.currentTime+=1;
+    const createSource=f.host.context.createBufferSource;
+    f.host.context.createBufferSource=function(){
+      // Resume also retains a partially heard segment if node setup itself
+      // outlasts the 10ms lead; it must not replay the already heard prefix.
+      this.currentTime+=.02;this.createBufferSource=createSource;
+      return createSource.call(this);
+    };
+    await f.preview.resume();const resumed=f.host.starts[firstResume];
+    assertNoScheduledOverlap(f.host.starts.slice(firstResume));
+    assert.equal(resumed.buffer,next[0].buffer);
+    assert(Math.abs(resumed.offset-513/44100)<1e-12,'Resume keeps the exact unheard offset after the gap');
+    assert.equal(f.preview.getState().consumedFrames,paused.consumedFrames);
+    await f.preview.seek(.025);
+    assert.equal(f.preview.getState().consumedFrames,Math.floor(.025*44100),'source seek keeps its exact frame target');
+  }finally{f.preview.dispose();}
+});
+
+test('render-time audio-clock advancement is checked again immediately before scheduling',async t=>{
+  const refill=deterministicRefills(t);
+  const host=audioHost();let phase=0;
+  const engine={reset(){phase=0;},sampleRate:()=>44100,writeYm2612(){},dispose(){},
+    processFrames(frames){
+      // More than the initial 10ms safety lead elapses during one render.
+      host.context.currentTime+=frames/44100;
+      const left=Float32Array.from({length:frames},()=>Math.fround(++phase/100000));
+      return{left,right:left.slice()};
+    }};
+  const f=fixture({getAudio:()=>host,createEngine:async()=>engine});
+  try {
+    await f.preview.load(vgm({psg:0}),'slow-render.vgm');await f.preview.play();
+    host.context.currentTime=Math.max(host.starts[0].when,host.starts[0].startedAt)+.01;refill();
+    assert(host.starts.length>=2);assertNoScheduledOverlap(host.starts);
+    const pcm=host.starts.flatMap(node=>[...node.buffer.getChannelData(0)]);
+    assert.deepEqual(pcm,Array.from({length:pcm.length},(_,i)=>Math.fround((i+1)/100000)),
+      'a render-time underrun retains the complete source PCM in order');
+  }finally{f.preview.dispose();}
+});
 
 test('PCM hand edits share the reference engine, preserve source channel/bank continuations and frozen RAM, and discard edited seek state',async()=>{
   const registers=new Uint8Array(56),ram=new Uint8Array(65536),writes=[];

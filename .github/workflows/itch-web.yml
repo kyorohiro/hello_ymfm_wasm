@@ -39,7 +39,7 @@ jobs:
           npm ci 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/npm-ci.log"
           npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
       - name: Test FM2612 and PSG Synth behavior with actual WASM cores
-        run: node --test docs/synth/*.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-core-tests.log"
+        run: node --test docs/synth/*.test.mjs scripts/synth_pcm_reference_timing.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-core-tests.log"
       - name: Test Run ZIP preparation, UI bundling, archives and Game Boy conversion
         run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
       - name: Test PCM to BRR with the native and WASM S-DSP

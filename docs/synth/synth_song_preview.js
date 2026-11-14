@@ -410,7 +410,17 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     node.connect(run.gain);
     segment.node = node;
     node.onended = () => { node.disconnect(); if (segment.node === node) segment.node = null; };
-    const when = run.clockStart + Math.max(0, segment.firstFrame - run.basePosition) / run.sampleRate;
+    let when = run.clockStart + Math.max(0, segment.firstFrame - run.basePosition) / run.sampleRate;
+    const now = run.context.currentTime;
+    if (when < now) {
+      // A late whole buffer starts immediately in Web Audio, overlapping the
+      // next buffer if it keeps the old clock. Rebase at the first unreserved
+      // sample, including when rendering itself exhausted the safety lead.
+      // Retain every sample and the exact partial-buffer offset on Resume.
+      run.basePosition = Math.max(run.basePosition, segment.firstFrame);
+      run.clockStart = now + START_DELAY_SECONDS;
+      when = run.clockStart;
+    }
     node.start(when, offset / run.sampleRate);
   }
   function pump(run) {
@@ -423,13 +433,6 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
         segment.node?.disconnect();
         return false;
       });
-      const endTime = run.clockStart + (run.renderedFrames - run.basePosition) / run.sampleRate;
-      if (!run.eof && run.context.currentTime > endTime + .02) {
-        // A background/throttled tab may miss its refill. Continue from the
-        // first unheard sample rather than silently skipping song commands.
-        run.basePosition = run.renderedFrames;
-        run.clockStart = run.context.currentTime + START_DELAY_SECONDS;
-      }
       const deadline = performance.now() + 8;
       let generated = 0;
       while (!run.eof && generated++ < 8 && performance.now() < deadline) {

@@ -2,6 +2,7 @@
 // Self-authored fixtures only. Every destination is intercepted before app JS
 // at gain zero; Chromium is additionally launched with --mute-audio.
 const {selectSynthChannel,copySynthChannel,setSynthLive}=require('./synth_channel_browser_helpers.cjs');
+const {samplePcmReferenceTiming}=require('./synth_pcm_reference_timing.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
@@ -17,11 +18,15 @@ async function until(predicate,label,timeout=20000){const end=Date.now()+timeout
 const ready=page=>page.waitForFunction(()=>document.querySelector('.synth-editor')?.getAttribute('aria-busy')==='false');
 
 function installSilentAudit(){
-  const connect=AudioNode.prototype.connect,Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode,post=MessagePort.prototype.postMessage;
-  const contexts=[],worklets=[],meters=[],commands=[];
+  const connect=AudioNode.prototype.connect,Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode,post=MessagePort.prototype.postMessage,start=AudioBufferSourceNode.prototype.start;
+  const contexts=[],worklets=[],meters=[],commands=[],schedules=[];
   window.AudioContext=class extends Context{constructor(...args){super(...args);contexts.push(this);}};
   if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext;
   window.AudioWorkletNode=class extends Worklet{constructor(context,name,...args){super(context,name,...args);worklets.push(name);}};
+  AudioBufferSourceNode.prototype.start=function(when=0,offset=0,...args){
+    schedules.push({when,offset,contextTime:this.context.currentTime,frames:this.buffer?.length??0,sampleRate:this.buffer?.sampleRate??0});
+    if(schedules.length>256)schedules.shift();return start.call(this,when,offset,...args);
+  };
   MessagePort.prototype.postMessage=function(data,...args){for(const command of Array.isArray(data)?data:[data])if(command?.type==='write'||command?.method)commands.push({port:command.port,register:command.register,value:command.value,method:command.method,args:command.method==='loadMemory'?[command.args?.[0]?.length,command.args?.[1]]:command.args});if(commands.length>15000)commands.splice(0,commands.length-15000);return post.call(this,data,...args);};
   AudioNode.prototype.connect=function(destination,...args){
     if(destination!==this.context.destination)return connect.call(this,destination,...args);
@@ -29,7 +34,7 @@ function installSilentAudit(){
     connect.call(this,split,...args);connect.call(split,left,0);connect.call(split,right,1);connect.call(left,mute);connect.call(right,mute);connect.call(mute,destination);meters.push({source:this,left,right,mute});return destination;
   };
   const sample=analyser=>{const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);let sum=0,squares=0,peak=0;for(const value of values){sum+=value;squares+=value*value;peak=Math.max(peak,Math.abs(value));}const mean=sum/values.length;return{finite:values.every(Number.isFinite),peak,mean,acRms:Math.sqrt(Math.max(0,squares/values.length-mean*mean))};};
-  window.__pcmManualOutput={drain:()=>commands.splice(0),graph:()=>({contexts:contexts.length,worklets:worklets.slice(),destinations:meters.length,muted:meters.every(item=>item.mute.gain.value===0)}),read(){return meters.map(({source,left,right,mute})=>{const l=sample(left),r=sample(right);return{sampleRate:source.context.sampleRate,state:source.context.state,muted:mute.gain.value===0,finite:l.finite&&r.finite,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2),left:l,right:r};}).sort((a,b)=>b.acRms-a.acRms);}};
+  window.__pcmManualOutput={drain:()=>commands.splice(0),schedules:()=>schedules.slice(),graph:()=>({contexts:contexts.length,worklets:worklets.slice(),destinations:meters.length,muted:meters.every(item=>item.mute.gain.value===0)}),read(){return meters.map(({source,left,right,mute})=>{const l=sample(left),r=sample(right);return{sampleRate:source.context.sampleRate,contextTime:source.context.currentTime,windowFrames:left.fftSize,state:source.context.state,muted:mute.gain.value===0,finite:l.finite&&r.finite,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2),left:l,right:r};}).sort((a,b)=>b.acRms-a.acRms);}};
 }
 
 // Audit the actual native reference engine without another renderer or a RAM
@@ -49,7 +54,7 @@ async function installReferenceAudit(page){await page.evaluate(async()=>{
   prototype.processFrames=function(frames){const item=entry(this),pcm=process.call(this,frames);item.frames+=frames;item.processCalls++;for(const [field,channel]of[['left',pcm.left],['right',pcm.right]])for(const value of channel){if(!Number.isFinite(value))item.finite=false;item[field].push(value);}for(const field of['left','right'])if(item[field].length>8192)item[field].splice(0,item[field].length-8192);return pcm;};
   prototype.dispose=function(...args){entry(this).closed=true;return dispose.apply(this,args);};
   const sample=values=>{let sum=0,squares=0,peak=0;for(const value of values){sum+=value;squares+=value*value;peak=Math.max(peak,Math.abs(value));}const mean=values.length?sum/values.length:0;return{frames:values.length,mean,peak,acRms:values.length?Math.sqrt(Math.max(0,squares/values.length-mean*mean)):0};};
-  function snapshot(item){if(!item)return null;const {left,right,ram,known,...value}=item;if(item.ramHash===null){let digest=2166136261;for(let i=0;i<ram.length;i++)digest=Math.imul(digest^ram[i],16777619)>>>0;item.ramHash=digest.toString(16);value.ramHash=item.ramHash;}const l=sample(left),r=sample(right);return structuredClone({...value,rf:{...item.rf,channels:item.rf.channels.map((bytes,ch)=>({channel:ch,volume:bytes[0],panLeft:bytes[1]&15,panRight:bytes[1]>>4,step:bytes[2]|bytes[3]<<8,loopStart:bytes[4]|bytes[5]<<8,start:bytes[6]<<8,keyOn:!(item.rf.mask&(1<<ch))}))},signal:{left:l,right:r,frames:l.frames,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2)}});}
+  function snapshot(item){if(!item)return null;const {left,right,ram,known,...value}=item;if(item.ramHash===null){let digest=2166136261;for(let i=0;i<ram.length;i++)digest=Math.imul(digest^ram[i],16777619)>>>0;item.ramHash=digest.toString(16);value.ramHash=item.ramHash;}const l=sample(left),r=sample(right);return structuredClone({...value,rf:{...item.rf,channels:item.rf.channels.map((bytes,ch)=>({channel:ch,volume:bytes[0],panLeft:bytes[1]&15,panRight:bytes[1]>>4,step:bytes[2]|bytes[3]<<8,loopStart:bytes[4]|bytes[5]<<8,start:bytes[6]<<8,keyOn:!(item.rf.mask&(1<<ch))}))},signal:{left:l,right:r,firstFrame:item.frames-l.frames,endFrame:item.frames,frames:l.frames,peak:Math.max(l.peak,r.peak),acRms:Math.sqrt((l.acRms*l.acRms+r.acRms*r.acRms)/2)}});}
   const current=()=>records.findLast(item=>!item.closed);
   window.__pcmManualReference={read:()=>records.map(snapshot),current:()=>snapshot(current()),ram:(address,length)=>Array.from(current().ram.slice(address,address+length))};
 });}
@@ -126,7 +131,12 @@ async function check(browser,name,origin,presetBytes,fmPresetBytes){
     await page.locator('#synthChipTabPcm').click();await chooseSong(page,'/vgm/PCM manual reference.vgm');await keyboard(page);await until(()=>view(page).then(value=>value.pcmManualReady==='true'&&value.frame>RATE*.1),'PCM manual ready');await until(()=>volume(page).textContent().then(value=>value==='64'),'initial volume');
     assert.equal(await page.locator('#keyboard').getAttribute('aria-disabled'),'false');assert.equal(await page.locator('#keyboard').getAttribute('data-song-audition'),'live');assert(!await locked(volume(page)));assert(!await locked(stepControl(page)));
     for(const selector of['#synthPcmCanvas','#synthPcmRootNote','#synthPcmLoopEnabled','#synthPcmLoopStart','#synthPcmLoopEnd','#synthPcmLoadButton','[data-pcm-builtin="sine"]'])assert(await locked(page.locator(selector)),selector+' cannot replace source RAM or sample routing');
-    await range(page,'#masterVolumeRange',100);await wait(250);measurements.initial=await pcm(page);const initial=await reference(page),identity={id:initial.id,resets:initial.resets};measurements.native=initial.signal;measurements.renderAheadSeconds=(initial.frames-(await view(page)).frame)/RATE;assert(measurements.renderAheadSeconds>=0&&measurements.renderAheadSeconds<.11);assert(Math.abs(measurements.initial.acRms/initial.signal.acRms-1)<.15);assert(measurements.initial.peak<=initial.signal.peak*1.15+.0001);
+    await range(page,'#masterVolumeRange',100);await wait(250);measurements.initial=await pcm(page);
+    const timing=await page.evaluate(samplePcmReferenceTiming),initial=timing.reference,identity={id:initial.id,resets:initial.resets};
+    measurements.native=initial.signal;measurements.referenceTiming={id:initial.id,renderedFrames:initial.frames,consumedFrames:timing.consumedFrames,playback:timing.playback,sampleRate:RATE};measurements.initialSchedules=await page.evaluate(()=>__pcmManualOutput.schedules());
+    measurements.renderAheadSeconds=(initial.frames-timing.consumedFrames)/RATE;
+    assert(measurements.renderAheadSeconds>=0&&measurements.renderAheadSeconds<.11,'coherent native/consumed reference timing: '+JSON.stringify(measurements.referenceTiming));
+    assert(Math.abs(measurements.initial.acRms/initial.signal.acRms-1)<.15);assert(measurements.initial.peak<=initial.signal.peak*1.15+.0001);
     await range(page,'#masterVolumeRange',50);await wait(250);measurements.half=await pcm(page);assert(Math.abs(measurements.half.acRms/measurements.initial.acRms-.5)<.07);await range(page,'#masterVolumeRange',100);
     await change(volume(page),1,3);await until(()=>volume(page).textContent().then(value=>value==='67'),'rapid volume retains latest edit');let native=await reference(page);assert.equal(native.rf.channels[0].volume,67);assert.equal(native.id,identity.id);assert.equal(native.resets,identity.resets);assert.equal(native.rf.selected,7);assert.equal(native.rf.bank,0x1000);assert(native.rf.enabled);
 

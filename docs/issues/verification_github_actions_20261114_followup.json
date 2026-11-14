@@ -1,0 +1,444 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "a39b8a74dc1ded45fd316f4cbc43facc9c327c7a",
+  "localValidationPassed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "longDurationTestingPerformed": false,
+  "scope": "Local follow-up for three failed GitHub Actions checks, including a reproduced FM reference scheduling defect.",
+  "changes": [
+    {
+      "area": "DMG test readiness",
+      "productionChanged": false,
+      "description": "Await the actual first scheduled refill after cooperative parser yield; force a budget yield and assert exact PCM/source identity."
+    },
+    {
+      "area": "HuC6280 shared liveFx measurement",
+      "productionChanged": false,
+      "description": "The looped one-second ADPCM fixture retains decoder predictor/step state across laps. Its input amplitude changes, so different wall-clock windows do not isolate shared liveFx gain.",
+      "fix": "One passive AudioWorklet captures the real common pre-FX mix and actual post-FX/fade/Master route during the same render quantum. Compare source-frequency amplitudes from identical frames and divide out the existing Master gain. No product/native/SDK/volume changes.",
+      "bounds": {
+        "halfGain": {
+          "lowerExclusive": 0.35,
+          "upperExclusive": 0.65
+        },
+        "unityGain": {
+          "lowerExclusive": 0.85,
+          "upperExclusive": 1.15
+        },
+        "inputAmplitudeLowerExclusive": 0.001
+      }
+    },
+    {
+      "area": "RF5C164 lookahead measurement",
+      "productionChanged": false,
+      "description": "Read native generated frames and consumed DOM frame from one browser task using the actual shared CommonJS callback. The previous separate RPCs could observe different refill generations.",
+      "bounds": "0 <= ahead < 0.11 (unchanged)"
+    },
+    {
+      "area": "FM2612 VGM reference scheduling",
+      "productionChanged": true,
+      "file": "docs/synth/synth_song_preview.js",
+      "description": "Check planned source start time immediately before node.start. Rebase past starts at the first unreserved source sample with a 10ms lead, preserving partial-buffer offsets; remove the former 20ms pump grace period.",
+      "regression": {
+        "tests": 3,
+        "failed": 3,
+        "source": "HEAD isolated copy; no production rollback"
+      },
+      "proof": {
+        "script": "build/ci-followup-20261114/pcm-short-underrun-proof.mjs",
+        "receipt": "build/ci-followup-20261114/pcm-short-underrun-proof.json",
+        "overlapSeconds": 0.005,
+        "constantNativePeak": 0.1,
+        "overlappedPeak": 0.2
+      },
+      "coverage": [
+        "5ms and 50ms refill gaps",
+        "audio clock advances during PCM render",
+        "no past-when or overlapping adjacent BufferSources",
+        "every generated PCM sample retained in order",
+        "monotonic source cursor without skipped frames",
+        "exact 513-frame Pause/Resume offset, including 20ms node-setup delay",
+        "exact source Seek frame and unchanged checkpoint ownership"
+      ],
+      "historicalCiLimitation": "The historical CI artifact has no source schedule log, so its exact transient cannot be directly attributed to overlap. A matching real scheduler defect is deterministically reproduced; the first fixed run retains original peak/RMS assertions and measures a peak ratio of 1 in both engines."
+    }
+  ],
+  "node": {
+    "total": 1498,
+    "pass": 1498,
+    "fail": 0,
+    "skip": 0,
+    "suites": [
+      {
+        "area": "DMG",
+        "tests": 265,
+        "log": "build/ci-followup-20261114/dmg-node-tests.log"
+      },
+      {
+        "area": "HuC6280",
+        "command": "npm run test:huc6280-synth",
+        "tests": 543,
+        "log": "build/ci-followup-20261114/huc-all-node-tests.log"
+      },
+      {
+        "area": "FM2612 and coherent clock helper",
+        "command": "node --test docs/synth/*.test.mjs scripts/synth_pcm_reference_timing.test.mjs",
+        "tests": 690,
+        "passed": 690,
+        "failed": 0,
+        "skipped": 0,
+        "log": "build/ci-followup-20261114/pcm-node-tests-fixed.log"
+      }
+    ]
+  },
+  "browser": {
+    "totalCheckGroups": 64,
+    "allPassed": true,
+    "browsers": [
+      "chromium",
+      "webkit"
+    ],
+    "huC6280": {
+      "checks": 14,
+      "package": {
+        "bytes": 2055165,
+        "sha256": "602c8d62c33f0e0e6b7f9dd66af8e02d56dc198d2c83d9b337b4927ba44555a3"
+      },
+      "packagePath": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_huc6280_synth_ci-fx-20261114_itch.zip",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "unityFxRatios": {
+            "left/0": 0.9999999884644678,
+            "left/1": 0.9999999845678188,
+            "left/2": 0.9999999845772879,
+            "right/3": 0.999999981800292
+          },
+          "halfFxRatios": {
+            "left/0": 0.4999999855288259,
+            "left/1": 0.4999999922385877,
+            "left/2": 0.49999999555497804,
+            "right/3": 0.49999999507665016
+          },
+          "msmRawInput": {
+            "unity": 0.0995703699109777,
+            "half": 0.4270502793836643
+          },
+          "capture": {
+            "sampleRate": 48000,
+            "frames": 10240,
+            "unityStartFrame": 35328,
+            "halfStartFrame": 52992
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "unityFxRatios": {
+            "left/0": 0.9999999859667869,
+            "left/1": 0.999999985038949,
+            "left/2": 0.999999984943645,
+            "right/3": 0.9999999863554918
+          },
+          "halfFxRatios": {
+            "left/0": 0.499999983694106,
+            "left/1": 0.4999999922614376,
+            "left/2": 0.4999999898186548,
+            "right/3": 0.499999996384469
+          },
+          "msmRawInput": {
+            "unity": 0.09953894384082207,
+            "half": 0.42688444030684664
+          },
+          "capture": {
+            "sampleRate": 48000,
+            "frames": 10240,
+            "unityStartFrame": 40192,
+            "halfStartFrame": 57600
+          }
+        }
+      ]
+    },
+    "fm2612": {
+      "checks": 50,
+      "package": {
+        "path": "release/hello_ymfm_wasm_ci-followup-pcm-fixed-20261114_itch_synth.zip",
+        "bytes": 1126849,
+        "sha256": "fe0ba3ad80e5a9edea839cc4f6aef1d3e9490d0aa5bdaf0b7ac2e793f83ced08"
+      },
+      "runs": [
+        {
+          "suite": "RF5C164",
+          "checker": "scripts/check_synth_pcm_song_manual_browser.cjs",
+          "receipt": "build/ci-followup-20261114/pcm-browser-fixed.json",
+          "passed": true,
+          "physicalOutputMuted": true,
+          "groups": 18
+        },
+        {
+          "suite": "FM",
+          "checker": "scripts/check_synth_song_manual_browser.cjs",
+          "receipt": "build/ci-followup-20261114/pcm-fm-browser-fixed.json",
+          "passed": true,
+          "physicalOutputMuted": true,
+          "groups": 14
+        },
+        {
+          "suite": "PSG",
+          "checker": "scripts/check_synth_psg_song_manual_browser.cjs",
+          "receipt": "build/ci-followup-20261114/pcm-psg-browser-fixed.json",
+          "passed": true,
+          "physicalOutputMuted": true,
+          "groups": 18
+        }
+      ],
+      "pcmMeasurements": [
+        {
+          "browser": "chromium",
+          "referenceTiming": {
+            "id": 1,
+            "renderedFrames": 22572,
+            "consumedFrames": 19947,
+            "playback": "playing",
+            "sampleRate": 53267
+          },
+          "renderAheadSeconds": 0.049280042052302554,
+          "peakRatio": 1.0,
+          "acRmsRatio": 1.0004125049702206,
+          "bufferSourceSchedules": 12,
+          "pastWhenCount": 0
+        },
+        {
+          "browser": "webkit",
+          "referenceTiming": {
+            "id": 1,
+            "renderedFrames": 134816,
+            "consumedFrames": 130549,
+            "playback": "playing",
+            "sampleRate": 53267
+          },
+          "renderAheadSeconds": 0.08010588169035238,
+          "peakRatio": 1.0,
+          "acRmsRatio": 0.9934007220446884,
+          "bufferSourceSchedules": 67,
+          "pastWhenCount": 0
+        }
+      ]
+    }
+  },
+  "independentReadOnlyReview": {
+    "agent": "/root/ci_followup_dmg",
+    "blockingFindings": 0,
+    "scope": "Read-only source and regression review: Resume offset, monotonic cursor, non-overlap, source PCM, Seek/cache ownership"
+  },
+  "invariants": {
+    "nativeCoreChanged": false,
+    "publicApiChanged": false,
+    "calibrationOrGainChanged": false,
+    "boundsRelaxed": false,
+    "blindRetriesAdded": false,
+    "exactPauseOffsetAndPcmPreserved": true
+  },
+  "remoteValidation": {
+    "fixesCommitted": false,
+    "fixesPushed": false,
+    "newCiRunStarted": false,
+    "runsBeforeTheseFixes": [
+      {
+        "conclusion": "success",
+        "databaseId": 43573364793,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364793",
+        "workflowName": "SBI export tests"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43573364480,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364480",
+        "workflowName": "pages-build-deployment"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43573364805,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364805",
+        "workflowName": "VGM parser and player tests"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43573364764,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364764",
+        "workflowName": "itch web release ZIPs"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43573364791,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364791",
+        "workflowName": "Verify npm sound-chip package"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43573364799,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364799",
+        "workflowName": "HuC6280 Synth"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43573364843,
+        "status": "completed",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43573364843",
+        "workflowName": "WASM SDK build and parity"
+      }
+    ],
+    "earlierDmgFailureRun": 43570789090,
+    "next": "Commit/push the local fixes and confirm the resulting Actions runs before the HuC6280 Tauri import."
+  },
+  "cleanup": "All three browser checker processes exited 0; each checker closes its own browsers and HTTP server in finally.",
+  "tauriImportStarted": false,
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/itch-web.yml",
+      "bytes": 18316,
+      "sha256": "435331169f9d7f09882f0c3b0658690a3fb767ca1d1d34236f00684c88b37b32"
+    },
+    {
+      "path": "docs/synth-dmg/song_preview.test.mjs",
+      "bytes": 49116,
+      "sha256": "0a4d1f58a4eef0c793a95a9c71ae438ee8be9b0e787df1428dc7bd300d9fe4a3"
+    },
+    {
+      "path": "docs/synth-huc6280/cdrom2_fx_measurement.test.mjs",
+      "bytes": 3073,
+      "sha256": "a53159f0785ad6213367964180e40f908dad07f3c00cd1ba96f2a14a36dbddd2"
+    },
+    {
+      "path": "docs/synth/synth_song_preview.js",
+      "bytes": 36998,
+      "sha256": "4dfcd817e3169757fd953848bed0e0242ef3a0b55bc23ec209c1d1adf261bce1"
+    },
+    {
+      "path": "docs/synth/synth_song_preview.test.mjs",
+      "bytes": 62691,
+      "sha256": "944911180e2bad2310231491baca99a651b83b8db62069da4c0adeb1c68971e8"
+    },
+    {
+      "path": "scripts/check_huc6280_synth_cdrom2_browser.cjs",
+      "bytes": 32584,
+      "sha256": "8c64e84a13a14d043cc7ccc5cf28175433b2d86d6168866f5f17a45ebb7356c2"
+    },
+    {
+      "path": "scripts/check_synth_pcm_song_manual_browser.cjs",
+      "bytes": 43224,
+      "sha256": "36abe0f0e091071e8708275e512c98a973c12cd9f4cd8919f001d8120f0365e9"
+    },
+    {
+      "path": "scripts/synth_pcm_reference_timing.cjs",
+      "bytes": 765,
+      "sha256": "d93cac14fa845a23e9fc061626c5585a590076ff6fce11b6ee91af8873e222f4"
+    },
+    {
+      "path": "scripts/synth_pcm_reference_timing.test.mjs",
+      "bytes": 2692,
+      "sha256": "bfd766c4efa25f4acfd9799d65a60185be9c654d29d550129c99e0bc0590ac24"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "build/ci-followup-20261114/dmg-ci-failure.log",
+      "bytes": 201647,
+      "sha256": "291f561f53974220a2c0efbd7daa0ac4ae8982c2d890d3ebceee27eee6464c89"
+    },
+    {
+      "path": "build/ci-followup-20261114/huc-ci-failure.log",
+      "bytes": 435978,
+      "sha256": "7e8d1d99e7cf8c1d2c02e8e42f56752ef88cb9fdf20fef8d16f17be3d6f478c0"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-ci-failure.log",
+      "bytes": 7685,
+      "sha256": "af605709e98f52e5113414d530fe0c0ac8a760a3fe338980a86f43c8dbab642d"
+    },
+    {
+      "path": "build/ci-followup-20261114/latest-itch-failure.log",
+      "bytes": 7685,
+      "sha256": "6d41683237ea274a75d1fedbdb88d996b4adb6f2e6d40db35d47db8b2c30c9b1"
+    },
+    {
+      "path": "build/ci-followup-20261114/actions-before-fix.json",
+      "bytes": 1324,
+      "sha256": "94bc6f2212f0c88cba08b6cd51eac86406a2cd3da8a25ac371c7dc586e7f7ff7"
+    },
+    {
+      "path": "build/ci-followup-20261114/dmg-node-tests.log",
+      "bytes": 30723,
+      "sha256": "21606f82a5d52265c7d87632c5b953f509c77bf040de167ea159ca6b2a1bbfb9"
+    },
+    {
+      "path": "build/ci-followup-20261114/huc-all-node-tests.log",
+      "bytes": 59489,
+      "sha256": "73feb4d16620be3e2b64054540a075995c281d1257b377c331ed73ca6534e5e5"
+    },
+    {
+      "path": "build/ci-followup-20261114/huc-fx-measurement-evidence.json",
+      "bytes": 4930,
+      "sha256": "708108d750a2cfe73b34847649fe009569481ff1f73847b2feccb77a05fd9889"
+    },
+    {
+      "path": "build/ci-followup-20261114/huc-cdrom2-browser.json",
+      "bytes": 36214,
+      "sha256": "acb9b24910a44c8551a1d78e16f57c2547247ff95d597e2de64e7e0635cc7969"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-final-verification.json",
+      "bytes": 9424,
+      "sha256": "bd18a0c8cb3a1360c25e4bf04d66267a25f8373ac45a86bf2ee2116d738157ac"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-short-underrun-proof.json",
+      "bytes": 621,
+      "sha256": "35cd44c989679fe5c86fec417f532cc25f7645860fa87411c741b6e5153f0f94"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-underrun-before.log",
+      "bytes": 2869,
+      "sha256": "8db22a0313ffedc73404ead6880eb81cd7a93a3742ceeefd0236e261fdb18197"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-node-tests-fixed.log",
+      "bytes": 76854,
+      "sha256": "4ad40b0e87fed24e10ff443722fd42be3c48710f06d18614ff76d785e813abb9"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-browser-fixed.json",
+      "bytes": 81837,
+      "sha256": "93290bee3bf5f48e10a6f66bf12d9d921c01fe8cc91b7257d8d4a3f95f73ce35"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-fm-browser-fixed.json",
+      "bytes": 104403,
+      "sha256": "30d3435d8cd79befe9a868f2c3709ca31b9e8a06926e7cd7a0b5dd24374610d7"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-psg-browser-fixed.json",
+      "bytes": 35673,
+      "sha256": "862eb3b2572874cddb9f280d1374e3a9008b3acf54e3148081ef19c2f86e9f21"
+    },
+    {
+      "path": "build/ci-followup-20261114/pcm-fixed-provenance.json",
+      "bytes": 593,
+      "sha256": "307d533a8b2e0f5f1b0ff83b878e0d7111ffe9a87d6e4238525d508a83e6245d"
+    }
+  ],
+  "limitations": [
+    "Local browser verification ran on this macOS host; Linux Actions validation requires the new commit/push.",
+    "A main-thread scheduling stall can still leave a silent gap; recovery retains source samples and avoids overlapping buffers.",
+    "No actual listening or long-duration validation was performed."
+  ]
+}

@@ -60,6 +60,8 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
       [詳細TODO](todo_huc6280_synth_channel_ui_01.md)。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
       保存・出力経路を確認する。公開・tag・pushは別のユーザー指示で行う。
+      直前のCI失敗への[修正と検証](todo_github_actions_20261114_followup.md)は完了。
+      修正を含むcommit／push後のActions成功を確認してから取り込む。
 
 各段階で、このTODOと検証記録を更新する。VGM再生の具体的なチップ所有・
 観測・時刻管理は実装前に詰め、仕様が異なるDMGのコードをそのまま複製しない。
