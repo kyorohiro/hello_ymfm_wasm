@@ -1,20 +1,21 @@
-import {createSnesChannelView,spcVariant} from './channel_view.js';
+import {createSnesChannelEditor} from './channel_edit.js';
+import {createSnesChannelView,spcVariant} from './channel_view.js?v=spc-channel-edit-1';
 import {createSnesMixer,setupSnesChipTabs} from './mixer.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {createSnesLooper} from './looper.js';
 import {setupSnesLooperControls} from './looper_controls.js';
 import {createSpcLiveInspector} from './spc_live.js?v=sound-library-1';
 import {setupSnesMenu} from './menu.js';
-import {createSnesSongPlayer} from './song_player.js?v=channel-mixer-1';
-import {setupSnesSongControls} from './song_controls.js?v=channel-mixer-1';
-import {setupSnesCodeHost} from './code_host.js?v=channel-mixer-1';
+import {createSnesSongPlayer} from './song_player.js?v=spc-channel-edit-1';
+import {setupSnesSongControls} from './song_controls.js?v=spc-channel-edit-1';
+import {setupSnesCodeHost} from './code_host.js?v=spc-channel-edit-1';
 import {createSnesCodeClient} from './code_client.js';
-import {createAudio} from './audio.js?v=channel-mixer-1';
+import {createAudio} from './audio.js?v=spc-channel-edit-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
 import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-live-1';
-import {createSpcBrowser} from './spc_browser.js?v=channel-mixer-1';
+import {createSpcBrowser} from './spc_browser.js?v=spc-channel-edit-1';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -27,7 +28,7 @@ const status = (text, error = false) => {
 };
 const report = error => status(error?.message ?? String(error), true);
 let codeHost=null,songControls=null,looperControls=null,liveInspector=null;
-let looper=null,channelView=null,mixer=null,chipTabs=null,audition=null,previewSequence=0;
+let looper=null,channelEditor=null,channelView=null,mixer=null,chipTabs=null,audition=null,previewSequence=0,previewKey=null,previewPlaying=false;
 const performancePreset=()=>audition??preset;
 const menu=setupSnesMenu();
 const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);liveInspector?.update(state);channelView?.update(state);visualizer.setRunning(state.playing||Boolean(looper?.read().running)||notes.size>0||Boolean(codeHost?.isRunning()));}});
@@ -71,7 +72,8 @@ function updateCapacity() {
 function updatePresetUi() {
   const preset=performancePreset();
   editor.update(preset);
-  const viewing=channelView?.read().selected!==null&&Boolean(channelView);$('snesVoiceFields').disabled=viewing;$('voiceEditor').hidden=viewing&&!audition;document.querySelector('.instrument-toolbar').inert=viewing;
+  channelEditor?.update(channelView.read());
+  const viewing=channelView?.read().selected!==null&&Boolean(channelView);$('snesVoiceFields').disabled=viewing;$('snesVoiceFields').hidden=viewing;$('voiceEditor').hidden=viewing&&!audition;document.querySelector('.instrument-toolbar').inert=viewing;
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) {
     if (preset.source === 'brr' || pmonActive(preset) && preset.pmon.source === 'brr') {$('codeOutput').hidden=true;$('codeOutput').value='';}
@@ -141,7 +143,7 @@ async function ensureAudio() {
 }
 function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const next = readPreset(value);
-  channelView?.reset();audition=null;previewSequence++;
+  channelView?.reset();audition=null;previewKey='auto';previewPlaying=false;previewSequence++;
   if(!fromSpc) spcBrowser?.clearSelection();
   const previous = preset;
   const waveEdit = !load && isWaveOnlyEdit(previous,next);
@@ -441,7 +443,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){looper.stop();void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
-  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();channelView.dispose();chipTabs.dispose();unwatchSongFiles();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
+  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();channelView.dispose();channelEditor.dispose();chipTabs.dispose();unwatchSongFiles();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
 looper=createSnesLooper({ensureAudio,releaseNotes:()=>stopNotes(),
   beforeStart:async()=>{if(switchingAudioOutput)throw new Error('Wait for audio output switching.');if(codeHost?.isCodeMode()||codeHost?.isRunning())throw new Error('Stop Code and choose Keyboard to use Looper.');await stopNotes();},
@@ -449,13 +451,16 @@ looper=createSnesLooper({ensureAudio,releaseNotes:()=>stopNotes(),
 looperControls=setupSnesLooperControls({looper,isBlocked:()=>switchingAudioOutput||Boolean(codeHost?.isCodeMode()||codeHost?.isRunning()),onError:report});
 mixer=createSnesMixer({getAudio:()=>audio,player:songPlayer,onChange:()=>chipTabs?.update()});
 chipTabs=setupSnesChipTabs({mixer,onError:report});
-channelView=createSnesChannelView({player:songPlayer,getOptions:()=>spcBrowser.getImportOptions(),onError:report,
+channelView=createSnesChannelView({onState:state=>channelEditor?.update(state),player:songPlayer,getOptions:()=>spcBrowser.getImportOptions(),onError:report,
   onBeforeSelect:async value=>{if(value!==null)await codeHost?.stop();await stopNotes();},
-  onView(state){const token=++previewSequence;audition=state.selected===null?null:state.view?.preset??null;setPitchUi(0);updatePresetUi();
-    if(state.selected!==null&&state.playing)return stopNotes();
-    return enqueue(async()=>{if(disposed||token!==previewSequence||!audio)return;await audio.command('loadPreset',[performancePreset()]);if(token!==previewSequence)return;readVoices(await audio.read());}).catch(report);
+  onView(state){
+    channelEditor?.update(state);const token=++previewSequence,key=state.selected===null?'auto':state.sourceId+':'+state.selected,replace=key!==previewKey,wasPlaying=previewPlaying;previewKey=key;previewPlaying=state.playing;
+    audition=state.selected===null?null:state.view?.preset??null;if(replace||state.playing)setPitchUi(0);updatePresetUi();
+    if(state.selected!==null&&(state.playing||!audition)){if(state.playing&&wasPlaying&&!replace)return;return stopNotes().then(()=>enqueue(()=>audio?.command('setPitch',[0]))).catch(report);}
+    return enqueue(async()=>{if(disposed||token!==previewSequence||!audio)return;await audio.command(replace?'loadPreset':'setPreset',[performancePreset()]);if(token!==previewSequence)return;readVoices(await audio.read());}).catch(report);
   },onCopy:candidate=>selectSpc(candidate,{...spcBrowser.getImportOptions(),onCommit:()=>spcBrowser.clearSelection()})});
-channelView.update(songPlayer.read());
+channelEditor=createSnesChannelEditor({root:$('snesSpcEdit'),onEdit:changes=>channelView.edit(changes),onError:report});
+channelView.update(songPlayer.read());channelEditor.update(channelView.read());
 for(const id of ['spcIncludeEcho','spcIncludePmon'])$(id).addEventListener('change',()=>channelView.refresh());
 $('snesVoiceFields').addEventListener('pointerdown',event=>{if($('snesVoiceFields').disabled&&!event.target.closest('summary')){event.preventDefault();event.stopImmediatePropagation();}},true);
 $('snesSongSelect').addEventListener('change',()=>{const path=$('snesSongSelect').value;if(path)void codeHost.files.selectFile(path).catch(report);});

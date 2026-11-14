@@ -10,7 +10,7 @@
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=channel-mixer-1">
+  <link rel="stylesheet" href="./synth.css?v=spc-channel-edit-1">
 </head>
 <body>
   <main>
@@ -110,7 +110,7 @@
 
       <section class="instrument-workspace sdsp-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">BRR · 8 hardware voices · round robin</p></div>
-        <fieldset id="snesVoiceFields"><div id="voiceEditor"></div></fieldset>
+        <section id="snesSpcEdit" hidden aria-label="Selected SPC channel editing"></section><fieldset id="snesVoiceFields"><div id="voiceEditor"></div></fieldset>
       </section>
 
       <section class="instrument-toolbar" aria-label="Instrument files">
@@ -182,6 +182,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=channel-mixer-1"></script>
+  <script type="module" src="./synth.js?v=spc-channel-edit-1"></script>
 </body>
 </html>

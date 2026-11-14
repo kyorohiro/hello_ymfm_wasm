@@ -1,3 +1,4 @@
+import {validateSpcVoiceEdit} from './spc_voice_edit.js';
 /** Full SPC file playback, independent of musical BPM and Worker lookahead. */
 import {createSpcEventDecoder} from './spc_events.js';
 const abortError = () => new DOMException('SPC player disposed or operation cancelled', 'AbortError');
@@ -5,7 +6,7 @@ const TIMEOUT_MS = 15000;
 export function createSpcClient(port, initial = {}, {
   getOwner = () => null, captureContext = () => null, restoreContext = () => {}, invokeEvent = (fn,event) => fn(event),isStopped=()=>false,
 } = {}) {
-  let disposed = false, sequence = 0, loadToken = 0, seekToken = 0;
+  let disposed = false, sequence = 0, loadToken = 0, seekToken = 0,voiceEditEpoch=0;
   let seekResume;
   const pending = new Map();
   const listeners = new Set(); let eventEpoch = 0, decoder = null, observationInterval = 16, observationRequested = false;
@@ -49,7 +50,7 @@ export function createSpcClient(port, initial = {}, {
       timer.unref?.(); pending.set(id, {resolve, reject, timer, context:observing?null:captureContext()});
       try {
         const owner = observing?null:getOwner();
-        port.postMessage({method, args, id, spcEventEpoch:eventEpoch, ...(owner ? {spcPerformance:owner} : {}),...(observing?{nativeSpcObservation:true}:{})}, transfer);
+        port.postMessage({method, args, id, voiceEditEpoch, spcEventEpoch:eventEpoch, ...(owner ? {spcPerformance:owner} : {}),...(observing?{nativeSpcObservation:true}:{})}, transfer);
       }
       catch (error) {clearTimeout(timer); pending.delete(id); reject(error);}
     });
@@ -97,14 +98,14 @@ export function createSpcClient(port, initial = {}, {
         : input instanceof ArrayBuffer ? new Uint8Array(input.slice(0)) : null;
       if (!bytes) throw new TypeError('SPC data must be a Uint8Array or ArrayBuffer');
       if (bytes.length < 0x10180 || bytes.length > 16 * 1024 * 1024) throw new RangeError('Invalid SPC file size');
-      const token = ++loadToken; ++seekToken; seekResume = undefined;
+      voiceEditEpoch++;const token = ++loadToken; ++seekToken; seekResume = undefined;
       fenceEvents();
       const state = await request('loadSPC', [bytes], [bytes.buffer]);
       assertOpen(); if (token !== loadToken) throw abortError(); return state;
     },
-    play() {++seekToken; seekResume = undefined; return request('play');},
-    pause() {++seekToken; seekResume = undefined; return request('pause');},
-    stop() {++loadToken; ++seekToken; seekResume = undefined; fenceEvents(); return request('stop');},
+    play() {voiceEditEpoch++;++seekToken; seekResume = undefined; return request('play');},
+    pause() {voiceEditEpoch++;++seekToken; seekResume = undefined; return request('pause');},
+    stop() {voiceEditEpoch++;++loadToken; ++seekToken; seekResume = undefined; fenceEvents(); return request('stop');},
     /** Observe semantic DSP events on the caller's Main/logic Worker thread.
      * Overload always emits an overflow diagnostic even when types are filtered.
      * @param {(event:any)=>void} callback
@@ -122,13 +123,15 @@ export function createSpcClient(port, initial = {}, {
     },
     getState() {return request('getState');},
     snapshot() {return request('snapshot');},
+    cancelVoiceEdits(){voiceEditEpoch++;return request('voiceEditFence');},
+    editVoice(channel,changes){const edit=validateSpcVoiceEdit(channel,changes);if(initial.native)throw Error('SPC voice editing is not supported by this Native backend');return request('editVoice',[channel,edit]);},
     setMuteMask(mask) {
       if (!Number.isInteger(mask) || mask < 0 || mask > 255) throw new RangeError('SPC mute mask must be 0..255');
       return request('setMuteMask', [mask]);
     },
     async seek(seconds) {
       if (!Number.isFinite(seconds) || seconds < 0 || seconds > 3600) throw new RangeError('SPC seek seconds must be between 0 and 3600');
-      const token = ++seekToken, seekId = `seek:${token}`;
+      voiceEditEpoch++;const token = ++seekToken, seekId = `seek:${token}`;
       fenceEvents();
       const check = () => {assertOpen(); if (token !== seekToken) throw abortError();};
       try {

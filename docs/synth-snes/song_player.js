@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {validateSpcVoiceEdit} from '../js/spc_voice_edit.js';
 import {readSnesVoices} from '../js/snes_brr.js';
 import {parseSpcFile} from '../js/spc_file.js';
-import {createSpcAudio} from '../js/playground_spc_audio.js';
-import {createSpcClient} from '../js/playground_spc.js';
+import {createSpcAudio} from '../js/playground_spc_audio.js?v=spc-voice-edit-1';
+import {createSpcClient} from '../js/playground_spc.js?v=spc-voice-edit-1';
 const display=value=>String(value??'').replace(/[\u0000-\u001f\u007f-\u009f]/g,' ').trim().slice(0,256);
 const aborted=()=>new DOMException('SPC operation superseded','AbortError');
 const nativeSetTimeout=globalThis.setTimeout.bind(globalThis),nativeClearTimeout=globalThis.clearTimeout.bind(globalThis);
@@ -10,7 +11,7 @@ const nativeSetTimeout=globalThis.setTimeout.bind(globalThis),nativeClearTimeout
  * pre-Master input. Source selection is passive; no independent speaker route. */
 export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},createEndpoint=createSpcAudio,createClient=createSpcClient,
   schedule=nativeSetTimeout,cancel=nativeClearTimeout}={}){
-  let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='',analysis=null,analysisRevision=0,sourceSequence=0;
+  let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='',analysis=null,analysisRevision=0,sourceSequence=0,inspectionEpoch=0,editOwner=0;
   const read=()=>({mode,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,muteMask,error,analysisRevision,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
     source:source?{id:source.id,name:source.name,title:display(source.metadata.title),game:display(source.metadata.game),artist:display(source.metadata.artist),durationSeconds:source.metadata.durationSeconds??null}:null});
   const notify=()=>{if(!disposed)onChange(read());};
@@ -20,8 +21,8 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
   function apply(state,next){position=state.positionSeconds??position;mode=next??(state.playing?'playing':'paused');error='';notify();pollLater();}
   function pollLater(){clearTimer();if(disposed||mode!=='playing'||!route)return;timer=schedule(()=>{timer=null;void poll();},200);}
   async function inspect(owner,token){
-    try{const snapshot=await owner.client.snapshot();
-      if(disposed||token!==operation||owner!==route)return;
+    const epoch=inspectionEpoch;try{const snapshot=await owner.client.snapshot();
+      if(disposed||token!==operation||owner!==route||epoch!==inspectionEpoch)return;
       analysis=snapshot;analysisRevision++;inspection={positionSeconds:snapshot.positionSeconds??position,voices:readSnesVoices(snapshot),noiseClock:snapshot.dsp[0x6c]&31};inspectionError='';
     }catch(cause){if(!disposed&&token===operation&&owner===route)inspectionError=cause?.message??String(cause);}
   }
@@ -59,7 +60,20 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
     try{const owner=await ready();check(token);const result=await action(owner.client);check(token);if(owner!==route)throw aborted();await inspect(owner,token);check(token);if(owner!==route)throw aborted();apply(result);return true;}
     catch(cause){if(cause?.name==='AbortError'||disposed||token!==operation)return false;fail(cause);throw cause;}
   }
+  let editQueue=Promise.resolve();
   const api={read,
+    async cancelEdits(){editOwner++;if(route)await route.client.cancelVoiceEdits();},
+    editVoice(channel,changes,{isCurrent=()=>true}={}){
+      const edit=validateSpcVoiceEdit(channel,changes),token=operation,ownerId=editOwner;
+      if(!source||disposed||['loading','seeking'].includes(mode))return Promise.reject(aborted());
+      const valid=()=>{check(token);if(!isCurrent()||ownerId!==editOwner)throw aborted();};
+      const task=editQueue.catch(()=>{}).then(async()=>{
+        valid();const owner=await ready();valid();if(owner!==route)throw aborted();
+        inspectionEpoch++;const snapshot=await owner.client.editVoice(channel,edit);valid();if(owner!==route)throw aborted();
+        inspectionEpoch++;analysis=snapshot;analysisRevision++;inspectionError='';inspection={positionSeconds:snapshot.positionSeconds??position,voices:readSnesVoices(snapshot),noiseClock:snapshot.dsp[0x6c]&31};
+        position=snapshot.positionSeconds??position;if(mode==='stopped')mode='paused';notify();pollLater();return true;
+      });editQueue=task;return task;
+    },
     analysis(){const snap=analysis??source?.initial;if(!snap)return null;return {snapshot:{ram:snap.ram.slice(),dsp:snap.dsp.slice(),positionSeconds:snap.positionSeconds??0},name:source.name,metadata:{...source.metadata}};},
     async capture(){
       if(!route||disposed||['loading','seeking'].includes(mode))throw Error('Play or seek the SPC before capturing a channel.');

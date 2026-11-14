@@ -1,3 +1,4 @@
+import {spcVoiceWrites} from './spc_voice_edit.js';
 /**
  * Accurate SNES SPC playback and DSP-only synthesis. No DOM or audio device.
  * PCM is stereo Float32 at the fixed native rate of 32,000 frames/second.
@@ -187,6 +188,13 @@ export class SpcCore extends Core {
     finally { this._syncViews(); }
   }
   reset() { this.restart(); }
+  /** Host control of one existing SPC voice, preserving time, RAM and phase. */
+  editVoice(channel,changes){
+    this._assertOpen();const dsp=new Uint8Array(128);this.readDspRegistersInto(dsp);
+    const writes=spcVoiceWrites(channel,changes,dsp);
+    if(typeof this.module._spc_write_voice!=='function')throw new Error('SPC voice editing needs the updated WASM');
+    for(const [reg,value]of writes)this._check(this.module._spc_write_voice(this.handle,reg,value));
+  }
   /** Enable bounded DSP-write observation at the current position without
    * resetting phase/envelopes. Draining is independent of offline RAM tracing.
    * @param {{capacity?:number}} [options] */

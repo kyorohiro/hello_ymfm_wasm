@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "a2f0a2af06d85dbb3086ca8db2b8bb51b7d5fc1a0572afb5b35155bbcbb4dc84",
-      "size": 28210
+      "sha256": "bc86d6758f63e38769dce5452faa6f9e7a628e6cc3765bab6ed6d9931c474c16",
+      "size": 28539
     },
     "CMakeLists.txt": {
       "sha256": "769d676f59f1e9ba925b04d7e67cd43d49141f11da37ab897f7eea6029d4e121",
@@ -45,7 +45,7 @@
       "size": 52978
     },
     "catalog/source_inventory.json": {
-      "sha256": "261a4a9581f193de106f913c1f3dae0e6ae983a3aed36cb22ab1038f7cb81f24",
+      "sha256": "145d37b9a0f00716732b202b59e59a8e3e66fd5e743ed39216b5d73dd639b2e1",
       "size": 156707
     },
     "docs/architecture.md": {
@@ -777,8 +777,8 @@
       "size": 891
     },
     "scripts/build_spc_wasm.sh": {
-      "sha256": "3eed01347f67aaae3690db3050fdfcff104fe209f621826870c651e732b57577",
-      "size": 1480
+      "sha256": "a30a1b1a4938f34ebc112f8c762d557a3e46dd6575a7968e30b617896452ed0b",
+      "size": 1499
     },
     "scripts/build_wonderswan_wasm.sh": {
       "sha256": "e1f78911e0ce5795dd0963782f53a7a41e4f749c456a7fa93289ef286793f8d7",
@@ -865,8 +865,8 @@
       "size": 15168
     },
     "sdk.json": {
-      "sha256": "4f1d607f69cd191c717f349c0df3df8e5f5da9fb16a014137966af5a70a2dcd5",
-      "size": 295
+      "sha256": "30ace085e0211b37f6d8b7171d34c8e36f4c5406669573c8473ce1b4f499cf19",
+      "size": 298
     },
     "tests/README.md": {
       "sha256": "ede0407989c463210456947818b82bf7137f2ec1f84f3e9864bb9295c7399541",
@@ -1513,8 +1513,8 @@
       "size": 26526
     },
     "vendor/snes-spc/README.md": {
-      "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775",
-      "size": 3444
+      "sha256": "904c8a52ba8ee7b1bd3da4db68fcd9ee34c4aff7414e6ca449ef4fdbdf58b004",
+      "size": 3643
     },
     "vendor/snes-spc/README.upstream.md": {
       "sha256": "da0bfe0b5183787d61314fe7964e2c231675a9e61ce734ff7887b55fbf7d1362",
@@ -1541,8 +1541,8 @@
       "size": 17737
     },
     "vendor/snes-spc/snes_spc/SNES_SPC.h": {
-      "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae",
-      "size": 9033
+      "sha256": "63e8b9a88c31530190a55786a15b4d02a103892f9b6e128de4fb4e50baa3f96f",
+      "size": 9490
     },
     "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp": {
       "sha256": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e",
@@ -1865,8 +1865,8 @@
       "size": 1392
     },
     "wasm/spc_wasm.cpp": {
-      "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77",
-      "size": 15355
+      "sha256": "1575ff7e23d6486385612d2d22b026fa5cca7e7a39e7dbb9db37f5fa9c35fb19",
+      "size": 15749
     },
     "wasm/wonderswan_wasm.cpp": {
       "sha256": "7f5de6a81470494b3e1b6f8f290e12ad1c9856b3024582e0618120b8d4e046cf",
@@ -1924,5 +1924,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.8-huc-state"
+  "version": "0.1.8-huc-spc-edit"
 }

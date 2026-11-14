@@ -1,5 +1,5 @@
-import moduleFactory from './generated/spc_wasm.js';
-import {SpcCore} from './spc.js';
+import moduleFactory from './generated/spc_wasm.js?v=spc-voice-edit-1';
+import {SpcCore} from './spc.js?v=spc-voice-edit-1';
 import {SpcResampler} from './spc_resampler.js';
 
 const NATIVE_RATE = 32000;
@@ -15,7 +15,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
     this.disposed = false;
     this.failed = false;
     this.muteMask = 0;
-    this.seekId = null;
+    this.seekId = null;this.voiceEditEpoch=0;
     this.remote = null;
     this.playbackOwner = null;
     this.cancelledOwners = new Set();
@@ -81,7 +81,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
     const args = data?.args ?? [], commands = {
       loadSPC: () => ({type:'load', bytes:args[0]}), play: () => ({type:'play'}),
       pause: () => ({type:'pause'}), stop: () => ({type:'stop'}),
-      getState: () => ({type:'state'}), snapshot: () => ({type:'snapshot'}),
+      voiceEditFence: () => ({type:'edit-fence'}),getState: () => ({type:'state'}), snapshot: () => ({type:'snapshot'}), editVoice: () => ({type:'edit-voice',channel:args[0],changes:args[1]}),
       setMuteMask: () => ({type:'mute', mask:args[0]}),
       seekBegin: () => ({type:'seek-begin', seekId:args[0]}),
       seekStep: () => ({type:'seek-step', seekId:args[0], frames:args[1]}),
@@ -90,7 +90,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
     };
     const convert = Object.hasOwn(commands, data?.method) ? commands[data.method] : null;
     if (!convert) {reply.postMessage({id:data?.id, error:'Unknown SPC player method'}); return;}
-    this.enqueue({...convert(), id:data.id, eventEpoch:data.spcEventEpoch}, reply, data.spcPerformance ?? null);
+    this.enqueue({...convert(), id:data.id, voiceEditEpoch:data.voiceEditEpoch,eventEpoch:data.spcEventEpoch}, reply, data.spcPerformance ?? null);
   }
   async initialize(wasmBinary) {
     try {
@@ -165,19 +165,20 @@ export class SpcProcessor extends AudioWorkletProcessor {
   command(data, reply = this.port) {
     if (this.disposed || this.failed) return;
     if (!this.core) throw new Error('SPC processor is not ready');
+    const editEpoch=()=>{if(Number.isSafeInteger(data.voiceEditEpoch)&&data.voiceEditEpoch>=this.voiceEditEpoch)this.voiceEditEpoch=data.voiceEditEpoch;};
     switch (data.type) {
       case 'load':
         this.playing = false; this.seekId = null;
-        this.core.load(data.bytes); this.core.setMuteMask(this.muteMask);
+        this.core.load(data.bytes);editEpoch(); this.core.setMuteMask(this.muteMask);
         this.loaded = true; this.resampler.reset();
         this.resetObservation(data.eventEpoch, 'load');
         break;
-      case 'play': this.requireLoaded(); this.seekId = null; this.playing = true;
+      case 'play': this.requireLoaded();editEpoch(); this.seekId = null; this.playing = true;
         if (this.eventSuspended) {this.eventSuspended = false; this.resetObservation(data.eventEpoch, 'play');}
         break;
-      case 'pause': this.sendObservedEvents(true); this.seekId = null; this.playing = false; break;
+      case 'pause': editEpoch();this.sendObservedEvents(true); this.seekId = null; this.playing = false; break;
       case 'stop':
-        this.seekId = null; this.playing = false;
+        editEpoch();        this.seekId = null; this.playing = false;
         if (this.loaded) { this.core.restart(); this.core.setMuteMask(this.muteMask); }
         this.resampler.reset();
         this.resetObservation(data.eventEpoch, 'stop');
@@ -187,7 +188,7 @@ export class SpcProcessor extends AudioWorkletProcessor {
         this.muteMask = data.mask; this.core.setMuteMask(data.mask);
         break;
       case 'seek-begin':
-        this.requireLoaded(); this.playing = false; this.seekId = data.seekId;
+        this.requireLoaded();editEpoch(); this.playing = false; this.seekId = data.seekId;
         this.resetObservation(data.eventEpoch, 'seek');
         this.core.restart(); this.core.setMuteMask(this.muteMask); this.resampler.reset();
         break;
@@ -215,12 +216,17 @@ export class SpcProcessor extends AudioWorkletProcessor {
           this.eventEnabled = data.enabled; this.resetObservation(data.epoch, 'subscribe');
         }
         break;
+      case 'edit-fence': editEpoch();break;
+      case 'edit-voice':
+        this.requireLoaded();if(data.voiceEditEpoch!==this.voiceEditEpoch||this.seekId!==null)throw cancelledSeek();
+        this.core.editVoice(data.channel,data.changes);
+        // Return the same atomic post-write view as snapshot, with transport state.
       case 'snapshot': {
         this.requireLoaded();
         const snapshot = this.core.snapshot(), state = this.state();
         reply.postMessage({type: 'result', id: data.id, value: {...snapshot,
           positionSeconds: state.positionSeconds, playbackNativeFrames: state.playbackNativeFrames,
-          nativeSampleRate: NATIVE_RATE, muteMask: this.muteMask}}, [snapshot.ram.buffer, snapshot.dsp.buffer]);
+          nativeSampleRate: NATIVE_RATE, muteMask: this.muteMask,playing:state.playing}}, [snapshot.ram.buffer, snapshot.dsp.buffer]);
         return;
       }
       case 'state': break;

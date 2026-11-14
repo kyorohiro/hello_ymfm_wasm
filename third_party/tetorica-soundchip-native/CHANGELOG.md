@@ -1,3 +1,7 @@
+# Unpublished SPC voice editing candidate
+
+Adds spc_write_voice for bounded full-SPC host voice edits while preserving CPU, DSP phase, RAM and decoder/envelope history. Offline trace and RAM read-tracking sessions reject host writes. Existing DSP-only API behavior is unchanged. Includes the existing HuC state local candidate.
+
 # Changelog
 
 ## 0.1.8-huc-state — HuC6280 core checkpoints (local, unpublished)

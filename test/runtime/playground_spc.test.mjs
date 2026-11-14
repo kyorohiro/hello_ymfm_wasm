@@ -216,3 +216,17 @@ test('SPC audio initialization cancellation cleans the late node without closing
   await assert.rejects(pending,{name:'AbortError'});
   assert.equal(f.nodes[0].disconnects,1); assert.equal(f.listeners.size,0); assert.equal(f.context.state,'running');
 });
+
+test('SPC host edit RPC returns an atomic view without restarting paused transport or altering sibling channels',async t=>{
+ const f=await setup(t);await f.client.loadSPC(createSyntheticSpc({voices:2}));await f.client.play();f.render();await f.client.pause();const before=await f.client.snapshot(),edited=await f.client.editVoice(1,{volumeLeft:-32,pitch:1234,envelopeMode:'gain',gainMode:'direct',gainLevel:64});assert.equal(edited.positionSeconds,before.positionSeconds);assert.equal(edited.playing,false);assert.deepEqual(edited.ram,before.ram);assert.deepEqual(edited.dsp.subarray(0,16),before.dsp.subarray(0,16));assert.equal(edited.dsp[16],224);assert.equal(edited.dsp[18]|(edited.dsp[19]&63)<<8,1234);assert.throws(()=>f.client.editVoice(1,{srcn:2}),/Unsupported/);await f.client.stop();assert.equal((await f.client.snapshot()).dsp[16],64);
+});
+
+for(const fence of ['stop','seek','cancelVoiceEdits','loadSPC'])test(`SPC delayed voice edits cannot cross ${fence}`,async t=>{
+ const f=await setup(t);await f.client.loadSPC(createSyntheticSpc());
+ const post=f.channel.port2.postMessage.bind(f.channel.port2);let release;
+ f.channel.port2.postMessage=(message,...rest)=>{if(message.method==='editVoice'){release=()=>post(message,...rest);return;}post(message,...rest);};
+ const pending=f.client.editVoice(0,{volumeLeft:-77});const rejected=assert.rejects(pending,{name:'AbortError'});
+ assert.ok(release);if(fence==='seek')await f.client.seek(.01);else if(fence==='loadSPC')await f.client.loadSPC(createSyntheticSpc());else await f.client[fence]();
+ const before=await f.client.snapshot();release();await rejected;const after=await f.client.snapshot();
+ assert.deepEqual(after.dsp,before.dsp);assert.deepEqual(after.ram,before.ram);assert.equal(after.playbackNativeFrames,before.playbackNativeFrames);
+});

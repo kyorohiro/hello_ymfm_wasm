@@ -267,3 +267,11 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #snesMixerPanel { padding:16px; border:1px solid var(--line); border-radius:10px; }
 #snesMixerPanel p { font-size:.76rem; }
 #snesSongSelect { max-width:100%; min-width:0; }
+
+.snes-spc-edit { border:1px solid var(--line); border-radius:10px; padding:14px; }
+.snes-spc-edit h3 { margin:0 0 10px; }
+.snes-spc-edit p { font-size:.76rem; line-height:1.6; }
+.snes-spc-edit-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); gap:12px; }
+.snes-spc-edit-fields label { display:grid; gap:5px; font-size:.76rem; }
+.snes-spc-edit-fields input,.snes-spc-edit-fields select { min-width:0; width:100%; box-sizing:border-box; padding:7px; }
+#spcChannelEditStatus[data-error="true"] { color:#a72f25; }

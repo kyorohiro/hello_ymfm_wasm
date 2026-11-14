@@ -83,7 +83,7 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - name: Test the shared SNES API and types
         run: |
-          node --test test/runtime/snessynth.test.mjs test/runtime/snes_echo.test.mjs test/runtime/playground_snes.test.mjs test/runtime/playground_snes_worklet.test.mjs test/runtime/native_genesis_snes.test.mjs test/runtime/native_genesis_extra_snes.test.mjs
+          node --test test/runtime/spc_voice_edit.test.mjs test/runtime/playground_spc.test.mjs test/runtime/spc_audio.test.mjs test/runtime/snessynth.test.mjs test/runtime/snes_echo.test.mjs test/runtime/playground_snes.test.mjs test/runtime/playground_snes_worklet.test.mjs test/runtime/native_genesis_snes.test.mjs test/runtime/native_genesis_extra_snes.test.mjs
           node scripts/check_playground_mode_types.mjs
           node scripts/check_fm2612_types.mjs
       - name: Test the standalone SNES S-DSP Synth
@@ -94,6 +94,7 @@ jobs:
           node scripts/check_snes_synth_spc_live_browser.cjs --out release/snes-spc-live-source-browser.json
           node scripts/check_snes_synth_sound_library_browser.cjs --out release/snes-sound-library-source-browser.json
           node scripts/check_snes_synth_channel_parity_browser.cjs --out release/snes-parity-source-browser.json
+          node scripts/check_snes_synth_channel_edit_browser.cjs --out release/snes-edit-source-browser.json
           node scripts/check_snes_synth_looper_browser.cjs --out release/snes-looper-source-browser.json
       - name: Package and play the independent ZIP
         run: |
@@ -104,6 +105,7 @@ jobs:
           node scripts/check_snes_synth_spc_live_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-spc-live-browser.json
           node scripts/check_snes_synth_sound_library_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-sound-library-browser.json
           node scripts/check_snes_synth_channel_parity_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-parity-browser.json
+          node scripts/check_snes_synth_channel_edit_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-edit-browser.json
           node scripts/check_snes_synth_looper_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-looper-browser.json
       - uses: actions/upload-artifact@v4
         if: always()

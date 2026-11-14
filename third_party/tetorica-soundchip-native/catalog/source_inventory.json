@@ -771,7 +771,7 @@
         {
           "path": "vendor/snes-spc/README.md",
           "originPath": "third_party/snes-spc/README.md",
-          "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775"
+          "sha256": "904c8a52ba8ee7b1bd3da4db68fcd9ee34c4aff7414e6ca449ef4fdbdf58b004"
         },
         {
           "path": "vendor/snes-spc/README.upstream.md",
@@ -801,7 +801,7 @@
         {
           "path": "vendor/snes-spc/snes_spc/SNES_SPC.h",
           "originPath": "third_party/snes-spc/snes_spc/SNES_SPC.h",
-          "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae"
+          "sha256": "63e8b9a88c31530190a55786a15b4d02a103892f9b6e128de4fb4e50baa3f96f"
         },
         {
           "path": "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
@@ -1277,7 +1277,7 @@
         {
           "path": "wasm/spc_wasm.cpp",
           "originPath": "wasm/spc_wasm.cpp",
-          "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77"
+          "sha256": "1575ff7e23d6486385612d2d22b026fa5cca7e7a39e7dbb9db37f5fa9c35fb19"
         },
         {
           "path": "wasm/y8950_wasm.cpp",

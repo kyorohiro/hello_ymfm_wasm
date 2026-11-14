@@ -1172,7 +1172,7 @@
     {
       "id": "spc",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "b1c0b9557a643d25239ebf38785c3e3dac12b9de4207ccea5d4654c3f39c12e5",
+      "sourceFingerprint": "4deb089f891f4aa82a47b62ea447143322344679018cdb2fcf60d466a7267f45",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -1181,8 +1181,8 @@
         },
         {
           "path": "scripts/build_spc_wasm.sh",
-          "sha256": "3eed01347f67aaae3690db3050fdfcff104fe209f621826870c651e732b57577",
-          "size": 1480
+          "sha256": "a30a1b1a4938f34ebc112f8c762d557a3e46dd6575a7968e30b617896452ed0b",
+          "size": 1499
         },
         {
           "path": "scripts/record_wasm_build.mjs",
@@ -1196,8 +1196,8 @@
         },
         {
           "path": "vendor/snes-spc/snes_spc/SNES_SPC.h",
-          "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae",
-          "size": 9033
+          "sha256": "63e8b9a88c31530190a55786a15b4d02a103892f9b6e128de4fb4e50baa3f96f",
+          "size": 9490
         },
         {
           "path": "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
@@ -1276,20 +1276,20 @@
         },
         {
           "path": "wasm/spc_wasm.cpp",
-          "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77",
-          "size": 15355
+          "sha256": "1575ff7e23d6486385612d2d22b026fa5cca7e7a39e7dbb9db37f5fa9c35fb19",
+          "size": 15749
         }
       ],
       "outputs": [
         {
           "path": "spc_wasm.js",
-          "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699",
-          "size": 41458
+          "sha256": "279706319f2f477beee134442a4b1fb823ff24f843ecfcc22f9d58d4e95fdd03",
+          "size": 41763
         },
         {
           "path": "spc_wasm.wasm",
-          "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408",
-          "size": 63074
+          "sha256": "bd5d4e4d4fcc460a344a09f51b4048b8786ede0a554352540bec37fd4715d6f5",
+          "size": 63396
         }
       ],
       "compiler": {

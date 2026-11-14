@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "name": "tetorica-soundchip-native",
-  "version": "0.1.8-huc-state",
+  "version": "0.1.8-huc-spc-edit",
   "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-  "archiveName": "tetorica-soundchip-native-0.1.8-huc-state-sources.zip",
-  "archiveSha256": "7fdb39e2c648ea1498279134560579ead409ab302f36d8c9ae7a61d8c4aa712d",
-  "manifestSha256": "e839739e9e7afc68003edc9c81d90535a2f949f6ab6c886dfe9059cf434be31d",
+  "archiveName": "tetorica-soundchip-native-0.1.8-huc-spc-edit-sources.zip",
+  "archiveSha256": "a0f1acbc7e672810f12d6121c474f6374f4488dbde55a2b297e55beafd17807e",
+  "manifestSha256": "a325d296fe7f34b1ec94ee05be5d6dfc3439af13a71fbaaa839c8a28ca5011bd",
   "fileCount": 481,
   "unpublished": true,
   "localCandidate": {
@@ -23,12 +23,16 @@
       "native/include/tetorica/huc6280_state.h",
       "native/tests/huc6280_state_fixture.cpp",
       "scripts/build_huc6280_wasm.sh",
+      "scripts/build_spc_wasm.sh",
       "sdk.json",
       "tests/huc6280_state_wasm_smoke.mjs",
       "vendor/mame-huc6280/README.md",
       "vendor/mame-huc6280/huc6280.cpp",
       "vendor/mame-huc6280/huc6280.h",
-      "wasm/huc6280_wasm.cpp"
+      "vendor/snes-spc/README.md",
+      "vendor/snes-spc/snes_spc/SNES_SPC.h",
+      "wasm/huc6280_wasm.cpp",
+      "wasm/spc_wasm.cpp"
     ]
   }
 }

@@ -100,6 +100,16 @@ public:
 		for ( int i = 0; i < SPC_DSP::register_count; ++i ) regs [i] = dsp.read( i );
 	}
 	
+	// Host voice controls at the current DSP phase, without changing CPU/time,
+	// RAM, KON/KOFF, BRR history or shared DSP registers.
+	bool write_tetorica_voice_register( int reg, int value ) {
+		int field = reg & 15;
+		if ( reg < 0 || reg >= 128 || field > 7 || field == 4 || value < 0 || value > 255 ) return false;
+		if ( observer_callback ) observer_callback( observer_user, observer_clock, 0, reg, value );
+		dsp.write( reg, value );
+		return true;
+	}
+
 	// Skips count samples. Several times faster than play() when using fast DSP.
 	blargg_err_t skip( int count );
 	

@@ -5,11 +5,11 @@
   "sdk": {
     "schemaVersion": 1,
     "name": "tetorica-soundchip-native",
-    "version": "0.1.8-huc-state",
+    "version": "0.1.8-huc-spc-edit",
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-    "archiveName": "tetorica-soundchip-native-0.1.8-huc-state-sources.zip",
-    "archiveSha256": "7fdb39e2c648ea1498279134560579ead409ab302f36d8c9ae7a61d8c4aa712d",
-    "manifestSha256": "e839739e9e7afc68003edc9c81d90535a2f949f6ab6c886dfe9059cf434be31d",
+    "archiveName": "tetorica-soundchip-native-0.1.8-huc-spc-edit-sources.zip",
+    "archiveSha256": "a0f1acbc7e672810f12d6121c474f6374f4488dbde55a2b297e55beafd17807e",
+    "manifestSha256": "a325d296fe7f34b1ec94ee05be5d6dfc3439af13a71fbaaa839c8a28ca5011bd",
     "fileCount": 481,
     "unpublished": true,
     "localCandidate": {
@@ -27,12 +27,16 @@
         "native/include/tetorica/huc6280_state.h",
         "native/tests/huc6280_state_fixture.cpp",
         "scripts/build_huc6280_wasm.sh",
+        "scripts/build_spc_wasm.sh",
         "sdk.json",
         "tests/huc6280_state_wasm_smoke.mjs",
         "vendor/mame-huc6280/README.md",
         "vendor/mame-huc6280/huc6280.cpp",
         "vendor/mame-huc6280/huc6280.h",
-        "wasm/huc6280_wasm.cpp"
+        "vendor/snes-spc/README.md",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "wasm/huc6280_wasm.cpp",
+        "wasm/spc_wasm.cpp"
       ]
     }
   },
@@ -736,8 +740,8 @@
           "mirrors": [
             "docs/generated/spc_wasm.js"
           ],
-          "size": 41458,
-          "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+          "size": 41763,
+          "sha256": "279706319f2f477beee134442a4b1fb823ff24f843ecfcc22f9d58d4e95fdd03"
         },
         {
           "path": "spc_wasm.wasm",
@@ -745,8 +749,8 @@
           "mirrors": [
             "docs/generated/spc_wasm.wasm"
           ],
-          "size": 63074,
-          "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+          "size": 63396,
+          "sha256": "bd5d4e4d4fcc460a344a09f51b4048b8786ede0a554352540bec37fd4715d6f5"
         }
       ],
       "sourceFiles": [
@@ -1782,7 +1786,7 @@
         "docs/generated/build-info.json"
       ],
       "size": 145483,
-      "sha256": "ce5310f7fb4d6b67ae42e8e97ce09dd1f10f9ec65ca80dfc803a1f11058b0857"
+      "sha256": "410584efbac5436aa513aec35a238080bd53790096e1ca48944677bdcd7d05c7"
     },
     {
       "path": "ps1_spu_build.json",
@@ -1790,8 +1794,8 @@
       "mirrors": [
         "docs/generated/ps1_spu_build.json"
       ],
-      "size": 5446,
-      "sha256": "65066b8e367ad28bd9353c41912c8b9aba284bc53539429cd4f8b2439d304e4c"
+      "size": 5602,
+      "sha256": "87448d6ce368435e743cfdef5d49aaab6136600723cdb812fa72b3ab8dc064b8"
     }
   ]
 }

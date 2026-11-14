@@ -1,0 +1,299 @@
+{
+  "date": "2026-11-15",
+  "baseCommit": "363e4b12",
+  "unitTests": {
+    "passed": 293,
+    "failed": 0
+  },
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-channel-edit-final/itch_sdsp_synth_channel-edit-20261115-CTlYTw",
+    "archive": "/private/tmp/snes-channel-edit-final/tetorica_sdsp_synth_channel-edit-20261115_itch.zip",
+    "files": 148,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1555440,
+      "sha256": "552a6d5c8f8f3c3e15a19cc06b5bddd0c24f235f8b5a6f8212a5915e07cea959"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-spc-edit"
+    }
+  },
+  "currentSourceHashesMatchPackage": 120,
+  "browser": {
+    "source": {
+      "passed": true,
+      "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+      "results": [
+        {
+          "engine": "chromium",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "chromium",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    "zip": {
+      "passed": true,
+      "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+      "results": [
+        {
+          "engine": "chromium",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "chromium",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "Auto remains unchanged through importing and selecting a physical CH",
+            "cold edit prepares paused playback without advancing CPU/RAM or touching another CH",
+            "raw PITCH endpoints, ADSR and GAIN packing are editable while paused",
+            "Stop restores the original DSP and a delayed edit cannot cross the transport fence",
+            "delayed edit cannot cross a CH selection; Auto remains authored",
+            "live channel volume changes actual PCM while preserving the held audition note",
+            "later driver writes win",
+            "single audio context, output route and Menu; controls fit mobile"
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    "existingChannelParity": {
+      "passed": true,
+      "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+      "results": [
+        {
+          "engine": "chromium",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1\u20138 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "chromium",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1\u20138 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1\u20138 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1\u20138 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    }
+  },
+  "nativeBaseline": {
+    "passed": true,
+    "cases": 80,
+    "maximumDifference": 0,
+    "scenarios": 40,
+    "renderExecutions": 160,
+    "deviceOpened": false
+  },
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.8-huc-spc-edit",
+    "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "archiveName": "tetorica-soundchip-native-0.1.8-huc-spc-edit-sources.zip",
+    "archiveSha256": "a0f1acbc7e672810f12d6121c474f6374f4488dbde55a2b297e55beafd17807e",
+    "manifestSha256": "a325d296fe7f34b1ec94ee05be5d6dfc3439af13a71fbaaa839c8a28ca5011bd",
+    "fileCount": 481,
+    "unpublished": true,
+    "localCandidate": {
+      "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "CMakeLists.txt",
+        "catalog/chips.json",
+        "catalog/native_inventory.json",
+        "catalog/source_inventory.json",
+        "docs/huc6280-local-candidate.json",
+        "docs/huc6280-state.md",
+        "native/CMakeLists.txt",
+        "native/include/tetorica/huc6280.hpp",
+        "native/include/tetorica/huc6280_state.h",
+        "native/tests/huc6280_state_fixture.cpp",
+        "scripts/build_huc6280_wasm.sh",
+        "scripts/build_spc_wasm.sh",
+        "sdk.json",
+        "tests/huc6280_state_wasm_smoke.mjs",
+        "vendor/mame-huc6280/README.md",
+        "vendor/mame-huc6280/huc6280.cpp",
+        "vendor/mame-huc6280/huc6280.h",
+        "vendor/snes-spc/README.md",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "wasm/huc6280_wasm.cpp",
+        "wasm/spc_wasm.cpp"
+      ]
+    }
+  },
+  "sdkPinnedFilesVerified": 481,
+  "runtimeArtifacts": {
+    "sdkBuilds": 33,
+    "outputs": 68,
+    "mirrors": 75
+  },
+  "limitations": [
+    "Tauri UI uses the existing desktop adapter with mocked IPC; no physical CPAL device or human listening test.",
+    "Direct SPC host edits are temporary and driver writes may overwrite them. Stop and Seek reload the original source."
+  ],
+  "reviewDirectory": "build/verification/snes-channel-edit-20261115",
+  "committed": false,
+  "releasePerformed": false
+}

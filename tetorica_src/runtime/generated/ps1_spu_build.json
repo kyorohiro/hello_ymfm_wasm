@@ -13,7 +13,7 @@
     },
     "catalog/source_inventory.json": {
       "bytes": 156707,
-      "sha256": "261a4a9581f193de106f913c1f3dae0e6ae983a3aed36cb22ab1038f7cb81f24"
+      "sha256": "145d37b9a0f00716732b202b59e59a8e3e66fd5e743ed39216b5d73dd639b2e1"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
@@ -32,8 +32,8 @@
       "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf"
     },
     "sdk.json": {
-      "bytes": 295,
-      "sha256": "4f1d607f69cd191c717f349c0df3df8e5f5da9fb16a014137966af5a70a2dcd5"
+      "bytes": 298,
+      "sha256": "30ace085e0211b37f6d8b7171d34c8e36f4c5406669573c8473ce1b4f499cf19"
     },
     "vendor/mame-ps1-spu/LICENSE": {
       "bytes": 1592,
@@ -105,9 +105,15 @@
     }
   },
   "sdk": {
-    "archiveName": "tetorica-soundchip-native-0.1.8-huc-state-sources.zip",
-    "archiveSha256": "7fdb39e2c648ea1498279134560579ead409ab302f36d8c9ae7a61d8c4aa712d",
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.8-huc-spc-edit",
+    "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "archiveName": "tetorica-soundchip-native-0.1.8-huc-spc-edit-sources.zip",
+    "archiveSha256": "a0f1acbc7e672810f12d6121c474f6374f4488dbde55a2b297e55beafd17807e",
+    "manifestSha256": "a325d296fe7f34b1ec94ee05be5d6dfc3439af13a71fbaaa839c8a28ca5011bd",
     "fileCount": 481,
+    "unpublished": true,
     "localCandidate": {
       "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
       "changedPaths": [
@@ -123,20 +129,18 @@
         "native/include/tetorica/huc6280_state.h",
         "native/tests/huc6280_state_fixture.cpp",
         "scripts/build_huc6280_wasm.sh",
+        "scripts/build_spc_wasm.sh",
         "sdk.json",
         "tests/huc6280_state_wasm_smoke.mjs",
         "vendor/mame-huc6280/README.md",
         "vendor/mame-huc6280/huc6280.cpp",
         "vendor/mame-huc6280/huc6280.h",
-        "wasm/huc6280_wasm.cpp"
+        "vendor/snes-spc/README.md",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "wasm/huc6280_wasm.cpp",
+        "wasm/spc_wasm.cpp"
       ]
-    },
-    "manifestSha256": "e839739e9e7afc68003edc9c81d90535a2f949f6ab6c886dfe9059cf434be31d",
-    "name": "tetorica-soundchip-native",
-    "schemaVersion": 1,
-    "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-    "unpublished": true,
-    "version": "0.1.8-huc-state"
+    }
   },
   "outputs": {
     "ps1_spu_wasm.js": {
