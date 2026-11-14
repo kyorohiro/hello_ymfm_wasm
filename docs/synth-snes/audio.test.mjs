@@ -80,10 +80,10 @@ test('S-DSP audio is lazy and routes one fixed balance before the user Master an
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
-  const [balance, master] = f.context.gains;
+  const [balance, master, input, fade] = f.context.gains;
   assert.equal(balance.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[input]); assert.deepEqual(input.connections,[fade]); assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
@@ -151,12 +151,12 @@ test('carrier and modulator BRR caches are independent, restore replies and surv
 
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
   const f = fixture(), audio = await f.create({volume:.7});
-  const [balance, master] = f.context.gains, monitor = {}, desktopTap = {};
+  const [balance, master, input, fade] = f.context.gains, monitor = {}, desktopTap = {};
   master.connect(monitor);
   audio.outputNode.disconnect(audio.context.destination);
   audio.outputNode.connect(desktopTap);
   assert.deepEqual(master.connections,[monitor, desktopTap]);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[input]); assert.deepEqual(input.connections,[fade]); assert.deepEqual(fade.connections,[master]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
   await audio.command('stop'); await audio.command('setPitch',[0]);
   audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);

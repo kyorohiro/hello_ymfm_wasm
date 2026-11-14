@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=sdsp-live-wave-1';
+import {setupSnesCodeHost} from './code_host.js';
+import {createSnesCodeClient} from './code_client.js';
+import {createAudio} from './audio.js?v=sdsp-code-files-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
@@ -16,6 +18,7 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
+let codeHost=null;
 let audio = null, opening = null, spcBrowser = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
@@ -36,7 +39,7 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0);
+  visualizer.setRunning(notes.size > 0 || Boolean(codeHost?.isRunning()));
   updateCapacity();
 }
 function readVoices(state) {
@@ -80,6 +83,7 @@ function audioFailed(error) {
   visualizer.disconnect();
   if (failed) void failed.dispose().catch(() => {});
   $('startAudio').textContent = 'Enable audio';
+  void codeHost?.stop().catch(()=>{});
   report(error);
 }
 async function ensureAudio() {
@@ -99,6 +103,13 @@ async function ensureAudio() {
         } while (applied !== revision || appliedPitch !== pitch);
         if (disposed) throw new Error('S-DSP Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
+        let client=null;
+        engine.getSnesClient=async()=>{
+          if(!client)client=createSnesCodeClient({command:(...args)=>engine.command(...args),
+            isCurrent:()=>audio===engine&&!disposed,onActivity:result=>{if(result?.stolenId)for(const [source,note]of notes)if(note.id===result.stolenId)notes.delete(source);updateKeys();visualizer.wake();}});
+          return client;
+        };
+        engine.stopCode=async()=>{const previous=client;client=null;await previous?.dispose();};
         audio = engine;
         visualizer.connect(engine.context, engine.outputNode);
         $('startAudio').textContent = 'Audio ready';
@@ -122,6 +133,7 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const editRevision = revision;
   if (load || previous.source !== next.source) setPitchUi(0);
   updatePresetUi();
+  codeHost?.markSoundDirty();
   if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return Promise.resolve();}
   return enqueue(async () => {
     const engine = audio;
@@ -141,7 +153,7 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
     } catch (error) {
       if (audio === engine && revision === editRevision) {
         preset = (await engine.read()).preset;
-        updatePresetUi();
+        updatePresetUi();codeHost?.markSoundDirty();
       }
       throw error;
     }
@@ -273,16 +285,20 @@ function release(source) {
   });
 }
 function stopNotes(message) {
-  epoch++; notes.clear(); updateKeys();
-  return enqueue(async()=>{if(audio) await audio.command('stop'); visualizer.stop();if(message) status(message);});
+  const held=[...notes.values()];epoch++;notes.clear();updateKeys();
+  return enqueue(async()=>{
+    if(audio)for(const note of held)if(note.started)await audio.command('noteOff',[note.id]);
+    if(!codeHost?.isRunning())visualizer.stop();if(message)status(message);
+  });
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();stopNotes('Stopped · instrument retained. Play to resume.');});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void (async()=>{await codeHost.stop();await stopNotes();if(audio)await audio.command('stop');status('Stopped · instrument retained. Play to resume.');})().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   if(preset.source==='noise') return;
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {
+  if(target?.closest?.('#synthCodeEditorHost,.monaco-editor,#snesFilesPanel'))return true;
   const control = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');
   return control && !control.matches?.('input[type="range"],input[type="checkbox"],input[type="radio"]');
 }
@@ -373,10 +389,14 @@ $('copyCode').addEventListener('click',async()=>{
   }catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();void audio?.dispose();audio=null;
+  if(event.persisted){void codeHost?.stop();stopNotes();return;}
+  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
 updatePresetUi();setVolume();setPitchUi(0);
+codeHost=setupSnesCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
+  applySettings:async(value,{isCurrent=()=>true}={})=>{if(!isCurrent())return false;await applyPreset(value,{load:true});return isCurrent();},
+  stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning()));}});
+void codeHost.ready.catch(report);
 
 // Desktop adapters change only the final Master bus. The S-DSP, allocator
 // and output monitor keep using the same graph; ordinary sites expose no API.
@@ -388,7 +408,7 @@ if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
-      await stopNotes();
+      await codeHost.stop();await stopNotes();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});

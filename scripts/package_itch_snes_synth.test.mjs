@@ -20,7 +20,7 @@ test('S-DSP ZIP preserves readable dependency closure, matching WASM and complet
   const temporary=await mkdtemp(join(tmpdir(),'sdsp-synth-package-'));t.after(()=>rm(temporary,{recursive:true,force:true}));
   const a=await packageSnesSynth({version:'test',releaseDir:join(temporary,'a')});
   const b=await packageSnesSynth({version:'test',releaseDir:join(temporary,'b')});
-  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,3);
+  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
   const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -61,6 +61,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
       assert(info.names.includes(decodeURIComponent(url.pathname.slice(1))),`${module.path}: ${match[2]}`);assets++;
     }
   }
+  for(const file of ['synth-snes/code_host.js','synth-snes/code_project.js','synth/synth_code_controls.js','synth/synth_project_store.js','js/native-fx-worklet.js','js/native_audio_effect.wasm','playground/tetorica-playground-globals.d.ts','playground/vendor/fflate-LICENSE','licenses/tetorica-virtual-files/LICENSE','sources/code-effects/README.md'])assert(info.names.includes(file),file);
   assert(assets>=2,'audio references retain the local WASM and processor assets');
   for(const entry of info.receipt.bundles)assert.deepEqual(entry,info.receipt.modules.find(module=>module.path===entry.path));
   for(const name of ['preset.js','instrument.js','sample.js','audio_import.js','editor.js','spc_import.js','spc_browser.js'])assert(info.receipt.modules.some(module=>module.path==='synth-snes/'+name));

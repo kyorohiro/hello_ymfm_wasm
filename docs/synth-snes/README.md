@@ -336,6 +336,68 @@ software authoring tools.
 SPC pair import supports isolated adjacent BRR pairs. No SPC700 driver or song
 playback is included in this Synth.
 
+## Files and Code performance
+
+Filesで音色・コード・素材をまとめて保存し、Codeで現在の音色を演奏できます。
+BPM連動の演奏例、Code画面での鍵盤入力、自動保存・復旧、Cassette ZIPに対応します。
+
+**Files** opens a local project containing JavaScript, editable text, binary assets
+and named `.sdsp.json` sounds. **Save sound** adds the complete current preset,
+including carrier / modulator BRR, Noise, PMON and Echo, without replacing an
+existing saved sound. Select a sound JSON to apply it; editing its JSON alone
+keeps the current instrument until you select it again. Existing portable v1–v5
+presets still load through **Load preset…**.
+
+Sound edits, Files and Code save locally. Reopening restores the project without
+opening audio or running JavaScript. **Export project** / **Import project…** use
+a Cassette ZIP with the sound, Code and binary files together. Export the project
+to keep a portable copy; browser storage failures are shown beside Files. A failed
+initial restore keeps the unread project and does not overwrite it with defaults.
+The local project uses its own S-DSP storage namespace. Saved portable presets
+and projects from other Synth apps are not changed.
+
+Choose **Code**, select `/index.js`, and press **Run**. **Apply** retains `context`
+and replaces named loops while playing; **Stop** releases Code-owned notes and
+keeps the edited instrument. Switching Keyboard / Code changes the view while
+Code continues. Computer keys play in either view outside text editors, inputs,
+Files and dialogs; key-up and window blur release manual keys. **Stop all sound**
+also clears held notes and the hardware Echo tail.
+
+```js
+const snes = await useSoundChip("snes");
+setBpm(120);
+liveLoop("melody", async () => {
+  await snes.noteOn(CH1, choose(scale("C4", "minorPentatonic", 1)));
+  await beat(0.5);
+  await snes.noteOff(CH1);
+  await beat(0.25);
+});
+```
+
+This Synth performance handle shares the existing S-DSP, sample bank, current
+sound, keyboard allocator and Master. Its note methods are asynchronous; await
+them before starting a musical wait. `beat()` follows `setBpm()`, while `sleep()`
+measures seconds. Performance lanes **0–7** identify Code notes; **CH1–CH6** are
+aliases for 0–5, and numeric 6 / 7 address the last two lanes. They are not fixed
+DSP voice numbers. Notes use the same round robin / stealing rules as the
+keyboard: eight ordinary notes, or four PMON pairs, shared with manual keys.
+Noise uses its shared clock and ignores the requested musical pitch.
+
+The handle exposes `noteOn(lane, note)`, `noteOff(lane)`, `getState()`,
+`allNotesOff()` and `dispose()`. The last two release only that Code session's
+notes. Note names and integer MIDI 0–127 are supported. The editor sets the
+Wave / BRR bank, envelopes, Noise, PMON and Echo; edits apply through the existing
+live-update rules. This app-specific performance handle differs from Playground's
+raw `SnesSynth` channel / RAM API. **Copy JavaScript** retains the existing
+Playground setup-code export. Software `liveFx()` runs after the S-DSP; hardware
+Echo / FIR remains part of the S-DSP.
+
+Code uses the shared Synth editor, with text editing available if Monaco cannot
+load. Local modules can be imported from Files and `file()` reads project assets.
+Maximize Code to edit beside Files. JavaScript is limited to 2 MiB, and the project
+reserves room for the full sound within the 16 MiB Cassette limit. Looper / Event
+Rec and SPC song playback are outside this first Files / Code update.
+
 ## Source and verification
 
 - [preset.js](preset.js), [instrument.js](instrument.js): validation and owned hardware voices.
