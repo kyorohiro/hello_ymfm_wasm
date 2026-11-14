@@ -10,7 +10,7 @@ import {setupSnesSongControls} from './song_controls.js?v=spc-seek-controls-1';
 import {setupSnesCodeHost} from './code_host.js?v=spc-menu-priority-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=spc-channel-edit-1';
-import {createEditor} from './editor.js?v=shared-channel-editor-1';
+import {createEditor} from './editor.js?v=adsr-graph-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
 import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-sample-inspection-1';

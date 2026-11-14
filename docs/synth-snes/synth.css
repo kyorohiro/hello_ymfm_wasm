@@ -297,3 +297,16 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #snesChannelTabs button[data-pitch-zero="true"]::after { content:' · 0'; font-size:.65rem; font-weight:800; }
 #snesChannelTabs button[data-pitch-zero="true"][aria-selected="true"] { background:#99402f; color:#fff; }
 #voiceEditor[data-sample-only="true"] :is(#noiseSection,#echoSection,#pmonSection) { display:none; }
+
+.sdsp-adsr-graph { margin:14px 0; }
+.sdsp-adsr-plot { position:relative; height:220px; border:1px solid #657172; border-radius:8px; background:#242829; }
+.sdsp-adsr-plot svg { display:block; width:100%; height:100%; border-radius:8px; }
+.sdsp-adsr-grid { stroke:#414849; stroke-width:1; vector-effect:non-scaling-stroke; }
+.sdsp-adsr-plot text { fill:#d7dddd; font-size:13px; }
+.sdsp-adsr-curve { stroke:#8fd6a1; stroke-width:2; vector-effect:non-scaling-stroke; }
+.sdsp-adsr-handle { position:absolute; transform:translate(-50%,-50%); min-height:30px; padding:3px 5px; border:1px solid #8fd6a1; border-radius:6px; background:#263f32; color:#e4f2e6; font-size:.68rem; white-space:nowrap; touch-action:none; cursor:grab; }
+.sdsp-adsr-handle:hover { background:#375943; border-color:#b3edbe; }
+.sdsp-adsr-handle.is-dragging { cursor:grabbing; }
+.sdsp-adsr-handle:focus-visible { outline:2px solid #e4b522; outline-offset:3px; }
+.sdsp-adsr-graph[aria-disabled="true"] .sdsp-adsr-curve { stroke:#81918a; stroke-dasharray:5 4; }
+.sdsp-adsr-release { position:absolute; right:6px; bottom:2px; color:#b6c8c0; font-size:.65rem; pointer-events:none; }

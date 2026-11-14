@@ -323,6 +323,10 @@ a candidate; they remain editable in this panel.
 
 ## Hardware ADSR and GAIN
 
+The Envelope panel includes one ADSR graph for Auto and the selected physical CH. Drag **A** horizontally to adjust Attack. Drag **D / L** horizontally for Decay and vertically for Sustain level. Drag **S** horizontally for Sustain rate. The existing numeric fields and graph update together; keyboard arrows change codes, D / L uses Up / Down for level, and Home / End select a code endpoint. Release is fixed by hardware and has no editing handle.
+
+This is a schematic shape guide with rate-code spacing, not a millisecond scale or a live envelope meter. Sustain rate 0 is shown as a hold. In GAIN mode the dormant ADSR guide remains visible with disabled handles; GAIN stays editable in the existing fields. In CH mode graph edits use the same current-register path and transport / source fences as the numeric controls; Auto and saved Files are retained.
+
 These controls set S-DSP register codes, not a software envelope in seconds:
 
 | Mode | Controls |

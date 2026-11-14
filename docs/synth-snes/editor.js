@@ -4,6 +4,7 @@ import {createDefaultPreset, readPreset, waveShape, envelopeRegisters,
   modulatorEnvelopeRegisters, pmonActive, pmonSampleBytes, sampleBudget, presetBankKey} from './preset.js?v=sdsp-live-wave-1';
 import {decodeBase64, encodeBase64} from './sample.js';
 import {decodeBrr} from '../js/snes_brr.js';
+import {createAdsrGraph} from './adsr_graph.js';
 
 /** Passive sound editor: drawing and file conversion do not open an audio device. */
 export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, onVoiceEdit=async()=>{}, onError = () => {},
@@ -45,12 +46,15 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
   }
   function changeControl(id,value,set){
     if(!channel){commit(next=>set(next,value));return;}
-    const key=voiceKeys[id];if(!key||channel.busy||!channel.voice)return;
-    const owner=binding,ticket=++editSequence;voiceDrafts.set(key,{value,ticket});pendingEdits.add(ticket);render();
-    let request;try{request=onVoiceEdit({[key]:value});}catch(error){request=Promise.reject(error);}
+    const key=voiceKeys[id];if(key)changeVoiceFields({[key]:value});
+  }
+  function changeVoiceFields(changes){
+    if(!channel||channel.busy||!channel.voice)return;
+    const owner=binding,ticket=++editSequence;for(const [key,value]of Object.entries(changes))voiceDrafts.set(key,{value,ticket});pendingEdits.add(ticket);render();
+    let request;try{request=onVoiceEdit(changes);}catch(error){request=Promise.reject(error);}
     Promise.resolve(request).then(()=>{if(!disposed&&binding===owner)editStatus.textContent=`CH${channel.index+1} updated · later driver writes take precedence.`;})
       .catch(error=>{if(!disposed&&binding===owner){editStatus.textContent=error.name==='AbortError'?'Edit cancelled.':`Edit failed: ${error.message}`;if(error.name!=='AbortError')report(error);}})
-      .finally(()=>{if(disposed||binding!==owner)return;pendingEdits.delete(ticket);if(voiceDrafts.get(key)?.ticket===ticket)voiceDrafts.delete(key);render();});
+      .finally(()=>{if(disposed||binding!==owner)return;pendingEdits.delete(ticket);for(const key of Object.keys(changes))if(voiceDrafts.get(key)?.ticket===ticket)voiceDrafts.delete(key);render();});
   }
   function commit(mutator) {
     if (disposed || isReadOnly() || channel) return;
@@ -375,6 +379,8 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
 
   const envelopeCard = card('Envelope · S-DSP hardware', 'envelopeSection'), envelopeFields = group(envelopeCard.content);
   select(envelopeFields, 'Envelope mode', 'envelopeMode', [['adsr','ADSR'],['gain','GAIN']], value => value.envelope.mode, (value, mode) => {value.envelope.mode = mode;});
+  const graphRoot=make('div');envelopeCard.content.append(graphRoot);
+  const adsrGraph=createAdsrGraph({root:graphRoot,onChange:changes=>{if(channel)changeVoiceFields(changes);else commit(next=>Object.assign(next.envelope,changes));}});
   const adsrFields = group(envelopeCard.content);
   const adsrControls = [
     number(adsrFields, 'Attack · code 0–15', 'attack', 0, 15, value => value.envelope.attack, (value, code) => {value.envelope.attack = code;}),
@@ -568,6 +574,8 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     }
     const isNoise=channel?Boolean(channel.voice?.noise):preset.source==='noise',isWave=!channel&&preset.source==='wave',isBrr=channel?!isNoise:preset.source==='brr',hasBrr=Boolean(preset.brr.data),isGain=controlValue('envelopeMode',value=>value.envelope.mode)==='gain';
     const activePmon=pmonActive(preset),target=editableTarget(),displayedTarget=selectedTarget(),isModulator=displayedTarget==='modulator';
+    const graphEnvelope={...preset.envelope,...Object.fromEntries(Object.keys(preset.envelope).map(key=>[key,controlValue(key==='mode'?'envelopeMode':key,value=>value.envelope[key])]))};
+    adsrGraph.update({envelope:graphEnvelope,disabled:isGain||controlDisabled('attack',false)||isReadOnly(),owner:channel?binding:`auto:${preset.name}:${presetBankKey(preset)}`});
     const modBrr=preset.pmon.source==='brr',hasModBrr=Boolean(preset.pmon.brr.data);
     sampleCard.summary.textContent=isReadOnly()?'Sample · decoded BRR / PCM':'Sample · software preparation / BRR playback';
     const displayedBrr=isModulator?preset.pmon.brr:preset.brr;
@@ -664,7 +672,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     update(value,{samplePreview=null,channel:nextChannel=null}={}) {
       if(disposed)return;
       const next=readPreset(value),nextBinding=nextChannel?`${nextChannel.sourceId}:${nextChannel.index}:${nextChannel.transportRevision}`:null;
-      if(nextBinding!==binding){for(const field of fields.values())field.cancelGesture?.();voiceDrafts.clear();pendingEdits.clear();editStatus.textContent='';}binding=nextBinding;channel=nextChannel;snapshotPreview=channel&&!channel.hasPreset?(samplePreview??{pcm:new Float32Array(0),unavailable:true}):null;
+      if(nextBinding!==binding){for(const field of fields.values())field.cancelGesture?.();adsrGraph.cancel();voiceDrafts.clear();pendingEdits.clear();editStatus.textContent='';}binding=nextBinding;channel=nextChannel;snapshotPreview=channel&&!channel.hasPreset?(samplePreview??{pcm:new Float32Array(0),unavailable:true}):null;
       if(loadController&&(presetBankKey(next)!==presetBankKey(preset)||next.pmon.enabled!==preset.pmon.enabled))
         cancelLoad('Import cancelled after changing the instrument. Current sample kept.');
       cancelStroke();
@@ -676,7 +684,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     },
     dispose() {
       if(disposed)return;
-      cancelLoad();cancelStroke();disposed=true;previews.clear();previewBins=null;
+      cancelLoad();cancelStroke();adsrGraph.dispose();disposed=true;previews.clear();previewBins=null;
       for(const cleanup of cleanups)cleanup();body.remove();
     },
   };
