@@ -337,7 +337,7 @@ function renderKeyboard(){
   refreshPlayableKeys();updateKeys();
 }
 function press(source,entry){
-  if(disposed||switchingAudioOutput||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi))return;
+  if(disposed||switchingAudioOutput||codeHost?.getState?.()?.busy||notes.has(source)||!canPlay(entry.midi))return;
   const song=sidImporter.read(),reference=songChannel(song),owner=reference?(song.paused?'paused':'song'):'author';
   if(reference&&(song.starting||song.pausing||song.resuming||!song.paused&&!song.manualReady)){status('Wait for the SID song to finish its transport operation.');return;}
   const note={id:`sid-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch:noteEpoch,started:false,owner};notes.set(source,note);updateKeys();
@@ -364,6 +364,7 @@ function press(source,entry){
       (owner!=='paused'||previewEngine===songEngine&&sidImporter.read().paused&&!sidImporter.read().resuming);
     if(switchingAudioOutput||!current()){discard();return;}
     await prepareDesktopOutput(engine,current);if(!current()){discard();return;}
+    if(codeHost?.getState?.()?.busy||!codeHost?.isRunning()&&codeHost?.openOutput?.()===false){discard();return;}
     if(owner==='paused'){
       const audition=selectChannelTarget(createChannelSettings(pausedSound.preset),song.liveVoice??0);
       await engine.command('loadChannelSettings',[audition]);pausedKeyboard=true;
@@ -414,9 +415,14 @@ $('startAudio').addEventListener('click',()=>{$('startAudio').blur();if(songOpen
 $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopPerformances('Stopped · preset kept. Play to resume.').catch(report);});
 async function stopPerformances(message){await codeHost?.stop();await sidImporter.stop();await stopNotes(message);}
 for(const[id,delta]of [['octaveDown',-1],['octaveUp',1]])$(id).addEventListener('click',()=>{$(id).blur();void stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();});
-function editing(target){const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');return control&&!control.matches?.('input[type="range"]');}
+function editing(target){
+  if(target?.closest?.('dialog[open],.monaco-editor,#synthCodeEditorHost,[contenteditable]:not([contenteditable="false"])'))return true;
+  const control=target?.closest?.('input,select,textarea');
+  return control&&!control.matches?.('input[type="range"]');
+}
 window.addEventListener('keydown',event=>{
-  if(codeHost?.isCodeMode()||event.ctrlKey||event.metaKey||event.altKey||editing(event.target))return;
+  if(document.getElementById('spuFileContextMenu')?.hidden===false)return;
+  if(event.defaultPrevented||event.isComposing||event.ctrlKey||event.metaKey||event.altKey||editing(event.target))return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);if(!entry)return;
   event.preventDefault();if(!event.repeat)press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
 });

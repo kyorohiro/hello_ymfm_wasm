@@ -127,12 +127,12 @@ test('keyboard uses the selected physical CH in either tab, and a quick release 
 
 test('Code-view performance keys respect editor, text, select, dialog and already-handled focus boundaries',async()=>{
   const event=target=>({key:'a',code:'KeyA',target,repeat:false,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;}});
-  for(const selector of ['textarea','input','select','[contenteditable="true"]','dialog[open]','.monaco-editor','#synthCodeEditorHost']){
+  for(const selector of ['textarea','input','select','[contenteditable]','dialog[open]','#spuFileContextMenu','.monaco-editor','#synthCodeEditorHost']){
     const h=harness();h.host.mode=true;
     const control={closest:query=>query.split(',').includes(selector)?control:null,matches:()=>false},e=event(control);
     h.listeners.get('keydown')(e);await h.idle();assert.equal(h.notes.size,0,selector);assert.equal(e.defaultPrevented,false);assert.equal(h.calls.length,0);
   }
-  for(const modifier of ['ctrlKey','metaKey','altKey','defaultPrevented']){
+  for(const modifier of ['ctrlKey','metaKey','altKey','defaultPrevented','isComposing']){
     const h=harness(),e={...event(null),[modifier]:true};h.host.mode=true;
     h.listeners.get('keydown')(e);await h.idle();assert.equal(h.notes.size,0,modifier);
   }

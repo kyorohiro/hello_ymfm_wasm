@@ -342,6 +342,7 @@ function press(source, entry) {
     if (!current()) return;
     const engine = await ensureAudio();
     if (!current()) return;
+    if(!codeAtPress&&codeHost?.openOutput?.()===false){notes.delete(source);updateKeys();return;}
     note.started = true;
     const result = await engine.command('noteOn',[note.id,note.midi,note.channel]);
     if (audio!==engine||note.epoch!==epoch) return;
@@ -389,11 +390,11 @@ for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListen
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {
-  const control = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open],.monaco-editor,#synthCodeEditorHost');
+  const control = target?.closest?.('input,select,textarea,[contenteditable],dialog[open],#spuFileContextMenu,.monaco-editor,#synthCodeEditorHost');
   return control && !control.matches?.('input[type="range"],input[type="checkbox"],input[type="radio"]');
 }
 window.addEventListener('keydown',event=>{
-  if(!['huc6280','mixer'].includes(chipView)||event.defaultPrevented||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
+  if(!['huc6280','mixer'].includes(chipView)||event.defaultPrevented||event.isComposing||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);
   if(!entry) return;
   event.preventDefault(); if(!event.repeat) press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});

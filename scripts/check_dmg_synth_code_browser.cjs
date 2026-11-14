@@ -106,6 +106,24 @@ async function execute(page,apply=false){
   await until(async()=>{const error=await page.locator('#synthCodeError').textContent();if(error)throw Error(error);return /Running|Playing/.test(await page.locator('#synthCodeState').textContent());},apply?'Apply':'Run');
 }
 async function stop(page){await page.locator('#synthCodeStopButton').click();await until(()=>page.locator('#synthCodeState').textContent().then(value=>/Stopped|Idle/.test(value)),'Code stopped');await wait(150);await pcm(page,false);}
+async function typingGuards(page,key){
+  const editor=page.locator('#synthCodeEditor'),saved=await editor.inputValue();
+  await page.evaluate(()=>{const root=document.createElement('div');root.id='dmgCodeFocusChecks';root.innerHTML='<input type="number" aria-label="Code keyboard numeric input"><select aria-label="Code keyboard select"><option>Choice</option></select><div class="monaco-editor"><div tabindex="0" data-code-focus="monaco">Monaco focus boundary</div></div><dialog><button type="button">Dialog focus boundary</button></dialog>';document.querySelector('#synthCodePanel').append(root);});
+  try{
+    for(const selector of ['#synthCodeEditor','#dmgCodeFocusChecks input','#dmgCodeFocusChecks select','#dmgCodeFocusChecks [data-code-focus="monaco"]']){
+      await page.locator(selector).focus();await page.keyboard.down(key);
+      try{await pcm(page,false);assert.equal((await read(page)).voices.length,0,selector+' keeps typing outside the keyboard allocator');}
+      finally{await page.keyboard.up(key);}
+    }
+    await page.locator('#dmgCodeFocusChecks dialog').evaluate(dialog=>dialog.showModal());
+    await page.locator('#dmgCodeFocusChecks dialog button').focus();await page.keyboard.down(key);
+    try{await pcm(page,false);assert.equal((await read(page)).voices.length,0,'an open dialog protects musical keys');}
+    finally{await page.keyboard.up(key);}
+  }finally{
+    await page.evaluate(()=>{document.querySelector('#dmgCodeFocusChecks dialog')?.close();document.querySelector('#dmgCodeFocusChecks')?.remove();});
+    await editor.fill(saved);await page.evaluate(()=>document.activeElement?.blur?.());
+  }
+}
 async function download(page,selector){
   if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();
   const pending=page.waitForEvent('download');await page.locator(selector).click();const item=await pending,chunks=[];
@@ -164,6 +182,13 @@ async function check(browser,name,origin,loadCassette){
     step('Real Code addresses both Pulse channels, Wave RAM and Noise on the existing APU');
     await page.locator('#synthInputKeyboardTab').click();await page.locator('#startAudio').click();
     await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'editor APU ready');
+    step('Code view starts with musical focus and plays keys before Run without cutting a held key');
+    await page.keyboard.down('z');await pcm(page);const idleHeld=(await read(page)).voices[0].id;
+    await page.locator('#synthInputCodeTab').click();
+    assert(await page.evaluate(()=>!document.activeElement?.closest('#synthCodeEditorHost,textarea,.monaco-editor,[contenteditable="true"]')),'tab selection does not focus the editor');
+    assert.equal((await read(page)).voices[0].id,idleHeld);await pcm(page);await page.keyboard.up('z');await pcm(page,false);
+    await page.keyboard.down('z');await pcm(page);await page.keyboard.up('z');await pcm(page,false);
+    assert.equal(await read(page,'observeCode'),null,'Code view alone never starts a Code session');
     await page.locator('#pitchBend').evaluate(input=>{input.value='1.5';input.dispatchEvent(new Event('input',{bubbles:true}));});
     await until(async()=>Math.abs((await read(page)).pitch-1.5)<1e-8,'stored keyboard Pitch before Code');
     const author=await read(page);measurements.preRunPitch=author.pitch;
@@ -302,14 +327,23 @@ liveLoop('motion',async()=>{prepared.ticks++;await gb.pulse.setDuty(0,prepared.t
     const heldId=(await read(page)).voices[0].id;await wait(150);assert.equal((await read(page)).voices[0].id,heldId,'Parameter automation does not steal the keyboard gate');
     assert(await page.evaluate(before=>__dmgParamProbe.prepared.ticks>before,ticks));
     assert((await read(page,'observeCode')).positionFrames>tabBefore.positionFrames);
-    await page.locator('#synthInputCodeTab').click();await pcm(page);await page.keyboard.up('z');await pcm(page,false);
+    await page.locator('#synthInputCodeTab').click();await pcm(page);
+    assert.equal((await read(page)).voices[0].id,heldId,'switching views retains the same manual note');
+    await page.locator('#synthCodeEditor').focus();await page.keyboard.up('z');await pcm(page,false);
     assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    const codeGraph=await page.evaluate(()=>__dmgCodeAudit.graph());await typingGuards(page,'z');
+    assert.equal((await page.evaluate(()=>__dmgCodeAudit.graph())).contexts,codeGraph.contexts);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    const codeTicks=await page.evaluate(()=>__dmgParamProbe.prepared.ticks);await page.locator('#synthTitle').click();
+    await page.keyboard.down('z');await pcm(page);await until(async()=>(await read(page)).voices.some(voice=>voice.channel===0),'Code view keys use selected CH1');
+    await page.keyboard.up('z');await pcm(page,false);assert(await page.evaluate(before=>__dmgParamProbe.prepared.ticks>before,codeTicks));
     await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='keyboard'),'Keyboard view again');await page.keyboard.down('z');await pcm(page);
     await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await pcm(page,false);await page.keyboard.up('z');
     assert(await read(page,'observeCode'),'Blur releases only Keyboard notes');
-    await stop(page);assert.equal(await read(page,'observeCode'),null);
+    await page.locator('#synthInputCodeTab').click();await stop(page);assert.equal(await read(page,'observeCode'),null);
+    assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');
     await page.keyboard.down('z');await pcm(page);await page.keyboard.up('z');await pcm(page,false);
-    assert.equal(await read(page,'observeCode'),null,'Keyboard resumes after the shared Code Stop');
+    assert.equal(await read(page,'observeCode'),null,'manual keyboard resumes in Code view after shared Stop');
 
     step('Software Stop fades the real output to silence and reaches the physical restore fence');
     await source(page,FADE);await execute(page);await pcm(page);await wait(130);

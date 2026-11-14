@@ -1160,6 +1160,7 @@ function forwardAuthorPsgSettings(patch) {
 }
 
 function isPerformanceInputEnabled() {
+  if(codeRuntime?.getState().busy)return false;
   if(isLocalChannelTarget()&&localChannelDescription()?.playable===false)return false;
   let referenceKeyboard=isReferenceKeyboard();
   if(referenceKeyboard&&isSongChannelTarget()) {
@@ -1170,7 +1171,15 @@ function isPerformanceInputEnabled() {
       referenceKeyboard=Boolean(description?.playable);
     }
   }
-  return !codeControls?.isCodeMode()&&!editorSwitchPending && !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (!isSongChannelTarget() || Boolean(songAuditionVoice)||referenceKeyboard);
+  return !editorSwitchPending && !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (!isSongChannelTarget() || Boolean(songAuditionVoice)||referenceKeyboard);
+}
+
+async function ensurePerformanceAudioReady() {
+  await ensureAudioReady();
+  if(!isPerformanceInputEnabled())return;
+  // Code Stop keeps its fade closed until the old program is fully retired.
+  // A new hand note can reopen that route even while Code remains the view.
+  if(!codeActive)codeOutput.open();
 }
 
 function getCurrentPerformanceVoice() {
@@ -1181,6 +1190,17 @@ function getCurrentPerformanceVoice() {
 
 function recordingBlocked() {
   return eventRecordingBlocked();
+}
+
+function hasActiveRecordingPerformance() {
+  if(currentLooperCapture||referenceRecordingStop||eventRecordSessionActive)return true;
+  if([looper,psgLooper,pcmLooper].some(owner=>{
+    const state=owner?.getState();
+    return state?.running||state?.recording||state?.armed||state?.busy||
+      owner?._starting||owner?._recordStarting||owner?._finishing||owner?._stopping;
+  }))return true;
+  return [megaSynth,psgEventRecorder,pcmEventRecorder].some(owner=>
+    owner?.isRecording()||owner?.isRecordingPlaybackActive());
 }
 
 function eventRecordingBlocked() {
@@ -3922,7 +3942,7 @@ inputController =
     isInputEnabled: isPerformanceInputEnabled,
     getSynth: () =>
       getPlayableSynth(),
-    ensureAudioReady,
+    ensureAudioReady:ensurePerformanceAudioReady,
     chooseVoice: available => isLocalChannelTarget()?available[localChannel()]
       :isPcmReferenceKeyboard()?available[Number(String(songTargetState.target).split(':')[1])]
       : isPsgSongPlaying()&&editorChip==='psg'
@@ -4177,9 +4197,9 @@ codeControls=setupSynthCodeControls({
   keepRunningOnKeyboard:true,
   project:synthProject,files:synthFiles,getRuntime:getCodeRuntime,onBeforeRun:beforeCodeRun,
   onModeChange:mode=>{
-    if(mode==='code'&&!codeActive)void stopRecordingForReference({keepCode:true});
+    if(mode==='code'&&!codeActive&&hasActiveRecordingPerformance())void stopRecordingForReference({keepCode:true});
     if(mode==='keyboard')codeOutput.open();
-    if(!codeActive)stopAllNotes();updateKeyboardAvailability();updateLooperUi();updateEventRecordUi();
+    updateKeyboardAvailability();updateLooperUi();updateEventRecordUi();
   },
   setStatus,
 });

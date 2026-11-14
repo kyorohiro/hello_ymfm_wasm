@@ -18,7 +18,7 @@ liveLoop("melody", async () => {
   else if (source === "wave") await gb.wave.noteOn(note); // CH3
   else await gb.pulse.noteOn(CH1, note);               // CH1
 
-  await sleep(0.12);
+  await beat(0.24);
   if (source === "noise") await gb.noise.keyOff();
   else if (source === "wave") await gb.wave.keyOff();
   else await gb.pulse.keyOff(CH1);
@@ -32,10 +32,15 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySett
   const project=createGameboyCodeProject({settings:getSettings(),getStarterCode:()=>GAMEBOY_STARTER_CODE});
   const audio=createGameboyCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
+  function openOutput(){
+    const state=runtime?.getState();
+    if(disposed||state?.running||state?.busy||state?.stopping)return false;
+    audio.open();return true;
+  }
   async function stop(){
     const request=++modeEpoch;
     if(controls)await controls.stop();else if(runtime)await runtime.stop();
-    if(!disposed&&request===modeEpoch&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+    if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
   files=setupGameboyCodeFiles({project,getSettings,applySettings,setStatus,
@@ -58,7 +63,7 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySett
       async stopSoundChips(){
         const token=epoch,owner=getAudio();await audio.stop();
         if(!getAudio())await stopKeyboard();
-        else if(!disposed&&token===epoch&&owner===getAudio()&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+        else if(!disposed&&token===epoch&&owner===getAudio()&&!runtime?.getState().running)audio.open();
       },
     });
     return runtime;
@@ -69,16 +74,14 @@ export function setupGameboyCodeHost({ensureAudio,getAudio,getSettings,applySett
     editorChip:'gameboy',transformDeclarations:selectGameboyCodeDeclarations,
     journalKey:'tetorica-dmg-synth-pending-code',getStarterCode:()=>GAMEBOY_STARTER_CODE,
     async onBeforeRun(){modeEpoch++;await stopSong();if(!runtime?.getState().running)await stopKeyboard();await beforeRun();},
-    async onModeChange(mode){
-      const request=++modeEpoch;
-      if(mode==='code'){if(!disposed&&request===modeEpoch&&!runtime?.getState().running)await stopKeyboard();}
-      else if(!disposed&&!runtime?.getState().running)audio.open();
+    async onModeChange(){
+      modeEpoch++;openOutput();
       onActivity();
     },setStatus,
   });
   return{project,files,controls,ready:controls.ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),
-    getState:()=>runtime?.getState()??{state:'idle',running:false},stop,markSoundDirty:()=>files.markSoundDirty(),
+    getState:()=>runtime?.getState()??{state:'idle',running:false},stop,openOutput,markSoundDirty:()=>files.markSoundDirty(),
     async dispose(){if(disposed)return;await stop();disposed=true;epoch++;controls.dispose();await files.dispose();await audio.dispose();},
   };
 }

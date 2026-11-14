@@ -302,6 +302,7 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
   for(const id of ['masterVolume','pitchBend','keyboardPitchBend'])doc.getElementById(id).value=id==='masterVolume'?'.7':'0';
   doc.getElementById('codeOutput').hidden=true;
+  doc.getElementById('spuFileContextMenu').hidden=true;
   const modes=['waveform','spectrum'].map(mode=>{const node=new Element(doc,'button');node.dataset.visualMode=mode;node.setAttribute('aria-pressed',String(mode==='waveform'));return node;});
   const channels=['0','1','2','round-robin'].map(value=>{const node=new Element(doc,'button');node.dataset.sidLiveVoice=value;return node;});
   const keyboardModes=['retrigger','legato'].map(value=>{const node=new Element(doc,'button');node.dataset.sidKeyboardMode=value;return node;});
@@ -353,7 +354,7 @@ function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
   const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,
-    setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,
+    setupSidCodeHost:hooks=>{code.hooks=hooks;code.activity=hooks.onActivity;return{ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,getState:()=>({busy:Boolean(code.busy),running:code.running}),
       async stop(){code.running=false;code.stops++;code.activity();await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}};},
     createSidCodeLive:hooks=>{codeLive.hooks=hooks;return codeLive;},
     createEditor:hooks=>{Object.assign(editorHooks,hooks);return{update(value){editorUpdates.push(readPreset(value));},observe(value,options){observations.push({value,active:options?.active,editable:options?.editable});},dispose(){}};},
@@ -383,14 +384,45 @@ test('Code Live selects only an observed physical channel and never adopts its r
   assert.deepEqual(readChannelSettings(f.ui.getSettings()),before);assert.equal(f.importer.panelHooks.onLiveChange(true),false);
 });
 
-test('Code mode keeps typing out of the keyboard allocator and background blur leaves its program running',async()=>{
+test('Code view accepts manual notes on the selected live channel and blur leaves its program running',async()=>{
   const f=appFixture();await f.ui.ensureAudio();f.code.mode=true;f.code.running=true;f.ui.updateKeys();
-  const before=f.calls.length;f.ui.press('code-typing',f.entries[0]);await flush();
-  assert.equal(f.ui.getNotes().length,0);assert.equal(f.calls.length,before);
+  f.codeLive.state.liveVoice=1;
+  const before=f.calls.length;f.ui.press('code-hand',f.entries[0]);await flush();await flush();
+  const note=f.ui.getNotes()[0];assert(note?.started);
+  assert.deepEqual(f.calls.find(call=>call[1]==='noteOn'),[1,'noteOn',note.id,60,1]);
+  assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
   assert.equal(f.doc.getElementById('pitchBend').disabled,true);assert.equal(f.doc.getElementById('keyboardPitchBend').disabled,true);
+  const cleanupStart=f.calls.length;
   await f.window.fire('blur');f.doc.hidden=true;await f.doc.fire('visibilitychange');await flush();
-  assert.equal(f.code.running,true);assert(f.calls.slice(before).every(call=>call[1]==='releaseKeyboard'),'focus cleanup only releases keyboard owners, never Code');
+  assert.equal(f.ui.getNotes().length,0);assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
+  assert(f.calls.slice(cleanupStart).every(call=>call[1]==='releaseKeyboard'),'focus cleanup only releases keyboard owners, never Code');
+  assert(f.calls.length>before);
   f.code.mode=false;f.code.running=false;f.ui.updateKeys();assert.equal(f.doc.getElementById('pitchBend').disabled,false);
+});
+
+test('Code-view performance keys protect editors and controls while key-up still releases a held hand note',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.code.mode=true;f.code.running=true;
+  const target=selector=>{const node={closest:query=>query.split(',').includes(selector)?node:null,matches:()=>false};return node;};
+  for(const selector of ['input','select','textarea','dialog[open]','.monaco-editor','#synthCodeEditorHost','[contenteditable]:not([contenteditable="false"])']) {
+    const e=await f.window.fire('keydown',{key:'a',code:'KeyA',target:target(selector)});await flush();
+    assert(!e.defaultPrevented,selector);assert.equal(f.ui.getNotes().length,0,selector);
+  }
+  for(const flag of ['ctrlKey','metaKey','altKey','defaultPrevented','isComposing']){
+    await f.window.fire('keydown',{key:'a',code:'KeyA',[flag]:true});await flush();assert.equal(f.ui.getNotes().length,0,flag);
+  }
+  f.code.busy=true;await f.window.fire('keydown',{key:'a',code:'KeyA'});await flush();assert.equal(f.ui.getNotes().length,0,'preparing/stopping Code owns the transition');f.code.busy=false;
+  f.doc.getElementById('spuFileContextMenu').hidden=false;
+  await f.window.fire('keydown',{key:'a',code:'KeyA'});await flush();assert.equal(f.ui.getNotes().length,0);
+  f.doc.getElementById('spuFileContextMenu').hidden=true;
+  const down=await f.window.fire('keydown',{key:'a',code:'KeyA'});await flush();await flush();assert(down.defaultPrevented);
+  const id=f.ui.getNotes()[0].id,calls=f.calls.length;
+  await f.window.fire('keydown',{key:'a',code:'KeyA',repeat:true});await flush();assert.equal(f.calls.length,calls,'auto-repeat does not retrigger');
+  await f.window.fire('keyup',{key:'a',code:'KeyA',target:target('textarea')});await flush();await flush();
+  assert.equal(f.ui.getNotes().length,0);assert(f.calls.some(call=>call[1]==='noteOff'&&call[2]===id));
+  assert.equal(f.code.running,true);assert.equal(f.code.stops,0);
+  f.code.running=false;
+  await f.window.fire('keydown',{key:'s',code:'KeyS'});await flush();await flush();assert.equal(f.ui.getNotes().length,1,'idle Code view also accepts performance');
+  await f.window.fire('keyup',{key:'s',code:'KeyS'});await flush();assert.equal(f.ui.getNotes().length,0);assert.equal(f.code.mode,true);
 });
 
 test('ordinary edits, sound loads and model changes preserve the running Code host',async()=>{

@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "15da4ac3e637dee152a52049904e6e63e8324bb5",
+  "localFeatureValidationPassed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "behavior": {
+    "musicalWaits": "Default and bundled Synth note lengths/rests use beat() so setBpm() controls rhythm. At 120 BPM, 0.1s becomes 0.2 beats and 0.12s becomes 0.24 beats.",
+    "independentMotion": "SID melody already used beats. Its intentionally independent modulation tween(2) and filter tween(4) remain seconds.",
+    "media": "CD-DA example repeats on beats; audio sample rates and loaded media playback speed remain fixed.",
+    "codeViewKeyboard": "FM2612, DMG, SID, SPU and HuC6280 accept musical computer keys in Code view outside editor/text/number/select/dialog contexts. Code tab retains performance focus; explicit editing retains editor focus.",
+    "lifecycle": "View changes keep manual notes and Code loops. Manual performance after Stop safely reopens idle output. Runtime busy/stopping, owner, epoch, disposed and topology fences remain effective.",
+    "shortcuts": "Run/Apply shortcuts work from tabs and normal/expanded Code; native button Space/Enter and protected text input retain their behavior.",
+    "savedUserFiles": "No automatic rewrite of saved index.js, cassette projects or saved examples. New defaults apply only when creating missing starter files."
+  },
+  "nodeCommand": [
+    "node",
+    "--test",
+    "--test-concurrency=3",
+    "docs/synth/synth_code_controls.test.mjs",
+    "docs/synth/synth_code_keyboard.test.mjs",
+    "docs/synth/synth_input.test.mjs",
+    "docs/synth/synth_code_output.test.mjs",
+    "docs/synth/synth_code_audio.test.mjs",
+    "docs/synth-dmg/synth_code_keyboard.test.mjs",
+    "docs/synth-dmg/code_keyboard.test.mjs",
+    "docs/synth-dmg/code_host.test.mjs",
+    "docs/synth-sid/editor.test.mjs",
+    "docs/synth-sid/instrument.test.mjs",
+    "docs/synth-spu/spu_synth_psf_controls.test.mjs",
+    "docs/synth-spu/code_audio.test.mjs",
+    "docs/synth-huc6280/synth_code_integration.test.mjs",
+    "docs/synth-huc6280/code_host.test.mjs",
+    "docs/synth-huc6280/cdrom2_examples.test.mjs",
+    "scripts/package_itch_synth.test.mjs",
+    "scripts/package_itch_dmg_synth.test.mjs",
+    "scripts/package_itch_spu_synth.test.mjs",
+    "scripts/package_itch_sid_synth.test.mjs",
+    "scripts/package_itch_huc6280_synth.test.mjs"
+  ],
+  "evidence": {
+    "schemaVersion": 1,
+    "passed": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "suites": 5,
+    "runs": 10,
+    "checkGroups": 90,
+    "results": [
+      {
+        "synth": "fm",
+        "passed": true,
+        "runs": 2,
+        "checkGroups": 6,
+        "receipt": {
+          "path": "build/synth-tempo-keyboard-20261114/fm-code-browser.json",
+          "bytes": 58451,
+          "sha256": "712390e1b9f90fb76c6a067d0fb8e09d96ffa1ddf0dd7c7182ab46c19a4522f0"
+        },
+        "log": {
+          "path": "build/synth-tempo-keyboard-20261114/fm-code-browser.log",
+          "bytes": 883,
+          "sha256": "ceaed6359ead5e40aefb5a644ed7dcd1660916f393dfd44c370ed733ed3fb468"
+        },
+        "browsers": [
+          "chromium",
+          "webkit"
+        ],
+        "instrumentChips": [
+          [
+            "fm",
+            "psg",
+            "pcm"
+          ],
+          [
+            "fm",
+            "psg",
+            "pcm"
+          ]
+        ]
+      },
+      {
+        "synth": "dmg",
+        "passed": true,
+        "runs": 2,
+        "checkGroups": 24,
+        "receipt": {
+          "path": "build/synth-tempo-keyboard-20261114/dmg-code-browser.json",
+          "bytes": 20529,
+          "sha256": "dae38152dc2d5d137f2b0c5082ccbb6008658ab94526dd9a207817c2d5f1b07a"
+        },
+        "log": {
+          "path": "build/synth-tempo-keyboard-20261114/dmg-code-browser.log",
+          "bytes": 2658,
+          "sha256": "c22298707b3a916df0180cd4379a7d5b7167928e7439e2a4a9ea5810d085510d"
+        },
+        "browsers": [
+          "chromium",
+          "webkit"
+        ]
+      },
+      {
+        "synth": "sid",
+        "passed": true,
+        "runs": 2,
+        "checkGroups": 14,
+        "receipt": {
+          "path": "build/synth-tempo-keyboard-20261114/sid-code-browser.json",
+          "bytes": 19960,
+          "sha256": "68011faef91558594334b549132408b8dd2f09c0504bf133967ce78846a2f7f9"
+        },
+        "log": {
+          "path": "build/synth-tempo-keyboard-20261114/sid-code-browser.log",
+          "bytes": 1682,
+          "sha256": "d9e619d87d7153646337c804fbb8b3cff6296e0b862a070062eea0240074ca0a"
+        },
+        "browsers": [
+          "chromium",
+          "webkit"
+        ]
+      },
+      {
+        "synth": "spu",
+        "passed": true,
+        "runs": 2,
+        "checkGroups": 24,
+        "receipt": {
+          "path": "build/synth-tempo-keyboard-20261114/spu-code-browser-final.json",
+          "bytes": 21997,
+          "sha256": "6aa906974dc42db76109fa3866ec02c6ef8fb5716f1f8cb255c42167617f18de"
+        },
+        "log": {
+          "path": "build/synth-tempo-keyboard-20261114/spu-code-browser-final.log",
+          "bytes": 2619,
+          "sha256": "4b7a1c77c1c24b8afd4e94b51cb4796cc7764fb6896e15510f4da4090b6e309d"
+        },
+        "browsers": [
+          "chromium",
+          "webkit"
+        ]
+      },
+      {
+        "synth": "huc",
+        "passed": true,
+        "runs": 2,
+        "checkGroups": 22,
+        "receipt": {
+          "path": "build/synth-tempo-keyboard-20261114/huc-code-browser.json",
+          "bytes": 25006,
+          "sha256": "30667fe2d9fe78c5ed24d5c375ff41af36afc29f73471286450480a2c9f2b2ae"
+        },
+        "log": {
+          "path": "build/synth-tempo-keyboard-20261114/huc-code-browser.log",
+          "bytes": 2599,
+          "sha256": "d0da1ebfd6d5a4b1011304f3de34a8288220104be52b3bd8eb083c93c00aa22a"
+        },
+        "browsers": [
+          "chromium",
+          "webkit"
+        ]
+      }
+    ],
+    "node": {
+      "tests": 270,
+      "pass": 270,
+      "fail": 0,
+      "skip": 0,
+      "log": {
+        "path": "build/synth-tempo-keyboard-20261114/node-final2.log",
+        "bytes": 29985,
+        "sha256": "abfaf9de78dd3f0ea83922e3c05b1869e09b46da1a55968bcf7f65a936e3ee2a"
+      }
+    },
+    "packageProvenance": {
+      "path": "build/synth-tempo-keyboard-20261114/package-provenance.json",
+      "bytes": 1473,
+      "sha256": "80d593ed73846f0ec2fa4483c4bad09b49113ccf2cd4c33fa5fbc2218c1cb638"
+    },
+    "packages": [
+      {
+        "synth": "fm",
+        "archive": "release/hello_ymfm_wasm_tempo-keys-20261114_itch_synth.zip",
+        "root": "build/synth-tempo-keyboard-20261114/fm-zip",
+        "entry": "/index.html",
+        "bytes": 1127753,
+        "sha256": "bb92f2ec007ee454ef705851b241d6dee3297de8ac52d00f2c95b61e736ba55d"
+      },
+      {
+        "synth": "dmg",
+        "archive": "release/tetorica_dmg_synth_tempo-keys-20261114_itch.zip",
+        "root": "build/synth-tempo-keyboard-20261114/dmg-zip",
+        "entry": "/index.html",
+        "bytes": 1888500,
+        "sha256": "ae52a6be63f03e611db9125f36509fff78fe0f70ad7a28b58d9fd04ef759820c"
+      },
+      {
+        "synth": "sid",
+        "archive": "release/tetorica_sid_synth_tempo-keys-20261114_itch.zip",
+        "root": "build/synth-tempo-keyboard-20261114/sid-zip",
+        "entry": "/index.html",
+        "bytes": 3510838,
+        "sha256": "84417ee227ce600e583a99ff9adfffb0e0462ab80560e1c9c25e70828568013b"
+      },
+      {
+        "synth": "spu",
+        "archive": "release/tetorica_spu_synth_tempo-keys-20261114_itch.zip",
+        "root": "build/synth-tempo-keyboard-20261114/spu-zip",
+        "entry": "/index.html",
+        "bytes": 7146321,
+        "sha256": "1007a2d764de2d81afe25e2aa6b055775fbe879f71c685da62196038a6006646"
+      },
+      {
+        "synth": "huc",
+        "archive": "release/tetorica_huc6280_synth_tempo-keys-20261114_itch.zip",
+        "root": "build/synth-tempo-keyboard-20261114/huc-zip",
+        "entry": "/index.html",
+        "bytes": 2063919,
+        "sha256": "8ae0abe215b89fcc614ff5221f1c561b922d67a122f7efb251f89c03a7ed87d8"
+      }
+    ],
+    "sourceFiles": [
+      {
+        "path": "docs/synth-dmg/code_host.js",
+        "bytes": 4830,
+        "sha256": "5250aa6352d9c0e111e2c8e02c5b4d5ebf0e4319ab1bb7b45e7325ba81c93ed2"
+      },
+      {
+        "path": "docs/synth-dmg/synth.js",
+        "bytes": 42281,
+        "sha256": "a0b72fd19b67e7325ec3da72c6b042c92319176bb483750b16ab89183fd72149"
+      },
+      {
+        "path": "docs/synth-dmg/synth_code_keyboard.test.mjs",
+        "bytes": 6907,
+        "sha256": "5ec9d67bbfc799ce7966beb82c2f5c08151275357f1d9e22469f4c40c726c9d6"
+      },
+      {
+        "path": "docs/synth-huc6280/cdrom2_examples.js",
+        "bytes": 3383,
+        "sha256": "132f80711d66e5e622388b0fa72817cd4baaceff36023917ff5269706b44f9d3"
+      },
+      {
+        "path": "docs/synth-huc6280/code_host.js",
+        "bytes": 5467,
+        "sha256": "9b13bf4e69cba9c94872537dfa4be7c067771c40e02ab1fb06606ab61919ddb9"
+      },
+      {
+        "path": "docs/synth-huc6280/synth.js",
+        "bytes": 51769,
+        "sha256": "498aa9e6e44a79c53d780e6ded546f1a9d2dfdc81a383081b61356769ee630f6"
+      },
+      {
+        "path": "docs/synth-huc6280/synth_code_integration.test.mjs",
+        "bytes": 33587,
+        "sha256": "114dbccccc769a41263b2444c34829d289b05a61831cddc449df735efc948bc2"
+      },
+      {
+        "path": "docs/synth-sid/code_host.js",
+        "bytes": 6051,
+        "sha256": "9062821d7bc7cb824f92c1c421f7679257b6c332cf531855eca4a73162c84b93"
+      },
+      {
+        "path": "docs/synth-sid/editor.test.mjs",
+        "bytes": 84471,
+        "sha256": "9f4fb8ce6afa0faadede2aa2dbdfa683bc7cda31263952a80b7d6f899a0c0412"
+      },
+      {
+        "path": "docs/synth-sid/synth.js",
+        "bytes": 41800,
+        "sha256": "9080938ff667f91e32db856a0b74c3a978c190cdfc0b7cba2ff80d0ac40d0e22"
+      },
+      {
+        "path": "docs/synth-spu/code_host.js",
+        "bytes": 4572,
+        "sha256": "b6e75de972e6f1f15e10d59a1599e630a3d6ee47317e1a7499d6aef6879f2eea"
+      },
+      {
+        "path": "docs/synth-spu/spu_synth_psf_controls.test.mjs",
+        "bytes": 12345,
+        "sha256": "4135943b04dc203e6db4f7967afd728c18ac70272264b5424bf66370ed8ed54f"
+      },
+      {
+        "path": "docs/synth-spu/synth.js",
+        "bytes": 84822,
+        "sha256": "8f01454e468f2a04310241c03a1b4b534496293a8cbe15944e51be1e3580c5bc"
+      },
+      {
+        "path": "docs/synth/synth.js",
+        "bytes": 150646,
+        "sha256": "1b7d9c389fa3ebdbaf495a011b0b5f0cf9344e1030f03a47316d7bd00bcff282"
+      },
+      {
+        "path": "docs/synth/synth_code_controls.js",
+        "bytes": 21834,
+        "sha256": "fd41d97ef9df946fe124b15bf08b2c309e07d704fd26b2a6c518508d4d0817a2"
+      },
+      {
+        "path": "docs/synth/synth_code_controls.test.mjs",
+        "bytes": 41609,
+        "sha256": "d5e5436c9256432e53d44ee58fa8d0163752ba1e04351c526ce0bfa97c8468ad"
+      },
+      {
+        "path": "docs/synth/synth_code_keyboard.test.mjs",
+        "bytes": 14075,
+        "sha256": "b79e0c0610cc1f3a58139ce12738cf9f3d701667e4aa64ca76d113f42b2adc3a"
+      },
+      {
+        "path": "docs/synth/synth_input.js",
+        "bytes": 7686,
+        "sha256": "cb945161576173e600d32d199dd2e70dc0ecbd70178c9a71530431528ba16dd0"
+      },
+      {
+        "path": "docs/synth/synth_input.test.mjs",
+        "bytes": 9880,
+        "sha256": "3fa9c3f2bee445bbddb456981b138eda76b3575c67a6defdd0ad76bca62c3beb"
+      },
+      {
+        "path": "scripts/check_dmg_synth_code_browser.cjs",
+        "bytes": 39859,
+        "sha256": "193fd28a85d5b5d3256b40b74084f5e7974ad3a57a70d96ef413e481ac70a285"
+      },
+      {
+        "path": "scripts/check_huc6280_synth_code_browser.cjs",
+        "bytes": 39884,
+        "sha256": "047204b2c122e0118ee300e6107816c0dffd7418f64ad4d388b50dec99c7ad10"
+      },
+      {
+        "path": "scripts/check_sid_synth_code_browser.cjs",
+        "bytes": 41546,
+        "sha256": "97b69c06a1cb64d42231de0d3a9eb18e6adb3acc9b0cbe18bec45fa7a345e9e6"
+      },
+      {
+        "path": "scripts/check_spu_synth_code_browser.cjs",
+        "bytes": 45708,
+        "sha256": "33ce9248ade0cda65cafa54bfc3ed0f6f4e146daba56218aa7062729044f2340"
+      },
+      {
+        "path": "scripts/check_synth_code_browser.cjs",
+        "bytes": 68600,
+        "sha256": "d1f1ac7434ecaf5d8fad08de86e797d394e3d04165e05f5e7c68eaaf5a008de3"
+      }
+    ],
+    "preservedPrecheckFailure": {
+      "receipt": {
+        "path": "build/synth-tempo-keyboard-20261114/spu-code-browser.json",
+        "bytes": 184062,
+        "sha256": "7fa3b0a275a5e483b65115cc4d90df7ad78cc7e1b230bede3959fc0a67b66074"
+      },
+      "log": {
+        "path": "build/synth-tempo-keyboard-20261114/spu-code-browser.log",
+        "bytes": 1260,
+        "sha256": "abcce7d0c20865fe0c0f8e30a014e1de3c46c024930d4bab97dd83076630ace2"
+      },
+      "cause": "The new idle-keyboard scenario changed the authored SPU pitch before Code Run, but the original full baseline had been captured before that normal hand-note change. The checker now performs the idle scenario before taking baseline/initialState, preserving full preset equality assertions.",
+      "productChangedForThisFailure": false,
+      "packageRebuiltForThisFailure": false
+    },
+    "cleanup": {
+      "runnerSession": 13014,
+      "hucSession": 67489,
+      "spuFinalSession": 32084,
+      "allCompleted": true,
+      "browsersAndServersClosed": "Every completed checker exits after its browser/server finally cleanup. The first multi-suite runner stopped at the preserved SPU precheck failure; HuC and corrected SPU then ran once individually."
+    },
+    "commitOrPushPerformed": false
+  },
+  "summaryArtifact": {
+    "path": "build/synth-tempo-keyboard-20261114/browser-summary.json",
+    "bytes": 10641,
+    "sha256": "d4125b4161ce1aea6987b4512997febc30eaafd144390ef5715b54b8154e8f45"
+  },
+  "documentation": [
+    {
+      "path": "docs/synth/CODE.md",
+      "bytes": 18391,
+      "sha256": "a22ce167938d8ac0c0b129949267f43b7b336d9d8be010478e5291e85692ca39"
+    },
+    {
+      "path": "docs/synth-dmg/README.md",
+      "bytes": 26447,
+      "sha256": "4e1f22838b22cd124a5a01b8ca1d39d22d6d2c183e658535aea42e1b45f17dcc"
+    },
+    {
+      "path": "docs/synth-huc6280/README.md",
+      "bytes": 59779,
+      "sha256": "5b233837e67ff7f69a08ad80a04bb85ca5d746866a7612cc672e519d32c20c9e"
+    },
+    {
+      "path": "docs/synth-sid/README.md",
+      "bytes": 28169,
+      "sha256": "db917f87325f02370ba0285cc560a7933a115f1bdef68609f3b48cc0f30880a5"
+    },
+    {
+      "path": "docs/synth-spu/README.md",
+      "bytes": 41445,
+      "sha256": "adb412d7f3ce7b9061e219b5fc0e9d216359eb822d3f0d28ec6c7b4109cfc9b1"
+    }
+  ],
+  "limits": [
+    "Browser checks ran on local macOS Chromium/WebKit using packaged standalone ZIPs. FM ran its keyboard-focused checker selection.",
+    "Browser editor checks use the textarea fallback and protected editor containers; actual downloaded Monaco engine was not exercised.",
+    "No listening, long-duration, remote Actions or Tauri validation was performed for this task.",
+    "No commit, push, tag, release or npm publication was performed."
+  ]
+}

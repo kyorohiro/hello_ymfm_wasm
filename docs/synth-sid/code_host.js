@@ -80,13 +80,17 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
   const project=createSidCodeProject({settings:getSettings(),getStarterCode:()=>SID_STARTER_CODE});
   const audio=createSidCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
+  function openOutput(){
+    const state=runtime?.getState();
+    if(disposed||state?.running||state?.busy||state?.stopping)return false;
+    audio.open();return true;
+  }
   async function stop() {
     const request=++modeEpoch;
     if(controls)await controls.stop();else if(runtime)await runtime.stop();
-    // A global/desktop Stop can also retire a previous Code session while
-    // Keyboard is already selected. Reopen only that idle keyboard route;
-    // a newer Run or mode request owns its own output gate.
-    if(!disposed&&request===modeEpoch&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+    // A newer Run or mode request owns its own output gate. Idle manual
+    // performance is available in either view after cleanup has completed.
+    if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
   files=setupSidCodeFiles({project,getSettings,applySettings,setStatus,
@@ -113,9 +117,9 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
         // Retire a gesture-created engine which has not yet been adopted.
         // This runs after the output fade for any existing performance.
         if(!getAudio())await stopKeyboard();
-        // The common Stop is also reachable in Keyboard view. Its Code fade
-        // must not leave the restored, silent author route closed to new keys.
-        if(!disposed&&token===epoch&&getAudio()===engine&&!controls?.isCodeMode())audio.open();
+        // The Code fade must not leave the restored author route closed to
+        // new manual keys, whichever input view is selected.
+        if(!disposed&&token===epoch&&getAudio()===engine&&!runtime?.getState().running)audio.open();
       },
     });
     return runtime;
@@ -129,18 +133,15 @@ export function setupSidCodeHost({ensureAudio,getAudio,getSettings,applySettings
       if(!runtime?.getState().running)await stopKeyboard();
       await beforeRun();
     },
-    async onModeChange(mode){
-      const request=++modeEpoch;
-      if(mode==='code'){
-        if(!disposed&&request===modeEpoch&&!runtime?.getState().running)await stopKeyboard();
-      }else if(!disposed&&!runtime?.getState().running)audio.open();
+    async onModeChange(){
+      modeEpoch++;openOutput();
       onActivity();
     },setStatus,
   });
   return {project,files,controls,ready:controls.ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),
     getState:()=>runtime?.getState()??{state:'idle',running:false},
-    stop,markSoundDirty:()=>files.markSoundDirty(),
+    stop,openOutput,markSoundDirty:()=>files.markSoundDirty(),
     async dispose(){if(disposed)return;await stop();disposed=true;epoch++;controls.dispose();await files.dispose();await audio.dispose();},
   };
 }

@@ -92,7 +92,7 @@ function keyEvent(key, target) {
 
 test('typing in editable controls, open dialogs and the file menu does not play or intercept editing keys', async t => {
   const ui = inputFixture(t);
-  for (const surface of ['input', 'textarea', 'select', '[contenteditable="true"]', 'dialog[open]', '#synthFileContextMenu']) {
+  for (const surface of ['input', 'textarea', 'select', '[contenteditable="true"]', '[contenteditable]', 'dialog[open]', '#synthFileContextMenu', '.monaco-editor', '#synthCodeEditorHost']) {
     for (const key of ['a', ' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
       const down = keyEvent(key, targetWithin(surface));
       const up = keyEvent(key, targetWithin(surface));
@@ -110,6 +110,15 @@ test('typing in editable controls, open dialogs and the file menu does not play 
   assert.equal(ui.recordingToggles, 0);
   assert.equal(ui.heldKeys.size, 0);
   assert.equal(ui.activeKeys.size, 0);
+});
+
+test('composing text and already-handled keys do not start a performance',async t=>{
+  const ui=inputFixture(t);
+  for(const flag of ['isComposing','defaultPrevented','metaKey','ctrlKey','altKey']){
+    const event={...keyEvent('a',targetWithin('button')),[flag]:true};
+    ui.handlers.get('keydown')(event);
+  }
+  await Promise.resolve();assert.deepEqual(ui.notes,[]);assert.equal(ui.heldKeys.size,0);assert.equal(ui.activeKeys.size,0);
 });
 
 test('keyup in a name input releases an already held note without preventing text input', async t => {
@@ -131,6 +140,18 @@ test('keyup in a name input releases an already held note without preventing tex
   assert.equal(ui.activeKeys.size, 0);
   ui.handlers.get('keyup')(keyEvent('a', targetWithin('input')));
   assert.deepEqual(ui.releases, [0], 'an unrelated subsequent keyup does not release the channel again');
+});
+
+test('an already handled keydown stays with its editor or control while a handled keyup still releases a hand note',async t=>{
+  const ui=inputFixture(t),target=targetWithin('body');
+  for(const key of ['a',' ','ArrowLeft','ArrowUp']){
+    const event=keyEvent(key,target);event.defaultPrevented=true;ui.handlers.get('keydown')(event);
+    assert.equal(event.prevented,0,'the application does not intercept an already handled key');
+  }
+  await Promise.resolve();assert.deepEqual(ui.notes,[]);assert.deepEqual(ui.frets,[]);assert.deepEqual(ui.strings,[]);assert.equal(ui.recordingToggles,0);
+  ui.handlers.get('keydown')(keyEvent('a',target));await Promise.resolve();assert.equal(ui.notes.length,1);
+  const up=keyEvent('a',targetWithin('.monaco-editor'));up.defaultPrevented=true;ui.handlers.get('keyup')(up);
+  assert.deepEqual(ui.releases,[0]);assert.equal(up.prevented,0);assert.equal(ui.activeKeys.size,0);
 });
 
 test('releasing a key in a dialog while audio is preparing prevents a delayed note', async t => {

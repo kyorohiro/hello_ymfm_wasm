@@ -18,7 +18,7 @@ liveLoop("melody", async () => {
   const channel = state.pmon.enabled ? CH2 : CH1;
   const notes = scale("E3", "minorPentatonic", 2);
   await ps1.noteOn(channel, choose(notes));
-  await sleep(0.12);
+  await beat(0.24);
   await ps1.noteOff(channel);
   await beat(0.5);
 });
@@ -30,10 +30,15 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
   const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE});
   const audio=createSpuCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
+  function openOutput(){
+    const state=runtime?.getState();
+    if(disposed||state?.running||state?.busy||state?.stopping)return false;
+    audio.open();return true;
+  }
   async function stop(){
     const request=++modeEpoch;
     if(controls)await controls.stop();else if(runtime)await runtime.stop();
-    if(!disposed&&request===modeEpoch&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+    if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
   files=setupSpuCodeFiles({project,getInstrument,applyInstrument,applyVabTone,setStatus,
@@ -56,7 +61,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
       async stopSoundChips(){
         const token=epoch,request=modeEpoch,owner=getAudio();await audio.stop();
         if(!getAudio())await stopKeyboard();
-        else if(!disposed&&token===epoch&&request===modeEpoch&&owner===getAudio()&&!controls?.isCodeMode())audio.open();
+        else if(!disposed&&token===epoch&&request===modeEpoch&&owner===getAudio()&&!runtime?.getState().running)audio.open();
       },
     });
     return runtime;
@@ -69,18 +74,15 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     async onBeforeRun(){
       modeEpoch++;if(!runtime?.getState().running)await stopKeyboard();await beforeRun();
     },
-    async onModeChange(mode){
-      const request=++modeEpoch;
-      if(mode==='code'){
-        if(!disposed&&request===modeEpoch&&!runtime?.getState().running)await stopKeyboard();
-      }else if(!disposed&&!runtime?.getState().running)audio.open();
+    async onModeChange(){
+      modeEpoch++;openOutput();
       onActivity();
     },setStatus,
   });
   return{project,files,controls,ready:controls.ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),
     getState:()=>runtime?.getState()??{state:'idle',running:false},
-    stop,markSoundDirty:()=>files.markSoundDirty(),
+    stop,openOutput,markSoundDirty:()=>files.markSoundDirty(),
     async dispose(){if(disposed)return;await stop();disposed=true;epoch++;controls.dispose();await files.dispose();await audio.dispose();},
   };
 }

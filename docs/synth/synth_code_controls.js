@@ -13,7 +13,7 @@ setBpm(120);
 liveLoop("melody", async () => {
   const notes = scale("E1", "minorPentatonic", 3);
   fm.noteOn(CH1, choose(notes));
-  await sleep(0.1);
+  await beat(0.2);
   fm.noteOff(CH1);
   await beat(0.025);
 });
@@ -201,7 +201,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     }finally{if(opening===request){opening=null;if(!disposed)update();}}
   }
   const openFile=(path,options)=>openPath(path,options);
-  async function ensureFile(isCurrent=()=>true) {
+  async function ensureFile(isCurrent=()=>true,{show=true}={}) {
     const request=workspaceOperation;
     await files?.ready;
     if(disposed||request!==workspaceOperation||!isCurrent())return null;
@@ -211,7 +211,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
       const source=getStarterCode();if(typeof source!=='string')throw TypeError('Starter code must be text.');
       validateSource(path,source);writeText(path,source);
     }
-    return await openPath(path,undefined,true)?path:null;
+    return await openPath(path,{show},true)?path:null;
   }
   async function obtainRuntime() {
     if(runtime)return runtime;
@@ -243,10 +243,11 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(epoch===operation&&!disposed){if(stopped){executionPath=null;setStatus('Code stopped.');}update();}
     return stopped&&epoch===operation&&!disposed;
   }
-  async function setMode(next) {
+  async function setMode(next,{focusEditor=true}={}) {
+    if(typeof focusEditor!=='boolean')throw TypeError('Editor focus must be boolean.');
     if(disposed)return false;
     const request=++workspaceOperation;
-    if(next==='code'){if(!await ensureFile())return false;showMode('code');adapter.focus();void loadMonaco();}
+    if(next==='code'){if(!await ensureFile(undefined,{show:false}))return false;showMode('code');if(focusEditor)adapter.focus();void loadMonaco();}
     else {
       await flush();if(disposed||request!==workspaceOperation)return false;
       if(!keepRunningOnKeyboard&&(!await stop()||disposed||request!==workspaceOperation))return false;
@@ -305,24 +306,37 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     updateRuntimeState(value){controls.setRuntimeState(value);},
     dispose(){if(disposed)return;void flush().catch(()=>{});void stop();showExpanded(false);homeAnchor.remove();disposed=true;operation++;workspaceOperation++;for(const unlisten of listeners)unlisten();unwatch();monacoEditor?.dispose();},
   };
-  listen(keyboardTab,'click',()=>void setMode('keyboard').catch(report));
-  listen(codeTab,'click',()=>void setMode('code').catch(report));
+  listen(keyboardTab,'click',()=>{keyboardTab.focus();void setMode('keyboard').catch(report);});
+  // Switching views keeps performance focus on the tab. Clicking an actual
+  // file or expanding Code still focuses the editor for deliberate typing.
+  listen(codeTab,'click',()=>{codeTab.focus();void setMode('code',{focusEditor:false}).catch(report);});
   listen(expandButton,'pointerdown',event=>event.preventDefault());
   listen(expandButton,'click',()=>void setExpanded(!expanded).catch(report));
   for(const tab of [keyboardTab,codeTab])listen(tab,'keydown',event=>{
+    if(event.key===' '||event.key==='Enter'){event.stopPropagation();return;}
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
     event.preventDefault();event.stopPropagation();
     const next=event.key==='Home'?'keyboard':event.key==='End'?'code':mode==='code'?'keyboard':'code';
-    void setMode(next).then(()=>byId(next==='code'?'synthInputCodeTab':'synthInputKeyboardTab').focus()).catch(report);
+    void setMode(next,{focusEditor:false}).then(()=>byId(next==='code'?'synthInputCodeTab':'synthInputKeyboardTab').focus()).catch(report);
   });
-  listen(runButton,'click',()=>void execute(false));listen(applyButton,'click',()=>void execute(true));listen(stopButton,'click',()=>void stop());
+  // Safari does not consistently focus a clicked button. An explicit toolbar
+  // click leaves typing focus; editor execution shortcuts keep it for editing.
+  listen(runButton,'click',()=>{runButton.focus();void execute(false);});
+  listen(applyButton,'click',()=>{applyButton.focus();void execute(true);});
+  listen(stopButton,'click',()=>{stopButton.focus();void stop();});
   listen(textarea,'input',changeSource);
-  listen(codePanel,'keydown',event=>{
-    if((event.ctrlKey||event.metaKey)&&!event.altKey&&(event.key==='Enter'||event.code==='Enter')) {
+  const executionShortcut=event=>{
+    if(mode==='code'&&(event.ctrlKey||event.metaKey)&&!event.altKey&&(event.key==='Enter'||event.code==='Enter')) {
       event.preventDefault();event.stopImmediatePropagation();void execute(event.shiftKey);
     }
-  },true);
-  listen(codePanel,'keydown',event=>event.stopPropagation());
+  };
+  listen(section,'keydown',executionShortcut,true);
+  // Expanded Code is moved beside Files, outside the input section.
+  listen(codePanel,'keydown',executionShortcut,true);
+  listen(codePanel,'keydown',event=>{
+    if(event.target?.closest?.('input,textarea,select,[contenteditable],dialog[open],.monaco-editor,#synthCodeEditorHost')||
+      [' ','Enter'].includes(event.key)&&event.target?.closest?.('button,a,summary,[role="button"]'))event.stopPropagation();
+  });
   const unwatch=project.onDidChange(()=>{adapter.syncVirtualFiles?.(project.fs.list().filter(file=>!file.path.startsWith('/.tet.ss/')));});
   files?.setCodeControls?.(controls);update();
   controls.ready=Promise.resolve(files?.ready).then(async()=>{

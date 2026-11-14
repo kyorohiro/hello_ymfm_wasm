@@ -66,13 +66,17 @@ setBpm(120);
 liveLoop("melody", async () => {
   const notes = scale("E3", "minorPentatonic", 2);
   await sid.noteOn(CH1, choose(notes));
-  await sleep(0.12);
+  await beat(0.24);
   await sid.noteOff(CH1);
   await beat(0.5);
 });
 ```
 
 **Run** starts a fresh context; **Apply** keeps `context` and named preparations.
+Use `beat()` for note lengths and rests to make the melody follow `setBpm()`.
+The starter's separate modulation and filter `tween()` loops use seconds, so
+their motion stays independent of the melody tempo.
+
 **Stop** cancels pending work, fades the output and restores the current authored
 channel setup. Keyboard / Code changes the input view while the same loops,
 context and FX continue. The shared Run / Apply / Stop row stays visible above
@@ -82,6 +86,12 @@ after the chip in host software. There is no implicit `play()` or independent
 chip factory here; acquire the SID through `useSoundChip("sid")` and await its
 acknowledged controls. Existing **Copy JavaScript** still targets the full C64
 Playground separately. Maximize Code places the same editor beside Files.
+
+Choosing Code keeps focus on the tab, so computer-key performance remains
+available outside the editor and after Stop. Click inside the editor to type;
+text/number inputs, selects and dialogs keep their keys. Musical waits use
+`beat()` and follow `setBpm()`; the default modulation's `tween()` periods
+deliberately remain in seconds. Existing saved scripts are kept.
 
 Selecting a sound JSON in **Files**, loading a preset or changing its voice
 settings keeps the current Run, loops, `context`, preparations and software FX.

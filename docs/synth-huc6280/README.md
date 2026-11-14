@@ -150,7 +150,13 @@ while retaining `context`, named loops and `livePrepare` values. Run starts a
 fresh performance. Switching back to **Keyboard** keeps Code running, so you can
 play keys, edit controls or load another sound during the loop.
 
+The starter and bundled melody examples use `beat()` for note lengths and rests,
+so changing `setBpm()` changes the whole rhythm. The CD-DA example also repeats
+on beats; tempo changes its restart interval while the track plays at 44.1 kHz.
+
 Switching **Keyboard / Code** keeps the loop, context and chip session running.
+Choosing the Code tab keeps performance focus on the tab, so keys can play
+immediately; click the editor to type. Stop leaves the same view playable.
 In Code view, typing in the editor edits text. Click a knob or the page background
 to play keys without leaving Code; text fields, selectors and dialogs keep their
 normal keyboard input. A later Code note can take over the same channel without

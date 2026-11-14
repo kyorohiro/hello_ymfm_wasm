@@ -101,6 +101,24 @@ async function execute(page,apply=false){await page.locator(apply?'#synthCodeApp
 },apply?'Apply completes':'Run completes');}
 async function stopped(page){await until(()=>page.locator('#synthCodeState').textContent().then(value=>/Stopped|Idle/.test(value)),'Code stopped');await silent(page);}
 async function stop(page){await page.locator('#synthCodeStopButton').click();await stopped(page);}
+async function typingGuards(page,key){
+  const editor=page.locator('#synthCodeEditor'),saved=await editor.inputValue();
+  await page.evaluate(()=>{const root=document.createElement('div');root.id='sidCodeFocusChecks';root.innerHTML='<input type="number" aria-label="Code keyboard numeric input"><select aria-label="Code keyboard select"><option>Choice</option></select><div class="monaco-editor"><div tabindex="0" data-code-focus="monaco">Monaco focus boundary</div></div><dialog><button type="button">Dialog focus boundary</button></dialog>';document.querySelector('#synthCodePanel').append(root);});
+  try{
+    for(const selector of ['#synthCodeEditor','#sidCodeFocusChecks input','#sidCodeFocusChecks select','#sidCodeFocusChecks [data-code-focus="monaco"]']){
+      await page.locator(selector).focus();await page.keyboard.down(key);
+      try{await silent(page);assert.equal((await snapshot(page)).voices.length,0,selector+' keeps typing outside the keyboard allocator');}
+      finally{await page.keyboard.up(key);}
+    }
+    await page.locator('#sidCodeFocusChecks dialog').evaluate(dialog=>dialog.showModal());
+    await page.locator('#sidCodeFocusChecks dialog button').focus();await page.keyboard.down(key);
+    try{await silent(page);assert.equal((await snapshot(page)).voices.length,0,'an open dialog protects musical keys');}
+    finally{await page.keyboard.up(key);}
+  }finally{
+    await page.evaluate(()=>{document.querySelector('#sidCodeFocusChecks dialog')?.close();document.querySelector('#sidCodeFocusChecks')?.remove();});
+    await editor.fill(saved);await page.evaluate(()=>document.activeElement?.blur?.());
+  }
+}
 async function range(page,id,value){await page.locator('#'+id).evaluate((input,next)=>{input.value=String(next);input.dispatchEvent(new Event('input',{bubbles:true}));},value);}
 async function files(page){if(await page.locator('#sidFilesPanel').isHidden())await page.locator('#sidFilesToggle').click();await until(()=>page.locator('#sidFileImportButton').isEnabled(),'Files ready');}
 async function selectFile(page,filename){
@@ -272,6 +290,15 @@ async function checkKeyboard(browser,name,origin){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name} keyboard: ${label}`);};
   try{
     await page.goto(origin+config.entry);assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,0);
+    step('Code tab keeps musical focus and plays before Run, including a note held across the view change');
+    await page.locator('#startAudio').click();await stateIs(page,value=>Boolean(value.channelSettings),'idle SID ready');
+    const idleKey=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(idleKey);
+    await page.keyboard.down(idleKey);await sounding(page);const idleHeld=(await snapshot(page)).voices[0].id;
+    await page.locator('#synthInputCodeTab').click();
+    assert(await page.evaluate(()=>!document.activeElement?.closest('#synthCodeEditorHost,textarea,.monaco-editor,[contenteditable="true"]')),'tab selection does not focus the editor');
+    assert.equal((await snapshot(page)).voices[0].id,idleHeld);await sounding(page);await page.keyboard.up(idleKey);await silent(page);
+    await page.keyboard.down(idleKey);await sounding(page);await page.keyboard.up(idleKey);await silent(page);
+    assert.equal(await page.evaluate(()=>__sidCodeAudit.observe()),null,'Code view alone does not begin a Code session');
     step('melody, context and FX keep running across Keyboard / Code views');
     await source(page,`const sid=await useSoundChip('sid');context.tick??=0;context.motion??=0;context.marker??={id:'same'};
 globalThis.__sidTogether={sid,context};
@@ -304,13 +331,20 @@ liveLoop('motion',async()=>{context.motion++;await sid.setFilter({cutoff:200+con
     step('Code parameter updates coexist with Keyboard and both stale Note Off directions are protected');
     await page.evaluate(()=>{__sidTogether.context.hold=true;});await wait(250);
     const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
+    await page.locator('#synthInputCodeTab').click();await silent(page);
+    await typingGuards(page,key);assert.match(await page.locator('#synthCodeState').textContent(),/Playing/);
+    const liveContexts=(await page.evaluate(()=>__sidCodeAudit.graph())).contexts,liveMotion=await page.evaluate(()=>__sidTogether.context.motion);
+    await page.locator('#synthTitle').click();
     await page.keyboard.down(key);let played=await stateIs(page,value=>value.voices.some(voice=>voice.channel===1)&&gate(value,1),'Keyboard targets Live CH2');
+    await sounding(page);assert.equal((await page.evaluate(()=>__sidCodeAudit.graph())).contexts,liveContexts);
+    assert(await page.evaluate(previous=>__sidTogether.context.motion>previous,liveMotion),'parameter Code continues during a Code-view hand note');
     const keyboardFrequency=frequency(played,1);
     await page.evaluate(async()=>{await __sidTogether.sid.setVoice(1,{pulseWidth:1700});await __sidTogether.sid.noteOff(1);});
     played=await snapshot(page);assert(gate(played,1));assert.equal(frequency(played,1),keyboardFrequency);assert.equal(played.registers[9]|(played.registers[10]&15)<<8,1700);
     await page.evaluate(()=>__sidTogether.sid.noteOn(1,'E4'));const codeFrequency=frequency(await snapshot(page),1);
-    await page.keyboard.up(key);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await wait(80);
+    await page.locator('#synthCodeEditor').focus();await page.keyboard.up(key);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await wait(80);
     played=await snapshot(page);assert(gate(played,1));assert.equal(frequency(played,1),codeFrequency,'old key-up and blur preserve Code owner');
+    await page.locator('#synthTitle').click();
     await page.keyboard.down(key);await stateIs(page,value=>value.voices.some(voice=>voice.channel===1),'new Keyboard owner');
     await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await stateIs(page,value=>!gate(value,1),'blur releases keyboard only');await page.keyboard.up(key);
     assert.match(await page.locator('#synthCodeState').textContent(),/Playing/);assert((await page.evaluate(()=>__sidTogether.context.motion))>first.motion);
@@ -321,7 +355,11 @@ liveLoop('motion',async()=>{context.motion++;await sid.setFilter({cutoff:200+con
       await page.screenshot({path:path.join(config.screenshots,`${name}-sid-keyboard-${width}.png`),fullPage:true});
     }
     step('explicit shared Stop retires Code and restores the latest edited author');
+    await page.locator('#synthInputCodeTab').click();
     await stop(page);const restored=await snapshot(page);assert.equal(restored.channelSettings.channels[1].voice.attack,5);assert([0,1,2].every(ch=>!gate(restored,ch)));
+    assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');
+    await page.keyboard.down(key);await stateIs(page,value=>value.voices.length>0,'Code view manual note after Stop');await sounding(page);
+    await page.keyboard.up(key);await silent(page);assert.equal(await page.evaluate(()=>__sidCodeAudit.observe()),null);
     assert.equal(await page.locator('#synthCodeError').textContent(),'');assert.deepEqual(errors,[]);
     return{browser:name,group:'keyboard',passed:true,checks,graph,framesBefore:frameBefore,errors};
   }catch(error){

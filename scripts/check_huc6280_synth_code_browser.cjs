@@ -99,6 +99,24 @@ async function selectFile(page,filename,{code=false}={}){
 async function source(page,text){await selectFile(page,'/index.js',{code:true});await page.locator('#synthCodeEditor').waitFor({state:'visible'});await page.locator('#synthCodeEditor').fill(text);}
 async function execute(page,apply=false){await page.locator(apply?'#synthCodeApplyButton':'#synthCodeRunButton').click();await until(async()=>{const error=await page.locator('#synthCodeError').textContent();if(error)throw Error(error);return /Running|Playing/.test(await page.locator('#synthCodeState').textContent());},apply?'Apply':'Run');}
 async function stop(page){await page.locator('#synthCodeStopButton').click();await until(()=>page.locator('#synthCodeState').textContent().then(text=>/Stopped|Idle/.test(text)),'Code stopped');await wait(130);await pcm(page,false);}
+async function typingGuards(page,key){
+  const editor=page.locator('#synthCodeEditor'),saved=await editor.inputValue();
+  await page.evaluate(()=>{const root=document.createElement('div');root.id='hucCodeFocusChecks';root.innerHTML='<button type="button" data-code-focus="performance">Musical keyboard focus</button><input type="number" aria-label="Code keyboard numeric input"><select aria-label="Code keyboard select"><option>Choice</option></select><div class="monaco-editor"><div tabindex="0" data-code-focus="monaco">Monaco focus boundary</div></div><dialog><button type="button">Dialog focus boundary</button></dialog>';document.querySelector('#synthCodePanel').append(root);});
+  async function quietKey(selector){
+    await page.locator(selector).focus();await page.keyboard.down(key);
+    try{await wait(60);assert(!(await observe(page)).registers.some(registers=>registers[4]&128),selector+' keeps typing outside the keyboard gates');await pcm(page,false);}
+    finally{await page.keyboard.up(key);}
+  }
+  try{
+    await page.locator('#hucCodeFocusChecks [data-code-focus="performance"]').click();await page.keyboard.down(key);
+    await until(async()=>Boolean((await observe(page)).registers[0][4]&128),'non-text Code panel content keeps musical keydown');await pcm(page);await page.keyboard.up(key);await pcm(page,false);
+    for(const selector of ['#synthCodeEditor','#hucCodeFocusChecks input','#hucCodeFocusChecks select','#hucCodeFocusChecks [data-code-focus="monaco"]'])await quietKey(selector);
+    await page.locator('#hucCodeFocusChecks dialog').evaluate(dialog=>dialog.showModal());await quietKey('#hucCodeFocusChecks dialog button');
+  }finally{
+    await page.evaluate(()=>{document.querySelector('#hucCodeFocusChecks dialog')?.close();document.querySelector('#hucCodeFocusChecks')?.remove();});
+    await editor.fill(saved);await page.evaluate(()=>document.activeElement?.blur?.());
+  }
+}
 async function download(page,selector){
   if(await page.locator(selector).evaluate(node=>Boolean(node.closest('#synthMenu')))&&!await page.locator('#synthMenu').evaluate(node=>node.open))await page.locator('#synthMenuButton').click();
   const pending=page.waitForEvent('download');await page.locator(selector).click();const item=await pending,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{name:item.suggestedFilename(),bytes:Buffer.concat(chunks)};
@@ -133,6 +151,12 @@ const OWNER=`const pce=await useSoundChip('huc6280');
 await pce.initialize();await pce.setLfo({frequency:0,depth:0});
 await pce.setWaveform(CH1,${JSON.stringify(sine)});await pce.setVolume(CH1,20);await pce.setPan(CH1,15,15);await pce.noteOn(CH1,'A3');
 globalThis.__hucSaved=pce;`;
+const PARAMETERS=`const pce=await useSoundChip('huc6280');
+await pce.initialize();await pce.setMasterVolume(15,15);await pce.setLfo({frequency:0,depth:0});
+for(const ch of [CH1,CH3]){await pce.setWaveform(ch,${JSON.stringify(sine)});await pce.setVolume(ch,20);await pce.setPan(ch,15,15);}
+globalThis.__hucKeys={pce,context,ticks:0};
+liveLoop('parameters',async()=>{const p=globalThis.__hucKeys;p.ticks++;await pce.setPan(CH1,15,p.ticks%2?13:15);await beat(.08);});
+`;
 const MOTION=`const pce=await useSoundChip('huc6280');
 setBpm(120);context.boots=(context.boots??0)+1;
 const prepared=await livePrepare('motion',()=>({visits:0}));
@@ -168,7 +192,15 @@ async function check(browser,name,origin,fixture){
 
     step('Code plays Wave, Noise and hardware LFO on one existing six-channel Worklet and preserves the authored preset');
     await page.locator('#synthInputKeyboardTab').click();await page.locator('#startAudio').click();await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'HuC6280 ready');
-    const author=(await read(page)).preset;await source(page,HOLD);await execute(page);await until(()=>page.locator('#synthCodeLog').textContent().then(text=>/huc-apply-count 1 huc-code-files/.test(text)),'first prepared Code');
+    const author=(await read(page)).preset;
+    step('Code tab keeps musical focus and permits keyboard notes before Run and across view changes');
+    await page.locator('#synthInputCodeTab').click();assert(await page.evaluate(()=>!document.activeElement?.closest('#synthCodeEditorHost,textarea,.monaco-editor,[contenteditable="true"]')),'Code tab does not force editor focus');
+    const idleKey=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(idleKey);
+    await page.keyboard.down(idleKey);await pcm(page);const idleOwners=(await read(page)).voices.map(({id,channel})=>({id,channel}));assert(idleOwners.length>0);
+    await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthInputCodeTab').click();await pcm(page);
+    assert.deepEqual((await read(page)).voices.map(({id,channel})=>({id,channel})),idleOwners,'view changes retain the same manual owners');await page.keyboard.up(idleKey);await pcm(page,false);
+    assert.equal(await observe(page),null,'Code view alone never creates a Code session');
+    await source(page,HOLD);await execute(page);await until(()=>page.locator('#synthCodeLog').textContent().then(text=>/huc-apply-count 1 huc-code-files/.test(text)),'first prepared Code');
     let state=await observe(page);assert(state.initialized);assert.equal(state.globals[8],17);assert.equal(state.globals[9]&3,2);assert.equal(state.registers[4][7]&159,140);
     assert.deepEqual(state.waveforms[0],sine);assert.deepEqual(state.waveforms[1],otherWave);assert.equal(state.registers[2][5],0xed);assert(state.registers[0][4]&128);assert(state.registers[2][4]&128);assert(state.registers[4][4]&128);
     assert.deepEqual((await read(page)).preset,author);measurements.hardware=await pcm(page);
@@ -199,6 +231,19 @@ async function check(browser,name,origin,fixture){
     await page.evaluate(()=>__hucSaved.noteOn(0,'A4'));const replacement=(await observe(page)).registers[0].slice();await page.keyboard.up(key);
     await wait(80);state=await observe(page);assert(state.registers[0][4]&128);assert.equal(state.registers[0][2],replacement[2]);assert.equal(state.registers[0][3],replacement[3]);
     assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);await page.locator('#synthInputCodeTab').click();await stop(page);
+
+    step('Code-view parameter loops and selected-CH keyboard notes respect text focus and independent ownership');
+    await source(page,PARAMETERS);await execute(page);await selectHucChannel(page,'0');await until(()=>page.evaluate(()=>__hucKeys.ticks>1),'parameter loop starts');await pcm(page,false);
+    const keyboardGraph=await graph(page);await page.evaluate(()=>{globalThis.__hucKeysContext=__hucKeys.context;});
+    await typingGuards(page,key);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    const keyboardTicks=await page.evaluate(()=>__hucKeys.ticks);await page.locator('#synthTitle').click();await page.keyboard.down(key);
+    await until(async()=>Boolean((await observe(page)).registers[0][4]&128),'Code-view keyboard uses selected CH1');await pcm(page);
+    await page.evaluate(()=>__hucKeys.pce.noteOn(2,'E4'));await page.locator('#synthCodeEditor').focus();await page.keyboard.up(key);
+    await until(async()=>{const value=await observe(page);return !(value.registers[0][4]&128)&&Boolean(value.registers[2][4]&128);},'keyup in the editor releases only the manual CH');await pcm(page);
+    await until(()=>page.evaluate(previous=>__hucKeys.ticks>previous,keyboardTicks),'parameter Code keeps running during hand notes and editor keyup');
+    assert(await page.evaluate(()=>__hucKeys.context===__hucKeysContext));assert.equal((await graph(page)).contexts,keyboardGraph.contexts);
+    await page.evaluate(()=>__hucKeys.pce.noteOff(2));await pcm(page,false);await stop(page);assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');
+    await page.keyboard.down(key);await pcm(page);await page.keyboard.up(key);await pcm(page,false);assert.equal(await observe(page),null,'Code view permits manual notes after Stop');
 
     step('Independent software loops, tween and liveFx continue through preset loads and manual editor changes');
     await source(page,MOTION.replace('context:{gain:.5}','context:{gain:0}'));await execute(page);await selectHucChannel(page,'synth');await until(()=>page.evaluate(()=>__hucMotion.ticks>=2),'liveLoop ticks');

@@ -512,7 +512,7 @@ function updateKeys() {
   updateHeldStatus();
 }
 async function press(source, entry) {
-  if (codeHost?.isCodeMode() || topologyPending || switchingAudioOutput || capturePending || psfSeekBusy()) return;
+  if (codeHost?.getState?.()?.busy || topologyPending || switchingAudioOutput || capturePending || psfSeekBusy()) return;
   if (notes.get(source)?.released) release(source, true);
   if (notes.has(source)) return;
   const song=psfSong?.read(),selectedPsf=psfView==='channel'&&song?.liveEnabled,selection=song?.paused&&selectedPsf?pausedSelection():null;
@@ -527,6 +527,7 @@ async function press(source, entry) {
     const current=()=>note.epoch===epoch&&notes.get(source)===note&&!disposed&&!topologyPending&&!switchingAudioOutput&&
       (!owner.startsWith('psf-')||psfSong===transport&&psfActionEpoch===psfAction&&transport.read().selection?.entry===song.selection?.entry);
     if(!current())return;
+    if(codeHost?.getState?.()?.busy||!codeHost?.isRunning()&&codeHost?.openOutput?.()===false){notes.delete(source);updateKeys();return;}
     let allocation;
     if(owner==='psf-preview') {
       if(!selection)throw new Error(psfSong.read().captureMessage||'Wait for a matching paused ADPCM observation before auditioning.');
@@ -584,8 +585,9 @@ function releaseKeyboard(force = false) {
   } else for (const source of [...notes.keys()]) release(source);
 }
 function editing(target) {
-  const node = target?.closest?.('input,textarea,[contenteditable="true"],dialog[open]');
-  return node && !node.matches('input[type=range],input[type=checkbox]');
+  if(target?.closest?.('dialog[open],.monaco-editor,#synthCodeEditorHost,[contenteditable]:not([contenteditable="false"])'))return true;
+  const node = target?.closest?.('input,select,textarea');
+  return node && !node.matches?.('input[type=range],input[type=checkbox]');
 }
 // Native select popups can consume keys before document handlers see them.
 // Return pointer users to performance focus once a choice is committed; keep
@@ -605,16 +607,17 @@ document.addEventListener('change', event => {
   }
 }, {capture:true});
 document.addEventListener('keydown', event => {
-  if($('spuFileNameDialog')?.open)return;
+  if(event.defaultPrevented||$('spuFileNameDialog')?.open||$('spuFileContextMenu')?.hidden===false)return;
   if(event.key==='Escape'&&psfSong?.read().seeking){event.preventDefault();event.stopPropagation();void cancelPsfSeek().catch(report);return;}
   if(event.key==='Escape'&&event.target?.id==='psfSongSeek')return;
   if (event.target?.closest?.('select') && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End',' ','Enter','Escape','Tab'].includes(event.key)) pointerSelect = null;
   if (event.isComposing) return;
   const entryField=event.target?.closest?.('input[type=number],input[type=text]');
-  if (event.key === 'Enter' && entryField) {event.preventDefault();entryField.blur();return;}
+  const editorField=event.target?.closest?.('dialog[open],.monaco-editor,#synthCodeEditorHost,[contenteditable]:not([contenteditable="false"])');
+  if (event.key === 'Enter' && entryField&&!editorField) {event.preventDefault();entryField.blur();return;}
+  if (editing(event.target)) return;
   if (event.key === 'Escape') {void stop().catch(report); return;}
-  if (codeHost?.isCodeMode()) return;
-  if (event.ctrlKey || event.metaKey || event.altKey || editing(event.target)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
   const entry = layout.entries.find(value => value.key === event.key.toLowerCase()); if (!entry) return;
   // Capture musical keys before a focused select can use type-ahead. Keep
   // arrows, Space and Tab available for normal control navigation. Repeats

@@ -104,6 +104,7 @@ hardware voices. Instrument edits and preset selection keep Code running on
 this APU; a Wave RAM replacement can release a held Wave note.
 
 The starter uses the current sound: CH1 for Pulse, CH3 for Wave, CH4 for Noise.
+Its note lengths and rests use `beat()`, so `setBpm()` changes the whole rhythm.
 Use `await` for chip operations. You can also address all four physical channels:
 
 ```js
@@ -120,6 +121,11 @@ liveLoop("four-channels", async () => {
   await beat(0.75);
 });
 ```
+
+Choosing Code keeps focus on the tab, so computer-key performance works outside
+the editor, including after Stop. Click inside the editor to type; text/number
+fields, selects and dialogs keep their own keys. Use `beat()` for musical note
+lengths and rests to follow `setBpm()`. Existing saved scripts are kept.
 
 CH constants are zero-based: CH1 is 0 and CH4 is 3. Noise uses `keyOn` /
 `keyOff`; it has no musical note pitch. Wave uploads stop CH3, just as in the

@@ -428,7 +428,15 @@ async function keyboardChecks(page,name) {
     await range(page,'#pitchBendWheel',1000);row.bent=await sounding(page);
     assert(Math.abs(row.bent.left.frequency/row.keyboard.left.frequency-2**(2/12))<.035,'Keyboard Pitch remains usable alongside Code '+kind+': '+JSON.stringify(row));
     await range(page,'#pitchBendWheel',0);sameFrequency(row.keyboard,await sounding(page),'Keyboard Pitch returns without restarting Code');
+    await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
+    row.heldAcrossCodeView=await sounding(page);sameFrequency(row.keyboard,row.heldAcrossCodeView,'A view change keeps the held hand note');await running();
     await page.keyboard.up('a');await silence(page);await running();
+    assert.equal(await page.locator('#keyboard').getAttribute('aria-disabled'),'false','Code view retains the musical keyboard');
+    await page.locator('#synthInputCodeTab').focus();row.codeViewChannel=await press();row.codeViewHand=await sounding(page);
+    const codeTicks=await evaluate(page,()=>__keyboardProbe.prepared.ticks);
+    await until(()=>evaluate(page,before=>__keyboardProbe.prepared.ticks>before,codeTicks),'Code continues beside the Code-view hand note');
+    await page.locator('#synthCodeEditor').focus();await page.keyboard.up('a');await silence(page);
+    await page.locator('#synthCodeEditor').press('a');assert.equal(await page.locator('#keyboard .key.is-active').count(),0,'Typing in Code does not play notes');await silence(page);await running();
     const commands=await evaluate(page,()=>__synthCodeAudit.drain());
     assert(!commands.some(item=>item.op==='live-fx'&&item.action==='dispose'),'Keyboard never disposes liveFx');
     assert(kind==='fm'?commands.some(item=>item.type==='write'&&item.register===0x4c):kind==='psg'?commands.some(item=>item.method==='write'&&(item.args?.[0]&0xf0)===0xc0):commands.some(item=>item.method==='writeRegister'&&item.args?.[0]===0&&[64,65].includes(item.args?.[1])),'The Code loop sends real non-gate hardware parameters '+kind);
@@ -436,6 +444,9 @@ async function keyboardChecks(page,name) {
     await keyboard();await running();
     assert.deepEqual(await evaluate(page,()=>__synthCodeAudit.graph()),graph,'Code / Keyboard round trips do not create another graph or context');
     await stop(page);
+    await page.locator('#synthInputCodeTab').click();await page.locator('#synthInputCodeTab').focus();
+    row.stoppedCodeViewChannel=await press();row.stoppedCodeViewHand=await sounding(page);await page.keyboard.up('a');await silence(page);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/i,'Hand keys do not start a stopped Code program');
 
     // Code owns CH1 first. Keyboard takes that very channel, then an old
     // Code Note Off must not release the newer physical keyboard note.
@@ -463,6 +474,7 @@ async function keyboardChecks(page,name) {
     await silence(page);result.chips.push(row);console.log('PASS '+name+' keyboard '+kind+': parameter loop, both gate-owner directions, Pitch / blur and shared Stop');
   }
   result.steps.push('FM / PSG / RF5C164 parameter loops and liveFx continue through Keyboard melody, Pitch and Code / Keyboard tab changes with one context and unchanged prepared state');
+  result.steps.push('Code-view hand keys play before and after Stop; changing views retains held notes and editor typing stays silent');
   result.steps.push('Both same-channel takeover directions honor the newest gate; old Code Off, key-up and blur cannot silence another owner; Keyboard-side Stop ends Run and real PCM');
   assert(await evaluate(page,()=>__synthCodeAudit.muted()));return result;
 }

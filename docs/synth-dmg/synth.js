@@ -299,7 +299,7 @@ function keyboardTarget(){
   return {channel,source:channel===null?preset.source:channel<2?'pulse':channel===2?'wave':'noise'};
 }
 function pressVgm(source,entry){
-  if(switchingAudioOutput||codeHost?.isCodeMode()||vgmNotes.has(source)||!canPlay(entry.midi))return;
+  if(switchingAudioOutput||vgmNotes.has(source)||!canPlay(entry.midi))return;
   const note={id:`dmg-vgm-key:${++sequence}`,key:entry.key,midi:entry.midi};
   vgmNotes.set(source,note);
   try{
@@ -310,17 +310,19 @@ function pressVgm(source,entry){
   }catch(error){vgmNotes.delete(source);updateKeys();report(error);}
 }
 function press(source, entry) {
+  if(codeHost?.getState?.()?.busy)return;
   if(lastSongState?.seekPreparing){status('Finishing the previous seek · try the keyboard again when ready.');return;}
   if(lastSongState?.playing){pressVgm(source,entry);return;}
   if(lastSongState?.paused&&isSongChannelView()){pressAudition(source,entry);return;}
   if(isSongActive()&&!lastSongState?.paused)return;
-  if (switchingAudioOutput||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi)) return;
+  if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
   const note = {id:`gameboy-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
   notes.set(source,note); updateKeys();
   void enqueue(async () => {
     if (switchingAudioOutput || notes.get(source)!==note || note.epoch!==epoch) return;
     const engine = await ensureAudio();
     if (switchingAudioOutput||notes.get(source)!==note||note.epoch!==epoch) return;
+    if(codeHost?.getState?.()?.busy||!codeHost?.isRunning()&&codeHost?.openOutput?.()===false){notes.delete(source);updateKeys();return;}
     note.started = true;
     const target=keyboardTarget();
     const result = await engine.command('noteOn',[note.id,note.midi,...(target.channel===null?[]:[{channel:target.channel}])]);
@@ -350,10 +352,14 @@ $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopAll(
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
-function editing(target) {const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');return control&&!control.matches?.('input[type="range"]');}
+function editing(target) {
+  if(target?.closest?.('dialog[open],.monaco-editor,#synthCodeEditorHost,[contenteditable]:not([contenteditable="false"])'))return true;
+  const control=target?.closest?.('input,select,textarea');
+  return control&&!control.matches?.('input[type="range"]');
+}
 window.addEventListener('keydown',event=>{
   if(document.getElementById('spuFileContextMenu')?.hidden===false)return;
-  if(codeHost?.isCodeMode()||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
+  if(event.defaultPrevented||event.isComposing||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);
   if(!entry) return;
   event.preventDefault(); if(!event.repeat) press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
@@ -563,7 +569,7 @@ async function stopAudition() {
   if(!disposed)updateKeys();
 }
 function pressAudition(source,entry) {
-  if(switchingAudioOutput||codeHost?.isCodeMode()||auditionNotes.has(source)||!canPlay(entry.midi))return;
+  if(switchingAudioOutput||auditionNotes.has(source)||!canPlay(entry.midi))return;
   const prepared=pausedSongVoice();
   if(!prepared?.playable){status(prepared?.reason??'Select a playable paused song channel.');return;}
   const note={id:`dmg-trial:${++sequence}`,key:entry.key,midi:entry.midi};

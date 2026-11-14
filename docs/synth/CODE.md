@@ -6,6 +6,12 @@ Open **Code** below the instrument editor. The first visit creates `/index.js` o
 - **Apply** updates the source while retaining `context`, prepared resources and named live loops/effects.
 - **Stop** cancels loops and pending waits immediately, fades Code output over 8 ms, then releases notes and effects and clears the live session. This is a software output fade. Keyboard / Code switches only the input view; the same loops, context and FX keep running. The shared Run / Apply / Stop row stays visible with the keyboard.
 
+Choosing the **Code** tab keeps focus on that tab, so computer keys can still play
+the selected sound, including after Code stops. Click inside the editor to type;
+text/number fields, selects and dialogs keep their own input. Ctrl/Cmd+Enter runs
+Code from the tab or editor. Use `beat()` for musical note lengths and rests so
+`setBpm()` changes the whole phrase. Saved scripts are kept when the defaults change.
+
 `context` is live memory, not Cassette data. Save source and local data files to keep a performance. Monaco loads when Code is opened; the plain-text editor and execution remain available if the editor service is unavailable.
 
 Selecting an FM, PSG or PCM sound in Files or the preset lists selects that
@@ -162,11 +168,14 @@ setBpm(120);
 liveLoop("melody", async () => {
   const notes = scale("E1", "minorPentatonic", 3);
   fm.noteOn(CH1, choose(notes));
-  await sleep(0.1);
+  await beat(0.2);
   fm.noteOff(CH1);
   await beat(0.025);
 });
 ```
+
+Use `beat()` for note lengths and rests so changing `setBpm()` changes the whole rhythm.
+At 120 BPM, `beat(0.2)` lasts 0.1 seconds.
 
 The upper FM controls edit this same chip. Use the object returned by `useSoundChip()` to choose which chip receives each note or register write. Synth Code has no global `play()` helper; each chip has its own note or playback controls. Existing `/index.js` files are kept: replace older `play()` snippets with the explicit chip calls above. Code changes to registers or presets do not rewrite the authoring files. Stop restores the authoring FM patch. The normal physical channel numbers still apply, including CH3 special mode on `CH3`.
 
@@ -209,9 +218,10 @@ For a sample whose original pitch is A4, A5 plays at twice its original speed:
 
 ```js
 const pcm = await useSoundChip("rf5c164");
+setBpm(120);
 pcm.setRootNote("A4");
 await pcm.noteOn(CH1, "A5");
-await sleep(0.2);
+await beat(0.4);
 pcm.noteOff(CH1);
 ```
 
@@ -221,7 +231,7 @@ setBpm(120);
 liveLoop("melody", async () => {
   const notes = scale("E1", "minorPentatonic", 3);
   await pcm.noteOn(CH1, choose(notes));
-  await sleep(0.1);
+  await beat(0.2);
   pcm.noteOff(CH1);
   await beat(0.025);
 });

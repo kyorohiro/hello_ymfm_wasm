@@ -97,6 +97,53 @@ test('Code opens lazily, preserves an existing index, and edits the Cassette ind
   }finally{f.cleanup();}
 });
 
+test('Code tab keeps musical focus while explicit file editing still focuses the editor',async()=>{
+  for(const monaco of [false,true]){
+    const f=fixture({source:'// keep my code',monaco});
+    try{
+      await f.controls.ready;f.byId('synthInputCodeTab').fire('click');
+      await until(()=>f.controls.isCodeMode()&&f.calls.editors===1);
+      assert.equal(f.byId('synthCodeEditor').focusCount??0,0,'view switching does not start typing');
+      assert.equal(f.byId('synthInputCodeTab').focused,true,'clicking a tab explicitly leaves editor focus on Safari too');
+      assert.equal(f.project.fs.get('/index.js').data,'// keep my code');
+      assert.equal(f.calls.factories,0);assert.equal(f.calls.stops,0);
+      await f.controls.openFile('/index.js');
+      assert.equal(f.byId('synthCodeEditor').focusCount,1,'explicit file editing takes typing focus');
+      const before=f.byId('synthCodeEditor').focusCount;
+      f.byId('synthInputCodeTab').fire('keydown',{key:'Home'});
+      await until(()=>!f.controls.isCodeMode()&&f.byId('synthInputKeyboardTab').focused);
+      f.byId('synthInputKeyboardTab').fire('keydown',{key:'End'});
+      await until(()=>f.controls.isCodeMode()&&f.byId('synthInputCodeTab').focused);
+      assert.equal(f.byId('synthCodeEditor').focusCount,before,'arrow navigation focuses tabs rather than the editor');
+    }finally{f.cleanup();}
+  }
+});
+
+test('Code panel protects typing but lets toolbar performance keys bubble, and tab focus can Run',async()=>{
+  const f=fixture({source:'// performance and typing'});
+  try{
+    await f.controls.ready;await f.controls.setMode('code',{focusEditor:false});
+    let stopped=0;
+    f.byId('synthCodePanel').fire('keydown',{key:'a',target:f.byId('synthCodeRunButton'),stopPropagation(){stopped++;}});
+    assert.equal(stopped,0,'non-text toolbar focus permits musical input');
+    for(const selector of ['input','textarea','select','[contenteditable]','dialog[open]','.monaco-editor','#synthCodeEditorHost']){
+      f.byId('synthCodePanel').fire('keydown',{key:'a',target:{closest:query=>query.split(',').includes(selector)},stopPropagation(){stopped++;}});
+    }
+    assert.equal(stopped,7,'text editors and modal controls retain their keys');
+    for(const key of [' ','Enter']){
+      const native=f.byId('synthCodePanel').fire('keydown',{key,target:{closest:query=>query.split(',').includes('button')},stopPropagation(){stopped++;}});
+      assert.equal(native.prevented,false,'native button activation remains available');
+    }
+    assert.equal(stopped,9);
+    const event=f.byId('synthInputSection').fire('keydown',{metaKey:true,key:'Enter',target:f.byId('synthInputCodeTab')});
+    assert(event.prevented);await until(()=>f.calls.runs.length===1);
+    await until(()=>!f.byId('synthCodeRunButton').disabled);await f.controls.setExpanded(true);
+    const expanded=f.byId('synthCodePanel').fire('keydown',{metaKey:true,shiftKey:true,key:'Enter',target:f.byId('synthCodeEditor')});
+    assert(expanded.prevented);await until(()=>f.calls.applies.length===1);
+    assert.equal(f.calls.runs.length,1,'expanded shortcut executes only one action');
+  }finally{f.cleanup();}
+});
+
 test('an older pending flush cannot remove a newer edit recovery journal',async()=>{
   const gate=deferred(),f=fixture({source:'// original'});
   try {
@@ -162,7 +209,7 @@ test('Stop during runtime preparation prevents late Run, and a later Run and App
   const preparing=deferred(),f=fixture({source:'context.value = 1;',factory:()=>preparing.promise});
   try {
     await f.controls.ready;await f.controls.setMode('code');
-    const event=f.byId('synthCodePanel').fire('keydown',{metaKey:true,key:'Enter'});assert(event.prevented);
+    const event=f.byId('synthInputSection').fire('keydown',{metaKey:true,key:'Enter'});assert(event.prevented);
     await until(()=>f.calls.factories===1);assert.equal(f.byId('synthCodeStopButton').disabled,false);
     await f.controls.stop();assert.equal(f.byId('synthCodeRunButton').disabled,false);
     preparing.resolve(f.runtime);await until(()=>f.calls.stops===1);assert.equal(f.calls.runs.length,0);
@@ -219,7 +266,7 @@ setBpm(120);
 liveLoop("melody", async () => {
   const notes = scale("E1", "minorPentatonic", 3);
   fm.noteOn(CH1, choose(notes));
-  await sleep(0.1);
+  await beat(0.2);
   fm.noteOff(CH1);
   await beat(0.025);
 });
@@ -327,7 +374,7 @@ test('non-JavaScript editing is opt-in and hidden JSON opening changes no mode, 
     assert.equal(f.byId('synthCodePanel').dataset.editorKind,'text');assert.equal(f.byId('synthCodePanel').dataset.runnable,'false');
     assert.equal(f.byId('synthCodeRunButton').disabled,true);assert.equal(f.byId('synthCodeApplyButton').disabled,true);
     f.byId('synthCodeRunButton').fire('click');f.byId('synthCodeApplyButton').fire('click');
-    f.byId('synthCodePanel').fire('keydown',{metaKey:true,key:'Enter'});for(let i=0;i<10;i++)await turn();
+    f.byId('synthInputSection').fire('keydown',{metaKey:true,key:'Enter'});for(let i=0;i<10;i++)await turn();
     assert.equal(f.calls.factories,0);assert.equal(preparations,0);
     f.byId('synthCodeEditor').value='{"volume":2}';f.byId('synthCodeEditor').fire('input');
     assert.equal(f.project.fs.get('/preset.json').data,'{"volume":2}');
@@ -432,7 +479,7 @@ test('JSON selection intent cancels an older Run even when its storage flush fin
       assert.equal(f.byId('synthCodeRunButton').disabled,true);
       runFlush.resolve(true);for(let i=0;i<20;i++)await turn();
       assert.equal(preparations,0);assert.equal(f.calls.factories,0);assert.equal(f.calls.runs.length,0);
-      f.byId('synthCodePanel').fire('keydown',{metaKey:true,key:'Enter'});for(let i=0;i<10;i++)await turn();
+      f.byId('synthInputSection').fire('keydown',{metaKey:true,key:'Enter'});for(let i=0;i<10;i++)await turn();
       assert.equal(preparations,0,'execution remains blocked while the newer file open is pending');
       jsonFlush.resolve(true);assert.equal(await selection,true);assert.equal(f.controls.activePath,'/next.json');
       assert.equal(f.byId('synthCodeRunButton').disabled,true);assert.equal(f.calls.factories,0);

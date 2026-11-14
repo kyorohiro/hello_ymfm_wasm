@@ -20,7 +20,7 @@ liveLoop("melody", async () => {
     await pce.setNote(CH2, note); // Hardware LFO source, CH2 -> CH1.
   }
   await pce.noteOn(channel, note);
-  await sleep(0.12);
+  await beat(0.24);
   await pce.noteOff(channel); // Software envelope; keyOff is a raw gate.
   await beat(0.5);
 });
@@ -36,10 +36,15 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
     resolveCddaPath:path=>resolveCddaInputPath(path,controls?.executionPath??'/index.js'),
     readFile:path=>project.readFile(path,{type:'arrayBuffer'},{path:controls?.executionPath??'/index.js'})});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
+  function openOutput(){
+    const state=runtime?.getState();
+    if(disposed||state?.running||state?.busy||state?.stopping)return false;
+    audio.open();return true;
+  }
   async function stop() {
     const request=++modeEpoch;
     if(controls)await controls.stop();else if(runtime)await runtime.stop();
-    if(!disposed&&request===modeEpoch&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+    if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
   const files=setupHuc6280CodeFiles({project,getSettings,applySettings,setStatus,getExportNotice,
@@ -63,7 +68,7 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
       async stopSoundChips(){
         const token=epoch,owner=getAudio();await audio.stop();
         if(!getAudio())await stopKeyboard();
-        else if(!disposed&&token===epoch&&owner===getAudio()&&!controls?.isCodeMode()&&!runtime?.getState().running)audio.open();
+        else if(!disposed&&token===epoch&&owner===getAudio()&&!runtime?.getState().running)audio.open();
       },
     });return runtime;
   }
@@ -72,14 +77,11 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
     editorChip:'huc6280',transformDeclarations:selectHuc6280CodeDeclarations,
     journalKey:'tetorica-huc6280-synth-pending-code',getStarterCode:()=>HUC6280_STARTER_CODE,
     async onBeforeRun(){modeEpoch++;await stopSong();if(!runtime?.getState().running)await stopKeyboard();},
-    async onModeChange(mode){const request=++modeEpoch;
-      if(mode==='code'){if(!disposed&&request===modeEpoch&&!runtime?.getState().running)await stopKeyboard();}
-      else if(!disposed&&!runtime?.getState().running)audio.open();onActivity();
-    },setStatus,
+    async onModeChange(){modeEpoch++;openOutput();onActivity();},setStatus,
   });
   return {project,files,controls,ready:controls.ready,isCodeMode:()=>controls.isCodeMode(),
     isRunning:()=>Boolean(runtime?.getState().running),getState:()=>runtime?.getState()??{state:'idle',running:false},
-    stop,openOutput:()=>audio.open(),markSoundDirty:()=>files.markSoundDirty(),
+    stop,openOutput,markSoundDirty:()=>files.markSoundDirty(),
     async dispose(){if(disposed)return;await stop();disposed=true;epoch++;controls.dispose();await files.dispose();await audio.dispose();},
   };
 }

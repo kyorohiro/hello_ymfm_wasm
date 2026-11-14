@@ -1,8 +1,8 @@
 import {bendPitch} from './synth_pitch_bend.js';
 
 function isEditingTarget(target) {
-  if(target?.closest?.('dialog[open],#synthFileContextMenu'))return true;
-  const control=target?.closest?.('input,textarea,select,[contenteditable="true"]');
+  if(target?.closest?.('dialog[open],#synthFileContextMenu,.monaco-editor,#synthCodeEditorHost'))return true;
+  const control=target?.closest?.('input,textarea,select,[contenteditable="true"],[contenteditable]');
   // Performance wheels keep letter keys available while their own navigation
   // keys adjust the slider. File-name inputs consume ordinary text instead.
   return Boolean(control&&!control.matches?.('input[type="range"]'));
@@ -228,7 +228,7 @@ export function createSynthInputController({
 
   function handleKeyDown(event) {
     // Leave native application shortcuts (for example Cmd+Q) to the host.
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
     // Naming files and choosing dialog actions must not play notes or consume
     // cursor/space keys. Pointer file selection still leaves performance focus.
     if (isEditingTarget(event.target)) return;
@@ -293,7 +293,7 @@ export function createSynthInputController({
   function handleKeyUp(event) {
     const key =
       event.key.toLowerCase();
-    if (isEditingTarget(event.target)) {
+    if (event.defaultPrevented || isEditingTarget(event.target)) {
       // Release a note started before an input gained focus without disrupting
       // normal text editing or a native dialog control.
       releaseKey(key);

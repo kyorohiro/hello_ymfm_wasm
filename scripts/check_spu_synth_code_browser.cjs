@@ -110,6 +110,24 @@ async function execute(page,apply=false){await page.locator(apply?'#synthCodeApp
 },apply?'Apply completes':'Run completes');}
 async function stopped(page){await until(()=>page.locator('#synthCodeState').textContent().then(value=>/Stopped|Idle/.test(value)),'Code stopped');await silent(page);}
 async function stop(page){await page.locator('#synthCodeStopButton').click();await stopped(page);}
+async function typingGuards(page,key){
+  const editor=page.locator('#synthCodeEditor'),saved=await editor.inputValue();
+  await page.evaluate(()=>{const root=document.createElement('div');root.id='spuCodeFocusChecks';root.innerHTML='<button type="button" data-code-focus="performance">Musical keyboard focus</button><input type="number" aria-label="Code keyboard numeric input"><select aria-label="Code keyboard select"><option>Choice</option></select><div class="monaco-editor"><div tabindex="0" data-code-focus="monaco">Monaco focus boundary</div></div><dialog><button type="button">Dialog focus boundary</button></dialog>';document.querySelector('#synthCodePanel').append(root);});
+  async function quietKey(selector){
+    await page.locator(selector).focus();await page.keyboard.down(key);
+    try{await wait(60);assert.equal((await snapshot(page)).auditions.length,0,selector+' keeps typing outside the keyboard allocator');await silent(page);}
+    finally{await page.keyboard.up(key);}
+  }
+  try{
+    await page.locator('#spuCodeFocusChecks [data-code-focus="performance"]').click();await page.keyboard.down(key);
+    await stateIs(page,value=>value.auditions.length>0,'non-text Code panel content keeps musical keydown');await sounding(page);await page.keyboard.up(key);await silent(page);
+    for(const selector of ['#synthCodeEditor','#spuCodeFocusChecks input','#spuCodeFocusChecks select','#spuCodeFocusChecks [data-code-focus="monaco"]'])await quietKey(selector);
+    await page.locator('#spuCodeFocusChecks dialog').evaluate(dialog=>dialog.showModal());await quietKey('#spuCodeFocusChecks dialog button');
+  }finally{
+    await page.evaluate(()=>{document.querySelector('#spuCodeFocusChecks dialog')?.close();document.querySelector('#spuCodeFocusChecks')?.remove();});
+    await editor.fill(saved);await page.evaluate(()=>document.activeElement?.blur?.());
+  }
+}
 async function range(page,id,value){await page.locator('#'+id).evaluate((input,next)=>{input.value=String(next);input.dispatchEvent(new Event('input',{bubbles:true}));},value);}
 async function files(page){if(await page.locator('#spuFilesPanel').isHidden())await page.locator('#spuFilesToggle').click();await until(()=>page.locator('#spuFileImportButton').isEnabled(),'Files ready');}
 async function selectFile(page,filename){
@@ -142,6 +160,11 @@ await ps1.setPreset(CH1,{reverb:true,volumeLeft:.4,volumeRight:.3});
 await ps1.setReverb({preset:'room',volumeLeft:.2,volumeRight:.35});
 await ps1.noteOn(CH1,'A4');await ps1.setNote(CH2,'C5');
 globalThis.__spuSaved=ps1;log('spu-live-ready');
+`;
+const PARAMETERS=`const ps1=await useSoundChip('ps1');
+await ps1.setEnvelope(CH1,{attackRate:0,decayRate:0,sustainLevel:15,sustainRate:127,releaseRate:0});
+globalThis.__spuKeys={ps1,context,ticks:0};
+liveLoop('parameters',async()=>{const p=globalThis.__spuKeys;p.ticks++;await ps1.setPreset(CH1,{volumeLeft:.2+(p.ticks%2)*.02});await beat(.08);});
 `;
 async function observed(page,channel,attack){
   await until(()=>page.locator('#spuVoicePanel').getAttribute('data-observing').then(value=>value==='true'),'Code Live active');
@@ -193,6 +216,14 @@ async function check(browser,name,origin,loadCassette){
     async function renameFile(path){await page.locator('#spuFileRenameButton').click();await page.locator('#spuFileNameInput').fill(path);await page.locator('#spuFileNameConfirm').click();await until(()=>page.locator('#spuFilesSelected').textContent().then(value=>value===path),'renamed '+path);}
     await renameFile('/notes-renamed.json');assert.equal(await page.locator('#synthCodeEditor').inputValue(),data);assert.equal((await download(page,'#spuFileExportButton')).bytes.toString(),data);await renameFile('/notes.json');await page.locator('#spuFilesInput').setInputFiles({name:'discard.json',mimeType:'application/json',buffer:Buffer.from('{"discard":true}\n')});await until(()=>page.locator('#spuFilesStatus').textContent().then(value=>/Added 1 file/.test(value)),'temporary JSON imported');await selectFile(page,'/discard.json');await page.locator('#spuFileDeleteButton').click();await page.locator('#spuFileNameConfirm').click();await until(()=>page.locator('#spuFilesTree [data-file-path="/discard.json"]').count().then(value=>value===0),'selected JSON deleted');assert.equal(await page.locator('#synthCodeEditor').inputValue(),'');assert.equal(await page.locator('#synthCodePanel').getAttribute('data-editor-kind'),'none');assert.equal((await page.evaluate(()=>__spuCodeAudit.graph())).contexts,0);await selectFile(page,'/index.js');assert.equal(await page.locator('#synthCodePanel').getAttribute('data-editor-kind'),'javascript');assert(await page.locator('#synthCodeRunButton').isEnabled());
     await page.locator('#startAudio').click();await until(()=>page.locator('#startAudio').textContent().then(value=>/ready/i.test(value)),'SPU ready');
+    step('Code view keeps musical focus and permits a held keyboard note before Run');
+    await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthInputCodeTab').click();
+    assert(await page.evaluate(()=>!document.activeElement?.closest('#synthCodeEditorHost,textarea,.monaco-editor,[contenteditable="true"]')),'Code tab does not force editor focus');
+    const idleKey=await page.locator('#keyboardKeys .key:not([disabled])').first().getAttribute('data-key');assert(idleKey);
+    await page.keyboard.down(idleKey);const idleNote=(await stateIs(page,value=>value.auditions.length>0,'idle Code view keyboard')).auditions;await sounding(page);
+    await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthInputCodeTab').click();
+    assert.deepEqual((await snapshot(page)).auditions,idleNote,'switching views keeps the same manual owners');await sounding(page);await page.keyboard.up(idleKey);await silent(page);
+    assert(!await page.locator('#synthCodeState').textContent().then(value=>/Running|Playing/.test(value)),'Code view alone does not Run');
     await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputSection').getAttribute('data-input-mode').then(value=>value==='keyboard'),'Keyboard mode before passive Save sound');const baseline=await savedSound(page),initialState=await snapshot(page),presetPath=await page.locator('#spuFilesSelected').textContent();
     step('Preset JSON editing does not apply audio until that valid preset is explicitly selected again');await page.locator('#synthInputKeyboardTab').click();await selectFile(page,presetPath);await page.locator('#synthCodeEditor').waitFor({state:'visible'});const editedPreset={...baseline,preset:{...baseline.preset,volumeLeft:.41}};await page.locator('#synthCodeEditor').fill(JSON.stringify(editedPreset,null,2)+'\n');await wait(170);assert.equal((await snapshot(page)).channels[0].volumeLeft,initialState.channels[0].volumeLeft);await selectFile(page,'/index.js');await selectFile(page,presetPath);await stateIs(page,value=>value.channels[0].volumeLeft===.41,'explicit JSON selection applies the edited sound');await page.locator('#synthCodeEditor').fill(JSON.stringify(baseline,null,2)+'\n');await selectFile(page,'/index.js');await selectFile(page,presetPath);await stateIs(page,value=>value.channels[0].volumeLeft===initialState.channels[0].volumeLeft,'explicit selection restores baseline');await selectFile(page,'/index.js');
     await source(page,`const {notes}=await import('./notes.js');const data=await file('./notes.json',{type:'json'});
@@ -261,6 +292,22 @@ const sample=await ps1.loadADPCM(bytes,{baseFrequencyHz:440});await ps1.setPrese
     await source(page,HOLD);await execute(page);await page.locator('#synthInputKeyboardTab').click();await sounding(page);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);assert(await page.locator('#synthCodeStopButton').isVisible(),'Keyboard keeps the shared Code transport');await stop(page);
     const key=await page.locator('#keyboardKeys .key:not([disabled])').first().getAttribute('data-key');assert(key);
     await page.keyboard.down(key);await stateIs(page,value=>value.auditions.length>0,'keyboard note after Code');await sounding(page);await page.keyboard.up(key);await page.locator('#stopAudio').click();await silent(page);
+
+    step('Code-view parameter loops, real keyboard notes and text focus keep independent ownership');
+    await source(page,PARAMETERS);await execute(page);await until(()=>page.evaluate(()=>__spuKeys.ticks>1),'parameter loop starts');await silent(page);
+    const keyboardGraph=await page.evaluate(()=>__spuCodeAudit.graph());await page.evaluate(()=>{globalThis.__spuKeysContext=__spuKeys.context;});
+    await typingGuards(page,key);assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+    const ticks=await page.evaluate(()=>__spuKeys.ticks);await page.locator('#synthTitle').click();await page.keyboard.down(key);
+    const hand=(await stateIs(page,value=>value.auditions.length===1,'Code-view manual owner')).auditions[0];await sounding(page);
+    const codeChannel=(hand.channel+1)%24;
+    await page.evaluate(async channel=>{await __spuKeys.ps1.setEnvelope(channel,{attackRate:0,decayRate:0,sustainLevel:15,sustainRate:127,releaseRate:0});await __spuKeys.ps1.noteOn(channel,'E4');},codeChannel);
+    await page.locator('#synthCodeEditor').focus();await page.keyboard.up(key);
+    await stateIs(page,value=>value.auditions.length===0&&value.channels[codeChannel].gate,'keyup inside the editor releases only the hand note');await sounding(page);
+    await until(()=>page.evaluate(previous=>__spuKeys.ticks>previous,ticks),'parameter Code survives keyboard and editor focus');
+    assert(await page.evaluate(()=>__spuKeys.context===__spuKeysContext));assert.equal((await page.evaluate(()=>__spuCodeAudit.graph())).contexts,keyboardGraph.contexts);
+    await page.evaluate(channel=>__spuKeys.ps1.noteOff(channel),codeChannel);await silent(page);await stop(page);
+    assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');
+    await page.keyboard.down(key);await stateIs(page,value=>value.auditions.length>0,'manual Code-view note after Stop');await sounding(page);await page.keyboard.up(key);await silent(page);
 
     step('Files project ZIP retains code/modules/data/samples; import and reload never start audio or Code');
     await source(page,'globalThis.__spuProjectRan=(globalThis.__spuProjectRan??0)+1;\n');

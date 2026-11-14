@@ -82,6 +82,12 @@ releasing keys that are still held.
 clears infinite releases and reverb tails, preserving samples and settings.
 Leaving the page releases keyboard notes and stops Code.
 
+The Code tab keeps computer-key performance available outside the editor,
+including after Stop. Choosing the tab keeps performance focus; click inside
+the editor to type. Text/number inputs, selects and dialogs retain their keys.
+Musical example waits use `beat()` so `setBpm()` changes note lengths and rests.
+Existing saved scripts are kept when the starter changes.
+
 **Click guard · Software** starts On for keyboard and Code's `noteOn()` /
 `noteOff()`. This is a Tetorica software feature, not a PS1 register setting.
 It uses the existing per-voice transition ramp and gives very fast releases
@@ -104,7 +110,7 @@ const channel = state.pmon.enabled ? CH2 : CH1;
 
 liveLoop("melody", async () => {
   await ps1.noteOn(channel, choose(scale("E3", "minorPentatonic", 2)));
-  await sleep(0.12);
+  await beat(0.24);
   await ps1.noteOff(channel);
   await beat(0.5);
 });
@@ -146,6 +152,9 @@ sounds and insufficient RAM leave both banks and Run untouched. Ordinary
 parameter edits also keep Code. Master stays available during Code.
 Shortcuts are Ctrl/Cmd+Enter for Run
 and Ctrl/Cmd+Shift+Enter for Apply. Maximize Code places the editor beside Files.
+
+Use `beat()` for note lengths and rests so `setBpm()` controls the whole rhythm.
+At 120 BPM, the example's `beat(0.24)` lasts 0.12 seconds.
 
 `liveLoop()`, `livePrepare()`, `tween()` and `liveFx()` are software features.
 The hardware SPU still produces the notes and its shared reverb. `liveFx` runs

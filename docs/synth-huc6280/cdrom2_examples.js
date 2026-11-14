@@ -31,6 +31,7 @@ await adpcm.play({loop: true});
 // Stop ends this Code session; Apply keeps the current session.
 `,
   '/examples/cdda.js': `const cd = await useSoundChip("cdda");
+setBpm(120);
 // To play the track already loaded in the CD-DA tab, use await cd.play().
 // The generated example below replaces that shared UI track.
 // A Files path is also accepted: await cd.load("/audio/track.wav");
@@ -50,9 +51,10 @@ for (let i = 0; i < frames; i++) {
   view.setInt16(46 + i * 4, Math.round(Math.sin(2 * Math.PI * 440 * i / 44100) * 6000), true);
 }
 await cd.load(wav);
+// BPM changes the restart interval; the track still plays at 44.1 kHz.
 liveLoop("cd-track", async () => {
   await cd.play();
-  await sleep(2);
+  await beat(4);
 });
 `,
 });
