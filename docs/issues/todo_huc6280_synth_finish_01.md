@@ -43,6 +43,8 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [ ] **自動演奏＋手動操作**: VGMまたはCodeを動かしたまま同じCHを編集・発音できる。
       VGMとCodeの同時実行は行わず、手動操作だけがそれぞれに加わる。
       後の自動writeを優先し、古い離鍵・Pitch解除が新しい発音を消さない。
+      Codeとの共存は[実装TODO](todo_huc6280_synth_code_manual_01.md)で対応。
+      残る工程はVGM再生中の同一CHへの手動操作。
 - [ ] **UI整理と配布確認**: Menu／Files／音色抽出／曲選択の入口、狭い画面、
       キーボードFocus、説明の折りたたみを確認する。読めるソースの独立ZIPで
       実WASM／Worklet、Chromium／WebKitを無音検証し、README・CIを揃える。
@@ -115,3 +117,14 @@ Off／消去は位置・編集用音色・Pause試奏を変えず、非対応bac
 [検証記録](verification_huc6280_synth_seek_cache_20261114.json)。Node417件、
 Chromium／WebKitの8スイート・16実行・170項目が成功した。
 次はVGM／Codeを止めずに手動で同じCHへ操作する工程。Tauriへの取り込み・公開は別工程。
+
+## Code表示中の手動演奏と発音の後始末（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_code_manual_01.md)。既存のCode継続・CH編集経路を確認し、
+Code表示中も編集欄の外では鍵盤で演奏できるようにした。文字入力・select・dialogは保護する。
+遅延したPitch操作は元のengine／session／epochだけへ送り、再Runや別出力へ渡さない。
+Octave／CH変更／blurでは手動Release tailも解放し、Code所有の発音は保つ。
+DDA供給が終わっても混在するWave／NoiseのSoftware Envelopeは同じ16-frame刻みで進める。
+[検証記録](verification_huc6280_synth_code_manual_20261114.json)。Node413件、
+同じ独立ZIPのChromium／WebKit全9スイート・18実行・182項目が成功した。
+共有WASM・SDK・npm APIは変更しない。次はVGM側のLive編集・鍵盤入力と、Seek／cacheの関係を詰める。

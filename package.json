@@ -111,6 +111,7 @@
     "test:huc6280-synth": "node --test docs/synth-huc6280/*.test.mjs test/runtime/huc6280_state.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
     "test:huc6280-synth:browser": "node scripts/check_huc6280_synth_browser.cjs",
     "test:huc6280-synth:code-browser": "node scripts/check_huc6280_synth_code_browser.cjs",
+    "test:huc6280-synth:manual-browser": "node scripts/check_huc6280_synth_manual_browser.cjs",
     "test:huc6280-synth:song-browser": "node scripts/check_huc6280_synth_song_browser.cjs",
     "test:huc6280-synth:live-browser": "node scripts/check_huc6280_synth_live_browser.cjs",
     "test:huc6280-synth:capture-browser": "node scripts/check_huc6280_synth_capture_browser.cjs",

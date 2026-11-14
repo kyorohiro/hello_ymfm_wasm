@@ -196,7 +196,7 @@
           <p id="synthCodeEditorNote" class="huc-help">Code is saved in Files. Loading a project never runs it automatically.</p>
           <pre id="synthCodeError" class="spu-code-error" role="alert"></pre>
           <details class="spu-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
-          <details class="spu-code-help"><summary aria-label="About HuC6280 Code">?</summary><p>Use <code>const pce = await useSoundChip("huc6280")</code> and await its methods. CH1–CH6 share one PSG. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6. noteOn / noteOff use the authored Software Envelope and DDA sample; keyOn / keyOff are raw hardware gates. Run starts fresh; Apply keeps context and named loops. Stop fades the software output and restores your edited instrument. Wave uploads reset channel phase. Timing, envelope, DDA playback and liveFx are software features.</p></details>
+          <details class="spu-code-help"><summary aria-label="About HuC6280 Code">?</summary><p>Use <code>const pce = await useSoundChip("huc6280")</code> and await its methods. CH1–CH6 share one PSG. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6. noteOn / noteOff use the authored Software Envelope and DDA sample; keyOn / keyOff are raw hardware gates. Run starts fresh; Apply keeps context and named loops. Switching Keyboard / Code keeps the performance running. Typing in the editor changes code; click a control or the page background to play keys while Code stays visible. Stop fades the software output and restores your edited instrument. Wave uploads reset channel phase. Timing, envelope, DDA playback and liveFx are software features.</p></details>
         </div>
       </section>
         </div>
@@ -209,6 +209,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-cache-1"></script>
+  <script type="module" src="./synth.js?v=huc-manual-1"></script>
 </body>
 </html>

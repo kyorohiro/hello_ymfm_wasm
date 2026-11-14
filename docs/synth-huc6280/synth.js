@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=huc-capture-1';
+import {createAudio} from './audio.js?v=huc-manual-1';
 import {createEditor} from './editor.js?v=huc-live-1';
 import {setupHuc6280CodeHost} from './code_host.js?v=huc-song-1';
 import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-live-1';
@@ -269,7 +269,7 @@ function canPlay(midi) {
 }
 function press(source, entry) {
   const phase=codeHost?.getState?.();
-  if (songState?.playing||songState?.busy||switchingAudioOutput||phase?.busy||phase?.stopping||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi)) return;
+  if (songState?.playing||songState?.busy||switchingAudioOutput||phase?.busy||phase?.stopping||notes.has(source)||!canPlay(entry.midi)) return;
   if(pausedSelection()){
     if(auditionNotes.has(source))return;
     const note={id:`huc6280-trial:${++sequence}`,key:entry.key,midi:entry.midi,epoch},key=pausedSelection().key;
@@ -310,6 +310,7 @@ function release(source) {
 }
 function stopNotes(message) {
   epoch++; notes.clear(); updateKeys();
+  if(codeHost?.isRunning())setPitchUi(0);
   const retiring=stopAudition();
   return enqueue(async()=>{await retiring;if(audio) await audio.command(codeHost?.isRunning()?'releaseKeyboard':'stop'); if(!codeHost?.isRunning())visualizer.stop();if(message) status(message);});
 }
@@ -319,11 +320,11 @@ for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListen
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {
-  const control = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');
+  const control = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open],.monaco-editor,#synthCodeEditorHost');
   return control && !control.matches?.('input[type="range"],input[type="checkbox"],input[type="radio"]');
 }
 window.addEventListener('keydown',event=>{
-  if(codeHost?.isCodeMode()||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
+  if(event.defaultPrevented||event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);
   if(!entry) return;
   event.preventDefault(); if(!event.repeat) press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
@@ -345,9 +346,12 @@ function setPitch(value) {
     setPitchUi(value);void audition.setPitch(value).catch(report);return;
   }
   const previous=pitch;setPitchUi(value);
-  if(audio) void enqueue(async()=>{
-    try{await audio?.command('setPitch',[value]);visualizer.wake();}
-    catch(error){if(pitch===value) setPitchUi(previous);throw error;}
+  const engine=audio,token=epoch,session=engine?.codeSession,wasCode=Boolean(codeHost?.isRunning());
+  const current=()=>!disposed&&audio===engine&&epoch===token&&engine.codeSession===session&&Boolean(codeHost?.isRunning())===wasCode&&!songState?.playing&&!songState?.busy;
+  if(engine) void enqueue(async()=>{
+    if(!current())return;
+    try{await engine.command('setPitch',[value]);if(current())visualizer.wake();}
+    catch(error){if(!current())return;if(pitch===value) setPitchUi(previous);throw error;}
   });
 }
 for (const [wheel] of pitchWheels) {
@@ -490,7 +494,7 @@ async function capturePausedVoice(payload,{isCurrent=()=>true}={}){
 codeHost=setupHuc6280CodeHost({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
   getSettings:()=>readPreset(preset),applySettings:(value,options={})=>applyPreset(value,{...options,load:true}),stopKeyboard:()=>stopNotes(),
   stopSong:async()=>{songControls?.stop();await stopAudition();},
-  onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){epoch++;notes.clear();codeWasRunning=running;updateKeys();}syncChannelObservers();renderCodeLive();visualizer.wake();},setStatus:status});
+  onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){epoch++;notes.clear();setPitchUi(0);codeWasRunning=running;updateKeys();}syncChannelObservers();renderCodeLive();visualizer.wake();},setStatus:status});
 codeLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>channelContext()==='code'&&channelTarget!=='synth',onUpdate:()=>renderCodeLive()});
 editorLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>Boolean(audio)&&channelContext()==='synth'&&channelTarget!=='synth',method:'observeEditor',onUpdate:()=>renderCodeLive()});
 audition=createHuc6280SongAudition({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,getSelection:pausedSelection,

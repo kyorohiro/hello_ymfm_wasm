@@ -12,12 +12,13 @@ const contextSource=source.match(/^const channelContext=.*$/m)[0];
 const apply=source.slice(source.indexOf('function applyPreset('),source.indexOf('const editor = createEditor('));
 const keyboard=source.slice(source.indexOf('function pausedSelection('),source.indexOf("$('startAudio').addEventListener"));
 const pitchSource=source.slice(source.indexOf('function setPitch(value)'),source.indexOf('for (const [wheel] of pitchWheels)'));
+const inputSource=source.slice(source.indexOf('function editing('),source.indexOf("window.addEventListener('keyup'"));
 const edit=source.slice(source.indexOf('async function editVisiblePreset('),source.indexOf('codeHost=setupHuc6280CodeHost('));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 
 function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
-  const calls=[],errors=[],notes=new Map(),auditionNotes=new Map();let pending=Promise.resolve(),scope;
+  const calls=[],errors=[],notes=new Map(),auditionNotes=new Map(),listeners=new Map();let pending=Promise.resolve(),scope;
   const engine={codeSession:session,state:{preset:createDefaultPreset(),voices:[]},
     async command(method,args=[]){calls.push(['command',method,structuredClone(args)]);
       if(['loadPreset','setPreset'].includes(method)){engine.state.preset=readPreset(args[0]);if(engine.pendingCommand)await engine.pendingCommand;}
@@ -38,7 +39,8 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
   };
   const observer=name=>({async refresh(){calls.push([name+'Refresh']);},setEnabled(){},sync(){},setVoice(value){calls.push([name+'Voice',value]);},read:()=>({liveState:{}})});
   scope=vm.createContext({Promise,DOMException,Map,Set,Array,Number,JSON,structuredClone,
-    audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,
+    audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,octave:0,
+    window:{addEventListener(type,listener){listeners.set(type,listener);}},layout:{entries:[{key:'a',midi:60}]},
     codeHost:host,songControls:null,songState:null,channelTarget:channel,channelSelection:0,autoUpdate:true,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,auditionNotes,audition,auditionSelectionKey:null,
     readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,
     enqueue(action){const task=pending.then(action);pending=task.catch(error=>errors.push(error));return task;},
@@ -53,8 +55,8 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
     canPlay:()=>true,capacity:()=>6,midiToNoteName:note=>String(note),
     async prepareDdaAudio(){calls.push(['prepareDda']);return{name:'unused',data:'',sampleRate:8000};},
   });
-  vm.runInContext(contextSource+'\n'+apply+'\n'+keyboard+'\n'+pitchSource+'\n'+edit,scope);
-  return{scope,engine,host,audition,calls,errors,notes,auditionNotes,idle:()=>pending};
+  vm.runInContext(contextSource+'\n'+apply+'\n'+keyboard+'\n'+pitchSource+'\n'+inputSource+'\n'+edit,scope);
+  return{scope,engine,host,audition,calls,errors,notes,auditionNotes,listeners,idle:()=>pending};
 }
 
 test('author preset/source loads keep Code running and route through its current session',async()=>{
@@ -106,13 +108,46 @@ test('stale Code session or epoch retires queued edits before they reach the chi
   assert.equal(await loading,false);assert(!h.calls.some(call=>['preset','command','read'].includes(call[0])),'an old queued load cannot address a new Code session');
 });
 
-test('keyboard uses the selected physical CH, Code editor guards it, and a quick release cancels delayed On',async()=>{
+test('keyboard uses the selected physical CH in either tab, and a quick release cancels delayed On',async()=>{
   const h=harness({channel:3});h.scope.press('key:KeyA',{key:'a',midi:64});await h.idle();
   const note=h.notes.get('key:KeyA');assert(note);assert.deepEqual(h.calls.find(call=>call[0]==='command'&&call[1]==='noteOn'),['command','noteOn',[note.id,64,3]]);
   h.scope.release('key:KeyA');await h.idle();assert.deepEqual(h.calls.findLast(call=>call[0]==='command'),['command','noteOff',[note.id]]);
-  const blocked=harness();blocked.host.mode=true;blocked.scope.press('key:KeyA',{key:'a',midi:60});await blocked.idle();assert.equal(blocked.notes.size,0);assert.equal(blocked.calls.length,0);
+  const code=harness();code.host.mode=true;code.scope.press('key:KeyA',{key:'a',midi:60});await code.idle();assert.equal(code.notes.size,1);assert(code.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));
   const gate=deferred(),quick=harness({ready:gate.promise});quick.scope.press('key:KeyA',{key:'a',midi:60});await Promise.resolve();
   quick.scope.release('key:KeyA');gate.resolve();await quick.idle();assert.equal(quick.notes.size,0);assert(!quick.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));
+});
+
+test('Code-view performance keys respect editor, text, select, dialog and already-handled focus boundaries',async()=>{
+  const event=target=>({key:'a',code:'KeyA',target,repeat:false,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;}});
+  for(const selector of ['textarea','input','select','[contenteditable="true"]','dialog[open]','.monaco-editor','#synthCodeEditorHost']){
+    const h=harness();h.host.mode=true;
+    const control={closest:query=>query.split(',').includes(selector)?control:null,matches:()=>false},e=event(control);
+    h.listeners.get('keydown')(e);await h.idle();assert.equal(h.notes.size,0,selector);assert.equal(e.defaultPrevented,false);assert.equal(h.calls.length,0);
+  }
+  for(const modifier of ['ctrlKey','metaKey','altKey','defaultPrevented']){
+    const h=harness(),e={...event(null),[modifier]:true};h.host.mode=true;
+    h.listeners.get('keydown')(e);await h.idle();assert.equal(h.notes.size,0,modifier);
+  }
+  for(const range of [false,true]){
+    const h=harness();h.host.mode=true;
+    const control={closest:query=>query.split(',').includes('input')?control:null,matches:()=>true},e=event(range?control:null);
+    h.listeners.get('keydown')(e);await h.idle();assert.equal(h.notes.size,1);assert(e.defaultPrevented);assert(h.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));
+  }
+});
+
+test('queued manual Pitch cannot cross Stop, rerun, channel cleanup, engine replacement or a starting song',async()=>{
+  for(const transition of ['stop','session','epoch','engine','song']){
+    const h=harness(),gate=deferred();h.scope.enqueue(()=>gate.promise);h.scope.setPitch(.75);
+    if(transition==='stop')h.host.running=false;
+    if(transition==='session')h.engine.codeSession++;
+    if(transition==='epoch')h.scope.epoch++;
+    if(transition==='engine')h.scope.audio={...h.engine};
+    if(transition==='song')h.scope.songState={playing:true};
+    gate.resolve();await h.idle();assert(!h.calls.some(call=>call[0]==='command'&&call[1]==='setPitch'),transition);
+  }
+  const current=harness();current.scope.setPitch(.75);await current.idle();
+  assert.deepEqual(current.calls.find(call=>call[0]==='command'),['command','setPitch',[.75]]);
+  await current.scope.stopNotes();assert.equal(current.scope.pitch,0);assert(current.calls.some(call=>call[0]==='command'&&call[1]==='releaseKeyboard'));
 });
 
 test('physical-CH DDA replacement rejects before file decoding or current sound changes',async()=>{

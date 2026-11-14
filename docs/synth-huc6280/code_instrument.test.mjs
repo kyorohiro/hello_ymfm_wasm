@@ -48,6 +48,17 @@ test('manual CH ownership and Code gates protect each performer from older relea
   assert.equal(i.observeCode().registers[3][4]&128,128);assert.equal(i.observeCode().registers[4][4]&128,0);
 });
 
+test('keyboard cleanup clears released hand tails without ending Code tails or the session',async t=>{
+  const i=await setup(t),p=i.read().preset;p.envelope={enabled:true,attack:0,decay:0,sustain:1,release:.1};i.loadPreset(p);
+  const {session}=i.beginCode();i.code(session,'noteOn',[0,'C4']);i.noteOn('hand-tail',64,2);
+  i.generateStereo(128);i.code(session,'noteOff',[0]);i.noteOff('hand-tail');
+  assert.equal(i.voices.has('hand-tail'),false);assert(i.slots[2]?.released);assert(i.slots[0]?.released);
+  i.releaseKeyboard();
+  assert.equal(i.slots[2],null);assert.equal(i.observeCode().registers[2][4]&128,0);
+  assert(i.slots[0]?.released);assert.equal(i.observeCode().registers[0][4]&128,128);
+  i.code(session,'noteOn',[1,'G4']);assert.equal(i.observeCode().registers[1][4]&128,128,'same Code lease remains usable');
+});
+
 test('sparse physical edits preserve other channels, musical pitch and gate while author settings follow the touched field',async t=>{
   const i=await setup(t);plain(i);const {session}=i.beginCode();i.code(session,'noteOn',[0,'A4']);i.code(session,'noteOn',[3,'E4']);
   i.code(session,'setPan',[3,2,11]);const before=i.observeCode();
@@ -99,6 +110,20 @@ test('DDA and wave channels share one render pass and DDA timing edits preserve 
   const position=i.slots[0].position;i.applyCodeEdit(session,{channel:0,changes:{'dda.speed':2,'dda.loop':true}});assert.equal(i.slots[0].position,position);
   const mixed=i.generateStereo(512);assert(mixed.left.every(Number.isFinite));assert(mixed.right.every(Number.isFinite));assert.notDeepEqual(mixed.left,mixed.right);
   assert.throws(()=>i.applyCodeEdit(session,{channel:0,changes:{'dda.data':''}}),/Synth view/);
+});
+
+test('mixed Code wave envelopes remain exact across block sizes after the last DDA feeder ends',async t=>{
+  const render=async layouts=>{
+    const i=await setup(t),p=dda(i);p.envelope={enabled:true,attack:0,decay:0,sustain:1,release:.025};p.dda.loop=false;i.loadPreset(p);
+    const {session}=i.beginCode();i.code(session,'setDda',[2,false]);i.code(session,'setWaveform',[2,waveShape('triangle')]);
+    i.code(session,'noteOn',[0,'C4']);i.code(session,'noteOn',[2,'A4']);i.generateStereo(512);
+    assert.equal(i.slots[0].ended,true,'one-shot has stopped feeding DAC data');i.code(session,'noteOff',[2]);
+    const left=new Float32Array(1536),right=new Float32Array(1536);let offset=0,index=0;
+    while(offset<left.length){const count=Math.min(left.length-offset,layouts[index++%layouts.length]),pcm=i.generateStereo(count);left.set(pcm.left,offset);right.set(pcm.right,offset);offset+=count;}
+    assert.equal(i.observeCode().registers[2][4]&128,0);return{left,right};
+  };
+  const whole=await render([1536]),fragmented=await render([1,17,127,64]);
+  assert(peak(whole)>.001);assert.deepEqual(whole,fragmented);
 });
 
 test('invalid Code calls and invalid sparse patches never retire an existing hand note',async t=>{

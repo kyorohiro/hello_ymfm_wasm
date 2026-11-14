@@ -362,7 +362,9 @@ export class Huc6280Instrument {
   releaseKeyboard(...args) {
     this._open();if(args.length)throw TypeError('Keyboard release takes no arguments');
     if(!this.codeActive)return this.stop();
-    for(const voice of [...this.voices.values()])if(voice.owner==='keyboard'&&this.gateOwners[voice.channel]===voice)this._retire(voice);
+    // Released keys leave the held-note map while their software tails retain
+    // slots. Blur/Octave cleanup must retire those hand tails as well.
+    for(const voice of [...this.slots])if(voice?.owner==='keyboard'&&this.gateOwners[voice.channel]===voice)this._retire(voice);
     for(let channel=0;channel<6;channel++)if(this.gateOwners[channel]?.manualEdit){this.synth.keyOff(channel);this.gateOwners[channel]=null;}
     this.pitch=0;return this.read();
   }
@@ -530,8 +532,13 @@ export class Huc6280Instrument {
       playing.length=0;
       for(const voice of this.slots) if(voice?.dda&&!voice.ended) playing.push(voice);
       if(!playing.length) {
-        const output=this.core.processFrames(frames-offset);left.set(output.left,offset);right.set(output.right,offset);
-        this.frame+=frames-offset;break;
+        // Code can leave Wave/Noise voices running after the final DAC feeder
+        // ends, or while the common preset is DDA. Keep their envelope clock
+        // identical to the ordinary wave path rather than skipping this block.
+        if(this.frame%ENVELOPE_QUANTUM===0)this._advanceEnvelopes();
+        const count=Math.min(frames-offset,ENVELOPE_QUANTUM-this.frame%ENVELOPE_QUANTUM);
+        const output=this.core.processFrames(count);left.set(output.left,offset);right.set(output.right,offset);
+        this.frame+=count;offset+=count-1;continue;
       }
       if(this.frame%ENVELOPE_QUANTUM===0) this._advanceEnvelopes();
       for(const voice of playing) if(this.slots[voice.channel]===voice&&!voice.ended) {

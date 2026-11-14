@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "task": "HuC6280 Synth focus-aware Code/manual performance and ownership cleanup",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Existing Code/Keyboard continuity, sparse physical-channel edits, common-instrument edits and sound loads were already implemented and were verified. They retain the same loop/context/session and one HuC6280 Worklet.",
+    "Code view now accepts performance keys after focus leaves the editor. Native text/select/dialog controls, contenteditable, Monaco/editor-host descendants, modifier shortcuts and already-handled key events are protected. The visible Keyboard panel still supports pointer keys.",
+    "Manual Pitch captures engine/session/epoch and Code running state before queued dispatch. A stale operation or response cannot address a restarted session, replacement output or newly started song. Code start/stop and manual channel/Octave cleanup center the Pitch display.",
+    "Keyboard cleanup scans owned slots, including released Software Envelope tails that are no longer in the held-note map. Code-owned notes and release tails remain active.",
+    "When the final DDA feeder ends, simultaneous Wave/Noise voices keep the ordinary 16-frame Software Envelope clock. Actual WASM renders now match across whole and fragmented output blocks.",
+    "Existing ownership policy is retained: older Code noteOff/keyOff does not silence a newer hand note; a later Code noteOn/keyOn takes ownership. Code frequency changes survive manual Pitch recentering.",
+    "Noise, hardware LFO and DDA hand voices coexist with Code. Explicit Stop still fades to silence, invalidates old clients and restores the authored instrument.",
+    "VGM manual editing is deferred. Existing VGM transport, paused audition/Capture, output mixer, Seek and exact checkpoint cache remain valid."
+  ],
+  "node": {
+    "passed": 413,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-manual-20261114/node-tests-a.log",
+      "bytes": 44943,
+      "sha256": "94ff5f0120ae2275a3b65c7496bbeda71362f8e105a12cd7ea5be0f0a298b62f"
+    }
+  },
+  "browsers": {
+    "suites": 9,
+    "runs": 18,
+    "checks": 182,
+    "results": [
+      {
+        "suite": "manual",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/manual-a.json",
+          "bytes": 16769,
+          "sha256": "e7247ed31d7fe5a25a63a13efbad4f29d73516932cd4ca489e824a2875c592e7"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 6
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 6
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/code-a.json",
+          "bytes": 20125,
+          "sha256": "b941eca185c465f9744073aa31acfdb81598272976871af8240aec7df58bd50a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/live-a.json",
+          "bytes": 106625,
+          "sha256": "9a206e07c512e99b0bd4cb9c56022ff711e7de32ea2b5a81928161ed608bb0d5"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/capture-a.json",
+          "bytes": 36498,
+          "sha256": "a09dff6143ca1721e44bd2b17443d88221efc267165cab1204eae9096a1dad5f"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "legacy",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/legacy-a.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      },
+      {
+        "suite": "song",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/song-a.json",
+          "bytes": 30713,
+          "sha256": "563cec9875f50756c1f28bd77b2e306fc8987af3fd6d740fae3dcbe7888d719e"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "mixer",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/mixer-a.json",
+          "bytes": 30053,
+          "sha256": "42f352c6aa4dd178abc39fff59f9a237b4c582868ee21efa421796e4a6703c07"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "seek",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/seek-a.json",
+          "bytes": 28099,
+          "sha256": "9cbcbab300c91e9fb0ac2df5e58d99b33315e41df0beacd8442dafd419a737c2"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "cache",
+        "receipt": {
+          "path": "build/verification/huc-manual-20261114/cache-a.json",
+          "bytes": 33650,
+          "sha256": "e7036ca47c76a6f76e14a5576889a6e56b1ea22b74dfffab5ef08543fec87ede"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      }
+    ],
+    "physicalOutputMutedBeforeApplicationJs": true,
+    "chromiumMuteAudioFlag": true,
+    "manualViewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsInspected": true,
+    "manualScreenshots": [
+      {
+        "path": "build/verification/huc-manual-20261114/manual-a-images/chromium-1240.png",
+        "bytes": 959306,
+        "sha256": "792df592f5497ae0b744642209878f807caf6fb124fb5af40519342dc1e70851"
+      },
+      {
+        "path": "build/verification/huc-manual-20261114/manual-a-images/chromium-390.png",
+        "bytes": 590372,
+        "sha256": "fba3244c1149a68fa8146d0101c277a9ed229868821343a16e677fc6decd8772"
+      },
+      {
+        "path": "build/verification/huc-manual-20261114/manual-a-images/webkit-1240.png",
+        "bytes": 2750566,
+        "sha256": "c5fc171dd5cb9b2f1231c5eef1ad2c1b17cae977fea94b05233d590722158c57"
+      },
+      {
+        "path": "build/verification/huc-manual-20261114/manual-a-images/webkit-390.png",
+        "bytes": 1179775,
+        "sha256": "789fd8668041200b7d470510346010ec13d372a5f8030253c2f06f879f5a1583"
+      }
+    ]
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_huc-manual-20261114a_itch.zip",
+      "bytes": 1833653,
+      "sha256": "35cb8cc99ee5a00f5ab32f1997cfff276d67341dcee0636181a2f8973c5da683"
+    },
+    "files": 139,
+    "sourceCheck": {
+      "inputs": 14,
+      "files": 20,
+      "sdkVersion": "0.1.8-huc-state"
+    },
+    "originalInputFilesVerifiedAfterBrowserRuns": 120
+  },
+  "scope": {
+    "sharedRuntimeWasmSdkChanges": [],
+    "npmApiChanged": false,
+    "nativeRepositoryChanged": false,
+    "ciWorkflowUpdated": true,
+    "ciWorkflowExecutedRemotely": false
+  },
+  "remaining": [
+    "VGM playback plus manual editing/keyboard on the same channel, including observed timeline and cache invalidation semantics.",
+    "Tauri import and publication.",
+    "Listening and long-duration real-game testing were not performed."
+  ]
+}

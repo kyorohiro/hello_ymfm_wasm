@@ -3,7 +3,7 @@
 import factory from '../generated/huc6280_wasm.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
-import {Huc6280Instrument} from './instrument.js?v=huc-shared-ch-1';
+import {Huc6280Instrument} from './instrument.js?v=huc-manual-1';
 
 const COMMANDS = new Set(['read','observeCode','observeEditor','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
 const cancelled=()=>{const error=new Error('HuC6280 command cancelled by Stop or a newer Code session');error.name='AbortError';return error;};

@@ -24,6 +24,13 @@ while retaining `context`, named loops and `livePrepare` values. Run starts a
 fresh performance. Switching back to **Keyboard** keeps Code running, so you can
 play keys, edit controls or load another sound during the loop.
 
+Switching **Keyboard / Code** keeps the loop, context and chip session running.
+In Code view, typing in the editor edits text. Click a knob or the page background
+to play keys without leaving Code; text fields, selectors and dialogs keep their
+normal keyboard input. A later Code note can take over the same channel without
+being cut by an older hand-key release. Code frequency changes also survive
+returning the manual Pitch wheel to center.
+
 The channel selector offers **Synth** and **CH1–CH6** in normal, Code and VGM modes. Synth
 edits the authored instrument; a physical channel shows that channel. Normal
 and Code modes allow editing, while VGM CH views are read-only.
@@ -387,6 +394,8 @@ Both **Pitch** wheels bend Wave notes by up to two semitones, stay synchronized
 and return to center on release. Noise disables them. **Octave − / +** and the
 shared Guitar / Bass / Ukulele layouts change the visible playing range.
 Hiding the page or leaving its window releases manual keys while Code continues.
+Changing Octave or channel also clears manual release tails and centers Pitch
+during Code, while the Code voices and loops continue.
 **Stop all sound** releases held notes and stops Code.
 If the audio engine fails, use **Enable audio** to reconnect.
 
@@ -435,6 +444,7 @@ From the repository root:
 npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
+npm run test:huc6280-synth:manual-browser
 npm run test:huc6280-synth:song-browser
 npm run test:huc6280-synth:live-browser
 npm run test:huc6280-synth:capture-browser
@@ -466,6 +476,9 @@ Software Envelopeはソフト側の音量制御で、実機のADSRではあり�
 プリセット保存・読込とPlayground向けJavaScript出力に対応します。
 Keyboard／Codeを切り替え、同じHuC6280を`useSoundChip("huc6280")`で操作できます。
 Code実行中も鍵盤・つまみ・波形編集・音色の読込を使えます。
+Keyboard／Codeを切り替えてもloop・context・接続は維持します。Code表示中も、
+つまみや背景へFocusを移すと鍵盤演奏ができます。編集欄・文字入力・select・dialog内は演奏しません。
+古い手動離鍵やPitch解除で新しいCodeの発音・周波数を巻き戻さず、Octave／CH変更は手動Releaseも解放します。
 CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込、型補完・実装への移動に対応します。
 Runは新規実行、Applyはcontext等を保持、Stopは短くフェードして編集用設定へ戻します。
 CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲート操作です。
