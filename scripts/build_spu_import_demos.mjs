@@ -40,6 +40,9 @@ export async function buildSpuImportDemos({outDir=defaultDirectory,check=false}=
 }
 
 if(process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
-  if(process.argv.slice(2).some(arg=>arg!=='--check'))throw new Error('Usage: node scripts/build_spu_import_demos.mjs [--check]');
-  console.log(JSON.stringify(await buildSpuImportDemos({check:process.argv.includes('--check')})));
+  const args=process.argv.slice(2),output=args.filter(arg=>arg.startsWith('--out-dir='));
+  if(args.some(arg=>arg!=='--check'&&!arg.startsWith('--out-dir='))||output.length>1||output.some(arg=>arg==='--out-dir='))
+    throw new Error('Usage: node scripts/build_spu_import_demos.mjs [--check] [--out-dir=PATH]');
+  console.log(JSON.stringify(await buildSpuImportDemos({check:args.includes('--check'),
+    ...(output.length?{outDir:resolve(output[0].slice('--out-dir='.length))}:{})})));
 }

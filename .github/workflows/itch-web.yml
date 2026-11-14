@@ -40,8 +40,8 @@ jobs:
           npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
       - name: Test FM2612 and PSG Synth behavior with actual WASM cores
         run: node --test docs/synth/*.test.mjs scripts/synth_pcm_reference_timing.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-core-tests.log"
-      - name: Test Run ZIP preparation, UI bundling, archives and Game Boy conversion
-        run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
+      - name: Test batch packaging, Run ZIP preparation, UI bundling, archives and Game Boy conversion
+        run: node --test scripts/package_itch_all.test.mjs scripts/build_spu_import_demos.test.mjs scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
       - name: Test PCM to BRR with the native and WASM S-DSP
         run: node --test test/runtime/snes_brr.test.mjs test/runtime/snes_brr_encoder.test.mjs test/runtime/snessynth.test.mjs test/runtime/snes_echo.test.mjs test/runtime/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
       - name: Test PCM to ADPCM-A with native and WASM YM2610 variants

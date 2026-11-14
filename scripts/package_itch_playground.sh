@@ -528,7 +528,6 @@ fi
 
 node "${ROOT_DIR}/scripts/build_playground_chip_comparison.mjs" --check
 node "${ROOT_DIR}/scripts/build_playground_examples.mjs"
-node "${ROOT_DIR}/scripts/build_spu_import_demos.mjs"
 
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
@@ -614,6 +613,7 @@ done
 cp -R "${PLAYGROUND_DIR}/examples" "${STAGE_DIR}/examples"
 cp -R "${PLAYGROUND_DIR}/defaults" "${STAGE_DIR}/defaults"
 cp -R "${PLAYGROUND_SAMPLES_DIR}/." "${STAGE_DIR}/samples/"
+node "${ROOT_DIR}/scripts/build_spu_import_demos.mjs" --out-dir="${STAGE_DIR}/samples/spu-import"
 cp -R "${PLAYGROUND_VENDOR_DIR}/." "${STAGE_DIR}/vendor/"
 
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"

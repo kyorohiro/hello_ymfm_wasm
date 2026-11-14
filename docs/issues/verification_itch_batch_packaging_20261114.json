@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "e40ec9e1b8acc99991ba096fd4c50ab2262665bc",
+  "passed": true,
+  "behavior": {
+    "version": "One required common VERSION for all ten canonical products and every ZIP filename. Game Boy/NES aliases are omitted.",
+    "normalCommand": "sh scripts/package_itch_all.sh VERSION",
+    "browserCommand": "sh scripts/package_itch_all_for_run.sh VERSION",
+    "outputSelection": "Ten ZIPs per collection. Only Playground differs: complete downloadable source kit versus browser _for_run build. Other nine ZIPs are byte-identical.",
+    "reuse": "A completed batch receipt verifies all eleven original ZIP hashes. Same-version second mode reuses the artifacts, then creates/verifies its selected collection. Source edits require a new version.",
+    "safety": "Validate version and preflight all expected archives, overwrite-prone legacy stages and collection paths before any child build. Same-version lock prevents concurrent writers. Partial failures keep completed outputs/logs without a success receipt. Existing collection ZIPs, manifest, checksums and guide must still match."
+  },
+  "node": {
+    "command": [
+      "node",
+      "--test",
+      "scripts/package_itch_all.test.mjs",
+      "scripts/build_spu_import_demos.test.mjs",
+      "scripts/prepare_itch_playground_run.test.mjs",
+      "scripts/bundle_itch_playground_run.test.mjs",
+      "scripts/check_itch_release_archives.test.mjs",
+      "test/runtime/playground_sample_gameboy_preview.test.mjs"
+    ],
+    "tests": 56,
+    "pass": 56,
+    "fail": 0,
+    "skip": 0,
+    "log": {
+      "path": "build/itch-batch-packaging-20261114/ci-package-tests-final.log",
+      "bytes": 7492,
+      "sha256": "8e838a6d891aa59f5329bdd33263b8b4426e67c42e26c38df5eae48bec4bc2be"
+    },
+    "newBatchRegressionTests": 10,
+    "newDemoRegressionTests": 2,
+    "ciIntegrated": true
+  },
+  "realBatch": {
+    "workingDirectory": "/private/tmp",
+    "version": "batch-final-20261114-e40ec9e1",
+    "childCommands": 10,
+    "rootArchives": 11,
+    "receipt": {
+      "path": "release/itch_all_batch-final-20261114-e40ec9e1.json",
+      "bytes": 2995,
+      "sha256": "3577d25a7e717f51754cf80aefe94c079ed08f5e8af50debff11e2d6ab7581d3"
+    },
+    "artifacts": [
+      {
+        "product": "2a03",
+        "name": "tetorica_2a03_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 1301151,
+        "sha256": "54ac8fe2521e4d972727ffc6684caf02f843671fe4512d82d7e0ac812307f49f"
+      },
+      {
+        "product": "dmg",
+        "name": "tetorica_dmg_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 1888508,
+        "sha256": "ccaf21f9c354f40391bfb3701076878ad34cade5369942b4d10a3de7ec33e944"
+      },
+      {
+        "product": "huc6280",
+        "name": "tetorica_huc6280_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 2063926,
+        "sha256": "a372472abb4181a73acd59456874e178a4a293f6e39ba467a04666cafd987fe5"
+      },
+      {
+        "product": "scsp",
+        "name": "tetorica_scsp_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 1227464,
+        "sha256": "5cdc380f36a48842453fa522a32a4d81d4fecfbef9ed0e24dfd2320dc898a925"
+      },
+      {
+        "product": "sid",
+        "name": "tetorica_sid_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 3510845,
+        "sha256": "842fa6293cef29f37f32ef6765cd915646ef7f18dc984fc3003efa05c8a2d952"
+      },
+      {
+        "product": "snes",
+        "name": "tetorica_sdsp_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 956536,
+        "sha256": "1c2889f2b3bea6118cf08a5f270d58c206e2fc866d1ab4315c81a16e5f496b67"
+      },
+      {
+        "product": "spu",
+        "name": "tetorica_spu_synth_batch-final-20261114-e40ec9e1_itch.zip",
+        "browserPlayable": true,
+        "bytes": 7146327,
+        "sha256": "9287eeecf911660c3e258064bbac98264370b16da872eb0364dc2fe834ac7b8b"
+      },
+      {
+        "product": "synth",
+        "name": "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_synth.zip",
+        "browserPlayable": true,
+        "bytes": 1127753,
+        "sha256": "0b4291be341aafd659530e7781b75cc250045ce0ed6f58cb58d6b514e39eea35"
+      },
+      {
+        "product": "vgm-analyzer",
+        "name": "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_vgm_analyzer.zip",
+        "browserPlayable": true,
+        "bytes": 3238361,
+        "sha256": "f24a6a0adef7b3395df8d21f35a8704cb016b1f45f65910aedac1135a57c4850"
+      },
+      {
+        "product": "playground",
+        "name": "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_playground.zip",
+        "browserPlayable": false,
+        "bytes": 38153366,
+        "sha256": "296cc8fdc4fbe69e6de62eb50ec10f631bb4d6f462fcd822f1b0325474b4f92f"
+      },
+      {
+        "product": "playground",
+        "name": "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_playground_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 38510044,
+        "sha256": "14a6ef7c2e15bcba004534a7bc656190b5ba01bf1437b074dc985808a55c0e77"
+      }
+    ],
+    "collections": [
+      {
+        "directory": "release/itch_all_batch-final-20261114-e40ec9e1",
+        "manifest": {
+          "path": "release/itch_all_batch-final-20261114-e40ec9e1/manifest.json",
+          "bytes": 2706,
+          "sha256": "a2493e6b16ad96d59a93038b289fd459e6d7393fa04fba57a831ed7962b36277"
+        },
+        "checksums": {
+          "path": "release/itch_all_batch-final-20261114-e40ec9e1/SHA256SUMS",
+          "bytes": 1268,
+          "sha256": "1530ee25ec52dfcd76ffeb855ef7cf9160aca186dd311ae3d51ffeea72d0f334"
+        },
+        "archives": [
+          "tetorica_2a03_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_dmg_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_huc6280_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_scsp_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_sid_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_sdsp_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_spu_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_synth.zip",
+          "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_vgm_analyzer.zip",
+          "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_playground.zip"
+        ]
+      },
+      {
+        "directory": "release/itch_all_batch-final-20261114-e40ec9e1_for_run",
+        "manifest": {
+          "path": "release/itch_all_batch-final-20261114-e40ec9e1_for_run/manifest.json",
+          "bytes": 2712,
+          "sha256": "fa6c004410eec99b5b65679da2a26e53667b31d2f8b2e90896536013841c8fc8"
+        },
+        "checksums": {
+          "path": "release/itch_all_batch-final-20261114-e40ec9e1_for_run/SHA256SUMS",
+          "bytes": 1276,
+          "sha256": "c72091a89958a19385cb3d13758cb056745eb353d0685da24710e91d5a284706"
+        },
+        "archives": [
+          "tetorica_2a03_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_dmg_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_huc6280_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_scsp_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_sid_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_sdsp_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "tetorica_spu_synth_batch-final-20261114-e40ec9e1_itch.zip",
+          "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_synth.zip",
+          "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_vgm_analyzer.zip",
+          "hello_ymfm_wasm_batch-final-20261114-e40ec9e1_itch_playground_for_run.zip"
+        ]
+      }
+    ],
+    "buildLog": {
+      "path": "build/itch-batch-packaging-20261114/final-for-run.log",
+      "bytes": 611,
+      "sha256": "7cc1e7dd42bbf3046030ee3a068a0d2f414cd9436e022d95cbae1594e2ec0165"
+    },
+    "normalReuseLog": {
+      "path": "build/itch-batch-packaging-20261114/final-normal-reuse.log",
+      "bytes": 231,
+      "sha256": "f91eec37faf603c7e3564f3821cbf2c7d4ec79a6aefe9171fe47ed036b6b4b01"
+    },
+    "firstNormalThenBrowserAlsoPassed": {
+      "normal": {
+        "path": "build/itch-batch-packaging-20261114/normal.log",
+        "bytes": 608,
+        "sha256": "6801a54423ad57899283cb32d596bf53c4e609f7e692f6894f44f760b96f745a"
+      },
+      "browser": {
+        "path": "build/itch-batch-packaging-20261114/for-run.log",
+        "bytes": 234,
+        "sha256": "12c075ec8d2e5315def29c649d0ee7586324ae63e57f1e99abc29661de713893"
+      },
+      "version": "batch-audit-20261114-e40ec9e1"
+    }
+  },
+  "playgroundDemoFix": {
+    "cause": "The existing Playground packager regenerated docs samples. The external-working-directory run used a Node/zlib environment producing different compressed PSF bytes with identical uncompressed programs.",
+    "fix": "Add --out-dir to the existing demo builder and generate after copying samples into the package stage. Keep the standalone default and --check behavior.",
+    "diagnostic": {
+      "path": "build/itch-batch-packaging-20261114/generated-demo-diagnostic/proof.json",
+      "bytes": 972,
+      "sha256": "821df09db3ea1fe47751105906e18bfabcf694e4cb46a9dd78039dd733aeda69"
+    },
+    "ownGeneratedSourceChangesRestored": true,
+    "finalOriginalSamplesUnchanged": [
+      {
+        "path": "docs/playground/samples/spu-import/Demo/lib/Bank.psflib",
+        "bytes": 467,
+        "sha256": "a121e7e088beddefef3e7b89d8150500a66b30eebeefb259f850b035161ee54f"
+      },
+      {
+        "path": "docs/playground/samples/spu-import/standalone.psf",
+        "bytes": 477,
+        "sha256": "f407991bb397c6115674a5d7d1ecb00977c52466c29a2ef554b4082027822569"
+      },
+      {
+        "path": "docs/playground/samples/spu-import/spu-psf-demo.zip",
+        "bytes": 2279,
+        "sha256": "22c3db3e2cfabe966765a44453fdbde4f399599a487f250e44f001c88ddfe92b"
+      }
+    ]
+  },
+  "sourceFiles": [
+    {
+      "path": "scripts/package_itch_all.sh",
+      "bytes": 168,
+      "sha256": "cf75a1780fd243a1dc737b729a94f1dae547c580b97843f3a3046e1e7f5884cb"
+    },
+    {
+      "path": "scripts/package_itch_all_for_run.sh",
+      "bytes": 178,
+      "sha256": "f18a8bdca4e45124ad46451fc8a9288f84b0a4928925f1559240b432dae7412c"
+    },
+    {
+      "path": "scripts/package_itch_all.mjs",
+      "bytes": 11186,
+      "sha256": "c881d7c8f5c4ea81591321078fdb684a5264fdcd65e0132d0f6fb8e9c258fb68"
+    },
+    {
+      "path": "scripts/package_itch_all.test.mjs",
+      "bytes": 11176,
+      "sha256": "ee096812ee334459ea156628e12768e00862d7fdb7704216e539f6b05575ebc3"
+    },
+    {
+      "path": "scripts/build_spu_import_demos.mjs",
+      "bytes": 2876,
+      "sha256": "c6e7fc8a6185b56f9499aa2216c478e01e0a174b77c8ea19f6b3a12509f080b0"
+    },
+    {
+      "path": "scripts/build_spu_import_demos.test.mjs",
+      "bytes": 2242,
+      "sha256": "1f27491a38d8c7b2a95726eb634b3cbbff547f5e7b6114f259719b3d5b8594be"
+    },
+    {
+      "path": "scripts/package_itch_playground.sh",
+      "bytes": 24215,
+      "sha256": "ffe7394951255e00e5c448f588a9c93dadfbe594035e24c55b4a9d054eebc87c"
+    },
+    {
+      "path": ".github/workflows/itch-web.yml",
+      "bytes": 18407,
+      "sha256": "02a5ca1d6fc31afe1fbb6837a7114691aedbe475ec78c6aae1a0b8222652ab44"
+    },
+    {
+      "path": "README_RELEASE.md",
+      "bytes": 7915,
+      "sha256": "4b83a2379b399b996ff723b7196782ec9265568f38a1f86e706f67f44a80fdc8"
+    },
+    {
+      "path": "docs/itch_web_release.md",
+      "bytes": 5459,
+      "sha256": "a942fdc0dd7c14b20916027c3c19dab2c9dc4a7e2dcdbe4058eb2ade27d9bb5f"
+    }
+  ],
+  "operations": {
+    "individualReleaseOutputsOverwritten": false,
+    "preexistingStagedUserWorkPreserved": true,
+    "indexChangedByAgent": false,
+    "commitOrPushByAgent": false,
+    "published": false,
+    "physicalAudioOpened": false
+  },
+  "limits": [
+    "This validates packaging orchestration, selected ZIP bytes, preflight/reuse/failure handling and staging-only demo generation.",
+    "Individual app startup/runtime checks were recorded separately in verification_itch_packaging_audit_20261114.json; no additional browser or listening test was needed for the orchestration change.",
+    "Remote Actions validation requires committing and pushing the current changes."
+  ]
+}

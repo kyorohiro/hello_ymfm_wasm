@@ -1,0 +1,581 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "sourceHead": "e40ec9e1b8acc99991ba096fd4c50ab2262665bc",
+  "passed": true,
+  "scope": "Fresh-version packaging of all12 requested shell commands, package integrity/provenance tests, all8Synth startup and selected full browser smoke workflows.",
+  "commands": [
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_2a03_synth.sh",
+        "audit-20261114-e40ec9e1-2a03"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_2a03_synth_audit-20261114-e40ec9e1-2a03_itch.zip",
+        "bytes": 1301147,
+        "sha256": "5f970077560638c3f354861936c3bb31e35ed043cf49ad4c4d7a7a7595ad91ff"
+      },
+      "stage": "release/itch_2a03_synth_audit-20261114-e40ec9e1-2a03-eAMWUJ",
+      "files": 72,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/2a03-package.log",
+        "bytes": 505,
+        "sha256": "0579e3489755ea72cd0e0d97383d7da52a7febaedbc43687626d3871a3c27b26"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_nes_synth.sh",
+        "audit-20261114-e40ec9e1-nes"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_2a03_synth_audit-20261114-e40ec9e1-nes_itch.zip",
+        "bytes": 1301147,
+        "sha256": "174a4a231d194793867ee1371b1724651a36eda03df00644d27262c994686a8e"
+      },
+      "stage": "release/itch_2a03_synth_audit-20261114-e40ec9e1-nes-X6uqa2",
+      "files": 72,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/nes-package.log",
+        "bytes": 503,
+        "sha256": "2e2ab53d4423d65e87705c67a894f12b85c1911410fd10e7d1a5cdfba9f8ff65"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_dmg_synth.sh",
+        "audit-20261114-e40ec9e1-dmg"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_dmg_synth_audit-20261114-e40ec9e1-dmg_itch.zip",
+        "bytes": 1888503,
+        "sha256": "fcf82483344d69b4816b38d4ae56a66db85dc02aa73e5547782833b3053cf349"
+      },
+      "stage": "release/itch_dmg_synth_audit-20261114-e40ec9e1-dmg-wqk3Qi",
+      "files": 131,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/dmg-package.log",
+        "bytes": 519,
+        "sha256": "5db8273c16d82036dd30d43588a13700fe0309816b3d20cec17aaf7cf0a204c0"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_gameboy_synth.sh",
+        "audit-20261114-e40ec9e1-gameboy"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_dmg_synth_audit-20261114-e40ec9e1-gameboy_itch.zip",
+        "bytes": 1888504,
+        "sha256": "b1ff2659533a699e75aaf2d1da95dd7a43f0d37482b9377d66e9f240d17bf427"
+      },
+      "stage": "release/itch_dmg_synth_audit-20261114-e40ec9e1-gameboy-9MRnTU",
+      "files": 131,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/gameboy-package.log",
+        "bytes": 527,
+        "sha256": "8ee37cc3a19275d66aa83154a4c5c9484fbde0ccb47c5f2073506a21f3dd2ebe"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_scsp_synth.sh",
+        "audit-20261114-e40ec9e1-scsp"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_scsp_synth_audit-20261114-e40ec9e1-scsp_itch.zip",
+        "bytes": 1227460,
+        "sha256": "c70f5e58ef12e3dd6ac1787cc2e6d94aa2c9fda47d609e3e4fc0ab65f06a2c4a"
+      },
+      "stage": "release/itch_scsp_synth_audit-20261114-e40ec9e1-scsp-MNfBRL",
+      "files": 54,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/scsp-package.log",
+        "bytes": 485,
+        "sha256": "067e53cdfa5502432e9c4916a9b728b444fa2f320accbe33c1ecc29a0c4adc65"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_snes_synth.sh",
+        "audit-20261114-e40ec9e1-snes"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_sdsp_synth_audit-20261114-e40ec9e1-snes_itch.zip",
+        "bytes": 956534,
+        "sha256": "75b991c0793882362489ade3353a871a309c9f959e642e265d39d412df0f3ef7"
+      },
+      "stage": "release/itch_sdsp_synth_audit-20261114-e40ec9e1-snes-i5rw6k",
+      "files": 62,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/snes-package.log",
+        "bytes": 504,
+        "sha256": "20327e74614f6266c92e2b69935aaf7487313758a65f7950613517c6f7522282"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_huc6280_synth.sh",
+        "audit-20261114-e40ec9e1-huc"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_huc6280_synth_audit-20261114-e40ec9e1-huc_itch.zip",
+        "bytes": 2063923,
+        "sha256": "2caf7afff063556b9cec6fb71b272243197844606b0f2cf716a76988fa6f922b"
+      },
+      "stage": "release/itch_huc6280_synth_audit-20261114-e40ec9e1-huc-UL604m",
+      "files": 196,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/huc-package.log",
+        "bytes": 527,
+        "sha256": "398eef84a0dc89a66a9000580bfa7eb71afa65a72ce4df44cfaabba660272a87"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_sid_synth.sh",
+        "audit-20261114-e40ec9e1-sid"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_sid_synth_audit-20261114-e40ec9e1-sid_itch.zip",
+        "bytes": 3510844,
+        "sha256": "98d9bb6635dc81dd7ad9fefa7cececb425dbc79c51c3a25ce8929052a0066f89"
+      },
+      "stage": "release/itch_sid_synth_audit-20261114-e40ec9e1-sid-az4Q8C",
+      "files": 337,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/sid-package.log",
+        "bytes": 424,
+        "sha256": "f6b652e95c43bd81165a14a1f2f53183938c3e697fc5a7bef1d20efc5ef8baca"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_spu_synth.sh",
+        "audit-20261114-e40ec9e1-spu"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/tetorica_spu_synth_audit-20261114-e40ec9e1-spu_itch.zip",
+        "bytes": 7146324,
+        "sha256": "c371f3873e25b120f10de54fcceea7b78bceb4509811170f41d6d6bf50e9c521"
+      },
+      "stage": "release/itch_spu_synth_audit-20261114-e40ec9e1-spu-3eL2TQ",
+      "files": 346,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/spu-package.log",
+        "bytes": 667,
+        "sha256": "8ad7eff070b9144096511e04f5e064b19e8ac65bbbd6c37b752e2f53751c4bfd"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_synth.sh",
+        "audit-20261114-e40ec9e1-fm"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/hello_ymfm_wasm_audit-20261114-e40ec9e1-fm_itch_synth.zip",
+        "bytes": 1127753,
+        "sha256": "2987fd03089670ef9925ec35a8772d62c43094e0d44bcd9ad3fa52b84eaddf2f"
+      },
+      "stage": "release/itch_synth_audit-20261114-e40ec9e1-fm",
+      "files": 293,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/fm-package.log",
+        "bytes": 16936,
+        "sha256": "fcf5389922f7968f0bf96800f0cfd283e1bae354449c61fc1f0a1b676d0b7667"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_vgm_analyzer.sh",
+        "audit-20261114-e40ec9e1-analyzer"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/hello_ymfm_wasm_audit-20261114-e40ec9e1-analyzer_itch_vgm_analyzer.zip",
+        "bytes": 3238361,
+        "sha256": "d7c50cce4253a0f4fa52a74f047bc59522b6a8821157351e7c1398f640d54745"
+      },
+      "stage": "release/itch_vgm_analyzer_audit-20261114-e40ec9e1-analyzer",
+      "files": 606,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/analyzer-package.log",
+        "bytes": 43201,
+        "sha256": "4d4ef92c07ddb25e7a6b993204048cec594fe84364ddf43543fc228315e12684"
+      }
+    },
+    {
+      "command": [
+        "sh",
+        "scripts/package_itch_playground.sh",
+        "audit-20261114-e40ec9e1-playground"
+      ],
+      "exitCode": 0,
+      "archive": {
+        "path": "release/hello_ymfm_wasm_audit-20261114-e40ec9e1-playground_itch_playground.zip",
+        "bytes": 38153359,
+        "sha256": "f2a88c136a2c1dc2437ff31b0b57ef381adc597786f6ed3c8edd3254cea3f1c5"
+      },
+      "stage": "release/itch_playground_audit-20261114-e40ec9e1-playground",
+      "files": 1312,
+      "log": {
+        "path": "build/itch-packaging-audit-20261114/playground-package.log",
+        "bytes": 183952,
+        "sha256": "f2942ed39b3cff9836d672150b2a71cc8d051396093f6cfa9a005ca7c757bdd6"
+      },
+      "browserArchive": {
+        "path": "release/hello_ymfm_wasm_audit-20261114-e40ec9e1-playground_itch_playground_for_run.zip",
+        "bytes": 38510038,
+        "sha256": "cff0a2fbf576292c7c015dbcdca1a61add374f943b48c343e0765dc50ede9009"
+      }
+    }
+  ],
+  "counts": {
+    "successfulShellCommands": 12,
+    "uniqueProducts": 10,
+    "auditZipFiles": 13,
+    "canonicalZipOutputs": 11,
+    "nodePackageTestsPassed": 14
+  },
+  "zipValidation": {
+    "synthProof": {
+      "path": "build/itch-packaging-audit-20261114/synth-stage-zip-proof.json",
+      "bytes": 2963,
+      "sha256": "9523faebb63042ef4bc73741096bd8cbbc3fa676ec9a6b9646c3403585519398"
+    },
+    "strictWebArchiveManifest": {
+      "path": "build/itch-packaging-audit-20261114/web-archives.json",
+      "bytes": 603892,
+      "sha256": "b1a7865a971c9ca751675bd1134561fc0e6183b55df6551c5083b0e633a44778"
+    },
+    "normalization": "Four web artifact ZIPs/stages were hard-linked into an isolated audit directory under default names for the existing fixed-name validator. Byte identity was checked; existing release outputs were not changed."
+  },
+  "aliases": [
+    {
+      "alias": "package_itch_gameboy_synth.sh",
+      "canonical": "package_itch_dmg_synth.sh",
+      "expectedDuplicateVersionExitCode": 1,
+      "collisionLog": {
+        "path": "build/itch-packaging-audit-20261114/gameboy-alias-collision.log",
+        "bytes": 650,
+        "sha256": "5f77911cc39567e1bd852f65fef81c0438123fbb1816574a045b63fc4044f080"
+      }
+    },
+    {
+      "alias": "package_itch_nes_synth.sh",
+      "canonical": "package_itch_2a03_synth.sh",
+      "expectedDuplicateVersionExitCode": 1,
+      "collisionLog": {
+        "path": "build/itch-packaging-audit-20261114/nes-alias-collision.log",
+        "bytes": 655,
+        "sha256": "e74fbe7e1aa4dcc52df040365b48ca4a7908e255653728607463c5fde8459717"
+      }
+    }
+  ],
+  "sameVersionPolicy": {
+    "refuseExistingSameVersionZip": [
+      "2a03",
+      "dmg",
+      "huc6280",
+      "scsp",
+      "sid",
+      "snes"
+    ],
+    "regenerateSameVersion": [
+      "spu",
+      "synth",
+      "vgm_analyzer",
+      "playground"
+    ]
+  },
+  "defaultVersionInventory": {
+    "huc6280DevZipAlreadyExists": true,
+    "path": "release/tetorica_huc6280_synth_dev_itch.zip",
+    "consequence": "The argument-free HuC6280 command refuses this existing dev ZIP; use a new VERSION or intentionally remove that exact prior archive before rebuilding."
+  },
+  "playgroundOutputs": {
+    "browser": "*_itch_playground_for_run.zip",
+    "download": "*_itch_playground.zip",
+    "runFiles": 1000,
+    "fullFiles": 1312,
+    "runHostingLimitsPassed": true
+  },
+  "node": {
+    "tests": 14,
+    "pass": 14,
+    "fail": 0,
+    "skip": 0,
+    "logs": [
+      {
+        "path": "build/itch-packaging-audit-20261114/legacy-package-tests.log",
+        "bytes": 917,
+        "sha256": "fc1306a598cb7f1f45002c1d955a8ad5e8000bf31e763017627094aa39edfb78"
+      },
+      {
+        "path": "build/itch-packaging-audit-20261114/modern-package-tests.log",
+        "bytes": 706,
+        "sha256": "ce329a0de1000ca6a63ef121dc87150073c042244452b5c516c2133ef7ca291d"
+      }
+    ]
+  },
+  "browser": {
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "synthStartup": {
+      "products": 8,
+      "runs": 16,
+      "results": [
+        {
+          "product": "fm",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "2a03",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "dmg",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "scsp",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 13,
+          "audioContexts": 0
+        },
+        {
+          "product": "snes",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "huc",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "sid",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "fm",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "2a03",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "dmg",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "scsp",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 13,
+          "audioContexts": 0
+        },
+        {
+          "product": "snes",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "huc",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "sid",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "spu",
+          "browser": "chromium",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        },
+        {
+          "product": "spu",
+          "browser": "webkit",
+          "passed": true,
+          "keys": 36,
+          "audioContexts": 0
+        }
+      ],
+      "receipt": {
+        "path": "build/itch-packaging-audit-20261114/startup-summary.json",
+        "bytes": 53665,
+        "sha256": "277fe6e5b508cab270e4ceb9cd5a5baa86c0e6b6d9fbbf5de572da32336f25b9"
+      },
+      "scope": "Isolated packaged startup only: DOM-generated keyboard/editor/Files readiness, local assets and lazy audio. No notes, Code execution or all-feature coverage.",
+      "developmentFailure": "The temporary startup runner initially used the wrong SPU keyboard selector. Its original receipt/runner are retained; only the runner was corrected and SPU was rerun in both engines. Product code was unchanged."
+    },
+    "fmSynth": {
+      "runs": 2,
+      "passed": true,
+      "receipt": {
+        "path": "build/itch-packaging-audit-20261114/fm-browser.json",
+        "bytes": 25472,
+        "sha256": "a64fc26f3ae1aa9d1e5844b0f809ed34753e8b53839e7043c1ccdea62bc5ab3f"
+      },
+      "scope": "Packaged startup, imported TFI, actual keyboard PCM, quiet release and replay."
+    },
+    "playground": {
+      "cases": 20,
+      "passed": true,
+      "receipt": {
+        "path": "build/itch-packaging-audit-20261114/playground-browser.json",
+        "bytes": 158208,
+        "sha256": "e5fc8b9168c7178acfec0c36a81ebc9f8e576fd8ad17aa02e3bf9e1e11d03271"
+      },
+      "scope": "Chromium/WebKit, Main/Worker, genesis/mega-cd/gameboy/nes/wonderswan: startup, VFS/Shell, actual PCM, Stop/Rerun."
+    },
+    "analyzer": {
+      "runs": 2,
+      "passed": true,
+      "receipt": {
+        "path": "build/itch-packaging-audit-20261114/analyzer-browser.json",
+        "bytes": 6676,
+        "sha256": "ce9b10bbba3b6a7dfbab5baf320b4f7152960647ba8d3b04cf8f559c01b125df"
+      },
+      "prePageMute": {
+        "path": "build/itch-packaging-audit-20261114/analyzer-muted-preload.cjs",
+        "bytes": 1666,
+        "sha256": "d20d71fbf2542f8ae7f9afc1a9ca631bae3d6c7903e800fd4ef27ccbc07f822f"
+      },
+      "scope": "Existing Analyzer Mixer browser suite, including calibrated gains, preferences, actual WASM/Worklet and borrowed OPNA FM/SSG PCM."
+    }
+  },
+  "sourceScripts": [
+    {
+      "path": "scripts/package_itch_2a03_synth.sh",
+      "bytes": 182,
+      "sha256": "4276772d4a28c446bcb4c1ed285535b837ca9824c7c55c42866f8aeb434811fa"
+    },
+    {
+      "path": "scripts/package_itch_nes_synth.sh",
+      "bytes": 172,
+      "sha256": "45f65dabda18d14cad52916a71dd7338f583d0c95910bafcaab31f4fe83d86ae"
+    },
+    {
+      "path": "scripts/package_itch_dmg_synth.sh",
+      "bytes": 181,
+      "sha256": "5e2645d957b078ab19a3c1f01a8570b11a2d4e8f57eb04b733a3e949988d83de"
+    },
+    {
+      "path": "scripts/package_itch_gameboy_synth.sh",
+      "bytes": 222,
+      "sha256": "70760b602fa3334d3619b64c392563d8a42e97cd3434136fc8878c56a701439f"
+    },
+    {
+      "path": "scripts/package_itch_scsp_synth.sh",
+      "bytes": 182,
+      "sha256": "8070514bf4bdc08b9186e143f5313e2914ace15c66dd203abaaca01f1b070eba"
+    },
+    {
+      "path": "scripts/package_itch_snes_synth.sh",
+      "bytes": 182,
+      "sha256": "40826e5ce882e7ab791944cb43ec270521bbaddfd09d75615f40cfc14903500d"
+    },
+    {
+      "path": "scripts/package_itch_huc6280_synth.sh",
+      "bytes": 185,
+      "sha256": "03fd95308181eaefc811851c3810df10490415d789de8ac02d5eeddd46d4b5c8"
+    },
+    {
+      "path": "scripts/package_itch_sid_synth.sh",
+      "bytes": 136,
+      "sha256": "45fd16522090c5e698edd43462fb9f48f92d8b87ef3884a730404f5632687220"
+    },
+    {
+      "path": "scripts/package_itch_spu_synth.sh",
+      "bytes": 181,
+      "sha256": "018d814888647c385d6d5dfb47adc33844ea20ea94048c92dcb73c4d25fdf3d4"
+    },
+    {
+      "path": "scripts/package_itch_synth.sh",
+      "bytes": 12977,
+      "sha256": "b6390c0eccf705f4f68e0e921baad483eee94f3562c389435363679b6910fce7"
+    },
+    {
+      "path": "scripts/package_itch_vgm_analyzer.sh",
+      "bytes": 16558,
+      "sha256": "a44c5e5f2ff893dcc695da058c51706c3a7c29d46e1b0ba965b8b90df1dafd7b"
+    },
+    {
+      "path": "scripts/package_itch_playground.sh",
+      "bytes": 24171,
+      "sha256": "3be651c0a73557febae872fe9aa75af6d4c2c31e83750aadeb553c69899d10f0"
+    }
+  ],
+  "operations": {
+    "existingReleaseOutputsRemovedOrOverwritten": false,
+    "productSourceChanged": false,
+    "indexChanged": false,
+    "commitOrPushPerformed": false,
+    "published": false,
+    "allBrowsersAndServersClosed": true
+  },
+  "limits": [
+    "Local macOS Chromium/WebKit verification; not an itch-hosted deployment, Tauri build or exhaustive all-feature/all-chip test.",
+    "The all-Synth matrix validates lazy UI startup. Additional actual audio/Code behavior is limited to the explicitly listed existing browser suites.",
+    "No listening or long-duration test."
+  ]
+}
