@@ -109,7 +109,8 @@ class TauriApplePasswordTests(unittest.TestCase):
 
         def run(command, **options):
             calls.append((command, options))
-            failed = command[1:3] == ["secret", "set"] and REPOSITORIES[0] in command
+            failed = (command[1:3] == ["secret", "set"]
+                      and command[command.index("--repo") + 1] == "github.com/" + REPOSITORIES[0])
             return subprocess.CompletedProcess(command, int(failed), PASSWORD, PASSWORD)
 
         with mock.patch.dict(os.environ, {"APPLE_PASSWORD": PASSWORD,
@@ -123,6 +124,10 @@ class TauriApplePasswordTests(unittest.TestCase):
             self.assertEqual(helper.main([]), 1)
         prompt.assert_not_called()
         self.assertEqual(len(calls), 3)
+        self.assertEqual(
+            [command[command.index("--repo") + 1] for command, _ in calls[1:]],
+            ["github.com/" + repository for repository in REPOSITORIES],
+        )
         for command, options in calls:
             self.assertNotIn(PASSWORD, " ".join(command))
             self.assertNotIn("APPLE_PASSWORD", options["env"])

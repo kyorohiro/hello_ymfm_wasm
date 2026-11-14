@@ -44,6 +44,78 @@ Game Boy／NESの互換コマンドはDMG／2A03と重複するため、一括�
 既存の個別パッケージスクリプトの上書き方針は変わりません。
 個別生成やGitHub Actionsの配布物については[Web release ZIPs](docs/itch_web_release.md)を参照してください。
 
+## 各Tauriアプリの取り込み時に版番号を更新
+
+各`w/tetorica-*-tauri/`の既存コマンドへ`--version`を追加できます。
+例えばFM2612 Synthでは、次のように実行します。
+
+```sh
+cd w/tetorica-fm2612-synth-tauri
+npm run import:release -- /path/to/xxx.zip --version 1.2.3
+```
+
+`1.2.3`は実行時に設定するアプリ版です。ZIP名・Web版とは独立しています。
+ZIPの取り込み成功と一緒に`package.json`、`package-lock.json`、
+`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`内のアプリ版、
+`src-tauri/tauri.conf.json`を更新します。依存パッケージの版は変更しません。
+`--version`を省略すれば、従来どおりZIPだけ取り込みます。
+`--check`や`--record-local-changes`との同時指定はできません。
+
+2A03、DMG、HuC6280、S-DSP、SID、SPU、FM2612 Synth、VGM Analyzer、Playgroundの
+9リポジトリで同じオプションを使えます。各リポジトリ単体で実行でき、
+親リポジトリのスクリプトには依存しません。
+取り込み後にテスト・リリースビルドを行い、更新した設定・lockと取り込んだファイルを
+最終commitに含めてからタグを付けてください。取り込みコマンド自体はbuild・commit・tagを行いません。
+
+## 補助ツール：Tauri 9アプリをローカルで一括ビルド
+
+`VERSION`は、実行時に指定する**Tauriアプリの共通版番号**です。
+`package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、
+`src-tauri/Cargo.lock`の自分のcrate、`src-tauri/tauri.conf.json`へ反映します。
+Web ZIPの版番号を検索する引数ではありません。取り込むWeb配布物は
+`--web-dir`で別に指定し、フォルダー内のmanifestから製品ごとのZIPを選びます。
+例えばWeb配布物が`20261114`でも、アプリ版は`1.2.3`にできます。
+
+```sh
+# VERSIONを今回のアプリ版（数字のX.Y.Z）に、パスを取り込むWeb配布物へ置き換える
+sh scripts/release_tauri_all.sh --plan VERSION --web-dir release/itch_all_20261114
+sh scripts/release_tauri_all.sh --prepare VERSION --web-dir release/itch_all_20261114
+# ビルド結果を確認してから、最終commitとvVERSIONタグを作る
+sh scripts/release_tauri_all.sh --commit VERSION
+```
+
+`--plan`は読み取りだけです。9リポジトリの未commit変更や既存タグ、Web ZIPのハッシュを、
+取り込み前にまとめて確認します。変更がある場合は、先にそのリポジトリで整理してください。
+`dist/`の直接編集や`local-changes.json`も自動で消しません。
+`--web-dir`には通常配布用の`itch_all_*/`を指定します。
+Playgroundも改造用ソースを含む通常版を使うため、`_for_run/`は指定できません。
+
+`--prepare`は各リポジトリの取り込み処理を使ってJavaScriptを反映し、版番号を揃え、
+`npm ci`、`npm test`、配布lock検証、`cargo test --locked`を実行してから、
+既存の`deploy_mac.sh`でIntel／Apple Siliconの`.app`と`.dmg`を作ります。
+既存の`--locked`付きビルドにも対応するため、自分のcrateのlock版もビルド前に揃え、
+依存crateが変わっていないことと最終lockの整合をビルド後に確認します。
+署名、appの公証チケット、CPU種別と版番号を検証し、
+`release/tauri_VERSION/`へapp ZIP、DMG、SHA256、ログ、進行記録を集めます。
+
+Python 3.11以降、Node/npm、Rust、両CPUのRust target、Xcodeのツールと、
+各`deploy_mac.sh`が使うローカルMacの署名証明書が必要です。
+`APPLE_PASSWORD`を環境変数に設定済みなら使用し、未設定なら実行時に非表示で入力します。
+パスワードはローカルのdeploy子プロセスへだけ渡し、ファイル、ログ、コマンド引数には保存しません。
+証明書やパスワードをGitHubへ登録する処理はありません。
+
+`--commit`は全ビルドの完了と、以降にソース・成果物・HEADが変わっていないことを確認し、
+各アプリで最終commitと注釈付きタグを作ります。pushやGitHub公開は別作業です。
+commit／tagの途中で止まった場合は、進行記録を使って同じ`--commit`を再実行できます。
+ビルド失敗時は変更と記録を保持し、自動resetや再取り込みはしません。
+原因を直して各アプリの変更を確認・整理し、途中の`release/tauri_VERSION/`を退避してから再実行します。
+停電等で`release/.tauri_release.lock`が残った場合も、実行中の処理がないことを確認してから扱ってください。
+
+対象は2A03、DMG、FM2612 Synth、SPU、HuC6280、S-DSP、SID、VGM Analyzer、Playgroundです。
+Windows／Linuxの配布とGitHub公開の一括化は後続作業です。
+現行ActionsはMac成果物もアップロードするため、ローカル署名済み成果物を置き換えないよう
+workflow側を整理してから公開してください。
+
 ## npmパッケージ
 
 パッケージごとの版番号更新、検証、公開手順は、次の文書を参照してください。
