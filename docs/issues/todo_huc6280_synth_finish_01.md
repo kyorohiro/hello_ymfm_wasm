@@ -23,7 +23,7 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
       既存の音色抽出と区別し、読込だけで音やCodeを開始しない。
       VGM AnalyzerのHuC6280再生基盤とDMG／FM2612の操作を調べて再利用する。
       最初は単一HuC6280の対応範囲を明示し、別チップの音を黙って省略しない。
-- [ ] **同じUIでCHを見る**: 通常／Code／VGMで共通の
+- [x] **同じUIでCHを見る**: 通常／Code／VGMで共通の
       `Synth · edit and play / CH1–CH6`選択を用意し、表示・設定・鍵盤の対象を揃える。
       CH表示は既存のWave／Noise／LFO／DDA操作を使い、自動更新をOn／Offできる。
       表示対象の変更だけで別CHの設定を統一しない。
@@ -61,3 +61,10 @@ Software morphは別の機能追加として扱う。上記の未完了項目を
 次は同じUIでのCH Live表示。Pause中の鍵盤は現時点では編集中の音色を鳴らし、
 選択CHの試奏／Capture・CH別On／Off・Seek・VGMへの直接操作は未実装。
 Tauriへの固定ZIP取り込みと公開も未実行。
+
+## 共通CH選択・VGM Live表示（2026-11-13）
+
+実装・無音検証済み。[詳細TODO](todo_huc6280_synth_live_channels_01.md)、
+[検証記録](verification_huc6280_synth_live_channels_20261113.json)。
+通常CHは個別編集・鍵盤・Stop後の保持に対応。VGM CHは読み取り専用で、聞こえた位置を表示する。
+次はPause中の選択CH試奏とCapture。現状ではPause中の鍵盤はSynth選択時の編集用音色のみ。

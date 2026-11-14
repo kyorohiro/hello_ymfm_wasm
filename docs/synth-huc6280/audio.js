@@ -6,7 +6,7 @@ import {readHuc6280CodeEdit} from './code_parameter_edit.js';
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read','observeCode','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
+const COMMANDS = new Set(['read','observeCode','observeEditor','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('HuC6280 Master must be from 0 to 3.8');
@@ -90,7 +90,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
         if (!response.ok) throw new Error(`HuC6280 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?v=huc-code-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./processor.js?v=huc-shared-ch-1', import.meta.url)),
       resumed,
     ]));
     assertOpen();
@@ -181,8 +181,14 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       const check=()=>{assertOpen();if(!owner||owner!==codeOwner||owner.closed||owner.generation!==codeGeneration||!isCurrent())throw huc6280CodeCancelled();};
       check();await owner.promise;check();const result=await command('applyCodeEdit',[owner.session,edit]);check();return result;
     }
+    async function applyEditorEdit(value,{isCurrent=()=>true}={}){
+      assertOpen();const edit=readHuc6280CodeEdit(value),generation=codeGeneration;
+      if(typeof isCurrent!=='function')throw TypeError('HuC6280 edit requires an ownership callback');
+      const check=()=>{assertOpen();if(codeOwner||generation!==codeGeneration||!isCurrent())throw huc6280CodeCancelled();};
+      check();const result=await command('applyEditorEdit',[edit]);check();return result;
+    }
     return {
-      context, outputNode:master,songInputNode:songInput,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),getHuc6280Client,applyCodePreset,applyCodeEdit,
+      context, outputNode:master,songInputNode:songInput,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),observeEditor:()=>command('observeEditor'),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,
       get codeSession(){return codeOwner?.session??null;},
       async resume() {
         assertOpen();

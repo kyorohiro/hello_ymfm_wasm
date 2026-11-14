@@ -24,14 +24,24 @@ while retaining `context`, named loops and `livePrepare` values. Run starts a
 fresh performance. Switching back to **Keyboard** keeps Code running, so you can
 play keys, edit controls or load another sound during the loop.
 
-The channel selector offers **Synth** and **CH1–CH6** while Code runs. Synth
-edits the authored instrument; a physical channel shows and edits that channel.
+The channel selector offers **Synth** and **CH1–CH6** in normal, Code and VGM modes. Synth
+edits the authored instrument; a physical channel shows that channel. Normal
+and Code modes allow editing, while VGM CH views are read-only.
 **Auto update** reads the configured wave and sent registers at up to 20 Hz;
 turn it off to reduce readback. This is an observation of software writes, not
-an oscillator-phase measurement. Manual channel edits retain their changed
+an oscillator-phase measurement. During Code, manual channel edits retain their changed
 fields in the authored instrument. Raw Code register writes do not overwrite
 the saved instrument. **Stop** fades the software output briefly, cancels Code
 and restores the authored settings with all notes released.
+
+In normal mode a physical CH has independent settings and keyboard ownership.
+Selecting CH or Synth alone does not copy or unify settings. Stop / blur releases
+manual notes while retaining these channel settings. Shared Synth edits broadcast
+only changed sound fields; explicit sound loads, source / routing / PCM changes
+replace the normal channel setup. Normal CH settings are session state, outside
+the single-voice preset format. Starting and stopping Code restores the common
+instrument. Selecting a physical CH before audio is enabled is passive; enable
+audio or play a key before editing its actual settings.
 
 `noteOn(channel, note)` / `noteOff(channel)` use this Synth's **Software
 Envelope**; `keyOn(channel)` / `keyOff(channel)` operate the raw hardware gate.
@@ -144,8 +154,21 @@ offset so Resume continues at the heard song position.
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
 both. Pause or Stop the song to play your edited instrument on the keyboard.
-Changing or loading an instrument stops the reference song. This first slice
-does not yet expose song-CH Live controls, channel audition / Capture or Seek.
+Changing or loading an instrument stops the reference song.
+
+Select **CH1–CH6** to see the VGM's Wave, Noise, LFO, level, stereo balance,
+period and Gate in the same instrument UI. This view is read-only and follows
+the **heard position**, rather than prefetched audio. Unknown Wave RAM stays
+blank; missing register fields show an unknown marker. DDA shows the last
+recorded five-bit DAC code, without assuming a continuous sample or root note.
+These observations never replace your authored instrument.
+
+**Auto update** starts On and publishes at up to 20 Hz. Off retains a full-chip
+snapshot, so changing CH views uses the same observation time. On catches up to
+the heard position. Pause publishes one exact consumed-position snapshot even
+when automatic updates are Off; Resume continues playback. To audition your
+authored instrument while paused, select Synth. Selected-song-CH keyboard
+audition / Capture, CH On / Off, Seek and direct VGM editing remain later steps.
 
 The player accepts VGM **1.61–1.72** and requires one HuC6280 at the normal
 **3,579,545 Hz** PC Engine clock. Other chips,
@@ -330,6 +353,7 @@ npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
 npm run test:huc6280-synth:song-browser
+npm run test:huc6280-synth:live-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -372,6 +396,12 @@ PCM一覧に由来・rate・時間・Loopを表示し、C4で記録時の速度�
 VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲一覧からPlay／Pause／Resume／Stopできます。
 模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
 Codeと曲再生は排他的で、RunとPlayが互いの演奏を停止します。Pauseは未再生PCMとoffsetを保持します。
-鍵盤で編集用音色を弾くには曲をPauseまたはStopします。CH Live・選択CHの試奏／Capture・Seekは後続です。
+CH1–CH6を選ぶと、聞こえた位置の設定を同じ音色UIへ読み取り専用で表示します。
+未記録Wave RAMは空欄、DDAは最後に書かれたDAC値を表示し、元のPCM音色や音階を推測しません。
+自動更新は初期On・最大20Hz。OffはCHを切り替えても同じ観測時刻を保ち、Onで追従します。
+Pause時は自動更新Offでも、実際に止まった位置を一度表示します。
+通常時もCHごとに表示・設定・鍵盤を揃え、CHやSynthの選択だけで値を統一しません。
+通常CH設定は一時的な状態で、単一音色presetには含めません。Code開始・終了では共通音色へ戻します。
+鍵盤で編集用音色を弾くには曲をPauseしてSynthを選ぶか、Stopします。選択CHの試奏／Capture・Seekは後続です。
 他チップの音を黙って省略せず、単一HuC6280以外や未対応データは理由付きで拒否します。
 CD-ROM²音源は対象外です。

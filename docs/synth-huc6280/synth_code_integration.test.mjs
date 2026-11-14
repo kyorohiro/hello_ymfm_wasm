@@ -8,6 +8,7 @@ import {createDefaultPreset,readPreset,isWaveOnlyEdit} from './preset.js';
 import {createHuc6280CodeEdit} from './code_parameter_edit.js';
 
 const source=await readFile(new URL('./synth.js',import.meta.url),'utf8');
+const contextSource=source.match(/^const channelContext=.*$/m)[0];
 const apply=source.slice(source.indexOf('function applyPreset('),source.indexOf('const editor = createEditor('));
 const keyboard=source.slice(source.indexOf('function press('),source.indexOf("$('startAudio').addEventListener"));
 const edit=source.slice(source.indexOf('async function editVisiblePreset('),source.indexOf('codeHost=setupHuc6280CodeHost('));
@@ -20,6 +21,7 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
     async getHuc6280Client(){calls.push(['prepareClient']);if(engine.pendingPrepare)await engine.pendingPrepare;engine.codeSession=7;return{};},
     async applyCodePreset(value,options){assert(options.isCurrent());calls.push(['preset',structuredClone(value),options.replace]);engine.state.preset=readPreset(value);if(engine.pendingPreset)await engine.pendingPreset;},
     async applyCodeEdit(value,options){assert(options.isCurrent());calls.push(['edit',structuredClone(value)]);if(engine.pendingEdit)await engine.pendingEdit;return structuredClone(engine.state);},
+    async applyEditorEdit(value,options){assert(options.isCurrent());calls.push(['editorEdit',structuredClone(value)]);return structuredClone(engine.state);},
     async read(){calls.push(['read']);return structuredClone(engine.state);},
   };
   const host={running,mode:false,phase:{busy:false,stopping:false},getState(){return this.phase;},isRunning(){return this.running;},isCodeMode(){return this.mode;},markSoundDirty(){calls.push(['dirty']);}};
@@ -34,11 +36,12 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
     vgmLibrary:{clearSelection(){calls.push(['clearVgm']);}},
     visualizer:{wake(){calls.push(['wake']);},stop(){calls.push(['visualStop']);}},
     codeLive:{async refresh(){calls.push(['refresh']);}},
+    editorLive:{async refresh(){calls.push(['editorRefresh']);}},
     status(message){calls.push(['status',message]);},report:error=>errors.push(error),
     canPlay:()=>true,capacity:()=>6,midiToNoteName:note=>String(note),
     async prepareDdaAudio(){calls.push(['prepareDda']);return{name:'unused',data:'',sampleRate:8000};},
   });
-  vm.runInContext(apply+'\n'+keyboard+'\n'+edit,scope);
+  vm.runInContext(contextSource+'\n'+apply+'\n'+keyboard+'\n'+edit,scope);
   return{scope,engine,host,calls,errors,notes,idle:()=>pending};
 }
 
@@ -60,6 +63,18 @@ test('physical UI changes send only the selected sparse parameter and retain the
   assert.deepEqual(h.scope.preset,authored,'observed foreign wave/pitch settings are not copied wholesale into the author sound');
   assert.equal(h.scope.revision,2);assert(h.calls.some(call=>call[0]==='dirty'));assert(h.calls.some(call=>call[0]==='refresh'));
   assert(!h.calls.some(call=>call[0]==='preset'||call[0]==='command'));
+});
+
+test('normal physical edits use the idle channel endpoint without changing or persisting the common sound',async()=>{
+  const h=harness({running:false,channel:4,session:null}),common=readPreset(h.scope.preset),next=readPreset(h.scope.displayedPreset);next.volume=9;
+  await h.scope.editVisiblePreset(next);
+  assert.deepEqual(h.calls.find(call=>call[0]==='editorEdit'),['editorEdit',{channel:4,changes:{volume:9}}]);
+  assert.deepEqual(h.scope.preset,common);assert(!h.calls.some(call=>['dirty','edit','preset'].includes(call[0])));assert(h.calls.some(call=>call[0]==='editorRefresh'));
+});
+
+test('VGM physical view ignores forged parameter changes without stopping playback or touching author/audio',async()=>{
+  const h=harness({running:false});h.scope.songState={playing:true,playback:'playing'};const next=readPreset(h.scope.displayedPreset);next.volume=9;
+  assert.equal(await h.scope.editVisiblePreset(next),false);assert.equal(h.calls.length,0);
 });
 
 test('stale Code session or epoch retires queued edits before they reach the chip',async()=>{

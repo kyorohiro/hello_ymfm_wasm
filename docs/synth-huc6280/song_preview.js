@@ -4,6 +4,7 @@ import {VgmPlayer} from '../js/vgmplayer.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import factory from '../generated/huc6280_wasm.js';
 import {prepareHuc6280SongSource} from './song_source.js';
+import {createHuc6280SongTimeline} from './song_state.js';
 
 const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01, INTERVAL = 8;
 const scheduleTask = globalThis.setTimeout.bind(globalThis);
@@ -24,6 +25,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   let source = null, name = '', active = null, generation = 0, loadGeneration = 0;
   let loadController = null, loading = false, disposed = false, playback = 'stopped';
   let errorMessage = '', positionFrames = 0, sampleRate = 44100;
+  let liveEnabled = true, liveState = null, liveMessage = '';
   const open = () => {if (disposed) throw new Error('HuC6280 song preview is disposed');};
   const current = ticket => !disposed && ticket === generation;
   const notify = message => {try {onStatus(message);} catch {}};
@@ -49,7 +51,9 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       warnings:source ? [...source.warnings] : [], canPlay:!disposed && !!source && !busy && playback !== 'playing',
       canPause:!disposed && playback === 'playing', canResume:!disposed && !busy && playback === 'paused',
       canStop:!disposed && (busy || active !== null || frames > 0),
-      bufferedFrames:active ? Math.max(0, active.renderedFrames - frames) : 0};
+      bufferedFrames:active ? Math.max(0, active.renderedFrames - frames) : 0,
+      liveKind:'song',liveEnabled,liveState,liveError:Boolean(liveMessage),liveMessage,
+      liveActive:Boolean(liveState&&!liveMessage&&['playing','paused','ended'].includes(playback))};
   }
   function emit() {try {onState(getState());} catch {}}
   function cancelTimer(run) {if (run && run.timer !== null) {cancel(run.timer); run.timer = null;}}
@@ -64,12 +68,12 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function release(run) {
     if (!run || run.released) return;
     run.released = true; cancelTimer(run); cancelNodes(run); run.segments = [];
-    try {run.gain.disconnect();} finally {run.engine.dispose();}
+    try {run.gain.disconnect();} finally {try {run.timeline.dispose();} finally {run.engine.dispose();}}
   }
   function stop() {
     generation++; loadGeneration++; loadController?.abort(); loadController = null; loading = false;
     const old = active; active = null; release(old);
-    positionFrames = 0; playback = 'stopped'; errorMessage = ''; emit(); return true;
+    positionFrames = 0; playback = 'stopped'; errorMessage = '';liveState=null;liveMessage=''; emit(); return true;
   }
   async function load(bytes, nextName = '', {signal} = {}) {
     open(); const ticket = ++loadGeneration;
@@ -83,7 +87,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       if (disposed || ticket !== loadGeneration || controller.signal.aborted) throw aborted();
       generation++; const old = active; active = null; release(old);
       source = prepared; name = String(nextName); positionFrames = 0; sampleRate = 44100;
-      playback = 'stopped'; errorMessage = ''; return true;
+      playback = 'stopped'; errorMessage = '';liveState=null;liveMessage=''; return true;
     } catch (error) {
       if (!disposed && ticket === loadGeneration && error?.name !== 'AbortError') notify(`VGM load failed: ${error.message}. Previous song kept.`);
       throw error;
@@ -96,6 +100,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function fail(error, run = active) {
     if (run && active !== run) return;
     positionFrames = position(run); active = null; release(run);
+    liveState=null;liveMessage='';
     playback = 'error'; errorMessage = error?.message ?? String(error);
     notify(`VGM playback failed: ${errorMessage}`); emit();
   }
@@ -114,6 +119,8 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     if (active !== run || playback !== 'playing') return;
     try {
       const consumed = position(run); positionFrames = consumed; run.basePosition = consumed;
+      run.timeline.read(consumed);
+      if(run.timeline.error){liveMessage=run.timeline.error;liveState=null;}
       run.segments = run.segments.filter(segment => {
         if (segment.firstFrame + segment.frames > consumed) return true;
         try {segment.node?.disconnect();} catch {} return false;
@@ -135,13 +142,24 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
         if (!frames) break;
       }
       if (run.eof && position(run) >= run.renderedFrames) {
-        positionFrames = run.renderedFrames; active = null; playback = 'ended'; release(run); emit(); return;
+        positionFrames = run.renderedFrames;publishLive(run,positionFrames,true); active = null; playback = 'ended'; release(run); emit(); return;
       }
       if (forceEmit || run.lastEmitTime === null || run.context.currentTime - run.lastEmitTime >= .05) {
-        run.lastEmitTime = run.context.currentTime; emit();
+        run.lastEmitTime = run.context.currentTime;publishLive(run,position(run),forceEmit&&!liveState); emit();
       }
       if (active === run && playback === 'playing') run.timer = schedule(() => {run.timer = null; pump(run);}, INTERVAL);
     } catch (error) {fail(error, run);}
+  }
+  function publishLive(run,frame,force=false) {
+    const snapshot=run.timeline.read(frame);
+    liveMessage=run.timeline.error;
+    if(liveMessage)liveState=null;
+    else if(liveEnabled||force)liveState=snapshot;
+  }
+  function setLiveEnabled(value) {
+    if(typeof value!=='boolean')throw TypeError('HuC6280 song Live enabled must be boolean');
+    open();if(liveEnabled===value)return getState();
+    liveEnabled=value;if(value&&active)publishLive(active,position(active),true);emit();return getState();
   }
   function requestAudio() {
     const requested = getAudio();
@@ -175,8 +193,8 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     if (playback === 'paused') return resume();
     if (playback === 'playing') return true;
     const ticket = ++generation, selected = source;
-    release(active); active = null; positionFrames = 0; playback = 'starting'; errorMessage = ''; emit();
-    let engine = null, gain = null;
+    release(active); active = null; positionFrames = 0; playback = 'starting'; errorMessage = '';liveState=null;liveMessage=''; emit();
+    let engine = null, gain = null,timeline=null;
     try {
       const host = await prepareHost(ticket); if (!current(ticket)) return false;
       const {context, output} = validateHost(host);
@@ -185,23 +203,25 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       validateHost(host);
       const rate = engine.sampleRate();
       if (!Number.isInteger(rate) || rate < 8000 || rate > 96000) throw new Error('Invalid HuC6280 reference sample rate');
+      timeline=createHuc6280SongTimeline(engine,selected.header.huc6280Clock);
       const player = new VgmPlayer(engine);
       player.setPrefetchFactor(1); player.setLoopEnabled(false);
       player.load(selected.bytes, {logger:{warn:message => {throw new Error(message);}}}); player.reset();
       gain = context.createGain(); gain.gain.value = 1; gain.connect(output);
-      const run = {engine, player, context, output, gain, sampleRate:rate, basePosition:0, renderedFrames:0,
+      const run = {engine, timeline,player, context, output, gain, sampleRate:rate, basePosition:0, renderedFrames:0,
         segments:[], nextTime:null, timer:null, eof:false, released:false, lastEmitTime:null};
-      active = run; engine = gain = null; sampleRate = rate;
+      active = run; engine = gain =timeline= null; sampleRate = rate;
       playback = 'playing'; player.play(); pump(run, true);
       return playback === 'playing' || playback === 'ended';
     } catch (error) {
-      try {gain?.disconnect();} finally {engine?.dispose();}
+      try {gain?.disconnect();} finally {try{timeline?.dispose();}finally{engine?.dispose();}}
       if (!current(ticket)) return false; fail(error); return false;
     }
   }
   function pause() {
     open(); const run = active; if (!run || playback !== 'playing') return false;
     run.basePosition = position(run); positionFrames = run.basePosition;
+    publishLive(run,positionFrames,true);
     cancelTimer(run); cancelNodes(run);
     run.segments = run.segments.filter(segment => segment.firstFrame + segment.frames > positionFrames);
     run.player.pause(); run.nextTime = null; playback = 'paused'; emit(); return true;
@@ -219,5 +239,5 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     } catch (error) {if (current(ticket) && active === run) fail(error, run); return false;}
   }
   function dispose() {if (disposed) return; stop(); disposed = true; source = null; name = ''; emit();}
-  return {load, play, pause, resume, stop, clear, getState, read:getState, dispose};
+  return {load, play, pause, resume, stop, clear, getState, read:getState,setLiveEnabled, dispose};
 }

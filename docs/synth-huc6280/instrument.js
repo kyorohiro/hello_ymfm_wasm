@@ -36,7 +36,8 @@ export class Huc6280Instrument {
     this.voices = new Map(); this.slots = Array(6).fill(null); this.levels = Array(6).fill(null); this.disposed = false;
     this.ddaSamples=decodeDdaData(this.preset.dda.data); this.ddaValues=Array(6).fill(null);
     this.codeActive=false;this.codeEpoch=0;this.codeFrames=0;this.gateOwners=Array(6).fill(null);this.codeBaseVolumes=Array(6).fill(24);
-    this._apply(null, this.preset); this.stop();
+    this.editorPresets=[];this.editorDirty=false;
+    this._restoreAuthor(); this.stop();
   }
   _open() { if (this.disposed) throw new Error('HuC6280 instrument is disposed'); }
   _frequency(midi, pitch = this.pitch) {
@@ -93,7 +94,7 @@ export class Huc6280Instrument {
   }
   _setVoiceLevel(voice, level) {
     this._setLevel(voice.channel, level,voice.baseVolume??this.preset.volume);
-    if (voice.paired) this._setLevel(1, level, this.preset.lfo.output.volume);
+    if (voice.paired) this._setLevel(1, level, voice.lfoSettings?.output.volume??this.preset.lfo.output.volume);
   }
   _retire(voice) {
     if(this.codeActive&&this.gateOwners[voice.channel]!==voice){this._forgetLiveVoice(voice.channel,voice);return;}
@@ -157,9 +158,21 @@ export class Huc6280Instrument {
   setPreset(value) {
     this._open();
     const next = readPreset(value);if(this.codeActive)this.stop();const previous = this.preset;
+    if(this.editorDirty){
+      const changes=createHuc6280CodeChanges(previous,next);
+      const routing=['source','lfo.enabled','lfo.mode','lfo.output.enabled','envelope.enabled','dda.data'].some(path=>Object.hasOwn(changes,path));
+      if(routing){this.stop();this.preset=next;this.ddaSamples=decodeDdaData(next.dda.data);this._restoreAuthor();return this.read();}
+      for(let ch=0;ch<6;ch++){
+        const patch={...changes};delete patch['dda.name'];
+        if(hasLfo(next)&&ch===1)for(const field of ['wave','volume','pan.left','pan.right'])delete patch[field];
+        const physical=applyHuc6280CodeEdit(this.editorPresets[ch],{channel:ch,changes:patch});
+        this._applyLiveFields(ch,patch,physical,{shared:ch===0});this.editorPresets[ch]=physical;
+      }
+      this.preset=next;return this.read();
+    }
     const waveOnly=isWaveOnlyEdit(previous,next);
     const activeWaveChanged=next.source==='wave'&&(!same(previous.wave,next.wave)||hasLfo(next)&&!same(previous.lfo.wave,next.lfo.wave));
-    if(waveOnly&&!activeWaveChanged){this.preset=next;return this.read();}
+    if(waveOnly&&!activeWaveChanged){this.preset=next;this._resetEditorBank();return this.read();}
     const clear = previous.source !== next.source || !same(previous.wave, next.wave) || previous.lfo.enabled !== next.lfo.enabled ||
       !same(previous.lfo.wave, next.lfo.wave) || previous.lfo.mode !== next.lfo.mode ||
       previous.lfo.output.enabled !== next.lfo.output.enabled || previous.envelope.enabled !== next.envelope.enabled || previous.dda.data!==next.dda.data;
@@ -182,12 +195,11 @@ export class Huc6280Instrument {
       }
       for(const channel of uploaded)if(gates[channel]&&owned.has(channel))this.synth.keyOn(channel);
     }
-    return this.read();
+    this._resetEditorBank();return this.read();
   }
   loadPreset(value) {
     this._open(); const next = readPreset(value);
-    this.stop(); this._apply(this.preset, next); this.preset = next; this.pitch = 0;
-    this.ddaSamples=decodeDdaData(next.dda.data);
+    this.stop();this.preset=next;this.ddaSamples=decodeDdaData(next.dda.data);this._restoreAuthor();
     return this.read();
   }
   noteOn(id, midi, channel) {
@@ -200,6 +212,10 @@ export class Huc6280Instrument {
       const pool=channel===undefined?poolFor(this.preset):[channel];
       const ch=pool.find(ch=>!this.slots[ch])??pool.reduce((a,b)=>(this.slots[b]?.order??-1)<(this.slots[a]?.order??-1)?b:a,pool[0]);
       return this._liveNoteOn(id,midi,ch,'keyboard');
+    }
+    if(channel!==undefined){
+      if(channel===1&&(this.synth._getState().globals[9]&3))throw Error('Hardware LFO reserves CH2 as the CH1 modulator. Play CH1 or disable LFO.');
+      return this._liveNoteOn(id,midi,channel,'keyboard');
     }
     if(this.preset.source==='dda'&&!this.ddaSamples.length) throw new Error('Load audio before playing DDA PCM');
     const pool = channel===undefined?poolFor(this.preset):[channel];
@@ -215,6 +231,16 @@ export class Huc6280Instrument {
     }, pool[0]);
     const previous = this.slots[channel];
     if (previous) this._retire(previous);
+    if(this.editorDirty){
+      const settings=this._editorPresetFor(this.preset,channel),changes={source:settings.source,wave:settings.wave,volume:settings.volume,'pan.left':settings.pan.left,'pan.right':settings.pan.right,'noise.frequency':settings.noise.frequency};
+      this._applyLiveFields(channel,changes,settings,{shared:false});this.editorPresets[channel]=settings;
+      this.synth.setLfo({frequency:this.preset.lfo.frequency,depth:hasLfo(this.preset)?this.preset.lfo.depth:0,reset:hasLfo(this.preset)&&this.preset.lfo.reset});
+      if(hasLfo(this.preset)){
+        const modulator=this._editorPresetFor(this.preset,1);
+        this._applyLiveFields(1,{source:'wave',wave:modulator.wave,volume:modulator.volume,'pan.left':modulator.pan.left,'pan.right':modulator.pan.right},modulator,{shared:false});this.editorPresets[1]=modulator;
+      }
+      for(const configuration of this.editorPresets)configuration.lfo=copyHuc6280CodeValue(this.preset.lfo);
+    }
     const voice = {id,midi,channel,order:++this.sequence,startFrame:this.frame,released:false,
       paired:hasLfo(this.preset) && this.preset.lfo.output.enabled,envelope:{...this.preset.envelope},
       dda:this.preset.source==='dda',position:0,positionCompensation:0,ended:false};
@@ -246,9 +272,9 @@ export class Huc6280Instrument {
       for(const voice of this.slots)if(voice?.owner==='keyboard'&&voice.pitchOwned&&this.gateOwners[voice.channel]===voice)this._tuneLiveVoice(voice,semitones);
       this.pitch=semitones;return this.read();
     }
-    if (this.preset.source === 'wave'||this.preset.source==='dda') for (const voice of this.slots) {
+    for (const voice of this.slots) {
       if (!voice) continue;
-      this._tuneVoice(voice, semitones);
+      if(voice.editor)this._tuneLiveVoice(voice,semitones);else if(this.preset.source==='wave'||this.preset.source==='dda')this._tuneVoice(voice, semitones);
     }
     this.pitch = semitones; return this.read();
   }
@@ -256,7 +282,10 @@ export class Huc6280Instrument {
     this._open();
     if(this.codeActive){this.codeActive=false;this.codeEpoch++;this._restoreAuthor();}
     this.synth.allNotesOff();
-    if(this.preset.source==='dda') for(let channel=0;channel<6;channel++) this._writeDda(channel,16);
+    for(let channel=0;channel<6;channel++){
+      if(this.synth._getState().registers[channel][4]&64)this._writeDda(channel,16);
+      this.synth.setVolume(channel,this.editorPresets[channel].volume);this.levels[channel]=null;
+    }
     this.voices.clear(); this.slots.fill(null); this.cursor = 0;
     this.gateOwners.fill(null);
     return this.read();
@@ -274,8 +303,16 @@ export class Huc6280Instrument {
       this.synth.setVolume(ch,volume);this.synth.keyOff(ch);this.codeBaseVolumes[ch]=volume;
     }
     if(hasLfo(this.preset)&&this.preset.lfo.mode==='recorded'){this._setPeriod(0,this.preset.lfo.carrierPeriod);this._setPeriod(1,this.preset.lfo.modulatorPeriod);}
+    this._resetEditorBank();
     this.pitch=0;
   }
+  _editorPresetFor(preset,channel){
+    const settings=readPreset(preset);
+    if(settings.source==='noise'&&channel<4)settings.source='wave';
+    if(hasLfo(preset)&&channel===1){settings.wave=[...preset.lfo.wave];settings.volume=preset.lfo.output.volume;settings.pan={...preset.lfo.output.pan};}
+    return settings;
+  }
+  _resetEditorBank(){this.editorPresets=Array.from({length:6},(_,ch)=>this._editorPresetFor(this.preset,ch));this.editorDirty=false;}
   beginCode(...args) {
     this._open();if(args.length)throw TypeError('HuC6280 Code begin takes no arguments');
     this.stop();this._restoreAuthor();this.codeActive=true;this.codeFrames=0;this.codeEpoch++;
@@ -290,21 +327,35 @@ export class Huc6280Instrument {
           sampleRate:voice.ddaSettings.sampleRate,rootNote:voice.ddaSettings.rootNote,loop:voice.ddaSettings.loop,speed:voice.ddaSettings.speed}:null),
       envelopes:this.slots.map(voice=>voice?{...voice.envelope}:null),observation:{registers:'sent',waveforms:'configured',softwareEnvelope:true}};
   }
+  observeEditor(...args){
+    this._open();if(args.length)throw TypeError('HuC6280 editor observation takes no arguments');
+    if(this.codeActive)return null;
+    const metadata=settings=>({samples:this.ddaSamples.length,sampleRate:settings.dda.sampleRate,rootNote:settings.dda.rootNote,loop:settings.dda.loop,speed:settings.dda.speed});
+    return {...this.synth._getState(),editorSource:this.preset.source,editorLfoEnabled:Boolean(this.synth._getState().globals[9]&3),editorLfoMode:this.editorPresets[0].lfo.mode,
+      positionFrames:this.frame,dda:metadata(this.preset),ddaVoices:this.editorPresets.map((settings,ch)=>({channel:ch,...metadata(settings),position:this.slots[ch]?.dda?this.slots[ch].position:0,ended:Boolean(this.slots[ch]?.ended)})),
+      envelopes:this.editorPresets.map(settings=>({...settings.envelope})),observation:{kind:'editor',registers:'sent',waveforms:'configured',softwareEnvelope:true}};
+  }
   _tuneLiveVoice(voice,pitch=0) {
     if(voice.dda){const dda=voice.ddaSettings;voice.step=dda.sampleRate*dda.speed*2**((voice.midi-dda.rootNote+pitch)/12)/this.rate;}
+    else if(voice.editor&&voice.channel===0&&voice.lfoSettings?.enabled){
+      const lfo=voice.lfoSettings;
+      if(lfo.mode==='recorded'){this._setPeriod(0,Math.max(1,Math.min(4096,Math.round(lfo.carrierPeriod*2**((60-voice.midi-pitch)/12)))));this._setPeriod(1,lfo.modulatorPeriod);}
+      else{const hz=this._frequency(voice.midi,pitch);this.synth.setFrequency(0,hz);this.synth.setFrequency(1,hz);}
+    }
     else if(!voice.noise)this.synth.setFrequency(voice.channel,this._frequency(voice.midi,pitch));
   }
   _liveNoteOn(id,midi,channel,owner) {
     const state=this.synth._getState();if(!state.initialized)throw Error('Initialize the HuC6280 before playing');
-    const registers=state.registers[channel],dda=Boolean(registers[4]&64),noise=channel>=4&&Boolean(registers[7]&128);
+    const registers=state.registers[channel],noise=channel>=4&&Boolean(registers[7]&128),dda=!noise&&Boolean(registers[4]&64);
     if(dda&&!this.ddaSamples.length)throw Error('Load audio before playing DDA PCM; writeDda() is available for direct DAC values');
     const old=this.slots[channel];if(old)this._retire(old);
-    const voice={id,midi,channel,owner,order:++this.sequence,startFrame:this.frame,released:false,paired:false,
-      envelope:{...this.preset.envelope},baseVolume:this.codeBaseVolumes[channel],noise,dda,pitchOwned:true,position:0,positionCompensation:0,ended:false,
-      ...(dda?{samples:this.ddaSamples,ddaSettings:{...this.preset.dda}}:{})};
+    const settings=this.codeActive?this.preset:this.editorPresets[channel],lfo=!this.codeActive&&channel===0&&Boolean(state.globals[9]&3)?copyHuc6280CodeValue(this.editorPresets[0].lfo):null;
+    const voice={id,midi,channel,owner,editor:!this.codeActive,order:++this.sequence,startFrame:this.frame,released:false,paired:Boolean(lfo?.output.enabled),lfoSettings:lfo,
+      envelope:{...settings.envelope},baseVolume:this.codeActive?this.codeBaseVolumes[channel]:settings.volume,noise,dda,pitchOwned:true,position:0,positionCompensation:0,ended:false,
+      ...(dda?{samples:this.ddaSamples,ddaSettings:{...settings.dda}}:{})};
     this._tuneLiveVoice(voice,owner==='keyboard'?this.pitch:0);
     if(dda){this.ddaValues[channel]=null;this._writeDda(channel,voice.samples[0]);}
-    this._setVoiceLevel(voice,this._level(voice));this.synth.keyOn(channel);
+    this._setVoiceLevel(voice,this._level(voice));if(voice.paired)this.synth.keyOn(1);this.synth.keyOn(channel);
     this.slots[channel]=voice;this.gateOwners[channel]=voice;this.voices.set(id,voice);
     return {channel,stolenId:old?.released?null:old?.id??null};
   }
@@ -378,6 +429,37 @@ export class Huc6280Instrument {
     const edit=readHuc6280CodeEdit(value),next=applyHuc6280CodeEdit(this.preset,edit),live=applyHuc6280CodeEdit(huc6280CodeLiveView(this.observeCode(),edit.channel,this.preset).preset,edit);
     this._applyLiveFields(edit.channel,edit.changes,live);this.preset=next;this.ddaSamples=decodeDdaData(next.dda.data);return this.read();
   }
+  applyEditorEdit(value){
+    this._open();if(this.codeActive)throw huc6280CodeCancelled();
+    const edit=readHuc6280CodeEdit(value),channel=edit.channel,changes=edit.changes,next=applyHuc6280CodeEdit(this.editorPresets[channel],edit);
+    if(next.source==='noise'&&channel<4)throw Error('Noise is available on CH5 and CH6 only.');
+    const shared=Object.keys(changes).some(path=>path.startsWith('lfo.'))||channel===0&&Object.hasOwn(changes,'source');
+    if(channel===1&&next.source!=='wave'&&(this.synth._getState().globals[9]&3))throw Error('Hardware LFO requires Wave on its CH2 modulator.');
+    if(Object.hasOwn(changes,'lfo.enabled')&&next.lfo.enabled&&(this.editorPresets[0].source!=='wave'||this.editorPresets[1].source!=='wave'))throw Error('Hardware LFO requires Wave on CH1 and CH2.');
+    if(channel===0&&next.source!=='wave')next.lfo.enabled=false;
+    const hardwareChanges={...changes};
+    if(changes['lfo.enabled']===true){
+      hardwareChanges['lfo.wave']=next.lfo.wave;hardwareChanges['lfo.output.volume']=next.lfo.output.volume;
+      hardwareChanges['lfo.output.enabled']=next.lfo.output.enabled;
+      hardwareChanges['lfo.output.pan.left']=next.lfo.output.pan.left;hardwareChanges['lfo.output.pan.right']=next.lfo.output.pan.right;
+    }
+    this._applyLiveFields(channel,hardwareChanges,next,{shared});this.editorPresets[channel]=next;this.editorDirty=true;
+    if(shared){for(const settings of this.editorPresets)settings.lfo=copyHuc6280CodeValue(next.lfo);
+      if(Object.hasOwn(hardwareChanges,'lfo.output.volume'))this.editorPresets[1].volume=next.lfo.output.volume;
+      if(Object.hasOwn(hardwareChanges,'lfo.output.pan.left'))this.editorPresets[1].pan.left=next.lfo.output.pan.left;
+      if(Object.hasOwn(hardwareChanges,'lfo.output.pan.right'))this.editorPresets[1].pan.right=next.lfo.output.pan.right;
+      if(Object.hasOwn(hardwareChanges,'lfo.wave'))this.editorPresets[1].wave=[...next.lfo.wave];
+      const carrier=this.slots[0];if(carrier?.editor){carrier.lfoSettings=next.lfo.enabled?copyHuc6280CodeValue(next.lfo):null;carrier.paired=Boolean(next.lfo.enabled&&next.lfo.output.enabled);}
+    }else if(channel===1){
+      for(const settings of this.editorPresets){
+        if(Object.hasOwn(changes,'wave'))settings.lfo.wave=[...next.wave];
+        if(Object.hasOwn(changes,'volume'))settings.lfo.output.volume=next.volume;
+        if(Object.hasOwn(changes,'pan.left'))settings.lfo.output.pan.left=next.pan.left;
+        if(Object.hasOwn(changes,'pan.right'))settings.lfo.output.pan.right=next.pan.right;
+      }
+    }
+    return this.read();
+  }
   _applyLiveFields(channel,changes,next,{shared=true}={}) {
     const own=path=>Object.hasOwn(changes,path),state=this.synth._getState(),registers=state.registers[channel];
     if(own('source')||own('dda.data')){
@@ -420,7 +502,7 @@ export class Huc6280Instrument {
     this._open();
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) throw new RangeError('Invalid frame count');
     const left = new Float32Array(frames), right = new Float32Array(frames);
-    if(this.preset.source==='dda'||this.codeActive&&this.slots.some(voice=>voice?.dda)) {const pcm=this._generateDda(frames,left,right);if(this.codeActive)this.codeFrames+=frames;return pcm;}
+    if(this.preset.source==='dda'||this.slots.some(voice=>voice?.dda)) {const pcm=this._generateDda(frames,left,right);if(this.codeActive)this.codeFrames+=frames;return pcm;}
     let offset = 0;
     while (offset < frames) {
       if (this.frame % ENVELOPE_QUANTUM === 0) this._advanceEnvelopes();

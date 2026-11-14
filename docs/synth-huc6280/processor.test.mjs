@@ -50,6 +50,17 @@ test('HuC6280 initialization cancellation disposes eventual core without publish
   assert.equal(f.core.disposed,1);assert.equal(f.messages.length,0);
 });
 
+test('queued normal editor mutations are fenced by Stop while passive observations see the retained bank',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  const edits=[];f.processor.instrument.applyEditorEdit=value=>{edits.push(value);return{preset:{dda:{data:''}}};};
+  f.processor.instrument.stop=()=>({preset:{dda:{data:''}}});f.processor.instrument.observeEditor=()=>({marker:'independent channels retained'});
+  let release;f.processor.commands=new Promise(resolve=>release=resolve);
+  f.processor.receive({id:1,method:'applyEditorEdit',args:[{channel:2,changes:{volume:9}}]});
+  f.processor.receive({id:2,method:'stop'});f.processor.receive({id:3,method:'observeEditor'});release();await f.processor.commands;
+  assert.equal(edits.length,0);assert.equal(f.messages.find(message=>message.id===1).name,'AbortError');assert.equal(f.messages.find(message=>message.id===3).value.marker,'independent channels retained');
+  f.processor.receive({id:4,method:'applyEditorEdit',args:[{channel:2,changes:{volume:11}}]});await f.processor.commands;assert.equal(edits.length,1);assert.equal(edits[0].changes.volume,11);f.processor.dispose();
+});
+
 test('processor retains only accepted PCM, resolves omitted-data edits, and keeps large data out of replies',async()=>{
   const f=fixture();f.resolve();await f.processor.ready;
   const flush=()=>new Promise(resolve=>queueMicrotask(resolve));

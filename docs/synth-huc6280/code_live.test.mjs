@@ -30,3 +30,15 @@ test('existing controls decode sent Wave/Noise/DDA/LFO settings without copying 
   const dda=huc6280CodeLiveView(s,2,preset);assert.equal(dda.preset.source,'dda');assert.equal(dda.preset.dda.sampleRate,12000);assert.match(dda.readout,/software sample supply/);
   assert.deepEqual(preset,original);dda.preset.wave[0]=9;assert.equal(s.waveforms[2][0],7);
 });
+
+test('normal editor observation stays passive and drops an idle response after Code takes ownership',async()=>{
+  let allowed=false,serial=0;const timers=new Map(),requests=[];
+  const engine={command:method=>new Promise(resolve=>requests.push({method,resolve}))};
+  const live=createHuc6280CodeLive({method:'observeEditor',retainSnapshot:false,getAudio:()=>engine,isRunning:()=>allowed,
+    schedule(fn,ms){timers.set(++serial,{fn,ms});return serial;},cancel:id=>timers.delete(id)});
+  live.sync();assert.equal(timers.size,0);assert.equal(requests.length,0);
+  allowed=true;live.sync();const run=()=>{const[id,timer]=timers.entries().next().value;timers.delete(id);timer.fn();};
+  run();assert.equal(requests[0].method,'observeEditor');allowed=false;live.sync();requests[0].resolve({marker:'stale idle'});await turn();assert.equal(live.read().liveState,null);
+  allowed=true;live.sync();run();requests[1].resolve({marker:'current idle'});await turn();assert.equal(live.read().liveKind,'editor');assert.equal(live.read().liveSource.name,'Editor');
+  assert.equal(live.read().liveState.marker,'current idle');live.setEnabled(false);assert.equal(live.read().liveState,null);assert.equal(timers.size,0);live.dispose();
+});

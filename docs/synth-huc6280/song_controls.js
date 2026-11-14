@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-live-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 
 const time=seconds=>{
@@ -26,6 +26,8 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     root.dataset.loading=String(Boolean(choosing||state.loading));
     root.dataset.positionFrames=String(state.positionFrames??0);
     root.dataset.renderedFrames=String((state.positionFrames??0)+(state.bufferedFrames??0));
+    root.dataset.liveEnabled=String(state.liveEnabled!==false);
+    root.dataset.livePositionFrames=String(state.liveState?.positionFrames??'');
     text(play,state.playing?'Pause':state.paused?'Resume':'Play');
     play.disabled=Boolean(choosing||state.loading||state.busy||!state.hasSource);
     stop.disabled=!(choosing||state.loading||state.canStop||['starting','playing','paused'].includes(state.playback));
@@ -106,6 +108,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     getState:()=>decorate(read()),read:()=>decorate(read()),isPlaying:()=>Boolean(read().playing),
     isActive:()=>Boolean(choosing||read().loading||['starting','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
+    setLiveEnabled:value=>decorate(preview.setLiveEnabled(value)),
     stop:stopCurrent,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
     dispose(){if(disposed)return;disposed=true;selection++;pending?.abort();unsubscribe();for(const remove of listeners)remove();preview.dispose();},
   };

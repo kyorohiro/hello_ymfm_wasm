@@ -76,6 +76,15 @@ test('Noise and hardware LFO remain physical: noise is CH5/6, LFO CH2 pitch is n
   i.applyCodeEdit(session,{channel:0,changes:{'lfo.depth':3}});assert.equal(i.observeCode().globals[9]&3,3,'live enabled state drives sparse LFO editing');
 });
 
+test('native Noise overrides DDA mode and needs no shared PCM for Code or hand notes',async t=>{
+  const a=await setup(t),b=await setup(t);plain(a);plain(b);const sa=a.beginCode().session,sb=b.beginCode().session;
+  for(const [i,session]of [[a,sa],[b,sb]])i.code(session,'setNoise',[4,{enabled:true,frequency:23}]);
+  a.code(sa,'setDda',[4,true]);b.code(sb,'setDda',[4,false]);a.code(sa,'keyOn',[4]);b.code(sb,'keyOn',[4]);
+  const both=a.generateStereo(2048),noise=b.generateStereo(2048);assert(peak(both)>.001);assert.deepEqual(both,noise,'the native chip gives Noise priority over the DDA bit');
+  a.code(sa,'noteOn',[4,'C4']);assert.equal(a.slots[4].noise,true);assert.equal(a.slots[4].dda,false);
+  a.noteOn('hand-noise',72,4);assert.equal(a.slots[4].dda,false);assert(peak(a.generateStereo(512))>.001);assert.equal(a.noteOff('hand-noise'),true);
+});
+
 test('DDA Code notes use the existing five-bit sample feeder and match ordinary rendering exactly',async t=>{
   const a=await setup(t),b=await setup(t);const preset=dda(a);b.loadPreset(preset);a.noteOn('ordinary',60);
   const {session}=b.beginCode();b.code(session,'noteOn',[0,'C4']);

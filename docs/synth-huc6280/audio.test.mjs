@@ -182,3 +182,17 @@ test('HuC6280 initialization failures and stalled loading release contexts and c
   }
   const invalid = fixture(); await assert.rejects(invalid.create({volume:4}),/Master/); assert.equal(invalid.context,undefined);
 });
+
+test('normal editor edits acquire no Code lease and stale Stop/session replies cannot publish a physical edit',async()=>{
+  const f=fixture(),audio=await f.create(),edit={channel:3,changes:{volume:13}};
+  await audio.observeEditor();assert.equal(f.messages.at(-1).method,'observeEditor');
+  const count=f.messages.length;await assert.rejects(audio.applyEditorEdit(edit,{isCurrent:()=>false}),{name:'AbortError'});assert.equal(f.messages.length,count);
+  assert.equal(await audio.applyEditorEdit(edit),true);assert.equal(f.messages.at(-1).method,'applyEditorEdit');assert.equal(audio.codeSession,null);
+  f.mode('drop');const stale=audio.applyEditorEdit(edit),rejected=assert.rejects(stale,{name:'AbortError'}),message=f.messages.at(-1);
+  f.mode('reply');await audio.command('stop');f.node.port.onmessage({data:{id:message.id,value:true}});await rejected;
+  f.mode('drop');const clientTask=audio.getHuc6280Client(),begin=f.messages.at(-1);
+  f.node.port.onmessage({data:{id:begin.id,value:{session:1,clock:3579545,channels:6}}});await clientTask;
+  await assert.rejects(audio.applyEditorEdit(edit),{name:'AbortError'});
+  assert(!f.messages.some(message=>message.method==='applyEditorEdit'&&message.args[0].channel!==3));
+  await audio.dispose();assert.equal(f.timers.size,0);
+});

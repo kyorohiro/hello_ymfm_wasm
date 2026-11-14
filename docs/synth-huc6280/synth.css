@@ -105,6 +105,9 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #hucCodeLiveTools[hidden] { display:none; }
 #hucChannelStatus,#hucChannelReadout { margin:7px 0; font-size:.73rem; overflow-wrap:anywhere; }
 #hucChannelSelect,#hucPresetSelect { min-width:0; max-width:100%; }
+.huc-editor[data-readonly="true"] #waveCanvas { cursor:default; }
+.huc-editor [data-unknown="true"] { opacity:.65; }
+.huc-editor[data-origin="VGM"] #ddaSection > .huc-card-content > .huc-help { display:none; }
 @media(max-width:760px) { #hucFilesTree { max-height:240px; } }
 @media(max-width:640px) {
   h1 { font-size:1.68rem; }

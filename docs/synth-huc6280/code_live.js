@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Bounded, passive observation of the Code-owned physical HuC6280.
-export {huc6280CodeLiveView} from './code_state.js';
+export {huc6280CodeLiveView} from './code_state.js?v=huc-shared-ch-1';
 const nativeSchedule=globalThis.setTimeout.bind(globalThis),nativeCancel=globalThis.clearTimeout.bind(globalThis);
 const copy=value=>value===null?null:structuredClone(value);
 export function createHuc6280CodeLive({getAudio,isRunning,onUpdate=()=>{},schedule=nativeSchedule,cancel=nativeCancel,intervalMs=50,
   method='observeCode',retainSnapshot=true}={}) {
   for(const fn of [getAudio,isRunning,onUpdate,schedule,cancel])if(typeof fn!=='function')throw new TypeError('HuC6280 Code Live needs host callbacks');
   if(!Number.isFinite(intervalMs)||intervalMs<50)throw new RangeError('HuC6280 Code Live interval must be at least 50 ms');
-  if(method!=='observeCode'||typeof retainSnapshot!=='boolean')throw new TypeError('Invalid HuC6280 observation mode');
+    if(!['observeCode','observeEditor'].includes(method)||typeof retainSnapshot!=='boolean')throw new TypeError('Invalid HuC6280 observation mode');
   let disposed=false,enabled=true,voice=0,epoch=0,owner=null,running=false,timer=null,inFlight=null;
   let snapshot=null,error='',waiting=false,refreshing=null;
   const read=()=>({liveKind:method==='observeEditor'?'editor':'code',liveEnabled:enabled,liveVoice:voice,liveActive:Boolean(running&&(enabled||retainSnapshot)&&snapshot&&!error),
     liveWaiting:Boolean(running&&enabled&&waiting),liveState:copy(snapshot),liveError:Boolean(error),liveMessage:error,
-    liveSource:{name:'Code'},playing:running,paused:false});
+    liveSource:{name:method==='observeEditor'?'Editor':'Code'},playing:running,paused:false});
   const notify=()=>{if(!disposed)onUpdate(read());};
   const clearTimer=()=>{if(timer!==null){cancel(timer);timer=null;}};
   const current=(token,engine,force=false)=>!disposed&&running&&(enabled||force)&&token===epoch&&engine===owner&&engine===getAudio()&&isRunning();

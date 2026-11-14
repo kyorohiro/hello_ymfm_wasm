@@ -30,6 +30,7 @@ function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),lo
     async resume(){calls.push(['resume']);await options.beforePlay({isCurrent:()=>true});await options.getAudio();emit({playback:'playing',playing:true,paused:false});},
     stop(){generation++;calls.push(['stop']);emit({playback:'stopped',playing:false,paused:false,loading:false,positionFrames:0,positionSeconds:0});},
     clear(){calls.push(['clear']);emit({hasSource:false,name:'',playback:'stopped',playing:false,paused:false});},
+    setLiveEnabled(value){calls.push(['live',value]);emit({liveEnabled:value});return {...state};},
     dispose(){generation++;calls.push(['dispose']);},
   };
   let options;
@@ -96,4 +97,12 @@ test('transport display separates consumed frames from rendered lookahead and re
   assert.equal(f.nodes.Player.dataset.positionFrames,'4410');assert.equal(f.nodes.Player.dataset.renderedFrames,'6615');assert.equal(f.nodes.Position.textContent,'0:00 / 1:05');
   f.emit({playback:'ended',playing:false});assert.equal(f.nodes.Status.textContent,'Finished.');assert(!f.controls.isActive());
   f.emit({playback:'error',errorMessage:'Renderer failed'});assert.equal(f.nodes.Status.textContent,'Renderer failed');assert.equal(f.nodes.Status.dataset.error,'true');
+});
+
+test('Live toggles forward without acquiring audio or changing the project/transport',async t=>{
+  const f=fixture(t);add(f.project,'source.vgm');await turn();
+  f.emit({playback:'playing',playing:true,liveEnabled:true,liveState:{positionFrames:123,registers:[[],[],[],[],[],[]]}});
+  const state=f.controls.setLiveEnabled(false);assert.equal(state.liveEnabled,false);assert.equal(f.nodes.Player.dataset.liveEnabled,'false');
+  assert.equal(f.nodes.Player.dataset.livePositionFrames,'123');assert.equal(state.selectedPath,'/vgm/source.vgm');assert(f.controls.isPlaying());
+  assert.deepEqual(f.calls.at(-1),['live',false]);assert.equal(f.audioRequests,0);assert.equal(f.beforeCalls,0);
 });

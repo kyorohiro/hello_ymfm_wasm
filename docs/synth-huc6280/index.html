@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-song-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-live-1">
 </head>
 <body>
   <main>
@@ -118,11 +118,11 @@
         </div>
       </details>
 
-      <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Code channel controls" hidden>
+      <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Channel controls">
         <div class="spu-code-live-row">
-          <label>View / keyboard <select id="hucChannelSelect" aria-label="Code channel or authored instrument"><option value="synth">Synth · edit and play</option><option value="0" selected>CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
+          <label>Channel <select id="hucChannelSelect" aria-label="Channel or authored instrument"><option value="synth" selected>Synth · edit and play</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option><option value="4">CH 5</option><option value="5">CH 6</option></select></label>
           <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
-          <details class="spu-code-help"><summary aria-label="About Code channel controls">?</summary><p>Selected CH shares its settings and keyboard with Code. Later Code writes can change it again. Auto update follows sent register settings up to 20 times per second; it does not read the current oscillator phase. LFO uses shared CH1 / CH2 hardware; Noise is available on CH5 / CH6. Synth edits your common keyboard instrument. Code and Keyboard tabs keep Run, context and named loops. Scheduling, Software Envelope, DDA sample supply and liveFx run in software.</p></details>
+          <details class="spu-code-help"><summary aria-label="About channel controls">?</summary><p>Synth edits your common round-robin instrument. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 show read-only settings at the heard position; Pause freezes that position. Auto update follows at up to 20 times per second, and Off retains the last observation. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p></details>
         </div>
         <p id="hucChannelStatus" class="subtext" role="status"></p><p id="hucChannelReadout" class="subtext"></p>
       </section>
@@ -193,6 +193,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-song-2"></script>
+  <script type="module" src="./synth.js?v=huc-live-1"></script>
 </body>
 </html>

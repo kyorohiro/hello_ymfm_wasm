@@ -3,9 +3,9 @@
 import factory from '../generated/huc6280_wasm.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
-import {Huc6280Instrument} from './instrument.js?v=huc-code-1';
+import {Huc6280Instrument} from './instrument.js?v=huc-shared-ch-1';
 
-const COMMANDS = new Set(['read','observeCode','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
+const COMMANDS = new Set(['read','observeCode','observeEditor','applyEditorEdit','setPreset','loadPreset','noteOn','noteOff','setPitch','stop','releaseKeyboard','beginCode','code','applyCodePreset','applyCodeEdit']);
 const cancelled=()=>{const error=new Error('HuC6280 command cancelled by Stop or a newer Code session');error.name='AbortError';return error;};
 
 class Huc6280SynthProcessor extends AudioWorkletProcessor {
@@ -44,7 +44,7 @@ class Huc6280SynthProcessor extends AudioWorkletProcessor {
         if (!COMMANDS.has(data?.method)) throw new Error('Unknown HuC6280 Synth command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('HuC6280 command arguments must be an array');
         if(data.method==='stop'&&!validStop)throw TypeError('HuC6280 Stop takes no arguments');
-        if(!['read','observeCode','stop'].includes(data.method)&&epoch!==this.commandEpoch)throw cancelled();
+        if(!['read','observeCode','observeEditor','stop'].includes(data.method)&&epoch!==this.commandEpoch)throw cancelled();
         let args = data.args ?? [];
         if (data.ddaDataUnchanged !== undefined) {
           if (data.ddaDataUnchanged !== true || !['setPreset','loadPreset'].includes(data.method) ||

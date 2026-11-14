@@ -76,7 +76,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.match(main,/import \{createAudio\} from '\.\/audio\.js(?:\?v=[A-Za-z0-9._-]+)?'/);
   assert.match(await readFile(join(a.stage,'synth-huc6280/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
-  for(const name of ['vgm_import.js','vgm_library.js','song_source.js','song_preview.js','song_controls.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
+  for(const name of ['vgm_import.js','vgm_library.js','song_source.js','song_preview.js','song_controls.js','song_state.js','song_live.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
   for(const name of ['ym2612vgm.js','vgm_file.js']) assert(info.receipt.modules.some(module=>module.path===`js/${name}`));
   for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs']) assert(info.receipt.originalInputs.some(input=>input.path===path));
   for(const entry of ['index.html','synth-huc6280/index.html']) {

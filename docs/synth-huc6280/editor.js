@@ -9,6 +9,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet(), parameterDrags=new Set();
   let preset = createDefaultPreset(), disposed = false, stroke = null, target = 'main';
+  let view={readOnly:false,waveKnown:true,lfoWaveKnown:true,origin:'Synth',unknownFields:[]};
   let importRate = 11025, loadRequest = 0, loadController = null;
   let ddaPreviewData = null, ddaPreview = null, ddaDrawn = null;
   const make = (tag, className, text) => {
@@ -23,7 +24,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   };
   const report = error => { if (!disposed) onError(error); };
   function commit(mutator) {
-    if (disposed) return;
+    if (disposed||view.readOnly) return;
     try {
       const next = readPreset(preset); mutator(next);
       preset = readPreset(next); render();
@@ -95,8 +96,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       else return;
       event.preventDefault(); event.stopPropagation(); choose(buttons[index].dataset.choiceValue, true);
     });
-    fields.set(id, {input: group, get, update: refresh});
-    return {setDisabled(value) {disabled = value;refresh();}};
+    const control={setDisabled(value) {disabled = Boolean(value||view.readOnly);refresh();}};
+    fields.set(id, {input: group, get, update: refresh,setDisabled:control.setDisabled});
+    return control;
   }
   function number(parent, label, id, min, max, get, set, step = 1, {fractional = false} = {}) {
     const row = make('div', 'huc-field'), title = make('span', '', label);
@@ -162,8 +164,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     }
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) listen(output, type, endDrag);
     listen(win, 'blur', endDrag);
-    fields.set(id, {input: output, get, update: refresh});
-    return {setDisabled(value) {disabled = value;if(disabled) endDrag();refresh();}};
+    const control={setDisabled(value) {disabled = Boolean(value||view.readOnly);if(disabled) endDrag();refresh();}};
+    fields.set(id, {input: output, get, update: refresh,setDisabled:control.setDisabled});
+    return control;
   }
   function checkbox(parent, label, id, get, set) {
     const row = field(parent, label, id); row.classList.add('huc-check');
@@ -214,7 +217,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const canvas = make('canvas'); canvas.id = 'waveCanvas'; canvas.width = 900; canvas.height = 220;
   canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', 'Editable HuC6280 main waveform, 32 samples from 0 to 31'); wave.append(canvas);
   const waveReadout = make('p', 'huc-wave-readout'); waveReadout.setAttribute('aria-live', 'polite'); wave.append(waveReadout);
-  help(wave, 'Draw either wave on this canvas. Releasing a stroke or choosing a shape keeps held notes and the Software envelope running. Upload resets the edited channels’ wave phase. Main wave is copied to the playable channels; LFO wave modulates CH1 when Hardware LFO is enabled.');
+  const waveHelp=help(wave, '');
 
   const ddaCard = card('DDA PCM · 5-bit DAC / software playback', 'ddaSection'), dda = ddaCard.content;
   const loadActions = make('div', 'huc-dda-actions'); dda.append(loadActions);
@@ -290,9 +293,10 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   }
   function drawDda() {
     if (disposed || ddaCard.element.hidden || !ddaCanvas.clientWidth || !ddaCanvas.clientHeight) return;
-    prepareDdaPreview();
+    const observed=view.origin==='VGM';
+    if(!observed)prepareDdaPreview();
     const width = Math.max(240, Math.round(ddaCanvas.clientWidth)), height = Math.max(150, Math.round(ddaCanvas.clientHeight));
-    const key = `${width}:${height}`;
+    const key = `${width}:${height}:${observed?String(view.ddaValue):'pcm'}`;
     if (ddaDrawn === key) return;
     ddaCanvas.width = width; ddaCanvas.height = height;
     const context = ddaCanvas.getContext('2d'); if (!context) return;
@@ -305,6 +309,14 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if ([0,16,31].includes(code)) context.fillText(String(code),3,y(code)+4);
     }
     context.strokeStyle = '#ffb04f';context.lineWidth = 1.5;context.beginPath();
+    if(observed){
+      const code=view.ddaValue;
+      if(Number.isInteger(code)){context.moveTo(left,y(code));context.lineTo(right,y(code));context.stroke();}
+      context.fillStyle='#d8dadd';context.fillText(Number.isInteger(code)?`LAST RECORDED DAC CODE ${code} / 31`:'DAC VALUE NOT RECORDED',left,height-7);
+      ddaCanvas.dataset.mode='recorded-dac';ddaCanvas.dataset.value=Number.isInteger(code)?String(code):'unknown';
+      ddaDrawn=key;return;
+    }
+    ddaCanvas.dataset.mode='pcm';delete ddaCanvas.dataset.value;
     const bins = ddaPreview.minima.length;
     if (bins) for (let bin = 0; bin < bins; bin++) {
       const x = left + (right - left) * (bin + .5) / bins;
@@ -375,6 +387,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     }
     context.fillStyle = '#d8dadd'; context.font = '12px sans-serif'; context.fillText('31', 4, top + 4); context.fillText('0', 11, bottom + 4);
     context.fillText(`${target === 'main' ? 'MAIN' : 'LFO CH2'} · 32 × 5-bit`, margin, height - 7);
+    const known=target==='main'?view.waveKnown:view.lfoWaveKnown;
+    canvas.dataset.known=String(known!==false);
+    if(known===false){context.fillText('WAVE RAM NOT FULLY RECORDED',margin,top+24);return;}
     context.strokeStyle = '#ffb04f'; context.lineWidth = 2.5; context.beginPath();
     for (let index = 0; index < 32; index++) {
       const x = margin + index * step, y = bottom - values[index] / 31 * (bottom - top);
@@ -401,7 +416,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     waveReadout.textContent = `Sample ${next.index} · value ${next.value} / 31 · release to apply`;
   }
   listen(canvas, 'pointerdown', event => {
-    if (event.button !== 0 || stroke || preset.source !== 'wave') return;
+    if (view.readOnly || event.button !== 0 || stroke || preset.source !== 'wave') return;
     event.preventDefault(); doc.activeElement?.blur(); canvas.setPointerCapture(event.pointerId);
     stroke = {id:event.pointerId, target, samples:[...samples()], previous:point(event)}; moveStroke(event);
   });
@@ -433,43 +448,65 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   } else listen(win, 'resize', () => {resizeWave();drawDda();});
   function render() {
     if (disposed) return;
-    for (const {input, get, update} of fields.values()) {
+    body.dataset.readonly=String(Boolean(view.readOnly));body.dataset.origin=view.origin;
+    for (const {input, get, update,setDisabled} of fields.values()) {
+      delete input.dataset.unknown;input.removeAttribute('aria-valuetext');
+      if(setDisabled)setDisabled(false);else input.disabled=Boolean(view.readOnly);
       if (update) {update();continue;}
-      if (input.type === 'checkbox') input.checked = get(preset);
+      if (input.type === 'checkbox') {input.checked = get(preset);input.indeterminate=false;}
       else if (doc.activeElement !== input) input.value = String(get(preset));
     }
     const isNoise = preset.source === 'noise', isDda = preset.source === 'dda', isWave = preset.source === 'wave';
     waveCard.element.hidden = !isWave; noiseCard.element.hidden = !isNoise; ddaCard.element.hidden = !isDda; lfoCard.element.hidden = isDda;
-    lfoEnabled.disabled = !isWave;
+    lfoEnabled.disabled = view.readOnly||!isWave;
     for (const control of lfoControls) control.setDisabled(!isWave || !preset.lfo.enabled);
     for (const control of periodControls) control.setDisabled(!isWave || !preset.lfo.enabled || preset.lfo.mode !== 'recorded');
-    lfoReset.disabled = !isWave || !preset.lfo.enabled;
-    lfoOutputEnabled.disabled = !isWave || !preset.lfo.enabled;
+    lfoReset.disabled = view.readOnly||!isWave || !preset.lfo.enabled;
+    lfoOutputEnabled.disabled = view.readOnly||!isWave || !preset.lfo.enabled;
     for (const control of outputControls) control.setDisabled(!isWave || !preset.lfo.enabled || !preset.lfo.output.enabled);
     periodHint.textContent = preset.lfo.mode === 'recorded'
       ? 'Recorded periods: C4 plays the original CH1 period. Other keys and Pitch transpose CH1; CH2 keeps its fixed period. A displayed period of 4096 is stored as register value 0. Elapsed waveform phase and song automation are not restored.'
       : 'Follow keyboard: keys play their normal notes and CH2 follows CH1’s period, so note pitch also changes modulation speed. Choose Recorded periods to keep CH2 independent and make C4 the recorded carrier pitch.';
     for (const control of envelopeControls) control.setDisabled(!preset.envelope.enabled);
     for (const button of targetButtons) button.setAttribute('aria-pressed', String(button.dataset.waveTarget === target));
-    canvas.setAttribute('aria-label', `Editable HuC6280 ${target === 'main' ? 'main' : 'LFO CH2'} waveform, 32 samples from 0 to 31`);
+    canvas.setAttribute('aria-label', `${view.readOnly?'Read-only':'Editable'} HuC6280 ${target === 'main' ? 'main' : 'LFO CH2'} waveform, 32 samples from 0 to 31`);
     sourceHint.textContent = isDda ? 'CH1–CH6 · six five-bit DAC voices. PCM playback, pitch and Loop use software control.'
       : isNoise ? 'CH5 + CH6 · two noise voices. Keys trigger; they do not change pitch.'
       : preset.lfo.enabled ? preset.lfo.mode === 'recorded' ? 'CH1 + CH2 pair · one voice. C4 plays the recorded carrier pitch; CH2 period stays fixed.'
         : 'CH1 + CH2 pair · one voice. CH2 period follows the keyboard.' : 'CH1–CH6 · six wavetable voices in round robin.';
+    if(view.physical)sourceHint.textContent=view.origin==='VGM'?`VGM CH ${view.channel+1} · read-only sent settings${isDda?' · recorded DAC codes, not an extracted PCM sample.':'.'}`:`CH ${view.channel+1} · edit and play this physical channel. Hardware LFO settings are shared.`;
+    waveHelp.textContent=view.readOnly?'Configured Wave RAM from the selected song channel. Unknown RAM is left blank. Main / LFO switches the view on this same canvas; oscillator phase is not reconstructed.':view.physical?'Draw the selected physical channel on this canvas. The LFO target edits CH2, the shared hardware modulator. A wave upload resets phase while keeping held-note ownership.':'Draw either wave on this canvas. Releasing a stroke or choosing a shape keeps held notes and the Software envelope running. Upload resets the edited channels’ wave phase. Main wave is copied to the playable channels; LFO wave modulates CH1 when Hardware LFO is enabled.';
+    doc.getElementById('lfoCarrierPeriodLabel').textContent=view.physical?'CH1 period · register':'CH1 period at C4';
+    doc.getElementById('lfoModulatorPeriodLabel').textContent=view.physical?'CH2 period · register':'CH2 fixed period';
+    if(view.physical)periodHint.textContent=view.origin==='VGM'?'Recorded CH1 / CH2 register periods and shared hardware LFO settings. Playback may change them again; oscillator phase is not read back.':'These are the current CH1 / CH2 register periods. Keyboard and Code can retune them; a register value of zero means period 4096.';
     const data = preset.dda.data, count = data.length / 4 * 3 - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
-    ddaInfo.textContent = count
+    ddaInfo.textContent = view.origin==='VGM' ? `VGM CH ${view.channel+1} · ${Number.isInteger(view.ddaValue)?`last recorded DAC code ${view.ddaValue} / 31`:'DAC code unknown'} · continuous PCM and musical root are not inferred.` : count
       ? `${preset.dda.name || 'Loaded PCM'} · ${count.toLocaleString('en-US')} samples · ${preset.dda.sampleRate.toLocaleString('en-US')} Hz · ${(count / preset.dda.sampleRate / preset.dda.speed).toFixed(2)} s at Root / ${preset.dda.speed * 100}%`
       : 'No PCM loaded · choose Load audio, then play the keyboard.';
+    loadActions.hidden=view.origin==='VGM';importFields.hidden=view.origin==='VGM';playback.hidden=view.origin==='VGM';ddaLoadStatus.hidden=view.origin==='VGM';
+    loadDdaAudio.disabled=Boolean(view.readOnly||view.physical);ddaAudioFileInput.disabled=Boolean(view.readOnly||view.physical);
+    for(const button of shapes.querySelectorAll('button'))button.disabled=Boolean(view.readOnly);
     conversionRate.setDisabled(Boolean(loadController)); drawDda();
     resizeWave(); drawWave(stroke?.samples);
-    if (!stroke) waveReadout.textContent = `${target === 'main' ? 'Main wave' : 'LFO wave · CH2'} · 32 samples · 5-bit levels · draw, then release to apply`;
+    if (!stroke) waveReadout.textContent = (target==='main'?view.waveKnown:view.lfoWaveKnown)===false?'Wave RAM not fully recorded · no replacement waveform is assumed.':`${target === 'main' ? 'Main wave' : 'LFO wave · CH2'} · 32 samples · 5-bit levels${view.readOnly?' · recorded configuration':' · draw, then release to apply'}`;
+    const fieldPaths={source:'source',volume:'volume',panLeft:'pan.left',panRight:'pan.right',noiseFrequency:'noise.frequency',lfoFrequency:'lfo.frequency',lfoDepth:'lfo.depth',lfoCarrierPeriod:'lfo.carrierPeriod',lfoModulatorPeriod:'lfo.modulatorPeriod',lfoEnabled:'lfo.enabled',lfoReset:'lfo.reset',lfoOutputEnabled:'lfo.output.enabled',lfoOutputVolume:'lfo.output.volume',lfoOutputLeft:'lfo.output.pan.left',lfoOutputRight:'lfo.output.pan.right'};
+    for(const[id,path]of Object.entries(fieldPaths))if(view.unknownFields?.includes(path)){
+      const input=fields.get(id)?.input;if(input){input.dataset.unknown='true';input.setAttribute('aria-valuetext','Not recorded');
+        if(input.tagName==='OUTPUT'){input.textContent='—';input.removeAttribute('aria-valuenow');}
+        else if(input.type==='checkbox')input.indeterminate=true;
+        else for(const button of input.querySelectorAll('button'))button.setAttribute('aria-checked','false');
+      }
+    }
+    if(view.unknownFields?.includes('source'))sourceHint.textContent='Source control has not been recorded at this song position.';
   }
   render();
   return {
     isInteracting:()=>Boolean(stroke||parameterDrags.size),
-    update(value) {
+    update(value,options={}) {
       if (disposed) return;
       const next = readPreset(value);
+      view={readOnly:false,waveKnown:true,lfoWaveKnown:true,origin:'Synth',unknownFields:[],...options};
+      if(view.readOnly)cancelStroke();
       if (loadController && preset.source === 'dda' && next.source !== 'dda') cancelDdaLoad('Conversion cancelled after changing source. Current PCM kept.');
       if ((preset.dda.data !== next.dda.data || preset.dda.name !== next.dda.name) && !loadController && !ddaLoadStatus.textContent.startsWith('Applying ')) {
         setLoadStatus(next.dda.data ? 'PCM ready · play the keyboard, or load audio to replace it.' : 'Load audio to play it through the five-bit DAC.');

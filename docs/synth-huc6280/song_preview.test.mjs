@@ -15,7 +15,7 @@ function setup(options = {}) {
   const preview = createHuc6280SongPreview({getAudio:() => {audioCalls++;return graph.audio;},
     beforePlay:() => {beforeCalls++;}, onState:state=>states.push(state), onStatus:text=>statuses.push(text),
     createEngine:async()=>{const engine=counterEngine();engines.push(engine);return engine;},
-    schedule:graph.schedule,cancel:graph.cancel,...options});
+    schedule:graph.schedule,cancel:graph.cancel,nowMs:()=>0,...options});
   return {...graph,preview,engines,states,statuses,get audioCalls(){return audioCalls;},get beforeCalls(){return beforeCalls;}};
 }
 const song = () => vgm([...write(0,0),...write(1,255),...wait(22050)]);
@@ -121,6 +121,39 @@ test('load supersession, Stop during validation, clear and dispose settle cancel
   f.preview.stop();yielding.resolve();await stoppedRejected;assert.equal(f.preview.read().name,'new');
   f.preview.clear();assert.equal(f.preview.read().hasSource,false);assert.equal(f.preview.read().canPlay,false);assert.equal(f.audioCalls,0);
   f.preview.dispose();assert.throws(()=>f.preview.clear(),/disposed/);await assert.rejects(f.preview.play(),/disposed/);
+});
+
+test('Live follows consumed PCM rather than prefetched writes and publishes periodically at no more than20Hz',async()=>{
+  const bytes=vgm([...write(0,0),...write(4,159),...write(2,100),...wait(500),...write(2,200),...wait(5000)]);
+  const f=setup();await f.preview.load(bytes);await f.preview.play();
+  assert.equal(f.preview.read().liveEnabled,true);assert(f.preview.read().liveActive);
+  const initial=f.preview.read().liveState;assert.equal(initial.registers[0][2],100);
+  assert(f.preview.read().bufferedFrames>500,'futureperiod already rendered');
+  const first=f.sources()[0];f.context.currentTime=first.at+499/44100;
+  assert.equal(f.preview.read().liveState,initial,'read does not repaint from rendered state');
+  assert.equal(f.preview.pause(),true);assert.equal(f.preview.read().liveState.positionFrames,499);assert.equal(f.preview.read().liveState.registers[0][2],100);
+  await f.preview.resume();const next=f.sources().at(-1);let start=f.context.currentTime;
+  const updateCount=f.states.filter(state=>state.liveState).length;
+  for(let i=0;i<20;i++)f.tick(.008);
+  const count=f.states.filter(state=>state.liveState).length-updateCount;
+  assert(count<=4,'periodic public snapshots are limited to20Hz');
+  assert.equal(f.preview.read().liveState.registers[0][2],200);assert(f.preview.read().liveState.positionFrames<=f.preview.read().positionFrames);
+  f.preview.dispose();
+});
+
+test('Live AutoOff retains a full-chip snapshot for CH switching, On refreshes, and Pause force-freezes even while Off',async()=>{
+  const bytes=vgm([...write(0,0),...write(4,159),...write(2,100),...write(0,5),...write(4,150),...write(7,0x91),
+    ...wait(500),...write(0,0),...write(2,200),...write(0,5),...write(7,0x95),...wait(5000)]);
+  const f=setup();await f.preview.load(bytes);await f.preview.play();f.preview.setLiveEnabled(false);
+  const frozen=f.preview.read().liveState;assert.equal(frozen.registers[0][2],100);assert.equal(frozen.registers[5][7],0x91);
+  for(let i=0;i<12;i++)f.tick(.008);
+  assert.equal(f.preview.read().liveState,frozen);assert(f.preview.read().liveActive,'the full frozen view remains selectable');
+  const at=f.preview.read().positionFrames;assert(at>500);f.preview.pause();
+  assert.equal(f.preview.read().liveState.positionFrames,at);assert.equal(f.preview.read().liveState.registers[0][2],200);
+  assert.equal(f.preview.read().liveState.registers[5][7],0x95);assert.equal(f.preview.read().liveEnabled,false);
+  f.preview.setLiveEnabled(true);assert.equal(f.preview.read().liveState.positionFrames,at);
+  f.preview.stop();assert.equal(f.preview.read().liveState,null);assert.equal(f.preview.read().liveActive,false);
+  await f.preview.play();await f.preview.load(song(),'replacement');assert.equal(f.preview.read().liveState,null);f.preview.dispose();
 });
 
 const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));

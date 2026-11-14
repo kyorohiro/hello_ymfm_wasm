@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-13",
+  "task": "HuC6280 Synth shared normal/Code/VGM channel view and heard-position Live settings",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "One always-visible Synth/CH1–CH6 selector controls normal, Code and VGM views. Synth is the default, Auto update starts On, and changing the selection alone never copies values between channels.",
+    "Normal physical channels have independent current wave, level, pan, Noise, software envelope and DDA playback settings. Keyboard notes use that physical channel; Stop/blur release voices while retaining the session bank. Common author preset stays unchanged. Common scalar/wave edits broadcast only touched fields; explicit loads or source/routing/sample changes reset the bank.",
+    "The normal session bank is not a new file format. Code start/Stop intentionally restore the common authored instrument; existing Code physical edits keep their sparse touched-author-field contract. Selecting a channel before audio is enabled is passive.",
+    "Passive song timeline hooks preserve native PCM exactly, including direct DAC and streams. They track sent registers/configured Wave RAM at generated-frame boundaries and publish the consumed/heard state rather than prefetched values. Pending changes are bounded and coalesced by field/frame/channel; observation failure disables only Live.",
+    "VGM physical CH views reuse the existing source, wave, level/pan, Noise and shared LFO UI read-only. Card folding and Main/LFO target selection remain usable. Unknown registers show unknown markers, incomplete Wave RAM stays blank, and DDA shows the last recorded five-bit DAC code without borrowing author PCM or guessing a root note.",
+    "Physical period labels describe current registers; common Synth keeps its C4-reference labels. Readouts include Gate, period/frequency or Noise/DAC state, per-channel level/pan and shared global L/R balance.",
+    "Auto Off retains a full-chip snapshot for consistent CH switching; On follows the heard position. Periodic publication is at most 20 Hz. Pause/EOF explicitly publish the final consumed state even when Auto Off. Passive tracking still advances to bound memory and permit catchup.",
+    "VGM CH views block edits and keyboard audition in this phase. Synth view can play the authored instrument while paused. Stop/source/context transitions clear the song view. Selected-song-CH audition/Capture, CH mute, Seek and direct VGM editing remain separate next steps.",
+    "Native testing confirmed Noise takes priority when Noise and DDA bits are both set. Code and hand note paths now follow that priority without requiring an unrelated PCM asset.",
+    "Standalone packaging preserves readable byte-identical source modules, types, source archives, rebuild sources and licenses. Existing native WASM, gain calibration, Master and desktop output graph are unchanged."
+  ],
+  "node": {
+    "passed": 302,
+    "failed": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-live-20261113/node-tests-c.log",
+      "bytes": 32764,
+      "sha256": "1253842b1859b0f5be897b1f259ec6ccfe84a1b09f1a0e74e26a54a4b832dc44"
+    }
+  },
+  "browsers": {
+    "suites": 4,
+    "runs": 8,
+    "checks": 106,
+    "results": [
+      {
+        "suite": "Live channels",
+        "receipt": {
+          "path": "build/verification/huc-live-20261113/live-c.json",
+          "bytes": 100493,
+          "sha256": "13ac8554e7b3a5595625b13303fe402c01843b9878a3b6a7fe05943f604a6cb8"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "Existing Code and Files",
+        "receipt": {
+          "path": "build/verification/huc-live-20261113/code-c.json",
+          "bytes": 19507,
+          "sha256": "a809dd79bdf044e856d5d30f0aa6bff4c3456d2a4d1a4d666e921c082f0b511c"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "Existing VGM transport",
+        "receipt": {
+          "path": "build/verification/huc-live-20261113/song-c.json",
+          "bytes": 24673,
+          "sha256": "d63b849baf1a7ffc6fe6448b1fafd35726b6ab00568aec8690f456b4844a8338"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "Existing keyboard and sound extraction",
+        "receipt": {
+          "path": "build/verification/huc-live-20261113/legacy-c.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsVisuallyInspected": true
+  },
+  "package": {
+    "zip": "release/tetorica_huc6280_synth_huc-live-20261113c_itch.zip",
+    "stage": "release/itch_huc6280_synth_huc-live-20261113c-T5vncf",
+    "files": 133,
+    "bytes": 1764240,
+    "sha256": "807555d7197cc61a4f5e1667f48c1adc929afb1db4eb57e3f944d5185a00fdf3",
+    "sourceCheck": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    },
+    "integrityReceipt": {
+      "path": "build/verification/huc-live-20261113/zip-integrity-c.json",
+      "bytes": 165,
+      "sha256": "a396b514fda9ce144ccb17359e87eb8189e95409ab86979797546529412cd291"
+    },
+    "sourceParityReceipt": {
+      "path": "build/verification/huc-live-20261113/source-parity-c.json",
+      "bytes": 350,
+      "sha256": "517991a5cef3ec94c5a3b94322f338c91f9d86a83ba70183d3fc515602226a4f"
+    }
+  },
+  "ci": "The HuC6280 workflow now runs the new muted Live checker sequentially with legacy, Code and song checks on the extracted standalone ZIP. GitHub Actions was not dispatched.",
+  "scope": "No physical listening, user storage changes, commercial game assets, commit, push, tag, publication, Tauri update or public npm API change. Normal multi-channel settings are temporary and are not saved as a bank. VGM view is read-only; its CH keyboard audition and Capture remain pending."
+}
