@@ -58,12 +58,42 @@ async function verifyCollection(result, plan) {
   const checksums = new Map((await readFile(join(result.collection,'SHA256SUMS'),'utf8')).trim().split('\n')
     .map(line=>{const match=/^([a-f0-9]{64})\s+(.+)$/.exec(line);assert(match,'A valid checksum line');return[match[2],match[1]];}));
   assert.equal(checksums.size,10);
-  for (const name of names) {
+  for (const selected of plan.selected) {
+    const {name}=selected, sourceName=selected.sourceName??name;
     const bytes = await readFile(join(result.collection,name));
-    assert.deepEqual(bytes,await readFile(join(plan.root,'release',name)));
+    assert.deepEqual(bytes,await readFile(join(plan.root,'release',sourceName)));
     assert.equal(checksums.get(name),sha(bytes));
-    assert(JSON.stringify(manifest).includes(name),'Collection manifest identifies '+name);
+    const item=manifest.artifacts.find(value=>value.name===name);
+    assert(item,'Collection manifest identifies '+name);
+    if(plan.forRun)assert.equal(item.sourceName,sourceName,'Browser filename retains its original ZIP provenance');
   }
+}
+
+// Compatibility fixture written in the released schema-1 layout: nine plain
+// names and only Playground suffixed. Keep its historical metadata verbatim.
+async function legacyBrowserCollection(f) {
+  const plan=createItchBatchPlan({root:f.root,version:f.version,forRun:true});
+  const receipt=JSON.parse(await readFile(plan.receipt,'utf8'));
+  const artifacts=f.plan.products.map(product=>receipt.artifacts.find(value=>
+    value.name===product.archives[product.id==='playground'?1:0].name));
+  await mkdir(plan.collection);
+  for(const artifact of artifacts)
+    await writeFile(join(plan.collection,artifact.name),await readFile(join(plan.release,artifact.name)));
+  await writeFile(join(plan.collection,'manifest.json'),JSON.stringify({schemaVersion:1,
+    kind:'itch-batch-collection',version:f.version,variant:'for_run',artifacts},null,2)+'\n');
+  await writeFile(join(plan.collection,'SHA256SUMS'),artifacts.map(a=>`${a.sha256}  ${a.name}\n`).join(''));
+  await writeFile(join(plan.collection,'README.txt'),`Tetorica itch packages — ${f.version}\n\n`+
+    'Variant: browser upload\n'+
+    'Upload each product ZIP to its own itch project. This folder is not an app ZIP.\n'+
+    'The Playground ZIP is the browser-playable _for_run build.\n'+
+    'Other products use the same ZIP bytes in both collections.\n'+
+    'manifest.json and SHA256SUMS identify this immutable shared version.\n');
+  return plan;
+}
+
+async function collectionBytes(directory) {
+  return await Promise.all((await readdir(directory)).sort().map(async name=>
+    [name,await readFile(join(directory,name))]));
 }
 
 test('batch VERSION is explicit and rejects unsafe paths before running or creating outputs',async t=>{
@@ -80,15 +110,23 @@ test('batch VERSION is explicit and rejects unsafe paths before running or creat
   }
 });
 
-test('one VERSION selects ten canonical products and switches only Playground for browser collection',()=>{
+test('one VERSION gives all ten browser ZIPs distinct for_run names while keeping normal names',()=>{
   const normal=createItchBatchPlan({version:'v2.0.0'}), run=createItchBatchPlan({version:'v2.0.0',forRun:true});
   assert.equal(normal.products.length,10);assert.equal(normal.archives.length,11);
   assert.deepEqual(normal.products.map(p=>basename(p.script)).sort(),scripts);
   assert.equal(normal.selected.length,10);assert.equal(run.selected.length,10);
   assert(normal.archives.every(value=>value.name.includes('_v2.0.0_')));
   const normalNames=new Set(normal.selected.map(value=>value.name)), runNames=new Set(run.selected.map(value=>value.name));
-  assert.deepEqual([...normalNames].filter(name=>!runNames.has(name)),['hello_ymfm_wasm_v2.0.0_itch_playground.zip']);
-  assert.deepEqual([...runNames].filter(name=>!normalNames.has(name)),['hello_ymfm_wasm_v2.0.0_itch_playground_for_run.zip']);
+  assert.equal(normalNames.size,10);assert.equal(runNames.size,10);
+  assert(normal.selected.every(value=>!value.name.endsWith('_for_run.zip')));
+  assert(run.selected.every(value=>value.name.includes('_v2.0.0_')&&value.name.endsWith('_for_run.zip')));
+  assert(run.selected.every(value=>!value.name.endsWith('_for_run_for_run.zip')));
+  assert.deepEqual([...normalNames].filter(name=>runNames.has(name)),[]);
+  for(const selected of run.selected){
+    assert(normal.archives.some(value=>value.name===selected.sourceName),'Browser copy points to one generated source ZIP');
+    if(selected.product==='playground')assert.equal(selected.sourceName,selected.name,'Playground keeps its existing browser ZIP name');
+    else assert.equal(selected.name,selected.sourceName.replace(/\.zip$/,'_for_run.zip'));
+  }
 });
 
 test('a late output collision prevents all children and preserves existing ZIP bytes',async t=>{
@@ -109,9 +147,61 @@ test('normal and browser collections share verified builds and preserve the exac
   const run=await packageAllItch({...f,forRun:true,runCommand:f.runner});
   assert.equal(run.reused,true);assert.equal(run.artifacts.length,10);assert.equal(f.calls.length,10);
   assert.notEqual(run.collection,normal.collection);await verifyCollection(run,runPlan);
+  const manifest=JSON.parse(await readFile(join(run.collection,'manifest.json'),'utf8'));
+  assert.equal(manifest.schemaVersion,2);
+  const reused=await packageAllItch({...f,forRun:true,runCommand:f.runner});
+  assert.equal(reused.reused,true);assert.equal(f.calls.length,10);
+  await verifyCollection(reused,runPlan);
   const receipt=JSON.parse(await readFile(join(f.root,'release',`itch_all_${f.version}.json`),'utf8'));
   assert.equal(receipt.version,f.version);
   for(const archive of f.plan.archives)assert(JSON.stringify(receipt).includes(archive.name),'Shared receipt includes '+archive.name);
+});
+
+test('collection copies use canonical ZIPs even when a receipt injects an unrelated sourceName',async t=>{
+  const f=await fixture(t);
+  await packageAllItch({...f,forRun:true,runCommand:f.runner});
+  const outside=join(f.root,'outside.zip'), sentinel=Buffer.from('Unrelated local file; never a package source.');
+  await writeFile(outside,sentinel);
+  const receipt=JSON.parse(await readFile(f.plan.receipt,'utf8'));
+  receipt.artifacts[0].sourceName='../outside.zip';
+  await writeFile(f.plan.receipt,JSON.stringify(receipt,null,2)+'\n');
+  const normal=await packageAllItch({...f,runCommand:f.runner});
+  assert.equal(normal.reused,true);assert.equal(f.calls.length,10);
+  await verifyCollection(normal,f.plan);
+  const manifest=JSON.parse(await readFile(join(normal.collection,'manifest.json'),'utf8'));
+  assert(manifest.artifacts.every(artifact=>!Object.hasOwn(artifact,'sourceName')),'Normal manifest contains only canonical provenance');
+  assert.deepEqual(await readFile(outside),sentinel);
+});
+
+test('an intact schema-1 browser collection migrates without rebuilding and keeps an exact backup',async t=>{
+  const f=await fixture(t), normal=await packageAllItch({...f,runCommand:f.runner});
+  const normalBefore=await collectionBytes(normal.collection), receiptBefore=await readFile(f.plan.receipt);
+  const runPlan=await legacyBrowserCollection(f), legacyBefore=await collectionBytes(runPlan.collection);
+  const migrated=await packageAllItch({...f,forRun:true,runCommand:f.runner});
+  assert.equal(migrated.reused,true);assert.equal(f.calls.length,10);
+  await verifyCollection(migrated,runPlan);
+  assert.deepEqual(await collectionBytes(runPlan.collection+'.before-for-run-names'),legacyBefore);
+  assert.deepEqual(await collectionBytes(normal.collection),normalBefore);
+  assert.deepEqual(await readFile(f.plan.receipt),receiptBefore);
+  const manifest=JSON.parse(await readFile(join(migrated.collection,'manifest.json'),'utf8'));
+  assert.equal(manifest.schemaVersion,2);
+  const again=await packageAllItch({...f,forRun:true,runCommand:f.runner});
+  assert.equal(again.reused,true);assert.equal(f.calls.length,10);
+  await verifyCollection(again,runPlan);
+  assert.deepEqual(await collectionBytes(runPlan.collection+'.before-for-run-names'),legacyBefore);
+});
+
+test('an edited legacy browser ZIP is left intact instead of being renamed or replaced',async t=>{
+  const f=await fixture(t);await packageAllItch({...f,runCommand:f.runner});
+  const runPlan=await legacyBrowserCollection(f);
+  const oldName=f.plan.selected[0].name;
+  await appendFile(join(runPlan.collection,oldName),'local edit to legacy browser ZIP');
+  const oldBytes=await collectionBytes(runPlan.collection), rootBefore=(await readdir(f.plan.release)).sort();
+  await assert.rejects(packageAllItch({...f,forRun:true,runCommand:f.runner}));
+  assert.equal(f.calls.length,10);
+  assert.deepEqual(await collectionBytes(runPlan.collection),oldBytes);
+  assert.deepEqual((await readdir(f.plan.release)).sort(),rootBefore);
+  await absent(runPlan.collection+'.before-for-run-names');
 });
 
 test('a failed middle child reports its product and stops before later products or success receipts',async t=>{

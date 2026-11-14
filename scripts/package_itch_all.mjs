@@ -2,7 +2,7 @@
 // One version, one build of each canonical product, two distribution selections.
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
-import {copyFile, lstat, mkdir, open, readFile, unlink, writeFile} from 'node:fs/promises';
+import {copyFile, lstat, mkdir, mkdtemp, open, readFile, rename, rm, unlink, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {execFileSync, spawn} from 'node:child_process';
 import {join, resolve} from 'node:path';
@@ -45,8 +45,11 @@ export function createItchBatchPlan({root = repository, version, forRun = false}
   const products = specs.map(([id, script, name]) => ({id, script: `scripts/package_itch_${script}.sh`,
     archives: [{product: id, name, browserPlayable: id !== 'playground'}]}));
   products.at(-1).archives.push({product: 'playground', name: `hello_ymfm_wasm_${version}_itch_playground_for_run.zip`, browserPlayable: true});
+  const selected = products.map(p => p.id === 'playground' ? p.archives[forRun ? 1 : 0] : p.archives[0])
+    .map(archive => forRun ? {...archive, sourceName: archive.name,
+      name: archive.name.endsWith('_for_run.zip') ? archive.name : archive.name.replace(/\.zip$/, '_for_run.zip')} : archive);
   return {root, version, forRun, release, products, archives: products.flatMap(p => p.archives),
-    selected: products.map(p => p.id === 'playground' ? p.archives[forRun ? 1 : 0] : p.archives[0]),
+    selected,
     collection: join(release, `itch_all_${version}${forRun ? '_for_run' : ''}`),
     receipt: join(release, `itch_all_${version}.json`),
     logs: join(release, `itch_all_${version}_logs`), lock: join(release, `.itch_all_${version}.lock`),
@@ -110,9 +113,15 @@ async function verifyBatch(plan) {
   return receipt;
 }
 
-async function collect(plan, receipt) {
-  const artifacts = plan.selected.map(selected => receipt.artifacts.find(a => a.name === selected.name));
-  const manifest = {schemaVersion: 1, kind: 'itch-batch-collection', version: plan.version,
+function collectionSpec(plan, receipt, {legacy = false} = {}) {
+  const artifacts = plan.selected.map(selected => {
+    const source = receipt.artifacts.find(a => a.name === (selected.sourceName ?? selected.name));
+    // Only canonical plan names may choose copy paths, never receipt extensions.
+    const original = {product: source.product, name: source.name, browserPlayable: source.browserPlayable,
+      bytes: source.bytes, sha256: source.sha256};
+    return plan.forRun && !legacy ? {...original, sourceName: source.name, name: selected.name} : original;
+  });
+  const manifest = {schemaVersion: plan.forRun && !legacy ? 2 : 1, kind: 'itch-batch-collection', version: plan.version,
     variant: plan.forRun ? 'for_run' : 'download', artifacts};
   const checksums = artifacts.map(a => `${a.sha256}  ${a.name}\n`).join('');
   const guide = `Tetorica itch packages — ${plan.version}\n\n` +
@@ -120,31 +129,65 @@ async function collect(plan, receipt) {
     'Upload each product ZIP to its own itch project. This folder is not an app ZIP.\n' +
     (plan.forRun ? 'The Playground ZIP is the browser-playable _for_run build.\n' :
       'The Playground ZIP is the full downloadable source kit. Use the _for_run collection for browser hosting.\n') +
+    (plan.forRun && !legacy ? 'Every browser-upload ZIP filename ends in _for_run.zip.\n' : '') +
     'Other products use the same ZIP bytes in both collections.\n' +
     'manifest.json and SHA256SUMS identify this immutable shared version.\n';
-  if (await exists(plan.collection)) {
-    const info = await lstat(plan.collection);
-    assert(info.isDirectory() && !info.isSymbolicLink(), 'Collection must be a real directory');
-    await regularFile(join(plan.collection, 'manifest.json'));
-    assert.deepEqual(JSON.parse(await readFile(join(plan.collection, 'manifest.json'), 'utf8')), manifest, 'Collection manifest changed');
-    for (const artifact of artifacts) assert.deepEqual(await fileRecord(join(plan.collection, artifact.name)),
-      {bytes: artifact.bytes, sha256: artifact.sha256}, 'Collected ZIP changed: ' + artifact.name);
-    for (const [name, expected] of [['SHA256SUMS', checksums], ['README.txt', guide]]) {
-      await regularFile(join(plan.collection, name));
-      assert.equal(await readFile(join(plan.collection, name), 'utf8'), expected, 'Collection metadata changed: ' + name);
-    }
-    return artifacts;
+  return {artifacts, manifest, checksums, guide};
+}
+
+async function verifyCollection(directory, {artifacts, manifest, checksums, guide}) {
+  const info = await lstat(directory);
+  assert(info.isDirectory() && !info.isSymbolicLink(), 'Collection must be a real directory');
+  await regularFile(join(directory, 'manifest.json'));
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'manifest.json'), 'utf8')), manifest, 'Collection manifest changed');
+  for (const artifact of artifacts) assert.deepEqual(await fileRecord(join(directory, artifact.name)),
+    {bytes: artifact.bytes, sha256: artifact.sha256}, 'Collected ZIP changed: ' + artifact.name);
+  for (const [name, expected] of [['SHA256SUMS', checksums], ['README.txt', guide]]) {
+    await regularFile(join(directory, name));
+    assert.equal(await readFile(join(directory, name), 'utf8'), expected, 'Collection metadata changed: ' + name);
   }
-  await mkdir(plan.collection);
+}
+
+async function writeCollection(directory, plan, {artifacts, manifest, checksums, guide}) {
   for (const artifact of artifacts) {
-    await copyFile(join(plan.release, artifact.name), join(plan.collection, artifact.name), constants.COPYFILE_EXCL);
-    assert.deepEqual(await fileRecord(join(plan.collection, artifact.name)),
+    await copyFile(join(plan.release, artifact.sourceName ?? artifact.name), join(directory, artifact.name), constants.COPYFILE_EXCL);
+    assert.deepEqual(await fileRecord(join(directory, artifact.name)),
       {bytes: artifact.bytes, sha256: artifact.sha256}, 'Collected ZIP copy mismatch');
   }
-  await writeFile(join(plan.collection, 'SHA256SUMS'), checksums, {flag: 'wx'});
-  await writeFile(join(plan.collection, 'README.txt'), guide, {flag: 'wx'});
-  await writeFile(join(plan.collection, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
-  return artifacts;
+  await writeFile(join(directory, 'SHA256SUMS'), checksums, {flag: 'wx'});
+  await writeFile(join(directory, 'README.txt'), guide, {flag: 'wx'});
+  await writeFile(join(directory, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
+}
+
+async function collect(plan, receipt) {
+  const spec = collectionSpec(plan, receipt);
+  if (await exists(plan.collection)) {
+    try {await verifyCollection(plan.collection, spec); return spec.artifacts;}
+    catch (error) {
+      if (!plan.forRun) throw error;
+      // Migrate only the exact intact format emitted by earlier batches.
+      try {await verifyCollection(plan.collection, collectionSpec(plan, receipt, {legacy: true}));}
+      catch {throw error;}
+    }
+    const backup = plan.collection + '.before-for-run-names';
+    if (await exists(backup)) throw Error('Previous browser collection backup already exists: ' + backup);
+    const temporary = await mkdtemp(join(plan.release, `.itch_all_${plan.version}_for_run-`));
+    try {
+      await writeCollection(temporary, plan, spec);
+      await verifyCollection(temporary, spec);
+      await rename(plan.collection, backup);
+      try {await rename(temporary, plan.collection);}
+      catch (error) {
+        if (!await exists(plan.collection)) await rename(backup, plan.collection);
+        throw error;
+      }
+      console.log('Updated browser ZIP names; previous collection kept at: ' + backup);
+    } finally {await rm(temporary, {recursive: true, force: true});}
+    return spec.artifacts;
+  }
+  await mkdir(plan.collection);
+  await writeCollection(plan.collection, plan, spec);
+  return spec.artifacts;
 }
 
 export async function packageAllItch({root = repository, version, forRun = false, runCommand = runPackage} = {}) {

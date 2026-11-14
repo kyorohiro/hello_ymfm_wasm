@@ -20,15 +20,22 @@ the collection directory is not an application ZIP. Every ZIP filename includes
 the shared version. Game Boy and NES compatibility aliases are omitted because
 they duplicate DMG and 2A03.
 
-Only Playground differs between the collections: normal distribution selects
-the complete downloadable source kit, while browser upload selects
-`*_itch_playground_for_run.zip`. The other nine ZIPs have identical bytes in both
-collections.
+Every ZIP inside `itch_all_VERSION_for_run/` ends in `_for_run.zip`. For example,
+DMG uses `tetorica_dmg_synth_20261114_itch.zip` for normal distribution and
+`tetorica_dmg_synth_20261114_itch_for_run.zip` for browser upload.
+Only Playground has different ZIP contents: its browser collection selects
+`*_itch_playground_for_run.zip` instead of the complete downloadable source kit.
+The other nine ZIPs have identical bytes under different collection filenames.
+Original filenames directly under `release/` and individual builder outputs
+remain unchanged.
 
 The first invocation builds the ten products and records all eleven output ZIPs
 in `release/itch_all_VERSION.json`. Running the other command with the same
-version verifies those hashes and reuses the completed batch. Use a new version
-after changing sources. A version is required: 1–80 characters, starting with a
+version verifies those hashes and reuses the completed batch. An older browser
+collection can be updated with the same version: its contents are verified,
+the old directory is kept as `*.before-for-run-names`, and a replacement uses
+`_for_run.zip` for all ten products. No product rebuild is needed.
+Use a new version after changing sources. A version is required: 1–80 characters, starting with a
 letter or number, followed by letters, numbers, `.`, `_`, `+`, or `-`.
 These commands can also be invoked by absolute path from another working
 directory.

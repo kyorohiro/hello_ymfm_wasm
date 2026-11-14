@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "baseHead": "b7f742f947bfe2116b5d7c9c71234568487ef3ea",
+  "passed": true,
+  "scope": "Explicit user request after hard reset: suffix only the ten browser collection ZIP filenames under itch_all_VERSION_for_run/. Individual builders, root source ZIP names and Tauri work remain unchanged.",
+  "behavior": {
+    "browserNames": "All ten browser collection ZIP filenames end in _for_run.zip exactly once.",
+    "sourceMetadata": "Browser schema2 records canonical sourceName and normal metadata remains compatible. Receipt extensions cannot choose copy sources.",
+    "legacy": "Verify intact schema1 metadata and all ZIP bytes, stage renamed copies, retain the old collection in .before-for-run-names and replace its path. Reject edited collections.",
+    "normal": "Normal-download names, ZIP bytes and canonical eleven source archives remain unchanged."
+  },
+  "tests": {
+    "command": "node --test scripts/package_itch_all.test.mjs",
+    "tests": 13,
+    "pass": 13,
+    "fail": 0,
+    "skip": 0,
+    "log": {
+      "path": "build/itch-for-run-folder-20261114/tests.log",
+      "bytes": 4818,
+      "sha256": "8b36bb5d9b812005bc44934fbefc7d8bdfb54487d5027895d3c5667aa105b118"
+    }
+  },
+  "realBatch": {
+    "version": "0.99.99",
+    "folder": "release/itch_all_0.99.99_for_run",
+    "backup": "release/itch_all_0.99.99_for_run.before-for-run-names",
+    "artifacts": [
+      {
+        "product": "2a03",
+        "name": "tetorica_2a03_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 1301132,
+        "sha256": "ed092a79c481936c17e64d9ea2b0d016f0408d1deed6cdcfbc09a499e99c6b7d",
+        "sourceName": "tetorica_2a03_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "dmg",
+        "name": "tetorica_dmg_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 1888491,
+        "sha256": "d2b6406fa9773770def9c9ca485d453d1cecd460fb923fc9cf06aca3a47bb8dd",
+        "sourceName": "tetorica_dmg_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "huc6280",
+        "name": "tetorica_huc6280_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 2063910,
+        "sha256": "5fda949834f302d766728f826fb941dc8b79f2a3b28108e68b376244e8a752c9",
+        "sourceName": "tetorica_huc6280_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "scsp",
+        "name": "tetorica_scsp_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 1227447,
+        "sha256": "f7b767d6589af5b7aea83aab449c8520b5385593887b98f82a24be583ff01e7e",
+        "sourceName": "tetorica_scsp_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "sid",
+        "name": "tetorica_sid_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 3510829,
+        "sha256": "abe3b33b8b3b6580fa7437c2e603d87b178eaa442be4987b09df1fbfb385e157",
+        "sourceName": "tetorica_sid_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "snes",
+        "name": "tetorica_sdsp_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 956520,
+        "sha256": "3db2fdd2ca9d734815722d5b57845f720ade7fb25866fb4f24909e81cd37369f",
+        "sourceName": "tetorica_sdsp_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "spu",
+        "name": "tetorica_spu_synth_0.99.99_itch_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 7146310,
+        "sha256": "6e4b9d1c6dd251674caa5c126edd590acde651d749b663b94575cc5db0bcaa63",
+        "sourceName": "tetorica_spu_synth_0.99.99_itch.zip"
+      },
+      {
+        "product": "synth",
+        "name": "hello_ymfm_wasm_0.99.99_itch_synth_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 1127753,
+        "sha256": "1c327761ee12e8eaea412911cf90e3379c42171d71cce62d4534ec1bf3eb5902",
+        "sourceName": "hello_ymfm_wasm_0.99.99_itch_synth.zip"
+      },
+      {
+        "product": "vgm-analyzer",
+        "name": "hello_ymfm_wasm_0.99.99_itch_vgm_analyzer_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 3238361,
+        "sha256": "d8ae9012fd4f96428a7ee9bd94972d3ac71b3d7cba69e2c84e376416575e428f",
+        "sourceName": "hello_ymfm_wasm_0.99.99_itch_vgm_analyzer.zip"
+      },
+      {
+        "product": "playground",
+        "name": "hello_ymfm_wasm_0.99.99_itch_playground_for_run.zip",
+        "browserPlayable": true,
+        "bytes": 38510036,
+        "sha256": "4f0a3d4e7f19f7ce507f3792fe232085786f47fdf3607c7f6af30f789c935217",
+        "sourceName": "hello_ymfm_wasm_0.99.99_itch_playground_for_run.zip"
+      }
+    ],
+    "allZipCrcVerified": true,
+    "allSourceBytesIdentical": true,
+    "sourceArchivesReceiptLogsAndNormalCollectionUnchanged": true,
+    "legacyBackupVerified": true,
+    "noChildRebuilds": true,
+    "before": {
+      "path": "build/itch-for-run-folder-20261114/before.json",
+      "bytes": 11019,
+      "sha256": "2a172a63bd00d47ec9f42700ac5ea8b21244f8be6f74a68b36df91dd2346f52c"
+    },
+    "after": {
+      "path": "build/itch-for-run-folder-20261114/after.json",
+      "bytes": 3303,
+      "sha256": "fc8686600a964aaef92191b3c1f2ee95605fa5066d078f4bf5982bbc752f2e6d"
+    },
+    "logs": [
+      {
+        "path": "build/itch-for-run-folder-20261114/migrate.log",
+        "bytes": 323,
+        "sha256": "965b1e6f14beff24c4cac9618f26bb17652ec610a1659a6805ca67107bf0070f"
+      },
+      {
+        "path": "build/itch-for-run-folder-20261114/reuse.log",
+        "bytes": 168,
+        "sha256": "7ed3d1844ca47963fede81e614881c050c39e534c541803970bfaa2dcc515774"
+      },
+      {
+        "path": "build/itch-for-run-folder-20261114/normal.log",
+        "bytes": 165,
+        "sha256": "87527d4b277c95eb4335b3a87ae2bd03c2511cca4184661d5778545fb374b2b1"
+      }
+    ]
+  },
+  "sourceFiles": [
+    {
+      "path": "scripts/package_itch_all.mjs",
+      "bytes": 13400,
+      "sha256": "7023c6e9a0eb19d68aa8bff2562ff1f84a04b16a19146cfcb160cce7afd33472"
+    },
+    {
+      "path": "scripts/package_itch_all.test.mjs",
+      "bytes": 16936,
+      "sha256": "01e51d8f4281bb556cf29126cb24cb1c8bae5ce1af4ef451fe8daf4d3ca7cd18"
+    },
+    {
+      "path": "README_RELEASE.md",
+      "bytes": 8647,
+      "sha256": "19b01840b7262eab730213b648df8094d14b98580d1f1c356351aa4754ad90b1"
+    },
+    {
+      "path": "docs/itch_web_release.md",
+      "bytes": 6012,
+      "sha256": "45a8097e908dcb518df99e9694dbbcfa5ef59f7ebf7af2494ed4ce6656a1648c"
+    }
+  ],
+  "operations": {
+    "rootZipNamesChanged": false,
+    "individualBuildersChanged": false,
+    "tauriWorkChanged": false,
+    "indexOrCommitOrPushByAgent": false,
+    "published": false,
+    "physicalAudioOpened": false
+  },
+  "limits": [
+    "Filename and collection-metadata changes only. ZIP contents are unchanged; no browser/audio retest was needed."
+  ]
+}
