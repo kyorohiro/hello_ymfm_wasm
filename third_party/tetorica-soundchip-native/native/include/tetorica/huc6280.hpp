@@ -3,3 +3,4 @@
 // direct DAC, stereo balance, shared LFO, and noise on voices 4 and 5.
 // No machine or audio device is owned.
 #include "native_genesis_huc6280.h"
+#include <tetorica/huc6280_state.h>

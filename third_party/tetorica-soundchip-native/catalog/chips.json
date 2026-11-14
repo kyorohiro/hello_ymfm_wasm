@@ -572,18 +572,22 @@
         "sourceFiles": [
           "native/reference/tauri/native_genesis_huc6280.cpp",
           "native/reference/tauri/native_genesis_huc6280.h",
-          "native/include/tetorica/huc6280.hpp"
+          "native/include/tetorica/huc6280.hpp",
+          "native/include/tetorica/huc6280_state.h",
+          "wasm/huc6280_wasm.cpp"
         ],
         "status": "verified",
         "target": "tetorica_native_huc6280",
         "tests": [
-          "tetorica.huc6280.self_test"
+          "tetorica.huc6280.self_test",
+          "tetorica.huc6280.state_test"
         ],
         "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
-        "verificationScope": "Independent pinned HuC6280 sound renderer exposing native_huc6280_*: six audible wave/DDA sources, noise on channels 4/5, LFO, stereo, copied 32-byte waveforms, channel-selected writes, retained gate-off/Stop, mute, clock resampling, reset and observational state. The unchanged wrapper includes the shared core implementation once in its own translation unit. Offline Worklet/WASM PCM comparison and Native state/control tests; no PC Engine CPU/CD audio, device, event scheduler or playback-deadline guarantee."
+        "verificationScope": "Independent pinned HuC6280 sound renderer exposing native_huc6280_*: six audible wave/DDA sources, noise on channels 4/5, LFO, stereo, copied 32-byte waveforms, channel-selected writes, retained gate-off/Stop, mute, clock resampling, reset and observational state. The unchanged wrapper includes the shared core implementation once in its own translation unit. Offline Worklet/WASM PCM comparison and Native state/control tests; no PC Engine CPU/CD audio, device, event scheduler or playback-deadline guarantee. Local SDK 0.1.8 additionally exposes a distinct raw huc6280_* core checkpoint ABI, with explicit portable 512-byte encoding and fully validated matching-instance restoration; the older wrapper observation is not a restorable snapshot."
       },
       "sourceFiles": [
         "native/include/tetorica/huc6280.hpp",
+        "native/include/tetorica/huc6280_state.h",
         "native/reference/tauri/native_genesis_huc6280.cpp",
         "native/reference/tauri/native_genesis_huc6280.h",
         "vendor/mame-huc6280/huc6280.cpp",

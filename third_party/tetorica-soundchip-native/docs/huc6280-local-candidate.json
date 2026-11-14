@@ -1,0 +1,38 @@
+{
+  "status": "unpublished-local-candidate",
+  "version": "0.1.8-huc-state",
+  "baseline": {
+    "repository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "archiveSha256": "5f7cdf35bc85a7453eef42576259f615411d4fdcdd47b8778242eb2a2d7f2b9c"
+  },
+  "hucStateOrigin": {
+    "repository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+    "baseCommit": "9749de26fda4c966ca4baf19eff4e31fda88ca95",
+    "workingTreeChanges": true,
+    "stateAbiVersion": 1,
+    "stateBytes": 512
+  },
+  "scope": "Pinned SDK0.1.7 plus HuC6280 checkpoint ABI only. Baseline common build scripts, other chip recipes and instrument inventory are unchanged. No SID/SID8580 migration.",
+  "changedPaths": [
+    "CHANGELOG.md",
+    "CMakeLists.txt",
+    "catalog/chips.json",
+    "catalog/native_inventory.json",
+    "catalog/source_inventory.json",
+    "docs/huc6280-local-candidate.json",
+    "docs/huc6280-state.md",
+    "native/CMakeLists.txt",
+    "native/include/tetorica/huc6280.hpp",
+    "native/include/tetorica/huc6280_state.h",
+    "native/tests/huc6280_state_fixture.cpp",
+    "scripts/build_huc6280_wasm.sh",
+    "sdk.json",
+    "tests/huc6280_state_wasm_smoke.mjs",
+    "vendor/mame-huc6280/README.md",
+    "vendor/mame-huc6280/huc6280.cpp",
+    "vendor/mame-huc6280/huc6280.h",
+    "wasm/huc6280_wasm.cpp"
+  ]
+}

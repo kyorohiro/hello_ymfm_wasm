@@ -303,6 +303,7 @@ endif()
 # for observation. Compile it once; a separate huc6280.cpp would duplicate symbols.
 add_library(tetorica_native_huc6280 STATIC
   reference/tauri/native_genesis_huc6280.cpp
+  "${TETORICA_SDK_ROOT}/wasm/huc6280_wasm.cpp"
 )
 add_library(tetorica::huc6280 ALIAS tetorica_native_huc6280)
 target_compile_features(tetorica_native_huc6280 PUBLIC cxx_std_14)
@@ -920,6 +921,14 @@ if(TETORICA_NATIVE_BUILD_TESTS)
   endif()
   add_test(NAME tetorica.huc6280.self_test
     COMMAND tetorica_huc6280_fixture --self-test)
+  add_executable(tetorica_huc6280_state_fixture tests/huc6280_state_fixture.cpp)
+  target_link_libraries(tetorica_huc6280_state_fixture PRIVATE tetorica::huc6280)
+  if(MSVC)
+    target_compile_options(tetorica_huc6280_state_fixture PRIVATE /UNDEBUG /EHsc)
+  else()
+    target_compile_options(tetorica_huc6280_state_fixture PRIVATE -UNDEBUG)
+  endif()
+  add_test(NAME tetorica.huc6280.state_test COMMAND tetorica_huc6280_state_fixture)
   add_executable(tetorica_pwm_fixture tests/pwm_fixture.cpp)
   target_link_libraries(tetorica_pwm_fixture PRIVATE tetorica::pwm)
   if(MSVC)

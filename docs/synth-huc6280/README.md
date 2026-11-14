@@ -165,8 +165,19 @@ previous position and Play / Pause state. Stop, Code Run, a replacement song or
 project discards stale work. The displayed progress is preparation time within
 the song, rather than a percentage of a download.
 
-The current implementation reconstructs from the beginning; long seeks can
-take several seconds. A reusable native-state cache remains separate work.
+**Cache** starts On beside the position bar. Playback and Seek collect exact
+checkpoints roughly every five seconds, plus requested destinations, within a
+64-point / 8 MiB payload budget. Repeated moves start at the nearest earlier
+point. The cache includes native oscillator / LFO / Noise / DDA and resampler
+state, the parser's stream banks and waits, queued PCM and the known/unknown
+Live timeline; it does not approximate a sound from its register values.
+
+Stop and Code Run keep points for the accepted song. A different song or channel
+output setting clears them. **Clear seek cache** is in the playback **?** help.
+Switching Cache Off releases the points; neither operation changes the position,
+your instrument or paused audition. New points accumulate while Cache is On.
+The first move to an uncached region can still take several seconds. Unsupported
+state backends or oversized checkpoints use ordinary reconstruction instead.
 
 Reference playback renders the recorded HuC6280 writes with the existing chip
 core, including timed Wave, Noise, hardware LFO and supported direct / streamed
@@ -429,6 +440,7 @@ npm run test:huc6280-synth:live-browser
 npm run test:huc6280-synth:capture-browser
 npm run test:huc6280-synth:mixer-browser
 npm run test:huc6280-synth:seek-browser
+npm run test:huc6280-synth:cache-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -478,7 +490,10 @@ VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲
 元の曲・未消費PCMは成功まで保持し、別の音源を無音で目的位置まで短い単位で再構築します。
 失敗・取消では元の位置・再生状態へ戻り、Stop／Code Run／曲やprojectの切替で古い結果を破棄します。
 移動後はAuto update Offでも目的位置の6CH設定を一度表示し、CH選択・On／Off・編集中の音色は保持します。
-現在は先頭から再構築する方式で、長い移動は数秒かかることがあります。再利用可能な状態キャッシュは残作業です。
+位置バー横のCacheは初期On。約5秒おきと指定した位置の状態を、最大64点／8MiBのpayload範囲で保持します。
+同じ付近へ戻る時は近い途中状態から再構築し、LFO・Noise・DDA・resampler・stream待機・未消費PCM・Liveの既知／不明状態も復元します。
+Stop／Code Runでは保持し、曲やCH別出力が変わると破棄します。Cache Offや再生欄の? → Clear seek cacheで解放できます。
+位置・編集用音色・Pause試奏は変えません。初めて移動する未cache区間は数秒かかることがあり、非対応backendや容量超過の点は通常の再構築で扱います。
 模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
 VGM outputのCH1–CH6 On／Offは、曲の聴き分け用のソフト側スイッチです。初期値は全CH On。
 表示対象のChannel選択とは独立し、通常Synth／Code／Pause試奏には適用しません。

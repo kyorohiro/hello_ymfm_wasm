@@ -388,17 +388,23 @@
         {
           "path": "vendor/mame-huc6280/README.md",
           "originPath": "third_party/mame-huc6280/README.md",
-          "sha256": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd"
+          "sha256": "8b5397ae03fe697a2bec11ba3d95f98eb16bb616d8da80c5ab1ac2fc1677f570",
+          "originalSha256": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd",
+          "modification": "Local 0.1.8-huc-state candidate: HuC6280 checkpoint ABI only, based on pinned SDK0.1.7."
         },
         {
           "path": "vendor/mame-huc6280/huc6280.cpp",
           "originPath": "third_party/mame-huc6280/huc6280.cpp",
-          "sha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f"
+          "sha256": "0249412639b309f13dbd285d729ff3141364fc2c9b499b8d7608a1f9a994e779",
+          "originalSha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f",
+          "modification": "Local 0.1.8-huc-state candidate: HuC6280 checkpoint ABI only, based on pinned SDK0.1.7."
         },
         {
           "path": "vendor/mame-huc6280/huc6280.h",
           "originPath": "third_party/mame-huc6280/huc6280.h",
-          "sha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6"
+          "sha256": "d41035e4f0e62b331d9bc8998947bb78f5e17fc44bd9e6704ccc8dbf9c5b89cb",
+          "originalSha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6",
+          "modification": "Local 0.1.8-huc-state candidate: HuC6280 checkpoint ABI only, based on pinned SDK0.1.7."
         },
         {
           "path": "vendor/mame-huc6280/upstream/c6280.cpp",
@@ -1209,7 +1215,9 @@
         {
           "path": "wasm/huc6280_wasm.cpp",
           "originPath": "wasm/huc6280_wasm.cpp",
-          "sha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765"
+          "sha256": "d4c68187010c833804b0c40799b0901f037bc75de0f15c45cf37e938505c3075",
+          "originalSha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765",
+          "modification": "Local 0.1.8-huc-state candidate: HuC6280 checkpoint ABI only, based on pinned SDK0.1.7."
         },
         {
           "path": "wasm/k051649_wasm.cpp",
@@ -2105,6 +2113,27 @@
           "sha256": "db522ecaa04665063e46f7f6c699eb7781c672fd7624ac58a60b0b180652d3cc"
         }
       ]
+    },
+    {
+      "id": "tetorica-huc6280-checkpoint",
+      "sourceFiles": [
+        "native/include/tetorica/huc6280_state.h"
+      ],
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/tetorica-soundchip-native"
+      ],
+      "sourceVersion": [
+        "Local SDK 0.1.8 formal checkpoint ABI v1; not published"
+      ],
+      "files": [
+        {
+          "path": "native/include/tetorica/huc6280_state.h",
+          "sha256": "70c6ccc363e2f9dd52ecd47129ad7381f3afea87cc3d230a8d03a848af05a5df"
+        }
+      ]
     }
   ],
   "artifacts": [
@@ -2194,7 +2223,8 @@
         "vendor/mame-huc6280/huc6280.cpp",
         "vendor/mame-huc6280/huc6280.h",
         "vendor/mame-huc6280/upstream/c6280.cpp",
-        "vendor/mame-huc6280/upstream/c6280.h"
+        "vendor/mame-huc6280/upstream/c6280.h",
+        "native/include/tetorica/huc6280_state.h"
       ],
       "licenseFiles": [
         "LICENSE",

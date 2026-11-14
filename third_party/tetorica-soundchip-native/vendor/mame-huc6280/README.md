@@ -14,3 +14,9 @@ use multiplication to avoid undefined behavior. Reset retains host mute controls
 MAME's imperfect/unverified noise and LFO behavior is retained.
 Only one HuC6280 is supported. No external ROM is required.
 VGM stream channel selection follows libvgm emu/dac_control.c.
+
+Local SDK 0.1.8-huc-state adds explicit 512-byte little-endian core checkpoints through
+save_state/validate_state/load_state. All voices/counters, LFO, DDA, Noise,
+resampler phase/output and host mutes are included. Validation precedes mutation;
+there is no object-layout or heap copy. The synthesis/render path is unchanged.
+See ../../docs/huc6280-state.md for the version/model and matching-instance API.

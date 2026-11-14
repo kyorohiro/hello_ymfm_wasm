@@ -36,9 +36,10 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [x] **Seek**: 気になる位置へ戻り、再生／Pause・CH別On／Off・表示CHを保持する。
       Auto update Offでも目的位置を一度表示する。取消・失敗時は元の位置を保つ。
       [実装TODO](todo_huc6280_synth_seek_01.md)。
-- [ ] **再構築キャッシュ**: 現在のSeekは先頭から再構築する。実WASMのNode計測で
-      2分先が約4.3–5.9秒。native／parserの正確な状態を復元できる方式を調査する。
-      生のWASM heapのコピーや、phase・Noise・DDA状態を無視したcacheは採用しない。
+- [x] **再構築キャッシュ**: native／parser／未消費PCM／Liveの正確な状態を保持し、
+      近い保存点から再開する。初期On、最大64点／8MiB、Off／消去に対応。
+      実WASMのNode計測で2分先の初回約3.9–5.3秒、同じ位置への再移動約0.8–1.5ms。
+      [実装TODO](todo_huc6280_synth_seek_cache_01.md)。
 - [ ] **自動演奏＋手動操作**: VGMまたはCodeを動かしたまま同じCHを編集・発音できる。
       VGMとCodeの同時実行は行わず、手動操作だけがそれぞれに加わる。
       後の自動writeを優先し、古い離鍵・Pitch解除が新しい発音を消さない。
@@ -102,3 +103,15 @@ Sounds from VGMより上へ移した。音量違いをまとめる機能は維�
 元のrunと未消費PCMは成功まで保持し、取消・失敗では元の位置へ戻す。
 Escape／Cancel、連続Seek、Stop／Code Run／曲・project切替で古い処理を破棄する。
 長い移動は数秒かかる。cacheは実測と正確な状態保存方式の検討を別の残作業にした。
+
+## 正確なSeekキャッシュ（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_seek_cache_01.md)。HuC6280の正式な512-byte状態形式と、
+parser／stream／未消費PCM／Live観測を一緒に保存する方式を追加。
+Cacheは初期On、約5秒おきと指定位置で収集し、最大64点／8MiBのpayloadに制限する。
+Stop／Code Runでは保持し、曲・project・CH別出力の変更で破棄する。
+Off／消去は位置・編集用音色・Pause試奏を変えず、非対応backendは先頭からの再構築へ戻る。
+実WASMの音声一致と取消・所有権の検証を行い、SDKもHuC変更に絞った未公開候補として取り込む。
+[検証記録](verification_huc6280_synth_seek_cache_20261114.json)。Node417件、
+Chromium／WebKitの8スイート・16実行・170項目が成功した。
+次はVGM／Codeを止めずに手動で同じCHへ操作する工程。Tauriへの取り込み・公開は別工程。

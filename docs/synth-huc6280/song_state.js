@@ -3,6 +3,32 @@
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
 const integer=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw RangeError(`${label} must be an integer 0..${max}`);return value;};
 const freezeRows=rows=>Object.freeze(rows.map(row=>Object.freeze([...row])));
+const modelInternals=new WeakMap(),timelineStates=new WeakMap();
+/** Conservative retained-graph estimate; aliases and typed-array buffers count once. */
+export function estimateHuc6280SongStateBytes(value,seen=new Set()){
+  if(value===null||typeof value==='number'||typeof value==='boolean'||typeof value==='undefined')return 8;
+  if(typeof value==='string')return 16+value.length*2;
+  if(typeof value!=='object'||seen.has(value))return 0;seen.add(value);
+  if(value instanceof ArrayBuffer)return value.byteLength+24;
+  if(ArrayBuffer.isView(value))return 32+estimateHuc6280SongStateBytes(value.buffer,seen);
+  if(value instanceof Map)return 48+[...value].reduce((sum,[key,item])=>sum+24+estimateHuc6280SongStateBytes(key,seen)+estimateHuc6280SongStateBytes(item,seen),0);
+  if(value instanceof Set)return 48+[...value].reduce((sum,item)=>sum+16+estimateHuc6280SongStateBytes(item,seen),0);
+  if(Array.isArray(value))return 24+value.reduce((sum,item)=>sum+8+estimateHuc6280SongStateBytes(item,seen),0);
+  return 32+Object.entries(value).reduce((sum,[key,item])=>sum+16+key.length*2+estimateHuc6280SongStateBytes(item,seen),0);
+}
+const nullable=(value,max,label)=>value===null?null:integer(value,max,label);
+function prepareModelState(value){
+  if(!value||typeof value!=='object')throw TypeError('Invalid HuC6280 register state');
+  nullable(value.selected,7,'Selected channel');integer(value.revision,Number.MAX_SAFE_INTEGER,'Observation revision');
+  const row=(values,length,max,label)=>{
+    if(!Array.isArray(values)||values.length!==length)throw TypeError(`Invalid ${label}`);
+    return values.map(item=>nullable(item,max,label));
+  };
+  const rows=(values,length,max,label)=>{if(!Array.isArray(values)||values.length!==8)throw TypeError(`Invalid ${label}`);return values.map(values=>row(values,length,max,label));};
+  return{selected:value.selected,revision:value.revision,globals:row(value.globals,10,255,'global registers'),registers:rows(value.registers,8,255,'voice registers'),
+    waveforms:rows(value.waveforms,32,31,'Wave RAM'),indices:row(value.indices,8,31,'Wave indices'),ddaValues:row(value.ddaValues,8,31,'DAC values'),
+    ddaFrames:row(value.ddaFrames,8,Number.MAX_SAFE_INTEGER,'DAC frames'),ddaWrites:row(value.ddaWrites,8,Number.MAX_SAFE_INTEGER,'DAC writes')};
+}
 
 function model(clock,onChange=()=>{}) {
   let selected=null,revision=0,cache=null;
@@ -65,7 +91,18 @@ function model(clock,onChange=()=>{}) {
         dda:'last-recorded-code',rootNote:false,sample:false})});
     return Object.freeze({...cache,positionFrames:frame});
   }
-  return {write,advance,reset,snapshot,get selectedChannel(){return selected;},apply:change=>assign(change.kind,change.ch,change.index,change.value,0,false)};
+  const api={write,advance,reset,snapshot,get selectedChannel(){return selected;},apply:change=>assign(change.kind,change.ch,change.index,change.value,0,false)};
+  modelInternals.set(api,{
+    save:()=>prepareModelState({selected,revision,globals,registers,waveforms,indices,ddaValues,ddaFrames,ddaWrites}),
+    load(value){selected=value.selected;revision=value.revision;cache=null;
+      for(let index=0;index<globals.length;index++)globals[index]=value.globals[index];
+      for(let ch=0;ch<8;ch++){
+        indices[ch]=value.indices[ch];ddaValues[ch]=value.ddaValues[ch];ddaFrames[ch]=value.ddaFrames[ch];ddaWrites[ch]=value.ddaWrites[ch];
+        for(let index=0;index<8;index++)registers[ch][index]=value.registers[ch][index];
+        for(let index=0;index<32;index++)waveforms[ch][index]=value.waveforms[ch][index];
+      }
+    },
+  });return api;
 }
 
 export function createHuc6280RegisterState(clock=HUC6280_CLOCK) {
@@ -117,6 +154,31 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
     const result=original.reset.apply(this,args);generated=readFrame=0;events=[];head=changes=0;error='';ahead.reset();committed.reset();return result;
   }
   engine.writeHuc6280=write;engine.writeHuc6280Stream=stream;engine.processFrames=process;engine.reset=reset;
+  function prepareSavedState(state){
+    const saved=timelineStates.get(state);if(disposed||!saved||saved.clock!==clock||saved.limit!==maxPendingChanges)throw Error('Invalid or incompatible HuC6280 timeline state');
+    const data=saved.data;
+    integer(data.generated,Number.MAX_SAFE_INTEGER,'Generated frame');integer(data.readFrame,data.generated,'Read frame');integer(data.nativeWrites,Number.MAX_SAFE_INTEGER,'Native write count');
+    if(typeof data.error!=='string'||data.error.length>8192||!Array.isArray(data.events)||data.events.length>maxPendingChanges)throw Error('Invalid HuC6280 timeline data');
+    let count=0,previous=-1;
+    const events=data.events.map(event=>{
+      integer(event.frame,data.generated,'Event frame');if(event.frame<previous||event.frame<data.readFrame)throw Error('Invalid HuC6280 event order');previous=event.frame;
+      if(!(event.changes instanceof Map))throw Error('Invalid HuC6280 event changes');const copied=new Map();
+      for(const [key,change]of event.changes){
+        const {kind,ch,index,value}=change;if(!['s','g','r','w','i','d','f','n'].includes(kind))throw Error('Invalid HuC6280 event kind');
+        integer(ch,7,'Event channel');integer(index,kind==='w'?31:kind==='g'?9:7,'Event index');
+        nullable(value,kind==='s'?7:kind==='w'||kind==='i'||kind==='d'?31:kind==='f'||kind==='n'?Number.MAX_SAFE_INTEGER:255,'Event value');
+        if(key!==`${kind}:${ch}:${index}`)throw Error('Invalid HuC6280 event path');copied.set(key,{kind,ch,index,value});count++;
+      }
+      return{frame:event.frame,changes:copied};
+    });
+    if(count>maxPendingChanges)throw Error('HuC6280 timeline state exceeds its change limit');
+    return{...data,events,changes:count,ahead:prepareModelState(data.ahead),committed:prepareModelState(data.committed)};
+  }
+  function commitSavedState(data){
+    if(disposed)throw Error('HuC6280 song timeline is disposed');
+    modelInternals.get(ahead).load(data.ahead);modelInternals.get(committed).load(data.committed);
+    generated=data.generated;readFrame=data.readFrame;nativeWrites=data.nativeWrites;error=data.error;events=data.events;head=0;changes=data.changes;
+  }
   return {
     read(frame) {
       if(disposed)throw Error('HuC6280 song timeline is disposed');
@@ -127,7 +189,18 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
       if(head===events.length){events=[];head=0;}else if(head>256){events=events.slice(head);head=0;}
       return committed.snapshot(next);
     },
-    get generatedFrames(){return generated;},get pendingEvents(){return events.length-head;},get pendingChanges(){return changes;},get error(){return error;},
+    get engine(){return engine;},get generatedFrames(){return generated;},get readFrame(){return readFrame;},get pendingEvents(){return events.length-head;},get pendingChanges(){return changes;},get error(){return error;},
+    saveState(){
+      if(disposed)throw Error('HuC6280 song timeline is disposed');
+      const data={generated,readFrame,nativeWrites,error,ahead:modelInternals.get(ahead).save(),committed:modelInternals.get(committed).save(),
+        events:events.slice(head).map(event=>({frame:event.frame,changes:new Map([...event.changes].map(([key,value])=>[key,{...value}]))}))};
+      const state=Object.freeze({byteLength:estimateHuc6280SongStateBytes(data),generatedFrames:generated,readFrame});timelineStates.set(state,{clock,limit:maxPendingChanges,data});return state;
+    },
+    validateState(state){prepareSavedState(state);return true;},
+    // App checkpoint commits this prepared copy synchronously after native
+    // restoration, with no second deep allocation after the chip has changed.
+    prepareState(state){const data=prepareSavedState(state);return()=>commitSavedState(data);},
+    loadState(state){commitSavedState(prepareSavedState(state));},
     dispose(){if(disposed)return;disposed=true;events=[];head=changes=0;
       if(engine.writeHuc6280===write)engine.writeHuc6280=original.write;
       if(engine.writeHuc6280Stream===stream)engine.writeHuc6280Stream=original.stream;

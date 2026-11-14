@@ -23,6 +23,7 @@ on:
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/huc6280*'
+      - 'test/runtime/huc6280_state.test.mjs'
       - 'tetorica_src/runtime/ym2612vgm.js'
       - 'tetorica_src/runtime/opn_fm_vgm.js'
       - 'tetorica_src/runtime/vgm_file.js'
@@ -51,6 +52,7 @@ on:
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
+      - 'test/runtime/huc6280_state.test.mjs'
       - 'scripts/**'
       - 'third_party/**'
       - 'package*.json'
@@ -83,6 +85,7 @@ jobs:
           node scripts/check_huc6280_synth_capture_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-capture-browser.json --screenshots=release/huc6280-synth-capture-images
           node scripts/check_huc6280_synth_mixer_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-mixer-browser.json --screenshots=release/huc6280-synth-mixer-images
           node scripts/check_huc6280_synth_seek_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-seek-browser.json --screenshots=release/huc6280-synth-seek-images
+          node scripts/check_huc6280_synth_cache_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-cache-browser.json --screenshots=release/huc6280-synth-cache-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -103,4 +106,6 @@ jobs:
             release/huc6280-synth-mixer-images/
             release/huc6280-synth-seek-browser.json
             release/huc6280-synth-seek-images/
+            release/huc6280-synth-cache-browser.json
+            release/huc6280-synth-cache-images/
           if-no-files-found: ignore

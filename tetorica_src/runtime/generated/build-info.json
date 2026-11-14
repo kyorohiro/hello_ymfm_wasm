@@ -370,8 +370,13 @@
     {
       "id": "huc6280",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "f1aadf4cefd8ad266fed96082e7515ee341b37b1e99f038f649d88a3e17b8487",
+      "sourceFingerprint": "b4a9a1b82a55c636c9952abc604622652d63d1d5643fc08f04892ae349c11c59",
       "sourceFiles": [
+        {
+          "path": "native/include/tetorica/huc6280_state.h",
+          "sha256": "70c6ccc363e2f9dd52ecd47129ad7381f3afea87cc3d230a8d03a848af05a5df",
+          "size": 1344
+        },
         {
           "path": "scripts/build-wasm.sh",
           "sha256": "caf6bd1688d21b48cf5c633aac9aa9398ad727b8b5445fca7aa37718d7dca33f",
@@ -379,8 +384,8 @@
         },
         {
           "path": "scripts/build_huc6280_wasm.sh",
-          "sha256": "87a9ac5829a9eb139c50b5970bfb949ee71ab33908e5e76f4e9a21d2c516bd3d",
-          "size": 656
+          "sha256": "0be718f65bea6f3d46d432e25224448cd29783d496a8cc11308edb55cee59313",
+          "size": 765
         },
         {
           "path": "scripts/record_wasm_build.mjs",
@@ -389,13 +394,13 @@
         },
         {
           "path": "vendor/mame-huc6280/huc6280.cpp",
-          "sha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f",
-          "size": 6895
+          "sha256": "0249412639b309f13dbd285d729ff3141364fc2c9b499b8d7608a1f9a994e779",
+          "size": 13483
         },
         {
           "path": "vendor/mame-huc6280/huc6280.h",
-          "sha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6",
-          "size": 1056
+          "sha256": "d41035e4f0e62b331d9bc8998947bb78f5e17fc44bd9e6704ccc8dbf9c5b89cb",
+          "size": 1641
         },
         {
           "path": "vendor/mame-huc6280/upstream/c6280.cpp",
@@ -409,24 +414,24 @@
         },
         {
           "path": "wasm/huc6280_wasm.cpp",
-          "sha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765",
-          "size": 467
+          "sha256": "d4c68187010c833804b0c40799b0901f037bc75de0f15c45cf37e938505c3075",
+          "size": 1539
         }
       ],
       "outputs": [
         {
           "path": "huc6280_wasm.js",
-          "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
-          "size": 13612
+          "sha256": "7786bb5620b24884aa2aba4d8078d5b480c03987ba2cce638fb3c3874a05cf45",
+          "size": 14044
         },
         {
           "path": "huc6280_wasm.wasm",
-          "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073",
-          "size": 8935
+          "sha256": "35631309996a62c5c92241fe714c2d5a51330a29e9fc6a07871df090fd25d021",
+          "size": 11000
         }
       ],
       "compiler": {
-        "command": "em++",
+        "command": "/opt/homebrew/bin/em++",
         "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
       },
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
@@ -844,7 +849,7 @@
         }
       ],
       "compiler": {
-        "command": "em++",
+        "command": "/opt/homebrew/bin/em++",
         "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
       },
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"

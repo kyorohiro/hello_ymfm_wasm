@@ -4,7 +4,38 @@
 #include "huc6280.h"
 #include <cmath>
 #include <cstring>
+#include <limits>
 #define BIT(value, bit) ((uint32_t(value) >> (bit)) & 1U)
+namespace {
+// Compatibility ID for the unchanged synthesis model (the pre-checkpoint
+// huc6280.cpp SHA-256 prefix). Bump this ID when synthesis or state semantics
+// change; a format-version bump alone does not describe model compatibility.
+constexpr uint64_t STATE_MODEL = UINT64_C(0x5693c83943957e2e);
+constexpr uint8_t STATE_MAGIC[8] = {'H','U','C','S','A','V','E','1'};
+uint16_t state_u16(const uint8_t *p) { return uint16_t(p[0]) | uint16_t(p[1]) << 8; }
+uint32_t state_u32(const uint8_t *p) { return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 | uint32_t(p[3]) << 24; }
+uint64_t state_u64(const uint8_t *p) { return uint64_t(state_u32(p)) | uint64_t(state_u32(p + 4)) << 32; }
+void state_put16(uint8_t *p, uint16_t value) { p[0] = uint8_t(value); p[1] = uint8_t(value >> 8); }
+void state_put32(uint8_t *p, uint32_t value) { for (unsigned i = 0; i < 4; ++i) p[i] = uint8_t(value >> (8 * i)); }
+void state_put64(uint8_t *p, uint64_t value) { state_put32(p, uint32_t(value)); state_put32(p + 4, uint32_t(value >> 32)); }
+int32_t state_i32(const uint8_t *p) {
+    const uint32_t value = state_u32(p);
+    return value <= INT32_MAX ? int32_t(value) : int32_t(int64_t(value) - INT64_C(0x100000000));
+}
+int16_t state_i16(const uint8_t *p) { const uint16_t value = state_u16(p); return value <= INT16_MAX ? int16_t(value) : int16_t(int32_t(value) - 65536); }
+float state_float(const uint8_t *p) {
+    static_assert(sizeof(float) == 4 && std::numeric_limits<float>::is_iec559, "State ABI requires IEEE-754 binary32");
+    const uint32_t bits = state_u32(p); float result;
+    std::memcpy(&result, &bits, 4); // Scalar float bit conversion, not an object snapshot.
+    return result;
+}
+void state_put_float(uint8_t *p, float value) { uint32_t bits; std::memcpy(&bits, &value, 4); state_put32(p, bits); }
+bool state_overlaps(const void *data, uint32_t size, const void *object, size_t object_size) {
+    const uintptr_t start = reinterpret_cast<uintptr_t>(data), core = reinterpret_cast<uintptr_t>(object);
+    if (size > UINTPTR_MAX - start) return true;
+    return start < core + object_size && core < start + size;
+}
+}
 Huc6280::Huc6280(uint32_t clock, uint32_t rate) : m_clock(clock), m_rate(rate) {
     double level = 65535.0 / 6.0 / 32.0;
     for (int i = 0; i < 31; ++i) {
@@ -241,5 +272,65 @@ void Huc6280::write(uint32_t offset, uint8_t data)
 		default:
 			break;
 	}
+}
+
+bool Huc6280::save_state(uint8_t *data, uint32_t size) const {
+    if (!data || size != state_bytes || state_overlaps(data, size, this, sizeof(*this))) return false;
+    for (uint32_t i = 0; i < state_bytes; ++i) data[i] = 0;
+    for (unsigned i = 0; i < 8; ++i) data[i] = STATE_MAGIC[i];
+    state_put32(data + 8, 1); state_put32(data + 12, state_bytes); state_put64(data + 16, STATE_MODEL);
+    state_put32(data + 24, m_clock); state_put32(data + 28, m_rate); state_put64(data + 32, m_phase);
+    state_put_float(data + 40, m_left); state_put_float(data + 44, m_right);
+    data[48] = m_select; data[49] = m_enabled; data[50] = m_balance; data[51] = m_lfo_frequency; data[52] = m_lfo_control;
+    for (unsigned ch = 0; ch < 6; ++ch) if (m_muted[ch]) data[53] |= uint8_t(1U << ch);
+    for (unsigned ch = 0; ch < 8; ++ch) {
+        const channel &c = m_channel[ch]; uint8_t *p = data + 64 + 56 * ch;
+        state_put16(p, c.frequency); p[2] = c.control; p[3] = c.balance;
+        for (unsigned i = 0; i < 32; ++i) p[4 + i] = c.waveform[i];
+        p[36] = c.index; p[37] = c.noise_control; state_put16(p + 38, uint16_t(c.dda));
+        state_put32(p + 40, uint32_t(c.noise_counter)); state_put32(p + 44, c.noise_frequency); state_put32(p + 48, c.noise_seed);
+        state_put32(p + 52, uint32_t(c.tick));
+    }
+    return true;
+}
+
+bool Huc6280::decode_state(const uint8_t *data, uint32_t size, decoded_state &state) const {
+    if (!data || size != state_bytes || state_overlaps(data, size, this, sizeof(*this))) return false;
+    for (unsigned i = 0; i < 8; ++i) if (data[i] != STATE_MAGIC[i]) return false;
+    if (state_u32(data + 8) != 1 || state_u32(data + 12) != state_bytes || state_u64(data + 16) != STATE_MODEL ||
+        state_u32(data + 24) != m_clock || state_u32(data + 28) != m_rate || !m_clock || !m_rate) return false;
+    for (unsigned i = 54; i < 64; ++i) if (data[i]) return false;
+    state.phase = state_u64(data + 32); state.left = state_float(data + 40); state.right = state_float(data + 44);
+    if (state.phase >= m_rate || !std::isfinite(state.left) || !std::isfinite(state.right) ||
+        std::fabs(state.left) > 1 || std::fabs(state.right) > 1 || data[48] > 7 || data[53] > 63) return false;
+    state.select = data[48]; state.enabled = data[49]; state.balance = data[50]; state.lfo_frequency = data[51]; state.lfo_control = data[52]; state.muted = data[53];
+    uint8_t enabled = 0;
+    for (unsigned ch = 0; ch < 8; ++ch) {
+        channel &c = state.channels[ch]; const uint8_t *p = data + 64 + 56 * ch;
+        c.frequency = state_u16(p); c.control = p[2]; c.balance = p[3];
+        if (c.frequency > 4095) return false;
+        for (unsigned i = 0; i < 32; ++i) { c.waveform[i] = p[4 + i]; if (c.waveform[i] > 31) return false; }
+        c.index = p[36]; c.noise_control = p[37]; c.dda = state_i16(p + 38);
+        c.noise_counter = state_i32(p + 40); c.noise_frequency = state_u32(p + 44); c.noise_seed = state_u32(p + 48); c.tick = state_i32(p + 52);
+        if (c.index > 31 || c.dda < 0 || c.dda > 31 || c.noise_counter < 0 || c.noise_counter > 1984 || c.noise_frequency != 0 || c.noise_seed > 0x3ffff) return false;
+        if ((ch == 4 || ch == 5) && !c.noise_seed) return false;
+        if (ch != 4 && ch != 5 && (c.noise_seed || c.noise_counter)) return false;
+        const int32_t min_tick = ch == 0 ? -255 : 0, max_tick = ch == 1 ? 1044480 : ch == 0 ? 4336 : 4096;
+        if (c.tick < min_tick || c.tick > max_tick) return false;
+        if (c.control & 128) enabled |= uint8_t(1U << ch);
+    }
+    return enabled == state.enabled;
+}
+
+bool Huc6280::validate_state(const uint8_t *data, uint32_t size) const { decoded_state state{}; return decode_state(data, size, state); }
+bool Huc6280::load_state(const uint8_t *data, uint32_t size) {
+    decoded_state state{}; if (!decode_state(data, size, state)) return false;
+    // No member is touched until the entire version/model/configuration and
+    // all eight voices have passed validation. Derived volume tables stay local.
+    m_phase = state.phase; m_left = state.left; m_right = state.right; m_select = state.select; m_enabled = state.enabled;
+    m_balance = state.balance; m_lfo_frequency = state.lfo_frequency; m_lfo_control = state.lfo_control;
+    for (unsigned ch = 0; ch < 6; ++ch) m_muted[ch] = (state.muted & (1U << ch)) != 0;
+    for (unsigned ch = 0; ch < 8; ++ch) m_channel[ch] = state.channels[ch];
+    return true;
 }
 

@@ -16,10 +16,11 @@ class Element{
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
 const add=(project,name,value=1)=>project.importFiles([{path:'/vgm/'+name,type:'binary',data:Uint8Array.of(value)}]);
-function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture,mixer=false,seek=false,seekWork,cancelWork}={}){
+function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture,mixer=false,seek=false,cache=false,seekWork,cancelWork}={}){
   const ids=['Player','Select','PlayButton','StopButton','Status','Position','CaptureButton','CaptureStatus'],nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));
   if(mixer){nodes.Channels=new Element();for(let ch=1;ch<=6;ch++)nodes[`Channel${ch}Toggle`]=new Element();}
   if(seek)for(const id of ['Seek','SeekPosition','CancelSeek'])nodes[id]=new Element();
+  if(cache)for(const id of ['CacheEnabled','ClearCache','CacheStatus'])nodes[id]=new Element();
   const doc=Object.assign(new Element(),{getElementById:id=>nodes[id.slice('hucSong'.length)],createElement:()=>new Element()}),calls=[],states=[],statuses=[],views=[],captures=[];
   let notify,generation=0,audioRequests=0,beforeCalls=0;
   let state={playback:'stopped',hasSource:false,playing:false,paused:false,loading:false,busy:false,positionFrames:0,positionSeconds:0,bufferedFrames:0,durationSeconds:2,channelEnabled:Array(6).fill(true),channelMuteMask:0,seeking:false,seekPreparing:false,canSeek:true};
@@ -36,6 +37,8 @@ function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),lo
     stop(){generation++;calls.push(['stop']);emit({playback:'stopped',playing:false,paused:false,loading:false,positionFrames:0,positionSeconds:0});},
     clear(){calls.push(['clear']);emit({hasSource:false,name:'',playback:'stopped',playing:false,paused:false});},
     setLiveEnabled(value){calls.push(['live',value]);emit({liveEnabled:value});return {...state};},
+    setCacheEnabled(value){calls.push(['cache',value]);emit({seekCache:{...state.seekCache,enabled:value,count:0,bytes:0,hits:0}});return {...state};},
+    clearSeekCache(){calls.push(['clearCache']);emit({seekCache:{...state.seekCache,count:0,bytes:0,hits:0}});return {...state};},
     setChannelEnabled(channel,enabled){calls.push(['channel',channel,enabled]);const channelEnabled=[...state.channelEnabled];channelEnabled[channel]=enabled;
       emit({channelEnabled,channelMuteMask:channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0)});return {...state,channelEnabled:[...channelEnabled]};},
     async seek(seconds){calls.push(['seek',seconds]);if(seekWork)return seekWork(seconds);
@@ -355,4 +358,17 @@ test('Home/End and a valid range change commit exactly once when blur synchronou
     f.nodes.Seek.fire('pointerup');await turn();
     assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',action==='Home'?0:action==='End'?2.503:1.2]]);
   });
+});
+
+
+test('Seek cache controls are passive and never change the paused view, capture ticket or channel output flags',async t=>{
+  const f=fixture(t,{cache:true,mixer:true});assert(f.nodes.CacheEnabled.checked);assert.equal(f.audioRequests,0);
+  f.nodes.CacheEnabled.checked=false;f.nodes.CacheEnabled.fire('change');assert(f.nodes.CacheEnabled.blurred);assert.deepEqual(f.calls,[['cache',false]]);
+  assert.equal(f.audioRequests,0);assert.match(f.nodes.CacheStatus.textContent,/Cache Off/);
+  add(f.project,'source.vgm');await turn();f.controls.setView(0,{notify:false});pauseAt(f);const selected=f.controls.getPausedSelection();
+  f.emit({seekCache:{enabled:true,available:true,count:3,bytes:2048,hits:2,restoredFrame:44100,reconstructedFrames:100},sampleRate:44100});
+  assert.equal(f.nodes.Player.dataset.cacheCount,'3');assert.equal(f.nodes.Player.dataset.cacheRestoredFrame,'44100');assert.equal(f.nodes.Player.dataset.cacheReconstructedFrames,'100');
+  f.nodes.ClearCache.fire('click');assert(f.nodes.ClearCache.blurred);assert.equal(f.nodes.Player.dataset.cacheCount,'0');
+  assert.equal(f.controls.getPausedSelection(),selected);assert.deepEqual(f.controls.read().channelEnabled,Array(6).fill(true));assert.equal(f.controls.read().paused,true);
+  assert.equal(f.audioRequests,0);assert.throws(()=>f.controls.setCacheEnabled('true'),/boolean/);
 });

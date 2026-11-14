@@ -1,11 +1,34 @@
 {
   "schemaVersion": 1,
   "name": "tetorica-soundchip-native",
-  "version": "0.1.7",
+  "version": "0.1.8-huc-state",
   "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-  "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-  "archiveSha256": "5f7cdf35bc85a7453eef42576259f615411d4fdcdd47b8778242eb2a2d7f2b9c",
-  "manifestSha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365",
-  "fileCount": 476,
-  "unpublished": true
+  "archiveName": "tetorica-soundchip-native-0.1.8-huc-state-sources.zip",
+  "archiveSha256": "7fdb39e2c648ea1498279134560579ead409ab302f36d8c9ae7a61d8c4aa712d",
+  "manifestSha256": "e839739e9e7afc68003edc9c81d90535a2f949f6ab6c886dfe9059cf434be31d",
+  "fileCount": 481,
+  "unpublished": true,
+  "localCandidate": {
+    "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "changedPaths": [
+      "CHANGELOG.md",
+      "CMakeLists.txt",
+      "catalog/chips.json",
+      "catalog/native_inventory.json",
+      "catalog/source_inventory.json",
+      "docs/huc6280-local-candidate.json",
+      "docs/huc6280-state.md",
+      "native/CMakeLists.txt",
+      "native/include/tetorica/huc6280.hpp",
+      "native/include/tetorica/huc6280_state.h",
+      "native/tests/huc6280_state_fixture.cpp",
+      "scripts/build_huc6280_wasm.sh",
+      "sdk.json",
+      "tests/huc6280_state_wasm_smoke.mjs",
+      "vendor/mame-huc6280/README.md",
+      "vendor/mame-huc6280/huc6280.cpp",
+      "vendor/mame-huc6280/huc6280.h",
+      "wasm/huc6280_wasm.cpp"
+    ]
+  }
 }

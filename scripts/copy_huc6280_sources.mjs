@@ -19,7 +19,7 @@ export async function copyHuc6280Sources(stage) {
   const build = buildInfo.artifacts?.find(item=>item.id==='huc6280');
   if (!build) throw new Error('HuC6280 build provenance is missing');
   const names = [...new Set([...build.sourceFiles.map(item=>item.path),'LICENSE','sdk.json',
-    'vendor/mame-huc6280/LICENSE','vendor/mame-huc6280/README.md'])].sort();
+    'vendor/mame-huc6280/LICENSE','vendor/mame-huc6280/README.md','docs/huc6280-state.md'])].sort();
   const payload = new Map(), inputs = [];
   for (const name of names) {
     const bytes = await readFile(join(sdk,name)), expected = manifest.files[name];
@@ -56,9 +56,10 @@ The recipe accepts an absolute output directory as well. No game files, BIOS,
 full MAME checkout or network are needed. The PSG has six 32-sample, five-bit
 wavetable channels; the final two support noise. Channel 2 modulates channel 1
 when hardware LFO is enabled (user-facing channels are one-based).
-DDA is exposed by the reusable core, but this Synth does not implement streamed
-PCM playback. Software envelopes, keyboard allocation and presets belong to the
-host. MAME's imperfect/unverified noise and LFO behavior is retained; this
+DDA PCM uses the core's five-bit DAC with software sample feeding in the host.
+The formal state API preserves the oscillator, Noise, LFO, DDA and output-frame
+phase for exact seek checkpoints; see [the state format](huc6280-sdk/docs/huc6280-state.md).
+Software envelopes, keyboard allocation and presets belong to the host. MAME's imperfect/unverified noise and LFO behavior is retained; this
 instrument does not claim complete console or analog-output fidelity.
 `));
   for (const [name,bytes] of payload) {

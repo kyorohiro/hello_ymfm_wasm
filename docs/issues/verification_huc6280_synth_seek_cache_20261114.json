@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "task": "HuC6280 Synth exact native/parser/PCM/Live seek checkpoint cache",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Cache starts On beside the position bar. Exact checkpoints are collected approximately every five seconds and at requested destinations, within a 64-point / 8 MiB payload limit and LRU eviction.",
+    "The 512-byte explicit little-endian versioned native state includes all voices, Wave RAM/index/counters, Noise seed/counters, DDA, LFO, selected/enabled channels, mute mask, clock/rate and output phase/history. No heap or native-object memcpy is used.",
+    "App checkpoints also retain parser bank/stream graph and aliases, pending/fractional waits, queued PCM and ahead/committed Live timeline. Source identity, native settings and JS state are validated before restoring a fresh candidate.",
+    "Stop and Code Run retain same-source points. Source/project replacement and channel-output changes invalidate them. A generation barrier prevents prefetched old-mix PCM being captured under a new mask.",
+    "Off and Clear release points without moving playback, editing the instrument or cancelling paused audition. Unsupported or oversized checkpoints fall back to ordinary reconstruction.",
+    "Cancel, superseding Seek, Stop, Code Run, source replacement and disposal cannot publish stale candidates. At most the retained reference core plus one candidate is active; cache entries own no native cores.",
+    "Actual PCM tails and all semantic known/unknown Live settings match uncached Wave, LFO, Noise, direct DDA and looping DAC streams. Cross-history comparisons exclude only the revision UI counter, which counts observed same-frame transitions; same-history checkpoint continuation retains exact revision assertions.",
+    "All eight suites use the same extracted standalone ZIP with readable browser/native rebuild sources. Desktop1240/mobile390 layouts were inspected."
+  ],
+  "node": {
+    "passed": 417,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/package_itch_huc6280_synth.test.mjs scripts/runtime_artifact_profiles.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-cache-20261114/node-tests-final.log",
+      "bytes": 45313,
+      "sha256": "041b25a909db9d6f48c6ea80038a35e5a54ee8c9667a78354dff6708e2adf181"
+    }
+  },
+  "native": {
+    "ctestPassed": 2,
+    "receipt": {
+      "path": "build/verification/huc-cache-20261114/sdk-candidate-native/Testing/Temporary/LastTest.log",
+      "bytes": 1967,
+      "sha256": "08141efb32a0aef256acbcc925bf795323583949c4dc7b480f0d67a73b79f727"
+    },
+    "stateFormat": {
+      "magic": "HUCSAVE1",
+      "version": 1,
+      "bytes": 512
+    }
+  },
+  "legacyPcm": {
+    "passed": true,
+    "cases": 828,
+    "maximumDifference": 0,
+    "stateSupportDisabledForThisBaselineComparison": true,
+    "receipt": {
+      "path": "build/verification/huc-cache-20261114/legacy-pcm.json",
+      "bytes": 587125,
+      "sha256": "a42098b80b07b238eebb593f108722cdb311deac1e05a4b60b18b5ca467d4363"
+    }
+  },
+  "sdk": {
+    "version": "0.1.8-huc-state",
+    "sourceCommitIsBase": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "unpublishedLocalCandidate": true,
+    "archiveSha256": "7fdb39e2c648ea1498279134560579ead409ab302f36d8c9ae7a61d8c4aa712d",
+    "manifestSha256": "e839739e9e7afc68003edc9c81d90535a2f949f6ab6c886dfe9059cf434be31d",
+    "pinnedFiles": 481,
+    "changedPaths": [
+      "CHANGELOG.md",
+      "CMakeLists.txt",
+      "catalog/chips.json",
+      "catalog/native_inventory.json",
+      "catalog/source_inventory.json",
+      "docs/huc6280-local-candidate.json",
+      "docs/huc6280-state.md",
+      "native/CMakeLists.txt",
+      "native/include/tetorica/huc6280.hpp",
+      "native/include/tetorica/huc6280_state.h",
+      "native/tests/huc6280_state_fixture.cpp",
+      "scripts/build_huc6280_wasm.sh",
+      "sdk.json",
+      "tests/huc6280_state_wasm_smoke.mjs",
+      "vendor/mame-huc6280/README.md",
+      "vendor/mame-huc6280/huc6280.cpp",
+      "vendor/mame-huc6280/huc6280.h",
+      "wasm/huc6280_wasm.cpp"
+    ],
+    "offlineImportCheckPassed": true,
+    "runtimeArtifactCheck": {
+      "builds": 33,
+      "outputs": 68,
+      "mirrors": 75
+    },
+    "unrelatedDspBinariesChanged": [],
+    "ps1ReceiptRefresh": {
+      "path": "build/verification/huc-cache-20261114/spu-unchanged.json",
+      "bytes": 324,
+      "sha256": "10f301279d2b32fe6f9fb08171b69f8c1b7e1391368ee9d6c362a2569bc4a7f9"
+    }
+  },
+  "browsers": {
+    "suites": 8,
+    "runs": 16,
+    "checks": 170,
+    "results": [
+      {
+        "suite": "cache",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/cache-a.json",
+          "bytes": 33649,
+          "sha256": "41451a2a09b1682ad9a27e7ced56902d6297ffb33a15e152a5daaf2f66a4f477"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "seek",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/seek-a.json",
+          "bytes": 28098,
+          "sha256": "c92e354f23715bccd1bbf7a3d4631bae2639367ac8ae6f2c5181ec93a1d8ea24"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "mixer",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/mixer-a.json",
+          "bytes": 30059,
+          "sha256": "31b2e7ebca5b80943f17f84aff983be0ac777ff0a2d47a6bb74de4859e2d98ae"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/capture-a.json",
+          "bytes": 36497,
+          "sha256": "11f931c3ff2f78b86b5d42c6559ec6cc32d7efa7d72551cd57b81e10c54bad26"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/live-a.json",
+          "bytes": 108149,
+          "sha256": "7cc734db583e41ffa8f0c21d6a35f802fd7becb247c7ebd6414a8583b04177b8"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/code-a.json",
+          "bytes": 20108,
+          "sha256": "f82c2f706e80c32fa99ff55488bcd6f9c66ace775cca5970c2bf4517ceb9c0ee"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "song",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/song-a.json",
+          "bytes": 30716,
+          "sha256": "7606a7733445c02e10f573726764c51fcf8052ea73dd228e1db576b2c0efe82a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "legacy",
+        "receipt": {
+          "path": "build/verification/huc-cache-20261114/legacy-a.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsInspected": true
+  },
+  "performance": {
+    "limits": "Single local measurement, not a speed guarantee. First moves into uncached regions still rebuild. Browser timing includes UI polling and a mixed original fixture; Node uses preloaded WASM with timer yields.",
+    "node": {
+      "environment": {
+        "node": "v26.12.0",
+        "platform": "darwin",
+        "architecture": "arm64"
+      },
+      "receipt": {
+        "path": "build/verification/huc-cache-20261114/cache-benchmark.json",
+        "bytes": 5020,
+        "sha256": "bbff49c311612aee4fdadae75cfe1418673ac03932b5f698b7cdfa852b9a05ad"
+      },
+      "rows": [
+        {
+          "kind": "wave",
+          "targetSeconds": 120,
+          "coldMs": 3969.38,
+          "warmMs": 1.49,
+          "nearbyMs": 4.12,
+          "warmReconstructedFrames": 0,
+          "count": 24,
+          "bytes": 448608,
+          "maxReferenceCores": 2
+        },
+        {
+          "kind": "lfo",
+          "targetSeconds": 120,
+          "coldMs": 5280.56,
+          "warmMs": 0.93,
+          "nearbyMs": 2.13,
+          "warmReconstructedFrames": 0,
+          "count": 24,
+          "bytes": 446322,
+          "maxReferenceCores": 2
+        },
+        {
+          "kind": "noise",
+          "targetSeconds": 120,
+          "coldMs": 3907.43,
+          "warmMs": 0.79,
+          "nearbyMs": 1.95,
+          "warmReconstructedFrames": 0,
+          "count": 24,
+          "bytes": 448608,
+          "maxReferenceCores": 2
+        },
+        {
+          "kind": "dda",
+          "targetSeconds": 120,
+          "coldMs": 4604.23,
+          "warmMs": 1.3,
+          "nearbyMs": 2.13,
+          "warmReconstructedFrames": 0,
+          "count": 24,
+          "bytes": 1443618,
+          "maxReferenceCores": 2
+        }
+      ]
+    },
+    "browser": {
+      "targetSeconds": 92.34,
+      "originalFixtureBytes": 1507,
+      "rows": [
+        {
+          "browser": "chromium",
+          "coldMs": 10936,
+          "warmMs": 37,
+          "nearbyMs": 36,
+          "warmReconstructedFrames": 0,
+          "nearbyReconstructedFrames": 441,
+          "pcm": {
+            "frames": 4096,
+            "sha256": "75796c740284d32c404bdb21f8fa414c1bbd52dfb3d85553d4b235348176ff22"
+          }
+        },
+        {
+          "browser": "webkit",
+          "coldMs": 12059,
+          "warmMs": 33,
+          "nearbyMs": 34,
+          "warmReconstructedFrames": 0,
+          "nearbyReconstructedFrames": 441,
+          "pcm": {
+            "frames": 4096,
+            "sha256": "75796c740284d32c404bdb21f8fa414c1bbd52dfb3d85553d4b235348176ff22"
+          }
+        }
+      ]
+    }
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_huc-cache-20261114a_itch.zip",
+      "bytes": 1831661,
+      "sha256": "30318b9b66f83c286de94b5da3ee6f6afeb72a20d0703a9d170e93c4353499c2"
+    },
+    "files": 139,
+    "sourceCheck": {
+      "inputs": 14,
+      "files": 20,
+      "sdkVersion": "0.1.8-huc-state"
+    },
+    "originalInputFilesVerifiedAfterAllBrowserRuns": 120
+  },
+  "remaining": [
+    "VGM or Code plus manual edits/keyboard on the same channel is the next planned product step.",
+    "Tauri import, listening, long-duration real-game comparisons and publication were not performed."
+  ]
+}

@@ -12,8 +12,8 @@
       "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
     },
     "catalog/source_inventory.json": {
-      "bytes": 155228,
-      "sha256": "5de37b140b25beed09c793e51fda4e3de49990fc94e4fc4100b4ecd58db8de68"
+      "bytes": 156707,
+      "sha256": "261a4a9581f193de106f913c1f3dae0e6ae983a3aed36cb22ab1038f7cb81f24"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
@@ -32,8 +32,8 @@
       "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf"
     },
     "sdk.json": {
-      "bytes": 285,
-      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7"
+      "bytes": 295,
+      "sha256": "4f1d607f69cd191c717f349c0df3df8e5f5da9fb16a014137966af5a70a2dcd5"
     },
     "vendor/mame-ps1-spu/LICENSE": {
       "bytes": 1592,
@@ -105,15 +105,38 @@
     }
   },
   "sdk": {
-    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "5f7cdf35bc85a7453eef42576259f615411d4fdcdd47b8778242eb2a2d7f2b9c",
-    "fileCount": 476,
-    "manifestSha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365",
+    "archiveName": "tetorica-soundchip-native-0.1.8-huc-state-sources.zip",
+    "archiveSha256": "7fdb39e2c648ea1498279134560579ead409ab302f36d8c9ae7a61d8c4aa712d",
+    "fileCount": 481,
+    "localCandidate": {
+      "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "CMakeLists.txt",
+        "catalog/chips.json",
+        "catalog/native_inventory.json",
+        "catalog/source_inventory.json",
+        "docs/huc6280-local-candidate.json",
+        "docs/huc6280-state.md",
+        "native/CMakeLists.txt",
+        "native/include/tetorica/huc6280.hpp",
+        "native/include/tetorica/huc6280_state.h",
+        "native/tests/huc6280_state_fixture.cpp",
+        "scripts/build_huc6280_wasm.sh",
+        "sdk.json",
+        "tests/huc6280_state_wasm_smoke.mjs",
+        "vendor/mame-huc6280/README.md",
+        "vendor/mame-huc6280/huc6280.cpp",
+        "vendor/mame-huc6280/huc6280.h",
+        "wasm/huc6280_wasm.cpp"
+      ]
+    },
+    "manifestSha256": "e839739e9e7afc68003edc9c81d90535a2f949f6ab6c886dfe9059cf434be31d",
     "name": "tetorica-soundchip-native",
     "schemaVersion": 1,
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
     "unpublished": true,
-    "version": "0.1.7"
+    "version": "0.1.8-huc-state"
   },
   "outputs": {
     "ps1_spu_wasm.js": {

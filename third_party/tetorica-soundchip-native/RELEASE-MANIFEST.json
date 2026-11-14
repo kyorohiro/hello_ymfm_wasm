@@ -13,11 +13,11 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "7c1df3054fe173a5f605d6327c72b9d6deafc0f80a668ef0300377db55352264",
-      "size": 27299
+      "sha256": "a2f0a2af06d85dbb3086ca8db2b8bb51b7d5fc1a0572afb5b35155bbcbb4dc84",
+      "size": 28210
     },
     "CMakeLists.txt": {
-      "sha256": "3a48d4e6b84631ce0c68994b7a5d6ab37353fb7d0489f1182b25f8721e2ed802",
+      "sha256": "769d676f59f1e9ba925b04d7e67cd43d49141f11da37ab897f7eea6029d4e121",
       "size": 142
     },
     "LICENSE": {
@@ -37,16 +37,16 @@
       "size": 31386
     },
     "catalog/chips.json": {
-      "sha256": "b26fce3038430e1252f9060c046833a0caf5a0c3835e0c1612aa84be012469b4",
-      "size": 102268
+      "sha256": "a17e9b27286dd8b675b893f009a0a03cabeba23b5dd1eb8e1c25f797ff2b4845",
+      "size": 102683
     },
     "catalog/native_inventory.json": {
-      "sha256": "36f90722cb59f992d37caf8f88f45675c3f0dcdabed6638a91e7ca80575c86db",
-      "size": 52620
+      "sha256": "3ad9a9095d875d8d6643fb75f4d151efa4660944daa3999b1f05a0d51b746799",
+      "size": 52978
     },
     "catalog/source_inventory.json": {
-      "sha256": "5de37b140b25beed09c793e51fda4e3de49990fc94e4fc4100b4ecd58db8de68",
-      "size": 155228
+      "sha256": "261a4a9581f193de106f913c1f3dae0e6ae983a3aed36cb22ab1038f7cb81f24",
+      "size": 156707
     },
     "docs/architecture.md": {
       "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
@@ -55,6 +55,14 @@
     "docs/chip-differences.md": {
       "sha256": "1fd85dd66b785fe865f5aad83093e21c8bc21e19c7c2cc292f4341bbee5569df",
       "size": 55132
+    },
+    "docs/huc6280-local-candidate.json": {
+      "sha256": "df5fe1e6cb6a41ced8027ce039309948fee99d1868f8db41de9965bcaae4fdd9",
+      "size": 1414
+    },
+    "docs/huc6280-state.md": {
+      "sha256": "0f4f16048d039904d237fc5463c1d961cb2a09e9ed689c15cf77bf819ec1b92f",
+      "size": 5048
     },
     "docs/releases.md": {
       "sha256": "90e000f488e9bf847afb783457f65ccd49c19bd3c6a56e7a3970123c3ae841ed",
@@ -69,8 +77,8 @@
       "size": 106852
     },
     "native/CMakeLists.txt": {
-      "sha256": "3cd7c1d79c9b7decf72831d3dfedfe01d246284eb42961c3df5665361ec06c23",
-      "size": 40263
+      "sha256": "c18c60a8e891321714d25383d7a6a24281f842ebcb29ada35ad62afc9fcd8d6b",
+      "size": 40745
     },
     "native/README.md": {
       "sha256": "d97469bfbc8ce3d64ec1a1f52c4dac4b1dd483ab7d78674e749a24dd75764bf1",
@@ -189,8 +197,12 @@
       "size": 205
     },
     "native/include/tetorica/huc6280.hpp": {
-      "sha256": "eeec26a580308139822434608f19b6b64dc870be945b36e2fd09dda57e6aba68",
-      "size": 239
+      "sha256": "534b290f24fc8fa5017a0b9696acf6fd6e6aa555cebc1b31ce40cd67bd7f9c5d",
+      "size": 275
+    },
+    "native/include/tetorica/huc6280_state.h": {
+      "sha256": "70c6ccc363e2f9dd52ecd47129ad7381f3afea87cc3d230a8d03a848af05a5df",
+      "size": 1344
     },
     "native/include/tetorica/msm5205.h": {
       "sha256": "a5fd291c32bdc6d8c0766ba2061908b137f5558ce552529a0b54f8e049f66aab",
@@ -568,6 +580,10 @@
       "sha256": "19399bbbbd4e411e4fd852f3d4ce6fde69a1ed507b51ebc7ddd7cc7c2c3e0c3b",
       "size": 19569
     },
+    "native/tests/huc6280_state_fixture.cpp": {
+      "sha256": "d3198ed2da37bbb8aee45c1a725e0193cb2bf4f4968900014802e9caf2538b5d",
+      "size": 8109
+    },
     "native/tests/msm5205_fixture.c": {
       "sha256": "d65cf345e67d646d82bd0ccf611fc12b980d6906850a3fae2e88a33601dd5b44",
       "size": 4566
@@ -705,8 +721,8 @@
       "size": 778
     },
     "scripts/build_huc6280_wasm.sh": {
-      "sha256": "87a9ac5829a9eb139c50b5970bfb949ee71ab33908e5e76f4e9a21d2c516bd3d",
-      "size": 656
+      "sha256": "0be718f65bea6f3d46d432e25224448cd29783d496a8cc11308edb55cee59313",
+      "size": 765
     },
     "scripts/build_k051649_wasm.sh": {
       "sha256": "d0f070fb79088b427affa3b5b9409c4d6093e90dd6130d48b5e2fc30a136ec37",
@@ -849,8 +865,8 @@
       "size": 15168
     },
     "sdk.json": {
-      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7",
-      "size": 285
+      "sha256": "4f1d607f69cd191c717f349c0df3df8e5f5da9fb16a014137966af5a70a2dcd5",
+      "size": 295
     },
     "tests/README.md": {
       "sha256": "ede0407989c463210456947818b82bf7137f2ec1f84f3e9864bb9295c7399541",
@@ -871,6 +887,10 @@
     "tests/check_standalone_release.py": {
       "sha256": "c89753d20162dcb632c5582b5a9005f553c8d4e8a9b6bb965736a33dc7e03e24",
       "size": 49335
+    },
+    "tests/huc6280_state_wasm_smoke.mjs": {
+      "sha256": "b6476e4aed68047b032d1a0ce583eb56c779525bb8c336d683fb0328af4c8ce5",
+      "size": 7598
     },
     "tests/javascript_reference_smoke.mjs": {
       "sha256": "ef97f7570de5b30233c84dcecc1d146185f6852756f8982ecc8cb43ef9d3bb02",
@@ -1029,16 +1049,16 @@
       "size": 1517
     },
     "vendor/mame-huc6280/README.md": {
-      "sha256": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd",
-      "size": 956
+      "sha256": "8b5397ae03fe697a2bec11ba3d95f98eb16bb616d8da80c5ab1ac2fc1677f570",
+      "size": 1364
     },
     "vendor/mame-huc6280/huc6280.cpp": {
-      "sha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f",
-      "size": 6895
+      "sha256": "0249412639b309f13dbd285d729ff3141364fc2c9b499b8d7608a1f9a994e779",
+      "size": 13483
     },
     "vendor/mame-huc6280/huc6280.h": {
-      "sha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6",
-      "size": 1056
+      "sha256": "d41035e4f0e62b331d9bc8998947bb78f5e17fc44bd9e6704ccc8dbf9c5b89cb",
+      "size": 1641
     },
     "vendor/mame-huc6280/upstream/c6280.cpp": {
       "sha256": "192eeee545d8f438000f68e3867a26df7cd7b26efd9985d14f4dd7b53d61c8fc",
@@ -1789,8 +1809,8 @@
       "size": 2076
     },
     "wasm/huc6280_wasm.cpp": {
-      "sha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765",
-      "size": 467
+      "sha256": "d4c68187010c833804b0c40799b0901f037bc75de0f15c45cf37e938505c3075",
+      "size": 1539
     },
     "wasm/k051649_wasm.cpp": {
       "sha256": "32f4dcc756a4beda40a9137f5585891e1917a1a091085398cd032c3bc723c466",
@@ -1904,5 +1924,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.7"
+  "version": "0.1.8-huc-state"
 }

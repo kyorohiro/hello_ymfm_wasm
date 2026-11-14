@@ -6,7 +6,7 @@ import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-li
 import {createHuc6280CodeEdit} from './code_parameter_edit.js?v=huc-code-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createVgmLibrary} from './vgm_library.js?v=huc-capture-1';
-import {setupHuc6280SongControls} from './song_controls.js?v=huc-seek-1';
+import {setupHuc6280SongControls} from './song_controls.js?v=huc-cache-1';
 import {huc6280SongLiveView} from './song_live.js?v=huc-live-1';
 import {createHuc6280SongAudition} from './song_audition.js?v=huc-capture-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';

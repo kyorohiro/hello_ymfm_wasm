@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-seek-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-cache-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
@@ -22,6 +22,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   const channelButtons=Array.from({length:6},(_,index)=>$(`hucSongChannel${index+1}Toggle`));
   const channelGroup=$('hucSongChannels');
   const seek=$('hucSongSeek'),seekPosition=$('hucSongSeekPosition'),cancelSeekButton=$('hucSongCancelSeek');
+  const cacheEnabled=$('hucSongCacheEnabled'),clearCacheButton=$('hucSongClearCache'),cacheStatus=$('hucSongCacheStatus');
   if(!root||!select||!play||!stop||!status)throw Error('HuC6280 song controls mount is missing.');
   const listeners=[];
   let disposed=false,selectedPath=null,selectedRevision=-1,attempted='',listSignature='',selection=0,choosing=false,selectionError='',pending=null;
@@ -43,6 +44,11 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     root.dataset.seeking=String(Boolean(state.seeking));root.dataset.seekPreparing=String(Boolean(state.seekPreparing));
     root.dataset.seekCancelling=String(Boolean(state.seekCancelling));
     root.dataset.seekTargetSeconds=String(state.seekTargetSeconds??0);root.dataset.seekProgressSeconds=String(state.seekProgressSeconds??0);
+    const cache=state.seekCache;
+    for(const [key,value]of Object.entries({cacheEnabled:cache?.enabled!==false,cacheCount:cache?.count??0,cacheBytes:cache?.bytes??0,cacheHits:cache?.hits??0,cacheMisses:cache?.misses??0,cacheRestoredFrame:cache?.restoredFrame??0,cacheReconstructedFrames:cache?.reconstructedFrames??0}))root.dataset[key]=String(value);
+    if(cacheEnabled)cacheEnabled.checked=cache?.enabled!==false;
+    text(cacheStatus,cache?.enabled===false?'Cache Off. Seek rebuilds from the beginning.':cache?.available===false?'This sound core has no state support. Seek rebuilds from the beginning.':
+      `Cache On · ${cache?.count??0} points · ${Math.ceil((cache?.bytes??0)/1024)} KiB retained.${cache?.restoredFrame>0?` Last reuse: ${preciseTime((cache.restoredFrame??0)/(state.sampleRate??44100))}.`:''}${cache?.error?' A checkpoint was skipped; normal reconstruction is available.':''}`);
     const channelEnabled=state.channelEnabled??Array(6).fill(true);
     if(channelGroup)channelGroup.hidden=!state.hasSource;
     root.dataset.channelMuteMask=String(state.channelMuteMask??channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0));
@@ -195,6 +201,10 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   // same gesture at document level as well, without depending on range focus.
   if(typeof doc.addEventListener==='function')listen(doc,'keydown',event=>handleEscape(event));
   if(cancelSeekButton)listen(cancelSeekButton,'click',()=>{cancelSeekButton.blur();void cancelCurrentSeek().catch(report);});
+  function setCacheEnabled(value){if(typeof value!=='boolean')throw TypeError('Seek cache enabled must be boolean');if(disposed)return false;return decorate(preview.setCacheEnabled(value));}
+  function clearSeekCache(){if(disposed)return false;return decorate(preview.clearSeekCache());}
+  if(cacheEnabled)listen(cacheEnabled,'change',()=>{cacheEnabled.blur();try{setCacheEnabled(cacheEnabled.checked);}catch(error){report(error);}});
+  if(clearCacheButton)listen(clearCacheButton,'click',()=>{clearCacheButton.blur();try{clearSeekCache();}catch(error){report(error);}});
   function setChannelEnabled(channel,enabled){
     if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('VGM channel must be CH1–CH6.');
     if(typeof enabled!=='boolean')throw TypeError('VGM channel enabled must be boolean.');
@@ -250,7 +260,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     isActive:()=>Boolean(choosing||read().loading||read().seeking||read().seekPreparing||read().seekCancelling||['starting','seeking','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
     setLiveEnabled(value){if(disposed)return false;return decorate(preview.setLiveEnabled(value));},
-    stop:stopCurrent,seek:seekTo,cancelSeek:cancelCurrentSeek,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
+    stop:stopCurrent,seek:seekTo,cancelSeek:cancelCurrentSeek,setCacheEnabled,clearSeekCache,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
     dispose(){if(disposed)return;disposed=true;cancelPendingCapture();selection++;pending?.abort();unsubscribe();for(const remove of listeners)remove();preview.dispose();},
   };
 }

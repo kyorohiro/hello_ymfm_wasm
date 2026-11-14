@@ -68,6 +68,25 @@ test('bounded observation overflow disables only Live and preserves native PCM/w
   timeline.dispose();assert.equal(engine.writeHuc6280,original.write);assert.equal(engine.writeHuc6280Stream,original.stream);assert.equal(engine.processFrames,original.process);assert.equal(engine.reset,original.reset);
 });
 
+test('opaque timeline state restores committed and prefetched unknown/RAM/index/DAC deltas into a matching instance',()=>{
+  const a=core(),b=core(),ta=createHuc6280SongTimeline(a),tb=createHuc6280SongTimeline(b);
+  upload(a,2);a.writeHuc6280(2,100);a.writeHuc6280(4,159);a.processFrames(256);a.writeHuc6280(2,200);a.writeHuc6280(4,223);a.writeHuc6280(6,31);a.processFrames(256);
+  ta.read(128);const saved=ta.saveState();assert(saved.byteLength>512);assert(Object.isFrozen(saved));assert.equal(saved.readFrame,128);assert.equal(saved.generatedFrames,512);
+  assert.equal(tb.validateState(saved),true);tb.loadState(saved);assert.equal(tb.engine,b);assert.equal(tb.generatedFrames,512);assert.equal(tb.readFrame,128);
+  for(const frame of [128,255,256,511,512])assert.deepEqual(tb.read(frame),ta.read(frame),String(frame));
+  for(const engine of [a,b]){engine.writeHuc6280(0,2);engine.writeHuc6280(4,64);engine.writeHuc6280(4,0);engine.writeHuc6280(6,7);engine.processFrames(10);}
+  assert.deepEqual(tb.read(522),ta.read(522),'restored ahead write indices and revisions continue identically');
+  assert.throws(()=>tb.loadState({...saved}),/Invalid or incompatible/);ta.dispose();tb.dispose();
+});
+
+test('timeline compatibility checks and overflow-state restoration are atomic without resetting the chip',()=>{
+  const a=core(),b=core(),ta=createHuc6280SongTimeline(a,3579545,{maxPendingChanges:2}),tb=createHuc6280SongTimeline(b);
+  a.writeHuc6280(0,0);a.writeHuc6280(4,223);a.writeHuc6280(6,31);const saved=ta.saveState(),before=tb.read(0);
+  assert.throws(()=>tb.loadState(saved),/Invalid or incompatible/);assert.deepEqual(tb.read(0),before);assert.equal(b.writes.length,0);
+  tb.dispose();const matching=createHuc6280SongTimeline(b,3579545,{maxPendingChanges:2});matching.loadState(saved);assert.equal(matching.error,ta.error);assert.equal(matching.read(0),null);assert.equal(b.writes.length,0);
+  matching.dispose();assert.throws(()=>matching.validateState(saved),/Invalid or incompatible/);ta.dispose();
+});
+
 const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));
 async function native(){return Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:3579545,outputSampleRate:44100,masterVolume:1});}
 function render(engine,bytes,timeline){const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.load(bytes,{logger:null});player.reset();player.play();const result=[];let consumed=0;

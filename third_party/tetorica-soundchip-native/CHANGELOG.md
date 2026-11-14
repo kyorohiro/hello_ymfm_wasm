@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8-huc-state — HuC6280 core checkpoints (local, unpublished)
+
+- Add explicit, versioned 512-byte little-endian HuC6280 core state with a synthesis-compatibility ID, matching clock/rate, eight voice records, Wave RAM, LFO, Noise/DDA state, resampler phase/output and host output mutes.
+- Export state size/save/validate/load in the existing raw C/WASM ABI and provide a public C header through the HuC6280 Native library. Full validation precedes mutation; checkpoints transfer between matching instances without copying object layouts or WASM heaps. The older `native_huc6280_*` observation/clock wrapper remains a separate handle contract.
+- Verify exact continuation, invalid-state nonmutation, zero-allocation validation, Native/WASM byte/PCM portability and unchanged legacy golden PCM. Source/WASM archives are local development artifacts; no package, tag or release is published by this change.
+
+
 ## Unreleased — experimental SCSP instrument
 
 - Pin BSD-3-Clause MAME SCSP/DSP sources at `a64a5d6602b19f67e091a4491f0c851a9dacf79d` and retain pristine files, notices and SHA-256 hashes.

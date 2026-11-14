@@ -5,6 +5,11 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 // MAME HuC6280 adapter. Source/license: third_party/mame-huc6280/.
+// Opaque state handles can move between matching engines in this module. Native
+// validation binds their encoding to the exact core ABI, clock and output rate.
+const huc6280States=new WeakMap();
+const stateExports=['_huc6280_state_size','_huc6280_save_state','_huc6280_validate_state','_huc6280_load_state'];
+const stateHeap=module=>new Uint8Array((module.HEAPU8??module.HEAPF32).buffer);
 /**
  * Huc6280AudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
  * Output timing uses sampleRate() frames per second. No browser audio device is opened.
@@ -13,7 +18,7 @@
 export class Huc6280AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, clock: number, outputSampleRate?: number, masterVolume?: number}} options Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js').WasmModuleFactory, clock: number, outputSampleRate?: number, masterVolume?: number}} options Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Huc6280AudioEngine>} Initialized engine owned by the caller.
@@ -28,13 +33,13 @@ export class Huc6280AudioEngine {
     return new Huc6280AudioEngine(module, clock, outputSampleRate, masterVolume);
   }
 
-  /** @param {import('./soundchip.js?v=pokey-prepare-1').WasmChipModule} module
+  /** @param {import('./soundchip.js').WasmChipModule} module
    * @param {number} clock
    * @param {number} rate
    * @param {number} volume */
   constructor(module, clock, rate, volume) {
     this.module = module;
-    this.rate = rate;
+    this.clock=clock;this.rate = rate;this.channelMask=0;
     this.setMasterVolume(volume);
     this.ptr = this.capacity = this.selectedChannel = 0;
     this.handle = module._huc6280_create(clock, rate);
@@ -69,6 +74,47 @@ export class Huc6280AudioEngine {
   setChannelMuted(channel, muted) {
     if (!Number.isInteger(channel) || channel < 0 || channel >= 6) throw new RangeError('Invalid HuC6280 channel');
     this.module._huc6280_mute(this.handle, channel, Boolean(muted));
+    this.channelMask=muted?this.channelMask|(1<<channel):this.channelMask&~(1<<channel);
+  }
+
+  /** Whether this build exposes the validated, versioned native state ABI. */
+  supportsState(){return Boolean(this.handle&&stateExports.every(name=>typeof this.module[name]==='function'));}
+  /** Output settings must match before restoring a cached native timeline. */
+  stateSettingsKey(){return JSON.stringify([this.clock,this.rate,this.volume,this.channelMask]);}
+  _stateHeader(bytes,selected=this.selectedChannel,mask=this.channelMask){
+    if(bytes.length!==512)throw Error('Incompatible HuC6280 native state size');
+    const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+    if(String.fromCharCode(...bytes.subarray(0,8))!=='HUCSAVE1'||view.getUint32(8,true)!==1||view.getUint32(12,true)!==512||
+      view.getUint32(24,true)!==this.clock||view.getUint32(28,true)!==this.rate||bytes[48]!==selected||bytes[53]!==mask)
+      throw Error('Incompatible HuC6280 native state settings');
+  }
+  _withStateBytes(bytes,callback){
+    const ptr=this.module._malloc(bytes.length);if(!ptr)throw Error('HuC6280 state allocation failed');
+    try{stateHeap(this.module).set(bytes,ptr);return callback(ptr,bytes.length);}finally{this.module._free(ptr);}
+  }
+  /** Save native phase, Wave RAM, Noise/LFO and resampler state without exposing bytes. */
+  saveState(){
+    if(!this.supportsState())throw Error('HuC6280 state saving unavailable');
+    const size=this.module._huc6280_state_size(this.handle);if(size!==512)throw Error('Incompatible HuC6280 native state size');
+    const ptr=this.module._malloc(size);if(!ptr)throw Error('HuC6280 state allocation failed');
+    try{
+      if(this.module._huc6280_save_state(this.handle,ptr,size)!==1)throw Error('HuC6280 native state saving failed');
+      const bytes=stateHeap(this.module).slice(ptr,ptr+size);this._stateHeader(bytes);
+      const state=Object.freeze({byteLength:size});huc6280States.set(state,{bytes,key:this.stateSettingsKey(),selected:this.selectedChannel,mask:this.channelMask});return state;
+    }finally{this.module._free(ptr);}
+  }
+  /** Reject forged, incompatible or corrupted snapshots before any chip mutation. */
+  validateState(state){
+    const saved=huc6280States.get(state);
+    if(!this.supportsState()||!saved||saved.key!==this.stateSettingsKey())throw Error('Invalid or incompatible HuC6280 state');
+    this._stateHeader(saved.bytes,saved.selected,saved.mask);
+    this._withStateBytes(saved.bytes,(ptr,size)=>{if(this.module._huc6280_validate_state(this.handle,ptr,size)!==1)throw Error('Invalid HuC6280 native state');});return true;
+  }
+  /** Restore into a matching build/configuration; PCM output buffers are not state. */
+  loadState(state){
+    this.validateState(state);const saved=huc6280States.get(state);
+    this._withStateBytes(saved.bytes,(ptr,size)=>{if(this.module._huc6280_load_state(this.handle,ptr,size)!==1)throw Error('Invalid HuC6280 native state');});
+    this.selectedChannel=saved.selected;this.channelMask=saved.mask;
   }
 
   /**
