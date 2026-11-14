@@ -160,7 +160,7 @@ test('queued manual Pitch cannot cross Stop, rerun, channel cleanup, engine repl
 
 test('physical-CH DDA replacement rejects before file decoding or current sound changes',async()=>{
   const h=harness(),before=readPreset(h.scope.preset);
-  await assert.rejects(h.scope.loadDdaAudio({name:'sample.wav'},{}),/Choose Synth.*shared DDA sample/);
+  await assert.rejects(h.scope.loadDdaAudio({name:'sample.wav'},{}),/Choose Auto.*shared DDA sample/);
   assert.deepEqual(h.scope.preset,before);assert.equal(h.scope.revision,1);assert(!h.calls.some(call=>['prepareDda','preset','command'].includes(call[0])));
 });
 

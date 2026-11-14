@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-cdrom2-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-channel-ui-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
@@ -18,7 +18,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   onState=()=>{},onStatus=()=>{},onCapture=async()=>false,onViewChange=()=>{},createPreview=createHuc6280SongPreview,document:doc=globalThis.document}={}){
   const $=id=>doc.getElementById(id),root=$('hucSongPlayer'),select=$('hucSongSelect');
   const play=$('hucSongPlayButton'),stop=$('hucSongStopButton'),status=$('hucSongStatus'),position=$('hucSongPosition');
-  const capture=$('hucSongCaptureButton'),captureStatus=$('hucSongCaptureStatus');
+  const capture=$('hucSongCaptureButton'),captureStatus=$('hucSongCaptureStatus'),captureInfo=$('hucSongCaptureInfo');
   const channelButtons=Array.from({length:6},(_,index)=>$(`hucSongChannel${index+1}Toggle`));
   const channelGroup=$('hucSongChannels');
   const seek=$('hucSongSeek'),seekPosition=$('hucSongSeekPosition'),cancelSeekButton=$('hucSongCancelSeek');
@@ -78,9 +78,10 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     }
     if(cancelSeekButton){cancelSeekButton.hidden=!(state.seeking||state.seekPreparing||state.seekCancelling);cancelSeekButton.disabled=Boolean(state.seekCancelling||state.seekPreparing&&!state.seeking);}
     const payload=getCapturePayload(state);
-    if(capture){capture.disabled=capturing||!payload?.capturable;text(capture,capturing?'Capturing…':'Capture to Synth');}
-    text(captureStatus,captureMessage||(payload?payload.capturable?payload.playable?payload.description:`Capture available. ${payload.reason}`:payload.reason:
-      state.paused?'Choose a recorded CH to audition or capture its configured sound.':'Pause a song and choose a CH to capture its configured sound.'));
+    if(capture){capture.disabled=capturing||!payload?.capturable;text(capture,capturing?'Copying…':'Copy to Auto');}
+    text(captureInfo,payload?payload.capturable?payload.description:payload.reason:
+      state.paused?'Choose a recorded CH to audition or copy its configured sound.':'Pause a song and choose a CH to copy its configured sound.');
+    text(captureStatus,captureMessage||(payload?payload.capturable?'Ready to copy or save.':payload.reason:''));
     root.dataset.capturePending=String(capturing);root.dataset.capturable=String(Boolean(payload?.capturable));root.dataset.viewTarget=String(viewTarget);
     onState(decorate(state));
   }
@@ -229,20 +230,20 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     catch(error){prepared={preset:null,channel,source:'unknown',positionFrames:state.positionFrames,playable:false,capturable:false,reason:error.message,description:error.message};}
     return pausedSelectionCache={key,snapshot,channel,positionFrames:state.positionFrames,sourcePath:selectedPath,sourceRevision:selectedRevision,prepared};
   }
-  function manualCurrent(options={},state=read(),release=false){
+  function manualCurrent(options={},state=read(),release=false,pausedEdit=false){
     if(disposed||!state.hasSource||options.epoch!==undefined&&options.epoch!==state.manualEpoch)return false;
     // Validation can fail while the accepted run continues. Its held keys
     // must still be released even though new manual input is temporarily shut.
     if(release)return Boolean((state.playing||state.paused)&&!state.seeking&&!state.seekPreparing&&!state.seekCancelling);
-    return !choosing&&!state.loading&&!state.busy&&state.playing&&state.manualReady===true;
+    return !choosing&&!state.loading&&!state.busy&&(state.playing||pausedEdit&&state.paused)&&state.manualReady===true;
   }
   function getManualSelection(channel){
     if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('VGM channel must be CH1–CH6.');
     const state=read();
-    if(!manualCurrent({},state))return{channel,epoch:state.manualEpoch,available:false,editable:false,playable:false,source:'unknown',reason:'VGM channel controls are not available at this position.'};
+    if(!manualCurrent({},state,false,true))return{channel,epoch:state.manualEpoch,available:false,editable:false,playable:false,source:'unknown',reason:'VGM channel controls are not available at this position.'};
     return preview.getManualSelection(channel);
   }
-  function applyEdit(edit,options={}){return manualCurrent(options)?preview.applyEdit(edit,options):false;}
+  function applyEdit(edit,options={}){return manualCurrent(options,read(),false,true)?preview.applyEdit(edit,options):false;}
   function noteOn(id,midi,channel,options={}){return manualCurrent(options)?preview.noteOn(id,midi,channel,options):false;}
   function noteOff(id,options={}){return manualCurrent(options,read(),true)?preview.noteOff(id,options):false;}
   function setPitch(value,options={}){return manualCurrent(options)?preview.setPitch(value,options):false;}
@@ -267,7 +268,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     try{
       const result=await onCapture(payload,{isCurrent});
       if(!isCurrent()||result===false)return false;
-      viewTarget='synth';succeeded=true;captureMessage='Captured to Synth. The reference song remains paused.';return true;
+      viewTarget='synth';succeeded=true;captureMessage='Copied to Auto. The reference song remains paused.';return true;
     }finally{
       if(!disposed&&token===captureOperation){capturing=false;captureBinding=null;showState(read());if(succeeded)onViewChange('synth',{reason:'capture'});}
     }

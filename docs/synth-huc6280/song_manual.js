@@ -75,7 +75,8 @@ export function createHuc6280SongManual({engine,timeline,onMutation=()=>{}}={}) 
     }
     after();listen();return{applied:true,frame};
   }
-  function applyEdit(value){
+  function applyEdit(value,{releaseOutputOnKeyboardCleanup=true}={}){
+    bool(releaseOutputOnKeyboardCleanup,'Output keyboard cleanup');
     const edit=readHuc6280CodeEdit(value),changes=edit.changes,own=path=>Object.hasOwn(changes,path);
     for(const[path,value]of Object.entries(changes)){
       if(!hardware.has(path))throw TypeError(`VGM manual editing supports hardware fields only: ${path}`);
@@ -128,7 +129,7 @@ export function createHuc6280SongManual({engine,timeline,onMutation=()=>{}}={}) 
     if(own('lfo.output.enabled'))write(1,4,changes['lfo.output.enabled']?reg(1,4)|128:reg(1,4)&~128);
     return commit(operations,()=>{
       for(const ch of retirePitch)if(owners[ch])owners[ch].pitchOwned=false;
-      if(own('lfo.output.enabled')&&oldOutput!==changes['lfo.output.enabled'])owners[1]=changes['lfo.output.enabled']?{channel:1,manualEdit:true}:null;
+      if(own('lfo.output.enabled')&&oldOutput!==changes['lfo.output.enabled'])owners[1]=releaseOutputOnKeyboardCleanup&&changes['lfo.output.enabled']?{channel:1,manualEdit:true}:null;
     });
   }
   function noteOn(id,midi,channel){

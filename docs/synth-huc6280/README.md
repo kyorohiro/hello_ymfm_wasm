@@ -157,10 +157,14 @@ normal keyboard input. A later Code note can take over the same channel without
 being cut by an older hand-key release. Code frequency changes also survive
 returning the manual Pitch wheel to center.
 
-The channel selector offers **Synth** and **CH1–CH6** in normal, Code and VGM modes. Synth
-edits the authored instrument; a physical channel shows that channel. Normal
-and Code modes allow editing. Playing VGM channels allow hardware edits and
-keyboard input; paused channels show frozen settings and use a separate audition.
+The channel selector offers **Auto** and **CH1–CH6** in normal, Code and VGM modes.
+Auto edits the common instrument and uses its automatic keyboard allocation
+(round robin for an ordinary Wave sound);
+a physical channel aligns the displayed settings, edits and keyboard with that CH.
+Normal and Code modes allow editing. VGM channels remain individually editable
+while playing or paused; Pause uses the heard-position settings for its separate
+keyboard audition. The adjacent **?** holds detailed channel explanations and
+register readouts, closed by default.
 **Auto update** reads the configured wave and sent registers at up to 20 Hz;
 turn it off to reduce readback. This is an observation of software writes, not
 an oscillator-phase measurement. During Code, manual channel edits retain their changed
@@ -169,11 +173,12 @@ the saved instrument. **Stop** fades the software output briefly, cancels Code
 and restores the authored settings with all notes released.
 
 In normal mode a physical CH has independent settings and keyboard ownership.
-Selecting CH or Synth alone does not copy or unify settings. Stop / blur releases
-manual notes while retaining these channel settings. Shared Synth edits broadcast
+Selecting CH or Auto alone does not copy or unify settings. Stop / blur releases
+manual notes while retaining these channel settings. Shared Auto edits broadcast
 only changed sound fields; explicit sound loads, source / routing / PCM changes
-replace the normal channel setup. Normal CH settings are session state, outside
-the single-voice preset format. Starting and stopping Code restores the common
+replace the normal channel setup. The six-channel arrangement is session state;
+**Save to presets** stores one selected sound, not the whole channel arrangement.
+Starting and stopping Code restores the common
 instrument. Selecting a physical CH before audio is enabled is passive; enable
 audio or play a key before editing its actual settings.
 
@@ -182,7 +187,7 @@ Envelope**; `keyOn(channel)` / `keyOff(channel)` operate the raw hardware gate.
 Noise is available on CH5 / CH6 and does not follow note pitch. Hardware LFO
 still has the fixed CH2 → CH1 route: Code must explicitly set CH2's period when
 it should follow a melody. DDA uses the current shared PCM asset and software
-sample feeding. Choose Synth to replace that asset; physical-channel controls
+sample feeding. Choose Auto to replace that asset; physical-channel controls
 can adjust its playback settings. `liveFx` effects run in software after the Code mix.
 Completion, type hints and source navigation distinguish these host tools from
 the chip API.
@@ -196,10 +201,13 @@ stops MSM5205 and rewinds CD-DA; both loaded sources remain available. Tab
 changes do not create extra players. Types and source navigation cover all
 three objects.
 
-In the MSM5205 or CD-DA tab, **Add Code examples to Files** adds
-`examples/msm5205.js` and `examples/cdda.js`. Select one in Code, then Run.
-The examples generate original tones without external audio files. This button
-keeps existing files, your selection and the Keyboard / Code mode unchanged.
+**Files → Examples** explicitly adds `examples/huc6280.js`,
+`examples/msm5205.js` and `examples/cdda.js`. The existing **Add Code examples to
+Files** buttons in the MSM5205 and CD-DA tabs use the same action. The HuC6280
+example plays the current instrument; the media examples generate original tones
+without external audio files. Only missing paths are added. Existing user files,
+the current file selection, Keyboard / Code mode and running Code remain intact.
+Choose an example in Code, then Run; adding it never runs it automatically.
 
 Add your audio files through Files and use their displayed project paths:
 
@@ -226,7 +234,16 @@ Track playback, file preparation, scheduling and FX are software functions.
 **Files** holds `index.js`, presets, text and binary assets. Selecting a sound
 loads it without stopping Code; selecting JSON while Keyboard is visible keeps
 the Keyboard tab. Right-click a file for duplicate, rename, delete and creation
-actions. Save sound stores a portable preset under `presets/`. The menu imports
+actions. Save sound stores the common Auto instrument under `presets/`.
+The **Save to presets** button beside Channel saves the selected Auto or physical
+CH sound directly to `presets/`, without Capture, changing the channel view,
+selecting the new JSON, switching Keyboard / Code or stopping playback. The new
+file appears immediately in Files and the preset loader. Known Wave, Noise and
+CH1 LFO-pair settings can be saved. An unknown Wave RAM or physical DDA snapshot
+does not contain a complete PCM asset, so the button explains why it is unavailable.
+Auto can save its complete authored DDA asset. Select the saved file or choose it
+in the **Preset** list to load it later; saving alone does not apply it.
+The menu imports
 and exports files or a whole Cassette project. Local recovery and project import
 restore editable data without running Code or opening audio. Cassette projects
 are limited to **16 MiB expanded**, including settings and metadata; the existing
@@ -243,8 +260,10 @@ explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
 The shared **Channel / Auto update** controls sit inside the VGM transport
 container, close to Play / Pause / Stop. The collapsible **Sounds from VGM**
-card follows, then the **Waveform / Spectrum** monitor. Collapse the sound list
-while following the same channel settings and output display.
+card follows, then the **Waveform / Spectrum** monitor. Extraction explanations
+and the volume-grouping explanation are behind **?**, closed by default, while
+the sound choices and **keep loudest volume variant** option remain available.
+Collapse the sound list while following the same channel settings and output display.
 
 **Wave / PCM: keep loudest volume variant** optionally groups Wave or PCM entries whose data
 and all other sound settings match, showing the highest channel-volume version.
@@ -376,12 +395,13 @@ monitor. VGM loop points do not automatically repeat. The reference chip is
 independent of the authored instrument; Pause retains unheard PCM and its exact
 offset so Resume continues at the heard song position.
 
-**VGM output: CH1–CH6 On / Off** lets you hear each part separately. These
+Open the **Mixer** tab for **VGM output: CH1–CH6 On / Off**, alongside the three
+source-level controls. These
 software listening switches affect only the reference song mix, independently
 of the Channel view selector. All six start On. Turning a channel Off does not
 stop its oscillator, change its recorded Gate/volume/Wave/Noise/DDA settings,
 or disable CH2's hardware LFO modulation of CH1. Live and Capture continue to
-show the recorded sound. Keyboard audition, the edited Synth and Code remain
+show the recorded sound. Keyboard audition, the common Auto instrument and Code remain
 separate.
 
 Changes apply to newly generated PCM after already buffered audio has played;
@@ -392,8 +412,8 @@ fields and are not saved in a Cassette.
 
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
-both. Select **Synth** to play or adjust your own instrument while the song
-continues. Preset loads in Synth view also keep playback; loading another sound
+both. Select **Auto** to play or adjust your own instrument while the song
+continues. Preset loads in Auto view also keep playback; loading another sound
 while viewing a physical song CH stops the reference and loads the authored
 instrument. Capture deliberately keeps the song paused.
 
@@ -407,7 +427,7 @@ follows the **heard position**, rather than prefetched audio. Unknown Wave RAM s
 blank; missing register fields show an unknown marker. DDA shows the last
 recorded five-bit DAC code, without assuming a continuous sample or root note.
 These observations and manual song edits never replace your authored instrument
-or modify the VGM file. Software Envelope and PCM asset controls belong to Synth,
+or modify the VGM file. Software Envelope and PCM asset controls belong to Auto,
 not the recorded chip. DDA level and balance remain editable, but its changing
 DAC code is not a keyboard-playable PCM asset. CH2 stays the LFO modulator;
 choose CH1 for carrier keys, leaving the recorded CH2 period in place.
@@ -418,8 +438,14 @@ the heard position. Pause publishes one exact consumed-position snapshot even
 when automatic updates are Off; Resume continues playback. A deliberate manual
 edit also gets one update when its audio boundary is heard, while Auto stays Off.
 
-While paused, select a recorded **CH1–CH6** and play the keyboard to audition
-its configured sound. Wave uses ordinary keyboard pitch. Noise retriggers the
+While paused, select a recorded **CH1–CH6** to edit that channel and play the
+keyboard to audition its configured sound. Only the fields you edit are projected
+onto the exact heard-position snapshot; unrelated prefetched settings do not
+replace that view. Edits persist when you switch between CH views. The song
+position remains paused. Resume retains the already buffered PCM before the
+updated settings become audible, and later VGM writes can replace those fields.
+Seek rebuilds the original song settings rather than carrying manual changes
+to the destination. Wave uses ordinary keyboard pitch. Noise retriggers the
 recorded hardware clock and does not transpose. An active hardware LFO is
 auditioned from **CH1** as the full recorded CH1 / CH2 pair: C4 reproduces the
 carrier period, other notes transpose CH1 and CH2 keeps its recorded period.
@@ -433,10 +459,12 @@ position, native song state or unheard PCM. Changing views, Resume, Stop,
 starting Code or replacing a project retires that trial instrument. No second
 speaker connection is added.
 
-Choose **Capture to Synth** to copy the configured Wave, Noise or CH1 LFO pair
+Choose **Copy to Auto** to copy the configured Wave, Noise or CH1 LFO pair
 into the editable common instrument. The song stays paused at the same position
-and the view returns to **Synth**. Adjust it, then choose **Files → Save sound**
-to keep a preset. Capture itself does not create a file or resume the song.
+and the view returns to **Auto**. Adjust it, then choose **Files → Save sound**
+to keep a preset. Alternatively, **Save to presets** saves the selected CH directly,
+without Capture or changing the view, song state or current Code file. Capture
+itself does not create a file or resume the song.
 Captured presets start with **Software Envelope Off**, keeping the recorded
 hardware configuration separate from the song driver's later volume changes.
 The recorded global left/right balance is folded into the preset's channel
@@ -450,8 +478,8 @@ A DDA snapshot contains one changing DAC value, not a complete PCM sample, so
 it cannot be captured or auditioned as a sample. Use static PCM extraction when
 a complete supported interval exists. A known but gated-off or muted sound can
 still be captured, while its paused keyboard audition is disabled. Oscillator
-phase and elapsed automation are not captured. Direct VGM editing remains a
-later step.
+phase and elapsed automation are not captured. Manual hardware edits are
+temporary session changes; the original VGM file is kept intact.
 
 The player accepts VGM **1.61–1.72** and requires one HuC6280 at the normal
 **3,579,545 Hz** PC Engine clock. Other chips,
@@ -621,7 +649,7 @@ actual CD-ROM access are not included.
 - [npm API catalog](../../packages/fm2612/README.md#api-entry-points): musical helpers and low-level APIs.
 - [Huc6280Synth](../../tetorica_src/runtime/huc6280synth.js) and [Huc6280AudioEngine](../../tetorica_src/runtime/huc6280audioengine.js): authoring and synchronous register / PCM access.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
-- [Code host and starter](code_host.js), [shared-chip client / software FX](code_audio.js), [Live channel view](code_live.js), [types](code_declarations.js), [project format](code_project.js) and [Files](code_files.js).
+- [Code host and starter](code_host.js), [shared-chip client / software FX](code_audio.js), [Live channel view](code_live.js), [types](code_declarations.js), [project format](code_project.js), [Files](code_files.js), [selected-channel preset preparation](selected_preset.js) and [explicit Code examples](cdrom2_examples.js).
 - [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js), [direct DAC PCM extraction](vgm_direct_pcm.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
 - [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js), [Files song controls](song_controls.js), [strict configured-voice capture](song_voice.js) and [isolated paused audition](song_audition.js).
 - [HuC6280 / MSM5205 reference mix](song_engine.js), [Code media sources](cdrom2_audio.js), [MSM5205 decoder](../js/msm5205audioengine.js) and [CD-DA source](../js/cdda_player.js).
@@ -708,15 +736,20 @@ Keyboard／Codeを切り替えてもloop・context・接続は維持します。
 つまみや背景へFocusを移すと鍵盤演奏ができます。編集欄・文字入力・select・dialog内は演奏しません。
 古い手動離鍵やPitch解除で新しいCodeの発音・周波数を巻き戻さず、Octave／CH変更は手動Releaseも解放します。
 CH1–CH6の表示・編集と自動更新、Files・Cassetteの保存／読込、型補完・実装への移動に対応します。
+Channelの選択はAuto／CH1–CH6です。Autoは共通音色と自動割当、各CHは表示・編集・鍵盤の対象を揃えます。
+FilesのExamplesボタンから`examples/huc6280.js`／`msm5205.js`／`cdda.js`を明示追加できます。
+既存ファイルを上書きせず、不足分だけ追加し、選択・Keyboard／Code・実行中のCodeは変えません。
+例を追加しただけでは実行せず、Codeでファイルを選んでRunします。
 Runは新規実行、Applyはcontext等を保持、Stopは短くフェードして編集用設定へ戻します。
 CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲート操作です。
 liveFxやDDAのデータ供給もソフト側の機能です。復元したCodeを勝手に実行することはありません。
 ハンバーガーメニューのImport → VGM / VGZ…から読み込みます。
 Channel／Auto update／CaptureはVGM・Play／Stopと同じコンテナ内です。
+Channelの詳細説明・レジスタ表示とSounds from VGMの長い説明は、初期状態で閉じた?へまとめています。
 VGM再生中は選択CHのhardware設定・鍵盤を同じ参照音源へ送れます。後のVGM命令が優先され、
 先読み済みPCMの後から音と表示へ反映します。Auto update Offでも手動変更は聞こえた時点で一度表示します。
-Synthを選ぶと自分の音色を曲と重ねて演奏・編集できます。DDAは音量／balanceを編集でき、
-瞬間DAC値からPCMを推測しないため鍵盤試奏はできません。Software Envelope／PCM資産はSynth専用です。
+Autoを選ぶと自分の音色を曲と重ねて演奏・編集できます。DDAは音量／balanceを編集でき、
+瞬間DAC値からPCMを推測しないため鍵盤試奏はできません。Software Envelope／PCM資産はAuto専用です。
 手動変更したrunから原曲用cacheは収集せず、Seekは原曲状態へ戻り、取消は元の編集済みrunを保ちます。
 その下に折りたたみ式の音色一覧、Waveform／Spectrumが続きます。
 VGM／VGZからWave／Noise、CH1・CH2を組にしたLFO音色、対応する完全なDAC streamや一定間隔の直接DAC write区間のPCMを抽出できます。
@@ -741,28 +774,35 @@ VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲
 Stop／Code Runでは保持し、曲やCH別出力が変わると破棄します。Cache Offや再生欄の? → Clear seek cacheで解放できます。
 位置・編集用音色・Pause試奏は変えません。初めて移動する未cache区間は数秒かかることがあり、非対応backendや容量超過の点は通常の再構築で扱います。
 模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
-VGM outputのCH1–CH6 On／Offは、曲の聴き分け用のソフト側スイッチです。初期値は全CH On。
-表示対象のChannel選択とは独立し、通常Synth／Code／Pause試奏には適用しません。
+VGM outputのCH1–CH6 On／OffはMixerタブにまとめています。曲の聴き分け用のソフト側スイッチで、初期値は全CH On。
+表示対象のChannel選択とは独立し、共通Auto音色／Code／Pause試奏には適用しません。
 発振器・Noise・DDA・CH2→CH1のLFOと記録設定は保ち、出力だけを変更します。
 生成済みPCMを保持し、その先の音から反映します。Pause中の変更も未再生の短いbufferの後から反映されます。
 Pause／Resume、Stop／Play、曲切替でも選択を保持します。セッション内の状態で、音色presetやCassetteには保存しません。
 Codeと曲再生は排他的で、RunとPlayが互いの演奏を停止します。Pauseは未再生PCMとoffsetを保持します。
-CH1–CH6を選ぶと、聞こえた位置の設定を同じ音色UIへ読み取り専用で表示します。
+CH1–CH6を選ぶと、聞こえた位置の設定を同じ音色UIへ表示し、再生中もPause中も個別に編集できます。
 未記録Wave RAMは空欄、DDAは最後に書かれたDAC値を表示し、元のPCM音色や音階を推測しません。
 自動更新は初期On・最大20Hz。OffはCHを切り替えても同じ観測時刻を保ち、Onで追従します。
 Pause時は自動更新Offでも、実際に止まった位置を一度表示します。
-通常時もCHごとに表示・設定・鍵盤を揃え、CHやSynthの選択だけで値を統一しません。
-通常CH設定は一時的な状態で、単一音色presetには含めません。Code開始・終了では共通音色へ戻します。
+通常時もCHごとに表示・設定・鍵盤を揃え、CHやAutoの選択だけで値を統一しません。
+通常の6CH構成は一時的な状態です。Save to presetsは選択した1音色を保存し、6CH全体の割当は含めません。Code開始・終了では共通音色へ戻します。
 Pause中にCHを選んで鍵盤を弾くと、その時点のWave／Noiseを試奏できます。
+Pause中の編集は聞こえた位置のsnapshotへ変更した項目だけを投影し、先読み済みの無関係な値で表示を置き換えません。
+CHを切り替えても編集を保ち、Resumeは未再生PCMを先に再生してから変更後の設定を反映します。
+後のVGM命令はその項目を上書きでき、Seekは原曲状態を再構築します。
 LFO有効時はCH1でCH1・CH2の組を試奏し、C4で記録時のCH1周期、CH2は固定です。
 試奏は専用Workletとフェード用Gainを使い、同じAudioContext・Masterへ接続します。
 曲の停止位置・未再生PCM・編集中の共通音色・通常CH設定は変更しません。
-Capture to Synthは曲をPauseのまま設定だけを編集用音色へ取り込み、Synth表示へ戻します。
-保存する場合は、その後FilesのSave soundを使います。Captureだけではファイルを作りません。
+Copy to Autoは曲をPauseのまま設定だけを共通音色へ取り込み、Auto表示へ戻します。
+FilesのSave soundはこの共通Auto音色を`presets/`へ保存します。Captureだけではファイルを作りません。
+Channel横のSave to presetsは選択中のAuto／CHを直接`presets/`へ保存し、Capture・表示CH変更・Codeファイル選択・モード切替・再生停止は行いません。
+保存したJSONはFilesとPreset一覧へすぐ追加され、後で選択して読み込めます。保存だけで音色は適用しません。
+既知のWave／Noise／CH1 LFOペアを保存でき、未知のWave RAMや物理CHの一時的なDDA値は完全なPCM音色として保存できない理由を表示します。
+AutoのDDAにはPCM資産があるため、その全データを保存できます。
 曲の全体左右音量はプリセットの音量・左右balanceへ反映し、必要な量子化は音が大きくならない側へ丸めて説明します。
 LFOはCH1とCH2の両出力を扱い、アプリのMaster値は変更しません。
 未記録Wave RAMや必須設定が不明な音、DDAの単一DAC値は試奏・Captureできません。
-既知のミュート／Gate Off音色はCaptureできますが試奏は無効です。VGMへの直接操作は後続です。
+既知のミュート／Gate Off音色はCaptureできますが試奏は無効です。手動編集は一時的な状態で、元のVGMファイルは保ちます。
 他チップの音を黙って省略せず、単一HuC6280とVGM 1.72の単一MSM5205以外や未対応データは理由付きで拒否します。
 MSM5205を含む曲のSeekは、両音源をまとめた状態保存形式がないため先頭から再構築します。
 CD-DAはVGMに含まれず、Codeから別の音声トラックを読み込んで利用します。実CD-ROMの読込・ゲーム実行は対象外です。

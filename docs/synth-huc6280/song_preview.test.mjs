@@ -10,6 +10,17 @@ import {createHuc6280SongPreview} from './song_preview.js';
 import {vgm,write,wait,fixtures,fakeAudio,counterEngine,deferred,block,streamSetup,streamStart} from './song_test_helpers.mjs';
 const near = (actual,expected) => assert(Math.abs(actual-expected) < 1e-9,`${actual} ~= ${expected}`);
 const turn = () => new Promise(resolve => setImmediate(resolve));
+async function firstScheduledSource(graph,preview) {
+  // play() may yield at a cooperative render budget before its first PCM.
+  // Drive the already-scheduled pump without consuming any audible frames.
+  for(let attempt=0;attempt<100;attempt++){
+    const source=graph.sources().find(node=>node.at!==null&&!node.stopped);if(source)return source;
+    const state=preview.read();assert.equal(state.playback,'playing',state.errorMessage||'Waiting for the first scheduled reference PCM');
+    assert(graph.timers.size>0,'A playing reference without PCM must retain its next pump');
+    graph.tick(0);await turn();
+  }
+  assert.fail('The reference did not schedule its first PCM after100 cooperative pumps');
+}
 function setup(options = {}) {
   const graph = fakeAudio(), engines = [], states = [], statuses = []; let audioCalls = 0, beforeCalls = 0;
   const preview = createHuc6280SongPreview({getAudio:() => {audioCalls++;return graph.audio;},
@@ -53,6 +64,19 @@ test('reference PCM enters only songInputNode at unity before existing Master; i
   assert.equal(f.audio.songInputNode.disconnected,0);assert.equal(f.audio.master.disconnected,0);
   assert.equal(f.preview.read().hasSource,true);assert.equal(f.preview.read().positionFrames,0);
   f.preview.dispose();
+});
+
+test('an exhausted initial render budget schedules the first PCM on a later pump without advancing the heard clock',async()=>{
+  let clockReads=0;const f=setup({nowMs:()=>clockReads++===0?0:10});
+  try{
+    await f.preview.load(song());assert.equal(await f.preview.play(),true);
+    assert.equal(f.sources().length,0,'the first pump deliberately exhausts its8ms budget before rendering');
+    assert.equal(f.preview.read().bufferedFrames,0);assert.equal(f.preview.read().positionFrames,0);
+    const source=await firstScheduledSource(f,f.preview);
+    assert.equal(f.preview.read().positionFrames,0);assert.equal(f.context.currentTime,0);
+    assert(f.preview.read().bufferedFrames>0);assert.equal(source.offset,0);assert.equal(source.buffer.data[0][0],0);
+    assert.equal(f.engines.length,1,'the existing run continues rather than retrying Play or opening another core');
+  }finally{f.preview.dispose();}
 });
 
 test('Pause freezes the consumed frame; Resume retains the exact PCM tail and core position across repeated pauses',async()=>{
@@ -225,7 +249,7 @@ test('real WASM Wave/Noise/LFO/directDAC/stream PCM travels unchanged through th
     const expectedCore=await nativeEngine(),expected=render(expectedCore,bytes);expectedCore.dispose();
     const graph=fakeAudio(),preview=createHuc6280SongPreview({getAudio:()=>graph.audio,createEngine:nativeEngine,schedule:graph.schedule,cancel:graph.cancel});
     await preview.load(bytes,name);assert.equal(await preview.play(),true);
-    const initial=graph.sources()[0];graph.context.currentTime=initial.at+100/44100;
+    const initial=await firstScheduledSource(graph,preview);graph.context.currentTime=initial.at+100/44100;
     assert.equal(preview.pause(),true);assert.equal(preview.read().positionFrames,100,name+' consumes exact native frames');
     graph.context.currentTime+=.5;assert.equal(await preview.resume(),true);
     assert.equal(preview.read().positionFrames,100,name+' retains native phase while paused');

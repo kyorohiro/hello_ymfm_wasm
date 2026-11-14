@@ -55,6 +55,9 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
       Codeとの編集用RAM共有。[詳細TODO](todo_huc6280_synth_msm5205_ui_01.md)。
 - [x] **CD-DA基本UI**: Files／長いsession WAV、Track、Play／Pause／Resume／Stop／Seek、
       Codeと同じsource／cursor。[詳細TODO](todo_huc6280_synth_cdda_ui_01.md)。
+- [x] **CH操作とFilesの導線**: Auto／CH1–CH6、Pause中のCH個別編集、直接presets保存、
+      FilesのExamples、Mixer内のVGM出力、説明の「?」への収納。
+      [詳細TODO](todo_huc6280_synth_channel_ui_01.md)。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
       保存・出力経路を確認する。公開・tag・pushは別のユーザー指示で行う。
 
@@ -178,3 +181,15 @@ UIとCodeはsource／cursorと既存Mixer／Masterを共有し、Code Stop後も
 Node604件、最終ZIPのChromium／WebKitで13 suite／26 run／236項目がすべて成功した。
 [検証記録](verification_huc6280_synth_cdda_ui_20261114.json)。
 Tauri反映・公開・人の実聴／実ゲーム比較／長時間試奏は未実行。
+
+## CH操作・Pause編集・Filesの導線（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_channel_ui_01.md)。共通音色の選択をAutoと表示し、
+VGM出力の6CH On／OffをMixerへ移した。Sounds from VGMの通常説明・補足と、
+CHのレジスタ詳細は閉じた「?」へまとめ、操作結果・エラーは表示する。
+Pause中も選択CHを個別編集し、別CHやAutoへ移っても編集を保持する。
+Resumeは保持PCMの後から変更を反映し、後のVGM命令が優先される。Seek成功で原曲へ戻す。
+Save to presetsは選択CHの設定を直接Filesへ保存し、表示CH・Code・曲の位置を保つ。
+FilesのExamplesはHuC6280／MSM5205／CD-DAの不足例だけを追加する。
+Node619件、最終ZIPのChromium／WebKitで13 suite／26 run／242項目が成功した。
+[検証記録](verification_huc6280_synth_channel_ui_20261114.json)。人の実聴・Tauri反映・公開は未実行。

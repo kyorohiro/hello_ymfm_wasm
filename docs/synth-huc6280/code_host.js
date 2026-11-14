@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-cdro
 import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-cdda-ui-1';
 import {createHuc6280CodeAudio} from './code_audio.js?v=huc-cdda-ui-1';
 import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-cdda-ui-1';
-import {setupHuc6280CodeFiles} from './code_files.js?v=huc-cdda-ui-1';
+import {setupHuc6280CodeFiles} from './code_files.js?v=huc-channel-ui-1';
 import {resolveCddaInputPath} from './cdda_inputs.js';
 
 export const HUC6280_STARTER_CODE=`const pce = await useSoundChip("huc6280");

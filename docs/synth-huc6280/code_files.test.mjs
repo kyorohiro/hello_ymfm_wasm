@@ -37,6 +37,61 @@ test('HuC6280 saves named presets without acquiring audio, applying or changing 
   assert.equal(f.doc.getElementById('hucFileTextEditor'),undefined);assert.equal(f.doc.getElementById('hucPresetSelect').value,'','Saving does not imply a preset was loaded');
 });
 
+test('saving a selected channel snapshot keeps the common sound, editor path and running Code untouched',async t=>{
+  const f=fixture(t);await f.files.ready;
+  f.project.select('/index.js');f.project.setCodeState({mode:'code',path:'/index.js'});
+  const common=f.project.settings,selection=f.project.selectedPath,state=f.project.getCodeState();let flushes=0;
+  const snapshot=createDefaultPreset();snapshot.name='Song CH 3';snapshot.volume=9;snapshot.wave[0]=2;snapshot.envelope.enabled=false;
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,setBusy(){},
+    flush:async()=>{flushes++;return true;},
+    openFile:()=>assert.fail('Saving a detached sound must not select the JSON'),
+    stop:()=>assert.fail('Saving never stops Code'),workspaceReplaced:()=>assert.fail('Saving never replaces the workspace')});
+  const saved=await f.files.saveSound({sound:snapshot,select:false});
+  assert.equal(saved,'/presets/Song CH 3.huc6280.json');
+  assert.deepEqual(JSON.parse(f.project.fs.get(saved).data),snapshot);
+  assert.deepEqual(f.project.settings,common);assert.deepEqual(f.writes.at(-1).settings,common);
+  assert.equal(f.project.selectedPath,selection);assert.deepEqual(f.project.getCodeState(),state);assert.deepEqual(f.calls,[]);
+  assert.equal(flushes,0,'Saving a detached sound does not flush or change the active file');
+  assert(f.doc.getElementById('hucPresetSelect').children.some(option=>option.value===saved),'Saved snapshot is immediately offered by the preset loader');
+  assert.equal(f.doc.getElementById('hucPresetSelect').value,'','Saving does not imply the snapshot was applied');
+  assert.match(f.statuses.at(-1),/Saved to \/presets\/Song CH 3/);
+  snapshot.wave[0]=31;assert.equal(JSON.parse(f.project.fs.get(saved).data).wave[0],2,'Stored sound is detached from the observation');
+});
+
+test('invalid selected snapshots leave preset files and the common instrument atomic',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot();
+  await assert.rejects(f.files.saveSound({sound:{format:'other'},select:false}),/Expected a HuC6280 instrument/);
+  await assert.rejects(f.files.saveSound({sound:createDefaultPreset(),select:'false'}),/must be boolean/);
+  const incomplete=createDefaultPreset();incomplete.wave=[0];
+  await assert.rejects(f.files.saveSound({sound:incomplete,select:false}),/exactly 32 samples/);
+  assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);assert.equal(f.doc.querySelector('.huc-main').inert,false);
+});
+
+test('Files examples are explicit, add missing files only and preserve active Code and selection',async t=>{
+  const f=fixture(t);await f.files.ready;
+  assert(!f.project.fs.has('/examples/huc6280.js'),'Examples are not silently inserted into new or restored projects');
+  f.project.importFiles([{path:'/examples/cdda.js',data:'// user CD track'}]);
+  f.project.select('/index.js');f.project.setCodeState({mode:'keyboard',path:'/index.js'});
+  let flushes=0;f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>false,setBusy(){},
+    flush:async()=>{flushes++;return true;},openFile:()=>assert.fail('Adding examples does not select Code'),
+    stop:()=>assert.fail('Adding examples never stops Code'),workspaceReplaced:()=>assert.fail('Adding examples does not replace the workspace')});
+  const selected=f.project.selectedPath,state=f.project.getCodeState(),settings=f.project.settings;
+  assert.deepEqual(await f.files.addExamples(),['/examples/huc6280.js','/examples/msm5205.js']);
+  assert.equal(f.project.selectedPath,selected);assert.deepEqual(f.project.getCodeState(),state);assert.deepEqual(f.project.settings,settings);
+  assert.equal(f.project.fs.get('/examples/cdda.js').data,'// user CD track');assert.deepEqual(f.calls,[]);
+  f.project.writeEditorText('/examples/huc6280.js','// modified melody');assert.deepEqual(await f.files.addExamples(),[]);
+  assert.equal(f.project.fs.get('/examples/huc6280.js').data,'// modified melody');assert.equal(f.doc.getElementById('hucFilesPanel').hidden,false);
+  assert.equal(flushes,0,'Adding examples keeps the current editor');
+  assert.equal(f.doc.getElementById('hucFileExamplesButton').disabled,false);assert.match(f.statuses.at(-1),/existing files were kept/);
+});
+
+test('Files examples reject a full project before adding any file',async t=>{
+  const f=fixture(t);await f.files.ready;
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(HUC6280_PROJECT_FILE_BYTES-100)}]);
+  const before=f.project.snapshot();await assert.rejects(f.files.addExamples(),/16 MiB/);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.doc.querySelector('.huc-main').inert,false);assert.equal(f.doc.getElementById('hucFileExamplesButton').disabled,false);
+});
+
 test('HuC6280 file selection preserves mode, text edits do not apply, explicit valid preset selection does',async t=>{
   const f=fixture(t);await f.files.ready;let mode=false;
   f.files.setCodeControls({flush:async()=>true,isCodeMode:()=>mode,openFile:async(path,options)=>f.opened.push({path,options}),setBusy(){}});

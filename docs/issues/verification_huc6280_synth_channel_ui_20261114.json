@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "scope": "HuC6280 Synth compact channel UI, paused per-channel edits and Files presets/examples routes",
+  "baseCommit": "273e54aec6f9585de3b75b015cc59f3d36801527",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "The existing six VGM output switches are in Mixer; source/PCM/timeline/LFO state and mute/cache behavior are retained. Selectors and Mixer switches release focus for keyboard performance.",
+    "Sounds from VGM explanatory paragraphs and dynamically generated warnings start inside a closed question-mark detail. Channel registers and configured Capture explanations are also inside closed help; concise operation/error status remains visible.",
+    "Auto is the common round-robin instrument; CH1..CH6 align display/edit/keyboard. The historical internal synth target and saved projects remain compatible. Choosing Auto alone never unifies physical channel settings.",
+    "A paused physical channel accepts sparse hardware edits and retains them across CH/Auto changes, Capture and direct save. Only edited fields project onto the heard snapshot, without exposing unedited lookahead state.",
+    "Native writes remain at the next ungenerated frame. Resume preserves buffered PCM and then plays the new hardware settings; later VGM writes take precedence. Successful Seek restores the original song; cancelling Seek retains the edited paused run. Old queued edits cannot cross a Pause/Resume phase, epoch, channel or source boundary.",
+    "Paused keyboard audition uses the newly prepared edited voice on its existing isolated output. The retained reference PCM and Auto instrument remain intact. Paused LFO CH2 output settings are not cleared by keyboard/audition cleanup.",
+    "Save to presets writes the selected configured sound directly into Files/presets without Capture, Auto selection, Files selection, Code-file/mode change or stopping playback/Code. VGM global balance folds conservatively into portable channel levels. Code/normal channel software-envelope settings remain in the saved preset.",
+    "Auto saves its complete authored DDA sample. A transient physical DDA value, unknown required Wave RAM or an active LFO modulator alone does not masquerade as a complete playable preset; the save control gives the reason.",
+    "Files Examples explicitly adds only missing examples/huc6280.js, examples/msm5205.js and examples/cdda.js. Existing user files, selected file and mode/run state remain unchanged; no automatic execution or default seed is introduced.",
+    "The real-WASM reference-route test waits for the first actually scheduled BufferSource without advancing its cursor. A deterministic first-pump budget-yield regression preserves exact PCM assertions without retrying a whole test.",
+    "All114 readable modules,154 original inputs,6 runtime artifacts and124 uniquely served browser assets match the final195-file ZIP. SDK0.1.8-huc-state and all runtime pairs match the previous verified CD-DA package."
+  ],
+  "node": {
+    "passed": 619,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": {
+      "path": "build/huc6280-channel-ui-20261114/node-tests-final2.log",
+      "bytes": 66782,
+      "sha256": "bc18991950903db9385261b66e6cf0c24ac79aa3033e14dded5c1c3d4b780e37"
+    },
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/playground/playground_monaco*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/package_itch_huc6280_synth.test.mjs"
+  },
+  "browsers": {
+    "suites": 13,
+    "runs": 26,
+    "checks": 242,
+    "summary": {
+      "path": "build/huc6280-channel-ui-20261114/browser-summary-zip2.json",
+      "bytes": 21976,
+      "sha256": "f90e57fbdd4c342e420473aa7e605be57f85096d371e8f4de488666d49bfc575"
+    },
+    "results": [
+      {
+        "suite": "live",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/live-zip2.json",
+        "sha256": "ae647fb58146b07c41a7069296e9a372344bb74e8f084955e5c95d7fc1c85ba1",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/live-zip2-images"
+      },
+      {
+        "suite": "mixer",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/mixer-zip2.json",
+        "sha256": "31617295ea9b75eda249848901c0ec0bbe2229b23efa9393b4b32525f7c96131",
+        "assets": 110,
+        "screenshots": "build/huc6280-channel-ui-20261114/mixer-zip2-images"
+      },
+      {
+        "suite": "capture",
+        "checks": 20,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/capture-zip2.json",
+        "sha256": "a3e9cfe8d3b2cd7e85d4c5f71c81d229a3d93286f3227475fda580a82b6b597b",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/capture-zip2-images"
+      },
+      {
+        "suite": "vgm_manual",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/vgm_manual-zip2.json",
+        "sha256": "abc0b9a8b83aef5c50d71a5a3b0136738082a8d2acb667ce4b19c1d40e09d4bd",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/vgm_manual-zip2-images"
+      },
+      {
+        "suite": "code",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/code-zip2.json",
+        "sha256": "0eeb0f2d2bb8ee4518865c4be441c6a05d4ad2f44bb97dfc9beb29f4f0edf60f",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/code-zip2-images"
+      },
+      {
+        "suite": "manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/manual-zip2.json",
+        "sha256": "380a0be1cb97e1241f0780e232f445215f003ba71e11fa17ab592c90efca37e8",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/manual-zip2-images"
+      },
+      {
+        "suite": "song",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/song-zip2.json",
+        "sha256": "5193d274791e474f901e38f5319a95dd4bce53189ab2c370eff2b2448b644dbd",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/song-zip2-images"
+      },
+      {
+        "suite": "seek",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/seek-zip2.json",
+        "sha256": "caff3b48910b186d81970dbb9935fc79e83f52c5429278d3ce29dc47b1a5f6f4",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/seek-zip2-images"
+      },
+      {
+        "suite": "cache",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/cache-zip2.json",
+        "sha256": "52e260f2952a6064aff3180297f06d98c02c852096b921abd0879e9961bfac44",
+        "assets": 117,
+        "screenshots": "build/huc6280-channel-ui-20261114/cache-zip2-images"
+      },
+      {
+        "suite": "msm5205",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/msm5205-zip2.json",
+        "sha256": "cac2ee81b787424d66b245ec2a8a65dea0967f4b12322fef489f5e418b202f8f",
+        "assets": 119,
+        "screenshots": "build/huc6280-channel-ui-20261114/msm5205-zip2-images"
+      },
+      {
+        "suite": "cdda",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/cdda-zip2.json",
+        "sha256": "0f32b83cdf2bd8a8f748f1b446276ab77adec77a757ae318e69d4f3ef761c890",
+        "assets": 121,
+        "screenshots": "build/huc6280-channel-ui-20261114/cdda-zip2-images"
+      },
+      {
+        "suite": "cdrom2",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/cdrom2-zip2.json",
+        "sha256": "d7fd55bd9b462dd1de6ca6a2a86097a815a70bb85b247901ce387b1eb9f7bc47",
+        "assets": 124,
+        "screenshots": "build/huc6280-channel-ui-20261114/cdrom2-zip2-images"
+      },
+      {
+        "suite": "legacy",
+        "checks": 60,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-channel-ui-20261114/legacy-zip2.json",
+        "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a",
+        "assets": 0,
+        "screenshots": "build/huc6280-channel-ui-20261114/legacy-zip2-images"
+      }
+    ],
+    "servedAssets": 124,
+    "screenshots": 70,
+    "reviewed": [
+      "capture-zip2-images/webkit-390.png",
+      "mixer-zip2-images/chromium-1240.png"
+    ],
+    "instrumentationAdjustments": [
+      "Old long save-status expectation in the Code checker was updated to the intended short Saved to /presets/ text; the first failure receipt/log/images are retained as code-zip2-instrumentation-debug.*. JSON, actual PCM, project and no-autoplay assertions are unchanged."
+    ]
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_channel-ui-check2-20261114_itch.zip",
+      "bytes": 2055168,
+      "sha256": "29149b60dd0fbdb94915bbd42c5cdc3cfbbdee5e5330074e5e9532a6f99d8430"
+    },
+    "files": 195,
+    "entries": 6,
+    "readableModules": 114,
+    "originalInputs": 154,
+    "sdkVersion": "0.1.8-huc-state",
+    "browserReceipt": {
+      "path": "build/huc6280-channel-ui-20261114/zip2/sources/huc6280-synth-browser.json",
+      "bytes": 65754,
+      "sha256": "5c4b1913a132569e75fdc8ff9b23e30bb872309b928831c86e8e3fa2b8e08943"
+    },
+    "assetIntegrity": {
+      "path": "build/huc6280-channel-ui-20261114/asset-integrity-zip2.json",
+      "bytes": 107,
+      "sha256": "a34ea41a72d8cccb231686708a7d78fa1e5c68907bebb324cc23bbc33f27d9ab"
+    },
+    "runtimeArtifacts": [
+      {
+        "path": "generated/cdda_wasm.js",
+        "bytes": 304,
+        "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f"
+      },
+      {
+        "path": "generated/cdda_wasm.wasm",
+        "bytes": 2257,
+        "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+      },
+      {
+        "path": "generated/huc6280_wasm.js",
+        "bytes": 14044,
+        "sha256": "7786bb5620b24884aa2aba4d8078d5b480c03987ba2cce638fb3c3874a05cf45"
+      },
+      {
+        "path": "generated/huc6280_wasm.wasm",
+        "bytes": 11000,
+        "sha256": "35631309996a62c5c92241fe714c2d5a51330a29e9fc6a07871df090fd25d021"
+      },
+      {
+        "path": "generated/msm5205_wasm.js",
+        "bytes": 317,
+        "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+      },
+      {
+        "path": "generated/msm5205_wasm.wasm",
+        "bytes": 3590,
+        "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+      }
+    ]
+  },
+  "limitations": [
+    "Paused edits change configured registers, not native oscillator phase or already-rendered PCM. Resume first consumes retained PCM. A changed audition selection is retired safely before the edited configuration is auditioned again.",
+    "Physical DDA is a transient DAC observation; save a complete imported PCM asset from Auto instead. Configured gate-off/muted sounds can be saved even when audition is unavailable."
+  ],
+  "notPerformed": [
+    "Human listening, real-game comparison and long-duration trial",
+    "SDK/native/WASM changes, npm/Tauri import or publication, tag, commit or push"
+  ]
+}

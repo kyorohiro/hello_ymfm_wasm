@@ -115,9 +115,9 @@ async function check(browser,name,origin,fixture){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
     await page.goto(origin+config.entry);await files(page);
-    step('One always-visible Synth / CH1–6 selector defaults to the lazy common instrument and Auto update');
+    step('One always-visible Auto / CH1–6 selector defaults to the lazy common instrument and Auto update');
     assert(await page.locator('#hucCodeLiveTools').isVisible());assert.equal(await page.locator('#hucChannelSelect').inputValue(),'synth');
-    assert(await page.locator('#hucLiveEnabled').isChecked());assert.equal(await page.locator('#hucChannelSelect option').count(),7);assert.equal((await graph(page)).contexts,0);
+    assert.equal((await page.locator('#hucChannelSelect option[value="synth"]').textContent()).trim(),'Auto');assert(await page.locator('#hucLiveEnabled').isChecked());assert.equal(await page.locator('#hucChannelSelect option').count(),7);assert.equal((await graph(page)).contexts,0);
     assert.equal((await view(page)).tools.context,'synth');assert.match(await page.locator('#lfoCarrierPeriodLabel').textContent(),/CH1 period at C4/);
     await page.locator('#startAudio').click();await until(async()=>{try{return Boolean((await read(page)).preset);}catch{return false;}},'author Worklet ready');
     const original=(await read(page)).preset;
@@ -165,14 +165,15 @@ async function check(browser,name,origin,fixture){
     assert(history.some(v=>v.rendered>v.frame),'audible observation is tested against real render-ahead');measurements.heardBoundary=history;
     assert.deepEqual((await read(page)).preset,author);await pause(page);const frozenFrame=(await state(page)).frame;assert(frozenFrame<110250);
 
-    step('Paused VGM CH1–6 preserve read-only source settings; configured Wave/Noise/LFO permit audition while DDA, unknown RAM and reserved CH2 remain blocked');
+    step('Paused VGM CH1–6 retain independent editable hardware settings; configured Wave/Noise/LFO permit audition while DDA, unknown RAM and reserved CH2 remain blocked');
+    await until(()=>state(page).then(v=>v.manualReady==='true'),'paused manual channel interface ready');
     const expected=[{ch:0,source:'wave',volume:7,left:6,right:12,period:250,wave:futureWave},{ch:1,source:'wave',volume:0,left:15,right:15,period:713,wave:futureWave},
       {ch:2,source:'wave',volume:22,left:15,right:15,period:1000,wave:thirdWave},{ch:3,source:'dda',volume:20,left:12,right:11,period:444,dac:27},
       {ch:4,source:'noise',volume:11,left:8,right:15,noise:3},{ch:5,source:'unknown',volume:12,left:9,right:15,period:666,unknown:true}];
     await page.evaluate(()=>__hucSongAudit.drain());measurements.pausedViews=[];
     for(const item of expected){await channel(page,item.ch);await until(()=>view(page).then(v=>v.tools.context==='vgm'&&v.volume===item.volume),'paused VGM CH'+item.ch);const shown=await view(page);
-      assert.equal(shown.editor.readonly,'true');assert(await page.locator('[data-stepper-for="volume"][data-stepper-delta="1"]').isDisabled());
-      assert(await page.locator('#lfoEnabled').isDisabled());assert.equal(shown.editor.source,item.source);assert.equal(shown.source,item.unknown?undefined:item.source);assert.equal(shown.left,item.left);assert.equal(shown.right,item.right);
+      assert.equal(shown.editor.readonly,'false');assert(await page.locator('[data-stepper-for="volume"][data-stepper-delta="1"]').isEnabled());
+      assert.equal(await page.locator('#lfoEnabled').isDisabled(),['noise','dda'].includes(item.source),'recorded LFO controls follow the selected source');assert.equal(shown.editor.source,item.source);assert.equal(shown.source,item.unknown?undefined:item.source);assert.equal(shown.left,item.left);assert.equal(shown.right,item.right);
       if(item.period)assert.equal(Number(shown.editor.period),item.period);if(item.noise!==undefined)assert.equal(shown.noise,item.noise);
       if(item.wave)assert.deepEqual(shown.wave,item.wave);if(item.dac!==undefined){assert.equal(Number(shown.editor.ddaValue),item.dac);assert.match(shown.readout,/DAC|DDA/);}
       if(item.unknown){assert.equal(shown.editor.waveKnown,'false');assert.equal(shown.wave,null,'unknown RAM has no invented waveform');assert.match(shown.readout,/unknown/i);}
@@ -191,7 +192,7 @@ async function check(browser,name,origin,fixture){
     await page.locator('#hucLiveEnabled').check();await until(()=>view(page).then(v=>v.volume===20&&Number(v.editor.period)===333),'Auto catches up');await channel(page,2);await until(()=>view(page).then(v=>v.volume===13),'Auto catches current CH3');
     await pause(page);const auditionFrame=(await state(page)).frame;await channel(page,'synth');await until(()=>view(page).then(v=>v.editor.readonly==='false'),'paused common editor');
     assert.equal((await view(page)).volume,author.volume);await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthTitle').click();await page.keyboard.down(key);await pcm(page);await page.keyboard.up(key);await pcm(page,false);
-    assert.equal((await state(page)).frame,auditionFrame);assert.deepEqual((await read(page)).preset,author);await channel(page,5);assert.equal((await view(page)).editor.readonly,'true');
+    assert.equal((await state(page)).frame,auditionFrame);assert.deepEqual((await read(page)).preset,author);await channel(page,5);assert.equal((await view(page)).editor.readonly,'false');
     await stop(page);await until(()=>view(page).then(v=>v.tools.context==='synth'&&v.editor.readonly==='false'),'Stop returns to normal channel editing');assert.deepEqual((await read(page)).preset,author);
 
     step('Unified channel controls remain usable at desktop and 390px, and pagehide retires the only audio route');

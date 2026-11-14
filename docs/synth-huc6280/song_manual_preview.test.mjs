@@ -136,3 +136,70 @@ test('a nonfatal Live failure disables manual input without blocking Pause, Seek
     assert(await f.preview.load(waveSong(),'new'));assert(await f.preview.play());
   }finally{await f.close();assert(f.engines.every(e=>e.handle===0));}
 });
+
+test('paused edits project only edited heard settings, retain PCM and other CHs, then yield to later VGM writes after Resume',async()=>{
+  const replacement=Array.from({length:32},(_,i)=>i<16?31:0);
+  const bytes=vgm([...init,...voice(0),...voice(2),...wait(1024),
+    ...write(0,2),...write(4,140),...write(5,0x35),...wait(14000),
+    ...write(0,0),...write(4,151),...write(0,2),...write(4,145),...wait(44100)]);
+  const f=setup();try{
+    await f.preview.load(bytes);await playReady(f);assert(f.preview.pause());
+    const before=f.preview.read(),epoch=before.manualEpoch,pcm=f.buffers.map(buffer=>buffer.data.map(side=>side.slice())),nodes=f.sources().length;
+    assert(before.manualReady);assert.equal(before.positionFrames,0);assert.equal(before.liveState.registers[2][4]&31,31);
+    assert(f.writes.some(w=>w.channel===2&&w.register===4&&w.value===140),'the real native producer already contains a different future CH3 volume');
+    f.preview.setLiveEnabled(false);
+    assert(f.preview.applyEdit({channel:0,changes:{volume:7,'pan.left':9,wave:replacement}},{epoch}));
+    let edited=f.preview.read();assert(edited.paused);assert.equal(edited.positionFrames,before.positionFrames);assert.equal(edited.liveState.positionFrames,before.positionFrames);
+    assert.equal(edited.liveState.registers[0][4]&31,7);assert.equal(edited.liveState.registers[0][5],0x9f);assert.deepEqual(edited.liveState.waveforms[0],replacement);
+    assert.deepEqual(edited.liveState.registers[2],before.liveState.registers[2],'unedited future state is not exposed by the paused projection');
+    assert(f.preview.applyEdit({channel:2,changes:{volume:11,'pan.right':4}},{epoch}));
+    edited=f.preview.read();assert.equal(edited.liveState.registers[0][4]&31,7);assert.equal(edited.liveState.registers[2][4]&31,11);
+    assert.equal(edited.liveState.registers[2][5],0xf4,'untouched pan-left remains at the heard value rather than the native lookahead value');
+    const frozen=edited.liveState;f.preview.setLiveEnabled(true);assert.equal(f.preview.read().liveState,frozen);f.preview.setLiveEnabled(false);assert.equal(f.preview.read().liveState,frozen);
+    assert.equal(f.preview.noteOn('paused-direct-key',69,0,{epoch}),false,'paused keyboard uses the separate audition path, not a silent reference key');
+    assert.equal(f.preview.setPitch(1,{epoch}),false);assert.equal(f.preview.getManualSelection(0).editable,true);
+    assert.equal(f.sources().length,nodes,'paused editing never starts another song source');
+    pcm.forEach((value,index)=>assert.deepEqual(f.buffers[index].data,value,'retained native PCM stays byte-exact'));
+    assert.equal(f.preview.read().seekCache.count,before.seekCache.count);assert(f.preview.read().manualTainted);
+    f.preview.setLiveEnabled(true);assert(await f.preview.resume());assert.equal(f.preview.applyEdit({channel:0,changes:{volume:1}},{epoch}),false,'the old paused epoch cannot edit Resume');
+    advance(f,.15);edited=f.preview.read();assert.equal(edited.liveState.registers[0][4]&31,7);assert.equal(edited.liveState.registers[2][4]&31,11);
+    assert.deepEqual(edited.liveState.waveforms[0],replacement);assert.equal(edited.liveState.registers[2][5],0x34,'native edits preserve untouched producer bits');
+    advance(f,.4);edited=f.preview.read();assert.equal(edited.liveState.registers[0][4]&31,23);assert.equal(edited.liveState.registers[2][4]&31,17,'later VGM controls take over');
+    f.preview.pause();assert(await f.preview.seek(.15));const original=f.preview.read();assert(original.paused);assert(!original.manualTainted);
+    assert.equal(original.liveState.registers[0][4]&31,31);assert.equal(original.liveState.registers[2][4]&31,12);
+    assert.notDeepEqual(original.liveState.waveforms[0],replacement,'Seek clears the paused edit projection and rebuilds original RAM');
+  }finally{await f.close();}
+});
+
+test('cancelled Seek preserves paused edits and capture-bound observation, while invalid edits cannot partially change native state',async()=>{
+  let held=null,entered=false;
+  const f=setup({yieldTask:async()=>{if(held){entered=true;await held.promise;}}});
+  try{
+    await f.preview.load(waveSong());await playReady(f);f.preview.pause();
+    const epoch=f.preview.read().manualEpoch;f.preview.applyEdit({channel:0,changes:{volume:6}},{epoch});
+    const snapshot=f.preview.read().liveState,writes=f.writes.length;
+    assert.throws(()=>f.preview.applyEdit({channel:0,changes:{volume:9,source:'noise'}},{epoch}),/Noise/);
+    assert.equal(f.writes.length,writes);assert.equal(f.preview.read().liveState,snapshot,'both the heard projection and real core remain unchanged on rejection');
+    held=deferred();const seeking=f.preview.seek(.7);for(let i=0;i<100&&!entered;i++)await turn();assert(entered);
+    assert.equal(f.preview.applyEdit({channel:0,changes:{volume:1}},{epoch}),false);
+    const cancelling=f.preview.cancelSeek();held.resolve();held=null;assert.equal(await seeking,false);assert.equal(await cancelling,true);
+    const restored=f.preview.read();assert(restored.paused);assert.equal(restored.liveState,snapshot);assert.equal(restored.liveState.registers[0][4]&31,6);assert(restored.manualTainted);
+    assert.equal(f.preview.applyEdit({channel:0,changes:{volume:2}},{epoch}),false,'the old paused operation stays revoked after cancellation');
+    assert(f.preview.applyEdit({channel:0,changes:{'pan.right':4}},{epoch:restored.manualEpoch}));
+    assert.equal(f.preview.read().liveState.registers[0][4]&31,6);assert.equal(f.preview.read().liveState.registers[0][5]&15,4);
+    assert(f.maxLive<=2);
+  }finally{held?.resolve();await f.close();}
+});
+
+test('paused LFO output edits survive audition keyboard cleanup and CH switching',async()=>{
+  const f=setup();try{
+    await f.preview.load(vgm([...init,...voice(1,{period:16}),...voice(0),...write(8,4),...write(9,1),...wait(44100)]));await playReady(f);f.preview.pause();
+    const epoch=f.preview.read().manualEpoch;
+    f.preview.applyEdit({channel:0,changes:{'lfo.output.enabled':false}},{epoch});
+    f.preview.applyEdit({channel:0,changes:{'lfo.output.enabled':true}},{epoch});
+    const snapshot=f.preview.read().liveState,count=f.writes.length;assert(snapshot.registers[1][4]&128);
+    f.preview.releaseKeyboard({epoch});assert.equal(f.writes.length,count,'audition cleanup does not own the paused modulator output setting');
+    assert.equal(f.preview.read().liveState,snapshot);assert(await f.preview.resume());advance(f,.15);
+    assert(f.preview.read().liveState.registers[1][4]&128,'the retained native modulator output remains enabled after Resume');
+  }finally{await f.close();}
+});

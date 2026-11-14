@@ -7,18 +7,19 @@ import {createCddaSessionFiles} from './cdda_session_files.js';
 import {createCddaInputReader} from './cdda_inputs.js';
 import {setupCddaControls} from './cdda_controls.js';
 import {createPcEngineSourceMix,setupPcEngineSourceMix} from './source_mix.js';
-import {addPcEngineCodeExamples} from './cdrom2_examples.js';
+import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 import {createEditor} from './editor.js?v=huc-vgm-manual-2';
-import {setupHuc6280CodeHost} from './code_host.js?v=huc-cdda-ui-1';
+import {setupHuc6280CodeHost} from './code_host.js?v=huc-channel-ui-1';
 import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-live-1';
 import {createHuc6280CodeEdit} from './code_parameter_edit.js?v=huc-code-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createVgmLibrary} from './vgm_library.js?v=huc-capture-1';
-import {setupHuc6280SongControls} from './song_controls.js?v=huc-cdrom2-1';
+import {setupHuc6280SongControls} from './song_controls.js?v=huc-channel-ui-1';
 import {huc6280SongLiveView} from './song_live.js?v=huc-live-1';
 import {createHuc6280SongAudition} from './song_audition.js?v=huc-capture-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
 import {prepareDdaAudio} from './audio_import.js';
+import {prepareHuc6280SelectedPreset} from './selected_preset.js?v=huc-channel-ui-1';
 import {MAX_PRESET_BYTES} from './dda_pcm.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -43,6 +44,7 @@ const unsubscribeSourceMix=sourceMix.onChange(value=>{
   try{audio?.setSourceMix(value);songControls?.setSourceMix(value);visualizer.wake();}catch(error){report(error);}
 });
 let audition=null,auditionSelectionKey=null,channelSelection=0;
+let selectedPresetKey='',selectedPresetResult=null,savingSelectedPreset=false;
 const notes = new Map(), auditionNotes=new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -207,7 +209,7 @@ function applyPreset(value, {load = false, message, fromVgm = false, keepSongPau
   });
 }
 async function loadDdaAudio(file,{sampleRate,signal,onCommit}) {
-  if(channelTarget!=='synth')throw Error('Choose Synth to load the shared DDA sample; channel controls keep using the current sample.');
+  if(channelTarget!=='synth')throw Error('Choose Auto to load the shared DDA sample; channel controls keep using the current sample.');
   const token=++importSequence, draftRevision=revision;
   const prepared=await prepareDdaAudio(file,{sampleRate,signal});
   if (signal?.aborted) throw new DOMException('Audio import cancelled','AbortError');
@@ -493,11 +495,20 @@ window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();void codeHost?.stop();void msmSource?.stop().catch(()=>{});void cddaSource?.stop().catch(()=>{});return;}
   disposed=true;msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
 });
+function selectedPresetFor(context,snapshot){
+  const key=channelTarget==='synth'?`auto:${revision}`:JSON.stringify([context,channelTarget,snapshot?.clock,snapshot?.positionFrames,snapshot?.revision,snapshot?.registers,snapshot?.globals,snapshot?.waveforms,snapshot?.envelopes]);
+  if(key!==selectedPresetKey||!selectedPresetResult){
+    selectedPresetKey=key;
+    try{selectedPresetResult=prepareHuc6280SelectedPreset({target:channelTarget,origin:context,author:preset,snapshot});}
+    catch(error){selectedPresetResult={sound:null,reason:error.message};}
+  }
+  return selectedPresetResult;
+}
 function renderCodeLive() {
   if(disposed)return;
   const context=channelContext(),physical=channelTarget!=='synth',observer=context==='code'?codeLive:editorLive;
   const observed=context==='vgm'?songState:observer?.read(),snapshot=observed?.liveState;
-  const songEditable=physical&&context==='vgm'&&songState?.playing&&songState?.manualReady;
+  const songEditable=physical&&context==='vgm'&&(songState?.playing||songState?.paused)&&songState?.manualReady;
   const readOnly=physical&&context==='vgm'&&!songEditable,waiting=physical&&!snapshot;
   const tools=$('hucCodeLiveTools');tools.hidden=false;tools.dataset.origin=context;tools.dataset.context=context;tools.dataset.channel=String(channelTarget);
   const trial=audition?.read();tools.dataset.auditionState=trial?.state??'idle';tools.dataset.heldCount=String(trial?.heldCount??0);tools.dataset.auditionSource=trial?.source??'';
@@ -505,7 +516,11 @@ function renderCodeLive() {
   $('hucChannelSelect').value=String(channelTarget);$('hucLiveEnabled').checked=autoUpdate;
   $('instrumentName').readOnly=physical;$('saveSoundToFiles').disabled=physical;
   $('loadDdaAudio').disabled=physical;$('ddaAudioFileInput').disabled=physical;
-  $('loadDdaAudio').title=physical?'Choose Synth to replace the shared DDA sample.':'Load audio for the authored instrument.';
+  $('loadDdaAudio').title=physical?'Choose Auto to replace the shared DDA sample.':'Load audio for the authored instrument.';
+  const saved=selectedPresetFor(context,snapshot),saveSelected=$('hucSaveSelectedPreset');
+  saveSelected.disabled=savingSelectedPreset||!codeHost||$('hucFilesPanel').getAttribute('aria-busy')==='true'||!saved.sound||Boolean(physical&&context==='vgm'&&songState?.busy);
+  saveSelected.textContent=savingSelectedPreset?'Saving…':'Save to presets';
+  saveSelected.title=saved.reason||'Save this configured sound to presets/ without changing the channel, Code or song playback.';
   let value=preset,readout='',shown=null;
   if(physical&&snapshot){try{shown=context==='vgm'?huc6280SongLiveView(snapshot,channelTarget,preset):huc6280CodeLiveView(snapshot,channelTarget,preset);value=shown.preset;readout=shown.readout;}catch(error){readout=error.message;}}
   const meta={physical,readOnly:readOnly||waiting,origin:context==='vgm'?'VGM':context==='code'?'Code':'Synth',channel:physical?channelTarget:null,
@@ -521,12 +536,12 @@ function renderCodeLive() {
   if(signature!==liveSignature&&!editor.isInteracting()) {editor.update(value,meta);displayedPreset=readPreset(value);liveSignature=signature;}
   const paused=pausedVoice();
   const liveVoice=playingSelection();
-  for(const [wheel]of pitchWheels)wheel.disabled=value.source==='noise'||Boolean(readOnly&&(!paused?.playable||paused.source==='noise'))||Boolean(songState?.busy)||Boolean(context==='vgm'&&physical&&songState?.playing&&!liveVoice?.playable);
+  for(const [wheel]of pitchWheels)wheel.disabled=value.source==='noise'||Boolean(readOnly&&(!paused?.playable||paused.source==='noise'))||Boolean(songState?.busy)||Boolean(context==='vgm'&&physical&&(songState?.paused?!paused?.playable:songState?.playing&&!liveVoice?.playable));
   if(layout)for(const button of keyboard.querySelectorAll('.key')){const entry=layout.entries.find(item=>item.key===button.dataset.key);if(entry)button.disabled=!canPlay(entry.midi+octave*12);}
   const origin=context==='vgm'?`VGM · ${songState?.seeking?'Seeking':songState?.paused?'Paused':'Playing'}`:context==='code'?'Code continues':'Synth';
-  $('hucChannelStatus').textContent=physical?`${origin} · CH ${channelTarget+1} · ${readOnly?'read-only':waiting&&!audio?'Enable audio to view and edit this channel.':songEditable?`edit hardware · ${liveVoice?.playable?'keyboard: this CH':'keyboard unavailable'}`:'edit and play this channel'}${autoUpdate?'':' · Auto update Off'}`:`${origin} · common round-robin instrument`;
+  $('hucChannelStatus').textContent=physical?`${origin} · CH ${channelTarget+1} · ${readOnly?'read-only':waiting&&!audio?'Enable audio to view and edit this channel.':songEditable?`edit hardware · ${(songState.paused?paused:liveVoice)?.playable?'keyboard: this CH':'keyboard unavailable'}`:'edit and play this channel'}${autoUpdate?'':' · Auto update Off'}`:`${origin} · Auto · round robin`;
   $('hucChannelReadout').textContent=observed?.liveError?observed.liveMessage:waiting?audio||context==='vgm'?'Waiting for recorded channel settings…':'Physical channel view starts after Enable audio or a keyboard note.':readout;
-  $('hucSongCaptureButton').hidden=context!=='vgm'||!physical;$('hucSongCaptureStatus').hidden=context!=='vgm'||!physical;
+  $('hucSongCaptureButton').hidden=context!=='vgm'||!physical;$('hucSongCaptureStatus').hidden=context!=='vgm'||!physical||!$('hucSongCaptureStatus').textContent;
   $('hucKeyboardHint').textContent=songState?.seeking||songState?.seekPreparing?'Preparing the VGM position · keyboard audition resumes when ready.':context==='vgm'?physical?songState?.paused?paused?.playable?`Paused VGM CH ${channelTarget+1} · keyboard auditions this configured sound${paused.source==='noise'?' · Noise pitch is fixed':''}.`:paused?.reason??'The selected paused channel cannot be auditioned.':liveVoice?.playable?`Keyboard writes into VGM CH ${channelTarget+1}; later song writes take over${liveVoice.source==='noise'?' · Noise pitch is fixed':''}.`:liveVoice?.reason??'The playing channel is not ready for keyboard input.':songState?.playing?'VGM continues · keyboard plays your edited instrument.':'Reference song paused · keyboard plays your edited instrument.':physical?context==='synth'&&channelTarget===1&&value.lfo.enabled?'CH2 is reserved as the hardware LFO source. Play CH1 for the carrier.':`Keyboard plays CH ${channelTarget+1}.`:'Every key plays the selected source. No keyboard split.';
   $('hucKeyboardControls').hidden=!['huc6280','mixer'].includes(chipView);
   if(chipView==='msm5205')$('hucKeyboardHint').textContent='MSM5205 plays samples using Play / Stop above or Code. It has no keyboard noteOn instrument here.';
@@ -538,11 +553,11 @@ async function editVisiblePreset(value) {
   if(channelTarget==='synth')return applyPreset(next);
   const context=channelContext();
   if(context==='vgm'){
-    if(!songState?.playing||!songState?.manualReady||songState?.busy)return false;
+    if(!(songState?.playing||songState?.paused)||!songState?.manualReady||songState?.busy)return false;
     const edit=createHuc6280CodeEdit(displayedPreset??preset,next,channelTarget);if(!edit)return;
-    const owner=songControls,manualEpoch=songState.manualEpoch,token=epoch,channel=channelTarget;
+    const owner=songControls,manualEpoch=songState.manualEpoch,token=epoch,channel=channelTarget,editingPaused=Boolean(songState.paused);
     return enqueue(()=>{
-      if(disposed||songControls!==owner||epoch!==token||channelTarget!==channel||!songState?.playing||songState?.busy||songState.manualEpoch!==manualEpoch)return false;
+      if(disposed||songControls!==owner||epoch!==token||channelTarget!==channel||!(songState?.playing||songState?.paused)||Boolean(songState.paused)!==editingPaused||songState?.busy||songState.manualEpoch!==manualEpoch)return false;
       const result=owner.applyEdit(edit,{epoch:manualEpoch});
       if(result!==false){liveSignature=null;visualizer.wake();}
       return result;
@@ -567,7 +582,7 @@ function syncChannelObservers(){
 }
 async function setChannelTarget(value,{fromSong=false}={}){
   const target=value==='synth'?'synth':Number(value);
-  if(target!=='synth'&&(!Number.isInteger(target)||target<0||target>5))throw Error('Choose Synth or CH1–CH6.');
+  if(target!=='synth'&&(!Number.isInteger(target)||target<0||target>5))throw Error('Choose Auto or CH1–CH6.');
   const request=++channelSelection;channelTarget=target;
   if(!fromSong)songControls?.setView(target,{notify:false});
   syncAuditionSelection();liveSignature=null;syncChannelObservers();renderCodeLive();
@@ -610,7 +625,7 @@ songControls=setupHuc6280SongControls({project:codeHost.project,getAudio:()=>enq
     if(state.playback!==previous){
       if(state.seeking)status('Seeking VGM · Cancel keeps the previous position.');
       else if(state.playing)status('VGM playing · edit a CH or play your own Synth instrument.');
-      else if(state.paused)status('VGM paused · choose a CH to audition or Capture. Resume continues the song.');
+      else if(state.paused)status('VGM paused · edit or play a CH, or save it to presets/. Resume continues the song.');
       else if(state.playback==='ended')status('VGM finished · your instrument is retained.');
       else if(state.playback==='stopped'&&previous!=null)status(state.seekMessage||'VGM stopped · your instrument is retained.');
     }
@@ -631,7 +646,16 @@ for(const tab of document.querySelectorAll('[data-huc-chip-tab]')){
   });
 }
 for(const button of document.querySelectorAll('[data-add-cdrom2-examples]'))button.addEventListener('click',()=>{
-  button.blur();try{const added=addPcEngineCodeExamples(codeHost.project);status(added.length?'Added examples/msm5205.js and examples/cdda.js to Files. Select a file in Code, then Run.':'Code examples are already in Files; existing files were kept.');}catch(error){report(error);}
+  button.blur();try{const added=addPcEngineCodeExamples(codeHost.project);status(added.length?'Added missing HuC6280, MSM5205 and CD-DA examples to Files. Select a file in Code, then Run.':'Code examples are already in Files; existing files were kept.');}catch(error){report(error);}
+});
+$('hucSaveSelectedPreset').addEventListener('pointerdown',event=>{if(event.button===0)event.preventDefault();});
+$('hucSaveSelectedPreset').addEventListener('click',()=>{
+  $('hucSaveSelectedPreset').blur();if(savingSelectedPreset||disposed)return;
+  const context=channelContext(),observer=context==='code'?codeLive:editorLive;
+  const snapshot=context==='vgm'?songState?.liveState:observer?.read().liveState;
+  const selected=selectedPresetFor(context,snapshot);if(!selected.sound){status(selected.reason,true);return;}
+  savingSelectedPreset=true;renderCodeLive();
+  void codeHost.files.saveSound({sound:selected.sound,select:false}).then(path=>{if(path&&!disposed)status(`Saved to ${path}. Channel and playback kept.`);}).catch(report).finally(()=>{savingSelectedPreset=false;renderCodeLive();});
 });
 $('hucChannelSelect').addEventListener('change',()=>{const value=$('hucChannelSelect').value;$('hucChannelSelect').blur();void setChannelTarget(value).catch(report);});
 $('hucLiveEnabled').addEventListener('change',()=>{autoUpdate=$('hucLiveEnabled').checked;$('hucLiveEnabled').blur();songControls.setLiveEnabled(autoUpdate);syncChannelObservers();liveSignature=null;renderCodeLive();});

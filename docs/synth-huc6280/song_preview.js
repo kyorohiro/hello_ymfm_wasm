@@ -7,7 +7,8 @@ import {prepareHuc6280SongSource} from './song_source.js?v=huc-cdrom2-1';
 import {createHuc6280SongTimeline} from './song_state.js?v=huc-vgm-manual-1';
 import {createHuc6280SongCache} from './song_cache.js';
 import {captureHuc6280SongCheckpoint,restoreHuc6280SongCheckpoint} from './song_checkpoint.js';
-import {createHuc6280SongManual} from './song_manual.js';
+import {createHuc6280SongManual} from './song_manual.js?v=huc-channel-ui-1';
+import {projectHuc6280PausedEdit} from './song_paused_edit.js?v=huc-channel-ui-1';
 
 const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01, INTERVAL = 8;
 const scheduleTask = globalThis.setTimeout.bind(globalThis);
@@ -42,7 +43,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     try{return run.manual.read();}catch(error){return{available:false,reason:error?.message??String(error),channels:[],voices:[]};}
   }
   function manualReady(run=active,info=manualInfo(run)){
-    return Boolean(run&&run===active&&!run.released&&run.source.header.huc6280Clock&&playback==='playing'&&!loading&&!seeking&&!seekPreparing&&!run.eof&&!run.timeline.error&&info.available);
+    return Boolean(run&&run===active&&!run.released&&run.source.header.huc6280Clock&&['playing','paused'].includes(playback)&&!loading&&!seeking&&!seekPreparing&&!run.eof&&!run.timeline.error&&info.available);
   }
   function attachManual(run){
     try{run.manual=createHuc6280SongManual({engine:run.engine,timeline:run.timeline,onMutation(){
@@ -254,6 +255,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     } catch (error) {fail(error, run);}
   }
   function publishLive(run,frame,force=false) {
+    if(playback==='paused'&&run.pausedSnapshot){liveMessage=run.timeline.error;liveState=liveMessage?null:run.pausedSnapshot;return;}
     // Auto Off freezes automatic observation, but deliberate edits still get
     // one acknowledgement when their actual audio boundary becomes audible.
     if(run.manualPendingFrame!=null&&frame>=run.manualPendingFrame){force=true;run.manualPendingFrame=null;}
@@ -289,15 +291,24 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function getManualSelection(channel){
     open();if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('HuC6280 song channel must be 0..5');
     const info=manualInfo(),selected=info.channels[channel],ready=manualReady(active,info);
-    return{...selected,channel,epoch:manualEpoch,available:ready,editable:ready,playable:Boolean(ready&&selected?.playable),
-      reason:ready?selected?.reason??'':info.reason||'Channel controls are available while the song is playing.'};
+    return{...selected,channel,epoch:manualEpoch,available:ready,editable:ready,playable:Boolean(ready&&playback==='playing'&&selected?.playable),
+      reason:ready?selected?.reason??'':info.reason||'Channel controls are available while the song is playing or paused.'};
   }
   function manualOperation(method,args,{epoch}={},cleanup=false){
     open();if(epoch!==undefined&&epoch!==manualEpoch)return false;
     const run=active;if(!run?.manual||(!cleanup&&loading)||seeking||seekPreparing)return false;
     if(cleanup?!['playing','paused'].includes(playback):!manualReady(run))return false;
+    if(playback==='paused'&&!cleanup&&method!=='applyEdit')return false;
     if(cleanup&&!manualInfo(run).available){releaseManualKeys(run);emit();return false;}
-    const value=run.manual[method](...args);
+    // Validate a paused edit against the heard observation before native
+    // mutation, then retain that projection for CH switching and audition.
+    // Native writes still target the next ungenerated frame; its retained PCM
+    // and any other channel's future writes are not exposed as paused state.
+    const projection=playback==='paused'&&method==='applyEdit'?projectHuc6280PausedEdit(run.pausedSnapshot??liveState,args[0]):null;
+    // Paused edits are retained instrument settings, not temporary hand gates.
+    // Switching the audition CH must not undo an explicitly enabled modulator.
+    const value=method==='applyEdit'?run.manual.applyEdit(args[0],{releaseOutputOnKeyboardCleanup:playback!=='paused'}):run.manual[method](...args);
+    if(projection)run.pausedSnapshot=projection;
     // Keep observation on the heard clock; the manual delta becomes visible
     // once the already-generated PCM has passed through the output.
     publishLive(run,position(run));emit();return value;
@@ -368,7 +379,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function pause() {
     open(); const run = active; if (!run || playback !== 'playing') return false;
     releaseManualKeys(run);manualEpoch++;
-    run.basePosition = position(run); positionFrames = run.basePosition;
+    run.pausedSnapshot=null;run.basePosition = position(run); positionFrames = run.basePosition;
     publishLive(run,positionFrames,true);
     cancelTimer(run); cancelNodes(run);
     run.segments = run.segments.filter(segment => segment.firstFrame + segment.frames > positionFrames);
@@ -381,7 +392,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       const host = await prepareHost(ticket); if (!current(ticket) || active !== run) return false;
       const {context, output} = validateHost(host);
       if (context !== run.context || output !== run.output) throw new Error('Audio output changed; Stop and Play to restart the song');
-      run.nextTime = null; playback = 'playing'; run.player.resume();
+      run.pausedSnapshot=null;run.nextTime = null; playback = 'playing'; run.player.resume();
       for (const segment of run.segments) scheduleSegment(run, segment);
       pump(run, true); return playback === 'playing' || playback === 'ended';
     } catch (error) {if (current(ticket) && active === run) fail(error, run); return false;}

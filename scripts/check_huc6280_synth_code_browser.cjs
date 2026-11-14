@@ -228,7 +228,7 @@ async function check(browser,name,origin,fixture){
 
     step('Files project roundtrip retains preset/PCM/Code/binary without autoplay, and Code fits desktop and 390px');
     await source(page,'// Restored source must never execute itself.\nglobalThis.__hucUnexpectedAutoRun=true;\n');await page.keyboard.press('Control+s');
-    await page.locator('#hucFileSaveSoundButton').click();await until(()=>page.locator('#hucFilesStatus').textContent().then(text=>text.startsWith('Current HuC6280 instrument saved to ')),'save authored sound');
+    await page.locator('#hucFileSaveSoundButton').click();await until(()=>page.locator('#hucFilesStatus').textContent().then(text=>text.startsWith('Saved to /presets/')),'save authored sound');
     const sound=JSON.parse(await page.locator('#synthCodeEditor').inputValue());assert.equal(sound.format,'tetorica-huc6280-voice');assert.equal(sound.source,'dda');assert.equal(sound.dda.data,fixture.dda.dda.data);
     assert(await page.locator('#synthCodeRunButton').isDisabled());await selectFile(page,'/index.js',{code:true});
     const projectDownload=await download(page,'#hucProjectExportButton'),project=await fixture.loadCassette(projectDownload.bytes);

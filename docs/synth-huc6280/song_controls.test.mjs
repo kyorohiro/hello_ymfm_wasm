@@ -17,7 +17,7 @@ const turn=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
 const add=(project,name,value=1)=>project.importFiles([{path:'/vgm/'+name,type:'binary',data:Uint8Array.of(value)}]);
 function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture,mixer=false,seek=false,cache=false,seekWork,cancelWork}={}){
-  const ids=['Player','Select','PlayButton','StopButton','Status','Position','CaptureButton','CaptureStatus'],nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));
+  const ids=['Player','Select','PlayButton','StopButton','Status','Position','CaptureButton','CaptureStatus','CaptureInfo'],nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));
   if(mixer){nodes.Channels=new Element();for(let ch=1;ch<=6;ch++)nodes[`Channel${ch}Toggle`]=new Element();}
   if(seek)for(const id of ['Seek','SeekPosition','CancelSeek'])nodes[id]=new Element();
   if(cache)for(const id of ['CacheEnabled','ClearCache','CacheStatus'])nodes[id]=new Element();
@@ -140,6 +140,8 @@ test('paused physical view prepares a capture payload; successful Capture reques
   f.controls.setView(0,{notify:false});const selection=f.controls.getPausedSelection();assert(selection.key);assert.equal(selection.channel,0);assert.equal(selection.positionFrames,123);
   assert.equal(f.controls.getPausedSelection(),selection,'same frozen snapshot reuses its validated preparation');
   assert.equal(selection.prepared.capturable,true);assert.equal(f.nodes.CaptureButton.disabled,false);
+  assert.equal(f.nodes.CaptureStatus.textContent,'Ready to copy or save.');
+  assert.equal(f.nodes.CaptureInfo.textContent,selection.prepared.description,'the detailed configured-sound explanation is kept in help');
   const before=f.calls.length;assert.equal(await f.controls.capture(),true);
   assert.equal(f.captures.length,1);assert.equal(f.captures[0].payload.frame,123);assert.deepEqual(f.captures[0].payload.preset.wave,wave);
   assert.equal(f.calls.length,before,'capture does not invoke native transport');assert(f.controls.read().paused);assert.equal(f.controls.read().positionFrames,123);
@@ -421,4 +423,16 @@ test('accepted-song keyup still reaches its owner while replacement source valid
   assert.equal(f.controls.noteOff('accepted-key',{epoch:12}),true);assert.equal(f.controls.releaseKeyboard({epoch:12}),true);
   assert.deepEqual(f.calls,[['manualOff','accepted-key',{epoch:12}],['manualRelease',{epoch:12}]]);
   gate.resolve();assert.equal(await choosing,false);assert.equal(f.controls.read().selectedPath,'/vgm/accepted.vgm');assert(f.controls.isPlaying());
+});
+
+test('paused CH edits forward the current epoch and preserve view/capture without starting the song or direct keyboard',async t=>{
+  const f=fixture(t);add(f.project,'song.vgm');await turn();pauseAt(f);f.controls.setView(0,{notify:false});
+  f.emit({manualReady:true,manualEpoch:20});const before=f.controls.getCapturePayload(),project=f.project.snapshot();f.calls.length=0;
+  assert.equal(f.controls.getManualSelection(0).editable,true);
+  assert.equal(f.controls.applyEdit({channel:0,changes:{volume:9}},{epoch:20}),true);
+  assert.equal(f.controls.noteOn('paused-direct',60,0,{epoch:20}),false);assert.equal(f.controls.setPitch(1,{epoch:20}),false);
+  assert.equal(f.controls.applyEdit({channel:0,changes:{volume:8}},{epoch:19}),false);
+  assert.deepEqual(f.calls,[['manualSelection',0],['manualEdit',{channel:0,changes:{volume:9}},{epoch:20}]]);
+  assert(f.controls.read().paused);assert.equal(f.controls.read().viewTarget,0);assert.equal(f.controls.getCapturePayload().key,before.key);
+  assert.equal(f.audioRequests,0);assert.equal(f.beforeCalls,0);assert.deepEqual(f.project.snapshot(),project);
 });

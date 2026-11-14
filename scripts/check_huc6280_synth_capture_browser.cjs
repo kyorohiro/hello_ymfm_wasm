@@ -136,15 +136,39 @@ async function check(browser,name,origin,fixture,loadCassette){
     assert(await page.locator('#loadVgm').isHidden());
     const order=await page.evaluate(()=>{
       const transport=document.querySelector('#hucSongPlayer'),channels=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');
-      return transport.contains(channels)&&transport.contains(live)&&Boolean(live.compareDocumentPosition(channels)&Node.DOCUMENT_POSITION_FOLLOWING)&&
+      return document.querySelector('#mixerChipPanel').contains(channels)&&!transport.contains(channels)&&transport.contains(live)&&
         Boolean(transport.compareDocumentPosition(sounds)&Node.DOCUMENT_POSITION_FOLLOWING)&&Boolean(sounds.compareDocumentPosition(monitor)&Node.DOCUMENT_POSITION_FOLLOWING);
-    });assert(order,'song contains channel controls → mixer; Sounds and monitor follow');
+    });assert(order,'song contains channel controls; output switches belong to Mixer; Sounds and monitor follow');
+    assert.equal((await page.locator('#hucChannelSelect option[value="synth"]').textContent()).trim(),'Auto');
+    assert.equal(await page.locator('#hucVgmImportHelp').evaluate(node=>node.open),false);
+    assert.equal(await page.locator('#hucChannelHelp').evaluate(node=>node.open),false);
+    assert(await page.locator('#hucChannelReadout').isHidden());
+    assert.equal(await page.locator('#hucChannelReadout').evaluate(node=>Boolean(node.closest('#hucChannelHelp'))),true);
+
+    step('Files Examples adds missing code without opening audio, changing input mode, running it or overwriting a user example');
+    const examples=['examples/huc6280.js','examples/msm5205.js','examples/cdda.js'];
+    const beforeExamples={mode:await page.locator('#synthInputSection').getAttribute('data-input-mode'),selection:await page.locator('#hucFilesSelected').textContent(),code:await page.locator('#synthCodeState').textContent()};
+    await page.locator('#hucFileExamplesButton').click();
+    for(const path of examples)await until(()=>page.locator('#hucFilesTree [data-file-path="/'+path+'"]').count().then(Boolean),'example '+path);
+    assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),beforeExamples.mode);assert.equal(await page.locator('#hucFilesSelected').textContent(),beforeExamples.selection);assert.equal(await page.locator('#synthCodeState').textContent(),beforeExamples.code);assert.equal((await graph(page)).contexts,0);
+    await selectIndex(page);await page.locator('#hucFilesTree [data-file-path="/examples/huc6280.js"]').click();await until(()=>page.locator('#hucFilesSelected').textContent().then(text=>text.includes('/examples/huc6280.js')),'selected user example');await until(()=>page.locator('#synthCodeEditor').isEditable(),'example editor ready');await page.locator('#synthCodeEditor').fill('// keep my HuC6280 example\n');
+    await selectIndex(page);const exampleSelection=await page.locator('#hucFilesSelected').textContent();await page.locator('#hucFileExamplesButton').click();
+    assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');assert.equal(await page.locator('#hucFilesSelected').textContent(),exampleSelection);
+    const exampleProject=await loadCassette(await download(page,'#hucProjectExportButton'));
+    assert.equal(new TextDecoder().decode(exampleProject.files.get('examples/huc6280.js')),'// keep my HuC6280 example\n');
+    for(const path of examples)assert(exampleProject.files.has(path),'Cassette retains '+path);
+    assert.equal((await graph(page)).contexts,0);assert(!/Running|Playing/.test(await page.locator('#synthCodeState').textContent()));await page.locator('#synthInputKeyboardTab').click();
+
     await openMenu(page);const chooser=page.waitForEvent('filechooser');await page.locator('#loadVgm').click();
     await(await chooser).setFiles({name:'capture-source.vgm',mimeType:'application/octet-stream',buffer:fixture.bytes});
     await until(()=>page.locator('#hucSongSelect option[value="/vgm/capture-source.vgm"]').count().then(Boolean),'menu import stored source');
     await until(()=>page.locator('#vgmLibrary').getAttribute('data-loading').then(value=>value==='false'),'snapshot analysis');
     assert.equal(await page.locator('#synthMenu').evaluate(node=>node.open),false);
     if(!await page.locator('#vgmImport').evaluate(node=>node.open))await page.locator('#vgmImport > summary').click();
+    assert.equal(await page.locator('#vgmWarnings').evaluate(node=>Boolean(node.closest('#hucVgmImportHelp'))),true);
+    assert((await page.locator('#vgmWarnings').textContent()).length>0,'extraction explanations remain available');assert(await page.locator('#vgmWarnings').isHidden(),'long extraction explanations are hidden by default');
+    await page.locator('#hucVgmImportHelp > summary').click();assert(await page.locator('#vgmWarnings').isVisible());await page.locator('#hucVgmImportHelp > summary').click();assert(await page.locator('#vgmWarnings').isHidden());
+    assert.equal(await page.locator('#hucSongCaptureInfo').evaluate(node=>Boolean(node.closest('#hucChannelHelp'))),true);
     const all=await page.locator('[data-vgm-voice]').count();assert(all>2);
     await page.locator('#vgmKeepLoudestPcm').check();const grouped=await page.locator('[data-vgm-voice]').count();assert(grouped<all,'volume-only Wave variants group');
     await page.locator('#vgmKeepLoudestPcm').uncheck();assert.equal(await page.locator('[data-vgm-voice]').count(),all);
@@ -158,11 +182,26 @@ async function check(browser,name,origin,fixture,loadCassette){
     await choose(page,'/vgm/capture-source.vgm');await channel(page,0);await play(page);await until(()=>state(page).then(v=>v.frame>13230),'Wave audible position');await pause(page);
     const wavePause=await state(page);assert(wavePause.frame<44100,'Wave before LFO');await until(()=>page.locator('#hucSongCaptureButton').isEnabled(),'known Wave capturable');
     const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
+    await until(()=>state(page).then(value=>value.manualReady==='true'),'paused Wave editable');
+    assert.equal((await view(page)).editor.readonly,'false');const recordedVolume=(await view(page)).volume;
+    await page.locator('[data-stepper-for="volume"][data-stepper-delta="1"]').click();await until(()=>view(page).then(value=>value.volume===recordedVolume+1),'paused Wave volume edit');await frozen(page,wavePause);
     const sourceWave=await view(page);assert.deepEqual(sourceWave.wave,wave);assert.equal((await graph(page)).editorWorklets,1,'no audition worklet before key');
     await press(page,key);let sounding=await trial(page);assert.equal(sounding.preset.source,'wave');assert.deepEqual(sounding.preset.wave,wave);assert.equal(sounding.preset.envelope.enabled,false);
     assert.equal(sounding.preset.volume,sourceWave.volume);assert.equal(sounding.voices.length,1);await frozen(page,wavePause);
     assert.deepEqual((await read(page)).preset,original);sameBank(await observe(page),bank);
     const route=await graph(page);assert.equal(route.contexts,1);assert.equal(route.destinationConnections,1);assert.equal(route.liveWorklets,2);assert(route.muted);measurements.auditionGraph=route;
+
+    step('Selected paused CH saves directly to presets without copying to Auto, moving the cursor, changing Files selection or forcing Code mode');
+    await release(page,key);await page.locator('#synthInputCodeTab').click();
+    const beforeSave={selection:await page.locator('#hucFilesSelected').textContent(),mode:await page.locator('#synthInputSection').getAttribute('data-input-mode'),graph:await graph(page)};
+    await until(()=>page.locator('#hucSaveSelectedPreset').isEnabled(),'selected Wave may be saved');await page.locator('#hucSaveSelectedPreset').click();
+    await until(()=>page.locator('#hucFilesStatus').textContent().then(text=>/saved to \/presets\//i.test(text)),'selected Wave saved to presets');
+    const directProject=await loadCassette(await download(page,'#hucProjectExportButton'));
+    const directSounds=[...directProject.files.entries()].filter(([p])=>/^presets\/.*\.huc6280\.json$/i.test(p)).map(([p,data])=>({path:p,preset:JSON.parse(new TextDecoder().decode(data))}));
+    assert(directSounds.some(({preset})=>preset.source==='wave'&&JSON.stringify(preset.wave)===JSON.stringify(wave)&&preset.volume===sourceWave.volume&&!preset.envelope.enabled));
+    assert.equal((await view(page)).channel,'0');assert.equal(await page.locator('#hucFilesSelected').textContent(),beforeSave.selection);assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),beforeSave.mode);assert.deepEqual((await read(page)).preset,original);await frozen(page,wavePause);
+    assert.equal((await graph(page)).editorWorklets,beforeSave.graph.editorWorklets);measurements.directPresetSave={paths:directSounds.map(value=>value.path),frame:wavePause.frame,mode:beforeSave.mode};
+    await press(page,key);sounding=await trial(page);
 
     step('The newest audition key owns its temporary voice; an older key release cannot silence it');
     const keys=await page.locator('#keyboard .key:not([disabled])').evaluateAll(nodes=>nodes.slice(0,2).map(node=>node.dataset.key));assert.equal(keys.length,2);
@@ -179,6 +218,7 @@ async function check(browser,name,origin,fixture,loadCassette){
     const projectBytes=await download(page,'#hucProjectExportButton'),saved=await loadCassette(projectBytes);
     const savedSounds=[...saved.files.entries()].filter(([p])=>/^presets\/.*\.huc6280\.json$/i.test(p)).map(([p,data])=>({path:p,preset:JSON.parse(new TextDecoder().decode(data))}));
     assert(savedSounds.some(value=>JSON.stringify(value.preset)===JSON.stringify(capturedWave)),'Files contains exact captured single-voice preset');
+    assert(directSounds.some(value=>JSON.stringify({...value.preset,name:capturedWave.name})===JSON.stringify(capturedWave)),'direct Save and Capture preserve every portable selected-CH setting; only the descriptive name differs');
     assert.deepEqual(Buffer.from(saved.files.get('vgm/capture-source.vgm')),fixture.bytes);
     await page.locator('[data-stepper-for="volume"][data-stepper-delta="1"]').click();await until(async()=>(await read(page)).preset.volume===capturedWave.volume+1,'Synth knob edits captured sound');await frozen(page,wavePause);
     await channel(page,0);assert.equal((await view(page)).volume,sourceWave.volume);await channel(page,'synth');assert.equal((await view(page)).volume,capturedWave.volume+1);

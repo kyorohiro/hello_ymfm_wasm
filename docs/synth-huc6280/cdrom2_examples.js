@@ -1,6 +1,23 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Original, generated sounds: no disc audio or game assets are embedded.
 export const PC_ENGINE_CODE_EXAMPLES=Object.freeze({
+  '/examples/huc6280.js': `const pce = await useSoundChip("huc6280");
+setBpm(120);
+
+// Use the sound edited above. This loop is software performance, not a chip sequencer.
+liveLoop("pce-melody", async () => {
+  const state = await pce.getState();
+  const channel = state.editorSource === "noise" ? CH5 : CH1;
+  const note = choose(scale("E3", "minorPentatonic", 2));
+  if (state.editorLfoEnabled && state.editorLfoMode === "follow") {
+    await pce.setNote(CH2, note); // CH2 supplies the hardware LFO to CH1.
+  }
+  await pce.noteOn(channel, note);
+  await beat(0.25);
+  await pce.noteOff(channel); // Uses the software envelope; keyOff is the raw gate.
+  await beat(0.25);
+});
+`,
   '/examples/msm5205.js': `const adpcm = await useSoundChip("msm5205");
 // Generate PCM in software, then encode it for the chip's 4-bit ADPCM RAM.
 // This is a sample player, not a pitched noteOn instrument.
@@ -42,7 +59,9 @@ liveLoop("cd-track", async () => {
 
 /** Add missing examples only. Existing user files and the input mode stay put. */
 export function addPcEngineCodeExamples(project){
-  const entries=Object.entries(PC_ENGINE_CODE_EXAMPLES).filter(([path])=>!project.fs.has(path))
+  const fold=path=>path.normalize('NFC').toLowerCase();
+  const occupied=new Set([...project.fs.list().map(file=>file.path),...project.fs.listDirectories()].map(fold));
+  const entries=Object.entries(PC_ENGINE_CODE_EXAMPLES).filter(([path])=>!occupied.has(fold(path)))
     .map(([path,data])=>({path,type:'text',data}));
   if(entries.length)project.importFiles(entries);
   return entries.map(entry=>entry.path);

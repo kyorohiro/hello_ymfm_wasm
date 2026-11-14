@@ -4,6 +4,7 @@ import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_file
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installHuc6280FileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
 import {createHuc6280CodeProject,createHuc6280ProjectStore,readHuc6280ProjectSound,isHuc6280CodePath,isHuc6280TextPath,isHuc6280SongPath,HUC6280_PROJECT_MANIFEST,HUC6280_PROJECT_CODE_LENGTH,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-cdda-ui-1';
+import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -54,7 +55,7 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   const panel=doc.getElementById('hucFilesPanel'),toggle=doc.getElementById('hucFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const presetSelect=doc.getElementById('hucPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('HuC6280 Files mount is missing.');
-  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.huc-main'),listeners=[],expanded=new Map([['/presets',true],['/vgm',true],['/lib',true],['/data',true]]);
+  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.huc-main'),listeners=[],expanded=new Map([['/presets',true],['/examples',true],['/vgm',true],['/lib',true],['/data',true]]);
   let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
@@ -64,10 +65,11 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   heading.append(title,toolbar);
   const actions=make('div');actions.className='huc-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
-  for(const[id,label]of [['hucFileNewButton','New JS'],['hucFileSaveSoundButton','Save sound'],['hucFileRenameButton','Rename…'],['hucFileDeleteButton','Delete…'],['hucFileImportButton','Add files…'],['hucFileExportButton','Export file'],['hucProjectExportButton','Export project'],['hucProjectImportButton','Import project…']]){
+  for(const[id,label]of [['hucFileNewButton','New JS'],['hucFileSaveSoundButton','Save sound'],['hucFileExamplesButton','Examples'],['hucFileRenameButton','Rename…'],['hucFileDeleteButton','Delete…'],['hucFileImportButton','Add files…'],['hucFileExportButton','Export file'],['hucProjectExportButton','Export project'],['hucProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
-    (id==='hucFileNewButton'||id==='hucFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
+    (['hucFileNewButton','hucFileSaveSoundButton','hucFileExamplesButton'].includes(id)?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='hucFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
+    if(id==='hucFileExamplesButton')button.title='Add missing HuC6280, MSM5205 and CD-DA examples to examples/. Existing files are kept; Code is not run.';
     const destination={hucProjectImportButton:['hucMenuProjectImport','Project · ZIP…'],hucProjectExportButton:['hucMenuProjectExport','Project · ZIP'],hucFileImportButton:['hucMenuFilesImport','Project files…'],hucFileExportButton:['hucMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
@@ -253,11 +255,12 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
       await persistCode();say(`Created ${path}.`);return true;
     }finally{if(!disposed)setBusy(false);}
   }
-  async function saveSound({path:requestedPath}={}){
+  async function saveSound({path:requestedPath,sound:providedSound,select=true}={}){
     if(disposed||busy)return false;const token=++operation;setBusy(true,{lockMain:false});
     try{
+      if(typeof select!=='boolean')throw TypeError('Preset file selection must be boolean.');
       if(requestedPath!==undefined){requestedPath=allowed(requestedPath);if(!/\.huc6280\.json$/i.test(requestedPath))throw Error('Use a .huc6280.json instrument file name.');if(occupied(project,requestedPath))throw Error('That path already exists.');}
-      const sound=readHuc6280ProjectSound(getSettings());if(!sound)throw Error('Expected a HuC6280 instrument.');
+      const sound=readHuc6280ProjectSound(providedSound===undefined?getSettings():providedSound);if(!sound)throw Error('Expected a HuC6280 instrument.');
       if(disposed||token!==operation)return false;
       const path=requestedPath??newSoundPath(project,sound.name);
       if(occupied(project,path))throw Error('That path already exists.');
@@ -265,10 +268,18 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
       // importFiles validates its candidate before touching this workspace.
       // Name / size failures must keep both existing files and selection.
       project.importFiles([{path,type:'text',data:JSON.stringify(sound,null,2)+'\n'}]);
-      project.select(path);reveal(path);setVisible(true);render();
-      await code?.openFile?.(path,{show:false});if(disposed||token!==operation)return false;
+      if(select)project.select(path);reveal(path);setVisible(true);render();
+      if(select)await code?.openFile?.(path,{show:false});if(disposed||token!==operation)return false;
       const persisted=await persistCode();
-      say('Current HuC6280 instrument saved to '+path+(persisted===false?' in Files. Local save unavailable; export the project to keep it.':''));return path;
+      say('Saved to '+path+(persisted===false?' in Files. Local save unavailable; export the project to keep it.':''));return path;
+    }finally{if(!disposed)setBusy(false);}
+  }
+  async function addExamples(){
+    await api.ready;if(disposed||busy)return[];const token=++operation;setBusy(true,{lockMain:false});
+    try{
+      const paths=addPcEngineCodeExamples(project);for(const path of paths)reveal(path);
+      setVisible(true);render();const persisted=await persistCode();if(disposed||token!==operation)return paths;
+      say(paths.length?`Added ${paths.length} example(s) to examples/. Choose a file in Code, then Run.${persisted===false?' Local save unavailable; export the project to keep it.':''}`:'Examples are already in Files; existing files were kept.');return paths;
     }finally{if(!disposed)setBusy(false);}
   }
   function download(bytes,filename,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),link=make('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -294,14 +305,14 @@ export function setupHuc6280CodeFiles({project=createHuc6280CodeProject(),getSet
   }).catch(report);});
   listen(cancel,'click',()=>dialog.close());
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
-  for(const[id,fn]of [['hucFileNewButton',()=>ask('new')],['hucFileRenameButton',()=>ask('rename')],['hucFileDeleteButton',()=>ask('delete')],['hucFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['hucProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['hucFileSaveSoundButton',()=>void saveSound().catch(report)],['hucProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['hucFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['hucFileNewButton',()=>ask('new')],['hucFileRenameButton',()=>ask('rename')],['hucFileDeleteButton',()=>ask('delete')],['hucFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['hucProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['hucFileSaveSoundButton',()=>void saveSound().catch(report)],['hucFileExamplesButton',()=>void addExamples().catch(report)],['hucProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['hucFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(doc,'keydown',event=>{if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='s'){event.preventDefault();event.stopPropagation();void(code?.flush?.()??persistCode()).catch(report);}},true);
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importSong,importProject,exportProject,createFile,move,duplicate,remove,saveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importSong,importProject,exportProject,createFile,move,duplicate,remove,saveSound,addExamples,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

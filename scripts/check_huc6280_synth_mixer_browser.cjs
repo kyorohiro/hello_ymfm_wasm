@@ -125,7 +125,13 @@ async function check(browser,name,origin,fixtures){
   const step=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   const toggle=ch=>page.locator('#hucSongChannel'+(ch+1)+'Toggle');
   const enabled=()=>Promise.all(Array.from({length:6},(_,ch)=>toggle(ch).getAttribute('aria-pressed').then(value=>value==='true')));
-  async function setEnabled(ch,on){if((await toggle(ch).getAttribute('aria-pressed')==='true')!==on)await toggle(ch).click();assert.equal(await toggle(ch).getAttribute('aria-pressed'),String(on));}
+  async function chip(value){await page.locator('[data-huc-chip-tab="'+value+'"]').click();assert.equal(await page.locator('[data-huc-chip-tab="'+value+'"]').getAttribute('aria-selected'),'true');}
+  async function setEnabled(ch,on){
+    const previous=await page.locator('[data-huc-chip-tab][aria-selected="true"]').getAttribute('data-huc-chip-tab');
+    await chip('mixer');assert(await page.locator('#hucSongChannels').isVisible());
+    if((await toggle(ch).getAttribute('aria-pressed')==='true')!==on)await toggle(ch).click();
+    assert.equal(await toggle(ch).getAttribute('aria-pressed'),String(on));if(previous!=='mixer')await chip(previous);
+  }
   async function setAll(on){for(let ch=0;ch<6;ch++)await setEnabled(ch,on);}
   async function importSource(kind,{menu=false}={}){const fixture=fixtures[kind],file={name:'mixer-'+kind+'.vgm',mimeType:'application/octet-stream',buffer:fixture.bytes};
     if(menu){await openMenu(page);const chooser=page.waitForEvent('filechooser');await page.locator('#loadVgm').click();await(await chooser).setFiles(file);}else await page.locator('#vgmFileInput').setInputFiles(file);
@@ -136,9 +142,9 @@ async function check(browser,name,origin,fixtures){
   try{
     await page.goto(origin+config.entry);await files(page);
     step('Six VGM On/Off buttons default On, are passive before audio, and menu import plus loudest Wave grouping remain available');
-    assert(await page.locator('#hucSongChannels').isHidden());await importSource('wave',{menu:true});assert(await page.locator('#hucSongChannels').isVisible());
-    assert.deepEqual(await enabled(),Array(6).fill(true));for(let ch=0;ch<6;ch++){assert.equal(await toggle(ch).evaluate(node=>Boolean(node.closest('#hucSongPlayer'))),true);await setEnabled(ch,false);await setEnabled(ch,true);}
-    assert.equal((await graph(page)).contexts,0);assert.equal(await page.locator('#synthMenu').evaluate(node=>node.open),false);
+    assert(await page.locator('#hucSongChannels').isHidden());await importSource('wave',{menu:true});assert(await page.locator('#hucSongChannels').isHidden(),'VGM output switches live only in Mixer');await chip('mixer');assert(await page.locator('#hucSongChannels').isVisible());
+    assert.deepEqual(await enabled(),Array(6).fill(true));for(let ch=0;ch<6;ch++){assert.equal(await toggle(ch).evaluate(node=>Boolean(node.closest('#mixerChipPanel'))),true);await setEnabled(ch,false);await setEnabled(ch,true);}
+    await chip('huc6280');assert(await page.locator('#hucSongChannels').isHidden());assert.equal((await graph(page)).contexts,0);assert.equal(await page.locator('#synthMenu').evaluate(node=>node.open),false);
     const all=await page.locator('[data-vgm-voice]').count();await page.locator('#vgmKeepLoudestPcm').check();const grouped=await page.locator('[data-vgm-voice]').count();assert(grouped<all);await page.locator('#vgmKeepLoudestPcm').uncheck();
     measurements.grouping={all,grouped};
 
@@ -174,13 +180,16 @@ async function check(browser,name,origin,fixtures){
     step('Mixer buttons release focus and keep musical key input available without rewriting author or source parameters');
     await setEnabled(0,false);assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'hucSongChannel1Toggle');
     await page.keyboard.down(key);await pcm(page);await page.keyboard.up(key);await pcm(page,false);await frozen(page,lfoPause);assert.deepEqual((await read(page)).preset,lfo);
-    await channel(page,0);assert.equal((await view(page)).editor.readonly,'true');
+    await channel(page,0);assert.equal((await view(page)).editor.readonly,'false');
 
     step('Mixer, Channel/Auto/Capture, Sounds and monitor keep compact order at 1240/390px; pagehide releases the only muted output route');
     assert.equal(await page.locator('#hucCodeLiveTools').evaluate(node=>Boolean(node.closest('#hucSongPlayer'))),true);
-    assert(await page.evaluate(()=>{const mixer=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),song=document.querySelector('#hucSongPlayer'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');return Boolean(live.compareDocumentPosition(mixer)&4)&&Boolean(song.compareDocumentPosition(sounds)&4)&&Boolean(sounds.compareDocumentPosition(monitor)&4);}));
+    assert(await page.evaluate(()=>{const mixer=document.querySelector('#hucSongChannels'),live=document.querySelector('#hucCodeLiveTools'),song=document.querySelector('#hucSongPlayer'),sounds=document.querySelector('#vgmImport'),monitor=document.querySelector('.huc-monitor');return document.querySelector('#mixerChipPanel').contains(mixer)&&!song.contains(mixer)&&song.contains(live)&&Boolean(song.compareDocumentPosition(sounds)&4)&&Boolean(sounds.compareDocumentPosition(monitor)&4);}));
     for(const width of[1240,390]){await page.setViewportSize({width,height:1050});await page.locator('#hucSongPlayer').scrollIntoViewIfNeeded();const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,controls:[...document.querySelectorAll('#hucSongPlayer button,#hucSongPlayer select,#hucSongPlayer input')].filter(node=>node.getClientRects().length).map(node=>({id:node.id,left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));
-      assert(bounds.scroll<=width+1);assert(bounds.controls.every(item=>item.left>=-1&&item.right<=width+1));measurements['layout'+width]=bounds;await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});}
+      assert(bounds.scroll<=width+1);assert(bounds.controls.every(item=>item.left>=-1&&item.right<=width+1));measurements['layout'+width]=bounds;await chip('mixer');
+      const mixerBounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,buttons:[...document.querySelectorAll('#hucSongChannels button')].map(node=>({left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))}));
+      assert(mixerBounds.scroll<=width+1);assert(mixerBounds.buttons.every(item=>item.left>=-1&&item.right<=width+1));assert(await page.locator('#hucSongChannels').isVisible());measurements['mixerLayout'+width]=mixerBounds;
+      await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,name+'-'+width+'.png'),fullPage:true});await chip('huc6280');}
     await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent('pagehide')));await until(()=>graph(page).then(value=>value.runningContexts===0&&value.liveSources===0&&value.liveWorklets===0),'pagehide');
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);return{browser:name,passed:true,checks,measurements,graph:await graph(page),pageErrors:errors,consoleErrors};
   }catch(error){const diagnostic={stage,song:await state(page).catch(()=>null),view:await view(page).catch(()=>null),enabled:await enabled().catch(()=>null),output:await page.evaluate(()=>__hucSongAudit.output()).catch(()=>null),graph:await graph(page).catch(()=>null)};
