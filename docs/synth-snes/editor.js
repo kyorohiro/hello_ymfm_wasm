@@ -183,7 +183,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     if (id) element.id = id;
     const summary = make('summary', '', title), content = make('div', 'sdsp-card-content');
     element.append(summary, content); body.append(element);
-    return {element, content};
+    return {element, content, summary};
   }
   function section(parent, title) {
     const element = make('div', 'sdsp-subsection'); element.append(make('h4', '', title)); parent.append(element); return element;
@@ -234,6 +234,7 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
   const pmonSource = select(modSourceFields, 'Modulator source', 'pmonSource', [['wave','Drawn wave'],['brr','BRR sample']],
     value => value.pmon.source, (value, source) => {value.pmon.source = source;});
   const sampleInfo = make('p', 'sdsp-sample-info'); sampleInfo.id = 'sampleInfo'; sampleCard.content.append(sampleInfo);
+  const capturedLoopInfo=make('p','sdsp-captured-loop');capturedLoopInfo.id='capturedLoopInfo';sampleCard.content.append(capturedLoopInfo);
   const shapeActions = make('div', 'sdsp-wave-actions'); sampleCard.content.append(shapeActions);
   for (const [name, label] of [['sine','Sine'],['triangle','Triangle'],['saw','Saw'],['square','Square']]) {
     const button = make('button', '', label); button.type = 'button'; button.dataset.waveShape = name; shapeActions.append(button);
@@ -276,6 +277,8 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     () => preset.source === 'noise' ? 0 : Math.max(0, decodedSample('modulator').pcm.length - 16),
     value => value.pmon.brr.loopStartSamples ?? 0, (value, frame) => {value.pmon.brr.loopStartSamples = frame;}, 16);
   help(pmonTuning, 'Modulator BRR has its own declared Root / base PITCH and loop. Ratio multiplies that playback speed after keyboard transposition; it does not infer the sample’s original fundamental. Loop edits stop notes / Echo tails; tuning changes apply while playing.');
+
+  for(const element of [actions,importStatus,conversionFields,sampleBudgetInfo,targetFields,modSourceFields,shapeActions,drawingHint,tuning,pmonTuning])element.classList.add('sdsp-sample-authoring');
 
   const echoCard = card('S-DSP Echo', 'echoSection');
   const echoSwitches = group(echoCard.content); echoSwitches.classList.add('sdsp-echo-switches');
@@ -532,6 +535,9 @@ export function createEditor({root, isReadOnly=()=>false, onChange = () => {}, o
     const isWave=preset.source==='wave',isBrr=preset.source==='brr',isNoise=preset.source==='noise',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
     const activePmon=pmonActive(preset),target=editableTarget(),displayedTarget=selectedTarget(),isModulator=displayedTarget==='modulator';
     const modBrr=preset.pmon.source==='brr',hasModBrr=Boolean(preset.pmon.brr.data);
+    sampleCard.summary.textContent=isReadOnly()?'Sample · decoded BRR / PCM':'Sample · software preparation / BRR playback';
+    const displayedBrr=isModulator?preset.pmon.brr:preset.brr;
+    capturedLoopInfo.textContent=displayedBrr.loopStartSamples===null?'One-shot · no sample loop':`Loop start · sample frame ${displayedBrr.loopStartSamples.toLocaleString('en-US')}`;
     noiseCard.element.hidden=!isNoise;sampleCard.element.hidden=isNoise;
     noiseHint.textContent=preset.noise.clock===0
       ?'Clock 0 holds the generator’s current value instead of advancing it. This can be a steady DC level; choose a nonzero clock for a changing noise texture.'

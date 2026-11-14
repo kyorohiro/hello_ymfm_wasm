@@ -295,3 +295,8 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .synth-menu-secondary button,.synth-menu-utility button { min-height:28px; padding:4px 5px; border-color:transparent; border-radius:4px; background:transparent; box-shadow:none; color:var(--muted); font-size:.72rem; font-weight:500; line-height:1.35; }
 .synth-menu-secondary button:hover,.synth-menu-utility button:hover { background:#e2e7e7; border-color:var(--line); color:var(--ink); }
 #synthMenuAudio p { font-size:.68rem; }
+
+/* CH register controls own editing; the existing sample view stays visible. */
+#voiceEditor[data-readonly="true"] :is(.sdsp-source-bar,#levelSection,#envelopeSection,.sdsp-sample-authoring) { display:none; }
+.sdsp-captured-loop { display:none; margin:0 0 8px; color:var(--muted); font-size:.76rem; }
+#voiceEditor[data-readonly="true"] .sdsp-captured-loop { display:block; }
