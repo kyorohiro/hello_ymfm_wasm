@@ -1,0 +1,267 @@
+{
+  "baseRevision": "8bb38639",
+  "status": "passed",
+  "node": {
+    "passed": 216,
+    "failed": 0,
+    "skipped": 0
+  },
+  "packagedBrowserGroups": 38,
+  "master": 0.7,
+  "physicalOutputMuted": true,
+  "humanListeningPerformed": false,
+  "applicationChange": "Resolve SnesCodeClient implementation navigation to synth-snes/code_client.js, with refreshed editor cache identities.",
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-code-live-review-20261114/itch_sdsp_synth_code-live-review-20261114-qnZFqJ",
+    "archive": "/private/tmp/snes-code-live-review-20261114/tetorica_sdsp_synth_code-live-review-20261114_itch.zip",
+    "files": 133,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 1465107,
+      "sha256": "1f5aa19683c48d0d3f83613c6320b3de96cffd286fe1616f1648fd41a8166af6"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-state"
+    }
+  },
+  "packageMatchesCurrentRuntimeModules": true,
+  "live": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "checks": [
+        "passive startup and named preset Files",
+        "BPM starter and actual shared S-DSP output",
+        "manual keyboard in Code, focus safety and shared allocation",
+        "held Code + keyboard live edits: wave with Echo",
+        "held Code + keyboard live edits: brr with Echo",
+        "held Code + keyboard live edits: noise with Echo",
+        "held Code + keyboard live edits: pmon with Echo",
+        "held Code + keyboard live edits: pmon-brr with Echo",
+        "voice stealing and stale manual key release",
+        "Code and full PMON/Echo preset recover after reload without executing",
+        "Cassette roundtrip preserves Code, full sound and binary files",
+        "closed IndexedDB connection recovers without losing a newer Code edit",
+        "expanded Code and narrow layout"
+      ],
+      "measurements": [
+        {
+          "kind": "wave",
+          "peak": 0.12489470839500427,
+          "rms": 0.0631936672172374,
+          "finite": true
+        },
+        {
+          "kind": "brr",
+          "peak": 0.1765487641096115,
+          "rms": 0.0892624526306829,
+          "finite": true
+        },
+        {
+          "kind": "noise",
+          "peak": 0.226643368601799,
+          "rms": 0.08560290614901914,
+          "finite": true
+        },
+        {
+          "kind": "pmon",
+          "peak": 0.1348317563533783,
+          "rms": 0.06888060431908218,
+          "finite": true
+        },
+        {
+          "kind": "pmon-brr",
+          "peak": 0.17855682969093323,
+          "rms": 0.09421225546413037,
+          "finite": true
+        }
+      ],
+      "muted": true
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "checks": [
+        "passive startup and named preset Files",
+        "BPM starter and actual shared S-DSP output",
+        "manual keyboard in Code, focus safety and shared allocation",
+        "held Code + keyboard live edits: wave with Echo",
+        "held Code + keyboard live edits: brr with Echo",
+        "held Code + keyboard live edits: noise with Echo",
+        "held Code + keyboard live edits: pmon with Echo",
+        "held Code + keyboard live edits: pmon-brr with Echo",
+        "voice stealing and stale manual key release",
+        "Code and full PMON/Echo preset recover after reload without executing",
+        "Cassette roundtrip preserves Code, full sound and binary files",
+        "closed IndexedDB connection recovers without losing a newer Code edit",
+        "expanded Code and narrow layout"
+      ],
+      "measurements": [
+        {
+          "kind": "wave",
+          "peak": 0.1250157654285431,
+          "rms": 0.0632596302278392,
+          "finite": true
+        },
+        {
+          "kind": "brr",
+          "peak": 0.17658080160617828,
+          "rms": 0.08785510859358275,
+          "finite": true
+        },
+        {
+          "kind": "noise",
+          "peak": 0.21664580702781677,
+          "rms": 0.08845006954305105,
+          "finite": true
+        },
+        {
+          "kind": "pmon",
+          "peak": 0.13354644179344177,
+          "rms": 0.06788217763807722,
+          "finite": true
+        },
+        {
+          "kind": "pmon-brr",
+          "peak": 0.1788843870162964,
+          "rms": 0.09338490503455245,
+          "finite": true
+        }
+      ],
+      "muted": true
+    }
+  ],
+  "monaco": [
+    {
+      "browser": "chromium",
+      "steps": [
+        "actual Monaco loads lazily and displays the SNES starter",
+        "real language worker accepts SNES Code and rejects unsupported chips, raw methods and invalid lanes",
+        "Go to Definition opens the actual shared runtime and S-DSP performance facade",
+        "mixed JSON / JavaScript edits preserve both files and explicitly apply the edited sound",
+        "expanded editor stays visible at 1240/390px; reload restores Code and edited sound",
+        "Run / Stop consumes actual Monaco text with all destinations gain zero"
+      ],
+      "goodDiagnostics": {
+        "syntax": [],
+        "semantic": []
+      },
+      "implementations": [
+        {
+          "file": "playground_code_runtime.js",
+          "symbol": "useSoundChip",
+          "bytes": 22127,
+          "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480",
+          "line": 271,
+          "readOnly": true,
+          "navigation": {
+            "dispatch": "editor.trigger",
+            "relatedActions": [
+              "editor.action.showDefinitionPreviewHover"
+            ]
+          }
+        },
+        {
+          "file": "synth-snes/code_client.js",
+          "symbol": "noteOn",
+          "bytes": 2448,
+          "sha256": "f725aae190260d2b74737e9a5f55917d45fb0d150c067e71a55f15e4c5ca115d",
+          "line": 20,
+          "readOnly": true,
+          "navigation": {
+            "dispatch": "editor.trigger",
+            "relatedActions": [
+              "editor.action.showDefinitionPreviewHover"
+            ]
+          }
+        },
+        {
+          "file": "synth-snes/code_client.js",
+          "symbol": "getState",
+          "bytes": 2448,
+          "sha256": "f725aae190260d2b74737e9a5f55917d45fb0d150c067e71a55f15e4c5ca115d",
+          "line": 35,
+          "readOnly": true,
+          "navigation": {
+            "dispatch": "editor.trigger",
+            "relatedActions": [
+              "editor.action.showDefinitionPreviewHover"
+            ]
+          }
+        }
+      ],
+      "audio": {
+        "destinationConnections": 1,
+        "physicallyMuted": true
+      }
+    },
+    {
+      "browser": "webkit",
+      "steps": [
+        "actual Monaco loads lazily and displays the SNES starter",
+        "real language worker accepts SNES Code and rejects unsupported chips, raw methods and invalid lanes",
+        "Go to Definition opens the actual shared runtime and S-DSP performance facade",
+        "mixed JSON / JavaScript edits preserve both files and explicitly apply the edited sound",
+        "expanded editor stays visible at 1240/390px; reload restores Code and edited sound",
+        "Run / Stop consumes actual Monaco text with all destinations gain zero"
+      ],
+      "goodDiagnostics": {
+        "syntax": [],
+        "semantic": []
+      },
+      "implementations": [
+        {
+          "file": "playground_code_runtime.js",
+          "symbol": "useSoundChip",
+          "bytes": 22127,
+          "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480",
+          "line": 271,
+          "readOnly": true,
+          "navigation": {
+            "dispatch": "editor.trigger",
+            "relatedActions": [
+              "editor.action.showDefinitionPreviewHover"
+            ]
+          }
+        },
+        {
+          "file": "synth-snes/code_client.js",
+          "symbol": "noteOn",
+          "bytes": 2448,
+          "sha256": "f725aae190260d2b74737e9a5f55917d45fb0d150c067e71a55f15e4c5ca115d",
+          "line": 20,
+          "readOnly": true,
+          "navigation": {
+            "dispatch": "editor.trigger",
+            "relatedActions": [
+              "editor.action.showDefinitionPreviewHover"
+            ]
+          }
+        },
+        {
+          "file": "synth-snes/code_client.js",
+          "symbol": "getState",
+          "bytes": 2448,
+          "sha256": "f725aae190260d2b74737e9a5f55917d45fb0d150c067e71a55f15e4c5ca115d",
+          "line": 35,
+          "readOnly": true,
+          "navigation": {
+            "dispatch": "editor.trigger",
+            "relatedActions": [
+              "editor.action.showDefinitionPreviewHover"
+            ]
+          }
+        }
+      ],
+      "audio": {
+        "destinationConnections": 1,
+        "physicallyMuted": true
+      }
+    }
+  ],
+  "missingAssets": [],
+  "blockedRequests": [],
+  "scope": "Direct working-tree changes; no commit, tag, Tauri import, push, publication or release-directory writes."
+}

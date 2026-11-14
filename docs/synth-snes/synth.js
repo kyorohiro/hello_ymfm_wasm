@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {setupSnesCodeHost} from './code_host.js';
+import {setupSnesCodeHost} from './code_host.js?v=sdsp-code-review-1';
 import {createSnesCodeClient} from './code_client.js';
 import {createAudio} from './audio.js?v=sdsp-code-files-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared Code runtime/editor over the upper editor's existing S-DSP.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=draft-reconnect-1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=sdsp-code-review-1';
 import {selectSnesCodeDeclarations} from './code_declarations.js';
 import {createSnesCodeAudio} from './code_audio.js';
 import {createSnesCodeProject,SNES_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';

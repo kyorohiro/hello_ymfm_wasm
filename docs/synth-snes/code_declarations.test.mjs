@@ -33,3 +33,14 @@ createSoundChip('snes');
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}
   }finally{await rm(work,{recursive:true,force:true});}
 });
+
+test('S-DSP Code implementation links open its actual performance client instead of a raw Playground synth',async()=>{
+  const {definitionSource,sourcePosition}=await import('../playground/playground_monaco_definitions.js');
+  const declarations=selectSnesCodeDeclarations(source),lines=declarations.split('\n');
+  const client=await readFile(new URL('./code_client.js',import.meta.url),'utf8');
+  for(const symbol of ['noteOn','noteOff','getState','allNotesOff','dispose']){
+    const line=lines.findIndex(value=>value.trimStart().startsWith(symbol+'('));assert(line>=0,symbol);
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'snes',{runtimeFile:'playground_code_runtime.js'}),{file:'synth-snes/code_client.js',symbol});
+    assert(sourcePosition(client,symbol).lineNumber>1,symbol);
+  }
+});

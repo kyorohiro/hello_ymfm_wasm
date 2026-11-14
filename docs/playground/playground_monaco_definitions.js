@@ -11,6 +11,8 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   const owner = owners.at(-1)?.[1] ?? '';
   // Member names such as play/stop belong to their declared media interface,
   // before similarly named global music helpers are considered.
+  if(owner==='SnesCodeClient'&&['noteOn','noteOff','getState','allNotesOff','dispose'].includes(symbol))
+    return {file:'synth-snes/code_client.js',symbol};
   if(owner==='PlaygroundMsm5205API')return {file:'msm5205_player.js',symbol};
   if(owner==='PlaygroundCddaAPI')return {file:'cdda_player.js',symbol};
   if(/^Huc6280Code(?:Msm5205|Cdda)$/.test(owner)&&symbol==='dispose')return {file:'synth-huc6280/cdrom2_audio.js',symbol:'createHuc6280Cdrom2Audio'};

@@ -393,10 +393,30 @@ Playground setup-code export. Software `liveFx()` runs after the S-DSP; hardware
 Echo / FIR remains part of the S-DSP.
 
 Code uses the shared Synth editor, with text editing available if Monaco cannot
-load. Local modules can be imported from Files and `file()` reads project assets.
+load. In Monaco, Go to Definition followed by View implementation opens the
+actual S-DSP performance client for note and state methods. Local modules can be imported from Files and `file()` reads project assets.
 Maximize Code to edit beside Files. JavaScript is limited to 2 MiB, and the project
 reserves room for the full sound within the 16 MiB Cassette limit. Looper / Event
 Rec and SPC song playback are outside this first Files / Code update.
+
+## Code follow-up verification
+
+The live-edit browser check covers Code plus manual keys under Wave, supplied
+BRR, Noise, PMON and BRR PMON, each with Echo. It checks held-note identities,
+finite PCM after control edits, safe voice stealing and exact preservation of
+both BRR payloads in Cassette projects. The real Monaco check covers its actual
+language worker, SNES-only completion, mixed JSON / JavaScript editing, source
+navigation, reload recovery and 1240 / 390 px layouts. All speaker output is
+muted; these checks do not replace human listening.
+
+```sh
+node scripts/check_snes_synth_code_browser.cjs
+node scripts/check_snes_synth_code_monaco_browser.cjs
+```
+
+Both checkers accept `--root EXTRACTED_ZIP --entry /index.html --out RECEIPT.json`.
+The Monaco checker allows only local assets and its pinned Monaco CDN; unavailable
+CDN access is reported separately from an application failure.
 
 ## Source and verification
 
