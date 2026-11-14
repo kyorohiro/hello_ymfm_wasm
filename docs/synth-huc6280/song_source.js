@@ -14,7 +14,7 @@ const check = signal => {if (signal?.aborted) throw aborted();};
 const hex = value => `0x${value.toString(16).padStart(2, '0')}`;
 
 // Include clocks that the shared parser does not yet expose. A declared chip
-// must never disappear silently from this single-chip reference player.
+// must never disappear silently from this PC Engine reference player.
 const CLOCKS = [
   [0x0c,'Sega PSG'],[0x10,'YM2413'],[0x2c,'YM2612'],[0x30,'YM2151'],
   [0x38,'Sega PCM'],[0x40,'RF5C68'],[0x44,'YM2203'],[0x48,'YM2608'],
@@ -26,8 +26,9 @@ const CLOCKS = [
   [0xac,'K053260'],[0xb0,'POKEY'],[0xb4,'QSound'],[0xb8,'SCSP'],
   [0xc0,'WonderSwan'],[0xc4,'VSU'],[0xc8,'SAA1099'],[0xcc,'ES5503'],
   [0xd0,'ES5506'],[0xd8,'X1-010'],[0xdc,'C352'],[0xe0,'GA20'],[0xe4,'Mikey'],
-  [0xf0,'MSM5205'],
+  [0xe8,'K007232'],[0xec,'K005289'],[0xf4,'MSM5232'],[0xf8,'BSMT2000'],[0xfc,'ICS2115'],
 ];
+export const MAX_MSM5205_SONG_CLOCK=20_000_000;
 
 async function decode(source, signal) {
   check(signal);
@@ -76,11 +77,19 @@ export async function prepareHuc6280SongSource(source, {signal, yieldTask = task
   const {header} = new Ym2612VGM(bytes, {logger:null});
   if (header.version < 0x161 || header.version > 0x172) throw new Error('HuC6280 reference playback supports VGM versions 1.61–1.72');
   if (header.dataOffset < 0xa8 || header.dataOffset >= bytes.length) throw new Error('Invalid HuC6280 VGM data offset');
-  if (!header.huc6280Clock) throw new Error('This VGM contains no HuC6280 chip');
+  const hasMsm=Boolean(header.msm5205Clock);
+  if (!header.huc6280Clock&&!hasMsm) throw new Error('This VGM contains no HuC6280 or MSM5205 chip');
   if (header.huc6280Clock & 0xc0000000) throw new Error('HuC6280 song playback does not support dual or variant chips');
-  if (header.huc6280Clock !== HUC6280_CLOCK) throw new Error(`HuC6280 song playback requires the normal ${HUC6280_CLOCK} Hz clock`);
+  if (header.huc6280Clock&&header.huc6280Clock !== HUC6280_CLOCK) throw new Error(`HuC6280 song playback requires the normal ${HUC6280_CLOCK} Hz clock`);
+  if(header.dataOffset>=0xf4&&view.getUint32(0xf0,true)&&header.version<0x172)throw new Error('Unsupported chip: MSM5205 requires VGM version 1.72');
+  if(hasMsm){
+    if(header.version<0x172)throw new Error('MSM5205 requires VGM version 1.72');
+    if(header.msm5205Clock&0xc0000000)throw new Error('MSM5205 dual chips and MSM6585 variants are unsupported');
+    if(header.msm5205Clock>MAX_MSM5205_SONG_CLOCK)throw new RangeError('MSM5205 clock exceeds the 20 MHz reference render budget');
+    if(header.msm5205Flags&~7)throw new Error('Unsupported MSM5205 header flags');
+  }
   const others = CLOCKS.filter(([offset]) => offset + 4 <= header.dataOffset && view.getUint32(offset, true)).map(([,name]) => name);
-  if (others.length) throw new Error(`HuC6280 song playback supports one HuC6280 only. Unsupported chip: ${others.join(', ')}`);
+  if (others.length) throw new Error(`PC Engine song playback supports HuC6280 + MSM5205. Unsupported chip: ${others.join(', ')}`);
   // Extra header can change per-chip clocks/volume. This first slice has no
   // alternate-clock/multi-chip mix contract, so it cannot ignore that header.
   if (header.dataOffset >= 0xc0 && view.getUint32(0xbc, true)) throw new Error('HuC6280 reference playback does not support VGM extra headers');
@@ -144,10 +153,16 @@ export async function prepareHuc6280SongSource(source, {signal, yieldTask = task
       if (++recursiveCommands > 256) throw new Error('VGM has too many consecutive DAC metadata commands');
     } else recursiveCommands = 0;
     if (command === 0xb9) {
+      if(!header.huc6280Clock)throw new Error('VGM writes an undeclared HuC6280 chip');
       need(3); const register = bytes[position + 1];
       if (register & 128) throw new Error('Second HuC6280 chip writes are not supported');
       if (register > 9) throw new Error('VGM writes outside the HuC6280 register range');
       writes++; position += 3;
+    } else if(command===0x32){
+      need(2);
+      if(!hasMsm)throw new Error('VGM writes an undeclared MSM5205 chip; version 1.72 clock metadata is required');
+      if(bytes[position+1]&128)throw new Error('Second MSM5205 chip writes are unsupported');
+      writes++;position+=2;
     } else if (command === 0x61) {need(3); advance(view.getUint16(position + 1, true)); position += 3;}
     else if (command === 0x62 || command === 0x63) {advance(command === 0x62 ? 735 : 882); position++;}
     else if (command >= 0x70 && command <= 0x7f) {advance((command & 15) + 1); position++;}
@@ -166,6 +181,7 @@ export async function prepareHuc6280SongSource(source, {signal, yieldTask = task
       const id = bytes[position + 1];
       if (id === 255 && command !== 0x94) throw new Error('DAC stream ID 255 is reserved for Stop all');
       if (command === 0x90) {
+        if(!header.huc6280Clock)throw new Error('VGM streams an undeclared HuC6280 chip');
         const type = bytes[position + 2], port = bytes[position + 3], register = bytes[position + 4];
         if (type !== 0x1b) throw new Error('HuC6280 song playback supports first HuC6280 DAC streams (type 0x1b) only');
         if (port !== 255 && port > 7 || register > 9) throw new Error('Unsupported HuC6280 DAC stream destination');
@@ -201,7 +217,9 @@ export async function prepareHuc6280SongSource(source, {signal, yieldTask = task
   }
   check(signal);
   if (!ended) throw new Error('VGM command stream has no end command');
-  if (!writes || !totalSamples) throw new Error('VGM contains no timed HuC6280 audio');
+  if (!writes || !totalSamples) throw new Error('VGM contains no timed HuC6280 / MSM5205 audio');
   return {bytes, header, totalSamples, metadata:parseVgmMetadata(bytes),
-    warnings:header.loopOffset ? ['Reference playback plays this VGM once; its loop is not repeated.'] : []};
+    warnings:[...(header.loopOffset ? ['Reference playback plays this VGM once; its loop is not repeated.'] : []),
+      ...(hasMsm?['MSM5205 ADPCM is included. Seek replays from the beginning; paired seek checkpoints are unavailable. CD-DA is not contained in this VGM.']:[]),
+      ...(!header.huc6280Clock?['This file contains MSM5205 only; HuC6280 channel controls have no recorded settings.']:[])]};
 }

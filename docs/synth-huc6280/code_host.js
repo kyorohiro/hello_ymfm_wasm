@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Software scheduling/editor over the instrument's existing physical PSG.
+// Software scheduling over the existing PSG and Code-owned CD-ROM² media.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
-import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-code-source-1';
-import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-code-1';
-import {createHuc6280CodeAudio} from './code_audio.js?v=huc-code-1';
+import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=huc-cdrom2-1';
+import {selectHuc6280CodeDeclarations} from './code_declarations.js?v=huc-cdrom2-1';
+import {createHuc6280CodeAudio} from './code_audio.js?v=huc-cdrom2-1';
 import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES} from './code_project.js?v=huc-song-1';
 import {setupHuc6280CodeFiles} from './code_files.js?v=huc-song-1';
 
@@ -29,7 +29,8 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
   stopKeyboard,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}) {
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null;
   const project=createHuc6280CodeProject({settings:getSettings(),getStarterCode:()=>HUC6280_STARTER_CODE});
-  const audio=createHuc6280CodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
+  const audio=createHuc6280CodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line),
+    readFile:path=>project.readFile(path,{type:'arrayBuffer'},{path:controls?.executionPath??'/index.js'})});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
   async function stop() {
     const request=++modeEpoch;
@@ -42,7 +43,7 @@ export function setupHuc6280CodeHost({ensureAudio,getAudio,getSettings,applySett
     async onBeforeWorkspaceReplace(){await stopSong();await stop();await stopKeyboard();}});
   function getRuntime() {
     if(runtime)return runtime;
-    runtime=createPlaygroundCodeRuntime({supportedSoundChips:['huc6280'],
+    runtime=createPlaygroundCodeRuntime({supportedSoundChips:['huc6280','msm5205','cdda'],
       async ensureReady(){const token=epoch;await ensureAudio();valid(token);await audio.prepare();valid(token);audio.open();onActivity();},
       now:()=>getAudio()?.context.currentTime??0,useSoundChip:name=>audio.useSoundChip(name),fx:audio.fx,
       resolveNoteTarget:audio.resolveNoteTarget,

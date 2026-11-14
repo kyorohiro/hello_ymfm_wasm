@@ -48,6 +48,9 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [x] **UI整理と配布確認**: Menu／Files／音色抽出／曲選択の入口、狭い画面、
       キーボードFocus、説明の折りたたみを確認する。読めるソースの独立ZIPで
       実WASM／Worklet、Chromium／WebKitを無音検証し、README・CIを揃える。
+- [x] **CD-ROM²の入口**: HuC6280／MSM5205／CD-DA／MixerタブとCode用音源を追加し、
+      HuC6280＋MSM5205のVGMを再生する。専用編集UIは工事中と明示する。
+      [詳細TODO](todo_huc6280_synth_cdrom2_01.md)。配布ZIP・Chromium／WebKitの検証を完了。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
       保存・出力経路を確認する。公開・tag・pushは別のユーザー指示で行う。
 
@@ -57,9 +60,9 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 
 ## 今回の完成条件に含めない拡張候補
 
-CD-ROM² ADPCM／CD-DA、可変間隔DDAの音色抽出、圧縮bankの音色抽出、
-Software morphは別の機能追加として扱う。上記の未完了項目を、これらの追加で
-置き換えない。既存のSoftware FXはCodeで利用可能。
+CD-ROM² ADPCM／CD-DAは、2026-11-14にタブ・Code API・VGM再生までを上記の工程へ追加した。
+専用の音作りUI、実CD-ROM読込、可変間隔DDAの音色抽出、圧縮bankの音色抽出、
+Software morphは引き続き別の機能追加として扱う。既存のSoftware FXはCodeで利用可能。
 
 物理出力を鳴らさずに検証する。実聴・長時間試奏・実ゲーム比較は未実行なら
 未実行と記録し、AIの配列計測で聴感確認を代替したとは書かない。
@@ -137,4 +140,15 @@ DDA供給が終わっても混在するWave／NoiseのSoftware Envelopeは同じ
 聞こえた時刻の表示・先読みPCM・Pause試奏／Captureを保ち、Seekはcleanな原曲状態へ戻す。
 Synth側は自分の音色・Software Envelope・DDAをVGMと同時に使える。
 Node437件と独立ZIPのChromium／WebKit全10スイート・20実行・194項目が成功した。
-Web側の完成条件は一通り無音検証済み。残るのはTauri取り込み・人の実聴／実ゲーム比較・公開。
+この時点のWeb側の完成条件は一通り無音検証済み。Tauri取り込み・人の実聴／実ゲーム比較・公開は未実行。
+
+## CD-ROM²の入口を追加（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_cdrom2_01.md)。HuC6280／MSM5205／CD-DA／Mixerの
+タブを用意し、既存の音作りはHuC6280に保持する。MSM5205／CD-DAは専用編集UIを
+工事中と表示し、先にCodeの既存APIで利用する。Mixerは共有補正の絶対値で
+HuC6280 44%、MSM5205／CD-DA 100%を初期値にする。
+VGM 1.72のHuC6280＋MSM5205／MSM5205単独を扱い、CD-DAは別トラックと明示する。
+MSM5205を含む場合は両音源を一緒に保存する形式がないため、Seekは先頭から再構築する。
+既存の単一HuC6280の正確なcacheを保つ。実装統合後のNode494件が成功した。
+[検証記録](verification_huc6280_synth_cdrom2_20261114.json)。Node501件＋保護検証6件、実配布ZIPで11 suite／22 run／208項目が成功。Tauri・公開・人の実聴は未実行。

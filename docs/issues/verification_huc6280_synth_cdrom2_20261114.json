@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "scope": "HuC6280 Synth first PC Engine CD-ROM2 tabs, Code sources, mixed VGM and session mixer",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "HuC6280 / MSM5205 / CD-DA / Mixer tabs precede the common output monitor. Tab changes never create audio or stop Code/VGM; dedicated MSM/CDDA editors and keyboard instruments remain under construction. Mixer retains the HuC keyboard.",
+    "Code reuses existing HuC6280, MSM5205 and CD-DA APIs, one AudioContext, one shared Code FX/fade route and one Master destination. Session retirement aborts pending uploads, retires media worklets and invalidates old clients; Apply keeps raw source IDs, livePrepare values and running track positions.",
+    "Media methods are sealed with writable method descriptors so the actual runtime guard can proxy them. Real guardExecution integration reproduces and prevents the former frozen-facade Proxy invariant failure.",
+    "Add Code examples to Files installs missing original generated-tone examples only, preserving existing files, selection, Keyboard/Code mode and running sessions. MSM data is bounded 4-bit ADPCM; CDDA uses separate 44.1kHz stereo PCM16 WAV or manifest tracks.",
+    "VGM supports a single HuC6280 and optional single MSM5205 (VGM1.72 clock/flags/0x32), including MSM-only. Unsupported declarations remain explained. CDDA is not synthesized from VGM.",
+    "Mixer absolute calibrated defaults are HuC6280 .44, MSM5205 1 and CDDA 1; independent 0..3.8 gains and Mute apply before Master. Keyboard, private paused audition, Code and VGM use the same session policy.",
+    "Mixed VGM cannot save a false HuC-only checkpoint: paired MSM state is explicitly unavailable and Seek replays from zero. Pure HuC exact state/cache, Pause/Resume, manual editing, held-wave changes and Capture remain covered.",
+    "All three actual Code outputs have positive frequency probes, muted sibling negative probes, exact all-muted/Stop silence and shared FX scaling in Chromium and WebKit. VGM mixed PCM, Pause and reconstruction Seek are exercised in the actual standalone ZIP.",
+    "ZIP keeps original editable JS/CSS, exactly the three device runtimes, existing pinned native source kits/rebuild recipes and licenses. SDK/WASM binaries and historical calibration reports were not rewritten."
+  ],
+  "node": {
+    "passed": 501,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": {
+      "path": "build/huc6280-cdrom2-20261114/node-tests.log",
+      "bytes": 54233,
+      "sha256": "c22f56eb226dd768dd4026c49298a7c7bb7e7ed2c7404ab34a9b8b6585867bf2"
+    },
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/playground/playground_monaco*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/package_itch_huc6280_synth.test.mjs"
+  },
+  "provenance": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": {
+      "path": "build/huc6280-cdrom2-20261114/provenance-tests.log",
+      "bytes": 804,
+      "sha256": "aa6fd27e87a61ce1ca6c60d55b6e07f0258cc26fa0a636c495b017961e941ad4"
+    },
+    "command": "node --test scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs",
+    "passiveReceipt": "docs/issues/huc6280_cdrom2_definition_ui_revision_01.json",
+    "priorCodeOwnershipReceipt": "docs/issues/code_note_target_ownership_revision_01.json",
+    "historicalReportsUnchanged": true
+  },
+  "browsers": {
+    "suites": 11,
+    "runs": 22,
+    "checks": 208,
+    "summary": {
+      "path": "build/huc6280-cdrom2-20261114/browser-summary-zip4.json",
+      "bytes": 3357,
+      "sha256": "16016a8ec4a1669429f0dd890110b0a6ad3ba757edc8393b8600722eb08b5523"
+    },
+    "results": [
+      {
+        "suite": "cdrom2",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/cdrom2-zip4.json",
+        "sha256": "2dd456bc1a376f0ace3d423aeb07c1e8ab173f48f0fd98ca4eac2b6d448fea30",
+        "assets": 115
+      },
+      {
+        "suite": "manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/manual-zip4.json",
+        "sha256": "b1589e87461a809ca75293ac9c0a1924146c8312f3ee21bc3931dc5f12da8cad",
+        "assets": 106
+      },
+      {
+        "suite": "code",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/code-zip4.json",
+        "sha256": "6b022dcefd12e6b260ac4ef8f5cdbde1393c0d60bff13285d51d9972806c48b2",
+        "assets": 106
+      },
+      {
+        "suite": "live",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/live-zip4.json",
+        "sha256": "a753eb6590c512a944ca31e6bb4f4a7ee0c0585ea20ed28fd7df01bee38ff773",
+        "assets": 106
+      },
+      {
+        "suite": "capture",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/capture-zip4.json",
+        "sha256": "b1d513fa6ebaf0803b932ec868c6f68fc53fd48e056f9342c515c4865d30024b",
+        "assets": 106
+      },
+      {
+        "suite": "legacy",
+        "checks": 60,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/legacy-zip4.json",
+        "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a",
+        "assets": 0
+      },
+      {
+        "suite": "song",
+        "checks": 14,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/song-zip4.json",
+        "sha256": "544eadb573ebea84833d2fbb6293ff1be06a8d1bcfa40b8beef87b8dfab00aae",
+        "assets": 106
+      },
+      {
+        "suite": "mixer",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/mixer-zip4.json",
+        "sha256": "3121c9bee0c4130a93b1e52d430228aaf1d045cd327a273954794b6bacd61915",
+        "assets": 99
+      },
+      {
+        "suite": "seek",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/seek-zip4.json",
+        "sha256": "2b72647ff0d2e5fc029a08f1301d5ad774bbb3210dd3cbd776f8aaf8fc84f9fc",
+        "assets": 106
+      },
+      {
+        "suite": "cache",
+        "checks": 16,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/cache-zip4.json",
+        "sha256": "a1ec8728994eacd7e439a94c0e32ff7f0b417f397cfe1c71c53031fbdafe152d",
+        "assets": 106
+      },
+      {
+        "suite": "vgm_manual",
+        "checks": 12,
+        "runs": 2,
+        "passed": true,
+        "report": "build/huc6280-cdrom2-20261114/vgm_manual-zip4.json",
+        "sha256": "1c290b80df16ce8ba1f1331926a5a4649b432a43f2604a9b562e6e8c2cefb9f5",
+        "assets": 106
+      }
+    ]
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_cdrom2-check4-20261114_itch.zip",
+      "bytes": 1969951,
+      "sha256": "4a154e7bca6df5a95abd4bb6864a24a70f89e8cd496263a09d9c18af977bb833"
+    },
+    "files": 186,
+    "entries": 6,
+    "readableModules": 105,
+    "sdkVersion": "0.1.8-huc-state",
+    "browserReceipt": {
+      "path": "build/huc6280-cdrom2-20261114/zip4/sources/huc6280-synth-browser.json",
+      "bytes": 60558,
+      "sha256": "90e20c5ce6077bf5ee593e15ccc800a2acc2a6c058e6a40ea29e5650bf302c3a"
+    },
+    "runtimeArtifacts": [
+      {
+        "path": "generated/cdda_wasm.js",
+        "bytes": 304,
+        "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f"
+      },
+      {
+        "path": "generated/cdda_wasm.wasm",
+        "bytes": 2257,
+        "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+      },
+      {
+        "path": "generated/huc6280_wasm.js",
+        "bytes": 14044,
+        "sha256": "7786bb5620b24884aa2aba4d8078d5b480c03987ba2cce638fb3c3874a05cf45"
+      },
+      {
+        "path": "generated/huc6280_wasm.wasm",
+        "bytes": 11000,
+        "sha256": "35631309996a62c5c92241fe714c2d5a51330a29e9fc6a07871df090fd25d021"
+      },
+      {
+        "path": "generated/msm5205_wasm.js",
+        "bytes": 317,
+        "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+      },
+      {
+        "path": "generated/msm5205_wasm.wasm",
+        "bytes": 3590,
+        "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+      }
+    ]
+  },
+  "knownUnrelatedBlockers": [
+    {
+      "check": "ordinary Playground packaging calibration freshness",
+      "reason": "Pre-existing synth_controls UI-range revision remains stale. The file is unchanged from HEAD before this task; no further exceptions or remeasurement were added. HuC Synth packaging and all browser suites pass independently.",
+      "source": {
+        "path": "docs/synth/synth_controls.js",
+        "bytes": 12385,
+        "sha256": "b272a8dc01c20abc6fa74c667b95846403777111102cd0a42e1154273756ea16"
+      },
+      "unchangedFromCommit": "449060fc83b64f951cf08417de5b6573add1ab66"
+    }
+  ],
+  "notPerformed": [
+    "Human listening and real-game/disc comparison",
+    "Dedicated MSM5205/CDDA editing UI",
+    "Tauri import, npm/GitHub/itch publication, git staging or commit"
+  ]
+}

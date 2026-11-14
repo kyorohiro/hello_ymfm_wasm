@@ -1,4 +1,4 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=huc-code-source-1';
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=huc-cdrom2-1';
 import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=ps1-vab-api-1";
 import {selectPlaygroundDeclarations} from './playground_declarations.js?v=ps1-vab-api-1';
 // Asset loading must remain trusted while user liveLoop callbacks install the

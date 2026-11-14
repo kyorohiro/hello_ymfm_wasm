@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scope": "huc6280-and-cdrom2-passive-source-viewer",
+  "baseCommit": "c1015ee4fe776bd0d818faecbbcf1dc93a573f2d",
+  "review": "Exact read-only HuC6280 and media API definition targets, safe namespaced implementation source URL resolution and one cache-query rollout. Includes the prior HuC6280 Code viewer additions. No audio execution, synth parameter defaults, DSP, WASM, measured gains or historical reports change. Dedicated MSM5205/CD-DA editors remain under construction.",
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "sources": {
+    "playground/playground_monaco.js": {
+      "before": {
+        "bytes": 23167,
+        "sha256": "ea8fed03e3f5cdd703ade3dba6dfd59c8fe7e5d1541fd41784bcf710aa76ab0c"
+      },
+      "after": {
+        "bytes": 23166,
+        "sha256": "d85683f57eac4491f75f66b5738c9fbe11593bbba39d09747fd87d4b384748cc"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 90,
+          "beforeText": "import {createDefinitionViewer} from './playground_monaco_definitions.js?v=ps1-vab-api-1';\n"
+        }
+      ]
+    },
+    "playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 19662,
+        "sha256": "6f66f6cfa170054438b2454c284af1c4a57fa0bc3b6c0284ac0d3728325fa794"
+      },
+      "after": {
+        "bytes": 21003,
+        "sha256": "17da0b97785ea0f7ba4266e96e965a9eb6382c8975d906d445b3af5e3f7bcac9"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 748,
+          "afterBytes": 443,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4551,
+          "afterBytes": 432,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7616,
+          "afterBytes": 484,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13185,
+          "afterBytes": 83,
+          "beforeText": "      const response=await nativeFetch(new URL(`../js/${file}`,import.meta.url),{cache:'no-cache'});\n"
+        }
+      ]
+    }
+  }
+}

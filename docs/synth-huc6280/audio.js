@@ -3,6 +3,7 @@
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset} from './preset.js';
 import {readHuc6280CodeEdit} from './code_parameter_edit.js';
+import {PC_ENGINE_SOURCES,readPcEngineSourceMix} from './source_mix.js';
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
@@ -12,18 +13,20 @@ function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('HuC6280 Master must be from 0 to 3.8');
 }
 
-/** A user-gesture-created, single-APU audio engine. Importing this module starts
+/** A user-gesture-created audio host with one HuC6280 and shared media inputs. Importing this module starts
  * no audio. outputNode carries the final, Master-scaled signal; attach meters
  * there as passive branches, without connecting them to destination again.
- * @param {{volume?:number,onError?:(error:Error)=>void}} [options]
+ * @param {{volume?:number,sourceMix?:object,onError?:(error:Error)=>void}} [options]
  */
-export async function createAudio({volume = .7, onError = () => {}} = {}) {
+export async function createAudio({volume = .7, sourceMix, onError = () => {}} = {}) {
   validateVolume(volume);
+  let mix=readPcEngineSourceMix(sourceMix??Object.fromEntries(PC_ENGINE_SOURCES.map(id=>[id,{volume:1,muted:false}])));
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
   const controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, codeFade=null, master = null, songInput=null, disposed = false, closing = null;
+  let node = null, balance = null, codeInput=null, codeFade=null, master = null, songInput=null,auditionInput=null, disposed = false, closing = null;
+  const mediaInputs=new Map();
   let codeGeneration=0,codeOwner=null;
   const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
@@ -61,6 +64,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       node.port.close();
     }
     balance?.disconnect();
+    codeInput?.disconnect();auditionInput?.disconnect();for(const input of mediaInputs.values())input.disconnect();mediaInputs.clear();
     codeFade?.disconnect();
     songInput?.disconnect();
     master?.disconnect();
@@ -130,7 +134,20 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     master = context.createGain(); master.gain.value = volume;
     songInput=context.createGain();songInput.gain.value=HUC6280_SYNTH_BALANCE;
     songInput.connect(master);
-    node.connect(balance); balance.connect(codeFade);codeFade.connect(master); master.connect(context.destination);
+    codeInput=context.createGain();codeInput.gain.value=1;
+    auditionInput=context.createGain();auditionInput.gain.value=1;auditionInput.connect(master);
+    node.connect(balance); balance.connect(codeInput);codeInput.connect(codeFade);codeFade.connect(master); master.connect(context.destination);
+    function applyMix(){
+      const gain=id=>mix[id].muted?0:mix[id].volume;
+      balance.gain.value=HUC6280_SYNTH_BALANCE*gain('huc6280');auditionInput.gain.value=HUC6280_SYNTH_BALANCE*gain('huc6280');
+      for(const[id,input]of mediaInputs)input.gain.value=gain(id);
+    }
+    function setSourceMix(value){assertOpen();const next=readPcEngineSourceMix(value);mix=next;applyMix();return mix;}
+    function getChipInputNode(id){
+      assertOpen();if(!['msm5205','cdda'].includes(id))throw RangeError('Choose MSM5205 or CD-DA input');
+      let input=mediaInputs.get(id);if(!input){input=context.createGain();input.connect(codeInput);mediaInputs.set(id,input);applyMix();}return input;
+    }
+    applyMix();
 
     async function command(method, args = []) {
       assertOpen();
@@ -229,7 +246,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       auditions.add(handle);signal?.addEventListener('abort',cancel,{once:true});
       try{
         check();
-        outputGain=context.createGain();outputGain.gain.value=0;outputGain.connect(master);
+        outputGain=context.createGain();outputGain.gain.value=0;outputGain.connect(auditionInput);
         trialNode=new AudioWorkletNode(context,'tetorica-huc6280-synth',{
           numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary},
         });
@@ -248,7 +265,9 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       }catch(error){close(error);throw error;}
     }
     return {
-      context, outputNode:master,songInputNode:songInput,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade, command, read:() => command('read'),observeEditor:()=>command('observeEditor'),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,createAuditionVoice,
+      context, outputNode:master,songInputNode:songInput,codeInputNode:codeInput,codeOutputNode:codeFade,codeFadeNode:codeFade,
+      getChipInputNode,setSourceMix,getChipMix:id=>{assertOpen();if(!PC_ENGINE_SOURCES.includes(id))throw RangeError('Unknown PC Engine source');return mix[id];},
+      command, read:() => command('read'),observeEditor:()=>command('observeEditor'),getHuc6280Client,applyCodePreset,applyCodeEdit,applyEditorEdit,createAuditionVoice,
       get codeSession(){return codeOwner?.session??null;},
       async resume() {
         assertOpen();

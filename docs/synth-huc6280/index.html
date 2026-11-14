@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-cache-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-cdrom2-1">
 </head>
 <body>
   <main>
@@ -58,7 +58,7 @@
 
       <div id="synthWorkspace" class="spu-code-workspace huc-code-workspace">
         <aside id="hucFilesPanel" class="spu-files-panel huc-files-panel" aria-label="Project files" hidden></aside>
-        <div id="hucSynthMain" class="spu-main huc-main">
+        <div id="hucSynthMain" class="spu-main huc-main" data-chip-view="huc6280">
       <section id="hucSongPlayer" class="huc-song-player" aria-label="VGM reference playback" data-state="stopped">
         <div class="huc-song-row">
           <label for="hucSongSelect">VGM <select id="hucSongSelect" aria-label="Reference VGM song"><option value="">No VGM files</option></select></label>
@@ -124,6 +124,13 @@
         </div>
       </details>
 
+      <div class="huc-chip-tabs" role="tablist" aria-label="PC Engine sound sources">
+        <button id="huc6280ChipTab" type="button" role="tab" data-huc-chip-tab="huc6280" aria-controls="huc6280ChipPanel" aria-selected="true">HuC6280</button>
+        <button id="msm5205ChipTab" type="button" role="tab" data-huc-chip-tab="msm5205" aria-controls="msm5205ChipPanel" aria-selected="false" tabindex="-1">MSM5205</button>
+        <button id="cddaChipTab" type="button" role="tab" data-huc-chip-tab="cdda" aria-controls="cddaChipPanel" aria-selected="false" tabindex="-1">CD-DA</button>
+        <button id="mixerChipTab" type="button" role="tab" data-huc-chip-tab="mixer" aria-controls="mixerChipPanel" aria-selected="false" tabindex="-1">Mixer</button>
+      </div>
+
       <section class="spu-monitor huc-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
@@ -132,7 +139,7 @@
         <p id="visualizerDescription">Live output after Master volume.</p>
         <div class="monitor-body">
           <div class="monitor-plot">
-            <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live HuC6280 audio visualization"></canvas>
+            <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live PC Engine mixed audio visualization"></canvas>
           </div>
           <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
             <span>Pitch</span>
@@ -142,6 +149,7 @@
         </div>
       </section>
 
+      <div id="huc6280ChipPanel" role="tabpanel" aria-labelledby="huc6280ChipTab" data-huc-chip-panel="huc6280">
       <section class="instrument-workspace huc-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Wavetable · 6 voices · round robin</p></div>
         <div id="voiceEditor"></div>
@@ -161,6 +169,20 @@
         <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
       </section>
 
+      </div>
+      <section id="msm5205ChipPanel" class="huc-chip-placeholder" role="tabpanel" aria-labelledby="msm5205ChipTab" data-huc-chip-panel="msm5205" hidden>
+        <h2>MSM5205 ADPCM</h2><p>Under construction</p>
+        <p class="subtext">The sound editor is being prepared. Code can already use <code>await useSoundChip("msm5205")</code>. Try <code>examples/msm5205.js</code> in Files.</p><button type="button" data-add-cdrom2-examples>Add Code examples to Files</button>
+      </section>
+      <section id="cddaChipPanel" class="huc-chip-placeholder" role="tabpanel" aria-labelledby="cddaChipTab" data-huc-chip-panel="cdda" hidden>
+        <h2>CD-DA</h2><p>Under construction</p>
+        <p class="subtext">Track controls are being prepared. Code can already use <code>await useSoundChip("cdda")</code>. Try <code>examples/cdda.js</code> in Files. CD-DA tracks are loaded separately from VGM.</p><button type="button" data-add-cdrom2-examples>Add Code examples to Files</button>
+      </section>
+      <section id="mixerChipPanel" class="huc-source-mixer" role="tabpanel" aria-labelledby="mixerChipTab" data-huc-chip-panel="mixer" hidden>
+        <h2>Mixer</h2><div id="hucSourceMixer"></div>
+        <details class="spu-code-help"><summary aria-label="About source mixer">?</summary><p>One session mix for Keyboard, Code and VGM. Levels use the same calibrated source gains as Playground; Reset returns those defaults. Master controls the final combined output. VGM changes follow already-rendered audio and invalidate affected Seek checkpoints. CD-DA is a Code audio-track source, separate from a VGM recording.</p></details>
+      </section>
+
       <section id="synthInputSection" class="keyboard-section spu-input-section" aria-labelledby="keyboardHeading" data-input-mode="keyboard">
         <h2 id="keyboardHeading" class="spu-sr-only">Performance input</h2>
         <div class="spu-input-tabs" role="tablist" aria-label="Performance input">
@@ -170,6 +192,7 @@
         </div>
         <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
         <p id="hucKeyboardHint" class="subtext">Every key plays the selected source. No keyboard split.</p>
+        <div id="hucKeyboardControls">
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
@@ -188,27 +211,28 @@
           <div id="keyboard" class="keyboard-mount"></div>
         </div>
         </div>
+        </div>
         <div id="synthCodePanel" class="spu-code-panel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
           <div class="spu-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
-          <p class="huc-help spu-code-caption">Software performance · the same HuC6280 as the controls above. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
+          <p class="huc-help spu-code-caption">Software performance · HuC6280 / MSM5205 / CD-DA share this output. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
           <div id="synthCodeEditorHost" class="spu-code-editor-host"></div>
           <textarea id="synthCodeEditor" class="spu-code-editor" spellcheck="false" aria-label="HuC6280 performance JavaScript" rows="12" readonly></textarea>
           <p id="synthCodeEditorNote" class="huc-help">Code is saved in Files. Loading a project never runs it automatically.</p>
           <pre id="synthCodeError" class="spu-code-error" role="alert"></pre>
           <details class="spu-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
-          <details class="spu-code-help"><summary aria-label="About HuC6280 Code">?</summary><p>Use <code>const pce = await useSoundChip("huc6280")</code> and await its methods. CH1–CH6 share one PSG. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6. noteOn / noteOff use the authored Software Envelope and DDA sample; keyOn / keyOff are raw hardware gates. Run starts fresh; Apply keeps context and named loops. Switching Keyboard / Code keeps the performance running. Typing in the editor changes code; click a control or the page background to play keys while Code stays visible. Stop fades the software output and restores your edited instrument. Wave uploads reset channel phase. Timing, envelope, DDA playback and liveFx are software features.</p></details>
+          <details class="spu-code-help"><summary aria-label="About HuC6280 Code">?</summary><p>Use <code>await useSoundChip("huc6280")</code>, <code>"msm5205"</code> or <code>"cdda"</code> and await its methods. MSM5205 plays ADPCM samples; CD-DA loads stereo PCM16 / 44.1 kHz WAV tracks or a manifest from Files. The Mixer applies to all three sources. CH1–CH6 share one PSG. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6. noteOn / noteOff use the authored Software Envelope and DDA sample; keyOn / keyOff are raw hardware gates. Run starts fresh; Apply keeps context and named loops. Switching Keyboard / Code keeps the performance running. Typing in the editor changes code; click a control or the page background to play keys while Code stays visible. Stop fades the software output and restores your edited instrument. Wave uploads reset channel phase. Timing, envelope, DDA playback and liveFx are software features.</p></details>
         </div>
       </section>
         </div>
         <div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
       </div>
       <footer>
-        <p>HuC6280: six 32-sample, 5-bit wavetable / DAC channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. DDA uses the chip’s five-bit DAC with software PCM supply, rate, pitch and Loop. Envelope, round robin and waveform drawing are software tools. Single-HuC6280 VGM reference playback uses the same Master. CD-ROM² audio is not included.</p>
+        <p>HuC6280: six 32-sample, 5-bit wavetable / DAC channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. DDA uses the chip’s five-bit DAC with software PCM supply, rate, pitch and Loop. Envelope, round robin and waveform drawing are software tools. VGM reference playback supports HuC6280 and MSM5205. Code can also load separate CD-DA tracks. MSM5205 and CD-DA editing panels are under construction; this does not run a CD-ROM² game or disc image.</p>
         <div><a href="../playground/index.html?mode=huc6280">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/huc6280synth.js">JavaScript source</a></div>
       </footer>
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-vgm-manual-2"></script>
+  <script type="module" src="./synth.js?v=huc-cdrom2-1"></script>
 </body>
 </html>

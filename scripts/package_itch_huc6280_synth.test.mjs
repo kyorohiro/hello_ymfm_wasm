@@ -16,7 +16,7 @@ test('HuC6280 ZIP runs original editable modules with standalone deterministic r
   const directory=await mkdtemp(join(tmpdir(),'huc6280-synth-package-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const a=await packageHuc6280Synth({version:'test',releaseDir:join(directory,'a')});
   const b=await packageHuc6280Synth({version:'test',releaseDir:join(directory,'b')});
-  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
+  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,6);
   const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -37,19 +37,55 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.match(a.archive,/tetorica_huc6280_synth_test_itch\.zip$/);
   assert(info.receipt.originalInputs.some(input=>input.path==='docs/tetorica_huc6280_synth.webp'));
   assert.deepEqual(await readFile(join(a.stage,'tetorica_huc6280_synth.webp')),await readFile(new URL('../docs/tetorica_huc6280_synth.webp',import.meta.url)));
-  for(const name of ['huc6280_wasm.js','huc6280_wasm.wasm']) assert.deepEqual(await readFile(join(a.stage,'generated',name)),await readFile(new URL('../tetorica_src/runtime/generated/'+name,import.meta.url)));
+  for(const id of ['huc6280','msm5205','cdda'])for(const suffix of ['js','wasm']) {
+    const name=`${id}_wasm.${suffix}`;
+    assert.deepEqual(await readFile(join(a.stage,'generated',name)),await readFile(new URL('../tetorica_src/runtime/generated/'+name,import.meta.url)));
+  }
+  assert.deepEqual(info.receipt.runtimeArtifacts.map(item=>item.path).sort(),
+    ['huc6280','msm5205','cdda'].flatMap(id=>['js','wasm'].map(suffix=>`generated/${id}_wasm.${suffix}`)).sort());
+  assert.deepEqual(info.names.filter(name=>name.startsWith('generated/')).sort(),info.receipt.runtimeArtifacts.map(item=>item.path).sort(),
+    'include exactly the three PC Engine devices, without unrelated chip runtimes');
+  for(const item of info.receipt.runtimeArtifacts) {
+    const bytes=await readFile(join(a.stage,item.path));assert.equal(bytes.length,item.bytes);assert.equal(sha(bytes),item.sha256);
+  }
   const native=JSON.parse(await readFile(join(a.stage,'sources/HuC6280.json')));
   for(const entry of native.inputs){const bytes=await readFile(join(a.stage,entry.path));assert.equal(bytes.length,entry.bytes);assert.equal(sha(bytes),entry.sha256);}
   for(const [name,entry] of Object.entries(native.generated)) assert.equal(sha(await readFile(join(a.stage,'generated',name))),entry.sha256);
+  for(const [id,label]of [['msm5205','MSM5205'],['cdda','CDDA']]) {
+    const receipt=JSON.parse(await readFile(join(a.stage,`sources/${label}.json`)));
+    assert.deepEqual(receipt.sdk,native.sdk,'all native source kits retain the same fixed SDK pin');
+    for(const item of receipt.inputs) {
+      const bytes=await readFile(new URL('../third_party/tetorica-soundchip-native/'+item.path,import.meta.url));
+      assert.equal(bytes.length,item.size);assert.equal(sha(bytes),item.sha256);
+    }
+    for(const item of receipt.files) {
+      const bytes=await readFile(join(a.stage,'sources',item.path));assert.equal(bytes.length,item.bytes);assert.equal(sha(bytes),item.sha256);
+    }
+    for(const file of [`${id}_pcm.c`,`${id}_pcm.h`,'LICENSE','NOTICE.md'])
+      assert.deepEqual(await readFile(join(a.stage,`sources/native/${id}/${file}`)),await readFile(new URL(`../third_party/tetorica-soundchip-native/vendor/tetorica-${id}/${file}`,import.meta.url)));
+    const recipe=await readFile(join(a.stage,`sources/scripts/build_${id}_wasm.sh`),'utf8');
+    assert(recipe.includes(`native/${id}/${id}_pcm.c`));assert(recipe.includes(`native/${id}/${id}_wasm.c`));
+    assert(!recipe.includes(`vendor/tetorica-${id}`),'standalone rebuild uses the included relocated source kit');
+    for(const file of ['LICENSE','NOTICE.md'])assert.deepEqual(await readFile(join(a.stage,`licenses/tetorica-${id}/${file}`)),await readFile(join(a.stage,`sources/native/${id}/${file}`)));
+    const module=await WebAssembly.compile(await readFile(join(a.stage,`generated/${id}_wasm.wasm`)));
+    assert.deepEqual(WebAssembly.Module.imports(module),[]);
+    const exports=WebAssembly.Module.exports(module).map(entry=>entry.name);
+    for(const symbol of ['init','prepare','play','stop','render'])assert(exports.includes(`${id}_wasm_${symbol}`),`${id}: packaged WASM retains the real playback ABI`);
+  }
   assert.equal(info.receipt.builder.name,'source-copy');assert.equal(info.receipt.builder.minify,false);assert.equal(info.receipt.builder.bundle,false);
   assert.equal(info.receipt.builder.dependencyAnalyzer.name,'esbuild');
   assert.equal(typeof info.receipt.builder.dependencyAnalyzer.version,'string');
   assert(info.receipt.modules.length>info.receipt.bundles.length);
   for(const path of ['synth-huc6280/code_host.js','synth-huc6280/code_audio.js','synth-huc6280/code_project.js','synth-huc6280/code_files.js',
+    'synth-huc6280/cdrom2_audio.js','synth-huc6280/song_engine.js',
+    'js/msm5205_audio.js','js/msm5205_worklet.js','js/msm5205_pcm.js','js/msm5205_player.js','js/msm5205_sample.js','js/msm5205audioengine.js',
+    'js/cdda_audio.js','js/cdda_worklet.js','js/cdda_pcm.js','js/cdda_player.js','js/cdda_source.js',
     'synth/synth_code_controls.js','synth/synth_project_store.js','synth/synth_draft_store.js',
     'playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-huc6280.d.ts','playground/tetorica-shell.d.ts',
     'js/native-fx-worklet.js','js/native_audio_effect.wasm','sources/code-effects/scripts/build_native_audio_effect.sh',
-    'sources/code-effects/LICENSE','playground/vendor/fflate-LICENSE','licenses/tetorica-virtual-files/LICENSE'])
+    'sources/code-effects/LICENSE','playground/vendor/fflate-LICENSE','licenses/tetorica-virtual-files/LICENSE',
+    'sources/MSM5205.md','sources/CDDA.md','sources/scripts/build_msm5205_wasm.sh','sources/scripts/build_cdda_wasm.sh',
+    'licenses/libvgm-msm5205/LICENSE','licenses/libvgm-msm5205/README.md'])
     assert(info.names.includes(path),`${path}: Code, Files, editor and reusable source assets are included`);
   assert.deepEqual(await readFile(join(a.stage,'js/native_audio_effect.wasm')),await readFile(new URL('../tetorica_src/runtime/generated/effects/gain.wasm',import.meta.url)));
   let staticAssets=0;
@@ -69,7 +105,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
       assert(info.names.includes(decodeURIComponent(url.pathname.slice(1))),`${module.path}: ${match[2]}`);staticAssets++;
     }
   }
-  assert(staticAssets>=2,'original audio module references local WASM and AudioWorklet assets');
+  assert(staticAssets>=6,'original audio modules reference local WASM and AudioWorklet assets for all three devices');
   for(const entry of info.receipt.bundles) assert.deepEqual(entry,info.receipt.modules.find(module=>module.path===entry.path));
   const main=await readFile(join(a.stage,'synth-huc6280/synth.js'),'utf8');
   assert(main.split('\n').length>100);assert.match(main,/^\/\/ SPDX-License-Identifier: BSD-3-Clause\n/);
@@ -78,7 +114,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
   for(const name of ['vgm_import.js','vgm_library.js','song_source.js','song_preview.js','song_controls.js','song_state.js','song_live.js','song_voice.js','song_audition.js','song_cache.js','song_checkpoint.js','song_manual.js']) assert(info.receipt.modules.some(module=>module.path===`synth-huc6280/${name}`));
   for(const name of ['ym2612vgm.js','vgm_file.js']) assert(info.receipt.modules.some(module=>module.path===`js/${name}`));
-  for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs']) assert(info.receipt.originalInputs.some(input=>input.path===path));
+  for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs',
+    'scripts/copy_msm5205_sources.mjs','scripts/copy_cdda_sources.mjs','scripts/copy_application_audio_sources.mjs',
+    'third_party/libvgm-msm5205/LICENSE','third_party/libvgm-msm5205/README.md']) assert(info.receipt.originalInputs.some(input=>input.path===path));
   for(const entry of ['index.html','synth-huc6280/index.html']) {
     const html=await readFile(join(a.stage,entry),'utf8');
     assert.match(html,/<title>Tetorica HuC6280 Synth<\/title>/);
@@ -88,6 +126,12 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     const sounds=html.indexOf('id="vgmImport"'),channels=html.indexOf('id="hucCodeLiveTools"'),monitor=html.indexOf('aria-label="Instrument display"');
     const player=html.indexOf('id="hucSongPlayer"'),mix=html.indexOf('id="hucSongChannels"');
     assert(player>=0&&player<channels&&channels<mix&&mix<sounds&&sounds<monitor,'Channel / Auto update and VGM outputs belong next to the transport, before Sounds and the monitor');
+    for(const [id,label]of [['huc6280','HuC6280'],['msm5205','MSM5205'],['cdda','CD-DA'],['mixer','Mixer']])
+      assert.match(html,new RegExp(`id="${id}ChipTab"[^>]*role="tab"[^>]*>${label}</button>`));
+    for(const id of ['msm5205','cdda']) {
+      assert.match(html,new RegExp(`id="${id}ChipPanel"[^>]*role="tabpanel"[^>]*hidden`));
+      assert(html.includes(`await useSoundChip(&quot;${id}&quot;)`)||html.includes(`await useSoundChip("${id}")`));
+    }
     for(let channel=1;channel<=6;channel++)assert.match(html,new RegExp(`id="hucSongChannel${channel}Toggle"[^>]*aria-pressed="true"`));
     assert.match(html,/<button id="hucSongCaptureButton"[^>]*>Capture to Synth<\/button>/);
     assert.match(html,/<input id="hucSongSeek"[^>]*type="range"[^>]*step="0\.01"/);
@@ -104,5 +148,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     }
   }
   assert.match(await readFile(join(a.stage,'licenses/mame-huc6280/LICENSE'),'utf8'),/Redistribution/);
+  assert.deepEqual(await readFile(join(a.stage,'licenses/libvgm-msm5205/LICENSE')),await readFile(new URL('../third_party/libvgm-msm5205/LICENSE',import.meta.url)));
+  assert.match(await readFile(join(a.stage,'README.md'),'utf8'),/sources\/MSM5205\.md/);
+  assert.match(await readFile(join(a.stage,'README.md'),'utf8'),/sources\/CDDA\.md/);
   const original=await readFile(a.archive);await assert.rejects(packageHuc6280Synth({version:'test',releaseDir:join(directory,'a')}),/already exists/);assert.deepEqual(await readFile(a.archive),original);
 });

@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset,createDefaultPreset} from './preset.js';
 import {readHuc6280CodeEdit} from './code_parameter_edit.js';
+import {PC_ENGINE_SOURCES,readPcEngineSourceMix,PC_ENGINE_SOURCE_DEFAULTS} from './source_mix.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -64,7 +65,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
   }
   const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,DOMException,structuredClone,createHuc6280CodeClient,huc6280CodeCancelled,readPreset,readHuc6280CodeEdit,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,DOMException,structuredClone,createHuc6280CodeClient,huc6280CodeCancelled,readPreset,readHuc6280CodeEdit,PC_ENGINE_SOURCES,readPcEngineSourceMix,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
@@ -78,12 +79,12 @@ test('HuC6280 audio is lazy and routes one fixed balance before the user Master 
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
-  const [balance, fade, master, song] = f.context.gains;
+  const [balance, fade, master, song, sum] = f.context.gains;
   assert.equal(balance.gain.value,1);assert.equal(fade.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
   assert.equal(audio.songInputNode,song);assert.equal(song.gain.value,1);
   assert.deepEqual(song.connections,[master],'reference audio shares final Master without the Code fade');
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]);assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[sum]);assert.equal(audio.codeInputNode,sum);assert.deepEqual(sum.connections,[fade]);assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
@@ -109,6 +110,19 @@ test('PCM is sent once, metadata edits refer to acknowledged data, and replies r
   await audio.dispose();
 });
 
+test('all three sources share calibrated mixer, Code FX/fade and final Master without another speaker route',async()=>{
+  const f=fixture(),audio=await f.create({sourceMix:PC_ENGINE_SOURCE_DEFAULTS});
+  const [huc,fade,master,song,sum,audition]=f.context.gains;
+  assert.equal(huc.gain.value,PC_ENGINE_SOURCE_DEFAULTS.huc6280.volume);assert.equal(audition.gain.value,huc.gain.value);
+  const adpcm=audio.getChipInputNode('msm5205'),cdda=audio.getChipInputNode('cdda');
+  assert.equal(audio.getChipInputNode('msm5205'),adpcm);assert.deepEqual(adpcm.connections,[sum]);assert.deepEqual(cdda.connections,[sum]);
+  const mixed=readPcEngineSourceMix({...PC_ENGINE_SOURCE_DEFAULTS,huc6280:{volume:.2,muted:true},msm5205:{volume:.3,muted:false},cdda:{volume:1.5,muted:false}});
+  audio.setSourceMix(mixed);assert.equal(huc.gain.value,0);assert.equal(audition.gain.value,0);assert.equal(adpcm.gain.value,.3);assert.equal(cdda.gain.value,1.5);
+  assert.equal(audio.getChipMix('cdda').volume,1.5);assert.equal(song.gain.value,1,'reference applies its own source gains before this common bus');
+  assert.deepEqual(sum.connections,[fade]);assert.deepEqual(fade.connections,[master]);assert.deepEqual(master.connections,[f.context.destination]);
+  await audio.dispose();assert(adpcm.disconnected);assert(cdda.disconnected);assert(sum.disconnected);assert(audition.disconnected);
+});
+
 test('concurrent preset mutations carry full PCM so a changed remote reference cannot retarget an edit',async()=>{
   const f=fixture({presetReplies:true}),audio=await f.create();
   const a={dda:{data:'EBES',speed:1}},b={dda:{data:'ExQV',speed:1}};
@@ -125,12 +139,12 @@ test('concurrent preset mutations carry full PCM so a changed remote reference c
 
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
   const f = fixture(), audio = await f.create({volume:.7});
-  const [balance, fade, master] = f.context.gains, monitor = {}, desktopTap = {};
+  const [balance, fade, master,,sum] = f.context.gains, monitor = {}, desktopTap = {};
   master.connect(monitor);
   audio.outputNode.disconnect(audio.context.destination);
   audio.outputNode.connect(desktopTap);
   assert.deepEqual(master.connections,[monitor, desktopTap]);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[fade]);assert.deepEqual(fade.connections,[master]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[sum]);assert.deepEqual(sum.connections,[fade]);assert.deepEqual(fade.connections,[master]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
   await audio.command('stop'); await audio.command('setPitch',[0]);
   audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);
@@ -203,7 +217,7 @@ test('a paused audition gets a lazy private worklet and fade gain on the same Ma
   const connections=[...author.connections];assert.equal(f.nodes.length,1);
   const trial=await audio.createAuditionVoice(preset),node=f.node;
   assert.equal(f.nodes.length,2);assert.equal(trial.context,audio.context);assert.equal(trial.outputGain.gain.value,0);
-  assert.deepEqual(node.connections,[trial.outputGain]);assert.deepEqual(trial.outputGain.connections,[master]);
+  assert.deepEqual(node.connections,[trial.outputGain]);assert.deepEqual(trial.outputGain.connections[0].connections,[master]);
   assert.deepEqual(author.connections,connections);assert.deepEqual(master.connections,[f.context.destination]);
   const authorCalls=author.messages.length;await trial.noteOn('trial',60);await trial.setPitch(2);await trial.noteOff('trial');
   assert.equal(author.messages.length,authorCalls);assert(node.messages.some(message=>message.method==='loadPreset'));

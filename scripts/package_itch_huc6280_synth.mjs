@@ -9,6 +9,8 @@ import {createHash} from 'node:crypto';
 import {version as esbuildVersion} from 'esbuild';
 import {checkRuntimeArtifacts, copyRuntimeArtifacts} from './runtime_artifacts.mjs';
 import {copyHuc6280Sources} from './copy_huc6280_sources.mjs';
+import {copyMsm5205Sources} from './copy_msm5205_sources.mjs';
+import {copyCddaSources} from './copy_cdda_sources.mjs';
 import {copyReadableModules} from './copy_readable_modules.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const record = bytes => ({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
@@ -39,21 +41,25 @@ export function validateHuc6280SynthVersion(value) {
 }
 export async function packageHuc6280Synth({version='dev',releaseDir=join(root,'release')}={}) {
   validateHuc6280SynthVersion(version);
-  await checkRuntimeArtifacts({root,ids:['huc6280','native_audio_effect'],mirrors:true});
+  const chipIds=['huc6280','msm5205','cdda'];
+  await checkRuntimeArtifacts({root,ids:[...chipIds,'native_audio_effect'],mirrors:true});
   releaseDir=resolve(releaseDir);await mkdir(releaseDir,{recursive:true});
   const archive=join(releaseDir,`tetorica_huc6280_synth_${version}_itch.zip`);
   try{await readFile(archive);throw new Error(`Archive already exists: ${archive}`);}catch(error){if(error.code!=='ENOENT') throw error;}
   const stage=await mkdtemp(join(releaseDir,`itch_huc6280_synth_${version}-`));
   const browser=await copyReadableModules({root,stage,
-    entries:['docs/synth-huc6280/synth.js','docs/synth-huc6280/processor.js','docs/synth-huc6280/synth.css','docs/js/native-fx-worklet.js'],
-    factories:['docs/generated/huc6280_wasm.js']});
+    entries:['docs/synth-huc6280/synth.js','docs/synth-huc6280/processor.js','docs/synth-huc6280/synth.css','docs/js/native-fx-worklet.js',
+      'docs/js/msm5205_worklet.js','docs/js/cdda_worklet.js'],
+    factories:chipIds.map(id=>`docs/generated/${id}_wasm.js`)});
   const inputs=new Set(browser.inputs),bundles=browser.entries;
   // These named Monaco resources and the software FX binary are not static
-  // import edges. Keep them local and readable without adding other chip WASM.
+  // import edges. Keep them local and readable; only this Synth's three
+  // PC Engine devices and the shared software effect binary are distributed.
   for(const name of ['tetorica-playground-globals.d.ts','tetorica-playground-huc6280.d.ts','tetorica-shell.d.ts']){
     const source='docs/playground/'+name;await mkdir(join(stage,'playground'),{recursive:true});await copyFile(join(root,source),join(stage,'playground',name));inputs.add(source);
   }
-  for(const [source,destination]of [['docs/playground/vendor/fflate-LICENSE','playground/vendor/fflate-LICENSE'],['packages/virtual-files/LICENSE','licenses/tetorica-virtual-files/LICENSE']]){
+  for(const [source,destination]of [['docs/playground/vendor/fflate-LICENSE','playground/vendor/fflate-LICENSE'],['packages/virtual-files/LICENSE','licenses/tetorica-virtual-files/LICENSE'],
+    ['third_party/libvgm-msm5205/LICENSE','licenses/libvgm-msm5205/LICENSE'],['third_party/libvgm-msm5205/README.md','licenses/libvgm-msm5205/README.md']]){
     await mkdir(join(stage,destination.slice(0,destination.lastIndexOf('/'))),{recursive:true});await copyFile(join(root,source),join(stage,destination));inputs.add(source);
   }
   const effectSource='tetorica_src/runtime/generated/effects/gain.wasm',effectPath='js/native_audio_effect.wasm';
@@ -68,7 +74,8 @@ export async function packageHuc6280Synth({version='dev',releaseDir=join(root,'r
   await writeFile(join(stage,effectKit,'README.md'),`# Code software effects
 
 This original Tetorica C effect rack is BSD-3-Clause; see LICENSE. It runs after
-the HuC6280 PSG as host software, separately from its hardware sound controls.
+the HuC6280 PSG, MSM5205 and CD-DA mix as host software, separately from their
+hardware sound controls.
 The readable browser host is js/native_fx_rack.js; its binary is
 js/native_audio_effect.wasm. With Emscripten installed, run here:
 
@@ -88,8 +95,10 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
   });
   await writeFile(join(stage,'synth-huc6280/index.html'),html);
   await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica_huc6280_synth.webp','./tetorica_huc6280_synth.webp').replace(/\b(href|src)="\.\/(synth\.(?:css|js))([?#][^"]*)?"/g,'$1="./synth-huc6280/$2$3"'));
-  await copyRuntimeArtifacts({root,destination:join(stage,'generated'),ids:['huc6280'],includeMetadata:false});
+  const runtime=await copyRuntimeArtifacts({root,destination:join(stage,'generated'),ids:chipIds,includeMetadata:false});
   const sourceCheck=await copyHuc6280Sources(stage);
+  await copyMsm5205Sources(stage);
+  await copyCddaSources(stage);
   await copyFile(join(root,'LICENSE'),join(stage,'LICENSE'));
   await copyFile(join(root,'docs/tetorica_huc6280_synth.webp'),join(stage,'tetorica_huc6280_synth.webp'));
   const guide=(await readFile(join(root,'docs/synth-huc6280/README.md'),'utf8')).replace(/\]\(([^)]+)\)/g,(match,target)=>{
@@ -97,17 +106,19 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
     return `](${new URL(target,'https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-huc6280/').href})`;
   });
   await writeFile(join(stage,'synth-huc6280/README.md'),guide);
-  await writeFile(join(stage,'README.md'),guide+'\n## Included sources\n\nSee [HuC6280 native sources and rebuilding](sources/HuC6280.md), [browser build inputs](sources/huc6280-synth-browser-inputs.zip) and their [hash receipt](sources/huc6280-synth-browser.json).\n');
+  await writeFile(join(stage,'README.md'),guide+'\n## Included sources\n\nSee [HuC6280 native sources and rebuilding](sources/HuC6280.md), [MSM5205 native sources](sources/MSM5205.md), [CD-DA native sources](sources/CDDA.md), [browser build inputs](sources/huc6280-synth-browser-inputs.zip) and their [hash receipt](sources/huc6280-synth-browser.json).\n\nMSM5205 VGM decoding also retains its [libvgm adaptation license and credits](licenses/libvgm-msm5205/README.md). The editable browser modules and the three verified native source kits are included; no game music or BIOS is bundled.\n');
   for(const path of ['docs/synth-huc6280/index.html','docs/synth-huc6280/README.md','docs/tetorica_huc6280_synth.webp','LICENSE','package.json','package-lock.json',
     'scripts/package_itch_huc6280_synth.mjs','scripts/package_itch_huc6280_synth.sh','scripts/copy_huc6280_sources.mjs',
+    'scripts/copy_msm5205_sources.mjs','scripts/copy_cdda_sources.mjs','scripts/copy_application_audio_sources.mjs',
     'scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs',
-    'tetorica_src/runtime/generated/huc6280_wasm.js']) inputs.add(path);
+    ...chipIds.map(id=>`tetorica_src/runtime/generated/${id}_wasm.js`)]) inputs.add(path);
   const names=[...inputs].sort(),sourceArchive='sources/huc6280-synth-browser-inputs.zip';
   zip(root,join(stage,sourceArchive),names);
   const receipt={schemaVersion:1,product:'Tetorica HuC6280 Synth',productId:'tetorica-huc6280-synth',version,
     builder:{name:'source-copy',minify:false,bundle:false,dependencyAnalyzer:{name:'esbuild',version:esbuildVersion}},bundles,modules:browser.modules,
     originalInputs:await Promise.all(names.map(async path=>({path,...record(await readFile(join(root,path)))}))),
-    sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))},sourceCheck};
+    sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))},sourceCheck,
+    runtimeArtifacts:await Promise.all(runtime.files.map(async path=>({path:`generated/${path}`,...record(await readFile(join(stage,'generated',path)))})))};
   await writeFile(join(stage,'sources/huc6280-synth-browser.json'),JSON.stringify(receipt,null,2)+'\n');
   const namesInStage=await filesIn(stage);assert(namesInStage.length<=1000,'itch.io file limit exceeded');
   const temporary=stage+'.zip';

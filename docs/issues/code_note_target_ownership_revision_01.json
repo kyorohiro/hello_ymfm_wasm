@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "scope": "code-note-target-ownership-additive-callback",
+  "baseCommit": "c1015ee4fe776bd0d818faecbbcf1dc93a573f2d",
+  "review": "Additive host resolveNoteTarget callback maps monophonic aliases to a canonical physical voice owner for Stop Loop. Default callback retains the existing integer-channel ownership behavior. No audio rendering, chip register transforms, clock/parser/DSP/WASM or gains change. Both canonical and served copies must be identical. Differential default-behavior and explicit alias-ownership regressions are executed without audio devices.",
+  "sources": {
+    "tetorica_src/runtime/playground_code_runtime.js": {
+      "before": {
+        "bytes": 21299,
+        "sha256": "e792b84bdd6ff8bf086ca01bed276fc72909a751bdba18336d71f9e5c884c1b9"
+      },
+      "after": {
+        "bytes": 22127,
+        "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2193,
+          "afterBytes": 180,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3965,
+          "afterBytes": 100,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4373,
+          "afterBytes": 169,
+          "beforeText": "  for(const fn of [ensureReady,now,useSoundChip,getFm,readFile,prepareSource,onLog,onState,beforeStopSoundChips,stopSoundChips,setTimer,clearTimer]) {\n"
+        },
+        {
+          "afterOffset": 12074,
+          "afterBytes": 502,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12660,
+          "afterBytes": 330,
+          "beforeText": "          if(['noteOn','keyOn'].includes(key)&&Number.isInteger(args[0])) {\n            if(!ownedNotes.has(target))ownedNotes.set(target,new Map());ownedNotes.get(target).set(args[0],caller);\n          } else if(['noteOff','keyOff','releaseNote'].includes(key))ownedNotes.get(target)?.delete(args[0]);\n"
+        }
+      ]
+    },
+    "docs/js/playground_code_runtime.js": {
+      "before": {
+        "bytes": 21299,
+        "sha256": "e792b84bdd6ff8bf086ca01bed276fc72909a751bdba18336d71f9e5c884c1b9"
+      },
+      "after": {
+        "bytes": 22127,
+        "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2193,
+          "afterBytes": 180,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3965,
+          "afterBytes": 100,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4373,
+          "afterBytes": 169,
+          "beforeText": "  for(const fn of [ensureReady,now,useSoundChip,getFm,readFile,prepareSource,onLog,onState,beforeStopSoundChips,stopSoundChips,setTimer,clearTimer]) {\n"
+        },
+        {
+          "afterOffset": 12074,
+          "afterBytes": 502,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12660,
+          "afterBytes": 330,
+          "beforeText": "          if(['noteOn','keyOn'].includes(key)&&Number.isInteger(args[0])) {\n            if(!ownedNotes.has(target))ownedNotes.set(target,new Map());ownedNotes.get(target).set(args[0],caller);\n          } else if(['noteOff','keyOff','releaseNote'].includes(key))ownedNotes.get(target)?.delete(args[0]);\n"
+        }
+      ]
+    }
+  }
+}

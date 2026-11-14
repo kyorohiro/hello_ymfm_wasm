@@ -10,7 +10,7 @@ import {HUC6280_STARTER_CODE} from './code_host.js';
 import {definitionSource,sourcePosition,runtimeSourceUrl} from '../playground/playground_monaco_definitions.js';
 
 const shared=await readFile(new URL('../playground/tetorica-playground-globals.d.ts',import.meta.url),'utf8'),selected=selectHuc6280CodeDeclarations(shared);
-test('HuC6280 declarations expose the borrowed six channels and shared scheduling helpers only',()=>{
+test('PC Engine CD declarations retain the borrowed six-channel PSG and shared scheduling globals',()=>{
   const names=[...new Set([...selected.matchAll(/^declare (?:function|const|var) ([\w$]+)/gm)].map(match=>match[1]))].sort();
   assert.deepEqual(names,[...HUC6280_CODE_GLOBALS].sort());
   assert.doesNotMatch(selected,/declare (?:function|const) (?:pce|fm|sid|play|createSoundChip|CH7|CH8|PSG1|OP1)\b/);
@@ -34,8 +34,16 @@ const state=await pce.getState();const source:'wave'|'noise'|'dda'=state.editorS
 const observed:'sent'=state.observation.registers;const samples:number=state.dda.samples;const release:number|undefined=state.envelopes[0]?.release;
 await livePrepare('state',async api=>{const chip=await api.useSoundChip('huc6280');return chip;});
 await tween({seconds:2},async value=>{await pce.setVolume(CH1,Math.round(31*value));});pg.log(source);await pce.dispose();
-// @ts-expect-error only the existing HuC6280 is borrowed
+const adpcm=await useSoundChip('msm5205');
+await adpcm.loadMemory('/audio/drum.adpcm');await adpcm.loadSample({sampleRate:8000,channels:[new Float32Array(800)]},{rate:12});
+await adpcm.play({offset:0,length:100,loop:true,rate:12});await adpcm.writeRegister(1,7);const adpcmState=await adpcm.getState();adpcmState.positionNibbles;await adpcm.stop();
+const cd=await useSoundChip('cdda');await cd.load('/audio/track.wav');await cd.play(1,{offset:.1});await cd.pause();await cd.resume();await cd.seek(0);await cd.list();await cd.getState();await cd.stop();await cd.dispose();
+// @ts-expect-error unsupported chips remain unavailable
 await useSoundChip('sid');
+// @ts-expect-error ADPCM rate is a 0..15 hardware field
+await adpcm.play({rate:16});
+// @ts-expect-error CD-DA offset is seconds
+await cd.play(1,{offset:'wrong'});
 // @ts-expect-error there are six physical channels
 await pce.noteOn(6,'C4');
 // @ts-expect-error Noise exists only on CH5 / CH6
@@ -53,7 +61,7 @@ ${HUC6280_STARTER_CODE}
 }
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
-    try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}
+    try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022,DOM',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}
     catch(error){assert.fail(error.stdout?.toString()||error.message);}
   }finally{await rm(work,{recursive:true,force:true});}
 });
@@ -73,6 +81,15 @@ test('Code-specific state, software note and disposal definitions open the autho
     const line=lines.findIndex(value=>value.trimStart().startsWith(symbol+'('));assert(line>=0);
     assert.deepEqual(definitionSource(selected,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'huc6280',{runtimeFile:'playground_code_runtime.js'}),{file:'synth-huc6280/instrument.js',symbol:implementation});
     assert(sourcePosition(source,implementation).lineNumber>1);
+  }
+});
+
+test('CD-ROM² media completion opens the shared ADPCM and audio-track implementations',async()=>{
+  for(const[owner,file,symbol]of [['PlaygroundMsm5205API','msm5205_player.js','loadSample'],['PlaygroundMsm5205API','msm5205_player.js','writeRegister'],['PlaygroundCddaAPI','cdda_player.js','load'],['PlaygroundCddaAPI','cdda_player.js','seek']]){
+    const start=selected.indexOf('type '+owner+' ='),offset=selected.indexOf(symbol+'(',start);assert(start>=0&&offset>start);
+    const prefix=selected.slice(0,offset),position={lineNumber:prefix.split('\n').length,column:offset-prefix.lastIndexOf('\n')};
+    assert.deepEqual(definitionSource(selected,position,'huc6280',{runtimeFile:'playground_code_runtime.js'}),{file,symbol});
+    const implementation=await readFile(new URL('../js/'+file,import.meta.url),'utf8');assert(sourcePosition(implementation,symbol).lineNumber>1);
   }
 });
 

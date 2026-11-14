@@ -1,6 +1,7 @@
-// HuC6280 Code borrows the editor's instrument. Only its FX rack is owned here.
+// Code borrows the editor's HuC6280 and owns its FX rack and lazy CD-ROM² media.
 import {createNativeFXRack} from '../js/native_fx_rack.js?v=prepared-fx-rerun-2';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
+import {createHuc6280Cdrom2Audio} from './cdrom2_audio.js?v=huc-cdrom2-1';
 
 const cancelled=()=>new DOMException('HuC6280 Code audio stopped','AbortError');
 
@@ -16,8 +17,8 @@ export function resolveHuc6280CodeNoteTarget(client,target,method,args){
  * No independent HuC6280, AudioContext or speaker connection is created.
  */
 export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},createFxRack=createNativeFXRack,
-  createOutput=createSynthCodeOutput}={}) {
-  for(const callback of [ensureReady,getAudio,onLog,createFxRack,createOutput])
+  createOutput=createSynthCodeOutput,readFile,createMedia=createHuc6280Cdrom2Audio}={}) {
+  for(const callback of [ensureReady,getAudio,onLog,createFxRack,createOutput,createMedia])
     if(typeof callback!=='function')throw new TypeError('HuC6280 Code audio requires host callbacks');
   let epoch=0,owner=null,disposed=false,stopping=null;
   const output=createOutput({getContext:()=>getAudio()?.context,getGain:()=>getAudio()?.codeFadeNode});
@@ -32,6 +33,7 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
   function retire(item) {
     if(!item||item.closed)return;
     restoreDirect(item);item.closed=true;
+    item.media?.dispose();
     try{item.rack?.stop();}catch(error){onLog(`[cleanup] ${error?.message??String(error)}`);}
     try{item.rack?.dispose();}catch(error){onLog(`[cleanup] ${error?.message??String(error)}`);}
   }
@@ -49,7 +51,7 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     if(!context||context.state==='closed'||!input||!destination||typeof engine.getHuc6280Client!=='function')throw new Error('HuC6280 Code needs the editor audio route');
     if(owner?.engine===engine&&!owner.closed)return owner.promise;
     retire(owner);
-    const item=owner={engine,context,input,destination,client:null,rack:null,closed:false,routed:false,names:new Set(),promise:null};
+    const item=owner={engine,context,input,destination,client:null,rack:null,media:null,closed:false,routed:false,names:new Set(),promise:null};
     const current=()=>!disposed&&epoch===token&&owner===item&&!item.closed&&getAudio()===engine;
     const rack=Promise.resolve().then(()=>createFxRack(context)).then(rack=>{
       if(!current()){rack.dispose();throw cancelled();}
@@ -65,8 +67,12 @@ export function createHuc6280CodeAudio({ensureReady,getAudio,onLog=()=>{},create
     return item.promise;
   }
   async function useSoundChip(name) {
-    if(name!=='huc6280')throw new Error('HuC6280 Synth Code supports useSoundChip("huc6280")');
-    const token=epoch,item=await prepare();check(token);return item.client;
+    if(!['huc6280','msm5205','cdda'].includes(name))throw new Error('HuC6280 Synth Code supports huc6280, msm5205 and cdda');
+    const token=epoch,item=await prepare();check(token);
+    if(name==='huc6280')return item.client;
+    item.media??=createMedia({engine:item.engine,readFile,isCurrent:()=>!disposed&&epoch===token&&owner===item&&!item.closed&&getAudio()===item.engine,
+      onError:error=>onLog(`[CD-ROM²] ${error?.message??String(error)}`)});
+    const client=await item.media.useSoundChip(name);check(token);return client;
   }
   const fx=new Proxy({}, {get(_target,key){
     const item=owner,controller=item?.rack?.controller;

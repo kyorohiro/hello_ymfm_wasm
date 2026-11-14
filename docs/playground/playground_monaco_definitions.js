@@ -9,6 +9,11 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   const prefix = lines.slice(0, position?.startLineNumber ?? position?.lineNumber ?? 1).join('\n');
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
+  // Member names such as play/stop belong to their declared media interface,
+  // before similarly named global music helpers are considered.
+  if(owner==='PlaygroundMsm5205API')return {file:'msm5205_player.js',symbol};
+  if(owner==='PlaygroundCddaAPI')return {file:'cdda_player.js',symbol};
+  if(/^Huc6280Code(?:Msm5205|Cdda)$/.test(owner)&&symbol==='dispose')return {file:'synth-huc6280/cdrom2_audio.js',symbol:'createHuc6280Cdrom2Audio'};
   if(options.runtimeFile) {
     const runtime=['useSoundChip','setBpm','beat','nextBeat','sleep','sleepSamples','tween','liveLoop','livePrepare','liveFx',
       'stopLoop','stopAllLoops','liveCleanup','trackAsync','file','log','console'];

@@ -2,18 +2,38 @@
 
 Product identifier: `tetorica-huc6280-synth`.
 
-[Open the synthesizer](index.html) · [HuC6280 Playground](../playground/index.html?mode=huc6280)
+[Open the synthesizer](index.html) · [HuC6280 Playground](../playground/index.html?mode=huc6280) · [PC Engine CD-ROM² Playground](../playground/index.html?mode=pc-engine-cd)
 
 Play the PC Engine's six-channel PSG, draw a wavetable and take the sound away
 as a preset or JavaScript. The English-language browser UI follows Tetorica's
 SPU / DMG Synths: output monitor, compact keyboard, two Pitch wheels, Octave,
 and controls that leave the computer keys available for playing.
+The first CD-ROM² slice adds MSM5205 ADPCM and CD-DA playback to the same clock
+and final output, while their dedicated instrument editors remain under construction.
 
 ## Play and edit
 
 1. Select **Enable audio**, then click a key or use the displayed computer keys.
 2. Choose **Wave**, **Noise** or **DDA PCM**. Every key plays the selected source.
 3. Draw a waveform, change the controls, then save a preset or copy JavaScript.
+
+## PC Engine CD-ROM² tabs and Mixer
+
+The source tabs above the monitor are **HuC6280 / MSM5205 / CD-DA / Mixer**.
+HuC6280 keeps the existing waveform, Noise, LFO, DDA and keyboard editor.
+MSM5205 and CD-DA currently show **Under construction** for their dedicated
+sound-editing UI; their existing playback APIs are available from Code.
+Changing tabs alone neither opens audio nor stops a performance.
+
+**Mixer** gives each of the three sources an independent volume and **Mute**.
+Its absolute gains match the shared Playground policy: **HuC6280 44%**, with
+**MSM5205 and CD-DA 100%** until separate measured presets exist. Reset mixer
+restores those values. HuC6280's previous standalone unit gain is therefore
+quieter at this default. The source gains sit before the final **Master**;
+Waveform / Spectrum observe the completed mix after Master. The sources share
+one AudioContext and one speaker connection. A mixer change does not stop the
+chip or restart a track; already rendered VGM PCM keeps its prior mix until it
+has passed through the output.
 
 ## Code and Files
 
@@ -57,9 +77,43 @@ Noise is available on CH5 / CH6 and does not follow note pitch. Hardware LFO
 still has the fixed CH2 → CH1 route: Code must explicitly set CH2's period when
 it should follow a melody. DDA uses the current shared PCM asset and software
 sample feeding. Choose Synth to replace that asset; physical-channel controls
-can adjust its playback settings. `liveFx` effects run in software after the PSG.
+can adjust its playback settings. `liveFx` effects run in software after the Code mix.
 Completion, type hints and source navigation distinguish these host tools from
 the chip API.
+
+Code also accepts `await useSoundChip("msm5205")` and
+`await useSoundChip("cdda")`. These are Code-owned sources on the same Synth
+AudioContext, using the existing Playground APIs. **Apply** keeps their prepared
+players; **Run** creates a fresh performance. **Stop** fades the Code mix and
+closes its media players, including pending sample/track loads. Tab changes do
+not create extra players. Types and source navigation cover all three objects.
+
+In the MSM5205 or CD-DA tab, **Add Code examples to Files** adds
+`examples/msm5205.js` and `examples/cdda.js`. Select one in Code, then Run.
+The examples generate original tones without external audio files. This button
+keeps existing files, your selection and the Keyboard / Code mode unchanged.
+
+Add your audio files through Files and use their displayed project paths:
+
+```js
+const adpcm = await useSoundChip("msm5205");
+await adpcm.loadSample("/audio/voice.wav", {rate: 12});
+await adpcm.play({loop: true}); // rate 12 = 8 kHz
+
+const cd = await useSoundChip("cdda");
+await cd.load("/audio/track02.wav"); // 44.1 kHz stereo PCM16 WAV
+await cd.play();
+```
+
+MSM5205 `loadSample()` encodes decoded PCM or supported WAV data into its bounded
+64 KiB ADPCM memory. `loadMemory()` accepts packed four-bit OKI ADPCM, high nibble
+first; `play({offset, length, rate, loop})` uses **nibble** offsets and lengths.
+The helper rate is 0–15 (2,000–32,000 Hz). Use `stop()` / `reset()` or inspect
+`getState()`; it does not provide a keyboard `noteOn()` API.
+CD-DA uses loaded audio tracks rather than an inserted game disc: `load()` is
+silent, and `play()` starts the selected track. `pause()`, `resume()`,
+`seek(seconds)`, `stop()`, `getState()` and `list()` use the existing track API.
+Track playback, file preparation, scheduling and FX are software functions.
 
 **Files** holds `index.js`, presets, text and binary assets. Selecting a sound
 loads it without stopping Code; selecting JSON while Keyboard is visible keeps
@@ -156,6 +210,17 @@ selector above Waveform / Spectrum lists these files. Select a song, then press
 the beginning while retaining the selected song and your edited instrument.
 Opening, selecting or restoring a project never starts playback automatically.
 
+VGM **1.61–1.72** HuC6280 playback is retained. VGM **1.72** may also contain a
+single **MSM5205** clock/flags and packed `0x32` ADPCM writes; both sources play
+together, and MSM5205-only files are accepted. Such a file has no recorded
+HuC6280 channel settings. Dual chips, MSM6585 variants, reserved flags and
+unsupported declared chips fail with an explanation rather than disappearing
+from the mix. The MSM5205 input clock is bounded to 20 MHz for this renderer.
+CD-DA is a separate audio-track source, **not audio recovered from a VGM**.
+The MSM5205 fields and command match the shared parser and
+[libvgm's VGM player](https://github.com/ValleyBell/libvgm/blob/master/player/vgmplayer.cpp)
+and [vgmtools command handling](https://github.com/vgmrips/vgmtools/blob/master/vgm_cnt.c).
+
 The position bar previews a destination while dragging; release to seek. Arrow
 keys and Home / End also work. Seeking while playing continues playback from
 the destination; from Pause it stays paused. From Stop or the end of a song it
@@ -179,9 +244,15 @@ checkpoints roughly every five seconds, plus requested destinations, within a
 point. The cache includes native oscillator / LFO / Noise / DDA and resampler
 state, the parser's stream banks and waits, queued PCM and the known/unknown
 Live timeline; it does not approximate a sound from its register values.
+These exact checkpoints apply to HuC6280-only files. With MSM5205 present,
+there is no complete paired HuC6280/ADPCM snapshot yet, so the UI explains that
+Seek reconstructs from the beginning. It does not save only the PSG and lose
+the decoder/FIFO state. Pause and Resume retain the same live mixed engine.
 
 Stop and Code Run keep points for the accepted song. A different song or channel
-output setting clears them. **Clear seek cache** is in the playback **?** help.
+output setting clears them. Changes to HuC6280/MSM5205 source mixer gains also
+clear points; changing the separate CD-DA mixer leaves VGM points intact.
+**Clear seek cache** is in the playback **?** help.
 Switching Cache Off releases the points; neither operation changes the position,
 your instrument or paused audition. New points accumulate while Cache is On.
 Manual song edits keep existing clean points, but stop collecting new points
@@ -192,7 +263,7 @@ state backends or oversized checkpoints use ordinary reconstruction instead.
 
 Reference playback renders the recorded HuC6280 writes with the existing chip
 core, including timed Wave, Noise, hardware LFO and supported direct / streamed
-DAC writes. It plays **once**, through the existing Master volume and output
+DAC writes, plus declared MSM5205 ADPCM. It plays **once**, through the existing Master volume and output
 monitor. VGM loop points do not automatically repeat. The reference chip is
 independent of the authored instrument; Pause retains unheard PCM and its exact
 offset so Resume continues at the heard song position.
@@ -432,7 +503,8 @@ to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
 Irregular or incomplete direct-write PCM extraction, unsupported DAC stream
-forms, CD-ROM² ADPCM / CD-DA and full PC Engine emulation are not included.
+forms and full PC Engine emulation are not included. MSM5205 / CD-DA have Code
+playback APIs; dedicated sound editors and actual CD-ROM access are not included.
 
 ## API, sources and licenses
 
@@ -442,6 +514,7 @@ forms, CD-ROM² ADPCM / CD-DA and full PC Engine emulation are not included.
 - [Code host and starter](code_host.js), [shared-chip client / software FX](code_audio.js), [Live channel view](code_live.js), [types](code_declarations.js), [project format](code_project.js) and [Files](code_files.js).
 - [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js), [direct DAC PCM extraction](vgm_direct_pcm.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
 - [Reference source validation](song_source.js), [playback and Pause timing](song_preview.js), [Files song controls](song_controls.js), [strict configured-voice capture](song_voice.js) and [isolated paused audition](song_audition.js).
+- [HuC6280 / MSM5205 reference mix](song_engine.js), [Code media sources](cdrom2_audio.js), [MSM5205 decoder](../js/msm5205audioengine.js) and [CD-DA source](../js/cdda_player.js).
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
@@ -458,6 +531,7 @@ From the repository root:
 npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
+npm run test:huc6280-synth:cdrom2-browser
 npm run test:huc6280-synth:manual-browser
 npm run test:huc6280-synth:vgm-manual-browser
 npm run test:huc6280-synth:song-browser
@@ -484,6 +558,15 @@ unchanged under `generated/`, with corresponding C/C++ under `sources/`.
 ## 日本語での概要
 
 PC EngineのHuC6280を、SPU Synthと同じ流れで試せるシンセです。
+CD-ROM²向けにHuC6280／MSM5205／CD-DA／Mixerタブを追加しています。
+MSM5205・CD-DAの専用音作りUIは工事中で、まずCodeから既存の再生APIを使えます。
+`useSoundChip()`の引数に`"huc6280"`／`"msm5205"`／`"cdda"`を指定して選択し、同じAudioContext・Master・FXを共有します。
+Mixerの初期値はPlaygroundと同じ絶対値でHuC6280が44%、MSM5205／CD-DAが100%。
+従来の単体SynthのHuC6280等倍より小さくなり、Masterは引き続き0–380%です。
+VGM1.72のMSM5205 clock／flags／0x32命令を含む曲をHuC6280と一緒に再生でき、MSM単独も受け付けます。
+MSMを含むVGMは完全なペア状態がないためSeekを先頭から再構築し、Pause／Resumeは同じ再生状態を保ちます。
+CD-DAはVGMには含まれず、Files等から読み込んだ音声トラックとしてCodeで再生します。
+専用編集UI・ディスク／BIOS／ゲーム実行は今回の範囲外です。
 Waveは6声、Noiseは実機のCH5／CH6を使う2声。波形は32点・5bitで、
 Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
@@ -550,5 +633,6 @@ Capture to Synthは曲をPauseのまま設定だけを編集用音色へ取り�
 LFOはCH1とCH2の両出力を扱い、アプリのMaster値は変更しません。
 未記録Wave RAMや必須設定が不明な音、DDAの単一DAC値は試奏・Captureできません。
 既知のミュート／Gate Off音色はCaptureできますが試奏は無効です。VGMへの直接操作は後続です。
-他チップの音を黙って省略せず、単一HuC6280以外や未対応データは理由付きで拒否します。
-CD-ROM²音源は対象外です。
+他チップの音を黙って省略せず、単一HuC6280とVGM 1.72の単一MSM5205以外や未対応データは理由付きで拒否します。
+MSM5205を含む曲のSeekは、両音源をまとめた状態保存形式がないため先頭から再構築します。
+CD-DAはVGMに含まれず、Codeから別の音声トラックを読み込んで利用します。実CD-ROMの読込・ゲーム実行は対象外です。

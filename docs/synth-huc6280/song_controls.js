@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-vgm-manual-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-cdrom2-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
@@ -49,7 +49,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     const cache=state.seekCache;
     for(const [key,value]of Object.entries({cacheEnabled:cache?.enabled!==false,cacheCount:cache?.count??0,cacheBytes:cache?.bytes??0,cacheHits:cache?.hits??0,cacheMisses:cache?.misses??0,cacheRestoredFrame:cache?.restoredFrame??0,cacheReconstructedFrames:cache?.reconstructedFrames??0}))root.dataset[key]=String(value);
     if(cacheEnabled)cacheEnabled.checked=cache?.enabled!==false;
-    text(cacheStatus,cache?.enabled===false?'Cache Off. Seek rebuilds from the beginning.':cache?.available===false?'This sound core has no state support. Seek rebuilds from the beginning.':
+    text(cacheStatus,cache?.enabled===false?'Cache Off. Seek rebuilds from the beginning.':cache?.available===false?`${state.cacheUnavailableReason||'This sound core has no state support.'} Seek rebuilds from the beginning.`:
       `Cache On · ${cache?.count??0} points · ${Math.ceil((cache?.bytes??0)/1024)} KiB retained.${cache?.restoredFrame>0?` Last reuse: ${preciseTime((cache.restoredFrame??0)/(state.sampleRate??44100))}.`:''}${cache?.error?' A checkpoint was skipped; normal reconstruction is available.':''}`);
     const channelEnabled=state.channelEnabled??Array(6).fill(true);
     if(channelGroup)channelGroup.hidden=!state.hasSource;
@@ -280,6 +280,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     getManualSelection,applyEdit,noteOn,noteOff,setPitch,releaseKeyboard,
     isActive:()=>Boolean(choosing||read().loading||read().seeking||read().seekPreparing||read().seekCancelling||['starting','seeking','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
+    setSourceMix(value){if(disposed)return false;return preview.setSourceMix(value);},
     setLiveEnabled(value){if(disposed)return false;return decorate(preview.setLiveEnabled(value));},
     stop:stopCurrent,seek:seekTo,cancelSeek:cancelCurrentSeek,setCacheEnabled,clearSeekCache,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
     dispose(){if(disposed)return;disposed=true;cancelPendingCapture();selection++;pending?.abort();unsubscribe();for(const remove of listeners)remove();preview.dispose();},

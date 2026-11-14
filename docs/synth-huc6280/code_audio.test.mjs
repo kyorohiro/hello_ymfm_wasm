@@ -11,7 +11,7 @@ test('HuC6280 note ownership resolves only physical channels on the shared chip'
   assert.equal(resolveHuc6280CodeNoteTarget(client,client,'noteOn',[6]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,client,'setNote',[0]),null);assert.equal(resolveHuc6280CodeNoteTarget(client,{},'keyOn',[0]),null);
 });
 function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=false}={}){
-  const events=[],racks=[],clients=[],contexts=[],outputCalls=[];let engine,stops=0,active=0,serial=0,stopTask=null;
+  const events=[],racks=[],clients=[],contexts=[],outputCalls=[],media=[];let engine,stops=0,active=0,serial=0,stopTask=null;
   function node(name,context,gain=1){return{name,context,gain:{value:gain},edges:new Set(),connect(target){this.edges.add(target);events.push(['connect',name,target.name]);},
     disconnect(target){if(target){assert(this.edges.delete(target),'existing route '+name);}else this.edges.clear();events.push(['disconnect',name,target?.name]);}};}
   function makeEngine(){
@@ -42,12 +42,17 @@ function fixture({pendingFirstRack=false,pendingFirstClient=false,pendingStop=fa
     },createOutput:options=>({open(){outputCalls.push('open');options.getGain().gain.value=1;},
       fadeOut(){outputCalls.push('fade');events.push(['fade']);options.getGain().gain.value=0;return Promise.resolve(true);},
       dispose(){outputCalls.push('dispose');options.getGain().gain.value=0;}}),
+    readFile:async path=>new TextEncoder().encode(path).buffer,
+    createMedia(options){const item={options,closed:false,clients:new Map(),
+      async useSoundChip(name){if(!options.isCurrent()||this.closed)throw new DOMException('Old media','AbortError');
+        if(!this.clients.has(name))this.clients.set(name,{chip:name,async getState(){if(!options.isCurrent()||item.closed)throw new DOMException('Old media','AbortError');return{state:'playing'};}});return this.clients.get(name);},
+      dispose(){this.closed=true;events.push(['media-dispose']);}};media.push(item);return item;},
   });
   const signal=()=>{
     const value=(from,level)=>from===engine.destination?level:[...from.edges].reduce((sum,next)=>sum+value(next,level*(from.factor?.()??from.gain.value)),0);
     return value(engine.codeInputNode,.2);
   };
-  return{host,events,racks,clients,contexts,outputCalls,signal,get engine(){return engine;},get stops(){return stops;},
+  return{host,events,racks,clients,contexts,outputCalls,media,signal,get engine(){return engine;},get stops(){return stops;},
     replace(){engine=makeEngine();return engine;},releaseStop(){pendingStop=false;stopTask.resolve();}};
 }
 
@@ -111,4 +116,17 @@ test('Stop before a gesture-created engine is adopted cannot acquire a late Code
   const pending=host.prepare(),rejected=assert.rejects(pending,{name:'AbortError'});await turn();await host.stop();
   engine={context:{state:'running'},getHuc6280Client(){clients++;},command:async()=>{}};
   gate.resolve();await rejected;assert.equal(clients,0,'The late idle APU is never borrowed by the cancelled performance');await host.dispose();
+});
+
+test('Code media uses the current session and Files callback, and retires before physical Stop without changing the Synth clock',async()=>{
+  const f=fixture();
+  try{
+    const m=await f.host.useSoundChip('msm5205'),cd=await f.host.useSoundChip('cdda');
+    assert.equal(m,await f.host.useSoundChip('msm5205'));assert.equal(f.media.length,1);assert.equal(f.clients.length,1);assert.equal(f.contexts.length,1);
+    const media=f.media[0];assert.equal(media.options.engine,f.engine);assert.equal(new TextDecoder().decode(await media.options.readFile('/audio/track.wav')),'/audio/track.wav');
+    assert.equal((await cd.getState()).state,'playing');f.host.fx.liveFx('all',{context:{gain:.5},process(){}});near(f.signal(),.07);
+    await f.host.beforeStop();await f.host.stop();assert(media.closed);assert(f.events.findIndex(e=>e[0]==='media-dispose')<f.events.findIndex(e=>e[0]==='stop'));
+    await assert.rejects(m.getState(),{name:'AbortError'});assert.equal(f.contexts[0].closeCalls,0);
+    const fresh=await f.host.useSoundChip('cdda');assert.notEqual(fresh,cd);assert.equal(f.media.length,2);
+  }finally{await f.host.dispose();}
 });

@@ -4,6 +4,7 @@
  */
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {restoreMixerCalibrationCodeNoteRevision} from './mixer_calibration_code_note_revision.mjs';
 
 export const VAB_API_REVISION_BASE_COMMIT='1ec321b014a67a757bfa7c847c998f3e47584203';
 export const VAB_API_REVISION_RECEIPT_PATH='docs/issues/ps1_vab_public_api_source_revision_01.json';
@@ -88,7 +89,7 @@ export function restoreMixerCalibrationVabApiRevision(path,bytes,{readSource=url
   const matches=pair=>pair&&bytes.length===pair.after.bytes&&sha(bytes)===pair.after.sha256;
   if(!matches(entry)&&!matches(prior))return bytes;
   for(const source of [...VAB_API_REVISION_REPORT_PATHS,...VAB_API_REVISION_RELATED_PATHS]) {
-    const expected=evidence.reports[source]??evidence.relatedSources[source].after,current=readSource(new URL('../'+source,import.meta.url));
+    const expected=evidence.reports[source]??evidence.relatedSources[source].after,current=restoreMixerCalibrationCodeNoteRevision(source,readSource(new URL('../'+source,import.meta.url)));
     if(current.length!==expected.bytes||sha(current)!==expected.sha256)fail('pinned report/helper/cache dependency changed: '+source);
   }
   bytes=restore(bytes,entry,name);

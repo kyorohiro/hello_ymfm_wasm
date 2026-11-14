@@ -13,6 +13,7 @@ import {restoreMixerCalibrationRf5c164NoteRevision} from './mixer_calibration_rf
 import {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -362,6 +363,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const hucUi=restoreMixerCalibrationHuc6280UiRevision(path,bytes),hucUiRevision=hucUi!==bytes;bytes=hucUi;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hucUiRevision?'ui-huc6280-definitions':'raw';
   const vab=restoreMixerCalibrationVabApiRevision(path,bytes),vabRevision=vab!==bytes;bytes=vab;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return vabRevision?'ps1-vab-public-api':'raw';
   const ps1Import=restoreMixerCalibrationPs1ImportRevision(path,bytes),ps1ImportRevision=ps1Import!==bytes;bytes=ps1Import;

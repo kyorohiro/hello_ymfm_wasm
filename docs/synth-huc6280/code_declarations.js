@@ -28,7 +28,17 @@ type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'> & {
   /** Restore the authored instrument without closing its AudioContext. */
   dispose():Promise<void>;
 };
-type Huc6280CodeSoundChipMap={huc6280:Huc6280CodeClient};
+type Huc6280CodeMsm5205=PlaygroundMsm5205API & {
+  readonly id:string;readonly chip:'msm5205';
+  /** Close this Code-owned ADPCM player without closing the Synth clock. */
+  dispose():Promise<void>;
+};
+type Huc6280CodeCdda=PlaygroundCddaAPI & {
+  readonly id:string;readonly chip:'cdda';
+  /** Close this Code-owned audio track without closing the Synth clock. */
+  dispose():Promise<void>;
+};
+type Huc6280CodeSoundChipMap={huc6280:Huc6280CodeClient;msm5205:Huc6280CodeMsm5205;cdda:Huc6280CodeCdda};
 type PlaygroundLivePrepareAPI=Huc6280CodeAPI;
 declare function useSoundChip<Name extends keyof Huc6280CodeSoundChipMap>(name:Name):Promise<Huc6280CodeSoundChipMap[Name]>;
 declare function trackAsync(task:PromiseLike<unknown>):void;
@@ -38,7 +48,7 @@ declare const pg:Huc6280CodeAPI;
 `;
 export function selectHuc6280CodeDeclarations(source) {
   return selectCodeHostDeclarations(source,{globals:HUC6280_CODE_GLOBALS,customTypes:TYPES,apiName:'Huc6280CodeAPI',
-    banner:'HuC6280 Synth Code: one shared physical PSG; no independent chip factory.',transformTypes(types){
+    banner:'PC Engine CD-ROM² Synth Code: shared HuC6280, Code-owned MSM5205/CD-DA; no independent clock.',transformTypes(types){
       const type=types.get('PlaygroundHuc6280');if(!type)throw Error('Shared HuC6280 declarations are missing.');
       types.set(type.name,{...type,text:type.text.replace(/^(\s+\w+\([^\n]*\)):\s*void;/gm,'$1: Promise<void>;')
         .replace(/^(\s+\w+\([^\n]*\)):\s*number;/gm,'$1: Promise<number>;')});

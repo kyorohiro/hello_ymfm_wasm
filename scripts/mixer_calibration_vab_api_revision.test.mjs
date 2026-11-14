@@ -8,6 +8,7 @@ import {
   VAB_API_PRIOR_EXPORT_PATHS,restoreMixerCalibrationVabApiRevision,
 } from './mixer_calibration_vab_api_revision.mjs';
 import {isSoundChipPsgSourceLayoutRevision} from './generate_soundchip_mixer_presets.mjs';
+import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
 
 const url=path=>new URL('../'+path,import.meta.url);
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -30,7 +31,7 @@ test('VAB receipt is independently pinned, deterministic and retains untouched o
 
 test('each complete current source reconstructs its exact predecessor, including the separately named earlier raw VAB export',()=>{
   for(const path of VAB_API_REVISION_SOURCE_PATHS) {
-    const current=readFileSync(url(path)),restored=restoreMixerCalibrationVabApiRevision(path,current);
+    const bytes=readFileSync(url(path)),current=restoreMixerCalibrationHuc6280UiRevision(path.replace(/^docs\//,''),bytes),restored=restoreMixerCalibrationVabApiRevision(path,current);
     const expected=VAB_API_PRIOR_EXPORT_PATHS.includes(path)?evidence.priorSourceExport.sources[path].before:evidence.sources[path].before;
     assert.equal(restored.length,expected.bytes,path);assert.equal(sha(restored),expected.sha256,path);
     if(path.startsWith('docs/'))assert.deepEqual(restoreMixerCalibrationVabApiRevision(path.slice(5),current),restored,'served source names use the same fixed inventory');

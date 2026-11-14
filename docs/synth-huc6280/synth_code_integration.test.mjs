@@ -41,7 +41,7 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
   scope=vm.createContext({Promise,DOMException,Map,Set,Array,Number,JSON,structuredClone,
     audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,octave:0,
     window:{addEventListener(type,listener){listeners.set(type,listener);}},layout:{entries:[{key:'a',midi:60}]},
-    codeHost:host,songControls:null,songState:null,channelTarget:channel,channelSelection:0,autoUpdate:true,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,auditionNotes,audition,auditionSelectionKey:null,
+    chipView:'huc6280',codeHost:host,songControls:null,songState:null,channelTarget:channel,channelSelection:0,autoUpdate:true,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,auditionNotes,audition,auditionSelectionKey:null,
     readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,
     enqueue(action){const task=pending.then(action);pending=task.catch(error=>errors.push(error));return task;},
     ensureAudio:async()=>{await ready;return engine;},
@@ -58,6 +58,14 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
   vm.runInContext(contextSource+'\n'+apply+'\n'+keyboard+'\n'+pitchSource+'\n'+inputSource+'\n'+edit,scope);
   return{scope,engine,host,audition,calls,errors,notes,auditionNotes,listeners,idle:()=>pending};
 }
+
+test('construction tabs leave Code running and reject new HuC keyboard/pitch writes',async()=>{
+  const h=harness();h.scope.chipView='cdda';
+  h.scope.press('key:KeyA',{key:'a',midi:60});h.scope.setPitch(1);
+  const event={key:'a',code:'KeyA',target:{},preventDefault(){throw Error('Construction tab must not consume a playing key');}};
+  h.listeners.get('keydown')(event);await h.idle();
+  assert.equal(h.notes.size,0);assert.equal(h.host.running,true);assert.deepEqual(h.calls,[]);
+});
 
 test('author preset/source loads keep Code running and route through its current session',async()=>{
   const h=harness(),next=createDefaultPreset();next.name='Imported Noise';next.source='noise';next.noise.frequency=9;

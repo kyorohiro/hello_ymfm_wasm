@@ -2,9 +2,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {gzipSync} from 'node:zlib';
-import {prepareHuc6280SongSource,MAX_HUC6280_SONG_BYTES} from './song_source.js';
+import {prepareHuc6280SongSource,MAX_HUC6280_SONG_BYTES,MAX_MSM5205_SONG_CLOCK} from './song_source.js';
 import {vgm,write,wait,block,streamSetup,streamStart,u32,fixtures} from './song_test_helpers.mjs';
 const prepare = commands => prepareHuc6280SongSource(vgm(commands));
+function msmSource(commands,{huc=true,version=0x172,clock=384000,flags=4}={}){
+  const bytes=vgm(commands,{clock:huc?3579545:0}),view=new DataView(bytes.buffer);
+  view.setUint32(8,version,true);view.setUint32(0xf0,clock,true);bytes[0xd7]=flags;return bytes;
+}
+
+test('VGM1.72 MSM5205 packed writes are accepted with HuC6280 or alone, with explicit cache/CD-DA limits',async()=>{
+  for(const huc of [true,false]){
+    const source=await prepareHuc6280SongSource(msmSource([...(huc?write(0,0):[]),0x32,0x00,0x32,0x17,...wait(200)],{huc}));
+    assert.equal(source.header.msm5205Clock,384000);assert.equal(source.header.msm5205Flags,4);assert.equal(source.totalSamples,200);
+    assert(source.warnings.some(w=>/MSM5205/.test(w)&&/checkpoints/.test(w)&&/CD-DA/.test(w)));
+  }
+});
+
+test('MSM5205 preflight rejects undeclared/old-version, dual/variant, reserved flags and excessive render clocks before playback',async()=>{
+  await assert.rejects(prepare([0x32,0x17,...wait(1)]),/undeclared MSM5205/);
+  await assert.rejects(prepareHuc6280SongSource(msmSource([0x32,0x17,...wait(1)],{version:0x171})),/version 1.72/);
+  for(const clock of [384000|0x40000000,384000|0x80000000])await assert.rejects(prepareHuc6280SongSource(msmSource([0x32,0x17,...wait(1)],{clock:clock>>>0})),/dual|variant/);
+  await assert.rejects(prepareHuc6280SongSource(msmSource([0x32,0x17,...wait(1)],{clock:MAX_MSM5205_SONG_CLOCK+1})),/render budget/);
+  await assert.rejects(prepareHuc6280SongSource(msmSource([0x32,0x17,...wait(1)],{flags:8})),/flags/);
+  await assert.rejects(prepareHuc6280SongSource(msmSource([0x32,0x97,...wait(1)])),/Second MSM5205/);
+  await assert.rejects(prepareHuc6280SongSource(msmSource([...write(0,0),...wait(1)],{huc:false})),/undeclared HuC6280/);
+  await assert.rejects(prepareHuc6280SongSource(msmSource([...streamSetup(),...wait(1)],{huc:false})),/undeclared HuC6280/);
+  for(const offset of [0xe8,0xec,0xf4,0xf8,0xfc]){
+    const bytes=msmSource([0x32,0x17,...wait(1)]);new DataView(bytes.buffer).setUint32(offset,1,true);
+    await assert.rejects(prepareHuc6280SongSource(bytes),/Unsupported chip/);
+  }
+});
 
 test('full-file HuC source preparation accepts Wave/Noise/LFO/directDAC/stream and detached VGZ', async () => {
   for (const [name,bytes] of Object.entries(fixtures())) {

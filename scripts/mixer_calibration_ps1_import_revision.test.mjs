@@ -13,6 +13,7 @@ import {restoreMixerCalibrationPs1ImportRevision as restore,PS1_IMPORT_REVISION_
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
 import {measurePs1ImportRevisionPcm} from './check_ps1_import_revision_pcm.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
 
 const read=path=>readFile(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -24,7 +25,7 @@ test('exact current import sources and separately named prior passive sources re
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);assert.equal(paths.length,9);
   assert.deepEqual(Object.keys(receipt.priorPassiveRevisions).sort(),['psfStartupMetadata','spuCodeDefinitionViewer']);
   for(const path of paths) {
-    const current=await read('docs/'+path),known=restoreMixerCalibrationVabApiRevision(path,current),entry=receipt.sources[path]??prior(path),before=restore(path,known);
+    const current=await read('docs/'+path),known=restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,current)),entry=receipt.sources[path]??prior(path),before=restore(path,known);
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     assert.notEqual(before,known,path);assert.equal(before.length,finalBefore(path).bytes,path);assert.equal(sha(before),finalBefore(path).sha256,path);
     assert.equal(restore(path,before),before,'already restored bytes remain unchanged');
@@ -83,7 +84,7 @@ test('all twelve existing PS1 calibration reference routes retain exact held and
 });
 
 test('the prior PS1 definition mapping preserves existing read-only lookups and adds only the reviewed source target',async()=>{
-  const path='playground/playground_monaco_definitions.js',current=await read('docs/'+path),before=restore(path,restoreMixerCalibrationVabApiRevision(path,current));
+  const path='playground/playground_monaco_definitions.js',current=await read('docs/'+path),before=restore(path,restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,current)));
   const modules=await Promise.all([before,current].map(bytes=>import('data:text/javascript;base64,'+bytes.toString('base64'))));
   for(const code of ['const fm=await useSoundChip("ym2612"); fm.noteOn(CH1,"C4");','const notes=scale("C4","minor",2);','const sid=await useSoundChip("sid"); sid.setFilter({cutoff:440});']) {
     for(let column=1;column<=code.length;column++)assert.deepEqual(modules[1].definitionSource(code,{lineNumber:1,column}),modules[0].definitionSource(code,{lineNumber:1,column}));

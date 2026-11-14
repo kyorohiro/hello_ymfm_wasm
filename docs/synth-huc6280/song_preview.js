@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {VgmPlayer} from '../js/vgmplayer.js';
-import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
-import factory from '../generated/huc6280_wasm.js';
-import {prepareHuc6280SongSource} from './song_source.js';
+import {HUC6280_CLOCK} from '../js/huc6280synth.js';
+import {createHuc6280SongEngine,readHuc6280SongMix,huc6280SongMixKey,HUC6280_MSM5205_STATE_REASON} from './song_engine.js';
+import {prepareHuc6280SongSource} from './song_source.js?v=huc-cdrom2-1';
 import {createHuc6280SongTimeline} from './song_state.js?v=huc-vgm-manual-1';
 import {createHuc6280SongCache} from './song_cache.js';
 import {captureHuc6280SongCheckpoint,restoreHuc6280SongCheckpoint} from './song_checkpoint.js';
@@ -13,8 +13,7 @@ const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01, INTERVAL = 8;
 const scheduleTask = globalThis.setTimeout.bind(globalThis);
 const cancelTask = globalThis.clearTimeout.bind(globalThis);
 const aborted = () => new DOMException('HuC6280 song operation cancelled', 'AbortError');
-const defaultEngine = header => Huc6280AudioEngine.create({moduleFactory:factory,
-  clock:header.huc6280Clock, outputSampleRate:44100, masterVolume:1});
+const defaultEngine = header => createHuc6280SongEngine(header);
 
 /** One-pass reference transport, independent of the authored instrument. It
  * borrows only the Synth's context/songInputNode, and owns all other nodes and
@@ -26,6 +25,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   nowMs = () => performance.now(), yieldTask = () => new Promise(resolve => scheduleTask(resolve, 0)),
   seekChunkFrames=2048,seekTimeoutMilliseconds=30000,
   cacheEnabled=true,cacheMaxBytes=8*1024*1024,cacheMaxCount=64,cacheIntervalSeconds=5,
+  sourceMix:initialSourceMix,
 } = {}) {
   if(!Number.isInteger(seekChunkFrames)||seekChunkFrames<1||seekChunkFrames>2048)throw RangeError('HuC6280 seek slices must be 1..2048 frames');
   if(!Number.isFinite(seekTimeoutMilliseconds)||seekTimeoutMilliseconds<1||seekTimeoutMilliseconds>120000)throw RangeError('HuC6280 seek timeout must be 1..120000 milliseconds');
@@ -33,7 +33,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   let loadController = null, loading = false, disposed = false, playback = 'stopped';
   let errorMessage = '', positionFrames = 0, sampleRate = 44100;
   let liveEnabled = true, liveState = null, liveMessage = '';
-  let channelMuteMask=0,manualEpoch=0;
+  let channelMuteMask=0,manualEpoch=0,sourceMix=readHuc6280SongMix(initialSourceMix);
   let seeking=null,seekCleanup=Promise.resolve(),seekPreparing=0,seekMessage='';
   const seekCache=createHuc6280SongCache({enabled:cacheEnabled,maxBytes:cacheMaxBytes,maxCount:cacheMaxCount,intervalSeconds:cacheIntervalSeconds});
   let cacheGeneration=0;
@@ -42,7 +42,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     try{return run.manual.read();}catch(error){return{available:false,reason:error?.message??String(error),channels:[],voices:[]};}
   }
   function manualReady(run=active,info=manualInfo(run)){
-    return Boolean(run&&run===active&&!run.released&&playback==='playing'&&!loading&&!seeking&&!seekPreparing&&!run.eof&&!run.timeline.error&&info.available);
+    return Boolean(run&&run===active&&!run.released&&run.source.header.huc6280Clock&&playback==='playing'&&!loading&&!seeking&&!seekPreparing&&!run.eof&&!run.timeline.error&&info.available);
   }
   function attachManual(run){
     try{run.manual=createHuc6280SongManual({engine:run.engine,timeline:run.timeline,onMutation(){
@@ -77,7 +77,21 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     catch(error){run.cacheBlocked=true;seekCache.captureFailed(error);}
   }
   const appliedChannelMasks=new WeakMap();
+  const appliedSourceMixes=new WeakMap();
+  function applySourceMix(engine,value=sourceMix,force=false){
+    const key=huc6280SongMixKey(value);if(!force&&appliedSourceMixes.get(engine)===key)return;
+    if(typeof engine.setSourceMix==='function')engine.setSourceMix(value);
+    else{
+      // Compatibility for injected single-HuC engines. The real mixed factory
+      // exposes independent post gains, so MSM is never folded into PSG gain.
+      const gain=value.huc6280.muted?0:value.huc6280.volume;
+      if(typeof engine.setMasterVolume==='function')engine.setMasterVolume(gain);
+      else if(gain!==1)throw Error('Reference engine does not support source mixing');
+    }
+    appliedSourceMixes.set(engine,key);
+  }
   function applyChannelMask(engine,mask=channelMuteMask,force=false) {
+    applySourceMix(engine);
     const previous=appliedChannelMasks.get(engine);
     if(previous===mask&&!force)return;
     if(typeof engine.setChannelMuted!=='function'){
@@ -128,6 +142,8 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       seekProgressSeconds:seeking?seeking.progressFrame/seeking.rate:0,seekProgressFrames:seeking?.progressFrame??0,
       seekMessage,canSeek:!disposed&&Boolean(source)&&!loading&&playback!=='starting'&&(!seekPreparing||Boolean(seeking)),
       seekCache:seekCache.read(),
+      sourceMix:readHuc6280SongMix(sourceMix),sourceChips:{huc6280:Boolean(source?.header.huc6280Clock),msm5205:Boolean(source?.header.msm5205Clock),cdda:false},
+      cacheUnavailableReason:active?.engine.stateReason??(source?.header.msm5205Clock?HUC6280_MSM5205_STATE_REASON:''),
       manualReady:manualReady(active,manual),manualEpoch,manualTainted:Boolean(active?.manualTainted),
       manualHeldCount:manual.voices?.length??0,manualLastFrame:active?.manualLastFrame??null,manualReason:manual.reason??'',
       channelEnabled:Array.from({length:6},(_,channel)=>!(channelMuteMask&(1<<channel))),channelMuteMask,
@@ -264,6 +280,12 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   }
   function setCacheEnabled(value){open();seekCache.setEnabled(value);cacheGeneration++;emit();return getState();}
   function clearSeekCache(){open();seekCache.clear();cacheGeneration++;emit();return getState();}
+  function setSourceMix(value){
+    open();const next=readHuc6280SongMix(value);
+    if(huc6280SongMixKey(next)===huc6280SongMixKey(sourceMix))return getState();
+    if(active&&!active.released)applySourceMix(active.engine,next);
+    sourceMix=next;seekCache.clear();cacheGeneration++;emit();return getState();
+  }
   function getManualSelection(channel){
     open();if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('HuC6280 song channel must be 0..5');
     const info=manualInfo(),selected=info.channels[channel],ready=manualReady(active,info);
@@ -323,7 +345,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       validateHost(host);
       const rate = engine.sampleRate();
       if (!Number.isInteger(rate) || rate < 8000 || rate > 96000) throw new Error('Invalid HuC6280 reference sample rate');
-      timeline=createHuc6280SongTimeline(engine,selected.header.huc6280Clock);
+      timeline=createHuc6280SongTimeline(engine,selected.header.huc6280Clock||HUC6280_CLOCK);
       const player = new VgmPlayer(engine);
       player.setPrefetchFactor(1); player.setLoopEnabled(false);
       player.load(selected.bytes, {logger:{warn:message => {throw new Error(message);}}}); player.reset();
@@ -398,7 +420,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       if(!Number.isInteger(rate)||rate<8000||rate>96000)throw Error('Invalid HuC6280 seek sample rate');
       job.rate=rate;const totalFrames=Math.floor(job.source.totalSamples*rate/44100+1e-7);
       job.targetFrame=Math.min(totalFrames,Math.max(0,Math.round(job.targetSeconds*rate)));
-      timeline=createHuc6280SongTimeline(engine,job.source.header.huc6280Clock);
+      timeline=createHuc6280SongTimeline(engine,job.source.header.huc6280Clock||HUC6280_CLOCK);
       const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);
       player.load(job.source.bytes,{logger:{warn:message=>{throw Error(message);}}});player.reset();applyChannelMask(engine,channelMuteMask,true);player.play();
       seekCache.setAvailable(Boolean(engine.supportsState?.()));
@@ -478,7 +500,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     job.controller.abort();emit();await job.promise;return true;
   }
   function dispose() {if (disposed) return; stop(); disposed = true; source = null; name = '';seekCache.reset(null,channelMuteMask); emit();}
-  return {load, play, pause, resume, stop,clear,seek,cancelSeek,setCacheEnabled,clearSeekCache,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled,
+  return {load, play, pause, resume, stop,clear,seek,cancelSeek,setCacheEnabled,clearSeekCache,setSourceMix,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled,
     getManualSelection,applyEdit:(edit,options)=>manualOperation('applyEdit',[edit],options),
     noteOn:(id,midi,channel,options)=>manualOperation('noteOn',[id,midi,channel],options),
     noteOff:(id,options)=>manualOperation('noteOff',[id],options,true),
