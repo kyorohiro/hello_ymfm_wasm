@@ -83,7 +83,7 @@ test('S-DSP audio is lazy and routes one fixed balance before the user Master an
   const [balance, master, input, fade] = f.context.gains;
   assert.equal(balance.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[input]); assert.deepEqual(input.connections,[fade]); assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[input]); assert.deepEqual(input.connections,[fade]); assert.deepEqual(fade.connections,[f.context.gains[5]]);assert.deepEqual(f.context.gains[5].connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
@@ -156,7 +156,7 @@ test('the final Master bus can route to a desktop tap while retaining passive mo
   audio.outputNode.disconnect(audio.context.destination);
   audio.outputNode.connect(desktopTap);
   assert.deepEqual(master.connections,[monitor, desktopTap]);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[input]); assert.deepEqual(input.connections,[fade]); assert.deepEqual(fade.connections,[master]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[input]); assert.deepEqual(input.connections,[fade]); assert.deepEqual(fade.connections,[f.context.gains[5]]);assert.deepEqual(f.context.gains[5].connections,[master]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
   await audio.command('stop'); await audio.command('setPitch',[0]);
   audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);

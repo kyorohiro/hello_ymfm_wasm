@@ -5,7 +5,7 @@ import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=sdsp-cod
 import {selectSnesCodeDeclarations} from './code_declarations.js';
 import {createSnesCodeAudio} from './code_audio.js';
 import {createSnesCodeProject,SNES_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
-import {setupSnesCodeFiles} from './code_files.js?v=menu-labels-1';
+import {setupSnesCodeFiles} from './code_files.js?v=channel-mixer-1';
 
 export const SNES_STARTER_CODE=`const snes = await useSoundChip("snes");
 setBpm(120);
@@ -20,7 +20,7 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('S-DSP Code stopped','AbortError');
 export function setupSnesCodeHost({ensureAudio,getAudio,getSettings,applySettings,stopKeyboard,
-  stopLooper=async()=>{},clearLooper=stopLooper,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
+  onBeforeRun=async()=>{},onOpenSource=async()=>false,stopLooper=async()=>{},clearLooper=stopLooper,stopSong=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSnesCodeProject({settings:getSettings(),getStarterCode:()=>SNES_STARTER_CODE});
   const audio=createSnesCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -36,7 +36,7 @@ export function setupSnesCodeHost({ensureAudio,getAudio,getSettings,applySetting
     if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  files=setupSnesCodeFiles({project,getSettings,applySettings,setStatus,
+  files=setupSnesCodeFiles({project,getSettings,applySettings,setStatus,onOpenSource,
     async onBeforeSoundApply(){if(!runtime?.getState().running)await stopKeyboard();},
     async onBeforeWorkspaceReplace(){await clearLooper();await stopSong();await stop();await stopKeyboard();}});
   function getRuntime(){
@@ -64,7 +64,7 @@ export function setupSnesCodeHost({ensureAudio,getAudio,getSettings,applySetting
     allowTextFiles:true,maxTextLength:SNES_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'snes',transformDeclarations:selectSnesCodeDeclarations,
     journalKey:'tetorica-snes-synth-pending-code',getStarterCode:()=>SNES_STARTER_CODE,
-    async onBeforeRun(){await stopLooper();modeEpoch++;if(!runtime?.getState().running)await stopKeyboard();},
+    async onBeforeRun(){await onBeforeRun();await stopLooper();modeEpoch++;if(!runtime?.getState().running)await stopKeyboard();},
     async onModeChange(){
       await stopLooper();modeEpoch++;openOutput();
       onActivity();

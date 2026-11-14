@@ -258,3 +258,12 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
   .snes-sound-library { width: 100%; }
   .snes-sound-library .instrument-preset-control { flex-basis: 100%; flex-wrap: nowrap; }
 }
+
+.snes-chip-tabs, #snesChannelTabs { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+.snes-chip-tabs [aria-selected="true"], #snesChannelTabs [aria-selected="true"] { background:#286ea4; color:white; }
+.snes-channel-controls { margin:12px 0; padding:12px; border:1px solid var(--line); border-radius:10px; }
+.snes-channel-controls p { margin:8px 0 0; font-size:.76rem; overflow-wrap:anywhere; }
+#snesVoiceFields { border:0; padding:0; margin:0; min-width:0; }
+#snesMixerPanel { padding:16px; border:1px solid var(--line); border-radius:10px; }
+#snesMixerPanel p { font-size:.76rem; }
+#snesSongSelect { max-width:100%; min-width:0; }

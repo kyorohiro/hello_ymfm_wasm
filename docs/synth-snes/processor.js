@@ -2,9 +2,9 @@
 import factory from '../generated/spc_wasm.js';
 import {SnesDspCore} from '../js/spc.js';
 import {SpcResampler} from '../js/spc_resampler.js';
-import {SnesInstrument} from './instrument.js?v=sdsp-live-wave-1';
+import {SnesInstrument} from './instrument.js?v=channel-mixer-1';
 
-const COMMANDS=new Set(['read','setPreset','loadPreset','noteOn','noteOff','setPitch','stop']);
+const COMMANDS=new Set(['read','setPreset','loadPreset','noteOn','noteOff','setPitch','setMuteMask','stop']);
 class SdspSynthProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}) {
     super();this.dead=false;this.instrument=null;this.acceptedBrrData='';this.acceptedModBrrData='';

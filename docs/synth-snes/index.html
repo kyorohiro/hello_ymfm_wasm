@@ -10,7 +10,7 @@
   <title>Tetorica S-DSP Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_sdsp_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_sdsp_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=sound-library-1">
+  <link rel="stylesheet" href="./synth.css?v=channel-mixer-1">
 </head>
 <body>
   <main>
@@ -76,12 +76,19 @@
         <aside id="snesFilesPanel" class="snes-files-panel" aria-label="Project files" hidden></aside>
         <div class="snes-main">
       <section id="spcSongPlayer" class="snes-song-player" aria-label="SPC song playback">
-        <div class="snes-song-transport"><strong id="spcSongTitle">No SPC loaded</strong><button id="spcSongPlay" type="button" disabled>Play SPC</button><button id="spcSongPause" type="button" disabled>Pause</button><button id="spcSongStop" type="button" disabled>Stop</button></div>
+        <div class="snes-song-transport"><label for="snesSongSelect">SPC</label><select id="snesSongSelect" aria-label="SPC in Files"><option value="">Load SPC…</option></select><strong id="spcSongTitle">No SPC loaded</strong><button id="spcSongPlay" type="button" disabled>Play SPC</button><button id="spcSongPause" type="button" disabled>Pause</button><button id="spcSongStop" type="button" disabled>Stop</button></div>
         <div class="snes-song-seek"><input id="spcSongSeek" type="range" min="0" max="180" step="0.1" value="0" aria-label="SPC playback position in seconds" disabled><output id="spcSongPosition">0:00</output></div>
-        <div id="spcSongChannels" class="snes-song-channels" role="group" aria-label="SPC channel On / Off"></div>
         <p id="spcSongStatus" role="status">Load SPC from Menu or Sounds from SPC. Loading is silent.</p>
       </section>
 
+      <div class="snes-chip-tabs" role="tablist" aria-label="Sound chip editor"><button id="snesChipTab" type="button" role="tab" aria-selected="true" aria-controls="snesChipPanel">S-DSP</button><button id="snesMixerTab" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="snesMixerPanel">Mixer</button></div>
+      <section id="snesMixerPanel" role="tabpanel" aria-labelledby="snesMixerTab" hidden>
+        <h2>Mixer</h2><label>S-DSP Volume <input id="snesChipVolume" type="range" min="0" max="380" step="1" value="100"><output id="snesChipVolumeValue">100%</output></label><button id="snesMixerReset" type="button" disabled>Reset</button>
+        <div id="spcSongChannels" class="snes-song-channels" role="group" aria-label="S-DSP channel On / Off"></div><p>Shared source volume and physical channel On / Off for Keyboard, Code and SPC. Master remains the final output level. Muted modulators still drive PMON.</p>
+      </section>
+      <section id="snesChipPanel" role="tabpanel" aria-labelledby="snesChipTab">
+      <div class="snes-channel-controls"><div id="snesChannelTabs" role="tablist" aria-label="Auto and SPC channels"></div><label><input id="snesChannelLive" type="checkbox" checked>Live</label><button id="snesChannelCopy" type="button" disabled>Copy to Auto</button><p id="snesChannelStatus">Auto · edit and play</p></div>
+      <div id="snesChannelBody" role="tabpanel">
       <section class="spu-monitor sdsp-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
@@ -100,11 +107,10 @@
         </div>
       </section>
 
-      <div id="spcBrowser"></div>
 
       <section class="instrument-workspace sdsp-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">BRR · 8 hardware voices · round robin</p></div>
-        <div id="voiceEditor"></div>
+        <fieldset id="snesVoiceFields"><div id="voiceEditor"></div></fieldset>
       </section>
 
       <section class="instrument-toolbar" aria-label="Instrument files">
@@ -119,6 +125,9 @@
         </div>
         <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
       </section>
+
+      </div></section>
+      <div id="spcBrowser"></div>
 
       <section id="synthInputSection" class="keyboard-section snes-input-section" aria-labelledby="keyboardHeading" data-input-mode="keyboard">
         <h2 id="keyboardHeading" class="snes-sr-only">Performance input</h2>
@@ -173,6 +182,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=menu-labels-1"></script>
+  <script type="module" src="./synth.js?v=channel-mixer-1"></script>
 </body>
 </html>

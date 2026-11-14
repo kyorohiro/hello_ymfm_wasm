@@ -504,3 +504,7 @@ test('variable BRR modulator banks fill dry / Echo RAM safely and over-budget pa
     invalid.pmon.brr.data=p.pmon.brr.data;invalid.pmon.brr.basePitch=0;assert.throws(()=>instrument.setPreset(invalid));assert.deepEqual(instrument.read(),state);assert.deepEqual(core.snapshot().ram,ram);
   }
 });
+
+test('session mixer mask suppresses PCM without releasing voices and survives bank replacement',async t=>{
+ const {instrument}=await setup(t);instrument.noteOn('held',60);assert(peak(render(instrument,1024).left)>0);const held=instrument.read().voices;instrument.setMuteMask(255);render(instrument,256);assert.equal(peak(render(instrument,256).left),0);assert.deepEqual(instrument.read().voices,held);instrument.setMuteMask(0);assert(peak(render(instrument,256).left)>0);instrument.setMuteMask(255);instrument.loadPreset(createDefaultPreset());assert.equal(instrument.read().muteMask,255);instrument.noteOn('new',60);assert.equal(peak(render(instrument,1024).left),0);assert.throws(()=>instrument.setMuteMask(-1));
+});

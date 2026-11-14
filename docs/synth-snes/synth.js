@@ -1,18 +1,20 @@
+import {createSnesChannelView,spcVariant} from './channel_view.js';
+import {createSnesMixer,setupSnesChipTabs} from './mixer.js';
 // SPDX-License-Identifier: BSD-3-Clause
 import {createSnesLooper} from './looper.js';
 import {setupSnesLooperControls} from './looper_controls.js';
 import {createSpcLiveInspector} from './spc_live.js?v=sound-library-1';
 import {setupSnesMenu} from './menu.js';
-import {createSnesSongPlayer} from './song_player.js?v=spc-live-1';
-import {setupSnesSongControls} from './song_controls.js';
-import {setupSnesCodeHost} from './code_host.js?v=menu-labels-1';
+import {createSnesSongPlayer} from './song_player.js?v=channel-mixer-1';
+import {setupSnesSongControls} from './song_controls.js?v=channel-mixer-1';
+import {setupSnesCodeHost} from './code_host.js?v=channel-mixer-1';
 import {createSnesCodeClient} from './code_client.js';
-import {createAudio} from './audio.js?v=sdsp-spc-menu-1';
+import {createAudio} from './audio.js?v=channel-mixer-1';
 import {createEditor} from './editor.js?v=sdsp-live-wave-1';
 import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey, isWaveOnlyEdit} from './preset.js?v=sdsp-live-wave-1';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
 import {parseSpcVoices,parseSpcSnapshotVoices,MAX_SPC_BYTES} from './spc_import.js?v=spc-live-1';
-import {createSpcBrowser} from './spc_browser.js?v=spc-live-1';
+import {createSpcBrowser} from './spc_browser.js?v=channel-mixer-1';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -25,9 +27,10 @@ const status = (text, error = false) => {
 };
 const report = error => status(error?.message ?? String(error), true);
 let codeHost=null,songControls=null,looperControls=null,liveInspector=null;
-let looper=null;
+let looper=null,channelView=null,mixer=null,chipTabs=null,audition=null,previewSequence=0;
+const performancePreset=()=>audition??preset;
 const menu=setupSnesMenu();
-const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);liveInspector?.update(state);visualizer.setRunning(state.playing||Boolean(looper?.read().running)||notes.size>0||Boolean(codeHost?.isRunning()));}});
+const songPlayer=createSnesSongPlayer({ensureAudio,getAudio:()=>audio,onChange:state=>{songControls?.update(state);liveInspector?.update(state);channelView?.update(state);visualizer.setRunning(state.playing||Boolean(looper?.read().running)||notes.size>0||Boolean(codeHost?.isRunning()));}});
 let audio = null, opening = null, spcBrowser = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
@@ -40,7 +43,7 @@ const enqueue = action => {
   queue = task.catch(report);
   return task;
 };
-const capacity = () => pmonActive(preset) ? 4 : 8;
+const capacity = () => pmonActive(performancePreset()) ? 4 : 8;
 function updateKeys() {
   const keys = new Set([...notes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
@@ -58,6 +61,7 @@ function readVoices(state) {
   updateCapacity();
 }
 function updateCapacity() {
+  const preset=performancePreset();
   $('voiceCapacity').textContent = preset.source==='noise'
     ? `Hardware Noise · shared clock ${preset.noise.clock} · 8 voice envelopes · ${notes.size} held`
     : pmonActive(preset)
@@ -65,7 +69,9 @@ function updateCapacity() {
       : `${preset.source==='wave'?'128-point wave → BRR':'BRR sample'} · 8 hardware voices · round robin · ${notes.size} held`;
 }
 function updatePresetUi() {
+  const preset=performancePreset();
   editor.update(preset);
+  const viewing=channelView?.read().selected!==null&&Boolean(channelView);$('snesVoiceFields').disabled=viewing;$('voiceEditor').hidden=viewing&&!audition;document.querySelector('.instrument-toolbar').inert=viewing;
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) {
     if (preset.source === 'brr' || pmonActive(preset) && preset.pmon.source === 'brr') {$('codeOutput').hidden=true;$('codeOutput').value='';}
@@ -105,12 +111,12 @@ async function ensureAudio() {
       const engine = await createAudio({volume: Number($('masterVolume').value), onError: audioFailed});
       try {
         // Source edits remain available while WASM loads. Adopt the latest draft.
-        let applied, appliedPitch;
+        let applied, appliedPitch,appliedPreview;
         do {
-          applied = revision; appliedPitch = pitch;
-          await engine.command('loadPreset', [readPreset(preset)]);
+          applied = revision; appliedPitch = pitch;appliedPreview=previewSequence;
+          await engine.command('loadPreset', [readPreset(performancePreset())]);
           await engine.command('setPitch', [appliedPitch]);
-        } while (applied !== revision || appliedPitch !== pitch);
+        } while (applied !== revision || appliedPitch !== pitch||appliedPreview!==previewSequence);
         if (disposed) throw new Error('S-DSP Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         let client=null;
@@ -120,6 +126,7 @@ async function ensureAudio() {
           return client;
         };
         engine.stopCode=async()=>{const previous=client;client=null;await previous?.dispose();};
+        await mixer?.apply(engine);
         audio = engine;
         visualizer.connect(engine.context, engine.outputNode);
         $('startAudio').textContent = 'Audio ready';
@@ -134,6 +141,7 @@ async function ensureAudio() {
 }
 function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const next = readPreset(value);
+  channelView?.reset();audition=null;previewSequence++;
   if(!fromSpc) spcBrowser?.clearSelection();
   const previous = preset;
   const waveEdit = !load && isWaveOnlyEdit(previous,next);
@@ -188,22 +196,33 @@ async function loadSample(file,options,isBrr) {
 const editor=createEditor({root:$('voiceEditor'),onChange:value=>{void applyPreset(value).catch(report);},onError:report,
   onLoadAudio:(file,options)=>loadSample(file,options,false),onLoadBrr:(file,options)=>loadSample(file,options,true)});
 const spcCancelled = () => new DOMException('SPC import cancelled','AbortError');
-async function openSpc(file,{signal}={}) {
-  importSequence++;
-  if(disposed||signal?.aborted) throw spcCancelled();
-  if(!Number.isSafeInteger(file?.size)||file.size<0||file.size>MAX_SPC_BYTES) throw new RangeError('SPC must be at most 16 MiB');
-  const data=await file.arrayBuffer();
-  if(disposed||signal?.aborted) throw spcCancelled();
-  const candidates=parseSpcVoices(data,{name:file.name});
-  songPlayer.loadSource(data,{name:file.name,isCurrent:()=>!disposed&&!signal?.aborted});
-  return candidates;
+async function openSpc(file,{signal,onCommit=()=>{}}={}) {
+  const request=++importSequence;
+  if(disposed||signal?.aborted)throw spcCancelled();
+  if(!Number.isSafeInteger(file?.size)||file.size<0||file.size>MAX_SPC_BYTES)throw new RangeError('SPC must be at most 16 MiB');
+  const data=await file.arrayBuffer(),current=()=>!disposed&&!signal?.aborted&&request===importSequence;
+  if(!current())throw spcCancelled();
+  const candidates=parseSpcVoices(data,{name:file.name}),options=spcBrowser.getImportOptions();
+  const sounds=candidates.candidates.map(candidate=>spcVariant(candidate,options)?.preset).filter(Boolean);
+  const result=await codeHost.files.addSounds(sounds,{source:{name:file.name,bytes:new Uint8Array(data)},isCurrent:current,onCommit});
+  if(!result||!current())throw spcCancelled();
+  songPlayer.loadSource(data,{name:file.name,isCurrent:current});await mixer.apply();refreshSongFiles();$('snesSongSelect').value=result.sourcePath;return candidates;
+}
+async function openStoredSpc(file,{path,isCurrent}){
+  if(!isCurrent())return false;const data=file.data,candidates=parseSpcVoices(data,{name:path.split('/').pop()});
+  if(!isCurrent())return false;importSequence++;songPlayer.loadSource(data,{name:path.split('/').pop(),isCurrent});spcBrowser.showSource(candidates);await mixer.apply();$('snesSongSelect').value=path;return true;
+}
+function refreshSongFiles(){
+  if(!codeHost)return;const select=$('snesSongSelect'),current=select.value,files=codeHost.project.fs.list().filter(file=>file.type==='binary'&&/\.spc$/i.test(file.path));
+  const signature=files.map(file=>file.path).join('\n');if(select.dataset.signature===signature)return;select.dataset.signature=signature;
+  select.replaceChildren(new Option('Choose SPC in Files…',''),...files.map(file=>new Option(file.path.split('/').pop(),file.path)));select.value=files.some(file=>file.path===current)?current:'';
 }
 async function selectSpc(candidate,{includeEcho=false,includePmon=false,signal,onCommit}={}) {
   if(disposed||signal?.aborted) throw spcCancelled();
   if(typeof includeEcho!=='boolean') throw new TypeError('SPC Echo import option must be boolean');
   if(typeof includePmon!=='boolean') throw new TypeError('SPC PMON import option must be boolean');
   const pair=includePmon&&candidate?.voice.pitchModulation&&!candidate?.voice.noise;
-  const variant=pair?(includeEcho?candidate?.pmonEchoVariant:candidate?.pmonVariant):(includeEcho?candidate?.echoVariant:candidate);
+  const variant=spcVariant(candidate,{includeEcho,includePmon});
   if(!variant?.preset) throw new Error(variant?.reason??'This SPC voice is unavailable');
   const next=readPreset(variant.preset);
   const sourceLabel=pair?`PMON CH${candidate.pmonPair.modulatorVoice.index+1} → CH${candidate.voice.index+1}`
@@ -248,8 +267,9 @@ const choices = document.createElement('div'); choices.className = 'fretboard-ro
 for (const name of ['instrument','position','window']) choices.append(tools[name]);
 toolbar.append(summary,choices); $('keyboardFretboard').append(toolbar);
 let layout, keyboardSource;
-const keyboardMode = () => preset.source==='noise'?'noise':`${preset.source}:${Boolean(preset.brr.data)}:${preset.brr.rootNote}:${preset.brr.basePitch}:${pmonActive(preset)}:${preset.pmon.source}:${Boolean(preset.pmon.brr.data)}`;
+const keyboardMode = () => {const preset=performancePreset();return preset.source==='noise'?'noise':`${preset.source}:${Boolean(preset.brr.data)}:${preset.brr.rootNote}:${preset.brr.basePitch}:${pmonActive(preset)}:${preset.pmon.source}:${Boolean(preset.pmon.brr.data)}`;};
 function renderKeyboard() {
+  const preset=performancePreset();
   {
     keyboardSource = keyboardMode();
     layout = createFretboardLayout({state:fret});
@@ -277,6 +297,7 @@ function renderKeyboard() {
   updateKeys();
 }
 function canPlay(midi) {
+  const preset=performancePreset();
   if(!Number.isInteger(midi)||midi<0||midi>127||preset.source==='brr'&&!preset.brr.data) return false;
   if(preset.source==='noise') return true;
   if(pmonActive(preset)&&preset.pmon.source==='brr'&&!preset.pmon.brr.data)return false;
@@ -286,6 +307,7 @@ function canPlay(midi) {
 }
 function press(source, entry) {
   if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
+  if(channelView?.read().selected!==null&&channelView&&(songPlayer.read().playing||!audition)){status('Pause SPC and select a playable channel to audition.');return;}
   const note = {id:`sdsp-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
   notes.set(source,note); updateKeys();
   void enqueue(async () => {
@@ -297,7 +319,7 @@ function press(source, entry) {
     if (audio!==engine||note.epoch!==epoch) return;
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
-    const label=preset.source==='noise'?`Noise clock ${preset.noise.clock}`:midiToNoteName(note.midi);
+    const preset=performancePreset();const label=preset.source==='noise'?`Noise clock ${preset.noise.clock}`:midiToNoteName(note.midi);
     status(`${label} · ${notes.size}/${capacity()} ${pmonActive(preset)?'notes · hardware PMON':'voices'} · hardware ${preset.envelope.mode==='adsr'?'ADSR':'GAIN'}`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
@@ -319,7 +341,7 @@ function stopNotes(message) {
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
 $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void (async()=>{looper.stop();await songPlayer.stop();await codeHost.stop();await stopNotes();if(audio)await audio.command('stop');status('Stopped · instrument retained. Play to resume.');})().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
-  if(preset.source==='noise') return;
+  if(performancePreset().source==='noise') return;
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {
@@ -337,6 +359,7 @@ window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLo
 window.addEventListener('blur',()=>{stopNotes();setPitch(0);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden) {stopNotes();setPitch(0);}});
 function setPitchUi(value) {
+  const preset=performancePreset();
   const noise=preset.source==='noise';
   pitch=noise?0:value;
   for (const [wheel, output] of pitchWheels) {
@@ -347,6 +370,7 @@ function setPitchUi(value) {
   }
 }
 function setPitch(value) {
+  const preset=performancePreset();
   if(preset.source==='noise'){setPitchUi(0);return;}
   const previous=pitch;setPitchUi(value);
   if(audio) void enqueue(async()=>{
@@ -400,7 +424,9 @@ $('presetFileInput').addEventListener('change',async()=>{
     if(file.size>MAX_PRESET_BYTES) throw new Error('Preset must be at most 256 KiB');
     const next=readPreset(JSON.parse(await file.text()));
     if(disposed||token!==importSequence||draftRevision!==revision) return;
-    await applyPreset(next,{load:true,message:'Preset loaded · play the keyboard.'});
+    const added=await codeHost.files.addSounds([next],{isCurrent:()=>!disposed&&token===importSequence&&draftRevision===revision});
+    if(!added)return;if(disposed||token!==importSequence||draftRevision!==revision){status('Preset added to Files · current edit kept.');return;}
+    await applyPreset(next,{load:true,message:'Preset added to /presets and loaded · play the keyboard.'});
   }catch(error){report(error);}
 });
 $('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();void applyPreset(createDefaultPreset(),{load:true,message:'Instrument reset · Sine ready.'}).catch(report);});
@@ -415,18 +441,31 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){looper.stop();void songPlayer.pause().catch(report);void codeHost?.stop();stopNotes();return;}
-  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
+  disposed=true;epoch++;notes.clear();looper.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();liveInspector.dispose();spcBrowser.dispose();menu.dispose();looperControls?.dispose();channelView.dispose();chipTabs.dispose();unwatchSongFiles();songControls?.dispose();songPlayer.dispose();void (async()=>{try{await codeHost?.dispose();}finally{await audio?.dispose();audio=null;}})().catch(()=>{});
 });
 looper=createSnesLooper({ensureAudio,releaseNotes:()=>stopNotes(),
   beforeStart:async()=>{if(switchingAudioOutput)throw new Error('Wait for audio output switching.');if(codeHost?.isCodeMode()||codeHost?.isRunning())throw new Error('Stop Code and choose Keyboard to use Looper.');await stopNotes();},
   onChange:()=>{looperControls?.update();visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));}});
 looperControls=setupSnesLooperControls({looper,isBlocked:()=>switchingAudioOutput||Boolean(codeHost?.isCodeMode()||codeHost?.isRunning()),onError:report});
-songControls=setupSnesSongControls({player:songPlayer,onError:report});
+mixer=createSnesMixer({getAudio:()=>audio,player:songPlayer,onChange:()=>chipTabs?.update()});
+chipTabs=setupSnesChipTabs({mixer,onError:report});
+channelView=createSnesChannelView({player:songPlayer,getOptions:()=>spcBrowser.getImportOptions(),onError:report,
+  onBeforeSelect:async value=>{if(value!==null)await codeHost?.stop();await stopNotes();},
+  onView(state){const token=++previewSequence;audition=state.selected===null?null:state.view?.preset??null;setPitchUi(0);updatePresetUi();
+    if(state.selected!==null&&state.playing)return stopNotes();
+    return enqueue(async()=>{if(disposed||token!==previewSequence||!audio)return;await audio.command('loadPreset',[performancePreset()]);if(token!==previewSequence)return;readVoices(await audio.read());}).catch(report);
+  },onCopy:candidate=>selectSpc(candidate,{...spcBrowser.getImportOptions(),onCommit:()=>spcBrowser.clearSelection()})});
+channelView.update(songPlayer.read());
+for(const id of ['spcIncludeEcho','spcIncludePmon'])$(id).addEventListener('change',()=>channelView.refresh());
+$('snesVoiceFields').addEventListener('pointerdown',event=>{if($('snesVoiceFields').disabled&&!event.target.closest('summary')){event.preventDefault();event.stopImmediatePropagation();}},true);
+$('snesSongSelect').addEventListener('change',()=>{const path=$('snesSongSelect').value;if(path)void codeHost.files.selectFile(path).catch(report);});
+songControls=setupSnesSongControls({player:songPlayer,onError:report,setMuteMask:value=>mixer.setMuteMask(value)});
 updatePresetUi();setVolume();setPitchUi(0);
-codeHost=setupSnesCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
+codeHost=setupSnesCodeHost({onBeforeRun:()=>channelView.read().selected===null?undefined:channelView.select(null),onOpenSource:openStoredSpc,ensureAudio,getAudio:()=>audio,getSettings:()=>readPreset(preset),
   applySettings:async(value,{isCurrent=()=>true}={})=>{if(!isCurrent())return false;await applyPreset(value,{load:true});return isCurrent();},
   stopLooper:()=>looper.stop(),clearLooper:()=>looper.clear(),stopSong:()=>songPlayer.stop(),stopKeyboard:()=>stopNotes(),setStatus:status,onActivity:()=>{looperControls?.update();visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning())||songPlayer.read().playing||Boolean(looper?.read().running));}});
-void codeHost.ready.catch(report);
+const unwatchSongFiles=codeHost.project.onDidChange(refreshSongFiles);
+void codeHost.ready.then(refreshSongFiles).catch(report);
 
 // Desktop adapters change only the final Master bus. The S-DSP, allocator
 // and output monitor keep using the same graph; ordinary sites expose no API.

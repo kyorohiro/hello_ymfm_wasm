@@ -37,7 +37,7 @@ function copyPath(project,path){
   return result;
 }
 export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
-  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},setStatus=()=>{},store=createSnesProjectStore(),document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},onOpenSource=async()=>false,setStatus=()=>{},store=createSnesProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('snesFilesPanel'),toggle=doc.getElementById('snesFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const saveSoundAs=doc.getElementById('snesSaveSoundAs'),presetSelect=doc.getElementById('snesPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('S-DSP Files mount is missing.');
@@ -100,7 +100,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   }
   function render(){
     if(disposed)return;const selectedPath=project.selectedPath??'';if(selected.textContent!==selectedPath)selected.textContent=selectedPath;
-    panel.setAttribute('aria-busy',String(busy));if(saveSoundAs)saveSoundAs.disabled=busy;
+    panel.setAttribute('aria-busy',String(busy));const sourceSelect=doc.getElementById('snesSongSelect');if(sourceSelect)sourceSelect.disabled=busy||!project.fs.list().some(file=>file.type==='binary'&&/\.spc$/i.test(file.path));if(saveSoundAs)saveSoundAs.disabled=busy;
     const files=project.fs.list().filter(file=>!isCheckpointPath(file.path));renderPresets(files);
     renderFileTree(tree,[...files,...project.fs.listDirectories().filter(path=>path!=='/'&&!isCheckpointPath(path)).map(path=>({path,type:'directory'}))],{
       selectedPath:project.selectedPath,expanded,onOpen:path=>void selectFile(path).catch(report),
@@ -126,6 +126,9 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
     await api.ready;if(disposed||busy)return false;const token=++operation;
     await code?.flush?.();if(disposed||token!==operation)return false;
     path=normalizeVirtualPath(path);const file=project.fs.get(path);if(!file)throw Error('Choose a file.');
+    if(file.type==='binary'&&/\.spc$/i.test(path)){
+      if(await onOpenSource(file,{path,isCurrent:()=>!disposed&&token===operation})){if(disposed||token!==operation)return false;project.select(path);render();schedule();say('SPC loaded from Files. Press Play to start.');return true;}
+    }
     if(isSnesCodePath(path)){project.select(path);render();return await openInCurrentMode(path);}
     let sound=null,soundError=null;
     if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readSnesProjectSound(file.data);}catch(error){soundError=error;}}
@@ -245,6 +248,21 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
       say('Current S-DSP instrument saved to '+path+(persisted===false?' in Files. Local save unavailable; export the project to keep it.':''));return path;
     }finally{if(!disposed){setBusy(false);if(token===operation&&saveEditRevision!==editRevision){project.setSettings(getSettings());schedule();}}}
   }
+  async function addSounds(sounds,{source,isCurrent=()=>true,onCommit=()=>{}}={}){
+    await api.ready;if(disposed||busy||!isCurrent())return false;
+    const beforeEdit=editRevision,token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
+    const candidate=createSnesCodeProject({snapshot:project.snapshot()}),paths=[];
+    for(const value of sounds){const sound=readSnesProjectSound(value);if(!sound)throw Error('Expected a S-DSP instrument.');const path=newSoundPath(candidate,sound.name);candidate.importFiles([{path,type:'text',data:JSON.stringify(sound,null,2)+'\n'}]);paths.push(path);}
+    let sourcePath=null;
+    if(source){
+      const stem=soundFileStem(source.name,/\.spc$/i);let index=1;sourcePath=`/spc/${stem}.spc`;while(occupied(candidate,sourcePath))sourcePath=`/spc/${stem} (${++index}).spc`;
+      candidate.importFiles([{path:sourcePath,type:'binary',data:source.bytes}]);
+    }
+    if(!current())return false;onCommit();if(!current())return false;
+    setBusy(true,{lockMain:false});
+    try{project.fs.restore(candidate.fs.snapshot());if(sourcePath)project.select(sourcePath);if(sourcePath)reveal(sourcePath);for(const path of paths)reveal(path);setVisible(true);render();const saved=await persistCode();say(`Added ${paths.length} sound(s) to /presets.${sourcePath?' Original SPC saved in '+sourcePath+'.':''}${saved===false?' Files are in memory; local save unavailable. Export Cassette to keep them.':''}`);return {paths,sourcePath};}
+    finally{if(!disposed){setBusy(false);if(token===operation&&beforeEdit!==editRevision){project.setSettings(getSettings());schedule();}}}
+  }
   function download(bytes,filename,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),link=make('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function ask(action,path=project.selectedPath){
     if(disposed||busy)return;dialogAction=action;dialogPath=path;
@@ -280,7 +298,7 @@ export function setupSnesCodeFiles({project=createSnesCodeProject(),getSettings=
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,addSounds,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
     async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };

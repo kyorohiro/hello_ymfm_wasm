@@ -119,7 +119,7 @@ without a second menu or second speaker connection.
 
 Choose **Menu → Import → SPC…**, or **Sounds from SPC →
 Load SPC…**. A valid load prepares both the original snapshot's sound candidates
-and the SPC player. It keeps the edited instrument and remains silent until you
+and the SPC player. Playable initial voices are added to `/presets`, using the current Echo / PMON import options; the original file is kept under `/spc`. Existing files are kept with numbered collision suffixes. The complete batch is validated against the project size limit before it is added. It keeps the Auto instrument and remains silent until you
 press **Play SPC**.
 
 The song player executes the SPC700 driver and S-DSP from the file's RAM / DSP
@@ -143,10 +143,7 @@ Choose a channel's **Load sound** to take a fresh atomic RAM / DSP snapshot and 
 
 The sound-candidate list below shows the file's initial snapshot. It does not follow
 the current playback position. Choosing a candidate edits the instrument for
-keyboard / Code audition, without rewriting the song. The loaded song is held
-for this session; reopen its SPC file after reloading the page. No recording or
-automatic event export is included. SPC playback and file loads do not modify
-existing saved presets or Code.
+keyboard / Code audition, without rewriting the song. The selected playback position is session-only. Original SPC files saved in `/spc` can be selected again after reload. New imports add presets while keeping earlier files and Code. No recording or automatic event export is included.
 
 ## Sounds from SPC
 
@@ -593,3 +590,13 @@ The capture tap reads only the live instrument before Master. SPC songs and prev
 **Undo** cancels a take in progress or removes the last layer. **Clear** removes all layers. Looper Stop / Start, Stop all sound and native output switching retain completed layers. Output switching cancels an unfinished take and stops loop playback before changing the final route. Entering Code stops the Looper and retains completed layers; loading a project clears it. Looper is unavailable while Code runs. Space inside text fields, buttons, menus and editors keeps its normal meaning.
 
 Limits: 16 layers, a 120 second period / take, 128 MiB of retained stereo audio, and a minimum 0.05 second first take. The remaining memory budget can shorten recording; recording stops automatically at its limit. Layers live only in this session and are not included in preset / Cassette exports or restored after reload. No Event Rec or event JSON import / export is added.
+
+## S-DSP / Mixer and Auto / CH1–CH8
+
+The main view follows the other Synth apps: **S-DSP** and **Mixer** tabs, then **Auto** / **CH1–CH8**. Auto owns the authored instrument used by Files and Code. A numbered CH displays that physical SPC voice from the initial snapshot or sampled playback state. Live follows playback; turning it off freezes the view, while Pause / Seek refresh the frozen destination. Auto's preset is never replaced merely by selecting or following a CH.
+
+During playback, CH parameters are inspection-only. Pause to audition the selected snapshot on the existing authored S-DSP without replacing Auto; switch back to Auto to restore its bank. This is an independent snapshot audition, not injection of notes or DSP edits into the original SPC machine. **Copy to Auto** explicitly adopts the displayed voice / optional PMON pair with the existing Echo / PMON import settings. Edit and save in Auto. Code Run returns to Auto. ENVX / OUTX are sampled hints; original envelope / decoder histories are not reconstructed.
+
+Mixer provides one S-DSP source gain (0–380%) and eight physical channel On / Off switches shared by the authored instrument, Code and SPC. Muting does not inject Key Off or stop envelopes; a muted PMON modulator can still modulate its carrier. Gain is after the Code output chain and before the final Master. Context recreation, source replacement and bank replacement reapply the session's mixer settings. No extra speaker route or Tauri menu is created. Mixer values remain session controls, outside instrument presets.
+
+SPC imports automatically add available initial voice presets and the original SPC to Files, preserving the current Auto sound. Invalid or oversized batches leave prior Files intact. Unsupported voices are skipped. Reopen a stored SPC through the source selector / Files without extracting another batch. Portable JSON preset imports also add a copy to `/presets` before applying it to Auto. Cassette ZIP includes the original SPC and extracted presets. Importing a project or choosing a saved source never starts audio or Code automatically.

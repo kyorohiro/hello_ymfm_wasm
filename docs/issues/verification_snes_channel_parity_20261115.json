@@ -1,0 +1,278 @@
+{
+  "date": "2026-11-15",
+  "baseCommit": "fd85f14d",
+  "unitTests": {
+    "passed": 172,
+    "failed": 0
+  },
+  "package": {
+    "passed": true,
+    "stage": "/private/tmp/snes-parity-review/itch_sdsp_synth_channel-parity-complete-20261115-G0pWap",
+    "archive": "/private/tmp/snes-parity-review/tetorica_sdsp_synth_channel-parity-complete-20261115_itch.zip",
+    "files": 146,
+    "bundles": 6,
+    "archiveRecord": {
+      "bytes": 1545253,
+      "sha256": "83f4e6d30b2e7af387161b43d1114c86966cd5df74c861a5c98526ee9ee60550"
+    },
+    "sourceCheck": {
+      "inputs": 43,
+      "sdkVersion": "0.1.8-huc-state"
+    }
+  },
+  "currentSourceHashesMatchPackage": 118,
+  "browser": {
+    "complete": {
+      "passed": true,
+      "desktopAdapter": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-sdsp-synth-tauri/desktop/desktop-interface.js",
+      "results": [
+        {
+          "engine": "chromium",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1–8 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "chromium",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1–8 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": false,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1–8 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "engine": "webkit",
+          "native": true,
+          "passed": true,
+          "checks": [
+            "S-DSP / Mixer and Auto / CH1–8 start passive with one Menu",
+            "SPC import adds playable /presets and original /spc without changing Auto or starting audio",
+            "CH selection displays a detached snapshot; Auto restores the authored sound",
+            "Live CH playback follows position; Pause enables audition without replacing Auto",
+            "Copy adopts the selected CH into Auto explicitly",
+            "Mixer channel switches mute real keyboard PCM without releasing notes; group volume uses the same final Master",
+            "duplicate imports keep earlier presets and source bytes; saved SPC reopens without another extraction",
+            "reload keeps original SPC and extracted sounds; source selection is passive",
+            "chip tabs and channel tabs fit narrow screens and Tauri still mounts a single Menu"
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    "native-complete": {
+      "passed": true,
+      "rows": [
+        {
+          "engine": "chromium",
+          "desktopToolbar": true,
+          "pin": true,
+          "nativePresetBinarySave": true,
+          "reloadCancel": true,
+          "spcMenuChooser": true,
+          "presetFileImport": true,
+          "keyboardAfterMenus": true,
+          "nativeCapturePcm": true,
+          "switchPreservesPreset": true,
+          "nativeFailureFallback": true,
+          "switchStopsAllSourcesAndPitch": true,
+          "switchBlocksPerformance": true,
+          "nativeSaveCancel": true,
+          "presetLoadCancel": true,
+          "presetV5": true,
+          "spcPmonPairImport": true,
+          "capturedPitches": [
+            2048,
+            3072
+          ],
+          "waveDrawing": true,
+          "brrMenuImport": true,
+          "wavMenuImport": true,
+          "audioImportCancelKeepsSound": true,
+          "embeddedDualBrrSave": true,
+          "allSourcesQuiesce": true,
+          "eightWaveVoices": true,
+          "eightNoiseVoices": true,
+          "fourPmonPairs": true,
+          "oneAudioContext": true,
+          "spcNativeSharedRoute": true,
+          "looperNativeSharedRoute": true,
+          "mobileOverflow": 0,
+          "nativeCredits": 9,
+          "nativePrefillPackets": 4,
+          "mockedDeviceRate": 48000,
+          "nativePackets": 45,
+          "nativePeak": 0.06512649357318878,
+          "nativeFinite": true,
+          "pageErrors": [],
+          "missingAssets": [],
+          "nativeHost": "mocked Tauri IPC; no CPAL device",
+          "physicalOutput": "muted"
+        },
+        {
+          "engine": "webkit",
+          "desktopToolbar": true,
+          "pin": true,
+          "nativePresetBinarySave": true,
+          "reloadCancel": true,
+          "spcMenuChooser": true,
+          "presetFileImport": true,
+          "keyboardAfterMenus": true,
+          "nativeCapturePcm": true,
+          "switchPreservesPreset": true,
+          "nativeFailureFallback": true,
+          "switchStopsAllSourcesAndPitch": true,
+          "switchBlocksPerformance": true,
+          "nativeSaveCancel": true,
+          "presetLoadCancel": true,
+          "presetV5": true,
+          "spcPmonPairImport": true,
+          "capturedPitches": [
+            2048,
+            3072
+          ],
+          "waveDrawing": true,
+          "brrMenuImport": true,
+          "wavMenuImport": true,
+          "audioImportCancelKeepsSound": true,
+          "embeddedDualBrrSave": true,
+          "allSourcesQuiesce": true,
+          "eightWaveVoices": true,
+          "eightNoiseVoices": true,
+          "fourPmonPairs": true,
+          "oneAudioContext": true,
+          "spcNativeSharedRoute": true,
+          "looperNativeSharedRoute": true,
+          "mobileOverflow": 0,
+          "nativeCredits": 9,
+          "nativePrefillPackets": 4,
+          "mockedDeviceRate": 48000,
+          "nativePackets": 40,
+          "nativePeak": 0.06512968987226486,
+          "nativeFinite": true,
+          "pageErrors": [],
+          "missingAssets": [],
+          "nativeHost": "mocked Tauri IPC; no CPAL device",
+          "physicalOutput": "muted"
+        }
+      ]
+    }
+  },
+  "regressionsOnPreviousPreview": {
+    "spc": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 8
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 8
+      }
+    ],
+    "instrument": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 25
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 25
+      }
+    ],
+    "retained-audio": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 9
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 9
+      }
+    ],
+    "code": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 13
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 13
+      }
+    ],
+    "live": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 8
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 8
+      }
+    ],
+    "library": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "checks": 8
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "checks": 8
+      }
+    ]
+  },
+  "limits": [
+    "CH tabs inspect sampled SPC state and audition detached snapshots while paused. Copy to Auto is required for editing; no direct edits of the SPC driver or note injection.",
+    "Import extracts available initial voices, not every future driver instrument. Existing Echo / PMON and BRR tuning / envelope limitations apply.",
+    "Mixer is session-only. Original SPCs and extracted presets are stored in Files / Cassette ZIP; playback position is session-only.",
+    "All physical output muted; no human listening or physical CPAL device verification.",
+    "No Tauri adapter change, SDK/WASM rebuild, commit, push, tag, release or dist import. No new Looper or Event Rec features."
+  ]
+}

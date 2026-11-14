@@ -163,7 +163,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
     op.fileName = text(file.name);
     setStatus('Reading ' + text(file.name) + '… Current instrument kept.');
     try {
-      const next = await onOpen(file, {signal:op.controller.signal});
+      const next = await onOpen(file, {signal:op.controller.signal,onCommit(){if(!current(op))throw abortError();op.committing=true;refresh();}});
       if (!current(op)) return;
       if (!next || !Array.isArray(next.candidates)) throw new TypeError('SPC import returned no voice candidates');
       batch = next; selectedId = null; selectedMode = null; showBatch();
@@ -238,6 +238,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   });
   refresh();
   return {
+    showSource(next){if(disposed)return;cancelOperation();batch=next;selectedId=null;selectedMode=null;showBatch();setStatus(availabilityStatus());},
     liveRoot,getImportOptions:()=>({includeEcho:includeEcho.checked,includePmon:includePmon.checked}),
     clearSelection() {if (!disposed) {selectedId = null; selectedMode = null; refresh();}},
     dispose() {

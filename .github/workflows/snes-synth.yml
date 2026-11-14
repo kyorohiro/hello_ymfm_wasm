@@ -93,6 +93,7 @@ jobs:
           node scripts/check_snes_synth_spc_browser.cjs --out release/snes-spc-source-browser.json
           node scripts/check_snes_synth_spc_live_browser.cjs --out release/snes-spc-live-source-browser.json
           node scripts/check_snes_synth_sound_library_browser.cjs --out release/snes-sound-library-source-browser.json
+          node scripts/check_snes_synth_channel_parity_browser.cjs --out release/snes-parity-source-browser.json
           node scripts/check_snes_synth_looper_browser.cjs --out release/snes-looper-source-browser.json
       - name: Package and play the independent ZIP
         run: |
@@ -102,6 +103,7 @@ jobs:
           node scripts/check_snes_synth_spc_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-spc-browser.json
           node scripts/check_snes_synth_spc_live_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-spc-live-browser.json
           node scripts/check_snes_synth_sound_library_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-sound-library-browser.json
+          node scripts/check_snes_synth_channel_parity_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-parity-browser.json
           node scripts/check_snes_synth_looper_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-looper-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
@@ -119,4 +121,6 @@ jobs:
             release/snes-looper-*.png
             release/snes-sound-library-*.json
             release/snes-sound-library-*.png
+            release/snes-parity-*.json
+            release/snes-parity-*.png
           if-no-files-found: ignore

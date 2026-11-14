@@ -17,7 +17,7 @@ export class SnesInstrument {
   constructor(core) {
     if(!core||typeof core.writeDsp!=='function'||typeof core.renderInto!=='function'||typeof core.reset!=='function') throw new TypeError('Expected a SnesDspCore');
     this.core=core;this.synth=new SnesSynth({core});this.preset=createDefaultPreset();
-    this.disposed=false;this.pitch=0;this.cursor=0;this.sequence=0;this.generation=0;
+    this.disposed=false;this.muteMask=0;this.pitch=0;this.cursor=0;this.sequence=0;this.generation=0;
     this.voices=new Map();this.slots=Array(8).fill(null);this.sample=null;this.modulatorSample=null;
     this._replace(this.preset);
   }
@@ -45,6 +45,7 @@ export class SnesInstrument {
     this.sample=prepared.bytes.length?this.synth.loadBRR(prepared.bytes,prepared.options):null;
     this.modulatorSample=prepared.modulator?.bytes.length?this.synth.loadBRR(prepared.modulator.bytes,prepared.modulator.options):null;
     this.voices.clear();this.slots.fill(null);this.cursor=0;this.generation++;
+    this.core.setMuteMask(this.muteMask);
     this.preset=p;if(p.source==='noise')this.pitch=0;this._applyChannels();
   }
   _editWaves(next) {
@@ -104,7 +105,7 @@ export class SnesInstrument {
   }
   read() {
     this._open();this._prune();
-    return {preset:readPreset(this.preset),voices:[...this.voices.values()].map(({id,midi,channel,modulatorChannel})=>({id,midi,channel,...(modulatorChannel===undefined?{}:{modulatorChannel})})),
+    return {muteMask:this.muteMask,preset:readPreset(this.preset),voices:[...this.voices.values()].map(({id,midi,channel,modulatorChannel})=>({id,midi,channel,...(modulatorChannel===undefined?{}:{modulatorChannel})})),
       tails:this.slots.filter(voice=>voice?.released).map(({id,channel,modulatorChannel})=>({id,channel,...(modulatorChannel===undefined?{}:{modulatorChannel})})),capacity:this._channels().length,pitch:this.pitch,generation:this.generation,
       nativeFrames:this.core.nativeFrames,sample:this.sample?{...this.sample}:null,modulatorSample:this.modulatorSample?{...this.modulatorSample}:null,
       pmon:{enabled:this.preset.pmon.enabled,active:pmonActive(this.preset),ratio:this.preset.pmon.ratio},pmonRegisters:{mask:this.core.readDsp(0x2d)},
@@ -116,6 +117,7 @@ export class SnesInstrument {
         fir:Array.from({length:8},(_,index)=>this.core.readDsp(0x0f+index*16))},
       registers:Array.from({length:8},(_,channel)=>Array.from({length:10},(_,register)=>this.core.readDsp((channel<<4)+register)))};
   }
+  setMuteMask(mask){this._open();if(!Number.isInteger(mask)||mask<0||mask>255)throw new RangeError('S-DSP mute mask must be 0..255');this.muteMask=mask;this.core.setMuteMask(mask);return this.read();}
   setPreset(value) {
     this._open();const next=readPreset(value);
     if(isWaveOnlyEdit(this.preset,next))this._editWaves(next);

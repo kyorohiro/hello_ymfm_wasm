@@ -10,19 +10,19 @@ const nativeSetTimeout=globalThis.setTimeout.bind(globalThis),nativeClearTimeout
  * pre-Master input. Source selection is passive; no independent speaker route. */
 export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},createEndpoint=createSpcAudio,createClient=createSpcClient,
   schedule=nativeSetTimeout,cancel=nativeClearTimeout}={}){
-  let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='';
-  const read=()=>({mode,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,muteMask,error,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
-    source:source?{name:source.name,title:display(source.metadata.title),game:display(source.metadata.game),artist:display(source.metadata.artist),durationSeconds:source.metadata.durationSeconds??null}:null});
+  let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='',analysis=null,analysisRevision=0,sourceSequence=0;
+  const read=()=>({mode,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,muteMask,error,analysisRevision,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
+    source:source?{id:source.id,name:source.name,title:display(source.metadata.title),game:display(source.metadata.game),artist:display(source.metadata.artist),durationSeconds:source.metadata.durationSeconds??null}:null});
   const notify=()=>{if(!disposed)onChange(read());};
   const clearTimer=()=>{if(timer!==null){cancel(timer);timer=null;}};
-  function retire(){generation++;inspection=null;inspectionError='';clearTimer();const previous=route;route=null;const pending=opening;opening=null;pending?.controller.abort(aborted());for(const owner of [previous,pending]){owner?.cleanup?.();owner?.client?.dispose();owner?.endpoint?.dispose();}}
+  function retire(){generation++;analysis=null;inspection=null;inspectionError='';clearTimer();const previous=route;route=null;const pending=opening;opening=null;pending?.controller.abort(aborted());for(const owner of [previous,pending]){owner?.cleanup?.();owner?.client?.dispose();owner?.endpoint?.dispose();}}
   function check(token){if(disposed||token!==operation)throw aborted();}
   function apply(state,next){position=state.positionSeconds??position;mode=next??(state.playing?'playing':'paused');error='';notify();pollLater();}
   function pollLater(){clearTimer();if(disposed||mode!=='playing'||!route)return;timer=schedule(()=>{timer=null;void poll();},200);}
   async function inspect(owner,token){
     try{const snapshot=await owner.client.snapshot();
       if(disposed||token!==operation||owner!==route)return;
-      inspection={positionSeconds:snapshot.positionSeconds??position,voices:readSnesVoices(snapshot),noiseClock:snapshot.dsp[0x6c]&31};inspectionError='';
+      analysis=snapshot;analysisRevision++;inspection={positionSeconds:snapshot.positionSeconds??position,voices:readSnesVoices(snapshot),noiseClock:snapshot.dsp[0x6c]&31};inspectionError='';
     }catch(cause){if(!disposed&&token===operation&&owner===route)inspectionError=cause?.message??String(cause);}
   }
   async function poll(){const current=route,token=operation;
@@ -60,6 +60,7 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
     catch(cause){if(cause?.name==='AbortError'||disposed||token!==operation)return false;fail(cause);throw cause;}
   }
   const api={read,
+    analysis(){const snap=analysis??source?.initial;if(!snap)return null;return {snapshot:{ram:snap.ram.slice(),dsp:snap.dsp.slice(),positionSeconds:snap.positionSeconds??0},name:source.name,metadata:{...source.metadata}};},
     async capture(){
       if(!route||disposed||['loading','seeking'].includes(mode))throw Error('Play or seek the SPC before capturing a channel.');
       const owner=route,token=operation,currentSource=source;
@@ -68,7 +69,7 @@ export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},creat
     },
     loadSource(input,{name='SPC file',isCurrent=()=>true}={}){
       const parsed=parseSpcFile(input);if(disposed||!isCurrent())return false;
-      operation++;retire();source={name:display(name),bytes:parsed.originalBytes.slice(),metadata:{...parsed.metadata}};mode='stopped';position=0;muteMask=0;error='';notify();return true;
+      operation++;retire();analysisRevision++;source={id:++sourceSequence,name:display(name),bytes:parsed.originalBytes.slice(),metadata:{...parsed.metadata},initial:{ram:parsed.ram,dsp:parsed.dsp,positionSeconds:0}};mode='stopped';position=0;muteMask=0;error='';notify();return true;
     },
     play:()=>perform(client=>client.play(),'loading'),
     async pause(){

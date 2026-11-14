@@ -163,3 +163,17 @@ test('Save sound as dialog freezes its source at open and Cancel adds no file',a
 test('edits during a slow sound save remain current and do not rewrite the saved copy',async t=>{
  const gate=deferred(),entered=deferred(),writes=[];const f=fixture(t,{store:{read:async()=>null,write:async snapshot=>{writes.push(structuredClone(snapshot));entered.resolve();await gate.promise;return true;},close:async()=>{}}});await f.files.ready;const saving=f.files.saveSound({name:'Before edit'});await entered.promise;const changed=createDefaultPreset();changed.source='noise';changed.noise.clock=9;f.setSettings(changed);f.files.markSoundDirty();gate.resolve();await saving;assert.deepEqual(f.project.settings,changed);assert.equal(JSON.parse(f.project.fs.get('/presets/Before edit.sdsp.json').data).source,'wave');await f.files.persistCode();assert.deepEqual(writes.at(-1).settings,changed);
 });
+
+test('SPC batch import atomically saves independent presets and original source without applying or running Code',async t=>{
+ const f=fixture(t);await f.files.ready;const before=f.project.settings;const first=createDefaultPreset(),second=createDefaultPreset();first.name='Song CH1';second.name='Song CH2';second.source='noise';const bytes=Uint8Array.of(1,2,3);
+ const added=await f.files.addSounds([first,second],{source:{name:'Song.spc',bytes}});assert.equal(added.paths.length,2);assert.equal(added.sourcePath,'/spc/Song.spc');assert.deepEqual(f.project.settings,before);assert.deepEqual(f.calls,[]);assert.deepEqual(f.opened,[]);bytes[0]=9;assert.deepEqual(f.project.fs.get(added.sourcePath).data,Uint8Array.of(1,2,3));
+ const again=await f.files.addSounds([first],{source:{name:'Song.spc',bytes}});assert.equal(again.sourcePath,'/spc/Song (2).spc');assert.equal(again.paths[0],'/presets/Song CH1 (2).sdsp.json');
+ const zip=await f.files.exportProject(),copy=createSnesCodeProject();copy.restore(await copy.prepareImport(zip));assert.deepEqual(copy.fs.get('/spc/Song.spc').data,Uint8Array.of(1,2,3));assert.equal(JSON.parse(copy.fs.get(added.paths[1]).data).source,'noise');
+});
+test('invalid or oversized source batches and superseded imports leave prior Files atomic',async t=>{
+ const f=fixture(t);await f.files.ready;const before=f.project.snapshot();await assert.rejects(f.files.addSounds([createDefaultPreset()],{source:{name:'large.spc',bytes:new Uint8Array(SNES_PROJECT_FILE_BYTES)}}),/16 MiB/);assert.deepEqual(f.project.snapshot(),before);assert.equal(await f.files.addSounds([createDefaultPreset()],{isCurrent:()=>false}),false);assert.deepEqual(f.project.snapshot(),before);await assert.rejects(f.files.addSounds([{format:'wrong'}]));assert.deepEqual(f.project.snapshot(),before);
+});
+
+test('edits during a slow source batch save stay current without altering extracted presets',async t=>{
+ const gate=deferred(),entered=deferred();const f=fixture(t,{store:{read:async()=>null,write:async()=>{entered.resolve();await gate.promise;return true;},close:async()=>{}}});await f.files.ready;const sound=createDefaultPreset(),pending=f.files.addSounds([sound],{source:{name:'saved.spc',bytes:Uint8Array.of(1)}});await entered.promise;const latest=createDefaultPreset();latest.source='noise';latest.noise.clock=7;f.setSettings(latest);f.files.markSoundDirty();gate.resolve();const result=await pending;assert.deepEqual(f.project.settings,latest);assert.equal(JSON.parse(f.project.fs.get(result.paths[0]).data).source,'wave');
+});
