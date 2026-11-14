@@ -193,7 +193,6 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .snes-inline-help { font-size:.73rem; color:var(--muted); margin:8px 0; }
 .snes-inline-help summary { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border:1px solid var(--line); border-radius:50%; cursor:pointer; font-weight:750; }
 .snes-inline-help p { max-width:80ch; line-height:1.6; }
-#voiceEditor[data-readonly="true"] { outline:1px solid #9986ac; outline-offset:4px; border-radius:8px; }
 .snes-file-context-menu,.spu-file-context-menu { background:#eeece7; }
 .snes-file-context-menu button:hover:not(:disabled),.spu-file-context-menu button:hover:not(:disabled) { background:#d6e6f2; }
 
@@ -268,13 +267,6 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #snesMixerPanel p { font-size:.76rem; }
 #snesSongSelect { max-width:100%; min-width:0; }
 
-.snes-spc-edit { border:1px solid var(--line); border-radius:10px; padding:14px; }
-.snes-spc-edit h3 { margin:0 0 10px; }
-.snes-spc-edit p { font-size:.76rem; line-height:1.6; }
-.snes-spc-edit-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); gap:12px; }
-.snes-spc-edit-fields label { display:grid; gap:5px; font-size:.76rem; }
-.snes-spc-edit-fields input,.snes-spc-edit-fields select { min-width:0; width:100%; box-sizing:border-box; padding:7px; }
-#spcChannelEditStatus[data-error="true"] { color:#a72f25; }
 #spcSongSeek {
   appearance:none; -webkit-appearance:none; height:6px; margin:12px 0; padding:0;
   border:1px solid var(--line); border-radius:999px; cursor:ew-resize;
@@ -297,9 +289,9 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 #synthMenuAudio p { font-size:.68rem; }
 
 /* CH register controls own editing; the existing sample view stays visible. */
-#voiceEditor[data-readonly="true"] :is(.sdsp-source-bar,#levelSection,#envelopeSection,.sdsp-sample-authoring) { display:none; }
+#voiceEditor[data-channel="true"] .sdsp-sample-authoring[inert] { opacity:.5; }
 .sdsp-captured-loop { display:none; margin:0 0 8px; color:var(--muted); font-size:.76rem; }
-#voiceEditor[data-readonly="true"] .sdsp-captured-loop { display:block; }
+#voiceEditor[data-channel="true"] .sdsp-captured-loop { display:block; }
 
 #snesChannelTabs button[data-pitch-zero="true"] { color:#99402f; border-color:#bc826b; background:#fff1e6; }
 #snesChannelTabs button[data-pitch-zero="true"]::after { content:' · 0'; font-size:.65rem; font-weight:800; }

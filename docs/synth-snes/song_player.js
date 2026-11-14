@@ -12,7 +12,7 @@ const nativeSetTimeout=globalThis.setTimeout.bind(globalThis),nativeClearTimeout
 export function createSnesSongPlayer({ensureAudio,getAudio,onChange=()=>{},createEndpoint=createSpcAudio,createClient=createSpcClient,
   schedule=nativeSetTimeout,cancel=nativeClearTimeout}={}){
   let source=null,mode='empty',position=0,muteMask=0,error='',disposed=false,operation=0,generation=0,route=null,opening=null,timer=null,inspection=null,inspectionError='',analysis=null,analysisRevision=0,sourceSequence=0,inspectionEpoch=0,editOwner=0,seekTarget=null;
-  const read=()=>({mode,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,seekTargetSeconds:seekTarget,muteMask,error,analysisRevision,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
+  const read=()=>({mode,transportRevision:operation,loaded:Boolean(source),playing:mode==='playing',busy:['loading','seeking'].includes(mode),positionSeconds:position,seekTargetSeconds:seekTarget,muteMask,error,analysisRevision,inspection:inspection?{positionSeconds:inspection.positionSeconds,voices:inspection.voices.map(voice=>({...voice})),noiseClock:inspection.noiseClock}:null,inspectionError,
     source:source?{id:source.id,name:source.name,title:display(source.metadata.title),game:display(source.metadata.game),artist:display(source.metadata.artist),durationSeconds:source.metadata.durationSeconds??null}:null});
   const notify=()=>{if(!disposed)onChange(read());};
   const clearTimer=()=>{if(timer!==null){cancel(timer);timer=null;}};
