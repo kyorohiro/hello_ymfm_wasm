@@ -90,6 +90,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     assert(player>=0&&player<channels&&channels<mix&&mix<sounds&&sounds<monitor,'Channel / Auto update and VGM outputs belong next to the transport, before Sounds and the monitor');
     for(let channel=1;channel<=6;channel++)assert.match(html,new RegExp(`id="hucSongChannel${channel}Toggle"[^>]*aria-pressed="true"`));
     assert.match(html,/<button id="hucSongCaptureButton"[^>]*>Capture to Synth<\/button>/);
+    assert.match(html,/<input id="hucSongSeek"[^>]*type="range"[^>]*step="0\.01"/);
+    assert.match(html,/<button id="hucSongCancelSeek"[^>]*>Cancel seek<\/button>/);
     assert.match(html,/<meta name="application-name" content="Tetorica HuC6280 Synth">/);
     assert.match(html,/<link rel="icon"[^>]+tetorica_huc6280_synth\.webp/);
     assert.match(html,/<link rel="apple-touch-icon"[^>]+tetorica_huc6280_synth\.webp/);

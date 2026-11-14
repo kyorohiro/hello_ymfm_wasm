@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "task": "HuC6280 Synth exact VGM Seek, cancellation and reconstruction timing",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "The VGM container includes a seconds-based range and precise position output. Drag input previews a destination; committing change seeks once. Arrow keys work, and explicit Home/End address exact zero/duration even when the range step cannot represent a fractional EOF.",
+    "Seek reconstructs a separate HuC6280/VgmPlayer/timeline cooperatively without scheduling its preparation audio. The retained old reference run, exact consumed position and unheard PCM are replaced only after a current candidate is ready.",
+    "Successful seeks preserve playing versus paused; stopped/ended seeks prepare paused, and playing-to-EOF ends naturally. The displayed channel, authored instrument and latest six output flags are kept. All six destination settings publish once even with Auto update Off.",
+    "Escape and Cancel restore the prior accepted position, phase and retained buffers. Cancellation acknowledgement is immediate while initialization/cleanup settles. Source replacement, Stop, Code Run, project replacement, disposal and superseding seeks cannot revive stale audio or positions. At most the old reference core plus one candidate is retained.",
+    "Rebuild work yields in bounded slices and publishes progress at no more than20Hz. Invalid PCM, initialization failure and timeout restore the old run. Capture and paused audition are unavailable during reconstruction, and queued hand notes are fenced.",
+    "Native PCM tails match uninterrupted Wave/LFO/Noise/DDA playback exactly at zero, interior boundaries and EOF; non44100Hz EOF uses the actual floored output frame count. Latest mute flags and recorded register observations remain independent.",
+    "Real Chromium/WebKit tests cover unfocused Safari range drags, Escape while held, synchronous blur/change reentrancy, body Escape during a committed seek, exact fractional EOF, cancellation feedback and stale owner fences. Cancel/commit state is fixed before blur can synchronously flush a change event.",
+    "Existing Mixer, Capture, Live, Code/Files, VGM transport, keyboard and extraction remain valid. The standalone ZIP retains readable modules and authenticated rebuild sources. Native WASM, SDK0.1.7, Master calibration and audio graph are unchanged."
+  ],
+  "node": {
+    "passed": 389,
+    "failed": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-seek-20261114/node-tests-d.log",
+      "bytes": 42174,
+      "sha256": "7961430f93f1cec83bd2de87cec60c531d30f4e9b1234cdec9058c5e4512df21"
+    }
+  },
+  "browsers": {
+    "suites": 7,
+    "runs": 14,
+    "checks": 154,
+    "results": [
+      {
+        "suite": "seek",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/seek-d.json",
+          "bytes": 26638,
+          "sha256": "17c3ee538fea2daaf4ebaa670a899264ba4bef8fa8f4412244e92f3b6373bcb0"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "mixer",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/mixer-d.json",
+          "bytes": 28649,
+          "sha256": "fe722858ab94c8509813663269826cbe2b15c20fa3ef579253e38c0bc691b222"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/capture-d.json",
+          "bytes": 35665,
+          "sha256": "d80b442155fd7dd56effb174412cc725056cc55b7f1ea82b0bcc6659a3069ad9"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/live-d.json",
+          "bytes": 110368,
+          "sha256": "809183aa8680781911f9758d7bba2ea514c7364a8bf3d0c849b8d367de867606"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/code-d.json",
+          "bytes": 19805,
+          "sha256": "cab8be3a6d2ebd729c91b9151e56f0c47d335e4309ffa1ef4da3853911bdf4cf"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "song",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/song-d.json",
+          "bytes": 29873,
+          "sha256": "eeb97dc9719ce0589a3568540da33afcca2a0ffee9514e8dc98fc4b9176a0c40"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "legacy",
+        "receipt": {
+          "path": "build/verification/huc-seek-20261114/legacy-d.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      }
+    ],
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsVisuallyInspected": true
+  },
+  "reconstructionBenchmark": {
+    "receipt": {
+      "path": "build/verification/huc-seek-20261114/seek-benchmark.json",
+      "bytes": 3572,
+      "sha256": "fd0880be5f311a998db1dd9ab515959e7aebb779fc88e8841ffad0085721a0f2"
+    },
+    "reproduce": "node docs/synth-huc6280/song_seek_benchmark.mjs",
+    "environment": {
+      "node": "v26.12.0",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "method": "Actual WASM isolated rebuild, retained old paused run; preloaded WASM binary, Node timer yields, no native state/cache, no audio device"
+    },
+    "fixtures": [
+      "wave",
+      "lfo",
+      "noise",
+      "dda"
+    ],
+    "summary": [
+      {
+        "targetSeconds": 5,
+        "minimumMilliseconds": 175,
+        "maximumMilliseconds": 259
+      },
+      {
+        "targetSeconds": 30,
+        "minimumMilliseconds": 1051,
+        "maximumMilliseconds": 1517
+      },
+      {
+        "targetSeconds": 120,
+        "minimumMilliseconds": 4340,
+        "maximumMilliseconds": 5930
+      }
+    ],
+    "maximumReferenceCores": 2,
+    "nativeHeapBytesPerCore": 16908288,
+    "cacheImplemented": false,
+    "cacheDecision": "Keep bounded replay with progress/cancel in this change. Long seeks take seconds; a reusable checkpoint cache remains explicit follow-up work requiring validated native/parser/resampler/stream state. No raw WASM heap copies or register-only phase approximation. These are local Node fixture measurements, not browser or game guarantees."
+  },
+  "package": {
+    "zip": "release/tetorica_huc6280_synth_huc-seek-20261114d_itch.zip",
+    "stage": "release/itch_huc6280_synth_huc-seek-20261114d-52DoFg",
+    "files": 135,
+    "bytes": 1804434,
+    "sha256": "da9ad032fa994a95cd032a0a5941a4c4cb8b3277b484c31349776c92aa6b1adb",
+    "sourceCheck": {
+      "inputs": 12,
+      "files": 18,
+      "sdkVersion": "0.1.7"
+    },
+    "integrityReceipt": {
+      "path": "build/verification/huc-seek-20261114/zip-integrity-d.json",
+      "bytes": 137,
+      "sha256": "c4f56ab4f7dc65b501136db951de3315cd3c5dbdc9c7612446c0e8e63109d6f7"
+    },
+    "sourceParityReceipt": {
+      "path": "build/verification/huc-seek-20261114/source-parity-d.json",
+      "bytes": 334,
+      "sha256": "c9fba2df40ce830dff5196e6543f74d884412800dbb9740032d4c59e54104a04"
+    }
+  },
+  "ci": "HuC6280 workflow includes the new muted Seek checker and artifacts alongside existing suites on the standalone ZIP. GitHub Actions was not dispatched.",
+  "scope": "No physical listening, long-duration device test, commercial-game comparison, user project storage changes, commit, push, tag, publication, Tauri update, public npm/native API change or native snapshot cache. Direct VGM interaction and a reusable reconstruction cache remain follow-up tasks."
+}

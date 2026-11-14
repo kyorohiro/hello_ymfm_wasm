@@ -10,18 +10,19 @@ import {wave} from './song_test_helpers.mjs';
 class Element{
   constructor(){this.listeners=new Map();this.children=[];this.dataset={};this.attributes={};this.value='';this.textContent='';}
   addEventListener(type,fn){this.listeners.set(type,fn);}removeEventListener(type){this.listeners.delete(type);}
-  replaceChildren(...nodes){this.children=nodes;}blur(){this.blurred=true;}fire(type,event={}){return this.listeners.get(type)?.(event);}
+  replaceChildren(...nodes){this.children=nodes;}blur(){this.blurred=true;this.onBlur?.();}fire(type,event={}){return this.listeners.get(type)?.(event);}
   setAttribute(name,value){this.attributes[name]=String(value);}getAttribute(name){return this.attributes[name]??null;}
 }
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(yes=>resolve=yes);return{promise,resolve};};
 const add=(project,name,value=1)=>project.importFiles([{path:'/vgm/'+name,type:'binary',data:Uint8Array.of(value)}]);
-function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture,mixer=false}={}){
+function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),load,onCapture,mixer=false,seek=false,seekWork,cancelWork}={}){
   const ids=['Player','Select','PlayButton','StopButton','Status','Position','CaptureButton','CaptureStatus'],nodes=Object.fromEntries(ids.map(id=>[id,new Element()]));
   if(mixer){nodes.Channels=new Element();for(let ch=1;ch<=6;ch++)nodes[`Channel${ch}Toggle`]=new Element();}
-  const doc={getElementById:id=>nodes[id.slice('hucSong'.length)],createElement:()=>new Element()},calls=[],states=[],statuses=[],views=[],captures=[];
+  if(seek)for(const id of ['Seek','SeekPosition','CancelSeek'])nodes[id]=new Element();
+  const doc=Object.assign(new Element(),{getElementById:id=>nodes[id.slice('hucSong'.length)],createElement:()=>new Element()}),calls=[],states=[],statuses=[],views=[],captures=[];
   let notify,generation=0,audioRequests=0,beforeCalls=0;
-  let state={playback:'stopped',hasSource:false,playing:false,paused:false,loading:false,busy:false,positionFrames:0,positionSeconds:0,bufferedFrames:0,durationSeconds:2,channelEnabled:Array(6).fill(true),channelMuteMask:0};
+  let state={playback:'stopped',hasSource:false,playing:false,paused:false,loading:false,busy:false,positionFrames:0,positionSeconds:0,bufferedFrames:0,durationSeconds:2,channelEnabled:Array(6).fill(true),channelMuteMask:0,seeking:false,seekPreparing:false,canSeek:true};
   const emit=patch=>{state={...state,...patch};notify?.({...state});};
   const preview={getState:()=>({...state,channelEnabled:[...state.channelEnabled]}),
     async load(bytes,name,{signal}={}){
@@ -37,6 +38,10 @@ function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),lo
     setLiveEnabled(value){calls.push(['live',value]);emit({liveEnabled:value});return {...state};},
     setChannelEnabled(channel,enabled){calls.push(['channel',channel,enabled]);const channelEnabled=[...state.channelEnabled];channelEnabled[channel]=enabled;
       emit({channelEnabled,channelMuteMask:channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0)});return {...state,channelEnabled:[...channelEnabled]};},
+    async seek(seconds){calls.push(['seek',seconds]);if(seekWork)return seekWork(seconds);
+      emit({positionSeconds:seconds,positionFrames:Math.round(seconds*44100),playback:state.playing?'playing':'paused',paused:!state.playing,seeking:false});return true;},
+    async cancelSeek(){calls.push(['cancelSeek']);if(cancelWork)await cancelWork();emit({seeking:false,seekPreparing:false,busy:false,playback:'paused',paused:true,playing:false});return true;},
+    async whenIdle(){calls.push(['whenIdle']);},
     dispose(){generation++;calls.push(['dispose']);},
   };
   let options;
@@ -44,7 +49,7 @@ function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),lo
     onCapture:async(payload,options)=>{captures.push({payload,options});return onCapture?onCapture(payload,options):true;},onViewChange:(target,options)=>views.push([target,options]),
     createPreview:value=>{options=value;notify=value.onState;return preview;}});
   t.after(()=>controls.dispose());
-  return{controls,project,nodes,calls,states,statuses,views,captures,emit,get audioRequests(){return audioRequests;},get beforeCalls(){return beforeCalls;}};
+  return{controls,project,doc,nodes,calls,states,statuses,views,captures,emit,get audioRequests(){return audioRequests;},get beforeCalls(){return beforeCalls;}};
 }
 
 test('raw Files are listed and validated passively with no audio, Code changes or repeated binary reads',async t=>{
@@ -197,4 +202,157 @@ test('latest mixer flags persist through cancelled validation, Stop, clear and a
   f.project.fs.remove('/vgm/one.vgm');f.project.fs.remove('/vgm/two.vgm');await turn();assert.equal(f.nodes.Channels.hidden,true);assert.equal(f.controls.read().channelMuteMask,40);
   add(f.project,'new.vgm',3);await turn();assert.equal(f.controls.read().selectedPath,'/vgm/new.vgm');assert.equal(f.controls.read().channelMuteMask,40);
   assert.equal(f.nodes.Channel4Toggle.getAttribute('aria-pressed'),'false');assert.equal(f.nodes.Channel6Toggle.getAttribute('aria-pressed'),'false');assert.equal(f.nodes.Channels.hidden,false);assert.equal(f.audioRequests,0);
+});
+
+test('Seek drag previews precise position without moving audio and commits only on change',async t=>{
+  const f=fixture(t,{seek:true});assert(f.nodes.Seek.disabled);add(f.project,'source.vgm');await turn();
+  assert.equal(f.nodes.Seek.disabled,false);assert.equal(f.nodes.Seek.max,'2');
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.25';f.nodes.Seek.fire('input');assert.equal(f.nodes.SeekPosition.textContent,'0:01.25');
+  assert(!f.calls.some(call=>call[0]==='seek'));f.emit({positionSeconds:.5,positionFrames:22050});assert.equal(f.nodes.Seek.value,'1.25');
+  f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();
+  assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',1.25]]);assert(f.nodes.Seek.blurred);assert.equal(f.nodes.Seek.getAttribute('aria-valuetext'),'0:01.25 of 0:02.00');
+});
+
+test('Escape and pointer cancellation discard drafts; native keyboard changes remain usable',async t=>{
+  const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.5';f.nodes.Seek.fire('input');let prevented=false,stopped=false;
+  f.nodes.Seek.fire('keydown',{key:'Escape',preventDefault(){prevented=true;},stopPropagation(){stopped=true;}});f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');
+  assert(prevented&&stopped);assert.equal(f.nodes.Seek.value,'0');assert(!f.calls.some(call=>call[0]==='seek'));
+  f.nodes.Seek.value='.4';f.nodes.Seek.fire('input');f.nodes.Seek.fire('keydown',{key:'ArrowRight'});f.nodes.Seek.fire('change');await turn();
+  assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',.4]]);assert(f.nodes.Seek.blurred);
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.9';f.nodes.Seek.fire('input');f.nodes.Seek.fire('pointercancel');f.nodes.Seek.fire('change');
+  assert.equal(f.nodes.Seek.value,'0.4');assert.equal(f.calls.filter(call=>call[0]==='seek').length,1);
+});
+
+test('seeking publishes progress and retains CH, Auto and mixer controls without a paused capture',async t=>{
+  const f=fixture(t,{seek:true,mixer:true});add(f.project,'source.vgm');await turn();f.controls.setView(0,{notify:false});pauseAt(f);
+  f.emit({playback:'seeking',seeking:true,busy:true,paused:false,seekTargetSeconds:1.5,seekProgressSeconds:.25,positionSeconds:.1,positionFrames:4410});
+  assert.equal(f.nodes.Player.dataset.seeking,'true');assert.equal(f.nodes.Player.dataset.seekTargetSeconds,'1.5');assert.equal(f.nodes.Player.dataset.seekProgressSeconds,'0.25');
+  assert.equal(f.nodes.PlayButton.textContent,'Seeking…');assert(f.nodes.PlayButton.disabled);assert(!f.nodes.StopButton.disabled);assert.equal(f.nodes.CancelSeek.hidden,false);assert(f.controls.isActive());
+  assert.match(f.nodes.Status.textContent,/0:01.50.*0:00.25 prepared/);assert.equal(f.nodes.SeekPosition.textContent,'0:01.50');assert.equal(f.nodes.CaptureButton.disabled,true);assert.equal(f.controls.getPausedSelection(),null);
+  f.controls.setView(2,{notify:false});f.controls.setLiveEnabled(false);f.nodes.Channel4Toggle.fire('click');
+  assert.equal(f.controls.read().viewTarget,2);assert.equal(f.controls.read().liveEnabled,false);assert.equal(f.controls.read().channelMuteMask,8);
+  assert.equal(f.controls.read().positionFrames,4410);assert.equal(f.nodes.Channel4Toggle.disabled,undefined);
+});
+
+test('committing Seek immediately retires a pending Capture without changing the requested view',async t=>{
+  const captureGate=deferred(),seekGate=deferred();let captureCurrent;
+  const f=fixture(t,{seek:true,onCapture:async(_payload,{isCurrent})=>{captureCurrent=isCurrent;await captureGate.promise;return true;},seekWork:()=>seekGate.promise});
+  add(f.project,'source.vgm');await turn();f.controls.setView(0,{notify:false});pauseAt(f);const capturing=f.controls.capture();assert(captureCurrent());
+  const seeking=f.controls.seek(1);assert.equal(captureCurrent(),false);assert.equal(f.controls.read().capturing,false);assert.equal(f.controls.read().viewTarget,0);
+  captureGate.resolve();assert.equal(await capturing,false);seekGate.resolve(true);assert.equal(await seeking,true);assert(!f.views.some(([target])=>target==='synth'));
+});
+
+test('Cancel awaits cleanup and Stop/source changes cannot commit an abandoned seek draft',async t=>{
+  const gate=deferred(),f=fixture(t,{seek:true,cancelWork:()=>gate.promise});add(f.project,'source.vgm');await turn();
+  f.emit({playback:'seeking',seeking:true,busy:true,seekPreparing:false,seekTargetSeconds:1});f.nodes.Seek.fire('pointercancel');await Promise.resolve();
+  assert.equal(f.calls.at(-1)[0],'cancelSeek');f.emit({seeking:false,seekPreparing:true,canSeek:false});
+  assert.equal(f.nodes.CancelSeek.hidden,false);assert.equal(f.nodes.CancelSeek.disabled,true);assert(f.nodes.Seek.disabled);assert.equal(f.nodes.PlayButton.textContent,'Cancelling…');assert(f.controls.isActive());
+  assert.equal(await f.controls.seek(.5),false);gate.resolve();await turn();assert.equal(f.nodes.CancelSeek.hidden,true);
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.6';f.nodes.Seek.fire('input');f.controls.stop();f.nodes.Seek.fire('change');await turn();assert(!f.calls.some(call=>call[0]==='seek'));
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.8';f.nodes.Seek.fire('input');add(f.project,'other.vgm',2);await f.controls.selectPath('/vgm/other.vgm');f.nodes.Seek.fire('change');await turn();assert(!f.calls.some(call=>call[0]==='seek'));
+  await f.controls.whenIdle();assert.equal(f.calls.at(-1)[0],'whenIdle');
+});
+
+test('seek errors stay readable and Escape/Cancel stop an active operation rather than creating a new one',async t=>{
+  const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();
+  f.emit({seeking:true,playback:'seeking',busy:true,seekTargetSeconds:1.25});f.nodes.Seek.fire('keydown',{key:'Escape',preventDefault(){},stopPropagation(){}});await turn();
+  assert.equal(f.calls.filter(call=>call[0]==='cancelSeek').length,1);assert(!f.calls.some(call=>call[0]==='seek'));
+  f.emit({seeking:true,playback:'seeking',busy:true});f.nodes.CancelSeek.fire('click');await turn();assert(f.nodes.CancelSeek.blurred);assert.equal(f.calls.filter(call=>call[0]==='cancelSeek').length,2);
+  f.emit({seeking:false,busy:false,seekMessage:'Seek failed: invalid saved state.'});assert.equal(f.nodes.Status.dataset.error,'true');assert.match(f.nodes.Status.textContent,/invalid saved state/);
+});
+
+test('a held pointer cannot revive a cancelled seek draft after Escape, Cancel, Stop or a source change',async t=>{
+  for(const action of ['escape','cancel','stop','source'])await t.test(action,async t=>{
+    const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();
+    f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.2';f.nodes.Seek.fire('input');
+    if(action==='escape')f.nodes.Seek.fire('keydown',{key:'Escape',preventDefault(){},stopPropagation(){}});
+    if(action==='cancel')await f.controls.cancelSeek();
+    if(action==='stop')f.controls.stop();
+    if(action==='source'){add(f.project,'other.vgm',2);await f.controls.selectPath('/vgm/other.vgm');}
+    // The original drag is still physically held after cancellation. Its late
+    // move/input and release/change belong to that discarded gesture.
+    f.nodes.Seek.value='1.7';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();
+    assert(!f.calls.some(call=>call[0]==='seek'),action);
+    // A new pointerdown is a fresh user request and must remain usable.
+    f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='.3';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();
+    assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',.3]]);
+  });
+});
+
+test('Cancel is acknowledged while an uncancellable factory is settling, with Stop and latest mixer flags still available',async t=>{
+  const f=fixture(t,{seek:true,mixer:true});add(f.project,'source.vgm');await turn();
+  f.emit({playback:'seeking',seeking:true,seekCancelling:true,seekPreparing:true,busy:true,seekTargetSeconds:1.5});
+  assert.equal(f.nodes.Player.dataset.seekCancelling,'true');assert.equal(f.nodes.PlayButton.textContent,'Cancelling…');assert.equal(f.nodes.Status.textContent,'Cancelling seek…');
+  assert.equal(f.nodes.CancelSeek.hidden,false);assert.equal(f.nodes.CancelSeek.disabled,true);assert(f.nodes.Seek.disabled);assert.equal(await f.controls.seek(.5),false);
+  assert.equal(f.nodes.StopButton.disabled,false);f.nodes.Channel3Toggle.fire('click');assert.equal(f.controls.read().channelMuteMask,4);
+  assert.equal(f.nodes.CaptureButton.disabled,true);assert.equal(f.controls.getPausedSelection(),null);assert(f.controls.isActive());
+});
+
+test('Home and End address exact transport boundaries despite a fractional range step, and fresh arrows remain usable',async t=>{
+  const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();f.emit({durationSeconds:2.503});
+  let prevented=0,stopped=0;const event=key=>({key,preventDefault(){prevented++;},stopPropagation(){stopped++;}});
+  f.nodes.Seek.value='2.5';f.nodes.Seek.fire('keydown',event('End'));await turn();
+  assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',2.503]]);assert(f.nodes.Seek.blurred);
+  f.nodes.Seek.fire('keydown',event('Home'));await turn();assert.deepEqual(f.calls.filter(call=>call[0]==='seek').at(-1),['seek',0]);
+  assert.equal(prevented,2);assert.equal(stopped,2);
+  f.nodes.Seek.fire('keydown',{key:'ArrowRight'});f.nodes.Seek.value='.01';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');await turn();
+  assert.deepEqual(f.calls.filter(call=>call[0]==='seek').at(-1),['seek',.01]);
+});
+
+test('an exact End during a held drag cannot be reversed by that old gesture release',async t=>{
+  const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();f.emit({durationSeconds:2.503});
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.1';f.nodes.Seek.fire('input');
+  f.nodes.Seek.fire('keydown',{key:'End',preventDefault(){},stopPropagation(){}});await turn();
+  f.nodes.Seek.value='1.7';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();
+  assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',2.503]]);
+  f.nodes.Seek.fire('keydown',{key:'ArrowLeft'});f.nodes.Seek.value='2.49';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');await turn();
+  assert.deepEqual(f.calls.filter(call=>call[0]==='seek').at(-1),['seek',2.49]);
+});
+
+const escapeEvent=(target={})=>({key:'Escape',target,defaultPrevented:false,preventDefault(){this.defaultPrevented=true;},stopPropagation(){this.stopped=true;}});
+test('body-focused Escape cancels an unfocused native range drag without opening audio or committing its release',async t=>{
+  const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.2';f.nodes.Seek.fire('input');
+  const bodyEscape=escapeEvent();f.doc.fire('keydown',bodyEscape);assert(bodyEscape.defaultPrevented&&bodyEscape.stopped);
+  f.nodes.Seek.value='1.7';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();
+  assert(!f.calls.some(call=>call[0]==='seek'||call[0]==='cancelSeek'));assert.equal(f.audioRequests,0);assert.equal(f.beforeCalls,0);assert.equal(f.nodes.Seek.value,'0');
+  f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='.3';f.nodes.Seek.fire('input');f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',.3]]);
+});
+
+test('document Escape respects handled/text-control events and does not duplicate the range handler',async t=>{
+  const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();f.emit({seeking:true,playback:'seeking',busy:true});
+  const handled=escapeEvent();handled.defaultPrevented=true;f.doc.fire('keydown',handled);
+  for(const kind of ['input','select','textarea','dialog']){
+    const control={matches:()=>false,kind},event=escapeEvent({closest:()=>control});f.doc.fire('keydown',event);assert.equal(event.defaultPrevented,false);
+  }
+  assert(!f.calls.some(call=>call[0]==='cancelSeek'));
+  const rangeEscape=escapeEvent(f.nodes.Seek);f.nodes.Seek.fire('keydown',rangeEscape);f.doc.fire('keydown',rangeEscape);await turn();
+  assert.equal(f.calls.filter(call=>call[0]==='cancelSeek').length,1);
+  f.emit({seeking:true,playback:'seeking',busy:true});const bodyEscape=escapeEvent();f.doc.fire('keydown',bodyEscape);await turn();assert(bodyEscape.defaultPrevented);assert.equal(f.calls.filter(call=>call[0]==='cancelSeek').length,2);
+  f.controls.dispose();assert.equal(f.doc.listeners.has('keydown'),false);
+});
+
+test('synchronous native change on blur cannot turn range/body Escape or pointer cancellation into a seek',async t=>{
+  for(const action of ['range Escape','body Escape','pointercancel'])await t.test(action,async t=>{
+    const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();let blurs=0;
+    f.nodes.Seek.onBlur=()=>{assert(++blurs<10,'ignored recursive changes must not blur again');f.nodes.Seek.fire('change');};
+    f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.2';f.nodes.Seek.fire('input');
+    if(action==='range Escape')f.nodes.Seek.fire('keydown',escapeEvent(f.nodes.Seek));
+    if(action==='body Escape')f.doc.fire('keydown',escapeEvent());
+    if(action==='pointercancel')f.nodes.Seek.fire('pointercancel');
+    f.nodes.Seek.fire('change');f.nodes.Seek.fire('pointerup');await turn();
+    assert(!f.calls.some(call=>call[0]==='seek'||call[0]==='cancelSeek'));assert.equal(f.audioRequests,0);assert.equal(f.nodes.Seek.value,'0');assert(blurs>=1);
+  });
+});
+
+test('Home/End and a valid range change commit exactly once when blur synchronously emits another change',async t=>{
+  for(const action of ['Home','End','change'])await t.test(action,async t=>{
+    const f=fixture(t,{seek:true});add(f.project,'source.vgm');await turn();f.emit({durationSeconds:2.503});let blurs=0;
+    f.nodes.Seek.onBlur=()=>{assert(++blurs<10);f.nodes.Seek.fire('change');};
+    f.nodes.Seek.fire('pointerdown');f.nodes.Seek.value='1.2';f.nodes.Seek.fire('input');
+    if(action==='change')f.nodes.Seek.fire('change');else f.nodes.Seek.fire('keydown',{key:action,preventDefault(){},stopPropagation(){}});
+    f.nodes.Seek.fire('pointerup');await turn();
+    assert.deepEqual(f.calls.filter(call=>call[0]==='seek'),[['seek',action==='Home'?0:action==='End'?2.503:1.2]]);
+  });
 });

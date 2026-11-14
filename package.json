@@ -115,6 +115,7 @@
     "test:huc6280-synth:live-browser": "node scripts/check_huc6280_synth_live_browser.cjs",
     "test:huc6280-synth:capture-browser": "node scripts/check_huc6280_synth_capture_browser.cjs",
     "test:huc6280-synth:mixer-browser": "node scripts/check_huc6280_synth_mixer_browser.cjs",
+    "test:huc6280-synth:seek-browser": "node scripts/check_huc6280_synth_seek_browser.cjs",
     "pack:huc6280-synth": "sh scripts/package_itch_huc6280_synth.sh",
     "test:snes-synth": "node --test docs/synth-snes/*.test.mjs scripts/package_itch_snes_synth.test.mjs",
     "test:snes-synth:browser": "node scripts/check_snes_synth_browser.cjs",

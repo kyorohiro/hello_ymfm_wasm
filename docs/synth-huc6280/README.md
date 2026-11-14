@@ -148,6 +148,26 @@ selector above Waveform / Spectrum lists these files. Select a song, then press
 the beginning while retaining the selected song and your edited instrument.
 Opening, selecting or restoring a project never starts playback automatically.
 
+The position bar previews a destination while dragging; release to seek. Arrow
+keys and Home / End also work. Seeking while playing continues playback from
+the destination; from Pause it stays paused. From Stop or the end of a song it
+prepares the destination paused. Reaching the end while playing finishes the
+song. **Cancel seek** or Escape cancels reconstruction, and Escape also cancels
+an unfinished drag.
+
+Seek rebuilds a separate reference chip from the validated song in short,
+cooperative slices, without connecting the preparation audio to the output.
+The current run and its unheard PCM are retained until the destination is ready.
+Success replaces only that reference run and publishes all six channels at the
+exact destination even with Auto update Off. The selected CH, channel On / Off
+and your edited instrument are kept. Cancellation or failure restores the
+previous position and Play / Pause state. Stop, Code Run, a replacement song or
+project discards stale work. The displayed progress is preparation time within
+the song, rather than a percentage of a download.
+
+The current implementation reconstructs from the beginning; long seeks can
+take several seconds. A reusable native-state cache remains separate work.
+
 Reference playback renders the recorded HuC6280 writes with the existing chip
 core, including timed Wave, Noise, hardware LFO and supported direct / streamed
 DAC writes. It plays **once**, through the existing Master volume and output
@@ -219,8 +239,8 @@ A DDA snapshot contains one changing DAC value, not a complete PCM sample, so
 it cannot be captured or auditioned as a sample. Use static PCM extraction when
 a complete supported interval exists. A known but gated-off or muted sound can
 still be captured, while its paused keyboard audition is disabled. Oscillator
-phase and elapsed automation are not captured. Seek and direct VGM editing
-remain later steps.
+phase and elapsed automation are not captured. Direct VGM editing remains a
+later step.
 
 The player accepts VGM **1.61–1.72** and requires one HuC6280 at the normal
 **3,579,545 Hz** PC Engine clock. Other chips,
@@ -408,6 +428,7 @@ npm run test:huc6280-synth:song-browser
 npm run test:huc6280-synth:live-browser
 npm run test:huc6280-synth:capture-browser
 npm run test:huc6280-synth:mixer-browser
+npm run test:huc6280-synth:seek-browser
 sh scripts/package_itch_huc6280_synth.sh 0.0.1
 ```
 
@@ -451,6 +472,13 @@ PCM一覧に由来・rate・時間・Loopを表示し、C4で記録時の速度�
 音声変換は8,000–44,100Hz、live DAC rateは直接DAC由来の小数rateも扱える1–192,000Hzです。
 間隔が変わる／終端が不明な直接DAC区間、未対応stream、不明な設定は理由付きで省略します。
 VGM／VGZの元ファイルはFilesの`vgm/`へ保持し、モニター上の曲一覧からPlay／Pause／Resume／Stopできます。
+位置バーはドラッグ中に候補を表示し、離すとSeekします。矢印／Home／Endにも対応します。
+再生中は移動後も再生、Pause中はPauseを保持。Stop／終了後からは移動先をPauseで準備します。
+再生中に末尾へ移動した場合は終了します。Escape／Cancel seekで取消できます。
+元の曲・未消費PCMは成功まで保持し、別の音源を無音で目的位置まで短い単位で再構築します。
+失敗・取消では元の位置・再生状態へ戻り、Stop／Code Run／曲やprojectの切替で古い結果を破棄します。
+移動後はAuto update Offでも目的位置の6CH設定を一度表示し、CH選択・On／Off・編集中の音色は保持します。
+現在は先頭から再構築する方式で、長い移動は数秒かかることがあります。再利用可能な状態キャッシュは残作業です。
 模範演奏は1回再生で、現在のMasterと出力モニターを使い、編集中の音色を保ちます。
 VGM outputのCH1–CH6 On／Offは、曲の聴き分け用のソフト側スイッチです。初期値は全CH On。
 表示対象のChannel選択とは独立し、通常Synth／Code／Pause試奏には適用しません。
@@ -473,6 +501,6 @@ Capture to Synthは曲をPauseのまま設定だけを編集用音色へ取り�
 曲の全体左右音量はプリセットの音量・左右balanceへ反映し、必要な量子化は音が大きくならない側へ丸めて説明します。
 LFOはCH1とCH2の両出力を扱い、アプリのMaster値は変更しません。
 未記録Wave RAMや必須設定が不明な音、DDAの単一DAC値は試奏・Captureできません。
-既知のミュート／Gate Off音色はCaptureできますが試奏は無効です。Seekなどは後続です。
+既知のミュート／Gate Off音色はCaptureできますが試奏は無効です。VGMへの直接操作は後続です。
 他チップの音を黙って省略せず、単一HuC6280以外や未対応データは理由付きで拒否します。
 CD-ROM²音源は対象外です。

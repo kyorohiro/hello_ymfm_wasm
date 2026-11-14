@@ -33,8 +33,12 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
 - [x] **CH別On／Off**: VGMのCH1–CH6を出力だけ切り替える。既存PCMと内部状態を保ち、
       Pause／Resume・Stop／Play・曲切替でも選択を保持。共有LFOを止めない。
       [実装TODO](todo_huc6280_synth_channel_mixer_01.md)。
-- [ ] **Seekと再構築キャッシュ**: 気になる位置へ戻る操作を追加する。
-      設定したMuteは表示・Seek後も保ち、共有LFOへの影響を確認する。
+- [x] **Seek**: 気になる位置へ戻り、再生／Pause・CH別On／Off・表示CHを保持する。
+      Auto update Offでも目的位置を一度表示する。取消・失敗時は元の位置を保つ。
+      [実装TODO](todo_huc6280_synth_seek_01.md)。
+- [ ] **再構築キャッシュ**: 現在のSeekは先頭から再構築する。実WASMのNode計測で
+      2分先が約4.3–5.9秒。native／parserの正確な状態を復元できる方式を調査する。
+      生のWASM heapのコピーや、phase・Noise・DDA状態を無視したcacheは採用しない。
 - [ ] **自動演奏＋手動操作**: VGMまたはCodeを動かしたまま同じCHを編集・発音できる。
       VGMとCodeの同時実行は行わず、手動操作だけがそれぞれに加わる。
       後の自動writeを優先し、古い離鍵・Pitch解除が新しい発音を消さない。
@@ -89,3 +93,12 @@ Wave／PCMの音量違いをまとめる機能を維持。CH別On／Off、Seek�
 Channel／Auto update／CaptureはVGM・Play／Stopと同じコンテナにまとめ、
 Sounds from VGMより上へ移した。音量違いをまとめる機能は維持。
 次はSeekと再構築キャッシュ。VGMへの直接操作・最終Tauri反映は後続。
+
+## Seek・再構築の計測（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_seek_01.md)。ドラッグ確定時に別の音源を無音で目的位置まで
+再構築し、成功した時だけ参照演奏を置き換える。再生／Pause、CH別On／Off、表示対象CH、
+編集用音色を保ち、Auto update Offでも目的位置の全CHを一度反映する。
+元のrunと未消費PCMは成功まで保持し、取消・失敗では元の位置へ戻す。
+Escape／Cancel、連続Seek、Stop／Code Run／曲・project切替で古い処理を破棄する。
+長い移動は数秒かかる。cacheは実測と正確な状態保存方式の検討を別の残作業にした。

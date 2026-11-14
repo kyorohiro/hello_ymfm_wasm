@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-mixer-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-seek-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
 const time=seconds=>{
   const value=Math.max(0,Number.isFinite(seconds)?seconds:0);
   return `${Math.floor(value/60)}:${String(Math.floor(value%60)).padStart(2,'0')}`;
+};
+const preciseTime=seconds=>{
+  const value=Math.round(Math.max(0,Number.isFinite(seconds)?seconds:0)*100);
+  return `${Math.floor(value/6000)}:${((value%6000)/100).toFixed(2).padStart(5,'0')}`;
 };
 
 /** Files are validated passively. Only the transport's Play gesture acquires
@@ -17,10 +21,12 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   const capture=$('hucSongCaptureButton'),captureStatus=$('hucSongCaptureStatus');
   const channelButtons=Array.from({length:6},(_,index)=>$(`hucSongChannel${index+1}Toggle`));
   const channelGroup=$('hucSongChannels');
+  const seek=$('hucSongSeek'),seekPosition=$('hucSongSeekPosition'),cancelSeekButton=$('hucSongCancelSeek');
   if(!root||!select||!play||!stop||!status)throw Error('HuC6280 song controls mount is missing.');
   const listeners=[];
   let disposed=false,selectedPath=null,selectedRevision=-1,attempted='',listSignature='',selection=0,choosing=false,selectionError='',pending=null;
   let viewTarget='synth',capturing=false,captureOperation=0,captureMessage='',captureBinding=null,pausedSelectionCache=null;
+  let seekDraft=null,seekPointer=false,seekCancelled=false;
   const text=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value;};
   const decorate=state=>({...state,selectedPath,choosing,viewTarget,capturing,captureMessage,pausedVoice:getPausedSelection(state)?.prepared??null});
   let preview;
@@ -34,6 +40,9 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     root.dataset.renderedFrames=String((state.positionFrames??0)+(state.bufferedFrames??0));
     root.dataset.liveEnabled=String(state.liveEnabled!==false);
     root.dataset.livePositionFrames=String(state.liveState?.positionFrames??'');
+    root.dataset.seeking=String(Boolean(state.seeking));root.dataset.seekPreparing=String(Boolean(state.seekPreparing));
+    root.dataset.seekCancelling=String(Boolean(state.seekCancelling));
+    root.dataset.seekTargetSeconds=String(state.seekTargetSeconds??0);root.dataset.seekProgressSeconds=String(state.seekProgressSeconds??0);
     const channelEnabled=state.channelEnabled??Array(6).fill(true);
     if(channelGroup)channelGroup.hidden=!state.hasSource;
     root.dataset.channelMuteMask=String(state.channelMuteMask??channelEnabled.reduce((mask,on,index)=>on?mask:mask|(1<<index),0));
@@ -42,16 +51,24 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
       text(button,`CH ${index+1} · ${enabled?'On':'Off'}`);
       button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',`VGM CH${index+1} output ${enabled?'On':'Off'}`);
     });
-    text(play,state.playing?'Pause':state.paused?'Resume':'Play');
+    text(play,state.seekCancelling?'Cancelling…':state.seeking?'Seeking…':state.seekPreparing?'Cancelling…':state.playing?'Pause':state.paused?'Resume':'Play');
     play.disabled=Boolean(choosing||state.loading||state.busy||!state.hasSource);
-    stop.disabled=!(choosing||state.loading||state.canStop||['starting','playing','paused'].includes(state.playback));
+    stop.disabled=!(choosing||state.loading||state.seeking||state.seekPreparing||state.canStop||['starting','seeking','playing','paused'].includes(state.playback));
     select.disabled=false;
-    const message=selectionError||(choosing||state.loading?'Validating VGM…':state.playback==='playing'?'Playing.':
+    const message=selectionError||(state.seekCancelling?'Cancelling seek…':choosing||state.loading?'Validating VGM…':state.seeking?`Seeking to ${preciseTime(state.seekTargetSeconds)} · ${preciseTime(state.seekProgressSeconds)} prepared…`:
+      state.seekPreparing?'Finishing the cancelled seek…':state.seekMessage?state.seekMessage:state.playback==='playing'?'Playing.':
       state.playback==='paused'?'Paused.':state.playback==='starting'?'Starting…':state.playback==='ended'?'Finished.':
       state.playback==='error'?state.errorMessage||'Playback failed.':state.hasSource?'Ready. Press Play; your instrument is kept.':
       'Add a VGM / VGZ to Files to hear a reference song.');
-    text(status,message);status.dataset.error=String(Boolean(selectionError||state.playback==='error'));
+    text(status,message);status.dataset.error=String(Boolean(selectionError||state.playback==='error'||state.seekMessage?.startsWith('Seek failed:')));
     text(position,`${time(state.positionSeconds)}${state.durationSeconds!=null?` / ${time(state.durationSeconds)}`:''}`);
+    if(seek){
+      const duration=Math.max(0,state.durationSeconds??0),draft=seekDraft??(state.seeking?state.seekTargetSeconds:state.positionSeconds)??0;
+      const displayed=Math.max(0,Math.min(duration,draft));seek.max=String(duration);seek.value=String(displayed);
+      seek.disabled=Boolean(choosing||state.loading||state.seekPreparing||state.seekCancelling||!state.hasSource||!duration||state.canSeek===false);
+      seek.setAttribute('aria-valuetext',`${preciseTime(displayed)} of ${preciseTime(duration)}`);text(seekPosition,preciseTime(displayed));
+    }
+    if(cancelSeekButton){cancelSeekButton.hidden=!(state.seeking||state.seekPreparing||state.seekCancelling);cancelSeekButton.disabled=Boolean(state.seekCancelling||state.seekPreparing&&!state.seeking);}
     const payload=getCapturePayload(state);
     if(capture){capture.disabled=capturing||!payload?.capturable;text(capture,capturing?'Capturing…':'Capture to Synth');}
     text(captureStatus,captureMessage||(payload?payload.capturable?payload.playable?payload.description:`Capture available. ${payload.reason}`:payload.reason:
@@ -65,6 +82,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   function stopCurrent(){
     if(disposed)return false;
     cancelPendingCapture();selection++;pending?.abort();pending=null;choosing=false;selectionError='';select.value=selectedPath??'';
+    seekDraft=null;seekCancelled=true;
     preview.stop();showState(read());return true;
   }
   async function choose(path){
@@ -77,6 +95,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
       attempted=key;select.value=path;return true;
     }
     if(attempted===key)return selectedPath===path&&selectedRevision===entry.revision;
+    seekDraft=null;seekCancelled=true;
     cancelPendingCapture();attempted=key;const token=++selection;pending?.abort();const controller=new AbortController();pending=controller;
     choosing=true;selectionError='';select.value=path;showState(read());
     try{
@@ -122,6 +141,60 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     void Promise.resolve(state.paused?preview.resume():preview.play()).catch(report);
   });
   listen(stop,'click',()=>{stop.blur();stopCurrent();});
+  async function seekTo(seconds){
+    const state=read();if(disposed||choosing||state.loading||state.seekPreparing||state.seekCancelling||!state.hasSource||state.canSeek===false)return false;
+    seekDraft=null;seekCancelled=true;selectionError='';cancelPendingCapture();return preview.seek(seconds);
+  }
+  async function cancelCurrentSeek(){
+    seekDraft=null;seekCancelled=true;selectionError='';
+    if(disposed)return false;showState(read());return preview.cancelSeek();
+  }
+  function handleEscape(event,fromRange=false){
+    if(disposed||event.key!=='Escape'||event.defaultPrevented)return;
+    const state=read(),gesture=seekPointer||seekDraft!==null,activeSeek=state.seeking||state.seekPreparing||state.seekCancelling;
+    if(!fromRange&&!gesture){
+      if(!activeSeek)return;
+      // An Escape already used to edit text or close a native control/dialog
+      // does not cancel transport work unless our own drag is still pending.
+      const control=event.target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');
+      if(control&&control!==seek&&!control.matches?.('input[type="range"],input[type="checkbox"],input[type="radio"]'))return;
+    }
+    // Native range blur can synchronously flush its pending change event.
+    // Fence that event before blurring or rendering a disabled control.
+    seekDraft=null;seekCancelled=true;event.preventDefault();event.stopPropagation();seek?.blur();
+    if(activeSeek)void cancelCurrentSeek().catch(report);else showState(state);
+  }
+  if(seek){
+    listen(seek,'pointerdown',()=>{seekPointer=true;seekCancelled=false;});
+    listen(seek,'input',()=>{
+      if(!seekPointer)seekCancelled=false;
+      if(seekCancelled){showState(read());return;}seekDraft=Number(seek.value);showState(read());
+    });
+    listen(seek,'change',()=>{
+      if(seekCancelled){seekDraft=null;showState(read());return;}
+      const seconds=Number(seek.value);seekDraft=null;seekCancelled=true;
+      // A blur-generated recursive change belongs to this same commit. Its
+      // readback must not replace the captured destination or commit twice.
+      seek.blur();void seekTo(seconds).catch(report);
+    });
+    listen(seek,'pointerup',()=>{seekPointer=false;seek.blur();});
+    listen(seek,'pointercancel',()=>{seekPointer=false;seekDraft=null;seekCancelled=true;seek.blur();const state=read();
+      if(state.seeking||state.seekPreparing)void cancelCurrentSeek().catch(report);else{seekDraft=null;seekPointer=false;seekCancelled=true;showState(state);}
+    });
+    listen(seek,'keydown',event=>{
+      if(event.key==='Home'||event.key==='End'){
+        event.preventDefault();event.stopPropagation();seekDraft=null;seekCancelled=true;seek.blur();
+        // The native range's 0.01-second step can stop short of a fractional
+        // song end. Address the transport's exact duration instead of value.
+        void seekTo(event.key==='Home'?0:read().durationSeconds).catch(report);return;
+      }
+      handleEscape(event,true);
+    });
+  }
+  // Safari can keep focus on body throughout a native range drag. Handle the
+  // same gesture at document level as well, without depending on range focus.
+  if(typeof doc.addEventListener==='function')listen(doc,'keydown',event=>handleEscape(event));
+  if(cancelSeekButton)listen(cancelSeekButton,'click',()=>{cancelSeekButton.blur();void cancelCurrentSeek().catch(report);});
   function setChannelEnabled(channel,enabled){
     if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('VGM channel must be CH1–CH6.');
     if(typeof enabled!=='boolean')throw TypeError('VGM channel enabled must be boolean.');
@@ -134,7 +207,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     listen(button,'click',()=>{button.blur();try{setChannelEnabled(index,read().channelEnabled?.[index]===false);}catch(error){report(error);}});
   });
   function getPausedSelection(state=read()){
-    if(disposed||choosing||state.loading||state.busy||!state.paused||!state.hasSource||state.liveError||viewTarget==='synth'||!selectedPath||
+    if(disposed||choosing||state.loading||state.busy||state.seeking||state.seekPreparing||state.seekCancelling||!state.paused||!state.hasSource||state.liveError||viewTarget==='synth'||!selectedPath||
       !state.liveState||state.liveState.positionFrames!==state.positionFrames)return null;
     const snapshot=state.liveState,channel=viewTarget;
     const key=JSON.stringify([selectedPath,selectedRevision,state.positionFrames,channel,snapshot.revision??null]);
@@ -174,10 +247,10 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   return{
     getState:()=>decorate(read()),read:()=>decorate(read()),isPlaying:()=>Boolean(read().playing),
     getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,setChannelEnabled,
-    isActive:()=>Boolean(choosing||read().loading||['starting','playing','paused'].includes(read().playback)),
+    isActive:()=>Boolean(choosing||read().loading||read().seeking||read().seekPreparing||read().seekCancelling||['starting','seeking','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
     setLiveEnabled(value){if(disposed)return false;return decorate(preview.setLiveEnabled(value));},
-    stop:stopCurrent,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
+    stop:stopCurrent,seek:seekTo,cancelSeek:cancelCurrentSeek,whenIdle:()=>preview.whenIdle?.()??Promise.resolve(),
     dispose(){if(disposed)return;disposed=true;cancelPendingCapture();selection++;pending?.abort();unsubscribe();for(const remove of listeners)remove();preview.dispose();},
   };
 }

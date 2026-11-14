@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-mixer-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-seek-1">
 </head>
 <body>
   <main>
@@ -65,7 +65,12 @@
           <button id="hucSongPlayButton" class="primary" type="button" disabled>Play</button>
           <button id="hucSongStopButton" type="button" disabled>Stop</button>
           <output id="hucSongPosition" aria-label="Song position">0:00</output>
-          <details class="spu-code-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a VGM / VGZ from Menu or add it to Files. The original file is kept under vgm/. Play runs one HuC6280 reference performance through Master; your edited instrument is kept. Code and song playback run one at a time. Pause stops at the heard position; Resume continues from there. Playback runs once. While paused, choose a CH to audition its configured sound, or Synth to play your edited instrument. Capture to Synth keeps the song paused; Resume continues from the same position. Loading another preset or extracted sound stops the song.</p></details>
+          <details class="spu-code-help"><summary aria-label="About VGM reference playback">?</summary><p>Import a VGM / VGZ from Menu or add it to Files. The original file is kept under vgm/. Play runs one HuC6280 reference performance through Master; your edited instrument is kept. Code and song playback run one at a time. Pause stops at the heard position; Resume continues from there. Playback runs once. Drag the position bar and release to seek; Arrow keys and Home / End also work. Seek keeps Play / Pause and channel output switches, and refreshes the destination settings even with Auto update Off. From Stop it prepares the destination paused. Long seeks show preparation progress. Escape or Cancel seek keeps the previous position. While paused, choose a CH to audition its configured sound, or Synth to play your edited instrument. Capture to Synth keeps the song paused; Resume continues from the same position. Loading another preset or extracted sound stops the song.</p></details>
+        </div>
+        <div class="huc-song-seek">
+          <input id="hucSongSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="VGM song position in seconds" disabled>
+          <output id="hucSongSeekPosition" for="hucSongSeek">0:00.00</output>
+          <button id="hucSongCancelSeek" type="button" hidden>Cancel seek</button>
         </div>
         <p id="hucSongStatus" class="subtext" role="status">Add a VGM / VGZ to hear a reference performance.</p>
         <section id="hucCodeLiveTools" class="spu-code-live-tools" aria-label="Channel controls">
@@ -203,6 +208,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-mixer-1"></script>
+  <script type="module" src="./synth.js?v=huc-seek-1"></script>
 </body>
 </html>

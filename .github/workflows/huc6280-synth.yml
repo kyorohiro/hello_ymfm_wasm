@@ -82,6 +82,7 @@ jobs:
           node scripts/check_huc6280_synth_live_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-live-browser.json --screenshots release/huc6280-synth-live-images
           node scripts/check_huc6280_synth_capture_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-capture-browser.json --screenshots=release/huc6280-synth-capture-images
           node scripts/check_huc6280_synth_mixer_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-mixer-browser.json --screenshots=release/huc6280-synth-mixer-images
+          node scripts/check_huc6280_synth_seek_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-seek-browser.json --screenshots=release/huc6280-synth-seek-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -100,4 +101,6 @@ jobs:
             release/huc6280-synth-capture-images/
             release/huc6280-synth-mixer-browser.json
             release/huc6280-synth-mixer-images/
+            release/huc6280-synth-seek-browser.json
+            release/huc6280-synth-seek-images/
           if-no-files-found: ignore

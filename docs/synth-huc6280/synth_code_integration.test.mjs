@@ -85,8 +85,10 @@ test('normal physical edits use the idle channel endpoint without changing or pe
 });
 
 test('VGM physical view ignores forged parameter changes without stopping playback or touching author/audio',async()=>{
-  const h=harness({running:false});h.scope.songState={playing:true,playback:'playing'};const next=readPreset(h.scope.displayedPreset);next.volume=9;
-  assert.equal(await h.scope.editVisiblePreset(next),false);assert.equal(h.calls.length,0);
+  for(const state of [{playing:true,playback:'playing'},{busy:true,seeking:true,playback:'seeking'}]){
+    const h=harness({running:false});h.scope.songState=state;const next=readPreset(h.scope.displayedPreset);next.volume=9;
+    assert.equal(await h.scope.editVisiblePreset(next),false);assert.equal(h.calls.length,0);
+  }
 });
 
 test('stale Code session or epoch retires queued edits before they reach the chip',async()=>{
@@ -288,12 +290,13 @@ test('muted paused voices block audition and Noise keeps its fixed hardware cloc
 });
 
 test('a delayed paused-key audition cannot cross release, selection changes, Resume, Code Run or output transition',async()=>{
-  for(const transition of['release','channel','resume','code','output']){
+  for(const transition of['release','channel','resume','seek','code','output']){
     const h=pausedHarness(),gate=deferred();h.audition.pendingOn=gate.promise;h.scope.press('key:KeyA',{key:'a',midi:64});
     assert(h.audition.lastGuard());
     if(transition==='release')h.scope.release('key:KeyA');
     if(transition==='channel'){h.scope.channelTarget=1;h.replaceSelection({...h.selection,key:'song:1:123',channel:1});h.scope.syncAuditionSelection();}
     if(transition==='resume')h.scope.songState={...h.scope.songState,playback:'playing',playing:true,paused:false};
+    if(transition==='seek')h.scope.songState={...h.scope.songState,playback:'seeking',seeking:true,busy:true,playing:false,paused:false};
     if(transition==='code'){h.host.running=true;h.scope.songState={playback:'stopped',paused:false,playing:false};}
     if(transition==='output')h.scope.switchingAudioOutput=true;
     assert.equal(h.audition.lastGuard(),false,transition);gate.resolve();await turn();

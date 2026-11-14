@@ -6,7 +6,7 @@ import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-li
 import {createHuc6280CodeEdit} from './code_parameter_edit.js?v=huc-code-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createVgmLibrary} from './vgm_library.js?v=huc-capture-1';
-import {setupHuc6280SongControls} from './song_controls.js?v=huc-mixer-1';
+import {setupHuc6280SongControls} from './song_controls.js?v=huc-seek-1';
 import {huc6280SongLiveView} from './song_live.js?v=huc-live-1';
 import {createHuc6280SongAudition} from './song_audition.js?v=huc-capture-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
@@ -38,7 +38,7 @@ const enqueue = action => {
   return task;
 };
 const capacity = () => preset.source === 'noise' ? 2 : preset.source === 'wave' && preset.lfo.enabled ? 1 : 6;
-const channelContext=()=>['starting','playing','paused'].includes(songState?.playback)?'vgm':codeHost?.isRunning()?'code':'synth';
+const channelContext=()=>['starting','seeking','playing','paused'].includes(songState?.playback)?'vgm':codeHost?.isRunning()?'code':'synth';
 function updateKeys() {
   const keys = new Set([...notes.values(),...auditionNotes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
@@ -444,11 +444,11 @@ function renderCodeLive() {
   const paused=pausedVoice();
   for(const [wheel]of pitchWheels)wheel.disabled=value.source==='noise'||Boolean(readOnly&&(!paused?.playable||paused.source==='noise'))||Boolean(songState?.playing||songState?.busy);
   if(layout)for(const button of keyboard.querySelectorAll('.key')){const entry=layout.entries.find(item=>item.key===button.dataset.key);if(entry)button.disabled=!canPlay(entry.midi+octave*12);}
-  const origin=context==='vgm'?`VGM · ${songState?.paused?'Paused':'Playing'}`:context==='code'?'Code continues':'Synth';
+  const origin=context==='vgm'?`VGM · ${songState?.seeking?'Seeking':songState?.paused?'Paused':'Playing'}`:context==='code'?'Code continues':'Synth';
   $('hucChannelStatus').textContent=physical?`${origin} · CH ${channelTarget+1} · ${readOnly?'read-only':waiting&&!audio?'Enable audio to view and edit this channel.':'edit and play this channel'}${autoUpdate?'':' · Auto update Off'}`:`${origin} · common round-robin instrument`;
   $('hucChannelReadout').textContent=observed?.liveError?observed.liveMessage:waiting?audio||context==='vgm'?'Waiting for recorded channel settings…':'Physical channel view starts after Enable audio or a keyboard note.':readout;
   $('hucSongCaptureButton').hidden=context!=='vgm'||!physical;$('hucSongCaptureStatus').hidden=context!=='vgm'||!physical;
-  $('hucKeyboardHint').textContent=context==='vgm'?physical?songState?.paused?paused?.playable?`Paused VGM CH ${channelTarget+1} · keyboard auditions this configured sound${paused.source==='noise'?' · Noise pitch is fixed':''}.`:paused?.reason??'The selected paused channel cannot be auditioned.':'Pause to audition or Capture this channel.':songState?.playing?'Reference song playing · Pause or Stop to play your instrument.':'Reference song paused · keyboard plays your edited instrument.':physical?context==='synth'&&channelTarget===1&&value.lfo.enabled?'CH2 is reserved as the hardware LFO source. Play CH1 for the carrier.':`Keyboard plays CH ${channelTarget+1}.`:'Every key plays the selected source. No keyboard split.';
+  $('hucKeyboardHint').textContent=songState?.seeking||songState?.seekPreparing?'Preparing the VGM position · keyboard audition resumes when ready.':context==='vgm'?physical?songState?.paused?paused?.playable?`Paused VGM CH ${channelTarget+1} · keyboard auditions this configured sound${paused.source==='noise'?' · Noise pitch is fixed':''}.`:paused?.reason??'The selected paused channel cannot be auditioned.':'Pause to audition or Capture this channel.':songState?.playing?'Reference song playing · Pause or Stop to play your instrument.':'Reference song paused · keyboard plays your edited instrument.':physical?context==='synth'&&channelTarget===1&&value.lfo.enabled?'CH2 is reserved as the hardware LFO source. Play CH1 for the carrier.':`Keyboard plays CH ${channelTarget+1}.`:'Every key plays the selected source. No keyboard split.';
   updateKeys();
 }
 async function editVisiblePreset(value) {
@@ -500,9 +500,11 @@ songControls=setupHuc6280SongControls({project:codeHost.project,getAudio:()=>enq
   beforePlay:async({isCurrent=()=>true}={})=>{if(!isCurrent())return;await codeHost.stop();if(!isCurrent())return;setPitchUi(0);await stopNotes();},
   onState(state){const previous=songState?.playback;songState=state;syncAuditionSelection();syncChannelObservers();renderCodeLive();if(state.playing)visualizer.wake();
     if(state.playback!==previous){
-      if(state.playing)status('VGM reference playing · Pause or Stop to play your instrument.');
+      if(state.seeking)status('Seeking VGM · Cancel keeps the previous position.');
+      else if(state.playing)status('VGM reference playing · Pause or Stop to play your instrument.');
       else if(state.paused)status('VGM paused · choose a CH to audition or Capture. Resume continues the song.');
       else if(state.playback==='ended')status('VGM finished · your instrument is retained.');
+      else if(state.playback==='stopped'&&previous!=null)status(state.seekMessage||'VGM stopped · your instrument is retained.');
     }
   },onStatus:status});
 $('hucChannelSelect').addEventListener('change',()=>{const value=$('hucChannelSelect').value;$('hucChannelSelect').blur();void setChannelTarget(value).catch(report);});

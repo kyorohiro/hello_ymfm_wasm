@@ -21,12 +21,16 @@ const defaultEngine = header => Huc6280AudioEngine.create({moduleFactory:factory
 export function createHuc6280SongPreview({getAudio, beforePlay = async () => {}, onState = () => {},
   onStatus = () => {}, createEngine = defaultEngine, schedule = scheduleTask, cancel = cancelTask,
   nowMs = () => performance.now(), yieldTask = () => new Promise(resolve => scheduleTask(resolve, 0)),
+  seekChunkFrames=2048,seekTimeoutMilliseconds=30000,
 } = {}) {
+  if(!Number.isInteger(seekChunkFrames)||seekChunkFrames<1||seekChunkFrames>2048)throw RangeError('HuC6280 seek slices must be 1..2048 frames');
+  if(!Number.isFinite(seekTimeoutMilliseconds)||seekTimeoutMilliseconds<1||seekTimeoutMilliseconds>120000)throw RangeError('HuC6280 seek timeout must be 1..120000 milliseconds');
   let source = null, name = '', active = null, generation = 0, loadGeneration = 0;
   let loadController = null, loading = false, disposed = false, playback = 'stopped';
   let errorMessage = '', positionFrames = 0, sampleRate = 44100;
   let liveEnabled = true, liveState = null, liveMessage = '';
   let channelMuteMask=0;
+  let seeking=null,seekCleanup=Promise.resolve(),seekPreparing=0,seekMessage='';
   const appliedChannelMasks=new WeakMap();
   function applyChannelMask(engine,mask=channelMuteMask,force=false) {
     const previous=appliedChannelMasks.get(engine);
@@ -66,7 +70,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     return Math.min(run.renderedFrames, consumed);
   }
   function getState() {
-    const frames = position(), busy = loading || playback === 'starting';
+    const frames = position(), busy = loading || playback === 'starting'||Boolean(seeking)||seekPreparing>0;
     return {playback, playing:playback === 'playing', paused:playback === 'paused', busy, loading,
       hasSource:source !== null, name, errorMessage, sampleRate, positionFrames:frames,
       positionSeconds:frames / sampleRate, durationSeconds:source ? source.totalSamples / 44100 : 0,
@@ -74,6 +78,9 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       canPause:!disposed && playback === 'playing', canResume:!disposed && !busy && playback === 'paused',
       canStop:!disposed && (busy || active !== null || frames > 0),
       bufferedFrames:active ? Math.max(0, active.renderedFrames - frames) : 0,
+      seeking:Boolean(seeking),seekCancelling:Boolean(seeking?.controller.signal.aborted),seekPreparing:seekPreparing>0,seekTargetSeconds:seeking?.targetSeconds??null,
+      seekProgressSeconds:seeking?seeking.progressFrame/seeking.rate:0,seekProgressFrames:seeking?.progressFrame??0,
+      seekMessage,canSeek:!disposed&&Boolean(source)&&!loading&&playback!=='starting'&&(!seekPreparing||Boolean(seeking)),
       channelEnabled:Array.from({length:6},(_,channel)=>!(channelMuteMask&(1<<channel))),channelMuteMask,
       liveKind:'song',liveEnabled,liveState,liveError:Boolean(liveMessage),liveMessage,
       liveActive:Boolean(liveState&&!liveMessage&&['playing','paused','ended'].includes(playback))};
@@ -91,9 +98,10 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function release(run) {
     if (!run || run.released) return;
     run.released = true; cancelTimer(run); cancelNodes(run); run.segments = [];
-    try {run.gain.disconnect();} finally {try {run.timeline.dispose();} finally {run.engine.dispose();}}
+    try {run.gain?.disconnect();} finally {try {run.timeline.dispose();} finally {run.engine.dispose();}}
   }
   function stop() {
+    seeking?.controller.abort();seeking=null;seekMessage='';
     generation++; loadGeneration++; loadController?.abort(); loadController = null; loading = false;
     const old = active; active = null; release(old);
     positionFrames = 0; playback = 'stopped'; errorMessage = '';liveState=null;liveMessage=''; emit(); return true;
@@ -106,11 +114,12 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     if (signal?.aborted) controller.abort();
     loading = true; emit();
     try {
+      if(seeking){seeking.controller.abort();await seekCleanup;if(controller.signal.aborted)throw aborted();}
       const prepared = await prepareHuc6280SongSource(bytes, {signal:controller.signal, yieldTask});
       if (disposed || ticket !== loadGeneration || controller.signal.aborted) throw aborted();
       generation++; const old = active; active = null; release(old);
       source = prepared; name = String(nextName); positionFrames = 0; sampleRate = 44100;
-      playback = 'stopped'; errorMessage = '';liveState=null;liveMessage=''; return true;
+      playback = 'stopped'; errorMessage = '';liveState=null;liveMessage='';seekMessage=''; return true;
     } catch (error) {
       if (!disposed && ticket === loadGeneration && error?.name !== 'AbortError') notify(`VGM load failed: ${error.message}. Previous song kept.`);
       throw error;
@@ -206,10 +215,10 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       return host;
     });
   }
-  async function prepareHost(ticket) {
+  async function prepareHost(ticket,guard=()=>current(ticket)) {
     let audio, preparation;
     try {audio = requestAudio();} catch (error) {audio = Promise.reject(error);}
-    try {preparation = beforePlay({isCurrent:() => current(ticket)});} catch (error) {preparation = Promise.reject(error);}
+    try {preparation = beforePlay({isCurrent:guard});} catch (error) {preparation = Promise.reject(error);}
     // Await both operations even on failure, so a late ownership hook cannot
     // continue after play() has already reported completion to its caller.
     const results = await Promise.allSettled([audio, preparation]);
@@ -224,11 +233,12 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   }
   async function play() {
     open(); if (loading) {notify('Wait for VGM validation, then press Play.'); return false;}
+    if(seeking||seekPreparing){notify('Wait for the current seek cleanup, or Stop it first.');return false;}
     if (!source) throw new Error('Choose a valid HuC6280 VGM/VGZ song first');
     if (playback === 'paused') return resume();
     if (playback === 'playing') return true;
     const ticket = ++generation, selected = source;
-    release(active); active = null; positionFrames = 0; playback = 'starting'; errorMessage = '';liveState=null;liveMessage=''; emit();
+    release(active); active = null; positionFrames = 0; playback = 'starting'; errorMessage = '';liveState=null;liveMessage='';seekMessage=''; emit();
     let engine = null, gain = null,timeline=null;
     try {
       const host = await prepareHost(ticket); if (!current(ticket)) return false;
@@ -263,8 +273,8 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     run.player.pause(); run.nextTime = null; playback = 'paused'; emit(); return true;
   }
   async function resume() {
-    open(); const run = active; if (!run || playback !== 'paused' || loading) return false;
-    const ticket = ++generation; playback = 'starting'; emit();
+    open(); const run = active; if (!run || playback !== 'paused' || loading||seeking||seekPreparing) return false;
+    const ticket = ++generation; playback = 'starting';seekMessage=''; emit();
     try {
       const host = await prepareHost(ticket); if (!current(ticket) || active !== run) return false;
       const {context, output} = validateHost(host);
@@ -274,6 +284,105 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       pump(run, true); return playback === 'playing' || playback === 'ended';
     } catch (error) {if (current(ticket) && active === run) fail(error, run); return false;}
   }
+  function freezeRun(run){
+    const frame=position(run);
+    if(run){run.basePosition=frame;cancelTimer(run);cancelNodes(run);run.segments=run.segments.filter(segment=>segment.firstFrame+segment.frames>frame);run.player.pause();run.nextTime=null;}
+    positionFrames=frame;return frame;
+  }
+  function restoreSeek(job){
+    const previous=job.previous;
+    active=previous.run;positionFrames=previous.position;sampleRate=previous.sampleRate;liveState=previous.snapshot;liveMessage=previous.liveMessage;errorMessage=previous.error;playback=previous.phase;
+    if(active&&playback==='playing'){
+      active.nextTime=null;active.player.resume();for(const segment of active.segments)scheduleSegment(active,segment);pump(active,true);
+    }else emit();
+  }
+  function emitSeekProgress(job,force=false){
+    const now=nowMs();
+    if(force||job.lastProgressEmit===null||now-job.lastProgressEmit>=50){job.lastProgressEmit=now;emit();}
+  }
+  async function runSeek(job,preceding){
+    let candidate=null,engine=null,timeline=null;
+    const valid=()=>current(job.ticket)&&seeking===job&&!job.controller.signal.aborted&&source===job.source;
+    const check=()=>{if(!valid())throw aborted();if(nowMs()-job.started>seekTimeoutMilliseconds)throw Error('HuC6280 seek timed out; the previous song position was kept.');};
+    try{
+      // A superseding seek may reuse the retained old run, but cannot start a
+      // second candidate until uncancellable initialization/cleanup settles.
+      await preceding;job.started=nowMs();check();
+      let host;
+      seekPreparing++;emit();
+      try{
+        host=await prepareHost(job.ticket,valid);check();validateHost(host);
+        engine=await createEngine(job.source.header);check();validateHost(host);
+      }finally{seekPreparing--;emit();}
+      const {context,output}=validateHost(host),rate=engine.sampleRate();
+      if(!Number.isInteger(rate)||rate<8000||rate>96000)throw Error('Invalid HuC6280 seek sample rate');
+      job.rate=rate;const totalFrames=Math.floor(job.source.totalSamples*rate/44100+1e-7);
+      job.targetFrame=Math.min(totalFrames,Math.max(0,Math.round(job.targetSeconds*rate)));
+      timeline=createHuc6280SongTimeline(engine,job.source.header.huc6280Clock);
+      const player=new VgmPlayer(engine);player.setPrefetchFactor(1);player.setLoopEnabled(false);
+      player.load(job.source.bytes,{logger:{warn:message=>{throw Error(message);}}});player.reset();applyChannelMask(engine,channelMuteMask,true);player.play();
+      candidate={engine,timeline,player,context,output,gain:null,sampleRate:rate,basePosition:job.targetFrame,renderedFrames:job.targetFrame,
+        segments:[],nextTime:null,timer:null,eof:false,released:false,lastEmitTime:null};
+      engine=timeline=null;
+      const left=new Float32Array(seekChunkFrames),right=new Float32Array(seekChunkFrames);
+      let chunks=0,batchStarted=nowMs();
+      const validatePcm=(frames,requested)=>{
+        if(!Number.isInteger(frames)||frames<0||frames>requested)throw Error('Invalid HuC6280 seek render length');
+        for(let i=0;i<frames;i++)if(!Number.isFinite(left[i])||!Number.isFinite(right[i]))throw Error('HuC6280 seek produced non-finite PCM');
+      };
+      while(job.progressFrame<job.targetFrame){
+        check();applyChannelMask(candidate.engine);
+        const requested=Math.min(seekChunkFrames,job.targetFrame-job.progressFrame),frames=player.process(left,right,requested,{budgetMs:4});validatePcm(frames,requested);
+        job.progressFrame+=frames;candidate.timeline.read(job.progressFrame);
+        if(!frames&&!player.isPlaying()&&!player.queuedFrames)throw Error('HuC6280 seek ended before its target frame');
+        if(++chunks>=8||nowMs()-batchStarted>=8||job.progressFrame===job.targetFrame){emitSeekProgress(job,job.progressFrame===job.targetFrame);await yieldTask();check();chunks=0;batchStarted=nowMs();}
+      }
+      // Pull the target boundary's writes before observing, retaining its
+      // first future PCM instead of skipping or replaying native samples.
+      for(;;){
+        check();applyChannelMask(candidate.engine);const frames=player.process(left,right,Math.min(CHUNK,seekChunkFrames),{budgetMs:4});validatePcm(frames,Math.min(CHUNK,seekChunkFrames));
+        if(frames){
+          const buffer=context.createBuffer(2,frames,rate);buffer.copyToChannel(left.subarray(0,frames),0);buffer.copyToChannel(right.subarray(0,frames),1);
+          candidate.segments.push({buffer,frames,firstFrame:job.targetFrame,node:null,offset:0,playAt:null});candidate.renderedFrames+=frames;
+        }
+        candidate.eof=!player.isPlaying()&&player.queuedFrames===0;
+        if(frames||candidate.eof)break;
+        emitSeekProgress(job);await yieldTask();
+      }
+      check();const snapshot=candidate.timeline.read(job.targetFrame);
+      candidate.gain=context.createGain();candidate.gain.gain.value=1;candidate.gain.connect(output);
+      const old=active;active=candidate;candidate=null;release(old);
+      sampleRate=rate;positionFrames=job.targetFrame;liveState=snapshot;liveMessage=active.timeline.error;errorMessage='';seekMessage='';seeking=null;
+      playback=job.previous.phase==='playing'?'playing':'paused';
+      if(playback==='playing'){active.player.resume();for(const segment of active.segments)scheduleSegment(active,segment);pump(active,true);}
+      else{active.player.pause();emit();}
+      return true;
+    }catch(error){
+      if(current(job.ticket)&&seeking===job&&source===job.source){
+        seeking=null;seekMessage=error?.name==='AbortError'?'Seek cancelled.':`Seek failed: ${error?.message??String(error)}`;
+        restoreSeek(job);if(error?.name!=='AbortError')notify(seekMessage);
+      }
+      return false;
+    }finally{
+      if(candidate)release(candidate);else{try{timeline?.dispose();}finally{engine?.dispose();}}
+    }
+  }
+  async function seek(seconds){
+    open();if(!Number.isFinite(seconds))throw TypeError('HuC6280 seek seconds must be finite');
+    if(!source||loading||playback==='starting'||seekPreparing&&!seeking)return false;
+    const oldJob=seeking;
+    const previous=oldJob?.previous??{run:active,phase:playback,position:position(active),sampleRate,snapshot:liveState,liveMessage,error:errorMessage};
+    oldJob?.controller.abort();if(!oldJob)previous.position=freezeRun(active);
+    const targetSeconds=Math.max(0,Math.min(source.totalSamples/44100,seconds));
+    const job={ticket:++generation,source,previous,targetSeconds,targetFrame:Math.round(targetSeconds*sampleRate),progressFrame:0,rate:sampleRate,
+      controller:new AbortController(),started:nowMs(),lastProgressEmit:null,promise:null};
+    seeking=job;playback='seeking';seekMessage='Seeking…';
+    job.promise=runSeek(job,seekCleanup);seekCleanup=job.promise.then(()=>undefined,()=>undefined);emit();return job.promise;
+  }
+  async function cancelSeek(){
+    const job=seeking;if(!job){await seekCleanup;return false;}
+    job.controller.abort();emit();await job.promise;return true;
+  }
   function dispose() {if (disposed) return; stop(); disposed = true; source = null; name = ''; emit();}
-  return {load, play, pause, resume, stop, clear, getState, read:getState,setLiveEnabled,setChannelEnabled, dispose};
+  return {load, play, pause, resume, stop,clear,seek,cancelSeek,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled, dispose};
 }
