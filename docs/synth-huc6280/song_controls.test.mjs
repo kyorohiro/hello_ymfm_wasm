@@ -37,6 +37,12 @@ function fixture(t,{project=createHuc6280CodeProject({starterCode:'// kept'}),lo
     stop(){generation++;calls.push(['stop']);emit({playback:'stopped',playing:false,paused:false,loading:false,positionFrames:0,positionSeconds:0});},
     clear(){calls.push(['clear']);emit({hasSource:false,name:'',playback:'stopped',playing:false,paused:false});},
     setLiveEnabled(value){calls.push(['live',value]);emit({liveEnabled:value});return {...state};},
+    getManualSelection(channel){calls.push(['manualSelection',channel]);return{channel,epoch:state.manualEpoch,available:true,editable:true,playable:channel!==3,source:channel===3?'dda':'wave',reason:channel===3?'DDA is a changing code.':''};},
+    applyEdit(edit,options){calls.push(['manualEdit',structuredClone(edit),options]);return true;},
+    noteOn(id,midi,channel,options){calls.push(['manualOn',id,midi,channel,options]);return{channel};},
+    noteOff(id,options){calls.push(['manualOff',id,options]);return true;},
+    setPitch(value,options){calls.push(['manualPitch',value,options]);return true;},
+    releaseKeyboard(options){calls.push(['manualRelease',options]);return true;},
     setCacheEnabled(value){calls.push(['cache',value]);emit({seekCache:{...state.seekCache,enabled:value,count:0,bytes:0,hits:0}});return {...state};},
     clearSeekCache(){calls.push(['clearCache']);emit({seekCache:{...state.seekCache,count:0,bytes:0,hits:0}});return {...state};},
     setChannelEnabled(channel,enabled){calls.push(['channel',channel,enabled]);const channelEnabled=[...state.channelEnabled];channelEnabled[channel]=enabled;
@@ -371,4 +377,48 @@ test('Seek cache controls are passive and never change the paused view, capture 
   f.nodes.ClearCache.fire('click');assert(f.nodes.ClearCache.blurred);assert.equal(f.nodes.Player.dataset.cacheCount,'0');
   assert.equal(f.controls.getPausedSelection(),selected);assert.deepEqual(f.controls.read().channelEnabled,Array(6).fill(true));assert.equal(f.controls.read().paused,true);
   assert.equal(f.audioRequests,0);assert.throws(()=>f.controls.setCacheEnabled('true'),/boolean/);
+});
+
+test('playing-song manual controls forward exact epochs without audio acquisition, source changes or capture invalidation',async t=>{
+  const f=fixture(t);add(f.project,'song.vgm');await turn();
+  f.emit({playback:'playing',playing:true,paused:false,manualReady:true,manualEpoch:12,manualTainted:false,manualHeldCount:1,manualLastFrame:2048});
+  const before=f.project.snapshot(),path=f.controls.read().selectedPath;f.calls.length=0;
+  assert.equal(f.controls.getManualSelection(0).playable,true);
+  assert.match(f.controls.getManualSelection(3).reason,/DDA/);
+  assert.equal(f.controls.applyEdit({channel:0,changes:{volume:10}},{epoch:12}),true);
+  assert.deepEqual(f.controls.noteOn('hand',64,0,{epoch:12}),{channel:0});
+  assert.equal(f.controls.setPitch(.5,{epoch:12}),true);assert.equal(f.controls.noteOff('hand',{epoch:12}),true);
+  assert.equal(f.controls.releaseKeyboard({epoch:12}),true);
+  assert.deepEqual(f.calls,[['manualSelection',0],['manualSelection',3],['manualEdit',{channel:0,changes:{volume:10}},{epoch:12}],['manualOn','hand',64,0,{epoch:12}],['manualPitch',.5,{epoch:12}],['manualOff','hand',{epoch:12}],['manualRelease',{epoch:12}]]);
+  assert.equal(f.audioRequests,0);assert.equal(f.beforeCalls,0);assert.equal(f.controls.read().selectedPath,path);assert.deepEqual(f.project.snapshot(),before);
+  assert.equal(f.nodes.Player.dataset.manualReady,'true');assert.equal(f.nodes.Player.dataset.manualEpoch,'12');assert.equal(f.nodes.Player.dataset.manualHeldCount,'1');assert.equal(f.nodes.Player.dataset.manualLastFrame,'2048');
+});
+
+test('stale or unavailable manual controls cannot reach a new song or a paused/starting/seeking run',async t=>{
+  const f=fixture(t);add(f.project,'song.vgm');await turn();
+  const edit={channel:0,changes:{volume:10}};
+  for(const patch of [
+    {playing:true,playback:'playing',manualReady:true,manualEpoch:2},
+    {playing:false,paused:true,playback:'paused',manualReady:false,manualEpoch:3},
+    {playing:false,paused:false,playback:'starting',busy:true,manualReady:false,manualEpoch:3},
+    {playing:false,playback:'seeking',busy:true,seeking:true,manualReady:false,manualEpoch:3},
+  ]){
+    f.emit({busy:false,seeking:false,paused:false,...patch});f.calls.length=0;
+    assert.equal(f.controls.applyEdit(edit,{epoch:1}),false);assert.equal(f.controls.noteOn('old',60,0,{epoch:1}),false);assert.equal(f.controls.setPitch(0,{epoch:1}),false);assert.equal(f.controls.noteOff('old',{epoch:1}),false);assert.equal(f.controls.releaseKeyboard({epoch:1}),false);
+    assert.equal(f.calls.length,0);
+  }
+  f.emit({playback:'paused',playing:false,paused:true,busy:false,seeking:false,manualEpoch:4});f.calls.length=0;
+  assert.equal(f.controls.getManualSelection(0).available,false);assert.equal(f.controls.applyEdit(edit,{epoch:4}),false);
+  assert.equal(f.controls.releaseKeyboard({epoch:4}),true,'current paused cleanup is allowed');
+  assert.deepEqual(f.calls,[['manualRelease',{epoch:4}]]);
+});
+
+test('accepted-song keyup still reaches its owner while replacement source validation is pending or fails',async t=>{
+  const gate=deferred(),f=fixture(t,{load:async bytes=>{if(bytes[0]===2){await gate.promise;throw Error('Invalid replacement');}}});
+  add(f.project,'accepted.vgm',1);await turn();f.emit({playing:true,playback:'playing',manualReady:true,manualEpoch:12});
+  add(f.project,'pending.vgm',2);const choosing=f.controls.selectPath('/vgm/pending.vgm');await turn();f.calls.length=0;
+  assert.equal(f.controls.noteOn('new',60,0,{epoch:12}),false);
+  assert.equal(f.controls.noteOff('accepted-key',{epoch:12}),true);assert.equal(f.controls.releaseKeyboard({epoch:12}),true);
+  assert.deepEqual(f.calls,[['manualOff','accepted-key',{epoch:12}],['manualRelease',{epoch:12}]]);
+  gate.resolve();assert.equal(await choosing,false);assert.equal(f.controls.read().selectedPath,'/vgm/accepted.vgm');assert(f.controls.isPlaying());
 });

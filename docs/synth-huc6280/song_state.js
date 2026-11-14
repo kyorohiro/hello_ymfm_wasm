@@ -120,6 +120,8 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
   integer(maxPendingChanges,1_000_000,'Pending Live change limit');
   const original={write:engine.writeHuc6280,stream:engine.writeHuc6280Stream,process:engine.processFrames,reset:engine.reset};
   let generated=0,readFrame=0,events=[],head=0,changes=0,error='',disposed=false,nativeWrites=0;
+  const writeListeners=new Set();
+  function notifyWrite(event){for(const listener of writeListeners)try{listener(event);}catch{}}
   const committed=model(clock),ahead=model(clock,record);
   function record(change,frame) {
     let event=events.at(-1);
@@ -131,19 +133,24 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
   }
   function observe(action){if(!disposed&&!error)try{action();}catch(cause){error=cause?.message??String(cause);events=[];head=changes=0;}}
   function write(register,value) {
+    const channel=ahead.selectedChannel;
     const result=original.write.call(this,register,value);nativeWrites++;
-    observe(()=>ahead.write(register&15,value,generated));return result;
+    observe(()=>ahead.write(register&15,value,generated));
+    if(writeListeners.size)notifyWrite({register:register&15,value,channel,frame:generated});return result;
   }
   function stream(port,register,value) {
     const before=nativeWrites,previous=ahead.selectedChannel;
     const result=original.stream.call(this,port,register,value);
     // The normal adapter calls the wrapped direct method (including selector
     // restore). A compatible injected adapter may emit the write internally.
-    if(before===nativeWrites)observe(()=>{
-      if(port!==255)ahead.write(register>>>4,port,generated);
-      ahead.write(register&15,value,generated);
-      if(port!==255){if(previous===null)throw Error('HuC6280 stream adapter did not expose its restored selector');ahead.write(register>>>4,previous,generated);}
-    });
+    if(before===nativeWrites){
+      observe(()=>{
+        if(port!==255)ahead.write(register>>>4,port,generated);
+        ahead.write(register&15,value,generated);
+        if(port!==255){if(previous===null)throw Error('HuC6280 stream adapter did not expose its restored selector');ahead.write(register>>>4,previous,generated);}
+      });
+      if(writeListeners.size)notifyWrite({register:register&15,value,channel:port===255?previous:port&7,frame:generated});
+    }
     return result;
   }
   function process(frames) {
@@ -151,7 +158,7 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
     observe(()=>ahead.advance(frames,generated+Math.min(1,frames)));generated+=frames;return pcm;
   }
   function reset(...args) {
-    const result=original.reset.apply(this,args);generated=readFrame=0;events=[];head=changes=0;error='';ahead.reset();committed.reset();return result;
+    const result=original.reset.apply(this,args);generated=readFrame=0;events=[];head=changes=0;error='';ahead.reset();committed.reset();if(writeListeners.size)notifyWrite({reset:true,frame:0});return result;
   }
   engine.writeHuc6280=write;engine.writeHuc6280Stream=stream;engine.processFrames=process;engine.reset=reset;
   function prepareSavedState(state){
@@ -180,6 +187,8 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
     generated=data.generated;readFrame=data.readFrame;nativeWrites=data.nativeWrites;error=data.error;events=data.events;head=0;changes=data.changes;
   }
   return {
+    peek(){if(disposed)throw Error('HuC6280 song timeline is disposed');return error?null:ahead.snapshot(generated);},
+    onWrite(listener){if(disposed)throw Error('HuC6280 song timeline is disposed');if(typeof listener!=='function')throw TypeError('Expected a HuC6280 write listener');writeListeners.add(listener);return()=>writeListeners.delete(listener);},
     read(frame) {
       if(disposed)throw Error('HuC6280 song timeline is disposed');
       const next=Math.max(0,Math.min(generated,Math.floor(frame)));
@@ -201,7 +210,7 @@ export function createHuc6280SongTimeline(engine,clock=HUC6280_CLOCK,{maxPending
     // restoration, with no second deep allocation after the chip has changed.
     prepareState(state){const data=prepareSavedState(state);return()=>commitSavedState(data);},
     loadState(state){commitSavedState(prepareSavedState(state));},
-    dispose(){if(disposed)return;disposed=true;events=[];head=changes=0;
+    dispose(){if(disposed)return;disposed=true;events=[];head=changes=0;writeListeners.clear();
       if(engine.writeHuc6280===write)engine.writeHuc6280=original.write;
       if(engine.writeHuc6280Stream===stream)engine.writeHuc6280Stream=original.stream;
       if(engine.processFrames===process)engine.processFrames=original.process;

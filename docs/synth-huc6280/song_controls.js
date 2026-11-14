@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-cache-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=huc-vgm-manual-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 
@@ -43,6 +43,8 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     root.dataset.livePositionFrames=String(state.liveState?.positionFrames??'');
     root.dataset.seeking=String(Boolean(state.seeking));root.dataset.seekPreparing=String(Boolean(state.seekPreparing));
     root.dataset.seekCancelling=String(Boolean(state.seekCancelling));
+    root.dataset.manualReady=String(Boolean(state.manualReady));root.dataset.manualEpoch=String(state.manualEpoch??'');root.dataset.manualTainted=String(Boolean(state.manualTainted));
+    root.dataset.manualHeldCount=String(state.manualHeldCount??0);root.dataset.manualLastFrame=String(state.manualLastFrame??'');
     root.dataset.seekTargetSeconds=String(state.seekTargetSeconds??0);root.dataset.seekProgressSeconds=String(state.seekProgressSeconds??0);
     const cache=state.seekCache;
     for(const [key,value]of Object.entries({cacheEnabled:cache?.enabled!==false,cacheCount:cache?.count??0,cacheBytes:cache?.bytes??0,cacheHits:cache?.hits??0,cacheMisses:cache?.misses??0,cacheRestoredFrame:cache?.restoredFrame??0,cacheReconstructedFrames:cache?.reconstructedFrames??0}))root.dataset[key]=String(value);
@@ -227,6 +229,24 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
     catch(error){prepared={preset:null,channel,source:'unknown',positionFrames:state.positionFrames,playable:false,capturable:false,reason:error.message,description:error.message};}
     return pausedSelectionCache={key,snapshot,channel,positionFrames:state.positionFrames,sourcePath:selectedPath,sourceRevision:selectedRevision,prepared};
   }
+  function manualCurrent(options={},state=read(),release=false){
+    if(disposed||!state.hasSource||options.epoch!==undefined&&options.epoch!==state.manualEpoch)return false;
+    // Validation can fail while the accepted run continues. Its held keys
+    // must still be released even though new manual input is temporarily shut.
+    if(release)return Boolean((state.playing||state.paused)&&!state.seeking&&!state.seekPreparing&&!state.seekCancelling);
+    return !choosing&&!state.loading&&!state.busy&&state.playing&&state.manualReady===true;
+  }
+  function getManualSelection(channel){
+    if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('VGM channel must be CH1–CH6.');
+    const state=read();
+    if(!manualCurrent({},state))return{channel,epoch:state.manualEpoch,available:false,editable:false,playable:false,source:'unknown',reason:'VGM channel controls are not available at this position.'};
+    return preview.getManualSelection(channel);
+  }
+  function applyEdit(edit,options={}){return manualCurrent(options)?preview.applyEdit(edit,options):false;}
+  function noteOn(id,midi,channel,options={}){return manualCurrent(options)?preview.noteOn(id,midi,channel,options):false;}
+  function noteOff(id,options={}){return manualCurrent(options,read(),true)?preview.noteOff(id,options):false;}
+  function setPitch(value,options={}){return manualCurrent(options)?preview.setPitch(value,options):false;}
+  function releaseKeyboard(options={}){return manualCurrent(options,read(),true)?preview.releaseKeyboard(options):false;}
   function getCapturePayload(state=read()){
     const selection=getPausedSelection(state);if(!selection)return null;
     return{...selection.prepared,key:selection.key,frame:selection.positionFrames,sourcePath:selection.sourcePath,sourceRevision:selection.sourceRevision,snapshot:selection.snapshot};
@@ -257,6 +277,7 @@ export function setupHuc6280SongControls({project,getAudio,beforePlay,
   return{
     getState:()=>decorate(read()),read:()=>decorate(read()),isPlaying:()=>Boolean(read().playing),
     getPausedSelection,getCapturePayload,capture:captureCurrent,setView,cancelPendingCapture,setChannelEnabled,
+    getManualSelection,applyEdit,noteOn,noteOff,setPitch,releaseKeyboard,
     isActive:()=>Boolean(choosing||read().loading||read().seeking||read().seekPreparing||read().seekCancelling||['starting','seeking','playing','paused'].includes(read().playback)),
     async selectPath(path){if(disposed||!isHuc6280SongPath(path)||!project.fs.has(path))return false;attempted='';const result=choose(path);project.select(path);return result;},
     setLiveEnabled(value){if(disposed)return false;return decorate(preview.setLiveEnabled(value));},

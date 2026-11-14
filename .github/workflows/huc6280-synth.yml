@@ -79,10 +79,11 @@ jobs:
           sh scripts/package_itch_huc6280_synth.sh ci
           python3 -m zipfile -e release/tetorica_huc6280_synth_ci_itch.zip release/huc6280-synth-browser
           node scripts/check_huc6280_synth_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-browser.json --screenshots release/huc6280-synth-images
-          node scripts/check_huc6280_synth_code_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-code-browser.json --screenshots release/huc6280-synth-code-images
+          node scripts/check_huc6280_synth_code_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-code-browser.json --screenshots=release/huc6280-synth-code-images
           node scripts/check_huc6280_synth_manual_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-manual-browser.json --screenshots=release/huc6280-synth-manual-images
-          node scripts/check_huc6280_synth_song_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-song-browser.json --screenshots release/huc6280-synth-song-images
-          node scripts/check_huc6280_synth_live_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-live-browser.json --screenshots release/huc6280-synth-live-images
+          node scripts/check_huc6280_synth_vgm_manual_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-vgm-manual-browser.json --screenshots=release/huc6280-synth-vgm-manual-images
+          node scripts/check_huc6280_synth_song_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-song-browser.json --screenshots=release/huc6280-synth-song-images
+          node scripts/check_huc6280_synth_live_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-live-browser.json --screenshots=release/huc6280-synth-live-images
           node scripts/check_huc6280_synth_capture_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-capture-browser.json --screenshots=release/huc6280-synth-capture-images
           node scripts/check_huc6280_synth_mixer_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-mixer-browser.json --screenshots=release/huc6280-synth-mixer-images
           node scripts/check_huc6280_synth_seek_browser.cjs --root=release/huc6280-synth-browser --entry=/index.html --out=release/huc6280-synth-seek-browser.json --screenshots=release/huc6280-synth-seek-images
@@ -99,6 +100,8 @@ jobs:
             release/huc6280-synth-code-images/
             release/huc6280-synth-manual-browser.json
             release/huc6280-synth-manual-images/
+            release/huc6280-synth-vgm-manual-browser.json
+            release/huc6280-synth-vgm-manual-images/
             release/huc6280-synth-song-browser.json
             release/huc6280-synth-song-images/
             release/huc6280-synth-live-browser.json

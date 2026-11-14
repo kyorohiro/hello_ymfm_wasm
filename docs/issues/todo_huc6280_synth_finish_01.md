@@ -40,12 +40,12 @@ HuC6280 Synthを仕上げること。FM2612／SPU／DMGと同じく、音を鳴�
       近い保存点から再開する。初期On、最大64点／8MiB、Off／消去に対応。
       実WASMのNode計測で2分先の初回約3.9–5.3秒、同じ位置への再移動約0.8–1.5ms。
       [実装TODO](todo_huc6280_synth_seek_cache_01.md)。
-- [ ] **自動演奏＋手動操作**: VGMまたはCodeを動かしたまま同じCHを編集・発音できる。
+- [x] **自動演奏＋手動操作**: VGMまたはCodeを動かしたまま同じCHを編集・発音できる。
       VGMとCodeの同時実行は行わず、手動操作だけがそれぞれに加わる。
       後の自動writeを優先し、古い離鍵・Pitch解除が新しい発音を消さない。
       Codeとの共存は[実装TODO](todo_huc6280_synth_code_manual_01.md)で対応。
-      残る工程はVGM再生中の同一CHへの手動操作。
-- [ ] **UI整理と配布確認**: Menu／Files／音色抽出／曲選択の入口、狭い画面、
+      VGM再生中の操作も[実装TODO](todo_huc6280_synth_vgm_manual_01.md)で対応済み。
+- [x] **UI整理と配布確認**: Menu／Files／音色抽出／曲選択の入口、狭い画面、
       キーボードFocus、説明の折りたたみを確認する。読めるソースの独立ZIPで
       実WASM／Worklet、Chromium／WebKitを無音検証し、README・CIを揃える。
 - [ ] Web版のまとまりを確認後、Tauriへ固定ZIPを取り込み、既存のMenu／Pin／
@@ -128,3 +128,13 @@ DDA供給が終わっても混在するWave／NoiseのSoftware Envelopeは同じ
 [検証記録](verification_huc6280_synth_code_manual_20261114.json)。Node413件、
 同じ独立ZIPのChromium／WebKit全9スイート・18実行・182項目が成功した。
 共有WASM・SDK・npm APIは変更しない。次はVGM側のLive編集・鍵盤入力と、Seek／cacheの関係を詰める。
+
+## VGM再生と同じCHへの手動操作（2026-11-14）
+
+[詳細TODO](todo_huc6280_synth_vgm_manual_01.md)、
+[検証記録](verification_huc6280_synth_vgm_manual_20261114.json)。
+再生中の曲CHを同じnative coreで編集・発音し、後のVGM命令と古い離鍵／Pitchを項目別に扱う。
+聞こえた時刻の表示・先読みPCM・Pause試奏／Captureを保ち、Seekはcleanな原曲状態へ戻す。
+Synth側は自分の音色・Software Envelope・DDAをVGMと同時に使える。
+Node437件と独立ZIPのChromium／WebKit全10スイート・20実行・194項目が成功した。
+Web側の完成条件は一通り無音検証済み。残るのはTauri取り込み・人の実聴／実ゲーム比較・公開。

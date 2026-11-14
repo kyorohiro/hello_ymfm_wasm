@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "task": "HuC6280 Synth VGM plus manual hardware editing and keyboard on the same reference chip",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "committed": false,
+  "published": false,
+  "behavior": [
+    "Manual sparse hardware writes use the existing reference native core at timeline.generatedFrames. Existing scheduled and queued PCM is retained; no duplicate voice is substituted for playing-channel input.",
+    "Timeline peek observes the producer without advancing the heard cursor. Manual control drafts respond immediately, while sent-register Live/readout follows heard frames. Auto Off acknowledges a deliberate edit once its frame is heard, then remains Off.",
+    "Volume, balance, Wave RAM, Noise and fixed CH2-to-CH1 LFO settings preserve untouched bytes/fields. Invalid fields and unknown protected bits reject before any write. Software Envelope, PCM assets and software follow-mode are unavailable on recorded channels.",
+    "Wave/Noise and known CH1 LFO carrier keys use that selected reference channel. DDA transient DAC codes are not reconstructed into keyboard PCM; its hardware level and balance remain editable. Unknown Wave RAM is blank and cannot accept a guessed partial stroke; explicit complete replacement is allowed when control is known.",
+    "Later VGM control/Wave writes revoke hand gate ownership even when their bytes are unchanged. Frequency writes revoke only manual pitch ownership. Old keyup/Pitch reset and blur cleanup cannot undo later song gates or frequencies.",
+    "Independent manualEpoch fences Pause/Resume, Seek, source-validation start/failure/replacement, Stop, Code and disposal. Nonfatal Live errors disable manual helpers without preventing Pause/Seek/new Load.",
+    "After a manual mutation, that run permanently stops adding original-song checkpoints. Existing clean points remain usable. Seek restores original native/parser/PCM/Live state; Cancel retains the previous edited run and buffered PCM with hand keys released.",
+    "Synth view keeps the authored instrument fully editable/playable alongside the reference, including Software Envelope and DDA loading. Code and VGM stay exclusive. Paused private audition/Capture and channel output flags remain intact.",
+    "The same readable standalone ZIP passes new VGM/manual and all nine existing suites on Chromium/WebKit. Playback controls and layout remain compact at1240/390."
+  ],
+  "node": {
+    "passed": 437,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node --test docs/synth-huc6280/*.test.mjs docs/synth/synth_code_controls.test.mjs test/runtime/huc6280_state.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "receipt": {
+      "path": "build/verification/huc-vgm-manual-20261114/node-tests-f.log",
+      "bytes": 47823,
+      "sha256": "369c960a39a686bc67a59c2921003913a3faa5245bb2a9cd4f0e8c1bc1b60e45"
+    }
+  },
+  "browsers": {
+    "suites": 10,
+    "runs": 20,
+    "checks": 194,
+    "results": [
+      {
+        "suite": "vgm-manual",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/vgm-manual-c.json",
+          "bytes": 17331,
+          "sha256": "85a938eb698ab88c1d8a08d46cf0e387621bbdd8e8f3a72cd64dc9215342f2f2"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 6
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 6
+          }
+        ]
+      },
+      {
+        "suite": "manual",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/manual-b.json",
+          "bytes": 16922,
+          "sha256": "da9d048f41467cc42ac32965d69a6b26a91d7b940deca180a9cf8296fb48a5e2"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 6
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 6
+          }
+        ]
+      },
+      {
+        "suite": "code",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/code-b.json",
+          "bytes": 20271,
+          "sha256": "09238f130ceddc1761906ab944913c922c700e339a4a00aa972010804063f922"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "live",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/live-b.json",
+          "bytes": 107534,
+          "sha256": "78dda89c83f4edb50eed6e67ca494e016b8cfa7c6f7e3d45bdae431e8956a99e"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "capture",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/capture-b.json",
+          "bytes": 36652,
+          "sha256": "d6e60eab6eed23afabfffcd4354edd8ce0883ab8da2107218aedeb682c9f2060"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "legacy",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/legacy-b.json",
+          "bytes": 7836,
+          "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 30
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 30
+          }
+        ]
+      },
+      {
+        "suite": "song",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/song-b.json",
+          "bytes": 30848,
+          "sha256": "7511e60f67a1747fcf1e00c7e511cfbe6afcc66ea2bb0c8c611f63d3e9818ecd"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 7
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 7
+          }
+        ]
+      },
+      {
+        "suite": "mixer",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/mixer-b.json",
+          "bytes": 30210,
+          "sha256": "e8985216e66c9fc5773c4e6696d35f298cc95f020e768865ec3cda04ec7132a4"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "seek",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/seek-b.json",
+          "bytes": 28253,
+          "sha256": "73e6a180499e0569185fc5ae42b78065fcddae574b554553f07c7361b037c6b2"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      },
+      {
+        "suite": "cache",
+        "receipt": {
+          "path": "build/verification/huc-vgm-manual-20261114/cache-b.json",
+          "bytes": 33805,
+          "sha256": "68a0360ec6838be32b65ecdb07aeed76bd0314cb0943b74c51757a4e16dceba4"
+        },
+        "browsers": [
+          {
+            "name": "chromium",
+            "passed": true,
+            "checks": 8
+          },
+          {
+            "name": "webkit",
+            "passed": true,
+            "checks": 8
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "path": "build/verification/huc-vgm-manual-20261114/browser-summary.json",
+      "bytes": 5790,
+      "sha256": "ee07195b91d92ccf8219eca3d70cf81bb30dabc607d788ee8936a24e60a573af"
+    },
+    "mutedBeforeApplicationJs": true,
+    "chromiumMuteAudioFlag": true,
+    "viewportWidths": [
+      1240,
+      390
+    ],
+    "screenshotsInspected": true
+  },
+  "package": {
+    "archive": {
+      "path": "release/tetorica_huc6280_synth_huc-vgm-manual-20261114b_itch.zip",
+      "bytes": 1850486,
+      "sha256": "88fa28aa6d884bb2bccc44f4c62752bc275d2054e8ac7a84f527035e13bfb81e"
+    },
+    "files": 140,
+    "sourceCheck": {
+      "inputs": 14,
+      "files": 20,
+      "sdkVersion": "0.1.8-huc-state"
+    },
+    "originalInputFilesVerifiedAfterBrowserRuns": 121
+  },
+  "scope": {
+    "sharedRuntimeWasmSdkChanges": [],
+    "npmApiChanged": false,
+    "nativeRepositoryChanged": false,
+    "ciWorkflowUpdated": true,
+    "ciCommandArgumentCompatibilityFixed": [
+      "code",
+      "song",
+      "live"
+    ],
+    "ciWorkflowExecutedRemotely": false
+  },
+  "limits": [
+    "Already-generated PCM is retained, so manual edits have the existing short render-ahead delay. Browser throttling can extend scheduling gaps.",
+    "Manual song edits are transient and are not saved into the VGM or authored preset; paused Capture can save a configured voice.",
+    "DDA snapshots cannot provide complete PCM, and unknown recorded controls are not guessed.",
+    "Listening, long-duration real-game testing, Tauri import and publication were not performed."
+  ],
+  "remaining": [
+    "Import the fixed standalone Web ZIP into the separate HuC6280 Tauri repository and validate native Menu/Pin/output/save paths.",
+    "User listening and real-game comparisons before publication."
+  ]
+}

@@ -338,3 +338,72 @@ test('a delayed paused-key audition cannot cross release, selection changes, Res
     assert.equal(h.auditionNotes.size,0);assert(!h.calls.some(call=>call[0]==='command'&&call[1]==='noteOn'));
   }
 });
+
+function playingHarness({channel=0,source='wave',playable=true}={}){
+  const h=harness({channel,running:false,session:null});
+  h.scope.songState={playback:'playing',playing:true,paused:false,busy:false,manualReady:true,manualEpoch:7,canStop:true};
+  const controls={
+    read:()=>h.scope.songState,
+    getManualSelection(ch){return{channel:ch,available:true,editable:true,playable,source,reason:playable?'':'DDA code is not a PCM sample.'};},
+    applyEdit(edit,options){h.calls.push(['songEdit',structuredClone(edit),options.epoch]);return true;},
+    noteOn(id,midi,ch,options){h.calls.push(['songOn',id,midi,ch,options.epoch]);return{channel:ch};},
+    noteOff(id,options){h.calls.push(['songOff',id,options.epoch]);return true;},
+    setPitch(value,options){h.calls.push(['songPitch',value,options.epoch]);return true;},
+    releaseKeyboard(options){h.calls.push(['songRelease',options.epoch]);return true;},
+    stop(){h.calls.push(['songStop']);h.scope.songState={playback:'stopped',playing:false,paused:false,busy:false,manualReady:false,manualEpoch:8};},
+  };
+  h.scope.songControls=controls;return{...h,controls};
+}
+
+test('playing VGM channel keys, Pitch and sparse knobs address the same song core without changing the author instrument',async()=>{
+  const h=playingHarness({channel:4}),before=readPreset(h.scope.preset),next=readPreset(h.scope.displayedPreset);next.volume=9;
+  assert.equal(await h.scope.editVisiblePreset(next),true);assert.deepEqual(h.calls.find(x=>x[0]==='songEdit'),['songEdit',{channel:4,changes:{volume:9}},7]);
+  h.scope.press('key:KeyA',{key:'a',midi:64});await h.idle();const note=h.notes.get('key:KeyA');assert(note);
+  assert.deepEqual(h.calls.find(x=>x[0]==='songOn'),['songOn',note.id,64,4,7]);
+  h.scope.setPitch(.5);await h.idle();assert(h.calls.some(x=>x[0]==='songPitch'&&x[1]===.5&&x[2]===7));
+  h.scope.release('key:KeyA');await h.idle();assert.deepEqual(h.calls.find(x=>x[0]==='songOff'),['songOff',note.id,7]);
+  assert.deepEqual(h.scope.preset,before);assert(!h.calls.some(x=>['command','edit','preset','dirty','songStop'].includes(x[0])));
+});
+
+test('playing VGM Noise keeps its clock and changing DDA codes cannot be triggered as a guessed PCM sample',async()=>{
+  const noise=playingHarness({channel:4,source:'noise'});noise.scope.press('key:KeyA',{key:'a',midi:64});await noise.idle();
+  assert(noise.calls.some(x=>x[0]==='songOn'));noise.scope.setPitch(1);await noise.idle();assert.equal(noise.scope.pitch,0);assert(!noise.calls.some(x=>x[0]==='songPitch'));
+  const dda=playingHarness({channel:3,source:'dda',playable:false});dda.scope.press('key:KeyA',{key:'a',midi:64});await dda.idle();
+  assert.equal(dda.notes.size,0);assert(!dda.calls.some(x=>x[0]==='songOn'||x[0]==='command'));
+});
+
+test('queued VGM hand operations cannot cross quick keyup, Pause, Seek, Code, CH or source changes',async()=>{
+  for(const transition of ['keyup','pause','seek','epoch','channel','controls']){
+    const gate=deferred(),h=playingHarness();h.scope.enqueue(()=>gate.promise);
+    const next=readPreset(h.scope.displayedPreset);next.volume=9;
+    const editing=h.scope.editVisiblePreset(next);h.scope.press('key:KeyA',{key:'a',midi:60});h.scope.setPitch(.5);
+    if(transition==='keyup')h.scope.release('key:KeyA');
+    if(transition==='pause'){h.scope.songState.playing=false;h.scope.songState.paused=true;}
+    if(transition==='seek')h.scope.songState.busy=true;
+    if(transition==='epoch')h.scope.songState.manualEpoch++;
+    if(transition==='channel'){h.scope.channelTarget=1;h.scope.epoch++;}
+    if(transition==='controls')h.scope.songControls={...h.controls};
+    gate.resolve();await editing;await h.idle();
+    assert(!h.calls.some(x=>x[0]==='songOn'),transition);
+    if(transition!=='keyup')assert(!h.calls.some(x=>x[0]==='songEdit'||x[0]==='songPitch'),transition);
+  }
+  const h=playingHarness();h.scope.press('key:KeyA',{key:'a',midi:60});await h.idle();h.scope.songState.manualEpoch++;h.scope.release('key:KeyA');await h.idle();
+  assert(!h.calls.some(x=>x[0]==='songOff'),'old keyup cannot enter the new run');
+});
+
+test('VGM state changes retire only song-owned UI keys, while cleanup releases the reference and authored keyboard independently',async()=>{
+  const h=playingHarness();h.scope.press('key:KeyA',{key:'a',midi:60});await h.idle();
+  h.notes.set('own',{id:'own',owner:'auth',key:'b'});const previous={...h.scope.songState};h.scope.songState.manualEpoch++;
+  h.scope.syncSongManualState(previous);assert(!h.notes.has('key:KeyA'));assert(h.notes.has('own'));
+  await h.scope.stopNotes();assert(h.calls.some(x=>x[0]==='songRelease'));assert(h.calls.some(x=>x[0]==='command'&&x[1]==='stop'));
+  assert(!h.calls.some(x=>x[0]==='songStop'||x[0]==='visualStop'));
+});
+
+test('Synth author keys, Pitch, knobs and explicit sound loads coexist with a playing VGM',async()=>{
+  const h=playingHarness({channel:'synth'}),next=createDefaultPreset();next.volume=13;
+  assert.equal(await h.scope.applyPreset(next),true);assert(h.scope.songState.playing);assert(!h.calls.some(x=>x[0]==='songStop'));
+  const loaded=readPreset(next);loaded.name='New own sound';assert.equal(await h.scope.applyPreset(loaded,{load:true}),true);assert(h.scope.songState.playing);
+  h.scope.press('key:KeyA',{key:'a',midi:60});await h.idle();assert(h.calls.some(x=>x[0]==='command'&&x[1]==='noteOn'));
+  h.scope.setPitch(.5);await h.idle();assert(h.calls.some(x=>x[0]==='command'&&x[1]==='setPitch'&&x[2][0]===.5));
+  assert(!h.calls.some(x=>['songOn','songPitch','songStop'].includes(x[0])));
+});

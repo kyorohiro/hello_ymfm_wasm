@@ -4,9 +4,10 @@ import {VgmPlayer} from '../js/vgmplayer.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import factory from '../generated/huc6280_wasm.js';
 import {prepareHuc6280SongSource} from './song_source.js';
-import {createHuc6280SongTimeline} from './song_state.js';
+import {createHuc6280SongTimeline} from './song_state.js?v=huc-vgm-manual-1';
 import {createHuc6280SongCache} from './song_cache.js';
 import {captureHuc6280SongCheckpoint,restoreHuc6280SongCheckpoint} from './song_checkpoint.js';
+import {createHuc6280SongManual} from './song_manual.js';
 
 const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01, INTERVAL = 8;
 const scheduleTask = globalThis.setTimeout.bind(globalThis);
@@ -32,10 +33,33 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   let loadController = null, loading = false, disposed = false, playback = 'stopped';
   let errorMessage = '', positionFrames = 0, sampleRate = 44100;
   let liveEnabled = true, liveState = null, liveMessage = '';
-  let channelMuteMask=0;
+  let channelMuteMask=0,manualEpoch=0;
   let seeking=null,seekCleanup=Promise.resolve(),seekPreparing=0,seekMessage='';
   const seekCache=createHuc6280SongCache({enabled:cacheEnabled,maxBytes:cacheMaxBytes,maxCount:cacheMaxCount,intervalSeconds:cacheIntervalSeconds});
   let cacheGeneration=0;
+  function manualInfo(run=active){
+    if(!run?.manual)return{available:false,reason:run?.manualError??'Play a song to use its channel controls.',channels:[],voices:[]};
+    try{return run.manual.read();}catch(error){return{available:false,reason:error?.message??String(error),channels:[],voices:[]};}
+  }
+  function manualReady(run=active,info=manualInfo(run)){
+    return Boolean(run&&run===active&&!run.released&&playback==='playing'&&!loading&&!seeking&&!seekPreparing&&!run.eof&&!run.timeline.error&&info.available);
+  }
+  function attachManual(run){
+    try{run.manual=createHuc6280SongManual({engine:run.engine,timeline:run.timeline,onMutation(){
+      // Checkpoints must continue to describe the original file. Previously
+      // collected clean points stay useful; this edited run collects no more.
+      run.manualTainted=true;run.manualLastFrame=run.timeline.generatedFrames;run.manualPendingFrame=run.manualLastFrame;
+    }});}catch(error){run.manualError=error?.message??String(error);}
+  }
+  function releaseManualKeys(run=active){
+    if(!run?.manual)return false;
+    try{return run.manual.releaseKeyboard();}
+    catch(error){
+      // Live observation is optional. If its state became unavailable, retire
+      // manual leases without guessing bytes or blocking Pause/Seek/load.
+      run.manualError=error?.message??String(error);run.manual.dispose();run.manual=null;return false;
+    }
+  }
   function prepareCacheRun(run){
     if(run.cacheGeneration!==cacheGeneration||run.cacheMask!==channelMuteMask){
       run.cacheGeneration=cacheGeneration;run.cacheMask=channelMuteMask;
@@ -44,7 +68,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     }
   }
   function captureCachePoint(run,force=false){
-    if(source!==run.source||!seekCache.read().enabled||!run.engine.supportsState?.())return;
+    if(run.manualTainted||run.timeline.error||source!==run.source||!seekCache.read().enabled||!run.engine.supportsState?.())return;
     prepareCacheRun(run);if(run.cacheBlocked)return;
     const frame=run.player.renderedPositionFrames(),interval=run.sampleRate*cacheIntervalSeconds;
     if(frame<run.cacheSafeFrame||!force&&(frame<interval||frame-(run.cacheLastAttempt??0)<interval))return;
@@ -92,6 +116,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   }
   function getState() {
     const frames = position(), busy = loading || playback === 'starting'||Boolean(seeking)||seekPreparing>0;
+    const manual=manualInfo();
     return {playback, playing:playback === 'playing', paused:playback === 'paused', busy, loading,
       hasSource:source !== null, name, errorMessage, sampleRate, positionFrames:frames,
       positionSeconds:frames / sampleRate, durationSeconds:source ? source.totalSamples / 44100 : 0,
@@ -103,6 +128,8 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       seekProgressSeconds:seeking?seeking.progressFrame/seeking.rate:0,seekProgressFrames:seeking?.progressFrame??0,
       seekMessage,canSeek:!disposed&&Boolean(source)&&!loading&&playback!=='starting'&&(!seekPreparing||Boolean(seeking)),
       seekCache:seekCache.read(),
+      manualReady:manualReady(active,manual),manualEpoch,manualTainted:Boolean(active?.manualTainted),
+      manualHeldCount:manual.voices?.length??0,manualLastFrame:active?.manualLastFrame??null,manualReason:manual.reason??'',
       channelEnabled:Array.from({length:6},(_,channel)=>!(channelMuteMask&(1<<channel))),channelMuteMask,
       liveKind:'song',liveEnabled,liveState,liveError:Boolean(liveMessage),liveMessage,
       liveActive:Boolean(liveState&&!liveMessage&&['playing','paused','ended'].includes(playback))};
@@ -120,9 +147,10 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function release(run) {
     if (!run || run.released) return;
     run.released = true; cancelTimer(run); cancelNodes(run); run.segments = [];
-    try {run.gain?.disconnect();} finally {try {run.timeline.dispose();} finally {run.engine.dispose();}}
+    try {run.gain?.disconnect();} finally {try {run.manual?.dispose();} finally {try {run.timeline.dispose();} finally {run.engine.dispose();}}}
   }
   function stop() {
+    manualEpoch++;
     seeking?.controller.abort();seeking=null;seekMessage='';
     generation++; loadGeneration++; loadController?.abort(); loadController = null; loading = false;
     const old = active; active = null; release(old);
@@ -134,7 +162,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     const externalAbort = () => controller.abort();
     signal?.addEventListener('abort', externalAbort, {once:true});
     if (signal?.aborted) controller.abort();
-    loading = true; emit();
+    releaseManualKeys(active);manualEpoch++;loading = true; emit();
     try {
       if(seeking){seeking.controller.abort();await seekCleanup;if(controller.signal.aborted)throw aborted();}
       const prepared = await prepareHuc6280SongSource(bytes, {signal:controller.signal, yieldTask});
@@ -154,6 +182,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   function clear() {open(); stop(); source = null; name = ''; sampleRate = 44100;seekCache.reset(null,channelMuteMask);cacheGeneration++; emit();}
   function fail(error, run = active) {
     if (run && active !== run) return;
+    manualEpoch++;
     positionFrames = position(run); active = null; release(run);
     liveState=null;liveMessage='';
     playback = 'error'; errorMessage = error?.message ?? String(error);
@@ -200,7 +229,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
         if (!frames) break;
       }
       if (run.eof && position(run) >= run.renderedFrames) {
-        positionFrames = run.renderedFrames;publishLive(run,positionFrames,true); active = null; playback = 'ended'; release(run); emit(); return;
+        positionFrames = run.renderedFrames;publishLive(run,positionFrames,true);manualEpoch++; active = null; playback = 'ended'; release(run); emit(); return;
       }
       if (forceEmit || run.lastEmitTime === null || run.context.currentTime - run.lastEmitTime >= .05) {
         run.lastEmitTime = run.context.currentTime;publishLive(run,position(run),forceEmit&&!liveState); emit();
@@ -209,6 +238,9 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     } catch (error) {fail(error, run);}
   }
   function publishLive(run,frame,force=false) {
+    // Auto Off freezes automatic observation, but deliberate edits still get
+    // one acknowledgement when their actual audio boundary becomes audible.
+    if(run.manualPendingFrame!=null&&frame>=run.manualPendingFrame){force=true;run.manualPendingFrame=null;}
     const snapshot=run.timeline.read(frame);
     liveMessage=run.timeline.error;
     if(liveMessage)liveState=null;
@@ -232,6 +264,22 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   }
   function setCacheEnabled(value){open();seekCache.setEnabled(value);cacheGeneration++;emit();return getState();}
   function clearSeekCache(){open();seekCache.clear();cacheGeneration++;emit();return getState();}
+  function getManualSelection(channel){
+    open();if(!Number.isInteger(channel)||channel<0||channel>5)throw RangeError('HuC6280 song channel must be 0..5');
+    const info=manualInfo(),selected=info.channels[channel],ready=manualReady(active,info);
+    return{...selected,channel,epoch:manualEpoch,available:ready,editable:ready,playable:Boolean(ready&&selected?.playable),
+      reason:ready?selected?.reason??'':info.reason||'Channel controls are available while the song is playing.'};
+  }
+  function manualOperation(method,args,{epoch}={},cleanup=false){
+    open();if(epoch!==undefined&&epoch!==manualEpoch)return false;
+    const run=active;if(!run?.manual||(!cleanup&&loading)||seeking||seekPreparing)return false;
+    if(cleanup?!['playing','paused'].includes(playback):!manualReady(run))return false;
+    if(cleanup&&!manualInfo(run).available){releaseManualKeys(run);emit();return false;}
+    const value=run.manual[method](...args);
+    // Keep observation on the heard clock; the manual delta becomes visible
+    // once the already-generated PCM has passed through the output.
+    publishLive(run,position(run));emit();return value;
+  }
   function requestAudio() {
     const requested = getAudio();
     // Synchronous existing-context access keeps resume in the Play gesture.
@@ -264,7 +312,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     if (!source) throw new Error('Choose a valid HuC6280 VGM/VGZ song first');
     if (playback === 'paused') return resume();
     if (playback === 'playing') return true;
-    const ticket = ++generation, selected = source;
+    const ticket = ++generation, selected = source;manualEpoch++;
     release(active); active = null; positionFrames = 0; playback = 'starting'; errorMessage = '';liveState=null;liveMessage='';seekMessage=''; emit();
     let engine = null, gain = null,timeline=null;
     try {
@@ -283,9 +331,11 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       seekCache.setAvailable(Boolean(engine.supportsState?.()));
       gain = context.createGain(); gain.gain.value = 1; gain.connect(output);
       const run = {engine, timeline,player, context, output, gain, sampleRate:rate, source:selected,cacheGeneration,cacheMask:channelMuteMask,cacheSafeFrame:0,cacheLastAttempt:0,
+        manual:null,manualTainted:false,manualLastFrame:null,manualPendingFrame:null,
         basePosition:0, renderedFrames:0,
         segments:[], nextTime:null, timer:null, eof:false, released:false, lastEmitTime:null};
       active = run; engine = gain =timeline= null; sampleRate = rate;
+      attachManual(run);
       playback = 'playing'; player.play(); pump(run, true);
       return playback === 'playing' || playback === 'ended';
     } catch (error) {
@@ -295,6 +345,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   }
   function pause() {
     open(); const run = active; if (!run || playback !== 'playing') return false;
+    releaseManualKeys(run);manualEpoch++;
     run.basePosition = position(run); positionFrames = run.basePosition;
     publishLive(run,positionFrames,true);
     cancelTimer(run); cancelNodes(run);
@@ -303,7 +354,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
   }
   async function resume() {
     open(); const run = active; if (!run || playback !== 'paused' || loading||seeking||seekPreparing) return false;
-    const ticket = ++generation; playback = 'starting';seekMessage=''; emit();
+    const ticket = ++generation;manualEpoch++; playback = 'starting';seekMessage=''; emit();
     try {
       const host = await prepareHost(ticket); if (!current(ticket) || active !== run) return false;
       const {context, output} = validateHost(host);
@@ -358,6 +409,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       }
       job.restoredFrame=job.progressFrame;seekCache.noteProgress(0);
       candidate={engine,timeline,player,context,output,gain:null,sampleRate:rate,source:job.source,cacheGeneration,cacheMask:channelMuteMask,cacheSafeFrame:0,cacheLastAttempt:job.progressFrame,
+        manual:null,manualTainted:false,manualLastFrame:null,manualPendingFrame:null,
         basePosition:job.targetFrame,renderedFrames:job.targetFrame,
         segments:[],nextTime:null,timer:null,eof:false,released:false,lastEmitTime:null};
       engine=timeline=null;
@@ -391,6 +443,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
       check();const snapshot=candidate.timeline.read(job.targetFrame);
       candidate.gain=context.createGain();candidate.gain.gain.value=1;candidate.gain.connect(output);
       const old=active;active=candidate;candidate=null;release(old);
+      attachManual(active);
       sampleRate=rate;positionFrames=job.targetFrame;liveState=snapshot;liveMessage=active.timeline.error;errorMessage='';seekMessage='';seeking=null;
       playback=job.previous.phase==='playing'?'playing':'paused';
       if(playback==='playing'){active.player.resume();for(const segment of active.segments)scheduleSegment(active,segment);pump(active,true);}
@@ -410,6 +463,7 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     open();if(!Number.isFinite(seconds))throw TypeError('HuC6280 seek seconds must be finite');
     if(!source||loading||playback==='starting'||seekPreparing&&!seeking)return false;
     const oldJob=seeking;
+    if(!oldJob)releaseManualKeys(active);manualEpoch++;
     const previous=oldJob?.previous??{run:active,phase:playback,position:position(active),sampleRate,snapshot:liveState,liveMessage,error:errorMessage};
     oldJob?.controller.abort();if(!oldJob)previous.position=freezeRun(active);
     seekCache.beginSeek();
@@ -424,5 +478,10 @@ export function createHuc6280SongPreview({getAudio, beforePlay = async () => {},
     job.controller.abort();emit();await job.promise;return true;
   }
   function dispose() {if (disposed) return; stop(); disposed = true; source = null; name = '';seekCache.reset(null,channelMuteMask); emit();}
-  return {load, play, pause, resume, stop,clear,seek,cancelSeek,setCacheEnabled,clearSeekCache,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled, dispose};
+  return {load, play, pause, resume, stop,clear,seek,cancelSeek,setCacheEnabled,clearSeekCache,whenIdle:()=>seekCleanup,getState,read:getState,setLiveEnabled,setChannelEnabled,
+    getManualSelection,applyEdit:(edit,options)=>manualOperation('applyEdit',[edit],options),
+    noteOn:(id,midi,channel,options)=>manualOperation('noteOn',[id,midi,channel],options),
+    noteOff:(id,options)=>manualOperation('noteOff',[id],options,true),
+    setPitch:(value,options)=>manualOperation('setPitch',[value],options),
+    releaseKeyboard:options=>manualOperation('releaseKeyboard',[],options,true),dispose};
 }

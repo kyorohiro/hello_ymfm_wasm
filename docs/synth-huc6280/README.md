@@ -33,7 +33,8 @@ returning the manual Pitch wheel to center.
 
 The channel selector offers **Synth** and **CH1–CH6** in normal, Code and VGM modes. Synth
 edits the authored instrument; a physical channel shows that channel. Normal
-and Code modes allow editing, while VGM CH views are read-only.
+and Code modes allow editing. Playing VGM channels allow hardware edits and
+keyboard input; paused channels show frozen settings and use a separate audition.
 **Auto update** reads the configured wave and sent registers at up to 20 Hz;
 turn it off to reduce readback. This is an observation of software writes, not
 an oscillator-phase measurement. During Code, manual channel edits retain their changed
@@ -183,6 +184,9 @@ Stop and Code Run keep points for the accepted song. A different song or channel
 output setting clears them. **Clear seek cache** is in the playback **?** help.
 Switching Cache Off releases the points; neither operation changes the position,
 your instrument or paused audition. New points accumulate while Cache is On.
+Manual song edits keep existing clean points, but stop collecting new points
+from that edited run. Seek always restores the original file's settings;
+cancelling Seek retains the previous edited run and its unheard PCM.
 The first move to an uncached region can still take several seconds. Unsupported
 state backends or oversized checkpoints use ordinary reconstruction instead.
 
@@ -209,21 +213,31 @@ fields and are not saved in a Cassette.
 
 Code and reference playback run one at a time. Play / Resume stops Code and
 releases manual keys; Run stops the reference song. **Stop all sound** stops
-both. While paused, select **Synth** to play or adjust your edited instrument.
-Loading another sound normally stops the reference song; Capture deliberately
-keeps it paused.
+both. Select **Synth** to play or adjust your own instrument while the song
+continues. Preset loads in Synth view also keep playback; loading another sound
+while viewing a physical song CH stops the reference and loads the authored
+instrument. Capture deliberately keeps the song paused.
 
 Select **CH1–CH6** to see the VGM's Wave, Noise, LFO, level, stereo balance,
-period and Gate in the same instrument UI. This view is read-only and follows
-the **heard position**, rather than prefetched audio. Unknown Wave RAM stays
+period and Gate in the same instrument UI. While playing, change hardware
+controls or play keys to write into that same reference channel. Later VGM
+writes take over their corresponding parameters or gate; old hand releases and
+Pitch resets do not undo a newer song gate or frequency. Existing generated PCM
+is retained, so changes become audible after a short lookahead delay. Display
+follows the **heard position**, rather than prefetched audio. Unknown Wave RAM stays
 blank; missing register fields show an unknown marker. DDA shows the last
 recorded five-bit DAC code, without assuming a continuous sample or root note.
-These observations never replace your authored instrument.
+These observations and manual song edits never replace your authored instrument
+or modify the VGM file. Software Envelope and PCM asset controls belong to Synth,
+not the recorded chip. DDA level and balance remain editable, but its changing
+DAC code is not a keyboard-playable PCM asset. CH2 stays the LFO modulator;
+choose CH1 for carrier keys, leaving the recorded CH2 period in place.
 
 **Auto update** starts On and publishes at up to 20 Hz. Off retains a full-chip
 snapshot, so changing CH views uses the same observation time. On catches up to
 the heard position. Pause publishes one exact consumed-position snapshot even
-when automatic updates are Off; Resume continues playback.
+when automatic updates are Off; Resume continues playback. A deliberate manual
+edit also gets one update when its audio boundary is heard, while Auto stays Off.
 
 While paused, select a recorded **CH1–CH6** and play the keyboard to audition
 its configured sound. Wave uses ordinary keyboard pitch. Noise retriggers the
@@ -445,6 +459,7 @@ npm run test:huc6280-synth
 npm run test:huc6280-synth:browser
 npm run test:huc6280-synth:code-browser
 npm run test:huc6280-synth:manual-browser
+npm run test:huc6280-synth:vgm-manual-browser
 npm run test:huc6280-synth:song-browser
 npm run test:huc6280-synth:live-browser
 npm run test:huc6280-synth:capture-browser
@@ -485,6 +500,11 @@ CodeのnoteOn／noteOffはSoftware Envelope、keyOn／keyOffは実機のゲー�
 liveFxやDDAのデータ供給もソフト側の機能です。復元したCodeを勝手に実行することはありません。
 ハンバーガーメニューのImport → VGM / VGZ…から読み込みます。
 Channel／Auto update／CaptureはVGM・Play／Stopと同じコンテナ内です。
+VGM再生中は選択CHのhardware設定・鍵盤を同じ参照音源へ送れます。後のVGM命令が優先され、
+先読み済みPCMの後から音と表示へ反映します。Auto update Offでも手動変更は聞こえた時点で一度表示します。
+Synthを選ぶと自分の音色を曲と重ねて演奏・編集できます。DDAは音量／balanceを編集でき、
+瞬間DAC値からPCMを推測しないため鍵盤試奏はできません。Software Envelope／PCM資産はSynth専用です。
+手動変更したrunから原曲用cacheは収集せず、Seekは原曲状態へ戻り、取消は元の編集済みrunを保ちます。
 その下に折りたたみ式の音色一覧、Waveform／Spectrumが続きます。
 VGM／VGZからWave／Noise、CH1・CH2を組にしたLFO音色、対応する完全なDAC streamや一定間隔の直接DAC write区間のPCMを抽出できます。
 Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
