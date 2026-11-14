@@ -28,7 +28,8 @@ test('full profile includes every runtime; application subsets retain their prev
   }
   assert.equal(runtimeArtifactProfiles.full.length, 35);
   assert.equal(runtimeArtifactProfiles.playground.length, 29);
-  assert.equal(runtimeArtifactProfiles.analyzer.length, 26);
+  assert.equal(runtimeArtifactProfiles.analyzer.length, 27);
+  assert(runtimeArtifactProfiles.analyzer.includes('sid'), 'The Analyzer ships its common factory SID dependency');
   assert.equal(runtimeArtifactProfiles.synth.length, 9);
   for (const id of ['cdda', 'msm5205', 'ps1_spu', 'scsp', 'dx7'])
     assert(runtimeArtifactProfiles.playground.includes(id), id);

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "scope": "fm2612-shared-controls-range-ui-only",
+  "feature": "Dynamic PCM frame control bounds and pointer capture cleanup",
+  "beforeCommit": "d6d722449487e3abd64e8a539eac6f7370afd8d4",
+  "afterCommit": "529828245ec7bebf84ddd4011eecfe23ead0fe5a",
+  "parentReceipt": {
+    "path": "docs/issues/fm2612_synth_controls_source_revision_01.json",
+    "objectSha256": "58eba3421112b9352d15bac08a1406a4b28e560c52e00ddb44166c3c2335b76b"
+  },
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "source": {
+    "path": "synth/synth_controls.js",
+    "before": {
+      "bytes": 11276,
+      "sha256": "2316f603e46c3b58314759bf59385827202ec5eabbaed0b6c550ad0451877349"
+    },
+    "after": {
+      "bytes": 12385,
+      "sha256": "b272a8dc01c20abc6fa74c667b95846403777111102cd0a42e1154273756ea16"
+    },
+    "reverseHunks": [
+      {
+        "afterOffset": 552,
+        "afterBytes": 42,
+        "beforeText": "    min,\n    max,\n"
+      },
+      {
+        "afterOffset": 733,
+        "afterBytes": 37,
+        "beforeText": ""
+      },
+      {
+        "afterOffset": 2363,
+        "afterBytes": 24,
+        "beforeText": "  const valueRange =\n    Math.max(step, max - min);\n"
+      },
+      {
+        "afterOffset": 2425,
+        "afterBytes": 766,
+        "beforeText": ""
+      },
+      {
+        "afterOffset": 3948,
+        "afterBytes": 35,
+        "beforeText": ""
+      },
+      {
+        "afterOffset": 4529,
+        "afterBytes": 42,
+        "beforeText": "          (valueRange / step)\n"
+      },
+      {
+        "afterOffset": 4708,
+        "afterBytes": 57,
+        "beforeText": ""
+      },
+      {
+        "afterOffset": 5165,
+        "afterBytes": 173,
+        "beforeText": ""
+      },
+      {
+        "afterOffset": 6035,
+        "afterBytes": 33,
+        "beforeText": ""
+      }
+    ]
+  },
+  "review": [
+    "Only the UI control bounds and drag capture lifetime change. The shared controls contain no PCM rendering, gain, chip engine, scheduling transport or WASM changes.",
+    "The measured Playground caller retains its original fixed min/max bounds and never calls updateRange or cancelDrag. Static-range pointer movement computes the same interval as before.",
+    "The sole new DOM event is lostpointercapture cleanup, which removes a CSS drag marker without sending a parameter edit. Range updates are passive and cancel stale capture before changing local bounds.",
+    "The complete current body reconstructs the exact independently authenticated receipt01 after-body, then receipt01 reconstructs the original measured body. All four measured reports and receipt01 remain byte-for-byte unchanged. Future edits, imports and cache queries are not covered."
+  ]
+}

@@ -153,6 +153,13 @@ soundchip.js
 soundchip_factory.js
 soundchip_worklet.js
 soundchip-output-worklet.js
+ps1_vab.js
+ps1synth.js
+ps1_spu.js
+ps1_parameters.js
+sid_soundchip.js
+sid.js
+sid8580.js
 chip_pcm_renderer.js
 opn_variant.js
 wav.js
@@ -178,6 +185,7 @@ pwm32x_wasm.js
 rf5c164.js
 rf5c164synth.js
 rf5c164_pcm.js
+rf5c164_notes.js
 playground_rf5c164.js
 playground_rf5c164_audio.js
 rf5c164-worklet.js
@@ -372,6 +380,20 @@ node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_sid_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/sid_model_artifacts.mjs" --copy-sources "${STAGE_DIR}"
+# Keep the unmodified corresponding browser sources resolvable too. Their
+# historical ../generated URLs differ from this application's js/ layout.
+SID_SOURCE_DIR="${STAGE_DIR}/sources/sid/tetorica_src"
+cp "${DOCS_JS_DIR}/sid8580.js" "${SID_SOURCE_DIR}/runtime/sid8580.js"
+mkdir -p "${SID_SOURCE_DIR}/generated/sid" "${SID_SOURCE_DIR}/generated/sid8580-machine"
+cp "${STAGE_DIR}/generated/sid/sid.wasm" "${STAGE_DIR}/generated/sid/sid-build.json" "${SID_SOURCE_DIR}/generated/sid/"
+cp "${STAGE_DIR}/generated/sid8580-machine/sid8580-endpoint.wasm" "${STAGE_DIR}/generated/sid8580-machine/sid8580-machine-build.json" "${SID_SOURCE_DIR}/generated/sid8580-machine/"
+
+# Common-factory VAB helpers import the readable SPU class and parameter tables.
+# They do not instantiate its explicitly injected native module factory.
+mkdir -p "${STAGE_DIR}/licenses/mame-ps1-spu"
+cp "${ROOT_DIR}/third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/LICENSE" "${STAGE_DIR}/licenses/mame-ps1-spu/"
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
@@ -379,6 +401,8 @@ NES APU: JSNES, Apache-2.0. See licenses/jsnes/ for authors and licenses.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 NES/FDS shared WASM port: Apache-2.0 and MIT. See licenses/tetorica-nes/ and sources/NES-FDS.md for source and rebuilding.
 SNES SPC700 / S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
+C64 SID common-factory dependency: chips/m6581 6581 approximation (zlib) and MIT sidera 8580 Preview, with BSD-3-Clause Tetorica hosts. See licenses/chips-m6581/, sources/SID.md and sources/SID8580.md for matching WASMs, source kits, original licenses and toolchain notices. This does not add SID songs to the Analyzer's VGM playback formats.
+PlayStation VAB / ADPCM JavaScript helpers: BSD-3-Clause Tetorica code. ADSR / reverb tables retain the BSD-3-Clause MAME attribution to pSXAuthor and R. Belmont; see licenses/mame-ps1-spu/LICENSE. No native SPU module is loaded by these helpers.
 AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 
 HuC6280: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.

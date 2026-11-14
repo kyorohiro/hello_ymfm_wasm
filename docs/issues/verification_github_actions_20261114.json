@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-14",
+  "scope": "Repair observed GitHub Actions failures and validate downstream packages",
+  "baseCommit": "05259630b8c03a14e6f0eb383e6f1f978668c417",
+  "localValidationPassed": true,
+  "remoteFixValidated": false,
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "remote": {
+    "observedFailedRuns": [
+      {
+        "id": 43569076009,
+        "workflow": "WASM SDK build and parity",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076009",
+        "cause": "runtime-cache-comparison",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076009.log",
+          "bytes": 274213,
+          "sha256": "473efde75a2b8b37aea412e2b2988870764a98e95744c0198d146482f0f4f280"
+        }
+      },
+      {
+        "id": 43569076018,
+        "workflow": "SNES S-DSP Synth",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076018",
+        "cause": "calibration-receipt",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076018.log",
+          "bytes": 56289,
+          "sha256": "90c4f56bee70ab739624ca4beec7f421c367240c98d1cba1cf375eb65f17c6f9"
+        }
+      },
+      {
+        "id": 43569076205,
+        "workflow": "SPU Synth",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076205",
+        "cause": "hidden-initial-editor-heading",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076205.log",
+          "bytes": 9891,
+          "sha256": "35a345c4900ddb208385f1e2ef10895847b3f5b36c79e587d1e272831bcb9ea6"
+        }
+      },
+      {
+        "id": 43569076067,
+        "workflow": "Verify npm sound-chip package",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076067",
+        "cause": "runtime-cache-comparison",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076067.log",
+          "bytes": 110767,
+          "sha256": "4d9b2db36838aa667a6d1e272c48e1500ca516f9338f03d3fe57c8f0d5970059"
+        }
+      },
+      {
+        "id": 43569076058,
+        "workflow": "HuC6280 Synth",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076058",
+        "cause": "ui-selection-acknowledgement",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076058.log",
+          "bytes": 417307,
+          "sha256": "bec559a2c21368ab3fd3144ac62a800890298da5438cf6c3899b49ad3c850a86"
+        }
+      },
+      {
+        "id": 43569076030,
+        "workflow": "itch web release ZIPs",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076030",
+        "cause": "calibration-receipt",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076030.log",
+          "bytes": 4903367,
+          "sha256": "0558cdf7a36f34d2d09f935c371ef6b58a037aa3387736a9da90ddb510c0b1a5"
+        }
+      },
+      {
+        "id": 43569076351,
+        "workflow": "VGM parser and player tests",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076351",
+        "cause": "python-native-include-expectation",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076351.log",
+          "bytes": 44179,
+          "sha256": "7fd536bb9509a305e28eab0f99e3099d5e64ea85799f6b5d0dbfeb2685db371d"
+        }
+      },
+      {
+        "id": 43569076224,
+        "workflow": "SID register lab",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076224",
+        "cause": "calibration-receipt",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076224.log",
+          "bytes": 1331,
+          "sha256": "3a45b4b919ec35f3c1f0e800f7b2a4fa333d7727508b13360cd5824d38498e09"
+        }
+      },
+      {
+        "id": 43569076020,
+        "workflow": "SID Synth",
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43569076020",
+        "cause": "checker CLI expects equals-separated options",
+        "log": {
+          "path": "build/huc6280-ci-fix-20261114/run-43569076020.log",
+          "bytes": 238538,
+          "sha256": "9cdd447f62ddd1e53036284ac468f57a786bc49f84c087f36abc76ea93c8331b"
+        }
+      }
+    ],
+    "historicalDmgFailure": 43562812829,
+    "note": "These failed runs precede the fixes. Remote validation requires a new commit/push; no rerun of old code can validate the working-tree changes."
+  },
+  "changes": [
+    "HuC browser waits for complete host acknowledgement after the native preset becomes visible; a delayed acknowledgement unit test preserves the functional selection contract.",
+    "DMG compares each mask Live snapshot with an independently rendered timeline at exactly its own consumed source frame, preserving all16 mask PCM comparisons and source-register checks.",
+    "HuC SDK test expectations include native/include and all four opaque state exports, matching the pinned recipe.",
+    "Runtime staging comparison ignores only website v cache tokens; behavior mutations, module targets and non-cache queries still differ.",
+    "SPU initial authored headings are selected within their three tabpanels; the additional PSF channel section is independently asserted hidden.",
+    "A separately pinned UI-only controls receipt reconstructs the exact earlier reviewed source and original measured body. Historical receipt01 and all four measured reports remain unchanged; future source mutations still require review or remeasurement.",
+    "Independent SID core/player/RSID builders are outside the stubbed SDK-wrapper fixture. SID workflow source/ZIP checker calls use their existing key=value CLI syntax.",
+    "Analyzer package includes eight missing RF5C164/VAB/SPU-table/SID JS dependencies, both SID model artifacts and corresponding source/license kits. Strict dependency validation remains enabled, including source-kit relative references.",
+    "npm DX7 and HuC browser checkers intercept every physical destination behind gain0 and assert mute state while keeping real PCM monitor branches. Product audio runtime and mixer defaults are unchanged."
+  ],
+  "node": [
+    {
+      "name": "DMG Synth",
+      "passed": 264,
+      "failed": 0,
+      "skipped": 0,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/dmg-node-tests.log",
+        "bytes": 30442,
+        "sha256": "76c97ab4f29fb5d96cb06e8deb0d8d5d01991ca9d11f767eb388fb74611c3762"
+      }
+    },
+    {
+      "name": "Calibration and immutable revisions",
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/calibration-tests.log",
+        "bytes": 13444,
+        "sha256": "3f280392e0089ace7686580ffde3ed4ea1f623ce43c7317e45b6216a0800399b"
+      }
+    },
+    {
+      "name": "Runtime artifact and builder contracts",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/runtime-artifacts-tests-final.log",
+        "bytes": 3592,
+        "sha256": "8b989963d9f05f34d881b6e1fcbbaface2fb7083356b6b50b081dc8589bef073"
+      }
+    },
+    {
+      "name": "SDK/npm preflight",
+      "passed": 136,
+      "failed": 0,
+      "skipped": 0,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/sdk-npm-preflight-tests.log",
+        "bytes": 10773,
+        "sha256": "17489ba38389a56de64e4c76d1654c08bd7306cc6450df502409f10736703c1f"
+      }
+    },
+    {
+      "name": "Analyzer profiles and SID source kits",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/analyzer-runtime-profile-tests.log",
+        "bytes": 1096,
+        "sha256": "52a663a607548367a9a10e93c2e47939bd96c64a6b1cde9dd02bbd41afe684cd"
+      }
+    },
+    {
+      "name": "HuC VGM selection acknowledgement",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/huc-vgm-library-tests.log",
+        "bytes": 944,
+        "sha256": "79ade89a9fa2f06c465084ce596297178b95f5bff396010b56a62a2e47de6b16"
+      }
+    }
+  ],
+  "python": {
+    "passed": 146,
+    "failed": 0,
+    "receipt": {
+      "path": "build/huc6280-ci-fix-20261114/sdk-python-tests-after.log",
+      "bytes": 27419,
+      "sha256": "0c211e6a2edeb5ff0dd56f446ea7bbc35bdf6823e09accfd1f22c830598080c7"
+    },
+    "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v"
+  },
+  "browsers": {
+    "huc": {
+      "runs": 2,
+      "checks": 60,
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/huc-browser.json",
+        "bytes": 7836,
+        "sha256": "46dea6defd395017658d1d31054e353ff54bf1007ffe80c5ba68f6f302830e7a"
+      }
+    },
+    "spu": {
+      "runs": 2,
+      "summary": {
+        "path": "build/huc6280-ci-fix-20261114/spu-browser-summary.json",
+        "bytes": 646,
+        "sha256": "f8736ed8b7e219f07e0f2295a945e3237217b29f4acdaa7ad3d9d27df2c96b9c"
+      },
+      "receipt": {
+        "path": "build/huc6280-ci-fix-20261114/spu-browser.json",
+        "bytes": 281766,
+        "sha256": "47df7f3bb535228563b58afd89a72c34d07520e59d2754dc6c0f1d0320414781"
+      },
+      "captures": 250,
+      "frames": 2875392
+    },
+    "sid": {
+      "runs": 4,
+      "checks": 30,
+      "receipts": [
+        {
+          "path": "build/huc6280-ci-fix-20261114/sid-live-presets-source.json",
+          "bytes": 18766,
+          "sha256": "5383686d2c1b937395d7446f8c901770565d074bf47ed3c954b33760bdb8a7b1"
+        },
+        {
+          "path": "build/huc6280-ci-fix-20261114/sid-song-manual-source.json",
+          "bytes": 18609,
+          "sha256": "af12d3b57c393feccd073f2b6e1f4c32474b6e38bba2dd71474e7d616adcf3cc"
+        }
+      ],
+      "cliCases": 4,
+      "cliReceipt": {
+        "path": "build/huc6280-ci-fix-20261114/sid-workflow-cli-parser.json",
+        "bytes": 1763,
+        "sha256": "9a761286114f54f149b5f016c9128b925b1ac9f8dbc982ba7cad3bca32615d98"
+      }
+    }
+  },
+  "installedNpm": {
+    "passed": true,
+    "command": "node scripts/check_fm2612_package.mjs --browser",
+    "receipt": {
+      "path": "build/huc6280-ci-fix-20261114/npm-package-browser.log",
+      "bytes": 13045,
+      "sha256": "84f551e3e5e8ec6211a07e6a421f042d7620ee61ca3d2738396a3e9819f83501"
+    },
+    "sidReceipt": {
+      "path": "build/huc6280-ci-fix-20261114/npm-sid-installed-browser.json",
+      "bytes": 33724,
+      "sha256": "1a65127ef8011e6a7aa8222067c6bfba5529dc9efcc8e5aa37bce160d1fc2bb0"
+    },
+    "coverage": "Isolated tarball exports, types, actual WASM and SDK assets, plus SID6581/8580, DX7 and HuC Main/Worker on Chromium and WebKit. No publication."
+  },
+  "packaging": {
+    "passed": true,
+    "analyzerReferences": 857,
+    "analyzerReceipt": {
+      "path": "build/huc6280-ci-fix-20261114/analyzer-package-dependencies.json",
+      "bytes": 738,
+      "sha256": "290c2cfa2fdfd5f67e3eaa1e30ce3f6eb4e84f8679c55dc3a0faafc3e5240ee0"
+    },
+    "archives": [
+      {
+        "path": "release/hello_ymfm_wasm_actions-fix-20261114_itch_synth.zip",
+        "bytes": 1126785,
+        "sha256": "0333086bc06ce59658d09d766be2268526bfb0b615c40246fe9429eb5b8f486a"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_actions-fix-20261114_itch_playground.zip",
+        "bytes": 38153359,
+        "sha256": "e4a60e98f2e35130be016dad60b53549c8e0a0da3f88906523dede00e74e99d6"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_actions-fix-20261114_itch_playground_for_run.zip",
+        "bytes": 38510035,
+        "sha256": "ad797feacdcb8f4d7e46d1c3345feb729b4af558a021d69fba8d440bf953a7ff"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_actions-fix-vgm-20261114_itch_vgm_analyzer.zip",
+        "bytes": 3238361,
+        "sha256": "4a7dfc944125c4dba978a56872a00d80b6eddd127f388e43be08f3f7ac428d36"
+      }
+    ],
+    "logs": [
+      {
+        "path": "build/huc6280-ci-fix-20261114/package-playground.log",
+        "bytes": 183840,
+        "sha256": "076d0b686c72968830d328d3684bdf6ba5df6fcd6d4818b25d9a1e6ae006515f"
+      },
+      {
+        "path": "build/huc6280-ci-fix-20261114/package-synth.log",
+        "bytes": 16918,
+        "sha256": "83e1dec0b852b4a1ca948c553b0b63553075b740d348971bcf2bd65ce385bac0"
+      },
+      {
+        "path": "build/huc6280-ci-fix-20261114/package-vgm-analyzer-after.log",
+        "bytes": 43177,
+        "sha256": "ad44ca3944efae2a9ef0cbe84bb82f12bae678f9b86bb26218d56b422970e05e"
+      }
+    ]
+  },
+  "notPerformed": [
+    "Remote Actions run containing these uncommitted fixes",
+    "All33 SDK cores rebuilt locally with the CI Emscripten toolchain",
+    "Human listening, Tauri import, public release, tag, npm publish or git push"
+  ]
+}

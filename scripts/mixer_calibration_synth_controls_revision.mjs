@@ -9,6 +9,8 @@ import {readFileSync} from 'node:fs';
 export const SYNTH_CONTROLS_REVISION_RECEIPT_PATH='docs/issues/fm2612_synth_controls_source_revision_01.json';
 export const SYNTH_CONTROLS_REVISION_RECEIPT_OBJECT_SHA256='58eba3421112b9352d15bac08a1406a4b28e560c52e00ddb44166c3c2335b76b';
 export const SYNTH_CONTROLS_REVISION_SOURCE_PATH='synth/synth_controls.js';
+export const SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_PATH='docs/issues/fm2612_synth_controls_range_source_revision_02.json';
+export const SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_OBJECT_SHA256='5ee311f31a5754c7961c5df852674babeef28c05de847593de6b61d12e3412a9';
 const beforeCommit='4a38654c4c91e02a05612b6a7b8f0fcf5b8c4dac';
 const afterCommit='d6d722449487e3abd64e8a539eac6f7370afd8d4';
 const reportPaths=['ps1','wonderswan','pokey','scsp'].map(kind=>`docs/issues/${kind}_state_restore_chip_levels_01.json`);
@@ -18,6 +20,7 @@ const record=value=>value&&Number.isSafeInteger(value.bytes)&&value.bytes>0&&dig
 const keys=(value,names)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===names.length&&names.every(name=>Object.hasOwn(value,name));
 const fail=message=>{throw new Error('Invalid FM controls calibration revision: '+message);};
 let receipt;
+let rangeReceipt;
 function verifiedReceipt() {
   if(receipt)return receipt;
   const candidate=JSON.parse(readFileSync(new URL('../'+SYNTH_CONTROLS_REVISION_RECEIPT_PATH,import.meta.url),'utf8'));
@@ -36,14 +39,30 @@ function verifiedReceipt() {
   receipt=candidate;return receipt;
 }
 
-/** Unknown paths and non-exact current bytes are returned unchanged. A matched
- * revision must reproduce the whole authenticated measured body, not just the
- * changed sections. The caller still checks its original report fingerprint.
- */
-export function restoreMixerCalibrationSynthControlsRevision(path,bytes) {
-  if(path!==SYNTH_CONTROLS_REVISION_SOURCE_PATH)return bytes;
-  const entry=verifiedReceipt().source;
-  if(Buffer.byteLength(bytes)!==entry.after.bytes||sha(bytes)!==entry.after.sha256)return bytes;
+function verifiedRangeReceipt() {
+  if(rangeReceipt)return rangeReceipt;
+  const parent=verifiedReceipt();
+  const candidate=JSON.parse(readFileSync(new URL('../'+SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_PATH,import.meta.url),'utf8'));
+  if(sha(JSON.stringify(candidate))!==SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_OBJECT_SHA256)fail('range receipt does not match its independently pinned SHA');
+  if(candidate.schemaVersion!==1||candidate.scope!=='fm2612-shared-controls-range-ui-only'||
+    candidate.feature!=='Dynamic PCM frame control bounds and pointer capture cleanup'||
+    candidate.beforeCommit!==afterCommit||candidate.afterCommit!=='529828245ec7bebf84ddd4011eecfe23ead0fe5a'||
+    !keys(candidate.parentReceipt,['path','objectSha256'])||candidate.parentReceipt.path!==SYNTH_CONTROLS_REVISION_RECEIPT_PATH||
+    candidate.parentReceipt.objectSha256!==SYNTH_CONTROLS_REVISION_RECEIPT_OBJECT_SHA256||
+    JSON.stringify(candidate.reports)!==JSON.stringify(parent.reports))fail('range scope or parent identity mismatch');
+  const source=candidate.source;
+  if(source?.path!==SYNTH_CONTROLS_REVISION_SOURCE_PATH||!record(source.before)||!record(source.after)||
+    JSON.stringify(source.before)!==JSON.stringify(parent.source.after)||!Array.isArray(source.reverseHunks)||!source.reverseHunks.length)fail('invalid range source revision');
+  let cursor=0;
+  for(const hunk of source.reverseHunks) {
+    if(!keys(hunk,['afterOffset','afterBytes','beforeText'])||!Number.isSafeInteger(hunk.afterOffset)||hunk.afterOffset<cursor||
+      !Number.isSafeInteger(hunk.afterBytes)||hunk.afterBytes<0||hunk.afterOffset+hunk.afterBytes>source.after.bytes||typeof hunk.beforeText!=='string')fail('invalid range reverse hunk');
+    cursor=hunk.afterOffset+hunk.afterBytes;
+  }
+  rangeReceipt=candidate;return rangeReceipt;
+}
+
+function reconstruct(bytes,entry) {
   const current=Buffer.from(bytes),parts=[];let cursor=0;
   for(const hunk of entry.reverseHunks) {
     parts.push(current.subarray(cursor,hunk.afterOffset),Buffer.from(hunk.beforeText));
@@ -52,4 +71,17 @@ export function restoreMixerCalibrationSynthControlsRevision(path,bytes) {
   parts.push(current.subarray(cursor));const original=Buffer.concat(parts);
   if(original.length!==entry.before.bytes||sha(original)!==entry.before.sha256)fail('complete measured source reconstruction failed');
   return original;
+}
+
+/** Unknown paths and non-exact current bytes are returned unchanged. A matched
+ * revision must reproduce the whole authenticated measured body, not just the
+ * changed sections. The caller still checks its original report fingerprint.
+ */
+export function restoreMixerCalibrationSynthControlsRevision(path,bytes) {
+  if(path!==SYNTH_CONTROLS_REVISION_SOURCE_PATH)return bytes;
+  const range=verifiedRangeReceipt().source;
+  if(Buffer.byteLength(bytes)===range.after.bytes&&sha(bytes)===range.after.sha256)bytes=reconstruct(bytes,range);
+  const entry=verifiedReceipt().source;
+  if(Buffer.byteLength(bytes)!==entry.after.bytes||sha(bytes)!==entry.after.sha256)return bytes;
+  return reconstruct(bytes,entry);
 }

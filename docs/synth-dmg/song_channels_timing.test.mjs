@@ -60,6 +60,11 @@ async function linear(bytes,frames,enabled=15){
   const engine=await GameboyApuAudioEngine.create(nativeOptions),{timeline,player}=playerFor(engine,bytes);
   try{setNativeMask(engine,enabled);return render(player,frames);}finally{timeline.dispose();engine.dispose();}
 }
+async function linearSnapshot(bytes,frame){
+  const engine=await GameboyApuAudioEngine.create(nativeOptions),{timeline,player}=playerFor(engine,bytes);
+  // Include the initial writes even when the consumed position is still zero.
+  try{render(player,Math.max(1,frame));return timeline.read(frame);}finally{timeline.dispose();engine.dispose();}
+}
 function hostFixture(){
   const starts=[],timers=new Map();let timerId=0;
   const context={state:'running',sampleRate:48000,currentTime:0,closes:0,
@@ -106,7 +111,6 @@ function scheduledPrefix(f,mark,frames){
 test('all 16 reference output masks equal the independently rendered sum of their physical channels; all Off is exact silence',async t=>{
   const source=fixture(),solos=[];
   for(let ch=0;ch<4;ch++)solos.push(await linear(source.bytes,8192,1<<ch));
-  let originalSnapshot;
   for(let enabled=0;enabled<16;enabled++){
     const f=await previewFixture(t);assert.deepEqual(f.preview.read().channelEnabled,[true,true,true,true]);
     setMask(f.preview,enabled);assert.equal(f.audioRequests,0);assert.equal(f.records.length,0,'setting flags before a file is passive');
@@ -120,8 +124,12 @@ test('all 16 reference output masks equal the independently rendered sum of thei
       assert(Math.abs(actual[side][i]-sum)<=2**-22*absoluteSum+Number.EPSILON,`mask=${enabled}, ${side}, frame=${i}`);
       if(!enabled)assert.equal(actual[side][i],0);
     }
-    const snapshot=f.preview.read().liveState;
-    if(!originalSnapshot)originalSnapshot=snapshot;else assert.deepEqual(snapshot,originalSnapshot,'output flags do not rewrite source registers or Live');
+    const state=f.preview.read();
+    // VgmPlayer's cooperative render budget uses wall time, so each mask can
+    // need a different number of fake-clock refills to queue this PCM prefix.
+    // Compare complete Live snapshots at the same consumed source frame,
+    // rather than comparing the timestamps of independently scheduled runs.
+    assert.deepEqual(state.liveState,await linearSnapshot(source.bytes,state.positionFrames),'output flags do not rewrite source registers or Live');
     assert.deepEqual(f.preview.read().channelEnabled,Array.from({length:4},(_,ch)=>Boolean(enabled&(1<<ch))));
     f.preview.dispose();assert.equal(f.context.closes,0);
   }

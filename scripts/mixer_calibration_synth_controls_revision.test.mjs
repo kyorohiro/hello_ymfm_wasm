@@ -4,17 +4,21 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
 import {restoreMixerCalibrationSynthControlsRevision,SYNTH_CONTROLS_REVISION_SOURCE_PATH as path,
-  SYNTH_CONTROLS_REVISION_RECEIPT_PATH,SYNTH_CONTROLS_REVISION_RECEIPT_OBJECT_SHA256} from './mixer_calibration_synth_controls_revision.mjs';
+  SYNTH_CONTROLS_REVISION_RECEIPT_PATH,SYNTH_CONTROLS_REVISION_RECEIPT_OBJECT_SHA256,
+  SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_PATH,SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_OBJECT_SHA256} from './mixer_calibration_synth_controls_revision.mjs';
 import * as current from '../docs/synth/synth_controls.js';
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const bytes=await readFile(new URL('docs/'+path,root));
 const receipt=JSON.parse(await readFile(new URL(SYNTH_CONTROLS_REVISION_RECEIPT_PATH,root),'utf8'));
+const rangeReceipt=JSON.parse(await readFile(new URL(SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_PATH,root),'utf8'));
 const original=restoreMixerCalibrationSynthControlsRevision(path,bytes);
 const previous=await import('data:text/javascript;base64,'+original.toString('base64'));
 
 test('the reviewed FM UI revision reconstructs the complete measured source and leaves all four reports untouched',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),SYNTH_CONTROLS_REVISION_RECEIPT_OBJECT_SHA256);
+  assert.equal(sha(JSON.stringify(rangeReceipt)),SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_OBJECT_SHA256);
+  assert.deepEqual(rangeReceipt.source.before,receipt.source.after,'the range review chains to the exact earlier UI revision');
   assert.notEqual(original,bytes);
   assert.equal(original.length,receipt.source.before.bytes);assert.equal(sha(original),receipt.source.before.sha256);
   for(const [reportPath,identity] of Object.entries(receipt.reports)) {
@@ -25,7 +29,17 @@ test('the reviewed FM UI revision reconstructs the complete measured source and 
     assert.equal(JSON.stringify(report),before,'validation retains every measured result and source fingerprint');
     assert.equal(sha(await readFile(new URL(reportPath,root))),identity.sha256,'validation never rewrites original measurements');
   }
-  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record:receipt.source.after}),'raw','a later exact measurement requires no exception');
+  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record:rangeReceipt.source.after}),'raw','a later exact measurement requires no exception');
+});
+
+test('the earlier exact UI body remains independently supported by receipt01',()=>{
+  const parts=[];let cursor=0;
+  for(const hunk of rangeReceipt.source.reverseHunks){parts.push(bytes.subarray(cursor,hunk.afterOffset),Buffer.from(hunk.beforeText));cursor=hunk.afterOffset+hunk.afterBytes;}
+  parts.push(bytes.subarray(cursor));const earlier=Buffer.concat(parts);
+  assert.equal(earlier.length,receipt.source.after.bytes);assert.equal(sha(earlier),receipt.source.after.sha256);
+  assert.deepEqual(restoreMixerCalibrationSynthControlsRevision(path,earlier),original);
+  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:earlier,record:receipt.source.before}),'ui-synth-controls');
+  assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:earlier,record:receipt.source.after}),'raw');
 });
 
 test('one-byte, same-length and future callback/default/control edits cannot use the FM UI receipt',()=>{
@@ -35,6 +49,9 @@ test('one-byte, same-length and future callback/default/control edits cannot use
     Buffer.from(bytes.toString().replace('getOperatorEnabled = () => true','getOperatorEnabled = () => false')),
     Buffer.from(bytes.toString().replace('return operator - 1;','return operator + 1;')),
     Buffer.from(bytes.toString().replace('onChange(currentValue);','onChange(currentValue * 2);')),
+    Buffer.from(bytes.toString().replace('Math.max(step,max-min)','Math.max(step,max+min)')),
+    Buffer.from(bytes.toString().replace('let min=initialMin,max=initialMax;','let min=initialMin,max=127;')),
+    Buffer.concat([bytes,Buffer.from("\n// ?v=unreviewed-cache-revision\n")]),
     Buffer.from("import './changed-renderer.js';\n"+bytes),
   ]) {
     assert.equal(restoreMixerCalibrationSynthControlsRevision(path,changed),changed);
@@ -83,12 +100,23 @@ function controls(api) {
   return {root:rendered(root),changes};
 }
 
-test('the measured Playground default call renders the same controls and sends identical edits without OP gate handlers',async()=>{
+test('the measured Playground default call preserves controls and edits with only the reviewed pointer cleanup listener',async()=>{
   const previousDocument=globalThis.document;
   globalThis.document={createElement:element};
   try {
     const before=controls(previous),after=controls(current);
-    assert.deepEqual(after,before,'default DOM, visible values, edit basis and parameter callbacks retain their measured behavior');
+    let cleanupListeners=0;
+    const expected=structuredClone(before);
+    const addReviewedCleanup=node=>{
+      if(node.className.split(/\s+/).includes('param-value')){
+        assert.deepEqual(node.events,['pointerdown','pointermove','pointerup','pointercancel']);
+        node.events.push('lostpointercapture');cleanupListeners++;
+      }
+      for(const child of node.children)addReviewedCleanup(child);
+    };
+    addReviewedCleanup(expected.root);
+    assert.equal(cleanupListeners,8);
+    assert.deepEqual(after,expected,'the sole event addition is lostpointercapture; default DOM, visible values, edit basis and parameter callbacks are otherwise identical');
     assert(after.root.children.every(row=>row.children[0].tag==='div'&&row.children[0].events.length===0),'Playground defaults install no gate button or keyboard callback');
   } finally {globalThis.document=previousDocument;}
   const caller=await readFile(new URL('docs/playground/playground_operator_tab.js',root),'utf8');
@@ -96,4 +124,22 @@ test('the measured Playground default call renders the same controls and sends i
   assert(start>=0&&end>start);
   const invocation=caller.slice(start,end);
   assert(!/onOperatorGateChange|gateControls|getOperatorEnabled/.test(invocation),'the current Playground does not opt into Synth gate controls');
+});
+
+test('fixed-range gestures retain the measured values and parameter callbacks',()=>{
+  const previousDocument=globalThis.document;
+  globalThis.document={createElement:element};
+  const gestures=api=>{
+    const changes=[];
+    const control=api.createParamControl({label:'TL',min:0,max:127,step:1,value:30,onChange:value=>changes.push(value)});
+    const wrapper=control.element,value=wrapper.children[2];
+    value.emit('pointerdown',{pointerId:3,clientX:100});
+    for(const x of [80,120,180,260,100])value.emit('pointermove',{pointerId:3,clientX:x});
+    value.emit('pointerup',{pointerId:3});
+    wrapper.children[1].emit('click');wrapper.children[3].emit('click');
+    wrapper.emit('wheel',{deltaY:-1});wrapper.emit('wheel',{deltaY:1});
+    value.emit('pointerdown',{pointerId:4,clientX:0});value.emit('pointercancel',{pointerId:4});
+    return{changes,text:value.textContent,captures:[...value.captures],className:value.className};
+  };
+  try{assert.deepEqual(gestures(current),gestures(previous));}finally{globalThis.document=previousDocument;}
 });

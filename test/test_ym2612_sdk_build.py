@@ -156,7 +156,9 @@ PWM32X_EXPORTS = [
 ]
 HUC6280_EXPORTS = [
     '_huc6280_create', '_huc6280_destroy', '_huc6280_reset', '_huc6280_mute',
-    '_huc6280_write', '_huc6280_generate', '_malloc', '_free',
+    '_huc6280_write', '_huc6280_generate',
+    '_huc6280_state_size', '_huc6280_save_state',
+    '_huc6280_validate_state', '_huc6280_load_state', '_malloc', '_free',
 ]
 GAMEBOY_APU_EXPORTS = [
     '_gameboy_apu_create', '_gameboy_apu_destroy', '_gameboy_apu_reset',
@@ -732,7 +734,7 @@ class Huc6280SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     assertions = False
     vendor_sources = ['vendor/mame-huc6280/huc6280.cpp']
     core_header = 'vendor/mame-huc6280/huc6280.h'
-    include_directories = ['vendor/mame-huc6280']
+    include_directories = ['vendor/mame-huc6280', 'native/include']
     support_sources = []
     extra_manifest_headers = ()
 

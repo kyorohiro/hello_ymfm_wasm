@@ -8,6 +8,16 @@ const docs = path.resolve(__dirname, '../docs');
 const packageOption = process.argv.indexOf('--package');
 if(packageOption!==-1&&(!process.argv[packageOption+1]||process.argv[packageOption+1].startsWith('--')))throw Error('--package requires an installed tetorica-fm2612 directory');
 const installed = packageOption===-1 ? null : path.resolve(process.argv[packageOption+1]);
+function muteDestinations() {
+  const connect=AudioNode.prototype.connect,gates=new WeakMap();
+  globalThis.__hucVoiceOutputMutes=[];
+  AudioNode.prototype.connect=function(destination,...args){
+    if(destination!==this.context.destination)return connect.call(this,destination,...args);
+    let gate=gates.get(this.context);
+    if(!gate){gate=this.context.createGain();gate.gain.value=0;gates.set(this.context,gate);globalThis.__hucVoiceOutputMutes.push(gate);connect.call(gate,destination);}
+    connect.call(this,gate,...args);return destination;
+  };
+}
 const servedPackageAssets = new Set();
 // The npm package ships audio/runtime modules. Cassette filesystem/Git belongs
 // to the repository's Playground shell, which remains the UI fixture here.
@@ -105,6 +115,7 @@ async function check(page,url,browserName,worker) {
   assert.equal(await page.evaluate(()=>window.__huc6280Voice.megaDrive.audioContext),null,'opening the panel does not open audio');assert.deepEqual(await page.evaluate(()=>window.__huc6280Voice.runtime.chipInspector.list()),[],'opening the panel does not prepare chips');
   await page.click(`${root} [data-chip-action="prepare"]`);await page.locator(control('frequency')).waitFor();await untilState(page,'state.kind==="huc6280"&&state.channels.length===6&&state.channels.every(channel=>channel.waveform.length===32)','six native 32-sample voices');
   assert.equal((await page.evaluate(()=>window.__huc6280Voice.runtime.chipInspector.list())).filter(entry=>entry.kind==='huc6280').length,1,'one shared primary HuC6280');assert.equal(await page.evaluate(()=>window.__huc6280Voice.runtime.getState().playback),'stopped','Prepare does not run code');await installMeter(page);
+  assert(await page.evaluate(()=>__hucVoiceOutputMutes.length>0&&__hucVoiceOutputMutes.every(gate=>gate.gain.value===0)),'Every physical output stays muted; monitor PCM remains observable');
   await field(page,control('frequency'),440);await untilState(page,'Math.abs(state.channels[0].frequency-440)<3','frequency partial edit');
   const focused=page.locator(control('frequency'));await focused.focus();await focused.fill('345.678');await page.waitForTimeout(420);assert.equal(await focused.inputValue(),'345.678','polling preserves focused input');await field(page,control('frequency'),440);await page.locator('#huc6280Tab').focus();
   await field(page,control('note'),'C5');await untilState(page,'Math.abs(state.channels[0].frequency-523.251)<4','note-name edit');await field(page,control('period'),0);await untilState(page,'state.channels[0].period===0&&Math.abs(state.channels[0].frequency-state.clock/(32*4096))<.001','raw period zero means 4096');
@@ -159,6 +170,6 @@ async function check(page,url,browserName,worker) {
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   try {
     const url=`http://127.0.0.1:${server.address().port}/playground/index.html`,engines=process.argv.includes('--chromium')?[['chromium',chromium]]:process.argv.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]],workers=process.argv.includes('--main')?[false]:process.argv.includes('--worker')?[true]:[false,true];
-    for(const [name,type]of engines){const browser=await type.launch({headless:true,...(name==='chromium'?{args:['--autoplay-policy=no-user-gesture-required']}: {})});try{for(const worker of workers){const page=await browser.newPage({viewport:{width:1380,height:1100},serviceWorkers:'block'});page.setDefaultTimeout(20000);try{await check(page,url,name,worker);}catch(error){console.error(JSON.stringify({browser:name,worker,diagnostic:await page.evaluate(()=>({runtime:document.getElementById('runtimeState')?.textContent,status:document.getElementById('status')?.textContent,console:document.getElementById('consoleOutput')?.textContent,panel:document.getElementById('huc6280Panel')?.textContent,inspector:window.__huc6280Voice?.runtime.chipInspector.list()})).catch(()=>null)}));await page.screenshot({path:`/private/tmp/huc6280-voice-${name}-${worker?'worker':'main'}-failed.png`}).catch(()=>{});throw error;}finally{await page.close();}}}finally{await browser.close();}}
+    for(const [name,type]of engines){const browser=await type.launch({headless:true,...(name==='chromium'?{args:['--autoplay-policy=no-user-gesture-required','--mute-audio']}: {})});try{for(const worker of workers){const page=await browser.newPage({viewport:{width:1380,height:1100},serviceWorkers:'block'});await page.addInitScript(muteDestinations);page.setDefaultTimeout(20000);try{await check(page,url,name,worker);}catch(error){console.error(JSON.stringify({browser:name,worker,diagnostic:await page.evaluate(()=>({runtime:document.getElementById('runtimeState')?.textContent,status:document.getElementById('status')?.textContent,console:document.getElementById('consoleOutput')?.textContent,panel:document.getElementById('huc6280Panel')?.textContent,inspector:window.__huc6280Voice?.runtime.chipInspector.list()})).catch(()=>null)}));await page.screenshot({path:`/private/tmp/huc6280-voice-${name}-${worker?'worker':'main'}-failed.png`}).catch(()=>{});throw error;}finally{await page.close();}}}finally{await browser.close();}}
   }finally{await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

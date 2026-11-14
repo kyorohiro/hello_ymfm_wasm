@@ -8,6 +8,7 @@ import {publishedSourcePath, rewriteStagedModule} from './runtime_staging_paths.
 import {packagedRuntimeModule, publicRuntimeModule} from './runtime_module_layout.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+const withoutWebsiteCacheRevisions = text => text.replace(/(\.js)\?v=[A-Za-z0-9._-]+(?=['"])/g, '$1');
 
 test('moved source folders retain historical installed paths without changing public paths', () => {
   for (const [source, target] of [['runtime', 'web'], ['node', 'node'], ['cli', 'cli'], ['native', 'native'], ['wasm', 'wasm']])
@@ -46,7 +47,7 @@ export const result = answer + value;
 });
 
 test('moved factory sources reproduce current public module bytes before website cache revisions', async () => {
-  const withoutRevisions = text => text.replace(/(\.js)\?[^'"\s]+(?=['"])/g, '$1');
+  const withoutRevisions = withoutWebsiteCacheRevisions;
   for (const name of ['soundchip.js', 'sid_soundchip.js', 'nesapu_wasm.js', 'pwm32x_wasm.js', 'nesapu.js']) {
     const source = await readFile(join(root, 'tetorica_src/runtime', name), 'utf8');
     const published = withoutRevisions(await readFile(join(root, 'docs/js', name), 'utf8'));
@@ -67,11 +68,20 @@ test('moved factory sources reproduce current public module bytes before website
   }
 });
 
-test('the generic public Worklet resolves its generated factories beside docs/js', async () => {
+test('the generic public Worklet retains its exact body and asset paths before website cache revisions', async () => {
   const source=await readFile(join(root,'tetorica_src/runtime/soundchip-output-worklet.js'),'utf8');
   const published=publicRuntimeModule(source,'soundchip-output-worklet.js');
-  assert.equal(published,await readFile(join(root,'docs/js/soundchip-output-worklet.js'),'utf8'));
+  const website=await readFile(join(root,'docs/js/soundchip-output-worklet.js'),'utf8');
+  assert.equal(withoutWebsiteCacheRevisions(published),withoutWebsiteCacheRevisions(website));
   assert(!published.includes("from './generated/"));
   assert(published.includes("from '../generated/ym2612_wasm.js'"));
   assert(published.includes("from './sid_soundchip.js'"));
+  const edited=source.replace('this.running = false', 'this.running = true');
+  assert.notEqual(edited,source,'Worklet behavior mutation fixture');
+  assert.notEqual(withoutWebsiteCacheRevisions(publicRuntimeModule(edited,'soundchip-output-worklet.js')),
+    withoutWebsiteCacheRevisions(website),'Cache revision normalization must retain Worklet behavior differences');
+  assert.notEqual(withoutWebsiteCacheRevisions(website.replace('./sid_soundchip.js','./other_soundchip.js')),
+    withoutWebsiteCacheRevisions(website),'Module targets remain part of the strict comparison');
+  assert.notEqual(withoutWebsiteCacheRevisions("import './chip.js?behavior=2'"),"import './chip.js'",
+    'Only website v cache tokens are ignored');
 });

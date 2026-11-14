@@ -43,6 +43,19 @@ test('source copy failure reports independent Files failure and preserves select
   await f.nodes.vgmVoices.children[0].fire('click');assert.equal(selected,1);
 });
 
+test('voice selection waits for host acknowledgement even when the native preset is already visible',async t=>{
+  const acknowledgement=deferred();let nativePreset=null;
+  const f=fixture(t,{onSelect:async preset=>{nativePreset=preset;await acknowledgement.promise;}});
+  await f.read('voice.vgm',Uint8Array.of(1));
+  const button=f.nodes.vgmVoices.children[0],selecting=button.fire('click');
+  await turn();
+  assert.deepEqual(nativePreset,voice().preset,'the engine can publish its preset before the host completes');
+  assert.equal(button['aria-pressed'],'false','the selection remains pending until the full host operation is acknowledged');
+  acknowledgement.resolve();await selecting;
+  assert.equal(f.nodes.vgmVoices.children[0]['aria-pressed'],'true');
+  assert.match(f.nodes.vgmStatus.textContent,/loaded/);
+});
+
 test('a valid timed VGM with unknown Wave RAM is retained without extractable static voices',async t=>{
   const bytes=vgm([0xb9,0,0,0xb9,1,255,0xb9,5,255,0xb9,4,0x9f,0x61,100,0,0x66]);
   let copied=0;const f=fixture(t,{extract:undefined,onSource:async source=>{copied++;assert.deepEqual(source.bytes,bytes);return'/vgm/silent.vgm';}});

@@ -309,6 +309,9 @@ async function checkEngine(name, engine, origin) {
     state=await wait(s=>JSON.stringify(s.preset.wave)===JSON.stringify(vgmWave)&&s.preset.volume===25);
     assert.equal(state.preset.envelope.enabled,false);assert.equal(state.preset.lfo.enabled,false);
     assert.equal(state.capacity,6);assert.equal(state.voices.length,0);
+    // Native state can be visible before the host finishes its queued pitch/read
+    // acknowledgements. Selection is published only when onSelect completes.
+    await page.waitForFunction(()=>document.querySelector('[data-vgm-voice="1"]')?.getAttribute('aria-pressed')==='true');
     assert.equal(await page.locator('[data-vgm-voice="1"]').getAttribute('aria-pressed'),'true');
     await page.keyboard.down(keys[0]);await wait(s=>s.voices.length===1);await sound();await page.keyboard.up(keys[0]);await silent();
     await page.locator('[data-wave-target="main"]').click();await page.locator('[data-wave-shape="saw"]').click();

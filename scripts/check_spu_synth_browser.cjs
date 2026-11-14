@@ -1175,7 +1175,8 @@ async function runCase(browser, name, origin) {
     await page.waitForFunction(() => __spuSynthAudit.states.length > 0 || document.getElementById('audioStatus').dataset.error === 'true');
     assert.notEqual(await page.locator('#audioStatus').getAttribute('data-error'), 'true', 'Audio startup: ' + await page.locator('#audioStatus').textContent());
     assert.equal(await page.locator(`${panel} [data-chip-channel]`).count(), 0, 'Hardware voice selection is automatic');
-    assert.deepEqual(await page.locator(`${panel} h3`).allTextContents(), ['Wave A · PCM editor', 'ADSR envelope', 'SPU reverb'], 'The initial instrument exposes Morph Wave A, ADSR and reverb editor sections');
+    assert.deepEqual(await page.locator(`${panel} [role="tabpanel"] h3`).allTextContents(), ['Wave A · PCM editor', 'ADSR envelope', 'SPU reverb'], 'The initial instrument exposes Morph Wave A, ADSR and reverb editor sections');
+    assert(!(await page.locator(`${panel} [data-psf-manual-controls]`).isVisible()), 'PSF channel controls remain hidden for the initial author instrument');
     assert(!/Voice studio|Selected ADPCM voice/.test(await page.locator(panel).innerText()), 'There is no physical-voice studio/card');
     assert.equal(await page.locator('#refreshVoice').count(), 0, 'No manual state refresh is needed');
     assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 1, 'A user action creates a single audio context');

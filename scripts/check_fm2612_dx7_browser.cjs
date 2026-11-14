@@ -8,6 +8,16 @@ const path = require('node:path');
 
 if (!process.argv[2]) throw Error('Pass the installed tetorica-fm2612 package directory');
 const installed = path.resolve(process.argv[2]);
+function muteDestinations() {
+  const connect=AudioNode.prototype.connect,gates=new WeakMap();
+  globalThis.__npmOutputMutes=[];
+  AudioNode.prototype.connect=function(destination,...args){
+    if(destination!==this.context.destination)return connect.call(this,destination,...args);
+    let gate=gates.get(this.context);
+    if(!gate){gate=this.context.createGain();gate.gain.value=0;gates.set(this.context,gate);globalThis.__npmOutputMutes.push(gate);connect.call(gate,destination);}
+    connect.call(this,gate,...args);return destination;
+  };
+}
 function observeDX7Nodes() {
   const nodes = globalThis.__dx7NodeLifecycle = [];
   globalThis.AudioWorkletNode = new Proxy(globalThis.AudioWorkletNode, {
@@ -80,12 +90,13 @@ async function bounded(promise, label) {
 }
 
 async function checkBrowser(name, type, url) {
-  const browser = await type.launch({headless:true});
+  const browser = await type.launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}: {})});
   const results = [];
   try {
     for (const execution of ['main', 'worker']) {
       servedAssets.clear();
       const page = await browser.newPage({serviceWorkers:'block'});
+      await page.addInitScript(muteDestinations);
       page.setDefaultTimeout(20000);
       const errors = [], unwantedRequests = [];
       page.on('pageerror', error => errors.push(error.message));
@@ -102,6 +113,7 @@ async function checkBrowser(name, type, url) {
         await page.click('#start');
         await page.waitForFunction(() => window.test.ready || window.test.error);
         assert.equal(await page.evaluate(() => window.test.error), undefined);
+        assert(await page.evaluate(()=>__npmOutputMutes.length>0&&__npmOutputMutes.every(gate=>gate.gain.value===0)),'Every physical output stays muted; monitor PCM remains observable');
         let serial = 0;
         const run = async source => {
           const marker = `NPM_DX7_${++serial}:`;
