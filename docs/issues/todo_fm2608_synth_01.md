@@ -68,6 +68,30 @@ Signed / notarized builds, physical listening, prolonged playback and remote
 CI builds remain release checks. Detailed evidence and TODOs are in the new
 desktop repository's `docs/verification_20261115.md` and `docs/todo_20261115.md`.
 
+## FM editing readability
+
+- [x] Show the current ALGO connection expression with OP labels, parentheses,
+      arrows and sums, following FM2612 Synth during edits and Live updates.
+- [x] Match OP1–OP4 colors across the algorithm, operator rows, envelope
+      selectors / guides and CH3 frequency labels.
+- [x] Distinguish envelope parameters from pitch, level and modulation using
+      the existing control categories and readable colors.
+- [x] Check browser behavior and narrow layouts, then update the Tauri Web
+      assets through the normal readable-release importer.
+
+The routing row follows all eight algorithms, feedback, Code writes and song
+Live state. Operator labels match the existing orange / pink / green / blue
+envelope guides. Envelope columns are RS, AR, D1R, D2R, SL and RR, following
+FM2612's existing categories. Pitch, level and modulation have separate colors.
+
+All 135 app / control / envelope / package checks pass. The packaged browser
+check passes 30 scenarios in each of Chromium and WebKit, including color
+matching and mobile layout. Its report is `build/fm2608-fm-ui-packaged.json`.
+The archive is `release/tetorica_fm2608_synth_dev-20261115-fm-controls_itch.zip`.
+The Tauri repository imports that archive with app version `0.0.5`.
+All 80 desktop unit tests and nine desktop browser scenarios per engine pass,
+and the local unsigned arm64 Release app builds successfully.
+
 ## YM2203 compatibility playback
 
 The user chose automatic detection and YM2608 compatibility playback first.

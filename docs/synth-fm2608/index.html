@@ -120,12 +120,13 @@
           <section id="panel-fm" class="opna-panel" role="tabpanel" aria-labelledby="tab-fm">
             <div class="section-heading"><h2>FM · 4 operators</h2>
               <label class="instrument-preset-control">Builtin <select id="fmPreset" aria-label="Builtin FM sound"></select></label>
-              <details class="inline-help"><summary aria-label="About FM controls">?</summary><p>Each of six FM channels has four operators and one of eight algorithms. TL controls operator attenuation. AR, D1R, D2R, SL and RR shape its envelope. AM, AMS and PMS use the shared hardware LFO. SSG-EG is an FM envelope feature. The separate SSG tab controls OPNA's three square-wave channels.</p></details>
+              <details class="inline-help"><summary aria-label="About FM controls">?</summary><p>Each of six FM channels has four operators and one of eight algorithms. In the routing expression, arrows show modulation and + combines signals. OP colors match the control rows and envelope guides. TL controls operator attenuation. AR, D1R, D2R, SL and RR shape its envelope, and RS changes envelope rates with pitch. AM, AMS and PMS use the shared hardware LFO. SSG-EG is an FM envelope feature. The separate SSG tab controls OPNA's three square-wave channels.</p></details>
             </div>
             <div id="fmCommonControls" class="opna-control-grid"></div>
+            <p id="fmAlgorithm" class="opna-algorithm" aria-label="FM algorithm routing"></p>
             <div class="opna-operator-scroll"><div id="operatorHeader" class="operator-header"></div><div id="operatorControls"></div></div>
             <details id="fmEnvelope" class="opna-card" open><summary>Operator envelope</summary>
-              <div class="envelope-toolbar"><button type="button" data-envelope-operator="1">OP1</button><button type="button" data-envelope-operator="2">OP2</button><button type="button" data-envelope-operator="3">OP3</button><button type="button" data-envelope-operator="4" aria-pressed="true">OP4</button></div>
+              <div class="envelope-toolbar"><button type="button" class="op-color-1" data-envelope-operator="1">OP1</button><button type="button" class="op-color-2" data-envelope-operator="2">OP2</button><button type="button" class="op-color-3" data-envelope-operator="3">OP3</button><button type="button" class="op-color-4" data-envelope-operator="4" aria-pressed="true">OP4</button></div>
               <div class="operator-envelope-plot"><canvas data-operator-envelope width="850" height="200" aria-label="Editable operator envelope"></canvas><button type="button" data-envelope-handle="attack" class="envelope-handle">A</button><button type="button" data-envelope-handle="decay" class="envelope-handle">D</button><button type="button" data-envelope-handle="sustain" class="envelope-handle">S</button><button type="button" data-envelope-handle="release" class="envelope-handle">R</button></div>
               <p data-envelope-readout class="subtext"></p>
             </details>

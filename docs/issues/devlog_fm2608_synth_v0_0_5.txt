@@ -1,0 +1,72 @@
+# Tetorica FM2608 Synth v0.0.5 — Explore PC-98 Sound
+
+The v0.0.5 desktop release of Tetorica FM2608 Synth is now available!
+
+Explore the Yamaha YM2608 / OPNA used by PC-98 sound hardware. Play the keyboard, shape a sound, watch how a recorded song controls the chip, and try your own JavaScript performance. You can also try the synth directly in your browser.
+
+Try it here.
+https://kyorohiro.itch.io/tetorica-fm2608-synth
+
+## Desktop builds
+
+The downloads include macOS apps for Intel and Apple Silicon, a Windows x64 installer, and Linux .deb packages for x64 and ARM64. Windows and Linux builds are marked "unchecked" and are available for testing.
+
+The Tauri app adds Menu, Pin and Web Audio / Native output selection to the shared Synth workspace. Native output sends the same WASM / AudioWorklet audio through Rust to your output device.
+
+## Four sound sections in one chip
+
+- FM — Six four-operator voices with algorithms, feedback, envelopes and hardware LFO.
+- SSG — Three voices combining tone and noise, with a shared hardware envelope.
+- Rhythm — Six fixed percussion voices using Tetorica's original synthetic rhythm ROM.
+- ADPCM-B — Sample playback with audio import, waveform editing, tuning and Repeat.
+
+Each section has its own tab. Choose Auto to distribute keyboard notes across the available melodic voices, or select a physical channel to edit and play it directly.
+
+The FM controls also expose individual operator Key On, CH3 special frequencies and Timer A CSM. These give you more ways to explore the chip's sound-making possibilities.
+
+## See how a song makes its sounds
+
+Import a supported VGM, VGZ or S98 file from the top-left Menu, then choose it from the song list and press Play.
+
+Select a sound section and channel, and enable Auto update to follow the recorded settings through the same controls you use for editing. You can see the operators, envelopes and other parameters change as the music plays.
+
+Pause keeps the song position while you audition the selected channel on the keyboard. Capture to Synth brings its settings into your editable sound. Resume continues the original song.
+
+Single-YM2203 recordings are detected automatically and use YM2608 compatibility playback. Mixer includes YM2203 mode for automatic SSG level correction, alongside manual output levels and channel On / Off controls.
+
+## Keep the instruments in Files
+
+Importing a song also extracts its recorded instruments into /presets/<song>/ in Files. The original recording stays under /vgm/.
+
+Choose an extracted preset to open the matching sound section and start playing it. Repeated instruments are deduplicated within the song. You can edit the sound, save your own presets, and export the project as a Cassette ZIP.
+
+Extracted instruments contain static settings. Later parameter automation stays with the original song. ADPCM extraction requires complete recorded sample data, and Import details explains omitted samples.
+
+## Play with JavaScript and the controls together
+
+Switch to Code to edit index.js. Use useSoundChip("ym2608") to control the same chip as the knobs above, with liveLoop(), beat() and setBpm() for your performance.
+
+Keep a melody running while adjusting the sound by hand. Changing a preset or switching back to Keyboard keeps the Code loops running. Apply updates named loops while preserving prepared state.
+
+Keyboard allocation, Pitch, Code scheduling and ADPCM waveform editing / encoding are software tools. The synthesis controls let you work with the chip's FM, SSG, Rhythm and ADPCM functions.
+
+## Take the code further
+
+Tetorica is about understanding classic sound hardware and using that understanding to make something new.
+
+The downloadable Web package includes readable JavaScript and CSS, matching WASM, source code and rebuild instructions. You can explore the implementation, reuse the sound APIs, or bring the project to your own Codex and modify it into an instrument, game or experiment of your own.
+
+FM2608 Synth source and guides are available here.
+https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/docs/synth-fm2608
+
+The Tauri desktop app source is available here.
+https://github.com/kyorohiro/tetorica-fm2608-synth-tauri
+
+Reusable JavaScript / WASM APIs and examples are available here.
+https://github.com/kyorohiro/hello_ymfm_wasm
+https://github.com/kyorohiro/tetorica-fm2612-examples
+
+Native sound-chip sources and build instructions are available here.
+https://github.com/kyorohiro/tetorica-soundchip-native
+
+Have fun exploring PC-98 sound!

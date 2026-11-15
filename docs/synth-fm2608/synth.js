@@ -21,10 +21,22 @@ const mute = {fm:Array(6).fill(false), ssg:Array(3).fill(false), rhythm:Array(6)
 const nextChannel = {fm:0, ssg:0, rhythm:0, adpcm:0};
 const fretboard = createFretboardState(), visualizer = createSynthOutputVisualizer();
 const operatorDefinitions = [
-  ['dt','DT',7], ['multi','MULT',15], ['tl','TL',127], ['rs','RS',3],
-  ['ar','AR',31], ['am','AM',1], ['d1r','D1R',31], ['d2r','D2R',31],
-  ['sl','SL',15], ['rr','RR',15], ['ssg','SSG-EG',15],
-].map(([id,label,max]) => ({id,label,min:0,max,step:1,booleanMode:id==='am'}));
+  ['dt','DT',7,'pitch'], ['multi','MULT',15,'pitch'], ['tl','TL',127,'level'], ['rs','RS',3,'envelope'],
+  ['ar','AR',31,'envelope'], ['am','AM',1,'modulation'], ['d1r','D1R',31,'envelope'], ['d2r','D2R',31,'envelope'],
+  ['sl','SL',15,'envelope'], ['rr','RR',15,'envelope'], ['ssg','SSG-EG',15,'modulation'],
+].map(([id,label,max,category]) => ({id,label,min:0,max,step:1,category,booleanMode:id==='am'}));
+// Same operator routing expressions as FM2612 Synth. Operator numbers match
+// the control rows and envelope guide colors.
+const algorithmDescriptions = [
+  'OP1 -> OP2 -> OP3 -> OP4 -> OUT',
+  '(OP1 + OP2) -> OP3 -> OP4 -> OUT',
+  '(OP1 + (OP2 -> OP3)) -> OP4 -> OUT',
+  '((OP1 -> OP2) + OP3) -> OP4 -> OUT',
+  '(OP1 -> OP2) + (OP3 -> OP4) -> OUT',
+  '(OP1 -> OP2) + (OP1 -> OP3) + (OP1 -> OP4) -> OUT',
+  '(OP1 -> OP2) + OP3 + OP4 -> OUT',
+  'OP1 + OP2 + OP3 + OP4 -> OUT',
+];
 
 let settings = createDefaultPreset(), section = 'fm', audio = null, audioPending = null;
 let host = null, songs = null, octave = 0, layout, pitch = 0, master = .7, visualMode = 'envelope';
@@ -377,6 +389,7 @@ function buildControls() {
     row.className = 'opna-channel3-frequency';
     const label = document.createElement('h3');
     label.textContent = 'OP' + (operator + 1);
+    label.className = 'op-color-' + (operator + 1);
     row.append(label);
     byId('channel3Frequencies').append(row);
     for (const [key,max] of [['block',7],['fnum',2047]]) {
@@ -520,6 +533,12 @@ const envelopeView = createOperatorEnvelopeView({
 
 function updateControls() {
   const fm = displayedFm();
+  const routing = 'ALGO ' + fm.algorithm + ' ' + algorithmDescriptions[fm.algorithm] +
+    (fm.feedback ? ' · OP1 feedback ' + fm.feedback : ' · FB off');
+  const algorithm = byId('fmAlgorithm');
+  if (algorithm.textContent !== routing) {
+    algorithm.innerHTML = routing.replace(/OP([1-4])/g,'<span class="op-color-$1">OP$1</span>');
+  }
   for (const key of ['algorithm','feedback','ams','pms']) setControl('fm.' + key,fm[key]);
   for (const key of ['left','right']) setControl('fm.' + key,fm.pan[key]);
   for (const [operator,values] of operatorControls) {

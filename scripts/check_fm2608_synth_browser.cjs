@@ -159,6 +159,47 @@ async function checkEngine(name,origin) {
     assert.equal(await page.evaluate(() => __opnaAudit.contexts.length),0);
     await page.screenshot({path:path.join(config.screenshots,name + '-initial.png'),fullPage:true});
 
+    const algorithmControl = page.locator('[data-control="fm.algorithm"]');
+    const initialAlgorithm = Number(await algorithmControl.locator('.param-value').textContent());
+    for (let step=0; step<7; step++) await algorithmControl.locator('.param-button').first().click();
+    const routings = [
+      'OP1 -> OP2 -> OP3 -> OP4 -> OUT',
+      '(OP1 + OP2) -> OP3 -> OP4 -> OUT',
+      '(OP1 + (OP2 -> OP3)) -> OP4 -> OUT',
+      '((OP1 -> OP2) + OP3) -> OP4 -> OUT',
+      '(OP1 -> OP2) + (OP3 -> OP4) -> OUT',
+      '(OP1 -> OP2) + (OP1 -> OP3) + (OP1 -> OP4) -> OUT',
+      '(OP1 -> OP2) + OP3 + OP4 -> OUT',
+      'OP1 + OP2 + OP3 + OP4 -> OUT',
+    ];
+    for (const [algorithm,routing] of routings.entries()) {
+      if (algorithm) await algorithmControl.locator('.param-button').last().click();
+      await page.waitForFunction(({algorithm,routing}) => document.querySelector('#fmAlgorithm').textContent.startsWith('ALGO '+algorithm+' '+routing),{algorithm,routing});
+    }
+    const operatorColors = ['rgb(242, 192, 120)','rgb(255, 147, 188)','rgb(157, 255, 155)','rgb(137, 183, 255)'];
+    for (let operator=1; operator<=4; operator++) {
+      const colors = await page.evaluate(operator => [
+        document.querySelector('[data-operator-gate="'+operator+'"]'),
+        document.querySelector('[data-envelope-operator="'+operator+'"]'),
+        document.querySelector('#fmAlgorithm .op-color-'+operator),
+        document.querySelector('#channel3Frequency'+(operator-1)+' h3'),
+      ].map(node => getComputedStyle(node).color),operator);
+      assert.deepEqual(colors,Array(4).fill(operatorColors[operator-1]));
+    }
+    assert.deepEqual(await page.locator('#operatorHeader .param-label-category-envelope').allTextContents(),['RS','AR','D1R','D2R','SL','RR']);
+    assert.equal(await page.locator('#operatorControls .param-category-envelope').count(),24);
+    assert.equal(await page.locator('#operatorControls .param-category-envelope').first().evaluate(node => getComputedStyle(node).borderTopColor),'rgb(167, 125, 98)');
+    for (let step=7; step>initialAlgorithm; step--) await algorithmControl.locator('.param-button').first().click();
+    await page.locator('[data-operator-envelope]').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector('[data-envelope-readout]').textContent.includes('OP4'));
+    await page.screenshot({path:path.join(config.screenshots,name + '-fm-routing.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:1000});
+    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 2);
+    await page.screenshot({path:path.join(config.screenshots,name + '-fm-routing-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1180,height:1000});
+    assert.equal(await page.evaluate(() => __opnaAudit.contexts.length),0);
+    check('all eight ALGO routings, matched OP colors and envelope parameter colors update without audio');
+
     if (config.editor === 'monaco') {
       await page.locator('#synthInputCodeTab').click();
       await page.waitForFunction(() => {
@@ -414,6 +455,7 @@ async function checkEngine(name,origin) {
     await page.waitForFunction(() => /Playing|Running/.test(document.querySelector('#synthCodeState').textContent));
     await page.locator('#channelTabs [data-channel="0"]').click();
     await page.waitForFunction(() => document.querySelector('[data-control="fm.algorithm"] .param-value').textContent === '7');
+    assert.equal(await page.locator('#fmAlgorithm').textContent(),'ALGO 7 OP1 + OP2 + OP3 + OP4 -> OUT · OP1 feedback 5');
     assert.equal(await page.locator('[data-control="fm.feedback"] .param-value').textContent(),'5');
     assert.equal(await page.locator('[data-control="lfo.enabled"] .param-value').textContent(),'ON');
     assert.equal(await page.locator('[data-control="lfo.frequency"] .param-value').textContent(),'3');
