@@ -415,12 +415,30 @@ envelopes run in the FDS core. See the [FDS hardware reference](https://www.nesd
 
 ## Import sounds from VGM
 
-Select **Load VGM / VGZ…** and choose a file containing NES or FDS sound.
+Select **Menu → VGM / VGZ…**, or **Load VGM / VGZ…** under Sounds from VGM,
+and choose a file containing NES or FDS sound.
 Analysis lists the recorded Pulse / Triangle / Noise / DMC / FDS sounds without
 starting audio or changing the current instrument. Choose a sound, then play
 the keyboard. Filter by source and use **Previous / Next** for longer libraries.
 The origin channel, first time and number of matching captured settings are
 shown with each sound; this count is not the song's note count.
+
+The original recording is saved under **Files → vgm** and each extracted sound
+under **presets**. Select the recording above the output display and press
+**Play song**. **Pause** changes to **Resume** and retains the current position.
+The position control rebuilds the recorded APU state before resuming playback.
+Starting a song stops Code. Starting Code stops the reference song.
+
+**Auto** uses your edited source and the Pulse round-robin allocator. The
+**CH1–CH6** tabs align display, editing and keyboard with a physical channel.
+With **Auto update** enabled, the existing editor follows the selected channel
+during Code or song playback. The upper controls and keyboard can modify that
+channel during playback. Later recorded writes can change those values again.
+Pause keeps a frozen song state available for keyboard audition. **Capture to
+Auto** copies the selected channel's settings into your edited instrument and
+retains the reference song position. Hardware counters and oscillator phases
+restart when auditioning a captured sound. Capture requires complete DMC sample
+bytes or FDS tables where they are used.
 
 Imported sounds remain editable and can be saved as presets or copied as
 JavaScript. **Close library** keeps the current instrument. Failed or cancelled
@@ -440,9 +458,9 @@ are disclosed as approximate restarts. An unrecorded FDS master Envelope speed
 uses 232 with a note. The modulation table's running phase / counter is still
 restarted for keyboard audition, as disclosed with the voice.
 
-This imports initial sound settings for keyboard performance. Original note
-pitch, elapsed counters / frame phase, song playback and later parameter changes are
-not reconstructed. FDS needs complete recorded Wave RAM; missing RAM is not
+Extracted presets store initial sound settings for keyboard performance.
+The separate song player replays the recorded register writes and timing.
+FDS instrument extraction needs complete recorded Wave RAM. Missing RAM is not
 filled with a factory waveform. Settings beyond the current editor's controls
 may need a static approximation, which is explained with the selected sound.
 Read those notes when comparing a recovered instrument with the original song.
@@ -458,8 +476,8 @@ before its trigger, including any address wrap from `$ffff` to `$8000`.
 Missing bytes are not filled with silence or a demo. Later RAM writes can
 produce a different captured sound; a selected voice retains its own copy.
 
-DMC capture keeps the starting settings for keyboard audition. The original
-song's live rate changes, stopping time and RAM rewriting are not replayed.
+DMC capture keeps the starting settings for keyboard audition. The reference
+song player also applies recorded rate changes, stops and RAM writes.
 The initial DAC level uses the last recorded direct level write; if playback
 has advanced since then, or no level was recorded, the chosen approximation
 is explained with the voice. Read those notes when comparing with the song.
@@ -497,13 +515,48 @@ preset, Reset instrument, and source / table / DPCM-data changes stop held notes
 source. Open Playground in NES mode, paste it into the editor and Run. Keyboard
 round robin belongs to this standalone app, not the single-channel snippet.
 
-**Stop all sound** keeps the current instrument. Hiding the page or switching
-away from its window also stops notes. An audio failure offers **Enable audio**
-to restart. Save the preset before closing or reloading; the session stays in
-memory rather than being saved automatically.
+**Stop all sound** stops the automatic transport and held notes while retaining
+the instrument. Hiding the page or switching away from its window releases
+manual keyboard notes. An audio failure offers **Enable audio** to restart.
+Files and the edited instrument save locally. Export a Cassette for a portable
+copy of the complete project.
 
-The instrument covers Pulse / Triangle / Noise / DMC / FDS. PCM-to-DPCM encoding,
-NSF / song playback and sequencing are outside this version's workflow.
+## Code and Files
+
+Switch **Keyboard / Code** to edit `/index.js`. **Run** creates a fresh context,
+**Apply** updates named loops while retaining `context` and `livePrepare()`
+values, and **Stop** releases Code-owned notes. View changes, parameter edits
+and selecting a preset keep Code running. Physical CH1 / CH2 are Pulse, CH3 is
+Triangle, CH4 Noise, CH5 DMC and CH6 FDS. Noise and DMC keep their hardware rate.
+
+```javascript
+const nes = await useSoundChip("nes");
+setBpm(120);
+
+liveLoop("melody", async () => {
+  await nes.noteOn(CH1, choose(scale("E3", "minorPentatonic", 2)));
+  await beat(0.5);
+  await nes.noteOff(CH1);
+  await beat(0.25);
+});
+```
+
+Code borrows the existing NES + FDS APU and final Master. The latest attack owns
+a physical channel. Releasing an older keyboard or Code note leaves its
+replacement playing. Explicit register writes still control physical hardware.
+`liveFx()` applies software effects after the APU. **Auto update** follows
+physical values in the same source editor. Click **Code**'s maximize button to
+place the editor beside Files.
+
+Files supports JavaScript modules, text, preset JSON and binary recordings.
+Use the right-click menu for Duplicate, Rename, Delete, New JavaScript and New
+folder. Selecting a sound JSON applies it and makes its text available in Code
+without switching away from Keyboard. Local imports stay within this project.
+Menu contains Cassette import / export and ordinary file import / export.
+Importing a project validates its contents and requires an explicit Run to
+start Code.
+
+PCM-to-DPCM conversion and NSF playback remain separate work.
 
 ## API and sources
 
@@ -523,6 +576,9 @@ the included license and author notices. The standalone UI uses the project
 ```sh
 npm run test:2a03-synth
 npm run test:2a03-synth:browser
+npm run test:2a03-synth:code-browser
+npm run test:2a03-synth:code-monaco-browser
+npm run test:2a03-synth:song-browser
 sh scripts/package_itch_2a03_synth.sh dev
 ```
 

@@ -18,6 +18,7 @@ import {restoreMixerCalibrationSynthSourceNavigationRevision} from './mixer_cali
 import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
 import {restoreMixerCalibrationYm2608OutputGainRevision} from './mixer_calibration_ym2608_output_gain_revision.mjs';
 import {restoreMixerCalibrationMonacoModelRevision} from './mixer_calibration_monaco_model_revision.mjs';
+import {restoreMixerCalibrationNesNavigationRevision} from './mixer_calibration_nes_navigation_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -371,6 +372,8 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(outputGains!==bytes&&outputGains.length===record?.bytes&&sha(outputGains)===record.sha256)return 'ym2608-dormant-output-gain-api';
   const monacoModels=restoreMixerCalibrationMonacoModelRevision(path,bytes),monacoModelRevision=monacoModels!==bytes;bytes=monacoModels;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return monacoModelRevision?'ui-monaco-virtual-model-lifecycle':'raw';
+  const nesNavigation=restoreMixerCalibrationNesNavigationRevision(path,bytes),nesNavigationRevision=nesNavigation!==bytes;bytes=nesNavigation;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return nesNavigationRevision?'ui-nes-shared-client-source-navigation':'raw';
   const hardwareNavigation=restoreMixerCalibrationFm2608NavigationRevision(path,bytes),hardwareNavigationRevision=hardwareNavigation!==bytes;bytes=hardwareNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hardwareNavigationRevision?'ui-fm2608-hardware-source-navigation':'raw';
   const navigation=restoreMixerCalibrationSynthSourceNavigationRevision(path,bytes),navigationRevision=navigation!==bytes;bytes=navigation;

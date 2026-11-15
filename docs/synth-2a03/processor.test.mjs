@@ -42,11 +42,11 @@ test('NES + FDS processor starts silent, renders host-rate stereo, preserves com
   assert.equal(f.processor.process([],before),true); assert(before[0].every(row => row.every(value => value === 0)));
   f.processor.receive({id:1,method:'noteOn',args:['a',60]});
   f.processor.receive({id:2,method:'noteOn',args:['b',64]});
-  f.resolve(); await f.processor.ready; await new Promise(resolve => queueMicrotask(resolve));
+  f.resolve(); await f.processor.ready; await f.processor.commands;
   assert.equal(f.options[0].sampleRate,48000); assert.equal(f.options[0].moduleOptions.wasmBinary[0],0);
   assert.equal(f.messages[0].ready,true); assert.deepEqual(f.processor.instrument.calls,[['a',60],['b',64]]);
   const after = outputs(); assert.equal(f.processor.process([],after),true); assert(after[0][0].every(value => value > .09)); assert(after[0][1].every(value => value > .19));
-  f.processor.receive({id:3,method:'constructor',args:[]}); await new Promise(resolve => queueMicrotask(resolve));
+  f.processor.receive({id:3,method:'constructor',args:[]}); await f.processor.commands;
   assert.match(f.messages.find(item => item.id === 3).error,/Unknown/); assert.equal(f.processor.dead,false);
   f.processor.receive({method:'dispose'}); assert.equal(f.core.disposed,1); assert.equal(f.processor.process([],outputs()),false);
 });
@@ -61,7 +61,7 @@ test('software click guard follows successful FDS / DMC ownership and keeps stal
     const f = fixture(); f.resolve(); await f.processor.ready;
     let id = 0;
     const command = async (method, args = []) => {
-      const next = ++id; f.processor.receive({id:next,method,args}); await new Promise(resolve => queueMicrotask(resolve));
+      const next = ++id; f.processor.receive({id:next,method,args}); await f.processor.commands;
       return f.messages.find(message => message.id === next);
     };
     await command('loadPreset',[{source}]); await command('noteOn',['owned',60]);
@@ -94,7 +94,7 @@ test('software click guard follows successful FDS / DMC ownership and keeps stal
 
 test('Pulse / Triangle / Noise bypass click guard at note edges and during preference changes', async () => {
   const f=fixture();f.resolve();await f.processor.ready;
-  const command=async(method,args=[])=>{f.processor.receive({method,args});await new Promise(resolve=>queueMicrotask(resolve));};
+  const command=async(method,args=[])=>{f.processor.receive({method,args});await f.processor.commands;};
   for(const source of ['pulse','triangle','noise']) {
     await command('loadPreset',[{source}]);await command('noteOn',['held',60]);
     for(const enabled of [false,true]) {
@@ -132,7 +132,7 @@ test('Actual NES + FDS worklet imports and renders WASM without URL or Node glob
     await processor.ready;
     assert.equal(processor.last.ready,true);
     processor.receive({id:1,method:'noteOn',args:['actual',60]});
-    await new Promise(resolve => queueMicrotask(resolve));
+    await processor.commands;
     assert.equal(processor.last.id,1); assert.equal(processor.last.error,undefined);
     const left=new Float32Array(2048), right=new Float32Array(2048);
     assert.equal(processor.process([],[[left,right]]),true);
@@ -142,15 +142,15 @@ test('Actual NES + FDS worklet imports and renders WASM without URL or Node glob
       if(source==='dmc'){preset.dmc.data=createDemoDpcm();preset.dmc.loop=true;}
       processor.receive({id:2,method:'loadPreset',args:[preset]});
       processor.receive({id:3,method:'noteOn',args:['guarded',60]});
-      await new Promise(resolve=>queueMicrotask(resolve));
+      await processor.commands;
       assert.equal(processor.last.error,undefined);
       assert.equal(processor.process([],[[left,right]]),true);assert(left.some(value=>Math.abs(value)>.0001));
-      processor.receive({id:4,method:'read',args:[]});await new Promise(resolve=>queueMicrotask(resolve));
+      processor.receive({id:4,method:'read',args:[]});await processor.commands;
       assert.equal(processor.last.value.outputClickGuard.enabled,true);assert.equal(processor.last.value.outputClickGuard.phase,'bypass');
-      processor.receive({id:5,method:'noteOff',args:['guarded']});await new Promise(resolve=>queueMicrotask(resolve));
+      processor.receive({id:5,method:'noteOff',args:['guarded']});await processor.commands;
       assert.equal(processor.process([],[[left,right]]),true);
       assert(left.subarray(240).every(value=>value===0));assert(right.subarray(240).every(value=>value===0));
-      processor.receive({id:6,method:'read',args:[]});await new Promise(resolve=>queueMicrotask(resolve));
+      processor.receive({id:6,method:'read',args:[]});await processor.commands;
       assert.equal(processor.last.value.outputClickGuard.phase,'muted');assert.equal(processor.last.value.voices.length,0);
     }
     processor.receive({method:'dispose'});

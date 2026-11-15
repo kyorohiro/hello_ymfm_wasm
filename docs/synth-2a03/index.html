@@ -26,6 +26,24 @@
     <article class="synth-shell" aria-labelledby="synthTitle">
       <header class="synth-heading">
         <div class="title-row">
+          <div id="synthDesktopTools" data-web-menu="true">
+            <details id="synthMenu" class="synth-menu">
+              <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
+              <div id="synthMenuPanel" class="synth-menu-panel">
+                <section class="synth-menu-section synth-menu-actions"><h2>Import</h2>
+                  <button id="synthMenuVgm" type="button" data-close-synth-menu>VGM / VGZ…</button>
+                  <div id="nesMenuProjectImport"></div><div id="nesMenuFilesImport"></div>
+                  <button id="synthMenuPresetImport" type="button" data-close-synth-menu>Instrument JSON…</button>
+                </section>
+                <section class="synth-menu-section synth-menu-actions"><h2>Export</h2>
+                  <div id="nesMenuProjectExport"></div><div id="nesMenuFileExport"></div>
+                  <button id="synthMenuPresetExport" type="button" data-close-synth-menu>Instrument JSON</button>
+                </section>
+                <section id="synthMenuAudio" class="synth-menu-section"><p>Audio output · System default (Web Audio)</p></section>
+              </div>
+            </details>
+            <button id="synthPinButton" class="synth-icon-button" type="button" aria-label="Pin window on top" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3h6v5l3 5v2H6v-2l3-5zM12 15v7"/></svg></button>
+          </div>
           <div class="product-identity">
             <img class="product-icon" src="../tetorica_2a03_synth.webp" width="112" height="112" alt="" decoding="async">
             <div class="product-copy">
@@ -40,6 +58,7 @@
           <div class="transport-actions">
             <button id="startAudio" class="primary" type="button">Enable audio</button>
             <button id="stopAudio" type="button">Stop all sound</button>
+            <button id="nesFilesToggle" type="button" aria-expanded="false" aria-controls="nesFilesPanel">Files</button>
           </div>
           <label class="master-control" for="masterVolume"><span>Master</span>
             <input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent">
@@ -56,6 +75,26 @@
         <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
       </header>
 
+      <div id="synthWorkspace" class="nes-code-workspace">
+        <aside id="nesFilesPanel" class="nes-files-panel" aria-label="Project files" hidden></aside>
+        <div class="nes-main">
+      <section id="nesSongPlayer" class="nes-song-player" aria-label="VGM reference playback">
+        <div class="nes-song-transport"><label for="nesSongSelect">VGM</label><select id="nesSongSelect" aria-label="VGM in Files"><option value="">Load VGM / VGZ…</option></select><button id="nesSongPlay" type="button" disabled>Play song</button><button id="nesSongPause" type="button" disabled>Pause</button><button id="nesSongStop" type="button" disabled>Stop</button></div>
+        <div class="nes-song-seek"><input id="nesSongSeek" type="range" min="0" max="1" step="0.01" value="0" aria-label="VGM playback position in seconds" disabled><output id="nesSongPosition" for="nesSongSeek">0:00 / —</output></div>
+        <p id="nesSongStatus" role="status">Import VGM from Menu or Sounds from VGM. Loading is silent.</p>
+      </section>
+      <section class="nes-channel-tools" aria-label="Channel editing">
+        <div id="nesChannelTabs" class="nes-input-tabs" role="tablist" aria-label="Display, edit and play channel">
+          <button type="button" role="tab" data-nes-channel="auto" aria-selected="true">Auto</button>
+          <button type="button" role="tab" data-nes-channel="0" aria-selected="false" tabindex="-1">CH1 · Pulse</button>
+          <button type="button" role="tab" data-nes-channel="1" aria-selected="false" tabindex="-1">CH2 · Pulse</button>
+          <button type="button" role="tab" data-nes-channel="2" aria-selected="false" tabindex="-1">CH3 · Triangle</button>
+          <button type="button" role="tab" data-nes-channel="3" aria-selected="false" tabindex="-1">CH4 · Noise</button>
+          <button type="button" role="tab" data-nes-channel="4" aria-selected="false" tabindex="-1">CH5 · DMC</button>
+          <button type="button" role="tab" data-nes-channel="5" aria-selected="false" tabindex="-1">CH6 · FDS</button>
+        </div>
+        <div class="nes-live-controls"><label><input id="nesAutoUpdate" type="checkbox" checked> Auto update</label><button id="nesSongCapture" type="button" disabled>Capture to Auto</button><span id="nesChannelStatus" role="status">Auto · selected source, Pulse round robin</span><details class="nes-inline-help"><summary aria-label="About channel editing">?</summary><p>Auto plays the edited source, using both Pulse channels in round robin. A numbered CH displays, edits and plays that physical channel. Auto update follows Code or the selected song channel. Pause freezes the song for audition. Capture copies the displayed channel into your Auto instrument and keeps the song position.</p></details></div>
+      </section>
       <details id="monitorPanel" class="nes-disclosure nes-monitor-panel" data-panel="monitor" open>
         <summary><h2>Waveform / Spectrum</h2></summary>
         <section class="spu-monitor nes-monitor" aria-label="Instrument display">
@@ -107,7 +146,7 @@
             <ul id="vgmWarningList"></ul>
           </details>
         </div>
-        <p class="subtext">Imports initial sound settings and recorded DMC samples. Later changes, length counters and song playback are not replayed. Incomplete sample RAM and direct DAC PCM cannot be recovered as DPCM. Any approximations are shown with the selected sound.</p>
+        <details class="nes-inline-help"><summary aria-label="About VGM import">?</summary><p>Original VGM / VGZ files are stored in vgm and extracted instruments in presets. Select a sound to edit it, or Play song to observe register changes. Incomplete sample RAM and direct DAC PCM cannot be recovered as DPCM. Sound notes describe approximations.</p></details>
         </section>
       </details>
 
@@ -126,6 +165,7 @@
         <summary><h2>Instrument files</h2></summary>
         <section class="instrument-toolbar nes-panel-body" aria-label="Instrument files">
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Pulse" autocomplete="off"></label>
+        <label class="nes-preset-control" for="nesPresetSelect">Presets <select id="nesPresetSelect"><option value="">No playable presets</option></select></label><button id="nesSaveSoundAs" type="button">Save to presets…</button>
         <div class="preset-actions">
           <button id="loadPreset" type="button">Load preset…</button>
           <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a NES / FDS instrument preset">
@@ -138,8 +178,15 @@
       </details>
 
       <details id="keyboardPanel" class="nes-disclosure keyboard-section" data-panel="keyboard" open>
-        <summary><h2 id="keyboardHeading">Keyboard</h2><span>Every key plays the selected source.</span></summary>
+        <summary><h2 id="keyboardHeading">Performance</h2></summary>
         <div class="nes-panel-body">
+        <section id="synthInputSection" class="nes-input-section" aria-label="Performance input" data-input-mode="keyboard">
+        <div class="nes-input-tabs" role="tablist" aria-label="Performance input">
+          <button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+          <button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+          <button id="synthCodeExpandButton" class="nes-code-expand" type="button" aria-label="Maximize Code" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+        </div>
+        <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
@@ -158,9 +205,24 @@
           <div id="keyboard" class="keyboard-mount"></div>
         </div>
         </div>
+        <div id="synthCodePanel" class="nes-code-panel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+          <div class="nes-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
+          <p class="subtext nes-code-caption">Software performance · the same NES + FDS APU as the controls above. Run with Ctrl/Cmd+Enter. Apply with Ctrl/Cmd+Shift+Enter.</p>
+          <div id="synthCodeEditorHost" class="nes-code-editor-host"></div>
+          <textarea id="synthCodeEditor" class="nes-code-editor" spellcheck="false" aria-label="NES + FDS performance JavaScript" rows="12" readonly></textarea>
+          <p id="synthCodeEditorNote" class="subtext">Code is saved in Files. Loading a project never runs it automatically.</p>
+          <pre id="synthCodeError" class="nes-code-error" role="alert"></pre>
+          <details class="nes-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
+          <details class="nes-inline-help"><summary aria-label="About NES Code">?</summary><p>Use <code>const nes = await useSoundChip("nes")</code> and its methods. CH1 / CH2 are Pulse, CH3 Triangle, CH4 Noise, CH5 DMC and CH6 FDS. Run starts fresh. Apply keeps context and named loops. Keyboard and controls can edit the same APU during Code performance. Starting a song stops Code. Stop releases Code notes and retains your sound.</p></details>
+        </div>
+        </section>
+        </div>
       </details>
+        </div>
+        <div id="synthExpandedCodeSlot" class="nes-expanded-code" hidden></div>
+      </div>
       <footer>
-        <p>One NTSC NES APU + FDS: two Pulse voices, one Triangle, one Noise, one DMC sample and one FDS voice. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Song playback and audio-to-DPCM conversion are not included.</p>
+        <p>One NES APU + FDS provides two Pulse voices, one Triangle, one Noise, one DMC sample and one FDS voice. Round robin, Pitch bend, waveform drawing, Code performance and preset files are software tools. Reference VGM playback uses a separate APU through the common Master.</p>
         <div><a href="../playground/index.html?mode=nes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/nesapusynth.js">JavaScript source</a></div>
       </footer>
     </article>

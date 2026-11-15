@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 /** File analysis is passive; only an explicit voice choice replaces the instrument. */
-export function createVgmLibrary({root, onSelect}) {
+export function createVgmLibrary({root, onSelect, onImported = async () => {}}) {
   const $ = id => root.querySelector(`#${id}`);
   const events = new AbortController();
   let library = null, filter = 'all', page = 0, selected = null;
@@ -85,6 +85,8 @@ export function createVgmLibrary({root, onSelect}) {
       const bytes = await file.arrayBuffer();
       if (disposed || token !== request) return;
       const result = await extractVgmInstruments(bytes, {signal: controller.signal});
+      if (disposed || token !== request) return;
+      await onImported({name:file.name, bytes, result, isCurrent:() => !disposed && token === request});
       if (disposed || token !== request) return;
       library = {...result, name: file.name}; filter = 'all'; page = 0; selected = null; selection++;
       render();

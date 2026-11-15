@@ -163,3 +163,79 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
 .nes-mod-brush button { min-width:38px; }
 .nes-mod-brush button[data-mod-code="4"] { border-color:#b66e64; }
 @media(max-width:640px) { .nes-mod-brush { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+
+/* Shared Synth workspace and Code editor. */
+.nes-code-workspace { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
+.nes-song-player,.nes-channel-tools { margin:0 0 14px; padding:12px; min-width:0; border:1px solid var(--line); border-radius:10px; background:#e8e7e0; }
+.nes-song-transport,.nes-song-seek,.nes-live-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.nes-song-transport select { flex:1 1 220px; min-width:0; max-width:100%; }
+.nes-song-transport button,.nes-live-controls button { min-height:32px; padding:6px 12px; }
+.nes-song-seek { margin-top:8px; }
+.nes-song-seek input { flex:1 1 160px; min-width:0; }
+.nes-song-seek output { font-size:.72rem; font-variant-numeric:tabular-nums; }
+#nesSongStatus,#nesChannelStatus { font-size:.7rem; color:var(--muted); overflow-wrap:anywhere; }
+#nesSongStatus { margin:8px 0 0; }
+#nesChannelTabs { flex-wrap:wrap; }
+#nesChannelTabs button { padding:7px 10px; font-size:.72rem; }
+.nes-live-controls label { display:flex; align-items:center; gap:5px; font-size:.73rem; }
+.nes-inline-help { display:inline-block; font-size:.72rem; color:var(--muted); }
+.nes-inline-help > summary { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border:1px solid var(--line); border-radius:50%; cursor:pointer; font-weight:700; list-style:none; }
+.nes-inline-help > summary::-webkit-details-marker { display:none; }
+.nes-inline-help[open] { flex-basis:100%; }
+.nes-inline-help p { max-width:85ch; line-height:1.6; }
+.nes-preset-control { display:flex; flex:1 1 220px; align-items:center; gap:8px; min-width:0; font-size:.75rem; }
+.nes-preset-control select { min-width:0; width:100%; }
+.nes-live-source-locked #source { pointer-events:none; opacity:.65; }
+.nes-code-workspace.has-files { grid-template-columns:230px minmax(0,1fr); }
+.nes-main,.nes-expanded-code,.nes-input-section,.nes-code-panel { min-width:0; }
+.nes-files-panel { border:1px solid var(--line); border-radius:10px; padding:12px; background:#eeece7b8; min-width:0; }
+.nes-files-panel[hidden],.nes-expanded-code[hidden],#synthKeyboardPanel[hidden],#synthCodePanel[hidden] { display:none; }
+.nes-files-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.nes-files-heading h2 { margin:0; font-size:.78rem; letter-spacing:.15em; }
+.nes-files-toolbar,.nes-files-actions { display:flex; flex-wrap:wrap; gap:5px; }
+.nes-files-toolbar button,.nes-files-actions button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.nes-files-actions { padding-top:9px; margin-top:8px; border-top:1px solid var(--line); }
+.nes-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
+#nesFilesTree { min-height:80px; max-height:55vh; overflow:auto; }
+#nesFilesTree .file-tree { list-style:none; margin:0; padding:0; }
+#nesFilesTree .file-tree .file-tree { padding-left:12px; }
+#nesFilesTree li { margin:0; padding:0; }
+#nesFilesTree summary { cursor:pointer; font-size:.75rem; padding:5px 2px; overflow-wrap:anywhere; }
+#nesFilesTree .file-tree-root { font-size:.7rem; color:var(--muted); margin:0 0 6px; padding:5px; border-bottom:1px solid var(--line); }
+#nesFilesTree button { display:block; width:100%; text-align:left; min-height:0; height:auto; padding:6px; border:0; border-radius:6px; background:transparent; color:var(--ink); box-shadow:none; font:inherit; font-size:.74rem; line-height:1.4; overflow-wrap:anywhere; }
+#nesFilesTree button[aria-pressed="true"] { background:transparent; color:var(--ink); box-shadow:none; }
+#nesFilesTree button[aria-selected="true"],#nesFilesTree button[aria-current="true"] { background:#e7d9d9; }
+#nesFilesTree button:hover,#nesFilesTree summary:hover { background:#e9dfdc; }
+#nesFilesTree button:active { background:#e7d9d9; box-shadow:none; }
+#nesFilesTree button:focus-visible { outline-offset:-2px; }
+#nesFilesTree .file-drop-target { background:#e7d9d9; outline:1px solid var(--accent); }
+.nes-input-tabs { display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--line); padding-bottom:0; margin-bottom:12px; }
+.nes-input-tabs > button { border-radius:8px 8px 0 0; margin-bottom:-1px; min-height:34px; }
+.nes-input-tabs > button[aria-selected="true"] { background:#e7d9d9; border-bottom-color:#e7d9d9; color:#7f353b; }
+.nes-input-tabs .nes-code-expand { margin-left:auto; padding:5px 9px; }
+.nes-input-tabs .nes-code-expand[hidden] { display:none; }
+.nes-input-options { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 12px; color:var(--muted); font-size:.73rem; }
+.nes-input-options .check-control { display:flex; align-items:center; gap:7px; }
+.nes-code-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.nes-code-toolbar button { min-height:32px; padding:6px 14px; }
+#synthCodeState { font-size:.72rem; color:var(--muted); margin-left:auto; }
+.nes-code-caption { margin:8px 0; }
+.nes-code-editor,.nes-code-editor-host { box-sizing:border-box; width:100%; height:320px; min-height:240px; border:1px solid var(--line); border-radius:7px; background:#182127; color:#e4edf5; }
+.nes-code-editor-host:not([data-ready="true"]) { display:none; }
+.nes-code-editor { resize:vertical; padding:12px; font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
+.nes-code-editor:focus { outline:2px solid #9986ac; outline-offset:1px; }
+.nes-code-console { margin-top:8px; font-size:.73rem; }
+.nes-code-console pre,.nes-code-error { margin:8px 0 0; overflow:auto; max-height:160px; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+.nes-code-error { color:#ac302b; }.nes-code-error:empty { display:none; }
+.nes-code-workspace.is-code-expanded .nes-main { display:none; }
+.nes-code-workspace.is-code-expanded .nes-expanded-code { grid-column:1/-1; }
+.nes-code-workspace.has-files.is-code-expanded .nes-expanded-code { grid-column:2; }
+.is-code-expanded .nes-code-editor,.is-code-expanded .nes-code-editor-host { height:65vh; }
+.nes-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+#nesFileNameDialog { width:min(420px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--paper,#eeece7); color:inherit; padding:18px; }
+#nesFileNameDialog input { box-sizing:border-box; width:100%; margin:8px 0 14px; padding:8px; }
+.nes-file-context-menu { position:fixed; z-index:1000; display:grid; gap:5px; min-width:210px; max-width:calc(100vw - 8px); max-height:calc(100vh - 8px); overflow:auto; box-sizing:border-box; padding:8px; border:1px solid var(--line); border-radius:10px; background:#eeece7; color:var(--ink); box-shadow:0 8px 24px #26344135; }
+.nes-file-context-menu[hidden] { display:none; }
+.nes-file-context-menu button { width:100%; min-height:32px; padding:6px 12px; text-align:left; font-size:.8rem; box-shadow:none; }
+.nes-file-context-menu button:hover:not(:disabled),.nes-file-context-menu button:focus-visible { background:#e7d9d9; }
+@media(max-width:760px) { .nes-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.nes-code-workspace.has-files.is-code-expanded .nes-expanded-code { grid-column:1; }#nesFilesTree { max-height:240px; }.nes-code-editor { font-size:12px; } }

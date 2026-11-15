@@ -21,7 +21,7 @@ test('2A03 ZIP runs original editable modules with standalone deterministic WASM
   const directory=await mkdtemp(join(tmpdir(),'2a03-synth-package-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const a=await package2a03Synth({version:'test',releaseDir:join(directory,'a')});
   const b=await package2a03Synth({version:'test',releaseDir:join(directory,'b')});
-  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,3);
+  assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
   const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -81,6 +81,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.match(await readFile(join(a.stage,'synth-2a03/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
   assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
   assert(info.receipt.modules.some(module=>module.path==='synth-2a03/dmc_fit.js'));
+  for (const path of ['synth-2a03/code_host.js','synth-2a03/code_endpoint.js','synth-2a03/song_player.js','js/native-fx-worklet.js']) {
+    assert(info.receipt.modules.some(module=>module.path===path),`${path} is distributed as editable source`);
+  }
+  for (const path of ['playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-nes.d.ts','playground/tetorica-shell.d.ts',
+    'playground/vendor/fflate-LICENSE','licenses/tetorica-virtual-files/LICENSE','js/native_audio_effect.wasm','sources/code-effects/tetorica_src/native/audio_effect/gain.c']) {
+    assert(info.names.includes(path),`${path} is included for Code, Files and rebuilding`);
+  }
   assert.match(await readFile(join(a.stage,'js/nesapu_wasm.js'),'utf8'),/typeof process\s*!==\s*'undefined'/,'Node file loading keeps its original browser-safe guard');
   for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs']) assert(info.receipt.originalInputs.some(input=>input.path===path));
   for(const entry of ['index.html','synth-2a03/index.html']) {

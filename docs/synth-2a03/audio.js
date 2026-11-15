@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {createNesCodeClient,nesCodeCancelled} from './code_endpoint.js';
 
 export const NES_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'setClickGuard']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'releaseKeyboard', 'applyPhysicalPreset', 'beginCode', 'code', 'endCode', 'setClickGuard']);
+const nativeSetTimer=globalThis.setTimeout.bind(globalThis),nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('NES + FDS Master must be from 0 to 3.8');
@@ -20,7 +22,8 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint:'interactive'});
   const controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, master = null, disposed = false, closing = null;
+  let node = null, balance = null, master = null, codeFade=null, songInput=null, disposed = false, closing = null;
+  let codeOwner=null,codeGeneration=0,codeStopping=null;
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   // A fatal error can also occur after startup has returned to the UI.
@@ -28,7 +31,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
 
   const report = error => { try { onError(error); } catch {} };
   function rejectPending(error) {
-    for (const {reject, timer} of pending.values()) { clearTimeout(timer); reject(error); }
+    for (const {reject, timer} of pending.values()) { nativeClearTimer(timer); reject(error); }
     pending.clear();
   }
   function assertOpen() {
@@ -38,7 +41,8 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   function dispose() {
     if (closing) return closing;
     disposed = true;
-    clearTimeout(startupTimer);
+    codeGeneration++;codeOwner=null;
+    nativeClearTimer(startupTimer);
     controller.abort();
     context.removeEventListener('statechange', stateChanged);
     rejectPending(fatalError ?? new Error('NES + FDS audio was disposed'));
@@ -51,6 +55,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       node.port.close();
     }
     balance?.disconnect();
+    codeFade?.disconnect();songInput?.disconnect();
     master?.disconnect();
     closing = (async () => { if (context.state !== 'closed') await context.close(); })();
     return closing;
@@ -71,7 +76,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
 
   try {
     if (!context.audioWorklet) throw new Error('2A03 Synth needs AudioWorklet. Open it over HTTPS or localhost.');
-    startupTimer = setTimeout(() => fail(new Error('NES + FDS audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
+    startupTimer = nativeSetTimer(() => fail(new Error('NES + FDS audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
     // Invoke resume before awaiting fetch/addModule so a pointer gesture can
     // authorize playback on browsers that require transient activation.
     const resumed = context.resume();
@@ -95,17 +100,19 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       if (data?.ready) { readyResolve(); return; }
       const request = pending.get(data?.id);
       if (!request) return;
-      pending.delete(data.id); clearTimeout(request.timer);
+      pending.delete(data.id); nativeClearTimer(request.timer);
       if (data.error) {
         const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error);
       } else request.resolve(data.value);
     };
     await boundedStartup(ready);
     assertOpen();
-    clearTimeout(startupTimer);
+    nativeClearTimer(startupTimer);
     balance = context.createGain(); balance.gain.value = NES_SYNTH_BALANCE;
     master = context.createGain(); master.gain.value = volume;
-    node.connect(balance); balance.connect(master); master.connect(context.destination);
+    codeFade=context.createGain();codeFade.gain.value=1;
+    songInput=context.createGain();songInput.gain.value=NES_SYNTH_BALANCE;
+    node.connect(balance); balance.connect(codeFade);codeFade.connect(master);songInput.connect(master); master.connect(context.destination);
 
     async function command(method, args = []) {
       assertOpen();
@@ -113,14 +120,40 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       if (!Array.isArray(args)) throw new TypeError('NES + FDS command arguments must be an array');
       const id = ++nextId;
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => fail(new Error(`NES + FDS command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
+        const timer = nativeSetTimer(() => fail(new Error(`NES + FDS command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
         pending.set(id, {resolve, reject, timer});
         try { node.port.postMessage({id, method, args}); }
-        catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
+        catch (error) { pending.delete(id); nativeClearTimer(timer); reject(error); }
       });
     }
+    async function getNesClient() {
+      assertOpen();if(codeStopping)await codeStopping;assertOpen();
+      if(codeOwner)return codeOwner.promise;
+      const owner={generation:++codeGeneration,metadata:null,client:null,promise:null,begin:null};codeOwner=owner;
+      const current=()=>!disposed&&!fatalError&&codeOwner===owner&&owner.generation===codeGeneration;
+      owner.begin=command('beginCode');
+      owner.promise=owner.begin.then(metadata=>{
+        owner.metadata=metadata;if(!current())throw nesCodeCancelled();
+        owner.client=createNesCodeClient({metadata,isCurrent:current,
+          invoke:(method,args)=>{if(!current())throw nesCodeCancelled();return command('code',[metadata.session,method,args]);},
+          dispose:()=>stopCode(owner.client)});
+        return owner.client;
+      }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
+      return owner.promise;
+    }
+    function stopCode(expectedClient) {
+      assertOpen();const owner=codeOwner;
+      // A cleanup belonging to an older Run may arrive after a newer Run.
+      if(expectedClient&&owner?.client!==expectedClient)return Promise.resolve(false);
+      if(!owner)return codeStopping??Promise.resolve(false);
+      codeOwner=null;codeGeneration++;
+      const task=owner.begin.then(metadata=>command('endCode',[metadata.session]));
+      const result=codeStopping=task.finally(()=>{if(codeStopping===result)codeStopping=null;});return result;
+    }
     return {
-      context, outputNode:master, command, read:() => command('read'),
+      context, outputNode:master,codeInputNode:balance,codeOutputNode:codeFade,codeFadeNode:codeFade,songInputNode:songInput,
+      command, read:() => command('read'),getNesClient,prepareCode:getNesClient,stopCode,
+      applyPhysicalPreset:(channel,preset)=>command('applyPhysicalPreset',[channel,preset]),
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); }
@@ -139,5 +172,5 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
     fail(error);
     await dispose().catch(() => {});
     throw error;
-  } finally { clearTimeout(startupTimer); }
+  } finally { nativeClearTimer(startupTimer); }
 }

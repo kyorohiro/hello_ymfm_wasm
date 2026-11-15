@@ -6,6 +6,10 @@ import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createHardwareMonitor} from './hardware_monitor.js';
 import {createStateObserver} from './state_observer.js';
 import {createPanelLayout} from './panel_layout.js';
+import {setupNesCodeHost} from './code_host.js';
+import {setupSynthMenu} from '../synth/synth_menu.js';
+import {createNesSongSnapshot, captureNesSongPreset} from './song_state.js';
+import {setupNesSongControls} from './song_controls.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
   setInstrument, setFretPosition, setStringWindowIndex, midiToNoteName} from '../synth/synth_keyboard.js';
@@ -15,9 +19,14 @@ const status = (text, error = false) => {
   $('audioStatus').textContent = text;
   $('audioStatus').dataset.error = String(error);
 };
-const report = error => status(error?.message ?? String(error), true);
+const report = error => {if (error?.name !== 'AbortError') status(error?.message ?? String(error), true);};
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
+let autoPreset = readPreset(preset), selectedChannel = null, channelRevision = 0;
+let lastChipState = null, lastManualEdit = 0, editorPointer = false, pendingChannelEdits = 0;
+let codeHost = null, songControls = null;
+let songState = null;
+const channelDrafts = new Map();
 let clickGuardEnabled = $('clickGuardEnabled').checked;
 let queue = Promise.resolve();
 let vgmLibrary = null;
@@ -29,7 +38,16 @@ visualizer.setMode('waveform');
 const hardwareMonitor = createHardwareMonitor({root: $('hardwareMonitor')});
 const hardwareObserver = createStateObserver({
   read: engine => engine.read(),
-  onState(state, engine) {if (audio === engine && state?.preset?.source === preset.source) hardwareMonitor.update(state);},
+  onState(state, engine) {
+    if (audio !== engine) return;
+    lastChipState = state;
+    const voices = state.owners?.filter(Boolean).map(owner => ({id:`apu:${owner.channel}`,channel:owner.channel})) ?? state.voices;
+    if (state?.preset?.source === preset.source || selectedChannel !== null) hardwareMonitor.update({...state,
+      preset:selectedChannel === null ? state.preset : channelPreset(state, selectedChannel), voices,
+    });
+    if (!songIsActive()) updateLivePreset(state);
+    readVoices(state);
+  },
   onStatus(mode) {
     if (mode === 'disposed') return;
     hardwareMonitor.setMode(!audio ? 'waiting' : mode);
@@ -39,7 +57,9 @@ let observedContext = null;
 function syncHardwareMonitor() {
   const visible = !document.hidden, running = audio?.context.state === 'running';
   const panelVisible = $('sourcePanel').open && $('hardwarePanel').open;
-  const active = Boolean(!disposed && visible && running && panelVisible && !switchingAudioOutput && preset.source !== 'dmc' && [...notes.values()].some(note => note.started));
+  const observeCode = codeHost?.isRunning() && (selectedChannel !== null && $('nesAutoUpdate').checked || panelVisible);
+  const active = Boolean(!disposed && visible && running && !switchingAudioOutput && !songIsActive()
+    && (observeCode || panelVisible && preset.source !== 'dmc' && [...notes.values()].some(note => note.started)));
   hardwareObserver.update({engine:audio, active});
   if (!active) hardwareMonitor.setMode(!audio ? 'waiting' : !visible || !running || !panelVisible || switchingAudioOutput ? 'paused' : 'idle');
 }
@@ -55,6 +75,12 @@ const enqueue = action => {
   return task;
 };
 const capacity = () => preset.source === 'pulse' ? 2 : 1;
+const channelSources = ['pulse', 'pulse', 'triangle', 'noise', 'dmc', 'fds'];
+const songIsActive = () => Boolean(songState?.playing || songState?.paused || songState?.playback === 'ended');
+function syncActivity() {
+  visualizer.setRunning(Boolean((notes.size || codeHost?.isRunning() || songState?.playing) && $('monitorPanel').open));
+  syncHardwareMonitor();
+}
 function updateKeys() {
   const keys = new Set([...notes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
@@ -62,23 +88,28 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0 && $('monitorPanel').open);
+  syncActivity();
   updateCapacity();
   syncHardwareMonitor();
 }
 function readVoices(state) {
-  const owners = new Set(state.voices.map(voice => voice.id));
-  for (const [source, note] of notes) if (note.started && !owners.has(note.id)) notes.delete(source);
+  const owners = new Set((state.voices ?? []).map(voice => voice.id));
+  for (const [source, note] of notes) if (note.started && !note.pending && !note.song && !owners.has(note.id)) notes.delete(source);
   updateKeys();
   updateCapacity();
 }
 function updateCapacity() {
   const description = {pulse:'Pulse · CH1 / CH2',triangle:'Triangle · CH3',noise:'Noise · CH4 · keys trigger the same noise',dmc:'DMC · CH5 · keys trigger the same sample',fds:'FDS · waveform + modulation'}[preset.source];
-  $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
+  const allocation = selectedChannel === null ? `${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin` : `CH${selectedChannel + 1} · physical channel`;
+  $('voiceCapacity').textContent = `${description} · ${allocation} · ${notes.size} held`;
 }
 function updatePresetUi({resetDmcHistory = false} = {}) {
   hardwareMonitor.setSource(preset.source);
   editor.update(preset, {resetDmcHistory});
+  if (selectedChannel !== null) $('voiceEditor').querySelector('.nes-source-bar p').textContent = `CH${selectedChannel + 1} · display, edit and play this physical channel.`;
+  $('source').inert = selectedChannel !== null;
+  $('source').setAttribute('aria-disabled', String(selectedChannel !== null));
+  $('voiceEditor').classList.toggle('nes-live-source-locked', selectedChannel !== null);
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
   for (const [wheel] of pitchWheels) wheel.disabled = ['noise', 'dmc'].includes(preset.source);
@@ -90,6 +121,8 @@ function audioFailed(error) {
   epoch++;
   notes.clear(); updateKeys();
   const failed = audio; audio = null;
+  songControls?.stop();
+  void codeHost?.stop().catch(() => {});
   watchHardwareContext(null);
   visualizer.disconnect();
   if (failed) void failed.dispose().catch(() => {});
@@ -112,6 +145,7 @@ async function ensureAudio() {
           await engine.command('setPitch', [appliedPitch]);
           await engine.command('setClickGuard', [appliedClickGuard]);
         } while (applied !== revision || appliedPitch !== pitch || appliedClickGuard !== clickGuardEnabled);
+        for (const [channel, draft] of channelDrafts) await engine.command('applyPhysicalPreset', [channel, draft]);
         if (disposed) throw new Error('2A03 Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         audio = engine;
@@ -129,6 +163,7 @@ async function ensureAudio() {
 }
 function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   const next = readPreset(value);
+  selectedChannel = null; channelRevision++;
   if (!fromVgm) vgmLibrary?.clearSelection();
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source
@@ -136,16 +171,18 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
     || JSON.stringify(previous.fds.modulation.table) !== JSON.stringify(next.fds.modulation.table)
     || JSON.stringify(previous.dmc.data) !== JSON.stringify(next.dmc.data);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
-  preset = next; revision++;
+  autoPreset = next; preset = next; revision++;
   const editRevision = revision;
   if (load || previous.source !== next.source) setPitchUi(0);
   updatePresetUi({resetDmcHistory:load});
+  syncChannelUi();
+  codeHost?.markSoundDirty();
   if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return Promise.resolve();}
   return enqueue(async () => {
     const engine = audio;
     if (!engine) return;
     try {
-      await engine.command(load ? 'loadPreset' : 'setPreset', [next]);
+      await engine.command(load && !codeHost?.isRunning() ? 'loadPreset' : 'setPreset', [next]);
       if (load || previous.source !== next.source) await engine.command('setPitch', [0]);
       const state = await engine.read();
       if (audio !== engine) return;
@@ -154,27 +191,114 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
       if (revision === editRevision) status(message ?? 'Instrument updated · play a new note to hear envelope and Sweep edits.');
     } catch (error) {
       if (audio === engine && revision === editRevision) {
-        preset = (await engine.read()).preset;
+        autoPreset = (await engine.read()).preset;
+        preset = autoPreset;
         updatePresetUi();
       }
       throw error;
     }
   });
 }
+function syncChannelUi() {
+  for (const button of document.querySelectorAll('[data-nes-channel]')) {
+    const selected = button.dataset.nesChannel === (selectedChannel === null ? 'auto' : String(selectedChannel));
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  }
+  let snapshot = songIsActive() ? songState?.liveState : lastChipState;
+  try {if (snapshot?.registers && !snapshot.channels) snapshot = createNesSongSnapshot(snapshot);} catch {snapshot = null;}
+  const capture = selectedChannel === null ? null : snapshot?.channels?.[selectedChannel];
+  $('nesSongCapture').disabled = !capture?.canCapture;
+  $('nesSongCapture').title = capture?.captureError ?? '';
+  const transport = songState?.playing ? 'VGM playing' : songState?.paused ? 'VGM paused' : songState?.playback === 'ended' ? 'VGM ended' : codeHost?.isRunning() ? 'Code running' : 'Manual';
+  $('nesChannelStatus').textContent = selectedChannel === null
+    ? 'Auto · selected source, Pulse round robin'
+    : `CH${selectedChannel + 1} · ${channelSources[selectedChannel]} · ${transport}`;
+}
+function channelPreset(state, channel) {
+  const snapshot = state?.liveState ?? state;
+  if (snapshot?.channels?.[channel]?.preset) return readPreset(snapshot.channels[channel].preset);
+  if (snapshot?.registers) {
+    try {return createNesSongSnapshot(snapshot).channels[channel].preset;} catch {}
+  }
+  const bank = state?.channelPresets?.[channel];
+  const value = bank ?? channelDrafts.get(channel) ?? autoPreset;
+  return readPreset({...value, source:channelSources[channel]});
+}
+function updateLivePreset(state) {
+  if (selectedChannel === null || !$('nesAutoUpdate').checked || editorPointer || pendingChannelEdits || performance.now() - lastManualEdit < 300) return;
+  if (document.activeElement?.closest('#voiceEditor,input#instrumentName')) return;
+  // The register snapshot mapper is installed with the reference player below.
+  const next = channelPreset(state, selectedChannel);
+  preset = next;
+  updatePresetUi();
+  syncChannelUi();
+}
+async function selectChannel(channel) {
+  const token = ++channelRevision;
+  await stopNotes();
+  if (disposed || token !== channelRevision) return;
+  selectedChannel = channel;
+  if (channel === null) preset = readPreset(autoPreset);
+  else {
+    const state = songIsActive() ? songControls.getState() : audio ? await audio.read() : null;
+    if (disposed || token !== channelRevision) return;
+    if (!songIsActive()) lastChipState = state;
+    preset = channelPreset(state, channel);
+  }
+  updatePresetUi({resetDmcHistory:true});
+  syncChannelUi();
+  hardwareObserver.invalidate();
+  syncActivity();
+}
+async function editCurrentPreset(value) {
+  lastManualEdit = performance.now();
+  if (selectedChannel === null) return applyPreset(value);
+  const channel = selectedChannel, token = channelRevision;
+  const next = readPreset({...value, source:channelSources[channel]});
+  preset = next;
+  channelDrafts.set(channel, next);
+  updatePresetUi();
+  pendingChannelEdits++;
+  try {
+    if (songIsActive()) {
+      if (!await songControls.ensureEditable() || channelRevision !== token) return;
+      await songControls.player.applyPreset(channel, next);
+    }
+    else if (audio) await enqueue(async () => {
+      if (channelRevision !== token || !audio) return;
+      await audio.command('applyPhysicalPreset', [channel, next]);
+      lastChipState = await audio.read();
+      readVoices(lastChipState);
+    });
+  } finally {pendingChannelEdits--;}
+  visualizer.wake();
+}
 const editor = createEditor({
-  root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report,
-  onCompareDepth: value => applyPreset(value, {load:true,message:'Slow vibrato comparison ready · release and play a new key. Direction changes apply on the next note.'}),
+  root: $('voiceEditor'), onChange: value => {void editCurrentPreset(value).catch(report);}, onError: report,
+  onCompareDepth: value => selectedChannel === null
+    ? applyPreset(value, {load:true,message:'Slow vibrato comparison ready · release and play a new key. Direction changes apply on the next note.'})
+    : editCurrentPreset(value),
   onSaveDpcm: data => {
     saveFile('2a03-sample.dmc', Uint8Array.from(data), 'application/octet-stream');
     status(`DPCM download started · ${data.length} bytes. Save preset to keep Rate, Loop and Initial level too.`);
   },
 });
-vgmLibrary = createVgmLibrary({root: $('vgmImport'), onSelect: value => applyPreset(value, {
-  load: true, fromVgm: true, message: `${value.name} loaded from VGM · play the keyboard.`,
-})});
+vgmLibrary = createVgmLibrary({root: $('vgmImport'),
+  onSelect: value => applyPreset(value, {
+    load:true, fromVgm:true, message:`${value.name} loaded from VGM · play the keyboard.`,
+  }),
+  async onImported({name, bytes, result, isCurrent}) {
+    await codeHost.ready;
+    const paths = await codeHost.files.importVgm({name, bytes:new Uint8Array(bytes), result, isCurrent});
+    if (!paths.length || !isCurrent()) return;
+    try {await songControls.selectFile(paths[0]);}
+    catch (error) {status(`Sounds imported. Reference playback unavailable · ${error.message}`);}
+  },
+});
 panelLayout = createPanelLayout({root:document,
   onSourceHidden:() => editor.cancelDrawing(),
-  onVisibilityChange() {syncHardwareMonitor();visualizer.setRunning(notes.size > 0 && $('monitorPanel').open);},
+  onVisibilityChange:syncActivity,
 });
 
 
@@ -231,16 +355,22 @@ function canPlay(midi) {
 }
 function press(source, entry) {
   if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
-  const note = {id:`nes-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
+    const note = {id:`nes-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false,channel:selectedChannel,
+      song:selectedChannel !== null && songIsActive()};
   notes.set(source,note); updateKeys();
   void enqueue(async () => {
     if (switchingAudioOutput || notes.get(source)!==note || note.epoch!==epoch) return;
     const engine = await ensureAudio();
     if (switchingAudioOutput||notes.get(source)!==note||note.epoch!==epoch) return;
-    note.started = true;
-    const result = await engine.command('noteOn',[note.id,note.midi]);
+    if (note.song && !await songControls.ensureEditable()) return;
+    if (notes.get(source)!==note||note.epoch!==epoch) return;
+    note.started = true; note.pending = true;
+    const result = note.song
+      ? await songControls.player.noteOn(note.id, note.midi, note.channel)
+      : await engine.command('noteOn',note.channel === null ? [note.id,note.midi] : [note.id,note.midi,note.channel]);
+    note.pending = false;
     if (audio!==engine||note.epoch!==epoch) return;
-    if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
+    if (result?.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
     status(preset.source==='noise' ? 'Noise triggered · pitch is set by Noise clock controls.' : preset.source==='dmc' ? 'DMC triggered · playback speed is set by Rate.' : `${midiToNoteName(note.midi)} · ${notes.size}/${capacity()} voices`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
@@ -250,19 +380,40 @@ function release(source) {
   if (!note) return;
   notes.delete(source);updateKeys();
   if (note.started) void enqueue(async()=>{
-    if (audio && note.epoch===epoch) {await audio.command('noteOff',[note.id]);updateCapacity();}
+    if (audio && note.epoch===epoch) {
+      if (note.song) await songControls?.player.noteOff(note.id);
+      else await audio.command('noteOff',[note.id]);
+      updateCapacity();
+    }
   });
 }
 function stopNotes(message) {
+  const held = [...notes.values()].filter(note => note.started);
   epoch++; notes.clear(); updateKeys();
-  return enqueue(async()=>{if(audio) await audio.command('stop'); visualizer.stop();if(message) status(message);});
+  return enqueue(async()=>{
+    for (const note of held) {
+      if (note.song) await songControls?.player.noteOff(note.id);
+      else if (audio) await audio.command('noteOff', [note.id]);
+    }
+    syncActivity();
+    if(message) status(message);
+  });
+}
+async function stopAll() {
+  await codeHost?.stop();
+  await songControls?.stop();
+  await stopNotes();
+  if (audio) await enqueue(() => audio?.command('stop'));
+  visualizer.stop();
+  syncChannelUi();
+  status('Stopped · instrument retained. Play to resume.');
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();stopNotes('Stopped · instrument retained. Play to resume.');});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopAll().catch(report);});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
-function editing(target) {const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');return control&&!control.matches?.('input[type="range"],input[type="checkbox"]');}
+function editing(target) {const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open],.monaco-editor');return control&&!control.matches?.('input[type="range"],input[type="checkbox"]');}
 window.addEventListener('keydown',event=>{
   if(event.ctrlKey||event.metaKey||event.altKey||editing(event.target)) return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);
@@ -282,7 +433,11 @@ function setPitchUi(value) {
 function setPitch(value) {
   const previous=pitch;setPitchUi(value);
   if(audio) void enqueue(async()=>{
-    try{await audio?.command('setPitch',[value]);visualizer.wake();}
+    try{
+      await audio?.command('setPitch',[value]);
+      if (songIsActive() && songControls.getState().manualReady) await songControls.player.setPitch(value);
+      visualizer.wake();
+    }
     catch(error){if(pitch===value) setPitchUi(previous);throw error;}
   });
 }
@@ -303,6 +458,7 @@ $('clickGuardEnabled').addEventListener('change', () => {
   clickGuardEnabled = $('clickGuardEnabled').checked;
   $('clickGuardEnabled').blur();
   const enabled = clickGuardEnabled;
+  songControls?.setClickGuard(enabled);
   if (audio) void enqueue(async () => {
     if (!audio) return;
     await audio.command('setClickGuard', [enabled]);
@@ -322,7 +478,7 @@ const monitorResize = new ResizeObserver(() => {
   visualizer.setMode(document.querySelector('[data-visual-mode][aria-pressed="true"]').dataset.visualMode);
 });
 monitorResize.observe($('outputCanvas'));
-function commitName() {void applyPreset({...preset,name:$('instrumentName').value}).catch(report);$('instrumentName').blur();}
+function commitName() {void editCurrentPreset({...preset,name:$('instrumentName').value}).catch(report);$('instrumentName').blur();}
 $('instrumentName').addEventListener('change',commitName);
 $('instrumentName').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();commitName();}});
 function saveFile(name, data, type = 'application/json') {
@@ -354,11 +510,82 @@ $('copyCode').addEventListener('click',async()=>{
     catch{status('JavaScript ready below · select and copy it into Playground NES / FDS mode.');}
   }catch(error){report(error);}
 });
+setupSynthMenu({document, window});
+for (const [action, target] of [['synthMenuVgm','loadVgm'], ['synthMenuPresetImport','loadPreset'], ['synthMenuPresetExport','savePreset']]) {
+  $(action).addEventListener('click', () => $(target).click());
+}
+codeHost = setupNesCodeHost({
+  ensureAudio, getAudio:() => audio, getSettings:() => readPreset(autoPreset),
+  async applySettings(value, {isCurrent = () => true} = {}) {
+    if (!isCurrent()) return false;
+    await applyPreset(value, {load:true, message:'Sound loaded from Files.'});
+    return isCurrent();
+  },
+  stopKeyboard:stopNotes,
+  stopSong:async () => {await songControls?.stop(); await songControls?.whenIdle();},
+  onSelectSong:(file, options) => songControls.selectFile({path:options?.path ?? file.path, data:file.data}),
+  onActivity() {syncActivity(); syncChannelUi();},
+  setStatus:(message,error=false) => status(message,error),
+});
+songControls = setupNesSongControls({
+  project:codeHost.project, ensureAudio, getAudio:() => audio,
+  getClickGuard:() => clickGuardEnabled,
+  stopCode:async () => {await codeHost.stop(); await stopNotes();},
+  onState(state) {
+    songState = state;
+    if (selectedChannel !== null) updateLivePreset(state);
+    syncActivity(); syncChannelUi();
+  },
+  onLiveState(state) {
+    const snapshot = state?.liveState ?? state;
+    if (snapshot?.registers && selectedChannel !== null) hardwareMonitor.update({...snapshot,
+      preset:snapshot.channels[selectedChannel].preset,
+      voices:snapshot.channels.filter(voice => voice.gate).map(voice => ({id:`vgm:${voice.channel}`,channel:voice.channel})),
+    });
+  },
+  setStatus:(message,error=false) => status(message,error),
+});
+void codeHost.ready.then(() => songControls.refresh()).catch(report);
+for (const button of document.querySelectorAll('[data-nes-channel]')) {
+  const choose = () => selectChannel(button.dataset.nesChannel === 'auto' ? null : Number(button.dataset.nesChannel)).catch(report);
+  button.addEventListener('pointerdown', event => {event.preventDefault();document.activeElement?.blur();});
+  button.addEventListener('click', () => {void choose();});
+  button.addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault(); event.stopPropagation();
+    const buttons = [...document.querySelectorAll('[data-nes-channel]')], current = buttons.indexOf(button);
+    const index = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+      : (current + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[index].click(); buttons[index].focus();
+  });
+}
+$('nesAutoUpdate').addEventListener('change', () => {
+  $('nesAutoUpdate').blur();
+  songControls.setLiveEnabled($('nesAutoUpdate').checked);
+  if ($('nesAutoUpdate').checked && selectedChannel !== null) updateLivePreset(songIsActive() ? songControls.getState() : lastChipState);
+  syncActivity();
+});
+$('nesSongCapture').addEventListener('click', async () => {
+  $('nesSongCapture').blur();
+  const channel = selectedChannel;
+  if (channel === null) return;
+  try {
+    const state = songIsActive() ? songControls.getState().liveState : await audio?.read();
+    const captured = captureNesSongPreset(state, {channel, basePreset:autoPreset});
+    await stopNotes();
+    await applyPreset(captured, {load:true, message:`CH${channel + 1} captured to Auto · song position retained.`});
+  } catch (error) {report(error);}
+});
+$('voiceEditor').addEventListener('pointerdown', () => {editorPointer = true;});
+window.addEventListener('pointerup', () => {editorPointer = false;});
+window.addEventListener('pointercancel', () => {editorPointer = false;});
 window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();panelLayout?.dispose();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
+  disposed=true;epoch++;notes.clear();panelLayout?.dispose();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();songControls?.dispose();
+  const owner=audio;audio=null;
+  void codeHost?.dispose().finally(() => owner?.dispose());
 });
-updatePresetUi();setVolume();setPitchUi(0);
+updatePresetUi();setVolume();setPitchUi(0);syncChannelUi();
 
 // Desktop adapters change only the final Master bus. The NES + FDS APU, allocator
 // and output monitor keep using the same graph; ordinary sites expose no API.
@@ -370,7 +597,7 @@ if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
-      await stopNotes();
+      await stopAll();
       await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
     },
   })});

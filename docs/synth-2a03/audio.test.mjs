@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {createNesCodeClient,nesCodeCancelled} from './code_endpoint.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
 function fixture({resumeError = false, fetchFailure = false, stalledFetch = false} = {}) {
-  let createAudio, context, node, timerId = 0, mode = 'reply';
-  const timers = new Map(), errors = [], events = [];
+  let createAudio, context, node, timerId = 0, mode = 'reply',session=0;
+  const timers = new Map(), errors = [], events = [],requests=[];
   class Context {
     constructor() {
       context = this; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
@@ -34,26 +35,27 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     constructor() {
       node = this; this.connections = []; this.disposed = 0;
       this.port = {postMessage:message => {
+        requests.push(message);
         if (message.method === 'dispose') { this.disposed++; return; }
         if (mode === 'throw') throw new Error('Cannot clone');
         if (mode === 'drop') return;
         queueMicrotask(() => this.port.onmessage?.({data:{id:message.id,
-          ...(mode === 'error' ? {error:'Invalid preset', name:'RangeError'} : {value:message.method === 'read' ? {voices:[]} : true})}}));
+          ...(mode === 'error' ? {error:'Invalid preset', name:'RangeError'} : {value:message.method === 'read' ? {voices:[]} : message.method==='beginCode'?{session:++session,channels:6,clock:1789772.7272727273}:true})}}));
       }, close(){this.closed = true;}};
       queueMicrotask(() => this.port.onmessage?.({data:{ready:true}}));
     }
     connect(value) { this.connections.push(value); }
     disconnect() { this.disconnected = true; }
   }
-  const transformed = source.replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
+  const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,createNesCodeClient,nesCodeCancelled,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
   });
   return {create:options => createAudio({onError:error => errors.push(error), ...options}),
-    get context(){return context;}, get node(){return node;}, errors, timers, events,
+    get context(){return context;}, get node(){return node;}, errors, timers, events,requests,
     mode(value){mode = value;}, expire(){const [id, timer] = timers.entries().next().value; assert.equal(timer.ms,15000);timers.delete(id);timer.fn();}};
 }
 
@@ -61,10 +63,10 @@ test('NES + FDS audio is lazy and routes one fixed balance before the user Maste
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
-  const [balance, master] = f.context.gains;
+  const [balance, master,codeFade,songInput] = f.context.gains;
   assert.equal(balance.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[codeFade]);assert.deepEqual(codeFade.connections,[master]);assert.deepEqual(songInput.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
@@ -73,14 +75,37 @@ test('NES + FDS audio is lazy and routes one fixed balance before the user Maste
   assert.equal(f.context.closeCount,1); assert.equal(f.node.disposed,1); assert.equal(f.timers.size,0);
 });
 
+test('borrowed NES clients reuse the one Worklet and edits preserve Code while stale Stop cannot end a newer session',async()=>{
+  const f=fixture(),audio=await f.create();
+  const client=await audio.getNesClient();assert.equal(client,await audio.prepareCode());
+  assert.equal(f.requests.filter(r=>r.method==='beginCode').length,1);
+  await client.noteOn(0,'C4');await audio.command('setPreset',[{}]);await client.pulse.noteOn(1,'E4');
+  await audio.stopCode(client);assert.throws(()=>client.noteOff(0),{name:'AbortError'});
+  const newer=await audio.getNesClient();assert.notEqual(newer,client);
+  const before=f.requests.length;assert.equal(await audio.stopCode(client),false);assert.equal(f.requests.length,before);
+  await newer.triangle.noteOn('G3');assert.equal(f.context.gains.length,4);assert.equal(f.context.closeCount,0);
+  assert.equal(audio.codeInputNode,f.context.gains[0]);assert.equal(audio.codeFadeNode,f.context.gains[2]);assert.equal(audio.songInputNode,f.context.gains[3]);
+  await audio.dispose();assert.throws(()=>newer.noteOn(0,60),{name:'AbortError'});
+});
+
+test('Stop fences a pending client acquisition before a later Run may begin',async()=>{
+  const f=fixture(),audio=await f.create();f.mode('drop');
+  const old=audio.getNesClient(),cancelled=assert.rejects(old,{name:'AbortError'}),begin=f.requests.at(-1);
+  const stopping=audio.stopCode(),newer=audio.getNesClient();
+  assert.equal(f.requests.filter(r=>r.method==='beginCode').length,1);
+  f.mode('reply');f.node.port.onmessage({data:{id:begin.id,value:{session:99,channels:6,clock:1789772.7272727273}}});
+  await cancelled;await stopping;const client=await newer;
+  assert.equal(f.requests.filter(r=>r.method==='beginCode').length,2);await client.noteOn(0,'C4');await audio.dispose();
+});
+
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
   const f = fixture(), audio = await f.create({volume:.7});
-  const [balance, master] = f.context.gains, monitor = {}, desktopTap = {};
+  const [balance, master,codeFade,songInput] = f.context.gains, monitor = {}, desktopTap = {};
   master.connect(monitor);
   audio.outputNode.disconnect(audio.context.destination);
   audio.outputNode.connect(desktopTap);
   assert.deepEqual(master.connections,[monitor, desktopTap]);
-  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[codeFade]);assert.deepEqual(codeFade.connections,[master]);assert.deepEqual(songInput.connections,[master]);
   audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
   await audio.command('stop'); await audio.command('setPitch',[0]);
   audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);

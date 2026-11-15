@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
-import {mkdir, mkdtemp, readFile, readdir, writeFile, copyFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, writeFile, copyFile, cp, rm} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
@@ -45,9 +45,32 @@ export async function package2a03Synth({version='dev',releaseDir=join(root,'rele
   try{await readFile(archive);throw new Error(`Archive already exists: ${archive}`);}catch(error){if(error.code!=='ENOENT') throw error;}
   const stage=await mkdtemp(join(releaseDir,`itch_2a03_synth_${version}-`));
   const browser=await copyReadableModules({root,stage,
-    entries:['docs/synth-2a03/synth.js','docs/synth-2a03/processor.js','docs/synth-2a03/synth.css'],
+    entries:['docs/synth-2a03/synth.js','docs/synth-2a03/processor.js','docs/synth-2a03/synth.css','docs/js/native-fx-worklet.js'],
     factories:['docs/generated/nesapu_wasm.js']});
   const inputs=new Set(browser.inputs),bundles=browser.entries;
+  for (const name of ['tetorica-playground-globals.d.ts','tetorica-playground-nes.d.ts','tetorica-shell.d.ts']) {
+    const source='docs/playground/'+name;
+    await mkdir(join(stage,'playground'),{recursive:true});
+    await copyFile(join(root,source),join(stage,'playground',name));inputs.add(source);
+  }
+  for (const [source,destination] of [
+    ['docs/playground/vendor/fflate-LICENSE','playground/vendor/fflate-LICENSE'],
+    ['packages/virtual-files/LICENSE','licenses/tetorica-virtual-files/LICENSE'],
+  ]) {
+    await mkdir(join(stage,destination.slice(0,destination.lastIndexOf('/'))),{recursive:true});
+    await copyFile(join(root,source),join(stage,destination));inputs.add(source);
+  }
+  const effectSource='tetorica_src/runtime/generated/effects/gain.wasm';
+  await copyFile(join(root,effectSource),join(stage,'js/native_audio_effect.wasm'));inputs.add(effectSource);
+  const effectKit='sources/code-effects';
+  await mkdir(join(stage,effectKit,'scripts'),{recursive:true});
+  await mkdir(join(stage,effectKit,'tetorica_src/native'),{recursive:true});
+  await cp(join(root,'tetorica_src/native/audio_effect'),join(stage,effectKit,'tetorica_src/native/audio_effect'),{recursive:true});
+  await copyFile(join(root,'scripts/build_native_audio_effect.sh'),join(stage,effectKit,'scripts/build_native_audio_effect.sh'));
+  await copyFile(join(root,'LICENSE'),join(stage,effectKit,'LICENSE'));
+  for (const name of await filesIn(join(root,'tetorica_src/native/audio_effect'))) inputs.add('tetorica_src/native/audio_effect/'+name);
+  inputs.add('scripts/build_native_audio_effect.sh');
+  await writeFile(join(stage,effectKit,'README.md'),'# Code software effects\n\nThe BSD-3-Clause effect rack runs after the NES APU. Its readable implementation is js/native_fx_rack.js. Rebuild with Emscripten from this directory.\n\n```sh\nsh scripts/build_native_audio_effect.sh /tmp/tetorica-nes-effects\ncp /tmp/tetorica-nes-effects/gain.wasm ../../js/native_audio_effect.wasm\n```\n');
   const home='https://kyorohiro.github.io/hello_ymfm_wasm/';
   let html=await readFile(join(root,'docs/synth-2a03/index.html'),'utf8');
   html=html.replace(/href="(\.\.\/[^"#]+)"/g,(_match,path)=>{

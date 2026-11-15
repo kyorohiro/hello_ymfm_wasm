@@ -5,7 +5,7 @@ import {NesApuWasm} from '../js/nesapu_wasm.js';
 import {NesInstrument} from './instrument.js';
 import {OutputClickGuard} from './click_guard.js';
 
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'setClickGuard']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop', 'releaseKeyboard', 'applyPhysicalPreset', 'beginCode', 'code', 'endCode', 'setClickGuard']);
 const guardedSource = source => source === 'fds' || source === 'dmc';
 
 class NesSynthProcessor extends AudioWorkletProcessor {
@@ -24,6 +24,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
         catch (error) { core.dispose(); throw error; }
         this.port.postMessage({ready:true});
       }).catch(error => this.fail(error));
+    this.commands=this.ready;
   }
 
   dispose() {
@@ -43,7 +44,10 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     if (typeof enabled !== 'boolean') throw new TypeError('Software click guard must be a boolean');
     if (enabled === this.clickGuardEnabled) return enabled;
     this.clickGuardEnabled = enabled;
-    if (!guardedSource(this.instrument.preset?.source)) this.clickGuard.bypass();
+    const owners=this.instrument.owners;
+    if(owners?.some((owner,ch)=>owner&&ch!==4&&ch!==5))this.clickGuard.bypass();
+    else if(owners?.some(Boolean))this.clickGuard.attack();
+    else if (!guardedSource(this.instrument.preset?.source)) this.clickGuard.bypass();
     else if (!enabled) this.clickGuard.attack();
     else if (this.instrument.voices.size) this.clickGuard.attack();
     else this.clickGuard.release();
@@ -55,7 +59,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
       if (method === 'noteOn') this.clickGuard.bypass();
       return;
     }
-    const source = this.instrument.preset?.source;
+    const source = method==='noteOn'&&Number.isInteger(result?.channel)?result.channel===5?'fds':result.channel===4?'dmc':'pulse':this.instrument.preset?.source;
     if (method === 'noteOn') {
       if (guardedSource(source)) this.clickGuard.attack();
       else this.clickGuard.bypass();
@@ -64,12 +68,20 @@ class NesSynthProcessor extends AudioWorkletProcessor {
       && (guardedSource(source) || guardedSource(previousSource)) && !this.instrument.voices.size) this.clickGuard.release();
   }
 
+  ownedTransition(previous) {
+    const owners=this.instrument.owners,hasOther=owners.some((owner,ch)=>owner&&ch!==4&&ch!==5);
+    if(!this.clickGuardEnabled||hasOther){this.clickGuard.bypass();return;}
+    const guarded=owners[4]||owners[5];
+    if(guarded&&owners.some((owner,ch)=>owner&&owner!==previous[ch]))this.clickGuard.attack();
+    else if(!guarded&&(previous[4]||previous[5]))this.clickGuard.release();
+  }
+
   receive(data) {
     if (data?.method === 'dispose') { this.dispose(); return; }
     if (this.dead) return;
     // AudioWorklet messages are handled serially. Each queued callback runs
     // after initialization, preserving command order without polling the chip.
-    void this.ready.then(() => {
+    this.commands=this.commands.then(async () => {
       if (this.dead) return;
       try {
         if (!COMMANDS.has(data?.method)) throw new Error('Unknown 2A03 Synth command');
@@ -77,10 +89,17 @@ class NesSynthProcessor extends AudioWorkletProcessor {
         const args = data.args ?? [];
         if (data.method === 'setClickGuard' && args.length !== 1) throw new TypeError('Expected one click guard setting');
         const previousSource = this.instrument.preset?.source;
+        const previousOwners=this.instrument.owners?.slice();
         let value = data.method === 'setClickGuard' ? this.setClickGuard(args[0]) : this.instrument[data.method](...args);
+        // Public DMC upload has an acknowledgement Promise. Complete it before
+        // a following trigger/reset/session close may touch the same sample.
+        if(value&&typeof value.then==='function')value=await value;
         // Only successful commands change the output bridge. In particular,
         // a stale noteOff(false) cannot fade a replacement voice.
-        if (data.method !== 'read' && data.method !== 'setClickGuard') this.outputTransition(data.method, value, previousSource);
+        if(data.method!=='read'&&data.method!=='setClickGuard') {
+          if(previousOwners)this.ownedTransition(previousOwners);
+          else this.outputTransition(data.method,value,previousSource);
+        }
         if (data.method === 'read') value = {...value, outputClickGuard:{enabled:this.clickGuardEnabled, ...this.clickGuard.read()}};
         if (data.id !== undefined) this.port.postMessage({id:data.id, value});
       } catch (error) {

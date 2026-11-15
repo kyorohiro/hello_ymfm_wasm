@@ -6,11 +6,12 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {FM2608_NAVIGATION_REVISION_PATH as path,FM2608_NAVIGATION_REVISION_RECEIPT_PATH as destination} from './mixer_calibration_fm2608_navigation_revision.mjs';
 import {MEASURED_POLICY_REVISION_RECEIPT_PATH} from './mixer_calibration_measured_policy_revision.mjs';
+import {restoreMixerCalibrationNesNavigationRevision} from './mixer_calibration_nes_navigation_revision.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record=bytes=>({bytes:bytes.length,sha256:sha(bytes)});
 const before=execFileSync('git',['show','a04e3ff87ccc25dcceb27d56d842ad45514669ac:docs/' + path],{cwd:root});
-const after=await readFile(new URL('../docs/' + path,import.meta.url));
+const after=restoreMixerCalibrationNesNavigationRevision(path,await readFile(new URL('../docs/' + path,import.meta.url)));
 const removedText="    if(['setTimerA','setCsm','setChannel3Mode','getChannel3State'].includes(symbol))\n"+
   "      return {file:'synth-fm2608/sound_state.js',symbol:symbol==='setCsm'?'installChannel3Controls':symbol};\n"+
   "    if(symbol==='capturePreset')return {file:'synth-fm2608/audio.js',symbol};\n";

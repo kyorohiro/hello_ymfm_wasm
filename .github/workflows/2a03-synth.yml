@@ -15,6 +15,14 @@ on:
       - 'docs/js/nes_apu_vendor/**'
       - 'docs/generated/nesapu*'
       - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_code*.js'
+      - 'docs/synth/synth_project_store.js'
+      - 'docs/synth/synth_menu.js'
+      - 'docs/playground/playground_monaco*.js'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'docs/js/playground_code_runtime.js'
+      - 'docs/js/native*'
+      - 'docs/js/tetorica_virtual_files/**'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/nesapu*'
@@ -66,6 +74,8 @@ jobs:
           sh scripts/package_itch_2a03_synth.sh ci
           python3 -m zipfile -e release/tetorica_2a03_synth_ci_itch.zip release/2a03-synth-browser
           node scripts/check_2a03_synth_browser.cjs --root release/2a03-synth-browser --entry /index.html --out release/2a03-synth-browser.json --screenshots release/2a03-synth-images
+          node scripts/check_2a03_synth_code_browser.cjs --root=release/2a03-synth-browser --entry=/index.html --out=release/2a03-synth-code-browser.json --screenshots=release/2a03-synth-code-images
+          node scripts/check_2a03_synth_song_browser.cjs --root=release/2a03-synth-browser --entry=/index.html --out=release/2a03-synth-song-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -74,4 +84,7 @@ jobs:
             release/tetorica_2a03_synth_ci_itch.zip
             release/2a03-synth-browser.json
             release/2a03-synth-images/
+            release/2a03-synth-code-browser.json
+            release/2a03-synth-code-images/
+            release/2a03-synth-song-browser.json
           if-no-files-found: ignore
