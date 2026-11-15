@@ -51,6 +51,32 @@
 								<div id="synthMenuPanel" class="synth-menu-panel">
 									<section class="synth-menu-section synth-menu-actions">
 										<h2>Import</h2>
+										<button
+											id="loadSsfFolder"
+											type="button"
+											data-close-synth-menu
+										>
+											SSF folder…
+										</button>
+										<input
+											id="ssfFolderInput"
+											class="file-input"
+											type="file"
+											webkitdirectory
+											multiple
+											aria-label="Choose an SSF folder with related SSFLib files"
+										/>
+										<button id="loadSsf" type="button" data-close-synth-menu>
+											SSF / MiniSSF files…
+										</button>
+										<input
+											id="ssfFileInput"
+											class="file-input"
+											type="file"
+											accept=".ssf,.minissf,.ssflib"
+											multiple
+											aria-label="Choose SSF, MiniSSF and related SSFLib files together"
+										/>
 										<button id="loadVgm" type="button" data-close-synth-menu>
 											VGM / VGZ…</button
 										><input
@@ -162,11 +188,11 @@
 						hidden
 					></aside>
 					<div class="scsp-main">
-						<section class="scsp-song-player" aria-label="VGM reference playback">
+						<section class="scsp-song-player" aria-label="SCSP reference playback">
 							<div class="scsp-song-transport">
-								<label for="scspSongSelect">VGM</label
-								><select id="scspSongSelect" aria-label="VGM in Files">
-									<option value="">Import VGM / VGZ…</option></select
+								<label for="scspSongSelect">Song</label
+								><select id="scspSongSelect" aria-label="SCSP songs in Files">
+									<option value="">Import a song…</option></select
 								><button id="scspSongPlay" type="button" disabled>Play song</button
 								><button id="scspSongPause" type="button" disabled>Pause</button
 								><button id="scspSongStop" type="button" disabled>Stop</button
@@ -174,11 +200,10 @@
 								<details class="scsp-inline-help">
 									<summary aria-label="About SCSP recordings">?</summary>
 									<p>
-										SCSP VGM / VGZ records register writes and sound RAM. This
-										player validates the supported SCSP commands before loading.
-										Files retains the original recording. The Demo is a
-										self-authored register log. SSF / MiniSSF playback is
-										planned with a Saturn sound-CPU player.
+										Import an SSF folder to include each song's SSFLib
+										dependencies. Files retains the original songs and
+										libraries. SCSP VGM / VGZ contains recorded register writes
+										and sound RAM. The Demo is a self-authored register log.
 									</p>
 								</details>
 							</div>
@@ -190,12 +215,12 @@
 									max="1"
 									step="0.01"
 									value="0"
-									aria-label="VGM position in seconds"
+									aria-label="Song position in seconds"
 									disabled
 								/><output id="scspSongPosition" for="scspSongSeek">0:00 / —</output>
 							</div>
 							<p id="scspSongStatus" role="status">
-								Import SCSP VGM from Menu, or try Demo. Loading is silent.
+								Import an SSF folder or SCSP VGM from Menu, or try Demo.
 							</p>
 						</section>
 						<section class="spu-monitor scsp-monitor" aria-label="Audio display">
@@ -656,12 +681,16 @@
 						PCM, envelopes, LFO and sound-stack modulation run in the SCSP core. Wave
 						drawing, grouped voice allocation and Code are software tools. Fixed Chain /
 						Pairs / Branch connections support 2 / 4 / 6 operators. Free wiring and FM
-						feedback are future work. The bundled core uses zero slot-write delay.
+						feedback are future work. The editor core uses zero slot-write delay. SSF
+						playback uses Mednafen.
 					</p>
 					<div>
 						<a href="../scsp.md">SCSP API</a> ·
 						<a href="../playground/scsp-dsp.html">DSP Lab</a> ·
-						<a href="../playground/index.html?mode=scsp">Playground</a>
+						<a href="../playground/index.html?mode=scsp">Playground</a> ·
+						<a href="../generated/ssf-player/NOTICE.txt"
+							>SSF player · GPL-2.0-or-later</a
+						>
 					</div>
 				</footer>
 			</article>

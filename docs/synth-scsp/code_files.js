@@ -22,8 +22,22 @@ const workspaceId = () =>
 	`scsp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const encoder = new TextEncoder();
-const importedPath = (fileName) => {
-	const name = basename(fileName);
+export const isScspSsfFile = (name) =>
+	typeof name === 'string' && /\.(?:ssf|minissf|ssflib)$/i.test(name);
+const importedPath = (file) => {
+	const name = basename(file.name);
+	if (isScspSsfFile(name)) {
+		const relative = file.webkitRelativePath || file.name;
+		const parts = relative.split('/');
+		if (
+			relative.startsWith('/') ||
+			/[\u0000-\u001f\u007f\\]/.test(relative) ||
+			parts.some((part) => !part || part === '.' || part === '..') ||
+			parts.at(-1) !== name
+		)
+			throw Error('Invalid SSF folder path.');
+		return '/ssf/' + relative;
+	}
 	if (/\.vg(?:m|z)$/i.test(name)) return '/vgm/' + name;
 	if (/\.(?:wav|flac|aiff?|ogg|mp3|m4a)$/i.test(name)) return '/audio/' + name;
 	return '/' + name;
@@ -115,6 +129,7 @@ export function setupScspCodeFiles({
 			['/data', true],
 			['/audio', true],
 			['/vgm', true],
+			['/ssf', true],
 		]);
 	let code = null,
 		busy = true,
@@ -457,20 +472,33 @@ export function setupScspCodeFiles({
 		);
 		return true;
 	}
-	async function importFiles(files, { isCurrent = () => true } = {}) {
+	async function importFiles(files, { isCurrent = () => true, ssfOnly = false } = {}) {
 		if (disposed || !isCurrent()) return [];
 		await api.ready;
 		if (disposed || busy || !isCurrent()) return [];
+		const selected = Array.from(files).filter((file) => !ssfOnly || isScspSsfFile(file.name));
+		if (!selected.length) return [];
+		const pathsToImport = new Set();
+		let importBytes = 0;
+		const plan = selected.map((file) => {
+			if (file.size > 16 * 1024 * 1024) throw Error('A project file exceeds 16 MiB.');
+			const path = importedPath(file);
+			if (pathsToImport.has(path)) throw Error('Duplicate imported file path: ' + path);
+			pathsToImport.add(path);
+			importBytes += file.size;
+			if (importBytes > SCSP_PROJECT_FILE_BYTES)
+				throw Error('Imported project files exceed 12 MiB.');
+			return { file, path };
+		});
 		const token = ++operation,
 			current = () => !disposed && token === operation && isCurrent();
 		const entries = [];
-		for (const file of files) {
+		for (const { file, path } of plan) {
 			if (!current()) return [];
-			if (file.size > 16 * 1024 * 1024) throw Error('A project file exceeds 16 MiB.');
 			const bytes = new Uint8Array(await file.arrayBuffer());
 			if (!current()) return [];
 			entries.push({
-				path: importedPath(file.name),
+				path,
 				type: isScspTextPath(file.name) ? 'text' : 'binary',
 				data: isScspTextPath(file.name) ? decoder.decode(bytes) : bytes,
 			});

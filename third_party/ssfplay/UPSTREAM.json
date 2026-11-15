@@ -1,0 +1,1184 @@
+{
+  "repository": "https://github.com/niekvlessert/ssfplay_tools",
+  "commit": "a28e0d7e14a3dc04a486ea26f30bc52edad3dc4d",
+  "mednafenVersion": "1.32.1",
+  "license": "GPL-2.0-or-later",
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "upstreamPath": "CMakeLists.txt",
+      "bytes": 23993,
+      "sha256": "4d91fcb48434b3d35d9edfc853379162b5f34307aedfa3547dcbc4b1d261fcb1"
+    },
+    {
+      "path": "README.md",
+      "upstreamPath": "README.md",
+      "bytes": 6898,
+      "sha256": "514610c5ee71e4939bd378dbbb4a20fc7820a15d6c7c2c391ac75fac8df97afb"
+    },
+    {
+      "path": "cmake/config.h.in",
+      "upstreamPath": "cmake/config.h.in",
+      "bytes": 1079,
+      "sha256": "3bc6dbc33600b21bdbf27f0ac29b03915ef2f0dc4842f164ee6340eadc31c740"
+    },
+    {
+      "path": "cmake/ssfplayConfig.cmake.in",
+      "upstreamPath": "cmake/ssfplayConfig.cmake.in",
+      "bytes": 163,
+      "sha256": "b0ca08f2599d76a7f80b3567190a4ad9409ca399d49a562b8a15386b3b166d04"
+    },
+    {
+      "path": "include/ssfplay/ssfplay.h",
+      "upstreamPath": "include/ssfplay/ssfplay.h",
+      "bytes": 2085,
+      "sha256": "d10d0de888b7bba0a574472b5d601533d81767e32c92480da61a23990aef63fc"
+    },
+    {
+      "path": "mednafen/COPYING",
+      "upstreamPath": "mednafen/COPYING",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "mednafen/src/AtomicFIFO.h",
+      "upstreamPath": "mednafen/src/AtomicFIFO.h",
+      "bytes": 1104,
+      "sha256": "9435986fd8f660933324fccf998dc0f089e7e2af35ba95dd2aceff1b8fd3b739"
+    },
+    {
+      "path": "mednafen/src/ExtMemStream.h",
+      "upstreamPath": "mednafen/src/ExtMemStream.h",
+      "bytes": 2090,
+      "sha256": "0d87d3b089c88238c365813bf027ce9d1f18178baddd85445cbad269fc5f0c46"
+    },
+    {
+      "path": "mednafen/src/FileStream.cpp",
+      "upstreamPath": "mednafen/src/FileStream.cpp",
+      "bytes": 16453,
+      "sha256": "7bb34276e1efaff4cb3d1568c02aa75d18e5104f9e854f6a38f809487cc112a5"
+    },
+    {
+      "path": "mednafen/src/FileStream.h",
+      "upstreamPath": "mednafen/src/FileStream.h",
+      "bytes": 3912,
+      "sha256": "99c5705105b5353aa161b172d1f2ff5c48d5457d58fd08284cdae53300f4ea75"
+    },
+    {
+      "path": "mednafen/src/IPSPatcher.h",
+      "upstreamPath": "mednafen/src/IPSPatcher.h",
+      "bytes": 265,
+      "sha256": "8f61ddffe5c42e84d2b9f9ee5437d755f0b7fca25672c72dc8709cd094e63c94"
+    },
+    {
+      "path": "mednafen/src/MTStreamReader.h",
+      "upstreamPath": "mednafen/src/MTStreamReader.h",
+      "bytes": 3482,
+      "sha256": "56fa1dcb414ee4dbe2dabbdd79c422438abb58ff2c769e06c557a68260479127"
+    },
+    {
+      "path": "mednafen/src/MThreading.h",
+      "upstreamPath": "mednafen/src/MThreading.h",
+      "bytes": 2881,
+      "sha256": "0dbd30557ea238e2668e7f8cacd8a1f0c30ccf14c13e8e294c4e6c9aea3c36bf"
+    },
+    {
+      "path": "mednafen/src/MemoryStream.cpp",
+      "upstreamPath": "mednafen/src/MemoryStream.cpp",
+      "bytes": 9154,
+      "sha256": "f13c63d4f4bde74099625f16d6e64f3776ab2dbcea4f0482ee5ad2d7270878e5"
+    },
+    {
+      "path": "mednafen/src/MemoryStream.h",
+      "upstreamPath": "mednafen/src/MemoryStream.h",
+      "bytes": 5023,
+      "sha256": "500874313d8d4b64f873b293022782a6a8cf08f7fdcb6bee7d1ad579c2e9459d"
+    },
+    {
+      "path": "mednafen/src/NativeVFS.h",
+      "upstreamPath": "mednafen/src/NativeVFS.h",
+      "bytes": 2448,
+      "sha256": "37f2e40ad5cb1fc8ce32698550fddd64ed0f428e0038d55282d0df67c7373bff"
+    },
+    {
+      "path": "mednafen/src/PSFLoader.cpp",
+      "upstreamPath": "mednafen/src/PSFLoader.cpp",
+      "bytes": 7398,
+      "sha256": "748952d21c851948093a546996ffb2f99632419bc64fbe8ab0a5ffed075a33ca"
+    },
+    {
+      "path": "mednafen/src/PSFLoader.h",
+      "upstreamPath": "mednafen/src/PSFLoader.h",
+      "bytes": 1992,
+      "sha256": "7146fcf27d545f574a24541e4ffeab7280be466fe1dc944ae0ea0357929a3aaa"
+    },
+    {
+      "path": "mednafen/src/SNSFLoader.h",
+      "upstreamPath": "mednafen/src/SNSFLoader.h",
+      "bytes": 1598,
+      "sha256": "d26e1732fe1bc92d8184c8d33c1cf7a92ae9c1520f04fba04a1d9515e2cb640c"
+    },
+    {
+      "path": "mednafen/src/SPCReader.h",
+      "upstreamPath": "mednafen/src/SPCReader.h",
+      "bytes": 1991,
+      "sha256": "fcaed9a2a3e1cbc08bcad518fb26888a5e8aac93404856831af68801581f56ae"
+    },
+    {
+      "path": "mednafen/src/SSFLoader.cpp",
+      "upstreamPath": "mednafen/src/SSFLoader.cpp",
+      "bytes": 1905,
+      "sha256": "93a0ba4f8e94e62a13df12ba84fa9f35ba3d956bebdc2298bae0f641e7af3d5d"
+    },
+    {
+      "path": "mednafen/src/SSFLoader.h",
+      "upstreamPath": "mednafen/src/SSFLoader.h",
+      "bytes": 1475,
+      "sha256": "4ed5aefb587dbcf29e32c8eebc666f7cc3c6058aa8175c2fc51717fa7439f537"
+    },
+    {
+      "path": "mednafen/src/SimpleBitset.h",
+      "upstreamPath": "mednafen/src/SimpleBitset.h",
+      "bytes": 2931,
+      "sha256": "c500b16621fe0fec99034061edfea8a3683287dfa5ce62667ca10c7d25f05d04"
+    },
+    {
+      "path": "mednafen/src/Stream.cpp",
+      "upstreamPath": "mednafen/src/Stream.cpp",
+      "bytes": 7152,
+      "sha256": "92878508791568744d918bebdcc4fd4a133cf8ee28babb919ebaef42b0e05ce2"
+    },
+    {
+      "path": "mednafen/src/Stream.h",
+      "upstreamPath": "mednafen/src/Stream.h",
+      "bytes": 9153,
+      "sha256": "c512ee89fdf418a86dbcb12f59771920bb75c2c0e3c7eed5f45535bbafe306f4"
+    },
+    {
+      "path": "mednafen/src/Time.h",
+      "upstreamPath": "mednafen/src/Time.h",
+      "bytes": 1991,
+      "sha256": "8ecf5060a4071055ad6ea0804246df09e92cf10a4361da338a140a1eb9e78446"
+    },
+    {
+      "path": "mednafen/src/VirtualFS.cpp",
+      "upstreamPath": "mednafen/src/VirtualFS.cpp",
+      "bytes": 4882,
+      "sha256": "30754fc62e08d49c3a0904aa89a9371a7b67c63de8f6c357ca12eb159f7396e5"
+    },
+    {
+      "path": "mednafen/src/VirtualFS.h",
+      "upstreamPath": "mednafen/src/VirtualFS.h",
+      "bytes": 5873,
+      "sha256": "defcad52263f9279dd53b998860fcf07f34ee5bb8befd2b14620e52080863f75"
+    },
+    {
+      "path": "mednafen/src/compress/DecompressFilter.cpp",
+      "upstreamPath": "mednafen/src/compress/DecompressFilter.cpp",
+      "bytes": 5273,
+      "sha256": "8a838370c8c02f64f6c33db68c0939aef15113219665aedc4ad2df4ca140c897"
+    },
+    {
+      "path": "mednafen/src/compress/DecompressFilter.h",
+      "upstreamPath": "mednafen/src/compress/DecompressFilter.h",
+      "bytes": 2872,
+      "sha256": "804c33ce3d14b0903b7ee1f34be33ac538b90f7be85fc9f045a955aeba7d6d52"
+    },
+    {
+      "path": "mednafen/src/compress/ZLInflateFilter.cpp",
+      "upstreamPath": "mednafen/src/compress/ZLInflateFilter.cpp",
+      "bytes": 4078,
+      "sha256": "9411247db8aef01adec061c4c21739770eda6530493d9e20436142d64e627ddc"
+    },
+    {
+      "path": "mednafen/src/compress/ZLInflateFilter.h",
+      "upstreamPath": "mednafen/src/compress/ZLInflateFilter.h",
+      "bytes": 2023,
+      "sha256": "d8555b496c41f884279826e48e7cdd708f51ed8b63569172eb5388ef953bcfb6"
+    },
+    {
+      "path": "mednafen/src/debug.h",
+      "upstreamPath": "mednafen/src/debug.h",
+      "bytes": 7718,
+      "sha256": "9931f134f060f4f306bf9149f6249255b154691e0960f6011ccf991e1ad8466f"
+    },
+    {
+      "path": "mednafen/src/driver.h",
+      "upstreamPath": "mednafen/src/driver.h",
+      "bytes": 245,
+      "sha256": "fe9bd5ed56ae301176e5520f72b7b90777379b335b55d8e0a8dffa8052fb5e4b"
+    },
+    {
+      "path": "mednafen/src/endian.h",
+      "upstreamPath": "mednafen/src/endian.h",
+      "bytes": 13460,
+      "sha256": "d9e4ab9127e9a6ed24d60784ba2c17182e0876ce89604005fcb644c259292389"
+    },
+    {
+      "path": "mednafen/src/error.cpp",
+      "upstreamPath": "mednafen/src/error.cpp",
+      "bytes": 3170,
+      "sha256": "1685eced905a74150eb4c5ec9bf0a338cc5497c8d6a68e6b7aaa9326864564d8"
+    },
+    {
+      "path": "mednafen/src/error.h",
+      "upstreamPath": "mednafen/src/error.h",
+      "bytes": 2316,
+      "sha256": "9245a08b6cd45771d86ca8dfafacf8da7dc79a3465db055f260e9fb93a5e79fa"
+    },
+    {
+      "path": "mednafen/src/file.h",
+      "upstreamPath": "mednafen/src/file.h",
+      "bytes": 2434,
+      "sha256": "a5830c6b874fdfaece1aad320580805f5c39a61a89f99995fa992a99429da378"
+    },
+    {
+      "path": "mednafen/src/general.h",
+      "upstreamPath": "mednafen/src/general.h",
+      "bytes": 830,
+      "sha256": "2b879943716afbed2a128246a988c42455e17a998255dc9c24f26c3452a21740"
+    },
+    {
+      "path": "mednafen/src/gettext.h",
+      "upstreamPath": "mednafen/src/gettext.h",
+      "bytes": 3448,
+      "sha256": "03f81efed4edc131428d4d43a88f26e4590b321a0c6a4f8159e296455340c398"
+    },
+    {
+      "path": "mednafen/src/git.h",
+      "upstreamPath": "mednafen/src/git.h",
+      "bytes": 25231,
+      "sha256": "e54b1e2c89ac9a4d4f2f45b2a163e67f3e53e4659a7012ec7540d62a70d69cb6"
+    },
+    {
+      "path": "mednafen/src/hw_cpu/m68k/m68k.cpp",
+      "upstreamPath": "mednafen/src/hw_cpu/m68k/m68k.cpp",
+      "bytes": 44992,
+      "sha256": "bfa03a4e64f4b2c3ccac53ffd4b270bbc2d845e3649fc84c4160851c19f68057"
+    },
+    {
+      "path": "mednafen/src/hw_cpu/m68k/m68k.h",
+      "upstreamPath": "mednafen/src/hw_cpu/m68k/m68k.h",
+      "bytes": 13155,
+      "sha256": "d20708110bb9f6e7a1bff6d8432fff5452c0436488eeedd7ae5204923053b8f8"
+    },
+    {
+      "path": "mednafen/src/hw_cpu/m68k/m68k_instr.inc",
+      "upstreamPath": "mednafen/src/hw_cpu/m68k/m68k_instr.inc",
+      "bytes": 868437,
+      "sha256": "98ce2c21deb8abd0df6932691a2b1b8e4a43b15f507fa3f64b9c319ce25628b6"
+    },
+    {
+      "path": "mednafen/src/jump.h",
+      "upstreamPath": "mednafen/src/jump.h",
+      "bytes": 2785,
+      "sha256": "c6d53eaee3eadb65d5b007d11d00d8ecc5f93680955339c6e65a8455ded6e312"
+    },
+    {
+      "path": "mednafen/src/lepacker.h",
+      "upstreamPath": "mednafen/src/lepacker.h",
+      "bytes": 1514,
+      "sha256": "3f845005a92ec6c9cdd3ae1dc641c5f0d4b2c3a1eb8e94b05826c0510c744fef"
+    },
+    {
+      "path": "mednafen/src/math_ops.h",
+      "upstreamPath": "mednafen/src/math_ops.h",
+      "bytes": 9024,
+      "sha256": "df2517cd5da4e9ee83cc1545d680e4aef87f71360fa4d5e71630cb1a99301b9c"
+    },
+    {
+      "path": "mednafen/src/mednafen-driver.h",
+      "upstreamPath": "mednafen/src/mednafen-driver.h",
+      "bytes": 8966,
+      "sha256": "51c89dd93d21546dbcbbe8509d7e632dd4f2b83d157380d45b8a6ad11e4306a6"
+    },
+    {
+      "path": "mednafen/src/mednafen.h",
+      "upstreamPath": "mednafen/src/mednafen.h",
+      "bytes": 3389,
+      "sha256": "0d41a543fc5e985347cc513b839670296fbec3764b598b985f203dcef5681fee"
+    },
+    {
+      "path": "mednafen/src/memory.h",
+      "upstreamPath": "mednafen/src/memory.h",
+      "bytes": 5221,
+      "sha256": "f35711b674466700d6b303695ff7544680629076efdff664694cb714b862af25"
+    },
+    {
+      "path": "mednafen/src/mempatcher-driver.h",
+      "upstreamPath": "mednafen/src/mempatcher-driver.h",
+      "bytes": 1554,
+      "sha256": "9df4a037d1b01580b20125a941efaeb3a38faabacfc96aa3f2dd2da232a018cd"
+    },
+    {
+      "path": "mednafen/src/mempatcher.h",
+      "upstreamPath": "mednafen/src/mempatcher.h",
+      "bytes": 817,
+      "sha256": "18db04f952f53e7a4f0654e35470b42af4c8af0ba0826a80f2182541da12bce8"
+    },
+    {
+      "path": "mednafen/src/movie-driver.h",
+      "upstreamPath": "mednafen/src/movie-driver.h",
+      "bytes": 207,
+      "sha256": "7a089e99449d386b5dfd6f4f2a793e5088ec2393b7f417384b4d0d34c9d1a5d0"
+    },
+    {
+      "path": "mednafen/src/movie.h",
+      "upstreamPath": "mednafen/src/movie.h",
+      "bytes": 649,
+      "sha256": "91633c08d5f490b1c13825fbf70efa45e84997e4286cc68db386f54307ae594d"
+    },
+    {
+      "path": "mednafen/src/netplay-driver.h",
+      "upstreamPath": "mednafen/src/netplay-driver.h",
+      "bytes": 577,
+      "sha256": "44eef8b720ae7b19709505d43aed8612ed77002615130ba5e5d9cdf8f2269de9"
+    },
+    {
+      "path": "mednafen/src/netplay.h",
+      "upstreamPath": "mednafen/src/netplay.h",
+      "bytes": 3157,
+      "sha256": "524cf5eba3aa48941f083d37463cdb00fb19e7132080a575e709f251390b4aed"
+    },
+    {
+      "path": "mednafen/src/player.h",
+      "upstreamPath": "mednafen/src/player.h",
+      "bytes": 405,
+      "sha256": "1329ff6dbbbdd1a445e2ec5fbfeb9596c1cc441f60cfbd2a725d2cb40af6c977"
+    },
+    {
+      "path": "mednafen/src/qtrecord.h",
+      "upstreamPath": "mednafen/src/qtrecord.h",
+      "bytes": 3718,
+      "sha256": "46d8b67aca77e926c6a2d863b29a4bb6892e5b17a0d9c3bdc9a9065f19648cb2"
+    },
+    {
+      "path": "mednafen/src/resampler/arch.h",
+      "upstreamPath": "mednafen/src/resampler/arch.h",
+      "bytes": 7010,
+      "sha256": "ca4ffd8402ff181fa591777348c77a74b0d0902db3f8aac460f4b85f73ed96b6"
+    },
+    {
+      "path": "mednafen/src/resampler/fixed_generic.h",
+      "upstreamPath": "mednafen/src/resampler/fixed_generic.h",
+      "bytes": 5214,
+      "sha256": "639f5aab2be39acb2e19fc20e1b093bd06f444f7bea4377af59d177482729ef0"
+    },
+    {
+      "path": "mednafen/src/resampler/resample.c",
+      "upstreamPath": "mednafen/src/resampler/resample.c",
+      "bytes": 41278,
+      "sha256": "7cc63871bafceec06b5f0315fe59d63c5b900724c88931438006084a3d5b6ee3"
+    },
+    {
+      "path": "mednafen/src/resampler/resample_sse.h",
+      "upstreamPath": "mednafen/src/resampler/resample_sse.h",
+      "bytes": 4695,
+      "sha256": "c1148bcf1b73d5d02274d362e72b1009a74be954cdf66537e9c5a5e1f2013513"
+    },
+    {
+      "path": "mednafen/src/resampler/resampler.h",
+      "upstreamPath": "mednafen/src/resampler/resampler.h",
+      "bytes": 14835,
+      "sha256": "b5bd9a7efc19c5c6a485cb5f7adf0bb11ba2e19c6a0060bfd8ecea68a7cbfa5d"
+    },
+    {
+      "path": "mednafen/src/resampler/stack_alloc.h",
+      "upstreamPath": "mednafen/src/resampler/stack_alloc.h",
+      "bytes": 3373,
+      "sha256": "d9e654bc2cedacb4afe97fef8d187ca08630f77de132df3b819708eaaf4ce00f"
+    },
+    {
+      "path": "mednafen/src/settings-common.h",
+      "upstreamPath": "mednafen/src/settings-common.h",
+      "bytes": 4859,
+      "sha256": "1f9645f38aa5129d209a656b3f2c13a5a4f186f722eb83f01d2832f367c578d4"
+    },
+    {
+      "path": "mednafen/src/settings.h",
+      "upstreamPath": "mednafen/src/settings.h",
+      "bytes": 2637,
+      "sha256": "53dbd53d61461c75d0e01c7b96e1e3cbb34b039b9508adcca255b281c8e1a07c"
+    },
+    {
+      "path": "mednafen/src/ss/scsp.h",
+      "upstreamPath": "mednafen/src/ss/scsp.h",
+      "bytes": 6962,
+      "sha256": "bf44f132c0b5d12f78be0f58a0783a3f43b1a7de893607f3139eeef4c77de42b"
+    },
+    {
+      "path": "mednafen/src/ss/scsp.inc",
+      "upstreamPath": "mednafen/src/ss/scsp.inc",
+      "bytes": 41687,
+      "sha256": "18cde759943a765a3466bac6724a363d4b225551e158df4200b5ff775615a243"
+    },
+    {
+      "path": "mednafen/src/ss/sound.cpp",
+      "upstreamPath": "mednafen/src/ss/sound.cpp",
+      "bytes": 13318,
+      "sha256": "7d13cc0008fbe2ea7918f47e5cebca3558c8c3f02eb1a431c06538362b063894"
+    },
+    {
+      "path": "mednafen/src/state-common.h",
+      "upstreamPath": "mednafen/src/state-common.h",
+      "bytes": 364,
+      "sha256": "a2e025760505fb67bb4508e45d9c8833e087e6e44f5a94b0789340830e2cd1f3"
+    },
+    {
+      "path": "mednafen/src/state-driver.h",
+      "upstreamPath": "mednafen/src/state-driver.h",
+      "bytes": 794,
+      "sha256": "6cf5f9ee42187ca0ef5f9dcf02a2f12cfa51904160925518b2f55104870d053b"
+    },
+    {
+      "path": "mednafen/src/state.h",
+      "upstreamPath": "mednafen/src/state.h",
+      "bytes": 9293,
+      "sha256": "5a5d05ee9609e927c3bd222856b17dd23365058c7d668e338449eb37a2c5c2dd"
+    },
+    {
+      "path": "mednafen/src/state_rewind.h",
+      "upstreamPath": "mednafen/src/state_rewind.h",
+      "bytes": 1264,
+      "sha256": "75130329aa9ffa880ccdce1448da00c16b19cfa4e44e0e0c195eeea88a6c57b8"
+    },
+    {
+      "path": "mednafen/src/string/string.cpp",
+      "upstreamPath": "mednafen/src/string/string.cpp",
+      "bytes": 26768,
+      "sha256": "7401acb727569b737c360df7d499b2f16cb2c03b352db4212bbbd91be6141cc4"
+    },
+    {
+      "path": "mednafen/src/string/string.h",
+      "upstreamPath": "mednafen/src/string/string.h",
+      "bytes": 13194,
+      "sha256": "6baa60707ad0cc3d8ca17601a8ecc7706088274836ab0d803345531c9170ef5a"
+    },
+    {
+      "path": "mednafen/src/tests.h",
+      "upstreamPath": "mednafen/src/tests.h",
+      "bytes": 160,
+      "sha256": "62a63e7d718d49b1d401785aae795f31997928f64a2194d93161be3ec186dd35"
+    },
+    {
+      "path": "mednafen/src/testsexp.h",
+      "upstreamPath": "mednafen/src/testsexp.h",
+      "bytes": 364,
+      "sha256": "00d2c873b93ddb6ce53851119c752f2c2bb4cec6b6eef42fe4d83f12d3618754"
+    },
+    {
+      "path": "mednafen/src/trio/trio.c",
+      "upstreamPath": "mednafen/src/trio/trio.c",
+      "bytes": 181357,
+      "sha256": "4086d8074aef32e7cf77051d50477b8aaf9198755690a1b75cfd590ee08ad430"
+    },
+    {
+      "path": "mednafen/src/trio/trio.h",
+      "upstreamPath": "mednafen/src/trio/trio.h",
+      "bytes": 8037,
+      "sha256": "0bae3178c27bfb703c64db95f280b730822cb94ddd7ca6c075d4e2b723805b6c"
+    },
+    {
+      "path": "mednafen/src/trio/triodef.h",
+      "upstreamPath": "mednafen/src/trio/triodef.h",
+      "bytes": 8842,
+      "sha256": "881da8a8d96108a4bbb3881d2fd6608e6a1e9b82d6d69c6ef747323c70ce2260"
+    },
+    {
+      "path": "mednafen/src/trio/trionan.c",
+      "upstreamPath": "mednafen/src/trio/trionan.c",
+      "bytes": 29271,
+      "sha256": "9f19b9925ce6485cc6095db0bce1866e7c226832ce6e8d6fa50bdcc2adf18f96"
+    },
+    {
+      "path": "mednafen/src/trio/trionan.h",
+      "upstreamPath": "mednafen/src/trio/trionan.h",
+      "bytes": 3717,
+      "sha256": "7cbb1b77dcb9a88c57a4ac58b8f989631a4fb813180d17f79c4a1d59cfc75b86"
+    },
+    {
+      "path": "mednafen/src/trio/triop.h",
+      "upstreamPath": "mednafen/src/trio/triop.h",
+      "bytes": 14350,
+      "sha256": "99c2067bed4b6a4a541796685a8be26de347b74bffa40eb908d6be43d2f222ec"
+    },
+    {
+      "path": "mednafen/src/trio/triostr.c",
+      "upstreamPath": "mednafen/src/trio/triostr.c",
+      "bytes": 45677,
+      "sha256": "2cef4766237fec1347142b6e3f4fda9c7b1096cc7f0b97e476a7334d60fc1c45"
+    },
+    {
+      "path": "mednafen/src/trio/triostr.h",
+      "upstreamPath": "mednafen/src/trio/triostr.h",
+      "bytes": 16456,
+      "sha256": "884580d283ee5f4165f08dc1ef3b73804c5b178330da605a12981f1692fd534e"
+    },
+    {
+      "path": "mednafen/src/types.h",
+      "upstreamPath": "mednafen/src/types.h",
+      "bytes": 9143,
+      "sha256": "963f0a2047334c875dc9d0017d07705df68eaeaac6243d944828df191d06cbfb"
+    },
+    {
+      "path": "mednafen/src/video-driver.h",
+      "upstreamPath": "mednafen/src/video-driver.h",
+      "bytes": 246,
+      "sha256": "95bb6160eca2ed4a03b9cf178c8d15c732c47823aedcc659f6d507108a59c503"
+    },
+    {
+      "path": "mednafen/src/video.h",
+      "upstreamPath": "mednafen/src/video.h",
+      "bytes": 246,
+      "sha256": "f754c6d1ca39c0827ec244e9d1f123ab76801dceacaca0438dd74d7f5438679e"
+    },
+    {
+      "path": "mednafen/src/video/primitives.h",
+      "upstreamPath": "mednafen/src/video/primitives.h",
+      "bytes": 1923,
+      "sha256": "8caf180dd88cf7364f1890f5263a5ab95a33fad773c924dbdd3f4db016eddc8e"
+    },
+    {
+      "path": "mednafen/src/video/surface.h",
+      "upstreamPath": "mednafen/src/video/surface.h",
+      "bytes": 10948,
+      "sha256": "2c85c4fbf2dab7dc24532adeec1ee9a2621f508e480d0859012451e3115d3087"
+    },
+    {
+      "path": "mednafen/src/video/text.h",
+      "upstreamPath": "mednafen/src/video/text.h",
+      "bytes": 5725,
+      "sha256": "916ce970fb25eeb17768e3d5f314478c4fda1ac69d00c1f49fdebecb7b631a9c"
+    },
+    {
+      "path": "mednafen/src/win32-common.cpp",
+      "upstreamPath": "mednafen/src/win32-common.cpp",
+      "bytes": 3048,
+      "sha256": "59c670b79a0421e35df43774a652f6e50b263faaa590fd65620062b2b8705bc2"
+    },
+    {
+      "path": "mednafen/src/win32-common.h",
+      "upstreamPath": "mednafen/src/win32-common.h",
+      "bytes": 3325,
+      "sha256": "e057d6828dccff4390f178acc24a71bbe38c73310f609a564082774e32a09b87"
+    },
+    {
+      "path": "src/mednafen_compat.cpp",
+      "upstreamPath": "src/mednafen_compat.cpp",
+      "bytes": 517,
+      "sha256": "a20798c880420e6e603e7dac745535af7ea5d407c66141bb45aed636c7b9d159"
+    },
+    {
+      "path": "src/ssfplay.cpp",
+      "upstreamPath": "src/ssfplay.cpp",
+      "bytes": 18980,
+      "sha256": "601309a82468d366e7db1dc70dd3262e09b70fa197405f2c984c44cc7c9f6ede"
+    },
+    {
+      "path": "src/ssfplay_capture.h",
+      "upstreamPath": "src/ssfplay_capture.h",
+      "bytes": 2387,
+      "sha256": "503b0aa69128416a79f445925b45dc8dd8d7c9cb436d843945e24dd1ab13d480"
+    },
+    {
+      "path": "src/wasm/ssfplay_wasm.cpp",
+      "upstreamPath": "src/wasm/ssfplay_wasm.cpp",
+      "bytes": 1135,
+      "sha256": "de74f205e0ec63b600766409cd8243b15ad57569b42b0c712c31fd988caf38a1"
+    },
+    {
+      "path": "mednafen/include/mednafen/AtomicFIFO.h",
+      "upstreamPath": "mednafen/src/AtomicFIFO.h",
+      "bytes": 1104,
+      "sha256": "9435986fd8f660933324fccf998dc0f089e7e2af35ba95dd2aceff1b8fd3b739"
+    },
+    {
+      "path": "mednafen/include/mednafen/ExtMemStream.h",
+      "upstreamPath": "mednafen/src/ExtMemStream.h",
+      "bytes": 2090,
+      "sha256": "0d87d3b089c88238c365813bf027ce9d1f18178baddd85445cbad269fc5f0c46"
+    },
+    {
+      "path": "mednafen/include/mednafen/FileStream.h",
+      "upstreamPath": "mednafen/src/FileStream.h",
+      "bytes": 3912,
+      "sha256": "99c5705105b5353aa161b172d1f2ff5c48d5457d58fd08284cdae53300f4ea75"
+    },
+    {
+      "path": "mednafen/include/mednafen/IPSPatcher.h",
+      "upstreamPath": "mednafen/src/IPSPatcher.h",
+      "bytes": 265,
+      "sha256": "8f61ddffe5c42e84d2b9f9ee5437d755f0b7fca25672c72dc8709cd094e63c94"
+    },
+    {
+      "path": "mednafen/include/mednafen/MTStreamReader.h",
+      "upstreamPath": "mednafen/src/MTStreamReader.h",
+      "bytes": 3482,
+      "sha256": "56fa1dcb414ee4dbe2dabbdd79c422438abb58ff2c769e06c557a68260479127"
+    },
+    {
+      "path": "mednafen/include/mednafen/MThreading.h",
+      "upstreamPath": "mednafen/src/MThreading.h",
+      "bytes": 2881,
+      "sha256": "0dbd30557ea238e2668e7f8cacd8a1f0c30ccf14c13e8e294c4e6c9aea3c36bf"
+    },
+    {
+      "path": "mednafen/include/mednafen/MemoryStream.h",
+      "upstreamPath": "mednafen/src/MemoryStream.h",
+      "bytes": 5023,
+      "sha256": "500874313d8d4b64f873b293022782a6a8cf08f7fdcb6bee7d1ad579c2e9459d"
+    },
+    {
+      "path": "mednafen/include/mednafen/NativeVFS.h",
+      "upstreamPath": "mednafen/src/NativeVFS.h",
+      "bytes": 2448,
+      "sha256": "37f2e40ad5cb1fc8ce32698550fddd64ed0f428e0038d55282d0df67c7373bff"
+    },
+    {
+      "path": "mednafen/include/mednafen/PSFLoader.h",
+      "upstreamPath": "mednafen/src/PSFLoader.h",
+      "bytes": 1992,
+      "sha256": "7146fcf27d545f574a24541e4ffeab7280be466fe1dc944ae0ea0357929a3aaa"
+    },
+    {
+      "path": "mednafen/include/mednafen/SNSFLoader.h",
+      "upstreamPath": "mednafen/src/SNSFLoader.h",
+      "bytes": 1598,
+      "sha256": "d26e1732fe1bc92d8184c8d33c1cf7a92ae9c1520f04fba04a1d9515e2cb640c"
+    },
+    {
+      "path": "mednafen/include/mednafen/SPCReader.h",
+      "upstreamPath": "mednafen/src/SPCReader.h",
+      "bytes": 1991,
+      "sha256": "fcaed9a2a3e1cbc08bcad518fb26888a5e8aac93404856831af68801581f56ae"
+    },
+    {
+      "path": "mednafen/include/mednafen/SSFLoader.h",
+      "upstreamPath": "mednafen/src/SSFLoader.h",
+      "bytes": 1475,
+      "sha256": "4ed5aefb587dbcf29e32c8eebc666f7cc3c6058aa8175c2fc51717fa7439f537"
+    },
+    {
+      "path": "mednafen/include/mednafen/SimpleBitset.h",
+      "upstreamPath": "mednafen/src/SimpleBitset.h",
+      "bytes": 2931,
+      "sha256": "c500b16621fe0fec99034061edfea8a3683287dfa5ce62667ca10c7d25f05d04"
+    },
+    {
+      "path": "mednafen/include/mednafen/Stream.h",
+      "upstreamPath": "mednafen/src/Stream.h",
+      "bytes": 9153,
+      "sha256": "c512ee89fdf418a86dbcb12f59771920bb75c2c0e3c7eed5f45535bbafe306f4"
+    },
+    {
+      "path": "mednafen/include/mednafen/Time.h",
+      "upstreamPath": "mednafen/src/Time.h",
+      "bytes": 1991,
+      "sha256": "8ecf5060a4071055ad6ea0804246df09e92cf10a4361da338a140a1eb9e78446"
+    },
+    {
+      "path": "mednafen/include/mednafen/VirtualFS.h",
+      "upstreamPath": "mednafen/src/VirtualFS.h",
+      "bytes": 5873,
+      "sha256": "defcad52263f9279dd53b998860fcf07f34ee5bb8befd2b14620e52080863f75"
+    },
+    {
+      "path": "mednafen/include/mednafen/compress/DecompressFilter.h",
+      "upstreamPath": "mednafen/src/compress/DecompressFilter.h",
+      "bytes": 2872,
+      "sha256": "804c33ce3d14b0903b7ee1f34be33ac538b90f7be85fc9f045a955aeba7d6d52"
+    },
+    {
+      "path": "mednafen/include/mednafen/compress/ZLInflateFilter.h",
+      "upstreamPath": "mednafen/src/compress/ZLInflateFilter.h",
+      "bytes": 2023,
+      "sha256": "d8555b496c41f884279826e48e7cdd708f51ed8b63569172eb5388ef953bcfb6"
+    },
+    {
+      "path": "mednafen/include/mednafen/debug.h",
+      "upstreamPath": "mednafen/src/debug.h",
+      "bytes": 7718,
+      "sha256": "9931f134f060f4f306bf9149f6249255b154691e0960f6011ccf991e1ad8466f"
+    },
+    {
+      "path": "mednafen/include/mednafen/driver.h",
+      "upstreamPath": "mednafen/src/driver.h",
+      "bytes": 245,
+      "sha256": "fe9bd5ed56ae301176e5520f72b7b90777379b335b55d8e0a8dffa8052fb5e4b"
+    },
+    {
+      "path": "mednafen/include/mednafen/endian.h",
+      "upstreamPath": "mednafen/src/endian.h",
+      "bytes": 13460,
+      "sha256": "d9e4ab9127e9a6ed24d60784ba2c17182e0876ce89604005fcb644c259292389"
+    },
+    {
+      "path": "mednafen/include/mednafen/error.h",
+      "upstreamPath": "mednafen/src/error.h",
+      "bytes": 2316,
+      "sha256": "9245a08b6cd45771d86ca8dfafacf8da7dc79a3465db055f260e9fb93a5e79fa"
+    },
+    {
+      "path": "mednafen/include/mednafen/file.h",
+      "upstreamPath": "mednafen/src/file.h",
+      "bytes": 2434,
+      "sha256": "a5830c6b874fdfaece1aad320580805f5c39a61a89f99995fa992a99429da378"
+    },
+    {
+      "path": "mednafen/include/mednafen/general.h",
+      "upstreamPath": "mednafen/src/general.h",
+      "bytes": 830,
+      "sha256": "2b879943716afbed2a128246a988c42455e17a998255dc9c24f26c3452a21740"
+    },
+    {
+      "path": "mednafen/include/mednafen/gettext.h",
+      "upstreamPath": "mednafen/src/gettext.h",
+      "bytes": 3448,
+      "sha256": "03f81efed4edc131428d4d43a88f26e4590b321a0c6a4f8159e296455340c398"
+    },
+    {
+      "path": "mednafen/include/mednafen/git.h",
+      "upstreamPath": "mednafen/src/git.h",
+      "bytes": 25231,
+      "sha256": "e54b1e2c89ac9a4d4f2f45b2a163e67f3e53e4659a7012ec7540d62a70d69cb6"
+    },
+    {
+      "path": "mednafen/include/mednafen/hw_cpu/m68k/m68k.h",
+      "upstreamPath": "mednafen/src/hw_cpu/m68k/m68k.h",
+      "bytes": 13155,
+      "sha256": "d20708110bb9f6e7a1bff6d8432fff5452c0436488eeedd7ae5204923053b8f8"
+    },
+    {
+      "path": "mednafen/include/mednafen/jump.h",
+      "upstreamPath": "mednafen/src/jump.h",
+      "bytes": 2785,
+      "sha256": "c6d53eaee3eadb65d5b007d11d00d8ecc5f93680955339c6e65a8455ded6e312"
+    },
+    {
+      "path": "mednafen/include/mednafen/lepacker.h",
+      "upstreamPath": "mednafen/src/lepacker.h",
+      "bytes": 1514,
+      "sha256": "3f845005a92ec6c9cdd3ae1dc641c5f0d4b2c3a1eb8e94b05826c0510c744fef"
+    },
+    {
+      "path": "mednafen/include/mednafen/math_ops.h",
+      "upstreamPath": "mednafen/src/math_ops.h",
+      "bytes": 9024,
+      "sha256": "df2517cd5da4e9ee83cc1545d680e4aef87f71360fa4d5e71630cb1a99301b9c"
+    },
+    {
+      "path": "mednafen/include/mednafen/mednafen-driver.h",
+      "upstreamPath": "mednafen/src/mednafen-driver.h",
+      "bytes": 8966,
+      "sha256": "51c89dd93d21546dbcbbe8509d7e632dd4f2b83d157380d45b8a6ad11e4306a6"
+    },
+    {
+      "path": "mednafen/include/mednafen/mednafen.h",
+      "upstreamPath": "mednafen/src/mednafen.h",
+      "bytes": 3389,
+      "sha256": "0d41a543fc5e985347cc513b839670296fbec3764b598b985f203dcef5681fee"
+    },
+    {
+      "path": "mednafen/include/mednafen/memory.h",
+      "upstreamPath": "mednafen/src/memory.h",
+      "bytes": 5221,
+      "sha256": "f35711b674466700d6b303695ff7544680629076efdff664694cb714b862af25"
+    },
+    {
+      "path": "mednafen/include/mednafen/mempatcher-driver.h",
+      "upstreamPath": "mednafen/src/mempatcher-driver.h",
+      "bytes": 1554,
+      "sha256": "9df4a037d1b01580b20125a941efaeb3a38faabacfc96aa3f2dd2da232a018cd"
+    },
+    {
+      "path": "mednafen/include/mednafen/mempatcher.h",
+      "upstreamPath": "mednafen/src/mempatcher.h",
+      "bytes": 817,
+      "sha256": "18db04f952f53e7a4f0654e35470b42af4c8af0ba0826a80f2182541da12bce8"
+    },
+    {
+      "path": "mednafen/include/mednafen/movie-driver.h",
+      "upstreamPath": "mednafen/src/movie-driver.h",
+      "bytes": 207,
+      "sha256": "7a089e99449d386b5dfd6f4f2a793e5088ec2393b7f417384b4d0d34c9d1a5d0"
+    },
+    {
+      "path": "mednafen/include/mednafen/movie.h",
+      "upstreamPath": "mednafen/src/movie.h",
+      "bytes": 649,
+      "sha256": "91633c08d5f490b1c13825fbf70efa45e84997e4286cc68db386f54307ae594d"
+    },
+    {
+      "path": "mednafen/include/mednafen/netplay-driver.h",
+      "upstreamPath": "mednafen/src/netplay-driver.h",
+      "bytes": 577,
+      "sha256": "44eef8b720ae7b19709505d43aed8612ed77002615130ba5e5d9cdf8f2269de9"
+    },
+    {
+      "path": "mednafen/include/mednafen/netplay.h",
+      "upstreamPath": "mednafen/src/netplay.h",
+      "bytes": 3157,
+      "sha256": "524cf5eba3aa48941f083d37463cdb00fb19e7132080a575e709f251390b4aed"
+    },
+    {
+      "path": "mednafen/include/mednafen/player.h",
+      "upstreamPath": "mednafen/src/player.h",
+      "bytes": 405,
+      "sha256": "1329ff6dbbbdd1a445e2ec5fbfeb9596c1cc441f60cfbd2a725d2cb40af6c977"
+    },
+    {
+      "path": "mednafen/include/mednafen/qtrecord.h",
+      "upstreamPath": "mednafen/src/qtrecord.h",
+      "bytes": 3718,
+      "sha256": "46d8b67aca77e926c6a2d863b29a4bb6892e5b17a0d9c3bdc9a9065f19648cb2"
+    },
+    {
+      "path": "mednafen/include/mednafen/resampler/arch.h",
+      "upstreamPath": "mednafen/src/resampler/arch.h",
+      "bytes": 7010,
+      "sha256": "ca4ffd8402ff181fa591777348c77a74b0d0902db3f8aac460f4b85f73ed96b6"
+    },
+    {
+      "path": "mednafen/include/mednafen/resampler/fixed_generic.h",
+      "upstreamPath": "mednafen/src/resampler/fixed_generic.h",
+      "bytes": 5214,
+      "sha256": "639f5aab2be39acb2e19fc20e1b093bd06f444f7bea4377af59d177482729ef0"
+    },
+    {
+      "path": "mednafen/include/mednafen/resampler/resample_sse.h",
+      "upstreamPath": "mednafen/src/resampler/resample_sse.h",
+      "bytes": 4695,
+      "sha256": "c1148bcf1b73d5d02274d362e72b1009a74be954cdf66537e9c5a5e1f2013513"
+    },
+    {
+      "path": "mednafen/include/mednafen/resampler/resampler.h",
+      "upstreamPath": "mednafen/src/resampler/resampler.h",
+      "bytes": 14835,
+      "sha256": "b5bd9a7efc19c5c6a485cb5f7adf0bb11ba2e19c6a0060bfd8ecea68a7cbfa5d"
+    },
+    {
+      "path": "mednafen/include/mednafen/resampler/stack_alloc.h",
+      "upstreamPath": "mednafen/src/resampler/stack_alloc.h",
+      "bytes": 3373,
+      "sha256": "d9e654bc2cedacb4afe97fef8d187ca08630f77de132df3b819708eaaf4ce00f"
+    },
+    {
+      "path": "mednafen/include/mednafen/settings-common.h",
+      "upstreamPath": "mednafen/src/settings-common.h",
+      "bytes": 4859,
+      "sha256": "1f9645f38aa5129d209a656b3f2c13a5a4f186f722eb83f01d2832f367c578d4"
+    },
+    {
+      "path": "mednafen/include/mednafen/settings.h",
+      "upstreamPath": "mednafen/src/settings.h",
+      "bytes": 2637,
+      "sha256": "53dbd53d61461c75d0e01c7b96e1e3cbb34b039b9508adcca255b281c8e1a07c"
+    },
+    {
+      "path": "mednafen/include/mednafen/ss/scsp.h",
+      "upstreamPath": "mednafen/src/ss/scsp.h",
+      "bytes": 6962,
+      "sha256": "bf44f132c0b5d12f78be0f58a0783a3f43b1a7de893607f3139eeef4c77de42b"
+    },
+    {
+      "path": "mednafen/include/mednafen/state-common.h",
+      "upstreamPath": "mednafen/src/state-common.h",
+      "bytes": 364,
+      "sha256": "a2e025760505fb67bb4508e45d9c8833e087e6e44f5a94b0789340830e2cd1f3"
+    },
+    {
+      "path": "mednafen/include/mednafen/state-driver.h",
+      "upstreamPath": "mednafen/src/state-driver.h",
+      "bytes": 794,
+      "sha256": "6cf5f9ee42187ca0ef5f9dcf02a2f12cfa51904160925518b2f55104870d053b"
+    },
+    {
+      "path": "mednafen/include/mednafen/state.h",
+      "upstreamPath": "mednafen/src/state.h",
+      "bytes": 9293,
+      "sha256": "5a5d05ee9609e927c3bd222856b17dd23365058c7d668e338449eb37a2c5c2dd"
+    },
+    {
+      "path": "mednafen/include/mednafen/state_rewind.h",
+      "upstreamPath": "mednafen/src/state_rewind.h",
+      "bytes": 1264,
+      "sha256": "75130329aa9ffa880ccdce1448da00c16b19cfa4e44e0e0c195eeea88a6c57b8"
+    },
+    {
+      "path": "mednafen/include/mednafen/string/string.h",
+      "upstreamPath": "mednafen/src/string/string.h",
+      "bytes": 13194,
+      "sha256": "6baa60707ad0cc3d8ca17601a8ecc7706088274836ab0d803345531c9170ef5a"
+    },
+    {
+      "path": "mednafen/include/mednafen/tests.h",
+      "upstreamPath": "mednafen/src/tests.h",
+      "bytes": 160,
+      "sha256": "62a63e7d718d49b1d401785aae795f31997928f64a2194d93161be3ec186dd35"
+    },
+    {
+      "path": "mednafen/include/mednafen/testsexp.h",
+      "upstreamPath": "mednafen/src/testsexp.h",
+      "bytes": 364,
+      "sha256": "00d2c873b93ddb6ce53851119c752f2c2bb4cec6b6eef42fe4d83f12d3618754"
+    },
+    {
+      "path": "mednafen/include/mednafen/trio/trio.h",
+      "upstreamPath": "mednafen/src/trio/trio.h",
+      "bytes": 8037,
+      "sha256": "0bae3178c27bfb703c64db95f280b730822cb94ddd7ca6c075d4e2b723805b6c"
+    },
+    {
+      "path": "mednafen/include/mednafen/trio/triodef.h",
+      "upstreamPath": "mednafen/src/trio/triodef.h",
+      "bytes": 8842,
+      "sha256": "881da8a8d96108a4bbb3881d2fd6608e6a1e9b82d6d69c6ef747323c70ce2260"
+    },
+    {
+      "path": "mednafen/include/mednafen/trio/trionan.h",
+      "upstreamPath": "mednafen/src/trio/trionan.h",
+      "bytes": 3717,
+      "sha256": "7cbb1b77dcb9a88c57a4ac58b8f989631a4fb813180d17f79c4a1d59cfc75b86"
+    },
+    {
+      "path": "mednafen/include/mednafen/trio/triop.h",
+      "upstreamPath": "mednafen/src/trio/triop.h",
+      "bytes": 14350,
+      "sha256": "99c2067bed4b6a4a541796685a8be26de347b74bffa40eb908d6be43d2f222ec"
+    },
+    {
+      "path": "mednafen/include/mednafen/trio/triostr.h",
+      "upstreamPath": "mednafen/src/trio/triostr.h",
+      "bytes": 16456,
+      "sha256": "884580d283ee5f4165f08dc1ef3b73804c5b178330da605a12981f1692fd534e"
+    },
+    {
+      "path": "mednafen/include/mednafen/types.h",
+      "upstreamPath": "mednafen/src/types.h",
+      "bytes": 9143,
+      "sha256": "963f0a2047334c875dc9d0017d07705df68eaeaac6243d944828df191d06cbfb"
+    },
+    {
+      "path": "mednafen/include/mednafen/video/primitives.h",
+      "upstreamPath": "mednafen/src/video/primitives.h",
+      "bytes": 1923,
+      "sha256": "8caf180dd88cf7364f1890f5263a5ab95a33fad773c924dbdd3f4db016eddc8e"
+    },
+    {
+      "path": "mednafen/include/mednafen/video/surface.h",
+      "upstreamPath": "mednafen/src/video/surface.h",
+      "bytes": 10948,
+      "sha256": "2c85c4fbf2dab7dc24532adeec1ee9a2621f508e480d0859012451e3115d3087"
+    },
+    {
+      "path": "mednafen/include/mednafen/video/text.h",
+      "upstreamPath": "mednafen/src/video/text.h",
+      "bytes": 5725,
+      "sha256": "916ce970fb25eeb17768e3d5f314478c4fda1ac69d00c1f49fdebecb7b631a9c"
+    },
+    {
+      "path": "mednafen/include/mednafen/video-driver.h",
+      "upstreamPath": "mednafen/src/video-driver.h",
+      "bytes": 246,
+      "sha256": "95bb6160eca2ed4a03b9cf178c8d15c732c47823aedcc659f6d507108a59c503"
+    },
+    {
+      "path": "mednafen/include/mednafen/video.h",
+      "upstreamPath": "mednafen/src/video.h",
+      "bytes": 246,
+      "sha256": "f754c6d1ca39c0827ec244e9d1f123ab76801dceacaca0438dd74d7f5438679e"
+    },
+    {
+      "path": "mednafen/include/mednafen/win32-common.h",
+      "upstreamPath": "mednafen/src/win32-common.h",
+      "bytes": 3325,
+      "sha256": "e057d6828dccff4390f178acc24a71bbe38c73310f609a564082774e32a09b87"
+    }
+  ],
+  "excluded": "Unused video font tables and video-only helpers are omitted. The reduced sound build retains its required video interface declarations.",
+  "dependencies": [
+    {
+      "name": "zlib",
+      "repository": "https://github.com/madler/zlib",
+      "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+      "version": "1.3.2",
+      "license": "Zlib",
+      "files": [
+        {
+          "path": "zlib/ChangeLog",
+          "upstreamPath": "ChangeLog",
+          "bytes": 86330,
+          "sha256": "c6f42df0f27486db922d633e7a70757b56c6cd9f742f21af419d232649efbede"
+        },
+        {
+          "path": "zlib/LICENSE",
+          "upstreamPath": "LICENSE",
+          "bytes": 1002,
+          "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+        },
+        {
+          "path": "zlib/README",
+          "upstreamPath": "README",
+          "bytes": 5291,
+          "sha256": "4026d921213bb2e311d8d42b44ef53361c102d5d45ae32f93f8e52eaee8d068f"
+        },
+        {
+          "path": "zlib/adler32.c",
+          "upstreamPath": "adler32.c",
+          "bytes": 4964,
+          "sha256": "9cd1443a24ff2a3053961695bd432035c58347386a420d3388232376ebabe211"
+        },
+        {
+          "path": "zlib/compress.c",
+          "upstreamPath": "compress.c",
+          "bytes": 3639,
+          "sha256": "41f1c7ad886012571cd481a2b1b6a83812e5125e90d995e298fde34d6c015614"
+        },
+        {
+          "path": "zlib/crc32.c",
+          "upstreamPath": "crc32.c",
+          "bytes": 29735,
+          "sha256": "da37f3483e77c20f64c28cf55d62d7bed9d62af33eb401be906835d84539b9c9"
+        },
+        {
+          "path": "zlib/crc32.h",
+          "upstreamPath": "crc32.h",
+          "bytes": 591749,
+          "sha256": "9a2223575183ac2ee8a247f20bf3ac066e8bd0140369556bdbdffc777435749e"
+        },
+        {
+          "path": "zlib/deflate.c",
+          "upstreamPath": "deflate.c",
+          "bytes": 83286,
+          "sha256": "ea9ca4eb51b1a71aaf214b99f4a9fab177253d6268cae8e4c26d44d1812e52c2"
+        },
+        {
+          "path": "zlib/deflate.h",
+          "upstreamPath": "deflate.h",
+          "bytes": 14213,
+          "sha256": "21f4ea0973dab272fb26e93305ccf8628c8dc07e6c5df09a9861825b1920ba5d"
+        },
+        {
+          "path": "zlib/gzclose.c",
+          "upstreamPath": "gzclose.c",
+          "bytes": 668,
+          "sha256": "35ea6e991a63095f797d8c4cc25817fac7a7155c2ba7dcdbbf648f7871c7ea40"
+        },
+        {
+          "path": "zlib/gzguts.h",
+          "upstreamPath": "gzguts.h",
+          "bytes": 7088,
+          "sha256": "db7690315cda93c0742701365d5218932ff0e2e6b8713c95019553502ada7d2b"
+        },
+        {
+          "path": "zlib/gzlib.c",
+          "upstreamPath": "gzlib.c",
+          "bytes": 17457,
+          "sha256": "c899344d02b22fd0bcb78392cdd2d175a801b3ceb5d3fbfde5ec420591537269"
+        },
+        {
+          "path": "zlib/gzread.c",
+          "upstreamPath": "gzread.c",
+          "bytes": 22817,
+          "sha256": "ee2b1141f7b78065147e787c8b4adb983c09c409aa5fe5782479e2664676d17c"
+        },
+        {
+          "path": "zlib/gzwrite.c",
+          "upstreamPath": "gzwrite.c",
+          "bytes": 22721,
+          "sha256": "2ce783294c688330c716bfe106f43167d3dae5be84994176bc304d205d4f5b04"
+        },
+        {
+          "path": "zlib/infback.c",
+          "upstreamPath": "infback.c",
+          "bytes": 21139,
+          "sha256": "bf9788af31e08a4242fc9d36bc0ce1a7a667bbfd9edc51ff26146195ee2e528a"
+        },
+        {
+          "path": "zlib/inffast.c",
+          "upstreamPath": "inffast.c",
+          "bytes": 12982,
+          "sha256": "f96787a11bb7131ffd2221fb40db27f6a5a1dfb12f59c0bc388807010749c34a"
+        },
+        {
+          "path": "zlib/inffast.h",
+          "upstreamPath": "inffast.h",
+          "bytes": 422,
+          "sha256": "05cc5dc9ff1da7b8b52a4bd8bda0d8a5c236a2f39efe84b941516ea13857e6c5"
+        },
+        {
+          "path": "zlib/inffixed.h",
+          "upstreamPath": "inffixed.h",
+          "bytes": 5968,
+          "sha256": "fd7c4b1dbdacb283421d0675744aaecda44e840e183b5131448bac94564f6adb"
+        },
+        {
+          "path": "zlib/inflate.c",
+          "upstreamPath": "inflate.c",
+          "bytes": 52247,
+          "sha256": "90221ea7d762e7044057f6ad5013e969086c6ba3d3051716b7aa786d7a6362ec"
+        },
+        {
+          "path": "zlib/inflate.h",
+          "upstreamPath": "inflate.h",
+          "bytes": 6683,
+          "sha256": "e6a43bd0e24ab2cf5fa1dca630859e9a2f6a721f033f75faf179f5c0299e4fe2"
+        },
+        {
+          "path": "zlib/inftrees.c",
+          "upstreamPath": "inftrees.c",
+          "bytes": 16672,
+          "sha256": "f7ee9ce5925fc9d1579c76e574feed85f5ca4ccddc446a7795578854bbc65743"
+        },
+        {
+          "path": "zlib/inftrees.h",
+          "upstreamPath": "inftrees.h",
+          "bytes": 3003,
+          "sha256": "d3a7ea301d8ec514823d052a2e42af4636bc81a0cf07052f526030f208068fb8"
+        },
+        {
+          "path": "zlib/trees.c",
+          "upstreamPath": "trees.c",
+          "bytes": 41030,
+          "sha256": "a16217d5ea6d8342ff08afe5207b1dab620f05610e121dda55b4f9aae9de4f68"
+        },
+        {
+          "path": "zlib/trees.h",
+          "upstreamPath": "trees.h",
+          "bytes": 8472,
+          "sha256": "bb0a9d3ca88ee00c81adb7c636e73b97085f6ef1b52d6d58edbe2b6dc3adeb4d"
+        },
+        {
+          "path": "zlib/uncompr.c",
+          "upstreamPath": "uncompr.c",
+          "bytes": 3711,
+          "sha256": "953f5381650838d507b01499790bd64524433ea6ea29ea9325bf542af10cfe7d"
+        },
+        {
+          "path": "zlib/zconf.h",
+          "upstreamPath": "zconf.h",
+          "bytes": 16955,
+          "sha256": "cb7c2c84211473b4699223edd363d3207b43b9578e739b5bf638f42204ea6e0f"
+        },
+        {
+          "path": "zlib/zlib.h",
+          "upstreamPath": "zlib.h",
+          "bytes": 103848,
+          "sha256": "818667d6ab6a37fe7469cb06a7f0cb2c2cb2f2c948a03e5accf1a4a74bf3020a"
+        },
+        {
+          "path": "zlib/zutil.c",
+          "upstreamPath": "zutil.c",
+          "bytes": 7454,
+          "sha256": "1279908a15580224a2c1f377555ffdd150327fed71801aa77fc35978dcb741c8"
+        },
+        {
+          "path": "zlib/zutil.h",
+          "upstreamPath": "zutil.h",
+          "bytes": 8512,
+          "sha256": "a12243cc6d338ffad0c8e3500fbc05bc7fdcdc25a469393b1c2f7e5df307fff3"
+        }
+      ]
+    }
+  ]
+}

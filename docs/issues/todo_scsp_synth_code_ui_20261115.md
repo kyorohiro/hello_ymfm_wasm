@@ -24,8 +24,9 @@ JavaScript performance over the existing SCSP. Start from a clean parent tree.
       SSF / MiniSSF playback needs a sound-CPU player and dependency handling.
 - [x] Keep original recordings in `vgm/` and authored JSON sounds in `presets/`.
 - [ ] Add song-slot Live display and capture after this first playback path.
-- [ ] Investigate SSF / MiniSSF with a 68000 execution environment, bus,
+- [x] Investigate SSF / MiniSSF with a 68000 execution environment, bus,
       timing, interrupts and library resolution.
+      Follow-up implementation is recorded in `todo_scsp_synth_ssf_20261115.md`.
 
 ## Verification and distribution
 

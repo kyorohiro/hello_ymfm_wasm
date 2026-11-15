@@ -8,6 +8,7 @@ on:
       - 'docs/tetorica-spu-1254.webp'
       - 'docs/js/**'
       - 'docs/generated/scsp*'
+      - 'docs/generated/ssf-player/**'
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth/synth_code*.js'
       - 'docs/synth/synth_project_store.js'
@@ -19,7 +20,10 @@ on:
       - 'tetorica_src/runtime/scspsynth*'
       - 'tetorica_src/runtime/generated/**'
       - 'tetorica_src/native/audio_effect/**'
+      - 'tetorica_src/wasm/ssf_player/**'
+      - 'test/helpers/scsp_ssf_fixture.mjs'
       - 'scripts/*scsp*'
+      - 'scripts/*ssf*'
       - 'scripts/copy_readable_modules.mjs'
       - 'scripts/runtime_artifacts.mjs'
       - 'scripts/wasm_sdk_inventory.mjs'
@@ -39,6 +43,8 @@ on:
       - 'docs/playground/**'
       - 'tetorica_src/runtime/**'
       - 'tetorica_src/native/audio_effect/**'
+      - 'tetorica_src/wasm/ssf_player/**'
+      - 'test/helpers/scsp_ssf_fixture.mjs'
       - 'scripts/**'
       - 'third_party/**'
       - 'package*.json'
@@ -69,6 +75,7 @@ jobs:
           node scripts/check_scsp_synth_browser.cjs --root release/scsp-synth-browser --entry /index.html --out release/scsp-synth-browser.json
           node scripts/check_scsp_synth_code_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-code-browser.json --screenshots=release/scsp-synth-code-images
           node scripts/check_scsp_synth_song_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-song-browser.json
+          node scripts/check_scsp_synth_ssf_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-browser.json --screenshots=release/scsp-synth-ssf-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -79,4 +86,6 @@ jobs:
             release/scsp-synth-code-browser.json
             release/scsp-synth-code-images/
             release/scsp-synth-song-browser.json
+            release/scsp-synth-ssf-browser.json
+            release/scsp-synth-ssf-images/
           if-no-files-found: ignore

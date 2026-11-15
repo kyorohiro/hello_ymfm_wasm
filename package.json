@@ -80,6 +80,8 @@
     "test:scsp-synth:code-browser": "node scripts/check_scsp_synth_code_browser.cjs",
     "test:scsp-synth:code-monaco-browser": "node scripts/check_scsp_synth_code_monaco_browser.cjs",
     "test:scsp-synth:song-browser": "node scripts/check_scsp_synth_song_browser.cjs",
+    "test:scsp-synth:ssf-browser": "node scripts/check_scsp_synth_ssf_browser.cjs",
+    "build:ssf-player": "node scripts/build_ssf_player.mjs",
     "test:spu-synth": "node --test docs/synth-spu/*.test.mjs scripts/package_itch_spu_synth.test.mjs",
     "test:spu-synth:browser": "node scripts/check_spu_synth_browser.cjs",
     "test:spu-synth:live-presets-browser": "node scripts/check_spu_synth_live_presets_browser.cjs",

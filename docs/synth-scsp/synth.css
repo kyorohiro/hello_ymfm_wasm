@@ -456,6 +456,8 @@ footer {
 	flex: 1 1 220px;
 	min-width: 0;
 	max-width: 100%;
+	/* WebKit can propagate native option text beyond the select's measured box. */
+	overflow: hidden;
 }
 .scsp-song-transport button,
 .scsp-live-controls button {

@@ -116,13 +116,38 @@ Invalid replacements preserve the current instrument.
 
 ## Reference recordings
 
-SCSP has VGM register and RAM recording support. Menu → VGM / VGZ imports
+Menu → SSF folder imports Saturn SSF / MiniSSF songs and their SSFLib
+dependencies together. Choose an unpacked folder containing the related
+files. Their subdirectories are retained under `ssf/`. SSF / MiniSSF files
+also accepts a multi-file selection. A file ending in `.ssf` can itself
+depend on SSFLib data, so include its related library files.
+
+Choose a song above Waveform / Spectrum, then Play song. Pause changes to
+Resume and retains the same sound-CPU state and unconsumed audio. Stop
+releases its player. Seek creates an independent machine and executes up to
+the target position. Libraries are kept in Files and omitted from the song
+selector. Loading and selecting a recording are silent.
+
+SSF playback executes the 68000, SCSP, DSP, timers and interrupts in the
+Mednafen-derived ssfplay engine. The browser checks container CRCs, resolves
+the primary library before the song patch, then applies auxiliary libraries
+in order. Paths are relative to the file that refers to them. Missing or
+corrupt required files preserve the previous recording. A corrupt unrelated
+entry can remain in Files while another song loads. Each native program
+image fits the Saturn's 512 KiB sound RAM. Sources are bounded to 4 MiB per
+file, 64 MiB per set, and 32 MiB of decompressed dependency programs. Files
+imports also obey the existing 12 MiB project budget.
+
+The entry's length, fade and relative volume tags control playback. With a
+missing or invalid length tag, the player uses a three-minute preview and
+shows that choice beside the transport. Seek may take time because the sound
+program must execute from its reset state.
+
+SCSP also has VGM register and RAM recording support. Menu → VGM / VGZ imports
 the original file into `vgm/`. Select a recording above Waveform / Spectrum
 and use Play song, Pause / Resume, Stop or the seek bar. Demo builds an
 original short sine phrase for checking this path without a game recording.
-Loading and selecting a recording are silent.
-
-This first player supports a single 22,579,200 Hz SCSP in VGM 1.71–1.72,
+VGM playback supports a single 22,579,200 Hz SCSP in VGM 1.71–1.72,
 `C5` byte writes, `E0` RAM uploads, raw `06` banks and `68` RAM copies,
 with playback following the recorded timeline once. It validates the source
 before replacement. The parser bounds compressed, expanded and prepared
@@ -135,9 +160,7 @@ and unsupported core registers produce explicit errors.
 Song playback uses its own SCSP state and RAM through the existing
 AudioContext and Master output. The keyboard continues to audition the
 authored instrument. Starting a song stops Code, and Run stops the song.
-Song-slot Live display, instrument capture and SSF / MiniSSF playback remain
-future work. SSF carries a Saturn sound-CPU program and requires a 68000
-execution environment with its timing and library dependencies.
+Song-slot Live display and instrument capture remain future work.
 
 The recording formats are described in the original VGM and PSF specifications.
 [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)
@@ -163,7 +186,7 @@ update live. DSP Lab provides a dedicated dry / wet comparison.
 
 Slot PCM, EG, LFO, modulation and the fixed Delay execute in the SCSP core.
 Drawing, conversion, guard samples, connection presets, grouped voices and
-Code are software features. The bundled core uses zero slot-write delay.
+Code are software features. The editor core uses zero slot-write delay.
 Physical SCSP timing, low-depth modulation and address clipping still need
 hardware comparison. Large raw SCSP sums can saturate.
 
@@ -173,6 +196,14 @@ is original. SCSP / DSP C++ sources, pristine MAME upstream, licenses and
 the Emscripten recipe are under `sources/`. Start with `sources/SCSP.md`.
 The SDK retains its unpublished local-candidate provenance. See `LICENSE`
 and `licenses/mame-scsp/LICENSE` for BSD-3-Clause terms.
+
+SSF playback includes ssfplay_tools and Mednafen 1.32.1 under
+GPL-2.0-or-later. The corresponding C/C++ source, copyright notices,
+upstream hashes and standalone rebuild recipe are in `sources/ssf-player/`.
+The C ABI wrapper uses the same license. See `licenses/ssfplay/COPYING` and
+`generated/ssf-player/NOTICE.txt`. The browser loader and transport are
+included as editable JavaScript. The player has an independent sound machine
+for each playback or seek candidate.
 
 Authored JavaScript and CSS are copied byte-for-byte into the distribution,
 preserving comments, names and layout. Edit modules in `synth-scsp/`, `js/`

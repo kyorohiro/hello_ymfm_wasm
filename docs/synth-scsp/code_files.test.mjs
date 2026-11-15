@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {setupScspCodeFiles} from './code_files.js';
+import {setupScspCodeFiles,isScspSsfFile} from './code_files.js';
 import {createScspCodeProject,SCSP_PROJECT_FILE_BYTES} from './code_project.js';
 import {createDefaultScspProjectSound,readScspProjectSound as readPreset} from './code_project.js';
 const createDefaultPreset=()=>({...createDefaultScspProjectSound(),name:'Sine'});
@@ -62,6 +62,67 @@ test('SCSP opaque VGM/VGZ and audio imports use their future source paths withou
   assert.deepEqual(await f.files.importFiles([input('Song.vgm'),input('Compressed.vgz'),input('Sample.wav')]),['/vgm/Song.vgm','/vgm/Compressed.vgz','/audio/Sample.wav']);
   assert.deepEqual(f.calls,[]);await f.files.selectFile('/vgm/Song.vgm');assert.deepEqual(f.calls,[['source','/vgm/Song.vgm',bytes]]);assert.equal(f.project.selectedPath,'/vgm/Song.vgm');
   const copy=createScspCodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));assert.deepEqual(copy.fs.get('/vgm/Compressed.vgz').data,bytes);
+});
+
+test('SCSP SSF folder import preserves nested libraries and same-named songs as original binary files', async t => {
+  const f = fixture(t);
+  await f.files.ready;
+  const input = (name, bytes, webkitRelativePath = '') => ({
+    name,
+    webkitRelativePath,
+    size: bytes.length,
+    arrayBuffer: async () => bytes.slice().buffer,
+  });
+  const first = Uint8Array.of(0x50, 0x53, 0x46, 0x11, 255);
+  const second = Uint8Array.of(0, 254, 17);
+  const library = Uint8Array.of(1, 2, 3, 128);
+  assert.deepEqual(await f.files.importFiles([
+    input('Track.ssf', first, 'Saturn/Disc 1/Track.ssf'),
+    input('Track.ssf', second, 'Saturn/Disc 2/Track.ssf'),
+    input('Driver.ssflib', library, 'Saturn/lib/Driver.ssflib'),
+    {name:'Readme.txt',size:100,arrayBuffer:()=>assert.fail('Folder import only reads SSF files')},
+  ], {ssfOnly:true}), [
+    '/ssf/Saturn/Disc 1/Track.ssf',
+    '/ssf/Saturn/Disc 2/Track.ssf',
+    '/ssf/Saturn/lib/Driver.ssflib',
+  ]);
+  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.project.fs.get('/ssf/Saturn/Disc 1/Track.ssf').data, first);
+  assert.deepEqual(f.project.fs.get('/ssf/Saturn/Disc 2/Track.ssf').data, second);
+  assert(!f.project.fs.has('/Readme.txt'));
+  const restored = createScspCodeProject();
+  restored.restore(await restored.prepareImport(await f.files.exportProject()));
+  assert.deepEqual(restored.fs.get('/ssf/Saturn/lib/Driver.ssflib').data, library);
+  assert.equal(restored.fs.get('/ssf/Saturn/lib/Driver.ssflib').type, 'binary');
+  assert.deepEqual(await f.files.importFiles([input('Single.MINISSF', first)]), ['/ssf/Single.MINISSF']);
+  assert(isScspSsfFile('Single.MINISSF'));
+  assert(!isScspSsfFile('notes.txt'));
+});
+
+test('SCSP folder import validates paths, duplicates and byte budgets before reading or replacing Files', async t => {
+  const f = fixture(t);
+  await f.files.ready;
+  const before = f.project.snapshot();
+  const unread = (name, size = 1, webkitRelativePath = '') => ({
+    name, size, webkitRelativePath,
+    arrayBuffer: () => assert.fail('Invalid imports must fail before bytes are read'),
+  });
+  for (const relative of ['/Track.ssf', '../Track.ssf', 'Saturn/../Track.ssf',
+    'Saturn/./Track.ssf', 'Saturn//Track.ssf', 'Saturn\\Track.ssf', 'Saturn/Other.ssf']) {
+    await assert.rejects(f.files.importFiles([unread('Track.ssf', 1, relative)]), /Invalid SSF folder path/);
+    assert.deepEqual(f.project.snapshot(), before);
+  }
+  await assert.rejects(f.files.importFiles([
+    unread('Track.ssf', 1, 'Saturn/Track.ssf'),
+    unread('Track.ssf', 1, 'Saturn/Track.ssf'),
+  ]), /Duplicate imported file path/);
+  await assert.rejects(f.files.importFiles([unread('Huge.ssflib', 16*1024*1024+1)]), /16 MiB/);
+  await assert.rejects(f.files.importFiles([
+    unread('One.ssflib', 7*1024*1024), unread('Two.ssflib', 7*1024*1024),
+  ]), /12 MiB/);
+  assert.deepEqual(f.project.snapshot(), before);
+  assert.deepEqual(await f.files.importFiles([unread('Readme.txt')], {ssfOnly:true}), []);
+  assert.deepEqual(f.calls, []);
 });
 
 test('SCSP malformed projects and oversized sound saves preserve the workspace atomically',async t=>{

@@ -6,7 +6,7 @@ import { readPatch, writePatch } from './patch.js';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js';
 import { setupScspCodeHost } from './code_host.js';
-import { setupScspSongControls } from './song_controls.js';
+import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createStateObserver } from '../synth-2a03/state_observer.js';
@@ -712,7 +712,8 @@ codeHost = setupScspCodeHost({
 		await songControls?.stop();
 		await songControls?.whenIdle();
 	},
-	onOpenSource: (file, options) => songControls.selectFile(file, options),
+	onOpenSource: (file, options) =>
+		isScspSongPath(options.path) ? songControls.selectFile(file, options) : false,
 	onActivity: syncActivity,
 	setStatus: status,
 });
@@ -745,6 +746,26 @@ $('vgmFileInput').addEventListener('change', async () => {
 		report(error);
 	}
 });
+for (const [buttonId, inputId] of [
+	['loadSsf', 'ssfFileInput'],
+	['loadSsfFolder', 'ssfFolderInput'],
+]) {
+	$(buttonId).addEventListener('click', () => $(inputId).click());
+	$(inputId).addEventListener('change', async () => {
+		const files = [...$(inputId).files];
+		$(inputId).value = '';
+		if (!files.length) return;
+		try {
+			await codeHost.ready;
+			const paths = await codeHost.files.importFiles(files, { ssfOnly: true });
+			const entryPath = paths.find((path) => /\.(?:ssf|minissf)$/i.test(path));
+			if (entryPath) await songControls.selectFile(entryPath);
+			else status(paths.length ? 'SSF libraries imported.' : 'No SSF files in this folder.');
+		} catch (error) {
+			report(error);
+		}
+	});
+}
 window.addEventListener('pagehide', (event) => {
 	if (event.persisted) {
 		void stopKeyboard();

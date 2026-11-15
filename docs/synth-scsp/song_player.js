@@ -2,6 +2,8 @@
 import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { prepareScspSongSource } from './song_source.js';
+import { prepareScspSsfSource } from './ssf_source.js';
+import { createScspSsfRenderer } from './ssf_renderer.js';
 
 const RATE = 44100,
 	CHUNK = 256,
@@ -113,6 +115,7 @@ export function createScspSongPlayer({
 	onState = () => {},
 	onStatus = () => {},
 	createEngine = createCore,
+	createSsfEngine = createScspSsfRenderer,
 	schedule = nativeSchedule,
 	cancel = nativeCancel,
 	yieldTask = later,
@@ -175,6 +178,9 @@ export function createScspSongPlayer({
 			totalSamples: source?.totalSamples ?? 0,
 			durationSeconds: (source?.totalSamples ?? 0) / RATE,
 			format: source?.format ?? '',
+			kind: source?.kind ?? (source ? 'vgm' : ''),
+			entryPath: source?.entryPath ?? '',
+			loadedFiles: source?.loadedFiles ? [...source.loadedFiles] : [],
 			metadata: source?.metadata ?? null,
 			sourceChip: 'scsp',
 			sourceClock: source?.clock ?? null,
@@ -219,7 +225,8 @@ export function createScspSongPlayer({
 		run.released = true;
 		cancelNodes(run);
 		run.gain?.disconnect();
-		run.core.dispose();
+		run.renderer.dispose?.();
+		run.core?.dispose();
 		run.segments.length = 0;
 	}
 	function stop() {
@@ -238,7 +245,7 @@ export function createScspSongPlayer({
 		errorMessage = '';
 		emit();
 	}
-	async function load(bytes, nextName = '', { signal, isCurrent = () => true } = {}) {
+	async function loadSource(prepare, nextName = '', { signal, isCurrent = () => true } = {}) {
 		open();
 		const ticket = ++loadGeneration,
 			controller = new AbortController();
@@ -250,11 +257,13 @@ export function createScspSongPlayer({
 		loading = true;
 		emit();
 		try {
-			const next = await prepareScspSongSource(bytes, {
-				signal: controller.signal,
-				yieldTask,
-			});
-			if (disposed || ticket !== loadGeneration || controller.signal.aborted || !isCurrent())
+			const next = await prepare(controller.signal);
+			if (
+				disposed ||
+				ticket !== loadGeneration ||
+				controller.signal.aborted ||
+				!isCurrent(next.loadedFiles)
+			)
 				throw aborted();
 			// Commit only after complete source validation. A failed import keeps the
 			// previous source and its current transport available.
@@ -272,6 +281,35 @@ export function createScspSongPlayer({
 				emit();
 			}
 		}
+	}
+	function load(bytes, nextName, options) {
+		return loadSource(
+			(signal) => prepareScspSongSource(bytes, { signal, yieldTask }),
+			nextName,
+			options,
+		);
+	}
+	function loadSsf(entries, entryPath, options) {
+		return loadSource(
+			async (signal) => {
+				const prepared = await prepareScspSsfSource(entries, entryPath, { signal });
+				const lengthSeconds = prepared.lengthSeconds ?? 180;
+				const durationSeconds = lengthSeconds + prepared.fadeSeconds;
+				const warnings = [...prepared.warnings];
+				if (prepared.lengthSeconds === null)
+					warnings.push('No length tag. Preview uses a 3-minute song length.');
+				return {
+					...prepared,
+					lengthSeconds,
+					durationSeconds,
+					totalSamples: Math.round(durationSeconds * RATE),
+					metadata: Object.fromEntries(prepared.tags),
+					warnings,
+				};
+			},
+			entryPath.split('/').pop(),
+			options,
+		);
 	}
 	function clear() {
 		open();
@@ -304,14 +342,14 @@ export function createScspSongPlayer({
 		return { context, output };
 	}
 	async function createRun(ticket, selected, output) {
-		const core = await createEngine(selected.header);
-		if (!current(ticket)) {
-			core.dispose();
-			throw aborted();
-		}
-		let gain;
+		let core, renderer, gain;
 		try {
-			const renderer = createScspSongRenderer(core, selected);
+			if (selected.kind === 'ssf') renderer = await createSsfEngine(selected);
+			else {
+				core = await createEngine(selected.header);
+				renderer = createScspSongRenderer(core, selected);
+			}
+			if (!current(ticket)) throw aborted();
 			gain = output.context.createGain();
 			gain.connect(output.output);
 			return {
@@ -331,7 +369,8 @@ export function createScspSongPlayer({
 			};
 		} catch (error) {
 			gain?.disconnect();
-			core.dispose();
+			renderer?.dispose?.();
+			core?.dispose();
 			throw error;
 		}
 	}
@@ -571,6 +610,7 @@ export function createScspSongPlayer({
 	};
 	return {
 		load: (...args) => track(load(...args)),
+		loadSsf: (...args) => track(loadSsf(...args)),
 		play: () => track(play()),
 		pause,
 		resume: () => track(resume()),
