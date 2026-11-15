@@ -10,7 +10,7 @@ const timeLabel = seconds => {
 
 /** Keep project files and the reference transport independent of Code edits. */
 export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
-  beforePlay = async () => {},getSettings,onCapture,onViewChange = () => {},onStateChange = () => {},
+  beforePlay = async () => {},getSettings,onCapture,onViewChange = () => {},onStateChange = () => {},onOutputMixChange = () => {},
   beforeTransport = () => {},
   getSelection,setStatus = () => {},document:doc = globalThis.document} = {}) {
   const node = id => doc.getElementById(id);
@@ -18,6 +18,7 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
   let loading = false, operation = 0, optionsSignature = '', state = null, lastPlayback = 'stopped', seekDraft = false;
   const selectedMasks = new Map();
   let frozenSnapshot = null;
+  let outputMixSignature = '';
   const listeners = [];
   const listen = (target,type,callback) => {
     target.addEventListener(type,callback);
@@ -34,6 +35,11 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
     await ensureAudio();
   },onState:next => {
     state = next;
+    const mixSignature = JSON.stringify(next.outputMix);
+    if (mixSignature !== outputMixSignature) {
+      outputMixSignature = mixSignature;
+      onOutputMixChange(next.outputMix);
+    }
     if (next.playback !== lastPlayback) {
       lastPlayback = next.playback;
       if (['playing','paused','ended'].includes(lastPlayback)) setStatus('Reference song ' + lastPlayback + ' · ' + next.name);
@@ -49,6 +55,19 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
     node('referenceSong').dataset.playback = playback;
     node('referenceSong').dataset.manualReady = String(Boolean(current.manualReady));
     const loaded = Boolean(selectedPath && sourceData);
+    const compatibility = loaded && current.compatibility;
+    node('referenceSong').dataset.sourceChip = loaded ? current.sourceChip ?? 'ym2608' : '';
+    node('songCompatibility').hidden = !compatibility;
+    node('songCompatibilityInfo').hidden = !compatibility;
+    if (compatibility) {
+      const clock = value => (value / 1000000).toLocaleString('en-US',{maximumFractionDigits:6}) + ' MHz';
+      const detail = 'YM2203 ' + clock(compatibility.sourceClock) + ' → YM2608 ' + clock(compatibility.targetClock) +
+        '. FM CH1–3 and SSG use YM2608 compatibility playback. Pitch and timing follow the source. ' +
+        'Use YM2203 mode in Mixer to apply the SSG ×0.75 correction and this file’s additional volume settings. ' +
+        'The OPNA FM DAC model applies to compatibility playback.';
+      node('songCompatibility').title = detail;
+      node('songCompatibilityInfo').textContent = detail;
+    }
     node('songPlay').disabled = !loaded || loading || playback === 'playing' || playback === 'seeking';
     node('songPlay').textContent = playback === 'paused' ? 'Resume' : 'Play';
     node('songPause').disabled = playback !== 'playing';
@@ -93,7 +112,7 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
       selectedPath = '';
       sourceData = null;
       setView('synth');
-      run(() => player.stop());
+      run(() => player.clear());
     }
     node('songSelect').value = selectedPath;
     render();
@@ -113,6 +132,7 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
       selectedMasks.clear();
       frozenSnapshot = null;
       state = player.getState();
+      setView('synth');
       node('songSelect').value = path;
       setStatus('Reference song loaded · ' + path);
       return true;
@@ -213,7 +233,7 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
     },
     setLiveEnabled(value) { frozenSnapshot = null; return player.setLiveEnabled(value); },
     async stop() { operation++; loading = false; selectedMasks.clear(); frozenSnapshot = null; await player.stop(); setView('synth'); },
-    async reset() { await this.stop(); selectedPath = ''; sourceData = null; optionsSignature = ''; refreshFiles(); },
+    async reset() { await this.stop(); player.clear(); selectedPath = ''; sourceData = null; optionsSignature = ''; refreshFiles(); },
     async dispose() { if (disposed) return; disposed = true; operation++; unwatch(); listeners.forEach(stop => stop()); await player.dispose(); },
   };
 }

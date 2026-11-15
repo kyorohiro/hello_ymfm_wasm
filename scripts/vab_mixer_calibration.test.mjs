@@ -21,7 +21,7 @@ for(const [kind,parameter,validate,current,prior]of [
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);
   for(const [path,record]of Object.entries(report.sources)) {
     const actual=await readFile(new URL('docs/'+path,root));
-    const status=assertMixerCalibrationSourceFreshness({path,bytes:actual,record});
+    const status=assertMixerCalibrationSourceFreshness({path,bytes:actual,record,report});
     assert.equal(status==='raw',actual.length===record.bytes&&sha(actual)===record.sha256,
       path+': raw means exact measured bytes; other accepted values require a separately pinned review');
   }

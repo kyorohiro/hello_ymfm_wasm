@@ -1302,7 +1302,9 @@
         {
           "path": "wasm/ym2608_wasm.cpp",
           "originPath": "wasm/ym2608_wasm.cpp",
-          "sha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c"
+          "sha256": "edcc0f8369514fded3c8bee51ff747594dceeb0223946a0f9a94260dae02fdc4",
+          "originalSha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c",
+          "modification": "Local SDK extension: independent host output gains for the FM/Rhythm/ADPCM stereo bus and SSG mono bus; default PCM preserved, validated gain checkpoints retained."
         },
         {
           "path": "wasm/ym2610b_wasm.cpp",

@@ -54,6 +54,17 @@ test('packaging calibration check covers the current measured renderer and gener
   assert.deepEqual(await generateAnalyzerMixerDefaults({check:true}),ANALYZER_MIXER_DEFAULTS);
 });
 
+test('the new YM2608 output-gain build retains every remeasured Analyzer PSG sample statistic and default',async()=>{
+  const read=async name => JSON.parse(await readFile(new URL('../docs/issues/'+name,import.meta.url),'utf8'));
+  const before=await read('analyzer_psg_levels_07.json'),after=await read('analyzer_psg_levels_08.json');
+  assert.deepEqual(after.defaults,before.defaults);
+  assert.deepEqual(after.reference,before.reference);
+  assert.deepEqual(after.rows,before.rows);
+  assert.notEqual(after.sources['docs/generated/ym2608_wasm.wasm'],before.sources['docs/generated/ym2608_wasm.wasm']);
+  await verifyAnalyzerCalibrationSources([after]);
+  await assert.rejects(verifyAnalyzerCalibrationSources([before]),/source changed; remeasure:/,'The dormant Playground review cannot authorize the old measured YM2608 anchor');
+});
+
 test('measurement source hashes stay mandatory and reject a changed renderer',async()=>{
   const bytes=new TextEncoder().encode('measured renderer');
   const sha256=createHash('sha256').update(bytes).digest('hex');

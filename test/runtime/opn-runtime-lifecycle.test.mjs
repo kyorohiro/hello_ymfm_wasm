@@ -92,6 +92,31 @@ test('YM2608 runtime loads bundled rhythm data and honors explicit overrides', a
   await assert.rejects(bad.start(), /8192/);
   await bad.close();
 });
+test('YM2608 runtime output gains survive pending initialization, reset and close/restart',async t => {
+  const h = harness(t,'ready');
+  const synth = new YM2608RuntimeSynth({audioContext:h.context,rhythmRom:new Uint8Array(8192)});
+  assert.deepEqual(synth.setOutputGains({ssg:.75}),{fm:1,ssg:.75});
+  const started = synth.start();
+  await until(() => h.nodes.length === 1);
+  synth.setOutputGains({fm:.5});
+  h.nodes[0].send('ready');
+  await started;
+  assert.deepEqual(h.nodes[0].messages.at(-1),{type:'output-gains',gains:{fm:.5,ssg:.75}});
+  synth.setOutputGains({ssg:1.2});
+  assert.deepEqual(h.nodes[0].messages.at(-1),{type:'output-gains',gains:{fm:.5,ssg:1.2}});
+  const count = h.nodes[0].messages.length;
+  assert.throws(() => synth.setOutputGains({fm:2,ssg:Infinity}),RangeError);
+  assert.equal(h.nodes[0].messages.length,count);
+  synth.reset();
+  assert.deepEqual(synth.getOutputGains(),{fm:.5,ssg:1.2});
+  await synth.close();
+  const restarted = synth.start();
+  await until(() => h.nodes.length === 2);
+  h.nodes[1].send('ready');
+  await restarted;
+  assert.deepEqual(h.nodes[1].messages.at(-1),{type:'output-gains',gains:{fm:.5,ssg:1.2}});
+  await synth.close();
+});
 test('Neo Geo and YM2610B runtimes initialize the matching hardware variant', async t => {
   const h=harness(t);
   for(const [Synth,variant,channels] of [[NeoGeoSynth,false,4],[YM2610BRuntimeSynth,true,6]]) {

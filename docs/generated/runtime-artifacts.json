@@ -5,12 +5,12 @@
   "sdk": {
     "schemaVersion": 1,
     "name": "tetorica-soundchip-native",
-    "version": "0.1.8-huc-spc-edit",
+    "version": "0.1.8-fm2608-mixer",
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-    "archiveName": "tetorica-soundchip-native-0.1.8-huc-spc-edit-sources.zip",
-    "archiveSha256": "a0f1acbc7e672810f12d6121c474f6374f4488dbde55a2b297e55beafd17807e",
-    "manifestSha256": "a325d296fe7f34b1ec94ee05be5d6dfc3439af13a71fbaaa839c8a28ca5011bd",
-    "fileCount": 481,
+    "archiveName": "tetorica-soundchip-native-0.1.8-fm2608-mixer-sources.zip",
+    "archiveSha256": "1cb0a575448c160793654a95860d00748496ff24db4472dc4804f3ca5b678103",
+    "manifestSha256": "a02a0f8749420079d9bc9e0655f41c419dc5fd88362ad191e2915c9efabfa877",
+    "fileCount": 482,
     "unpublished": true,
     "localCandidate": {
       "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
@@ -28,15 +28,18 @@
         "native/tests/huc6280_state_fixture.cpp",
         "scripts/build_huc6280_wasm.sh",
         "scripts/build_spc_wasm.sh",
+        "scripts/build_ym2608_wasm.sh",
         "sdk.json",
         "tests/huc6280_state_wasm_smoke.mjs",
+        "tests/ym2608_output_gains_wasm_smoke.mjs",
         "vendor/mame-huc6280/README.md",
         "vendor/mame-huc6280/huc6280.cpp",
         "vendor/mame-huc6280/huc6280.h",
         "vendor/snes-spc/README.md",
         "vendor/snes-spc/snes_spc/SNES_SPC.h",
         "wasm/huc6280_wasm.cpp",
-        "wasm/spc_wasm.cpp"
+        "wasm/spc_wasm.cpp",
+        "wasm/ym2608_wasm.cpp"
       ]
     }
   },
@@ -1086,8 +1089,8 @@
           "mirrors": [
             "docs/generated/ym2608_wasm.js"
           ],
-          "size": 36356,
-          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+          "size": 36733,
+          "sha256": "34b64e4e21587dd419116cb0b1acccac89628a58670064b3fe39ac0ee2accc5f"
         },
         {
           "path": "ym2608_wasm.wasm",
@@ -1095,8 +1098,8 @@
           "mirrors": [
             "docs/generated/ym2608_wasm.wasm"
           ],
-          "size": 53893,
-          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f"
+          "size": 54488,
+          "sha256": "7323c75faea0576087d120676d1975f20560b10db490097c6627d845dd6f829a"
         }
       ],
       "sourceFiles": [
@@ -1785,8 +1788,8 @@
       "mirrors": [
         "docs/generated/build-info.json"
       ],
-      "size": 145483,
-      "sha256": "410584efbac5436aa513aec35a238080bd53790096e1ca48944677bdcd7d05c7"
+      "size": 145465,
+      "sha256": "4d4b0856bc7132b4fbb6b7d3d4d4d9188ca847e453a83be80eaf3c14f9fbcece"
     },
     {
       "path": "ps1_spu_build.json",
@@ -1794,8 +1797,8 @@
       "mirrors": [
         "docs/generated/ps1_spu_build.json"
       ],
-      "size": 5602,
-      "sha256": "87448d6ce368435e743cfdef5d49aaab6136600723cdb812fa72b3ab8dc064b8"
+      "size": 5726,
+      "sha256": "218e24f9a9c051716997642b49c9742a17d85eb970c45390af4c705f7aea90e3"
     }
   ]
 }

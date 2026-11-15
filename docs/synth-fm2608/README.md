@@ -42,6 +42,26 @@ the sound tabs, then Play. The reference player supports a single YM2608 and
 plays one pass using the existing OPNA core and its calibrated output gain.
 Other chips and unsupported stream commands are identified before loading.
 
+Single-YM2203 files are detected automatically and played through the YM2608
+core. The playback row shows `YM2203 → YM2608`, with the source and playback
+clocks in its tooltip and help. Doubling the source clock preserves FM and SSG
+pitch, envelope timing, prescaler changes and CH3 special mode. Song view offers
+FM CH1–3 and SSG CH1–3. Live controls, paused audition, Seek, Mixer and Capture
+remain available. The original imported file is kept intact in Files.
+
+Compatibility playback uses the OPNA FM DAC model and existing calibrated
+gain. Mixer enables YM2203 mode automatically for imported YM2203 songs,
+applying an SSG output multiplier of 0.75 to match Tetorica's calibrated YM2203
+balance. The editable Synth and Code continue to use the full YM2608.
+
+VGM 1.70 extended headers are recognized separately from the main chip header.
+First-chip YM2203 FM / SSG volume entries are retained with the imported file
+and applied while YM2203 mode is on. Relative entries multiply the source
+level. Absolute entries use the VGMPlay source defaults of 256 for FM and 128
+for paired SSG. The first matching entry for each section takes effect.
+Additional-chip clock entries remain unsupported. Extended-header fields follow
+the [VGM format specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt).
+
 Song channels uses the same FM, SSG, Rhythm and ADPCM controls as Your sound.
 Choose a physical channel and enable Auto update to follow its written settings.
 The controls and keyboard can write directly into the playing song. A later
@@ -57,6 +77,19 @@ ADPCM Capture supports recorded data blocks and complete CPU-uploaded external
 samples with 32-byte addressing. CPU-direct streams, 1-bit DRAM addressing and
 incomplete sample ranges report the reason they cannot be captured. Rhythm
 continues to use the bundled Tetorica synthetic ROM.
+
+## Output Mixer
+
+Mixer has separate 0–380% software levels for the FM / Rhythm / ADPCM stereo
+bus and the SSG mono bus. They apply to Keyboard, Code and reference playback.
+The current effective multipliers include the manual faders, YM2203 correction
+and selected VGM volume entries. Channel mute buttons and the final Master
+remain available alongside these levels.
+
+YM2203 mode can also be enabled manually. A newly selected song sets the mode
+from its source chip while retaining manual fader values. Gain changes preserve
+notes, transport and paused position, following the short audio lookahead.
+Mixer levels are host controls outside the saved instrument preset.
 
 ## Special FM modes
 

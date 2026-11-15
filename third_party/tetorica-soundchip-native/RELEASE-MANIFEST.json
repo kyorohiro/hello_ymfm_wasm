@@ -45,8 +45,8 @@
       "size": 52978
     },
     "catalog/source_inventory.json": {
-      "sha256": "145d37b9a0f00716732b202b59e59a8e3e66fd5e743ed39216b5d73dd639b2e1",
-      "size": 156707
+      "sha256": "98da8d69847dcd705711b9544c83d04ca15e1f80c84dca68f9196473781556ee",
+      "size": 156996
     },
     "docs/architecture.md": {
       "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
@@ -801,8 +801,8 @@
       "size": 1067
     },
     "scripts/build_ym2608_wasm.sh": {
-      "sha256": "d81b55c8c7486fe0a94f749fda2d5c7cbd114c34c8bdbc3aac217f7f20bda52b",
-      "size": 1238
+      "sha256": "e62d5f7e50ec0af80f743fb8464ac0f9b72091f1bc154b6087140d691524190e",
+      "size": 1265
     },
     "scripts/build_ym2610b_wasm.sh": {
       "sha256": "cab13d11416f6c0ede3bbfacdb9e73fa4feb6eb4127947ba54c76fb11ab373e5",
@@ -865,7 +865,7 @@
       "size": 15168
     },
     "sdk.json": {
-      "sha256": "30ace085e0211b37f6d8b7171d34c8e36f4c5406669573c8473ce1b4f499cf19",
+      "sha256": "fed055b65e3fd40abee4b3ca5783c57ab313843a48296d9b7ca5d144adfae668",
       "size": 298
     },
     "tests/README.md": {
@@ -935,6 +935,10 @@
     "tests/wonderswan_wasm_smoke.mjs": {
       "sha256": "dd2ceb3438e69d96fc392bebde29aeea712df9328d943a3516692dfe59851b04",
       "size": 11926
+    },
+    "tests/ym2608_output_gains_wasm_smoke.mjs": {
+      "sha256": "406aeea76450b62c925a2fae22dafa898e3d583b818e609cf7ae163562b2ca27",
+      "size": 6387
     },
     "vendor/README.md": {
       "sha256": "e8bf25567d12d8fbf51772fa356d2bf713a51acbc5c8fac160ee523ac378018d",
@@ -1889,8 +1893,8 @@
       "size": 2026
     },
     "wasm/ym2608_wasm.cpp": {
-      "sha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c",
-      "size": 4744
+      "sha256": "edcc0f8369514fded3c8bee51ff747594dceeb0223946a0f9a94260dae02fdc4",
+      "size": 6574
     },
     "wasm/ym2610b_wasm.cpp": {
       "sha256": "aeda15e37d3336028f46a8daf9ae48d092d7188f079d74a3492db25d21f6f849",
@@ -1924,5 +1928,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.8-huc-spc-edit"
+  "version": "0.1.8-fm2608-mixer"
 }

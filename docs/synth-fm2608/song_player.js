@@ -5,6 +5,7 @@ import {YM2608Synth} from '../js/ym2608synth.js';
 import {prepareFm2608SongSource} from './song_source.js';
 import {createFm2608SongTimeline,createFm2608RegisterState} from './song_state.js';
 import {createFm2608SongEngine,installFm2608SongMix,FM2608_SONG_CHANNELS} from './song_engine.js';
+import {readFm2608OutputMix,resolveFm2608OutputMix} from './output_mix.js';
 
 const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01;
 const nativeSchedule = globalThis.setTimeout.bind(globalThis);
@@ -88,6 +89,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   let generation = 0, loadGeneration = 0, loadController = null, loading = false, playback = 'stopped';
   let positionFrames = 0, sampleRate = 44100, volume = 1, errorMessage = '', liveEnabled = true;
   let liveState = null, songLiveState = null, seeking = null, preparingAudition = false, pending = Promise.resolve();
+  let outputMix = readFm2608OutputMix();
   const enabled = Object.fromEntries(Object.entries(FM2608_SONG_CHANNELS).map(([section,count]) => [section,Array(count).fill(true)]));
   const open = () => {if (disposed) throw new Error('OPNA song player is disposed');};
   const current = ticket => !disposed && ticket === generation;
@@ -121,11 +123,16 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   function getState() {
     if (['playing','paused'].includes(playback)) publish();
     const frames = position(), busy = loading || playback === 'starting' || Boolean(seeking);
+    const resolvedMix = resolveFm2608OutputMix(outputMix,source);
     return {playback,state:playback,loaded:Boolean(source),hasSource:Boolean(source),name,errorMessage,
       playing:playback === 'playing',paused:playback === 'paused',loading,busy,preparingAudition,
       sampleRate,positionFrames:frames,positionSeconds:frames / sampleRate,totalSamples:source?.totalSamples ?? 0,
       durationSeconds:source ? source.totalSamples / 44100 : 0,warnings:source ? [...source.warnings] : [],
       format:source?.format ?? '',metadata:source?.metadata ?? null,sourceHeader:source?.sourceHeader ?? null,
+      sourceChip:source?.sourceChip ?? null,sourceClock:source?.sourceClock ?? null,
+      compatibility:source?.compatibility ? {...source.compatibility,volumeAdjustmentsApplied:resolvedMix.volumeAdjustmentsApplied,
+        extraVolumeEntries:resolvedMix.fileVolumeEntries} : null,
+      outputMix:resolvedMix,
       liveEnabled,liveState,songLiveState,manualReady:!busy && (playback === 'playing' && Boolean(active) || playback === 'paused' && Boolean(audition)),
       channelEnabled:copy(enabled),volume,seeking:Boolean(seeking),seekProgress:seeking?.progress ?? 0,
       seekTargetSeconds:seeking?.targetSeconds ?? null,
@@ -171,13 +178,14 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       // Validation is transactional: a bad import leaves the previous song,
       // position, pending PCM and authored Synth sound available.
       stop(); source = next; name = String(nextName || 'OPNA song'); sampleRate = 44100;
+      outputMix = readFm2608OutputMix({ym2203Mode:source.sourceChip === 'ym2203'},outputMix);
       emit(); return getState();
     } finally {
       signal?.removeEventListener('abort',abort);
       if (ticket === loadGeneration) {loadController = null; loading = false; emit();}
     }
   }
-  function clear() {open(); stop(); source = null; name = ''; emit();}
+  function clear() {open(); stop(); source = null; name = ''; outputMix = readFm2608OutputMix({ym2203Mode:false},outputMix); emit();}
   function fail(error,run=active) {
     if (run && active !== run) return;
     positionFrames = position(); releaseAudition(); release(active); active = null;
@@ -185,6 +193,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   }
   function applyMix(run) {
     for (const [section,channels] of Object.entries(enabled)) channels.forEach((value,channel) => run.mix.setChannelEnabled(section,channel,value));
+    run.engine.setOutputGains(resolveFm2608OutputMix(outputMix,run.source).effective);
     run.gain.gain.value = volume;
   }
   function scheduleSegment(run,segment) {
@@ -323,7 +332,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       // external/record bits while changing just Repeat, without Key On.
       chip.adpcm.registers[0] = 1 | adpcmMode.value;
       const gain = run.context.createGain(); gain.connect(run.output);
-      next = {engine,mix,chip,shadow,adpcmMode,context:run.context,output:run.output,gain,sampleRate:run.sampleRate,
+      next = {engine,mix,chip,shadow,adpcmMode,source:run.source,context:run.context,output:run.output,gain,sampleRate:run.sampleRate,
         basePosition:0,renderedFrames:0,segments:[],nextTime:null,timer:null,released:false,lastEmitTime:null};
       applyMix(next); audition = next; preparingAudition = false; auditionPump(next); emit();
     } catch (error) {if (next) release(next); else engine.dispose(); preparingAudition = false; throw error;}
@@ -401,6 +410,18 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
     enabled[section][channel]=value; active?.mix.setChannelEnabled(section,channel,value); audition?.mix.setChannelEnabled(section,channel,value); emit(); return getState();
   }
   function setVolume(value) {open(); if(!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('Song volume must be 0–3.8');volume=value;if(active)active.gain.gain.value=value;if(audition)audition.gain.gain.value=value;emit();}
+  function setOutputMix(value) {
+    open();
+    const next = readFm2608OutputMix(value,outputMix);
+    const effective = resolveFm2608OutputMix(next,source).effective;
+    active?.engine.setOutputGains(effective);
+    audition?.engine.setOutputGains(effective);
+    outputMix = next;
+    // Existing queued stereo buffers finish at the previous mix. New PCM uses
+    // these gains within the normal short lookahead, including after Resume.
+    // Keeping that bounded queue preserves note gates and the exact position.
+    emit(); return getState();
+  }
   function getChip() {
     if (seeking || loading) return null;
     if (playback === 'paused' && audition) {
@@ -412,6 +433,6 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   }
   function write(port,register,value) {const chip=getChip();if(!chip)throw new Error('Play or pause a song before editing its channels');chip.write(port,register,value);publish(true);emit();}
   function dispose() {if(disposed)return;stop();disposed=true;source=null;name='';}
-  return {load,play,pause,resume,stop,clear,seek,getState,read:getState,getChip,write,setLiveEnabled,setChannelEnabled,setVolume,
+  return {load,play,pause,resume,stop,clear,seek,getState,read:getState,getChip,write,setLiveEnabled,setChannelEnabled,setVolume,setOutputMix,
     whenIdle:()=>pending,dispose};
 }

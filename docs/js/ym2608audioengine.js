@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2608, YM2608_CLOCK } from "./ym2608.js?v=audio-stability-2";
+import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains } from "./ym2608.js?v=ym2608-output-gains-1";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
@@ -39,7 +39,7 @@ export class Ym2608AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number, outputGains?:import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGainPatch}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2608AudioEngine>} Initialized engine owned by the caller.
@@ -51,16 +51,21 @@ export class Ym2608AudioEngine {
       ym2608Clock = YM2608_CLOCK,
       outputSampleRate = DEFAULT_OUTPUT_SAMPLE_RATE,
       masterVolume = 1,
+      outputGains,
     } = options;
 
     if (!ym2608ModuleFactory) {
       throw new Error("ym2608ModuleFactory is required");
     }
+    const gains = outputGains === undefined ? null : normalizeYm2608OutputGains(outputGains);
 
     const ym2608 = await Ym2608.create({
       moduleFactory: ym2608ModuleFactory,
       moduleOptions: ym2608ModuleOptions,
     });
+    try {
+      if (gains) ym2608.setOutputGains(gains);
+    } catch (error) { ym2608.dispose(); throw error; }
     const chipSampleRate = ym2608.sampleRate(ym2608Clock);
 
     return new Ym2608AudioEngine(
@@ -72,7 +77,7 @@ export class Ym2608AudioEngine {
   }
 
   supportsState() { return !this.writeOki6258 && Boolean(this.ym2608.supportsState?.()); }
-  stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this._rhythmRomRevision]); }
+  stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this._rhythmRomRevision, this.getOutputGains()]); }
   /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('OPN state saving unavailable');
@@ -139,6 +144,16 @@ export class Ym2608AudioEngine {
   getMasterVolume() {
     return this._masterVolume;
   }
+
+  /** Host gains are applied to the native FM-side and SSG outputs before mixing.
+   * FM includes Rhythm and ADPCM-B. Changing gains invalidates cached engine states.
+   * @param {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGains} Accepted gains.
+   */
+  setOutputGains(gains) { return this.ym2608.setOutputGains(gains); }
+
+  /** @returns {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGains} Detached output gains. */
+  getOutputGains() { return this.ym2608.getOutputGains?.() ?? {fm:1,ssg:1}; }
 
   /**
    * Dispatch a VGM register/command write to the corresponding sound chip.

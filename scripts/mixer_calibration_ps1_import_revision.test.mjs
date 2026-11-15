@@ -38,8 +38,8 @@ test('exact current import sources and separately named prior passive sources re
     for(const [source,record]of Object.entries(report.sources)) {
       const current=await read('docs/'+source);
       const validate=()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report});
-      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js'].includes(source))
-        assert.throws(validate,/source changed; remeasure:/,'SPC voice editing requires a separate current measurement');
+      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js','js/ym2608.js','js/ym2608synth.js'].includes(source))
+        assert.throws(validate,/source changed; remeasure:/,'New SPC and YM2608 APIs require separately scoped current evidence');
       else assert.doesNotThrow(validate,source);
     }
     assert.deepEqual(await read(path),bytes,'the raw original measurements are never rewritten');

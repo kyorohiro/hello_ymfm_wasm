@@ -8,6 +8,13 @@ function fixture(commands=[0x56,0x29,0x9f,0x56,8,12,0x56,7,0x3e,0x61,0x44,0xac,0
   const bytes=new Uint8Array(256+commands.length),view=new DataView(bytes.buffer);
   bytes.set([0x56,0x67,0x6d,0x20]);view.setUint32(4,bytes.length-4,true);view.setUint32(8,0x171,true);view.setUint32(0x34,256-0x34,true);view.setUint32(0x48,8000000,true);bytes.set(commands,256);return bytes;
 }
+function opnFixture() {
+  const bytes=fixture([0x55,8,12,0x55,7,0x3e,0x61,0x44,0xac,0x66]),view=new DataView(bytes.buffer);
+  view.setUint32(0x44,4000000,true);view.setUint32(0x48,0,true);
+  view.setUint32(0xbc,4,true);view.setUint32(0xc0,12,true);view.setUint32(0xc8,4,true);
+  bytes.set([1,0x86,0,0x9a,0x81],0xcc);
+  return bytes;
+}
 function rig({beforePlay=async()=>{},createGate=null}={}) {
   let clock=0,serial=0;const timers=new Map(),engines=[],nodes=[];
   const context={state:'running',currentTime:0,resume:async()=>{},
@@ -19,6 +26,7 @@ function rig({beforePlay=async()=>{},createGate=null}={}) {
   const createEngine=async()=>{
     if(createGate)await createGate(engines.length);
     const engine={frames:0,writes:[],disposed:false,sampleRate:()=>44100,writeYm2608(...write){this.writes.push(write);},
+      outputGains:{fm:1,ssg:1},setOutputGains(value){this.outputGains={...value};},
       reset(){this.frames=0;},loadAdpcmBMemory(){},clearAdpcmBMemory(){},loadAdpcmARom(){},
       processFrames(frames){this.frames+=frames;return{left:new Float32Array(frames).fill(.1),right:new Float32Array(frames).fill(.1)};},dispose(){this.disposed=true;}};
     engines.push(engine);return engine;
@@ -110,4 +118,65 @@ test('paused ADPCM release preserves sample mode and Repeat for capture and the 
   chip.write(1,0,chip.adpcm.registers[0] | 16);assert.equal(r.player.getState().liveState.adpcm.repeat,true);
   assert.equal(r.engines[0].frames,frames);assert.equal(r.player.getState().positionSeconds,position);
   await r.player.resume();assert.equal(r.player.getState().songLiveState.adpcm.repeat,true);r.player.dispose();
+});
+test('YM2203 songs default to correction and file volumes, retaining user faders across source selection',async()=>{
+  const r=rig();
+  assert.equal(r.player.getState().outputMix.ym2203Mode,false);
+  r.player.setOutputMix({fm:1.5,ssg:.5});
+  await r.player.load(opnFixture(),'OPN');
+  let state=r.player.getState();
+  assert.equal(state.outputMix.ym2203Mode,true);
+  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.6005859375});
+  assert.equal(state.compatibility.volumeAdjustmentsApplied,true);
+  assert.equal(state.compatibility.extraVolumeEntries[0].applied,true);
+  assert.equal(r.engines.length,0);
+  r.player.setOutputMix({ym2203Mode:false});
+  assert.deepEqual(r.player.getState().outputMix.effective,{fm:1.5,ssg:.5});
+  assert.equal(r.player.getState().compatibility.extraVolumeEntries[0].applied,false);
+  await assert.rejects(r.player.load(new Uint8Array(4),'bad'),/header/);
+  assert.equal(r.player.getState().outputMix.ym2203Mode,false);
+  await r.player.load(opnFixture(),'OPN again');
+  assert.equal(r.player.getState().outputMix.ym2203Mode,true);
+  await r.player.load(fixture(),'OPNA');
+  state=r.player.getState();assert.equal(state.outputMix.ym2203Mode,false);
+  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.5});
+  r.player.clear();assert.deepEqual(r.player.getState().outputMix.effective,{fm:1.5,ssg:.5});
+  await r.player.load(opnFixture(),'OPN to clear');
+  r.player.clear();
+  state=r.player.getState();
+  assert.equal(state.sourceChip,null);assert.equal(state.outputMix.ym2203Mode,false);
+  assert.equal(state.outputMix.volumeAdjustmentsApplied,false);
+  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.5});
+  r.player.dispose();
+});
+test('output mix changes retain transport, note registers and paused position through Resume and Seek',async()=>{
+  const r=rig();await r.player.load(opnFixture(),'OPN');await r.player.play();
+  const main=r.engines[0];
+  assert.deepEqual(main.outputGains,{fm:1,ssg:1.201171875});
+  r.advance(.1);
+  const firstPosition=r.player.getState().positionSeconds,writes=main.writes.length;
+  r.player.setOutputMix({fm:.8,ssg:1.2});
+  assert.equal(main.writes.length,writes);
+  assert.equal(main.disposed,false);assert.equal(r.player.getState().playback,'playing');
+  assert.equal(r.player.getState().positionSeconds,firstPosition);
+  assert.deepEqual(main.outputGains,{fm:.8,ssg:1.4414062499999998});
+  r.advance(.1);await r.player.pause();
+  const pausedPosition=r.player.getState().positionSeconds,frames=main.frames;
+  const audition=r.engines[1],chip=r.player.getChip();chip.ssg.noteOn(0,'C4');
+  const auditionWrites=audition.writes.length;
+  r.player.setOutputMix({ym2203Mode:false});
+  assert.deepEqual(main.outputGains,{fm:.8,ssg:1.2});
+  assert.deepEqual(audition.outputGains,{fm:.8,ssg:1.2});
+  assert.equal(audition.writes.length,auditionWrites);assert.equal(main.frames,frames);
+  assert.equal(r.player.getState().positionSeconds,pausedPosition);
+  assert.equal(r.player.getState().liveState.ssg.channels[0].volume,12);
+  await r.player.resume();assert.equal(r.player.getState().playback,'playing');
+  assert.equal(r.player.getState().positionSeconds,pausedPosition);
+  r.advance(.1);assert(r.player.getState().positionSeconds>pausedPosition);
+  await r.player.seek(.5);assert.deepEqual(r.engines.at(-1).outputGains,{fm:.8,ssg:1.2});
+  assert.equal(r.player.getState().playback,'playing');
+  const current=r.player.getState().outputMix;
+  assert.throws(()=>r.player.setOutputMix({fm:-1}),/0–3.8/);
+  assert.deepEqual(r.player.getState().outputMix,current);
+  r.player.dispose();
 });

@@ -7,13 +7,13 @@
 import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js?v=audio-stability-2";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=y8950-adpcm-ui-1";
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
-import { YM2608_CLOCK } from "./ym2608.js?v=audio-stability-2";
+import { YM2608_CLOCK, normalizeYm2608OutputGains } from "./ym2608.js?v=ym2608-output-gains-1";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
 /** Direct transport for YM2608 register operations. */
-/** @extends {OPNDirectTransport<import('./ym2608.js?v=audio-stability-2').Ym2608>} */
+/** @extends {OPNDirectTransport<import('./ym2608.js?v=ym2608-output-gains-1').Ym2608>} */
 export class YM2608DirectTransport extends OPNDirectTransport {
-  /** @param {import('./ym2608.js?v=audio-stability-2').Ym2608} chip */
+  /** @param {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608} chip */
   constructor(chip) {
     super(chip, { chipName: "YM2608", portCount: 2 });
   }
@@ -283,17 +283,40 @@ export class YM2608Synth extends OPNFMSynth {
 
 /** Browser-hosted YM2608 FM synth with shared Tetorica audio services. */
 export class YM2608RuntimeSynth extends OPNRuntimeSynth {
+  /** @param {import('./opn_runtime_synth.js?v=y8950-adpcm-ui-1').OPNRuntimeSynthOptions & {outputGains?:import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGainPatch}} [options] */
   constructor(options = {}) {
+    const outputGains = normalizeYm2608OutputGains(options.outputGains ?? {});
     super(options, {
       chip: "ym2608",
       chipName: "YM2608",
       fmChannels: 6,
       portCount: 2,
       processorName: "ym2608-processor",
-      workletUrl: "./ym2608-worklet.js?v=rf5c164-notes-1",
+      workletUrl: "./ym2608-worklet.js?v=ym2608-output-gains-1",
       wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),
     });
+    this.outputGains = outputGains;
   }
+
+  async start() {
+    await super.start();
+    this.node.port.postMessage({type:'output-gains',gains:this.getOutputGains()});
+    return this;
+  }
+
+  /** Configure host software gains before the native outputs are combined.
+   * FM includes Rhythm and ADPCM-B. Settings survive close/restart and reset.
+   * @param {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGains} Accepted gains.
+   */
+  setOutputGains(gains) {
+    this.outputGains = normalizeYm2608OutputGains(gains,this.outputGains);
+    if (this.isReady()) this.node.port.postMessage({type:'output-gains',gains:this.getOutputGains()});
+    return this.getOutputGains();
+  }
+
+  /** @returns {import('./ym2608.js?v=ym2608-output-gains-1').Ym2608OutputGains} Detached linear gains. */
+  getOutputGains() { return {...this.outputGains}; }
 }

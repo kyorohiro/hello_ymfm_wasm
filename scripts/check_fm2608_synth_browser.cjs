@@ -9,10 +9,10 @@ const {gzipSync} = require('node:zlib');
 const {pathToFileURL} = require('node:url');
 
 const config = {root:path.resolve(__dirname,'../docs'),entry:'/synth-fm2608/index.html',
-  engines:'chromium,webkit',editor:'fallback',out:path.resolve(__dirname,'../build/fm2608-synth-browser.json'),
+  engines:'chromium,webkit',editor:'fallback',song:'',out:path.resolve(__dirname,'../build/fm2608-synth-browser.json'),
   screenshots:path.resolve(__dirname,'../build/fm2608-synth-browser')};
 for (const argument of process.argv.slice(2)) {
-  const match = /^--(root|entry|engines|editor|out|screenshots)=(.+)$/.exec(argument);
+  const match = /^--(root|entry|engines|editor|song|out|screenshots)=(.+)$/.exec(argument);
   assert(match,'Unknown argument ' + argument);
   config[match[1]] = match[2];
 }
@@ -63,9 +63,24 @@ async function makeReferenceFiles() {
   const s98 = Buffer.alloc(48+s98Commands.length);
   s98.set([83,57,56,51]);s98.writeUInt32LE(1,4);s98.writeUInt32LE(100,8);s98.writeUInt32LE(48,0x14);
   s98.writeUInt32LE(1,0x1c);s98.writeUInt32LE(4,0x20);s98.writeUInt32LE(7987200,0x24);s98.set(s98Commands,48);
+  const opnWrites = writes.filter(([port,register]) => port === 0 &&
+    (register < 16 || register === 0x28 || register >= 0x30 && register <= 0xb2));
+  const opnCommands = opnWrites.flatMap(([,register,value]) => [0x55,register,value]);
+  for (let second=0; second<16; second++) opnCommands.push(0x55,0xb0,(second % 8) << 3 | 7,0x61,0x44,0xac);
+  opnCommands.push(0x66);
+  const opnVgm = Buffer.alloc(256+opnCommands.length);
+  vgm.copy(opnVgm,0,0,256);
+  opnVgm.writeUInt32LE(opnVgm.length-4,4);opnVgm.writeUInt32LE(4000000,0x44);opnVgm.writeUInt32LE(0,0x48);opnVgm.set(opnCommands,256);
+  const opnS98Commands = [...opnWrites.flatMap(([,register,value]) => [0,register,value]),...Array(1600).fill(0xff),0xfd];
+  const opnS98 = Buffer.alloc(48+opnS98Commands.length);
+  s98.copy(opnS98,0,0,48);
+  opnS98.writeUInt32LE(2,0x20);opnS98.writeUInt32LE(4000000,0x24);opnS98.set(opnS98Commands,48);
   return {sample,files:[{name:'OPNA reference.vgm',mimeType:'application/octet-stream',buffer:vgm},
     {name:'OPNA reference.vgz',mimeType:'application/octet-stream',buffer:gzipSync(vgm)},
-    {name:'OPNA reference.s98',mimeType:'application/octet-stream',buffer:s98}]};
+    {name:'OPNA reference.s98',mimeType:'application/octet-stream',buffer:s98}],
+    opnFiles:[{name:'OPN reference.vgm',mimeType:'application/octet-stream',buffer:opnVgm},
+      {name:'OPN reference.vgz',mimeType:'application/octet-stream',buffer:gzipSync(opnVgm)},
+      {name:'OPN reference.s98',mimeType:'application/octet-stream',buffer:opnS98}]};
 }
 
 function installAudit() {
@@ -112,7 +127,7 @@ function installAudit() {
 async function checkEngine(name,origin) {
   assert(['chromium','webkit'].includes(name));
   const browser = await ({chromium,webkit}[name]).launch({headless:true,...(name === 'chromium' ? {args:['--mute-audio']} : {})});
-  const checks = [], errors = [], failures = [];
+  const checks = [], errors = [], failures = [], ym2203Assets = [];
   let page, stage = 'startup';
   const check = label => { stage = label; checks.push(label); console.log(name + ': ' + label); };
   try {
@@ -120,6 +135,7 @@ async function checkEngine(name,origin) {
     page.setDefaultTimeout(20000);
     page.on('pageerror',error => errors.push(error.message));
     page.on('response',response => { if (response.status() >= 400) failures.push(response.url()); });
+    page.on('request',request => { if (/ym2203_wasm\.(?:js|wasm)(?:\?|$)/.test(request.url())) ym2203Assets.push(request.url()); });
     await page.route('**/*',route => {
       const url = new URL(route.request().url());
       const editorAsset = config.editor === 'monaco' && url.href.startsWith('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/');
@@ -339,6 +355,48 @@ async function checkEngine(name,origin) {
     await page.locator('#stopAudio').click();
     await quiet();
     check('Code Stop is silent and keyboard can restart');
+
+    await page.locator('#synthInputCodeTab').click();
+    await page.locator('#synthCodeEditor').fill('const opna = await useSoundChip("ym2608");\nawait opna.noteOn(CH1,"A3");\nopna.ssg.tone(CH1,{frequency:220,volume:10});\nliveLoop("hold",async()=>{await beat(1);});\n');
+    await page.locator('#synthCodeRunButton').click();
+    await page.waitForFunction(() => /Playing|Running/.test(document.querySelector('#synthCodeState').textContent));
+    await page.locator('#tab-mixer').click();
+    const outputLevel = (id,value) => page.locator(id).evaluate((node,value) => {
+      node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));
+    },value);
+    const nearLevel = (baseline,ratio) => page.waitForFunction(({baseline,ratio}) =>
+      Math.abs(__opnaAudit.sample().rms/baseline-ratio)<.035,{baseline,ratio});
+    await outputLevel('#mixerFmVolume',0);
+    await page.waitForTimeout(200);
+    const ssgUnity = (await audible()).rms;
+    const keyWrites = await page.evaluate(() => __opnaAudit.commands.filter(value => value.register === 0x28).length);
+    await outputLevel('#mixerSsgVolume',.5);
+    await nearLevel(ssgUnity,.5);
+    await page.locator('#ym2203Mode').check();
+    await nearLevel(ssgUnity,.375);
+    assert.match(await page.locator('#mixerCorrection').textContent(),/SSG ×0.75/);
+    assert.match(await page.locator('#mixerEffective').textContent(),/SSG ×0.375/);
+    await page.locator('#ym2203Mode').uncheck();
+    await outputLevel('#mixerSsgVolume',0);
+    await quiet();
+    await outputLevel('#mixerFmVolume',1);
+    await page.waitForTimeout(200);
+    const fmUnity = (await audible()).rms;
+    await outputLevel('#mixerFmVolume',.5);
+    await nearLevel(fmUnity,.5);
+    assert.equal(await page.evaluate(() => __opnaAudit.commands.filter(value => value.register === 0x28).length),keyWrites);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Playing|Running/);
+    await outputLevel('#mixerFmVolume',1);
+    await outputLevel('#mixerSsgVolume',1);
+    await page.screenshot({path:path.join(config.screenshots,name + '-output-mixer.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 2);
+    await page.screenshot({path:path.join(config.screenshots,name + '-output-mixer-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1180,height:1000});
+    await page.locator('#synthCodeStopButton').click();
+    await quiet();
+    await page.locator('#tab-fm').click();
+    check('software output Mixer scales FM and SSG independently and YM2203 mode preserves running Code notes');
 
     await page.locator('#synthInputCodeTab').click();
     const liveCode = 'const opna = await useSoundChip("ym2608");\nopna.write(0, 0xb0, 0x2f);\nopna.write(0, 0x22, 0x0b);\nopna.ssg.tone(0, {frequency:220, volume:7});\nopna.rhythm.setVoice(0, {volume:7});\nopna.adpcm.setVolume(90);\nopna.adpcm.setPlaybackRate(16000);\nopna.adpcm.keyOn({repeat:false});\nsetBpm(120);\nliveLoop("hold", async () => {await beat(1);});\n';
@@ -581,6 +639,108 @@ async function checkEngine(name,origin) {
       await quiet();
     }
     check('VGZ and S98 reference files play using the shared OPNA core');
+
+    await page.locator('#tab-fm').click();
+    await page.locator('#channelTabs [data-channel="5"]').click();
+    await page.locator('#songFileInput').setInputFiles(reference.opnFiles);
+    await page.waitForFunction(() => document.querySelector('#songSelect').options.length === 8 && !document.querySelector('#songPlay').disabled);
+    await page.locator('#songSelect').selectOption('/vgm/OPN reference.vgm');
+    await page.waitForFunction(() => !document.querySelector('#songCompatibility').hidden);
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-source-chip'),'ym2203');
+    assert.equal(await page.locator('#ym2203Mode').isChecked(),true);
+    assert.match(await page.locator('#mixerEffective').textContent(),/SSG ×0.75/);
+    assert.match(await page.locator('#songCompatibility').getAttribute('title'),/4 MHz → YM2608 8 MHz/);
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing' && document.querySelector('#songView').value === 'song');
+    assert.equal(await page.locator('#channelTabs [data-channel]').count(),4);
+    assert.equal(await page.locator('#channelTabs [data-channel="0"]').getAttribute('aria-selected'),'true');
+    await audible();
+    await page.locator('#songPause').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.manualReady === 'true');
+    await quiet();
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    await page.locator('#tab-ssg').click();
+    await page.locator('#channelTabs [data-channel="0"]').click();
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    await page.locator('#tab-fm').click();
+    await page.locator('#songSeek').evaluate(node => {node.value='8';node.dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.manualReady === 'true' && document.querySelector('#songTime').textContent.startsWith('0:08'));
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    await page.screenshot({path:path.join(config.screenshots,name + '-ym2203-paused.png'),fullPage:true});
+    await page.locator('#songCapture').click();
+    await page.waitForFunction(() => document.querySelector('#songView').value === 'synth');
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-playback'),'paused');
+    assert.equal(await page.locator('#channelTabs [data-channel]').count(),7);
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+    await audible();
+    await page.locator('#songStop').click();
+    await quiet();
+    if (await page.locator('#opnaFilesPanel').isHidden()) await page.locator('#opnaFilesToggle').click();
+    await page.locator('#opnaFilesTree button[data-file-path="/vgm/OPN reference.vgm"]').click();
+    await page.locator('#synthMenu summary').first().click();
+    const sourceDownloadReady = page.waitForEvent('download');
+    await page.locator('#opnaFileExportButton').click();
+    const sourceDownload = await sourceDownloadReady, sourceChunks = [];
+    for await (const chunk of await sourceDownload.createReadStream()) sourceChunks.push(chunk);
+    assert.deepEqual(Buffer.concat(sourceChunks),reference.opnFiles[0].buffer);
+    check('YM2203 compatibility keeps source bytes and supports Live, paused FM/SSG, Seek and Capture');
+    for (const extension of ['vgz','s98']) {
+      await page.locator('#songSelect').selectOption('/vgm/OPN reference.'+extension);
+      await page.waitForFunction(() => !document.querySelector('#songPlay').disabled);
+      await page.locator('#songPlay').click();
+      await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+      assert.equal(await page.locator('#referenceSong').getAttribute('data-source-chip'),'ym2203');
+      await audible();
+      await page.locator('#songStop').click();
+      await quiet();
+    }
+    assert.deepEqual(ym2203Assets,[]);
+    if (config.song) {
+      const filename = path.basename(config.song), buffer = await fs.readFile(config.song);
+      await page.locator('#songFileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer});
+      await page.waitForFunction(filename => document.querySelector('#songSelect').value === '/vgm/'+filename &&
+        document.querySelector('#referenceSong').dataset.sourceChip === 'ym2203' && !document.querySelector('#songPlay').disabled,filename);
+      assert.equal(await page.locator('#ym2203Mode').isChecked(),true);
+      assert.match(await page.locator('#mixerEffective').textContent(),/SSG ×1.201172/);
+      await page.locator('#songPlay').click();
+      await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+      await audible();
+      await page.locator('#songPause').click();
+      await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.manualReady === 'true');
+      await quiet();
+      await page.locator('#songSeek').evaluate(node => {node.value='8';node.dispatchEvent(new Event('change',{bubbles:true}));});
+      await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.manualReady === 'true' && document.querySelector('#songTime').textContent.startsWith('0:08'));
+      await page.locator('#songPlay').click();
+      await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+      await audible();
+      await page.screenshot({path:path.join(config.screenshots,name + '-real-ym2203.png'),fullPage:true});
+      await page.locator('#songStop').click();
+      await quiet();
+      check('local YM2203 song imports and renders through Play, Pause, Seek and Resume');
+    }
+    if (await page.locator('#opnaFilesPanel').isHidden()) await page.locator('#opnaFilesToggle').click();
+    await page.locator('#opnaFilesTree button[data-file-path="/vgm/OPN reference.s98"]').click();
+    await page.waitForFunction(() => document.querySelector('#songSelect').value === '/vgm/OPN reference.s98');
+    assert.equal(await page.locator('#ym2203Mode').isChecked(),true);
+    await page.locator('#opnaFileDeleteButton').click();
+    await page.locator('#opnaFileNameConfirm').click();
+    await page.waitForFunction(() => document.querySelector('#songSelect').value === '' && !document.querySelector('#ym2203Mode').checked);
+    assert.match(await page.locator('#mixerEffective').textContent(),/FM ×1 · SSG ×1/);
+    check('removing the selected reference file clears its automatic mixer profile');
+    await page.locator('#songSelect').selectOption('/vgm/OPNA reference.vgm');
+    await page.waitForFunction(() => !document.querySelector('#songPlay').disabled && document.querySelector('#songCompatibility').hidden);
+    assert.equal(await page.locator('#ym2203Mode').isChecked(),false);
+    check('YM2203 VGZ and S98 use only the OPNA core and native OPNA playback remains selectable');
 
     await page.locator('#songPlay').click();
     await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');

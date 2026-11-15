@@ -849,7 +849,7 @@
         }
       ],
       "compiler": {
-        "command": "/opt/homebrew/bin/em++",
+        "command": "em++",
         "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
       },
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
@@ -2081,7 +2081,7 @@
     {
       "id": "ym2608",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "610d7a20478001afc49bc1c6c7bb63e24d145af50a3a54f31d99781f1879b19d",
+      "sourceFingerprint": "f731f611a11d318d34b19ef32f61df39d1b5513fda0aa5fa51731671a90c58bc",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -2090,8 +2090,8 @@
         },
         {
           "path": "scripts/build_ym2608_wasm.sh",
-          "sha256": "d81b55c8c7486fe0a94f749fda2d5c7cbd114c34c8bdbc3aac217f7f20bda52b",
-          "size": 1238
+          "sha256": "e62d5f7e50ec0af80f743fb8464ac0f9b72091f1bc154b6087140d691524190e",
+          "size": 1265
         },
         {
           "path": "scripts/record_wasm_build.mjs",
@@ -2230,8 +2230,8 @@
         },
         {
           "path": "wasm/ym2608_wasm.cpp",
-          "sha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c",
-          "size": 4744
+          "sha256": "edcc0f8369514fded3c8bee51ff747594dceeb0223946a0f9a94260dae02fdc4",
+          "size": 6574
         },
         {
           "path": "wasm/ymfm_wasm_interface.h",
@@ -2242,13 +2242,13 @@
       "outputs": [
         {
           "path": "ym2608_wasm.js",
-          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
-          "size": 36356
+          "sha256": "34b64e4e21587dd419116cb0b1acccac89628a58670064b3fe39ac0ee2accc5f",
+          "size": 36733
         },
         {
           "path": "ym2608_wasm.wasm",
-          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
-          "size": 53893
+          "sha256": "7323c75faea0576087d120676d1975f20560b10db490097c6627d845dd6f829a",
+          "size": 54488
         }
       ],
       "compiler": {

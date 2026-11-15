@@ -7,7 +7,7 @@
 import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
 import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
-import { YM2608_CLOCK } from "./ym2608.js";
+import { YM2608_CLOCK, normalizeYm2608OutputGains } from "./ym2608.js";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
 /** Direct transport for YM2608 register operations. */
@@ -283,7 +283,9 @@ export class YM2608Synth extends OPNFMSynth {
 
 /** Browser-hosted YM2608 FM synth with shared Tetorica audio services. */
 export class YM2608RuntimeSynth extends OPNRuntimeSynth {
+  /** @param {import('./opn_runtime_synth.js').OPNRuntimeSynthOptions & {outputGains?:import('./ym2608.js').Ym2608OutputGainPatch}} [options] */
   constructor(options = {}) {
+    const outputGains = normalizeYm2608OutputGains(options.outputGains ?? {});
     super(options, {
       chip: "ym2608",
       chipName: "YM2608",
@@ -295,5 +297,26 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),
     });
+    this.outputGains = outputGains;
   }
+
+  async start() {
+    await super.start();
+    this.node.port.postMessage({type:'output-gains',gains:this.getOutputGains()});
+    return this;
+  }
+
+  /** Configure host software gains before the native outputs are combined.
+   * FM includes Rhythm and ADPCM-B. Settings survive close/restart and reset.
+   * @param {import('./ym2608.js').Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js').Ym2608OutputGains} Accepted gains.
+   */
+  setOutputGains(gains) {
+    this.outputGains = normalizeYm2608OutputGains(gains,this.outputGains);
+    if (this.isReady()) this.node.port.postMessage({type:'output-gains',gains:this.getOutputGains()});
+    return this.getOutputGains();
+  }
+
+  /** @returns {import('./ym2608.js').Ym2608OutputGains} Detached linear gains. */
+  getOutputGains() { return {...this.outputGains}; }
 }

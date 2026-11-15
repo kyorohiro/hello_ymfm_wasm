@@ -67,17 +67,28 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   }
   for (const path of [
     'synth-fm2608/synth.js', 'synth-fm2608/audio.js', 'synth-fm2608/preset.js',
-    'synth-fm2608/code_host.js', 'synth/synth_code_controls.js', 'js/ym2608-worklet.js',
+    'synth-fm2608/code_host.js', 'synth-fm2608/song_compatibility.js',
+    'synth-fm2608/output_mix.js',
+    'synth/synth_code_controls.js', 'js/ym2608-worklet.js',
     'js/native-fx-worklet.js', 'js/native_audio_effect.wasm', 'js/tetorica_ym2608_adpcm_rom.bin',
     'playground/tetorica-playground-globals.d.ts', 'playground/tetorica-playground-ym2608.d.ts',
     'assets/opna-rhythm/LICENSE', 'assets/opna-rhythm/generate.mjs', 'assets/opna-rhythm/synthesis.mjs',
     'licenses/ymfm/LICENSE', 'licenses/tetorica-virtual-files/LICENSE',
     'sources/YM2608.json', 'sources/YM2608.md', 'sources/code-effects/README.md',
   ]) assert(info.names.includes(path), path);
+  assert(info.receipt.modules.some(module => module.sourcePath === 'docs/synth-fm2608/song_compatibility.js'),
+    'YM2203 compatibility is included through the readable application dependency graph');
+  assert(!info.names.some(name => /(?:^|\/)ym2203_wasm\.(?:js|wasm)$/.test(name)),
+    'Compatibility playback reuses YM2608 and adds no dedicated YM2203 loader or WASM');
+  assert(!info.names.some(name => /\.(?:vgm|vgz|s98)$/i.test(name)),
+    'Local game music used for verification stays outside the distribution');
   for (const name of ['ym2608_wasm.js', 'ym2608_wasm.wasm']) {
     assert.deepEqual(await readFile(join(result.stage, 'generated', name)),
       await readFile(new URL('tetorica_src/runtime/generated/' + name, root)));
   }
+  const wasm = new WebAssembly.Module(await readFile(join(result.stage, 'generated/ym2608_wasm.wasm')));
+  assert(WebAssembly.Module.exports(wasm).some(entry => entry.name === 'ym2608_set_output_gains' && entry.kind === 'function'),
+    'The packaged WASM exposes the native output-gain setter used by Mixer');
   assert.deepEqual(await readFile(join(result.stage, 'tetorica_fm2608_synth.webp')),
     await readFile(new URL('docs/tetorica_fm2608_synth.webp', root)));
   const native = JSON.parse(await readFile(join(result.stage, 'sources/YM2608.json')));

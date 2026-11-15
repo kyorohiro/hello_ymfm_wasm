@@ -47,8 +47,11 @@ function run(task) {
 function currentChannel() {
   return section === 'mixer' || selection[section] === 'auto' ? 0 : selection[section];
 }
+function channelCount(kind) {
+  return kind === 'fm' && songs?.isViewing() && songs.getState().sourceChip === 'ym2203' ? 3 : sections[kind];
+}
 function targets(kind = section) {
-  return selection[kind] === 'auto' ? Array.from({length:sections[kind]}, (_,index) => index) : [selection[kind]];
+  return selection[kind] === 'auto' ? Array.from({length:channelCount(kind)}, (_,index) => index) : [selection[kind]];
 }
 function chip() {
   if (!audio || audio.context.state === 'closed') return null;
@@ -534,7 +537,7 @@ function updateControls() {
     for (const [operator,frequency] of channel3.frequencies.entries()) {
       for (const key of ['block','fnum']) setControl('channel3.' + operator + '.' + key,frequency[key]);
     }
-    byId('channel3Status').textContent = channel3.mode === 'normal' ? 'Normal FM · six melodic channels.' :
+    byId('channel3Status').textContent = channel3.mode === 'normal' ? 'Normal FM · ' + channelCount('fm') + ' melodic channels.' :
       channel3.mode === 'csm' ? 'CH3 · Timer A ' + (channel3.running ? 'running' : 'starts on Key On') + ' · all four OPs trigger.' :
         'CH3 · four hardware frequencies · keyboard tuning preserves their ratios.';
     const auto = byId('channelTabs').querySelector('[data-channel="auto"]');
@@ -557,7 +560,7 @@ function updateReadout() {
     byId('channelReadout').textContent = 'Shared Keyboard / Code output';
     return;
   }
-  const target = selection[section] === 'auto' ? 'Auto · ' + sections[section] + ' hardware channels' : 'CH' + (selection[section] + 1);
+  const target = selection[section] === 'auto' ? 'Auto · ' + channelCount(section) + ' hardware channels' : 'CH' + (selection[section] + 1);
   const rate = section === 'adpcm' && chip() ? ' · Playback ' + Math.round(adpcmPlaybackRate()).toLocaleString() + ' Hz' : '';
   const source = songs?.isViewing() ? ' · ' + (songs.getState().playback === 'paused' ? 'Paused song' : byId('liveUpdate').checked ? 'Live from song' : 'Frozen song') : live() && host?.isRunning() ? ' · Live from Code' : '';
   byId('channelReadout').textContent = sectionNames[section] + ' · ' + target + source + rate;
@@ -568,7 +571,9 @@ function renderChannelTabs() {
   root.replaceChildren();
   byId('channelBar').hidden = section === 'mixer';
   if (section === 'mixer') return;
-  const choices = sections[section] > 1 ? ['auto',...Array.from({length:sections[section]},(_,index) => index)] : [0];
+  const count = channelCount(section);
+  if (selection[section] !== 'auto' && selection[section] >= count) selection[section] = 0;
+  const choices = count > 1 ? ['auto',...Array.from({length:count},(_,index) => index)] : [0];
   for (const value of choices) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -638,6 +643,7 @@ async function ensureAudio() {
       throw new DOMException('Audio preparation stopped','AbortError');
     }
     audio = engine;
+    updateOutputMixer();
     for (const [kind,values] of Object.entries(mute)) values.forEach((muted,index) => engine.setMute(kind,index,muted));
     visualizer.connect(engine.context,[engine.outputNode]);
     analyser = engine.context.createAnalyser();
@@ -657,8 +663,8 @@ function allocateChannel(kind,midi) {
   if (kind === 'fm' && selection.fm === 'auto' && channel3Snapshot().mode !== 'normal') return 2;
   if (selection[kind] !== 'auto') return selection[kind];
   if (kind === 'rhythm') return ((midi % 6) + 6) % 6;
-  const count = sections[kind];
-  let channel = nextChannel[kind];
+  const count = channelCount(kind);
+  let channel = nextChannel[kind] % count;
   for (let index = 0; index < count; index++) {
     const candidate = (channel + index) % count;
     if (!owners.has(kind + ':' + candidate)) { channel = candidate; break; }
@@ -816,6 +822,20 @@ function updateMaster(value) {
   }
   for (const id of ['masterVolumeValue','monitorVolumeValue']) byId(id).textContent = Math.round(value * 100) + '%';
   try { audio?.setMasterVolume(value); } catch (error) { report(error); }
+}
+function updateOutputMixer(mix = songs?.getState().outputMix) {
+  if (!mix) return;
+  for (const [key,id] of [['fm','Fm'],['ssg','Ssg']]) {
+    byId('mixer' + id + 'Volume').value = String(mix[key]);
+    byId('mixer' + id + 'Volume').dataset.boosted = String(mix[key] > 1);
+    byId('mixer' + id + 'Value').textContent = Math.round(mix[key] * 100) + '%';
+  }
+  const multiplier = value => Number(value.toFixed(6)).toLocaleString('en-US',{maximumFractionDigits:6});
+  byId('ym2203Mode').checked = mix.ym2203Mode;
+  byId('mixerCorrection').textContent = (mix.ym2203Mode ? 'YM2203 correction · SSG ×0.75' : 'YM2203 correction Off') +
+    (mix.volumeAdjustmentsApplied ? ' · VGM FM ×' + multiplier(mix.file.fm) + ' / SSG ×' + multiplier(mix.file.ssg) : '');
+  byId('mixerEffective').textContent = 'Effective output · FM ×' + multiplier(mix.effective.fm) + ' · SSG ×' + multiplier(mix.effective.ssg);
+  if (audio && audio.context.state !== 'closed') audio.setOutputGains(mix.effective);
 }
 async function stopAll() {
   generation++;
@@ -1070,6 +1090,16 @@ byId('instrumentName').addEventListener('change',event => {
 byId('startAudio').addEventListener('click',() => run(ensureAudio));
 byId('stopAudio').addEventListener('click',() => run(stopAll));
 for (const id of ['masterVolume','monitorVolume']) byId(id).addEventListener('input',event => updateMaster(Number(event.target.value)));
+for (const [key,id] of [['fm','mixerFmVolume'],['ssg','mixerSsgVolume']]) {
+  byId(id).addEventListener('input',event => {
+    try { songs.player.setOutputMix({[key]:Number(event.target.value)}); }
+    catch (error) { report(error); }
+  });
+}
+byId('ym2203Mode').addEventListener('change',event => {
+  try { songs.player.setOutputMix({ym2203Mode:event.target.checked}); }
+  catch (error) { report(error); }
+});
 for (const id of ['pitchBend','keyboardPitchBend']) {
   byId(id).addEventListener('input',event => updatePitch(Number(event.target.value)));
   for (const type of ['pointerup','pointercancel','keyup','blur']) byId(id).addEventListener(type,() => updatePitch(0));
@@ -1191,13 +1221,14 @@ songs = setupFm2608SongControls({project:host.project,files:host.files,ensureAud
     await applySettings(preset);
     host.markSoundDirty();
   },
-  onStateChange:updateReadout,onViewChange:() => {
+  onStateChange:updateReadout,onOutputMixChange:updateOutputMixer,onViewChange:() => {
     releaseKeyboard();
     referenceSampleKey = '';
     renderChannelTabs();
     updateControls();
     renderSample();
   }});
+updateOutputMixer();
 host.ready.then(() => { updateControls(); renderSample(); }).catch(report);
 monitorFrame = requestAnimationFrame(drawOutput);
 window.addEventListener('pagehide',event => {

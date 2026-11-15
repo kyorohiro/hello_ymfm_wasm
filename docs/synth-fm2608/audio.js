@@ -339,6 +339,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     return readPreset(result);
   }
   function setMasterVolume(value) { checkVolume(value); assertOpen(); outputNode.gain.value = value; }
+  function setOutputGains(value) { assertOpen(); return runtime.setOutputGains(value); }
   async function dispose() {
     if (closing) return closing;
     disposed = true; sampleEpoch++; gateEpoch++; held.clear(); fade.dispose();
@@ -366,7 +367,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     await applyPreset(preset);
     runtime.node?.addEventListener?.('processorerror',() => { report(new Error('OPNA audio processor failed. Enable audio to restart.')); void dispose(); });
     return {context,outputNode,codeInputNode,codeOutputNode:codeFadeNode,codeFadeNode,
-      getChip() { assertOpen(); return chip; },getPreset:() => readPreset(preset),applyPreset,setMasterVolume,
+      getChip() { assertOpen(); return chip; },getPreset:() => readPreset(preset),applyPreset,setMasterVolume,setOutputGains,
       noteOn,noteOff,setPitch,stopAll,loadAudio,setWave,
       getRegisterState() { assertOpen(); return monitor.registers.map(registers => Array.from(registers)); },
       getFmState() { assertOpen(); return monitor.getFmState(); },

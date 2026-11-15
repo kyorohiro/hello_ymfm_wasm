@@ -7,6 +7,26 @@
 export const YM2608_CLOCK = 8000000;
 export const YM2608_ADPCM_B_MEMORY_SIZE = 0x200000;
 
+/** @typedef {{fm:number,ssg:number}} Ym2608OutputGains */
+/** @typedef {{fm?:number,ssg?:number}} Ym2608OutputGainPatch */
+
+/** Validate host-side output gains before changing either bus.
+ * FM includes the chip's already combined Rhythm and ADPCM-B outputs.
+ * @param {Ym2608OutputGainPatch} gains Partial linear gains, each 0..1024.
+ * @param {Ym2608OutputGains} [current] Previously accepted gains.
+ * @returns {Ym2608OutputGains} Detached validated gains.
+ */
+export function normalizeYm2608OutputGains(gains, current = {fm:1,ssg:1}) {
+  if (!gains || typeof gains !== 'object' || Array.isArray(gains)) throw new TypeError('YM2608 output gains must be an object');
+  const next = {...current};
+  for (const [bus,value] of Object.entries(gains)) {
+    if (bus !== 'fm' && bus !== 'ssg') throw new TypeError('Unknown YM2608 output bus ' + bus);
+    if (!Number.isFinite(value) || value < 0 || value > 1024) throw new RangeError('YM2608 output gains must be finite values from 0 to 1024');
+    next[bus] = value;
+  }
+  return next;
+}
+
 /**
  * Ym2608 chip instance backed by WASM. No AudioContext or playback device is created.
  * Use create() to initialize and dispose() to release native resources.
@@ -33,6 +53,7 @@ export class Ym2608 {
     this.leftPtr = 0;
     this.rightPtr = 0;
     this.bufferFrames = 0;
+    this.outputGains = {fm:1,ssg:1};
   }
 
   /**
@@ -64,6 +85,7 @@ export class Ym2608 {
       loadAdpcmBMemory: optionalCwrap(module, "ym2608_load_adpcm_b_memory", null, ["number", "number", "number", "number"]),
       clearAdpcmBMemory: optionalCwrap(module, "ym2608_clear_adpcm_b_memory", null, ["number"]),
       setSourceMuteMask: optionalCwrap(module, "ym2608_set_source_mute_mask", null, ["number", "number"]),
+      setOutputGains: optionalCwrap(module, "ym2608_set_output_gains", "number", ["number", "number", "number"]),
       generate: module.cwrap("ym2608_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -83,7 +105,9 @@ export class Ym2608 {
     try {
       this.module._ym2608_save_state(this.handle, ptr);
       const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
-      const state = Object.freeze({byteLength: size}); this.#states.set(state, bytes); return state;
+      const state = Object.freeze({byteLength: size});
+      this.#states.set(state, {bytes,outputGains:this.getOutputGains()});
+      return state;
     } finally { this.module._free(ptr); }
   }
   /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
@@ -93,11 +117,12 @@ export class Ym2608 {
   /** @param {Readonly<{byteLength:number}>} state Snapshot returned by this instance. */
   loadState(state) {
     this.validateState(state);
-    const bytes = this.#states.get(state), ptr = this.module._malloc(bytes.length);
+    const saved = this.#states.get(state), bytes = saved.bytes, ptr = this.module._malloc(bytes.length);
     if (!ptr) throw new Error('State allocation failed');
     try {
       new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
       if (!this.module._ym2608_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
+      this.outputGains = {...saved.outputGains};
       this.#syncIrq();
     } finally { this.module._free(ptr); }
   }
@@ -296,6 +321,26 @@ export class Ym2608 {
     if (!this.api.setSourceMuteMask) throw new Error("Reload the generated YM2608 WASM runtime to use source mute controls.");
     this.api.setSourceMuteMask(this.handle, mask);
   }
+
+  /** Set host software gain before combining the FM-side stereo bus and SSG.
+   * The FM-side bus includes Rhythm and ADPCM-B. Gains survive reset and state restore.
+   * @param {Ym2608OutputGainPatch} gains Partial linear gain multipliers, each 0..1024.
+   * @returns {Ym2608OutputGains} Accepted output gains.
+   */
+  setOutputGains(gains) {
+    if (!this.handle) throw new Error('YM2608 chip is disposed');
+    const next = normalizeYm2608OutputGains(gains,this.outputGains);
+    if (this.api.setOutputGains) {
+      if (this.api.setOutputGains(this.handle,next.fm,next.ssg) !== 1) throw new Error('YM2608 output gains were rejected by the native runtime');
+    } else if (next.fm !== 1 || next.ssg !== 1) {
+      throw new Error('Reload the generated YM2608 WASM runtime to use output gains.');
+    }
+    this.outputGains = next;
+    return this.getOutputGains();
+  }
+
+  /** @returns {Ym2608OutputGains} Detached linear output gain multipliers. */
+  getOutputGains() { return {...this.outputGains}; }
 
   /**
    * Generate PCM synchronously, advancing the chip by the requested number of frames.

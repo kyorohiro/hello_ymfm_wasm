@@ -3,6 +3,7 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {parseVgmMetadata} from '../js/vgm_file.js';
 import {looksLikeS98,convertS98ToVgm} from '../js/s98_file.js';
+import {convertYm2203VgmToYm2608,readYm2203CompatibilityExtraHeader} from './song_compatibility.js';
 
 export const MAX_FM2608_SONG_BYTES = 64 * 1024 * 1024;
 const MAX_SAMPLES = 44100 * 3600;
@@ -60,28 +61,39 @@ export async function prepareFm2608SongSource(source,{signal,yieldTask=later} = 
     sourceHeader = converted.sourceHeader; bytes = new Uint8Array(converted.buffer);
   }
   check(signal);
-  if (bytes.length < 0x4c) throw new Error('Truncated VGM header: a YM2608 clock is required');
+  if (bytes.length < 0x48) throw new Error('Truncated VGM header: a YM2608 or YM2203 clock is required');
   let view = new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
   const eof = view.getUint32(4,true);
-  if (eof && (eof + 4 > bytes.length || eof + 4 < 0x4c)) throw new Error('Invalid VGM file size');
+  if (eof && (eof + 4 > bytes.length || eof + 4 < 0x48)) throw new Error('Invalid VGM file size');
   if (eof && eof + 4 < bytes.length) {bytes = bytes.slice(0,eof + 4); view = new DataView(bytes.buffer);}
-  const parser = new Ym2612VGM(bytes,{logger:{warn:message => {throw new Error(message);}}});
-  const header = parser.header;
+  let parser = new Ym2612VGM(bytes,{logger:{warn:message => {throw new Error(message);}}});
+  let header = parser.header;
   if (header.version < 0x151 || header.version > 0x172) throw new Error('OPNA reference playback supports VGM 1.51–1.72');
-  if (header.dataOffset < 0x4c || header.dataOffset >= bytes.length) throw new Error('Invalid OPNA VGM data offset');
-  if (!header.ym2608Clock) throw new Error('This song contains no YM2608 chip');
-  if (header.ym2608Clock & 0xc0000000) throw new Error('OPNA reference playback supports one YM2608; dual and variant chips are unsupported');
-  if (header.ym2608Clock > 24000000) throw new RangeError('YM2608 clock exceeds the 24 MHz render budget');
-  const others = CLOCKS.filter(([offset]) => offset + 4 <= header.dataOffset && offset + 4 <= bytes.length && view.getUint32(offset,true)).map(([,name]) => name);
-  if (others.length) throw new Error(`OPNA reference playback supports one YM2608. Unsupported chip: ${others.join(', ')}`);
-  if (header.dataOffset >= 0xc0 && view.getUint32(0xbc,true)) throw new Error('OPNA reference playback does not support VGM extra clock/volume headers');
+  const sourceChip = header.ym2203Clock && !header.ym2608Clock ? 'ym2203' : 'ym2608';
+  const sourceClock = sourceChip === 'ym2203' ? header.ym2203Clock : header.ym2608Clock;
+  if (header.dataOffset < (sourceChip === 'ym2203' ? 0x48 : 0x4c) || header.dataOffset >= bytes.length) throw new Error('Invalid OPN VGM data offset');
+  if (!sourceClock) throw new Error('This song contains no YM2608 or YM2203 chip');
+  if (sourceClock & 0xc0000000) throw new Error('OPNA reference playback supports a single YM2608 or YM2203; dual and variant chips are unsupported');
+  if (sourceClock > (sourceChip === 'ym2203' ? 12000000 : 24000000)) throw new RangeError('YM2608 playback clock exceeds the 24 MHz render budget');
+  const extraHeader = readYm2203CompatibilityExtraHeader(bytes,header);
+  const clockHeaderEnd = extraHeader?.mainHeaderEnd ?? header.dataOffset;
+  const others = CLOCKS.filter(([offset]) => !(sourceChip === 'ym2203' && offset === 0x44) && offset + 4 <= clockHeaderEnd && offset + 4 <= bytes.length && view.getUint32(offset,true)).map(([,name]) => name);
+  if (others.length) throw new Error(`OPNA reference playback supports one YM2608 or a compatible YM2203. Unsupported chip: ${others.join(', ')}`);
+  const metadata = parseVgmMetadata(bytes);
+  let compatibility = null;
+  if (sourceChip === 'ym2203') {
+    const converted = await convertYm2203VgmToYm2608(bytes,{signal,yieldTask});
+    bytes = converted.bytes; compatibility = converted.compatibility;
+    parser = new Ym2612VGM(bytes,{logger:{warn:message => {throw new Error(message);}}}); header = parser.header;
+  }
 
   let commands = 0, totalSamples = 0, burst = 0, writes = 0, ended = false, memoryBytes = 0, usesRhythm = false;
+  const compatibilityPrologue = compatibility ? 5 : 0;
   while (parser.position < bytes.length && !parser.ended) {
     check(signal);
     const position = parser.position, command = bytes[position];
-    if (++commands > 4000000) throw new RangeError('Song exceeds four million commands');
-    if (++burst > 65536) throw new RangeError('Song exceeds 65536 commands without positive time progress');
+    if (++commands > 4000000 + compatibilityPrologue) throw new RangeError('Song exceeds four million commands');
+    if (++burst > 65536 + compatibilityPrologue) throw new RangeError('Song exceeds 65536 commands without positive time progress');
     if (![0x56,0x57,0x61,0x62,0x63,0x66,0x67].includes(command) && !(command >= 0x70 && command <= 0x7f)) {
       throw new Error(`OPNA reference playback does not support VGM command 0x${command.toString(16).padStart(2,'0')}`);
     }
@@ -108,7 +120,7 @@ export async function prepareFm2608SongSource(source,{signal,yieldTask=later} = 
   check(signal);
   if (!ended) throw new Error('Song command stream has no end command');
   if (!writes || !totalSamples) throw new Error('Song contains no timed YM2608 audio');
-  return {bytes,header,totalSamples,format,sourceHeader,metadata:parseVgmMetadata(bytes),
-    warnings:[...(header.loopOffset ? ['Reference playback plays this song once; its loop is not repeated.'] : []),
+  return {bytes,header,totalSamples,format,sourceHeader,metadata,sourceChip,sourceClock,compatibility,extraHeader,
+    warnings:[...(compatibility ? [compatibility.warning] : []),...(compatibility?.extraVolumeWarning ? [compatibility.extraVolumeWarning] : []),...(header.loopOffset ? ['Reference playback plays this song once; its loop is not repeated.'] : []),
       ...(usesRhythm ? ['Rhythm uses Tetorica’s original demonstration ROM; its percussion differs from the hardware ROM.'] : [])]};
 }

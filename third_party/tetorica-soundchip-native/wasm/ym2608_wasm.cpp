@@ -1,4 +1,5 @@
 #include "opn_state.h"
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -39,6 +40,8 @@ struct ym2608_handle
     ym2608_wasm_interface intf;
     ymfm::ym2608 chip;
     uint32_t source_mute_mask = 0;
+    float fm_gain = 1.0f;
+    float ssg_gain = 1.0f;
 
     ym2608_handle() : intf(), chip(intf)
     {
@@ -58,6 +61,20 @@ inline float normalize_sample(int32_t value)
     if (value > 32767)
         value = 32767;
     return static_cast<float>(value) / 32768.0f;
+}
+
+inline bool valid_output_gain(float gain)
+{
+    return std::isfinite(gain) && gain >= 0.0f && gain <= 1024.0f;
+}
+
+inline float normalize_mixed_sample(float value)
+{
+    if (value < -32768.0f)
+        value = -32768.0f;
+    if (value > 32767.0f)
+        value = 32767.0f;
+    return value / 32768.0f;
 }
 
 } // namespace
@@ -147,6 +164,18 @@ void ym2608_set_source_mute_mask(void *ptr, uint32_t mask)
     handle->chip.set_adpcm_mute((mask & 2) != 0, (mask & 4) != 0);
 }
 
+// Host mixing controls leave the chip's registers, clocks and envelopes intact.
+// The FM-side bus also contains the core's Rhythm and ADPCM-B stereo output.
+int ym2608_set_output_gains(void *ptr, float fm_gain, float ssg_gain)
+{
+    if (!ptr || !valid_output_gain(fm_gain) || !valid_output_gain(ssg_gain))
+        return 0;
+    auto *handle = cast_handle(ptr);
+    handle->fm_gain = fm_gain;
+    handle->ssg_gain = ssg_gain;
+    return 1;
+}
+
 void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
 {
     auto *handle = cast_handle(ptr);
@@ -157,19 +186,41 @@ void ym2608_generate(void *ptr, float *left, float *right, uint32_t frames)
         handle->intf.advance_sample(handle->chip);
         // Match examples/vgmrender: SSG is a separate mono output.
         const int32_t ssg = (handle->source_mute_mask & 1) ? 0 : output.data[2];
-        left[index] = normalize_sample(output.data[0] + ssg);
-        right[index] = normalize_sample(output.data[1] + ssg);
+        if (handle->fm_gain == 1.0f && handle->ssg_gain == 1.0f)
+        {
+            left[index] = normalize_sample(output.data[0] + ssg);
+            right[index] = normalize_sample(output.data[1] + ssg);
+        }
+        else
+        {
+            const float mixed_ssg = ssg * handle->ssg_gain;
+            left[index] = normalize_mixed_sample(output.data[0] * handle->fm_gain + mixed_ssg);
+            right[index] = normalize_mixed_sample(output.data[1] * handle->fm_gain + mixed_ssg);
+        }
     }
 }
 
 
 uint32_t ym2608_save_state(void *ptr, uint8_t *out) {
     auto *h = cast_handle(ptr);
-    return save_opn_state(h->chip, h->intf, {&h->source_mute_mask}, {&h->intf.adpcm_a_rom, &h->intf.adpcm_b_memory}, out);
+    const uint32_t size = save_opn_state(h->chip, h->intf, {&h->source_mute_mask}, {&h->intf.adpcm_a_rom, &h->intf.adpcm_b_memory}, out);
+    if (out) {
+        std::memcpy(out + size, &h->fm_gain, sizeof(float));
+        std::memcpy(out + size + sizeof(float), &h->ssg_gain, sizeof(float));
+    }
+    return size + 2 * sizeof(float);
 }
 int ym2608_load_state(void *ptr, const uint8_t *data, uint32_t size) {
+    if (!ptr || !data || size < 2 * sizeof(float)) return 0;
+    const uint32_t chip_size = size - 2 * sizeof(float);
+    float fm_gain, ssg_gain;
+    std::memcpy(&fm_gain, data + chip_size, sizeof(float));
+    std::memcpy(&ssg_gain, data + chip_size + sizeof(float), sizeof(float));
+    if (!valid_output_gain(fm_gain) || !valid_output_gain(ssg_gain)) return 0;
     auto *h = cast_handle(ptr);
-    if (!load_opn_state(h->chip, h->intf, {&h->source_mute_mask}, {&h->intf.adpcm_a_rom, &h->intf.adpcm_b_memory}, data, size)) return 0;
+    if (!load_opn_state(h->chip, h->intf, {&h->source_mute_mask}, {&h->intf.adpcm_a_rom, &h->intf.adpcm_b_memory}, data, chip_size)) return 0;
+    h->fm_gain = fm_gain;
+    h->ssg_gain = ssg_gain;
     h->chip.set_adpcm_mute((h->source_mute_mask & 2) != 0, (h->source_mute_mask & 4) != 0);
     return 1;
 }

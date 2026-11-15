@@ -13,6 +13,7 @@ import {restoreMixerCalibrationRf5c164NoteRevision as restore,RF5C164_NOTE_REVIS
   RF5C164_NOTE_REVISION_RECEIPT_PATH as receiptPath,RF5C164_NOTE_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   RF5C164_NOTE_REVISION_SOURCE_PATHS as paths,RF5C164_NOTE_REVISION_REPORT_PATHS as reports} from './mixer_calibration_rf5c164_note_revision.mjs';
 import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationCompletionPresetImportRevision} from './mixer_calibration_sources.mjs';
+import {restoreMixerCalibrationYm2608OutputGainRevision} from './mixer_calibration_ym2608_output_gain_revision.mjs';
 import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
 import {sampleBytes} from '../tetorica_src/runtime/rf5c164_pcm.js';
 import {Rf5c164} from '../tetorica_src/runtime/rf5c164.js';
@@ -21,16 +22,20 @@ import factory from '../docs/generated/rf5c164_wasm.js';
 const read=path=>readFile(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(await read(receiptPath));
+const currentMeasurement=JSON.parse(await read('docs/issues/ps1_spc_voice_edit_chip_levels_01.json'));
 
 test('all 44 exact known after sources reconstruct complete pre-feature bodies and retain original reports/gains',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.equal(paths.length,44);assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths) {
-    const current=await read('docs/'+path),known=restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,current))),entry=receipt.sources[path];
+    const current=await read('docs/'+path);
+    const reviewed=restoreMixerCalibrationYm2608OutputGainRevision(path,current,{report:currentMeasurement,record:currentMeasurement.sources[path]});
+    const known=restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,reviewed))),entry=receipt.sources[path];
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     const before=restore(path,known);assert.notEqual(before,known,path);
     assert.equal(before.length,entry.before.bytes,path);assert.equal(sha(before),entry.before.sha256,path);
-    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:current,record:entry.before}),'rf5c164-note-api',path);
+    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:reviewed,record:entry.before}),'rf5c164-note-api',path);
+    if(reviewed!==current)assert.throws(()=>assertMixerCalibrationSourceFreshness({path,bytes:current,record:entry.before}),/remeasure/,'The old note review cannot authorize the newer output-gain API');
     assert.equal(restore(path,before),before,'already pre-feature bytes remain unchanged');
   }
   for(const path of reports) {
@@ -38,8 +43,8 @@ test('all 44 exact known after sources reconstruct complete pre-feature bodies a
     for(const [source,record]of Object.entries(report.sources)){
       const current=await read('docs/'+source);
       const validate=()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report});
-      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js'].includes(source))
-        assert.throws(validate,/source changed; remeasure:/,'SPC voice editing requires a separate current measurement');
+      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js','js/ym2608.js','js/ym2608synth.js'].includes(source))
+        assert.throws(validate,/source changed; remeasure:/,'New SPC and YM2608 APIs require separately scoped current evidence');
       else assert.doesNotThrow(validate,source);
     }
     assert.deepEqual(await read(path),bytes,'source validation cannot rewrite the measurement');
