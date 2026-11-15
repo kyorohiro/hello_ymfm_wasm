@@ -3,6 +3,9 @@ import {
 	createAswanCodeClient,
 	aswanCodeCancelled,
 	validateAswanCommand,
+	readAswanAuditionLoad,
+	validateAswanAuditionCall,
+	aswanAuditionCancelled,
 } from './code_endpoint.js';
 export const ASWAN_SYNTH_BALANCE = 1.172528;
 const DEADLINE = 15000;
@@ -32,6 +35,8 @@ export async function createAudio({ volume = 0.6, onError = () => {} } = {}) {
 		owner = null,
 		generation = 0,
 		stopping = null;
+	let auditionGeneration = 0,
+		auditionLease = null;
 	const startupFailure = new Promise((_, reject) => (rejectStartup = reject));
 	void startupFailure.catch(() => {});
 	const check = () => {
@@ -43,6 +48,8 @@ export async function createAudio({ volume = 0.6, onError = () => {} } = {}) {
 		closed = true;
 		generation++;
 		owner = null;
+		auditionGeneration++;
+		auditionLease = null;
 		controller.abort();
 		clearTimeout(startupTimer);
 		for (const request of pending.values()) {
@@ -151,6 +158,10 @@ export async function createAudio({ volume = 0.6, onError = () => {} } = {}) {
 				owner = null;
 				generation++;
 			}
+			if (method === 'stop' || method === 'beginCode') {
+				auditionGeneration++;
+				auditionLease = null;
+			}
 			const id = ++sequence;
 			return new Promise((resolve, reject) => {
 				const timer = setTimeout(
@@ -210,6 +221,64 @@ export async function createAudio({ volume = 0.6, onError = () => {} } = {}) {
 				}));
 			return result;
 		}
+		async function loadAudition(preset, options) {
+			check();
+			const prepared = readAswanAuditionLoad(preset, options),
+				lease = {
+					token: prepared.options.token,
+					generation: ++auditionGeneration,
+					promise: null,
+				};
+			auditionLease = lease;
+			const current = () =>
+				!closed &&
+				!fatal &&
+				auditionLease === lease &&
+				lease.generation === auditionGeneration;
+			lease.promise = command('loadAudition', [prepared.preset, prepared.options])
+				.then((result) => {
+					if (!current()) throw aswanAuditionCancelled();
+					return result;
+				})
+				.catch((error) => {
+					const stale = !current();
+					if (auditionLease === lease) auditionLease = null;
+					throw stale ? aswanAuditionCancelled() : error;
+				});
+			return lease.promise;
+		}
+		async function invokeAudition(token, method, args = []) {
+			check();
+			validateAswanAuditionCall(method, args);
+			const lease = auditionLease;
+			const valid = () =>
+				!closed &&
+				!fatal &&
+				lease &&
+				auditionLease === lease &&
+				lease.token === token &&
+				lease.generation === auditionGeneration;
+			if (!valid()) throw aswanAuditionCancelled();
+			await lease.promise;
+			if (!valid()) throw aswanAuditionCancelled();
+			try {
+				const result = await command('invokeAudition', [token, method, args]);
+				if (!valid()) throw aswanAuditionCancelled();
+				return result;
+			} catch (error) {
+				throw valid() ? error : aswanAuditionCancelled();
+			}
+		}
+		function stopAudition(token) {
+			check();
+			if (token !== undefined && (typeof token !== 'string' || !token.length))
+				throw new TypeError('Invalid audition token');
+			if (token !== undefined && auditionLease?.token !== token)
+				return Promise.resolve(false);
+			auditionGeneration++;
+			auditionLease = null;
+			return command('stopAudition', token === undefined ? [] : [token]);
+		}
 		return {
 			context,
 			outputNode: master,
@@ -221,6 +290,10 @@ export async function createAudio({ volume = 0.6, onError = () => {} } = {}) {
 			read: () => command('read'),
 			getAswanClient,
 			stopCode,
+			loadAudition,
+			invokeAudition,
+			stopAudition,
+			readAudition: (token) => invokeAudition(token, 'read', []),
 			dispose,
 			setChipVolume(value) {
 				check();

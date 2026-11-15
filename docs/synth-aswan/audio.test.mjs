@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAudio, ASWAN_SYNTH_BALANCE } from './audio.js';
+import { createDefaultPreset } from './preset.js';
 const turn = () => new Promise((resolve) => setImmediate(resolve));
 function setup(t) {
 	const saved = Object.fromEntries(
@@ -77,7 +78,9 @@ function setup(t) {
 													clock: 3072000,
 													channels: 4,
 												}
-											: true,
+											: message.method === 'loadAudition'
+												? { token: message.args[1].token, state: {} }
+												: true,
 								},
 							}),
 						);
@@ -175,4 +178,54 @@ test('ASWAN processor failure invalidates clients, rejects pending RPCs and clos
 	assert(f.worklets[0].closed);
 	assert.throws(() => client.getState(), { name: 'AbortError' });
 	await audio.dispose();
+});
+test('private audition facade shares Context / processor and fences pending load, ABA selections and stale Stop', async (t) => {
+	const f = setup(t),
+		audio = await createAudio(),
+		preset = createDefaultPreset();
+	t.after(() => audio.dispose());
+	const a = await audio.loadAudition(preset, { token: 'A', channel: 2, frequencyHz: 750 });
+	assert.equal(a.token, 'A');
+	await audio.invokeAudition('A', 'noteOn', ['key', 60]);
+	assert.equal(f.contexts.length, 1);
+	assert.equal(f.worklets.length, 1);
+	const invalid = { ...preset, source: 'pcm' };
+	await assert.rejects(
+		audio.loadAudition(invalid, { token: 'invalid', channel: 1 }),
+		/frozen Voice/,
+	);
+	await audio.invokeAudition('A', 'read', []);
+	f.hold = 'loadAudition';
+	const pending = audio.loadAudition(preset, { token: 'B', channel: 0 }),
+		rejected = assert.rejects(pending, { name: 'AbortError' });
+	await turn();
+	const stopped = audio.stopAudition('B');
+	f.release();
+	await rejected;
+	await stopped;
+	await assert.rejects(audio.invokeAudition('B', 'noteOn', ['old', 60]), { name: 'AbortError' });
+	await audio.loadAudition(preset, { token: 'new-A', channel: 0 });
+	assert.equal(await audio.stopAudition('A'), false);
+	await audio.invokeAudition('new-A', 'noteOn', ['new', 60]);
+	const before = f.messages.length;
+	await audio.getAswanClient();
+	await assert.rejects(audio.invokeAudition('new-A', 'noteOff', ['new']), { name: 'AbortError' });
+	assert(f.messages.slice(before).some((message) => message.method === 'beginCode'));
+});
+test('a delayed audition edit reply cannot escape a newer load and global Stop clears its lease', async (t) => {
+	const f = setup(t),
+		audio = await createAudio(),
+		preset = createDefaultPreset();
+	t.after(() => audio.dispose());
+	await audio.loadAudition(preset, { token: 'old', channel: 0 });
+	f.hold = 'invokeAudition';
+	const pending = audio.invokeAudition('old', 'setPreset', [preset]),
+		rejected = assert.rejects(pending, { name: 'AbortError' });
+	await turn();
+	await audio.loadAudition(preset, { token: 'new', channel: 0 });
+	f.release();
+	await rejected;
+	await audio.invokeAudition('new', 'read', []);
+	await audio.command('stop');
+	await assert.rejects(audio.readAudition('new'), { name: 'AbortError' });
 });

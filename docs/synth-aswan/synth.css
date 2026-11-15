@@ -862,3 +862,14 @@ button[aria-pressed='true'],
 	background: #2d7098;
 	border-color: #79b7d8;
 }
+.aswan-reference {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 0.73rem;
+}
+.aswan-reference select {
+	min-height: 30px;
+	padding: 3px 6px;
+}

@@ -89,9 +89,15 @@ function installSilentAudit() {
 	};
 	MessagePort.prototype.postMessage = function (data, ...args) {
 		if (data?.method) audit.commands.push({ method: data.method, args: data.args });
+		if (data?.method === audit.holdNextMethod) {
+			audit.holdNextMethod = null;
+			audit.held = { port: this, data, args };
+			return;
+		}
+
 		return post.call(this, data, ...args);
 	};
-	audit.read = () =>
+	audit.request = (method, args = []) =>
 		new Promise((resolve, reject) => {
 			const node = audit.nodes.find((item) => item.name === 'tetorica-aswan-synth')?.node;
 			if (!node) return reject(Error('ASWAN Worklet missing'));
@@ -108,8 +114,23 @@ function installSilentAudit() {
 			}
 			node.port.addEventListener('message', receive);
 			node.port.start();
-			node.port.postMessage({ id, method: 'read', args: [] });
+			node.port.postMessage({ id, method, args });
 		});
+	audit.releaseHeld = () => {
+		const held = audit.held;
+		if (!held) return false;
+		audit.held = null;
+		post.call(held.port, held.data, ...held.args);
+		return true;
+	};
+	audit.read = () => audit.request('read');
+	audit.audition = () => {
+		const token = audit.commands.filter((command) => command.method === 'loadAudition').at(-1)
+			?.args?.[1]?.token;
+		return token
+			? audit.request('readAudition', [token]).catch(() => null)
+			: Promise.resolve(null);
+	};
 	audit.graph = () => ({
 		contexts: audit.contexts.length,
 		destinations: audit.meters.length,
@@ -179,6 +200,30 @@ async function check(browser, engine, origin, fixture) {
 			'held keyboard voice',
 		);
 		return letter;
+	}
+	const audition = () => page.evaluate(() => __aswanAudit.audition());
+	async function previewKey(note = 'C4') {
+		await page.evaluate(() => document.activeElement?.blur());
+		const letter = await page
+			.locator('#keyboard .key')
+			.filter({ hasText: new RegExp('\\b' + note + '\\b') })
+			.first()
+			.getAttribute('data-key');
+		assert(letter);
+		await page.keyboard.down(letter);
+		await until(async () => {
+			const state = await audition();
+			return state?.voices.some((voice) => !voice.released);
+		}, 'paused independent voice held');
+		return letter;
+	}
+	async function releasePreview(letter) {
+		await page.keyboard.up(letter);
+		await until(async () => {
+			const state = await audition();
+			return !state || !state.voices.some((voice) => !voice.released);
+		}, 'paused independent voice released');
+		await output(false);
 	}
 	async function release(letter) {
 		await page.keyboard.up(letter);
@@ -408,6 +453,210 @@ async function check(browser, engine, origin, fixture) {
 		let frozen = await page.locator('#aswanSongSeek').inputValue();
 		await wait(150);
 		assert.equal(await page.locator('#aswanSongSeek').inputValue(), frozen);
+		step('queued paused edits do not revive after CH1→CH2→CH1');
+		const revisionBeforeAba = Number(
+			await page.locator('#aswanChannelControls').getAttribute('data-manual-revision'),
+		);
+		await channel('auto');
+		await page.evaluate(() => {
+			__aswanAudit.holdNextMethod = 'setPitch';
+			const input = document.getElementById('pitchBend');
+			input.value = '.25';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		await until(
+			() => page.evaluate(() => Boolean(__aswanAudit.held)),
+			'native command deliberately held before root queue',
+		);
+		await channel(0);
+		await page.click('[data-stepper-for="volumeLeft"][data-stepper-delta="-1"]');
+		await channel(1);
+		await channel(0);
+		await page.click('[data-shape="triangle"]');
+		await page.evaluate(() => __aswanAudit.releaseHeld());
+		await until(
+			async () =>
+				Number(
+					await page
+						.locator('#aswanChannelControls')
+						.getAttribute('data-manual-revision'),
+				) >=
+				revisionBeforeAba + 1,
+			'current-generation wave edit drains the queued work',
+		);
+		assert.equal(
+			Number(
+				await page.locator('#aswanChannelControls').getAttribute('data-manual-revision'),
+			),
+			revisionBeforeAba + 1,
+			'only the fresh edit writes, not the stale pre-ABA volume',
+		);
+		assert.equal(
+			await page.locator('#volumeLeft').getAttribute('aria-valuenow'),
+			'15',
+			'stale queued volume remains uncommitted',
+		);
+		checks.push(
+			'Holding a native ACK then switching CH1→CH2→CH1 cancels the stale queued hardware edit; a fresh edit still commits exactly once',
+		);
+		step(
+			'paused selected-channel keyboard and same-voice parameter edits preserve Auto and song position',
+		);
+		assert(
+			!(await page.locator('[data-shape="saw"]').isDisabled()),
+			'eligible paused Wave is editable',
+		);
+		const authorBeforePreview = await state();
+		const baseFrequency = Number(
+			(await page.locator('#aswanChannelStatus').textContent()).match(
+				/(?:base|=) ([0-9.]+) Hz/,
+			)?.[1],
+		);
+		assert(baseFrequency > 0);
+		letter = await previewKey('C4');
+		let preview = await audition();
+		const firstToken = preview.audition.token;
+		assert.equal(preview.audition.channel, 0);
+		assert(
+			Math.abs(preview.channels[0].frequency - baseFrequency) < baseFrequency * 0.005,
+			'C4 uses the frozen hardware frequency',
+		);
+		assert.equal(
+			(await state()).voices.length,
+			0,
+			'paused keys do not start the author instrument',
+		);
+		await output();
+		const revisionBefore = Number(
+			await page.locator('#aswanChannelControls').getAttribute('data-manual-revision'),
+		);
+		await page.click('[data-shape="saw"]');
+		await until(async () => {
+			const value = await audition();
+			return value?.channels[0].preset.wave[0] === 0;
+		}, 'held preview Wave RAM edited');
+		assert.equal(
+			(await audition()).audition.token,
+			firstToken,
+			'same target edit keeps the preview lease',
+		);
+		assert(
+			(await audition()).voices.some((voice) => !voice.released),
+			'same target edit keeps the held key',
+		);
+		await page.click('[data-stepper-for="volumeLeft"][data-stepper-delta="-1"]');
+		await until(async () => {
+			const value = await audition();
+			return value?.preset.left === 14;
+		}, 'paused hardware volume edit reaches preview');
+		assert(
+			Number(
+				await page.locator('#aswanChannelControls').getAttribute('data-manual-revision'),
+			) > revisionBefore,
+			'song receives the sparse hardware edit',
+		);
+		const hardwareRevision = Number(
+			await page.locator('#aswanChannelControls').getAttribute('data-manual-revision'),
+		);
+		assert(
+			await page.locator('#envelopeEnabled').isChecked(),
+			'paused preview enables its own software release',
+		);
+		await page.uncheck('#envelopeEnabled');
+		await until(
+			async () => !(await audition())?.preset.envelope.enabled,
+			'preview-only envelope edit',
+		);
+		assert.equal(
+			Number(
+				await page.locator('#aswanChannelControls').getAttribute('data-manual-revision'),
+			),
+			hardwareRevision,
+			'software Envelope does not create a VGM hardware write',
+		);
+		await page.check('#envelopeEnabled');
+		await until(
+			async () => (await audition())?.preset.envelope.enabled,
+			'preview Envelope restored',
+		);
+		assert.deepEqual(
+			(await state()).preset,
+			authorBeforePreview.preset,
+			'selected song edit keeps Auto',
+		);
+		assert.equal(await page.locator('#aswanSongSeek').inputValue(), frozen);
+		await releasePreview(letter);
+		await channel(1);
+		await channel(0);
+		assert.equal(
+			await page.locator('#volumeLeft').getAttribute('aria-valuenow'),
+			'14',
+			'paused CH edits survive switching',
+		);
+		letter = await previewKey('C4');
+		preview = await audition();
+		assert.notEqual(preview.audition.token, firstToken);
+		assert.equal(preview.preset.left, 14);
+		assert.equal(preview.preset.wave[0], 0);
+		await page.selectOption('#aswanReferenceKey', '72');
+		await until(
+			async () => !(await audition()),
+			'reference change retires the old held preview',
+		);
+		await page.keyboard.up(letter);
+		await output(false);
+		letter = await previewKey('C4');
+		preview = await audition();
+		assert.equal(preview.audition.referenceMidi, 72);
+		assert(
+			Math.abs(preview.channels[0].frequency - baseFrequency / 2) < baseFrequency * 0.005,
+			'C4 is one octave below the chosen Reference C5',
+		);
+		await releasePreview(letter);
+		await page.selectOption('#aswanReferenceKey', '60');
+		letter = await previewKey('C4');
+
+		await channel(1);
+		await until(
+			async () => !(await audition()),
+			'changing the selected CH retires the old audition',
+		);
+		await page.keyboard.up(letter);
+		await output(false);
+		await channel(0);
+		letter = await previewKey('C4');
+		await output();
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await until(
+			() =>
+				page
+					.locator('#aswanSongPlayer')
+					.getAttribute('data-state')
+					.then((value) => value === 'playing'),
+			'Resume retires the audition',
+		);
+		await until(async () => !(await audition()), 'no audition survives Resume');
+		await page.keyboard.up(letter);
+		await output();
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await until(
+			() =>
+				page
+					.locator('#aswanSongPlayer')
+					.getAttribute('data-state')
+					.then((value) => value === 'paused'),
+			'edited song pauses again',
+		);
+		assert.equal(
+			await page.locator('#volumeLeft').getAttribute('aria-valuenow'),
+			'14',
+			'resumed native song retains edits until a driver write',
+		);
+		await output(false);
+		frozen = await page.locator('#aswanSongSeek').inputValue();
+		checks.push(
+			'Paused C4 auditions selected physical CH on an independent handle in the same Worklet; held edits retain its token, sparse song edits survive CH switching/Resume, Auto is unchanged and Resume retires preview',
+		);
 		await importVgm('original-b.vgm', fixture.b);
 		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'), 'paused');
 		assert.equal(await page.locator('#aswanSongSeek').inputValue(), frozen);
@@ -470,9 +719,17 @@ async function check(browser, engine, origin, fixture) {
 				page
 					.locator('#aswanChannelStatus')
 					.textContent()
-					.then((text) => /VGM CH2.*Gate On/.test(text)),
+					.then((text) => /Paused · CH2 keyboard audition/.test(text)),
 			'Live follows the seeked source',
 		);
+		letter = await previewKey('C4');
+		preview = await audition();
+		assert.equal(preview.audition.channel, 1);
+		assert(
+			Math.abs(preview.channels[1].frequency - 330) < 3,
+			'seeked B audition uses its physical CH2 frequency',
+		);
+		await releasePreview(letter);
 		frozen = await page.locator('#aswanSongSeek').inputValue();
 		checks.push(
 			'Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B',
@@ -525,7 +782,82 @@ async function check(browser, engine, origin, fixture) {
 		await output(false);
 		await page.click('#aswanChipTab');
 		checks.push(
-			'VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, physical readonly Live, Copy to Auto and per-channel mute work',
+			'VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing read-only Live, paused audition/editing, Copy to Auto and per-channel mute work',
+		);
+		step('paused hardware Sweep and Noise audition; transient DAC snapshots stay unavailable');
+		async function pauseFixture(name, bytes, ch) {
+			await importVgm(name, bytes);
+			await page.selectOption('#aswanSongSelect', '/vgm/' + name);
+			await page.click('#aswanSongPlayButton', { delay: 120 });
+			await until(
+				() =>
+					page
+						.locator('#aswanSongPlayer')
+						.getAttribute('data-state')
+						.then((value) => value === 'playing'),
+				'extra source starts',
+			);
+			await channel(ch);
+			await page.click('#aswanSongPlayButton', { delay: 120 });
+			await until(
+				() =>
+					page
+						.locator('#aswanSongPlayer')
+						.getAttribute('data-state')
+						.then((value) => value === 'paused'),
+				'extra source pauses',
+			);
+			await output(false);
+		}
+		await pauseFixture('sweep.vgm', fixture.sweep, 2);
+		letter = await previewKey();
+		preview = await audition();
+		assert.equal(preview.audition.channel, 2);
+		assert(preview.channels[2].preset.sweep.enabled);
+		assert(preview.registers[16] & 64);
+		await output();
+		await releasePreview(letter);
+		await pauseFixture('noise.vgm', fixture.noise, 3);
+		letter = await previewKey();
+		preview = await audition();
+		assert.equal(preview.audition.channel, 3);
+		assert.equal(preview.channels[3].preset.source, 'noise');
+		assert(preview.registers[16] & 128);
+		await output();
+		await releasePreview(letter);
+		await pauseFixture('voice.vgm', fixture.voice, 1);
+		assert(
+			await page.locator('#aswanCaptureButton').isDisabled(),
+			'transient DAC cannot be captured as a fictitious sample',
+		);
+		const loadsBefore = await page.evaluate(
+			() =>
+				__aswanAudit.commands.filter((command) => command.method === 'loadAudition').length,
+		);
+		await page.evaluate(() => document.activeElement?.blur());
+		const unsupportedLetter = await page
+			.locator('#keyboard .key')
+			.filter({ hasText: /\bC4\b/ })
+			.first()
+			.getAttribute('data-key');
+		await page.keyboard.down(unsupportedLetter);
+		await wait(200);
+		await page.keyboard.up(unsupportedLetter);
+		assert.equal(
+			await page.evaluate(
+				() =>
+					__aswanAudit.commands.filter((command) => command.method === 'loadAudition')
+						.length,
+			),
+			loadsBefore,
+			'no default PCM stream is substituted',
+		);
+		assert.equal((await state()).voices.length, 0);
+		await output(false);
+		await page.click('#aswanSongStopButton');
+		await channel('auto');
+		checks.push(
+			'Frozen hardware Sweep uses CH3 and Noise uses CH4 on the private preview; transient Voice DAC state never becomes a default PCM sample or author note',
 		);
 		for (const width of [1240, 390]) {
 			await page.setViewportSize({ width, height: 1000 });
@@ -609,6 +941,9 @@ const server = http.createServer(async (request, response) => {
 	const fixture = {
 		a: createWonderSwanVgm({ seconds: 3, loop: false }),
 		b: createWonderSwanVgm({ channel: 1, seconds: 3, loop: false }),
+		sweep: createWonderSwanVgm({ mode: 'sweep', seconds: 3, loop: false }),
+		noise: createWonderSwanVgm({ mode: 'noise', seconds: 3, loop: false }),
+		voice: createWonderSwanVgm({ mode: 'voice', seconds: 3, loop: false }),
 	};
 	let failure = null;
 	try {

@@ -664,6 +664,7 @@ export function createEditor({
 			const source = button.dataset.choiceValue;
 			button.disabled =
 				view.readOnly ||
+				(view.paused && (source === 'pcm' || (source === 'wave' && !view.waveKnown))) ||
 				(view.channel !== null &&
 					((source === 'noise' && view.channel !== 3) ||
 						(source === 'pcm' && view.channel !== 1)));
@@ -681,14 +682,16 @@ export function createEditor({
 			? `${length.toLocaleString()} samples · ${(length / preset.pcm.sampleRate).toFixed(2)} s · unsigned 8-bit`
 			: 'No PCM loaded. Load audio, then play the keyboard.';
 		hint.textContent = view.readOnly
-			? 'Live VGM observation · Copy to Auto to edit.'
-			: preset.source === 'noise'
-				? 'Hardware CH4 · one Noise voice.'
-				: preset.source === 'pcm'
-					? 'CH2 Voice DAC · software sample playback.'
-					: preset.sweep.enabled
-						? 'Hardware Sweep · CH3 · one voice.'
-						: '32 samples · 4-bit wave RAM · four voices in Auto.';
+			? 'VGM observation · Pause a complete Wave, Sweep or Noise channel to audition and edit it.'
+			: view.paused
+				? 'Paused VGM · keyboard audition uses this CH. Hardware edits carry into Resume; Software Envelope is preview-only.'
+				: preset.source === 'noise'
+					? 'Hardware CH4 · one Noise voice.'
+					: preset.source === 'pcm'
+						? 'CH2 Voice DAC · software sample playback.'
+						: preset.sweep.enabled
+							? 'Hardware Sweep · CH3 · one voice.'
+							: '32 samples · 4-bit wave RAM · four voices in Auto.';
 		draw();
 	}
 	render();

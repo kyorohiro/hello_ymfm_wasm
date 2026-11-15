@@ -6,6 +6,7 @@ import {
 } from '../js/wonderswan_timeline.js';
 import factory from '../generated/wonderswan_wasm.js';
 import { readAswanVgm } from './vgm_import.js';
+import { aswanSongVoiceChanges } from './song_voice_edits.js';
 
 export async function prepareAswanSongSource(bytes, options = {}) {
 	const source = await readAswanVgm(bytes, options),
@@ -146,6 +147,40 @@ export async function createAswanSongEngine(source, { moduleFactory = factory, w
 				observation:
 					'sent/reset registers and written Wave RAM; oscillator/sweep phase is not observed',
 			};
+		},
+		/** Apply only changed hardware fields at the current rendered-ahead frame.
+		 * No reset, key-on, period write or PCM-buffer invalidation occurs. */
+		editVoice(channel, before, next) {
+			open();
+			const changes = aswanSongVoiceChanges(channel, before, next),
+				r = engine.registers;
+			if (channel === 1 && r[16] & 32)
+				throw new Error(
+					'The rendered-ahead CH2 is Voice PCM; song sample editing is unavailable',
+				);
+			const write = (index, mask, value) =>
+				apply(0, 0x80 + index, (r[index] & ~mask) | (value & mask));
+			if (Object.hasOwn(changes, 'left')) write(8 + channel, 0xf0, changes.left << 4);
+			if (Object.hasOwn(changes, 'right')) write(8 + channel, 15, changes.right);
+			if (Object.hasOwn(changes, 'sweepStep')) write(12, 255, changes.sweepStep & 255);
+			if (Object.hasOwn(changes, 'sweepTime')) write(13, 31, changes.sweepTime);
+			if (Object.hasOwn(changes, 'sweepEnabled'))
+				write(16, 64, changes.sweepEnabled ? 64 : 0);
+			if (Object.hasOwn(changes, 'noiseType')) write(14, 7, changes.noiseType);
+			if (changes.source === 'noise') {
+				write(14, 16, 16);
+				write(16, 128, 128);
+			} else if (changes.source === 'wave') write(16, 128, 0);
+			if (changes.wave) {
+				const base = ((r[15] << 6) + channel * 16) & 0x3fff;
+				for (let index = 0; index < 16; index++)
+					apply(
+						1,
+						base + index,
+						changes.wave[index * 2] | (changes.wave[index * 2 + 1] << 4),
+					);
+			}
+			return { nativeFrame: frame, changes };
 		},
 		setChannelMuted(channel, muted) {
 			open();

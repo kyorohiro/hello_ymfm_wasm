@@ -167,10 +167,15 @@
 										Import from Menu or Files. VGM reference playback and Code
 										run one at a time. Pause preserves the heard position;
 										Resume continues it. Choose a CH and enable Auto update to
-										observe the recorded hardware settings. Copy to Auto takes
-										the observed sound into your editable instrument. The first
-										version plays a single WonderSwan chip once; unsupported
-										chips, HyperVoice and DMA are reported.
+										observe the recorded hardware settings. Pause and select a
+										complete Wave, Sweep or Noise CH to play it on the keyboard
+										and edit its controls. Reference key C4 matches its recorded
+										base frequency. Resume keeps the same song position; already
+										generated audio plays first, then the edits take effect.
+										Later VGM writes can replace edited hardware settings. Copy
+										to Auto takes the edited sound into your instrument. The
+										first version plays a single WonderSwan chip once;
+										unsupported chips, HyperVoice and DMA are reported.
 									</p>
 								</details>
 							</div>
@@ -302,6 +307,18 @@
 								<label
 									><input id="aswanLiveEnabled" type="checkbox" checked />Auto
 									update</label
+								><label id="aswanReferenceControl" class="aswan-reference" hidden
+									>Reference key
+									<select
+										id="aswanReferenceKey"
+										aria-label="Audition reference key"
+									>
+										<option value="36">C2</option>
+										<option value="48">C3</option>
+										<option value="60" selected>C4</option>
+										<option value="72">C5</option>
+										<option value="84">C6</option>
+									</select> </label
 								><button id="aswanCaptureButton" type="button" disabled>
 									Copy to Auto</button
 								><button id="aswanSaveSelectedPreset" type="button">
@@ -316,8 +333,19 @@
 										display, editing and keyboard input. Selecting a tab does
 										not copy its settings to other channels. Code and keys share
 										one chip; the most recent note owns its gate. During VGM
-										playback, Auto update follows the recorded CH; copy it to
-										Auto to edit and audition independently.
+										playback, Auto update follows the recorded CH. While paused,
+										keyboard audition uses a private voice on this same audio
+										output, preserving Auto and the song position. Edits stay on
+										each CH until Resume or Seek. Hardware edits carry into
+										Resume; Software Envelope only shapes the audition and saved
+										preset. Its short default release avoids a hard keyboard
+										gate. Wave/Sweep phases restart on audition notes; elapsed
+										hardware phase is not captured. Keys transpose the recorded
+										base frequency relative to Reference key, clamped to the
+										hardware range. A transient PCM DAC byte or unknown Wave RAM
+										is unavailable for audition; import complete PCM samples
+										through Sounds from VGM. This first preview supports the
+										normal 3072000 Hz WonderSwan clock.
 									</p>
 								</details>
 							</div>

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createAswanSongEngine, prepareAswanSongSource } from './song_engine.js';
+import { aswanSongLiveView } from './song_live.js';
+import { AswanSongEditJournal } from './song_voice_edits.js';
 
 const RATE = 44100,
 	CHUNK = 256,
@@ -41,7 +43,12 @@ export function createAswanSongPlayer({
 		liveEnabled = true,
 		liveState = null,
 		volume = 1;
+	let editSequence = 0;
 	const enabled = Array(4).fill(true);
+	const getEditSession = () =>
+		active && !loading && !seeking && ['playing', 'paused'].includes(playback)
+			? active.editSession
+			: null;
 	const open = () => {
 		if (disposed) throw new Error('ASWAN song player is disposed');
 	};
@@ -70,7 +77,9 @@ export function createAswanSongPlayer({
 		let index = 0;
 		while (index + 1 < active.history.length && active.history[index + 1].frame <= frame)
 			index++;
-		if (force || liveEnabled || !liveState) liveState = structuredClone(active.history[index]);
+		if (playback === 'playing') active.edits.prune(active.history[index].frame);
+		if (force || liveEnabled || !liveState)
+			liveState = active.edits.project(active.history[index]);
 		if (index) active.history.splice(0, index);
 	}
 	function getState() {
@@ -103,6 +112,8 @@ export function createAswanSongPlayer({
 			channelEnabled: [...enabled],
 			liveEnabled,
 			liveState,
+			editSession: getEditSession(),
+			manualRevision: active?.edits.revision ?? 0,
 			volume,
 			seeking: Boolean(seeking),
 			seekProgress: seeking?.progress ?? 0,
@@ -237,6 +248,8 @@ export function createAswanSongPlayer({
 				...output,
 				engine,
 				gain,
+				editSession: ++editSequence,
+				edits: new AswanSongEditJournal(),
 				history: [engine.snapshot()],
 				renderedFrames: 0,
 				basePosition: 0,
@@ -479,6 +492,34 @@ export function createAswanSongPlayer({
 			return false;
 		}
 	}
+	function editVoice(channel, before, next, { session = getEditSession() } = {}) {
+		open();
+		const run = active;
+		if (
+			!run ||
+			playback !== 'paused' ||
+			loading ||
+			seeking ||
+			session === null ||
+			session !== getEditSession()
+		)
+			throw aborted();
+		publish(true);
+		const view = aswanSongLiveView(liveState, channel);
+		if (!view.canCapture) throw new Error(view.captureReason);
+		if (next?.source === 'wave' && !view.waveKnown)
+			throw new Error('The selected voice has incomplete written Wave RAM.');
+		const result = run.engine.editVoice(channel, before, next);
+		run.edits.record(channel, result.changes, result.nativeFrame);
+		publish(true);
+		emit();
+		return {
+			session,
+			manualRevision: run.edits.revision,
+			nativeFrame: result.nativeFrame,
+			liveState: structuredClone(liveState),
+		};
+	}
 	function setLiveEnabled(value) {
 		open();
 		if (typeof value !== 'boolean') throw new TypeError('Live enabled must be boolean');
@@ -526,6 +567,8 @@ export function createAswanSongPlayer({
 		clear,
 		seek: track(seek),
 		getState,
+		getEditSession,
+		editVoice,
 		read: getState,
 		setLiveEnabled,
 		setChannelEnabled,

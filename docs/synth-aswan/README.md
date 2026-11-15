@@ -103,6 +103,41 @@ song remains separate from those presets. A snapshot is a moment of hardware
 settings, not the game's changing software instrument or its whole score.
 No commercial game files are included.
 
+### Pause, audition and edit one channel
+
+1. Play a VGM, **Pause**, and choose **CH1–CH4**.
+2. A complete Wave / Sweep / Noise channel becomes editable in the usual
+   controls. The computer and on-screen keyboard play that selected voice.
+   **Reference key C4** matches the frozen recorded base frequency; change it
+   to move that reference to another keyboard octave. Notes reach the chip's
+   frequency limits when transposed beyond its hardware range.
+3. Draw or change stereo levels, Sweep and Noise while a key is held. Channel
+   selection retains each channel's hardware edits and preview Envelope/name.
+   **Save to presets** keeps the edited selected sound as one JSON without
+   replacing Auto; **Copy to Auto** takes it into the common keyboard instrument
+   without stopping or rewinding the song.
+4. **Resume** returns to the same song position. Buffered audio is retained, so
+   edits become audible after the small already-rendered prefix. Subsequent
+   VGM writes to the same settings take over. Seek restores the original VGM;
+   a failed seek keeps the previous edited run.
+
+Audition uses a private native voice in the existing AudioWorklet / AudioContext,
+Master and calibrated output. It leaves the authored Auto instrument intact.
+Selecting another CH, changing Reference key, seeking, Resume, Stop, starting
+Code or replacing the project retires pending audition notes. Old key releases
+cannot stop a newer preview. Selecting Auto still plays your common instrument.
+
+**Software Envelope is preview-only** in this mode: its default short Attack /
+Release shapes keyboard edges, and its settings can be saved with the preset;
+the reference VGM has no hardware ADSR to receive them. Hardware settings apply
+to the paused song channel and remain separate from the source file bytes.
+Oscillator, Sweep and noise phases are not captured; audition starts a new note.
+Unknown required settings, incomplete Wave RAM and transient Voice PCM bytes
+show an unavailable reason instead of substituting a fake sample. Recorded PCM
+can still be extracted through Sounds from VGM. Paused audition currently
+requires the normal **3,072,000 Hz** clock; other clocks keep reference playback
+and complete static sound extraction without an inaccurate preview.
+
 ## Reuse and standalone package
 
 The [public WonderSwan JavaScript implementation](../js/wonderswansynth.js),

@@ -12,6 +12,7 @@ import { setupAswanCodeHost } from './code_host.js';
 import { setupAswanVgmImport } from './vgm_library.js';
 import { createAswanSongPlayer } from './song_player.js';
 import { aswanSongLiveView } from './song_live.js';
+import { createAswanSongAudition } from './song_audition.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import {
@@ -44,6 +45,7 @@ let audio = null,
 let serial = 0,
 	editRevision = 0,
 	mixRevision = 0,
+	selectionGeneration = 0,
 	pendingEdits = 0,
 	queue = Promise.resolve(),
 	observed = null,
@@ -52,12 +54,16 @@ let serial = 0,
 	polling = false;
 let codeHost = null,
 	songPlayer = null,
+	audition = null,
+	pauseScope = '',
+	pauseBusy = false,
 	songState = { playing: false, paused: false },
 	selectedSongPath = '',
 	loadedSongKey = '';
 const physical = Array.from({ length: 4 }, () => readPreset(preset)),
 	notes = new Map(),
 	channelEnabled = Array(4).fill(true);
+const pausedDrafts = new Map();
 let chipVolume =
 	SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(
 		(item) => item.name === 'wonderswan',
@@ -82,12 +88,79 @@ const enqueue = (action) => {
 	queue = task.catch(report);
 	return task;
 };
-const songActive = () => Boolean(songState.playing || songState.paused);
+const songActive = () =>
+	Boolean(songState.playing || songState.paused || (songState.busy && songState.liveState));
 const liveSong = () => target !== null && songActive() && songState.liveState;
 const currentSound = () => displayed ?? (target === null ? preset : physical[target]);
 
+// Only host-only preview fields live here. Hardware edits belong to the
+// reference engine's sparse journal; its VGM bytes and Auto preset stay intact.
+function syncPausedScope(state) {
+	if (state.seeking || state.loading) {
+		if (!pauseBusy) selectionGeneration++;
+		pauseBusy = true;
+		void audition?.setSelection(null).catch(report);
+		for (const [key, note] of notes) if (note.owner === 'audition') notes.delete(key);
+		return;
+	}
+	pauseBusy = false;
+	const key =
+		state.paused && state.editSession != null
+			? `${state.editSession}:${state.positionFrames}`
+			: '';
+	if (pauseScope !== key) {
+		selectionGeneration++;
+		pauseScope = key;
+		pausedDrafts.clear();
+		for (const [source, note] of notes) if (note.owner === 'audition') notes.delete(source);
+		void audition?.setSelection(null).catch(report);
+	}
+}
+function pausedSelection() {
+	if (
+		!pauseScope ||
+		!songState.paused ||
+		songState.busy ||
+		target === null ||
+		!songState.liveState
+	)
+		return null;
+	const view = aswanSongLiveView(songState.liveState, target);
+	if (!view.canAudition) return null;
+	const sound = readPreset(view.preset),
+		draft = pausedDrafts.get(target);
+	sound.envelope = draft?.envelope ?? {
+		enabled: true,
+		attack: 0.005,
+		decay: 0,
+		sustain: 1,
+		release: 0.03,
+	};
+	if (draft?.name !== undefined) sound.name = draft.name;
+	return {
+		key: `${pauseScope}:${target}:${$('aswanReferenceKey').value}`,
+		preset: readPreset(sound),
+		channel: target,
+		frequency: view.frequency,
+		referenceNote: Number($('aswanReferenceKey').value),
+		clock: songState.liveState.clock,
+		view,
+	};
+}
+function syncAudition() {
+	const selected = pausedSelection();
+	if (audition?.read().source && selected && audition.read().source !== selected.preset.source) {
+		for (const [source, note] of notes) if (note.owner === 'audition') notes.delete(source);
+	}
+	void audition?.setSelection(selected).catch(report);
+	return selected;
+}
+
 function syncActivity() {
 	if (disposed) return;
+	const preview = audition?.read();
+	$('aswanChannelControls').dataset.auditionState = preview?.state ?? 'idle';
+	$('aswanChannelControls').dataset.auditionHeld = String(preview?.heldCount ?? 0);
 	visualizer.setRunning(
 		notes.size > 0 || Boolean(codeHost?.isRunning()) || Boolean(songState.playing),
 	);
@@ -149,14 +222,24 @@ function display(force = false) {
 	let sound = target === null ? preset : physical[target],
 		readOnly = false,
 		caption;
-	let capture = false;
+	let capture = false,
+		paused = null,
+		waveKnown = true;
 	if (song) {
 		try {
 			const view = aswanSongLiveView(song, target);
 			sound = view.preset;
 			readOnly = true;
 			caption = view.readout;
-			capture = view.canCapture;
+			capture = view.canCapture && !songState.busy;
+			waveKnown = view.waveKnown;
+			paused = pausedSelection();
+			if (paused) {
+				sound = paused.preset;
+				readOnly = false;
+				caption = `Paused · CH${target + 1} keyboard audition · ${midiToNoteName(paused.referenceNote)} = ${view.frequency.toFixed(1)} Hz · edits retained on this CH`;
+			} else if (songState.paused)
+				caption += ` · ${view.auditionReason || view.reason || 'Not available for audition'}`;
 		} catch (error) {
 			caption = error.message;
 			readOnly = true;
@@ -167,14 +250,23 @@ function display(force = false) {
 		caption = `CH${target + 1} · ${channel.active ? 'Gate On' : 'Gate Off'} · ${(channel.frequency ?? channel.frequencyHz ?? 0).toFixed(1)} Hz · ${codeHost?.isRunning() ? 'Code + keyboard' : 'physical voice'}`;
 	}
 	displayed = readPreset(sound);
-	const signature = JSON.stringify([displayed, target, readOnly]);
+	const signature = JSON.stringify([displayed, target, readOnly, Boolean(paused), waveKnown]);
 	if (force || signature !== displaySignature) {
 		displaySignature = signature;
-		editor.setPreset(displayed, { readOnly, channel: target });
+		editor.setPreset(displayed, {
+			readOnly,
+			channel: target,
+			paused: Boolean(paused),
+			waveKnown,
+		});
 		if (document.activeElement !== $('instrumentName'))
 			$('instrumentName').value = displayed.name;
 	}
 	$('instrumentName').disabled = readOnly;
+	$('aswanReferenceControl').hidden = !paused;
+	$('aswanChannelControls').dataset.pausedEditable = String(Boolean(paused));
+	$('aswanChannelControls').dataset.manualRevision = String(songState.manualRevision ?? 0);
+	$('aswanChannelControls').dataset.editSession = String(songState.editSession ?? '');
 	$('voiceCapacity').textContent =
 		sound.source === 'noise'
 			? 'Noise · CH4 · one voice'
@@ -209,13 +301,16 @@ function display(force = false) {
 		tab.tabIndex = active ? 0 : -1;
 		if (active) $('voiceEditor').setAttribute('aria-labelledby', tab.id);
 	}
+	syncAudition();
 }
 async function applyPreset(value, { channel = target, isCurrent = () => true } = {}) {
 	const next = readPreset(value),
 		revision = ++editRevision;
 	if (!isCurrent()) return false;
-	if (liveSong() && channel !== null)
-		throw new Error('VGM Live is read-only. Copy to Auto to edit this sound.');
+	if (liveSong() && channel !== null) {
+		if (pausedSelection()) return editPausedPreset(next, currentSound());
+		throw new Error('Pause and select an available channel to edit, or Copy to Auto.');
+	}
 	// Validate routing even before audio exists, and publish only acknowledged edits.
 	if (
 		channel !== null &&
@@ -290,7 +385,7 @@ async function editVisiblePreset(value, beforeValue = currentSound()) {
 		before = readPreset(beforeValue),
 		channel = target;
 	if (!audio) return applyPreset(next, { channel });
-	if (liveSong()) throw new Error('Copy the VGM sound to Auto before editing.');
+	if (liveSong()) return editPausedPreset(next, before);
 	const revision = ++editRevision;
 	pendingEdits++;
 	try {
@@ -303,6 +398,48 @@ async function editVisiblePreset(value, beforeValue = currentSound()) {
 			if (revision === editRevision) display(true);
 			codeHost?.markSoundDirty();
 			visualizer.wake();
+		});
+	} finally {
+		pendingEdits--;
+	}
+}
+async function editPausedPreset(value, beforeValue) {
+	const next = readPreset(value),
+		before = readPreset(beforeValue),
+		selection = pausedSelection();
+	if (!selection) throw new Error('Pause and choose a complete Wave, Sweep or Noise channel.');
+	if (next.source === 'pcm')
+		throw new Error('A transient DAC value cannot become an audition PCM sample.');
+	const owner = songPlayer,
+		session = owner.getEditSession(),
+		key = selection.key,
+		channel = selection.channel;
+	const generation = selectionGeneration;
+	const revision = ++editRevision;
+	const current = () =>
+		!disposed &&
+		generation === selectionGeneration &&
+		songPlayer === owner &&
+		owner.getEditSession() === session &&
+		pausedSelection()?.key === key;
+	pendingEdits++;
+	try {
+		return await enqueue(async () => {
+			if (!current()) return false;
+			const oldDraft = pausedDrafts.get(channel);
+			pausedDrafts.set(channel, { name: next.name, envelope: { ...next.envelope } });
+			try {
+				owner.editVoice(channel, before, next, { session });
+			} catch (error) {
+				if (oldDraft) pausedDrafts.set(channel, oldDraft);
+				else pausedDrafts.delete(channel);
+				throw error;
+			}
+			if (!current()) return false;
+			if (revision === editRevision) display(true);
+			await audition.updateSelection(pausedSelection());
+			visualizer.wake();
+			return true;
 		});
 	} finally {
 		pendingEdits--;
@@ -323,11 +460,19 @@ async function stopKeyboard() {
 	const held = [...notes.values()];
 	notes.clear();
 	syncActivity();
-	if (audio) await Promise.allSettled(held.map((note) => audio.command('noteOff', [note.id])));
+	await Promise.allSettled([
+		...held
+			.filter((note) => note.owner !== 'audition')
+			.map((note) => audio?.command('noteOff', [note.id])),
+		audition?.stop(),
+	]);
 }
 function selectChannel(value) {
+	selectionGeneration++;
+	const wasPaused = Boolean(pauseScope);
 	void stopKeyboard().catch(report);
 	target = value === 'auto' ? null : Number(value);
+	if (wasPaused) setPitch(0);
 	displaySignature = '';
 	display(true);
 }
@@ -360,6 +505,13 @@ for (const [index, tab] of tabs.entries()) {
 $('aswanLiveEnabled').addEventListener('change', () => {
 	$('aswanLiveEnabled').blur();
 	songPlayer.setLiveEnabled($('aswanLiveEnabled').checked);
+	display(true);
+});
+$('aswanReferenceKey').addEventListener('change', () => {
+	selectionGeneration++;
+	void stopKeyboard().catch(report);
+	setPitch(0);
+	$('aswanReferenceKey').blur();
 	display(true);
 });
 
@@ -429,8 +581,47 @@ function renderKeyboard() {
 }
 function press(source, entry) {
 	if (disposed || notes.has(source) || codeHost?.getState()?.busy) return;
+	if (songState.busy) {
+		status('Preparing the reference song…');
+		return;
+	}
 	if (liveSong()) {
-		status('VGM Live shows the recorded channel. Copy to Auto to play this sound.');
+		const selection = pausedSelection();
+		if (!selection) {
+			const view = aswanSongLiveView(songState.liveState, target);
+			status(
+				songState.paused
+					? view.auditionReason || view.reason
+					: 'Pause the song to audition the selected CH.',
+			);
+			return;
+		}
+		const note = {
+			id: `aswan-trial:${++serial}`,
+			owner: 'audition',
+			key: entry.key,
+			midi: entry.midi,
+			selectionKey: selection.key,
+		};
+		notes.set(source, note);
+		syncActivity();
+		void audition
+			.noteOn(note.id, note.midi, {
+				isCurrent: () =>
+					!disposed &&
+					notes.get(source) === note &&
+					pausedSelection()?.key === note.selectionKey,
+			})
+			.then((result) => {
+				if (!result && notes.get(source) === note) notes.delete(source);
+				syncActivity();
+				visualizer.wake();
+			})
+			.catch((error) => {
+				if (notes.get(source) === note) notes.delete(source);
+				syncActivity();
+				report(error);
+			});
 		return;
 	}
 	const note = { id: `aswan-key:${++serial}`, key: entry.key, midi: entry.midi, channel: target };
@@ -453,6 +644,10 @@ function release(source) {
 	if (!note) return;
 	notes.delete(source);
 	syncActivity();
+	if (note.owner === 'audition') {
+		void audition.noteOff(note.id).catch(report);
+		return;
+	}
 	void enqueue(() => audio?.command('noteOff', [note.id])).catch(report);
 }
 const inputBlocked = (event) =>
@@ -496,7 +691,8 @@ function setPitch(value) {
 		range.value = String(value);
 		label.textContent = value.toFixed(2);
 	}
-	if (audio) void enqueue(() => audio.command('setPitch', [value])).catch(report);
+	if (pausedSelection()) void audition.setPitch(value).catch(report);
+	else if (audio) void enqueue(() => audio.command('setPitch', [value])).catch(report);
 }
 for (const [range] of pitchPairs) {
 	range.addEventListener('input', () => setPitch(Number(range.value)));
@@ -586,6 +782,7 @@ const seconds = (value) =>
 	`${Math.floor((value ?? 0) / 60)}:${String(Math.floor((value ?? 0) % 60)).padStart(2, '0')}`;
 function renderSong(state) {
 	songState = state;
+	syncPausedScope(state);
 	const active = state.playing || state.paused;
 	$('aswanSongPlayer').dataset.state = state.playing
 		? 'playing'
@@ -619,9 +816,21 @@ songPlayer = createAswanSongPlayer({
 		$('aswanSongStatus').dataset.error = String(error);
 	},
 });
+audition = createAswanSongAudition({
+	ensureAudio,
+	getAudio: () => audio,
+	onState: syncActivity,
+	onError: report,
+});
 async function playSong() {
 	if (songState.playing) return songPlayer.pause();
-	if (songState.paused) return songPlayer.resume();
+	if (songState.paused) {
+		const session = songPlayer.getEditSession();
+		await queue;
+		if (!songState.paused || songPlayer.getEditSession() !== session) return false;
+		await stopKeyboard();
+		return songPlayer.resume();
+	}
 	const file = codeHost.project.fs.get(selectedSongPath);
 	if (!file) throw new Error('Select a VGM in Files.');
 	const key = `${codeHost.files.workspaceId}:${selectedSongPath}:${file.revision}`;
@@ -715,25 +924,41 @@ function renderSounds(voices) {
 		root.append(button);
 	}
 }
+async function selectedSoundAfterEdits() {
+	if (songState.busy) throw new DOMException('Reference selection is changing', 'AbortError');
+	const selected = pausedSelection(),
+		captured = readPreset(currentSound()),
+		generation = selectionGeneration;
+	if (!selected) return captured;
+	await queue;
+	if (disposed || generation !== selectionGeneration || pausedSelection()?.key !== selected.key)
+		throw new DOMException('Selected channel changed', 'AbortError');
+	return readPreset(currentSound());
+}
 $('aswanCaptureButton').addEventListener('click', () => {
-	const sound = readPreset(currentSound());
-	selectChannel('auto');
-	void applyPreset(sound, { channel: null })
-		.then(() => status('Copied the observed sound to Auto. The song position is kept.'))
+	$('aswanCaptureButton').blur();
+	void selectedSoundAfterEdits()
+		.then(async (sound) => {
+			selectChannel('auto');
+			await applyPreset(sound, { channel: null });
+			status('Copied the edited sound to Auto. The song position is kept.');
+		})
 		.catch(report);
 });
 $('aswanSaveSelectedPreset').addEventListener('click', () => {
-	const sound = readPreset(currentSound());
 	$('aswanSaveSelectedPreset').blur();
-	void codeHost.files.saveSound({ value: sound }).catch(report);
+	void selectedSoundAfterEdits()
+		.then((value) => codeHost.files.saveSound({ value }))
+		.catch(report);
 });
 $('aswanSaveSoundAs').addEventListener('click', () => {
 	void codeHost.files.saveSound().catch(report);
 });
 $('instrumentName').addEventListener('change', () => {
-	const next = readPreset(currentSound());
+	const before = readPreset(currentSound()),
+		next = readPreset(before);
 	next.name = $('instrumentName').value;
-	void applyPreset(next).catch(report);
+	void editVisiblePreset(next, before).catch(report);
 });
 function download(name, text) {
 	const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -744,7 +969,9 @@ function download(name, text) {
 	setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 $('savePreset').addEventListener('click', () => {
-	download('aswan-voice.json', JSON.stringify(readPreset(currentSound()), null, 2) + '\n');
+	void selectedSoundAfterEdits()
+		.then((sound) => download('aswan-voice.json', JSON.stringify(sound, null, 2) + '\n'))
+		.catch(report);
 	$('savePreset').blur();
 });
 $('loadPreset').addEventListener('click', () => {
@@ -769,7 +996,7 @@ $('resetPreset').addEventListener('click', () => {
 });
 $('copyCode').addEventListener('click', async () => {
 	try {
-		const code = presetToCode(currentSound());
+		const code = presetToCode(await selectedSoundAfterEdits());
 		$('codeOutput').value = code;
 		$('codeOutput').hidden = false;
 		try {
@@ -824,7 +1051,7 @@ window.addEventListener('pagehide', (event) => {
 	visualizer.dispose();
 	const owner = audio;
 	audio = null;
-	void Promise.allSettled([songPlayer.dispose(), codeHost.dispose()])
+	void Promise.allSettled([songPlayer.dispose(), codeHost.dispose(), audition.dispose()])
 		.finally(() => owner?.dispose())
 		.catch(() => {});
 });

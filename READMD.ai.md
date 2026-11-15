@@ -17,6 +17,10 @@ musical timing, without a global `play()` starter. Files / Cassette retain
 editable JS, portable `.aswan.json` presets and original `/vgm/` files.
 Static VGM extraction also creates `/presets/<song>/` instruments. Static sounds
 are distinct from full reference playback and later driver automation.
+Paused Wave / Sweep / Noise channels support isolated keyboard audition and
+sparse hardware edits on the reference run. Preview Software Envelope is host
+only; Resume retains queued audio, and later VGM writes take over. See
+[paused audition TODO](docs/issues/todo_aswan_paused_audition_20261116.md).
 
 `npm run test:aswan-synth` validates modules, types, Files and readable standalone
 packaging; `sh scripts/package_itch_aswan_synth.sh VERSION` produces the ZIP.

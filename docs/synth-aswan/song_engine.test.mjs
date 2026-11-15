@@ -120,3 +120,103 @@ test('Live snapshots own complete written waves and expose mode-compatible sourc
 	assert.throws(() => aswanSongLiveView({}, 0), /snapshot/);
 	assert.throws(() => aswanSongLiveView({}, 4), /0..3/);
 });
+
+test('paused sparse native edits preserve disjoint ahead writes, gate, phase and later driver ownership', async () => {
+	const { createAswanPausedSongFixture } = await import(
+		'../../test/helpers/aswan_synth_paused_fixture.mjs'
+	);
+	const source = await prepareAswanSongSource(
+		createAswanPausedSongFixture({
+			changes: [
+				[512, 0x88, 0xf3],
+				[2000, 0x88, 0xa5],
+			],
+		}),
+	);
+	const a = await createAswanSongEngine(source, { moduleFactory }),
+		b = await createAswanSongEngine(source, { moduleFactory });
+	try {
+		const original = a.snapshot(),
+			before = aswanSongLiveView(original, 0).preset;
+		assert.deepEqual(render(a, 1024), render(b, 1024));
+		const nativeBefore = a.snapshot(),
+			next = structuredClone(before);
+		next.left = 7;
+		const result = a.editVoice(0, before, next);
+		assert.equal(result.nativeFrame, 1024);
+		assert.deepEqual(result.changes, { left: 7 });
+		const edited = a.snapshot();
+		assert.equal(
+			edited.registers[8],
+			0x73,
+			'native right3 survives a left-only UI edit based on frozen right15',
+		);
+		assert.deepEqual(edited.registers.slice(0, 8), nativeBefore.registers.slice(0, 8));
+		assert.equal(edited.registers[16], nativeBefore.registers[16]);
+		assert.deepEqual(edited.waveforms, nativeBefore.waveforms);
+		const changed = render(a, 512),
+			reference = render(b, 512);
+		assert.deepEqual(changed.right, reference.right, 'right oscillator phase is uninterrupted');
+		assert.notDeepEqual(changed.left, reference.left, 'native left volume changed');
+		render(a, 600);
+		assert.equal(
+			a.snapshot().registers[8],
+			0xa5,
+			'later recorded byte takes over the edited field',
+		);
+		const invalid = structuredClone(next);
+		invalid.wave[0] = 99;
+		const state = a.snapshot();
+		assert.throws(() => a.editVoice(0, next, invalid), /Wave sample/);
+		assert.deepEqual(a.snapshot(), state);
+	} finally {
+		a.dispose();
+		b.dispose();
+	}
+});
+test('wave, Noise and Sweep edits change native output without key-off or source-file changes', async () => {
+	for (const mode of ['wave', 'noise', 'sweep']) {
+		const bytes = createWonderSwanVgm({ mode, seconds: 0.2, loop: false }),
+			copy = bytes.slice(),
+			source = await prepareAswanSongSource(bytes),
+			engine = await createAswanSongEngine(source, { moduleFactory });
+		try {
+			const channel = mode === 'noise' ? 3 : mode === 'sweep' ? 2 : 0,
+				first = engine.snapshot(),
+				before = aswanSongLiveView(first, channel).preset,
+				next = structuredClone(before);
+			if (mode === 'wave') next.wave = Array.from({ length: 32 }, (_, i) => i % 16);
+			if (mode === 'noise') next.noise.type = 7;
+			if (mode === 'sweep') {
+				next.sweep.step = -4;
+				next.sweep.time = 7;
+			}
+			const result = engine.editVoice(channel, before, next),
+				edited = engine.snapshot();
+			assert.equal(result.nativeFrame, 0);
+			assert.equal(edited.registers[16], first.registers[16]);
+			if (mode === 'wave') assert.deepEqual(edited.waveforms[channel], next.wave);
+			if (mode === 'noise') assert.equal(edited.registers[14] & 7, 7);
+			if (mode === 'sweep') {
+				assert.equal(edited.registers[12], 252);
+				assert.equal(edited.registers[13] & 31, 7);
+			}
+			assert(render(engine, 1024).left.some((value) => value !== 0));
+			assert.deepEqual(bytes, copy);
+		} finally {
+			engine.dispose();
+		}
+	}
+	const source = await prepareAswanSongSource(
+			createWonderSwanVgm({ mode: 'voice', seconds: 0.1, loop: false }),
+		),
+		engine = await createAswanSongEngine(source, { moduleFactory });
+	try {
+		const before = aswanSongLiveView(engine.snapshot(), 0).preset,
+			next = structuredClone(before);
+		next.left = 3;
+		assert.throws(() => engine.editVoice(1, before, next), /rendered-ahead CH2/);
+	} finally {
+		engine.dispose();
+	}
+});
