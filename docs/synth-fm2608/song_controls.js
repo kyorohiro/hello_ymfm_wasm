@@ -18,6 +18,7 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
   let loading = false, operation = 0, optionsSignature = '', state = null, lastPlayback = 'stopped', seekDraft = false;
   const selectedMasks = new Map();
   let frozenSnapshot = null;
+  let editingPreparation = null;
   let outputMixSignature = '';
   const listeners = [];
   const listen = (target,type,callback) => {
@@ -28,10 +29,13 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
     if (error?.name !== 'AbortError') setStatus(error?.message ?? String(error),true);
   };
   const run = task => void Promise.resolve().then(task).catch(report);
-  const player = createFm2608SongPlayer({getAudio,beforePlay:async () => {
+  const player = createFm2608SongPlayer({getAudio,beforePlay:async ({manualPreparation=false}={}) => {
     selectedMasks.clear();
     frozenSnapshot = null;
-    await beforePlay();
+    // Preparing a finished channel for the current input must keep that
+    // pending keyboard attack. Explicit playback changes use the normal owner
+    // handoff, which releases keys and stops Code before starting a song.
+    if (!manualPreparation) await beforePlay();
     await ensureAudio();
   },onState:next => {
     state = next;
@@ -188,6 +192,27 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
     if (changed(before.lfo,next.lfo)) { result.lfo = {...next.lfo}; result.fm.lfo = result.lfo; }
     frozenSnapshot = result;
   }
+  async function ensureEditable() {
+    if (disposed || view !== 'song' || !sourceData || loading) return false;
+    if (player.getState().manualReady) return true;
+    if (editingPreparation) return editingPreparation;
+    const token = operation;
+    const current = () => !disposed && token === operation && view === 'song' && !loading;
+    const prepare = (async () => {
+      if (player.getState().preparingAudition) await player.whenIdle();
+      if (!current()) return false;
+      const next = player.getState();
+      if (next.manualReady) return true;
+      if (next.busy || !['ended','stopped','paused'].includes(next.playback)) return false;
+      // Reuse the normal seek reconstruction only when a person next edits or
+      // auditions a stopped channel. Ended songs otherwise release their chip.
+      const prepared = await player.seek(next.positionSeconds,{manualPreparation:true});
+      return prepared && current() && player.getState().manualReady;
+    })();
+    editingPreparation = prepare;
+    try { return await prepare; }
+    finally { if (editingPreparation === prepare) editingPreparation = null; }
+  }
   async function play() {
     if (!sourceData) return;
     const current = player.getState(), playback = current.playback ?? current.state;
@@ -221,12 +246,15 @@ export function setupFm2608SongControls({project,files,ensureAudio,getAudio,
   });
   listen(node('songSeek'),'blur',() => { seekDraft = false; });
   listen(node('songSeek'),'pointercancel',() => { seekDraft = false; });
-  listen(node('songView'),'change',event => setView(event.target.value));
+  listen(node('songView'),'change',event => {
+    setView(event.target.value);
+    if (view === 'song') run(ensureEditable);
+  });
   listen(node('songCapture'),'click',() => run(capture));
   const unwatch = project.onDidChange(refreshFiles);
   refreshFiles();
-  return {player,selectFile,setView,snapshot,applyDisplayEdit,refresh:render,
-    isViewing:() => view === 'song' && Boolean(currentState().liveState),
+  return {player,selectFile,setView,snapshot,applyDisplayEdit,ensureEditable,refresh:render,
+    isViewing:() => view === 'song' && Boolean(sourceData),
     getState:() => player.getState(),getChip:() => player.getChip(),
     setKeyMask(channel,mask) {
       selectedMasks.set(channel,{mask,keyOnCount:currentState().songLiveState?.fm.channels[channel].keyOnCount});

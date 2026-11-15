@@ -79,6 +79,41 @@ test('ending and Stop release every native engine without closing the host conte
   assert.equal(r.player.getState().playback,'ended');assert.equal(r.engines[0].disposed,true);assert.equal(r.context.state,'running');
   await r.player.play();await r.player.pause();r.player.stop();assert.ok(r.engines.every(engine=>engine.disposed));assert.equal(r.player.getState().positionSeconds,0);r.player.dispose();
 });
+test('ended channels can be reconstructed for a pending manual edit and audition at the final position',async()=>{
+  const preparation=[];
+  const r=rig({beforePlay:async options=>{preparation.push(options.manualPreparation);}});
+  await r.player.load(fixture(),'one');await r.player.play();r.advance(1.5);
+  const ended=r.player.getState(),position=ended.positionSeconds;
+  assert.equal(ended.playback,'ended');assert.equal(ended.manualReady,false);
+  assert.equal(r.player.getChip(),null);assert.equal(r.engines.length,1);assert.equal(r.engines[0].disposed,true);
+  assert.equal(await r.player.seek(position,{manualPreparation:true}),true);
+  let state=r.player.getState();
+  assert.equal(state.playback,'paused');assert.equal(state.manualReady,true);
+  assert.equal(state.positionSeconds,position);assert.equal(state.liveState.ssg.channels[0].volume,ended.liveState.ssg.channels[0].volume);
+  assert.deepEqual(preparation,[false,true]);
+  const chip=r.player.getChip();chip.setAlgo(0,7,3);chip.setOperator(0,0,{ar:27});
+  state=r.player.getState();
+  assert.equal(state.liveState.fm.channels[0].preset.algorithm,7);
+  assert.equal(state.liveState.fm.channels[0].preset.operators[1].ar,27);
+  chip.ssg.noteOn(0,'C4');r.advance(.1);chip.ssg.keyOff(0);
+  assert.equal(r.player.getState().positionSeconds,position);
+  assert.ok(r.engines.at(-1).frames>0);
+  r.player.dispose();assert.ok(r.engines.every(engine=>engine.disposed));
+});
+test('replacement cancels an ended-channel reconstruction before its delayed engine can install',async()=>{
+  let unblock,entered;
+  const gate=new Promise(resolve=>{unblock=resolve;}),started=new Promise(resolve=>{entered=resolve;});
+  const r=rig({createGate:index=>{if(index===1){entered();return gate;}}});
+  await r.player.load(fixture(),'one');await r.player.play();r.advance(1.5);
+  const preparing=r.player.seek(r.player.getState().positionSeconds,{manualPreparation:true});
+  await started;
+  await r.player.load(fixture(),'replacement');
+  unblock();assert.equal(await preparing,false);
+  const state=r.player.getState();
+  assert.equal(state.name,'replacement');assert.equal(state.playback,'stopped');assert.equal(state.manualReady,false);
+  assert.equal(r.player.getChip(),null);assert.ok(r.engines.every(engine=>engine.disposed));
+  r.player.dispose();
+});
 test('Stop cancels delayed pause preparation and never leaks its eventual engine',async()=>{
   let resolve;const gate=new Promise(done=>resolve=done);
   const r=rig({createGate:index=>index===1?gate:undefined});await r.player.load(fixture(),'one');await r.player.play();

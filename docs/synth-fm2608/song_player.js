@@ -235,8 +235,8 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       if (active === run && playback === 'playing') run.timer = schedule(() => {run.timer = null; pump(run);},8);
     } catch (error) {fail(error,run);}
   }
-  async function host(ticket) {
-    await beforePlay(); if (!current(ticket)) throw aborted();
+  async function host(ticket,{manualPreparation=false}={}) {
+    await beforePlay({manualPreparation}); if (!current(ticket)) throw aborted();
     const audio = await getAudio(); if (!current(ticket)) throw aborted();
     const context = audio?.context, output = audio?.songInputNode ?? audio?.outputNode;
     if (!context || !output || output.context !== context || context.state === 'closed') throw new Error('The song requires the Synth AudioContext and master input');
@@ -362,7 +362,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       pump(run); emit(); return playback === 'playing' || playback === 'ended';
     } catch (error) {if (current(ticket)) fail(error,run); return false;}
   }
-  async function seek(seconds) {
+  async function seek(seconds,{manualPreparation=false}={}) {
     open(); if (!source || loading || !Number.isFinite(seconds)) throw new TypeError('Choose a song and a finite seek time');
     const targetSeconds = Math.max(0,Math.min(source.totalSamples/44100,seconds));
     const resumePlaying = playback === 'playing', previous = active, previousPlayback = playback;
@@ -373,7 +373,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
     playback = 'seeking'; emit();
     let next = null;
     try {
-      const output = await host(ticket); next = await createRun(ticket,source,output);
+      const output = await host(ticket,{manualPreparation}); next = await createRun(ticket,source,output);
       const target = Math.min(Math.round(targetSeconds * next.sampleRate),Math.floor(source.totalSamples * next.sampleRate / 44100));
       const left = new Float32Array(2048), right = new Float32Array(2048); let frame = 0;
       next.player.play(); const deadline = nowMs() + 30000;

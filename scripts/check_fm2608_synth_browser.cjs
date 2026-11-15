@@ -78,12 +78,17 @@ async function makeReferenceFiles() {
   const opnS98 = Buffer.alloc(48+opnS98Commands.length);
   s98.copy(opnS98,0,0,48);
   opnS98.writeUInt32LE(2,0x20);opnS98.writeUInt32LE(4000000,0x24);opnS98.set(opnS98Commands,48);
+  const endingCommands = [...block,...writes.flatMap(([port,register,value]) => [0x56+port,register,value]),0x61,0x44,0xac,0x66];
+  const ending = Buffer.alloc(256+endingCommands.length);
+  vgm.copy(ending,0,0,256);
+  ending.writeUInt32LE(ending.length-4,4);ending.writeUInt32LE(44100,0x18);ending.set(endingCommands,256);
   return {sample,files:[{name:'OPNA reference.vgm',mimeType:'application/octet-stream',buffer:vgm},
     {name:'OPNA reference.vgz',mimeType:'application/octet-stream',buffer:gzipSync(vgm)},
     {name:'OPNA reference.s98',mimeType:'application/octet-stream',buffer:s98}],
     opnFiles:[{name:'OPN reference.vgm',mimeType:'application/octet-stream',buffer:opnVgm},
       {name:'OPN reference.vgz',mimeType:'application/octet-stream',buffer:gzipSync(opnVgm)},
-      {name:'OPN reference.s98',mimeType:'application/octet-stream',buffer:opnS98}]};
+      {name:'OPN reference.s98',mimeType:'application/octet-stream',buffer:opnS98}],
+    endingFile:{name:'Ended reference.vgm',mimeType:'application/octet-stream',buffer:ending}};
 }
 
 async function downloadBytes(download) {
@@ -316,6 +321,35 @@ async function checkEngine(name,origin) {
     await page.locator('#stopAudio').click();
     await quiet();
     check('synthetic hardware rhythm ROM produces PCM');
+
+    const rhythmPadNames = ['Bass drum (F)','Snare (G)','Cymbal (H)','Hi-hat (J)','Tom (K)','Rim shot (L)'];
+    assert.deepEqual(await page.locator('[data-rhythm-pad]').allTextContents(),rhythmPadNames);
+    for (const [voice,key] of [...'fghjkl'].entries()) {
+      const commandCount = await page.evaluate(() => __opnaAudit.commands.length);
+      await page.keyboard.down(key);
+      await page.waitForFunction(({commandCount,voice}) => __opnaAudit.commands.slice(commandCount).some(command =>
+        command.port === 0 && command.register === 0x10 && command.value === 1 << voice),{commandCount,voice});
+      await page.keyboard.up(key);
+    }
+    await page.locator('#octaveUp').click();
+    assert.deepEqual(await page.locator('[data-rhythm-pad]').allTextContents(),rhythmPadNames);
+    await page.locator('#octaveDown').click();
+    await page.locator('#channelTabs [data-channel="2"]').click();
+    assert.equal(await page.locator('[data-rhythm-pad="2"]').textContent(),'Cymbal (Any key)');
+    assert.equal(await page.locator('[data-rhythm-pad="0"]').textContent(),'Bass drum');
+    assert.match(await page.locator('#keyboardHint').textContent(),/Cymbal · all note keys/);
+    const fixedRhythmCommands = await page.evaluate(() => __opnaAudit.commands.length);
+    await page.keyboard.down('a');
+    await page.waitForFunction(start => __opnaAudit.commands.slice(start).some(command =>
+      command.port === 0 && command.register === 0x10 && command.value === 4),fixedRhythmCommands);
+    await page.keyboard.up('a');
+    await page.locator('#channelTabs [data-channel="auto"]').click();
+    assert.deepEqual(await page.locator('[data-rhythm-pad]').allTextContents(),rhythmPadNames);
+    await page.locator('#rhythmPads').scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(config.screenshots,name + '-rhythm-keys.png'),fullPage:true});
+    await page.locator('#stopAudio').click();
+    await quiet();
+    check('Rhythm pad key labels match all six actual voices, Octave and fixed-channel keyboard input');
 
     await page.locator('#tab-adpcm').click();
     await page.keyboard.down('a');
@@ -866,6 +900,42 @@ async function checkEngine(name,origin) {
     await page.locator('#songStop').click();
     await page.locator('#tab-fm').click();
     check('Code and reference-song transports hand off without closing audio');
+
+    await page.locator('#synthInputKeyboardTab').click();
+    await page.locator('#songFileInput').setInputFiles(reference.endingFile);
+    await page.waitForFunction(() => document.querySelector('#songSelect').value === '/vgm/Ended reference.vgm' && !document.querySelector('#songPlay').disabled);
+    await page.locator('#tab-ssg').click();
+    await page.locator('#songView').selectOption('song');
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.manualReady === 'true');
+    await page.locator('[data-control="ssg.volume"] .param-button').last().click();
+    await page.locator('#tab-rhythm').click();
+    await page.locator('[data-control="rhythm.volume"] .param-button').last().click();
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-playback'),'paused');
+    await page.locator('#songStop').click();
+    await page.locator('#tab-fm').click();
+    await page.locator('#channelTabs [data-channel="0"]').click();
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'ended');
+    await quiet();
+    const endTime = await page.locator('#songTime').textContent();
+    const endedFeedback = Number(await page.locator('[data-control="fm.feedback"] .param-value').textContent());
+    await page.locator('[data-control="fm.feedback"] .param-button').last().click();
+    await page.waitForFunction(value => document.querySelector('#referenceSong').dataset.manualReady === 'true' &&
+      Number(document.querySelector('[data-control="fm.feedback"] .param-value').textContent) === Math.min(7,value+1),endedFeedback);
+    assert.equal(await page.locator('#songTime').textContent(),endTime);
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'ended');
+    await quiet();
+    await page.keyboard.down('a');
+    await audible();
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-playback'),'paused');
+    await page.keyboard.up('a');
+    await quiet();
+    await page.locator('[data-operator-gate="1"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-operator-gate="1"]').getAttribute('aria-pressed') === 'false');
+    assert.equal(await page.locator('#songTime').textContent(),endTime);
+    await page.locator('#songStop').click();
+    check('stopped song view and naturally ended channels remain editable, with the first audition key preserved');
 
     await page.locator('#masterVolume').evaluate(node => {node.value = '3.8'; node.dispatchEvent(new Event('input',{bubbles:true}));});
     assert.equal(await page.locator('#monitorVolumeValue').textContent(),'380%');

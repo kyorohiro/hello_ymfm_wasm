@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "scope": "monaco-passive-virtual-model-lifecycle",
+  "path": "playground/playground_monaco.js",
+  "baseCommit": "b15ff8e97487729f193b32ac488c49de5fe27d71",
+  "review": "Reviewed editor-model lifecycle changes. Script models remain available for completion and definitions. Preset JSON and other text models are created when opened and released after detachment. Initial models use the file language. The exact complete source reconstructs the measured predecessor.",
+  "before": {
+    "bytes": 23172,
+    "sha256": "fada1db8d8ed7278ad44afe7578c74f24bd9f99236b9c4e17220c5f27d35d03b"
+  },
+  "after": {
+    "bytes": 23112,
+    "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+  },
+  "reports": {
+    "docs/issues/ps1_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 546854,
+      "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0"
+    },
+    "docs/issues/ps1_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 557840,
+      "sha256": "4cacb672674301e4c35026dbd1a3a39c8ad99f06b9cd5f5ba353ae061c9eea5c"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 507088,
+      "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 504578,
+      "sha256": "12c1bd63da19b9f2123eea3c9ffe5584c3765dbaffdc8802211e1b3e0a348c6c"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 1030997,
+      "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 1052003,
+      "sha256": "d2342ad63d9ab6c6fb93694179416adfb3ad6127b161da792ff9b3437a0ad5a0"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 625175,
+      "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 636467,
+      "sha256": "a68f119dd24842460db3bdb50aff32d895d1780d81f12979237c20f0abb3fc9f"
+    }
+  },
+  "reverseHunks": [
+    {
+      "afterOffset": 14764,
+      "afterBytes": 228,
+      "beforeText": "    const modelUri =\n      monaco.Uri.parse(\n        `file:///project${options.getActiveVirtualPath?.() ?? '/index.js'}`\n      );\n    const existingModel =\n      monaco.editor.getModel(\n        modelUri\n      );\n    const monacoModel =\n      existingModel ??\n      monaco.editor.createModel(\n        getEditorValue(),\n        \"javascript\",\n        modelUri\n      );\n\n    if (existingModel) {\n      existingModel.setValue(\n        getEditorValue()\n      );\n"
+    },
+    {
+      "afterOffset": 17592,
+      "afterBytes": 106,
+      "beforeText": ""
+    },
+    {
+      "afterOffset": 17850,
+      "afterBytes": 0,
+      "beforeText": "        const language = path.endsWith(\".json\")\n          ? \"json\"\n          : \"javascript\";\n"
+    },
+    {
+      "afterOffset": 18100,
+      "afterBytes": 18,
+      "beforeText": "        path.endsWith(\".json\")\n          ? \"json\"\n          : \"javascript\",\n"
+    },
+    {
+      "afterOffset": 18250,
+      "afterBytes": 299,
+      "beforeText": "        if (\n          file.type === \"text\" &&\n          (\n            file.path.endsWith(\".js\") ||\n            file.path.endsWith(\".json\")\n          )\n        ) {\n"
+    },
+    {
+      "afterOffset": 18912,
+      "afterBytes": 78,
+      "beforeText": ""
+    }
+  ]
+}

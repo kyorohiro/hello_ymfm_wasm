@@ -3,6 +3,7 @@
  */
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {restoreMixerCalibrationMonacoModelRevision} from './mixer_calibration_monaco_model_revision.mjs';
 import {MEASURED_POLICY_REVISION_RECEIPT_PATH,MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256,
   MEASURED_POLICY_REVISION_REPORT_PATHS} from './mixer_calibration_measured_policy_revision.mjs';
 
@@ -15,6 +16,7 @@ const fail = message => {throw Error('Invalid FM2608 hardware-navigation revisio
 let receipt;
 
 export function restoreMixerCalibrationFm2608NavigationRevision(path,bytes,{readSource = url => readFileSync(url)} = {}) {
+  bytes = restoreMixerCalibrationMonacoModelRevision(path,bytes,{readSource});
   if (path !== FM2608_NAVIGATION_REVISION_PATH) return bytes;
   if (!receipt) {
     const value=JSON.parse(readFileSync(new URL('../' + FM2608_NAVIGATION_REVISION_RECEIPT_PATH,import.meta.url),'utf8'));

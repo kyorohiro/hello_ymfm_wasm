@@ -541,26 +541,11 @@ export async function initializePlaygroundMonaco(
     );
     const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip, options);
 
-    const modelUri =
-      monaco.Uri.parse(
-        `file:///project${options.getActiveVirtualPath?.() ?? '/index.js'}`
-      );
-    const existingModel =
-      monaco.editor.getModel(
-        modelUri
-      );
-    const monacoModel =
-      existingModel ??
-      monaco.editor.createModel(
-        getEditorValue(),
-        "javascript",
-        modelUri
-      );
-
-    if (existingModel) {
-      existingModel.setValue(
-        getEditorValue()
-      );
+    const monacoModel = getModelForVirtualPath(
+      options.getActiveVirtualPath?.() ?? '/index.js', getEditorValue()
+    );
+    if (monacoModel.getValue() !== getEditorValue()) {
+      monacoModel.setValue(getEditorValue());
     }
 
     // Monaco's widget colors are scoped to .monaco-editor and the theme class.
@@ -637,14 +622,12 @@ export async function initializePlaygroundMonaco(
     let currentModel = monacoModel;
 
     function getModelForVirtualPath(path, source) {
+      const language = /\.json$/i.test(path) ? 'json' : /\.js$/i.test(path) ? 'javascript' : 'plaintext';
       const uri = monaco.Uri.parse(
         `file:///project${path}`
       );
       const existing = monaco.editor.getModel(uri);
       if (existing) {
-        const language = path.endsWith(".json")
-          ? "json"
-          : "javascript";
         if (existing.getLanguageId() !== language) {
           monaco.editor.setModelLanguage(
             existing,
@@ -655,9 +638,7 @@ export async function initializePlaygroundMonaco(
       }
       return monaco.editor.createModel(
         source,
-        path.endsWith(".json")
-          ? "json"
-          : "javascript",
+        language,
         uri
       );
     }
@@ -665,13 +646,10 @@ export async function initializePlaygroundMonaco(
     function syncVirtualFiles(files) {
       const paths = new Set();
       for (const file of files) {
-        if (
-          file.type === "text" &&
-          (
-            file.path.endsWith(".js") ||
-            file.path.endsWith(".json")
-          )
-        ) {
+        // Script models provide cross-file completion and definition lookup.
+        // Preset JSON and other text get a model when opened in the editor.
+        // Importing an instrument library therefore creates no JSON listeners.
+        if (file.type === "text" && /\.js$/i.test(file.path)) {
           paths.add(file.path);
           const model = getModelForVirtualPath(
             file.path,
@@ -683,6 +661,7 @@ export async function initializePlaygroundMonaco(
         }
       }
       // Keep the attached model alive until openVirtualFile switches the editor.
+      // Unattached text models can then release Monaco's language listeners.
       for (const model of monaco.editor.getModels()) {
         if (model === currentModel || model.uri.scheme !== "file" ||
             !model.uri.path.startsWith("/project/")) continue;

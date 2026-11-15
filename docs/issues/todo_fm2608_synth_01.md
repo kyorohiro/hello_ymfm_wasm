@@ -92,6 +92,46 @@ The Tauri repository imports that archive with app version `0.0.5`.
 All 80 desktop unit tests and nine desktop browser scenarios per engine pass,
 and the local unsigned arm64 Release app builds successfully.
 
+## Imported preset editor and Rhythm input fixes
+
+- [x] Keep large imported preset libraries from eagerly creating a Monaco
+      document for every JSON file, preserving Code completion and text editing.
+- [x] Keep selected song channels editable and playable after natural song end
+      or when selecting a reference view before starting playback.
+- [x] Show actual keyboard bindings on Rhythm pads, including physical-channel
+      selection and Octave changes.
+- [x] Check the reported cross-origin frame message against the app's frame
+      access and validate operation inside a cross-origin embed.
+- [x] Verify the shared editor's source receipts, packaged Web and Tauri assets.
+
+With 500 preset JSON files, the original Monaco path creates 505 models and
+four listener warnings. The revised path maintains five models and no warnings
+after 250 file selections in Chromium and WebKit, retaining JS completion,
+definition lookup and saved JSON edits. Leaving JSON releases its Undo history.
+The report is `build/fm2608-monaco-preset-models.json`.
+
+Rhythm Auto displays F / G / H / J / K / L on its six pads. A fixed voice shows
+Any key. Tests verify actual register triggers and Octave behavior. After song
+end, editing or audition prepares the same position in paused state, preserving
+the first key attack. Song view before first playback also prepares on demand.
+
+All 257 app / Monaco / shared Code / package checks pass, along with 556
+calibration checks and 41 Mixer generator checks. The exact editor UI revision
+receipt verifies the original eight measurement files and their source hashes.
+
+The packaged app passes 32 checks per browser, actual Monaco passes six and
+the desktop adapter passes nine. Reports are `build/fm2608-import-input-packaged.json`,
+`build/fm2608-import-input-monaco.json` and the desktop repository's
+`artifacts/import-input-desktop-browser.json`. The verified ZIP is
+`release/tetorica_fm2608_synth_dev-20261115-import-input-fixes_itch.zip`.
+The desktop imports it as app version `0.0.5` and builds a local unsigned arm64 app.
+
+The first reported frame message describes the itch.io parent origin accessing
+the embedded app origin. Its precise caller remains unidentified because no
+stack was supplied. Tests of the actual app in a sandboxed cross-origin iframe
+pass five checks in each browser with no console or frame-access errors.
+The report is `build/fm2608-cross-origin-embed.json`.
+
 ## YM2203 compatibility playback
 
 The user chose automatic detection and YM2608 compatibility playback first.

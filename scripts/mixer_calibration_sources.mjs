@@ -17,6 +17,7 @@ import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6
 import {restoreMixerCalibrationSynthSourceNavigationRevision} from './mixer_calibration_synth_source_navigation_revision.mjs';
 import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
 import {restoreMixerCalibrationYm2608OutputGainRevision} from './mixer_calibration_ym2608_output_gain_revision.mjs';
+import {restoreMixerCalibrationMonacoModelRevision} from './mixer_calibration_monaco_model_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -368,6 +369,8 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
   const outputGains=restoreMixerCalibrationYm2608OutputGainRevision(path,bytes,{report,record});
   if(outputGains!==bytes&&outputGains.length===record?.bytes&&sha(outputGains)===record.sha256)return 'ym2608-dormant-output-gain-api';
+  const monacoModels=restoreMixerCalibrationMonacoModelRevision(path,bytes),monacoModelRevision=monacoModels!==bytes;bytes=monacoModels;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return monacoModelRevision?'ui-monaco-virtual-model-lifecycle':'raw';
   const hardwareNavigation=restoreMixerCalibrationFm2608NavigationRevision(path,bytes),hardwareNavigationRevision=hardwareNavigation!==bytes;bytes=hardwareNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hardwareNavigationRevision?'ui-fm2608-hardware-source-navigation':'raw';
   const navigation=restoreMixerCalibrationSynthSourceNavigationRevision(path,bytes),navigationRevision=navigation!==bytes;bytes=navigation;

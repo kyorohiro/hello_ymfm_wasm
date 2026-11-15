@@ -15,6 +15,9 @@ Pitch controls, Files and JavaScript Code.
 Enable audio, choose a sound section and play the displayed computer keys or
 pointer keyboard. Auto allocates melodic notes across the section's channels.
 Choose a physical CH to edit and play that channel directly.
+In Rhythm Auto, the pads show their F / G / H / J / K / L keyboard bindings.
+Selecting a physical Rhythm voice sends all note keys to that voice, whose pad
+shows Any key. Clicking a pad triggers its named sound.
 
 The FM editor exposes the algorithm, feedback, four operators and hardware
 LFO. SSG supports Tone and Noise mixing per channel, a shared Noise period
@@ -88,6 +91,9 @@ chip. Play its selected channel, edit its settings or Capture to Synth. Resume
 continues the original song from the retained audio. Capture copies the selected
 channel into Your sound while preserving the transport's current state.
 The position slider seeks by rebuilding the original register timeline.
+After a song ends, the next channel edit or keyboard attack prepares paused
+audition at the ending position. Selecting Song channels before playback also
+prepares an editable paused view.
 
 ADPCM Capture supports recorded data blocks and complete CPU-uploaded external
 samples with 32-byte addressing. CPU-direct streams, 1-bit DRAM addressing and
@@ -128,6 +134,9 @@ three SSG channels, so its restart also affects other envelope-enabled voices.
 Save a sound to Files and select it to apply its settings. Export or import a
 project Cassette to transfer the sound and editable JavaScript together.
 Local drafts are restored when the same browser opens the app again.
+JSON documents are opened on demand so large preset libraries use fewer editor
+resources. Their edited text is saved when switching files. Each JSON document's
+Undo history resets when leaving that document.
 
 Choose Code to edit `/index.js`. Run starts a performance, Apply updates named
 loops while keeping prepared state, and Stop releases the performance.

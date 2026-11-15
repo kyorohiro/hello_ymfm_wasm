@@ -71,7 +71,7 @@ function chip() {
   return audio.getChip();
 }
 function live() {
-  return Boolean(songs?.isViewing() || chip() && byId('liveUpdate').checked && section !== 'mixer' && selection[section] !== 'auto');
+  return Boolean(songs?.snapshot() || chip() && byId('liveUpdate').checked && section !== 'mixer' && selection[section] !== 'auto');
 }
 function fmSnapshot(channel) {
   const voice = songs?.snapshot()?.fm.channels[channel] ?? audio?.getFmState().channels[channel];
@@ -288,8 +288,9 @@ async function applySettings(value, {isCurrent = () => true,selection:importedSe
   renderSample();
   return true;
 }
-function edit(mutator, forceWrite) {
+async function edit(mutator, forceWrite) {
   if (songs?.isViewing()) {
+    if (!await songs.ensureEditable() || !songs.isViewing()) throw new DOMException('Song edit cancelled','AbortError');
     const before = referenceSettings(), next = structuredClone(before);
     mutator(next);
     const accepted = readPreset(next);
@@ -455,6 +456,7 @@ function buildControls() {
     pad.addEventListener('click',() => run(async () => {
       const engine = await ensureAudio();
       await editQueue;
+      if (songs?.isViewing() && !await songs.ensureEditable()) return;
       const raw = songs?.isViewing() ? songs.getChip() : engine.getChip();
       raw?.rhythm.keyOn(index);
       pad.classList.add('is-active');
@@ -603,7 +605,19 @@ function updateReadout() {
   const rate = section === 'adpcm' && chip() ? ' · Playback ' + Math.round(adpcmPlaybackRate()).toLocaleString() + ' Hz' : '';
   const source = songs?.isViewing() ? ' · ' + (songs.getState().playback === 'paused' ? 'Paused song' : byId('liveUpdate').checked ? 'Live from song' : 'Frozen song') : live() && host?.isRunning() ? ' · Live from Code' : '';
   byId('channelReadout').textContent = sectionNames[section] + ' · ' + target + source + rate;
-  byId('keyboardHint').textContent = section === 'rhythm' ? 'Rhythm keys trigger the six fixed voices.' : sectionNames[section] + ' · ' + target + ' · Pitch is software tuning';
+  byId('keyboardHint').textContent = section === 'rhythm' ?
+    'Rhythm · ' + (selection.rhythm === 'auto' ? 'Auto · key bindings shown on pads' : RHYTHM_NAMES[selection.rhythm] + ' · all note keys') :
+    sectionNames[section] + ' · ' + target + ' · Pitch is software tuning';
+}
+function updateRhythmPadLabels() {
+  if (!layout) return;
+  const homeKeys = layout.entries.filter(entry => entry.rowIndex === 2).slice(-6);
+  for (const pad of byId('rhythmPads').querySelectorAll('[data-rhythm-pad]')) {
+    const voice = Number(pad.dataset.rhythmPad);
+    const key = selection.rhythm === 'auto' ? homeKeys.find(entry => (entry.midi % 6 + 6) % 6 === voice)?.label :
+      selection.rhythm === voice ? 'Any key' : '';
+    pad.textContent = RHYTHM_NAMES[voice] + (key ? ' (' + key + ')' : '');
+  }
 }
 function renderChannelTabs() {
   const root = byId('channelTabs');
@@ -630,6 +644,7 @@ function renderChannelTabs() {
     });
     root.append(button);
   }
+  if (section === 'rhythm') updateRhythmPadLabels();
 }
 function selectSection(value,{releaseNotes = true} = {}) {
   if (releaseNotes) releaseKeyboard();
@@ -728,6 +743,7 @@ async function press(id,midi) {
   try {
     const engine = await ensureAudio();
     await editQueue;
+    if (request.source === 'song' && !await songs.ensureEditable()) return;
     if (switchingAudioOutput || pendingNotes.get(id) !== request || request.token !== generation) return;
     const channel = allocateChannel(request.kind,midi), lane = request.kind + ':' + channel;
     const previous = owners.get(lane);
@@ -851,6 +867,7 @@ function renderKeyboard() {
     onPointerUp:event => release('pointer:' + event.pointerId),
     onPointerCancel:event => release('pointer:' + event.pointerId)});
   byId('octaveValue').textContent = (octave >= 0 ? '+' : '') + octave;
+  updateRhythmPadLabels();
 }
 function editableTarget(target) {
   return Boolean(target?.closest('textarea,input:not([type="range"]):not([type="checkbox"]):not([type="button"]):not([type="file"]),[contenteditable="true"],.monaco-editor'));
