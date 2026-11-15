@@ -35,7 +35,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
     assert(match,`Keyboard note label ${label}`);return (Number(match[3])+1)*12+{C:0,D:2,E:4,F:5,G:7,A:9,B:11}[match[1]]+(['#','♯'].includes(match[2])?1:['b','♭'].includes(match[2])?-1:0);
    };
    await page.waitForFunction(()=>document.querySelector('.product-icon')?.naturalWidth>0);
-   assert.match(await page.locator('link[rel=icon]').getAttribute('href'),/tetorica-spu-1254\.webp$/);
+   assert.match(await page.locator('link[rel=icon]').getAttribute('href'),/tetorica-scsp-synth\.webp$/);
    await page.click('#start');await waitAudio().catch(async error=>{throw new Error(`${error.message}; status=${await page.locator('#status').textContent()}; errors=${JSON.stringify(errors)}`);});
    await page.waitForFunction(()=>!document.querySelector('[data-chip-action="scsp-sine"]').disabled);
    // Fresh defaults: Enable alone must produce an audible echo after release.

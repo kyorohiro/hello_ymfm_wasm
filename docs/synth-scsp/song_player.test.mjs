@@ -140,6 +140,7 @@ function rig({ gate, ssfGate, yieldTask = async () => {} } = {}) {
 			source,
 			disposed: false,
 			process: (...args) => renderer.process(...args),
+			readSnapshot: () => renderer.readSnapshot(),
 			get framesRendered() {
 				return renderer.framesRendered;
 			},
@@ -223,6 +224,36 @@ test('SSF uses the shared transport with preserved native state, source dependen
 	} finally {
 		r.player.dispose();
 	}
+});
+
+test('SSF Live snapshots follow audible frames, freeze on Pause and survive paused Live toggles', async () => {
+	const r = rig(), fixture = createScspSsfPlaybackFixture();
+	try {
+		await r.player.loadSsf(fixture.standaloneFiles, '/ssf/standalone.ssf');
+		assert.equal(r.player.getLiveSnapshot(), null);
+		await r.player.play();
+		assert.equal(r.player.getLiveSnapshot().frame, 0);
+		r.advance(.1);
+		const snapshot = r.player.getLiveSnapshot();
+		assert(snapshot.frame > 0);
+		assert(snapshot.frame <= r.player.getState().positionFrames);
+		assert(r.player.pause());
+		const frozen = r.player.getLiveSnapshot();
+		const frames = r.ssfRenderers[0].framesRendered;
+		r.advance(.1);
+		assert.equal(r.player.getLiveSnapshot(), frozen);
+		r.player.setLiveEnabled(false);
+		assert.equal(r.player.getLiveSnapshot(), null);
+		r.player.setLiveEnabled(true);
+		assert.equal(r.player.getLiveSnapshot(), frozen);
+		assert.equal(r.ssfRenderers[0].framesRendered, frames);
+		await r.player.seek(.7);
+		assert(r.player.getState().paused);
+		assert(r.player.getLiveSnapshot().frame <= 30870);
+		assert(r.player.getLiveSnapshot().frame > 26000);
+		r.player.stop();
+		assert.equal(r.player.getLiveSnapshot(), null);
+	} finally {r.player.dispose();}
 });
 
 test('missing SSF libraries preserve a playing recording and missing length has an explicit bounded preview', async () => {

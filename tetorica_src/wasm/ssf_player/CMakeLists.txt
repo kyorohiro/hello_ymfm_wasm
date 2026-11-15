@@ -31,7 +31,7 @@ target_compile_definitions(ssf_zlib PRIVATE HAVE_UNISTD_H=1)
 target_compile_options(ssf_zlib PRIVATE -Wno-deprecated-non-prototype)
 
 add_library(ssfplay STATIC
-  "${VENDOR}/src/ssfplay.cpp" "${VENDOR}/src/mednafen_compat.cpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/observer/ssfplay_observer.cpp" "${VENDOR}/src/mednafen_compat.cpp"
   "${MEDNAFEN}/error.cpp" "${MEDNAFEN}/Stream.cpp"
   "${MEDNAFEN}/MemoryStream.cpp" "${MEDNAFEN}/FileStream.cpp"
   "${MEDNAFEN}/VirtualFS.cpp" "${MEDNAFEN}/PSFLoader.cpp"
@@ -49,7 +49,7 @@ target_compile_options(ssfplay PRIVATE
   $<$<COMPILE_LANGUAGE:CXX>:-fexceptions;-sDISABLE_EXCEPTION_CATCHING=0>)
 target_include_directories(ssfplay PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}/generated" "${VENDOR}/mednafen/include"
-  "${VENDOR}/include")
+  "${VENDOR}/include" "${VENDOR}/src" "${MEDNAFEN}/ss")
 target_link_libraries(ssfplay PRIVATE ssf_zlib)
 set_source_files_properties("${MEDNAFEN}/hw_cpu/m68k/m68k.cpp"
   PROPERTIES COMPILE_OPTIONS "-O1;-fno-jump-tables")

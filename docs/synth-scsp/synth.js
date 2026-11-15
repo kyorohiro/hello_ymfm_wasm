@@ -7,6 +7,7 @@ import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js';
 import { setupScspCodeHost } from './code_host.js';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
+import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createStateObserver } from '../synth-2a03/state_observer.js';
@@ -42,7 +43,8 @@ let selectedOperator = 0,
 	latestState = null,
 	codeHost = null,
 	songControls = null,
-	songState = null;
+	songState = null,
+	liveView = null;
 let cachedPatch = null,
 	soundName = null,
 	operatorReads = [],
@@ -160,6 +162,12 @@ function drawConnections(state) {
 }
 function renderState() {
 	if (!latestState || disposed) return;
+	const wasLive = liveView?.isActive();
+	if (liveView?.update(songState, songControls?.player.getLiveSnapshot())) {
+		if (!wasLive) chipTab(false);
+		numberControls?.update();
+		return;
+	}
 	const state = latestState;
 	if (!$('voice').querySelector('.is-dragging')) panel.update(state);
 	const memory = $('voice').querySelector(':scope > p');
@@ -260,12 +268,15 @@ async function ensureAudio() {
 				if (disposed) throw new Error('SCSP Synth is closed');
 				await engine.command('setPitchBend', [bend]);
 				engine.setVolume(Number($('volume').value));
+				const unappliedDraft = panel.captureDraft?.();
 				audio = engine;
 				sampleKeys = [];
 				operatorReads = [];
 				visualizer.connect(engine.context, engine.outputNode);
 				$('start').textContent = 'Audio ready';
 				await refresh();
+				if (unappliedDraft) panel.restoreDraft(unappliedDraft);
+				status('Audio ready.');
 				syncActivity();
 				return engine;
 			} catch (error) {
@@ -284,6 +295,7 @@ async function ensureAudio() {
 async function applySettings(value, { isCurrent = () => true } = {}) {
 	readPatch(value);
 	if (!isCurrent() || disposed) return false;
+	if (liveView?.isActive()) liveView.setEnabled(false);
 	return enqueue(async () => {
 		if (!isCurrent() || disposed) return false;
 		await command('loadPatch', [value]);
@@ -307,6 +319,11 @@ const panel = createPlaygroundScspVoicePanel({
 	invoke: (method, args) =>
 		enqueue(async () => {
 			try {
+				if (liveView?.isActive() && method !== 'getPCM') {
+					throw new Error(
+						'SSF Live view is read-only. Turn off Live to edit the instrument.',
+					);
+				}
 				const result = await invoke(method, args);
 				if (!['getPCM', 'auditionOff', 'auditionOn'].includes(method))
 					await refresh({ dirty: true });
@@ -333,6 +350,14 @@ const numberControls = enhanceScspNumberControls(document.querySelector('.synth-
 panel.setConnected(true);
 for (const id of ['voiceMode', 'pitch', ...effectControls]) $(id).disabled = false;
 for (const button of operatorButtons) button.disabled = false;
+liveView = setupScspSsfLiveView({
+	panel,
+	panelRoot: $('voice'),
+	onChange() {
+		songControls?.player.setLiveEnabled(liveView?.isEnabled() ?? true);
+		renderState();
+	},
+});
 
 const keyboard = document.createElement('div');
 keyboard.className = 'keyboard';
@@ -485,6 +510,10 @@ async function stopAll() {
 }
 async function configure(patch, { routeChanged = false } = {}) {
 	await enqueue(async () => {
+		if (liveView?.isActive()) {
+			renderState();
+			return;
+		}
 		try {
 			await command('setConfig', [patch]);
 			if (routeChanged) {
@@ -601,6 +630,10 @@ $('operatorRatio').addEventListener('change', () => {
 	const value = Number($('operatorRatio').value),
 		selected = selectedOperator;
 	void enqueue(async () => {
+		if (liveView?.isActive()) {
+			renderState();
+			return;
+		}
 		const { state } = await readAuthoring();
 		const ratios = [...state.config.fm.ratios];
 		ratios[selected] = value;
@@ -610,6 +643,7 @@ $('operatorRatio').addEventListener('change', () => {
 });
 for (const button of operatorButtons)
 	button.addEventListener('click', () => {
+		if (liveView?.isActive()) return;
 		selectedOperator = Number(button.dataset.operator);
 		$('voice').querySelector(`[data-scsp-slot="${selectedOperator}"]`).click();
 		if (latestState) renderState();
@@ -626,6 +660,10 @@ for (const [id, key] of [
 		const value = key === 'enabled' ? $(id).checked : Number($(id).value);
 		$(id).blur();
 		void enqueue(async () => {
+			if (liveView?.isActive()) {
+				renderState();
+				return;
+			}
 			await command('setEffect', [{ [key]: value }]);
 			await refresh({ dirty: true });
 			status('Experimental DSP Delay updated.');
@@ -728,6 +766,7 @@ songControls = setupScspSongControls({
 	onState(state) {
 		songState = state;
 		syncActivity();
+		renderState();
 	},
 	setStatus: status,
 });
@@ -777,6 +816,7 @@ window.addEventListener('pagehide', (event) => {
 	observer.dispose();
 	monitorResize.disconnect();
 	visualizer.dispose();
+	liveView.dispose();
 	panel.dispose();
 	numberControls.dispose();
 	songControls.dispose();

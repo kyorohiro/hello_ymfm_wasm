@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createScspSsfPlaybackFixture } from '../../test/helpers/scsp_ssf_fixture.mjs';
+import {
+	createScspSsfPlaybackFixture,
+	createScspSsfLiveFixture,
+} from '../../test/helpers/scsp_ssf_fixture.mjs';
 import { prepareScspSsfSource } from './ssf_source.js';
 import { createScspSsfRenderer } from './ssf_renderer.js';
+import { readScspSsfPcmPreview } from './ssf_snapshot.js';
 import { checkSsfPlayerSources } from '../../scripts/build_ssf_player.mjs';
 
 const wasmBinary = await readFile(
@@ -139,4 +143,100 @@ test('unknown durations remain streaming and aborted or malformed sources fail b
 		{ name: 'AbortError' },
 	);
 	assert.equal(calls, 0);
+});
+
+test('passive observation reads all 32 slots and same-boundary big-endian PCM without advancing the machine', async () => {
+	const renderer = await create(prepared);
+	try {
+		const initial = renderer.readSnapshot();
+		assert.equal(initial.frame, 0);
+		assert.equal(initial.slots.length, 32);
+		assert(initial.slots.every((slot) => !slot.active && !slot.gate));
+		assert.deepEqual(initial.ram.subarray(0x1000, 0x1080), fixture.pcm);
+		output(renderer, 256);
+		const snapshot = renderer.readSnapshot();
+		assert(snapshot.frame >= renderer.framesRendered);
+		assert.equal(renderer.readSnapshot(), snapshot);
+		assert.equal(renderer.framesRendered, 256);
+		assert.equal(snapshot.slots[0].gate, true);
+		assert.equal(snapshot.slots[0].active, true);
+		assert.equal(snapshot.slots[0].sample.startAddress, 0x1000);
+		assert.equal(snapshot.slots[0].sample.loopEnd, 64);
+		assert.equal(snapshot.slots[0].sample.bits, 16);
+		assert.equal(snapshot.slots[0].voice.frequencyHz, 44100);
+		assert(snapshot.slots.slice(1).every((slot) => !slot.active));
+		assert.equal(snapshot.globals.masterVolume, 15);
+		assert.deepEqual(snapshot.ram.subarray(0x1000, 0x1080), fixture.pcm);
+		const frozen = snapshot.ram.slice();
+		output(renderer, 2048);
+		assert.deepEqual(snapshot.ram, frozen);
+		assert(renderer.readSnapshot().frame > snapshot.frame);
+	} finally {
+		renderer.dispose();
+	}
+});
+
+test('reading snapshots between every short block preserves exact native PCM and final state', async () => {
+	const observed = await create(prepared);
+	const reference = await create(prepared);
+	try {
+		observed.readSnapshot();
+		for (let index = 0; index < 160; index++) {
+			const a = output(observed, 257),
+				b = output(reference, 257);
+			assert.deepEqual(a, b);
+			const first = observed.readSnapshot();
+			assert.equal(observed.readSnapshot(), first);
+		}
+		const a = observed.readSnapshot(),
+			b = reference.readSnapshot();
+		assert.deepEqual(a, b);
+	} finally {
+		observed.dispose();
+		reference.dispose();
+	}
+});
+
+test('live CPU edits remain visible across two physical slots with different PCM formats and LFO', async () => {
+	const live = createScspSsfLiveFixture();
+	const source = await prepareScspSsfSource(live.files, live.files[0].path);
+	const renderer = await create(source);
+	const levels = new Set(),
+		pans = new Set();
+	try {
+		for (let index = 0; index < 16; index++) {
+			output(renderer, 4096);
+			const snapshot = renderer.readSnapshot(),
+				a = snapshot.slots[0],
+				b = snapshot.slots[1];
+			assert(a.active && b.active);
+			assert.equal(a.sample.bits, 16);
+			assert.equal(b.sample.bits, 8);
+			assert.equal(a.voice.envelope.attackRate, 31);
+			assert.equal(b.voice.envelope.attackRate, 27);
+			assert.equal(a.voice.lfo.frequencyCode, 10);
+			assert.equal(b.voice.lfo.frequencyCode, 21);
+			assert.equal(b.voice.modulation.writeInhibit, true);
+			levels.add(a.voice.totalLevel);
+			pans.add(b.voice.pan);
+			const first = readScspSsfPcmPreview(snapshot, 0),
+				second = readScspSsfPcmPreview(snapshot, 1);
+			assert(first.pcm instanceof Int16Array);
+			assert(second.pcm instanceof Int8Array);
+			assert.equal(first.pcm.length, 64);
+			assert.equal(second.pcm.length, 64);
+			assert(first.pcm.some((value) => value !== 0));
+			assert(second.pcm.some((value) => value !== 0));
+		}
+		assert.deepEqual(
+			[...levels].sort((a, b) => a - b),
+			[12, 36],
+		);
+		assert.deepEqual(
+			[...pans].sort((a, b) => a - b),
+			[6, 22],
+		);
+	} finally {
+		renderer.dispose();
+	}
 });

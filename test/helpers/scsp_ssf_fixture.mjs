@@ -112,3 +112,113 @@ export function createScspSsfPlaybackFixture({ pitch = 0, miniPitch = 0x7800 } =
 		],
 	};
 }
+
+/** Original 68000 driver for observing two physical SCSP slots.
+ * Slot 1 plays PCM16 sine and Slot 2 plays PCM8 triangle. The CPU alternates
+ * Slot 1's pitch/TL/first PCM word and Slot 2's pan after a counted delay. The samples,
+ * register values and machine instructions are authored here.
+ */
+export function createScspSsfLiveFixture() {
+	const image = new Uint8Array(0x1140);
+	const view = new DataView(image.buffer);
+	view.setUint32(0, 0x7fff0, false);
+	view.setUint32(4, 0x100, false);
+	let address = 0x100;
+	const word = (value) => {
+		view.setUint16(address, value, false);
+		address += 2;
+	};
+	const long = (value) => {
+		view.setUint32(address, value, false);
+		address += 4;
+	};
+	const write = (register, value) => {
+		word(0x33fc); // MOVE.W #immediate, absolute-long address.
+		word(value);
+		long(0x100000 + register);
+	};
+	const delay = () => {
+		word(0x203c); // MOVE.L #150000,D0.
+		long(150000);
+		word(0x5380); // SUBQ.L #1,D0.
+		word(0x66fc); // BNE.S to SUBQ, until the countdown reaches zero.
+	};
+	word(0x46fc);
+	word(0x2000); // Supervisor, interrupts enabled.
+	write(0x400, 0x020f);
+	for (const [register, value] of [
+		[2, 0x1000],
+		[4, 0],
+		[6, 64],
+		[8, 31],
+		[10, 0x3c1f],
+		[12, 12],
+		[14, 0],
+		[16, 0],
+		[18, 0x2953],
+		[20, 0],
+		[22, 0xe000],
+	])
+		write(register, value);
+	for (const [register, value] of [
+		[2, 0x1100],
+		[4, 0],
+		[6, 64],
+		[8, (3 << 6) | 27],
+		[10, (15 << 10) | (4 << 5) | 23],
+		[12, 0x200 | 32],
+		[14, (63 << 6) | 31],
+		[16, 0x7800],
+		[18, 0x578a],
+		[20, 0],
+		[22, 0xa600],
+	])
+		write(0x20 + register, value);
+	write(0x20, 0x0830); // Slot 2 KEYONB, forward loop, PCM8.
+	write(0, 0x1820); // Execute both KEYONB requests, Slot 1 PCM16.
+	const loopAddress = address;
+	delay();
+	word(0x33fc);
+	word(0x2000);
+	long(0x1000); // Positive first PCM16 sample, shared CPU / SCSP RAM.
+	write(12, 36);
+	write(16, 0x7800);
+	write(0x20 + 22, 0xb600);
+	delay();
+	word(0x33fc);
+	word(0xe000);
+	long(0x1000); // Negative first PCM16 sample.
+	write(12, 12);
+	write(16, 0);
+	write(0x20 + 22, 0xa600);
+	word(0x4ef9); // JMP absolute-long, repeating the two settings.
+	long(loopAddress);
+	for (let index = 0; index < 64; index++) {
+		view.setInt16(
+			0x1000 + index * 2,
+			Math.round(8192 * Math.sin((index * Math.PI) / 32)),
+			false,
+		);
+		view.setInt8(0x1100 + index, Math.round(64 * (1 - 4 * Math.abs(index / 64 - 0.5))));
+	}
+	const tags =
+		'title=Tetorica original SSF Live driver\nartist=Tetorica\nlength=0:08\nfade=0:00.25\n';
+	const bytes = ssfFromProgram(image, 0, tags);
+	return {
+		image,
+		bytes,
+		files: [{ path: '/ssf/live-driver.ssf', data: bytes }],
+		loopAddress,
+		slots: [
+			{
+				index: 0,
+				bits: 16,
+				start: 0x1000,
+				length: 64,
+				attackRate: 31,
+				totalLevels: [12, 36],
+			},
+			{ index: 1, bits: 8, start: 0x1100, length: 64, attackRate: 27, totalLevels: [32] },
+		],
+	};
+}

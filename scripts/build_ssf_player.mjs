@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Build the separately licensed, pinned SSF playback component.
 import { createHash } from 'node:crypto';
-import { cp, mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -41,6 +41,31 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 		EM_CACHE: cacheDir ?? process.env.EM_CACHE ?? path.join(root, '.emcache/ssf-player'),
 	};
 	await mkdir(output, { recursive: true });
+	const observer = path.join(build, 'observer');
+	await mkdir(observer, { recursive: true });
+	const upstream = await readFile(path.join(vendor, 'src/ssfplay.cpp'), 'utf8');
+	const header = await readFile(path.join(vendor, 'mednafen/src/ss/scsp.h'), 'utf8');
+	const includeAnchor = '#include "../mednafen/src/ss/sound.cpp"';
+	const accessAnchor = ' private:';
+	if (upstream.split(includeAnchor).length !== 2 || header.split(accessAnchor).length !== 2)
+		throw new Error('Pinned SSF observation insertion anchors changed');
+	const observation = await readFile(
+		path.join(root, 'tetorica_src/wasm/ssf_player/ssf_observer.inc'),
+		'utf8',
+	);
+	await writeFile(
+		path.join(observer, 'ssfplay_observer.cpp'),
+		upstream.replace(includeAnchor, '#include "sound.cpp"') + '\n' + observation,
+	);
+	await writeFile(
+		path.join(observer, 'scsp.h'),
+		header.replace(
+			accessAnchor,
+			' // Build-only passive observation member.\n void TetoricaReadSnapshot(uint32* words, uint8* ram) const;\n\n' +
+				accessAnchor,
+		),
+	);
+	await cp(path.join(vendor, 'mednafen/src/ss/sound.cpp'), path.join(observer, 'sound.cpp'));
 	const temporary = await mkdtemp(path.join(path.dirname(output), '.ssf-player-'));
 	await cp(output, temporary, { recursive: true });
 	try {
@@ -68,6 +93,8 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 			'_ssf_ended',
 			'_ssf_destroy',
 			'_ssf_last_error',
+			'_ssf_native_frame',
+			'_ssf_read_snapshot',
 		];
 		run(
 			process.env.EMXX ?? 'em++',

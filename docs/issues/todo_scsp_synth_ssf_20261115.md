@@ -53,8 +53,9 @@ from the same audible position. Seek rebuilds and executes from the reset
 state. Length, fade and relative volume tags apply in the renderer. A missing
 or invalid length uses a 180-second preview with a visible message. Starting
 the song stops Code, and Run stops the song. The keyboard continues to play
-the authored instrument. Song-slot Live display / editing and Capture are
-pending follow-ups.
+the authored instrument. Read-only song-slot Live inspection was subsequently
+implemented in [SSF Live view](todo_scsp_synth_ssf_live_20261115.md). Song-slot
+editing, Capture and selected-slot keyboard audition remain follow-up tasks.
 
 The existing Files project limit is 12 MiB. The standalone loader accepts up
 to 512 supplied files, 4 MiB per file, 64 MiB per set and 32 MiB of expanded

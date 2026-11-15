@@ -29,7 +29,11 @@ struct Renderer {
 
 extern "C" {
 
-uint32_t ssf_abi_version() { return 1; }
+double ssfplay_tetorica_native_frame(const ssfplay_decoder* decoder);
+int ssfplay_tetorica_snapshot(const ssfplay_decoder* decoder, uint32_t* words,
+                            uint32_t word_count, uint8_t* ram, uint32_t ram_size);
+
+uint32_t ssf_abi_version() { return 2; }
 
 Renderer* ssf_create(const uint8_t* bytes, uint32_t size) {
   last_error.clear();
@@ -94,6 +98,13 @@ int32_t ssf_render(Renderer* renderer, float* left, float* right, uint32_t frame
 }
 
 uint32_t ssf_ended(const Renderer* renderer) { return renderer && renderer->ended; }
+double ssf_native_frame(const Renderer* renderer) {
+  return renderer ? ssfplay_tetorica_native_frame(renderer->decoder) : -1;
+}
+uint32_t ssf_read_snapshot(const Renderer* renderer, uint32_t* words,
+                         uint32_t word_count, uint8_t* ram, uint32_t ram_size) {
+  return renderer && ssfplay_tetorica_snapshot(renderer->decoder, words, word_count, ram, ram_size);
+}
 void ssf_destroy(Renderer* renderer) { delete renderer; }
 const char* ssf_last_error() { return last_error.c_str(); }
 }

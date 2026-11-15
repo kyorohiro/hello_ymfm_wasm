@@ -858,3 +858,99 @@ footer {
 		font-size: 12px;
 	}
 }
+
+/* Read-only song inspection reuses the authored editor's fields and canvas. */
+.scsp-ssf-live {
+	margin: 0 0 14px;
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: #202d3b;
+	min-width: 0;
+}
+.scsp-ssf-live-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 18px;
+	align-items: center;
+}
+.scsp-ssf-live-controls label {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 0.76rem;
+}
+#scspSsfSlot {
+	min-width: 90px;
+	overflow: hidden;
+}
+.scsp-ssf-slots {
+	display: grid;
+	grid-template-columns: repeat(16, minmax(0, 1fr));
+	gap: 4px;
+	margin-top: 10px;
+}
+.scsp-ssf-slots button {
+	position: relative;
+	min-width: 0;
+	min-height: 28px;
+	padding: 3px 0 5px;
+	font-size: 0.72rem;
+	overflow: hidden;
+}
+.scsp-ssf-slots button::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	height: 3px;
+	width: calc(100% * var(--ssf-env, 0));
+	background: #7dd9e9;
+}
+.scsp-ssf-slots button[data-active='true'] {
+	background: #315c78;
+	color: #e8f7ff;
+}
+.scsp-ssf-slots button[data-active='true'][data-gate='false']::after {
+	background: #e6b664;
+}
+.scsp-ssf-slots button[aria-pressed='true'] {
+	outline: 2px solid #9bdcff;
+	outline-offset: 1px;
+}
+.scsp-ssf-live-status {
+	margin: 8px 0 0;
+	font-size: 0.72rem;
+	line-height: 1.6;
+	color: var(--muted);
+	overflow-wrap: anywhere;
+}
+#voice[data-ssf-live='true'] input:disabled,
+#voice[data-ssf-live='true'] select:disabled {
+	opacity: 1;
+	color: var(--ink);
+	-webkit-text-fill-color: var(--ink);
+}
+#voice[data-ssf-live='true'] .scsp-stepper {
+	opacity: 1;
+	grid-template-columns: minmax(0, 1fr);
+}
+#voice[data-ssf-live='true'] .scsp-stepper button {
+	display: none;
+}
+#voice[data-ssf-live='true'] canvas {
+	cursor: default;
+	touch-action: pan-y !important;
+}
+#voice .scsp-ssf-modulation label {
+	min-width: 130px;
+}
+#voice .scsp-ssf-modulation output {
+	color: var(--ink);
+	font-weight: 700;
+}
+@media (max-width: 760px) {
+	.scsp-ssf-slots {
+		grid-template-columns: repeat(8, minmax(0, 1fr));
+	}
+}

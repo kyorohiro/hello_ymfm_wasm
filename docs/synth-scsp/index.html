@@ -9,8 +9,8 @@
 		/>
 		<meta name="theme-color" content="#1c222b" />
 		<title>Tetorica SCSP Synth</title>
-		<link rel="icon" type="image/webp" href="../tetorica-spu-1254.webp" />
-		<link rel="apple-touch-icon" href="../tetorica-spu-1254.webp" />
+		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
+		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
 		<link rel="stylesheet" href="synth.css" />
 	</head>
 	<body>
@@ -134,7 +134,7 @@
 						<div class="product-identity">
 							<img
 								class="product-icon"
-								src="../tetorica-spu-1254.webp"
+								src="../tetorica-scsp-synth.webp"
 								width="112"
 								height="112"
 								alt=""
@@ -221,6 +221,45 @@
 							</div>
 							<p id="scspSongStatus" role="status">
 								Import an SSF folder or SCSP VGM from Menu, or try Demo.
+							</p>
+						</section>
+						<section
+							id="scspSsfLive"
+							class="scsp-ssf-live"
+							aria-label="SSF slot inspection"
+							hidden
+						>
+							<div class="scsp-ssf-live-controls">
+								<label
+									><input id="scspSsfLiveEnabled" type="checkbox" checked /> Live
+									from SSF</label
+								>
+								<label for="scspSsfSlot"
+									>Slot
+									<select
+										id="scspSsfSlot"
+										aria-label="SSF slot to inspect"
+									></select
+								></label>
+								<details class="scsp-inline-help">
+									<summary aria-label="About SSF Live view">?</summary>
+									<p>
+										Inspect the physical SCSP slot at the audible song position.
+										Pause keeps one snapshot for all 32 slots. The PCM preview
+										reads a short prefix at the programmed sample start.
+										Envelope, LFO, mix and modulation show hardware values. Live
+										is read-only.
+									</p>
+								</details>
+							</div>
+							<div
+								id="scspSsfSlots"
+								class="scsp-ssf-slots"
+								role="group"
+								aria-label="SSF slot activity"
+							></div>
+							<p id="scspSsfLiveStatus" class="scsp-ssf-live-status" role="status">
+								Waiting for SSF playback.
 							</p>
 						</section>
 						<section class="spu-monitor scsp-monitor" aria-label="Audio display">

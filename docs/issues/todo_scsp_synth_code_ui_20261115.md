@@ -23,7 +23,9 @@ JavaScript performance over the existing SCSP. Start from a clean parent tree.
 - [x] Select SCSP VGM / VGZ as the initial playable input and record commands.
       SSF / MiniSSF playback needs a sound-CPU player and dependency handling.
 - [x] Keep original recordings in `vgm/` and authored JSON sounds in `presets/`.
-- [ ] Add song-slot Live display and capture after this first playback path.
+- [x] Add read-only SSF song-slot Live display; see
+      [SSF Live view](todo_scsp_synth_ssf_live_20261115.md).
+- [ ] Add song-slot Capture after read-only inspection.
 - [x] Investigate SSF / MiniSSF with a 68000 execution environment, bus,
       timing, interrupts and library resolution.
       Follow-up implementation is recorded in `todo_scsp_synth_ssf_20261115.md`.

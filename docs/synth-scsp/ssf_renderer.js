@@ -2,6 +2,7 @@
 import createSsfPlayerModule from '../generated/ssf-player/ssf_player.js';
 import { zlibSync } from '../playground/vendor/fflate.js';
 import { scspSsfCrc32 } from './ssf_source.js';
+import { decodeScspSsfSnapshot, SCSP_SSF_SNAPSHOT_WORDS } from './ssf_snapshot.js';
 
 const RATE = 44100;
 const MAX_FRAMES = 16384;
@@ -70,11 +71,14 @@ export async function createScspSsfRenderer(
 	check(signal);
 	const module = await moduleFactory({ wasmBinary: binary });
 	check(signal);
-	if (module._ssf_abi_version() !== 1) throw new Error('Unsupported SSF renderer ABI');
+	if (module._ssf_abi_version() !== 2) throw new Error('Unsupported SSF renderer ABI');
 	let input = 0,
 		leftPointer = 0,
 		rightPointer = 0,
-		renderer = 0;
+		renderer = 0,
+		snapshotWords = 0,
+		snapshotRam = 0,
+		cachedSnapshot = null;
 	let framesRendered = 0,
 		ended = total === 0,
 		disposed = false;
@@ -86,6 +90,10 @@ export async function createScspSsfRenderer(
 		if (renderer) module._ssf_destroy(renderer);
 		if (leftPointer) module._free(leftPointer);
 		if (rightPointer) module._free(rightPointer);
+		if (snapshotWords) module._free(snapshotWords);
+		if (snapshotRam) module._free(snapshotRam);
+		cachedSnapshot = null;
+		snapshotWords = snapshotRam = 0;
 		renderer = leftPointer = rightPointer = 0;
 	}
 	try {
@@ -146,8 +154,35 @@ export async function createScspSsfRenderer(
 			(total !== null && framesRendered >= total);
 		return produced;
 	}
+	function readSnapshot() {
+		if (disposed) throw new Error('SSF renderer is disposed');
+		const frame = module._ssf_native_frame(renderer);
+		if (cachedSnapshot?.frame === frame) return cachedSnapshot;
+		if (!snapshotWords) snapshotWords = module._malloc(SCSP_SSF_SNAPSHOT_WORDS * 4);
+		if (!snapshotRam) snapshotRam = module._malloc(RAM_BYTES);
+		if (!snapshotWords || !snapshotRam) throw new Error('SSF observation allocation failed');
+		if (
+			!module._ssf_read_snapshot(
+				renderer,
+				snapshotWords,
+				SCSP_SSF_SNAPSHOT_WORDS,
+				snapshotRam,
+				RAM_BYTES,
+			)
+		)
+			throw new Error('SSF observation is unavailable');
+		const words = new Uint32Array(
+			module.HEAPU8.buffer,
+			snapshotWords,
+			SCSP_SSF_SNAPSHOT_WORDS,
+		).slice();
+		const ram = module.HEAPU8.slice(snapshotRam, snapshotRam + RAM_BYTES);
+		cachedSnapshot = decodeScspSsfSnapshot(words, ram);
+		return cachedSnapshot;
+	}
 	return {
 		process,
+		readSnapshot,
 		dispose,
 		get framesRendered() {
 			return framesRendered;

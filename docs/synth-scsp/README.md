@@ -160,7 +160,28 @@ and unsupported core registers produce explicit errors.
 Song playback uses its own SCSP state and RAM through the existing
 AudioContext and Master output. The keyboard continues to audition the
 authored instrument. Starting a song stops Code, and Run stops the song.
-Song-slot Live display and instrument capture remain future work.
+Live from SSF is enabled by default. Its 32 numbered buttons show sampled
+slot activity and envelope state. Select a slot to inspect its raw PCM
+prefix, envelope codes, LFO, attenuation, pan and sound-stack modulation in
+the existing controls. This view is read-only. The waveform previews up to
+256 raw samples from the programmed start address. The inspector shows the
+physical sample playback rate in samples per second. A recording's original
+root note is unknown. The loop mode and programmed boundaries appear beside
+the slot status. Noise and zero sources have their own source labels.
+
+Pause freezes one native snapshot for all slot choices. Live Off restores
+the authored instrument and its unapplied waveform draft. Stop and natural
+end also restore that view. Selecting an authored preset while Live switches
+back to the instrument view and keeps the song transport available. Save
+actions become available in the authored view. Song-slot instrument Capture
+and selected-slot keyboard audition are follow-up work.
+
+The transport retains a bounded window of same-time slot and 512 KiB RAM
+snapshots. It selects the latest state at or before the audible position,
+accounting for native and Web Audio lookahead. Typical retention is a few
+MiB, with a maximum of 16 snapshots, about 8 MiB. Live Off stops acquisition.
+Activity indicates native waveform / envelope state, including silent
+modulators. ENV percentages show normalized attenuation progress.
 
 The recording formats are described in the original VGM and PSF specifications.
 [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)
@@ -204,6 +225,8 @@ The C ABI wrapper uses the same license. See `licenses/ssfplay/COPYING` and
 `generated/ssf-player/NOTICE.txt`. The browser loader and transport are
 included as editable JavaScript. The player has an independent sound machine
 for each playback or seek candidate.
+ABI 2 adds passive slot and RAM observation through a checked temporary
+build overlay. The source kit includes `ssf_observer.inc` and its recipe.
 
 Authored JavaScript and CSS are copied byte-for-byte into the distribution,
 preserving comments, names and layout. Edit modules in `synth-scsp/`, `js/`

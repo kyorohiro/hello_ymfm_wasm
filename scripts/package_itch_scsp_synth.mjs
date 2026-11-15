@@ -192,7 +192,7 @@ export async function packageScspSynth({
 	await writeFile(
 		join(stage, 'index.html'),
 		html
-			.replaceAll('../tetorica-spu-1254.webp', './tetorica-spu-1254.webp')
+			.replaceAll('../tetorica-scsp-synth.webp', './tetorica-scsp-synth.webp')
 			.replaceAll('href="../playground/scsp-dsp.html"', 'href="./playground/scsp-dsp.html"')
 			.replaceAll(
 				'href="../generated/ssf-player/NOTICE.txt"',
@@ -219,8 +219,8 @@ export async function packageScspSynth({
 	});
 	await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
 	await copyFile(
-		join(root, 'docs/tetorica-spu-1254.webp'),
-		join(stage, 'tetorica-spu-1254.webp'),
+		join(root, 'docs/tetorica-scsp-synth.webp'),
+		join(stage, 'tetorica-scsp-synth.webp'),
 	);
 	const sourceCheck = await copyScspSources(stage);
 	for (const path of [
@@ -228,7 +228,7 @@ export async function packageScspSynth({
 		'docs/synth-scsp/index.html',
 		'docs/synth-scsp/synth.css',
 		'docs/synth-scsp/README.md',
-		'docs/tetorica-spu-1254.webp',
+		'docs/tetorica-scsp-synth.webp',
 		'tetorica_src/runtime/generated/scsp_wasm.js',
 		'LICENSE',
 		'scripts/package_itch_scsp_synth.mjs',

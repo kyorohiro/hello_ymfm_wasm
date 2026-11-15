@@ -140,6 +140,28 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     const key=`${selected}:${v?.sample?.bankId}:${v?.sample?.id}`;if(key!==draftKey){draftKey=key;draft=null;dirty=false;drawing=null;code.hidden=true;status.textContent='';const request=++loadSequence;draw();if(v?.sample)void invoke('getPCM',[selected]).then(loaded=>{if(disposed||request!==loadSequence||draftKey!==key)return;draft=loaded;syncDraft();refreshEnabled();}).catch(error=>{if(!disposed&&request===loadSequence)onError(error);});}
     refreshEnabled();
   }
+  // Preserve an unapplied drawing across an audio engine's sample-bank migration.
+  // These helpers only copy UI draft state; applying PCM stays explicit.
+  function captureDraft() {
+    if(disposed||!dirty||!draft)return null;
+    return {
+      slot:selected,pcm:draft.pcm.slice(),sample:structuredClone(draft.sample),
+      values:{root:tuning.input.value,rate:rate.input.value,loop:loop.input.value,bits:bits.value,padding:padding.input.value},
+      status:status.textContent,
+    };
+  }
+  function restoreDraft(checkpoint) {
+    const sample=state?.channels?.[selected]?.sample;
+    if(disposed||!checkpoint||checkpoint.slot!==selected||!sample)return false;
+    if(!(checkpoint.pcm instanceof Int8Array)&&!(checkpoint.pcm instanceof Int16Array))throw new TypeError('Invalid SCSP draft PCM');
+    loadSequence++;drawing=null;
+    draft={pcm:checkpoint.pcm.slice(),sample:structuredClone(checkpoint.sample)};
+    draftKey=`${selected}:${sample.bankId}:${sample.id}`;dirty=true;
+    syncDraft();
+    for(const [key,input]of [['root',tuning.input],['rate',rate.input],['loop',loop.input],['bits',bits],['padding',padding.input]])input.value=checkpoint.values[key];
+    status.textContent=checkpoint.status;
+    refreshEnabled();return true;
+  }
   update(null);
-  return {update,releaseAll:release,getSelectedChannel:()=>selected,setConnected(value){connected=value;if(!value)release();update(state);},setVisible(value){visible=value;if(!value)release();},dispose(){if(disposed)return;release();disposed=true;loadSequence++;fileSequence++;recording=null;doc.defaultView?.removeEventListener('blur',release);doc.removeEventListener('visibilitychange',visibility);root.replaceChildren();}};
+  return {update,captureDraft,restoreDraft,releaseAll:release,getSelectedChannel:()=>selected,setConnected(value){connected=value;if(!value)release();update(state);},setVisible(value){visible=value;if(!value)release();},dispose(){if(disposed)return;release();disposed=true;loadSequence++;fileSequence++;recording=null;doc.defaultView?.removeEventListener('blur',release);doc.removeEventListener('visibilitychange',visibility);root.replaceChildren();}};
 }

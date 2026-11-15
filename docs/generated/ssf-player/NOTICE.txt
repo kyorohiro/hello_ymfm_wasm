@@ -7,6 +7,9 @@ Upstream revision a28e0d7e14a3dc04a486ea26f30bc52edad3dc4d.
 The Tetorica C ABI wrapper is also GPL-2.0-or-later.
 Its source is tetorica_src/wasm/ssf_player/ssf_player.cpp.
 Rebuild with node scripts/build_ssf_player.mjs using Emscripten and CMake.
+ABI 2 includes a passive slot/RAM observer. The build creates temporary
+copies from pinned sources and includes the readable ssf_observer.inc.
+The source kit retains these inputs and the build recipe.
 The linked zlib 1.3.2 retains its zlib license and copyright notice in
 third_party/ssfplay/zlib/LICENSE and licenses/ssfplay/zlib-LICENSE.
 

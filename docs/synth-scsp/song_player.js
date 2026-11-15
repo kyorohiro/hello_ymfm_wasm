@@ -4,6 +4,7 @@ import { Scsp } from '../js/scsp.js';
 import { prepareScspSongSource } from './song_source.js';
 import { prepareScspSsfSource } from './ssf_source.js';
 import { createScspSsfRenderer } from './ssf_renderer.js';
+import { createScspSsfLiveHistory } from './ssf_live_history.js';
 
 const RATE = 44100,
 	CHUNK = 256,
@@ -135,6 +136,7 @@ export function createScspSongPlayer({
 		seeking = null,
 		errorMessage = '';
 	let pending = Promise.resolve();
+	let liveEnabled = true;
 	const open = () => {
 		if (disposed) throw new Error('SCSP song player is disposed');
 	};
@@ -179,6 +181,7 @@ export function createScspSongPlayer({
 			durationSeconds: (source?.totalSamples ?? 0) / RATE,
 			format: source?.format ?? '',
 			kind: source?.kind ?? (source ? 'vgm' : ''),
+			liveEnabled,
 			entryPath: source?.entryPath ?? '',
 			loadedFiles: source?.loadedFiles ? [...source.loadedFiles] : [],
 			metadata: source?.metadata ?? null,
@@ -193,6 +196,25 @@ export function createScspSongPlayer({
 			canStop: busy || Boolean(active) || frames > 0,
 			canSeek: Boolean(source) && !loading && playback !== 'starting',
 		};
+	}
+	function getLiveSnapshot() {
+		if (!liveEnabled || !active || active.source.kind !== 'ssf') return null;
+		return active.liveHistory.at(position());
+	}
+	function captureLive(run) {
+		if (liveEnabled && run.source.kind === 'ssf' && run.renderer.readSnapshot)
+			run.liveHistory.push(run.renderer.readSnapshot());
+	}
+	function setLiveEnabled(value) {
+		open();
+		if (typeof value !== 'boolean') throw new TypeError('Live enabled must be boolean');
+		if (liveEnabled === value) return;
+		liveEnabled = value;
+		if (value && active && playback === 'playing') {
+			active.liveHistory.clear();
+			captureLive(active);
+		}
+		emit();
 	}
 	function emit() {
 		try {
@@ -228,6 +250,7 @@ export function createScspSongPlayer({
 		run.renderer.dispose?.();
 		run.core?.dispose();
 		run.segments.length = 0;
+		run.liveHistory.clear();
 	}
 	function stop() {
 		if (disposed) return;
@@ -352,7 +375,7 @@ export function createScspSongPlayer({
 			if (!current(ticket)) throw aborted();
 			gain = output.context.createGain();
 			gain.connect(output.output);
-			return {
+			const run = {
 				core,
 				renderer,
 				...output,
@@ -366,7 +389,10 @@ export function createScspSongPlayer({
 				eof: false,
 				released: false,
 				lastEmitTime: null,
+				liveHistory: createScspSsfLiveHistory(),
 			};
+			captureLive(run);
+			return run;
 		} catch (error) {
 			gain?.disconnect();
 			renderer?.dispose?.();
@@ -420,6 +446,7 @@ export function createScspSongPlayer({
 			const consumed = position();
 			positionFrames = consumed;
 			run.basePosition = consumed;
+			run.liveHistory.prune(consumed);
 			run.segments = run.segments.filter(
 				(segment) => segment.firstFrame + segment.frames > consumed,
 			);
@@ -429,6 +456,7 @@ export function createScspSongPlayer({
 				const left = new Float32Array(CHUNK),
 					right = new Float32Array(CHUNK),
 					frames = run.renderer.process(left, right, CHUNK);
+				captureLive(run);
 				if (frames) append(run, left, right, frames);
 				run.eof = run.renderer.ended;
 				if (!frames) break;
@@ -553,6 +581,10 @@ export function createScspSongPlayer({
 				if (nowMs() > deadline) throw new Error('SCSP seek exceeded 30 seconds');
 				const frames = next.renderer.process(left, right, Math.min(2048, target - frame));
 				frame += frames;
+				if (frame >= target - 4096) {
+					captureLive(next);
+					next.liveHistory.prune(frame);
+				}
 				if (!frames && next.renderer.ended) break;
 				seeking.progress = target ? frame / target : 1;
 				emit();
@@ -618,6 +650,8 @@ export function createScspSongPlayer({
 		clear,
 		seek: (seconds) => track(seek(seconds)),
 		getState,
+		getLiveSnapshot,
+		setLiveEnabled,
 		read: getState,
 		whenIdle: () => pending,
 		dispose,

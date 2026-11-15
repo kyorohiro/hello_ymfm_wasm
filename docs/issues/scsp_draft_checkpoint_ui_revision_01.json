@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-passive-ui-draft-checkpoint",
+  "path": "playground/playground_scsp_voice_panel.js",
+  "before": {
+    "bytes": 21600,
+    "sha256": "922e9d430759b04d9dd2170c57ad61c0fc97fda1d2f3d9334a8aca2bb66ce410"
+  },
+  "after": {
+    "bytes": 22876,
+    "sha256": "7ae26304a6663fec544b9a01ddd6b41a5255d6d0d061a0c8e753a0f575d89021"
+  },
+  "edits": [
+    {
+      "afterOffset": 21155,
+      "oldText": "",
+      "newText": "  // Preserve an unapplied drawing across an audio engine's sample-bank migration.\n  // These helpers only copy UI draft state; applying PCM stays explicit.\n  function captureDraft() {\n    if(disposed||!dirty||!draft)return null;\n    return {\n      slot:selected,pcm:draft.pcm.slice(),sample:structuredClone(draft.sample),\n      values:{root:tuning.input.value,rate:rate.input.value,loop:loop.input.value,bits:bits.value,padding:padding.input.value},\n      status:status.textContent,\n    };\n  }\n  function restoreDraft(checkpoint) {\n    const sample=state?.channels?.[selected]?.sample;\n    if(disposed||!checkpoint||checkpoint.slot!==selected||!sample)return false;\n    if(!(checkpoint.pcm instanceof Int8Array)&&!(checkpoint.pcm instanceof Int16Array))throw new TypeError('Invalid SCSP draft PCM');\n    loadSequence++;drawing=null;\n    draft={pcm:checkpoint.pcm.slice(),sample:structuredClone(checkpoint.sample)};\n    draftKey=`${selected}:${sample.bankId}:${sample.id}`;dirty=true;\n    syncDraft();\n    for(const [key,input]of [['root',tuning.input],['rate',rate.input],['loop',loop.input],['bits',bits],['padding',padding.input]])input.value=checkpoint.values[key];\n    status.textContent=checkpoint.status;\n    refreshEnabled();return true;\n  }\n"
+    },
+    {
+      "afterOffset": 22423,
+      "oldText": "return {update,releaseAll:",
+      "newText": "return {update,captureDraft,restoreDraft,releaseAll:"
+    }
+  ],
+  "reports": {
+    "docs/issues/ps1_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 546854,
+      "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0"
+    },
+    "docs/issues/ps1_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 557840,
+      "sha256": "4cacb672674301e4c35026dbd1a3a39c8ad99f06b9cd5f5ba353ae061c9eea5c"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 507088,
+      "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 504578,
+      "sha256": "12c1bd63da19b9f2123eea3c9ffe5584c3765dbaffdc8802211e1b3e0a348c6c"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 1030997,
+      "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 1052003,
+      "sha256": "d2342ad63d9ab6c6fb93694179416adfb3ad6127b161da792ff9b3437a0ad5a0"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 625175,
+      "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 636467,
+      "sha256": "a68f119dd24842460db3bdb50aff32d895d1780d81f12979237c20f0abb3fc9f"
+    }
+  }
+}

@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - 'docs/synth-scsp/**'
-      - 'docs/tetorica-spu-1254.webp'
+      - 'docs/tetorica-scsp-synth.webp'
       - 'docs/js/**'
       - 'docs/generated/scsp*'
       - 'docs/generated/ssf-player/**'
@@ -33,7 +33,7 @@ on:
   pull_request:
     paths:
       - 'docs/synth-scsp/**'
-      - 'docs/tetorica-spu-1254.webp'
+      - 'docs/tetorica-scsp-synth.webp'
       - 'docs/js/**'
       - 'docs/generated/**'
       - 'docs/synth/**'
@@ -68,7 +68,7 @@ jobs:
       - name: Test and package the standalone SCSP Synth
         run: |
           npm run test:scsp-synth
-          node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs
+          node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs scripts/mixer_calibration_scsp_draft_revision.test.mjs
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci
           python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
@@ -76,6 +76,7 @@ jobs:
           node scripts/check_scsp_synth_code_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-code-browser.json --screenshots=release/scsp-synth-code-images
           node scripts/check_scsp_synth_song_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-song-browser.json
           node scripts/check_scsp_synth_ssf_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-browser.json --screenshots=release/scsp-synth-ssf-images
+          node scripts/check_scsp_synth_live_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-live-browser.json --screenshots=release/scsp-synth-live-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -88,4 +89,6 @@ jobs:
             release/scsp-synth-song-browser.json
             release/scsp-synth-ssf-browser.json
             release/scsp-synth-ssf-images/
+            release/scsp-synth-live-browser.json
+            release/scsp-synth-live-images/
           if-no-files-found: ignore
