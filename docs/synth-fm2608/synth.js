@@ -242,16 +242,35 @@ function setReferenceKey(value) {
   for (const note of held.values()) if (note.source === 'song' && note.kind === 'adpcm') referenceNoteOn(note,{retuneOnly:true});
 }
 
-async function applySettings(value, {isCurrent = () => true} = {}) {
-  const next = readPreset(value);
+async function applySettings(value, {isCurrent = () => true,selection:importedSelection} = {}) {
+  let next = readPreset(value);
   await editQueue;
   if (!isCurrent()) return false;
+  if (importedSelection) {
+    const {section:kind,channel} = importedSelection;
+    if (!Object.hasOwn(sections,kind) ||
+      (channel !== 'auto' && (!Number.isInteger(channel) || channel < 0 || channel >= sections[kind])) ||
+      (channel === 'auto' && sections[kind] === 1)) throw new Error('Invalid imported instrument channel');
+    const merged = readPreset(settings);
+    const groups = {fm:['fm','lfo','channel3'],ssg:['ssg'],rhythm:['rhythm'],adpcm:['adpcm']};
+    for (const key of groups[kind]) merged[key] = next[key];
+    if (kind === 'rhythm' && channel !== 'auto') {
+      merged.rhythm.voices = settings.rhythm.voices.map((voice,index) =>
+        index === channel ? next.rhythm.voices[index] : structuredClone(voice));
+    }
+    merged.name = next.name;
+    next = readPreset(merged);
+  }
   if (audio) await audio.applyPreset(next);
   if (!isCurrent()) return false;
   settings = next;
   songs?.setView('synth');
   byId('instrumentName').value = settings.name;
   byId('fmPreset').value = '';
+  if (importedSelection) {
+    selection[importedSelection.section] = importedSelection.channel;
+    selectSection(importedSelection.section,{releaseNotes:false});
+  }
   updateControls();
   renderSample();
   return true;
@@ -592,8 +611,8 @@ function renderChannelTabs() {
     root.append(button);
   }
 }
-function selectSection(value) {
-  releaseKeyboard();
+function selectSection(value,{releaseNotes = true} = {}) {
+  if (releaseNotes) releaseKeyboard();
   section = value;
   for (const button of byId('chipTabs').querySelectorAll('[data-section]')) {
     const selected = button.dataset.section === section;
@@ -762,6 +781,7 @@ function referenceNoteOn(note,{retuneOnly = false} = {}) {
       const value = ssgSnapshot(channel);
       raw.ssg.setMixer(channel,value);
       raw.ssg.setVolume(channel,value.volume,value.envelope);
+      if (value.envelope) raw.ssg.write(13,snapshot.ssg.envelopeShape);
     }
   } else if (kind === 'rhythm') { if (!retuneOnly) raw.rhythm.keyOn(channel); }
   else {

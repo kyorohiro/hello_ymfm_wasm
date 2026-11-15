@@ -76,7 +76,7 @@
               <button id="songStop" type="button" disabled>Stop</button>
               <output id="songTime">0:00 / 0:00</output>
               <span id="songCompatibility" hidden>YM2203 → YM2608</span>
-              <details class="inline-help"><summary aria-label="About reference songs">?</summary><p>Import VGM, VGZ or S98 from the menu. Files are kept under /vgm/ in this project. Songs play one pass. Play follows the selected section and channel in the controls below. Pause retains the song position and lets you audition its channel. Capture to Synth copies that sound into your editable instrument. Choose Code or song playback for the automatic performance. Rhythm uses the Tetorica synthetic ROM.</p><p id="songCompatibilityInfo" hidden></p></details>
+              <details class="inline-help"><summary aria-label="About reference songs">?</summary><p>Import VGM, VGZ or S98 from the menu. Original files are kept under /vgm/ and extracted instruments under /presets/song/. Choose a saved sound to edit and play it. Import details in Files lists any omitted samples. Presets capture static settings while later note and parameter automation stays in the song.</p><p>Songs play one pass. Play follows the selected section and channel in the controls below. Pause retains the song position and lets you audition its channel. Capture to Synth copies that sound into your editable instrument. Choose Code or song playback for the automatic performance. Rhythm uses the Tetorica synthetic ROM.</p><p id="songCompatibilityInfo" hidden></p></details>
             </div>
             <div id="songControls" class="opna-reference-controls" hidden>
               <input id="songSeek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Song position">

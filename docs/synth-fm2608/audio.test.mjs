@@ -97,6 +97,53 @@ test('keyboard SSG, pitch, sample replacement and Stop share one chip', async ()
   await audio.dispose();
 });
 
+test('keyboard SSG notes retrigger the current shared envelope without replacing its period', async () => {
+  const {audio,chip,writes} = await audioFixture();
+  const next = audio.getPreset();
+  next.ssg.channels[0] = {tone:false,noise:true,volume:7,envelope:true};
+  await audio.applyPreset(next);
+  chip.ssg.setMixer(1,{tone:true,noise:true});
+  chip.ssg.setVolume(1,9,true);
+  chip.ssg.setEnvelope({period:0x2345,shape:9});
+  const otherChannelGates = chip.ssg.registers[7] & 0x12;
+  writes.length = 0;
+
+  await audio.noteOn('ssg',0,'C4');
+  assert.equal(chip.ssg.registers[8],16);
+  assert.equal(chip.ssg.registers[7] & 9,1);
+  audio.noteOff('ssg',0);
+  assert.equal(chip.ssg.registers[8],0);
+  await audio.noteOn('ssg',0,'D4');
+
+  assert.deepEqual(writes.filter(item => item.port === 0 && item.register === 13).map(item => item.value),[9,9]);
+  assert(!writes.some(item => item.port === 0 && (item.register === 11 || item.register === 12)));
+  assert.equal(chip.ssg.registers[11] | chip.ssg.registers[12] << 8,0x2345);
+  assert.equal(chip.ssg.registers[9],16);
+  assert.equal(chip.ssg.registers[7] & 0x12,otherChannelGates);
+  await audio.dispose();
+});
+
+test('fixed-volume keyboard SSG notes leave the shared envelope running', async () => {
+  const {audio,chip,writes} = await audioFixture();
+  chip.ssg.setMixer(1,{tone:false,noise:true});
+  chip.ssg.setVolume(1,12,true);
+  chip.ssg.setEnvelope({period:0x4567,shape:11});
+  const otherChannelGates = chip.ssg.registers[7] & 0x12;
+  writes.length = 0;
+
+  await audio.noteOn('ssg',0,'C4');
+  audio.noteOff('ssg',0);
+  await audio.noteOn('ssg',0,'D4');
+
+  assert(!writes.some(item => item.port === 0 && item.register >= 11 && item.register <= 13));
+  assert.equal(chip.ssg.registers[11] | chip.ssg.registers[12] << 8,0x4567);
+  assert.equal(chip.ssg.registers[13],11);
+  assert.equal(chip.ssg.registers[9],16);
+  assert.equal(chip.ssg.registers[7] & 0x12,otherChannelGates);
+  assert.equal(chip.ssg.registers[8],audio.getPreset().ssg.channels[0].volume);
+  await audio.dispose();
+});
+
 test('invalid presets cannot partially apply', async () => {
   const {audio,writes,uploads} = await audioFixture(), before = audio.getPreset();
   const invalid = createDefaultPreset(); invalid.fm[5].operators[3].rr = 16;

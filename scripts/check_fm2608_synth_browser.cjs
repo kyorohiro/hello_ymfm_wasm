@@ -43,8 +43,11 @@ async function makeReferenceFiles() {
   chip.setPreset(0,readFmPreset(FM_PRESETS.sine));
   chip.noteOn(0,'C4');
   chip.ssg.tone(0,{frequency:220,volume:7});
+  chip.ssg.setEnvelope({period:512,shape:0});
+  chip.ssg.tone(1,{frequency:330,volume:7,envelope:true});
   chip.rhythm.setVolume(48);
   chip.rhythm.setVoice(0,{volume:24,left:true,right:true});
+  chip.rhythm.keyOn(0);
   chip.adpcm.setSample({start:256,end:256+sample.length});
   chip.adpcm.setPlaybackRate(22050);
   chip.adpcm.setVolume(120);
@@ -81,6 +84,12 @@ async function makeReferenceFiles() {
     opnFiles:[{name:'OPN reference.vgm',mimeType:'application/octet-stream',buffer:opnVgm},
       {name:'OPN reference.vgz',mimeType:'application/octet-stream',buffer:gzipSync(opnVgm)},
       {name:'OPN reference.s98',mimeType:'application/octet-stream',buffer:opnS98}]};
+}
+
+async function downloadBytes(download) {
+  const chunks = [];
+  for await (const chunk of await download.createReadStream()) chunks.push(chunk);
+  return Buffer.concat(chunks);
 }
 
 function installAudit() {
@@ -529,8 +538,69 @@ async function checkEngine(name,origin) {
     await page.locator('#synthInputKeyboardTab').click();
     check('Code-loaded ADPCM memory and selected address range export through the UI');
 
+    await page.locator('#synthInputCodeTab').click();
+    await page.locator('#synthCodeEditor').fill('const opna = await useSoundChip("ym2608");\nawait opna.noteOn(CH1,"A3");\nliveLoop("hold",async()=>{await beat(1);});\n');
+    await page.locator('#synthCodeRunButton').click();
+    await page.waitForFunction(() => /Playing|Running/.test(document.querySelector('#synthCodeState').textContent));
+    const instrumentBeforeImport = await page.locator('#instrumentName').inputValue();
     await page.locator('#songFileInput').setInputFiles(reference.files);
     await page.waitForFunction(() => document.querySelector('#songSelect').options.length === 4 && !document.querySelector('#songPlay').disabled);
+    assert.equal(await page.locator('#instrumentName').inputValue(),instrumentBeforeImport);
+    assert.match(await page.locator('#synthCodeState').textContent(),/Playing|Running/);
+    assert.equal(await page.locator('#synthInputCodeTab').getAttribute('aria-selected'),'true');
+    await page.locator('#synthMenu summary').first().click();
+    const libraryDownloadReady = page.waitForEvent('download');
+    await page.locator('#opnaProjectExportButton').click();
+    const {loadPlaygroundCassette} = await import(pathToFileURL(path.resolve(__dirname,'../docs/playground/playground_cassette.js')).href);
+    const library = await loadPlaygroundCassette(new Uint8Array(await downloadBytes(await libraryDownloadReady)));
+    assert.deepEqual(Buffer.from(library.files.get('vgm/OPNA reference.vgm')),reference.files[0].buffer);
+    const importedSounds = [...library.files].filter(([filename]) => filename.startsWith('presets/OPNA reference/') && filename.endsWith('.opna.json'))
+      .map(([filename,data]) => ({path:'/'+filename,preset:JSON.parse(Buffer.from(data).toString('utf8'))}));
+    const importedBySection = new Map(importedSounds.map(value => [value.preset.importedVoice.section,value]));
+    assert.deepEqual([...importedBySection.keys()].sort(),['adpcm','fm','rhythm','ssg']);
+    assert(importedSounds.every(value => value.preset.vgmSource.file === '/vgm/OPNA reference.vgm'));
+    assert.equal(await page.locator('#opnaImportDetails').getAttribute('open'),null);
+    for (const kind of ['ssg','fm']) {
+      const imported = importedBySection.get(kind);
+      await page.locator('#opnaPresetSelect').selectOption(imported.path);
+      await page.waitForFunction(kind => document.querySelector('#tab-'+kind).getAttribute('aria-selected') === 'true',kind);
+      assert.equal(await page.locator('#channelTabs [data-channel="auto"]').getAttribute('aria-selected'),'true');
+      assert.match(await page.locator('#synthCodeState').textContent(),/Playing|Running/);
+      assert.equal(await page.locator('#synthInputCodeTab').getAttribute('aria-selected'),'true');
+    }
+    await page.locator('#synthMenu summary').first().click();
+    const importedPresetDownloadReady = page.waitForEvent('download');
+    await page.locator('#exportSoundButton').click();
+    const appliedImported = JSON.parse((await downloadBytes(await importedPresetDownloadReady)).toString('utf8'));
+    assert.deepEqual(appliedImported.ssg,importedBySection.get('ssg').preset.ssg);
+    assert(appliedImported.fm.every(voice => JSON.stringify(voice) === JSON.stringify(importedBySection.get('fm').preset.fm[0])));
+    await page.locator('#synthCodeStopButton').click();
+    await quiet();
+    await page.locator('#synthInputKeyboardTab').click();
+    await page.waitForFunction(() => document.querySelector('#synthInputKeyboardTab').getAttribute('aria-selected') === 'true');
+    for (const kind of ['fm','ssg','adpcm','rhythm']) {
+      const imported = importedBySection.get(kind);
+      await page.locator('#opnaPresetSelect').selectOption(imported.path);
+      await page.waitForFunction(({kind,name}) => document.querySelector('#tab-'+kind).getAttribute('aria-selected') === 'true' &&
+        document.querySelector('#instrumentName').value === name && document.querySelector('#opnaFilesPanel').getAttribute('aria-busy') === 'false',
+      {kind,name:imported.preset.name});
+      assert.equal(await page.locator('#synthInputKeyboardTab').getAttribute('aria-selected'),'true');
+      if (kind === 'ssg') await page.waitForTimeout(600);
+      await page.keyboard.down('a');
+      await audible();
+      await page.keyboard.up('a');
+      await quiet();
+      if (kind === 'ssg') {
+        await page.waitForTimeout(600);
+        await page.keyboard.down('a');
+        await audible();
+        await page.keyboard.up('a');
+        await quiet();
+      }
+    }
+    await page.screenshot({path:path.join(config.screenshots,name + '-imported-presets.png'),fullPage:true});
+    await page.locator('#opnaFilesTree button[data-file-path="/index.js"]').click();
+    check('VGM imports archive all four sound sections in presets, preserving Code and supporting normal picker audition');
     await page.locator('#songSelect').selectOption('/vgm/OPNA reference.vgm');
     await page.locator('#tab-fm').click();
     await page.locator('#channelTabs [data-channel="0"]').click();
@@ -643,7 +713,7 @@ async function checkEngine(name,origin) {
     await page.locator('#tab-fm').click();
     await page.locator('#channelTabs [data-channel="5"]').click();
     await page.locator('#songFileInput').setInputFiles(reference.opnFiles);
-    await page.waitForFunction(() => document.querySelector('#songSelect').options.length === 8 && !document.querySelector('#songPlay').disabled);
+    await page.waitForFunction(() => document.querySelector('#songSelect').options.length === 7 && !document.querySelector('#songPlay').disabled);
     await page.locator('#songSelect').selectOption('/vgm/OPN reference.vgm');
     await page.waitForFunction(() => !document.querySelector('#songCompatibility').hidden);
     assert.equal(await page.locator('#referenceSong').getAttribute('data-source-chip'),'ym2203');

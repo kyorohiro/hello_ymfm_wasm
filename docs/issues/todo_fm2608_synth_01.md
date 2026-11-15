@@ -88,6 +88,49 @@ correction, initially enabled when a YM2203 reference song is loaded.
 - [x] Verify real native output, browser Mixer behavior, readable packaging and
       the calibration / source receipts affected by the new WASM build.
 
+## Imported song preset library
+
+The user noticed that VGM imports only populate the song list. Import recorded
+instruments into Files presets before moving on to the Tauri edition.
+
+- [x] Extract bounded, deduplicated FM, SSG, Rhythm and complete ADPCM-B sounds
+      from validated YM2608 / compatible YM2203 VGM, VGZ and S98 sources.
+- [x] Save the original song under `/vgm/` and its playable OPNA instruments
+      under a collision-safe `/presets/<song>/` folder in one Files transaction.
+- [x] Preserve running Code, the current editable instrument and Keyboard / Code
+      view during import. Select a saved sound to apply it through the normal UI.
+- [x] Select the matching sound section and playable channel when a generated
+      preset is chosen, retaining hardware modulation and complete sample data.
+- [x] Check real songs, invalid imports, repeated names, persistence, project
+      export / restore, both browsers and the readable standalone package.
+
+### Preset library verification
+
+- 109 app / extraction / Files / package tests and 111 shared Code / YM2608
+  runtime tests pass. Invalid and oversized batches leave the previous project
+  intact. Repeated names use separate source and preset paths.
+- All 49 local EVE YM2203 songs extract successfully. Each song and its own
+  generated presets fit the existing 12 MiB project budget. The local report is
+  `build/fm2608-imported-preset-library.json`. A real Dragon Knight 4 S98 also
+  extracts FM and SSG sounds.
+- The final package passes 30 audio / UI checks in each of Chromium and WebKit
+  with speaker output muted. The new check imports VGM / VGZ / S98 while Code
+  runs, exports the actual Files contents, selects each sound section and
+  auditions its generated preset. The report is
+  `build/fm2608-synth-preset-library-packaged.json`.
+- Actual Monaco passes five checks in each browser with no diagnostics or page
+  errors. The report is `build/fm2608-synth-preset-library-monaco.json`.
+- Verified ZIP is
+  `release/tetorica_fm2608_synth_dev-20261115-preset-library_itch.zip`.
+  Its 181 files include the readable extractor, Files integration and verified
+  native build inputs. Local game recordings remain outside the distribution.
+- Selecting a generated preset applies its sound section and channel, keeping
+  other sections and running Code available. SSG keyboard Note On retriggers
+  its enabled shared hardware envelope, allowing repeated one-shot audition.
+- Extracted files contain static instrument snapshots. Later song automation
+  remains in the original song. Incomplete, direct-stream, 1-bit DRAM and
+  limit-wrapping ADPCM ranges report their omission under Import details.
+
 ### Output Mixer verification
 
 - 118 Synth, Runtime, source-navigation and package tests pass. The separate

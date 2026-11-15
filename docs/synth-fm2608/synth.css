@@ -127,6 +127,8 @@ footer p { margin:0; max-width:80ch; } footer div { display:flex; gap:12px; flex
 .opna-files-toolbar button,.opna-files-actions button { min-height:28px; padding:4px 7px; font-size:.7rem; }
 .opna-files-actions { padding-top:9px; margin-top:8px; border-top:1px solid var(--line); }
 .opna-files-status { margin:8px 0 0; font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
+.opna-files-import-details { margin-top:8px; font-size:.7rem; color:var(--muted); overflow-wrap:anywhere; }
+.opna-files-import-details ul { padding-left:18px; }
 #opnaFilesTree { min-height:80px; max-height:55vh; overflow:auto; }
 #opnaFilesTree .file-tree { list-style:none; margin:0; padding:0; }
 #opnaFilesTree .file-tree .file-tree { padding-left:12px; }

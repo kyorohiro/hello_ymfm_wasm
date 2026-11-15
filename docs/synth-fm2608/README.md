@@ -42,6 +42,22 @@ the sound tabs, then Play. The reference player supports a single YM2608 and
 plays one pass using the existing OPNA core and its calibrated output gain.
 Other chips and unsupported stream commands are identified before loading.
 
+Import also extracts recorded instruments into `/presets/<song>/` as readable
+`.opna.json` files. Files and the Saved sounds selector both load these voices.
+Selecting one opens its FM, SSG, Rhythm or ADPCM section. Normal FM and SSG
+voices populate Auto's channels. Special CH3 / CSM and Rhythm select their
+physical channel. The selected section changes while the other sound sections
+retain their settings. Import itself preserves the current sound and Code.
+
+Repeated voices are deduplicated within each song. Snapshots retain static
+parameters, shared LFO / envelope settings and complete recorded ADPCM sample
+data. Later register automation follows the original song. Unsupported sample
+ranges and other import notes are listed in Files under Import details.
+Original recordings and presets are saved together with collision-safe names.
+Imports share the existing 12 MiB project budget and allow up to 4,096 distinct
+instruments per song. An import that exceeds these limits reports the reason
+before adding its files.
+
 Single-YM2203 files are detected automatically and played through the YM2608
 core. The playback row shows `YM2203 → YM2608`, with the source and playback
 clocks in its tooltip and help. Doubling the source clock preserves FM and SSG
@@ -102,6 +118,10 @@ CSM uses the hardware Timer A to retrigger all four CH3 operators. Set Timer A,
 then play CH3 to start the timer. Releasing the note stops its triggers. Its
 mode and frequency settings are included in presets. Code also exposes
 `setChannel3Mode()`, `setTimerA()` and `setCsm()`.
+
+Keyboard Note On retriggers an enabled SSG hardware envelope so one-shot
+envelope sounds can be auditioned repeatedly. That envelope is shared by all
+three SSG channels, so its restart also affects other envelope-enabled voices.
 
 ## Files and Code
 

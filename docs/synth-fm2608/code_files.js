@@ -4,6 +4,7 @@ import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_file
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installFm2608FileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
 import {createFm2608CodeProject,createFm2608ProjectStore,readFm2608ProjectSound,isFm2608CodePath,isFm2608TextPath,FM2608_PROJECT_MANIFEST,FM2608_PROJECT_CODE_LENGTH,FM2608_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
+import {extractFm2608VgmPresets} from './vgm_presets.js';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
 const basename=path=>path.split('/').pop(),dirname=path=>path.slice(0,path.lastIndexOf('/'))||'/';
@@ -28,6 +29,19 @@ function newSoundPath(project,name,occupiedPaths){
 }
 const foldedPath=path=>path.normalize('NFC').toLowerCase();
 const occupied=(project,path)=>[...project.fs.list().map(file=>file.path),...project.fs.listDirectories()].some(item=>foldedPath(item)===foldedPath(path));
+function uniqueImportPath(directory,stem,extension,used) {
+  let index=1,path=`${directory}/${stem}${extension}`;
+  while(used.has(foldedPath(path)))path=`${directory}/${stem} (${++index})${extension}`;
+  used.add(foldedPath(path));
+  return path;
+}
+function importedVoiceSelection(value) {
+  if(value===undefined)return undefined;
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==2||!Object.hasOwn(value,'section')||!Object.hasOwn(value,'channel'))throw Error('Invalid imported voice selection.');
+  const {section,channel}=value,counts={fm:6,ssg:3,rhythm:6,adpcm:1};
+  if(!Object.hasOwn(counts,section)||(channel==='auto'?!['fm','ssg'].includes(section):!Number.isInteger(channel)||channel<0||channel>=counts[section]))throw Error('Invalid imported voice section or channel.');
+  return {section,channel};
+}
 function copyPath(project,path){
   const name=basename(path),directory=dirname(path),folder=project.fs.stat(path).type==='directory';
   const extension=folder?'':name.match(/\.opna\.json$/i)?.[0]??name.match(/\.[^./]+$/)?.[0]??'';
@@ -63,11 +77,14 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   const selected=make('p','opnaFilesSelected','');selected.className='opna-files-path opna-sr-only';selected.setAttribute('role','status');
   const tree=make('div','opnaFilesTree');tree.setAttribute('aria-label','OPNA project files');
   const info=make('p','opnaFilesStatus','Code and text edits save locally. Importing a project never runs it.');info.className='opna-files-status';info.setAttribute('role','status');
+  const importDetails=make('details','opnaImportDetails');importDetails.className='opna-files-import-details';importDetails.hidden=true;
+  const importSummary=make('summary',null,'Import details'),importNotes=make('ul','opnaImportNotes');
+  importDetails.append(importSummary,importNotes);
   const fileInput=make('input','opnaFilesInput');fileInput.type='file';fileInput.multiple=true;fileInput.hidden=true;
   const projectInput=make('input','opnaProjectFileInput');projectInput.type='file';projectInput.accept='.zip,application/zip';projectInput.hidden=true;
   const dialog=make('dialog','opnaFileNameDialog'),form=make('form'),label=make('label','opnaFileNameLabel','File path'),nameInput=make('input','opnaFileNameInput');
   label.htmlFor=nameInput.id;const confirm=make('button','opnaFileNameConfirm','Create'),cancel=make('button','opnaFileNameCancel','Cancel');confirm.type='submit';cancel.type='button';form.append(label,nameInput,confirm,cancel);dialog.append(form);
-  panel.append(heading,tree,actions,selected,info,fileInput,projectInput,dialog);
+  panel.append(heading,tree,actions,selected,info,importDetails,fileInput,projectInput,dialog);
   let dialogAction=null,dialogPath=null,dialogSound=null;
   const say=message=>{if(!disposed){info.textContent=message;setStatus(message);}};
   const report=error=>{if(error?.name!=='AbortError')say(`Files: ${error?.message??error}`);};
@@ -133,13 +150,18 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
       project.select(path);render();schedule();return true;
     }
     if(isFm2608CodePath(path)){project.select(path);render();return await openInCurrentMode(path);}
-    let sound=null,soundError=null;
-    if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readFm2608ProjectSound(file.data);}catch(error){soundError=error;}}
+    let sound=null,soundError=null,selection;
+    if(file.type==='text'&&/\.json$/i.test(path)){
+      try{
+        const value=JSON.parse(file.data),candidate=readFm2608ProjectSound(value);
+        if(candidate){selection=importedVoiceSelection(value.importedVoice);sound=candidate;}
+      }catch(error){soundError=error;}
+    }
     if(sound){
       setBusy(true);
       try{
         await onBeforeSoundApply();if(disposed||token!==operation)return false;
-        const applied=await applySettings(sound,{isCurrent:()=>!disposed&&token===operation});
+        const applied=await applySettings(sound,{isCurrent:()=>!disposed&&token===operation,selection});
         if(applied===false||disposed||token!==operation)return false;
       }finally{
         if(!disposed){
@@ -151,7 +173,7 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
         }
       }
     }
-    if(sound){project.setSettings(sound);appliedPreset={kind:'json',path,data:file.data};}
+    if(sound){project.setSettings(getSettings());appliedPreset={kind:'json',path,data:file.data};}
     project.select(path);render();schedule();
     if(file.type==='text')await openInCurrentMode(path);
     if(disposed||token!==operation)return false;
@@ -160,17 +182,70 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   async function importFiles(files,{isCurrent=()=>true}={}){
     if(disposed||!isCurrent())return[];
     await api.ready;if(disposed||busy||!isCurrent())return[];const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
-    const entries=[];for(const file of files){if(!current())return[];if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());if(!current())return[];
-      const directory=/\.(?:vgm|vgz|s98)$/i.test(file.name)?'/vgm/':'/';
-      entries.push({path:directory+basename(file.name),type:isFm2608TextPath(file.name)?'text':'binary',data:isFm2608TextPath(file.name)?decoder.decode(bytes):bytes});}
+    const imports=[];
+    for(const file of files){
+      if(!current())return[];
+      if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');
+      const bytes=new Uint8Array(await file.arrayBuffer());
+      if(!current())return[];
+      let extracted=null;
+      if(/\.(?:vgm|vgz|s98)$/i.test(file.name)){
+        try{
+          extracted=await extractFm2608VgmPresets(bytes,{name:basename(file.name),yieldTask:async()=>{
+            if(!current())throw Object.assign(Error('Song import was superseded.'),{name:'AbortError'});
+            await new Promise(resolve=>setTimeout(resolve,0));
+          }});
+        }catch(error){if(!current())return[];throw error;}
+        if(!current())return[];
+      }
+      imports.push({file,bytes,extracted});
+    }
     if(!current())return[];await code?.flush?.();if(!current())return[];
-    const candidate=createFm2608CodeProject({snapshot:project.snapshot()}),paths=candidate.importFiles(entries),replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
+    const candidate=createFm2608CodeProject({snapshot:project.snapshot()});
+    const used=new Set([...candidate.fs.list().map(file=>file.path),...candidate.fs.listDirectories()].map(foldedPath));
+    // Reserve ordinary imports before deriving song and preset paths. Their
+    // existing replace-on-import behavior remains available to Code files.
+    for(const {file,extracted}of imports)if(!extracted)used.add(foldedPath('/'+basename(file.name)));
+    const entries=[],presetPaths=[],sourcePaths=[],warnings=new Set();
+    for(const {file,bytes,extracted}of imports){
+      if(!extracted){
+        const text=isFm2608TextPath(file.name);
+        entries.push({path:'/'+basename(file.name),type:text?'text':'binary',data:text?decoder.decode(bytes):bytes});
+        continue;
+      }
+      const extension=file.name.match(/\.(?:vgm|vgz|s98)$/i)[0].toLowerCase();
+      const stem=soundFileStem(basename(file.name),/\.(?:vgm|vgz|s98)$/i);
+      const songPath=uniqueImportPath('/vgm',stem,extension,used);
+      entries.push({path:songPath,type:'binary',data:bytes});sourcePaths.push(songPath);
+      const directory=extracted.presets.length?uniqueImportPath('/presets',stem,'',used):null;
+      for(const voice of extracted.presets){
+        const sound=readFm2608ProjectSound(voice.preset);
+        if(!sound)throw Error('Expected an extracted OPNA instrument.');
+        const selection=importedVoiceSelection(voice.selection);
+        if(!selection)throw Error('Extracted voice selection is missing.');
+        const path=uniqueImportPath(directory,soundFileStem(sound.name),'.opna.json',used);
+        entries.push({path,type:'text',data:JSON.stringify({...sound,importedVoice:selection,vgmSource:{...voice.source,file:songPath}},null,2)+'\n'});
+        presetPaths.push(path);
+      }
+      for(const warning of extracted.warnings??[])warnings.add(warning);
+    }
+    const paths=candidate.importFiles(entries),replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
     setBusy(true);try{
       if(replaceExecution){if(await code.workspaceReplaced()===false||!current())return[];}
       if(!current())return[];
-      project.restore(candidate.snapshot());
+      project.fs.restore(candidate.fs.snapshot());
       if(replaceActive||replaceExecution)await code.restoreState(project.getCodeState());
-      render();await persistCode();say(`Added ${paths.length} file(s). Code was not run.`);return paths;
+      if(presetPaths.length){for(const path of presetPaths)reveal(path);setVisible(true);}
+      if(sourcePaths.length){
+        importDetails.hidden=warnings.size===0;importDetails.open=false;
+        importSummary.textContent=`Import details · ${warnings.size} ${warnings.size===1?'note':'notes'}`;
+        importNotes.replaceChildren(...[...warnings].map(warning=>make('li',null,warning)));
+      }
+      render();
+      const persisted=await persistCode();
+      if(!current())return[];
+      say(sourcePaths.length?`Added ${sourcePaths.length} song(s) and ${presetPaths.length} preset(s) in /presets/.${warnings.size?' '+warnings.size+' import note(s).':''}${persisted===false?' Local save unavailable; export the project to keep these files.':''}`:`Added ${paths.length} file(s). Code was not run.`);
+      return [...sourcePaths,...paths.filter(path=>!sourcePaths.includes(path))];
     }finally{if(!disposed)setBusy(false);}
   }
   async function importProject(bytes){
@@ -181,7 +256,7 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
       if(await code?.workspaceReplaced?.()===false||disposed||token!==operation)return false;
       await onBeforeWorkspaceReplace();if(disposed||token!==operation)return false;
       await applySettings(candidate.settings,{isCurrent:()=>!disposed&&token===operation});if(disposed||token!==operation)return false;
-      restoring=true;try{appliedPreset=null;presetCache.clear();project.restore(candidate);identity=workspaceId();}finally{restoring=false;}
+      restoring=true;try{appliedPreset=null;presetCache.clear();project.restore(candidate);identity=workspaceId();importDetails.hidden=true;importDetails.open=false;importNotes.replaceChildren();}finally{restoring=false;}
       await code?.restoreState?.(project.getCodeState());await persistCode();say('OPNA project imported. Code was not run.');return true;
     }finally{if(!disposed)setBusy(false);}
   }

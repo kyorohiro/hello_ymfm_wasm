@@ -246,6 +246,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     else if (section === 'ssg') {
       const value = preset.ssg.channels[channel];
       chip.ssg.setMixer(channel,value); chip.ssg.setVolume(channel,value.volume,value.envelope);
+      if (value.envelope) chip.ssg.write(13,chip.ssg.registers[13] & 15);
     } else chip.adpcm.keyOn({repeat:preset.adpcm.repeat});
   }
   function noteOff(section,channel) {
