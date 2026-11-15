@@ -25,7 +25,9 @@ JavaScript performance over the existing SCSP. Start from a clean parent tree.
 - [x] Keep original recordings in `vgm/` and authored JSON sounds in `presets/`.
 - [x] Add read-only SSF song-slot Live display; see
       [SSF Live view](todo_scsp_synth_ssf_live_20261115.md).
-- [ ] Add song-slot Capture after read-only inspection.
+- [x] Add ordinary PCM slot Capture and paused keyboard audition; see
+      [SSF Capture](todo_scsp_synth_ssf_capture_20261115.md).
+- [ ] Add paired / linked song-slot Capture and manual song-register editing.
 - [x] Investigate SSF / MiniSSF with a 68000 execution environment, bus,
       timing, interrupts and library resolution.
       Follow-up implementation is recorded in `todo_scsp_synth_ssf_20261115.md`.

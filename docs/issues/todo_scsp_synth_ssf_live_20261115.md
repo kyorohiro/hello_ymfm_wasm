@@ -14,8 +14,9 @@ selected slot through the existing PCM / Envelope / LFO / mix interface.
 - [x] Verify actual WASM, mute physical browser output and test the ZIP.
 - [x] Update guide, source kit and CI with the implemented scope.
 
-Capture, paused keyboard audition of the selected song slot and manual
-song-register editing are follow-up tasks.
+Ordinary PCM Capture and paused selected-slot audition were subsequently
+implemented in [SSF audition and Capture](todo_scsp_synth_ssf_capture_20261115.md).
+Paired-slot capture and manual song-register editing remain follow-up tasks.
 
 ## Implemented behavior
 

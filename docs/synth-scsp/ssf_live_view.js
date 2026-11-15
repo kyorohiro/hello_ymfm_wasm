@@ -33,6 +33,8 @@ export function setupScspSsfLiveView({
 	panel,
 	panelRoot,
 	onChange = () => {},
+	onCapture = null,
+	getCaptureAvailability = () => ({ available: true }),
 	document: doc = globalThis.document,
 } = {}) {
 	const byId = (id) => doc.getElementById(id);
@@ -41,13 +43,18 @@ export function setupScspSsfLiveView({
 	const select = byId('scspSsfSlot');
 	const activity = byId('scspSsfSlots');
 	const status = byId('scspSsfLiveStatus');
+	const reference = byId('scspSsfReference');
+	const capture = byId('scspSsfCapture');
+	const captureStatus = byId('scspSsfCaptureStatus');
 	const listeners = [];
 	let playback = null,
 		snapshot = null,
 		selected = 0,
 		active = false,
 		disposed = false,
-		projected = null;
+		projected = null,
+		capturing = false,
+		captureError = '';
 	const hidden = new Map();
 	const disabled = new Map();
 	let checkpoint = null;
@@ -116,6 +123,7 @@ export function setupScspSsfLiveView({
 	}
 	function choose(index) {
 		selected = index;
+		captureError = '';
 		select.value = String(index);
 		render();
 		onChange();
@@ -144,10 +152,72 @@ export function setupScspSsfLiveView({
 		select.blur();
 	});
 	listen(enabled, 'change', () => {
+		captureError = '';
 		render();
 		onChange();
 		enabled.blur();
 	});
+	reference.value = '60';
+	listen(reference, 'change', () => {
+		if (![36, 48, 60, 72, 84].includes(Number(reference.value))) reference.value = '60';
+		captureError = '';
+		render();
+		onChange();
+		reference.blur();
+	});
+	listen(capture, 'click', async () => {
+		const target = selectedTarget();
+		if (capture.disabled || !target || !onCapture) return;
+		capturing = true;
+		captureError = '';
+		render();
+		try {
+			await onCapture(target);
+		} catch (error) {
+			captureError = error?.message ?? String(error);
+		} finally {
+			capturing = false;
+			if (!disposed) render();
+			capture.blur();
+		}
+	});
+	function selectedTarget() {
+		return active && ['playing', 'paused'].includes(playback?.playback)
+			? {
+					snapshot,
+					slot: selected,
+					referenceMidi: Number(reference.value),
+				}
+			: null;
+	}
+	function renderCapture() {
+		const target = selectedTarget();
+		let available = false,
+			reason = '';
+		if (target) {
+			try {
+				const result = getCaptureAvailability(target);
+				available = result?.available !== false;
+				reason = result?.reason ?? '';
+			} catch (error) {
+				reason = error?.message ?? String(error);
+			}
+		}
+		reference.disabled = capturing;
+		capture.disabled = !target || !available || !onCapture || capturing;
+		capture.textContent = capturing ? 'Capturing…' : 'Capture to Synth';
+		captureStatus.textContent =
+			captureError ||
+			reason ||
+			(capturing
+				? 'Preparing the selected slot.'
+				: target
+					? playback.paused
+						? 'Keyboard: selected SSF slot · Reference key sets its captured pitch.'
+						: 'Keyboard: authored Synth · Pause to audition the selected SSF slot.'
+					: 'Capture copies a supported PCM slot into the editable Synth.');
+		captureStatus.dataset.error = String(Boolean(captureError || (target && !available)));
+	}
 
 	function readonly(value) {
 		if (active === value) return;
@@ -260,6 +330,7 @@ export function setupScspSsfLiveView({
 		section.dataset.active = String(active);
 		section.dataset.frame = active ? String(snapshot.frame) : '';
 		select.disabled = !ssf || !enabled.checked || !usable(snapshot);
+		renderCapture();
 		for (const [index, button] of buttons.entries()) {
 			const slot = active ? snapshot.slots[index] : null;
 			const sounding = Boolean(slot?.active);
@@ -324,6 +395,7 @@ export function setupScspSsfLiveView({
 		setEnabled(value) {
 			if (enabled.checked === Boolean(value)) return;
 			enabled.checked = Boolean(value);
+			captureError = '';
 			render();
 			onChange();
 		},
@@ -332,6 +404,10 @@ export function setupScspSsfLiveView({
 			return projected.read;
 		},
 		getSelectedSlot: () => selected,
+		getSelectedTarget: selectedTarget,
+		getAuditionTarget() {
+			return playback?.playback === 'paused' ? selectedTarget() : null;
+		},
 		dispose() {
 			if (disposed) return;
 			readonly(false);

@@ -222,3 +222,43 @@ export function createScspSsfLiveFixture() {
 		],
 	};
 }
+
+/** Static, independently capturable PCM16 / PCM8 voices plus an unsupported
+ * Noise slot. Every instruction and sample derives from the original fixture
+ * above; no game data is used. */
+export function createScspSsfCaptureFixture() {
+	const fixture = createScspSsfLiveFixture();
+	const image = fixture.image.slice();
+	const view = new DataView(image.buffer);
+	// Stop the original driver before its repeating parameter / RAM edits.
+	view.setUint16(fixture.loopAddress, 0x60fe, false);
+	for (let address = 0x100; address < fixture.loopAddress; address += 2) {
+		if (view.getUint16(address, false) !== 0x33fc) continue;
+		const target = view.getUint32(address + 4, false);
+		if (target === 0x10002c)
+			view.setUint16(address + 2, view.getUint16(address + 2, false) & ~0x0200, false);
+		if (target === 0x100024) view.setUint16(address + 2, 8, false);
+	}
+	// Original bootstrap configures Slot 3 as Noise, then enters the PCM driver.
+	view.setUint32(4, 0x600, false);
+	view.setUint16(0x600, 0x33fc, false);
+	view.setUint16(0x602, 0x0880, false); // KEYONB + SSCTL Noise.
+	view.setUint32(0x604, 0x100040, false);
+	view.setUint16(0x608, 0x4ef9, false);
+	view.setUint32(0x60a, 0x100, false);
+	const bytes = ssfFromProgram(
+		image,
+		0,
+		'title=Tetorica original SSF Capture fixture\nartist=Tetorica\nlength=0:08\nfade=0:00.25\n',
+	);
+	return {
+		image,
+		bytes,
+		files: [{ path: '/ssf/capture.ssf', data: bytes }],
+		slots: fixture.slots.map((slot, index) => ({
+			...slot,
+			loopStart: index === 1 ? 8 : 0,
+		})),
+		unsupportedSlot: 2,
+	};
+}

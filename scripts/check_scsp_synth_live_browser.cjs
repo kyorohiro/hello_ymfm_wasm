@@ -390,7 +390,8 @@ async function check(browser, engine, origin, fixture) {
 		await page.mouse.up();
 		assert.equal(await authoring(page), authoredState);
 		assert.equal(await canvas(page), firstWave);
-		assert.equal(await page.getByRole('button', { name: /Capture/i }).count(), 0);
+		assert.equal(await page.locator('#scspSsfCapture').count(), 1);
+		assert(await page.locator('#scspSsfCapture').isEnabled());
 		checks.push(
 			'Read-only controls and drawing keep the authored patch and captured native waveform intact',
 		);

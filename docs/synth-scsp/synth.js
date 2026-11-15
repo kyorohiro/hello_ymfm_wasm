@@ -8,6 +8,7 @@ import { enhanceScspNumberControls } from './controls.js';
 import { setupScspCodeHost } from './code_host.js';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
+import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createStateObserver } from '../synth-2a03/state_observer.js';
@@ -45,6 +46,8 @@ let selectedOperator = 0,
 	songControls = null,
 	songState = null,
 	liveView = null;
+let auditionSelection = null,
+	loadedAuditionSelection = null;
 let cachedPatch = null,
 	soundName = null,
 	operatorReads = [],
@@ -126,7 +129,8 @@ function cacheAuthoring({ state, operators }) {
 	latestState = state;
 	const ids = new Set(state.voiceGroups.map((group) => group.id));
 	for (const [source, note] of held)
-		if (note.started && !note.pending && !ids.has(note.id)) held.delete(source);
+		if (note.kind !== 'ssf' && note.started && !note.pending && !ids.has(note.id))
+			held.delete(source);
 }
 async function readAuthoring(engine = audio) {
 	return engine ? engine.command('readAuthoring', [sampleKeys]) : draft.readAuthoring(sampleKeys);
@@ -163,7 +167,9 @@ function drawConnections(state) {
 function renderState() {
 	if (!latestState || disposed) return;
 	const wasLive = liveView?.isActive();
-	if (liveView?.update(songState, songControls?.player.getLiveSnapshot())) {
+	const observing = liveView?.update(songState, songControls?.player.getLiveSnapshot());
+	syncAuditionSelection();
+	if (observing) {
 		if (!wasLive) chipTab(false);
 		numberControls?.update();
 		return;
@@ -292,13 +298,14 @@ async function ensureAudio() {
 	await engine.resume();
 	return engine;
 }
-async function applySettings(value, { isCurrent = () => true } = {}) {
+async function applySettings(value, { isCurrent = () => true, onCommitted = () => {} } = {}) {
 	readPatch(value);
 	if (!isCurrent() || disposed) return false;
 	if (liveView?.isActive()) liveView.setEnabled(false);
 	return enqueue(async () => {
 		if (!isCurrent() || disposed) return false;
 		await command('loadPatch', [value]);
+		onCommitted();
 		await command('setPitchBend', [0]);
 		soundName = value.name ?? null;
 		bend = 0;
@@ -353,11 +360,76 @@ for (const button of operatorButtons) button.disabled = false;
 liveView = setupScspSsfLiveView({
 	panel,
 	panelRoot: $('voice'),
+	getCaptureAvailability: ({ snapshot, slot, referenceMidi }) =>
+		getScspSsfCaptureAvailability(snapshot, slot, { referenceMidi }),
+	onCapture: captureSsfTarget,
 	onChange() {
 		songControls?.player.setLiveEnabled(liveView?.isEnabled() ?? true);
 		renderState();
 	},
 });
+
+const sameSsfTarget = (a, b) =>
+	a === b ||
+	Boolean(
+		a &&
+			b &&
+			a.snapshot === b.snapshot &&
+			a.slot === b.slot &&
+			a.referenceMidi === b.referenceMidi,
+	);
+function syncAuditionSelection() {
+	const next = liveView?.getAuditionTarget() ?? null;
+	if (sameSsfTarget(next, auditionSelection)) return;
+	const previous = auditionSelection;
+	auditionSelection = next;
+	loadedAuditionSelection = null;
+	for (const [source, note] of held) if (note.kind === 'ssf') held.delete(source);
+	if (previous && audio) void enqueue(() => audio?.command('stopAudition')).catch(report);
+	highlight();
+}
+async function captureSsfTarget(target) {
+	// Validate and detach the click-time PCM before changing any UI or transport.
+	const captured = createScspSsfCapture(target.snapshot, target.slot, {
+		referenceMidi: target.referenceMidi,
+	});
+	if (songState?.playing) songControls.player.pause();
+	const paused = songControls.getState();
+	if (!paused.paused) throw new Error('Pause the SSF song before capturing its instrument.');
+	const current = () => {
+		const state = songControls.getState();
+		return (
+			!disposed &&
+			state.paused &&
+			state.entryPath === paused.entryPath &&
+			state.positionSeconds === paused.positionSeconds
+		);
+	};
+	await stopKeyboard();
+	if (!current()) throw new DOMException('SSF Capture cancelled', 'AbortError');
+	const preset = {
+		...captured.preset,
+		name: `SSF Slot ${target.slot + 1} · ${midiToNoteName(target.referenceMidi)}`,
+	};
+	// A successful native load is the commit point. An explicit Resume / Stop
+	// after it must not report cancellation of an instrument already copied.
+	let committed = false;
+	if (
+		!(await applySettings(preset, {
+			isCurrent: () => committed || current(),
+			onCommitted: () => {
+				committed = true;
+			},
+		}))
+	)
+		throw new DOMException('SSF Capture cancelled', 'AbortError');
+	selectedOperator = 0;
+	$('voice').querySelector('[data-scsp-slot="0"]').click();
+	renderState();
+	status(
+		`Captured SSF Slot ${target.slot + 1} to Synth · reference ${midiToNoteName(target.referenceMidi)}. ${captured.warnings.join(' ')}`,
+	);
+}
 
 const keyboard = document.createElement('div');
 keyboard.className = 'keyboard';
@@ -460,6 +532,8 @@ function press(source, entry) {
 		epoch,
 		started: false,
 		pending: false,
+		kind: liveView?.getAuditionTarget() ? 'ssf' : 'authored',
+		target: liveView?.getAuditionTarget() ?? null,
 	};
 	held.set(source, note);
 	highlight();
@@ -467,13 +541,34 @@ function press(source, entry) {
 		if (held.get(source) !== note || note.epoch !== epoch || switchingAudioOutput) return;
 		const engine = await ensureAudio();
 		if (held.get(source) !== note || note.epoch !== epoch || switchingAudioOutput) return;
+		if (note.kind === 'ssf') {
+			if (!sameSsfTarget(note.target, liveView?.getAuditionTarget())) return;
+			if (!sameSsfTarget(note.target, loadedAuditionSelection)) {
+				const { snapshot, slot, referenceMidi } = note.target;
+				const captured = createScspSsfCapture(snapshot, slot, {
+					referenceMidi,
+				});
+				await engine.command('loadAudition', [captured.preset]);
+				loadedAuditionSelection = note.target;
+			}
+			if (
+				held.get(source) !== note ||
+				!sameSsfTarget(note.target, liveView?.getAuditionTarget())
+			)
+				return;
+		}
 		note.started = note.pending = true;
-		const result = await engine.command('noteOn', [note.id, note.midi]);
+		const result = await engine.command(note.kind === 'ssf' ? 'auditionOn' : 'noteOn', [
+			note.id,
+			note.midi,
+		]);
 		note.pending = false;
 		if (result.stolenId)
 			for (const [key, old] of held) if (old.id === result.stolenId) held.delete(key);
-		await refresh();
-		status(`${midiToNoteName(note.midi)} · ${held.size} held`);
+		if (note.kind !== 'ssf') await refresh();
+		status(
+			`${note.kind === 'ssf' ? `SSF Slot ${note.target.slot + 1} audition · ` : ''}${midiToNoteName(note.midi)} · ${held.size} held`,
+		);
 	}).catch((error) => {
 		if (held.get(source) === note) held.delete(source);
 		highlight();
@@ -487,7 +582,8 @@ function release(source) {
 	highlight();
 	if (note.started)
 		void enqueue(async () => {
-			if (audio && note.epoch === epoch) await audio.command('noteOff', [note.id]);
+			if (audio && note.epoch === epoch)
+				await audio.command(note.kind === 'ssf' ? 'auditionOff' : 'noteOff', [note.id]);
 		});
 }
 function stopKeyboard() {
@@ -496,7 +592,10 @@ function stopKeyboard() {
 	held.clear();
 	highlight();
 	return enqueue(async () => {
-		for (const note of notes) if (audio) await audio.command('noteOff', [note.id]);
+		for (const note of notes)
+			if (audio)
+				await audio.command(note.kind === 'ssf' ? 'auditionOff' : 'noteOff', [note.id]);
+		if (audio) await audio.command('stopAudition');
 	});
 }
 async function stopAll() {
@@ -558,7 +657,10 @@ window.addEventListener('keydown', (event) => {
 	if (!entry) return;
 	event.preventDefault();
 	if (!event.repeat)
-		press(`key:${event.code || entry.key}`, { ...entry, midi: entry.midi + octave * 12 });
+		press(`key:${event.code || entry.key}`, {
+			...entry,
+			midi: entry.midi + octave * 12,
+		});
 });
 window.addEventListener('keyup', (event) =>
 	release(`key:${event.code || event.key.toLowerCase()}`),
@@ -724,7 +826,9 @@ $('save').addEventListener('click', async () => {
 	try {
 		await refresh();
 		const url = URL.createObjectURL(
-			new Blob([JSON.stringify(cachedPatch, null, 2) + '\n'], { type: 'application/json' }),
+			new Blob([JSON.stringify(cachedPatch, null, 2) + '\n'], {
+				type: 'application/json',
+			}),
 		);
 		const link = document.createElement('a');
 		link.href = url;
@@ -780,7 +884,10 @@ $('vgmFileInput').addEventListener('change', async () => {
 		await codeHost.ready;
 		const paths = await codeHost.files.importFiles(files);
 		const path = paths.find((value) => /\/vgm\/.*\.(?:vgm|vgz)$/i.test(value));
-		if (path) await songControls.selectFile(codeHost.project.fs.get(path), { path });
+		if (path)
+			await songControls.selectFile(codeHost.project.fs.get(path), {
+				path,
+			});
 	} catch (error) {
 		report(error);
 	}
@@ -796,7 +903,9 @@ for (const [buttonId, inputId] of [
 		if (!files.length) return;
 		try {
 			await codeHost.ready;
-			const paths = await codeHost.files.importFiles(files, { ssfOnly: true });
+			const paths = await codeHost.files.importFiles(files, {
+				ssfOnly: true,
+			});
 			const entryPath = paths.find((path) => /\.(?:ssf|minissf)$/i.test(path));
 			if (entryPath) await songControls.selectFile(entryPath);
 			else status(paths.length ? 'SSF libraries imported.' : 'No SSF files in this folder.');

@@ -241,6 +241,22 @@
 										aria-label="SSF slot to inspect"
 									></select
 								></label>
+								<label for="scspSsfReference"
+									>Reference key
+									<select
+										id="scspSsfReference"
+										aria-label="SSF captured pitch reference key"
+									>
+										<option value="36">C2</option>
+										<option value="48">C3</option>
+										<option value="60" selected>C4</option>
+										<option value="72">C5</option>
+										<option value="84">C6</option>
+									</select></label
+								>
+								<button id="scspSsfCapture" type="button" disabled>
+									Capture to Synth
+								</button>
 								<details class="scsp-inline-help">
 									<summary aria-label="About SSF Live view">?</summary>
 									<p>
@@ -248,7 +264,14 @@
 										Pause keeps one snapshot for all 32 slots. The PCM preview
 										reads a short prefix at the programmed sample start.
 										Envelope, LFO, mix and modulation show hardware values. Live
-										is read-only.
+										is read-only. While paused, the keyboard auditions the
+										selected slot through a separate Synth voice without
+										changing the song. Reference key maps its current playback
+										rate to that key; the original sample root is unknown.
+										Capture to Synth copies supported PCM, loop, Envelope, LFO
+										and mix into an editable instrument. Pause / Resume is
+										preserved. Slot modulation and the song's DSP are not
+										copied.
 									</p>
 								</details>
 							</div>
@@ -261,6 +284,11 @@
 							<p id="scspSsfLiveStatus" class="scsp-ssf-live-status" role="status">
 								Waiting for SSF playback.
 							</p>
+							<p
+								id="scspSsfCaptureStatus"
+								class="scsp-ssf-live-status"
+								role="status"
+							></p>
 						</section>
 						<section class="spu-monitor scsp-monitor" aria-label="Audio display">
 							<div

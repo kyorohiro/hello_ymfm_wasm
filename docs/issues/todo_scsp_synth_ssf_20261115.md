@@ -21,7 +21,9 @@ Synth song controls. Keep the current Code / keyboard workflow usable.
       player. Automated checks measure PCM with physical output muted.
 - [ ] Run the updated GitHub workflow after committing and pushing.
 
-Song-slot Live editing / capture and DSP assembler work are follow-up tasks.
+Song-slot Live inspection and ordinary PCM capture were subsequently added;
+see [SSF Capture](todo_scsp_synth_ssf_capture_20261115.md). Manual song-register
+editing, paired-slot capture and DSP assembler work remain follow-up tasks.
 
 ## Implemented scope
 
@@ -55,7 +57,8 @@ or invalid length uses a 180-second preview with a visible message. Starting
 the song stops Code, and Run stops the song. The keyboard continues to play
 the authored instrument. Read-only song-slot Live inspection was subsequently
 implemented in [SSF Live view](todo_scsp_synth_ssf_live_20261115.md). Song-slot
-editing, Capture and selected-slot keyboard audition remain follow-up tasks.
+editing remains follow-up work. Ordinary PCM Capture and paused selected-slot
+keyboard audition are recorded in [SSF Capture](todo_scsp_synth_ssf_capture_20261115.md).
 
 The existing Files project limit is 12 MiB. The standalone loader accepts up
 to 512 supplied files, 4 MiB per file, 64 MiB per set and 32 MiB of expanded

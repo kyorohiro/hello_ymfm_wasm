@@ -158,7 +158,7 @@ DMA execution, 256 KiB memory mode, extra-header overrides, additional chips
 and unsupported core registers produce explicit errors.
 
 Song playback uses its own SCSP state and RAM through the existing
-AudioContext and Master output. The keyboard continues to audition the
+AudioContext and Master output. During playback, the keyboard auditions the
 authored instrument. Starting a song stops Code, and Run stops the song.
 Live from SSF is enabled by default. Its 32 numbered buttons show sampled
 slot activity and envelope state. Select a slot to inspect its raw PCM
@@ -173,8 +173,41 @@ Pause freezes one native snapshot for all slot choices. Live Off restores
 the authored instrument and its unapplied waveform draft. Stop and natural
 end also restore that view. Selecting an authored preset while Live switches
 back to the instrument view and keeps the song transport available. Save
-actions become available in the authored view. Song-slot instrument Capture
-and selected-slot keyboard audition are follow-up work.
+actions become available in the authored view.
+
+While paused with Live On, the keyboard auditions the selected supported PCM
+slot. Reference key defaults to C4, with C2–C6 available. That key reproduces
+the captured hardware sample playback rate; other keys transpose from it.
+This establishes a tuning reference without guessing the sample's original
+root note. Audition uses an independent native SCSP handle in the existing
+AudioWorklet and AudioContext. The authored PCM, settings and unapplied draft
+remain intact, and the paused song's sound CPU / RAM / transport stay fixed.
+Changing slot, reference key, Live mode or transport clears audition voices.
+Live Off restores ordinary authored-instrument keyboard playing.
+
+Capture to Synth copies the click-time slot into the editable instrument,
+switches Live Off and keeps Pause / Resume available. Capturing during
+playback pauses the song first. The full programmed PCM, format, supported
+loop boundaries, Envelope, LFO, total level, direct level and pan are copied.
+Use Save to presets in the authored view to retain the instrument under
+`presets/`, or export its portable JSON from Menu. Live On returns to the
+frozen song view, and Resume continues the recording. The SSF source is
+unchanged.
+
+This first capture supports independent PCM8 / PCM16 slots with ordinary
+one-shot or forward loops and 2–65,535 samples. Unsupported noise / zero
+sources, source-bit operations, short-wave / extended pitch coding, reverse /
+alternating loops, hold / loop-link / bypass modes and linked sound-stack
+modulation show their reason beside Capture. Slots without audible direct
+output and loops too short for their playback step are also unavailable.
+Failed validation preserves the authored instrument and paused recording.
+Paired-slot capture remains follow-up work.
+
+Audition and Capture start a fresh sample, envelope and LFO phase. The Synth
+uses its own SCSP approximation and Master. Song DSP programs, send / return
+processing and the song's global master volume are not copied, so this is a
+dry instrument capture. Native interpolation boundaries and output level
+can differ from the original recording.
 
 The transport retains a bounded window of same-time slot and 512 KiB RAM
 snapshots. It selects the latest state at or before the audible position,

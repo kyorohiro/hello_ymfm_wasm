@@ -77,7 +77,7 @@ class Node {
 		this.events.delete(type);
 	}
 	fire(type) {
-		this.events.get(type)?.();
+		return this.events.get(type)?.();
 	}
 	blur() {
 		this.blurred = true;
@@ -110,7 +110,7 @@ class Node {
 	}
 }
 
-function rig() {
+function rig(options = {}) {
 	const nodes = new Map(
 		[
 			'scspSsfLive',
@@ -118,6 +118,9 @@ function rig() {
 			'scspSsfSlot',
 			'scspSsfSlots',
 			'scspSsfLiveStatus',
+			'scspSsfReference',
+			'scspSsfCapture',
+			'scspSsfCaptureStatus',
 			'scspDspTab',
 			'scspSaveSoundAs',
 		].map((id) => [id, new Node()]),
@@ -195,7 +198,13 @@ function rig() {
 		setConnected: (value) => connections.push(value),
 	};
 	let changed = 0;
-	const ui = setupScspSsfLiveView({ panel, panelRoot, document: doc, onChange: () => changed++ });
+	const ui = setupScspSsfLiveView({
+		panel,
+		panelRoot,
+		document: doc,
+		onChange: () => changed++,
+		...options,
+	});
 	return {
 		ui,
 		nodes,
@@ -218,7 +227,13 @@ function rig() {
 	};
 }
 
-const playing = { kind: 'ssf', loaded: true, playing: true, paused: false, playback: 'playing' };
+const playing = {
+	kind: 'ssf',
+	loaded: true,
+	playing: true,
+	paused: false,
+	playback: 'playing',
+};
 
 test('a physical slot projects hardware fields and a same-time bounded raw PCM prefix', () => {
 	const source = snapshot();
@@ -306,5 +321,114 @@ test('waiting snapshots, stopped playback and VGM keep the authored view availab
 		assert.deepEqual(r.connections, [false, true]);
 	} finally {
 		r.ui.dispose();
+	}
+});
+
+test('paused audition target follows slot and reference key without replacing the snapshot or draft', () => {
+	const r = rig(),
+		source = snapshot();
+	const paused = {
+		...playing,
+		playing: false,
+		paused: true,
+		playback: 'paused',
+	};
+	try {
+		assert.equal(r.ui.getAuditionTarget(), null);
+		r.ui.update(playing, source);
+		assert.equal(r.ui.getAuditionTarget(), null);
+		assert.deepEqual(r.ui.getSelectedTarget(), {
+			snapshot: source,
+			slot: 0,
+			referenceMidi: 60,
+		});
+		r.ui.update(paused, source);
+		assert.equal(r.ui.getAuditionTarget().snapshot, source);
+		r.nodes.get('scspSsfSlot').value = '1';
+		r.nodes.get('scspSsfSlot').fire('change');
+		r.nodes.get('scspSsfReference').value = '48';
+		r.nodes.get('scspSsfReference').fire('change');
+		assert.deepEqual(r.ui.getAuditionTarget(), {
+			snapshot: source,
+			slot: 1,
+			referenceMidi: 48,
+		});
+		assert.equal(r.nodes.get('scspSsfLive').dataset.frame, '640');
+		assert.match(
+			r.nodes.get('scspSsfCaptureStatus').textContent,
+			/Keyboard: selected SSF slot/,
+		);
+		assert.equal(r.changed, 2);
+		assert.equal(r.states.length, 0);
+		r.ui.setEnabled(false);
+		assert.equal(r.ui.getAuditionTarget(), null);
+		assert.equal(r.nodes.get('scspSsfCapture').disabled, true);
+		r.ui.setEnabled(true);
+		assert.equal(r.ui.getAuditionTarget().slot, 1);
+		r.ui.update({ ...paused, playback: 'seeking' }, source);
+		assert.equal(r.ui.getAuditionTarget(), null);
+		assert.equal(r.ui.getSelectedTarget(), null);
+	} finally {
+		r.ui.dispose();
+	}
+});
+
+test('Capture uses the clicked snapshot, prevents duplicate requests and preserves Live on failure', async () => {
+	let resolveCapture,
+		calls = [],
+		unsupported = false;
+	const r = rig({
+		onCapture: (target) => {
+			calls.push(target);
+			return new Promise((resolve) => {
+				resolveCapture = resolve;
+			});
+		},
+		getCaptureAvailability: () => ({
+			available: !unsupported,
+			reason: unsupported ? 'Noise is not a PCM sample.' : '',
+		}),
+	});
+	const source = snapshot(),
+		button = r.nodes.get('scspSsfCapture');
+	try {
+		r.ui.update(playing, source);
+		assert.equal(button.disabled, false);
+		const work = button.fire('click');
+		assert.equal(button.disabled, true);
+		assert.equal(r.nodes.get('scspSsfReference').disabled, true);
+		await button.fire('click');
+		assert.equal(calls.length, 1);
+		const newer = snapshot();
+		newer.frame = 1280;
+		r.ui.update(playing, newer);
+		assert.equal(calls[0].snapshot, source);
+		resolveCapture();
+		await work;
+		assert.equal(button.disabled, false);
+		assert.equal(r.ui.isActive(), true, 'root owns the successful switch into authored Synth');
+		unsupported = true;
+		r.ui.update();
+		assert.equal(button.disabled, true);
+		assert.match(r.nodes.get('scspSsfCaptureStatus').textContent, /Noise/);
+		assert.equal(r.ui.isActive(), true);
+		assert.equal(r.states.length, 0);
+	} finally {
+		r.ui.dispose();
+	}
+	const failed = rig({
+		onCapture: async () => {
+			throw Error('Capture rejected; previous instrument kept.');
+		},
+	});
+	try {
+		failed.ui.update(playing, source);
+		await failed.nodes.get('scspSsfCapture').fire('click');
+		assert.match(failed.nodes.get('scspSsfCaptureStatus').textContent, /Capture rejected/);
+		assert.equal(failed.ui.isActive(), true);
+		assert.equal(failed.nodes.get('scspSsfCapture').disabled, false);
+		assert.equal(failed.nodes.get('scspSsfLive').dataset.frame, '640');
+	} finally {
+		failed.ui.dispose();
 	}
 });

@@ -884,6 +884,16 @@ footer {
 	min-width: 90px;
 	overflow: hidden;
 }
+#scspSsfReference {
+	min-width: 66px;
+}
+#scspSsfCapture {
+	font-size: 0.76rem;
+	padding: 8px 12px;
+}
+#scspSsfCaptureStatus[data-error='true'] {
+	color: #edc285;
+}
 .scsp-ssf-slots {
 	display: grid;
 	grid-template-columns: repeat(16, minmax(0, 1fr));
