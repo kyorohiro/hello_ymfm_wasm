@@ -40,11 +40,33 @@ existing player, decoder, Files and calibration revision mechanisms.
       portable preset, preserving keyboard reference tuning after release.
 - [ ] Evaluate Looper / Event recording after the four sound sections work.
 - [x] Add FM2608 to the bulk itch.io release plan when preparing its release.
-- [ ] Prepare a separate Tauri repository when requested.
+- [x] Prepare a separate Tauri repository when requested.
 
 The first version uses the existing Tetorica synthetic rhythm ROM. FM, SSG,
 Rhythm and ADPCM-B are sections of one YM2608. Keyboard allocation and Pitch
 are software performance features. Additional Code effects are host software.
+
+## Tauri desktop edition
+
+The user requested implementation in `w/tetorica-fm2608-synth-tauri`.
+Initial app version is `0.0.1`. The new repository includes the readable Web
+release, import / version-update scripts, existing desktop Menu / Pin and
+Web Audio / CPAL output conventions, plus cross-platform build workflows.
+
+The Web Synth now exposes a guarded bridge on local Tauri pages. Its shared
+final Master bus is routed before keyboard, Code and reference playback start.
+The desktop edition retains the imported Web files byte for byte.
+
+Verification includes 33 Python tests, 47 JavaScript tests, 30 default Rust
+tests and nine browser scenarios in each of Chromium and WebKit. A local
+unsigned arm64 Release app builds and opens. Actual Menu / Pin, Native output
+at 48 kHz and restoration to Web Audio work in the built application.
+
+The opt-in standalone CPAL continuous test failed during device setup in the
+command environment, so its planned 30-second stream remains unverified.
+Signed / notarized builds, physical listening, prolonged playback and remote
+CI builds remain release checks. Detailed evidence and TODOs are in the new
+desktop repository's `docs/verification_20261115.md` and `docs/todo_20261115.md`.
 
 ## YM2203 compatibility playback
 

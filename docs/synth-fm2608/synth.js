@@ -32,6 +32,7 @@ let generation = 0, editQueue = Promise.resolve(), disposed = false, lastLive = 
 let sampleData = '', sampleRange = '', referenceSampleKey = '', decodedSample = new Float32Array(), referenceSamples = new Float32Array();
 let waveDraft = null, wavePointer = null, previousWavePoint = null;
 let analyser = null, envelope = [], monitorFrame = null, sampleBusy = false;
+let switchingAudioOutput = false, desktopOutputHandler = null;
 const monitorSamples = new Float32Array(2048);
 
 function status(message, error = false) {
@@ -639,12 +640,22 @@ function installTabKeys(root) {
   });
 }
 
-async function ensureAudio() {
+async function prepareDesktopOutput(engine,enabled) {
+  if (enabled && desktopOutputHandler) {
+    const token = generation;
+    const isCurrent = () => !disposed && token === generation && engine === audio;
+    await desktopOutputHandler({context:engine.context,output:engine.outputNode},{isCurrent});
+    if (!isCurrent()) throw new DOMException('Audio output preparation stopped','AbortError');
+  }
+  return engine;
+}
+async function ensureAudio({prepareOutput = true} = {}) {
+  if (disposed || prepareOutput && switchingAudioOutput) throw new DOMException('Audio output is changing','AbortError');
   if (audio && audio.context.state !== 'closed') {
     await audio.context.resume();
-    return audio;
+    return prepareDesktopOutput(audio,prepareOutput);
   }
-  if (audioPending) return audioPending;
+  if (audioPending) return prepareDesktopOutput(await audioPending,prepareOutput);
   const token = generation;
   byId('startAudio').disabled = true;
   status('Preparing OPNA…');
@@ -676,7 +687,7 @@ async function ensureAudio() {
     byId('startAudio').disabled = false;
   });
   audioPending = pending;
-  return pending;
+  return prepareDesktopOutput(await pending,prepareOutput);
 }
 function allocateChannel(kind,midi) {
   if (kind === 'fm' && selection.fm === 'auto' && channel3Snapshot().mode !== 'normal') return 2;
@@ -692,13 +703,13 @@ function allocateChannel(kind,midi) {
   return channel;
 }
 async function press(id,midi) {
-  if (section === 'mixer' || pendingNotes.has(id)) return;
+  if (switchingAudioOutput || section === 'mixer' || pendingNotes.has(id)) return;
   const request = {kind:section,midi,token:generation,source:songs?.isViewing() ? 'song' : 'synth'};
   pendingNotes.set(id,request);
   try {
     const engine = await ensureAudio();
     await editQueue;
-    if (pendingNotes.get(id) !== request || request.token !== generation) return;
+    if (switchingAudioOutput || pendingNotes.get(id) !== request || request.token !== generation) return;
     const channel = allocateChannel(request.kind,midi), lane = request.kind + ':' + channel;
     const previous = owners.get(lane);
     const previousNote = previous ? held.get(previous) : null;
@@ -1250,6 +1261,26 @@ songs = setupFm2608SongControls({project:host.project,files:host.files,ensureAud
   }});
 updateOutputMixer();
 host.ready.then(() => { updateControls(); renderSample(); }).catch(report);
+
+// Desktop adapters route the final Master bus before playback starts. Keep
+// device output and window controls outside the reusable browser sources.
+const desktopLocation = window.location;
+const localDesktop = desktopLocation && ((desktopLocation.protocol === 'tauri:' && desktopLocation.hostname === 'localhost') ||
+  (['http:','https:'].includes(desktopLocation.protocol) && desktopLocation.hostname === 'tauri.localhost'));
+if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
+  const output = engine => engine && engine.context.state !== 'closed' ? {context:engine.context,output:engine.outputNode} : null;
+  Object.defineProperty(window,'tetoricaSynthAudio',{value:Object.freeze({
+    getOutput() { return output(audio); },
+    async ensureReady() { return output(await ensureAudio({prepareOutput:false})); },
+    setSwitching(value) { switchingAudioOutput = value === true; },
+    setOutputHandler(handler) {
+      if (handler !== null && typeof handler !== 'function') throw new TypeError('Desktop output handler must be a function or null');
+      desktopOutputHandler = handler;
+    },
+    stopPlayback:stopAll,
+  })});
+  window.dispatchEvent(new Event('tetorica-synth-ready'));
+}
 monitorFrame = requestAnimationFrame(drawOutput);
 window.addEventListener('pagehide',event => {
   releaseKeyboard();
