@@ -160,6 +160,7 @@ msm5205_audio.js
 msm5205_worklet.js
 msm5205_native.js
 spc.js
+spc_voice_edit.js
 spc_trace.js
 spc_events.js
 spc_performance.js

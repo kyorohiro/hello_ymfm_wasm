@@ -33,6 +33,7 @@ export function createItchBatchPlan({root = repository, version, forRun = false}
   const specs = [
     ['2a03', '2a03_synth', `tetorica_2a03_synth_${version}_itch.zip`],
     ['dmg', 'dmg_synth', `tetorica_dmg_synth_${version}_itch.zip`],
+    ['fm2608', 'fm2608_synth', `tetorica_fm2608_synth_${version}_itch.zip`],
     ['huc6280', 'huc6280_synth', `tetorica_huc6280_synth_${version}_itch.zip`],
     ['scsp', 'scsp_synth', `tetorica_scsp_synth_${version}_itch.zip`],
     ['sid', 'sid_synth', `tetorica_sid_synth_${version}_itch.zip`],

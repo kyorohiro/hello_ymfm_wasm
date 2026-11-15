@@ -40,6 +40,20 @@ export class Adpcm {
   assert.deepEqual(sourcePosition(source, 'Missing.keyOn'), {lineNumber:1, column:1});
 });
 
+test('FM2608 Timer A, CSM and preset capture navigate to the Synth adapters', async () => {
+  const {selectFm2608CodeDeclarations} = await import('../synth-fm2608/code_declarations.js');
+  const base = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8');
+  const declarations = selectFm2608CodeDeclarations(base), lines = declarations.split('\n');
+  for (const symbol of ['setTimerA','setCsm','setChannel3Mode','getChannel3State','capturePreset']) {
+    const line = lines.findIndex(text => text.trimStart().startsWith(symbol+'('));
+    const result = definitionSource(declarations,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'ym2608');
+    assert.equal(result.file,symbol==='capturePreset'?'synth-fm2608/audio.js':'synth-fm2608/sound_state.js');
+    const source = await readFile(new URL('../'+result.file,import.meta.url),'utf8');
+    const position = sourcePosition(source,result.symbol);
+    assert.match(source.split('\n')[position.lineNumber-1],new RegExp(result.symbol));
+  }
+});
+
 test('actual Playground declarations navigate to the factory and YM2612 implementation', async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
   for (const [symbol, file] of [['useSoundChip', 'playground_runtime.js'], ['setBpm', 'playground_runtime.js'], ['createTimeline', 'playground_runtime.js'], ['encodeBrr', 'snes_brr_encoder.js'], ['encodeAdpcmA', 'adpcm_a_sample.js'], ['encodePs1Adpcm', 'ps1_adpcm_encoder.js'], ['setFrequency', 'ym2612synth.js']]) {

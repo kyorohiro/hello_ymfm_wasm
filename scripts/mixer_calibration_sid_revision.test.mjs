@@ -1,3 +1,5 @@
+import {renderPlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
+import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
 import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
@@ -42,7 +44,7 @@ test('SID receipt authenticates all 20 complete source pairs and reconstructs th
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths){
-    const current=restoreMixerCalibrationHuc6280UiRevision(path,await read('docs/'+path));
+    const current=restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,await read('docs/'+path)));
     const entry=receipt.sources[path],bytes=restoreMixerCalibrationSynthDefinitionViewerRevision(path,restoreMixerCalibrationRf5c164NoteRevision(path,restoreMixerCalibrationCompletionPresetImportRevision(path,restoreMixerCalibrationPs1ImportRevision(path,restoreMixerCalibrationVabApiRevision(path,current)))));
     assert.equal(bytes.length,entry.after.bytes,path);assert.equal(sha(bytes),entry.after.sha256,path);
     const restored=restoreMixerCalibrationSidRevision(path,bytes);
@@ -83,15 +85,16 @@ test('changing the receipt cannot authorize a new after body without changing th
   assert.throws(()=>isolated.restoreMixerCalibrationSidRevision(paths[0],Buffer.alloc(1)),/independently pinned SHA/);
 });
 
-test('all four active calibration validators keep every historical report and measured gain unchanged',async()=>{
+test('all four historical reports retain their gains and require remeasurement after SPC voice editing',async()=>{
   const baselinePath=join(root,'docs/issues/playground_chip_levels_01.json');
   assert.equal(sha(await readFile(baselinePath)),'9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234');
   const validators=[['ps1Report',validatePs1MixerCalibrationSources],['wsReport',validateWonderSwanMixerCalibrationSources],['pokeyReport',validatePokeyMixerCalibrationSources],['scspReport',validateScspMixerCalibrationSources]];
   for(let index=0;index<reports.length;index++){
     const path=reports[index],bytes=await read(path),report=JSON.parse(bytes),original=JSON.stringify(report),[parameter,validate]=validators[index];
     assert.equal(bytes.length,receipt.reports[path].bytes);assert.equal(sha(bytes),receipt.reports[path].sha256);
-    const result=await validate({reportPath:baselinePath,[parameter]:report});
-    assert(result.primaryVolume>0&&result.extraVolume>0);assert.equal(JSON.stringify(report),original);assert.deepEqual(await read(path),bytes);
+    await assert.rejects(validate({reportPath:baselinePath,[parameter]:report}),/source changed; remeasure: (?:docs\/)?js\/playground_spc_audio\.js/);
+    assert(report.calibration.routes.every(route=>route.volume>0));
+    assert.equal(JSON.stringify(report),original);assert.deepEqual(await read(path),bytes);
   }
 });
 
@@ -99,8 +102,10 @@ function policy(source){
   const code=source.toString().replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
   return JSON.parse(vm.runInNewContext(code+'\nJSON.stringify({factoryDefaults,factoryEngines,factoryModes,calibration:PLAYGROUND_MIXER_CALIBRATION,listening:PLAYGROUND_MIXER_LISTENING_LEVELS});'));
 }
-test('generated policy preserves every earlier source/listening gain and adds only unmeasured SID unity',async()=>{
-  const path='docs/playground/playground_mixer_defaults.js',after=policy(await read(path));
+test('the historical SID policy reproduces every earlier source/listening gain and adds only unmeasured SID unity',async()=>{
+  const historical=JSON.parse(await read('docs/issues/playground_chip_levels_01.json'));
+  const measurements=await Promise.all(reports.map(async path=>JSON.parse(await read(path))));
+  const after=policy(Buffer.from(renderPlaygroundMixerDefaults(historical,...measurements)));
   assert.deepEqual(after.factoryDefaults.kinds.find(entry=>entry.name==='sid'),{name:'sid',volume:1});
   after.factoryDefaults.kinds=after.factoryDefaults.kinds.filter(entry=>entry.name!=='sid');
   assert.deepEqual(after.factoryModes.c64,{version:1,entries:[{id:'sid',name:'sid',settings:{volume:1}}]});

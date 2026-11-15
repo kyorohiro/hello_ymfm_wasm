@@ -5,6 +5,8 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
 const {chromium,webkit} = require('playwright');
+const {gzipSync} = require('node:zlib');
+const {pathToFileURL} = require('node:url');
 
 const config = {root:path.resolve(__dirname,'../docs'),entry:'/synth-fm2608/index.html',
   engines:'chromium,webkit',editor:'fallback',out:path.resolve(__dirname,'../build/fm2608-synth-browser.json'),
@@ -29,6 +31,41 @@ function makeWav() {
   bytes.writeUInt32LE(frames * 2,40);
   for (let index = 0; index < frames; index++) bytes.writeInt16LE(Math.round(Math.sin(index / rate * Math.PI * 440) * 16000),44 + index * 2);
   return bytes;
+}
+
+async function makeReferenceFiles() {
+  const moduleUrl = name => pathToFileURL(path.resolve(__dirname,'../docs',name)).href;
+  const [{YM2608Synth},{createDefaultPreset,readFmPreset,FM_PRESETS}] = await Promise.all([
+    import(moduleUrl('js/ym2608synth.js')),import(moduleUrl('synth-fm2608/preset.js')),
+  ]);
+  const writes = [], chip = new YM2608Synth({transport:{write:(port,register,value) => writes.push([port,register,value])}});
+  const sample = Buffer.from(createDefaultPreset().adpcm.data,'base64');
+  chip.setPreset(0,readFmPreset(FM_PRESETS.sine));
+  chip.noteOn(0,'C4');
+  chip.ssg.tone(0,{frequency:220,volume:7});
+  chip.rhythm.setVolume(48);
+  chip.rhythm.setVoice(0,{volume:24,left:true,right:true});
+  chip.adpcm.setSample({start:256,end:256+sample.length});
+  chip.adpcm.setPlaybackRate(22050);
+  chip.adpcm.setVolume(120);
+  chip.adpcm.setPan(true,true);
+  chip.adpcm.keyOn({repeat:true});
+  const block = Buffer.alloc(15+sample.length);
+  block.set([0x67,0x66,0x81]);block.writeUInt32LE(8+sample.length,3);
+  block.writeUInt32LE(0x200000,7);block.writeUInt32LE(256,11);sample.copy(block,15);
+  const commands = [...block,...writes.flatMap(([port,register,value]) => [0x56+port,register,value])];
+  for (let second=0; second<16; second++) commands.push(0x56,0xb0,(second % 8) << 3 | 7,0x61,0x44,0xac);
+  commands.push(0x66);
+  const vgm = Buffer.alloc(256+commands.length);
+  vgm.set([0x56,0x67,0x6d,0x20]);vgm.writeUInt32LE(vgm.length-4,4);vgm.writeUInt32LE(0x171,8);
+  vgm.writeUInt32LE(256-0x34,0x34);vgm.writeUInt32LE(8000000,0x48);vgm.writeUInt32LE(16*44100,0x18);vgm.set(commands,256);
+  const s98Commands = [...writes.filter(([port]) => port===0).flatMap(([port,register,value]) => [port,register,value]),...Array(1600).fill(0xff),0xfd];
+  const s98 = Buffer.alloc(48+s98Commands.length);
+  s98.set([83,57,56,51]);s98.writeUInt32LE(1,4);s98.writeUInt32LE(100,8);s98.writeUInt32LE(48,0x14);
+  s98.writeUInt32LE(1,0x1c);s98.writeUInt32LE(4,0x20);s98.writeUInt32LE(7987200,0x24);s98.set(s98Commands,48);
+  return {sample,files:[{name:'OPNA reference.vgm',mimeType:'application/octet-stream',buffer:vgm},
+    {name:'OPNA reference.vgz',mimeType:'application/octet-stream',buffer:gzipSync(vgm)},
+    {name:'OPNA reference.s98',mimeType:'application/octet-stream',buffer:s98}]};
 }
 
 function installAudit() {
@@ -104,7 +141,7 @@ async function checkEngine(name,origin) {
         return window.monaco?.editor?.getEditors().some(editor => host.contains(editor.getDomNode()));
       },null,{timeout:60000});
       assert((await page.locator('#synthCodeEditorHost').boundingBox()).height > 200);
-      const source = 'const opna = await useSoundChip("ym2608");\nopna.setFrequency(CH1, 440);\nopna.ssg.setEnvelope({period: 512, shape: 10});\nopna.rhythm.keyOn("snare");\nopna.adpcm.keyOn({repeat: true});\nconst motion = await livePrepare("motion", () => ({ratio: 1}));\nawait tween({beats: 2}, p => {motion.ratio = p;});\n';
+      const source = 'const opna = await useSoundChip("ym2608");\nopna.setFrequency(CH1, 440);\nopna.ssg.setEnvelope({period: 512, shape: 10});\nopna.rhythm.keyOn("snare");\nopna.adpcm.keyOn({repeat: true});\nopna.setCsm(true, {timerA: 900, running: false});\nconst captured = opna.capturePreset();\nconsole.log(captured.adpcm.start, captured.fm[0].keyMask);\nconst motion = await livePrepare("motion", () => ({ratio: 1}));\nawait tween({beats: 2}, p => {motion.ratio = p;});\n';
       await page.evaluate(source => {
         const host = document.querySelector('#synthCodeEditorHost');
         monaco.editor.getEditors().find(editor => host.contains(editor.getDomNode())).setValue(source);
@@ -136,6 +173,26 @@ async function checkEngine(name,origin) {
       assert.match(implementation,/keyOn.*repeat/);
       await dialog.getByRole('button',{name:'Close',exact:true}).click();
       check('ADPCM completion opens the correct readable implementation');
+      for (const [symbol,file,expected] of [['setCsm','sound_state.js','installChannel3Controls'],['capturePreset','audio.js','capturePreset']]) {
+        await page.evaluate(symbol => {
+          const host = document.querySelector('#synthCodeEditorHost');
+          const editor = monaco.editor.getEditors().find(editor => host.contains(editor.getDomNode()));
+          const model = editor.getModel(), index = model.getValue().indexOf('opna.'+symbol) + 'opna.'.length + 1;
+          editor.setPosition(model.getPositionAt(index));editor.focus();
+          editor.trigger('opna-browser-check','editor.action.revealDefinition',{});
+        },symbol);
+        await dialog.waitFor({state:'visible'});
+        await dialog.getByRole('button',{name:'View implementation',exact:true}).click();
+        await page.waitForFunction(file => document.querySelector('dialog[data-monaco-definition="true"] strong')?.textContent === file+' (read-only)',file);
+        const line = await page.evaluate(file => {
+          const model = monaco.editor.getModels().find(model => model.uri.path.endsWith('/'+file));
+          const editor = monaco.editor.getEditors().find(editor => editor.getModel() === model);
+          return model.getLineContent(editor.getPosition().lineNumber);
+        },file);
+        assert(line.includes(expected));
+        await dialog.getByRole('button',{name:'Close',exact:true}).click();
+      }
+      check('CSM and portable capture navigate to their Synth implementation');
       await page.locator('#synthCodeExpandButton').click();
       assert.equal(await page.locator('#synthExpandedCodeSlot #synthCodeEditorHost').count(),1);
       for (const width of [1180,390]) {
@@ -366,6 +423,177 @@ async function checkEngine(name,origin) {
     await page.locator('#channelTabs [data-channel="1"]').click();
     assert.equal(await page.locator('[data-control="fm.algorithm"] .param-value').textContent(),channelTwo);
     check('choosing Auto preserves separate channel sounds');
+
+    await page.locator('#channelTabs [data-channel="0"]').click();
+    await page.locator('#fmPreset').selectOption('sine');
+    await page.keyboard.down('a');
+    await audible();
+    for (const gate of await page.locator('[data-operator-gate]').all()) await gate.click();
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-operator-gate]')].every(button => button.getAttribute('aria-pressed') === 'false'));
+    await quiet();
+    await page.keyboard.up('a');
+    await page.locator('#fmPreset').selectOption('sine');
+    await page.locator('#channel3Controls summary').first().click();
+    await page.locator('#channel3Mode').selectOption('special');
+    await page.waitForFunction(() => document.querySelector('#channelTabs [data-channel="2"]').getAttribute('aria-selected') === 'true');
+    assert(await page.locator('#channelTabs [data-channel="auto"]').isDisabled());
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    await page.locator('#channel3Mode').selectOption('csm');
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await page.locator('#stopAudio').click();
+    await quiet();
+    await page.locator('#channel3Mode').selectOption('normal');
+    await page.waitForFunction(() => !document.querySelector('#channelTabs [data-channel="auto"]').disabled);
+    check('operator Gates, special CH3 and Timer A CSM work through the UI');
+
+    const reference = await makeReferenceFiles();
+    await page.locator('#synthInputCodeTab').click();
+    const memoryCode = 'const opna = await useSoundChip("ym2608");\nawait opna.adpcm.loadMemory(new Uint8Array(' + JSON.stringify([...reference.sample]) + '), 512);\nopna.adpcm.setSample({start:512,end:576});\nopna.adpcm.setPlaybackRate(12000);\nconsole.log("memory-ready");\nliveLoop("keep",async()=>{await beat(1);});\n';
+    await page.locator('#synthCodeEditor').fill(memoryCode);
+    await page.locator('#synthCodeRunButton').click();
+    await page.waitForFunction(() => document.querySelector('#synthCodeLog').textContent.includes('memory-ready'));
+    await page.locator('#synthMenu summary').first().click();
+    const memoryDownloadReady = page.waitForEvent('download');
+    await page.locator('#exportSoundButton').click();
+    const memoryDownload = await memoryDownloadReady, memoryChunks = [];
+    for await (const chunk of await memoryDownload.createReadStream()) memoryChunks.push(chunk);
+    const memoryPreset = JSON.parse(Buffer.concat(memoryChunks).toString('utf8'));
+    assert.equal(memoryPreset.adpcm.start,512);
+    assert.equal(memoryPreset.adpcm.end,576);
+    assert(Math.abs(memoryPreset.adpcm.sampleRate-12000)<1);
+    assert.deepEqual(Buffer.from(memoryPreset.adpcm.data,'base64').subarray(512-memoryPreset.adpcm.address,576-memoryPreset.adpcm.address),reference.sample);
+    await page.locator('#synthCodeStopButton').click();
+    await page.locator('#synthInputKeyboardTab').click();
+    check('Code-loaded ADPCM memory and selected address range export through the UI');
+
+    await page.locator('#songFileInput').setInputFiles(reference.files);
+    await page.waitForFunction(() => document.querySelector('#songSelect').options.length === 4 && !document.querySelector('#songPlay').disabled);
+    await page.locator('#songSelect').selectOption('/vgm/OPNA reference.vgm');
+    await page.locator('#tab-fm').click();
+    await page.locator('#channelTabs [data-channel="0"]').click();
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+    await audible();
+    await page.waitForFunction(() => document.querySelector('#songView').value === 'song');
+    await page.locator('[data-control="fm.feedback"] .param-button').last().click();
+    await page.keyboard.down('a');
+    await audible();
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-playback'),'playing');
+    await page.keyboard.up('a');
+    const unsupported = Buffer.from(reference.files[0].buffer);
+    unsupported.writeUInt32LE(7670454,0x2c);
+    await page.locator('#songFileInput').setInputFiles({name:'Unsupported.vgm',mimeType:'application/octet-stream',buffer:unsupported});
+    await page.waitForFunction(() => document.querySelector('#audioStatus').textContent.includes('Unsupported chip: YM2612'));
+    assert.equal(await page.locator('#songSelect').inputValue(),'/vgm/OPNA reference.vgm');
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-playback'),'playing');
+    await page.locator('#songPause').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.manualReady === 'true' && document.querySelector('#referenceSong').dataset.playback === 'paused');
+    const pausedTime = await page.locator('#songTime').textContent();
+    await quiet();
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    assert.equal(await page.locator('#songTime').textContent(),pausedTime);
+    for (const gate of await page.locator('[data-operator-gate]').all()) if (await gate.getAttribute('aria-pressed') === 'true') await gate.click();
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-operator-gate]')].every(button => button.getAttribute('aria-pressed') === 'false'));
+    await page.keyboard.down('a');
+    await quiet();
+    await page.keyboard.up('a');
+    for (const gate of await page.locator('[data-operator-gate]').all()) await gate.click();
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-operator-gate]')].every(button => button.getAttribute('aria-pressed') === 'true'));
+    await page.locator('#liveUpdate').uncheck();
+    const feedbackBefore = Number(await page.locator('[data-control="fm.feedback"] .param-value').textContent());
+    await page.locator('[data-control="fm.feedback"] .param-button').last().click();
+    await page.waitForFunction(value => Number(document.querySelector('[data-control="fm.feedback"] .param-value').textContent) === Math.min(7,value+1),feedbackBefore);
+    await page.waitForTimeout(180);
+    assert.equal(Number(await page.locator('[data-control="fm.feedback"] .param-value').textContent()),Math.min(7,feedbackBefore+1));
+    await page.locator('#liveUpdate').check();
+    await page.locator('#tab-ssg').click();
+    await page.locator('#channelTabs [data-channel="0"]').click();
+    for (let trial=0;trial<2;trial++) {
+      await page.keyboard.down('a');
+      await audible();
+      await page.keyboard.up('a');
+      await quiet();
+    }
+    await page.locator('#tab-adpcm').click();
+    await page.waitForFunction(() => document.querySelector('#sampleInfo').textContent.startsWith('128 decoded frames'));
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    const expectedReferenceRate = Math.round(Math.round(22050 * 144 * 65536 / 8000000) * 8000000 / (144 * 65536));
+    await page.waitForFunction(value => Number(document.querySelector('[data-control="adpcm.sampleRate"] .param-value').textContent) === value,expectedReferenceRate);
+    const referenceRateBefore = Number(await page.locator('[data-control="adpcm.sampleRate"] .param-value').textContent());
+    await page.locator('[data-control="adpcm.sampleRate"] .param-button').last().click();
+    await page.waitForFunction(value => Number(document.querySelector('[data-control="adpcm.sampleRate"] .param-value').textContent) === value,referenceRateBefore+1);
+    await page.locator('[data-control="adpcm.rootNote"] .param-button').last().click();
+    await page.waitForFunction(() => document.querySelector('#songReferenceKey').value === '61');
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    await page.waitForFunction(value => Number(document.querySelector('[data-control="adpcm.sampleRate"] .param-value').textContent) === value,referenceRateBefore+1);
+    await page.screenshot({path:path.join(config.screenshots,name + '-reference-paused.png'),fullPage:true});
+    await page.locator('#songCapture').click();
+    await page.waitForFunction(() => document.querySelector('#songView').value === 'synth');
+    assert.equal(await page.locator('#referenceSong').getAttribute('data-playback'),'paused');
+    assert.equal(await page.locator('#songPlay').textContent(),'Resume');
+    await page.keyboard.down('a');
+    await audible();
+    await page.keyboard.up('a');
+    await quiet();
+    check('VGM Files, Live controls, paused FM/SSG/ADPCM audition and Capture preserve song position');
+
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+    await page.locator('#songSeek').evaluate(node => {node.value='8';node.dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing' && document.querySelector('#songTime').textContent.startsWith('0:08'));
+    await page.locator('#songSeek').focus();
+    await page.waitForFunction(() => Number(document.querySelector('#songSeek').value) > 8.2);
+    await page.locator('#tab-mixer').click();
+    for (const kind of ['fm','ssg','rhythm','adpcm']) {
+      for (const button of await page.locator('[data-mixer-section="'+kind+'"]').all()) if (await button.getAttribute('aria-pressed') === 'true') await button.click();
+    }
+    await quiet();
+    await page.locator('[data-mixer-section="fm"][data-mixer-channel="0"]').click();
+    await audible();
+    await page.locator('#songStop').click();
+    await quiet();
+    for (const kind of ['fm','ssg','rhythm','adpcm']) {
+      for (const button of await page.locator('[data-mixer-section="'+kind+'"]').all()) if (await button.getAttribute('aria-pressed') === 'false') await button.click();
+    }
+    check('reference Seek, focused progress and channel Mixer operate on the song output');
+
+    for (const extension of ['vgz','s98']) {
+      await page.locator('#songSelect').selectOption('/vgm/OPNA reference.'+extension);
+      await page.waitForFunction(() => !document.querySelector('#songPlay').disabled);
+      await page.locator('#songPlay').click();
+      await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+      await audible();
+      await page.locator('#songStop').click();
+      await quiet();
+    }
+    check('VGZ and S98 reference files play using the shared OPNA core');
+
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+    await page.locator('#synthInputCodeTab').click();
+    await page.locator('#synthCodeRunButton').click();
+    await page.waitForFunction(() => /Playing|Running/.test(document.querySelector('#synthCodeState').textContent));
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'stopped');
+    await page.locator('#songPlay').click();
+    await page.waitForFunction(() => document.querySelector('#referenceSong').dataset.playback === 'playing');
+    await page.waitForFunction(() => /Stopped|Idle/.test(document.querySelector('#synthCodeState').textContent));
+    await page.locator('#songStop').click();
+    await page.locator('#tab-fm').click();
+    check('Code and reference-song transports hand off without closing audio');
 
     await page.locator('#masterVolume').evaluate(node => {node.value = '3.8'; node.dispatchEvent(new Event('input',{bubbles:true}));});
     assert.equal(await page.locator('#monitorVolumeValue').textContent(),'380%');

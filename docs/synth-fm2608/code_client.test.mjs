@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {YM2608Synth} from '../js/ym2608synth.js';
 import {createFm2608CodeClient, resolveFm2608CodeNoteTarget} from './code_client.js';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
+import {installMonitorMutes} from './audio.js';
+import {installChannel3Controls} from './sound_state.js';
 
 function fixture() {
   const writes = [];
@@ -69,4 +71,28 @@ liveLoop('sample',async()=>{opna.adpcm.keyOn({repeat:true});await beat(64);});`)
   } finally {
     await runtime.stop();
   }
+});
+
+test('CSM Code notes release Timer A on Stop Loop and client disposal', async () => {
+  const {chip,writes} = fixture(), monitor = installMonitorMutes(chip);
+  installChannel3Controls(chip,monitor,() => 15);
+  writes.length = 0;
+  const {client,release} = createFm2608CodeClient(chip);
+  const runtime = createPlaygroundCodeRuntime({supportedSoundChips:['ym2608'],
+    ensureReady:async () => {},now:() => 0,useSoundChip:async () => client,
+    resolveNoteTarget:resolveFm2608CodeNoteTarget,guardExecution:false,stopSoundChips:release});
+  try {
+    await runtime.run(`const opna=await useSoundChip('ym2608');
+opna.setCsm(true,{timerA:900,running:false});
+liveLoop('timer',async()=>{opna.keyOn(CH3);await beat(64);});`);
+    assert.equal(chip.getChannel3State().running,true);
+    await runtime.apply('stopLoop("timer");');
+    assert.equal(chip.getChannel3State().running,false);
+    assert.equal(chip.getChannel3State().mode,'csm');
+    assert.equal(runtime.getState().running,true);
+    client.setCsm(true,{timerA:800});
+    client.dispose();
+    assert.equal(chip.getChannel3State().running,false);
+    assert(!writes.some(write => write.reset));
+  } finally { await runtime.stop(); }
 });

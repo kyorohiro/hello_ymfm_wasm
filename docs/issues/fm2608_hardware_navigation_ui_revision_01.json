@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "scope": "fm2608-passive-hardware-source-navigation",
+  "path": "playground/playground_monaco_definitions.js",
+  "before": {
+    "bytes": 22544,
+    "sha256": "44f7c0b38fd511706d0f472696dd9c5d78bb1ee19d7d603c588dbfee60f2068b"
+  },
+  "after": {
+    "bytes": 22816,
+    "sha256": "1c9936730a3d4172f8faad10713c03ba44664a7c6c65d740574160e93bb756ce"
+  },
+  "reports": {
+    "docs/issues/ps1_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 546854,
+      "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0"
+    },
+    "docs/issues/ps1_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 557840,
+      "sha256": "4cacb672674301e4c35026dbd1a3a39c8ad99f06b9cd5f5ba353ae061c9eea5c"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 507088,
+      "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 504578,
+      "sha256": "12c1bd63da19b9f2123eea3c9ffe5584c3765dbaffdc8802211e1b3e0a348c6c"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 1030997,
+      "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 1052003,
+      "sha256": "d2342ad63d9ab6c6fb93694179416adfb3ad6127b161da792ff9b3437a0ad5a0"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 625175,
+      "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 636467,
+      "sha256": "a68f119dd24842460db3bdb50aff32d895d1780d81f12979237c20f0abb3fc9f"
+    }
+  },
+  "afterOffset": 1085,
+  "removedText": "    if(['setTimerA','setCsm','setChannel3Mode','getChannel3State'].includes(symbol))\n      return {file:'synth-fm2608/sound_state.js',symbol:symbol==='setCsm'?'installChannel3Controls':symbol};\n    if(symbol==='capturePreset')return {file:'synth-fm2608/audio.js',symbol};\n"
+}

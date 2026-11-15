@@ -5,23 +5,22 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
 import {validatePs1MixerCalibration,validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
 import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 for(const [kind,parameter,validate,current,prior]of [
-  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_state_restore_chip_levels_01','ps1_loop_fm_chip_levels_01'],
-  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_state_restore_chip_levels_01','wonderswan_scsp_fm_chip_levels_01'],
-  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_state_restore_chip_levels_01','pokey_scsp_fm_chip_levels_01'],
+  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_spc_voice_edit_chip_levels_01','ps1_state_restore_chip_levels_01'],
+  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_spc_voice_edit_chip_levels_01','wonderswan_state_restore_chip_levels_01'],
+  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_spc_voice_edit_chip_levels_01','pokey_state_restore_chip_levels_01'],
 ])test(`${kind} latest complete measurement matches current scripts and served sources`,async()=>{
   const path=`docs/issues/${current}.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
   const old=await readFile(new URL(`docs/issues/${prior}.json`,root));assert.notEqual(sha(bytes),sha(old));
   await validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:report});
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);
   for(const [path,record]of Object.entries(report.sources)) {
-    const actual=restoreMixerCalibrationSidRevision(path,await readFile(new URL('docs/'+path,root)));
+    const actual=await readFile(new URL('docs/'+path,root));
     const status=assertMixerCalibrationSourceFreshness({path,bytes:actual,record});
     assert.equal(status==='raw',actual.length===record.bytes&&sha(actual)===record.sha256,
       path+': raw means exact measured bytes; other accepted values require a separately pinned review');
@@ -30,11 +29,11 @@ for(const [kind,parameter,validate,current,prior]of [
   assert.equal(sha(await readFile(new URL(`docs/issues/${prior}.json`,root))),sha(old),'Prior measurements remain untouched');
   await assert.rejects(validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:JSON.parse(old)}),
     /source changed; remeasure:/,
-    'A semantic SCSP state fix requires new measurement provenance');
-  const oldReport=JSON.parse(old),scspPath='js/scspsynth.js',scspBytes=await readFile(new URL('docs/'+scspPath,root));
-  assert.throws(()=>assertMixerCalibrationSourceFreshness({path:scspPath,bytes:scspBytes,record:oldReport.sources[scspPath]}),
-    /served DSP\/WASM source changed; remeasure: docs\/js\/scspsynth\.js/,
-    'The SID routing receipt must not authorize the SCSP state fix');
+    'The additive SPC voice-edit API requires new measurement provenance');
+  const oldReport=JSON.parse(old),spcPath='js/playground_spc.js',spcBytes=await readFile(new URL('docs/'+spcPath,root));
+  assert.throws(()=>assertMixerCalibrationSourceFreshness({path:spcPath,bytes:spcBytes,record:oldReport.sources[spcPath]}),
+    /served DSP\/WASM source changed; remeasure: docs\/js\/playground_spc\.js/,
+    'Passive source-navigation receipts must not authorize the SPC voice-edit API');
 });
 
 test('prior PS1 SCSP measurement remains valid immutable history and rejects the newer loop SDK as stale',async()=>{

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "scope": "synth-passive-implementation-source-navigation",
+  "baseCommit": "5999ed7da221c20699b26b8cab296c013b504baf",
+  "review": "Exact passive S-DSP / FM2608 Code implementation targets, class-qualified source locations and one viewer cache query. Existing audio code, WASM, gain settings and historical captures retain their original bytes.",
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "sources": {
+    "playground/playground_monaco.js": {
+      "before": {
+        "bytes": 23166,
+        "sha256": "d85683f57eac4491f75f66b5738c9fbe11593bbba39d09747fd87d4b384748cc"
+      },
+      "after": {
+        "bytes": 23172,
+        "sha256": "fada1db8d8ed7278ad44afe7578c74f24bd9f99236b9c4e17220c5f27d35d03b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": "import {createDefinitionViewer} from './playground_monaco_definitions.js?v=huc-cdrom2-1';\n"
+        }
+      ]
+    },
+    "playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 21003,
+        "sha256": "17da0b97785ea0f7ba4266e96e965a9eb6382c8975d906d445b3af5e3f7bcac9"
+      },
+      "after": {
+        "bytes": 22544,
+        "sha256": "44f7c0b38fd511706d0f472696dd9c5d78bb1ee19d7d603c588dbfee60f2068b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 891,
+          "afterBytes": 963,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7346,
+          "afterBytes": 578,
+          "beforeText": ""
+        }
+      ]
+    }
+  }
+}

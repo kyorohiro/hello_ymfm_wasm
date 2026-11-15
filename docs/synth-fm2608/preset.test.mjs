@@ -25,6 +25,38 @@ test('shared FM presets expand into full OPNA controls', () => {
   assert.equal(voice.operators[0].ssg,0);
 });
 
+test('legacy v1 presets retain full operator Gates and full zero-based sample ranges', () => {
+  const preset = createDefaultPreset();
+  delete preset.channel3;
+  preset.fm.forEach(channel => { delete channel.keyMask; });
+  for (const key of ['address','start','end']) delete preset.adpcm[key];
+  const normalized = readPreset(preset);
+  assert.equal(normalized.version,1);
+  assert(normalized.fm.every(channel => channel.keyMask === 15));
+  assert.equal(normalized.channel3.mode,'normal');
+  assert.deepEqual([normalized.adpcm.address,normalized.adpcm.start,normalized.adpcm.end],[0,0,64]);
+});
+
+test('special CH3 and offset ADPCM ranges are validated atomically', () => {
+  const preset = createDefaultPreset();
+  preset.channel3.mode = 'csm'; preset.channel3.timerA = 1023;
+  preset.fm[2].keyMask = 5;
+  Object.assign(preset.adpcm,{address:256,start:288,end:320});
+  assert.deepEqual(readPreset(preset),preset);
+  for (const mutate of [
+    value => { value.channel3.mode = 'unknown'; },
+    value => { value.channel3.timerA = 1024; },
+    value => { value.channel3.frequencies[0].fnum = 2048; },
+    value => { value.fm[0].keyMask = 16; },
+    value => { value.adpcm.start = 257; },
+    value => { value.adpcm.end = 352; },
+    value => { value.adpcm.address = 0x200000; },
+  ]) {
+    const invalid = structuredClone(preset); mutate(invalid);
+    assert.throws(() => readPreset(invalid));
+  }
+});
+
 test('malformed sample, missing channels and hardware fields are rejected', () => {
   for (const change of [
     preset => { preset.adpcm.data = null; },

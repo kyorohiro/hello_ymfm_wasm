@@ -2,18 +2,20 @@
 import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js';
 import {createFm2608Audio} from './audio.js';
 import {setupFm2608CodeHost} from './code_host.js';
+import {setupFm2608SongControls} from './song_controls.js';
 import {createParamControl, buildHeader, buildOperatorControls} from '../synth/synth_controls.js';
 import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
 import {buildKeyboard, createFretboardLayout, createFretboardState, midiToNoteName} from '../synth/synth_keyboard.js';
 import {parseTfi, createTfiFromPreset} from '../js/tfi.js';
 import {parseVgi, createVgiFromPreset} from '../js/vgi.js';
+import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
 
 const byId = id => document.getElementById(id);
 const sections = {fm:6, ssg:3, rhythm:6, adpcm:1};
 const sectionNames = {fm:'FM', ssg:'SSG', rhythm:'Rhythm', adpcm:'ADPCM-B'};
 const selection = {fm:'auto', ssg:'auto', rhythm:'auto', adpcm:0};
-const controls = new Map(), operatorControls = new Map();
+const controls = new Map(), operatorControls = new Map(), operatorGates = new Map();
 const held = new Map(), pendingNotes = new Map(), owners = new Map();
 const mute = {fm:Array(6).fill(false), ssg:Array(3).fill(false), rhythm:Array(6).fill(false), adpcm:[false]};
 const nextChannel = {fm:0, ssg:0, rhythm:0, adpcm:0};
@@ -25,9 +27,10 @@ const operatorDefinitions = [
 ].map(([id,label,max]) => ({id,label,min:0,max,step:1,booleanMode:id==='am'}));
 
 let settings = createDefaultPreset(), section = 'fm', audio = null, audioPending = null;
-let host = null, octave = 0, layout, pitch = 0, master = .7, visualMode = 'envelope';
+let host = null, songs = null, octave = 0, layout, pitch = 0, master = .7, visualMode = 'envelope';
 let generation = 0, editQueue = Promise.resolve(), disposed = false, lastLive = 0;
-let sampleData = '', decodedSample = new Float32Array(), waveDraft = null, wavePointer = null, previousWavePoint = null;
+let sampleData = '', sampleRange = '', referenceSampleKey = '', decodedSample = new Float32Array(), referenceSamples = new Float32Array();
+let waveDraft = null, wavePointer = null, previousWavePoint = null;
 let analyser = null, envelope = [], monitorFrame = null, sampleBusy = false;
 const monitorSamples = new Float32Array(2048);
 
@@ -52,14 +55,20 @@ function chip() {
   return audio.getChip();
 }
 function live() {
-  return Boolean(chip() && byId('liveUpdate').checked && section !== 'mixer' && selection[section] !== 'auto');
+  return Boolean(songs?.isViewing() || chip() && byId('liveUpdate').checked && section !== 'mixer' && selection[section] !== 'auto');
 }
 function fmSnapshot(channel) {
-  const raw = audio?.getFmState().channels[channel].preset;
+  const voice = songs?.snapshot()?.fm.channels[channel] ?? audio?.getFmState().channels[channel];
+  const raw = voice?.preset;
   if (!raw) return settings.fm[channel];
-  return readFmPreset({...raw,operators:[1,2,3,4].map(operator => raw.operators[operator])});
+  const keyMask = settings.fm[channel].keyMask === 0 && !songs?.isViewing() ? 0 :
+    voice.selectedKeyMask ?? (voice.lastKeyMask || (settings.fm[channel].keyMask ?? 15));
+  return readFmPreset({...raw,keyMask,
+    operators:[1,2,3,4].map(operator => raw.operators[operator])});
 }
 function ssgSnapshot(channel) {
+  const reference = songs?.snapshot()?.ssg.channels[channel];
+  if (reference) return {tone:reference.tone,noise:reference.noise,volume:reference.volume,envelope:reference.envelope};
   const ssg = chip()?.ssg;
   if (!ssg) return settings.ssg.channels[channel];
   const registers = ssg.registers, level = ssg._getState().levels[channel];
@@ -73,12 +82,16 @@ function displayedSsg() {
   return live() ? ssgSnapshot(currentChannel()) : settings.ssg.channels[currentChannel()];
 }
 function rhythmSnapshot(channel) {
+  const reference = songs?.snapshot()?.rhythm.voices[channel];
+  if (reference) return reference;
   const current = chip();
   if (!current) return settings.rhythm.voices[channel];
   const value = current.rhythm.levels[channel];
   return {volume:value & 31,left:Boolean(value & 128),right:Boolean(value & 64)};
 }
 function adpcmSnapshot() {
+  const reference = songs?.snapshot()?.adpcm;
+  if (reference) return {...settings.adpcm,...reference,rootNote:Number(byId('songReferenceKey').value)};
   const current = chip();
   if (!current) return settings.adpcm;
   const registers = current.adpcm.registers;
@@ -86,38 +99,144 @@ function adpcmSnapshot() {
     repeat:registers[0] & 128 ? Boolean(registers[0] & 16) : settings.adpcm.repeat};
 }
 function adpcmPlaybackRate() {
+  const reference = songs?.snapshot()?.adpcm;
+  if (reference) return reference.sampleRate;
   const current = chip();
   if (!current) return settings.adpcm.sampleRate;
   const registers = current.adpcm.registers;
   return (registers[9] | registers[10] << 8) * current.clock / (144 * 65536);
 }
 function getSettings() {
-  const result = structuredClone(settings), current = chip();
-  if (current) {
-    result.fm = result.fm.map((_,channel) => fmSnapshot(channel));
-    result.lfo = {...audio.getFmState().lfo};
-    result.ssg.channels = result.ssg.channels.map((_,channel) => ssgSnapshot(channel));
-    const registers = current.ssg.registers;
-    result.ssg.noisePeriod = registers[6] & 31;
-    result.ssg.envelopePeriod = registers[11] | registers[12] << 8;
-    result.ssg.envelopeShape = registers[13] & 15;
-    result.rhythm.voices = result.rhythm.voices.map((_,channel) => {
-      const value = current.rhythm.levels[channel];
-      return {volume:value & 31,left:Boolean(value & 128),right:Boolean(value & 64)};
-    });
-    result.rhythm.volume = audio.getRegisterState()[0][0x11] & 63;
-    result.adpcm.volume = current.adpcm.registers[11];
-    result.adpcm.left = Boolean(current.adpcm.registers[1] & 128);
-    result.adpcm.right = Boolean(current.adpcm.registers[1] & 64);
-    const note = [...held.values()].find(item => item.kind === 'adpcm');
-    const factor = note ? 2 ** ((note.midi - settings.adpcm.rootNote + pitch) / 12) : 1;
-    const sampleRegisters = current.adpcm.registers;
-    const delta = sampleRegisters[9] | sampleRegisters[10] << 8;
-    const expected = Math.max(1,Math.min(65535,Math.round(settings.adpcm.sampleRate * factor * 144 * 65536 / current.clock)));
-    if (delta > 0 && delta !== expected) result.adpcm.sampleRate = adpcmPlaybackRate() / factor;
-    if (sampleRegisters[0] & 128) result.adpcm.repeat = Boolean(sampleRegisters[0] & 16);
-  }
+  return chip() ? audio.capturePreset(settings) : readPreset(settings);
+}
+
+function channel3Snapshot() {
+  return songs?.snapshot()?.channel3 ?? (live() && audio ? audio.getChannel3State() : settings.channel3);
+}
+function lfoSnapshot() {
+  return songs?.snapshot()?.fm.lfo ?? (live() && audio ? audio.getFmState().lfo : settings.lfo);
+}
+function editChannel3(mutator) {
+  const next = structuredClone(channel3Snapshot());
+  mutator(next);
+  return edit(value => { value.channel3 = next; },raw => {
+    const running = raw.getChannel3State().running;
+    raw.setChannel3Mode(next.mode,{timerA:next.timerA,running:next.mode === 'csm' && running});
+    for (const [operator,frequency] of next.frequencies.entries()) {
+      if (operator < 3) raw.setChannel3SpecialFrequency(operator,frequency.block,frequency.fnum);
+      else raw.setBlockFnum(2,frequency.block,frequency.fnum);
+    }
+  });
+}
+
+function referenceSettings() {
+  const snapshot = songs.snapshot(), result = structuredClone(settings);
+  result.fm = result.fm.map((_,channel) => fmSnapshot(channel));
+  result.lfo = {...snapshot.fm.lfo};
+  result.channel3 = structuredClone(snapshot.channel3);
+  result.ssg = {channels:result.ssg.channels.map((_,channel) => ssgSnapshot(channel)),
+    noisePeriod:snapshot.ssg.noisePeriod,envelopePeriod:snapshot.ssg.envelopePeriod,envelopeShape:snapshot.ssg.envelopeShape};
+  result.rhythm = {volume:snapshot.rhythm.volume,voices:snapshot.rhythm.voices.map(voice => ({...voice}))};
+  for (const key of ['volume','left','right','repeat']) result.adpcm[key] = snapshot.adpcm[key];
+  result.adpcm.rootNote = Number(byId('songReferenceKey').value);
+  if (snapshot.adpcm.sampleRate > 0) result.adpcm.sampleRate = snapshot.adpcm.sampleRate;
   return readPreset(result);
+}
+function writeReferenceChannel3(next) {
+  const raw = songs.getChip(), snapshot = songs.snapshot(), mode = snapshot.fm.modeRegister;
+  const previous = snapshot.channel3;
+  if (next.timerA !== previous.timerA) {
+    raw.write(0,0x24,next.timerA >> 2);
+    raw.write(0,0x25,next.timerA & 3);
+  }
+  for (const [operator,frequency] of next.frequencies.entries()) {
+    if (frequency.block === previous.frequencies[operator].block && frequency.fnum === previous.frequencies[operator].fnum) continue;
+    if (operator < 3) raw.setChannel3SpecialFrequency(operator,frequency.block,frequency.fnum);
+    else raw.setBlockFnum(2,frequency.block,frequency.fnum);
+  }
+  const bits = next.mode === 'csm' ? 128 : next.mode === 'special' ? 64 : 0;
+  const enteringCsm = next.mode === 'csm' && previous.mode !== 'csm';
+  const heldNote = [...held.values()].some(note => note.source === 'song' && note.kind === 'fm' && note.channel === 2);
+  const running = next.mode === 'csm' && (mode & 1 || snapshot.fm.channels[2].gate || heldNote);
+  if (enteringCsm) raw.keyOff(2);
+  if (next.mode !== previous.mode) raw.write(0,0x27,(mode & 14) | bits | (running ? 1 : 0));
+}
+function applyReferenceSettings(before,next) {
+  const raw = songs.getChip(), snapshot = songs.snapshot();
+  if (!raw) throw new Error('Pause or play the song before editing its channels.');
+  const changed = (first,second) => JSON.stringify(first) !== JSON.stringify(second);
+  for (let channel = 0; channel < 6; channel++) {
+    const first = before.fm[channel], second = next.fm[channel], current = raw.channels[channel];
+    if (first.algorithm !== second.algorithm || first.feedback !== second.feedback) {
+      raw.setAlgo(channel,first.algorithm !== second.algorithm ? second.algorithm : current.algorithm,
+        first.feedback !== second.feedback ? second.feedback : current.feedback);
+    }
+    if (changed(first.pan,second.pan) || first.ams !== second.ams || first.pms !== second.pms) {
+      raw.setPan(channel,first.pan.left !== second.pan.left ? second.pan.left : current.left,
+        first.pan.right !== second.pan.right ? second.pan.right : current.right,
+        first.ams !== second.ams ? second.ams : current.ams,first.pms !== second.pms ? second.pms : current.pms);
+    }
+    for (let operator = 0; operator < 4; operator++) {
+      const patch = Object.fromEntries(Object.entries(second.operators[operator]).filter(([key,value]) => value !== first.operators[operator][key]));
+      if (Object.keys(patch).length) raw.setOperator(channel,operator,patch);
+    }
+    if (first.keyMask !== second.keyMask) songs.setKeyMask(channel,second.keyMask);
+    if (first.keyMask !== second.keyMask && snapshot.fm.channels[channel].gate) {
+      const mask = second.keyMask;
+      if (mask) raw.keyOn(channel,[0,1,2,3].filter(operator => mask & (1 << operator)));
+      else raw.keyOff(channel);
+    }
+  }
+  if (changed(before.lfo,next.lfo)) raw.setLfo(next.lfo.enabled,next.lfo.frequency);
+  if (changed(before.channel3,next.channel3)) writeReferenceChannel3(next.channel3);
+  for (let channel = 0; channel < 3; channel++) {
+    const first = before.ssg.channels[channel], second = next.ssg.channels[channel];
+    const mixer = Object.fromEntries(['tone','noise'].filter(key => first[key] !== second[key]).map(key => [key,second[key]]));
+    if (Object.keys(mixer).length) raw.ssg.setMixer(channel,mixer);
+    if (first.volume !== second.volume || first.envelope !== second.envelope) {
+      const level = raw.ssg._getState().levels[channel];
+      raw.ssg.setVolume(channel,first.volume !== second.volume ? second.volume : level & 15,
+        first.envelope !== second.envelope ? second.envelope : Boolean(level & 16));
+    }
+  }
+  if (before.ssg.noisePeriod !== next.ssg.noisePeriod) raw.ssg.write(6,next.ssg.noisePeriod);
+  if (before.ssg.envelopePeriod !== next.ssg.envelopePeriod) {
+    raw.ssg.write(11,next.ssg.envelopePeriod & 255);
+    raw.ssg.write(12,next.ssg.envelopePeriod >> 8);
+  }
+  if (before.ssg.envelopeShape !== next.ssg.envelopeShape) raw.ssg.write(13,next.ssg.envelopeShape);
+  if (before.rhythm.volume !== next.rhythm.volume) raw.rhythm.setVolume(next.rhythm.volume);
+  for (let channel = 0; channel < 6; channel++) {
+    const patch = Object.fromEntries(['volume','left','right'].filter(key => before.rhythm.voices[channel][key] !== next.rhythm.voices[channel][key]).map(key => [key,next.rhythm.voices[channel][key]]));
+    if (Object.keys(patch).length) raw.rhythm.setVoice(channel,patch);
+  }
+  if (before.adpcm.volume !== next.adpcm.volume) raw.adpcm.setVolume(next.adpcm.volume);
+  if (before.adpcm.left !== next.adpcm.left || before.adpcm.right !== next.adpcm.right) {
+    raw.adpcm.setPan(before.adpcm.left !== next.adpcm.left ? next.adpcm.left : Boolean(raw.adpcm.registers[1] & 128),
+      before.adpcm.right !== next.adpcm.right ? next.adpcm.right : Boolean(raw.adpcm.registers[1] & 64));
+  }
+  if (before.adpcm.sampleRate !== next.adpcm.sampleRate) {
+    raw.adpcm.setPlaybackRate(next.adpcm.sampleRate);
+    for (const note of held.values()) if (note.source === 'song' && note.kind === 'adpcm') {
+      const factor = 2 ** ((note.midi - Number(byId('songReferenceKey').value) + pitch) / 12);
+      note.referenceRate = next.adpcm.sampleRate / factor;
+    }
+  }
+  if (before.adpcm.rootNote !== next.adpcm.rootNote) setReferenceKey(next.adpcm.rootNote);
+  if (before.adpcm.repeat !== next.adpcm.repeat) {
+    raw.write(1,0,(raw.adpcm.registers[0] & ~16) | (next.adpcm.repeat ? 16 : 0));
+  }
+}
+function setReferenceKey(value) {
+  const select = byId('songReferenceKey');
+  if (![...select.options].some(option => Number(option.value) === value)) {
+    const option = document.createElement('option');
+    option.value = String(value);
+    option.textContent = midiToNoteName(value);
+    select.append(option);
+  }
+  select.value = String(value);
+  for (const note of held.values()) if (note.source === 'song' && note.kind === 'adpcm') referenceNoteOn(note,{retuneOnly:true});
 }
 
 async function applySettings(value, {isCurrent = () => true} = {}) {
@@ -127,6 +246,7 @@ async function applySettings(value, {isCurrent = () => true} = {}) {
   if (audio) await audio.applyPreset(next);
   if (!isCurrent()) return false;
   settings = next;
+  songs?.setView('synth');
   byId('instrumentName').value = settings.name;
   byId('fmPreset').value = '';
   updateControls();
@@ -134,16 +254,28 @@ async function applySettings(value, {isCurrent = () => true} = {}) {
   return true;
 }
 function edit(mutator, forceWrite) {
+  if (songs?.isViewing()) {
+    const before = referenceSettings(), next = structuredClone(before);
+    mutator(next);
+    const accepted = readPreset(next);
+    applyReferenceSettings(before,accepted);
+    songs.applyDisplayEdit(before,accepted);
+    updateControls();
+    return Promise.resolve(accepted);
+  }
   const next = structuredClone(settings);
   mutator(next);
   settings = readPreset(next);
-  host?.markSoundDirty();
+  if (!chip()) {
+    try { host?.markSoundDirty(); } catch (error) { report(error); }
+  }
   updateControls();
   const accepted = settings;
   const task = editQueue.then(async () => {
     if (!audio) return;
     await audio.applyPreset(accepted);
     forceWrite?.(audio.getChip());
+    try { host?.markSoundDirty(); } catch (error) { report(error); }
   });
   editQueue = task.catch(report);
   return task;
@@ -160,7 +292,7 @@ function editFm(key, value) {
     for (const channel of channels) {
       const voice = fmSnapshot(channel);
       if (key === 'algorithm' || key === 'feedback') raw.setAlgo(channel,key === 'algorithm' ? value : voice.algorithm,key === 'feedback' ? value : voice.feedback);
-      else raw.setPan(channel,key === 'left' ? value : voice.pan.left,key === 'right' ? value : voice.pan.right,key === 'ams' ? value : voice.ams,key === 'pms' ? value : voice.pms);
+      else if (key !== 'keyMask') raw.setPan(channel,key === 'left' ? value : voice.pan.left,key === 'right' ? value : voice.pan.right,key === 'ams' ? value : voice.ams,key === 'pms' ? value : voice.pms);
     }
   }).catch(report);
   byId('fmPreset').value = '';
@@ -198,15 +330,38 @@ function buildControls() {
   buildHeader(byId('operatorHeader'),operatorDefinitions);
   buildOperatorControls({root:byId('operatorControls'),operatorNumbers:[1,2,3,4],defs:operatorDefinitions,
     operatorStates:Object.fromEntries(settings.fm[0].operators.map((value,index) => [index + 1,value])),
-    controlsMap:operatorControls,onChange:(operator,key,value) => editOperator(operator - 1,{[key]:value})});
+    controlsMap:operatorControls,gateControls:operatorGates,
+    getOperatorEnabled:operator => Boolean((displayedFm().keyMask ?? 15) & (1 << (operator - 1))),
+    onOperatorGateChange:(operator,enabled) => {
+      const mask = displayedFm().keyMask ?? 15, bit = 1 << (operator - 1);
+      editFm('keyMask',enabled ? mask | bit : mask & ~bit);
+    },
+    onChange:(operator,key,value) => editOperator(operator - 1,{[key]:value})});
   addControl('lfoControls','lfo.enabled','Enable',1,false,value => {
-    const current = live() ? audio.getFmState().lfo : settings.lfo;
+    const current = lfoSnapshot();
     edit(next => { next.lfo = {...current,enabled:value}; },raw => raw.setLfo(value,current.frequency)).catch(report);
   },true);
   addControl('lfoControls','lfo.frequency','Rate · 0–7',7,0,value => {
-    const current = live() ? audio.getFmState().lfo : settings.lfo;
+    const current = lfoSnapshot();
     edit(next => { next.lfo = {...current,frequency:value}; },raw => raw.setLfo(current.enabled,value)).catch(report);
   });
+  addControl('channel3Timer','channel3.timerA','Timer A · 0–1023',1023,512,value => {
+    editChannel3(next => { next.timerA = value; }).catch(report);
+  });
+  for (let operator = 0; operator < 4; operator++) {
+    const row = document.createElement('div');
+    row.id = 'channel3Frequency' + operator;
+    row.className = 'opna-channel3-frequency';
+    const label = document.createElement('h3');
+    label.textContent = 'OP' + (operator + 1);
+    row.append(label);
+    byId('channel3Frequencies').append(row);
+    for (const [key,max] of [['block',7],['fnum',2047]]) {
+      addControl(row.id,'channel3.' + operator + '.' + key,key === 'block' ? 'Block' : 'FNUM',max,0,value => {
+        editChannel3(next => { next.frequencies[operator][key] = value; }).catch(report);
+      });
+    }
+  }
   for (const [key,label,max,booleanMode] of [
     ['tone','Tone',1,true],['noise','Noise',1,true],['volume','Level · 0–15',15,false],['envelope','Envelope',1,true],
   ]) {
@@ -248,7 +403,9 @@ function buildControls() {
   restart.type = 'button';
   restart.textContent = 'Restart envelope';
   restart.addEventListener('click',() => {
-    chip()?.ssg.write(13,settings.ssg.envelopeShape);
+    const reference = songs?.snapshot();
+    const raw = reference ? songs.getChip() : chip();
+    raw?.ssg.write(13,reference?.ssg.envelopeShape ?? settings.ssg.envelopeShape);
   });
   byId('ssgEnvelopeControls').append(restart);
   addControl('rhythmSharedControls','rhythm.sharedVolume','Shared level · 0–63',63,48,value => {
@@ -262,7 +419,8 @@ function buildControls() {
     pad.addEventListener('click',() => run(async () => {
       const engine = await ensureAudio();
       await editQueue;
-      engine.getChip().rhythm.keyOn(index);
+      const raw = songs?.isViewing() ? songs.getChip() : engine.getChip();
+      raw?.rhythm.keyOn(index);
       pad.classList.add('is-active');
       setTimeout(() => pad.classList.remove('is-active'),150);
     }));
@@ -295,8 +453,8 @@ function buildControls() {
         }
         if (key === 'sampleRate') {
           const note = [...held.values()].find(item => item.kind === 'adpcm');
-          const rate = value * (note ? 2 ** ((note.midi - settings.adpcm.rootNote + pitch) / 12) : 1);
-          raw.adpcm.setPlaybackRate(Math.min(55554,rate));
+          if (note) audio.setPitch(pitch);
+          else raw.adpcm.setPlaybackRate(value);
         }
         if (key === 'rootNote') audio.setPitch(pitch);
         if (key === 'repeat' && raw.adpcm.registers[0] & 128) raw.adpcm.keyOn({repeat:value});
@@ -320,6 +478,7 @@ function buildControls() {
       button.addEventListener('click',() => {
         mute[kind][channel] = !mute[kind][channel];
         audio?.setMute(kind,channel,mute[kind][channel]);
+        songs?.player.setChannelEnabled(kind,channel,!mute[kind][channel]);
         button.setAttribute('aria-pressed',String(!mute[kind][channel]));
         button.textContent = (kind === 'rhythm' ? RHYTHM_NAMES[channel] : 'CH' + (channel + 1)) + (mute[kind][channel] ? ' · Muted' : '');
       });
@@ -343,24 +502,52 @@ function updateControls() {
   for (const [operator,values] of operatorControls) {
     for (const [key,control] of values) control.updateVisual(fm.operators[operator - 1][key]);
   }
+  for (const [operator,button] of operatorGates) {
+    button.setAttribute('aria-pressed',String(Boolean((fm.keyMask ?? 15) & (1 << (operator - 1)))));
+    button.disabled = currentChannel() === 2 && channel3Snapshot()?.mode === 'csm';
+  }
   const current = chip(), useLive = live();
+  const reference = songs?.snapshot();
   const ssg = section === 'ssg' ? displayedSsg() : settings.ssg.channels[0];
   for (const key of ['tone','noise','volume','envelope']) setControl('ssg.' + key,ssg[key]);
-  const sharedSsg = useLive && section === 'ssg' ? current.ssg.registers : null;
-  setControl('ssg.noisePeriod',sharedSsg ? sharedSsg[6] & 31 : settings.ssg.noisePeriod);
-  setControl('ssg.envelopePeriod',sharedSsg ? sharedSsg[11] | sharedSsg[12] << 8 : settings.ssg.envelopePeriod);
-  setControl('ssg.envelopeShape',sharedSsg ? sharedSsg[13] & 15 : settings.ssg.envelopeShape);
-  const lfo = useLive ? audio.getFmState().lfo : settings.lfo;
+  const sharedSsg = useLive && section === 'ssg' && !reference ? current.ssg.registers : null;
+  setControl('ssg.noisePeriod',reference?.ssg.noisePeriod ?? (sharedSsg ? sharedSsg[6] & 31 : settings.ssg.noisePeriod));
+  setControl('ssg.envelopePeriod',reference?.ssg.envelopePeriod ?? (sharedSsg ? sharedSsg[11] | sharedSsg[12] << 8 : settings.ssg.envelopePeriod));
+  setControl('ssg.envelopeShape',reference?.ssg.envelopeShape ?? (sharedSsg ? sharedSsg[13] & 15 : settings.ssg.envelopeShape));
+  const lfo = lfoSnapshot();
   setControl('lfo.enabled',lfo.enabled);
   setControl('lfo.frequency',lfo.frequency);
-  setControl('rhythm.sharedVolume',useLive && section === 'rhythm' ? audio.getRegisterState()[0][0x11] & 63 : settings.rhythm.volume);
+  setControl('rhythm.sharedVolume',reference?.rhythm.volume ?? (useLive && section === 'rhythm' ? audio.getRegisterState()[0][0x11] & 63 : settings.rhythm.volume));
   const rhythmChannel = section === 'rhythm' ? currentChannel() : 0;
   const rhythm = useLive && section === 'rhythm' ? rhythmSnapshot(rhythmChannel) : settings.rhythm.voices[rhythmChannel];
   for (const key of ['volume','left','right']) setControl('rhythm.' + key,rhythm[key]);
   const adpcm = useLive && section === 'adpcm' ? adpcmSnapshot() : settings.adpcm;
+  controls.get('adpcm.sampleRate').element.querySelector('.param-label').textContent = reference ? 'Playback · Hz' : 'Base rate · Hz';
+  controls.get('adpcm.rootNote').element.querySelector('.param-label').textContent = reference ? 'Reference · MIDI' : 'Root · MIDI';
   for (const key of ['rootNote','sampleRate','volume','left','right','repeat']) {
     setControl('adpcm.' + key,key === 'sampleRate' ? Math.round(adpcm[key]) : adpcm[key]);
   }
+  const channel3 = channel3Snapshot();
+  if (channel3) {
+    byId('channel3Mode').value = channel3.mode;
+    setControl('channel3.timerA',channel3.timerA);
+    for (const [operator,frequency] of channel3.frequencies.entries()) {
+      for (const key of ['block','fnum']) setControl('channel3.' + operator + '.' + key,frequency[key]);
+    }
+    byId('channel3Status').textContent = channel3.mode === 'normal' ? 'Normal FM · six melodic channels.' :
+      channel3.mode === 'csm' ? 'CH3 · Timer A ' + (channel3.running ? 'running' : 'starts on Key On') + ' · all four OPs trigger.' :
+        'CH3 · four hardware frequencies · keyboard tuning preserves their ratios.';
+    const auto = byId('channelTabs').querySelector('[data-channel="auto"]');
+    if (section === 'fm' && auto) {
+      auto.disabled = channel3.mode !== 'normal';
+      if (auto.disabled && selection.fm === 'auto') {
+        selection.fm = 2;
+        renderChannelTabs();
+      }
+    }
+  }
+  byId('drawWave').disabled = Boolean(reference);
+  byId('songReferenceKeyLabel').hidden = section !== 'adpcm';
   if (section === 'ssg') drawSsgEnvelope();
   envelopeView.invalidate();
   updateReadout();
@@ -372,7 +559,8 @@ function updateReadout() {
   }
   const target = selection[section] === 'auto' ? 'Auto · ' + sections[section] + ' hardware channels' : 'CH' + (selection[section] + 1);
   const rate = section === 'adpcm' && chip() ? ' · Playback ' + Math.round(adpcmPlaybackRate()).toLocaleString() + ' Hz' : '';
-  byId('channelReadout').textContent = sectionNames[section] + ' · ' + target + (live() && host?.isRunning() ? ' · Live from Code' : '') + rate;
+  const source = songs?.isViewing() ? ' · ' + (songs.getState().playback === 'paused' ? 'Paused song' : byId('liveUpdate').checked ? 'Live from song' : 'Frozen song') : live() && host?.isRunning() ? ' · Live from Code' : '';
+  byId('channelReadout').textContent = sectionNames[section] + ' · ' + target + source + rate;
   byId('keyboardHint').textContent = section === 'rhythm' ? 'Rhythm keys trigger the six fixed voices.' : sectionNames[section] + ' · ' + target + ' · Pitch is software tuning';
 }
 function renderChannelTabs() {
@@ -389,6 +577,7 @@ function renderChannelTabs() {
     button.dataset.channel = String(value);
     button.setAttribute('aria-selected',String(selection[section] === value));
     button.tabIndex = selection[section] === value ? 0 : -1;
+    button.disabled = section === 'fm' && value === 'auto' && channel3Snapshot()?.mode !== 'normal';
     button.addEventListener('click',() => {
       releaseKeyboard();
       selection[section] = value;
@@ -412,6 +601,7 @@ function selectSection(value) {
   updateControls();
   if (section === 'ssg') drawSsgEnvelope();
   if (section === 'adpcm') renderSample();
+  songs?.refresh();
 }
 function installTabKeys(root) {
   root.addEventListener('keydown',event => {
@@ -464,6 +654,7 @@ async function ensureAudio() {
   return pending;
 }
 function allocateChannel(kind,midi) {
+  if (kind === 'fm' && selection.fm === 'auto' && channel3Snapshot().mode !== 'normal') return 2;
   if (selection[kind] !== 'auto') return selection[kind];
   if (kind === 'rhythm') return ((midi % 6) + 6) % 6;
   const count = sections[kind];
@@ -477,7 +668,7 @@ function allocateChannel(kind,midi) {
 }
 async function press(id,midi) {
   if (section === 'mixer' || pendingNotes.has(id)) return;
-  const request = {kind:section,midi,token:generation};
+  const request = {kind:section,midi,token:generation,source:songs?.isViewing() ? 'song' : 'synth'};
   pendingNotes.set(id,request);
   try {
     const engine = await ensureAudio();
@@ -485,15 +676,20 @@ async function press(id,midi) {
     if (pendingNotes.get(id) !== request || request.token !== generation) return;
     const channel = allocateChannel(request.kind,midi), lane = request.kind + ':' + channel;
     const previous = owners.get(lane);
+    const previousNote = previous ? held.get(previous) : null;
     if (previous) {
       held.delete(previous);
       pendingNotes.delete(previous);
     }
     owners.set(lane,id);
-    held.set(id,{...request,channel,lane});
-    await engine.noteOn(request.kind,channel,midi);
+    held.set(id,{...request,channel,lane,referenceRate:previousNote?.referenceRate});
+    if (request.source === 'song') referenceNoteOn(held.get(id));
+    else await engine.noteOn(request.kind,channel,midi);
     if (pendingNotes.get(id) !== request || request.token !== generation) {
-      if (owners.get(lane) === id) { engine.noteOff(request.kind,channel); owners.delete(lane); }
+      if (owners.get(lane) === id) {
+        if (request.source === 'song') referenceNoteOff(held.get(id)); else engine.noteOff(request.kind,channel);
+        owners.delete(lane);
+      }
       held.delete(id);
     }
     paintKeys();
@@ -512,13 +708,78 @@ function release(id) {
   held.delete(id);
   if (owners.get(note.lane) === id) {
     owners.delete(note.lane);
-    try { audio?.noteOff(note.kind,note.channel); } catch (error) { report(error); }
+    try {
+      if (note.source === 'song') referenceNoteOff(note);
+      else audio?.noteOff(note.kind,note.channel);
+    } catch (error) { report(error); }
   }
   paintKeys();
 }
 function releaseKeyboard() {
   pendingNotes.clear();
   for (const id of [...held.keys()]) release(id);
+}
+function referenceNoteOn(note,{retuneOnly = false} = {}) {
+  const raw = songs.getChip(), state = songs.getState(), snapshot = songs.snapshot();
+  if (!raw || state.manualReady === false) throw new Error('Reference channel is preparing. Pause or play the song before auditioning.');
+  const {kind,channel,midi} = note, hz = noteToHz(midi) * 2 ** (pitch / 12);
+  note.referenceChip = raw;
+  if (kind === 'fm') {
+    const mode = snapshot.channel3;
+    if (channel === 2 && mode.mode !== 'normal') {
+      const base = mode.frequencies[3];
+      const baseHz = base.fnum * raw.clock * 2 ** (base.block - 1) / (144 * 2 ** 20);
+      for (const [operator,frequency] of mode.frequencies.entries()) {
+        const sourceHz = frequency.fnum * raw.clock * 2 ** (frequency.block - 1) / (144 * 2 ** 20);
+        const next = sourceHz === 0 ? {block:0,fnum:0} : baseHz > 0 ? opnPitchFromHz(sourceHz * hz / baseHz,raw.clock,144,{clamp:true}) : frequency;
+        if (operator < 3) raw.setChannel3SpecialFrequency(operator,next.block,next.fnum);
+        else raw.setBlockFnum(2,next.block,next.fnum);
+      }
+      if (mode.mode === 'csm') {
+        if (!retuneOnly) {
+          raw.keyOff(2);
+          raw.write(0,0x24,mode.timerA >> 2);
+          raw.write(0,0x25,mode.timerA & 3);
+          raw.write(0,0x27,(snapshot.fm.modeRegister & 14) | 128 | 1);
+        }
+        return;
+      }
+    } else raw.setFrequency(channel,hz);
+    if (!retuneOnly) {
+      raw.keyOff(channel);
+      const mask = fmSnapshot(channel).keyMask ?? 15;
+      if (mask) raw.keyOn(channel,[0,1,2,3].filter(operator => mask & (1 << operator)));
+    }
+  } else if (kind === 'ssg') {
+    raw.ssg.setFrequency(channel,hz);
+    if (!retuneOnly) {
+      const value = ssgSnapshot(channel);
+      raw.ssg.setMixer(channel,value);
+      raw.ssg.setVolume(channel,value.volume,value.envelope);
+    }
+  } else if (kind === 'rhythm') { if (!retuneOnly) raw.rhythm.keyOn(channel); }
+  else {
+    if (!snapshot.adpcm.available) throw new Error(snapshot.adpcm.error || 'The selected song sample is unavailable for keyboard audition.');
+    const registers = raw.adpcm.registers;
+    if (note.referenceRate === undefined) note.referenceRate = (registers[9] | registers[10] << 8) * raw.clock / (144 * 65536);
+    raw.adpcm.setPlaybackRate(Math.min(raw.clock / 144 * 65535 / 65536,
+      note.referenceRate * hz / noteToHz(Number(byId('songReferenceKey').value))));
+    if (!retuneOnly) raw.adpcm.keyOn({repeat:snapshot.adpcm.repeat});
+  }
+}
+function referenceNoteOff(note) {
+  const raw = note?.referenceChip;
+  if (!raw) return;
+  if (note.kind === 'fm') {
+    const snapshot = songs?.snapshot();
+    if (note.channel === 2 && snapshot?.channel3.mode === 'csm') raw.write(0,0x27,(snapshot.fm.modeRegister & 14) | 128);
+    raw.keyOff(note.channel);
+  } else if (note.kind === 'ssg') raw.ssg.keyOff(note.channel);
+  else if (note.kind === 'rhythm') raw.rhythm.keyOff(note.channel);
+  else {
+    raw.adpcm.keyOff();
+    if (note.referenceRate > 0) raw.adpcm.setPlaybackRate(note.referenceRate);
+  }
 }
 function paintKeys() {
   const active = new Set([...held.values()].map(note => note.midi));
@@ -543,6 +804,9 @@ function updatePitch(value) {
   for (const id of ['pitchBend','keyboardPitchBend']) byId(id).value = String(value);
   for (const id of ['pitchValue','keyboardPitchValue']) byId(id).textContent = (value >= 0 ? '+' : '') + value.toFixed(2);
   try { audio?.setPitch(value); } catch (error) { report(error); }
+  for (const note of held.values()) if (note.source === 'song') {
+    try { referenceNoteOn(note,{retuneOnly:true}); } catch (error) { report(error); }
+  }
 }
 function updateMaster(value) {
   master = value;
@@ -558,14 +822,27 @@ async function stopAll() {
   releaseKeyboard();
   updatePitch(0);
   await host?.stop();
+  await songs?.stop();
   await audio?.stopAll();
   status('All sound stopped.');
 }
 
 function refreshDecodedSample() {
-  if (sampleData !== settings.adpcm.data) {
+  const reference = songs?.snapshot()?.adpcm;
+  if (reference) {
+    const key = [reference.memoryRevision,reference.start,reference.end,reference.available].join('/');
+    if (key !== referenceSampleKey) {
+      referenceSampleKey = key;
+      referenceSamples = reference.available && reference.bytes instanceof Uint8Array ? decodeAdpcm(reference.bytes) : new Float32Array();
+    }
+    return referenceSamples;
+  }
+  const range = [settings.adpcm.address,settings.adpcm.start,settings.adpcm.end].join('/');
+  if (sampleData !== settings.adpcm.data || sampleRange !== range) {
     sampleData = settings.adpcm.data;
-    decodedSample = decodeAdpcm(sampleData);
+    sampleRange = range;
+    const bytes = decodeBase64(sampleData);
+    decodedSample = decodeAdpcm(bytes.subarray(settings.adpcm.start - settings.adpcm.address,settings.adpcm.end - settings.adpcm.address));
   }
   return waveDraft ?? decodedSample;
 }
@@ -593,10 +870,12 @@ function renderSample() {
     if (x === 0) context.moveTo(x,y); else context.lineTo(x,y);
   }
   context.stroke();
-  const bytes = decodeBase64(settings.adpcm.data).length;
+  const reference = songs?.snapshot()?.adpcm, current = reference ?? settings.adpcm;
+  const bytes = reference ? reference.end - reference.start : decodeBase64(settings.adpcm.data).length;
   byId('sampleInfo').textContent = samples.length.toLocaleString() + ' decoded frames · ' + bytes.toLocaleString() +
-    ' ADPCM bytes · ' + (samples.length / settings.adpcm.sampleRate).toFixed(3) + ' s · Root ' +
-    midiToNoteName(settings.adpcm.rootNote) + ' · aligned range 0–' + bytes;
+    ' ADPCM bytes · ' + (current.sampleRate > 0 ? (samples.length / current.sampleRate).toFixed(3) : '0.000') + ' s · Root ' +
+    midiToNoteName(reference ? Number(byId('songReferenceKey').value) : current.rootNote) + ' · aligned range ' + current.start + '–' + current.end +
+    (reference && !reference.available ? ' · ' + (reference.error || 'No uploaded sample in this range.') : '');
 }
 function wavePoint(event) {
   const rect = byId('waveCanvas').getBoundingClientRect();
@@ -633,6 +912,7 @@ async function generateWave(shape) {
   if (sampleBusy) return;
   sampleBusy = true;
   try {
+    songs?.setView('synth');
     const engine = await ensureAudio();
     await editQueue;
     settings = await engine.setWave(waveShape(shape,128),{rootNote:settings.adpcm.rootNote});
@@ -646,6 +926,7 @@ async function importAudio(file) {
   if (!file || sampleBusy) return;
   sampleBusy = true;
   try {
+    songs?.setView('synth');
     const engine = await ensureAudio();
     await editQueue;
     const result = await engine.loadAudio(new Uint8Array(await file.arrayBuffer()));
@@ -673,7 +954,7 @@ function exportWave() {
   const ascii = (offset,text) => [...text].forEach((character,index) => view.setUint8(offset + index,character.charCodeAt(0)));
   ascii(0,'RIFF'); view.setUint32(4,data.byteLength - 8,true); ascii(8,'WAVE'); ascii(12,'fmt ');
   view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
-  const rate = Math.round(settings.adpcm.sampleRate);
+  const rate = Math.max(1,Math.round(adpcmSnapshot().sampleRate));
   view.setUint32(24,rate,true); view.setUint32(28,rate * 2,true);
   view.setUint16(32,2,true); view.setUint16(34,16,true); ascii(36,'data'); view.setUint32(40,samples.length * 2,true);
   for (let index = 0; index < samples.length; index++) view.setInt16(44 + index * 2,Math.round(Math.max(-1,Math.min(1,samples[index])) * 32767),true);
@@ -700,7 +981,7 @@ async function importSound(file) {
 
 function drawSsgEnvelope() {
   const canvas = byId('ssgEnvelopeCanvas'), context = canvas.getContext('2d');
-  const shape = live() && section === 'ssg' ? chip().ssg.registers[13] & 15 : settings.ssg.envelopeShape;
+  const shape = songs?.snapshot()?.ssg.envelopeShape ?? (live() && section === 'ssg' ? chip().ssg.registers[13] & 15 : settings.ssg.envelopeShape);
   context.fillStyle = '#14232b'; context.fillRect(0,0,canvas.width,canvas.height);
   context.strokeStyle = '#76e1cb'; context.lineWidth = 2; context.beginPath();
   for (let x = 0; x < canvas.width; x++) {
@@ -746,7 +1027,10 @@ function drawOutput() {
   }
   if (performance.now() - lastLive > 120) {
     lastLive = performance.now();
-    if (live()) updateControls();
+    if (live()) {
+      updateControls();
+      if (songs?.isViewing() && section === 'adpcm') renderSample();
+    }
   }
 }
 
@@ -795,7 +1079,25 @@ byId('octaveUp').addEventListener('click',() => { releaseKeyboard(); octave = Ma
 for (const button of byId('chipTabs').querySelectorAll('[data-section]')) button.addEventListener('click',() => selectSection(button.dataset.section));
 installTabKeys(byId('chipTabs'));
 installTabKeys(byId('channelTabs'));
-byId('liveUpdate').addEventListener('change',updateControls);
+byId('liveUpdate').addEventListener('change',event => {
+  songs?.setLiveEnabled(event.target.checked);
+  updateControls();
+});
+byId('channel3Mode').addEventListener('change',event => {
+  const mode = event.target.value;
+  releaseKeyboard();
+  if (mode !== 'normal') selection.fm = 2;
+  run(async () => {
+    await editChannel3(next => { next.mode = mode; });
+    renderChannelTabs();
+    updateControls();
+  });
+});
+byId('songReferenceKey').addEventListener('change',event => {
+  setReferenceKey(Number(event.target.value));
+  updateControls();
+  renderSample();
+});
 for (const button of document.querySelectorAll('[data-visual-mode]')) button.addEventListener('click',() => {
   visualMode = button.dataset.visualMode;
   for (const item of document.querySelectorAll('[data-visual-mode]')) item.setAttribute('aria-pressed',String(item === button));
@@ -838,6 +1140,16 @@ byId('soundFileInput').addEventListener('change',event => {
 byId('audioFileInput').addEventListener('change',event => {
   const file = event.target.files[0]; event.target.value = ''; run(() => importAudio(file));
 });
+byId('importSongButton').addEventListener('click',() => byId('songFileInput').click());
+byId('songFileInput').addEventListener('change',event => {
+  const files = [...event.target.files];
+  event.target.value = '';
+  run(async () => {
+    const paths = await host.files.importFiles(files);
+    const path = paths.find(value => /\.(?:vgm|vgz|s98)$/i.test(value));
+    if (path) await host.files.selectFile(path);
+  });
+});
 byId('exportSoundButton').addEventListener('click',() => {
   const preset = getSettings();
   download(preset.name + '.opna.json',JSON.stringify(preset,null,2) + '\n','application/json');
@@ -848,7 +1160,7 @@ byId('saveWaveButton').addEventListener('click',exportWave);
 for (const button of document.querySelectorAll('[data-wave-shape]')) button.addEventListener('click',() => run(() => generateWave(button.dataset.waveShape)));
 byId('drawWave').addEventListener('change',event => byId('waveCanvas').classList.toggle('is-editable',event.target.checked));
 byId('waveCanvas').addEventListener('pointerdown',event => {
-  if (event.button !== 0 || !byId('drawWave').checked || sampleBusy || wavePointer !== null) return;
+  if (event.button !== 0 || songs?.isViewing() || !byId('drawWave').checked || sampleBusy || wavePointer !== null) return;
   event.preventDefault();
   waveDraft = Float32Array.from(refreshDecodedSample());
   wavePointer = event.pointerId;
@@ -868,7 +1180,24 @@ byId('synthMenu').addEventListener('click',event => {
 });
 
 host = setupFm2608CodeHost({ensureAudio,getAudio:() => audio,getSettings,applySettings,
-  stopKeyboard:releaseKeyboard,onActivity:updateReadout,setStatus:status});
+  stopKeyboard:releaseKeyboard,onActivity:updateReadout,setStatus:status,
+  onSelectSong:file => songs.selectFile(file),onWorkspaceReplace:() => songs?.reset(),
+  onBeforeRun:async () => { await songs?.stop(); }});
+songs = setupFm2608SongControls({project:host.project,files:host.files,ensureAudio,getAudio:() => audio,getSettings,
+  beforePlay:async () => { releaseKeyboard(); await host.stop(); },beforeTransport:releaseKeyboard,
+  getSelection:() => ({section,channel:currentChannel()}),setStatus:status,
+  onCapture:async preset => {
+    releaseKeyboard();
+    await applySettings(preset);
+    host.markSoundDirty();
+  },
+  onStateChange:updateReadout,onViewChange:() => {
+    releaseKeyboard();
+    referenceSampleKey = '';
+    renderChannelTabs();
+    updateControls();
+    renderSample();
+  }});
 host.ready.then(() => { updateControls(); renderSample(); }).catch(report);
 monitorFrame = requestAnimationFrame(drawOutput);
 window.addEventListener('pagehide',event => {
@@ -879,6 +1208,6 @@ window.addEventListener('pagehide',event => {
   cancelAnimationFrame(monitorFrame);
   envelopeView.dispose();
   visualizer.disconnect();
-  void host.dispose().finally(() => audio?.dispose()).catch(() => {});
+  void Promise.allSettled([host.dispose(),songs.dispose()]).finally(() => audio?.dispose()).catch(() => {});
 });
 

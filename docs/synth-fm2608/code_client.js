@@ -42,6 +42,9 @@ export function createFm2608CodeClient(chip, {isCurrent = () => true} = {}) {
   }
 
   function observe(section, method, args) {
+    if (section === 'fm' && (method === 'setCsm' || method === 'setChannel3Mode') && chip.getChannel3State().running && chip.getChannel3State().mode === 'csm') {
+      notes.fm.add(2);
+    }
     if (method === 'reset') {
       if (section === 'fm') {
         notes.fm.clear(); notes.ssg.clear(); notes.rhythm.clear(); notes.adpcm = false;

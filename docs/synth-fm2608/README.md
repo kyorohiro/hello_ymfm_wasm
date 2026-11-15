@@ -27,11 +27,48 @@ the hardware rate while keyboard notes transpose that base rate.
 Import and export FM patches as TFI or VGI from the top-left menu. A complete
 OPNA sound, including its ADPCM sample, can be saved as a JSON preset in Files.
 The Mixer provides software channel mutes shared by Keyboard and Code.
-The preset embeds the sample selected in the ADPCM tab. Samples loaded directly
-into memory by Code remain part of that performance.
+The preset embeds the selected ADPCM memory range, including successful sample
+uploads made by Code. Absolute sample addresses and the original playback tuning
+are retained.
 
 The rhythm sounds use Tetorica's original synthetic rhythm ROM. Its source and
 BSD-3-Clause license are included in the standalone package.
+
+## Reference songs
+
+Use the top-left menu to import VGM, VGZ or S98 files. They are stored under
+`/vgm/` in Files and included in project Cassette exports. Choose a song above
+the sound tabs, then Play. The reference player supports a single YM2608 and
+plays one pass using the existing OPNA core and its calibrated output gain.
+Other chips and unsupported stream commands are identified before loading.
+
+Song channels uses the same FM, SSG, Rhythm and ADPCM controls as Your sound.
+Choose a physical channel and enable Auto update to follow its written settings.
+The controls and keyboard can write directly into the playing song. A later
+song write to that register takes effect in its recorded order.
+
+Pause retains the exact song position and prepares an independent audition
+chip. Play its selected channel, edit its settings or Capture to Synth. Resume
+continues the original song from the retained audio. Capture copies the selected
+channel into Your sound while preserving the transport's current state.
+The position slider seeks by rebuilding the original register timeline.
+
+ADPCM Capture supports recorded data blocks and complete CPU-uploaded external
+samples with 32-byte addressing. CPU-direct streams, 1-bit DRAM addressing and
+incomplete sample ranges report the reason they cannot be captured. Rhythm
+continues to use the bundled Tetorica synthetic ROM.
+
+## Special FM modes
+
+Operator buttons 1–4 select the hardware Key On mask. CH3 special mode gives
+each of its four operators an independent Block / FNUM. Keyboard tuning moves
+the four frequencies together and preserves their ratios. Auto allocation is
+disabled in special mode, with CH3 selected for audition.
+
+CSM uses the hardware Timer A to retrigger all four CH3 operators. Set Timer A,
+then play CH3 to start the timer. Releasing the note stops its triggers. Its
+mode and frequency settings are included in presets. Code also exposes
+`setChannel3Mode()`, `setTimerA()` and `setCsm()`.
 
 ## Files and Code
 
@@ -44,6 +81,7 @@ loops while keeping prepared state, and Stop releases the performance.
 The code and the upper controls operate the same YM2608. Choose a physical
 channel with Auto update enabled to follow its settings and edit them directly.
 Changing sound presets or switching to Keyboard keeps the Code loops running.
+Starting Code stops the reference transport. Starting a song stops Code.
 
 ```javascript
 const opna = await useSoundChip("ym2608");
@@ -60,6 +98,12 @@ liveLoop("melody", async () => {
 SSG, Rhythm and ADPCM-B are available through `opna.ssg`, `opna.rhythm` and
 `opna.adpcm`. Hardware channel numbers in Code are zero-based. The `CH1` to
 `CH6` constants correspond to FM channels 0 to 5.
+
+`opna.capturePreset()` returns a validated portable sound, including Code-loaded
+ADPCM data and its selected range. Memory transfers must finish before capture.
+The Synth Code capture supports uploaded 8-bit DRAM samples. A raw CPU-data
+stream reports a capture error. The reference-song decoder also captures
+complete CPU-uploaded samples.
 
 Keyboard allocation, keyboard Pitch and Code scheduling are software performance
 features. The two Pitch controls bend keyboard-held notes. Code can control
@@ -79,8 +123,8 @@ directory. Upload the ZIP as an HTML project with `index.html` as its entry.
 The archive includes readable browser modules, matching WASM, native rebuild
 sources, the synthetic rhythm generator and applicable licenses.
 
-Reference-song playback and capture, special CH3 / CSM editing, Looper / Event recording and a dedicated
-Tauri application are subsequent development tasks in the project TODO.
+Looper / Event recording remains deferred. A dedicated Tauri application is
+tracked separately in the project TODO.
 
 ## Sources
 

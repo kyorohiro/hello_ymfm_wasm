@@ -10,6 +10,7 @@ import {
 } from './mixer_calibration_huc6280_ui_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {definitionSource,runtimeSourceUrl} from '../docs/playground/playground_monaco_definitions.js';
+import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
@@ -19,7 +20,7 @@ test('the independently pinned passive revision reconstructs exact VAB predecess
   assert.equal(read(receiptPath).toString(),JSON.stringify(receipt,null,2)+'\n');
   const prior=JSON.parse(read('docs/issues/ps1_vab_public_api_source_revision_01.json'));
   for(const path of paths) {
-    const current=read('docs/'+path),original=restore(path,current),entry=receipt.sources[path];
+    const current=restoreNavigation(path,read('docs/'+path)),original=restore(path,current),entry=receipt.sources[path];
     assert.notEqual(original,current);assert.equal(original.length,entry.before.bytes);assert.equal(sha(original),entry.before.sha256);
     assert.deepEqual(entry.before,prior.sources['docs/'+path].after,'predecessor connects to the previously reviewed exact body');
     assert.equal(fresh({path,bytes:current,record:entry.before}),'ui-huc6280-definitions');
@@ -36,7 +37,7 @@ test('the independently pinned passive revision reconstructs exact VAB predecess
 
 test('one-byte, extra-byte, cache-token, import and future viewer edits remain stale',()=>{
   for(const path of paths) {
-    const current=read('docs/'+path),entry=receipt.sources[path],oneByte=Buffer.from(current);oneByte[Math.floor(oneByte.length/2)]^=1;
+    const current=restoreNavigation(path,read('docs/'+path)),entry=receipt.sources[path],oneByte=Buffer.from(current);oneByte[Math.floor(oneByte.length/2)]^=1;
     const changes=[oneByte,Buffer.concat([current,Buffer.from('\n')]),Buffer.from("import './different-dsp.js';\n"+current),
       Buffer.from(current.toString().replace('huc-cdrom2-1','huc-cdrom2-2')),
       Buffer.from(current.toString().replace('msm5205_player.js','msm5205_future.js')),
@@ -55,7 +56,7 @@ test('one-byte, extra-byte, cache-token, import and future viewer edits remain s
 });
 
 test('new source mappings are passive and existing oscillator, SID and FM definitions retain their targets',async()=>{
-  const path='playground/playground_monaco_definitions.js',original=restore(path,read('docs/'+path));
+  const path='playground/playground_monaco_definitions.js',original=restore(path,restoreNavigation(path,read('docs/'+path)));
   const before=await import('data:text/javascript;base64,'+original.toString('base64'));
   for(const owner of ['PlaygroundPrimaryYm2612','PlaygroundPrimaryPs1','SpuCodeClient','PlaygroundSid','PlaygroundGameboy','PlaygroundNes']) {
     const code=`interface ${owner} {\n  noteOn(): Promise<void>;\n}`;

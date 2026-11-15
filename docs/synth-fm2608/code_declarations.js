@@ -15,6 +15,18 @@ type Fm2608CodeFm = Pick<FMApi,
   'setBlockFnum'|'noteOnRaw'|'keyOn'|'noteOn'|'noteOff'|'write'|'rawWrite'|
   'writeAddress'|'writeData'>;
 type Fm2608PcmSource = {channels:ArrayLike<number>[];sampleRate:number}|Uint8Array|ArrayBuffer;
+type Fm2608Channel3Mode = 'normal'|'special'|'csm';
+type Fm2608Frequency = {block:number;fnum:number};
+interface Fm2608Preset {
+  format:'tetorica-fm2608-synth';version:1;name:string;
+  fm:Array<{algorithm:number;feedback:number;ams:number;pms:number;keyMask:number;
+    pan:{left:boolean;right:boolean};operators:Array<{dt:number;multi:number;tl:number;rs:number;ar:number;am:boolean;d1r:number;d2r:number;sl:number;rr:number;ssg:number}>}>;
+  channel3:{mode:Fm2608Channel3Mode;timerA:number;frequencies:Fm2608Frequency[]};
+  lfo:{enabled:boolean;frequency:number};
+  ssg:{channels:Array<{tone:boolean;noise:boolean;volume:number;envelope:boolean}>;noisePeriod:number;envelopePeriod:number;envelopeShape:number};
+  rhythm:{volume:number;voices:Array<{volume:number;left:boolean;right:boolean}>};
+  adpcm:{data:string;address:number;start:number;end:number;sampleRate:number;rootNote:number;volume:number;left:boolean;right:boolean;repeat:boolean};
+}
 /** The same physical YM2608 as the upper controls. FM CH1..CH6 are 0..5.
  * SSG channels are 0..2, Rhythm voices are 0..5, and ADPCM-B has one voice.
  * dispose/allNotesOff release this Code client's notes while the editor stays open. */
@@ -24,6 +36,14 @@ interface Fm2608CodeClient extends Fm2608CodeFm {
   readonly clock:number;
   keyOff(channel:YM2612Channel):void;
   setModulation(channel:YM2612Channel,ams:YM2612Ams,pms:YM2612Pms):void;
+  /** Hardware Timer A value 0..1023. A larger value produces a shorter period. */
+  setTimerA(value:number):void;
+  /** CSM uses Timer A and triggers every CH3 operator. keyOn/keyOff(CH3) start/stop its timer. */
+  setCsm(enabled:boolean,options?:{timerA?:number;running?:boolean}):void;
+  setChannel3Mode(mode:Fm2608Channel3Mode,options?:{timerA?:number;running?:boolean}):void;
+  getChannel3State():{mode:Fm2608Channel3Mode;timerA:number;running:boolean;frequencies:Fm2608Frequency[]};
+  /** Save current controls and uploaded ADPCM memory. Wait for loadMemory/loadSample first. */
+  capturePreset():Fm2608Preset;
   allNotesOff():void;
   dispose():void;
   ssg:{

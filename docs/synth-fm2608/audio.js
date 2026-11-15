@@ -5,6 +5,7 @@ import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
 import {createYm2612RegisterState} from '../synth/synth_song_state.js';
 import {createDefaultPreset,readPreset,encodeBase64,decodeBase64,MAX_ADPCM_BYTES} from './preset.js';
+import {installChannel3Controls,observeAdpcmMemory} from './sound_state.js';
 
 const nativeSetTimeout = globalThis.setTimeout.bind(globalThis);
 const nativeClearTimeout = globalThis.clearTimeout.bind(globalThis);
@@ -27,7 +28,7 @@ function checkVolume(volume) {
 /** Host software monitor mutes retain every original register write, including
  * Code writes. The chip client's own shadows keep the unmuted parameter values.
  */
-export function installMonitorMutes(chip) {
+export function installMonitorMutes(chip,{onWrite = () => {}} = {}) {
   const transport = chip.transport, registers = [new Uint8Array(256),new Uint8Array(256)];
   const fmState = createYm2612RegisterState(chip.clock);
   const muted = {fm:Array(6).fill(false),ssg:Array(3).fill(false),rhythm:Array(6).fill(false),adpcm:[false]};
@@ -47,6 +48,11 @@ export function installMonitorMutes(chip) {
   function filter(port,register,value) {
     registers[port][register] = value;
     fmState.write(port,register,value);
+    onWrite(port,register,value);
+    if (port === 0 && register === 0x27) {
+      chip._modeRegister = value;
+      if ((value & 0xc1) === 0x81 && stopped[2]) { stopped[2] = false; restoreFm(2); }
+    }
     if (port === 0 && register === 0x28 && value & 0xf0) {
       const channel = KEY_CHANNELS[value & 7];
       if (channel >= 0 && stopped[channel]) { stopped[channel] = false; restoreFm(channel); }
@@ -96,10 +102,11 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     workletUrl:new URL('../js/ym2608-worklet.js',import.meta.url).href,
     wasmUrl:new URL('../generated/ym2608_wasm.wasm',import.meta.url).href});
   const fade = createSynthCodeOutput({getContext:() => context,getGain:() => codeFadeNode});
-  let chip, monitor, disposed = false, closing = null, stopping = null, queue = Promise.resolve();
+  let chip, monitor, channel3, memory, disposed = false, closing = null, stopping = null, queue = Promise.resolve();
   let preset = createDefaultPreset(), accepted = null, pitch = 0, sampleEpoch = 0;
   let gateEpoch = 0;
-  const held = new Map(), gateVersions = new Map();
+  let keyboardAdpcmRate = null, writingKeyboardRate = false;
+  const held = new Map(), gateVersions = new Map(), specialRatios = new Map();
   const assertOpen = () => { if (disposed || context.state === 'closed') throw new Error('OPNA audio is closed. Enable audio to restart.'); };
   const report = error => { try { onError(error); } catch {} };
   async function bounded(task,label) {
@@ -109,12 +116,25 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
   }
 
   function fmPitch(channel,hz) {
+    const ratios = channel === 2 && channel3.getChannel3State().mode !== 'normal' ? specialRatios.get(channel) : null;
+    if (ratios) {
+      ratios.forEach((ratio,operator) => {
+        const value = ratio ? opnPitchFromHz(hz * ratio,chip.clock,144,{clamp:true}) : {block:0,fnum:0};
+        chip.setChannel3SpecialFrequency(operator,value.block,value.fnum);
+      });
+      return;
+    }
     const value = opnPitchFromHz(hz,chip.clock,144,{clamp:true});
     chip.setBlockFnum(channel,value.block,value.fnum);
   }
   function adpcmPitch(hz,settings = preset.adpcm) {
     const rate = settings.sampleRate * hz / noteToHz(settings.rootNote);
-    chip.adpcm.setDeltaN(Math.max(1,Math.min(65535,Math.round(rate * 144 * 65536 / chip.clock))));
+    const delta = Math.max(1,Math.min(65535,Math.round(rate * 144 * 65536 / chip.clock)));
+    writingKeyboardRate = true;
+    try { chip.adpcm.setDeltaN(delta); }
+    finally { writingKeyboardRate = false; }
+    // Key Off retains Delta-N. Keep its authored base rate after releasing too.
+    keyboardAdpcmRate = {delta,sampleRate:settings.sampleRate,rootNote:settings.rootNote};
   }
   function retune(section,channel,hz) {
     const frequency = hz * 2 ** (pitch / 12);
@@ -126,27 +146,44 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
   async function installPreset(next) {
     assertOpen();
     const previous = accepted;
-    const replaceSample = !previous || previous.adpcm.data !== next.adpcm.data;
-    const wasPlaying = replaceSample && Boolean(chip.adpcm.registers[0] & 0x80);
+    const replaceSample = !previous || previous.adpcm.data !== next.adpcm.data || previous.adpcm.address !== next.adpcm.address || memory.needsUpload();
+    const replaceRange = replaceSample || previous.adpcm.start !== next.adpcm.start || previous.adpcm.end !== next.adpcm.end;
+    const wasPlaying = replaceRange && Boolean(chip.adpcm.registers[0] & 0x80);
+    if (replaceRange) chip.adpcm.keyOff();
     if (replaceSample) {
       const bytes = decodeBase64(next.adpcm.data);
-      chip.adpcm.keyOff();
-      try { await bounded(chip.adpcm.loadMemory(bytes,0),'ADPCM-B memory transfer timed out'); }
+      try { await bounded(chip.adpcm.loadMemory(bytes,next.adpcm.address),'ADPCM-B memory transfer timed out'); }
       catch (error) {
         if (previous && !disposed && context.state !== 'closed') {
           try {
-            await bounded(chip.adpcm.loadMemory(decodeBase64(previous.adpcm.data),0),'ADPCM-B recovery timed out');
-            chip.adpcm.setSample({start:0,end:decodeBase64(previous.adpcm.data).length});
+            await bounded(chip.adpcm.loadMemory(decodeBase64(previous.adpcm.data),previous.adpcm.address),'ADPCM-B recovery timed out');
+            chip.adpcm.setSample(previous.adpcm);
             if (wasPlaying) chip.adpcm.keyOn({repeat:previous.adpcm.repeat});
           } catch (recoveryError) { report(recoveryError); }
         }
         throw error;
       }
       assertOpen();
-      chip.adpcm.setSample({start:0,end:bytes.length});
     }
+    if (replaceRange) chip.adpcm.setSample(next.adpcm);
     for (let channel = 0; channel < 6; channel++) {
       if (!previous || !same(previous.fm[channel],next.fm[channel])) chip.setPreset(channel,next.fm[channel]);
+      if (previous && previous.fm[channel].keyMask !== next.fm[channel].keyMask) channel3.setKeyMask(channel,next.fm[channel].keyMask,held.has(`fm:${channel}`));
+    }
+    if (!previous || previous.channel3.mode !== next.channel3.mode || previous.channel3.timerA !== next.channel3.timerA) {
+      const active = held.has('fm:2') || monitor.getFmState().channels[2].gate || channel3.getChannel3State().running;
+      chip.setChannel3Mode(next.channel3.mode,{timerA:next.channel3.timerA,running:next.channel3.mode === 'csm' && active});
+      if (next.channel3.mode !== 'csm' && previous?.channel3.mode === 'csm' && held.has('fm:2')) {
+        chip.write(0,0x28,next.fm[2].keyMask << 4 | 2);
+      }
+    }
+    if (!previous || !same(previous.channel3.frequencies,next.channel3.frequencies) || previous.channel3.mode !== next.channel3.mode && next.channel3.mode !== 'normal') {
+      next.channel3.frequencies.forEach(({block,fnum},operator) => chip.setChannel3SpecialFrequency(operator,block,fnum));
+      if (held.has('fm:2')) {
+        const units = next.channel3.frequencies.map(value => value.fnum * 2 ** value.block);
+        const base = units[3] || Math.max(...units) || 1;
+        specialRatios.set(2,units.map(value => value / base));
+      }
     }
     if (!previous || !same(previous.lfo,next.lfo)) chip.setLfo(next.lfo.enabled,next.lfo.frequency);
     for (let channel = 0; channel < 3; channel++) {
@@ -198,6 +235,12 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     held.set(key,hz);
     fade.open();
     if (section === 'rhythm') { chip.rhythm.keyOn(channel); return; }
+    if (section === 'fm' && channel === 2 && channel3.getChannel3State().mode !== 'normal') {
+      const frequencies = channel3.getChannel3State().frequencies;
+      const units = frequencies.map(value => value.fnum * 2 ** value.block);
+      const base = units[3] || Math.max(...units) || 1;
+      specialRatios.set(channel,units.map(value => value / base));
+    }
     retune(section,channel,hz);
     if (section === 'fm') { chip.keyOff(channel); chip.keyOn(channel); }
     else if (section === 'ssg') {
@@ -209,6 +252,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     channelIndex(section,channel); assertOpen();
     const key = `${section}:${channel}`;
     gateVersions.set(key,(gateVersions.get(key) ?? 0) + 1); held.delete(key);
+    if (section === 'fm') specialRatios.delete(channel);
     if (section === 'fm') chip.keyOff(channel);
     else if (section === 'ssg') chip.ssg.keyOff(channel);
     else if (section === 'rhythm') chip.rhythm.keyOff(channel);
@@ -230,7 +274,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
       await fade.fadeOut();
       await queue;
       if (disposed) return;
-      held.clear(); monitor.stopFm();
+      held.clear(); specialRatios.clear(); monitor.stopFm();
       for (let channel = 0; channel < 3; channel++) chip.ssg.keyOff(channel);
       chip.rhythm.keyOff([0,1,2,3,4,5]); chip.adpcm.keyOff();
       fade.open();
@@ -252,13 +296,47 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     await queue;
     if (token !== sampleEpoch) throw cancelled();
     const next = readPreset(preset);
-    next.adpcm = {...next.adpcm,data:encodeBase64(encoded.bytes),sampleRate:actualRate,rootNote};
+    next.adpcm = {...next.adpcm,data:encodeBase64(encoded.bytes),address:0,start:0,end:encoded.bytes.length,sampleRate:actualRate,rootNote};
     return applyPreset(next);
   }
   function setWave(samples,{rootNote = preset.adpcm.rootNote,sampleRate} = {}) {
     if (!samples || !Number.isSafeInteger(samples.length) || !samples.length) throw new TypeError('Wave requires normalized PCM samples');
     const rate = sampleRate ?? noteToHz(rootNote) * samples.length;
     return loadAudio({channels:[Float32Array.from(samples)],sampleRate:rate},{rootNote,sampleRate:Math.min(rate,Math.floor(chip.clock / 144))});
+  }
+  function capturePreset(base = preset) {
+    assertOpen();
+    const result = readPreset(base), state = monitor.getFmState(), registers = monitor.registers;
+    result.fm = state.channels.map((channel,index) => ({...channel.preset,
+      keyMask:result.fm[index].keyMask === 0 ? 0 : channel.lastKeyMask || result.fm[index].keyMask,
+      operators:[1,2,3,4].map(operator => ({...channel.preset.operators[operator]}))}));
+    result.lfo = {...state.lfo};
+    const shared = channel3.getChannel3State();
+    result.channel3 = {mode:shared.mode,timerA:shared.timerA,frequencies:shared.frequencies};
+    const ssg = chip.ssg._getState(), ssgRegisters = chip.ssg.registers;
+    result.ssg.channels = result.ssg.channels.map((voice,index) => {
+      const level = ssg.levels[index];
+      return {tone:!(ssgRegisters[7] & 1 << index),noise:!(ssgRegisters[7] & 8 << index),
+        volume:level & 16 ? voice.volume : level & 15,envelope:Boolean(level & 16)};
+    });
+    result.ssg.noisePeriod = ssgRegisters[6] & 31;
+    result.ssg.envelopePeriod = ssgRegisters[11] | ssgRegisters[12] << 8;
+    result.ssg.envelopeShape = ssgRegisters[13] & 15;
+    result.rhythm.volume = registers[0][0x11] & 63;
+    result.rhythm.voices = result.rhythm.voices.map((_,index) => {
+      const value = registers[0][0x18 + index];
+      return {volume:value & 31,left:Boolean(value & 128),right:Boolean(value & 64)};
+    });
+    const adpcm = registers[1], note = held.get('adpcm:0');
+    const factor = note ? note * 2 ** (pitch / 12) / noteToHz(result.adpcm.rootNote) : 1;
+    const delta = adpcm[9] | adpcm[10] << 8;
+    const expected = Math.max(1,Math.min(65535,Math.round(result.adpcm.sampleRate * factor * 144 * 65536 / chip.clock)));
+    const keyboardRate = keyboardAdpcmRate?.delta === delta && keyboardAdpcmRate.sampleRate === result.adpcm.sampleRate && keyboardAdpcmRate.rootNote === result.adpcm.rootNote;
+    const sampleRate = !keyboardRate && delta > 0 && delta !== expected ? delta * chip.clock / (144 * 65536 * factor) : result.adpcm.sampleRate;
+    result.adpcm = {...result.adpcm,...memory.capture(adpcm),sampleRate,volume:adpcm[11],
+      left:Boolean(adpcm[1] & 128),right:Boolean(adpcm[1] & 64),
+      repeat:adpcm[0] & 128 ? Boolean(adpcm[0] & 16) : result.adpcm.repeat};
+    return readPreset(result);
   }
   function setMasterVolume(value) { checkVolume(value); assertOpen(); outputNode.gain.value = value; }
   async function dispose() {
@@ -276,7 +354,15 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
 
   try {
     await bounded(runtime.start(),'OPNA audio initialization timed out');
-    chip = runtime.fm; monitor = installMonitorMutes(chip);
+    chip = runtime.fm; memory = observeAdpcmMemory(chip);
+    monitor = installMonitorMutes(chip,{onWrite:(port,register,value) => {
+      memory.observeWrite(port,register,value);
+      if (port === 1 && (register === 9 || register === 10) && !writingKeyboardRate) keyboardAdpcmRate = null;
+    }});
+    channel3 = installChannel3Controls(chip,monitor,channel => {
+      channelIndex('fm',channel); return preset.fm[channel].keyMask;
+    });
+    chip.capturePreset = () => capturePreset();
     await applyPreset(preset);
     runtime.node?.addEventListener?.('processorerror',() => { report(new Error('OPNA audio processor failed. Enable audio to restart.')); void dispose(); });
     return {context,outputNode,codeInputNode,codeOutputNode:codeFadeNode,codeFadeNode,
@@ -284,6 +370,8 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
       noteOn,noteOff,setPitch,stopAll,loadAudio,setWave,
       getRegisterState() { assertOpen(); return monitor.registers.map(registers => Array.from(registers)); },
       getFmState() { assertOpen(); return monitor.getFmState(); },
+      getChannel3State() { assertOpen(); return channel3.getChannel3State(); },
+      capturePreset,
       setMute(section,channel,value) { assertOpen(); return monitor.setMute(section,channel,value); },
       getMuteState:() => monitor.getState(),dispose};
   } catch (error) { await dispose(); throw error; }

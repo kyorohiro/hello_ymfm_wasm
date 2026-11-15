@@ -14,6 +14,8 @@ import {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_
 import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+import {restoreMixerCalibrationSynthSourceNavigationRevision} from './mixer_calibration_synth_source_navigation_revision.mjs';
+import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -363,6 +365,10 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const hardwareNavigation=restoreMixerCalibrationFm2608NavigationRevision(path,bytes),hardwareNavigationRevision=hardwareNavigation!==bytes;bytes=hardwareNavigation;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hardwareNavigationRevision?'ui-fm2608-hardware-source-navigation':'raw';
+  const navigation=restoreMixerCalibrationSynthSourceNavigationRevision(path,bytes),navigationRevision=navigation!==bytes;bytes=navigation;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return navigationRevision?'ui-synth-source-navigation':'raw';
   const hucUi=restoreMixerCalibrationHuc6280UiRevision(path,bytes),hucUiRevision=hucUi!==bytes;bytes=hucUi;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hucUiRevision?'ui-huc6280-definitions':'raw';
   const vab=restoreMixerCalibrationVabApiRevision(path,bytes),vabRevision=vab!==bytes;bytes=vab;

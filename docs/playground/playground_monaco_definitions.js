@@ -14,6 +14,9 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if(owner==='SnesCodeClient'&&['noteOn','noteOff','getState','allNotesOff','dispose'].includes(symbol))
     return {file:'synth-snes/code_client.js',symbol};
   if(owner==='Fm2608CodeClient') {
+    if(['setTimerA','setCsm','setChannel3Mode','getChannel3State'].includes(symbol))
+      return {file:'synth-fm2608/sound_state.js',symbol:symbol==='setCsm'?'installChannel3Controls':symbol};
+    if(symbol==='capturePreset')return {file:'synth-fm2608/audio.js',symbol};
     if(['allNotesOff','dispose'].includes(symbol))return {file:'synth-fm2608/code_client.js',symbol};
     if(['ssg','rhythm','adpcm'].includes(symbol))return {file:'ym2608synth.js',symbol:'YM2608Synth'};
     const declaration=prefix.slice(owners.at(-1).index);

@@ -1,3 +1,4 @@
+import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // Exact review fingerprints and offline PCM only; no AudioContext or output.
 import test from 'node:test';
@@ -25,7 +26,7 @@ test('exact current import sources and separately named prior passive sources re
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);assert.equal(paths.length,9);
   assert.deepEqual(Object.keys(receipt.priorPassiveRevisions).sort(),['psfStartupMetadata','spuCodeDefinitionViewer']);
   for(const path of paths) {
-    const current=await read('docs/'+path),known=restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,current)),entry=receipt.sources[path]??prior(path),before=restore(path,known);
+    const current=await read('docs/'+path),known=restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,current))),entry=receipt.sources[path]??prior(path),before=restore(path,known);
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     assert.notEqual(before,known,path);assert.equal(before.length,finalBefore(path).bytes,path);assert.equal(sha(before),finalBefore(path).sha256,path);
     assert.equal(restore(path,before),before,'already restored bytes remain unchanged');
@@ -35,7 +36,11 @@ test('exact current import sources and separately named prior passive sources re
   for(const path of reports) {
     const bytes=await read(path),report=JSON.parse(bytes);assert.equal(bytes.length,receipt.reports[path].bytes,path);assert.equal(sha(bytes),receipt.reports[path].sha256,path);
     for(const [source,record]of Object.entries(report.sources)) {
-      const current=await read('docs/'+source);assert.doesNotThrow(()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report}),source);
+      const current=await read('docs/'+source);
+      const validate=()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report});
+      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js'].includes(source))
+        assert.throws(validate,/source changed; remeasure:/,'SPC voice editing requires a separate current measurement');
+      else assert.doesNotThrow(validate,source);
     }
     assert.deepEqual(await read(path),bytes,'the raw original measurements are never rewritten');
   }
@@ -84,7 +89,7 @@ test('all twelve existing PS1 calibration reference routes retain exact held and
 });
 
 test('the prior PS1 definition mapping preserves existing read-only lookups and adds only the reviewed source target',async()=>{
-  const path='playground/playground_monaco_definitions.js',current=await read('docs/'+path),before=restore(path,restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,current)));
+  const path='playground/playground_monaco_definitions.js',current=await read('docs/'+path),before=restore(path,restoreMixerCalibrationVabApiRevision(path,restoreMixerCalibrationHuc6280UiRevision(path,restoreNavigation(path,current))));
   const modules=await Promise.all([before,current].map(bytes=>import('data:text/javascript;base64,'+bytes.toString('base64'))));
   for(const code of ['const fm=await useSoundChip("ym2612"); fm.noteOn(CH1,"C4");','const notes=scale("C4","minor",2);','const sid=await useSoundChip("sid"); sid.setFilter({cutoff:440});']) {
     for(let column=1;column<=code.length;column++)assert.deepEqual(modules[1].definitionSource(code,{lineNumber:1,column}),modules[0].definitionSource(code,{lineNumber:1,column}));

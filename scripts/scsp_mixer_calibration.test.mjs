@@ -17,7 +17,7 @@ const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
 const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
-const currentScspReportPath='docs/issues/scsp_state_restore_chip_levels_01.json';
+const currentScspReportPath='docs/issues/scsp_spc_voice_edit_chip_levels_01.json';
 
 test('source relocation retains the exact measured SCSP script digests and rejects unrelated edits',async()=>{
  for(const path of ['scripts/calibrate_scsp_levels.cjs','scripts/soundchip_calibration_scsp.mjs']){
@@ -146,8 +146,8 @@ test('generated SCSP gains pass an independent complete 48-route policy verifica
  }
 });
 
-test('the state-restoration revision passes a new complete SCSP policy verification with exact current provenance',async()=>{
- const report=await read(currentScspReportPath),verify=await read('docs/issues/scsp_state_restore_chip_levels_verify_01.json');
+test('the SPC voice-edit revision passes a new complete SCSP policy verification with exact current provenance',async()=>{
+ const report=await read(currentScspReportPath),verify=await read('docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json');
  assert.equal(verify.passed,true);assert.equal(verify.verify,true);assert.equal(verify.completeCoverage,true);assert.equal(verify.rows.length,48);assert.equal(verify.anchors.length,8);
  assert.deepEqual(verify.baseline,report.baseline);assert.deepEqual(verify.scripts,report.scripts);assert.deepEqual(verify.sources,report.sources);assert.deepEqual(verify.calibration,report.calibration);
  assert.equal(verify.physicalOutputMuted,true);assert.equal(verify.listeningPerformed,false);assert.equal(verify.pcmContinuous,true);

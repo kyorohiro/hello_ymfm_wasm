@@ -23,7 +23,7 @@ const aborted = () => new DOMException('FM2608 Code stopped', 'AbortError');
 
 export function setupFm2608CodeHost({ensureAudio, getAudio, getSettings, applySettings,
   stopKeyboard = () => {}, onBeforeRun = async () => {}, onActivity = () => {},
-  setStatus = () => {}} = {}) {
+  onSelectSong = async () => {}, onWorkspaceReplace = async () => {}, setStatus = () => {}} = {}) {
   let disposed = false, epoch = 0, modeEpoch = 0, runtime = null, controls = null;
   const project = createFm2608CodeProject({settings:getSettings(), getStarterCode:() => FM2608_STARTER_CODE});
   const audio = createFm2608CodeAudio({ensureReady:ensureAudio, getAudio,
@@ -45,13 +45,14 @@ export function setupFm2608CodeHost({ensureAudio, getAudio, getSettings, applySe
     onActivity();
   }
 
-  const files = setupFm2608CodeFiles({project, getSettings, applySettings, setStatus,
+  const files = setupFm2608CodeFiles({project, getSettings, applySettings, onSelectSong, setStatus,
     async onBeforeSoundApply() {
       if (!runtime?.getState().running) await stopKeyboard();
     },
     async onBeforeWorkspaceReplace() {
       await stop();
       await stopKeyboard();
+      await onWorkspaceReplace();
     },
   });
 

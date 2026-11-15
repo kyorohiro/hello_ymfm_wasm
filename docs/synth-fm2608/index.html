@@ -30,6 +30,7 @@
                 <div id="opnaMenuProjectImport"></div>
                 <button id="importSoundButton" type="button">OPNA preset / TFI / VGI…</button>
                 <button id="importAudioButton" type="button">ADPCM audio…</button>
+                <button id="importSongButton" type="button">VGM / VGZ / S98…</button>
                 <div id="opnaMenuFilesImport"></div>
               </section>
               <section class="synth-menu-section synth-menu-actions"><h2>Export</h2>
@@ -67,6 +68,23 @@
       <div id="synthWorkspace" class="opna-code-workspace">
         <aside id="opnaFilesPanel" class="opna-files-panel" aria-label="Project files" hidden></aside>
         <div class="opna-main">
+          <section id="referenceSong" class="opna-reference" aria-label="Reference song">
+            <div class="opna-reference-toolbar">
+              <label class="opna-song-select">Song <select id="songSelect" disabled><option value="">Import VGM / S98…</option></select></label>
+              <button id="songPlay" type="button" disabled>Play</button>
+              <button id="songPause" type="button" disabled>Pause</button>
+              <button id="songStop" type="button" disabled>Stop</button>
+              <output id="songTime">0:00 / 0:00</output>
+              <details class="inline-help"><summary aria-label="About reference songs">?</summary><p>Import VGM, VGZ or S98 from the menu. Files are kept under /vgm/ in this project. Songs play one pass. Play follows the selected section and channel in the controls below. Pause retains the song position and lets you audition its channel. Capture to Synth copies that sound into your editable instrument. Choose Code or song playback for the automatic performance. Rhythm uses the Tetorica synthetic ROM.</p></details>
+            </div>
+            <div id="songControls" class="opna-reference-controls" hidden>
+              <input id="songSeek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Song position">
+              <label>View <select id="songView"><option value="synth">Your sound</option><option value="song">Song channels</option></select></label>
+              <label id="songReferenceKeyLabel">Reference key <select id="songReferenceKey" aria-label="Captured sample reference key"><option value="36">C2</option><option value="48">C3</option><option value="60" selected>C4</option><option value="72">C5</option><option value="84">C6</option></select></label>
+              <button id="songCapture" type="button" disabled>Capture to Synth</button>
+            </div>
+            <p id="songStatus" class="subtext" role="status" hidden></p>
+          </section>
           <div id="chipTabs" class="opna-tabs" role="tablist" aria-label="OPNA sound section">
             <button id="tab-fm" type="button" role="tab" aria-selected="true" aria-controls="panel-fm" data-section="fm">FM</button>
             <button id="tab-ssg" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-ssg" data-section="ssg">SSG</button>
@@ -78,7 +96,7 @@
           <div id="channelBar" class="opna-channel-bar">
             <div id="channelTabs" role="tablist" aria-label="Auto and physical channels"></div>
             <label class="check-control"><input id="liveUpdate" type="checkbox" checked>Auto update</label>
-            <details class="inline-help"><summary aria-label="About channel selection">?</summary><p>Auto allocates keyboard notes across the section's channels. Editing a value in Auto applies that value to all channels. Selecting Auto preserves each channel's settings until you edit. CH selection aligns the displayed settings and keyboard target. Auto update follows Code writes on a selected CH.</p></details>
+            <details class="inline-help"><summary aria-label="About channel selection">?</summary><p>Auto allocates keyboard notes across the section's channels. Editing a value in Auto applies that value to all channels. Selecting Auto preserves each channel's settings until you edit. CH selection aligns the displayed settings and keyboard target. Auto update follows Code or song writes on a selected CH.</p></details>
           </div>
           <p id="channelReadout" class="subtext" role="status">FM · Auto · 6 hardware channels</p>
 
@@ -111,6 +129,12 @@
               <p data-envelope-readout class="subtext"></p>
             </details>
             <details class="opna-card"><summary>Shared hardware LFO</summary><div id="lfoControls" class="opna-control-grid"></div></details>
+            <details id="channel3Controls" class="opna-card"><summary>CH3 special mode / CSM</summary>
+              <div class="opna-channel3-toolbar"><label>Mode <select id="channel3Mode"><option value="normal">Normal</option><option value="special">Special · four pitches</option><option value="csm">CSM · Timer A</option></select></label><details class="inline-help"><summary aria-label="About CH3 modes">?</summary><p>Special mode gives each CH3 operator its own frequency. CSM uses Timer A to retrigger all four CH3 envelopes. These are shared YM2608 hardware settings. Selecting either mode switches the keyboard to CH3. The keyboard transposes the four frequencies together, preserving their ratios. Operator gates apply to normal and Special notes. CSM triggers all four operators.</p></details></div>
+              <div id="channel3Timer" class="opna-control-grid"></div>
+              <div id="channel3Frequencies" class="opna-channel3-frequencies"></div>
+              <p id="channel3Status" class="subtext" role="status"></p>
+            </details>
           </section>
 
           <section id="panel-ssg" class="opna-panel" role="tabpanel" aria-labelledby="tab-ssg" hidden>
@@ -175,6 +199,7 @@
   </main>
   <input id="soundFileInput" type="file" accept=".json,.tfi,.vgi" hidden>
   <input id="audioFileInput" type="file" accept="audio/*,.wav,.ogg,.mp3,.m4a,.flac" hidden>
+  <input id="songFileInput" type="file" accept=".vgm,.vgz,.s98" multiple hidden>
   <script type="module" src="./synth.js"></script>
 </body>
 </html>

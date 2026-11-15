@@ -1,3 +1,4 @@
+import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -31,7 +32,7 @@ test('VAB receipt is independently pinned, deterministic and retains untouched o
 
 test('each complete current source reconstructs its exact predecessor, including the separately named earlier raw VAB export',()=>{
   for(const path of VAB_API_REVISION_SOURCE_PATHS) {
-    const bytes=readFileSync(url(path)),current=restoreMixerCalibrationHuc6280UiRevision(path.replace(/^docs\//,''),bytes),restored=restoreMixerCalibrationVabApiRevision(path,current);
+    const bytes=readFileSync(url(path)),current=restoreMixerCalibrationHuc6280UiRevision(path.replace(/^docs\//,''),restoreNavigation(path.replace(/^docs\//,''),bytes)),restored=restoreMixerCalibrationVabApiRevision(path,current);
     const expected=VAB_API_PRIOR_EXPORT_PATHS.includes(path)?evidence.priorSourceExport.sources[path].before:evidence.sources[path].before;
     assert.equal(restored.length,expected.bytes,path);assert.equal(sha(restored),expected.sha256,path);
     if(path.startsWith('docs/'))assert.deepEqual(restoreMixerCalibrationVabApiRevision(path.slice(5),current),restored,'served source names use the same fixed inventory');

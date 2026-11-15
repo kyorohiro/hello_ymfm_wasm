@@ -37,11 +37,11 @@ function copyPath(project,path){
   return result;
 }
 export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
-  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},setStatus=()=>{},store=createFm2608ProjectStore(),document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},onSelectSong=async()=>{},setStatus=()=>{},store=createFm2608ProjectStore(),document:doc=globalThis.document}={}){
   const panel=doc.getElementById('opnaFilesPanel'),toggle=doc.getElementById('opnaFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const saveSoundAs=doc.getElementById('opnaSaveSoundAs'),presetSelect=doc.getElementById('opnaPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('OPNA Files mount is missing.');
-  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.opna-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
+  const win=doc.defaultView??globalThis,main=doc.querySelector?.('.opna-main'),listeners=[],expanded=new Map([['/presets',true],['/vgm',true],['/lib',true],['/data',true]]);
   let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
@@ -112,8 +112,10 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   function setBusy(value,{lockMain=true}={}){busy=value;if(main)main.inert=Boolean(value&&lockMain);render();}
   async function persistCode(){
     if(disposed||!persistenceReady)return false;
-    if(!busy&&!restoring)project.setSettings(getSettings());
-    try{return await store.write({...project.snapshot(),workspaceId:identity,filesVisible:!panel.hidden});}
+    try{
+      if(!busy&&!restoring)project.setSettings(getSettings());
+      return await store.write({...project.snapshot(),workspaceId:identity,filesVisible:!panel.hidden});
+    }
     catch(error){report(Error(`Local save failed: ${error.message}. Export project to keep your files.`));return false;}
   }
   function schedule(){if(disposed||restoring)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>void persistCode(),120);}
@@ -126,6 +128,10 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
     await api.ready;if(disposed||busy)return false;const token=++operation;
     await code?.flush?.();if(disposed||token!==operation)return false;
     path=normalizeVirtualPath(path);const file=project.fs.get(path);if(!file)throw Error('Choose a file.');
+    if(file.type==='binary'&&/\.(?:vgm|vgz|s98)$/i.test(path)){
+      await onSelectSong({path,data:file.data.slice()});if(disposed||token!==operation)return false;
+      project.select(path);render();schedule();return true;
+    }
     if(isFm2608CodePath(path)){project.select(path);render();return await openInCurrentMode(path);}
     let sound=null,soundError=null;
     if(file.type==='text'&&/\.json$/i.test(path)){try{sound=readFm2608ProjectSound(file.data);}catch(error){soundError=error;}}
@@ -155,7 +161,8 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
     if(disposed||!isCurrent())return[];
     await api.ready;if(disposed||busy||!isCurrent())return[];const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
     const entries=[];for(const file of files){if(!current())return[];if(file.size>16*1024*1024)throw Error('A project file exceeds 16 MiB.');const bytes=new Uint8Array(await file.arrayBuffer());if(!current())return[];
-      entries.push({path:'/'+basename(file.name),type:isFm2608TextPath(file.name)?'text':'binary',data:isFm2608TextPath(file.name)?decoder.decode(bytes):bytes});}
+      const directory=/\.(?:vgm|vgz|s98)$/i.test(file.name)?'/vgm/':'/';
+      entries.push({path:directory+basename(file.name),type:isFm2608TextPath(file.name)?'text':'binary',data:isFm2608TextPath(file.name)?decoder.decode(bytes):bytes});}
     if(!current())return[];await code?.flush?.();if(!current())return[];
     const candidate=createFm2608CodeProject({snapshot:project.snapshot()}),paths=candidate.importFiles(entries),replaceActive=paths.includes(code?.activePath),replaceExecution=paths.includes(executionPath());
     setBusy(true);try{

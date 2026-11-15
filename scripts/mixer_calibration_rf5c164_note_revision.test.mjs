@@ -36,7 +36,11 @@ test('all 44 exact known after sources reconstruct complete pre-feature bodies a
   for(const path of reports) {
     const bytes=await read(path),report=JSON.parse(bytes);assert.equal(bytes.length,receipt.reports[path].bytes,path);assert.equal(sha(bytes),receipt.reports[path].sha256,path);
     for(const [source,record]of Object.entries(report.sources)){
-      const current=await read('docs/'+source);assert.doesNotThrow(()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report}),source);
+      const current=await read('docs/'+source);
+      const validate=()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report});
+      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js'].includes(source))
+        assert.throws(validate,/source changed; remeasure:/,'SPC voice editing requires a separate current measurement');
+      else assert.doesNotThrow(validate,source);
     }
     assert.deepEqual(await read(path),bytes,'source validation cannot rewrite the measurement');
   }

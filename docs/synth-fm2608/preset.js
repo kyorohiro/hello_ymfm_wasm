@@ -67,6 +67,7 @@ export function readFmPreset(value) {
     feedback: integer(value.feedback,0,7,'Feedback'),
     ams: integer(value.ams ?? pan.ams ?? 0,0,3,'AMS'),
     pms: integer(value.pms ?? pan.pms ?? 0,0,7,'PMS'),
+    keyMask: integer(value.keyMask ?? 15,0,15,'Operator key mask'),
     pan: {left:boolean(pan.left,'FM left'),right:boolean(pan.right,'FM right')},
     operators: list(value.operators,4,'FM operators').map((input,index) => {
       object(input, 'Operator');
@@ -96,10 +97,11 @@ export function createDefaultPreset() {
   return {
     format:PRESET_FORMAT,version:1,name:'OPNA Bell',
     fm:Array.from({length:6},() => structuredClone(voice)),
+    channel3:{mode:'normal',timerA:512,frequencies:[256,512,768,1024].map(fnum => ({block:4,fnum}))},
     lfo:{enabled:false,frequency:0},
     ssg:{channels:Array.from({length:3},() => ({tone:true,noise:false,volume:10,envelope:false})),noisePeriod:16,envelopePeriod:512,envelopeShape:10},
     rhythm:{volume:48,voices:Array.from({length:6},() => ({volume:24,left:true,right:true}))},
-    adpcm:{data:encodeBase64(encoded.bytes),sampleRate,rootNote,volume:192,left:true,right:true,repeat:true},
+    adpcm:{data:encodeBase64(encoded.bytes),address:0,start:0,end:encoded.bytes.length,sampleRate,rootNote,volume:192,left:true,right:true,repeat:true},
   };
 }
 
@@ -112,9 +114,22 @@ export function readPreset(input) {
   const lfo=object(value.lfo,'LFO'), ssg=object(value.ssg,'SSG'), rhythm=object(value.rhythm,'Rhythm'), adpcm=object(value.adpcm,'ADPCM-B');
   if (typeof adpcm.data !== 'string' || adpcm.data !== checkedSample) { decodeBase64(adpcm.data); checkedSample = adpcm.data; }
   if (!Number.isFinite(adpcm.sampleRate) || adpcm.sampleRate <= 0 || adpcm.sampleRate > 8000000 / 144 * 65535 / 65536) throw new RangeError('ADPCM-B sample rate exceeds the YM2608 range');
+  const channel3 = object(value.channel3 ?? {mode:'normal',timerA:512,frequencies:[256,512,768,1024].map(fnum => ({block:4,fnum}))},'CH3 mode');
+  if (!['normal','special','csm'].includes(channel3.mode)) throw new RangeError('CH3 mode must be normal, special or csm');
+  const byteLength = adpcm.data.length / 4 * 3 - (adpcm.data.endsWith('==') ? 2 : adpcm.data.endsWith('=') ? 1 : 0);
+  const address = integer(adpcm.address ?? 0,0,MAX_ADPCM_BYTES - 32,'ADPCM-B memory address');
+  const start = integer(adpcm.start ?? address,0,MAX_ADPCM_BYTES - 32,'ADPCM-B sample start');
+  const end = integer(adpcm.end ?? address + byteLength,32,MAX_ADPCM_BYTES,'ADPCM-B sample end');
+  if (address % 32 || start % 32 || end % 32 || start < address || end <= start || end > address + byteLength || address + byteLength > MAX_ADPCM_BYTES) {
+    throw new RangeError('ADPCM-B range must be 32-byte aligned and inside the saved memory');
+  }
   return {
     format:PRESET_FORMAT,version:1,name:value.name.trim(),
     fm:list(value.fm,6,'FM channels').map(readFmPreset),
+    channel3:{mode:channel3.mode,timerA:integer(channel3.timerA,0,1023,'Timer A'),frequencies:list(channel3.frequencies,4,'CH3 frequencies').map(frequency => {
+      object(frequency,'CH3 frequency');
+      return {block:integer(frequency.block,0,7,'CH3 block'),fnum:integer(frequency.fnum,0,2047,'CH3 F-NUM')};
+    })},
     lfo:{enabled:boolean(lfo.enabled,'LFO enable'),frequency:integer(lfo.frequency,0,7,'LFO frequency')},
     ssg:{channels:list(ssg.channels,3,'SSG channels').map(channel => {
       object(channel,'SSG channel');
@@ -124,6 +139,6 @@ export function readPreset(input) {
       object(voice,'Rhythm voice');
       return {volume:integer(voice.volume,0,31,'Rhythm voice volume'),left:boolean(voice.left,'Rhythm left'),right:boolean(voice.right,'Rhythm right')};
     })},
-    adpcm:{data:adpcm.data,sampleRate:adpcm.sampleRate,rootNote:integer(adpcm.rootNote,0,127,'Root note'),volume:integer(adpcm.volume,0,255,'ADPCM-B volume'),left:boolean(adpcm.left,'ADPCM-B left'),right:boolean(adpcm.right,'ADPCM-B right'),repeat:boolean(adpcm.repeat,'Repeat')},
+    adpcm:{data:adpcm.data,address,start,end,sampleRate:adpcm.sampleRate,rootNote:integer(adpcm.rootNote,0,127,'Root note'),volume:integer(adpcm.volume,0,255,'ADPCM-B volume'),left:boolean(adpcm.left,'ADPCM-B left'),right:boolean(adpcm.right,'ADPCM-B right'),repeat:boolean(adpcm.repeat,'Repeat')},
   };
 }
