@@ -1,0 +1,82 @@
+name: SCSP Synth
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/synth-scsp/**'
+      - 'docs/tetorica-spu-1254.webp'
+      - 'docs/js/**'
+      - 'docs/generated/scsp*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth/synth_code*.js'
+      - 'docs/synth/synth_project_store.js'
+      - 'docs/synth/synth_menu.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'docs/synth-2a03/state_observer.js'
+      - 'docs/playground/**'
+      - 'tetorica_src/runtime/scspsynth*'
+      - 'tetorica_src/runtime/generated/**'
+      - 'tetorica_src/native/audio_effect/**'
+      - 'scripts/*scsp*'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'scripts/runtime_artifacts.mjs'
+      - 'scripts/wasm_sdk_inventory.mjs'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/scsp-synth.yml'
+  pull_request:
+    paths:
+      - 'docs/synth-scsp/**'
+      - 'docs/tetorica-spu-1254.webp'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/synth/**'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'docs/synth-2a03/state_observer.js'
+      - 'docs/playground/**'
+      - 'tetorica_src/runtime/**'
+      - 'tetorica_src/native/audio_effect/**'
+      - 'scripts/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/scsp-synth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test and package the standalone SCSP Synth
+        run: |
+          npm run test:scsp-synth
+          node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs
+          node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
+          sh scripts/package_itch_scsp_synth.sh ci
+          python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
+          node scripts/check_scsp_synth_browser.cjs --root release/scsp-synth-browser --entry /index.html --out release/scsp-synth-browser.json
+          node scripts/check_scsp_synth_code_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-code-browser.json --screenshots=release/scsp-synth-code-images
+          node scripts/check_scsp_synth_song_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-song-browser.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scsp-synth-check
+          path: |
+            release/tetorica_scsp_synth_ci_itch.zip
+            release/scsp-synth-browser.json
+            release/scsp-synth-code-browser.json
+            release/scsp-synth-code-images/
+            release/scsp-synth-song-browser.json
+          if-no-files-found: ignore

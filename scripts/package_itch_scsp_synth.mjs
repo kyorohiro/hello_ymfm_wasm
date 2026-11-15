@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {mkdir,mkdtemp,readFile,readdir,writeFile,copyFile,rm} from 'node:fs/promises';
+import {mkdir,mkdtemp,readFile,readdir,writeFile,copyFile,cp,rm} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {version as esbuildVersion} from 'esbuild';
@@ -44,11 +44,35 @@ export async function packageScspSynth({version='dev',releaseDir=join(root,'rele
  const stage=await mkdtemp(join(releaseDir,`itch_scsp_synth_${version}-`));
  await mkdir(join(stage,'synth-scsp'),{recursive:true});
  const readable=await copyReadableModules({root,stage,
-  entries:['docs/synth-scsp/synth.js','docs/synth-scsp/processor.js','docs/playground/scsp_dsp_lab.js','docs/synth-scsp/synth.css'],
+  entries:['docs/synth-scsp/synth.js','docs/synth-scsp/processor.js','docs/playground/scsp_dsp_lab.js','docs/js/native-fx-worklet.js','docs/synth-scsp/synth.css'],
   factories:['docs/generated/scsp_wasm.js']});
- const inputs=new Set(readable.inputs),bundles=readable.entries.slice(0,3);
+ const inputs=new Set(readable.inputs),bundles=readable.entries.filter(entry=>!entry.path.endsWith('.css'));
+ for (const name of ['tetorica-playground-globals.d.ts','tetorica-playground-scsp.d.ts','tetorica-shell.d.ts']) {
+  const source='docs/playground/'+name;
+  await mkdir(join(stage,'playground'),{recursive:true});
+  await copyFile(join(root,source),join(stage,'playground',name));inputs.add(source);
+ }
+ for (const [source,destination] of [
+  ['docs/playground/vendor/fflate-LICENSE','playground/vendor/fflate-LICENSE'],
+  ['packages/virtual-files/LICENSE','licenses/tetorica-virtual-files/LICENSE'],
+ ]) {
+  await mkdir(join(stage,destination.slice(0,destination.lastIndexOf('/'))),{recursive:true});
+  await copyFile(join(root,source),join(stage,destination));inputs.add(source);
+ }
+ const effectSource='tetorica_src/runtime/generated/effects/gain.wasm';
+ await copyFile(join(root,effectSource),join(stage,'js/native_audio_effect.wasm'));inputs.add(effectSource);
+ const effectKit='sources/code-effects';
+ await mkdir(join(stage,effectKit,'scripts'),{recursive:true});
+ await mkdir(join(stage,effectKit,'tetorica_src/native'),{recursive:true});
+ await cp(join(root,'tetorica_src/native/audio_effect'),join(stage,effectKit,'tetorica_src/native/audio_effect'),{recursive:true});
+ await copyFile(join(root,'scripts/build_native_audio_effect.sh'),join(stage,effectKit,'scripts/build_native_audio_effect.sh'));
+ await copyFile(join(root,'LICENSE'),join(stage,effectKit,'LICENSE'));
+ for (const name of await filesIn(join(root,'tetorica_src/native/audio_effect'))) inputs.add('tetorica_src/native/audio_effect/'+name);
+ inputs.add('scripts/build_native_audio_effect.sh');
+ await writeFile(join(stage,effectKit,'README.md'),'# Code software effects\n\nThe BSD-3-Clause software FX rack follows the SCSP output. Rebuild with Emscripten from this directory.\n\n```sh\nsh scripts/build_native_audio_effect.sh /tmp/tetorica-scsp-effects\ncp /tmp/tetorica-scsp-effects/gain.wasm ../../js/native_audio_effect.wasm\n```\n');
  let html=await readFile(join(root,'docs/synth-scsp/index.html'),'utf8');
  html=html.replaceAll('href="../index.html"','href="https://kyorohiro.github.io/hello_ymfm_wasm/"').replaceAll('href="../scsp.md"','href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md"').replaceAll('href="../playground/index.html?mode=scsp"','href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=scsp"');
+ for (const synth of ['synth','synth-spu']) html=html.replaceAll(`href="../${synth}/index.html"`,`href="https://kyorohiro.github.io/hello_ymfm_wasm/${synth}/index.html"`);
  await writeFile(join(stage,'synth-scsp/index.html'),html);
  await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica-spu-1254.webp','./tetorica-spu-1254.webp').replaceAll('href="../playground/scsp-dsp.html"','href="./playground/scsp-dsp.html"').replace(/\b(href|src)="(synth\.(?:css|js)(?:\?[^"]*)?)"/g,'$1="./synth-scsp/$2"'));
  await mkdir(join(stage,'playground'),{recursive:true});

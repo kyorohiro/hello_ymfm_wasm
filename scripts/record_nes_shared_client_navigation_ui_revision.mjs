@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {readFile,writeFile} from 'node:fs/promises';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
+import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration_scsp_navigation_revision.mjs';
 import {NES_NAVIGATION_REVISION_PATH as path,NES_NAVIGATION_REVISION_BASE_COMMIT as baseCommit,
   NES_NAVIGATION_REVISION_RECEIPT_PATH as destination,NES_NAVIGATION_REVISION_INSERTION as removedText,
   NES_NAVIGATION_PREDECESSOR_RECEIPT_PATH,NES_NAVIGATION_PREDECESSOR_RECEIPT_OBJECT_SHA256} from './mixer_calibration_nes_navigation_revision.mjs';
@@ -15,7 +16,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record=bytes=>({bytes:bytes.length,sha256:sha(bytes)});
 const historical=name=>execFileSync('git',['show',baseCommit+':'+name],{cwd:root,maxBuffer:4*1024*1024});
 export async function createNesSharedClientNavigationUiReceipt(){
-  const before=historical('docs/'+path),after=await readFile(resolve(root,'docs/'+path));
+  const before=historical('docs/'+path),after=restoreMixerCalibrationScspNavigationRevision(path,await readFile(resolve(root,'docs/'+path)));
   const offset=after.indexOf(removedText);
   assert(offset>=0&&after.indexOf(removedText,offset+1)===-1,'One exact passive insertion is required');
   assert.deepEqual(Buffer.concat([after.subarray(0,offset),after.subarray(offset+Buffer.byteLength(removedText))]),before,

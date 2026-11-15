@@ -15,7 +15,7 @@ test('package versions cannot escape the release directory',()=>{
 test('SCSP ZIP is deterministic and runs byte-exact editable modules with authenticated browser/native source',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'scsp-synth-package-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const a=await packageScspSynth({version:'test',releaseDir:join(dir,'a')}),b=await packageScspSynth({version:'test',releaseDir:join(dir,'b')});
- assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,3);
+ assert.deepEqual(await readFile(a.archive),await readFile(b.archive));assert(a.files<1000);assert.equal(a.bundles,4);
  const info=JSON.parse(execFileSync('python3',['-c',String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -41,7 +41,10 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  const native=JSON.parse(await readFile(join(a.stage,'sources/SCSP.json')));
  for(const entry of native.inputs){const data=await readFile(join(a.stage,entry.path));assert.equal(data.length,entry.bytes);assert.equal(sha(data),entry.sha256);}
  for(const [name,entry]of Object.entries(native.generated))assert.equal(sha(await readFile(join(a.stage,'generated',name))),entry.sha256);
- assert.deepEqual(info.receipt.bundles.map(entry=>entry.path),['synth-scsp/synth.js','synth-scsp/processor.js','playground/scsp_dsp_lab.js']);
+ assert.deepEqual(info.receipt.bundles.map(entry=>entry.path),['synth-scsp/synth.js','synth-scsp/processor.js','playground/scsp_dsp_lab.js','js/native-fx-worklet.js']);
+ for(const name of ['synth-scsp/code_host.js','synth-scsp/code_endpoint.js','synth-scsp/song_player.js',
+  'playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-scsp.d.ts','playground/tetorica-shell.d.ts',
+  'js/native_audio_effect.wasm','sources/code-effects/tetorica_src/native/audio_effect/gain.c']) assert(info.names.includes(name),name);
  assert(info.receipt.modules.length>info.receipt.bundles.length);
  assert(!info.names.includes('synth-scsp/lab.js'),'the Lab keeps its authored path');
  for(const module of info.receipt.modules){

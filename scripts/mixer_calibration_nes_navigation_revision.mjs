@@ -3,6 +3,7 @@
  */
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration_scsp_navigation_revision.mjs';
 import {MEASURED_POLICY_REVISION_RECEIPT_PATH,MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256,
   MEASURED_POLICY_REVISION_REPORT_PATHS} from './mixer_calibration_measured_policy_revision.mjs';
 
@@ -39,6 +40,7 @@ function verifiedReceipt(){
 }
 
 export function restoreMixerCalibrationNesNavigationRevision(path,bytes,{readSource=url=>readFileSync(url)}={}){
+  bytes=restoreMixerCalibrationScspNavigationRevision(path,bytes,{readSource});
   if(path!==NES_NAVIGATION_REVISION_PATH)return bytes;
   const evidence=verifiedReceipt();
   if(bytes.length!==evidence.after.bytes||sha(bytes)!==evidence.after.sha256)return bytes;

@@ -18,11 +18,11 @@ class SynthProcessor extends AudioWorkletProcessor {
         try{
           let value;
           if(data.type==='chip-inspector')value=data.action==='read'?this.instrument.read():this.instrument.invoke(data.method,data.args);
-          else if(['noteOn','noteOff','setConfig','setEffect','loadPatch','exportPatch','stopVoices'].includes(data.method)){
-            const config=this.instrument.config;value=this.instrument[data.method](...(data.args??[]));if(['loadPatch','stopVoices'].includes(data.method)||config.mode!==this.instrument.config.mode||config.fm.algorithm!==this.instrument.config.fm.algorithm)this.resampler.reset();
+          else if(['noteOn','noteOff','setConfig','setEffect','setPitchBend','loadPatch','exportPatch','stopVoices','beginCode','code','endCode','readAuthoring'].includes(data.method)){
+            const config=this.instrument.config,codeActive=this.instrument.codeActive;value=this.instrument[data.method](...(data.args??[]));if(data.method==='stopVoices'||data.method==='loadPatch'&&!codeActive||data.method!=='loadPatch'&&(config.mode!==this.instrument.config.mode||config.fm.algorithm!==this.instrument.config.fm.algorithm))this.resampler.reset();
           }else throw new Error('Unknown Synth command');
           if(data.id!==undefined)this.port.postMessage({id:data.id,value});
-        }catch(error){this.port.postMessage({id:data.id,error:error.message});}
+        }catch(error){this.port.postMessage({id:data.id,error:error.message,name:error.name});}
       });
     };
   }

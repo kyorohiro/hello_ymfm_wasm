@@ -15,6 +15,8 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
     return {file:'synth-snes/code_client.js',symbol};
   if(owner==='NesCodeClient'&&['noteOn','keyOn','getState','allNotesOff','dispose'].includes(symbol))
     return {file:'synth-2a03/code_endpoint.js',symbol:'createNesCodeClient'};
+  if(owner==='ScspCodeClient')
+    return {file:'synth-scsp/code_endpoint.js',symbol:'createScspCodeClient'};
   if(owner==='Fm2608CodeClient') {
     if(['setTimerA','setCsm','setChannel3Mode','getChannel3State'].includes(symbol))
       return {file:'synth-fm2608/sound_state.js',symbol:symbol==='setCsm'?'installChannel3Controls':symbol};

@@ -10,3 +10,22 @@ test('dedicated processor handles grouped commands, all host rates and render pa
   await a.command('setConfig',[{mode:'pcm'}]);assert(a.render(128).left.every(x=>x===0));await a.command('noteOn',['next',69]);await a.command('stopVoices');assert(a.render(128).left.every(x=>x===0));
  }
 });
+
+test('processor Code shares authored groups and fences stale messages without stopping the keyboard',async t=>{
+ const f=await make(t,48000);await f.command('setConfig',[{mode:'fm6'}]);const {session}=await f.command('beginCode');
+ await f.command('code',[session,'noteOn',[0,'A4']]);await f.command('noteOn',['keyboard',60]);assert(f.render(4096).left.some(x=>Math.abs(x)>.01));
+ await f.command('endCode',[session]);const author=await f.command('readAuthoring');assert.equal(author.state.voiceGroups.length,1);assert.equal(author.state.voiceGroups[0].id,'keyboard');assert(author.state.voiceGroups[0].held);
+ assert(f.render(4096).left.some(x=>Math.abs(x)>.01));
+ f.p.port.onmessage({data:{id:99,method:'code',args:[session,'allNotesOff',[]]}});await f.p.ready;await Promise.resolve();
+ assert.equal(f.messages.at(-1).name,'AbortError');assert.equal(f.messages.at(-1).id,99);assert.equal(f.p.instrument.read().voiceGroups[0].id,'keyboard');
+});
+
+test('processor accepts fractional performance bend, preserves portable transpose and resets on command',async t=>{
+ const f=await make(t,48000);await f.command('setConfig',[{mode:'fm2',transpose:2}]);assert.equal(await f.command('setPitchBend',[.5]),.5);
+ await f.command('noteOn',['keyboard',69]);const {session}=await f.command('beginCode');await f.command('code',[session,'noteOn',[0,69]]);
+ let state=(await f.command('readAuthoring')).state;assert.equal(state.pitchBend,.5);assert.equal(state.config.transpose,2);
+ for(const group of state.voiceGroups){const [modulator,carrier]=group.slots;assert(Math.abs(state.slots[carrier].frequencyHz-440*2**(2.5/12))<1e-8);assert(Math.abs(state.slots[modulator].frequencyHz-880*2**(2.5/12))<1e-8);}
+ assert.equal((await f.command('exportPatch')).transpose,2);assert(f.render(4096).left.some(x=>Math.abs(x)>.01));
+ await f.command('setPitchBend',[0]);state=(await f.command('readAuthoring')).state;assert.equal(state.pitchBend,0);
+ for(const group of state.voiceGroups)assert(Math.abs(state.slots[group.slots[1]].frequencyHz-440*2**(2/12))<1e-8);
+});

@@ -1,59 +1,671 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Tetorica SCSP Synth — Sega Saturn PCM synthesis, waveform drawing and envelope editing.">
-  <meta name="theme-color" content="#12161d">
-  <title>Tetorica SCSP Synth</title>
-  <link rel="icon" type="image/webp" href="../tetorica-spu-1254.webp">
-  <link rel="apple-touch-icon" href="../tetorica-spu-1254.webp">
-  <link rel="stylesheet" href="synth.css">
-</head>
-<body><main>
-  <nav class="masthead" aria-label="Sound Laboratory"><a href="../index.html">Tetorica <span>Sound Laboratory</span></a><a href="../playground/index.html?mode=scsp">Open Playground ↗</a></nav>
-  <article class="synth-shell" aria-labelledby="synthTitle">
-    <header class="product-header">
-      <img class="product-icon" src="../tetorica-spu-1254.webp" width="144" height="144" alt="Tetorica SCSP Synth" decoding="async">
-      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> EG / LFO / 2–6 OP FM / DSP <i>·</i> 32 SLOTS</p></div>
-      <div class="engine-badge"><span class="led"></span> SCSP <small>PCM ENGINE</small></div>
-    </header>
-    <section class="toolbar" aria-label="Transport">
-      <div class="transport"><button id="start" class="primary">Start audio</button><button id="stop" disabled>Stop</button></div>
-      <label>Volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.6"></label>
-      <label>Pitch <span class="unit">semitones</span><input id="pitch" type="number" min="-24" max="24" value="0"></label>
-      <div class="preset-actions"><button id="save" disabled>Save preset</button><label class="file">Open preset <input id="open" type="file" accept=".json,application/json" disabled></label></div>
-    </section>
-    <p id="status" role="status">Start audio, then play the keys below or use A W S E D F T G Y H U J K.</p>
-    <section class="keyboard-panel" aria-label="Keyboard"><div class="section-heading"><h2>Keyboard</h2><label>Octave <input id="octave" type="number" min="0" max="8" value="4"></label></div><div id="keyboard"></div><p class="hint" id="capacity">26 PCM / 13 two-op / 6 four-op / 4 six-op voices · 6 source slots reserved.</p></section>
-    <section class="sound-settings" aria-label="Voice and effects">
-      <section class="voice-routing" aria-labelledby="voiceSettingsTitle">
-        <h2 id="voiceSettingsTitle">Voice</h2>
-        <label>Voice mode <select id="voiceMode" disabled><option value="pcm">PCM</option><option value="fm2">2-operator FM</option><option value="fm4">4-operator FM</option><option value="fm6">6-operator FM</option></select></label>
-        <label>Connection <select id="algorithm" disabled><option value="chain">Chain · serial</option><option value="pairs">Pairs · parallel 2-op</option><option value="branch">Branch · two-input tree</option></select></label>
-        <label>All FM depths (MDL) <input id="fmDepth" type="number" min="0" max="12" value="9" disabled></label>
-        <label>All modulator ratios <input id="fmRatio" type="number" min="0.125" max="8" step="0.125" value="2" disabled></label>
-        <p>Mode and Connection changes stop notes. All modulator ratios resets A to 1 and B–F to the chosen value.</p>
-      </section>
-      <section class="effects-panel" aria-labelledby="effectsTitle">
-        <h2 id="effectsTitle">SCSP DSP · Delay</h2>
-        <label class="effect-enable"><input id="effectEnabled" type="checkbox" disabled> Enable Delay</label>
-        <label>Time <span class="unit">ms</span><input id="delayTime" type="number" min="20" max="700" value="240" disabled></label>
-        <label>Feedback <input id="delayFeedback" type="number" min="0" max="0.85" step="0.01" value="0.35" disabled></label>
-        <label>Send <input id="effectSend" type="number" min="0" max="7" value="7" disabled></label>
-        <label>Return <input id="effectReturn" type="number" min="0" max="7" value="6" disabled></label>
-        <p>Release a short note to hear the repeats. A sustained sine mainly changes level. Shared mono Delay runs inside the SCSP DSP. Send / Return: 0 = mute, 7 = maximum. Changing Time or Enable clears echoes. Stop clears the tail.</p>
-      </section>
-    </section>
-    <section class="operator-panel" aria-labelledby="operatorsTitle">
-      <div class="section-heading"><h2 id="operatorsTitle">Operators <span id="selectedOperator">A</span></h2><label>Selected ratio <input id="operatorRatio" type="number" min="0.125" max="8" step="0.125" value="1" disabled></label></div>
-      <div id="operatorMap">
-        <svg id="connections" viewBox="0 0 600 110" role="img" aria-label="Operator modulation connections"><defs><marker id="routeArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs><g id="connectionPaths"></g></svg>
-        <div class="operator-switch" role="group" aria-label="Edit operator"><button id="carrier" data-operator="0" aria-pressed="true" disabled>A</button><button id="modulator" data-operator="1" aria-pressed="false" disabled>B</button><button data-operator="2" aria-pressed="false" disabled>C</button><button data-operator="3" aria-pressed="false" disabled>D</button><button data-operator="4" aria-pressed="false" disabled>E</button><button data-operator="5" aria-pressed="false" disabled>F</button></div>
-      </div>
-      <p id="routingSummary" aria-live="polite">Output: A</p>
-      <p>Choose an operator to edit on the single canvas below. Lines show modulation; Output operators feed the mixer and DSP Send. Apply drawings before switching. Unapplied drawings are discarded.</p>
-    </section>
-    <section id="voice" aria-label="Voice editor"></section>
-    <footer><p>Waveform drawing, voice allocation, repeated PCM guards and preset files are software features. Slot FM, envelopes and LFO run in the SCSP core. The fixed core has zero slot-write delay; hardware timing fidelity is not guaranteed. The original mono Delay program uses 64 KiB of SCSP RAM, leaving 448 KiB for PCM and guards. Custom DSP programs, Reverb and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/scsp-dsp.html">DSP Lab</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
-  </article>
-</main><script type="module" src="synth.js?v=dsp-delay-level-2"></script></body></html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<meta
+			name="description"
+			content="Tetorica SCSP Synth — Sega Saturn PCM and slot FM, waveform editing and JavaScript performance."
+		/>
+		<meta name="theme-color" content="#1c222b" />
+		<title>Tetorica SCSP Synth</title>
+		<link rel="icon" type="image/webp" href="../tetorica-spu-1254.webp" />
+		<link rel="apple-touch-icon" href="../tetorica-spu-1254.webp" />
+		<link rel="stylesheet" href="synth.css" />
+	</head>
+	<body>
+		<main>
+			<header class="masthead">
+				<a class="laboratory-link" href="../index.html"
+					>Tetorica <span>Sound Laboratory</span></a
+				>
+				<nav aria-label="Sound Laboratory">
+					<a href="../synth/index.html">FM2612 Synth</a
+					><a href="../synth-spu/index.html">SPU Synth</a
+					><a href="../playground/index.html?mode=scsp">Playground</a>
+				</nav>
+			</header>
+			<article class="synth-shell" aria-labelledby="synthTitle">
+				<header class="synth-heading">
+					<div class="title-row">
+						<div id="synthDesktopTools" data-web-menu="true">
+							<details id="synthMenu" class="synth-menu">
+								<summary
+									id="synthMenuButton"
+									class="synth-icon-button"
+									aria-label="Menu"
+									title="Menu"
+									aria-expanded="false"
+									aria-controls="synthMenuPanel"
+								>
+									<svg
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										aria-hidden="true"
+									>
+										<path d="M4 6h16M4 12h16M4 18h16" />
+									</svg>
+								</summary>
+								<div id="synthMenuPanel" class="synth-menu-panel">
+									<section class="synth-menu-section synth-menu-actions">
+										<h2>Import</h2>
+										<button id="loadVgm" type="button" data-close-synth-menu>
+											VGM / VGZ…</button
+										><input
+											id="vgmFileInput"
+											class="file-input"
+											type="file"
+											accept=".vgm,.vgz,application/gzip,application/octet-stream"
+										/><button
+											id="loadPreset"
+											type="button"
+											data-close-synth-menu
+										>
+											Instrument JSON…</button
+										><input
+											id="open"
+											class="file-input"
+											type="file"
+											accept=".json,application/json"
+											aria-label="Open SCSP instrument"
+										/>
+										<div id="scspMenuProjectImport"></div>
+										<div id="scspMenuFilesImport"></div>
+									</section>
+									<section class="synth-menu-section synth-menu-actions">
+										<h2>Export</h2>
+										<button id="save" type="button" data-close-synth-menu>
+											Instrument JSON
+										</button>
+										<div id="scspMenuProjectExport"></div>
+										<div id="scspMenuFileExport"></div>
+									</section>
+									<section id="synthMenuAudio" class="synth-menu-section">
+										<p>Audio output · System default (Web Audio)</p>
+									</section>
+								</div>
+							</details>
+							<button
+								id="synthPinButton"
+								class="synth-icon-button"
+								type="button"
+								aria-label="Pin window on top"
+								hidden
+							>
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									aria-hidden="true"
+								>
+									<path d="M9 3h6v5l3 5v2H6v-2l3-5zM12 15v7" />
+								</svg>
+							</button>
+						</div>
+						<div class="product-identity">
+							<img
+								class="product-icon"
+								src="../tetorica-spu-1254.webp"
+								width="112"
+								height="112"
+								alt=""
+								decoding="async"
+							/>
+							<div class="product-copy">
+								<p class="eyebrow">SEGA SATURN · PCM · SLOT FM</p>
+								<h1 id="synthTitle">
+									Tetorica <span class="product-name">SCSP Synth</span>
+								</h1>
+								<p class="description">Shape a waveform. Play with code.</p>
+							</div>
+						</div>
+						<span class="engine-badge">SCSP <span>32 HARDWARE SLOTS</span></span>
+					</div>
+					<div class="audio-toolbar">
+						<div class="transport-actions">
+							<button id="start" class="primary" type="button">Enable audio</button
+							><button id="stop" type="button">Stop all sound</button
+							><button
+								id="scspFilesToggle"
+								type="button"
+								aria-expanded="false"
+								aria-controls="scspFilesPanel"
+							>
+								Files
+							</button>
+						</div>
+						<label class="master-control" for="volume"
+							><span>Master</span
+							><input
+								id="volume"
+								type="range"
+								min="0"
+								max="3.8"
+								step="0.01"
+								value="0.6"
+								aria-label="Master volume, 0 to 380 percent"
+							/><output id="volumeValue" for="volume">60%</output></label
+						>
+					</div>
+					<p id="status" class="audio-status" role="status" aria-live="polite">
+						Enable audio or Run Code to play. Files save locally.
+					</p>
+				</header>
+				<div id="synthWorkspace" class="scsp-code-workspace">
+					<aside
+						id="scspFilesPanel"
+						class="scsp-files-panel"
+						aria-label="Project files"
+						hidden
+					></aside>
+					<div class="scsp-main">
+						<section class="scsp-song-player" aria-label="VGM reference playback">
+							<div class="scsp-song-transport">
+								<label for="scspSongSelect">VGM</label
+								><select id="scspSongSelect" aria-label="VGM in Files">
+									<option value="">Import VGM / VGZ…</option></select
+								><button id="scspSongPlay" type="button" disabled>Play song</button
+								><button id="scspSongPause" type="button" disabled>Pause</button
+								><button id="scspSongStop" type="button" disabled>Stop</button
+								><button id="scspSongDemo" type="button">Demo</button>
+								<details class="scsp-inline-help">
+									<summary aria-label="About SCSP recordings">?</summary>
+									<p>
+										SCSP VGM / VGZ records register writes and sound RAM. This
+										player validates the supported SCSP commands before loading.
+										Files retains the original recording. The Demo is a
+										self-authored register log. SSF / MiniSSF playback is
+										planned with a Saturn sound-CPU player.
+									</p>
+								</details>
+							</div>
+							<div class="scsp-song-seek">
+								<input
+									id="scspSongSeek"
+									type="range"
+									min="0"
+									max="1"
+									step="0.01"
+									value="0"
+									aria-label="VGM position in seconds"
+									disabled
+								/><output id="scspSongPosition" for="scspSongSeek">0:00 / —</output>
+							</div>
+							<p id="scspSongStatus" role="status">
+								Import SCSP VGM from Menu, or try Demo. Loading is silent.
+							</p>
+						</section>
+						<section class="spu-monitor scsp-monitor" aria-label="Audio display">
+							<div
+								class="visual-mode-controls"
+								role="group"
+								aria-label="Audio visualization"
+							>
+								<button
+									type="button"
+									data-visual-mode="waveform"
+									aria-pressed="true"
+								>
+									Waveform</button
+								><button
+									type="button"
+									data-visual-mode="spectrum"
+									aria-pressed="false"
+								>
+									Spectrum
+								</button>
+							</div>
+							<p id="visualizerDescription">Live output after Master volume.</p>
+							<div class="monitor-body">
+								<div class="monitor-plot">
+									<canvas
+										id="outputCanvas"
+										width="900"
+										height="220"
+										role="img"
+										aria-label="SCSP live audio output"
+									></canvas>
+								</div>
+								<label class="monitor-pitch" for="pitchBend"
+									><span>Pitch</span
+									><input
+										id="pitchBend"
+										type="range"
+										min="-2"
+										max="2"
+										step="0.01"
+										value="0"
+										orient="vertical"
+										aria-label="Display pitch bend, minus two to plus two semitones"
+									/><output id="pitchBendValue" for="pitchBend"
+										>+0.00</output
+									></label
+								>
+							</div>
+						</section>
+						<section class="scsp-preset-toolbar" aria-label="SCSP presets">
+							<label for="scspPresetSelect"
+								>Presets
+								<select id="scspPresetSelect">
+									<option value="">No playable presets</option>
+								</select></label
+							><button id="scspSaveSoundAs" type="button">Save to presets…</button>
+						</section>
+						<div class="scsp-chip-tabs" role="tablist" aria-label="Sound chip editor">
+							<button
+								id="scspChipTab"
+								role="tab"
+								type="button"
+								aria-selected="true"
+								aria-controls="scspChipPanel"
+							>
+								SCSP</button
+							><button
+								id="scspDspTab"
+								role="tab"
+								type="button"
+								aria-selected="false"
+								aria-controls="scspDspPanel"
+								tabindex="-1"
+							>
+								DSP · Under construction
+							</button>
+						</div>
+						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
+							<section class="voice-routing" aria-labelledby="voiceSettingsTitle">
+								<div class="section-heading">
+									<h2 id="voiceSettingsTitle">Sound source</h2>
+									<span id="capacity" role="status"
+										>26 PCM / 13 two-op / 6 four-op / 4 six-op voices</span
+									>
+								</div>
+								<div class="scsp-fields">
+									<label
+										>Voice mode
+										<select id="voiceMode" disabled>
+											<option value="pcm">PCM</option>
+											<option value="fm2">2-operator FM</option>
+											<option value="fm4">4-operator FM</option>
+											<option value="fm6">6-operator FM</option>
+										</select></label
+									><label
+										>Connection
+										<select id="algorithm" disabled>
+											<option value="chain">Chain · serial</option>
+											<option value="pairs">Pairs · parallel 2-op</option>
+											<option value="branch">Branch · two-input tree</option>
+										</select></label
+									><label
+										>All FM depths (MDL)
+										<input
+											id="fmDepth"
+											type="number"
+											min="0"
+											max="12"
+											value="9"
+											disabled /></label
+									><label
+										>All modulator ratios
+										<input
+											id="fmRatio"
+											type="number"
+											min="0.125"
+											max="8"
+											step="0.125"
+											value="2"
+											disabled /></label
+									><label
+										>Transpose · semitones
+										<input
+											id="pitch"
+											type="number"
+											min="-24"
+											max="24"
+											value="0"
+											disabled
+									/></label>
+								</div>
+								<details class="scsp-inline-help">
+									<summary aria-label="About voice settings">?</summary>
+									<p>
+										Mode and Connection changes release existing notes. All
+										modulator ratios sets A to 1 and B–F to the selected value.
+										PCM uses A. Fixed FM connections and voice allocation are
+										software tools over SCSP slot modulation.
+									</p>
+								</details>
+							</section>
+							<section class="operator-panel" aria-labelledby="operatorsTitle">
+								<div class="section-heading">
+									<h2 id="operatorsTitle">
+										Operators <span id="selectedOperator">A</span>
+									</h2>
+									<label
+										>Selected ratio
+										<input
+											id="operatorRatio"
+											type="number"
+											min="0.125"
+											max="8"
+											step="0.125"
+											value="1"
+											disabled
+									/></label>
+								</div>
+								<div id="operatorMap">
+									<svg
+										id="connections"
+										viewBox="0 0 600 110"
+										role="img"
+										aria-label="Operator modulation connections"
+									>
+										<defs>
+											<marker
+												id="routeArrow"
+												viewBox="0 0 10 10"
+												refX="5"
+												refY="5"
+												markerWidth="5"
+												markerHeight="5"
+												orient="auto-start-reverse"
+											>
+												<path d="M0 0L10 5L0 10z" fill="currentColor" />
+											</marker>
+										</defs>
+										<g id="connectionPaths"></g>
+									</svg>
+									<div
+										class="operator-switch"
+										role="group"
+										aria-label="Edit operator"
+									>
+										<button
+											id="carrier"
+											type="button"
+											data-operator="0"
+											aria-pressed="true"
+											disabled
+										>
+											A</button
+										><button
+											id="modulator"
+											type="button"
+											data-operator="1"
+											aria-pressed="false"
+											disabled
+										>
+											B</button
+										><button
+											type="button"
+											data-operator="2"
+											aria-pressed="false"
+											disabled
+										>
+											C</button
+										><button
+											type="button"
+											data-operator="3"
+											aria-pressed="false"
+											disabled
+										>
+											D</button
+										><button
+											type="button"
+											data-operator="4"
+											aria-pressed="false"
+											disabled
+										>
+											E</button
+										><button
+											type="button"
+											data-operator="5"
+											aria-pressed="false"
+											disabled
+										>
+											F
+										</button>
+									</div>
+								</div>
+								<p id="routingSummary" aria-live="polite">Output · A</p>
+							</section>
+							<section id="voice" aria-label="Voice editor"></section>
+						</section>
+						<section
+							id="scspDspPanel"
+							role="tabpanel"
+							aria-labelledby="scspDspTab"
+							hidden
+						>
+							<h2>DSP programming · Under construction</h2>
+							<p>Assembler and microprogram editing are planned.</p>
+							<details id="scspDelayPanel" class="scsp-disclosure">
+								<summary>Experimental · fixed mono Delay</summary>
+								<div class="scsp-fields">
+									<label class="effect-enable"
+										><input id="effectEnabled" type="checkbox" disabled />
+										Enable Delay</label
+									><label
+										>Time · ms
+										<input
+											id="delayTime"
+											type="number"
+											min="20"
+											max="700"
+											value="240"
+											disabled /></label
+									><label
+										>Feedback
+										<input
+											id="delayFeedback"
+											type="number"
+											min="0"
+											max="0.85"
+											step="0.01"
+											value="0.35"
+											disabled /></label
+									><label
+										>Send
+										<input
+											id="effectSend"
+											type="number"
+											min="0"
+											max="7"
+											value="7"
+											disabled /></label
+									><label
+										>Return
+										<input
+											id="effectReturn"
+											type="number"
+											min="0"
+											max="7"
+											value="6"
+											disabled
+									/></label>
+								</div>
+								<p>
+									One fixed six-step program runs in the SCSP DSP. Release a short
+									note to hear repeats. Time and Enable changes clear echoes. The
+									DSP reserves 64 KiB, leaving 448 KiB for PCM and guards.
+								</p>
+								<a href="../playground/scsp-dsp.html">Open DSP Lab</a>
+							</details>
+						</section>
+						<section
+							id="synthInputSection"
+							class="keyboard-section scsp-input-section"
+							aria-label="Performance input"
+							data-input-mode="keyboard"
+						>
+							<div
+								class="scsp-input-tabs"
+								role="tablist"
+								aria-label="Performance input"
+							>
+								<button
+									id="synthInputKeyboardTab"
+									type="button"
+									role="tab"
+									aria-selected="true"
+									aria-controls="synthKeyboardPanel"
+								>
+									Keyboard</button
+								><button
+									id="synthInputCodeTab"
+									type="button"
+									role="tab"
+									aria-selected="false"
+									aria-controls="synthCodePanel"
+									tabindex="-1"
+								>
+									Code</button
+								><button
+									id="synthCodeExpandButton"
+									class="scsp-code-expand"
+									type="button"
+									aria-label="Maximize Code"
+									aria-pressed="false"
+									hidden
+								>
+									<svg
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										aria-hidden="true"
+									>
+										<path
+											id="synthCodeExpandIcon"
+											d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"
+										/>
+									</svg>
+								</button>
+							</div>
+							<div
+								id="synthKeyboardPanel"
+								role="tabpanel"
+								aria-labelledby="synthInputKeyboardTab"
+							>
+								<div class="keyboard-toolbar">
+									<div
+										class="octave-control"
+										role="group"
+										aria-label="Keyboard octave"
+									>
+										<button
+											id="octaveDown"
+											type="button"
+											aria-label="Lower keyboard by one octave"
+										>
+											−</button
+										><span>Octave <output id="octaveValue">+0</output></span
+										><button
+											id="octaveUp"
+											type="button"
+											aria-label="Raise keyboard by one octave"
+										>
+											+
+										</button>
+									</div>
+								</div>
+								<div id="keyboardFretboard"></div>
+								<div class="performance-keyboard">
+									<label
+										class="monitor-pitch keyboard-wheel"
+										for="keyboardPitchBend"
+										><span>Pitch</span
+										><input
+											id="keyboardPitchBend"
+											type="range"
+											min="-2"
+											max="2"
+											step="0.01"
+											value="0"
+											orient="vertical"
+											aria-label="Keyboard pitch bend, minus two to plus two semitones"
+										/><output id="keyboardPitchValue" for="keyboardPitchBend"
+											>+0.00</output
+										></label
+									>
+									<div id="keyboard" class="keyboard-mount"></div>
+								</div>
+							</div>
+							<div
+								id="synthCodePanel"
+								class="scsp-code-panel"
+								role="tabpanel"
+								aria-labelledby="synthInputCodeTab"
+								hidden
+							>
+								<div class="scsp-code-toolbar">
+									<button id="synthCodeRunButton" class="primary" type="button">
+										Run</button
+									><button id="synthCodeApplyButton" type="button" disabled>
+										Apply</button
+									><button id="synthCodeStopButton" type="button" disabled>
+										Stop</button
+									><span id="synthCodeState" role="status">Idle</span>
+								</div>
+								<p class="subtext scsp-code-caption">
+									Software performance · the same SCSP and operator patch as the
+									controls above. Run with Ctrl/Cmd+Enter. Apply with
+									Ctrl/Cmd+Shift+Enter.
+								</p>
+								<div id="synthCodeEditorHost" class="scsp-code-editor-host"></div>
+								<textarea
+									id="synthCodeEditor"
+									class="scsp-code-editor"
+									spellcheck="false"
+									aria-label="SCSP performance JavaScript"
+									rows="12"
+									readonly
+								></textarea>
+								<p id="synthCodeEditorNote" class="subtext">
+									Code is saved in Files. Loading a project requires Run to start
+									it.
+								</p>
+								<pre id="synthCodeError" class="scsp-code-error" role="alert"></pre>
+								<details class="scsp-code-console">
+									<summary>Console</summary>
+									<pre id="synthCodeLog" aria-live="polite"></pre>
+								</details>
+								<details class="scsp-inline-help">
+									<summary aria-label="About SCSP Code">?</summary>
+									<p>
+										Use <code>const scsp = await useSoundChip("scsp")</code>,
+										then its methods. Code notes use the current PCM or complete
+										2 / 4 / 6-operator patch. CH1–CH6 identify Code voices.
+										Physical SCSP slots are allocated for each group. Operator
+										editing uses A–F indices 0–5. Keyboard and controls can
+										operate during Code. Run starts fresh, Apply retains context
+										and named loops, and Stop releases Code notes.
+									</p>
+								</details>
+							</div>
+						</section>
+					</div>
+					<div id="synthExpandedCodeSlot" class="scsp-expanded-code" hidden></div>
+				</div>
+				<footer>
+					<p>
+						PCM, envelopes, LFO and sound-stack modulation run in the SCSP core. Wave
+						drawing, grouped voice allocation and Code are software tools. Fixed Chain /
+						Pairs / Branch connections support 2 / 4 / 6 operators. Free wiring and FM
+						feedback are future work. The bundled core uses zero slot-write delay.
+					</p>
+					<div>
+						<a href="../scsp.md">SCSP API</a> ·
+						<a href="../playground/scsp-dsp.html">DSP Lab</a> ·
+						<a href="../playground/index.html?mode=scsp">Playground</a>
+					</div>
+				</footer>
+			</article>
+		</main>
+		<script type="module" src="synth.js"></script>
+	</body>
+</html>
