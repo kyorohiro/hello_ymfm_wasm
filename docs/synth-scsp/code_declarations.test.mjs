@@ -18,6 +18,8 @@ await scsp.noteOn(CH1,'C4');await beat(.5);await scsp.noteOff(CH1);
 await scsp.noteOn(7,60);const state:ScspCodeState=await scsp.getState();
 const mode:ScspCodeConfig['mode']=state.config.mode;
 const pitchBend:number=state.pitchBend;
+const physicalSlot:number|undefined=state.manualVoices[0]?.slot;
+const logicalSlots:number[]=state.codeLanes[0].slots;
 const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopStartSamples:0});
 await scsp.setPreset(0,{sample});await scsp.setConfig({mode:'fm6',fm:{algorithm:'pairs'}});
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});

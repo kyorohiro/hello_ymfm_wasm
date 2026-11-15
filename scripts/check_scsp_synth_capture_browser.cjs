@@ -8,6 +8,7 @@ const { tmpdir } = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { chromium, webkit } = require('playwright');
 
+const startedAt = Date.now();
 const repo = path.resolve(__dirname, '..');
 const config = {
 	root: path.join(repo, 'docs'),
@@ -228,21 +229,22 @@ const view = (page) =>
 			liveVisible: Boolean(section && !section.hidden),
 			liveActive: section?.dataset.active,
 			enabled: document.getElementById('scspSsfLiveEnabled')?.checked,
-			slot: document.getElementById('scspSsfSlot')?.value,
+			slot: document.querySelector('#scspChannelTabs [aria-selected="true"]')?.dataset
+				.scspChannel,
 			frame: section?.dataset.frame,
 			voiceSlot: voice?.dataset.ssfSlot,
 			liveStatus: document.getElementById('scspSsfLiveStatus')?.textContent,
 			reference: document.getElementById('scspSsfReference')?.value,
 			captureStatus: document.getElementById('scspSsfCaptureStatus')?.textContent,
 			captureError: document.getElementById('scspSsfCaptureStatus')?.dataset.error,
-			activity: [...document.querySelectorAll('#scspSsfSlots [data-ssf-slot]')].map(
-				(button) => ({
-					slot: Number(button.dataset.ssfSlot),
+			activity: [...document.querySelectorAll('#scspChannelTabs [data-scsp-channel]')]
+				.filter((button) => button.dataset.scspChannel !== 'auto')
+				.map((button) => ({
+					slot: Number(button.dataset.scspChannel),
 					active: button.dataset.active,
 					gate: button.dataset.gate,
-					selected: button.getAttribute('aria-pressed'),
-				}),
-			),
+					selected: button.getAttribute('aria-selected'),
+				})),
 		};
 	});
 async function canvas(page) {
@@ -259,7 +261,7 @@ async function authoring(page) {
 	});
 }
 async function selectSlot(page, slot) {
-	await page.selectOption('#scspSsfSlot', String(slot));
+	await page.click('#scspChannelTabs [data-scsp-channel="' + slot + '"]');
 	await until(
 		() =>
 			view(page).then(
@@ -465,6 +467,7 @@ async function check(browser, engine, origin, fixture) {
 		await paused(frozen);
 		assert.equal(await authoring(page), authoredBefore);
 		await page.uncheck('#scspSsfLiveEnabled');
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		assert.equal(await canvas(page), draftWave);
 		assert.equal(await control(page, 'root').inputValue(), '500');
 		assert.equal(await control(page, 'attackRate').inputValue(), '19');
@@ -553,10 +556,15 @@ async function check(browser, engine, origin, fixture) {
 			'frozen snapshot survives Capture',
 		);
 		await page.uncheck('#scspSsfLiveEnabled');
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		await paused(frozen);
 		assert.equal(await page.locator('#voice canvas').count(), 1);
-		assert.equal(await control(page, 'bits').inputValue(), '8');
-		assert.equal(await control(page, 'loop').inputValue(), '8');
+		await until(
+			async () =>
+				(await control(page, 'bits').inputValue()) === '8' &&
+				(await control(page, 'loop').inputValue()) === '8',
+			'captured Auto PCM fields restored',
+		);
 		checks.push(
 			'Capture copies full PCM8, loop start8, reference C3, Envelope, LFO and direct mix into the editable Synth without discarding Pause',
 		);
@@ -715,6 +723,7 @@ async function check(browser, engine, origin, fixture) {
 		checks.push('Stop during precommit preparation cancels Capture before any authored load');
 		step('hardware Attack / loop link preview keeps the draft and frozen song');
 		await page.uncheck('#scspSsfLiveEnabled');
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		await page.click('[data-chip-action="scsp-square"]');
 		await control(page, 'root').fill('500');
 		await control(page, 'root').dispatchEvent('change');
@@ -756,6 +765,7 @@ async function check(browser, engine, origin, fixture) {
 		await noHeld();
 		await pcm(page, false);
 		await page.uncheck('#scspSsfLiveEnabled');
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		assert.equal(await canvas(page), linkDraftWave);
 		assert.equal(await control(page, 'root').inputValue(), '500');
 		assert(await page.locator('[data-chip-action="scsp-apply"]').isEnabled());
@@ -1007,6 +1017,7 @@ const server = http.createServer(async (request, response) => {
 	}
 	const receipt = {
 		schemaVersion: 1,
+		elapsedSeconds: (Date.now() - startedAt) / 1000,
 		passed: !failure,
 		root: config.root,
 		entry: config.entry,

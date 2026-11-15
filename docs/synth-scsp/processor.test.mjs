@@ -106,6 +106,30 @@ test('processor Code shares authored groups and fences stale messages without st
 	assert.equal(f.p.instrument.read().voiceGroups[0].id, 'keyboard');
 });
 
+test('processor migrates idle physical edits and routes direct controls without stale resampler audio', async (t) => {
+	const source = await make(t, 48000),
+		target = await make(t, 48000),
+		pcm = Int8Array.from({ length: 128 }, (_, n) => (n < 64 ? 64 : -64));
+	await source.command('invokePhysical', ['applyPCM', [30, pcm, { rootNote: 69, loopStartSamples: 0 }]]);
+	await source.command('invokePhysical', ['setMix', [30, { totalLevel: 41 }]]);
+	const expected = await source.command('readPhysical', [30]);
+	await target.command('noteOn', ['old', 69]);
+	assert(target.render(333).left.some((value) => Math.abs(value) > 0.01));
+	await target.command('loadIdleState', [source.p.instrument.exportIdleState()]);
+	assert.deepEqual(await target.command('readPhysical', [30]), expected);
+	assert(target.render(128).left.every((value) => value === 0));
+	await target.command('physicalNoteOn', ['direct', 30, 69]);
+	assert.equal((await target.command('readAuthoring')).state.manualVoices[0].slot, 30);
+	assert(target.render(4096).left.some((value) => Math.abs(value) > 0.001));
+	assert.equal(await target.command('physicalNoteOff', ['direct']), true);
+	await target.command('physicalNoteOn', ['second', 31, 72]);
+	await target.command('stopPhysicalVoices');
+	const state = (await target.command('readAuthoring')).state;
+	assert.equal(state.slots[30].gate, false);
+	assert.equal(state.slots[31].gate, false);
+	assert.equal((await target.command('readPhysical', [30])).sample.id, expected.sample.id);
+});
+
 test('processor accepts fractional performance bend, preserves portable transpose and resets on command', async (t) => {
 	const f = await make(t, 48000);
 	await f.command('setConfig', [{ mode: 'fm2', transpose: 2 }]);

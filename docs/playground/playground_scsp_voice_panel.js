@@ -151,12 +151,12 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     };
   }
   function restoreDraft(checkpoint) {
-    const sample=state?.channels?.[selected]?.sample;
-    if(disposed||!checkpoint||checkpoint.slot!==selected||!sample)return false;
+    const voice=state?.channels?.[selected],sample=voice?.sample;
+    if(disposed||!checkpoint||checkpoint.slot!==selected||!voice)return false;
     if(!(checkpoint.pcm instanceof Int8Array)&&!(checkpoint.pcm instanceof Int16Array))throw new TypeError('Invalid SCSP draft PCM');
     loadSequence++;drawing=null;
     draft={pcm:checkpoint.pcm.slice(),sample:structuredClone(checkpoint.sample)};
-    draftKey=`${selected}:${sample.bankId}:${sample.id}`;dirty=true;
+    draftKey=`${selected}:${sample?.bankId}:${sample?.id}`;dirty=true;
     syncDraft();
     for(const [key,input]of [['root',tuning.input],['rate',rate.input],['loop',loop.input],['bits',bits],['padding',padding.input]])input.value=checkpoint.values[key];
     status.textContent=checkpoint.status;

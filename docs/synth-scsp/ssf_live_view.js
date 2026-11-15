@@ -35,6 +35,7 @@ export function setupScspSsfLiveView({
 	onChange = () => {},
 	onCapture = null,
 	getCaptureAvailability = () => ({ available: true }),
+	externalSelection = false,
 	document: doc = globalThis.document,
 } = {}) {
 	const byId = (id) => doc.getElementById(id);
@@ -118,35 +119,43 @@ export function setupScspSsfLiveView({
 	panelRoot.append(modulation);
 
 	function listen(node, type, callback) {
+		if (!node) return;
 		node.addEventListener(type, callback);
 		listeners.push(() => node.removeEventListener(type, callback));
 	}
-	function choose(index) {
+	function choose(index, { notify = true } = {}) {
+		if (!Number.isInteger(index) || index < 0 || index >= 32)
+			throw new RangeError('Choose a physical SSF slot 0..31');
+		if (disposed) return false;
+		const changed = selected !== index;
 		selected = index;
 		captureError = '';
-		select.value = String(index);
+		if (select) select.value = String(index);
 		render();
-		onChange();
+		if (notify && changed) onChange();
+		return changed;
 	}
-	const buttons = Array.from({ length: 32 }, (_, index) => {
-		const option = doc.createElement('option');
-		option.value = String(index);
-		option.textContent = `Slot ${index + 1}`;
-		select.append(option);
-		const button = doc.createElement('button');
-		button.type = 'button';
-		button.textContent = String(index + 1);
-		button.dataset.ssfSlot = String(index);
-		button.setAttribute('aria-label', `Inspect SSF slot ${index + 1}`);
-		button.setAttribute('aria-pressed', 'false');
-		listen(button, 'click', () => {
-			choose(index);
-			button.blur();
-		});
-		activity.append(button);
-		return button;
-	});
-	select.value = '0';
+	const buttons = externalSelection
+		? []
+		: Array.from({ length: 32 }, (_, index) => {
+				const option = doc.createElement('option');
+				option.value = String(index);
+				option.textContent = `Slot ${index + 1}`;
+				select.append(option);
+				const button = doc.createElement('button');
+				button.type = 'button';
+				button.textContent = String(index + 1);
+				button.dataset.ssfSlot = String(index);
+				button.setAttribute('aria-label', `Inspect SSF slot ${index + 1}`);
+				button.setAttribute('aria-pressed', 'false');
+				listen(button, 'click', () => {
+					choose(index);
+					button.blur();
+				});
+				activity.append(button);
+				return button;
+			});
+	if (select) select.value = '0';
 	listen(select, 'change', () => {
 		choose(Number(select.value));
 		select.blur();
@@ -205,7 +214,8 @@ export function setupScspSsfLiveView({
 		}
 		reference.disabled = capturing;
 		capture.disabled = !target || !available || !onCapture || capturing;
-		capture.textContent = capturing ? 'Capturing…' : 'Capture to Synth';
+		const captureLabel = capturing ? 'Capturing…' : 'Capture to Synth';
+		if (capture.textContent !== captureLabel) capture.textContent = captureLabel;
 		captureStatus.textContent =
 			captureError ||
 			reason ||
@@ -329,7 +339,8 @@ export function setupScspSsfLiveView({
 		readonly(Boolean(observing));
 		section.dataset.active = String(active);
 		section.dataset.frame = active ? String(snapshot.frame) : '';
-		select.disabled = !ssf || !enabled.checked || !usable(snapshot);
+		const selectionDisabled = !ssf || !enabled.checked || !usable(snapshot);
+		if (select) select.disabled = selectionDisabled;
 		renderCapture();
 		for (const [index, button] of buttons.entries()) {
 			const slot = active ? snapshot.slots[index] : null;
@@ -337,7 +348,7 @@ export function setupScspSsfLiveView({
 			button.dataset.active = String(sounding);
 			button.dataset.gate = String(Boolean(slot?.gate));
 			button.setAttribute('aria-pressed', String(active && index === selected));
-			button.disabled = select.disabled;
+			button.disabled = selectionDisabled;
 			button.title = slot
 				? `Slot ${index + 1} · ${sounding ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round(slot.envelopeLevel * 100)}%`
 				: `Slot ${index + 1}`;
@@ -346,7 +357,9 @@ export function setupScspSsfLiveView({
 		if (!active) {
 			projected = null;
 			status.textContent = !enabled.checked
-				? 'Live Off · authored instrument'
+				? externalSelection
+					? 'Live Off · Synth editor'
+					: 'Live Off · authored instrument'
 				: playback?.playing || playback?.playback === 'seeking'
 					? 'Waiting for an audible SSF snapshot.'
 					: playback?.paused
@@ -381,7 +394,7 @@ export function setupScspSsfLiveView({
 			typeof mode.loopMode === 'number'
 				? (loops[mode.loopMode] ?? `Loop ${mode.loopMode}`)
 				: mode.loopMode;
-		status.textContent = `${prefix} · Slot ${selected + 1} · ${slot.active ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round(slot.envelopeLevel * 100)}% ${phases[slot.envelopePhase] ?? ''} · ${source} ${mode.bits}-bit · Start ${hex(mode.startAddress)} · Loop ${mode.loopStart}–${mode.loopEnd} ${loop} · ${projected.read.pcm.length} preview samples · read-only`;
+		status.textContent = `${prefix} · ${externalSelection ? 'CH' : 'Slot '}${selected + 1} · ${slot.active ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round(slot.envelopeLevel * 100)}% ${phases[slot.envelopePhase] ?? ''} · ${source} ${mode.bits}-bit · Start ${hex(mode.startAddress)} · Loop ${mode.loopStart}–${mode.loopEnd} ${loop} · ${projected.read.pcm.length} preview samples · read-only`;
 		return true;
 	}
 	return {
@@ -404,6 +417,9 @@ export function setupScspSsfLiveView({
 			return projected.read;
 		},
 		getSelectedSlot: () => selected,
+		selectSlot(index, { notify = false } = {}) {
+			return choose(index, { notify });
+		},
 		getSelectedTarget: selectedTarget,
 		getAuditionTarget() {
 			return playback?.playback === 'paused' ? selectedTarget() : null;

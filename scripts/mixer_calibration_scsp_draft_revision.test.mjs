@@ -6,14 +6,18 @@ import {SCSP_DRAFT_REVISION_PATH as path,SCSP_DRAFT_REVISION_RECEIPT_PATH as rec
   SCSP_DRAFT_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   restoreMixerCalibrationScspDraftRevision as restore} from './mixer_calibration_scsp_draft_revision.mjs';
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+import {restoreMixerCalibrationScspEmptyDraftRevision} from './mixer_calibration_scsp_empty_draft_revision.mjs';
 
 const read=name=>readFileSync(new URL('../'+name,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
+// Inspect this historical layer's exact reviewed source. Current shipped bytes
+// are separately covered by the chained empty-slot draft revision tests.
+const currentSource=()=>restoreMixerCalibrationScspEmptyDraftRevision(path,read('docs/'+path));
 test('passive draft checkpoints reconstruct the exact measured source and retain all eight reports',()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);
   assert.equal(read(receiptPath).toString(),JSON.stringify(receipt,null,2)+'\n');
-  const current=read('docs/'+path),before=restore(path,current);
+  const current=currentSource(),before=restore(path,current);
   assert.equal(before.length,receipt.before.bytes);assert.equal(sha(before),receipt.before.sha256);
   assert.equal(restore(path,before),before);
   for(const name of Object.keys(receipt.reports)){
@@ -24,7 +28,7 @@ test('passive draft checkpoints reconstruct the exact measured source and retain
   }
 });
 test('unrelated paths, future panel edits and detached source records remain stale',()=>{
-  const current=read('docs/'+path),changed=Buffer.from(current);changed[Math.floor(changed.length/2)]^=1;
+  const current=currentSource(),changed=Buffer.from(current);changed[Math.floor(changed.length/2)]^=1;
   for(const bytes of [changed,Buffer.concat([current,Buffer.from('\n')]),Buffer.from("import './future-audio.js';\n"+current)]){
     assert.equal(restore(path,bytes),bytes);
     assert.throws(()=>fresh({path,bytes,record:receipt.before}),/remeasure/);
@@ -37,7 +41,7 @@ test('unrelated paths, future panel edits and detached source records remain sta
     assert.throws(()=>fresh({path,bytes:current,record}));
 });
 test('changed historical measurement bytes cannot authorize the passive UI insertion',()=>{
-  const current=read('docs/'+path);
+  const current=currentSource();
   for(const target of Object.keys(receipt.reports))assert.throws(()=>restore(path,current,{readSource(url){
     const bytes=readFileSync(url);return url.pathname.endsWith('/'+target)?Buffer.concat([bytes,Buffer.from([0])]):bytes;
   }}),/original measurement changed/);

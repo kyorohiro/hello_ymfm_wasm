@@ -17,7 +17,7 @@ class Node {
   getBoundingClientRect(){return {left:0,top:0,width:800,height:180};}
   getContext(){return {clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){}};}
 }
-function rig(){
+function rig({onApply}={}){
   const doc={createElement:tag=>new Node(tag,doc),addEventListener(){},removeEventListener(){},defaultView:{addEventListener(){},removeEventListener(){}}};
   const root=new Node('div',doc),calls=[],requests=[];
   const sample=bankId=>({bankId,id:1,bits:16,length:8,rootFrequencyHz:440,sourceSampleRate:44100,loopStartSamples:0});
@@ -25,7 +25,7 @@ function rig(){
   const state=bankId=>({ramUsedBytes:16,samples:[sample(bankId)],channels:Array.from({length:32},()=>channel(bankId))});
   const panel=createPlaygroundScspVoicePanel({root,invoke(name,args){calls.push({name,args});
     if(name==='getPCM')return new Promise(resolve=>requests.push(resolve));
-    if(name==='applyPCM')return Promise.resolve(sample(2));
+    if(name==='applyPCM')return Promise.resolve(onApply?onApply(args):sample(2));
     return Promise.resolve();
   }});
   const all=node=>[node,...node.children.flatMap(all)];
@@ -67,7 +67,7 @@ test('unapplied PCM survives passive-bank migration and a late getPCM response, 
   r.panel.dispose();
 });
 
-test('checkpoint restoration rejects a different slot or unavailable sample without applying PCM',async()=>{
+test('checkpoint restoration rejects a different or unavailable slot without applying PCM',async()=>{
   const r=rig();r.panel.update(r.state(1));r.panel.setConnected(true);
   r.requests.shift()({pcm:new Int16Array(8),sample:r.sample(1)});await Promise.resolve();
   await r.action('sine').fire('click');const saved=r.panel.captureDraft();
@@ -76,4 +76,48 @@ test('checkpoint restoration rejects a different slot or unavailable sample with
   r.panel.update(null);assert.equal(r.panel.restoreDraft({...saved,slot:1}),false);
   assert.equal(r.calls.some(call=>call.name==='applyPCM'),false);
   r.panel.dispose();assert.equal(r.panel.captureDraft(),null);assert.equal(r.panel.restoreDraft(saved),false);
+});
+
+test('an empty slot retains a detached drawn draft across selection without allocating until Apply',async()=>{
+  let value,assigned=0;
+  const r=rig({onApply([slot,pcm,options]){
+    assert.equal(slot,31);assigned++;
+    const sample={...r.sample(2),length:pcm.length,rootFrequencyHz:options.baseFrequencyHz,
+      sourceSampleRate:options.sourceSampleRate,loopStartSamples:options.loopStartSamples??null};
+    value.channels[slot].sample=sample;value.samples.push(sample);return sample;
+  }});
+  value=r.state(1);value.channels[31].sample=null;
+  try{
+    r.panel.update(value);r.panel.setConnected(true);
+    r.requests.shift()({pcm:new Int16Array(8),sample:r.sample(1)});await Promise.resolve();
+    r.all(r.root).find(node=>node.dataset.scspSlot==='31').fire('click');
+    await r.action('triangle').fire('click');
+    const canvas=r.control('waveform');
+    canvas.fire('pointerdown',{button:0,pointerId:1,clientX:200,clientY:20,preventDefault(){}});
+    canvas.fire('pointerup');
+    r.control('root').value='147';r.control('rate').value='22050';r.control('loop').value='7';
+    const checkpoint=r.panel.captureDraft(),expected=checkpoint.pcm.slice();
+    assert.equal(value.channels[31].sample,null);
+    r.all(r.root).find(node=>node.dataset.scspSlot==='0').fire('click');
+    assert.equal(r.panel.restoreDraft(checkpoint),false);
+    r.all(r.root).find(node=>node.dataset.scspSlot==='31').fire('click');
+    assert.equal(r.panel.restoreDraft(checkpoint),true);
+    assert.equal(value.channels[31].sample,null);
+    assert.equal(assigned,0);
+    checkpoint.pcm.fill(0);
+    assert.deepEqual(r.panel.captureDraft().pcm,expected);
+    assert.equal(r.control('root').value,'147');assert.equal(r.control('loop').value,'7');
+    assert.equal(r.action('apply').disabled,false);
+    // A delayed request for the intervening populated slot cannot overwrite it.
+    r.requests.shift()({pcm:new Int16Array(8),sample:r.sample(1)});await Promise.resolve();
+    r.panel.update(value);
+    assert.deepEqual(r.panel.captureDraft().pcm,expected);
+    assert.equal(r.calls.some(call=>call.name==='setPreset'||call.name==='applyPCM'),false);
+    await r.action('apply').fire('click');
+    assert.equal(assigned,1);
+    assert.deepEqual(r.calls.find(call=>call.name==='applyPCM').args,[31,expected,
+      {baseFrequencyHz:147,sourceSampleRate:22050,loopStartSamples:7,modulationDepth:0}]);
+    assert.equal(value.channels[31].sample.length,expected.length);
+    assert.equal(r.action('apply').disabled,true);assert.equal(r.panel.captureDraft(),null);
+  }finally{r.panel.dispose();}
 });

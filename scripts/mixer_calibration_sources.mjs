@@ -21,6 +21,7 @@ import {restoreMixerCalibrationMonacoModelRevision} from './mixer_calibration_mo
 import {restoreMixerCalibrationNesNavigationRevision} from './mixer_calibration_nes_navigation_revision.mjs';
 import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration_scsp_navigation_revision.mjs';
 import {restoreMixerCalibrationScspDraftRevision} from './mixer_calibration_scsp_draft_revision.mjs';
+import {restoreMixerCalibrationScspEmptyDraftRevision} from './mixer_calibration_scsp_empty_draft_revision.mjs';
 import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
@@ -371,10 +372,12 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const emptyDraft=restoreMixerCalibrationScspEmptyDraftRevision(path,bytes),emptyDraftRevision=emptyDraft!==bytes;bytes=emptyDraft;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return emptyDraftRevision?'ui-scsp-empty-draft-checkpoint':'raw';
   const loopLink=restoreMixerCalibrationScspLoopLinkRevision(path,bytes),loopLinkRevision=loopLink!==bytes;bytes=loopLink;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return loopLinkRevision?'scsp-loop-link-hardware-api':'raw';
   const draftCheckpoint=restoreMixerCalibrationScspDraftRevision(path,bytes),draftRevision=draftCheckpoint!==bytes;bytes=draftCheckpoint;
-  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return draftRevision?'ui-scsp-draft-checkpoint':'raw';
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return emptyDraftRevision?'ui-scsp-empty-draft-checkpoint':draftRevision?'ui-scsp-draft-checkpoint':'raw';
   const outputGains=restoreMixerCalibrationYm2608OutputGainRevision(path,bytes,{report,record});
   if(outputGains!==bytes&&outputGains.length===record?.bytes&&sha(outputGains)===record.sha256)return 'ym2608-dormant-output-gain-api';
   const monacoModels=restoreMixerCalibrationMonacoModelRevision(path,bytes),monacoModelRevision=monacoModels!==bytes;bytes=monacoModels;

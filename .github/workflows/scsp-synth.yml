@@ -72,7 +72,7 @@ jobs:
           npm run test:scsp-synth
           npm run test:runtime:types
           node --test test/runtime/scsp_loop_link.test.mjs scripts/mixer_calibration_scsp_loop_link_revision.test.mjs
-          node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs scripts/mixer_calibration_scsp_draft_revision.test.mjs
+          node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs scripts/mixer_calibration_scsp_draft_revision.test.mjs scripts/mixer_calibration_scsp_empty_draft_revision.test.mjs
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci
           python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
@@ -82,6 +82,7 @@ jobs:
           node scripts/check_scsp_synth_ssf_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-browser.json --screenshots=release/scsp-synth-ssf-images
           node scripts/check_scsp_synth_live_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-live-browser.json --screenshots=release/scsp-synth-live-images
           node scripts/check_scsp_synth_capture_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-capture-browser.json --screenshots=release/scsp-synth-capture-images
+          node scripts/check_scsp_synth_channels_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-channels-browser.json --screenshots=release/scsp-synth-channels-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -98,4 +99,6 @@ jobs:
             release/scsp-synth-live-images/
             release/scsp-synth-capture-browser.json
             release/scsp-synth-capture-images/
+            release/scsp-synth-channels-browser.json
+            release/scsp-synth-channels-images/
           if-no-files-found: ignore

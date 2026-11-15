@@ -77,6 +77,12 @@ class SynthProcessor extends AudioWorkletProcessor {
 					} else if (data.method === 'readAudition') value = this.audition.read();
 					else if (
 						[
+							'loadIdleState',
+							'readPhysical',
+							'invokePhysical',
+							'physicalNoteOn',
+							'physicalNoteOff',
+							'stopPhysicalVoices',
 							'noteOn',
 							'noteOff',
 							'setConfig',
@@ -96,6 +102,7 @@ class SynthProcessor extends AudioWorkletProcessor {
 						value = this.instrument[data.method](...(data.args ?? []));
 						if (
 							data.method === 'stopVoices' ||
+							data.method === 'loadIdleState' ||
 							(data.method === 'loadPatch' && !codeActive) ||
 							(data.method !== 'loadPatch' &&
 								(config.mode !== this.instrument.config.mode ||

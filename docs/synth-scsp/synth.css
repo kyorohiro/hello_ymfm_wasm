@@ -493,13 +493,6 @@ footer {
 #scspSongStatus {
 	margin: 8px 0 0;
 }
-#scspChannelTabs {
-	flex-wrap: wrap;
-}
-#scspChannelTabs button {
-	padding: 7px 10px;
-	font-size: 0.72rem;
-}
 .scsp-live-controls label {
 	display: flex;
 	align-items: center;
@@ -889,10 +882,6 @@ footer {
 	gap: 7px;
 	font-size: 0.76rem;
 }
-#scspSsfSlot {
-	min-width: 90px;
-	overflow: hidden;
-}
 #scspSsfReference {
 	min-width: 66px;
 }
@@ -903,39 +892,56 @@ footer {
 #scspSsfCaptureStatus[data-error='true'] {
 	color: #edc285;
 }
-.scsp-ssf-slots {
+#scspChipPanel {
+	container-type: inline-size;
+	container-name: scsp-channels;
+}
+.scsp-channel-tabs {
 	display: grid;
 	grid-template-columns: repeat(16, minmax(0, 1fr));
 	gap: 4px;
-	margin-top: 10px;
+	margin-top: 12px;
 }
-.scsp-ssf-slots button {
+.scsp-channel-tabs button {
 	position: relative;
 	min-width: 0;
-	min-height: 28px;
+	min-height: 30px;
 	padding: 3px 0 5px;
 	font-size: 0.72rem;
 	overflow: hidden;
+	border-radius: 6px 6px 0 0;
 }
-.scsp-ssf-slots button::after {
+.scsp-channel-tabs button[data-scsp-channel='auto'] {
+	grid-column: 1 / -1;
+	justify-self: start;
+	min-width: 72px;
+}
+.scsp-channel-tabs[data-source='ssf'] button::after {
 	content: '';
 	position: absolute;
 	bottom: 0;
 	left: 0;
 	height: 3px;
-	width: calc(100% * var(--ssf-env, 0));
+	width: calc(100% * var(--scsp-env, 0));
 	background: #7dd9e9;
 }
-.scsp-ssf-slots button[data-active='true'] {
+.scsp-channel-tabs button[data-active='true'] {
 	background: #315c78;
 	color: #e8f7ff;
 }
-.scsp-ssf-slots button[data-active='true'][data-gate='false']::after {
+.scsp-channel-tabs button[data-active='true'][data-gate='false']::after {
 	background: #e6b664;
 }
-.scsp-ssf-slots button[aria-pressed='true'] {
+.scsp-channel-tabs button[aria-selected='true'] {
 	outline: 2px solid #9bdcff;
 	outline-offset: 1px;
+}
+.scsp-channel-summary {
+	margin: 8px 0 0;
+	font-size: 0.72rem;
+	line-height: 1.6;
+	color: var(--muted);
+	overflow-wrap: anywhere;
 }
 .scsp-ssf-live-status {
 	margin: 8px 0 0;
@@ -968,8 +974,13 @@ footer {
 	color: var(--ink);
 	font-weight: 700;
 }
-@media (max-width: 760px) {
-	.scsp-ssf-slots {
+@container scsp-channels (max-width: 680px) {
+	.scsp-channel-tabs {
 		grid-template-columns: repeat(8, minmax(0, 1fr));
+	}
+}
+@container scsp-channels (max-width: 340px) {
+	.scsp-channel-tabs {
+		grid-template-columns: repeat(6, minmax(0, 1fr));
 	}
 }

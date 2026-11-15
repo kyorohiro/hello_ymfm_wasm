@@ -8,6 +8,7 @@ const { tmpdir } = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { chromium, webkit } = require('playwright');
 
+const startedAt = Date.now();
 const repo = path.resolve(__dirname, '..');
 const config = {
 	root: path.join(repo, 'docs'),
@@ -171,18 +172,19 @@ const view = (page) =>
 			liveVisible: Boolean(section && !section.hidden),
 			liveActive: section?.dataset.active,
 			enabled: document.getElementById('scspSsfLiveEnabled')?.checked,
-			slot: document.getElementById('scspSsfSlot')?.value,
+			slot: document.querySelector('#scspChannelTabs [aria-selected="true"]')?.dataset
+				.scspChannel,
 			frame: section?.dataset.frame,
 			voiceSlot: voice?.dataset.ssfSlot,
 			liveStatus: document.getElementById('scspSsfLiveStatus')?.textContent,
-			activity: [...document.querySelectorAll('#scspSsfSlots [data-ssf-slot]')].map(
-				(button) => ({
-					slot: Number(button.dataset.ssfSlot),
+			activity: [...document.querySelectorAll('#scspChannelTabs [data-scsp-channel]')]
+				.filter((button) => button.dataset.scspChannel !== 'auto')
+				.map((button) => ({
+					slot: Number(button.dataset.scspChannel),
 					active: button.dataset.active,
 					gate: button.dataset.gate,
-					selected: button.getAttribute('aria-pressed'),
-				}),
-			),
+					selected: button.getAttribute('aria-selected'),
+				})),
 		};
 	});
 async function canvas(page) {
@@ -199,7 +201,7 @@ async function authoring(page) {
 	});
 }
 async function selectSlot(page, slot) {
-	await page.selectOption('#scspSsfSlot', String(slot));
+	await page.click('#scspChannelTabs [data-scsp-channel="' + slot + '"]');
 	await until(
 		() =>
 			view(page).then(
@@ -287,8 +289,13 @@ async function check(browser, engine, origin, fixture) {
 		await load(page, 'live-driver.ssf', fixture.bytes);
 		assert.equal((await graph(page)).contexts, 0);
 		assert((await view(page)).liveVisible);
-		assert.equal(await page.locator('#scspSsfSlots [data-ssf-slot]').count(), 32);
-		checks.push('Loading SSF silently reveals 32 physical slot controls');
+		assert.equal(
+			await page
+				.locator('#scspChannelTabs [data-scsp-channel]:not([data-scsp-channel="auto"])')
+				.count(),
+			32,
+		);
+		checks.push('Loading SSF silently binds the permanent 32 physical channel controls');
 
 		stage = 'Live activity and changing values';
 		await page.click('#scspSongPlay');
@@ -398,6 +405,7 @@ async function check(browser, engine, origin, fixture) {
 
 		stage = 'Live Off and resume';
 		await page.uncheck('#scspSsfLiveEnabled');
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		await until(
 			() =>
 				control(page, 'attackRate')
@@ -407,7 +415,10 @@ async function check(browser, engine, origin, fixture) {
 		);
 		assert(await control(page, 'attackRate').isEnabled());
 		assert.equal(await control(page, 'totalLevel').inputValue(), '18');
-		assert.equal(await canvas(page), authoredWave);
+		await until(
+			async () => (await canvas(page)) === authoredWave,
+			'authored waveform restored',
+		);
 		assert.equal(await control(page, 'root').inputValue(), '500');
 		assert(await page.locator('[data-chip-action="scsp-apply"]').isEnabled());
 		assert.equal((await view(page)).pause, 'Resume');
@@ -467,9 +478,13 @@ async function check(browser, engine, origin, fixture) {
 		stage = 'Stop restores editing and keyboard';
 		await page.click('#scspSongStop');
 		await pcm(page, false);
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		await until(() => control(page, 'attackRate').isEnabled(), 'editor reenabled');
 		assert.equal(await control(page, 'attackRate').inputValue(), '19');
-		assert.equal(await canvas(page), authoredWave);
+		await until(
+			async () => (await canvas(page)) === authoredWave,
+			'authored waveform restored',
+		);
 		assert.equal(await authoring(page), authoredState);
 		await page.click('#synthInputKeyboardTab');
 		await page.locator('#keyboard .key[data-key="z"]').hover();
@@ -508,12 +523,16 @@ async function check(browser, engine, origin, fixture) {
 			'natural end',
 		);
 		await pcm(page, false);
+		await page.click('#scspChannelTabs [data-scsp-channel="auto"]');
 		assert(await control(page, 'attackRate').isEnabled());
 		assert.equal(await control(page, 'attackRate').inputValue(), '19');
 		await page.click('#scspSongDemo');
 		await until(() => view(page).then((value) => !value.liveVisible), 'VGM leaves SSF view');
 		assert(await control(page, 'attackRate').isEnabled());
-		assert.equal(await canvas(page), authoredWave);
+		await until(
+			async () => (await canvas(page)) === authoredWave,
+			'authored waveform restored',
+		);
 		checks.push('Natural end and selecting VGM restore the authored view');
 
 		stage = 'Code after Live';
@@ -627,6 +646,7 @@ const server = http.createServer(async (request, response) => {
 	}
 	const receipt = {
 		schemaVersion: 1,
+		elapsedSeconds: (Date.now() - startedAt) / 1000,
 		passed: !failure,
 		root: config.root,
 		entry: config.entry,

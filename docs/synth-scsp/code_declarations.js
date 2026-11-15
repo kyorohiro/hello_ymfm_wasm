@@ -62,6 +62,8 @@ interface ScspCodePatch {
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
   voiceGroups:{id:string;midi:number;slots:number[];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
+  /** Keyboard owners of physical CH tabs, separate from Auto / Code groups. */
+  manualVoices:{id:string;slot:number;midi:number;baseFrequencyHz:number;held:boolean;order:number}[];
   codeLanes:{channel:number;midi:number;groupId:string|null;slots:number[]}[];
 }
 /** Borrow the editor's PCM / FM sound and voice allocator.

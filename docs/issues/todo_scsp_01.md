@@ -2,6 +2,8 @@
 
 2026-10-31：追加開発はいったん区切る。[再開用TODO](todo_scsp_resume_20261031.md)を入口にする。先にGitHub Actionsを確認・修正し、他機能のリリース準備へ進む。
 
+2026-11-15：専用SynthのCode／SSF Live／Captureに続き、[Auto／物理CH別の表示・編集・鍵盤操作](todo_scsp_synth_channels_20261115.md)を追加。Codeの割当先を表示し、Auto再利用時の上書きと保存対象を明示する。DSPアセンブラ・自由配線は引き続き後続。
+
 目的：PS1 SPUと同様に、共通Native／WASMコアからPlayground・Synth・Nativeへ広げる。
 READMEの「音源技術を読み解き、学び、再構成できる形で残す」目標に沿い、自作データと動く解説を併設する。
 

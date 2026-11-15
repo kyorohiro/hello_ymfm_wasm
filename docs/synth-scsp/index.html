@@ -234,13 +234,6 @@
 									><input id="scspSsfLiveEnabled" type="checkbox" checked /> Live
 									from SSF</label
 								>
-								<label for="scspSsfSlot"
-									>Slot
-									<select
-										id="scspSsfSlot"
-										aria-label="SSF slot to inspect"
-									></select
-								></label>
 								<label for="scspSsfReference"
 									>Reference key
 									<select
@@ -260,7 +253,8 @@
 								<details class="scsp-inline-help">
 									<summary aria-label="About SSF Live view">?</summary>
 									<p>
-										Inspect the physical SCSP slot at the audible song position.
+										Choose a physical CH below the SCSP tab to inspect the
+										SSF slot at the audible song position.
 										Pause keeps one snapshot for all 32 slots. The PCM preview
 										reads a short prefix at the programmed sample start.
 										Envelope, LFO, mix and modulation show hardware values. Live
@@ -275,12 +269,6 @@
 									</p>
 								</details>
 							</div>
-							<div
-								id="scspSsfSlots"
-								class="scsp-ssf-slots"
-								role="group"
-								aria-label="SSF slot activity"
-							></div>
 							<p id="scspSsfLiveStatus" class="scsp-ssf-live-status" role="status">
 								Waiting for SSF playback.
 							</p>
@@ -367,6 +355,30 @@
 							</button>
 						</div>
 						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
+							<div
+								id="scspChannelTabs"
+								class="scsp-channel-tabs"
+								role="tablist"
+								aria-label="SCSP editing and keyboard channel"
+							></div>
+							<p id="scspChannelSummary" class="scsp-channel-summary" role="status">
+								Auto · grouped keyboard / Code voices.
+							</p>
+							<div id="scspPhysicalControls" class="scsp-fields" hidden>
+								<label for="scspPhysicalFrequency">Frequency · Hz
+									<input id="scspPhysicalFrequency" type="number" min="0.001"
+										max="4000000" step="any" value="440" disabled />
+								</label>
+								<details class="scsp-inline-help">
+									<summary aria-label="About physical SCSP channel editing">?</summary>
+									<p>Physical CH edits change the runtime slot. Auto keyboard or
+										Code allocation may overwrite that slot when it reuses it.
+										Auto presets save sources A–F (CH1–CH6). Other physical
+										channels are runtime edits. Selecting an empty CH changes no
+										sound; playing a note copies source A
+										into that CH.</p>
+								</details>
+							</div>
 							<section class="voice-routing" aria-labelledby="voiceSettingsTitle">
 								<div class="section-heading">
 									<h2 id="voiceSettingsTitle">Sound source</h2>

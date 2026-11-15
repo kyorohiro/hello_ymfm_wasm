@@ -17,20 +17,40 @@ Numeric fields have minus / plus buttons and horizontal dragging. Their
 original number inputs also accept typed values. Selecting a choice releases
 focus so computer keys can continue playing.
 
-Choose PCM, 2-operator FM, 4-operator FM or 6-operator FM. Six slots hold
-the A–F editing sources. The other 26 slots provide 26 PCM, 13 two-op,
-6 four-op or 4 six-op simultaneous voices. Each key owns its complete group.
-Released groups are stolen first, followed by the oldest held group.
+The permanent row below the SCSP tab chooses **Auto** or physical **CH1–CH32**.
+Selection alone does not program the selected Synth slot, assign PCM or stop
+Code. Auto provides the grouped instrument and its A–F editing sources.
+A physical CH shows that slot's requested PCM, Envelope,
+LFO, mix, frequency and sound-stack modulation, and the keyboard plays that CH.
+Frequency is its requested pitch in Hz; Root frequency remains the PCM's
+tuning reference. These are requested settings and gates, not a live native
+envelope-phase meter.
+
+In Auto, choose PCM, 2-operator FM, 4-operator FM or 6-operator FM. Physical
+CH1–CH6 hold the A–F editing sources. The other 26 slots provide 26 PCM,
+13 two-op, 6 four-op or 4 six-op simultaneous voices. Each key owns its complete
+group. Released groups are stolen first, followed by the oldest held group.
+
+Physical editing addresses one slot without spreading the change to other
+voices. CH1–CH6 also edit Auto sources A–F. Selecting an empty CH leaves it
+empty. Its first physical keyboard attack copies the current source A into
+it; Apply can assign your edited PCM instead. Auto allocation can reuse and
+overwrite CH7–CH32, including a silent modulator or a held manual note;
+choosing a CH does not reserve it.
+The last attack owns the slot, so releasing an older key cannot stop its
+replacement. Runtime CH7–CH32 edits are not a saved bank and may be cleared
+by Auto reuse or instrument replacement.
 
 Chain connects operators in series. Pairs uses parallel two-op groups.
 Branch provides a tree with up to two inputs per slot. The diagram shows
 every connection and output, and its A–F buttons select the editing operator
 on the same waveform canvas. These fixed connections and grouped allocation
-are software tools over the SCSP slot modulation hardware. Free wiring and
-operator feedback remain follow-up work.
+are software tools over the SCSP slot modulation hardware. A graphical
+free-wiring editor and operator-feedback tools remain follow-up work.
 
 Draw a waveform or import browser-supported audio, apply the PCM, then play
-a new note. Apply before changing the editing operator to retain a drawing.
+a new note. Unapplied drawings stay with their Auto operator or physical CH
+when you switch targets; Apply makes the edited PCM available for playback.
 Each operator has its own PCM, envelope, LFO, mix and frequency ratio.
 The waveform editor accepts audio files up to 64 MiB and selects 2–65,535
 mono samples for SCSP RAM. Lower the selection rate for longer regions.
@@ -38,8 +58,8 @@ Set the recorded root MIDI note manually. Operators with incoming FM require
 a full forward loop starting at sample zero. The software allocator adds
 repeated waveform guards for supported modulation depths 0–12.
 
-PCM and envelope edits affect new notes. Sounding and releasing groups keep
-their original PCM. Pitch, ratios, modulation depth, mix and LFO update active
+In Auto, PCM and envelope edits affect new notes. Sounding and releasing groups
+keep their original PCM. Pitch, ratios, modulation depth, mix and LFO update active
 groups. Mode and Connection changes stop existing notes after validation.
 All modulator ratios sets A to 1 and B–F to the chosen ratio, after which each
 ratio can be edited separately. PCM uses A at the keyboard pitch. Output
@@ -84,6 +104,14 @@ allocated physical slot group for the selected PCM or FM mode. Source-editing
 methods such as `setMix`, `setEnvelope`, `setLfo` and `applyPCM` address
 operators A–F through indices 0–5.
 
+The CH tabs always name physical slots. For example, Code `noteOn(CH1, ...)`
+can allocate physical CH7; the channel summary displays that mapping. Selecting
+CH7 lets you inspect or edit that destination while the program continues.
+It does not reinterpret Code's CH1 constant. The scoped Code API retains its
+logical lanes and A–F source operations; internal raw physical-slot commands
+are not exposed as a new public Code API. Copy operator JavaScript remains
+available in Auto.
+
 ```javascript
 // Change source A's mix while the melody continues.
 await scsp.setMix(0, { pan: 8 });
@@ -106,9 +134,11 @@ cannot load. Expand places Code beside Files. The live runtime supports
 Files contains `index.js`, reusable modules, JSON instruments and original
 recordings. Use its context menu to duplicate, rename, delete or create files
 and folders. Menu contains file and Cassette import / export. Save to presets
-stores the current applied instrument in `presets/`. Selecting an instrument
-loads it while keeping Code running. Selecting JSON in Keyboard view retains
-that view. JSON can be inspected in Code.
+stores the applied Auto instrument in `presets/`. In a physical CH view the
+button reads Save Auto sound. Presets and the Cassette's instrument settings
+save A–F (physical CH1–CH6), not runtime CH7–CH32 overrides or sounding voices.
+Selecting an instrument returns to Auto while keeping Code running.
+Selecting JSON in Keyboard view retains that view. JSON can be inspected in Code.
 
 Local drafts save in browser storage. Export Cassette creates a portable
 project. Files uses a 12 MiB aggregate budget, reserving the remaining space
@@ -168,10 +198,11 @@ DMA execution, 256 KiB memory mode, extra-header overrides, additional chips
 and unsupported core registers produce explicit errors.
 
 Song playback uses its own SCSP state and RAM through the existing
-AudioContext and Master output. During playback, the keyboard auditions the
-authored instrument. Starting a song stops Code, and Run stops the song.
-Live from SSF is enabled by default. Its 32 numbered buttons show sampled
-slot activity and envelope state. Select a slot to inspect its raw PCM
+AudioContext and Master output. During playback, the keyboard plays the
+selected Synth target, independently of the song's machine. Starting a song
+stops Code, and Run stops the song.
+Live from SSF is enabled by default. The same permanent CH row shows sampled
+native slot activity and envelope state. Select a CH to inspect its raw PCM
 prefix, envelope codes, LFO, attenuation, pan and sound-stack modulation in
 the existing controls. This view is read-only. The waveform previews up to
 256 raw samples from the programmed start address. The inspector shows the
@@ -179,11 +210,14 @@ physical sample playback rate in samples per second. A recording's original
 root note is unknown. The loop mode and programmed boundaries appear beside
 the slot status. Noise and zero sources have their own source labels.
 
-Pause freezes one native snapshot for all slot choices. Live Off restores
-the authored instrument and its unapplied waveform draft. Stop and natural
-end also restore that view. Selecting an authored preset while Live switches
-back to the instrument view and keeps the song transport available. Save
-actions become available in the authored view.
+Pause freezes one native snapshot for all CH choices. Live Off keeps the
+selected CH and shows its editable Synth slot, not the SSF slot. Stop and
+natural end also return to that selected editor target. Choose Auto explicitly
+to restore the grouped instrument and its unapplied operator draft; selecting
+Auto turns Live off. Live On uses the selected CH, or the previously inspected
+SSF CH when returning from Auto (initially CH1). Selecting an authored preset
+while Live returns to Auto and keeps the song transport available. Save
+actions become available in the editor view.
 
 While paused with Live On, the keyboard auditions the selected supported PCM
 slot. Reference key defaults to C4, with C2–C6 available. That key reproduces
@@ -193,11 +227,11 @@ root note. Audition uses an independent native SCSP handle in the existing
 AudioWorklet and AudioContext. The authored PCM, settings and unapplied draft
 remain intact, and the paused song's sound CPU / RAM / transport stay fixed.
 Changing slot, reference key, Live mode or transport clears audition voices.
-Live Off restores ordinary authored-instrument keyboard playing.
+Live Off restores keyboard playing on the selected physical Synth CH.
 
 Capture to Synth copies the click-time slot into the editable instrument,
-switches Live Off and keeps Pause / Resume available. Capturing during
-playback pauses the song first. The full programmed PCM, format, supported
+selects Auto, switches Live Off and keeps Pause / Resume available. Capturing
+during playback pauses the song first. The full programmed PCM, format, supported
 loop boundaries, Envelope, LFO, total level, direct level and pan are copied.
 Use Save to presets in the authored view to retain the instrument under
 `presets/`, or export its portable JSON from Menu. Live On returns to the

@@ -46,11 +46,13 @@ class Node {
 		this.value = '';
 		this.checked = false;
 		this.disabled = false;
+		this.textWrites = 0;
 	}
 	get textContent() {
 		return this._text + this.children.map((child) => child.textContent).join('');
 	}
 	set textContent(value) {
+		this.textWrites++;
 		this._text = value;
 		this.children = [];
 	}
@@ -127,6 +129,10 @@ function rig(options = {}) {
 	);
 	nodes.get('scspSsfLiveEnabled').checked = true;
 	nodes.get('scspSaveSoundAs').disabled = true;
+	if (options.externalSelection) {
+		nodes.delete('scspSsfSlot');
+		nodes.delete('scspSsfSlots');
+	}
 	const authorSections = [new Node(), new Node()];
 	const doc = {
 		getElementById: (id) => nodes.get(id),
@@ -431,4 +437,49 @@ test('Capture uses the clicked snapshot, prevents duplicate requests and preserv
 	} finally {
 		failed.ui.dispose();
 	}
+});
+
+test('external channel selection needs no duplicate SSF chooser and preserves frozen targets', () => {
+	const r = rig({ externalSelection: true }),
+		source = snapshot();
+	try {
+		assert.equal(r.nodes.has('scspSsfSlot'), false);
+		assert.equal(r.nodes.has('scspSsfSlots'), false);
+		r.ui.update({ ...playing, playing: false, paused: true, playback: 'paused' }, source);
+		assert.equal(r.ui.selectSlot(7), true);
+		assert.equal(r.ui.getSelectedSlot(), 7);
+		assert.equal(r.ui.getAuditionTarget().slot, 7);
+		assert.equal(r.panelRoot.dataset.ssfSlot, '7');
+		assert.equal(r.nodes.get('scspSsfLive').dataset.frame, '640');
+		assert.match(r.nodes.get('scspSsfLiveStatus').textContent, /Paused · frozen · CH8/);
+		assert.equal(r.changed, 0, 'root synchronization avoids recursive change notifications');
+		assert.equal(r.ui.selectSlot(8, { notify: true }), true);
+		assert.equal(r.changed, 1);
+		assert.equal(r.ui.selectSlot(8, { notify: true }), false);
+		assert.equal(r.changed, 1);
+		for (const invalid of [-1, 32, 0.5, null])
+			assert.throws(() => r.ui.selectSlot(invalid), /physical SSF/);
+		assert.equal(r.ui.getSelectedSlot(), 8);
+		r.ui.setEnabled(false);
+		assert.equal(r.ui.getAuditionTarget(), null);
+		assert.equal(r.ui.getSelectedSlot(), 8);
+		assert.equal(r.inputs.get('root').value, '147');
+		assert.equal(r.pixels, 77);
+		r.ui.setEnabled(true);
+		assert.equal(r.ui.getAuditionTarget().slot, 8);
+		assert.equal(r.states.length, 0);
+	} finally {
+		r.ui.dispose();
+	}
+});
+
+test('periodic Live updates retain the unchanged Capture button child text during pointer gestures', () => {
+	const r=rig({onCapture:async()=>{}}),source=snapshot();
+	try{
+		r.ui.update(playing,source);
+		const button=r.nodes.get('scspSsfCapture'),writes=button.textWrites;
+		assert.equal(button.textContent,'Capture to Synth');
+		for(let tick=0;tick<8;tick++)r.ui.update(playing,source);
+		assert.equal(button.textWrites,writes,'unchanged text must not be replaced between trusted down/up');
+	}finally{r.ui.dispose();}
 });
