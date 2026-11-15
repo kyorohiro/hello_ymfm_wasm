@@ -38,6 +38,7 @@ const report = (error) => {
 let audio = null,
 	opening = null,
 	disposed = false,
+	switchingAudioOutput = false,
 	preset = createDefaultPreset(),
 	target = null,
 	octave = 0,
@@ -742,7 +743,7 @@ function renderKeyboard() {
 	$('octaveUp').disabled = octave >= 2;
 }
 function press(source, entry) {
-	if (disposed || notes.has(source) || codeHost?.getState()?.busy) return;
+	if (disposed || switchingAudioOutput || notes.has(source) || codeHost?.getState()?.busy) return;
 	if (songState.busy) {
 		status('Preparing the reference song…');
 		return;
@@ -770,6 +771,7 @@ function press(source, entry) {
 			};
 			const current = () =>
 				!disposed &&
+				!switchingAudioOutput &&
 				notes.get(source) === note &&
 				note.generation === selectionGeneration &&
 				songPlayer === owner &&
@@ -823,6 +825,7 @@ function press(source, entry) {
 			.noteOn(note.id, note.midi, {
 				isCurrent: () =>
 					!disposed &&
+					!switchingAudioOutput &&
 					notes.get(source) === note &&
 					pausedSelection()?.key === note.selectionKey,
 			})
@@ -843,9 +846,14 @@ function press(source, entry) {
 	syncActivity();
 	void enqueue(async () => {
 		const host = await ensureAudio();
-		if (notes.get(source) !== note) return;
+		if (switchingAudioOutput || notes.get(source) !== note) {
+			if (notes.get(source) === note) notes.delete(source);
+			syncActivity();
+			return;
+		}
 		await host.command('noteOn', [note.id, note.midi, note.channel]);
-		if (notes.get(source) !== note) await host.command('noteOff', [note.id]);
+		if (switchingAudioOutput || notes.get(source) !== note)
+			await host.command('noteOff', [note.id]);
 		visualizer.wake();
 	}).catch((error) => {
 		if (notes.get(source) === note) notes.delete(source);
@@ -1048,8 +1056,10 @@ function renderSong(state) {
 songPlayer = createAswanSongPlayer({
 	getAudio: ensureAudio,
 	beforePlay: async () => {
+		checkPerformanceOutput();
 		await codeHost?.stop();
 		await stopKeyboard();
+		checkPerformanceOutput();
 	},
 	onState: renderSong,
 	onStatus: (message, error) => {
@@ -1064,12 +1074,15 @@ audition = createAswanSongAudition({
 	onError: report,
 });
 async function playSong() {
+	checkPerformanceOutput();
 	if (songState.playing) return songPlayer.pause();
 	if (songState.paused) {
 		const session = songPlayer.getEditSession();
 		await queue;
+		checkPerformanceOutput();
 		if (!songState.paused || songPlayer.getEditSession() !== session) return false;
 		await stopKeyboard();
+		checkPerformanceOutput();
 		return songPlayer.resume();
 	}
 	const file = codeHost.project.fs.get(selectedSongPath);
@@ -1079,6 +1092,7 @@ async function playSong() {
 		await songPlayer.load(file.data, selectedSongPath.split('/').pop());
 		loadedSongKey = key;
 	}
+	checkPerformanceOutput();
 	return songPlayer.play();
 }
 $('aswanSongPlayButton').addEventListener('click', () => {
@@ -1102,7 +1116,13 @@ $('aswanSongSelect').addEventListener('change', () => {
 	$('aswanSongSelect').blur();
 });
 codeHost = setupAswanCodeHost({
-	ensureAudio: () => enqueue(ensureAudio),
+	ensureAudio: () =>
+		enqueue(async () => {
+			checkPerformanceOutput();
+			const host = await ensureAudio();
+			checkPerformanceOutput();
+			return host;
+		}),
 	getAudio: () => audio,
 	getSettings: () => readPreset(preset),
 	applySettings: (value, options) => {
@@ -1112,7 +1132,10 @@ codeHost = setupAswanCodeHost({
 	},
 	stopKeyboard,
 	stopSong: () => songPlayer.stop(),
-	beforeRun: invalidateCodeHighlight,
+	beforeRun: () => {
+		checkPerformanceOutput();
+		invalidateCodeHighlight();
+	},
 	onActivity: codeActivity,
 	setStatus: status,
 });
@@ -1324,3 +1347,50 @@ void codeHost.ready
 		display(true);
 	})
 	.catch(report);
+
+// Desktop adapters reroute only the final Master output. The same chip,
+// calibrated Mixer, reference player and visualizer remain in the Web Audio graph.
+function checkPerformanceOutput() {
+	if (disposed) throw new DOMException('ASWAN closed', 'AbortError');
+	if (switchingAudioOutput) throw new Error('Wait for the audio output change to finish.');
+}
+async function stopDesktopPlayback() {
+	if (disposed) return false;
+	selectionGeneration++;
+	authoredPitch = 0;
+	updatePitchUi(0);
+	await songPlayer.stop();
+	await codeHost.stop();
+	await stopKeyboard();
+	await enqueue(async () => {
+		if (!audio) return;
+		await audio.command('stop');
+		await audio.command('setPitch', [0]);
+	});
+	updatePitchUi(0);
+	syncActivity();
+	return true;
+}
+const localDesktop =
+	(location.protocol === 'tauri:' && location.hostname === 'localhost') ||
+	(['http:', 'https:'].includes(location.protocol) && location.hostname === 'tauri.localhost');
+if (
+	window.top === window &&
+	localDesktop &&
+	typeof window.__TAURI_INTERNALS__?.invoke === 'function'
+) {
+	Object.defineProperty(window, 'tetoricaSynthAudio', {
+		value: Object.freeze({
+			setSwitching(value) {
+				switchingAudioOutput = value === true;
+			},
+			async ensureReady() {
+				if (disposed) throw new DOMException('ASWAN closed', 'AbortError');
+				const host = await ensureAudio();
+				return { context: host.context, output: host.outputNode };
+			},
+			stopPlayback: stopDesktopPlayback,
+		}),
+	});
+	window.dispatchEvent(new Event('tetorica-synth-ready'));
+}
