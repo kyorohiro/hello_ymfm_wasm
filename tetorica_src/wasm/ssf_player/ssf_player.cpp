@@ -32,8 +32,10 @@ extern "C" {
 double ssfplay_tetorica_native_frame(const ssfplay_decoder* decoder);
 int ssfplay_tetorica_snapshot(const ssfplay_decoder* decoder, uint32_t* words,
                             uint32_t word_count, uint8_t* ram, uint32_t ram_size);
+int ssfplay_tetorica_edit_voice(const ssfplay_decoder* decoder, uint32_t slot,
+                              const uint32_t* edits, uint32_t count);
 
-uint32_t ssf_abi_version() { return 2; }
+uint32_t ssf_abi_version() { return 3; }
 
 Renderer* ssf_create(const uint8_t* bytes, uint32_t size) {
   last_error.clear();
@@ -104,6 +106,14 @@ double ssf_native_frame(const Renderer* renderer) {
 uint32_t ssf_read_snapshot(const Renderer* renderer, uint32_t* words,
                          uint32_t word_count, uint8_t* ram, uint32_t ram_size) {
   return renderer && ssfplay_tetorica_snapshot(renderer->decoder, words, word_count, ram, ram_size);
+}
+uint32_t ssf_edit_voice(Renderer* renderer, uint32_t slot, const uint32_t* edits,
+                       uint32_t count) {
+  if (!renderer || !ssfplay_tetorica_edit_voice(renderer->decoder, slot, edits, count)) {
+    last_error = "Invalid SSF voice parameter edit";
+    return 0;
+  }
+  return 1;
 }
 void ssf_destroy(Renderer* renderer) { delete renderer; }
 const char* ssf_last_error() { return last_error.c_str(); }

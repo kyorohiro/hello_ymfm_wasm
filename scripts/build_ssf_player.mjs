@@ -61,7 +61,7 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 		path.join(observer, 'scsp.h'),
 		header.replace(
 			accessAnchor,
-			' // Build-only passive observation member.\n void TetoricaReadSnapshot(uint32* words, uint8* ram) const;\n\n' +
+			' // Build-only observation and bounded host parameter edit members.\n void TetoricaReadSnapshot(uint32* words, uint8* ram) const;\n bool TetoricaEditVoice(uint32 slot, const uint32* edits, uint32 count);\n\n' +
 				accessAnchor,
 		),
 	);
@@ -95,6 +95,7 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 			'_ssf_last_error',
 			'_ssf_native_frame',
 			'_ssf_read_snapshot',
+			'_ssf_edit_voice',
 		];
 		run(
 			process.env.EMXX ?? 'em++',
@@ -114,6 +115,38 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 				'-sEXPORT_ES6=1',
 				'-sEXPORT_NAME=createSsfPlayerModule',
 				'-sENVIRONMENT=web,worker,node',
+				// Emscripten 6 no longer accepts wasmBinary in its default incoming
+				// Module API. Preserve the standard hooks plus the renderer's buffer.
+				'-sINCOMING_MODULE_JS_API=' +
+					JSON.stringify([
+						'ENVIRONMENT',
+						'arguments',
+						'canvas',
+						'dynamicLibraries',
+						'elementPointerLock',
+						'instantiateWasm',
+						'locateFile',
+						'monitorRunDependencies',
+						'noExitRuntime',
+						'noInitialRun',
+						'onAbort',
+						'onExit',
+						'onRuntimeInitialized',
+						'postRun',
+						'preInit',
+						'preRun',
+						'print',
+						'printErr',
+						'setStatus',
+						'statusMessage',
+						'stderr',
+						'stdin',
+						'stdout',
+						'thisProgram',
+						'wasm',
+						'websocket',
+						'wasmBinary',
+					]),
 				'-sALLOW_MEMORY_GROWTH=1',
 				'-sINITIAL_MEMORY=33554432',
 				'-sMAXIMUM_MEMORY=134217728',

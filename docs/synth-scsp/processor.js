@@ -3,10 +3,46 @@ import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { Pcm44100Resampler } from '../js/pcm_44100_resampler.js';
 import { SynthInstrument } from './instrument.js';
+
+function auditionToken(value) {
+	if (typeof value !== 'string' || !value.length || value.length > 256)
+		throw new TypeError(
+			'Audition selection token must be a nonempty string of at most 256 characters',
+		);
+	return value;
+}
+function staleAudition() {
+	const error = new Error('SSF audition selection changed');
+	error.name = 'AbortError';
+	return error;
+}
+function validateAuditionLoad(preset, bend) {
+	// Validate the complete incoming sound and the current performance bend
+	// before replacing a native preview. This model never renders or owns audio.
+	const check = new SynthInstrument({
+		sampleRate: 44100,
+		reset() {},
+		write() {},
+		loadRam() {},
+		readRam(_address, length = 524288) {
+			return new Uint8Array(length);
+		},
+		renderInto() {},
+		dispose() {},
+	});
+	try {
+		check.loadPatch(preset);
+		check.setPitchBend(bend);
+	} finally {
+		check.dispose();
+	}
+}
 class SynthProcessor extends AudioWorkletProcessor {
 	constructor({ processorOptions = {} } = {}) {
 		super();
 		this.dead = false;
+		this.auditionToken = null;
+		this.legacyAudition = true;
 		this.ready = Scsp.create({
 			moduleFactory: factory,
 			moduleOptions: { wasmBinary: processorOptions.wasmBinary },
@@ -67,19 +103,71 @@ class SynthProcessor extends AudioWorkletProcessor {
 						value = this.instrument.setClickGuard(args[0]);
 						this.audition.setClickGuard(args[0]);
 					} else if (data.method === 'loadAudition') {
-						value = this.audition.loadPatch(...(data.args ?? []));
+						const args = data.args ?? [];
+						if (!Array.isArray(args) || ![1, 2].includes(args.length))
+							throw new TypeError(
+								'loadAudition takes a preset and optional selection token',
+							);
+						const token = args.length === 2 ? auditionToken(args[1]) : null;
+						validateAuditionLoad(args[0], this.instrument.pitchBend);
+						value = this.audition.loadPatch(args[0]);
 						this.audition.setPitchBend(this.instrument.pitchBend);
+						this.auditionToken = token;
+						this.legacyAudition = args.length === 1;
 						this.auditionResampler.reset();
 						this.auditionRendering = false;
+					} else if (data.method === 'invokeAudition') {
+						const args = data.args ?? [];
+						if (!Array.isArray(args) || args.length !== 3)
+							throw new TypeError(
+								'invokeAudition takes a selection token, method and arguments',
+							);
+						this.checkAuditionOwner(args[0], true);
+						const [, method, parameters] = args;
+						if (!['setEnvelope', 'setLfo', 'setMix'].includes(method))
+							throw new TypeError(
+								'Editable audition supports only Envelope, LFO and Mix',
+							);
+						if (
+							!Array.isArray(parameters) ||
+							parameters.length !== 2 ||
+							parameters[0] !== 0
+						)
+							throw new TypeError(
+								'Editable audition addresses source A (slot 0) only',
+							);
+						this.audition.invoke(method, parameters);
+						const state = this.audition.read();
+						value = { state, voice: state.slots[0] };
 					} else if (data.method === 'auditionOn') {
-						value = this.audition.noteOn(...(data.args ?? []));
+						const args = data.args ?? [];
+						if (!Array.isArray(args) || ![2, 3].includes(args.length))
+							throw new TypeError(
+								'auditionOn takes identity, MIDI note and optional selection token',
+							);
+						this.checkAuditionOwner(args[2], args.length === 3);
+						value = this.audition.noteOn(args[0], args[1]);
 						this.auditionRendering = true;
-					} else if (data.method === 'auditionOff')
-						value = this.audition.noteOff(...(data.args ?? []));
-					else if (data.method === 'stopAudition') {
-						value = this.audition.stopVoices();
-						this.auditionResampler.reset();
-						this.auditionRendering = false;
+					} else if (data.method === 'auditionOff') {
+						const args = data.args ?? [];
+						if (!Array.isArray(args) || ![1, 2].includes(args.length))
+							throw new TypeError(
+								'auditionOff takes identity and optional selection token',
+							);
+						this.checkAuditionOwner(args[1], args.length === 2);
+						value = this.audition.noteOff(args[0]);
+					} else if (data.method === 'stopAudition') {
+						const args = data.args ?? [];
+						if (!Array.isArray(args) || args.length > 1)
+							throw new TypeError('stopAudition takes an optional selection token');
+						if (args.length && auditionToken(args[0]) !== this.auditionToken)
+							value = false;
+						else {
+							value = this.audition.stopVoices();
+							this.auditionToken = null;
+							this.auditionResampler.reset();
+							this.auditionRendering = false;
+						}
 					} else if (data.method === 'readAudition') value = this.audition.read();
 					else if (
 						[
@@ -128,6 +216,11 @@ class SynthProcessor extends AudioWorkletProcessor {
 				}
 			});
 		};
+	}
+	checkAuditionOwner(token, provided) {
+		if (provided) {
+			if (auditionToken(token) !== this.auditionToken) throw staleAudition();
+		} else if (!this.legacyAudition) throw staleAudition();
 	}
 	process(_inputs, outputs) {
 		if (this.dead) return false;

@@ -84,6 +84,7 @@ jobs:
           node scripts/check_scsp_synth_capture_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-capture-browser.json --screenshots=release/scsp-synth-capture-images
           node scripts/check_scsp_synth_channels_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-channels-browser.json --screenshots=release/scsp-synth-channels-images
           node scripts/check_scsp_synth_click_guard_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-click-guard-browser.json --screenshots=release/scsp-synth-click-guard-images
+          node scripts/check_scsp_synth_paused_edit_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-edit-browser.json --screenshots=release/scsp-synth-ssf-edit-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -104,4 +105,6 @@ jobs:
             release/scsp-synth-channels-images/
             release/scsp-synth-click-guard-browser.json
             release/scsp-synth-click-guard-images/
+            release/scsp-synth-ssf-edit-browser.json
+            release/scsp-synth-ssf-edit-images/
           if-no-files-found: ignore

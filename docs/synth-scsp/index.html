@@ -257,8 +257,8 @@
 										SSF slot at the audible song position.
 										Pause keeps one snapshot for all 32 slots. The PCM preview
 										reads a short prefix at the programmed sample start.
-										Envelope, LFO, mix and modulation show hardware values. Live
-										is read-only. While paused, the keyboard auditions the
+										Envelope, LFO, mix and modulation show hardware values.
+										Seeking is read-only. While paused, the keyboard auditions the
 										selected slot through a separate Synth voice without
 										changing the song. Reference key maps its current playback
 										rate to that key; the original sample root is unknown.
@@ -266,6 +266,14 @@
 										and mix into an editable instrument. Pause / Resume is
 										preserved. Slot modulation and the song's DSP are not
 										copied.
+									</p>
+									<p>
+										Envelope, LFO, level and pan edit the selected song CH while
+										playing or paused. These change emulated registers; later
+										driver writes may overwrite them. The controls do not rewrite
+										the SSF files or sample RAM. Paused PCM preview and Capture
+										use the displayed parameters. Resume continues the edited
+										machine. Capture first to edit the full waveform.
 									</p>
 								</details>
 							</div>

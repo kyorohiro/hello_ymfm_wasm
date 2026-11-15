@@ -35,6 +35,35 @@ void SS_SCSP::TetoricaReadSnapshot(uint32* words, uint8* ram) const {
   for (unsigned address = 0; address < 512 * 1024; ++address)
     ram[address] = ne16_rbo_be<uint8>(RAM, address);
 }
+
+bool SS_SCSP::TetoricaEditVoice(uint32 slot, const uint32* edits, uint32 count) {
+  if (slot >= 32 || count > 3 || (!edits && count)) return false;
+  uint32 seen = 0;
+  for (uint32 index = 0; index < count; ++index) {
+    const uint32 offset = edits[index * 3], mask = edits[index * 3 + 1];
+    const uint32 value = edits[index * 3 + 2];
+    uint32 allowed = 0;
+    switch (offset) {
+      case 8: allowed = 0xFFDF; break;  // Preserve EGHOLD.
+      case 10: allowed = 0x7FFF; break; // Preserve EGBYPASS.
+      case 12: allowed = 0x00FF; break; // Preserve SDIR / STWINH.
+      case 18: allowed = 0xFFFF; break;
+      case 22: allowed = 0xFF00; break; // Preserve DSP return level/pan.
+      default: return false;
+    }
+    const uint32 bit = 1u << (offset / 2);
+    if (!mask || (mask & ~allowed) || (value & ~mask) || (seen & bit)) return false;
+    seen |= bit;
+  }
+  // All updates have been validated before the first bus write. No CPU step,
+  // PCM generation, gate write, RAM mutation or envelope restart occurs here.
+  for (uint32 index = 0; index < count; ++index) {
+    const uint32 offset = edits[index * 3], mask = edits[index * 3 + 1];
+    uint16 value = (SlotRegs[slot][offset / 2] & ~mask) | edits[index * 3 + 2];
+    RW<uint16, true>(0x100000 | slot * 32 | offset, value);
+  }
+  return true;
+}
 }
 
 extern "C" {
@@ -53,5 +82,10 @@ int ssfplay_tetorica_snapshot(const ssfplay_decoder* decoder, uint32_t* words,
   words[2] = static_cast<uint32_t>(frame >> 32);
   MDFN_IEN_SSFPLAY::SCSP.TetoricaReadSnapshot(words, ram);
   return 1;
+}
+int ssfplay_tetorica_edit_voice(const ssfplay_decoder* decoder, uint32_t slot,
+                              const uint32_t* edits, uint32_t count) {
+  if (!decoder || !active_decoder) return 0;
+  return MDFN_IEN_SSFPLAY::SCSP.TetoricaEditVoice(slot, edits, count);
 }
 }

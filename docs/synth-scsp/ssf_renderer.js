@@ -3,6 +3,7 @@ import createSsfPlayerModule from '../generated/ssf-player/ssf_player.js';
 import { zlibSync } from '../playground/vendor/fflate.js';
 import { scspSsfCrc32 } from './ssf_source.js';
 import { decodeScspSsfSnapshot, SCSP_SSF_SNAPSHOT_WORDS } from './ssf_snapshot.js';
+import { encodeScspSsfVoiceEdit } from './ssf_voice_parameters.js';
 
 const RATE = 44100;
 const MAX_FRAMES = 16384;
@@ -71,13 +72,14 @@ export async function createScspSsfRenderer(
 	check(signal);
 	const module = await moduleFactory({ wasmBinary: binary });
 	check(signal);
-	if (module._ssf_abi_version() !== 2) throw new Error('Unsupported SSF renderer ABI');
+	if (module._ssf_abi_version() !== 3) throw new Error('Unsupported SSF renderer ABI');
 	let input = 0,
 		leftPointer = 0,
 		rightPointer = 0,
 		renderer = 0,
 		snapshotWords = 0,
 		snapshotRam = 0,
+		editWords = 0,
 		cachedSnapshot = null;
 	let framesRendered = 0,
 		ended = total === 0,
@@ -92,8 +94,9 @@ export async function createScspSsfRenderer(
 		if (rightPointer) module._free(rightPointer);
 		if (snapshotWords) module._free(snapshotWords);
 		if (snapshotRam) module._free(snapshotRam);
+		if (editWords) module._free(editWords);
 		cachedSnapshot = null;
-		snapshotWords = snapshotRam = 0;
+		snapshotWords = snapshotRam = editWords = 0;
 		renderer = leftPointer = rightPointer = 0;
 	}
 	try {
@@ -180,9 +183,25 @@ export async function createScspSsfRenderer(
 		cachedSnapshot = decodeScspSsfSnapshot(words, ram);
 		return cachedSnapshot;
 	}
+	function editVoice(slot, method, patch) {
+		if (disposed) throw new Error('SSF renderer is disposed');
+		if (!Number.isInteger(slot) || slot < 0 || slot > 31)
+			throw new RangeError('SSF slot must be an integer from 0 to 31');
+		const edits = encodeScspSsfVoiceEdit(method, patch);
+		if (edits.length) {
+			if (!editWords) editWords = module._malloc(9 * 4);
+			if (!editWords) throw new Error('SSF edit allocation failed');
+			new Uint32Array(module.HEAPU8.buffer, editWords, edits.length).set(edits);
+			if (!module._ssf_edit_voice(renderer, slot, editWords, edits.length / 3)) throw error();
+			// Host writes change registers without advancing the native clock.
+			cachedSnapshot = null;
+		}
+		return { frame: framesRendered, nativeFrame: module._ssf_native_frame(renderer) };
+	}
 	return {
 		process,
 		readSnapshot,
+		editVoice,
 		dispose,
 		get framesRendered() {
 			return framesRendered;

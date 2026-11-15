@@ -11,6 +11,7 @@ import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
+import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
 import { createStateObserver } from '../synth-2a03/state_observer.js';
@@ -58,8 +59,12 @@ let committedPcmContext = null;
 let clickGuardIntent = 0,
 	clickGuardApplied = true;
 const editorDrafts = new Map();
+const ssfVoiceEdits = new ScspSsfVoiceEdits();
 let auditionSelection = null,
-	loadedAuditionSelection = null;
+	loadedAuditionSelection = null,
+	loadedAuditionToken = null,
+	auditionSequence = 0,
+	auditionGeneration = 0;
 let cachedPatch = null,
 	soundName = null,
 	operatorReads = [],
@@ -207,6 +212,7 @@ function renderState() {
 	if (!latestState || disposed) return;
 	const wasLive = liveView?.isActive();
 	const ssfSnapshot = songControls?.player.getLiveSnapshot();
+	ssfVoiceEdits.sync(songControls?.player.getEditSession() ?? null, songState?.playback, ssfSnapshot);
 	const observing = liveView?.update(songState, ssfSnapshot);
 	if (observing && channelView?.getSelected() === null)
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
@@ -215,7 +221,7 @@ function renderState() {
 	if (observing) {
 		channelView?.update({ state: latestState, ssfSnapshot, ssfActive: true });
 		setEditorSections('ssf');
-		envelopeControls.update({ voice: liveView.getPCM().voice, readOnly: true });
+		envelopeControls.update({ voice: liveView.getPCM().voice, readOnly: !liveView.isEditable() });
 		if (!wasLive) chipTab(false);
 		numberControls?.update();
 		return;
@@ -470,6 +476,8 @@ const panel = createPlaygroundScspVoicePanel({
 	showModulation: true,
 	onError: report,
 	invoke: (method, args) => {
+		if (liveView?.isActive() && method !== 'getPCM')
+			return editSsfVoice(liveView.getEditableTarget(), method, args[1]);
 		const physical = physicalEditor();
 		const contextKey = editorViewKey;
 		return enqueue(async () => {
@@ -512,8 +520,10 @@ copyButton.textContent = 'Copy operator JavaScript';
 const numberControls = enhanceScspNumberControls(document.querySelector('.synth-shell'));
 const envelopeControls = setupScspEnvelopeControls({
 	root: $('voice'),
-	getSelectedSlot: () => panel.getSelectedChannel(),
+	getSelectedSlot: () => liveView?.getEditableTarget()?.slot ?? panel.getSelectedChannel(),
 	invoke: (method, args) => {
+		if (liveView?.isActive())
+			return editSsfVoice(liveView.getEditableTarget(), method, args[1]);
 		const physical = physicalEditor();
 		return enqueue(async () => {
 			if (liveView?.isActive())
@@ -547,8 +557,15 @@ liveView = setupScspSsfLiveView({
 	panel,
 	panelRoot: $('voice'),
 	externalSelection: true,
-	getCaptureAvailability: ({ snapshot, slot, referenceMidi }) =>
-		getScspSsfCaptureAvailability(snapshot, slot, { referenceMidi }),
+	getCaptureAvailability: (target) =>
+		getScspSsfCaptureAvailability(ssfVoiceEdits.projectSnapshot(target), target.slot, {
+			referenceMidi: target.referenceMidi,
+		}),
+	getEditAvailability: (_target, playback) => ({
+		available: songControls?.player.getEditSession() != null &&
+			['playing', 'paused'].includes(playback?.playback),
+	}),
+	getAuditionEditState: (target) => ssfVoiceEdits.read(target),
 	onCapture: captureSsfTarget,
 	onChange() {
 		if (liveView?.isEnabled() && channelView?.getSelected() === null)
@@ -588,17 +605,85 @@ function syncAuditionSelection() {
 	const next = liveView?.getAuditionTarget() ?? null;
 	if (sameSsfTarget(next, auditionSelection)) return;
 	const previous = auditionSelection;
+	const previousToken = loadedAuditionToken;
+	auditionGeneration++;
 	auditionSelection = next;
 	loadedAuditionSelection = null;
+	loadedAuditionToken = null;
 	for (const [source, note] of held) if (note.kind === 'ssf') held.delete(source);
-	if (previous && audio) void enqueue(() => audio?.command('stopAudition')).catch(report);
+	if (previous && audio)
+		void enqueue(() => audio?.command('stopAudition', previousToken ? [previousToken] : [])).catch(report);
 	highlight();
 }
-async function captureSsfTarget(target) {
-	// Validate and detach the click-time PCM before changing any UI or transport.
-	const captured = createScspSsfCapture(target.snapshot, target.slot, {
+async function prepareSsfAudition(engine, target) {
+	const generation = auditionGeneration;
+	if (!sameSsfTarget(target, liveView?.getAuditionTarget()))
+		throw new DOMException('SSF audition cancelled', 'AbortError');
+	const snapshot = ssfVoiceEdits.projectSnapshot(target);
+	const available = getScspSsfCaptureAvailability(snapshot, target.slot, { referenceMidi: target.referenceMidi });
+	if (!available.available) throw new Error(available.reason);
+	if (sameSsfTarget(target, loadedAuditionSelection) && loadedAuditionToken) return loadedAuditionToken;
+	const captured = createScspSsfCapture(snapshot, target.slot, {
 		referenceMidi: target.referenceMidi,
 	});
+	const token = `ssf-preview:${++auditionSequence}`;
+	await engine.command('loadAudition', [captured.preset, token]);
+	if (generation !== auditionGeneration ||
+		!sameSsfTarget(target, liveView?.getAuditionTarget()) || engine !== audio) {
+		await engine.command('stopAudition', [token]);
+		throw new DOMException('SSF audition cancelled', 'AbortError');
+	}
+	loadedAuditionSelection = target;
+	loadedAuditionToken = token;
+	return token;
+}
+function editSsfVoice(target, method, patch) {
+	if (!target) return Promise.reject(new Error('Play or pause an SSF channel to edit its parameters.'));
+	const session = songControls?.player.getEditSession();
+	const value = clone(patch);
+	ssfVoiceEdits.pending(target, 1, session);
+	return enqueue(async () => {
+		try {
+			const result = songControls.player.editVoice(target.slot, method, value, session);
+			ssfVoiceEdits.commit(target, method, value, result);
+			renderState();
+			const preview = liveView.getAuditionTarget();
+			if (audio && preview?.slot === target.slot) {
+				const available = getScspSsfCaptureAvailability(ssfVoiceEdits.projectSnapshot(preview), preview.slot, {
+					referenceMidi: preview.referenceMidi,
+				});
+				if (!available.available) {
+					const token = loadedAuditionToken;
+					auditionGeneration++;
+					loadedAuditionSelection = null;
+					loadedAuditionToken = null;
+					for (const [source, note] of held) if (note.kind === 'ssf') held.delete(source);
+					await audio.command('stopAudition', token ? [token] : []);
+					highlight();
+				} else {
+					const token = await prepareSsfAudition(audio, preview);
+					try {
+						await audio.command('invokeAudition', [token, method, [0, value]]);
+					} catch (error) {
+						loadedAuditionSelection = null;
+						loadedAuditionToken = null;
+						await audio.command('stopAudition', [token]);
+						throw error;
+					}
+				}
+			}
+			status(`SSF CH${target.slot + 1} parameters updated · song writes can overwrite manual values.`);
+			return true;
+		} finally {
+			ssfVoiceEdits.pending(target, -1, session);
+			renderState();
+		}
+	});
+}
+async function captureSsfTarget(target) {
+	// Keep click-time PCM/selection, but include parameter edits already queued
+	// before Capture. A new run at the same file/position is still a new owner.
+	const captureSession = songControls.player.getEditSession();
 	if (songState?.playing) songControls.player.pause();
 	const paused = songControls.getState();
 	if (!paused.paused) throw new Error('Pause the SSF song before capturing its instrument.');
@@ -606,11 +691,17 @@ async function captureSsfTarget(target) {
 		const state = songControls.getState();
 		return (
 			!disposed &&
+			songControls.player.getEditSession() === captureSession &&
 			state.paused &&
 			state.entryPath === paused.entryPath &&
 			state.positionSeconds === paused.positionSeconds
 		);
 	};
+	await queue;
+	if (!current()) throw new DOMException('SSF Capture cancelled', 'AbortError');
+	const captured = createScspSsfCapture(ssfVoiceEdits.projectSnapshot(target), target.slot, {
+		referenceMidi: target.referenceMidi,
+	});
 	await stopKeyboard();
 	if (!current()) throw new DOMException('SSF Capture cancelled', 'AbortError');
 	const preset = {
@@ -744,6 +835,7 @@ function press(source, entry) {
 				: 'authored',
 		slot: channelView?.getSelected() ?? null,
 		target: liveView?.getAuditionTarget() ?? null,
+		token: null,
 	};
 	held.set(source, note);
 	highlight();
@@ -753,14 +845,7 @@ function press(source, entry) {
 		if (held.get(source) !== note || note.epoch !== epoch || switchingAudioOutput) return;
 		if (note.kind === 'ssf') {
 			if (!sameSsfTarget(note.target, liveView?.getAuditionTarget())) return;
-			if (!sameSsfTarget(note.target, loadedAuditionSelection)) {
-				const { snapshot, slot, referenceMidi } = note.target;
-				const captured = createScspSsfCapture(snapshot, slot, {
-					referenceMidi,
-				});
-				await engine.command('loadAudition', [captured.preset]);
-				loadedAuditionSelection = note.target;
-			}
+			note.token = await prepareSsfAudition(engine, note.target);
 			if (
 				held.get(source) !== note ||
 				!sameSsfTarget(note.target, liveView?.getAuditionTarget())
@@ -776,7 +861,8 @@ function press(source, entry) {
 				: note.kind === 'physical'
 					? 'physicalNoteOn'
 					: 'noteOn',
-			note.kind === 'physical' ? [note.id, note.slot, note.midi] : [note.id, note.midi],
+			note.kind === 'physical' ? [note.id, note.slot, note.midi] :
+				note.kind === 'ssf' ? [note.id, note.midi, note.token] : [note.id, note.midi],
 		);
 		note.pending = false;
 		if (result.stolenId)
@@ -805,12 +891,16 @@ function release(source) {
 						: note.kind === 'physical'
 							? 'physicalNoteOff'
 							: 'noteOff',
-					[note.id],
+					[note.id, ...(note.kind === 'ssf' ? [note.token] : [])],
 				);
 		});
 }
 function stopKeyboard() {
 	const notes = [...held.values()].filter((note) => note.started);
+	auditionGeneration++;
+	const token = loadedAuditionToken;
+	loadedAuditionSelection = null;
+	loadedAuditionToken = null;
 	epoch++;
 	held.clear();
 	highlight();
@@ -823,9 +913,9 @@ function stopKeyboard() {
 						: note.kind === 'physical'
 							? 'physicalNoteOff'
 							: 'noteOff',
-					[note.id],
+					[note.id, ...(note.kind === 'ssf' ? [note.token] : [])],
 				);
-		if (audio) await audio.command('stopAudition');
+		if (audio) await audio.command('stopAudition', token ? [token] : []);
 	});
 }
 async function stopAll() {

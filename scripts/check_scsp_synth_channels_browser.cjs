@@ -858,7 +858,8 @@ async function check(browser, engine, origin, fixture) {
 				view(page).then((value) => value.voiceSlot === '1' && value.liveActive === 'true'),
 			'SSF CH2 inspection',
 		);
-		assert(await control(page, 'totalLevel').isDisabled());
+		assert(await control(page, 'totalLevel').isEnabled());
+		assert(await control(page, 'bits').isDisabled());
 		assert.equal(await control(page, 'bits').inputValue(), '8');
 		assert.equal(await page.locator('#scspSsfSlot,#scspSsfSlots').count(), 0);
 		const frozen = await view(page),
@@ -910,7 +911,7 @@ async function check(browser, engine, origin, fixture) {
 		await select('auto');
 		await pcm(page, false);
 		checks.push(
-			'One row selects read-only SSFCHs and paused previews; a held Capture click during playback pauses the song and selects editable Auto',
+			'One row selects editable SSF parameters and paused previews; a held Capture click during playback pauses the song and selects editable Auto',
 		);
 		assert.equal((await graph(page)).contexts, 1);
 		assert.equal((await graph(page)).destinationEdges, 1);

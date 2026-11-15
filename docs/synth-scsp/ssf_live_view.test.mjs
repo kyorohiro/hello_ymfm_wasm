@@ -197,11 +197,47 @@ function rig(options = {}) {
 	const copy = new Node('button');
 	copy.dataset.chipAction = 'scsp-copy';
 	panelRoot.append(waveform, copy);
+	const parameters = new Node('fieldset');
+	const originals = new Map();
+	for (const name of [
+		'attackRate',
+		'decay1Rate',
+		'decay2Rate',
+		'decayLevel',
+		'releaseRate',
+		'keyRateScaling',
+		'lfo-frequencyCode',
+		'lfo-pitchWave',
+		'lfo-pitchDepth',
+		'lfo-amplitudeWave',
+		'lfo-amplitudeDepth',
+		'lfo-reset',
+		'totalLevel',
+		'directLevel',
+		'pan',
+	]) {
+		const node = new Node('input');
+		node.dataset.chipControl = 'scsp-' + name;
+		node.value = name === 'pan' ? '5' : '11';
+		if (name === 'lfo-reset') node.type = 'checkbox';
+		inputs.set(name, node);
+		originals.set(node, { value: node.value, checked: node.checked });
+		parameters.append(node);
+	}
+	panelRoot.append(parameters);
 	const states = [],
 		connections = [];
 	const panel = {
 		update: (state) => states.push(state),
-		setConnected: (value) => connections.push(value),
+		setConnected: (value) => {
+			connections.push(value);
+			for (const node of inputs.values()) node.disabled = !value;
+			if (value)
+				for (const [node, original] of originals) {
+					node.value = original.value;
+					node.checked = original.checked;
+				}
+		},
 	};
 	let changed = 0;
 	const ui = setupScspSsfLiveView({
@@ -213,6 +249,7 @@ function rig(options = {}) {
 	});
 	return {
 		ui,
+		doc,
 		nodes,
 		panelRoot,
 		authorSections,
@@ -474,12 +511,216 @@ test('external channel selection needs no duplicate SSF chooser and preserves fr
 });
 
 test('periodic Live updates retain the unchanged Capture button child text during pointer gestures', () => {
-	const r=rig({onCapture:async()=>{}}),source=snapshot();
-	try{
-		r.ui.update(playing,source);
-		const button=r.nodes.get('scspSsfCapture'),writes=button.textWrites;
-		assert.equal(button.textContent,'Capture to Synth');
-		for(let tick=0;tick<8;tick++)r.ui.update(playing,source);
-		assert.equal(button.textWrites,writes,'unchanged text must not be replaced between trusted down/up');
-	}finally{r.ui.dispose();}
+	const r = rig({ onCapture: async () => {} }),
+		source = snapshot();
+	try {
+		r.ui.update(playing, source);
+		const button = r.nodes.get('scspSsfCapture'),
+			writes = button.textWrites;
+		assert.equal(button.textContent, 'Capture to Synth');
+		for (let tick = 0; tick < 8; tick++) r.ui.update(playing, source);
+		assert.equal(
+			button.textWrites,
+			writes,
+			'unchanged text must not be replaced between trusted down/up',
+		);
+	} finally {
+		r.ui.dispose();
+	}
+});
+
+test('eligible paused audition enables only parameters and projects its draft without changing snapshot PCM or authoring', () => {
+	const source = snapshot(),
+		original = structuredClone(source);
+	const edited = structuredClone(source.slots[0].voice);
+	edited.envelope = { ...edited.envelope, attackRate: 15, loopLink: true };
+	edited.lfo = { ...edited.lfo, pitchDepth: 6 };
+	edited.totalLevel = 42;
+	edited.pan = 7;
+	// Only audition parameters may be projected, even if a caller returns more.
+	edited.frequencyHz = 123;
+	edited.modulation = { depth: 15 };
+	const r = rig({ getAuditionEditState: () => ({ voice: edited, edited: true, pending: true }) });
+	const paused = { ...playing, playing: false, paused: true, playback: 'paused' };
+	try {
+		r.ui.update(playing, source);
+		assert.equal(r.ui.isEditable(), false);
+		assert.equal(r.inputs.get('attackRate').disabled, true);
+		r.ui.update(paused, source);
+		assert.equal(r.ui.isEditable(), true);
+		assert.deepEqual(r.ui.getEditableTarget(), {
+			snapshot: source,
+			slot: 0,
+			referenceMidi: 60,
+		});
+		assert.equal(r.nodes.get('scspSsfLive').dataset.editable, 'true');
+		assert.equal(r.nodes.get('scspSsfLive').dataset.edited, 'true');
+		assert.equal(r.panelRoot.dataset.ssfEditable, 'true');
+		for (const name of [
+			'attackRate',
+			'releaseRate',
+			'keyRateScaling',
+			'lfo-frequencyCode',
+			'lfo-reset',
+			'totalLevel',
+			'directLevel',
+			'pan',
+		])
+			assert.equal(
+				r.inputs.get(name).disabled,
+				false,
+				name + ' remains editable while pending',
+			);
+		for (const name of ['root', 'rate', 'loop', 'bits'])
+			assert.equal(r.inputs.get(name).disabled, true, name);
+		assert.equal(r.inputs.get('attackRate').value, '15');
+		assert.equal(r.inputs.get('lfo-pitchDepth').value, '6');
+		assert.equal(r.inputs.get('pan').value, '7');
+		assert.equal(r.ui.getPCM().voice.envelope.loopLink, true);
+		assert.equal(r.ui.getPCM().voice.frequencyHz, source.slots[0].voice.frequencyHz);
+		assert.deepEqual(r.ui.getPCM().voice.modulation, source.slots[0].voice.modulation);
+		assert.equal(r.ui.getPCM().sample, source.slots[0].sample);
+		assert.deepEqual(r.ui.getPCM().pcm, projectScspSsfLiveSlot(source, 0).read.pcm);
+		assert.match(
+			r.nodes.get('scspSsfLiveStatus').textContent,
+			/audition parameters edited · source frozen/,
+		);
+		assert.match(r.nodes.get('scspSsfCaptureStatus').textContent, /Updating/);
+		assert.deepEqual(source, original);
+		assert.equal(r.states.length, 0);
+		r.ui.update(playing, source);
+		assert.equal(r.ui.isEditable(), false);
+		assert.equal(r.ui.getEditableTarget(), null);
+		assert.equal(r.inputs.get('pan').disabled, true);
+		assert.equal(r.ui.getPCM().voice.pan, source.slots[0].voice.pan);
+		r.ui.update(paused, source);
+		r.ui.setEnabled(false);
+		assert.equal(r.ui.isEditable(), false);
+		assert.equal(r.inputs.get('pan').value, '5');
+		assert.equal(r.inputs.get('root').value, '147');
+		assert.equal(r.pixels, 77);
+		assert.deepEqual(r.connections, [false, true]);
+	} finally {
+		r.ui.dispose();
+	}
+});
+
+test('unsupported and seeking slots stay read-only, and focused / dragged paused values are not overwritten', () => {
+	let allowed = true,
+		reads = 0;
+	const source = snapshot(),
+		voice = structuredClone(source.slots[0].voice);
+	voice.pan = 9;
+	voice.envelope.attackRate = 20;
+	const r = rig({
+		getCaptureAvailability: () => ({
+			available: allowed,
+			reason: allowed ? '' : 'Noise cannot be independently captured.',
+		}),
+		getAuditionEditState: () => {
+			reads++;
+			return { voice, edited: true };
+		},
+	});
+	const paused = { ...playing, playing: false, paused: true, playback: 'paused' };
+	try {
+		r.ui.update(paused, source);
+		const pan = r.inputs.get('pan'),
+			attack = r.inputs.get('attackRate');
+		pan.value = '13';
+		r.doc.activeElement = pan;
+		attack.value = '29';
+		attack.classList = { contains: (value) => value === 'is-dragging' };
+		r.ui.update(paused, source);
+		assert.equal(pan.value, '13');
+		assert.equal(attack.value, '29');
+		r.doc.activeElement = null;
+		attack.classList = { contains: () => false };
+		r.ui.update(paused, source);
+		assert.equal(pan.value, '9');
+		assert.equal(attack.value, '20');
+		allowed = false;
+		const before = reads;
+		r.ui.update(paused, source);
+		assert.equal(reads, before);
+		assert.equal(r.ui.isEditable(), false);
+		assert.equal(pan.disabled, true);
+		assert.equal(pan.value, String(source.slots[0].voice.pan));
+		assert.match(r.nodes.get('scspSsfCaptureStatus').textContent, /Noise/);
+		allowed = true;
+		r.ui.update({ ...paused, playback: 'seeking' }, source);
+		assert.equal(r.ui.getEditableTarget(), null);
+		assert.equal(pan.disabled, true);
+		assert.equal(reads, before);
+	} finally {
+		r.ui.dispose();
+	}
+});
+
+test('host edit eligibility can allow playing Noise independently from Capture support, but never seeking', () => {
+	const source = snapshot();
+	source.slots[0].sample.sourceMode = 1;
+	const original = structuredClone(source),
+		checks = [];
+	const voice = structuredClone(source.slots[0].voice);
+	voice.totalLevel = 52;
+	let editState = { voice, edited: true, pending: true };
+	const r = rig({
+		onCapture: async () => {},
+		getCaptureAvailability: () => ({
+			available: false,
+			reason: 'Noise cannot be independently captured.',
+		}),
+		getEditAvailability: (target, state) => {
+			checks.push({ target, state });
+			return { available: true };
+		},
+		getAuditionEditState: () => editState,
+	});
+	try {
+		r.ui.update(playing, source);
+		assert.equal(r.ui.isEditable(), true);
+		assert.equal(r.ui.getEditableTarget().snapshot, source);
+		assert.equal(r.inputs.get('totalLevel').disabled, false);
+		assert.equal(r.inputs.get('totalLevel').value, '52');
+		assert.equal(r.panelRoot.dataset.ssfEditing, 'true');
+		assert.equal(r.panelRoot.dataset.ssfEdited, 'true');
+		assert.match(r.nodes.get('scspSsfLiveStatus').textContent, /Live .* editable parameters$/);
+		assert.doesNotMatch(
+			r.nodes.get('scspSsfLiveStatus').textContent,
+			/audition parameters|source frozen/,
+		);
+		assert.equal(r.inputs.get('bits').disabled, true);
+		assert.equal(r.nodes.get('scspSsfCapture').disabled, true);
+		assert.match(r.nodes.get('scspSsfCaptureStatus').textContent, /Noise/);
+		assert.equal(r.ui.getPCM().pcm.length, 0);
+		assert.equal(checks[0].state, playing);
+		const later = structuredClone(source);
+		later.frame += 128;
+		later.slots[0].voice.totalLevel = 31;
+		editState = { voice: later.slots[0].voice, edited: false, pending: false };
+		r.ui.update(playing, later);
+		assert.equal(
+			r.inputs.get('totalLevel').value,
+			'31',
+			'new driver state replaces the completed manual overlay',
+		);
+		assert.equal(r.panelRoot.dataset.ssfEdited, 'false');
+		r.ui.update({ ...playing, playing: false, paused: true, playback: 'paused' }, later);
+		assert.equal(r.ui.isEditable(), true);
+		assert.match(
+			r.nodes.get('scspSsfLiveStatus').textContent,
+			/Paused .* editable parameters$/,
+		);
+		const count = checks.length;
+		r.ui.update({ ...playing, playback: 'seeking' }, source);
+		assert.equal(r.ui.getEditableTarget(), null);
+		assert.equal(r.inputs.get('totalLevel').disabled, true);
+		assert.equal(checks.length, count);
+		assert.equal(r.panelRoot.dataset.ssfEditing, 'false');
+		assert.equal(r.panelRoot.dataset.ssfEdited, 'false');
+		assert.deepEqual(source, original);
+	} finally {
+		r.ui.dispose();
+	}
 });

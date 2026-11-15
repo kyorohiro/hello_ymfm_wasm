@@ -378,12 +378,14 @@ async function check(browser, engine, origin, fixture) {
 			'Pause fixes one native snapshot and switching slots reads the same frame and RAM',
 		);
 
-		stage = 'readonly controls and waveform';
-		for (const name of ['attackRate', 'totalLevel', 'lfo-frequencyCode', 'bits', 'sample'])
-			assert(await control(page, name).isDisabled(), name + ' is read-only');
+		stage = 'editable parameters and readonly source waveform';
+		for (const name of ['attackRate', 'totalLevel', 'lfo-frequencyCode'])
+			assert(await control(page, name).isEnabled(), name + ' edits the selected SSF CH');
+		for (const name of ['bits', 'sample', 'root', 'modulation-depth'])
+			assert(await control(page, name).isDisabled(), name + ' remains read-only');
 		assert(await page.locator('[data-chip-action="scsp-apply"]').isDisabled());
-		await control(page, 'attackRate').evaluate((input) => {
-			input.value = '0';
+		await control(page, 'modulation-depth').evaluate((input) => {
+			input.value = '15';
 			input.dispatchEvent(new Event('change', { bubbles: true }));
 		});
 		const wave = page.locator('#voice canvas');
@@ -400,7 +402,7 @@ async function check(browser, engine, origin, fixture) {
 		assert.equal(await page.locator('#scspSsfCapture').count(), 1);
 		assert(await page.locator('#scspSsfCapture').isEnabled());
 		checks.push(
-			'Read-only controls and drawing keep the authored patch and captured native waveform intact',
+			'Source controls and drawing stay read-only while editable SSF parameters leave the authored patch intact',
 		);
 
 		stage = 'Live Off and resume';

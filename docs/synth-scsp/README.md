@@ -70,7 +70,8 @@ enabled, Attack transitions to Decay 1 when playback reaches the programmed
 loop start, even if Attack has not reached its usual level. Until that
 threshold, reaching the full Attack level holds it in Attack. This differs
 from Attack hold, which is a separate hardware feature. The checkbox applies
-to new notes and is read-only while viewing SSF slots. Captured forward-loop
+to new Synth notes, including supported paused SSF audition. Live SSF editing
+also writes this register on the selected song CH. Captured forward-loop
 instruments retain both the loop start and this setting.
 
 **Click guard · Software** starts On below the Keyboard / Code tabs. It
@@ -227,7 +228,8 @@ stops Code, and Run stops the song.
 Live from SSF is enabled by default. The same permanent CH row shows sampled
 native slot activity and envelope state. Select a CH to inspect its raw PCM
 prefix, envelope codes, LFO, attenuation, pan and sound-stack modulation in
-the existing controls. This view is read-only. The waveform previews up to
+the existing controls. Envelope, LFO and mix parameters can be edited while
+playing or paused; seeking remains read-only. The waveform previews up to
 256 raw samples from the programmed start address. The inspector shows the
 physical sample playback rate in samples per second. A recording's original
 root note is unknown. The loop mode and programmed boundaries appear beside
@@ -248,9 +250,33 @@ the captured hardware sample playback rate; other keys transpose from it.
 This establishes a tuning reference without guessing the sample's original
 root note. Audition uses an independent native SCSP handle in the existing
 AudioWorklet and AudioContext. The authored PCM, settings and unapplied draft
-remain intact, and the paused song's sound CPU / RAM / transport stay fixed.
+remain intact. The song stays paused while you preview its selected PCM.
 Changing slot, reference key, Live mode or transport clears audition voices.
 Live Off restores keyboard playing on the selected physical Synth CH.
+
+With Live On, Envelope, including Attack / loop link, LFO, level and pan
+controls write the selected song CH's emulated SCSP registers during playback
+or Pause. This also works on Noise and linked slots that cannot be captured
+independently. The driver may write the same parameter later and replace your
+change. The original SSF files and sample RAM are not rewritten by these
+controls. The PCM prefix, format, playback rate, loop boundaries and
+slot-modulation display remain observations. Full waveform editing is
+available after Capture to Synth.
+
+Paused PCM preview uses the displayed edited parameters. Envelope changes
+affect subsequent preview notes; LFO, level and pan update held preview notes.
+The activity and ENV indicators still describe the song's slots, not the
+independent preview. Changing CH or Reference key does not undo song-register
+edits. Resume continues the edited machine; it does not restore the original
+registers, and later driver writes may overwrite manual values. Stop and a
+new Play start a fresh machine from the recording.
+
+Capture includes the displayed edited parameters, after which Save to presets
+retains them in the Auto instrument. Live register edits do not replace the
+authored Synth or become part of a Cassette's instrument. Capture eligibility
+is separate: unsupported instruments keep Capture unavailable with a reason,
+while their supported live parameters remain editable. Invalid edits preserve
+the previous register state.
 
 Capture to Synth copies the click-time slot into the editable instrument,
 selects Auto, switches Live Off and keeps Pause / Resume available. Capturing
@@ -258,7 +284,7 @@ during playback pauses the song first. The full programmed PCM, format, supporte
 loop boundaries, Envelope, LFO, total level, direct level and pan are copied.
 Use Save to presets in the authored view to retain the instrument under
 `presets/`, or export its portable JSON from Menu. Live On returns to the
-frozen song view, and Resume continues the recording. The SSF source is
+song view, and Resume continues its current sound machine. The SSF source is
 unchanged.
 
 This first capture supports independent PCM8 / PCM16 slots with ordinary
@@ -331,6 +357,12 @@ included as editable JavaScript. The player has an independent sound machine
 for each playback or seek candidate.
 ABI 2 adds passive slot and RAM observation through a checked temporary
 build overlay. The source kit includes `ssf_observer.inc` and its recipe.
+ABI 3 adds bounded masked writes for Envelope, LFO and direct mix registers.
+Edits preserve CPU time, sample RAM, unrelated register bits and queued audio;
+the next rendered audio reflects the write after the existing lookahead.
+The UI keeps pending manual values until that native frame becomes audible,
+then follows any later music-driver writes. Paused preview edits use their
+own generation-fenced Synth owner and do not replace the song's machine.
 
 Authored JavaScript and CSS are copied byte-for-byte into the distribution,
 preserving comments, names and layout. Edit modules in `synth-scsp/`, `js/`

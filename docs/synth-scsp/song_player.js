@@ -137,6 +137,7 @@ export function createScspSongPlayer({
 		errorMessage = '';
 	let pending = Promise.resolve();
 	let liveEnabled = true;
+	let editSequence = 0;
 	const open = () => {
 		if (disposed) throw new Error('SCSP song player is disposed');
 	};
@@ -200,6 +201,19 @@ export function createScspSongPlayer({
 	function getLiveSnapshot() {
 		if (!liveEnabled || !active || active.source.kind !== 'ssf') return null;
 		return active.liveHistory.at(position());
+	}
+	function editVoice(slot, method, patch, expectedSession) {
+		open();
+		const run = active;
+		if (expectedSession !== undefined && expectedSession !== run?.editSession) throw aborted();
+		if (
+			!run || run.source.kind !== 'ssf' || loading || seeking ||
+			!['playing', 'paused'].includes(playback) || typeof run.renderer.editVoice !== 'function'
+		)
+			throw new Error('Play or pause an SSF song before editing its channel.');
+		// Already queued PCM keeps its timeline. This synchronous mutation applies
+		// at the renderer's next boundary; snapshots later follow the audible PCM.
+		return { ...run.renderer.editVoice(slot, method, patch), session: run.editSession };
 	}
 	function captureLive(run) {
 		if (liveEnabled && run.source.kind === 'ssf' && run.renderer.readSnapshot)
@@ -390,6 +404,7 @@ export function createScspSongPlayer({
 				released: false,
 				lastEmitTime: null,
 				liveHistory: createScspSsfLiveHistory(),
+				editSession: ++editSequence,
 			};
 			captureLive(run);
 			return run;
@@ -651,6 +666,8 @@ export function createScspSongPlayer({
 		seek: (seconds) => track(seek(seconds)),
 		getState,
 		getLiveSnapshot,
+		editVoice,
+		getEditSession: () => active?.editSession ?? null,
 		setLiveEnabled,
 		read: getState,
 		whenIdle: () => pending,

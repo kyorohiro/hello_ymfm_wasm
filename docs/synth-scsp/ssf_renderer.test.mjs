@@ -4,11 +4,13 @@ import { readFile } from 'node:fs/promises';
 import {
 	createScspSsfPlaybackFixture,
 	createScspSsfLiveFixture,
+	createScspSsfCaptureFixture,
 } from '../../test/helpers/scsp_ssf_fixture.mjs';
 import { prepareScspSsfSource } from './ssf_source.js';
 import { createScspSsfRenderer } from './ssf_renderer.js';
 import { readScspSsfPcmPreview } from './ssf_snapshot.js';
 import { checkSsfPlayerSources } from '../../scripts/build_ssf_player.mjs';
+import createSsfPlayerModule from '../generated/ssf-player/ssf_player.js';
 
 const wasmBinary = await readFile(
 	new URL('../generated/ssf-player/ssf_player.wasm', import.meta.url),
@@ -238,5 +240,269 @@ test('live CPU edits remain visible across two physical slots with different PCM
 		);
 	} finally {
 		renderer.dispose();
+	}
+});
+
+test('live host writes change same-boundary all-slot parameters without advancing CPU, PCM phase or RAM', async () => {
+	const original = createScspSsfCaptureFixture(),
+		source = await prepareScspSsfSource(original.files, original.files[0].path),
+		renderer = await create(source);
+	try {
+		output(renderer, 4096);
+		const before = renderer.readSnapshot(),
+			frame = renderer.framesRendered;
+		const envelope = {
+				attackRate: 20,
+				decay1Rate: 5,
+				decay2Rate: 6,
+				decayLevel: 7,
+				releaseRate: 18,
+				keyRateScaling: 4,
+				loopLink: true,
+			},
+			lfo = {
+				frequencyCode: 12,
+				pitchWave: 2,
+				pitchDepth: 3,
+				amplitudeWave: 1,
+				amplitudeDepth: 4,
+				reset: true,
+			},
+			mix = { totalLevel: 72, directLevel: 5, pan: 15 };
+		const receipt = renderer.editVoice(0, 'setEnvelope', envelope);
+		assert.deepEqual(receipt, { frame, nativeFrame: before.frame });
+		renderer.editVoice(0, 'setLfo', lfo);
+		renderer.editVoice(0, 'setMix', mix);
+		const after = renderer.readSnapshot();
+		assert.notEqual(after, before, 'a host write invalidates the same-frame cached snapshot');
+		assert.equal(after.frame, before.frame);
+		assert.equal(renderer.framesRendered, frame);
+		for (const [key, value] of Object.entries(envelope))
+			assert.equal(after.slots[0].voice.envelope[key], value);
+		for (const [key, value] of Object.entries(lfo))
+			assert.equal(after.slots[0].voice.lfo[key], value);
+		for (const [key, value] of Object.entries(mix))
+			assert.equal(after.slots[0].voice[key], value);
+		for (const key of [
+			'envelopeLevel',
+			'envelopePhase',
+			'currentAddress',
+			'fractionalPhase',
+			'lfoCounter',
+			'lfoTimeCounter',
+			'active',
+			'gate',
+		])
+			assert.deepEqual(after.slots[0][key], before.slots[0][key], key);
+		assert.deepEqual(after.ram, before.ram);
+		assert.deepEqual(after.globals, before.globals);
+		assert.deepEqual(after.slots.slice(1), before.slots.slice(1));
+		for (const index of [2, 31]) {
+			// The host write does not require capture eligibility: Noise, linked
+			// voices and idle physical slots still own ordinary parameter registers.
+			renderer.editVoice(index, 'setMix', { totalLevel: 37, pan: 22 });
+			assert.equal(renderer.readSnapshot().slots[index].voice.totalLevel, 37);
+			assert.equal(renderer.readSnapshot().slots[index].voice.pan, 22);
+			assert.equal(renderer.readSnapshot().slots[index].gate, before.slots[index].gate);
+		}
+		const held = renderer.readSnapshot();
+		for (const [slot, method, patch] of [
+			[32, 'setMix', { pan: 0 }],
+			[0, 'setMix', { pan: 0, directLevel: 8 }],
+			[0, 'setEnvelope', { loopLink: 1 }],
+			[0, 'setFrequency', { frequencyHz: 440 }],
+		]) {
+			assert.throws(() => renderer.editVoice(slot, method, patch));
+			assert.equal(renderer.readSnapshot(), held);
+		}
+	} finally {
+		renderer.dispose();
+	}
+	assert.throws(() => renderer.editVoice(0, 'setMix', { pan: 0 }), /disposed/);
+});
+
+test('host parameter masks retain hardware-only flags and DSP routing / return bits', async () => {
+	const original = createScspSsfCaptureFixture(),
+		source = await prepareScspSsfSource(original.files, original.files[0].path);
+	const ram = source.ram.slice(),
+		view = new DataView(ram.buffer),
+		flags = new Map([
+			[0x100008, 0x20],
+			[0x10000a, 0x8000],
+			[0x10000c, 0x300],
+			[0x100016, 0xa7],
+		]);
+	const found = new Set();
+	for (let address = 0x100; address < 0x600 - 8; address += 2) {
+		if (view.getUint16(address, false) !== 0x33fc) continue;
+		const target = view.getUint32(address + 4, false);
+		if (!flags.has(target)) continue;
+		view.setUint16(address + 2, view.getUint16(address + 2, false) | flags.get(target), false);
+		found.add(target);
+	}
+	assert.equal(found.size, flags.size);
+	const renderer = await create({ ...source, ram });
+	try {
+		output(renderer, 2048);
+		const before = renderer.readSnapshot().slots[0];
+		assert(
+			before.flags.attackHold &&
+				before.flags.envelopeBypass &&
+				before.flags.soundDirect &&
+				before.voice.modulation.writeInhibit,
+		);
+		assert.equal(before.registers[11] & 255, 0xa7);
+		renderer.editVoice(0, 'setEnvelope', {
+			attackRate: 12,
+			decay1Rate: 23,
+			decay2Rate: 9,
+			decayLevel: 11,
+			releaseRate: 17,
+			keyRateScaling: 2,
+			loopLink: true,
+		});
+		renderer.editVoice(0, 'setLfo', { reset: true, pitchDepth: 3 });
+		renderer.editVoice(0, 'setMix', { totalLevel: 41, pan: 9, directLevel: 4 });
+		const after = renderer.readSnapshot().slots[0];
+		assert.equal(after.registers[4] & 0x20, before.registers[4] & 0x20);
+		assert.equal(after.registers[5] & 0x8000, before.registers[5] & 0x8000);
+		assert.equal(after.registers[6] & 0xff00, before.registers[6] & 0xff00);
+		assert.equal(after.registers[11] & 255, before.registers[11] & 255);
+		assert.equal(after.registers[10], before.registers[10]);
+		assert.deepEqual(after.sample, before.sample);
+		assert.deepEqual(after.dsp, before.dsp);
+	} finally {
+		renderer.dispose();
+	}
+});
+
+test('native host edit ABI validates every masked word before any register write', async () => {
+	let module, handle;
+	const renderer = await createScspSsfRenderer(prepared, {
+		wasmBinary,
+		moduleFactory: async (options) => {
+			module = await createSsfPlayerModule(options);
+			const create = module._ssf_create;
+			module._ssf_create = (...args) => (handle = create(...args));
+			return module;
+		},
+	});
+	let edits = 0,
+		words = 0,
+		ram = 0;
+	try {
+		assert.equal(module._ssf_abi_version(), 3);
+		output(renderer, 2048);
+		edits = module._malloc(9 * 4);
+		words = module._malloc(1040 * 4);
+		ram = module._malloc(524288);
+		const read = () => {
+			assert.equal(module._ssf_read_snapshot(handle, words, 1040, ram, 524288), 1);
+			return {
+				words: new Uint32Array(module.HEAPU8.buffer, words, 1040).slice(),
+				ram: module.HEAPU8.slice(ram, ram + 524288),
+			};
+		};
+		const before = read();
+		for (const values of [
+			[12, 255, 70, 22, 0xffff, 0],
+			[12, 255, 70, 0, 0x800, 0],
+			[12, 255, 70, 12, 255, 90],
+			[8, 0x20, 0],
+			[10, 0x8000, 0],
+			[12, 255, 256],
+		]) {
+			new Uint32Array(module.HEAPU8.buffer, edits, values.length).set(values);
+			assert.equal(module._ssf_edit_voice(handle, 0, edits, values.length / 3), 0);
+			assert.deepEqual(read(), before);
+		}
+		new Uint32Array(module.HEAPU8.buffer, edits, 3).set([12, 255, 70]);
+		assert.equal(module._ssf_edit_voice(handle, 32, edits, 1), 0);
+		assert.equal(module._ssf_edit_voice(handle, 0, edits, 4), 0);
+		assert.deepEqual(read(), before);
+		assert.equal(module._ssf_edit_voice(handle, 0, edits, 1), 1);
+		const after = read();
+		assert.equal(after.words[16 + 6] & 255, 70);
+		assert.deepEqual(after.ram, before.ram);
+		assert.deepEqual(after.words.slice(0, 16), before.words.slice(0, 16));
+	} finally {
+		for (const pointer of [edits, words, ram]) if (pointer) module._free(pointer);
+		renderer.dispose();
+	}
+});
+
+test('live Envelope and amplitude LFO edits change an already held native voice without retrigger', async () => {
+	const original = createScspSsfCaptureFixture(),
+		source = await prepareScspSsfSource(original.files, original.files[0].path);
+	for (const [method, patch] of [
+		['setEnvelope', { decay1Rate: 31, decayLevel: 1, decay2Rate: 31 }],
+		['setLfo', { frequencyCode: 31, amplitudeDepth: 7, amplitudeWave: 2, reset: false }],
+	]) {
+		const a = await create(source),
+			b = await create(source);
+		try {
+			for (const renderer of [a, b]) {
+				output(renderer, 4096);
+				renderer.editVoice(1, 'setMix', { directLevel: 0 });
+				renderer.editVoice(2, 'setMix', { directLevel: 0 });
+			}
+			assert.deepEqual(output(a, 4096), output(b, 4096));
+			const before = a.readSnapshot().slots[0];
+			a.editVoice(0, method, patch);
+			const after = a.readSnapshot().slots[0];
+			assert.equal(after.envelopePhase, before.envelopePhase);
+			assert.equal(after.currentAddress, before.currentAddress);
+			assert.equal(after.gate, true);
+			const edited = output(a, 8192),
+				original = output(b, 8192);
+			assert.notDeepEqual(
+				edited.left,
+				original.left,
+				`${method} should affect the existing held note`,
+			);
+			assert.equal(a.readSnapshot().slots[0].gate, true);
+		} finally {
+			a.dispose();
+			b.dispose();
+		}
+	}
+});
+
+test('generated SSF module uses an explicitly provided WASM buffer rather than silently reloading a neighbor', async () => {
+	await assert.rejects(
+		createSsfPlayerModule({ wasmBinary: new Uint8Array([0, 1, 2, 3]), printErr() {} }),
+		/Aborted|magic|CompileError/,
+	);
+});
+
+test('host Mix edits audibly affect the running machine and the original 68000 driver continues to overwrite them', async () => {
+	const live = createScspSsfLiveFixture(),
+		source = await prepareScspSsfSource(live.files, live.files[0].path),
+		a = await create(source),
+		b = await create(source);
+	try {
+		assert.deepEqual(output(a, 4096), output(b, 4096));
+		a.editVoice(0, 'setMix', { totalLevel: 100, pan: 15 });
+		assert.equal(a.readSnapshot().slots[0].voice.totalLevel, 100);
+		const changed = output(a, 4096),
+			reference = output(b, 4096);
+		assert.notDeepEqual(changed.left, reference.left);
+		assert(changed.left.some((value) => value !== 0));
+		let overwritten = false;
+		for (let index = 0; index < 20; index++) {
+			output(a, 4096);
+			const current = a.readSnapshot();
+			if ([12, 36].includes(current.slots[0].voice.totalLevel)) {
+				overwritten = true;
+				break;
+			}
+		}
+		assert(
+			overwritten,
+			'CPU music driver must continue, including its later write to the same TL',
+		);
+	} finally {
+		a.dispose();
+		b.dispose();
 	}
 });

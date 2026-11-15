@@ -35,6 +35,8 @@ export function setupScspSsfLiveView({
 	onChange = () => {},
 	onCapture = null,
 	getCaptureAvailability = () => ({ available: true }),
+	getEditAvailability = null,
+	getAuditionEditState = null,
 	externalSelection = false,
 	document: doc = globalThis.document,
 } = {}) {
@@ -47,6 +49,7 @@ export function setupScspSsfLiveView({
 	const reference = byId('scspSsfReference');
 	const capture = byId('scspSsfCapture');
 	const captureStatus = byId('scspSsfCaptureStatus');
+	const editsSong = typeof getEditAvailability === 'function';
 	const listeners = [];
 	let playback = null,
 		snapshot = null,
@@ -54,6 +57,10 @@ export function setupScspSsfLiveView({
 		active = false,
 		disposed = false,
 		projected = null,
+		editableTarget = null,
+		editState = null,
+		availability = { available: false, reason: '' },
+		editReason = '',
 		capturing = false,
 		captureError = '';
 	const hidden = new Map();
@@ -61,6 +68,25 @@ export function setupScspSsfLiveView({
 	let checkpoint = null;
 	const authorSections = [...doc.querySelectorAll('.voice-routing, .operator-panel')];
 	const input = (name) => panelRoot.querySelector(`[data-chip-control="scsp-${name}"]`);
+	const editableInputs = [
+		'attackRate',
+		'decay1Rate',
+		'decay2Rate',
+		'decayLevel',
+		'releaseRate',
+		'keyRateScaling',
+		'lfo-frequencyCode',
+		'lfo-pitchWave',
+		'lfo-pitchDepth',
+		'lfo-amplitudeWave',
+		'lfo-amplitudeDepth',
+		'lfo-reset',
+		'totalLevel',
+		'directLevel',
+		'pan',
+	]
+		.map(input)
+		.filter(Boolean);
 	const rootLabel = input('root')?.closest('label');
 	const rootText = rootLabel?.firstChild;
 	const originalRootText = rootText?.textContent;
@@ -199,19 +225,54 @@ export function setupScspSsfLiveView({
 				}
 			: null;
 	}
-	function renderCapture() {
+	function updateEditTarget() {
 		const target = selectedTarget();
-		let available = false,
-			reason = '';
+		availability = { available: false, reason: '' };
+		editableTarget = null;
+		editState = null;
+		editReason = '';
 		if (target) {
 			try {
 				const result = getCaptureAvailability(target);
-				available = result?.available !== false;
-				reason = result?.reason ?? '';
+				availability = {
+					available: result?.available !== false,
+					reason: result?.reason ?? '',
+				};
 			} catch (error) {
-				reason = error?.message ?? String(error);
+				availability.reason = error?.message ?? String(error);
 			}
 		}
+		let canEdit = Boolean(target && playback?.playback === 'paused' && availability.available);
+		if (target && typeof getEditAvailability === 'function') {
+			try {
+				const result = getEditAvailability(target, playback);
+				canEdit = result?.available === true;
+				editReason = result?.reason ?? '';
+			} catch (error) {
+				canEdit = false;
+				editReason = error?.message ?? String(error);
+			}
+		}
+		if (target && canEdit && typeof getAuditionEditState === 'function') {
+			try {
+				editState = getAuditionEditState(target);
+				editableTarget = target;
+			} catch (error) {
+				editReason = error?.message ?? String(error);
+			}
+		}
+		const editing = Boolean(editableTarget);
+		const edited = Boolean(editing && (editState?.edited || editState?.pending));
+		section.dataset.editable = String(editing);
+		section.dataset.edited = String(edited);
+		panelRoot.dataset.ssfEditable = String(editing);
+		panelRoot.dataset.ssfEditing = String(editing);
+		panelRoot.dataset.ssfEdited = String(edited);
+		if (active) for (const node of editableInputs) node.disabled = !editableTarget;
+	}
+	function renderCapture() {
+		const target = selectedTarget();
+		const { available, reason } = availability;
 		reference.disabled = capturing;
 		capture.disabled = !target || !available || !onCapture || capturing;
 		const captureLabel = capturing ? 'Capturing…' : 'Capture to Synth';
@@ -219,13 +280,24 @@ export function setupScspSsfLiveView({
 		captureStatus.textContent =
 			captureError ||
 			reason ||
+			editReason ||
 			(capturing
 				? 'Preparing the selected slot.'
-				: target
-					? playback.paused
-						? 'Keyboard: selected SSF slot · Reference key sets its captured pitch.'
-						: 'Keyboard: authored Synth · Pause to audition the selected SSF slot.'
-					: 'Capture copies a supported PCM slot into the editable Synth.');
+				: editableTarget && editsSong
+					? editState?.pending
+						? 'Updating the selected SSF channel…'
+						: playback.paused
+							? 'Edit the selected SSF CH · keyboard previews supported PCM with these parameters.'
+							: 'Edit the selected SSF CH · later driver writes may replace your changes.'
+					: target
+						? playback.paused
+							? editableTarget
+								? editState?.pending
+									? 'Updating the paused audition parameters…'
+									: 'Paused audition: edit Envelope, LFO and mix. Capture includes these parameters.'
+								: 'Keyboard: selected SSF slot · Reference key sets its captured pitch.'
+							: 'Keyboard: authored Synth · Pause to audition the selected SSF slot.'
+						: 'Capture copies a supported PCM slot into the editable Synth.');
 		captureStatus.dataset.error = String(Boolean(captureError || (target && !available)));
 	}
 
@@ -302,6 +374,11 @@ export function setupScspSsfLiveView({
 		]) {
 			const node = input(name);
 			if (!node) continue;
+			if (
+				editableTarget &&
+				(doc.activeElement === node || node.classList?.contains('is-dragging'))
+			)
+				continue;
 			if (node.type === 'checkbox') node.checked = Boolean(value);
 			else node.value = String(value);
 		}
@@ -341,6 +418,7 @@ export function setupScspSsfLiveView({
 		section.dataset.frame = active ? String(snapshot.frame) : '';
 		const selectionDisabled = !ssf || !enabled.checked || !usable(snapshot);
 		if (select) select.disabled = selectionDisabled;
+		updateEditTarget();
 		renderCapture();
 		for (const [index, button] of buttons.entries()) {
 			const slot = active ? snapshot.slots[index] : null;
@@ -368,6 +446,20 @@ export function setupScspSsfLiveView({
 			return false;
 		}
 		projected = projectScspSsfLiveSlot(snapshot, selected);
+		if (editableTarget && editState?.voice) {
+			const original = projected.read.voice,
+				edited = editState.voice;
+			projected.read.voice = {
+				...original,
+				envelope: { ...original.envelope, ...edited.envelope },
+				lfo: { ...original.lfo, ...edited.lfo },
+				...Object.fromEntries(
+					['totalLevel', 'directLevel', 'pan']
+						.filter((key) => edited[key] !== undefined)
+						.map((key) => [key, edited[key]]),
+				),
+			};
+		}
 		panelRoot.dataset.ssfSlot = String(selected);
 		displaySlot(projected.read);
 		const slot = projected.slot;
@@ -394,7 +486,14 @@ export function setupScspSsfLiveView({
 			typeof mode.loopMode === 'number'
 				? (loops[mode.loopMode] ?? `Loop ${mode.loopMode}`)
 				: mode.loopMode;
-		status.textContent = `${prefix} · ${externalSelection ? 'CH' : 'Slot '}${selected + 1} · ${slot.active ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round(slot.envelopeLevel * 100)}% ${phases[slot.envelopePhase] ?? ''} · ${source} ${mode.bits}-bit · Start ${hex(mode.startAddress)} · Loop ${mode.loopStart}–${mode.loopEnd} ${loop} · ${projected.read.pcm.length} preview samples · read-only`;
+		const editing = editableTarget
+			? editsSong
+				? 'editable parameters'
+				: editState?.edited
+					? 'audition parameters edited · source frozen'
+					: 'audition parameters editable · source frozen'
+			: 'read-only';
+		status.textContent = `${prefix} · ${externalSelection ? 'CH' : 'Slot '}${selected + 1} · ${slot.active ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round(slot.envelopeLevel * 100)}% ${phases[slot.envelopePhase] ?? ''} · ${source} ${mode.bits}-bit · Start ${hex(mode.startAddress)} · Loop ${mode.loopStart}–${mode.loopEnd} ${loop} · ${projected.read.pcm.length} preview samples · ${editing}`;
 		return true;
 	}
 	return {
@@ -404,6 +503,8 @@ export function setupScspSsfLiveView({
 			return render();
 		},
 		isActive: () => active,
+		isEditable: () => Boolean(active && editableTarget),
+		getEditableTarget: () => (active ? editableTarget : null),
 		isEnabled: () => enabled.checked,
 		setEnabled(value) {
 			if (enabled.checked === Boolean(value)) return;

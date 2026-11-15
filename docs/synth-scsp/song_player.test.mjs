@@ -141,6 +141,7 @@ function rig({ gate, ssfGate, yieldTask = async () => {} } = {}) {
 			disposed: false,
 			process: (...args) => renderer.process(...args),
 			readSnapshot: () => renderer.readSnapshot(),
+			editVoice: (...args) => renderer.editVoice(...args),
 			get framesRendered() {
 				return renderer.framesRendered;
 			},
@@ -254,6 +255,42 @@ test('SSF Live snapshots follow audible frames, freeze on Pause and survive paus
 		r.player.stop();
 		assert.equal(r.player.getLiveSnapshot(), null);
 	} finally {r.player.dispose();}
+});
+
+test('SSF channel edits retain queued PCM and frozen position, and cannot cross run / seek ownership', async () => {
+	const r = rig(), fixture = createScspSsfPlaybackFixture();
+	try {
+		await r.player.loadSsf(fixture.standaloneFiles, fixture.standaloneFiles[0].path);
+		await r.player.play();
+		r.advance(.1);
+		const session = r.player.getEditSession(), renderer = r.ssfRenderers[0];
+		const frames = renderer.framesRendered, nodes = r.nodes.map(node => ({ ...node.started }));
+		const changed = r.player.editVoice(0, 'setMix', { pan: 15 }, session);
+		assert.equal(changed.session, session);
+		assert.equal(renderer.framesRendered, frames, 'writing must not render or skip queued samples');
+		assert.deepEqual(r.nodes.map(node => ({ ...node.started })), nodes);
+		assert(r.player.getState().playing);
+		r.player.pause();
+		const frozen = r.player.getLiveSnapshot(), position = r.player.getState().positionFrames;
+		const ram = renderer.readSnapshot().ram.slice();
+		r.player.editVoice(0, 'setEnvelope', { attackRate: 17 }, session);
+		assert.equal(r.player.getLiveSnapshot(), frozen);
+		assert.equal(r.player.getState().positionFrames, position);
+		assert.deepEqual(renderer.readSnapshot().ram, ram);
+		const before = renderer.readSnapshot();
+		assert.throws(() => r.player.editVoice(0, 'setMix', { pan: 32 }, session));
+		assert.deepEqual(renderer.readSnapshot(), before);
+		await r.player.resume(); r.advance(.3);
+		assert.equal(r.player.getEditSession(), session);
+		assert.equal(r.player.getLiveSnapshot().slots[0].voice.pan, 15);
+		await r.player.seek(.5);
+		const next = r.player.getEditSession();
+		assert.notEqual(next, session);
+		assert.throws(() => r.player.editVoice(0, 'setMix', { pan: 31 }, session), { name: 'AbortError' });
+		r.player.stop();
+		assert.equal(r.player.getEditSession(), null);
+		assert.throws(() => r.player.editVoice(0, 'setMix', { pan: 31 }, next), { name: 'AbortError' });
+	} finally { r.player.dispose(); }
 });
 
 test('missing SSF libraries preserve a playing recording and missing length has an explicit bounded preview', async () => {

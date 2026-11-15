@@ -751,7 +751,8 @@ async function check(browser, engine, origin, fixture) {
 			'linked PCM capture available',
 		);
 		assert(await control(page, 'loopLink').isChecked());
-		assert(await control(page, 'loopLink').isDisabled());
+		assert(await control(page, 'loopLink').isEnabled());
+		assert(await control(page, 'loop').isDisabled());
 		const linkFrozen = await view(page),
 			linkedExpected = fixture.linked.capture.preset;
 		assert.equal(linkedExpected.voice.envelope.loopLink, true);
@@ -772,7 +773,7 @@ async function check(browser, engine, origin, fixture) {
 		await page.check('#scspSsfLiveEnabled');
 		await paused(linkFrozen);
 		checks.push(
-			'Hardware loopLink and LSA512 are read-only in Live, selected-slot preview preserves the paused frame and unapplied draft',
+			'Hardware loopLink is editable while source LSA512 stays read-only; selected-slot preview preserves the paused frame and unapplied draft',
 		);
 
 		step('loopLink Capture and saved-preset round trip retain the hardware flag');

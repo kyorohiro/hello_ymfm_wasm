@@ -968,11 +968,11 @@ footer {
 	color: var(--ink);
 	-webkit-text-fill-color: var(--ink);
 }
-#voice[data-ssf-live='true'] .scsp-stepper {
+#voice[data-ssf-live='true'] .scsp-stepper:has(input:disabled) {
 	opacity: 1;
 	grid-template-columns: minmax(0, 1fr);
 }
-#voice[data-ssf-live='true'] .scsp-stepper button {
+#voice[data-ssf-live='true'] .scsp-stepper:has(input:disabled) button {
 	display: none;
 }
 #voice[data-ssf-live='true'] canvas {

@@ -85,6 +85,7 @@
     "test:scsp-synth:capture-browser": "node scripts/check_scsp_synth_capture_browser.cjs",
     "test:scsp-synth:channels-browser": "node scripts/check_scsp_synth_channels_browser.cjs",
     "test:scsp-synth:click-guard-browser": "node scripts/check_scsp_synth_click_guard_browser.cjs",
+    "test:scsp-synth:ssf-edit-browser": "node scripts/check_scsp_synth_paused_edit_browser.cjs",
     "build:ssf-player": "node scripts/build_ssf_player.mjs",
     "test:spu-synth": "node --test docs/synth-spu/*.test.mjs scripts/package_itch_spu_synth.test.mjs",
     "test:spu-synth:browser": "node scripts/check_spu_synth_browser.cjs",
