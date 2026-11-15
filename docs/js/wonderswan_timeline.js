@@ -1,6 +1,7 @@
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 
 export const WONDERSWAN_TIMELINE_MAX_BYTES = 8 * 1024 * 1024;
+export const WONDERSWAN_TIMELINE_MAX_HOST_BYTES = 32 * 1024 * 1024;
 export const WONDERSWAN_TIMELINE_MAX_WRITES_PER_QUANTUM = 512;
 const integer = (value, maximum, label) => {
   if (!Number.isSafeInteger(value) || value < 0 || value > maximum) throw new RangeError(`WonderSwan timeline ${label} is out of range`);
@@ -33,14 +34,16 @@ function readPoint(data, state) {
 /** Validate and own an exact, one-pass WonderSwan register/RAM/Voice PCM trace.
  * Authored times are unsigned 44100-Hz sample positions, independent of clock.
  * @param {any} trace
- * @param {{sampleRate?:number}} [options] Actual output rate enables callback density validation.
+ * @param {{sampleRate?:number,maxBytes?:number}} [options] Actual output rate enables callback density validation. Hosts may opt into a bounded larger preparation budget.
  */
-export function prepareWonderSwanTimeline(trace, {sampleRate} = {}) {
+export function prepareWonderSwanTimeline(trace, {sampleRate, maxBytes = WONDERSWAN_TIMELINE_MAX_BYTES} = {}) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > WONDERSWAN_TIMELINE_MAX_HOST_BYTES) fail('maxBytes must be an integer from 1 to 33554432');
+  const limit = `${maxBytes / (1024 * 1024)} MiB`;
   if (!trace || typeof trace !== 'object' || Array.isArray(trace) || trace.version !== 1) fail('expected version 1');
   const clock = validateChipClock(trace.clock);
   const durationSamples = integer(trace.durationSamples, 0xffffffff, 'duration');
   if (!Array.isArray(trace.events) || !(trace.pcmData instanceof Uint8Array)) fail('expected events and Uint8Array PCM data');
-  if (trace.events.length * 32 + trace.pcmData.byteLength > WONDERSWAN_TIMELINE_MAX_BYTES) fail('data exceeds the 8 MiB limit');
+  if (trace.events.length * 32 + trace.pcmData.byteLength > maxBytes) fail(`data exceeds the ${limit} limit`);
   if (sampleRate !== undefined && (!Number.isFinite(sampleRate) || sampleRate < 8000 || sampleRate > 384000)) fail('invalid output sample rate');
   // Copy all caller-owned storage before inspecting its content. Failed
   // preparation cannot mutate an existing playable trace or retain a view.
@@ -80,7 +83,7 @@ export function prepareWonderSwanTimeline(trace, {sampleRate} = {}) {
       const count = integer(event[4], 0xffffffff, 'PCM count'), endSample = integer(event[5], durationSamples, 'PCM end sample');
       if (!count || length < count * 2 || offset + length > pcmData.length || endSample < sample) fail('invalid PCM run bounds');
       workBytes += length;
-      if (workBytes > WONDERSWAN_TIMELINE_MAX_BYTES) fail('referenced PCM playback work exceeds the 8 MiB limit');
+      if (workBytes > maxBytes) fail(`referenced PCM playback work exceeds the ${limit} limit`);
       const state = {position:offset, end:offset + length, remaining:count, sample};
       for (let point = 0; point < count; point++) {
         const delta = readPoint(pcmData, state);

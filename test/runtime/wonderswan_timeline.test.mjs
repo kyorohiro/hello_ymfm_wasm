@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor,WONDERSWAN_TIMELINE_MAX_BYTES} from '../../tetorica_src/runtime/wonderswan_timeline.js';
+import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor,WONDERSWAN_TIMELINE_MAX_BYTES,WONDERSWAN_TIMELINE_MAX_HOST_BYTES} from '../../tetorica_src/runtime/wonderswan_timeline.js';
 
 const trace = () => ({version:1,clock:3072000,durationSamples:10,events:[[0,0,0x90,0x22],[1,2,0,6,3,7],[7,0,0x90,0]],pcmData:Uint8Array.of(0,42,3,99,3,128)});
 
@@ -48,4 +48,60 @@ test('WonderSwan repeated PCM ranges share bytes but cannot multiply admission w
   const events=[[0,0,0x90,0x22]],length=(count-1)*5;
   for(let index=0;index<8;index++)events.push([index*length,2,0,pcmData.length,count,(index+1)*length]);
   assert.throws(()=>prepareWonderSwanTimeline({version:1,clock:3072000,durationSamples:length*8,events,pcmData}),/playback work exceeds the 8 MiB/);
+  const hostEvents=[[0,0,0x90,0x22]];
+  for(let index=0;index<32;index++)hostEvents.push([index*length,2,0,pcmData.length,count,(index+1)*length]);
+  assert.throws(()=>prepareWonderSwanTimeline({version:1,clock:3072000,durationSamples:length*32,events:hostEvents,pcmData},
+    {maxBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES}),/playback work exceeds the 32 MiB/);
+});
+
+test('WonderSwan host preparation accepts a bounded larger trace while default callers retain the 8 MiB budget',()=>{
+  const count=Math.floor(WONDERSWAN_TIMELINE_MAX_BYTES/32)+1;
+  const input={version:1,clock:3072000,durationSamples:count*4,
+    events:Array.from({length:count},(_,index)=>[index*4,1,index&0x3fff,index&255]),pcmData:new Uint8Array()};
+  assert.throws(()=>prepareWonderSwanTimeline(input,{sampleRate:48000}),/8 MiB/);
+  const prepared=prepareWonderSwanTimeline(input,{sampleRate:48000,maxBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES});
+  input.events[0][3]=255;input.events[count-1][2]=0;
+  assert.equal(prepared.events[0][3],0);
+  assert.equal(prepared.events[count-1][2],(count-1)&0x3fff);
+  for(const sizes of [[4096],[1,127,3,911]]) {
+    const cursor=createWonderSwanTimelineCursor(prepared,48000);
+    let frame=0,partition=0,index=0;
+    const apply=(kind,address,value)=>{
+      assert.equal(kind,1);assert.equal(address,index&0x3fff);assert.equal(value,index&255);index++;
+    };
+    cursor.advance(0,apply);
+    while(frame<cursor.durationFrames) {
+      frame=Math.min(cursor.durationFrames,frame+sizes[partition++%sizes.length]);
+      cursor.advance(frame,apply);
+      const next=index<count?Math.ceil(index*4*48000/44100):Infinity;
+      assert.equal(cursor.nextFrame(),next,'partition boundaries retain exact event timing');
+      assert(next>frame);
+    }
+    assert.equal(index,count);
+  }
+});
+
+test('WonderSwan opt-in host budgets validate before reading or copying the supplied trace',()=>{
+  const unreadable=new Proxy({}, {get(){assert.fail('invalid budget must be rejected before trace access');}});
+  for(const maxBytes of [0,-1,1.5,NaN,Infinity,'33554432',null,WONDERSWAN_TIMELINE_MAX_HOST_BYTES+1])
+    assert.throws(()=>prepareWonderSwanTimeline(unreadable,{maxBytes}),/maxBytes/);
+  const empty={version:1,clock:3072000,durationSamples:0,events:[],pcmData:new Uint8Array()};
+  assert.doesNotThrow(()=>prepareWonderSwanTimeline(empty,{maxBytes:1}));
+  assert.doesNotThrow(()=>prepareWonderSwanTimeline(empty,{maxBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES}));
+  assert.throws(()=>prepareWonderSwanTimeline({...empty,pcmData:new Uint8Array(2)},{maxBytes:1}),/data exceeds/);
+});
+
+test('WonderSwan host budget increases cannot bypass callback density or referenced PCM work limits',()=>{
+  const events=Array.from({length:513},()=>[0,1,0,0]);
+  assert.throws(()=>prepareWonderSwanTimeline({version:1,clock:3072000,durationSamples:0,events,pcmData:new Uint8Array()},
+    {sampleRate:44100,maxBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES}),/too many writes/);
+  const crossing=Array.from({length:512},()=>[127,1,0,0]);crossing.push([128,1,0,0]);
+  assert.throws(()=>prepareWonderSwanTimeline({version:1,clock:3072000,durationSamples:128,events:crossing,pcmData:new Uint8Array()},
+    {sampleRate:44100,maxBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES}),/output quantum/);
+  const pcmData=Uint8Array.of(0,128,4,140),runs=[[0,0,0x90,0x22]];
+  for(let index=0;index<10;index++)runs.push([index*4,2,0,pcmData.length,2,(index+1)*4]);
+  const input={version:1,clock:3072000,durationSamples:40,events:runs,pcmData};
+  const maxBytes=runs.length*32+pcmData.length;
+  assert.throws(()=>prepareWonderSwanTimeline(input,{sampleRate:44100,maxBytes}),/referenced PCM playback work/);
+  assert.doesNotThrow(()=>prepareWonderSwanTimeline(input,{sampleRate:44100,maxBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES}));
 });

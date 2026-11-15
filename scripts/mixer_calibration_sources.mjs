@@ -23,6 +23,7 @@ import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration
 import {restoreMixerCalibrationScspDraftRevision} from './mixer_calibration_scsp_draft_revision.mjs';
 import {restoreMixerCalibrationScspEmptyDraftRevision} from './mixer_calibration_scsp_empty_draft_revision.mjs';
 import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
+import {restoreMixerCalibrationWonderSwanHostBudgetRevision} from './mixer_calibration_wonderswan_host_budget_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -372,6 +373,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const hostBudget=restoreMixerCalibrationWonderSwanHostBudgetRevision(path,bytes),hostBudgetRevision=hostBudget!==bytes;bytes=hostBudget;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return hostBudgetRevision?'wonderswan-host-preparation-budget':'raw';
   const emptyDraft=restoreMixerCalibrationScspEmptyDraftRevision(path,bytes),emptyDraftRevision=emptyDraft!==bytes;bytes=emptyDraft;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return emptyDraftRevision?'ui-scsp-empty-draft-checkpoint':'raw';
   const loopLink=restoreMixerCalibrationScspLoopLinkRevision(path,bytes),loopLinkRevision=loopLink!==bytes;bytes=loopLink;

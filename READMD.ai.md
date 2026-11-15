@@ -17,6 +17,9 @@ musical timing, without a global `play()` starter. Files / Cassette retain
 editable JS, portable `.aswan.json` presets and original `/vgm/` files.
 Static VGM extraction also creates `/presets/<song>/` instruments. Static sounds
 are distinct from full reference playback and later driver automation.
+ASWAN host reference preparation uses an explicit bounded 32 MiB timeline
+budget for dense real-game logs, retaining every repeated write. The shared
+Worklet / Code default remains 8 MiB; its callback-density guard is unchanged.
 Playing Wave / Sweep / Noise channels accept sparse hardware edits and keyboard
 pitch/gate writes into the reference chip without stopping queued playback.
 Later VGM frequency writes reclaim pitch; full control writes reclaim gates,

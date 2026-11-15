@@ -3,6 +3,7 @@ import { WonderSwanAudioEngine } from '../js/wonderswanaudioengine.js';
 import {
 	prepareWonderSwanTimeline,
 	createWonderSwanTimelineCursor,
+	WONDERSWAN_TIMELINE_MAX_HOST_BYTES,
 } from '../js/wonderswan_timeline.js';
 import factory from '../generated/wonderswan_wasm.js';
 import { readAswanVgm } from './vgm_import.js';
@@ -24,7 +25,7 @@ export async function prepareAswanSongSource(bytes, options = {}) {
 					: [event.time, event.type === 'register' ? 0 : 1, event.address, event.value],
 			),
 		},
-		{ sampleRate: 44100 },
+		{ sampleRate: 44100, maxBytes: WONDERSWAN_TIMELINE_MAX_HOST_BYTES },
 	);
 	return { ...source, timeline };
 }

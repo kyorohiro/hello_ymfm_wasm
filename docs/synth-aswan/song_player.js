@@ -487,16 +487,25 @@ export function createAswanSongPlayer({
 			const left = new Float32Array(2048),
 				right = new Float32Array(2048),
 				deadline = nowMs() + 30000;
-			let frame = 0;
+			let frame = 0,
+				batchStarted = nowMs(),
+				batchBlocks = 0;
 			while (frame < target) {
 				if (!current(ticket) || controller.signal.aborted) throw aborted();
 				if (nowMs() > deadline) throw new Error('ASWAN seek exceeded 30 seconds');
 				const count = next.engine.process(left, right, Math.min(2048, target - frame));
 				frame += count;
 				if (!count && next.engine.ended) break;
-				seeking.progress = target ? frame / target : 1;
-				emit();
-				await yieldTask();
+				// A timer yield per 2048 frames adds tens of seconds of browser
+				// timer-clamping to long tracks. Batch native work while keeping
+				// the UI/cancellation responsive and the exact native block size.
+				if (++batchBlocks >= 64 || nowMs() - batchStarted >= 8 || frame >= target) {
+					seeking.progress = target ? frame / target : 1;
+					emit();
+					await yieldTask();
+					batchStarted = nowMs();
+					batchBlocks = 0;
+				}
 			}
 			if (!current(ticket) || controller.signal.aborted) throw aborted();
 			next.basePosition = next.renderedFrames = frame;

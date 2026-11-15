@@ -103,6 +103,12 @@ song remains separate from those presets. A snapshot is a moment of hardware
 settings, not the game's changing software instrument or its whole score.
 No commercial game files are included.
 
+Source files and expanded VGZ data are bounded at 16 MiB. This Synth's host
+reference player and sound extractor allow up to 32 MiB of prepared timeline
+data, so long songs retain repeated register writes instead of merging them.
+The density guard remains 512 writes per 128 output frames. Playground / Code
+Worklet score preparation keeps its existing default 8 MiB admission budget.
+
 ### Edit and play while the song continues
 
 Changed Live controls briefly highlight while you follow a VGM or Code CH.

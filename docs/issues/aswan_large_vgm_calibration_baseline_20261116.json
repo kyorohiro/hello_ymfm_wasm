@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-16",
+  "baseCommit": "2c7d6a5be230eb7cf9040e6e7841da0046c897a2",
+  "path": "playground/playground_monaco_definitions.js",
+  "currentEqualsHead": true,
+  "currentSha256": "ff98a5afa9f1be92cae19f50ae0388bfed4d006a2c9cfaadcb78809b2ee16525",
+  "reports": [
+    {
+      "file": "docs/issues/ps1_spc_voice_edit_chip_levels_01.json",
+      "expected": {
+        "bytes": 22544,
+        "sha256": "44f7c0b38fd511706d0f472696dd9c5d78bb1ee19d7d603c588dbfee60f2068b"
+      },
+      "before": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js",
+      "after": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js"
+    },
+    {
+      "file": "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json",
+      "expected": {
+        "bytes": 22544,
+        "sha256": "44f7c0b38fd511706d0f472696dd9c5d78bb1ee19d7d603c588dbfee60f2068b"
+      },
+      "before": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js",
+      "after": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js"
+    },
+    {
+      "file": "docs/issues/pokey_spc_voice_edit_chip_levels_01.json",
+      "expected": {
+        "bytes": 22544,
+        "sha256": "44f7c0b38fd511706d0f472696dd9c5d78bb1ee19d7d603c588dbfee60f2068b"
+      },
+      "before": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js",
+      "after": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js"
+    },
+    {
+      "file": "docs/issues/scsp_spc_voice_edit_chip_levels_01.json",
+      "expected": {
+        "bytes": 22544,
+        "sha256": "44f7c0b38fd511706d0f472696dd9c5d78bb1ee19d7d603c588dbfee60f2068b"
+      },
+      "before": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js",
+      "after": "served DSP/WASM source changed; remeasure: docs/playground/playground_monaco_definitions.js"
+    }
+  ]
+}

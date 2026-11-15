@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-16",
+  "file": "44 Epilogue -1-.vgz",
+  "sourceSha256": "a1675f4ac78b0a98443a6a7dd3955394bc03b4681a6ca53e074e7e3450197577",
+  "compressedBytes": 230975,
+  "expandedBytes": 1775392,
+  "physicalAudio": "none; native arrays only",
+  "prepareMs": 162.36624999999998,
+  "frames": 20650022,
+  "seconds": 468.2544671201814,
+  "events": 457616,
+  "extractionMs": 2399.551167,
+  "extraction": {
+    "voices": 353,
+    "warnings": [
+      "Static sounds omit oscillator phase and later register automation. Imported Software Envelope is off.",
+      "Sweep intervals with unrecorded step/time are omitted.",
+      "Noise intervals without a recorded generator-enable / output / volume setting are omitted."
+    ]
+  },
+  "fullPlayback": {
+    "exactStereoMatch": true,
+    "frames": 20650022,
+    "leftSha256": "3b8869f5905813523821ddde6001d64a34213f07cc02870994418a1dcc6cce85",
+    "rightSha256": "3b18932c0a5e2ca58c586a22706beb7bc5fd6f9304eb6233aa4160b03bd5c293",
+    "finite": true,
+    "peak": 0.2105712890625,
+    "rms": 0.052326818164768786,
+    "nonzeroFrames": 20629649,
+    "elapsedMs": 2742.1723749999996
+  },
+  "linearWindows": [
+    {
+      "name": "beginning",
+      "first": 0,
+      "count": 44100,
+      "leftSha256": "4ecabd704938c0dede3a54ce8b1ced5e8cf74e75775c0fcfe9a2df1c8d90005c",
+      "rightSha256": "b19703f80345447fa01b02a08e79c608241d5c757962d066e7bde8801dc67b82"
+    },
+    {
+      "name": "minute",
+      "first": 2646000,
+      "count": 44100,
+      "leftSha256": "314547d5c800ee40bbae3fa30af22e986d5a2491af59bb77a1c231ace3b46d6c",
+      "rightSha256": "16bad6a6fc0e9b7febba13ae94ad14886019c07cfa3a1ccbd053bb89950d4a63"
+    },
+    {
+      "name": "middle",
+      "first": 10325011,
+      "count": 44100,
+      "leftSha256": "2320b743b17f50f1546c471418badbb089815094312ec0e13644361083e4b17b",
+      "rightSha256": "c6ebddc392af977e3d09a6d274dda26162a43a4c32b889d03c7588a5ea7f300f"
+    },
+    {
+      "name": "ending",
+      "first": 20605922,
+      "count": 44100,
+      "leftSha256": "6f449af3cd8dd7711c7d704e1461c8f2738bc4193ef9dd658473699f4666934a",
+      "rightSha256": "69b6831fb111209a18099fb22b49be4f0cbca8bfe04acf733dcc79cf6a03789b"
+    }
+  ],
+  "seekWindows": [
+    {
+      "name": "beginning",
+      "firstFrame": 0,
+      "frames": 44100,
+      "leftSha256": "4ecabd704938c0dede3a54ce8b1ced5e8cf74e75775c0fcfe9a2df1c8d90005c",
+      "rightSha256": "b19703f80345447fa01b02a08e79c608241d5c757962d066e7bde8801dc67b82",
+      "exactAfterResetAndSkip": true,
+      "elapsedMs": 2.697374999999738
+    },
+    {
+      "name": "ending",
+      "firstFrame": 20605922,
+      "frames": 44100,
+      "leftSha256": "6f449af3cd8dd7711c7d704e1461c8f2738bc4193ef9dd658473699f4666934a",
+      "rightSha256": "69b6831fb111209a18099fb22b49be4f0cbca8bfe04acf733dcc79cf6a03789b",
+      "exactAfterResetAndSkip": true,
+      "elapsedMs": 1161.8984580000006
+    }
+  ],
+  "passed": true,
+  "elapsedMs": 6485.25925
+}

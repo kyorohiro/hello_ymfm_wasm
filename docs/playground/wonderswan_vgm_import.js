@@ -1,4 +1,5 @@
 import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js?v=pokey-vgm-1';
+import {WONDERSWAN_TIMELINE_MAX_HOST_BYTES} from '../js/wonderswan_timeline.js';
 
 // Bound both a hostile source and expansion of looping/high-rate DAC streams.
 // These are conversion limits, not new playback/scheduling capabilities.
@@ -117,7 +118,9 @@ function validateCommands(parser) {
 // Keep dense PCM out of object arrays and generated JavaScript. Each byte is
 // preceded by its unsigned sample-time delta (base-128 varuint, at most 5 bytes).
 // The byte budget also bounds decoder work: every write occupies >= 2 bytes.
-function walkWonderSwanVgm(buffer, {packPcm = false, retain = true} = {}) {
+function walkWonderSwanVgm(buffer, {packPcm = false, retain = true, timelineBytes = WONDERSWAN_VGM_IMPORT_LIMITS.timelineBytes} = {}) {
+  if (!Number.isSafeInteger(timelineBytes) || timelineBytes < 1 || timelineBytes > WONDERSWAN_TIMELINE_MAX_HOST_BYTES) fail('timelineBytes must be an integer from 1 to 32 MiB.');
+  const timelineLimit = timelineBytes % (1024 * 1024) === 0 ? `${timelineBytes / (1024 * 1024)} MiB` : `${timelineBytes} bytes`;
   const size = buffer?.byteLength;
   if (!Number.isInteger(size) || size > WONDERSWAN_VGM_IMPORT_LIMITS.sourceBytes) fail('source exceeds the 16 MiB conversion limit or is not binary data.');
   const parser = new Ym2612VGM(buffer, {logger: {warn: message => fail(`cannot preserve this stream: ${message}`)}});
@@ -129,12 +132,12 @@ function walkWonderSwanVgm(buffer, {packPcm = false, retain = true} = {}) {
     if (++entries > WONDERSWAN_VGM_IMPORT_LIMITS.writes) fail(packPcm
       ? 'ordinary writes and PCM runs exceed the 1000000-entry conversion limit.'
       : 'expanded stream exceeds the 1000000-write conversion limit.');
-    if (packPcm && entries * 32 + pcmBytes > WONDERSWAN_VGM_IMPORT_LIMITS.timelineBytes) fail('prepared timeline exceeds the 8 MiB playback limit.');
+    if (packPcm && entries * 32 + pcmBytes > timelineBytes) fail(`prepared timeline exceeds the ${timelineLimit} playback limit.`);
     if (retain) events.push(event);
   };
   const appendByte = value => {
     if (++pcmBytes > WONDERSWAN_VGM_IMPORT_LIMITS.pcmBytes) fail('packed Voice PCM exceeds the 64 MiB conversion memory/work limit.');
-    if (packPcm && entries * 32 + pcmBytes > WONDERSWAN_VGM_IMPORT_LIMITS.timelineBytes) fail('prepared timeline exceeds the 8 MiB playback limit.');
+    if (packPcm && entries * 32 + pcmBytes > timelineBytes) fail(`prepared timeline exceeds the ${timelineLimit} playback limit.`);
     if (!retain) return;
     if (!chunk || chunkOffset === chunk.length) { chunk = new Uint8Array(65536); chunks.push(chunk); chunkOffset = 0; }
     chunk[chunkOffset++] = value;
@@ -184,7 +187,9 @@ function walkWonderSwanVgm(buffer, {packPcm = false, retain = true} = {}) {
 }
 
 /** Materialize the original one-pass timed trace, optionally packing only
- * authored CH2 Voice PCM. The shared parser remains the sole stream decoder.
+ * authored CH2 Voice PCM. Host reference players may explicitly raise the
+ * preparation budget; exported Worklet scores retain the default 8 MiB limit.
+ * The shared parser remains the sole stream decoder.
  */
 export function readWonderSwanVgm(buffer, options = {}) { return walkWonderSwanVgm(buffer, options); }
 

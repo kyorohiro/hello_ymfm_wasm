@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "scope": "wonderswan-host-preparation-budget",
+  "feature": "ASWAN opts into a 32 MiB host preparation budget with complete write order and bounded callback density",
+  "baseCommit": "2c7d6a5be230eb7cf9040e6e7841da0046c897a2",
+  "constraints": {
+    "defaultTimelineBytes": 8388608,
+    "maximumHostTimelineBytes": 33554432,
+    "maximumWritesPerQuantum": 512
+  },
+  "reports": {
+    "docs/issues/ps1_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 546854,
+      "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 507088,
+      "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 1030997,
+      "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 625175,
+      "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426"
+    }
+  },
+  "sources": {
+    "tetorica_src/runtime/wonderswan_timeline.js": {
+      "before": {
+        "bytes": 6966,
+        "sha256": "f3a2f04c22dd975138d1d1c19c36f5f043411a989842f88cfe4d208452c93c4d"
+      },
+      "after": {
+        "bytes": 7324,
+        "sha256": "b4b8b3fabcb4f7bed231b61f6af6f8e2e81b80915d167ac0bc6f76df93c3f00f"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 125,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1540,
+          "afterBytes": 172,
+          "beforeText": " * @param {{sampleRate?:number}} [options] Actual output rate enables callback density validation.\n"
+        },
+        {
+          "afterOffset": 1716,
+          "afterBytes": 323,
+          "beforeText": "export function prepareWonderSwanTimeline(trace, {sampleRate} = {}) {\n"
+        },
+        {
+          "afterOffset": 2414,
+          "afterBytes": 111,
+          "beforeText": "  if (trace.events.length * 32 + trace.pcmData.byteLength > WONDERSWAN_TIMELINE_MAX_BYTES) fail('data exceeds the 8 MiB limit');\n"
+        },
+        {
+          "afterOffset": 5262,
+          "afterBytes": 97,
+          "beforeText": "      if (workBytes > WONDERSWAN_TIMELINE_MAX_BYTES) fail('referenced PCM playback work exceeds the 8 MiB limit');\n"
+        }
+      ]
+    },
+    "docs/js/wonderswan_timeline.js": {
+      "before": {
+        "bytes": 6984,
+        "sha256": "a6d50474335aebdd2aab743164ee348ae08903b797659ae8de1d557081ca102d"
+      },
+      "after": {
+        "bytes": 7342,
+        "sha256": "6adbd018c21816ee23a32ffd4db8c0fe729a9a5a8ac64711a7ec266a379573fa"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 143,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1558,
+          "afterBytes": 172,
+          "beforeText": " * @param {{sampleRate?:number}} [options] Actual output rate enables callback density validation.\n"
+        },
+        {
+          "afterOffset": 1734,
+          "afterBytes": 323,
+          "beforeText": "export function prepareWonderSwanTimeline(trace, {sampleRate} = {}) {\n"
+        },
+        {
+          "afterOffset": 2432,
+          "afterBytes": 111,
+          "beforeText": "  if (trace.events.length * 32 + trace.pcmData.byteLength > WONDERSWAN_TIMELINE_MAX_BYTES) fail('data exceeds the 8 MiB limit');\n"
+        },
+        {
+          "afterOffset": 5280,
+          "afterBytes": 97,
+          "beforeText": "      if (workBytes > WONDERSWAN_TIMELINE_MAX_BYTES) fail('referenced PCM playback work exceeds the 8 MiB limit');\n"
+        }
+      ]
+    },
+    "docs/playground/wonderswan_vgm_import.js": {
+      "before": {
+        "bytes": 19009,
+        "sha256": "9ab308728d773eae2d82d77ef896202e20fb7ed47e00db7a84e015aefbf8e898"
+      },
+      "after": {
+        "bytes": 19552,
+        "sha256": "5b19c356ff3eb41d0e0df1a7b9a969128475990231fc3f05ff7ad6895175e845"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 78,
+          "afterBytes": 81,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7597,
+          "afterBytes": 444,
+          "beforeText": "function walkWonderSwanVgm(buffer, {packPcm = false, retain = true} = {}) {\n"
+        },
+        {
+          "afterOffset": 8882,
+          "afterBytes": 132,
+          "beforeText": "    if (packPcm && entries * 32 + pcmBytes > WONDERSWAN_VGM_IMPORT_LIMITS.timelineBytes) fail('prepared timeline exceeds the 8 MiB playback limit.');\n"
+        },
+        {
+          "afterOffset": 9222,
+          "afterBytes": 132,
+          "beforeText": "    if (packPcm && entries * 32 + pcmBytes > WONDERSWAN_VGM_IMPORT_LIMITS.timelineBytes) fail('prepared timeline exceeds the 8 MiB playback limit.');\n"
+        },
+        {
+          "afterOffset": 11779,
+          "afterBytes": 208,
+          "beforeText": " * authored CH2 Voice PCM. The shared parser remains the sole stream decoder.\n"
+        }
+      ]
+    }
+  },
+  "related": {
+    "docs/issues/aswan_epilogue_native_20261116.json": {
+      "bytes": 2962,
+      "sha256": "b23f4ee6f070ee6cde603548f408d7ede2a2ec442efea23b699f2a8608099d6d"
+    },
+    "docs/generated/wonderswan_wasm.js": {
+      "bytes": 11356,
+      "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+    },
+    "docs/generated/wonderswan_wasm.wasm": {
+      "bytes": 10321,
+      "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+    },
+    "tetorica_src/runtime/wonderswansynth.js": {
+      "bytes": 16488,
+      "sha256": "d544ac6450cb2951e374b51f5b1310381a082be85d59248a96b98e2f1f063de2"
+    },
+    "docs/js/wonderswansynth.js": {
+      "bytes": 16549,
+      "sha256": "37379a94dcd38bd26cc6024d71e42b54a5805f1b6ff11ae74dcf8952b8d3bc7f"
+    },
+    "tetorica_src/runtime/playground_wonderswan_worklet.js": {
+      "bytes": 20154,
+      "sha256": "a235d63fe3b2f5f6eb290815e8a8883846ca5b8d52f2af92d06bb5db3a6dcc63"
+    },
+    "docs/js/playground_wonderswan_worklet.js": {
+      "bytes": 20295,
+      "sha256": "7b705ff5c039cd78e70b28a3c83eab4a632915f80e3a77e515491748be74d0fb"
+    },
+    "tetorica_src/runtime/playground_wonderswan.js": {
+      "bytes": 4283,
+      "sha256": "ca0ec003444379428b562c19d040c950a55f3ed5b15ed976e9f45fcf61b9ef9c"
+    },
+    "docs/js/playground_wonderswan.js": {
+      "bytes": 4337,
+      "sha256": "418ef3c8fb5ebf1d22fe3aeccf8dbc2efd9cdebf45446ec18d5ab4b8ee823897"
+    },
+    "tetorica_src/runtime/native_genesis_wonderswan.js": {
+      "bytes": 17601,
+      "sha256": "caf1f879669d2b519714698831d7e9e25e9dd8a602d59406b9a1fce405e54dfa"
+    },
+    "docs/js/native_genesis_wonderswan.js": {
+      "bytes": 17710,
+      "sha256": "e824b5698bb11084111443d6e242b0dc442eb773c2770b17761c0fbbc54247de"
+    },
+    "test/runtime/wonderswan_timeline.test.mjs": {
+      "bytes": 8220,
+      "sha256": "8112dfb8016776e68c54bb8ddc637c5d0adfa9461bc506200bf61ebeb7ba921c"
+    },
+    "test/runtime/playground_wonderswan_timeline.test.mjs": {
+      "bytes": 10518,
+      "sha256": "8551153e8e1050367aa4779af7b3d66f34a7207b424ba5ce5595f7b9f9d87ed4"
+    },
+    "docs/playground/wonderswan_vgm_import.test.mjs": {
+      "bytes": 22131,
+      "sha256": "4480843398ef12ab91e319f84848ad5f8f30be8cc54bbd8d57aba63690be3aae"
+    },
+    "docs/synth-aswan/large_vgm.test.mjs": {
+      "bytes": 3676,
+      "sha256": "14c35511b3cd8b79ea7a9a9bf9dbaa54670bd9cb4635a5e3dcf3dac84b56f094"
+    },
+    "test/helpers/wonderswan_large_vgm_fixture.mjs": {
+      "bytes": 1760,
+      "sha256": "00c024846a929a73b5ed5e6154d174e6ae2877d54358bbdd0dc7b8a725b9c0a2"
+    },
+    "test/helpers/wonderswan_vgm_fixture.mjs": {
+      "bytes": 2725,
+      "sha256": "f4c04f084c72ad7d665fe489fa2b0d7f89a1c7fefcca9a2ce263dcf4f52d8103"
+    },
+    "docs/issues/aswan_host_budget_offline_20261116.json": {
+      "bytes": 28956,
+      "sha256": "b309c55b39b9f2b36a83f321457f57ad4741c5b0f133a5e6018e047dfa4233e3"
+    }
+  },
+  "nativeProof": {
+    "path": "docs/issues/aswan_epilogue_native_20261116.json",
+    "frames": 20650022,
+    "events": 457616,
+    "voices": 353,
+    "exactStereoMatch": true
+  },
+  "defaultCalibrationProof": {
+    "path": "docs/issues/aswan_host_budget_offline_20261116.json",
+    "routes": 12,
+    "nativeMaximumDifference": 0,
+    "audioContextCreated": false
+  }
+}

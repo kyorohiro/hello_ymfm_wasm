@@ -23,17 +23,24 @@ on:
       - 'docs/synth-spu/file_context_menu.js'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'docs/playground/playground_monaco*'
+      - 'docs/playground/wonderswan_vgm_import*'
       - 'docs/playground/tetorica-*.d.ts'
       - 'tetorica_src/runtime/wonderswan*'
       - 'tetorica_src/runtime/generated/**'
       - 'tetorica_src/native/audio_effect/**'
       - 'scripts/*aswan*'
+      - 'scripts/mixer_calibration_wonderswan_host_budget_revision*'
+      - 'scripts/mixer_calibration_sources.mjs'
+      - 'docs/issues/wonderswan_host_budget_source_revision_01.json'
+      - 'docs/issues/aswan_epilogue_native_20261116.json'
+      - 'docs/issues/aswan_host_budget_offline_20261116.json'
       - 'scripts/copy_wonderswan_sources.mjs'
       - 'scripts/copy_readable_modules.mjs'
       - 'scripts/runtime_artifacts.mjs'
       - 'scripts/wasm_sdk_inventory.mjs'
       - 'test/helpers/wonderswan*'
       - 'test/helpers/aswan*'
+      - 'test/runtime/*wonderswan*'
       - 'third_party/soundchip-sdk.json'
       - 'third_party/tetorica-soundchip-native/**'
       - 'package*.json'
@@ -49,12 +56,17 @@ on:
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth-spu/**'
       - 'docs/playground/playground_monaco*'
+      - 'docs/playground/wonderswan_vgm_import*'
       - 'docs/playground/tetorica-*.d.ts'
       - 'tetorica_src/runtime/**'
       - 'tetorica_src/native/audio_effect/**'
       - 'scripts/**'
       - 'test/helpers/wonderswan*'
       - 'test/helpers/aswan*'
+      - 'test/runtime/*wonderswan*'
+      - 'docs/issues/wonderswan_host_budget_source_revision_01.json'
+      - 'docs/issues/aswan_epilogue_native_20261116.json'
+      - 'docs/issues/aswan_host_budget_offline_20261116.json'
       - 'third_party/**'
       - 'package*.json'
       - '.github/workflows/aswan-synth.yml'
@@ -77,6 +89,8 @@ jobs:
       - name: Test and package the standalone ASWAN Synth
         run: |
           npm run test:aswan-synth
+          node --test docs/playground/wonderswan_vgm_import.test.mjs test/runtime/wonderswan_timeline.test.mjs test/runtime/playground_wonderswan_timeline.test.mjs
+          node --test scripts/mixer_calibration_wonderswan_host_budget_revision.test.mjs
           node --test docs/playground/playground_monaco_definitions.test.mjs scripts/package_itch_all.test.mjs
           sh scripts/package_itch_aswan_synth.sh ci
           python3 -m zipfile -e release/tetorica_aswan_synth_ci_itch.zip release/aswan-synth-browser

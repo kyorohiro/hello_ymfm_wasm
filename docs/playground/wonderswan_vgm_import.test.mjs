@@ -7,6 +7,8 @@ import factory from '../generated/wonderswan_wasm.js';
 import {WonderSwan} from '../../tetorica_src/runtime/wonderswan.js';
 import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
 import {createWonderSwanVgm} from '../../test/helpers/wonderswan_vgm_fixture.mjs';
+import {createWonderSwanLargeVgm, WONDERSWAN_LARGE_VGM_WRITES} from '../../test/helpers/wonderswan_large_vgm_fixture.mjs';
+import {WONDERSWAN_TIMELINE_MAX_HOST_BYTES} from '../js/wonderswan_timeline.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 const wasmBinary = await readFile(new URL('../generated/wonderswan_wasm.wasm', import.meta.url));
@@ -304,4 +306,35 @@ test('same-time PCM remains compact and is never sent by JavaScript during play'
 test('hostile looping PCM streams hit the packed memory/work budget without retaining expanded events',()=>{
   const input=vgm([...write(0x10,0x22),...stream({fast:true,flags:1,frequency:0xffffffff}),0x61,0x90,1,0x66]);
   assert.throws(()=>validateWonderSwanVgm(input),/8 MiB playback limit/);
+});
+
+test('host opt-in admits a dense ordinary trace above 8 MiB without deduplicating repeated writes',()=>{
+  const input=createWonderSwanLargeVgm(),copy=input.slice();
+  assert.throws(()=>readWonderSwanVgm(input,{packPcm:true}),/8 MiB playback limit/);
+  assert.throws(()=>validateWonderSwanVgm(input),/8 MiB playback limit/,'Playground/default admission is unchanged');
+  const trace=readWonderSwanVgm(input,{packPcm:true,timelineBytes:WONDERSWAN_TIMELINE_MAX_HOST_BYTES});
+  assert(trace.events.length*32>8*1024*1024);
+  assert.equal(trace.time,WONDERSWAN_LARGE_VGM_WRITES);
+  assert.equal(trace.pcmData.length,0);
+  let time=0,index=0,noiseResets=0,controlReassertions=0;
+  const parser=new Ym2612VGM(input,{logger:null}),targets={wonderswan:{
+    writeRegister(register,value) {
+      assert.deepEqual(trace.events[index++],{type:'register',address:0x80+register,value,time});
+      if(register===14&&value===0x18)noiseResets++;
+      if(register===16&&value===0x89)controlReassertions++;
+    },
+    writeMemory(address,value) {assert.deepEqual(trace.events[index++],{type:'memory',address,value,time});},
+  }};
+  while(!parser.ended){const event=parser.playStep(targets);if(event.type==='wait')parser.consumeWait(targets,event.samples,samples=>{time+=samples;});}
+  assert.equal(index,trace.events.length);
+  assert.equal(time,trace.time);
+  assert(noiseResets>60000&&controlReassertions>60000,'meaningfully repeated reset/control bytes are retained');
+  assert.deepEqual(input,copy,'conversion does not change source bytes');
+});
+
+test('host conversion budget is explicit and bounded before interpreting source data',()=>{
+  const input=createWonderSwanVgm({seconds:0.1,loop:false});
+  for(const timelineBytes of [0,-1,1.5,NaN,Infinity,'33554432',WONDERSWAN_TIMELINE_MAX_HOST_BYTES+1])
+    assert.throws(()=>readWonderSwanVgm(input,{packPcm:true,timelineBytes}),/timeline.*budget|timelineBytes|limit|budget/i);
+  assert.throws(()=>readWonderSwanVgm(input,{packPcm:true,timelineBytes:1}),/playback limit/);
 });

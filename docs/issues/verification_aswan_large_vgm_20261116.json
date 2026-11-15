@@ -1,0 +1,546 @@
+{
+  "schemaVersion": 1,
+  "product": "tetorica-aswan-synth",
+  "date": "2026-11-16",
+  "passed": true,
+  "input": {
+    "name": "44 Epilogue -1-.vgz",
+    "sha256": "a1675f4ac78b0a98443a6a7dd3955394bc03b4681a6ca53e074e7e3450197577",
+    "compressedBytes": 230975,
+    "expandedBytes": 1775392,
+    "durationSeconds": 468.2544671201814,
+    "writeCounts": {
+      "register": 454128,
+      "memory": 3488,
+      "pcm": 0,
+      "ordinary": 457616,
+      "entries": 457616,
+      "pcmRuns": 0,
+      "pcmBytes": 0,
+      "redundantReg": 396868,
+      "redundantRam": 66
+    },
+    "preparedBytes": 14643712,
+    "maximumWritesPer128Samples": 95,
+    "originalError": "WonderSwan VGM import: prepared timeline exceeds the 8 MiB playback limit."
+  },
+  "change": {
+    "hostPreparationBudgetBytes": 33554432,
+    "workletDefaultBudgetBytes": 8388608,
+    "callbackDensityUnchanged": true,
+    "eventsDropped": 0,
+    "seek": {
+      "nativeBlockFrames": 2048,
+      "batchMaxBlocks": 64,
+      "batchWallBudgetMs": 8,
+      "deadlineMs": 30000,
+      "cancellationAndRollbackRetained": true
+    }
+  },
+  "tests": {
+    "aswan": 167,
+    "sharedConverterTimelineWorklet": 62,
+    "ciAdditional": 36,
+    "provenanceAndTimelineAgentSuite": 21,
+    "existingCalibrationAgentSuite": 105
+  },
+  "nativeProof": "aswan_epilogue_native_20261116.json",
+  "offlineCalibrationProof": "aswan_host_budget_offline_20261116.json",
+  "realFileSourceBrowser": {
+    "passed": true,
+    "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+    "entry": "/synth-aswan/index.html",
+    "sourceSha256": "a1675f4ac78b0a98443a6a7dd3955394bc03b4681a6ca53e074e7e3450197577",
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "Actual supplied VGZ imports through UI into original /vgm source plus353 JSON presets before audio creation",
+          "468.254s song plays with advancing transport, finite nonzero native output and selected CH Live/Copy available",
+          "Pause holds position, selected real CH auditions privately, Copy preserves paused transport, Resume continues",
+          "UI seek middle reaches 234s and resumes finite nonzero native output",
+          "UI seek ending reaches 467s and resumes finite nonzero native output"
+        ],
+        "measurements": {
+          "beginning": {
+            "finite": true,
+            "rms": 0.04106238206846579,
+            "peak": 0.07514369487762451,
+            "normalizedJump": 0.7350000733718198
+          },
+          "audition": {
+            "finite": true,
+            "rms": 0.02404598519206153,
+            "peak": 0.02404598519206047,
+            "normalizedJump": 2
+          },
+          "middle": {
+            "finite": true,
+            "rms": 0.021589289575101714,
+            "peak": 0.07434216886758804,
+            "normalizedJump": 0.7607143318871237
+          },
+          "ending": {
+            "finite": true,
+            "rms": 0.0029178484708463175,
+            "peak": 0.048016827553510666,
+            "normalizedJump": 0.7496087294547567
+          }
+        },
+        "timings": {
+          "importMs": 2387.9100409999996,
+          "middleSeekMs": 937.8966249999994,
+          "endingSeekMs": 1829.8992080000007
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "elapsedMs": 7385.761875
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "Actual supplied VGZ imports through UI into original /vgm source plus353 JSON presets before audio creation",
+          "468.254s song plays with advancing transport, finite nonzero native output and selected CH Live/Copy available",
+          "Pause holds position, selected real CH auditions privately, Copy preserves paused transport, Resume continues",
+          "UI seek middle reaches 234s and resumes finite nonzero native output",
+          "UI seek ending reaches 467s and resumes finite nonzero native output"
+        ],
+        "measurements": {
+          "beginning": {
+            "finite": true,
+            "rms": 0.038017886800495164,
+            "peak": 0.06913220882415771,
+            "normalizedJump": 0.8722825594949675
+          },
+          "audition": {
+            "finite": true,
+            "rms": 0.02404598519206153,
+            "peak": 0.02404598519206047,
+            "normalizedJump": 2
+          },
+          "middle": {
+            "finite": true,
+            "rms": 0.00782046003108777,
+            "peak": 0.07113603502511978,
+            "normalizedJump": 0.5258098611427213
+          },
+          "ending": {
+            "finite": true,
+            "rms": 0.016463096358381644,
+            "peak": 0.048016827553510666,
+            "normalizedJump": 0.7496087294547567
+          }
+        },
+        "timings": {
+          "importMs": 1288.125,
+          "middleSeekMs": 943.6733330000006,
+          "endingSeekMs": 1904.5624590000007
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "elapsedMs": 5915.358042
+      }
+    ],
+    "missing": [],
+    "external": [],
+    "expectedBlockedMonaco": [],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "realFileStandaloneBrowser": {
+    "passed": true,
+    "root": "/private/tmp/aswan-large-final-unpack-td5_ti9a",
+    "entry": "/index.html",
+    "sourceSha256": "a1675f4ac78b0a98443a6a7dd3955394bc03b4681a6ca53e074e7e3450197577",
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "Actual supplied VGZ imports through UI into original /vgm source plus353 JSON presets before audio creation",
+          "468.254s song plays with advancing transport, finite nonzero native output and selected CH Live/Copy available",
+          "Pause holds position, selected real CH auditions privately, Copy preserves paused transport, Resume continues",
+          "UI seek middle reaches 234s and resumes finite nonzero native output",
+          "UI seek ending reaches 467s and resumes finite nonzero native output"
+        ],
+        "measurements": {
+          "beginning": {
+            "finite": true,
+            "rms": 0.036945099902877865,
+            "peak": 0.06913220882415771,
+            "normalizedJump": 0.8722825594949675
+          },
+          "audition": {
+            "finite": true,
+            "rms": 0.02404598519206153,
+            "peak": 0.02404598519206047,
+            "normalizedJump": 2
+          },
+          "middle": {
+            "finite": true,
+            "rms": 0.021589289575101714,
+            "peak": 0.07434216886758804,
+            "normalizedJump": 0.7607143318871237
+          },
+          "ending": {
+            "finite": true,
+            "rms": 0.0029178484708463175,
+            "peak": 0.048016827553510666,
+            "normalizedJump": 0.7496087294547567
+          }
+        },
+        "timings": {
+          "importMs": 2221.637417,
+          "middleSeekMs": 924.5843329999998,
+          "endingSeekMs": 1799.6289580000002
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "elapsedMs": 7024.381332999999
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "Actual supplied VGZ imports through UI into original /vgm source plus353 JSON presets before audio creation",
+          "468.254s song plays with advancing transport, finite nonzero native output and selected CH Live/Copy available",
+          "Pause holds position, selected real CH auditions privately, Copy preserves paused transport, Resume continues",
+          "UI seek middle reaches 234s and resumes finite nonzero native output",
+          "UI seek ending reaches 467s and resumes finite nonzero native output"
+        ],
+        "measurements": {
+          "beginning": {
+            "finite": true,
+            "rms": 0.03858600948692623,
+            "peak": 0.07514369487762451,
+            "normalizedJump": 0.7349999990084889
+          },
+          "audition": {
+            "finite": true,
+            "rms": 0.02404598519206153,
+            "peak": 0.02404598519206047,
+            "normalizedJump": 2
+          },
+          "middle": {
+            "finite": true,
+            "rms": 0.01079352106036005,
+            "peak": 0.07113603502511978,
+            "normalizedJump": 0.5314436948644372
+          },
+          "ending": {
+            "finite": true,
+            "rms": 0.015092664108792524,
+            "peak": 0.048016827553510666,
+            "normalizedJump": 0.7496087294547567
+          }
+        },
+        "timings": {
+          "importMs": 1341.122707999999,
+          "middleSeekMs": 933.4290419999998,
+          "endingSeekMs": 1896.2263750000002
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "elapsedMs": 6128.185584
+      }
+    ],
+    "missing": [],
+    "external": [],
+    "expectedBlockedMonaco": [],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "genericSourceBrowser": {
+    "schemaVersion": 1,
+    "elapsedSeconds": 57.688,
+    "passed": true,
+    "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+    "entry": "/synth-aswan/index.html",
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "Cold-start delayed Pitch ACK cannot overwrite a newer UI bend: startup reconciles .5→+2 before publishing audio, then baseline reset works",
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Holding a native ACK then switching CH1→CH2→CH1 cancels the stale queued hardware edit; a fresh edit still commits exactly once",
+          "Paused C4 auditions selected physical CH on an independent handle in the same Worklet; held edits retain its token, sparse song edits survive CH switching/Resume, Auto is unchanged and Resume retires preview",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing hardware Live editing, paused audition/editing, Copy to Auto and per-channel mute work",
+          "Playing Wave/stereo edits and same-CH keys keep monotonic clock and scheduled buffers; frozen fields stay frozen, driver writes win, stale KeyUps are harmless, Auto sound/bend unchanged and Pause still auditions privately",
+          "A driver Wave→PCM transition while native ACK holds a queued key skips its NoteOn and clears the pending highlight before KeyUp, without stopping playback",
+          "Frozen hardware Sweep uses CH3 and Noise uses CH4 on the private preview; transient Voice DAC state never becomes a default PCM sample or author note",
+          "Heard VGM Wave/stereo/Sweep/Noise changes pulse only their existing controls; initial/CH/Pause/Resume/Off/On/frozen/Auto/Stop baselines stay quiet, with no new polling interval or buffer cancellation",
+          "Raw Code stereo-register changes share the Live highlight fields without restarting Code; Off stays silent, releases keyboard focus, persists per origin and fresh storage defaults On"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.038549903563312365,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "Cold-start delayed Pitch ACK cannot overwrite a newer UI bend: startup reconciles .5→+2 before publishing audio, then baseline reset works",
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Holding a native ACK then switching CH1→CH2→CH1 cancels the stale queued hardware edit; a fresh edit still commits exactly once",
+          "Paused C4 auditions selected physical CH on an independent handle in the same Worklet; held edits retain its token, sparse song edits survive CH switching/Resume, Auto is unchanged and Resume retires preview",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing hardware Live editing, paused audition/editing, Copy to Auto and per-channel mute work",
+          "Playing Wave/stereo edits and same-CH keys keep monotonic clock and scheduled buffers; frozen fields stay frozen, driver writes win, stale KeyUps are harmless, Auto sound/bend unchanged and Pause still auditions privately",
+          "A driver Wave→PCM transition while native ACK holds a queued key skips its NoteOn and clears the pending highlight before KeyUp, without stopping playback",
+          "Frozen hardware Sweep uses CH3 and Noise uses CH4 on the private preview; transient Voice DAC state never becomes a default PCM sample or author note",
+          "Heard VGM Wave/stereo/Sweep/Noise changes pulse only their existing controls; initial/CH/Pause/Resume/Off/On/frozen/Auto/Stop baselines stay quiet, with no new polling interval or buffer cancellation",
+          "Raw Code stereo-register changes share the Live highlight fields without restarting Code; Off stays silent, releases keyboard focus, persists per origin and fresh storage defaults On"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.03860132299947179,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      }
+    ],
+    "missing": [],
+    "external": [],
+    "expectedBlockedMonaco": [
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "genericStandaloneBrowser": {
+    "schemaVersion": 1,
+    "elapsedSeconds": 56.87,
+    "passed": true,
+    "root": "/private/tmp/aswan-large-final-unpack-td5_ti9a",
+    "entry": "/index.html",
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "Cold-start delayed Pitch ACK cannot overwrite a newer UI bend: startup reconciles .5→+2 before publishing audio, then baseline reset works",
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Holding a native ACK then switching CH1→CH2→CH1 cancels the stale queued hardware edit; a fresh edit still commits exactly once",
+          "Paused C4 auditions selected physical CH on an independent handle in the same Worklet; held edits retain its token, sparse song edits survive CH switching/Resume, Auto is unchanged and Resume retires preview",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing hardware Live editing, paused audition/editing, Copy to Auto and per-channel mute work",
+          "Playing Wave/stereo edits and same-CH keys keep monotonic clock and scheduled buffers; frozen fields stay frozen, driver writes win, stale KeyUps are harmless, Auto sound/bend unchanged and Pause still auditions privately",
+          "A driver Wave→PCM transition while native ACK holds a queued key skips its NoteOn and clears the pending highlight before KeyUp, without stopping playback",
+          "Frozen hardware Sweep uses CH3 and Noise uses CH4 on the private preview; transient Voice DAC state never becomes a default PCM sample or author note",
+          "Heard VGM Wave/stereo/Sweep/Noise changes pulse only their existing controls; initial/CH/Pause/Resume/Off/On/frozen/Auto/Stop baselines stay quiet, with no new polling interval or buffer cancellation",
+          "Raw Code stereo-register changes share the Live highlight fields without restarting Code; Off stays silent, releases keyboard focus, persists per origin and fresh storage defaults On"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.038440620614652254,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "Cold-start delayed Pitch ACK cannot overwrite a newer UI bend: startup reconciles .5→+2 before publishing audio, then baseline reset works",
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Holding a native ACK then switching CH1→CH2→CH1 cancels the stale queued hardware edit; a fresh edit still commits exactly once",
+          "Paused C4 auditions selected physical CH on an independent handle in the same Worklet; held edits retain its token, sparse song edits survive CH switching/Resume, Auto is unchanged and Resume retires preview",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing hardware Live editing, paused audition/editing, Copy to Auto and per-channel mute work",
+          "Playing Wave/stereo edits and same-CH keys keep monotonic clock and scheduled buffers; frozen fields stay frozen, driver writes win, stale KeyUps are harmless, Auto sound/bend unchanged and Pause still auditions privately",
+          "A driver Wave→PCM transition while native ACK holds a queued key skips its NoteOn and clears the pending highlight before KeyUp, without stopping playback",
+          "Frozen hardware Sweep uses CH3 and Noise uses CH4 on the private preview; transient Voice DAC state never becomes a default PCM sample or author note",
+          "Heard VGM Wave/stereo/Sweep/Noise changes pulse only their existing controls; initial/CH/Pause/Resume/Off/On/frozen/Auto/Stop baselines stay quiet, with no new polling interval or buffer cancellation",
+          "Raw Code stereo-register changes share the Live highlight fields without restarting Code; Off stays silent, releases keyboard focus, persists per origin and fresh storage defaults On"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.03859334080975602,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      }
+    ],
+    "missing": [],
+    "external": [],
+    "expectedBlockedMonaco": [
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "archive": {
+    "path": "release/tetorica_aswan_synth_dev_itch.zip",
+    "files": 135,
+    "bytes": 1571254,
+    "sha256": "d2b330be4b4700a165b1898017ecfe1c9fb60086548e90e4f6574e32d56d95d2"
+  },
+  "nativeSources": {
+    "inputs": 12,
+    "files": 18,
+    "sdkVersion": "0.1.8-fm2608-mixer"
+  },
+  "globalMixerFreshness": {
+    "passed": false,
+    "preexisting": true,
+    "source": "docs/playground/playground_monaco_definitions.js",
+    "counterfactualProof": "aswan_large_vgm_calibration_baseline_20261116.json",
+    "note": "HEAD validator and HEAD source fail identically before this change; exact host-budget source revision validates both changed served inputs against all four current measured reports."
+  },
+  "physicalAudio": "muted in browsers; no human listening claim",
+  "commercialAssetsBundled": false,
+  "published": false
+}

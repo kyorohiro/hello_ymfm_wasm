@@ -5,6 +5,7 @@ import { readWonderSwanVgm } from '../playground/wonderswan_vgm_import.js';
 import { createWonderSwanWaves } from '../vgm_analyzer/wonderswan_waves.js';
 import { createWonderSwanVoiceSamples } from '../vgm_analyzer/wonderswan_voice_samples.js';
 import { createDefaultPreset, readPreset, encodePcmData, MAX_PCM_BYTES } from './preset.js';
+import { WONDERSWAN_TIMELINE_MAX_HOST_BYTES } from '../js/wonderswan_timeline.js';
 
 export const MAX_VGM_BYTES = 16 * 1024 * 1024;
 const MAX_VOICES = 4096;
@@ -66,7 +67,10 @@ export async function decodeAswanVgm(source, { signal } = {}) {
 export async function readAswanVgm(source, { signal } = {}) {
 	const bytes = await decodeAswanVgm(source, { signal });
 	abort(signal);
-	const trace = readWonderSwanVgm(bytes, { packPcm: true });
+	const trace = readWonderSwanVgm(bytes, {
+		packPcm: true,
+		timelineBytes: WONDERSWAN_TIMELINE_MAX_HOST_BYTES,
+	});
 	abort(signal);
 	const parser = new Ym2612VGM(bytes);
 	if (!trace.time) throw new Error('ASWAN reference requires a positive song duration');
