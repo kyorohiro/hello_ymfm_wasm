@@ -1,0 +1,88 @@
+name: ASWAN Synth
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/synth-aswan/**'
+      - 'docs/js/wonderswan*'
+      - 'docs/js/vgm*.js'
+      - 'docs/js/ym2612vgm.js'
+      - 'docs/js/playground_code_runtime.js'
+      - 'docs/js/tetorica_virtual_files/**'
+      - 'docs/playground/playground_cassette.js'
+      - 'docs/playground/playground_file_tree.js'
+      - 'docs/playground/playground_music.js'
+      - 'docs/js/native*fx*'
+      - 'docs/js/soundchip_mixer_presets.js'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/file_context_menu.js'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'docs/playground/playground_monaco*'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'tetorica_src/runtime/wonderswan*'
+      - 'tetorica_src/runtime/generated/**'
+      - 'tetorica_src/native/audio_effect/**'
+      - 'scripts/*aswan*'
+      - 'scripts/copy_wonderswan_sources.mjs'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'scripts/runtime_artifacts.mjs'
+      - 'scripts/wasm_sdk_inventory.mjs'
+      - 'test/helpers/wonderswan*'
+      - 'third_party/soundchip-sdk.json'
+      - 'third_party/tetorica-soundchip-native/**'
+      - 'package*.json'
+      - '.github/workflows/aswan-synth.yml'
+  pull_request:
+    paths:
+      - 'docs/synth-aswan/**'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_*store*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/**'
+      - 'docs/playground/playground_monaco*'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'tetorica_src/runtime/**'
+      - 'tetorica_src/native/audio_effect/**'
+      - 'scripts/**'
+      - 'test/helpers/wonderswan*'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/aswan-synth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test and package the standalone ASWAN Synth
+        run: |
+          npm run test:aswan-synth
+          node --test docs/playground/playground_monaco_definitions.test.mjs scripts/package_itch_all.test.mjs
+          sh scripts/package_itch_aswan_synth.sh ci
+          python3 -m zipfile -e release/tetorica_aswan_synth_ci_itch.zip release/aswan-synth-browser
+          node scripts/check_aswan_synth_browser.cjs --root=release/aswan-synth-browser --entry=/index.html --out=release/aswan-synth-browser.json --screenshots=release/aswan-synth-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aswan-synth-check
+          path: |
+            release/tetorica_aswan_synth_ci_itch.zip
+            release/aswan-synth-browser.json
+            release/aswan-synth-images/
+          if-no-files-found: ignore

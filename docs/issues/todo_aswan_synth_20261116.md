@@ -1,0 +1,56 @@
+# Tetorica ASWAN Synth
+
+Product identifier: `tetorica-aswan-synth`; browser entry: `docs/synth-aswan/`.
+Use HuC6280 Synth's layout and shared Code/Files components, with the existing
+WonderSwan WASM/API. Keep other Synths and their imported projects unchanged.
+
+- [x] Inspect WonderSwan authoring, VGM extraction/playback, mixer calibration,
+      and the current HuC6280 UI/Code/Files contracts.
+- [x] Add four physical channels and Auto keyboard allocation, 32-point 4-bit
+      wave drawing, stereo channel volumes, CH3 hardware Sweep and CH4 Noise.
+      Keep wave edits audible without releasing held notes.
+- [x] Add CH2 Voice PCM with explicitly software-fed playback; preserve hardware
+      channel restrictions and distinguish software Envelope/FX from hardware.
+- [x] Add Keyboard/Code, Run/Apply/Stop, Monaco declarations and source links,
+      common Files/presets/Cassette recovery, hamburger import/export menu.
+      Code and manual editing/keyboard share the same chip; tab changes and
+      preset edits keep Code running. Melody examples use beat().
+- [x] Add VGM/VGZ import, sound extraction to Files, reference playback and
+      selected-channel Live display. Keep playback failures transactional and
+      limitations explicit; no game music is bundled.
+- [x] Match shared gain policy and monitor the post-Master stereo output.
+- [x] Add readable standalone ZIP packaging, source/license kit, discovery links,
+      focused tests and CI. Check actual WASM output and muted browser behavior.
+- [x] Record implemented scope, verification and remaining work here.
+
+No commit, push, tag, npm publication or external release. No Tauri app in this
+task. Use self-authored test music and fresh browser storage; keep physical
+audio muted during automated checks. An ASWAN-specific icon can follow later;
+do not mislabel the PC Engine icon as a WonderSwan asset.
+
+## Verification and remaining work
+
+- `npm run test:aswan-synth`: 104 tests passed, including real WASM,
+  AudioWorklet-subset globals, async ownership, types, Files and packaging.
+- Shared Monaco navigation and batch-packaging tests: 32 passed.
+- Source application: Chromium / WebKit, five check groups each.
+- The actual standalone ZIP: Chromium / WebKit, five check groups each,
+  including paused Seek and changing songs without resuming the old source.
+- Exactly one live AudioContext and destination, physical gain zero throughout;
+  no app errors or missing local assets. PCM is finite and nonzero in all modes.
+- Reviewed desktop and 390px layouts. Monitor axes resize to the available width.
+- Browser assets remain readable modules; original native sources and licenses
+  accompany the two binaries (WonderSwan and host software FX).
+
+Try `/synth-aswan/index.html` on the normal docs server, or package with
+`sh scripts/package_itch_aswan_synth.sh VERSION`.
+
+Human listening and real-game VGM checks remain. The current wordmark is a
+text/CSS placeholder for a future dedicated icon. Narrow Envelope plot header
+labels can be polished further. VGM Live controls are read-only in this first
+version; Copy to Auto keeps song position and takes a known Wave/Noise sound
+into the editor. Transient Voice DAC bytes cannot be captured as a fake sample;
+use the recorded PCM extraction path. Hardware speaker output, HyperVoice, DMA,
+a full console CPU, Tauri, Looper and Event Rec are outside this initial slice.
+
+See [verification](verification_aswan_synth_20261116.json). No publication.

@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "product": "tetorica-aswan-synth",
+  "date": "2026-11-16",
+  "passed": true,
+  "entry": "docs/synth-aswan/index.html",
+  "tests": {
+    "aswan": 104,
+    "sharedNavigationAndBatch": 32
+  },
+  "sourceBrowser": {
+    "schemaVersion": 1,
+    "elapsedSeconds": 13.8,
+    "passed": true,
+    "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+    "entry": "/synth-aswan/index.html",
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, and physical Live confirms B is running",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, physical readonly Live, Copy to Auto and per-channel mute work"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.038440620614652254,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, and physical Live confirms B is running",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, physical readonly Live, Copy to Auto and per-channel mute work"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.03845795785876648,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      }
+    ],
+    "missing": [],
+    "external": [],
+    "expectedBlockedMonaco": [
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "standaloneBrowser": {
+    "schemaVersion": 1,
+    "elapsedSeconds": 14.071,
+    "passed": true,
+    "root": "/private/tmp/tetorica-aswan-final-zip",
+    "entry": "/index.html",
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, physical readonly Live, Copy to Auto and per-channel mute work"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.038440620614652254,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "No audio before Enable; all four channels share one chip, held drawing/shape edits reach native RAM and physical edits preserve Auto",
+          "Noise uses CH4, hardware Sweep uses CH3 and unsigned software-fed Voice PCM uses CH2, with real finite nonzero output",
+          "Code keeps running across Keyboard/Code tabs, live shape edits and Files preset selection; keyboard still works outside the Code editor",
+          "Selecting song B from paused A clears A: Seek stays disabled until B Play, then native paused Seek and physical Live use B",
+          "VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, physical readonly Live, Copy to Auto and per-channel mute work"
+        ],
+        "measurements": {
+          "sine": {
+            "finite": true,
+            "rms": 0.03857989283741384,
+            "peak": 0.05432889983057976,
+            "normalizedJump": 0.26556015601691824
+          },
+          "square": {
+            "finite": true,
+            "rms": 0.054103467613460215,
+            "peak": 0.05410346761345863,
+            "normalizedJump": 2
+          },
+          "pcm": {
+            "finite": true,
+            "rms": 0.045477276453010626,
+            "peak": 0.06452339142560959,
+            "normalizedJump": 0.09937889014585488
+          }
+        },
+        "graph": {
+          "contexts": 1,
+          "destinations": 1,
+          "muted": true,
+          "worklets": [
+            "tetorica-aswan-synth",
+            "tetorica-native-fx"
+          ]
+        },
+        "physicalOutputMuted": true,
+        "listeningPerformed": false
+      }
+    ],
+    "missing": [],
+    "external": [],
+    "expectedBlockedMonaco": [
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "archive": {
+    "path": "release/tetorica_aswan_synth_dev_itch.zip",
+    "files": 129,
+    "bytes": 875343,
+    "sha256": "f705bc812af32ad3c42182755afe7e712aaacfe82396366ad0bc2083a6cd777a"
+  },
+  "physicalAudio": "muted; no human listening claimed",
+  "published": false
+}

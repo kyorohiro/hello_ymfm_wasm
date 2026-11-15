@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			name="description"
+			content="Tetorica ASWAN Synth: draw WonderSwan waves, explore hardware Sweep and Noise, and play with JavaScript."
+		/>
+		<meta name="theme-color" content="#e8edf1" />
+		<meta name="application-name" content="Tetorica ASWAN Synth" />
+		<title>Tetorica ASWAN Synth</title>
+		<link rel="stylesheet" href="./synth.css" />
+	</head>
+	<body>
+		<main>
+			<header class="masthead">
+				<a class="laboratory-link" href="../index.html"
+					>Tetorica <span>Sound Laboratory</span></a
+				>
+				<nav aria-label="Sound Laboratory">
+					<a href="../synth-huc6280/index.html">HuC6280 Synth</a
+					><a href="../synth-spu/index.html">SPU Synth</a
+					><a href="../playground/index.html?mode=wonderswan">Playground</a>
+				</nav>
+			</header>
+			<article class="synth-shell" aria-labelledby="synthTitle">
+				<header class="synth-heading">
+					<div class="title-row">
+						<div class="product-identity">
+							<div class="aswan-mark" aria-hidden="true">
+								<span>Tetorica</span><strong>ASWAN</strong><span>4 WAVE VOICES</span
+								><i>▂▅▇▅▂▁▂▅▇▅▂</i>
+							</div>
+							<div class="product-copy">
+								<p class="eyebrow">WAVETABLE · SWEEP · NOISE · VOICE PCM</p>
+								<h1 id="synthTitle">
+									Tetorica <span class="product-name">ASWAN Synth</span>
+								</h1>
+								<p class="description">
+									WonderSwan · Draw a wave. Explore four voices. Take the code.
+								</p>
+							</div>
+						</div>
+						<span class="engine-badge">ASWAN <span>4 HARDWARE CHANNELS</span></span>
+					</div>
+					<div class="audio-toolbar">
+						<div class="transport-actions">
+							<details id="synthMenu" class="synth-menu">
+								<summary
+									id="synthMenuButton"
+									class="synth-icon-button"
+									aria-label="Menu"
+									title="Menu"
+									aria-expanded="false"
+									aria-controls="synthMenuPanel"
+								>
+									<svg
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										aria-hidden="true"
+									>
+										<path d="M4 6h16M4 12h16M4 18h16" />
+									</svg>
+								</summary>
+								<div id="synthMenuPanel" class="synth-menu-panel">
+									<section class="synth-menu-section">
+										<h2>Import</h2>
+										<div class="synth-menu-actions">
+											<button
+												id="loadVgm"
+												type="button"
+												data-close-synth-menu
+											>
+												VGM / VGZ…</button
+											><input
+												id="vgmFileInput"
+												class="file-input"
+												type="file"
+												accept=".vgm,.vgz"
+												aria-label="Choose a WonderSwan VGM or VGZ"
+											/>
+											<div id="aswanMenuProjectImport"></div>
+											<div id="aswanMenuFilesImport"></div>
+										</div>
+									</section>
+									<section class="synth-menu-section">
+										<h2>Export</h2>
+										<div class="synth-menu-actions">
+											<div id="aswanMenuProjectExport"></div>
+											<div id="aswanMenuFileExport"></div>
+										</div>
+									</section>
+								</div>
+							</details>
+							<button id="startAudio" class="primary" type="button">
+								Enable audio</button
+							><button id="stopAudio" type="button">Stop all sound</button
+							><button
+								id="aswanFilesToggle"
+								type="button"
+								aria-expanded="false"
+								aria-controls="aswanFilesPanel"
+							>
+								Files
+							</button>
+						</div>
+						<label class="master-control" for="masterVolume"
+							><span>Master</span
+							><input
+								id="masterVolume"
+								type="range"
+								min="0"
+								max="3.8"
+								step="0.01"
+								value="0.7"
+								aria-label="Master volume, zero to 380 percent"
+							/><output id="masterVolumeValue" for="masterVolume">70%</output></label
+						>
+					</div>
+					<p id="audioStatus" class="audio-status" role="status" aria-live="polite">
+						Enable audio, then play the keyboard. Editing does not start audio.
+					</p>
+				</header>
+				<div id="synthWorkspace" class="spu-code-workspace aswan-code-workspace">
+					<aside
+						id="aswanFilesPanel"
+						class="spu-files-panel aswan-files-panel"
+						aria-label="Project files"
+						hidden
+					></aside>
+					<div id="aswanSynthMain" class="spu-main aswan-main">
+						<section
+							id="aswanSongPlayer"
+							class="aswan-song-player"
+							aria-label="VGM reference playback"
+							data-state="stopped"
+						>
+							<div class="aswan-song-row">
+								<label for="aswanSongSelect"
+									>VGM
+									<select id="aswanSongSelect">
+										<option value="">No VGM files</option>
+									</select></label
+								><button
+									id="aswanSongPlayButton"
+									class="primary"
+									type="button"
+									disabled
+								>
+									Play</button
+								><button id="aswanSongStopButton" type="button" disabled>
+									Stop</button
+								><output id="aswanSongPosition">0:00</output>
+								<details class="spu-code-help">
+									<summary aria-label="About VGM playback">?</summary>
+									<p>
+										Import from Menu or Files. VGM reference playback and Code
+										run one at a time. Pause preserves the heard position;
+										Resume continues it. Choose a CH and enable Auto update to
+										observe the recorded hardware settings. Copy to Auto takes
+										the observed sound into your editable instrument. The first
+										version plays a single WonderSwan chip once; unsupported
+										chips, HyperVoice and DMA are reported.
+									</p>
+								</details>
+							</div>
+							<div class="aswan-song-seek">
+								<input
+									id="aswanSongSeek"
+									type="range"
+									min="0"
+									max="0"
+									step="0.01"
+									value="0"
+									aria-label="VGM position in seconds"
+									disabled
+								/><output id="aswanSongSeekPosition">0:00 / 0:00</output>
+							</div>
+							<p id="aswanSongStatus" class="subtext" role="status">
+								Add a VGM / VGZ to hear a reference performance.
+							</p>
+						</section>
+						<details id="vgmImport" class="aswan-card">
+							<summary>Sounds from VGM</summary>
+							<div class="aswan-card-content">
+								<div class="aswan-vgm-actions">
+									<button id="cancelVgm" type="button" hidden>
+										Cancel import
+									</button>
+									<p id="vgmStatus" class="subtext" role="status">
+										Import a VGM from Menu, then choose a sound.
+									</p>
+									<details class="spu-code-help">
+										<summary aria-label="About VGM instruments">?</summary>
+										<p>
+											Imported waveforms, Sweep and Noise settings are saved
+											to Files/presets/. Opening music keeps your current
+											instrument. Software Envelope is disabled for imported
+											sounds. A static sound does not include the game's later
+											register changes. Supported recorded Voice PCM can also
+											be extracted; unsupported or incomplete data is
+											explained.
+										</p>
+									</details>
+								</div>
+								<div id="vgmLibrary"></div>
+							</div>
+						</details>
+						<div class="aswan-chip-tabs" role="tablist" aria-label="Sound chip">
+							<button
+								type="button"
+								role="tab"
+								aria-selected="true"
+								aria-controls="aswanChipPanel"
+								id="aswanChipTab"
+							>
+								ASWAN</button
+							><button
+								type="button"
+								role="tab"
+								aria-selected="false"
+								aria-controls="aswanMixerPanel"
+								id="aswanMixerTab"
+								tabindex="-1"
+							>
+								Mixer
+							</button>
+						</div>
+						<section
+							id="aswanChannelControls"
+							class="aswan-channel-controls"
+							aria-label="Channel controls"
+						>
+							<div class="spu-code-live-row">
+								<div
+									id="aswanChannelTabs"
+									class="aswan-channel-tabs"
+									role="tablist"
+									aria-label="Keyboard and parameter channel"
+								>
+									<button
+										type="button"
+										role="tab"
+										id="aswanChannelAutoTab"
+										data-channel="auto"
+										aria-selected="true"
+										aria-controls="voiceEditor"
+									>
+										Auto</button
+									><button
+										type="button"
+										role="tab"
+										id="aswanChannel1Tab"
+										data-channel="0"
+										aria-selected="false"
+										aria-controls="voiceEditor"
+										tabindex="-1"
+									>
+										CH1</button
+									><button
+										type="button"
+										role="tab"
+										id="aswanChannel2Tab"
+										data-channel="1"
+										aria-selected="false"
+										aria-controls="voiceEditor"
+										tabindex="-1"
+									>
+										CH2</button
+									><button
+										type="button"
+										role="tab"
+										id="aswanChannel3Tab"
+										data-channel="2"
+										aria-selected="false"
+										aria-controls="voiceEditor"
+										tabindex="-1"
+									>
+										CH3</button
+									><button
+										type="button"
+										role="tab"
+										id="aswanChannel4Tab"
+										data-channel="3"
+										aria-selected="false"
+										aria-controls="voiceEditor"
+										tabindex="-1"
+									>
+										CH4
+									</button>
+								</div>
+								<label
+									><input id="aswanLiveEnabled" type="checkbox" checked />Auto
+									update</label
+								><button id="aswanCaptureButton" type="button" disabled>
+									Copy to Auto</button
+								><button id="aswanSaveSelectedPreset" type="button">
+									Save to presets
+								</button>
+								<details class="spu-code-help">
+									<summary aria-label="About channel selection">?</summary>
+									<p>
+										Auto edits the common instrument and allocates Wave notes
+										across four channels. Sweep uses CH3, Noise uses CH4 and
+										Voice PCM uses CH2. A CH selects that physical voice for
+										display, editing and keyboard input. Selecting a tab does
+										not copy its settings to other channels. Code and keys share
+										one chip; the most recent note owns its gate. During VGM
+										playback, Auto update follows the recorded CH; copy it to
+										Auto to edit and audition independently.
+									</p>
+								</details>
+							</div>
+							<p id="aswanChannelStatus" class="subtext" role="status">
+								Auto · four waveform voices · round robin.
+							</p>
+						</section>
+						<section class="spu-monitor aswan-monitor" aria-label="Output display">
+							<div
+								class="visual-mode-controls"
+								role="group"
+								aria-label="Audio visualization"
+							>
+								<button
+									type="button"
+									data-visual-mode="envelope"
+									aria-pressed="true"
+								>
+									Envelope</button
+								><button
+									type="button"
+									data-visual-mode="waveform"
+									aria-pressed="false"
+								>
+									Waveform</button
+								><button
+									type="button"
+									data-visual-mode="spectrum"
+									aria-pressed="false"
+								>
+									Spectrum
+								</button>
+							</div>
+							<p id="visualizerDescription">Live output after Master volume.</p>
+							<div class="monitor-body">
+								<div class="monitor-plot">
+									<canvas
+										id="outputCanvas"
+										width="900"
+										height="220"
+										role="img"
+										aria-label="Live ASWAN audio output"
+									></canvas
+									><canvas
+										id="envelopeCanvas"
+										width="900"
+										height="220"
+										role="img"
+										aria-label="Output envelope history"
+									></canvas>
+								</div>
+								<label class="monitor-pitch" for="pitchBend"
+									><span>Pitch</span
+									><input
+										id="pitchBend"
+										type="range"
+										min="-2"
+										max="2"
+										step="0.01"
+										value="0"
+										orient="vertical"
+										aria-label="Display pitch bend"
+									/><output id="pitchValue">0.00</output></label
+								>
+							</div>
+						</section>
+						<div id="aswanChipPanel" role="tabpanel" aria-labelledby="aswanChipTab">
+							<section class="instrument-workspace aswan-workspace">
+								<div class="section-heading">
+									<h2>Sound source</h2>
+									<p id="voiceCapacity">Wave · four voices</p>
+								</div>
+								<div
+									id="voiceEditor"
+									role="tabpanel"
+									aria-labelledby="aswanChannelAutoTab"
+								></div>
+							</section>
+							<section class="instrument-toolbar" aria-label="Instrument files">
+								<label class="instrument-preset-control" for="aswanPresetSelect"
+									>Preset
+									<select id="aswanPresetSelect">
+										<option value="">No playable presets</option>
+									</select></label
+								><button id="aswanSaveSoundAs" type="button">Save to Files</button
+								><label class="instrument-name-control" for="instrumentName"
+									>Name
+									<input
+										id="instrumentName"
+										type="text"
+										maxlength="80"
+										value="Sine"
+										autocomplete="off"
+								/></label>
+								<div class="preset-actions">
+									<button id="loadPreset" type="button">Load preset…</button
+									><input
+										id="presetFileInput"
+										class="file-input"
+										type="file"
+										accept=".json,application/json"
+										aria-label="Choose an ASWAN preset"
+									/><button id="savePreset" type="button">Save preset…</button
+									><button id="copyCode" type="button">Copy JavaScript</button
+									><button id="resetPreset" type="button">
+										Reset instrument
+									</button>
+								</div>
+								<textarea
+									id="codeOutput"
+									readonly
+									spellcheck="false"
+									rows="8"
+									aria-label="Generated instrument JavaScript"
+									hidden
+								></textarea>
+							</section>
+						</div>
+						<section
+							id="aswanMixerPanel"
+							role="tabpanel"
+							aria-labelledby="aswanMixerTab"
+							hidden
+						>
+							<div class="section-heading"><h2>ASWAN Mixer</h2></div>
+							<label class="aswan-mix-volume"
+								>Chip volume
+								<input
+									id="aswanChipVolume"
+									type="range"
+									min="0"
+									max="3.8"
+									step="0.01"
+									value="1"
+								/><output id="aswanChipVolumeValue">100%</output></label
+							>
+							<div
+								id="aswanMixerChannels"
+								class="aswan-vgm-actions"
+								role="group"
+								aria-label="Channel output"
+							>
+								<button type="button" data-mix-channel="0" aria-pressed="true">
+									CH1 On</button
+								><button type="button" data-mix-channel="1" aria-pressed="true">
+									CH2 On</button
+								><button type="button" data-mix-channel="2" aria-pressed="true">
+									CH3 On</button
+								><button type="button" data-mix-channel="3" aria-pressed="true">
+									CH4 On
+								</button>
+							</div>
+							<p class="subtext">
+								Channel output switches apply to the instrument and VGM reference.
+								Master adjusts the final mixed output.
+							</p>
+						</section>
+						<section
+							id="synthInputSection"
+							class="keyboard-section"
+							data-input-mode="keyboard"
+						>
+							<div
+								class="spu-input-tabs"
+								role="tablist"
+								aria-label="Performance input"
+							>
+								<button
+									id="synthInputKeyboardTab"
+									type="button"
+									role="tab"
+									aria-selected="true"
+									aria-controls="synthKeyboardPanel"
+								>
+									Keyboard</button
+								><button
+									id="synthInputCodeTab"
+									type="button"
+									role="tab"
+									aria-selected="false"
+									aria-controls="synthCodePanel"
+									tabindex="-1"
+								>
+									Code</button
+								><button
+									id="synthCodeExpandButton"
+									class="spu-code-expand"
+									type="button"
+									aria-label="Maximize Code"
+									aria-pressed="false"
+									hidden
+								>
+									<svg
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										aria-hidden="true"
+									>
+										<path
+											id="synthCodeExpandIcon"
+											d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"
+										/>
+									</svg>
+								</button>
+							</div>
+							<div
+								id="synthKeyboardPanel"
+								role="tabpanel"
+								aria-labelledby="synthInputKeyboardTab"
+							>
+								<div class="keyboard-toolbar">
+									<div
+										class="octave-control"
+										role="group"
+										aria-label="Keyboard octave"
+									>
+										<button
+											id="octaveDown"
+											type="button"
+											aria-label="Lower octave"
+										>
+											−</button
+										><span>Octave <output id="octaveValue">+0</output></span
+										><button
+											id="octaveUp"
+											type="button"
+											aria-label="Raise octave"
+										>
+											+
+										</button>
+									</div>
+									<p class="keyboard-hint">
+										Auto replaces the oldest note when full.
+									</p>
+								</div>
+								<div id="keyboardFretboard"></div>
+								<div class="performance-keyboard">
+									<label
+										class="monitor-pitch keyboard-wheel"
+										for="keyboardPitchBend"
+										><span>Pitch</span
+										><input
+											id="keyboardPitchBend"
+											type="range"
+											min="-2"
+											max="2"
+											step="0.01"
+											value="0"
+											orient="vertical"
+											aria-label="Keyboard pitch bend"
+										/><output id="keyboardPitchValue">0.00</output></label
+									>
+									<div id="keyboard" class="keyboard-mount"></div>
+								</div>
+							</div>
+							<div
+								id="synthCodePanel"
+								class="spu-code-panel"
+								role="tabpanel"
+								aria-labelledby="synthInputCodeTab"
+								hidden
+							>
+								<div class="spu-code-toolbar">
+									<button id="synthCodeRunButton" class="primary" type="button">
+										Run</button
+									><button id="synthCodeApplyButton" type="button" disabled>
+										Apply</button
+									><button id="synthCodeStopButton" type="button" disabled>
+										Stop</button
+									><span id="synthCodeState" role="status">Idle</span>
+								</div>
+								<p class="aswan-help spu-code-caption">
+									Software performance · this same ASWAN chip. Run: Ctrl/Cmd+Enter
+									· Apply: Ctrl/Cmd+Shift+Enter.
+								</p>
+								<div id="synthCodeEditorHost" class="spu-code-editor-host"></div>
+								<textarea
+									id="synthCodeEditor"
+									class="spu-code-editor"
+									spellcheck="false"
+									aria-label="ASWAN performance JavaScript"
+									rows="12"
+									readonly
+								></textarea>
+								<p id="synthCodeEditorNote" class="aswan-help">
+									Code is saved in Files. Restoring a project never runs it.
+								</p>
+								<pre id="synthCodeError" class="spu-code-error" role="alert"></pre>
+								<details class="spu-code-console">
+									<summary>Console</summary>
+									<pre id="synthCodeLog" aria-live="polite"></pre>
+								</details>
+								<details class="spu-code-help">
+									<summary aria-label="About ASWAN Code">?</summary>
+									<p>
+										Use
+										<code>const ws = await useSoundChip("wonderswan")</code> and
+										await its methods. CH1–CH4 are physical channels. noteOn /
+										noteOff use the authored Software Envelope; keyOn / keyOff
+										are raw gates. Run starts fresh, Apply retains context and
+										named loops. Changing tabs or editing a sound keeps Code
+										running. Click outside the editor to play computer keys.
+										Voice PCM supply, Envelope, scheduling and liveFx are
+										software; Sweep and Noise are hardware.
+									</p>
+								</details>
+							</div>
+						</section>
+					</div>
+					<div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
+				</div>
+				<footer>
+					<p>
+						WonderSwan headphone output · four 32-sample, 4-bit wave voices. CH2
+						supports 8-bit Voice PCM, CH3 hardware Sweep, CH4 Noise. Software tools
+						provide waveform drawing, ADSR, keyboard allocation and PCM data supply.
+						HyperVoice, DMA and the internal speaker path are outside this version.
+					</p>
+					<div>
+						<a href="../playground/index.html?mode=wonderswan">Open Playground</a> ·
+						<a href="../js/wonderswansynth.js">JavaScript source</a> ·
+						<a href="./README.md">Guide</a>
+					</div>
+				</footer>
+			</article>
+			<noscript><p>Enable JavaScript to use this synthesizer.</p></noscript>
+		</main>
+		<script type="module" src="./synth.js"></script>
+	</body>
+</html>

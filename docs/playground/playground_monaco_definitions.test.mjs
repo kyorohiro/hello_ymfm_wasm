@@ -311,3 +311,15 @@ test('read-only source navigation avoids pending occurrence highlights and does 
     assert.equal(doc.body.children.length,0);
   }finally{viewer?.dispose();globalThis.document=originalDocument;globalThis.fetch=originalFetch;}
 });
+
+
+test('WonderSwan hardware controls and ASWAN host lease definitions stay distinct',async()=>{
+  const shared=await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8');
+  const {selectAswanCodeDeclarations}=await import('../synth-aswan/code_declarations.js');
+  const source=selectAswanCodeDeclarations(shared),lines=source.split('\n');
+  for(const [symbol,file,target] of [['setNoise','wonderswansynth.js','setNoise'],['setSweep','wonderswansynth.js','setSweep'],['noteOff','synth-aswan/code_endpoint.js','createAswanCodeClient'],['getState','synth-aswan/code_endpoint.js','createAswanCodeClient'],['dispose','synth-aswan/code_endpoint.js','createAswanCodeClient']]){
+    const matching=lines.map((line,index)=>({line,index})).filter(item=>item.line.trimStart().startsWith(symbol+'('));
+    const item=matching[0];assert(item);
+    assert.deepEqual(definitionSource(source,{lineNumber:item.index+1,column:item.line.indexOf(symbol)+1},'wonderswan'),{file,symbol:target});
+  }
+});

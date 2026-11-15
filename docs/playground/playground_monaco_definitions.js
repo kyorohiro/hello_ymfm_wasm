@@ -15,6 +15,8 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
     return {file:'synth-snes/code_client.js',symbol};
   if(owner==='NesCodeClient'&&['noteOn','keyOn','getState','allNotesOff','dispose'].includes(symbol))
     return {file:'synth-2a03/code_endpoint.js',symbol:'createNesCodeClient'};
+  if(owner==='AswanCodeClient'&&['getState','noteOff','dispose'].includes(symbol))
+    return {file:'synth-aswan/code_endpoint.js',symbol:'createAswanCodeClient'};
   if(owner==='ScspCodeClient')
     return {file:'synth-scsp/code_endpoint.js',symbol:'createScspCodeClient'};
   if(owner==='Fm2608CodeClient') {
@@ -67,6 +69,7 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (/^Playground(?:Primary)?Ps1/.test(owner)||owner==='SpuCodeClient') return {file:'ps1synth.js',symbol:/^(?:Playground|SpuCodeClient)/.test(symbol)?'Ps1Synth':symbol};
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};
   if (/^PlaygroundGameboy$/.test(owner)) return {file:'gameboysynth.js', symbol};
+  if (/^Playground(?:Primary)?WonderSwan(?:TimelineBuilder)?$/.test(owner)) return {file:'wonderswansynth.js',symbol:/^Playground/.test(symbol)?'WonderSwanSynth':symbol};
   if(owner==='Huc6280CodeClient'&&['getState','noteOn','noteOff','dispose'].includes(symbol))
     return {file:'synth-huc6280/instrument.js',symbol:{getState:'observeCode',noteOn:'_liveNoteOn',noteOff:'noteOff',dispose:'stop'}[symbol]};
   if(/^Playground(?:Primary)?Huc6280/.test(owner)||owner==='Huc6280CodeClient')

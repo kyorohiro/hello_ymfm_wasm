@@ -14,21 +14,21 @@ sh scripts/package_itch_all_for_run.sh 20261114
 - 通常配布用：`release/itch_all_20261114/`
 - ブラウザー公開用：`release/itch_all_20261114_for_run/`
 
-各フォルダーには、8種類のSynth、VGM Analyzer、Playgroundの個別ZIPを10本と、
+各フォルダーには、10種類のSynth、VGM Analyzer、Playgroundの個別ZIPを12本と、
 `manifest.json`、`SHA256SUMS`、`README.txt`をまとめます。各製品のitchプロジェクトへ
 対応するZIPを個別にアップロードしてください。まとめ先のフォルダー自体はアプリのZIPではありません。
 
-ブラウザー公開用フォルダー内の10本は、すべて名前を`*_for_run.zip`にします。
+ブラウザー公開用フォルダー内の12本は、すべて名前を`*_for_run.zip`にします。
 例えばDMGは通常配布用が`tetorica_dmg_synth_20261114_itch.zip`、ブラウザー公開用が
 `tetorica_dmg_synth_20261114_itch_for_run.zip`です。
 ZIPの内容が異なるのはPlaygroundだけで、通常配布用はソースを含むダウンロード版、
-ブラウザー公開用は実行用の`*_itch_playground_for_run.zip`を選びます。他の9製品は
+ブラウザー公開用は実行用の`*_itch_playground_for_run.zip`を選びます。他の11製品は
 同じバイト列を別名でコピーします。`release/`直下の元ZIP名や個別スクリプトの出力名は変わりません。
 Game Boy／NESの互換コマンドはDMG／2A03と重複するため、一括実行では省きます。
 
-最初の実行で全10製品を作成し、各ZIP名にも共通の版番号を含めます。
+最初の実行で全12製品を作成し、各ZIP名にも共通の版番号を含めます。
 同じ版番号でもう一方のコマンドを実行すると、完了記録
-`release/itch_all_20261114.json`と全11本のZIPのハッシュを検証して再利用します。
+`release/itch_all_20261114.json`と全13本のZIPのハッシュを検証して再利用します。
 旧形式のブラウザー公開用フォルダーも、同じ版番号で再実行すると更新できます。
 内容を検証してから旧フォルダーを`*.before-for-run-names`へ退避し、全ZIP名に
 `_for_run`を付けたフォルダーへ切り替えます。製品をビルドし直す必要はありません。
@@ -150,7 +150,7 @@ npm run check:runtime-artifacts
 
 ## SynthとTauriへ渡すソース
 
-DMG／2A03／HuC6280／SPU／SCSP／SIDの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
+DMG／2A03／HuC6280／ASWAN／SPU／SCSP／SIDの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
 コメント・識別子のままコピーします。`copy_readable_modules.mjs`は依存関係の
 調査だけにesbuildを使い、bundleやminifyされた出力を配布しません。
 `synth-*/`、`js/`、共有UIのファイルを直接編集して試せます。
@@ -160,6 +160,7 @@ DMG／2A03／HuC6280／SPU／SCSP／SIDの配布は、`docs/`のJavaScript／CSS
 sh scripts/package_itch_dmg_synth.sh VERSION
 sh scripts/package_itch_2a03_synth.sh VERSION
 sh scripts/package_itch_huc6280_synth.sh VERSION
+sh scripts/package_itch_aswan_synth.sh VERSION
 sh scripts/package_itch_spu_synth.sh VERSION
 sh scripts/package_itch_scsp_synth.sh VERSION
 sh scripts/package_itch_sid_synth.sh VERSION

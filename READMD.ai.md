@@ -2,7 +2,26 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-12 (English handoff; SPU Synth PSF preview, paused audition / Capture, full-sample editing and published VAB APIs). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-16 (ASWAN Synth entry point; earlier SPU and SID handoffs retained below). This is an entry point for AI agents investigating the repository and resuming work.
+
+## ASWAN Synth entry point
+
+[ASWAN Synth](docs/synth-aswan/index.html) adds a dedicated WonderSwan instrument;
+its public chip identifier remains `wonderswan`. Start with its
+[guide and limits](docs/synth-aswan/README.md). The app reuses the existing
+MAME-derived WonderSwan core: four 32-point four-bit waves, CH3 hardware Sweep,
+CH4 Noise and CH2 Voice DAC. Envelopes, tuned PCM streaming and keyboard
+allocation are host software. It does not implement HyperVoice, DMA or a console
+CPU. Keyboard and Code share one engine; Code uses awaited chip methods and
+musical timing, without a global `play()` starter. Files / Cassette retain
+editable JS, portable `.aswan.json` presets and original `/vgm/` files.
+Static VGM extraction also creates `/presets/<song>/` instruments. Static sounds
+are distinct from full reference playback and later driver automation.
+
+`npm run test:aswan-synth` validates modules, types, Files and readable standalone
+packaging; `sh scripts/package_itch_aswan_synth.sh VERSION` produces the ZIP.
+Its native source kit is authenticated against the pinned SDK and shipped WASM,
+without rebuilding or modifying existing chip artifacts.
 
 ## Current PlayStation SPU handoff
 
