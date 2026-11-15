@@ -80,6 +80,7 @@ DSP・UI整理は[作業TODO](scsp_dsp_01.md)、FM Depth／接続図／自由配
   共通コアへの移植時に既存処理を可能な限り保持し、未検証機能を対応済みとは表示しない。
 - [x] 専用Browser Synth：鍵盤、PCM読み込み／単一canvas編集、EG、loop、pan、preset保存・再読込。
   実装順と受入条件は [専用Synth TODO](scsp_synth_01.md)。まずBrowser版の基本PCM Synthを作る。
+- [x] 専用Synthのソフトウェア離鍵Click guard。鍵盤／Code noteOff／Pause中SSF試奏の速いReleaseを緩め、raw keyOffと長いReleaseを維持する。[方式・検証記録](todo_scsp_noteoff_click_guard_20261116.md)。
 - [x] FMで複数slotsを使う音色を、単純な32音polyphonyと区別して管理する。
   専用Synthはsource 6 slots＋PCM26／2-op13／4-op6／6-op4 voices。離鍵／steal／Stop・presetをgroup単位で管理。
 - [ ] 「PCM loop」「EG」「波形RAMを使うFM」の短い説明・操作UI・動くJS・音を組にする。

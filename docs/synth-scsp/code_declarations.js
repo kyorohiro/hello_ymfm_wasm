@@ -61,6 +61,8 @@ interface ScspCodePatch {
 }
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
+  /** App-only software release preference; excluded from portable presets. */
+  clickGuard:boolean;
   voiceGroups:{id:string;midi:number;slots:number[];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
   /** Keyboard owners of physical CH tabs, separate from Auto / Code groups. */
   manualVoices:{id:string;slot:number;midi:number;baseFrequencyHz:number;held:boolean;order:number}[];
@@ -91,7 +93,9 @@ interface ScspCodeClient {
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;
   noteOn(lane:ScspCodeLane,note:string|number):Promise<{slots:number[];stolenId:string|null}>;
   keyOn(lane:ScspCodeLane):Promise<{slots:number[];stolenId:string|null}>;
+  /** Release this lane's current group using the Synth's software Click guard preference. Long hardware releases remain intact. */
   noteOff(lane:ScspCodeLane):Promise<boolean>;
+  /** Raw hardware release for this logical lane's current group. Bypasses Click guard; does not address a physical CH tab or stop another owner. */
   keyOff(lane:ScspCodeLane):Promise<boolean>;
   getState():Promise<ScspCodeState>;
   allNotesOff():Promise<boolean>;

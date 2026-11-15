@@ -60,7 +60,13 @@ class SynthProcessor extends AudioWorkletProcessor {
 							data.action === 'read'
 								? this.instrument.read()
 								: this.instrument.invoke(data.method, data.args);
-					else if (data.method === 'loadAudition') {
+					else if (data.method === 'setClickGuard') {
+						const args = data.args ?? [];
+						if (args.length !== 1 || typeof args[0] !== 'boolean')
+							throw new TypeError('SCSP Click guard requires one boolean');
+						value = this.instrument.setClickGuard(args[0]);
+						this.audition.setClickGuard(args[0]);
+					} else if (data.method === 'loadAudition') {
 						value = this.audition.loadPatch(...(data.args ?? []));
 						this.audition.setPitchBend(this.instrument.pitchBend);
 						this.auditionResampler.reset();

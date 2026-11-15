@@ -181,6 +181,41 @@ function auditionPreset(patch) {
 		},
 	};
 }
+test('host Click guard preference reaches both authored and paused audition voices without editing their sound', async (t) => {
+	const f = await make(t, 44100),
+		patch = await f.command('exportPatch');
+	await f.command('noteOn', ['authored', 57]);
+	await f.command('loadAudition', [auditionPreset(patch)]);
+	await f.command('auditionOn', ['preview', 69]);
+	f.render(1024);
+	const authored = f.p.instrument.core.readRam(),
+		audition = f.p.audition.core.readRam();
+	assert.equal(await f.command('setClickGuard', [false]), false);
+	assert.equal((await f.command('readAuthoring')).state.clickGuard, false);
+	assert.equal((await f.command('readAudition')).clickGuard, false);
+	assert.equal(f.p.instrument.read().voiceGroups[0].held, true);
+	assert.equal(f.p.audition.read().voiceGroups[0].held, true);
+	assert.deepEqual(f.p.instrument.core.readRam(), authored);
+	assert.deepEqual(f.p.audition.core.readRam(), audition);
+	assert.deepEqual(await f.command('exportPatch'), patch);
+	await f.command('auditionOff', ['preview']);
+	const previewSlot = f.p.audition.read().voiceGroups[0].slots[0];
+	assert.equal(f.p.audition.core.read(previewSlot * 32 + 10) & 31, 31);
+	await f.command('auditionOn', ['guarded', 69]);
+	assert.equal(await f.command('setClickGuard', [true]), true);
+	await f.command('noteOff', ['authored']);
+	await f.command('auditionOff', ['guarded']);
+	const authoredSlot = f.p.instrument.read().voiceGroups[0].slots[0],
+		guardedSlot = f.p.audition.read().voiceGroups.find((group) => group.id === 'guarded').slots[0];
+	assert.equal(f.p.instrument.core.read(authoredSlot * 32 + 10) & 31, 25);
+	assert.equal(f.p.audition.core.read(guardedSlot * 32 + 10) & 31, 25);
+	f.p.port.onmessage({ data: { id: 77, method: 'setClickGuard', args: ['false'] } });
+	await f.p.ready;
+	await Promise.resolve();
+	assert.match(f.messages.at(-1).error, /one boolean/);
+	assert.equal(f.p.instrument.read().clickGuard, true);
+	assert.equal(f.p.audition.read().clickGuard, true);
+});
 test('paused audition owns independent RAM and voices while sharing the compiled native module', async (t) => {
 	const f = await make(t, 48000),
 		authored = await f.command('exportPatch'),

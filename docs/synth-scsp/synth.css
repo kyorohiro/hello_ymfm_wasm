@@ -64,6 +64,17 @@ button[aria-pressed='true'] {
 	border-color: #74c9ed;
 	color: #effaff;
 }
+/* The shared editor enables Apply only while PCM changes are pending. */
+#voice [data-chip-action='scsp-apply']:enabled {
+	background: linear-gradient(#ffc477, #e6943f);
+	border-color: #ffd29b;
+	color: #26190b;
+}
+#voice [data-chip-action='scsp-apply']:enabled:hover,
+#voice [data-chip-action='scsp-apply']:enabled:focus-visible {
+	background: linear-gradient(#ffd59b, #f3ab57);
+	border-color: #fff0d8;
+}
 input,
 select {
 	color: var(--ink);
@@ -709,6 +720,7 @@ footer {
 	display: flex;
 	align-items: center;
 	gap: 7px;
+	color: var(--muted);
 }
 .scsp-code-toolbar {
 	display: flex;

@@ -55,6 +55,8 @@ let selectedOperator = 0,
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
+let clickGuardIntent = 0,
+	clickGuardApplied = true;
 const editorDrafts = new Map();
 let auditionSelection = null,
 	loadedAuditionSelection = null;
@@ -388,6 +390,7 @@ async function ensureAudio() {
 					applied = draftRevision;
 					await engine.command('loadIdleState', [draft.exportIdleState()]);
 					await engine.command('setPitchBend', [bend]);
+					await applyClickGuard(engine);
 				} while (applied !== draftRevision);
 				if (disposed) throw new Error('SCSP Synth is closed');
 				engine.setVolume(Number($('volume').value));
@@ -415,6 +418,29 @@ async function ensureAudio() {
 	await engine.resume();
 	return engine;
 }
+async function applyClickGuard(engine = audio) {
+	const desired = $('scspClickGuard').checked,
+		request = ++clickGuardIntent;
+	try {
+		const accepted = engine
+			? await engine.command('setClickGuard', [desired])
+			: await command('setClickGuard', [desired]);
+		if (typeof accepted !== 'boolean')
+			throw new TypeError('SCSP Click guard did not acknowledge its setting');
+		if (request === clickGuardIntent) {
+			clickGuardApplied = accepted;
+			$('scspClickGuard').checked = accepted;
+		}
+		return accepted;
+	} catch (error) {
+		if (request === clickGuardIntent) $('scspClickGuard').checked = clickGuardApplied;
+		throw error;
+	}
+}
+$('scspClickGuard').addEventListener('change', () => {
+	$('scspClickGuard').blur();
+	void applyClickGuard().catch(report);
+});
 async function applySettings(value, { isCurrent = () => true, onCommitted = () => {} } = {}) {
 	readPatch(value);
 	if (!isCurrent() || disposed) return false;

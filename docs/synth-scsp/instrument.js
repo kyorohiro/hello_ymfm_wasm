@@ -8,6 +8,7 @@ import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js';
 import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js';
+import {ScspReleaseGuard} from './release_guard.js';
 const clone=v=>Array.isArray(v)?v.map(clone):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,clone(x)])):v;
 const sourceSlot=n=>{if(!Number.isInteger(n)||n<0||n>=SOURCE_COUNT)throw new RangeError('Choose operator A–F');return n;};
 const physicalSlot=n=>{if(!Number.isInteger(n)||n<0||n>=32)throw new RangeError('Choose physical SCSP slot 0–31');return n;};
@@ -53,7 +54,7 @@ function validateIdleResources(state,reserved){
 }
 export class SynthInstrument {
   constructor(core){
-    this.core=core;this.synth=new ScspSynth(core);this.config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});this.groups=new Map();this.manualVoices=new Map();this.sequence=0;this.pitchBend=0;
+    this.core=core;this.synth=new ScspSynth(core);this.releaseGuard=new ScspReleaseGuard(core);this.config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});this.groups=new Map();this.manualVoices=new Map();this.sequence=0;this.pitchBend=0;
     this.codeSession=0;this.codeActive=false;this.codeLanes=Array.from({length:32},()=>({midi:69,id:null}));
     this.reserved=reserveDspRam(this.synth);this.effect=new DspDelay(core,this.config.effect);
     const {pcm,options}=createScspInitSample();
@@ -71,7 +72,9 @@ export class SynthInstrument {
     }finally{check.dispose();}
   }
   #routeEffect(){const state=this.synth.getState();this.effect.route([...this.groups.values()].flatMap(group=>routing(group.config??this.config).outputs.map(index=>operatorSlot(group,index))).concat([...this.manualVoices.values()].filter(voice=>state.slots[voice.slot].directLevel>0).map(voice=>voice.slot)));}
-  #apply(commands){for(const [method,args]of commands)this.synth[method](...args);}
+  #latchRelease(slot){this.releaseGuard.keyOn(slot,typeof this.core.read==='function'?undefined:this.synth.getState().slots[slot]);}
+  #apply(commands){for(const [method,args]of commands){this.synth[method](...args);if(method==='keyOn')this.#latchRelease(args[0]);}}
+  setClickGuard(value){return this.releaseGuard.setEnabled(value);}
   setEffect(patch){const effect=this.effect.configure(patch);this.config={...this.config,effect};this.#routeEffect();return effect;}
   #bendCommands(semitones){
     const commands=[];
@@ -96,7 +99,7 @@ export class SynthInstrument {
   #silence(group,{except=null,muteStack=false}={}){
     // A per-group Stop must never reset the shared SCSP, DSP or keyboard.
     // Keep native sample references pinned until these slots are retriggered.
-    for(const slot of group.slots)if(slot!==except){this.synth.keyOff(slot);this.synth.setMix(slot,{directLevel:0,...(muteStack?{totalLevel:255}:{})});this.synth.setModulation(slot,{depth:0});this.synth.setPreset(slot,{sample:null});}
+    for(const slot of group.slots)if(slot!==except){this.releaseGuard.retire(slot);this.synth.keyOff(slot);this.synth.setMix(slot,{directLevel:0,...(muteStack?{totalLevel:255}:{})});this.synth.setModulation(slot,{depth:0});this.synth.setPreset(slot,{sample:null});}
   }
   #attack(id,midi,owner){
     if(this.manualVoices.has(id))throw new TypeError('Duplicate physical voice identity');
@@ -112,10 +115,11 @@ export class SynthInstrument {
     this.#apply(commands);this.sequence++;this.groups.set(id,group);this.#routeEffect();
     return {slots:[...slots],stolenId:victims.find(v=>v!==previous)?.id??null};
   }
-  noteOff(id){const group=this.groups.get(id);if(!group||!group.held)return false;this.#apply(group.slots.map(slot=>['keyOff',[slot]]));group.held=false;return true;}
+  #releaseGroup(id,raw=false){const group=this.groups.get(id);if(!group||!group.held)return false;for(const slot of group.slots)this.releaseGuard.release(slot,{raw});this.#apply(group.slots.map(slot=>['keyOff',[slot]]));group.held=false;return true;}
+  noteOff(id){return this.#releaseGroup(id);}
   stopVoices(){
     const autoSlots=new Set([...this.groups.values()].flatMap(group=>group.slots));
-    this.synth.stopVoices();this.groups.clear();this.manualVoices.clear();
+    this.synth.stopVoices();this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();
     for(const slot of autoSlots)if(slot>=SOURCE_COUNT)this.synth.setPreset(slot,{sample:null,modulation:{depth:0}});
     this.effect.install();this.#routeEffect();return true;
   }
@@ -215,12 +219,13 @@ export class SynthInstrument {
     for(const [key,group]of this.groups)if(group.slots.includes(slot)){this.#silence(group,{except:slot,muteStack:true});this.groups.delete(key);retiredGroupIds.push(key);}
     for(const [key,manual]of this.manualVoices)if(manual.slot===slot){this.manualVoices.delete(key);stolenManualIds.push(key);}
     this.synth.setPreset(slot,preset);this.synth.keyOn(slot);
+    this.#latchRelease(slot);
     this.manualVoices.set(id,{id,slot,midi,baseFrequencyHz:hz(midi,0),held:true,order:++this.sequence});this.#routeEffect();
     return {slot,slots:[slot],initializedFromSource:empty?0:null,retiredGroupIds,stolenManualIds};
   }
-  physicalNoteOff(id){const voice=this.manualVoices.get(id);if(!voice||!voice.held)return false;this.synth.keyOff(voice.slot);voice.held=false;return true;}
-  /** Release only owned physical gates; the chip's programmed release applies. */
-  stopPhysicalVoices(){for(const voice of this.manualVoices.values())if(voice.held){this.synth.keyOff(voice.slot);voice.held=false;}return true;}
+  physicalNoteOff(id){const voice=this.manualVoices.get(id);if(!voice||!voice.held)return false;this.releaseGuard.release(voice.slot);this.synth.keyOff(voice.slot);voice.held=false;return true;}
+  /** Release only owned physical gates, following the Synth click preference. */
+  stopPhysicalVoices(){for(const voice of this.manualVoices.values())if(voice.held)this.physicalNoteOff(voice.id);return true;}
   exportPatch(){return writePatch(this.config,Object.fromEntries(OPERATOR_KEYS.map((key,slot)=>[key,this.invoke('getPCM',[slot])])));}
   /** Internal cold migration only. Requested physical slots are retained, but
    * no running voice, session, gate or audio phase may cross this boundary. */
@@ -297,7 +302,7 @@ export class SynthInstrument {
     if(['getPCM','applyPCM','setPreset','setEnvelope','setMix','setLfo'].includes(method))return this.invoke(method,args);
     if(['setConfig','setEffect','exportPatch','loadPatch'].includes(method))return this[method](...args);
     const [channel,value]=args,lane=this.codeLanes[channel],group=this.#codeGroup(channel);
-    if(method==='noteOff'||method==='keyOff')return group?this.noteOff(group.id):false;
+    if(method==='noteOff'||method==='keyOff')return group?this.#releaseGroup(group.id,method==='keyOff'):false;
     if(method==='noteOn'||method==='keyOn'){
       const midi=method==='noteOn'?69+12*Math.log2(noteToHz(value)/440):lane.midi,id=`code:${session}:${channel}`;
       const result=this.#attack(id,midi,{kind:'code',session,channel});lane.midi=midi;lane.id=id;return result;
@@ -312,6 +317,6 @@ export class SynthInstrument {
     const state=this.read(),operators=Array.from({length:SOURCE_COUNT},(_,slot)=>{const sample=state.slots[slot].sample;return sampleKeys[slot]===`${sample.bankId}:${sample.id}`?null:this.invoke('getPCM',[slot]);});
     return {state,operators};
   }
-  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,kind:'scsp',config:clone(this.config),pitchBend:this.pitchBend,voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),manualVoices:[...this.manualVoices.values()].map(voice=>({...voice})),codeActive:this.codeActive,codeSession:this.codeSession,codeLanes:this.codeLanes.map((lane,channel)=>({channel,midi:lane.midi,groupId:this.#codeGroup(channel)?.id??null,slots:[...(this.#codeGroup(channel)?.slots??[])]})),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
-  dispose(){this.groups.clear();this.manualVoices.clear();this.synth.dispose();}
+  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,kind:'scsp',config:clone(this.config),pitchBend:this.pitchBend,clickGuard:this.releaseGuard.enabled,voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),manualVoices:[...this.manualVoices.values()].map(voice=>({...voice})),codeActive:this.codeActive,codeSession:this.codeSession,codeLanes:this.codeLanes.map((lane,channel)=>({channel,midi:lane.midi,groupId:this.#codeGroup(channel)?.id??null,slots:[...(this.#codeGroup(channel)?.slots??[])]})),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
+  dispose(){this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();this.synth.dispose();}
 }

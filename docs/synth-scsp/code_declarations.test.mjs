@@ -18,6 +18,7 @@ await scsp.noteOn(CH1,'C4');await beat(.5);await scsp.noteOff(CH1);
 await scsp.noteOn(7,60);const state:ScspCodeState=await scsp.getState();
 const mode:ScspCodeConfig['mode']=state.config.mode;
 const pitchBend:number=state.pitchBend;
+const clickGuard:boolean=state.clickGuard;
 const physicalSlot:number|undefined=state.manualVoices[0]?.slot;
 const logicalSlots:number[]=state.codeLanes[0].slots;
 const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopStartSamples:0});
@@ -47,6 +48,12 @@ scsp.writeDsp(0x4c,1);
 createSoundChip('scsp');
 // @ts-expect-error hardware loopLink is boolean
 scsp.setEnvelope(0,{loopLink:1});
+// @ts-expect-error Click guard is a host preference, not a Code setter
+scsp.setClickGuard(false);
+// @ts-expect-error Click guard is not an authored voice configuration
+scsp.setConfig({clickGuard:false});
+// @ts-expect-error portable instrument presets exclude host preferences
+(await scsp.exportPatch()).clickGuard;
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}

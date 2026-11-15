@@ -73,6 +73,22 @@ from Attack hold, which is a separate hardware feature. The checkbox applies
 to new notes and is read-only while viewing SSF slots. Captured forward-loop
 instruments retain both the loop start and this setting.
 
+**Click guard · Software** starts On below the Keyboard / Code tabs. It
+softens very fast releases for Auto keyboard groups, physical CH keyboard
+notes, scoped Code `noteOff()` and paused SSF audition. Slower and infinite
+programmed releases remain intact. This is a Synth performance preference,
+not a hardware mode or a setting saved in instrument / Cassette files.
+Changing it keeps notes and Code running and affects subsequent releases.
+
+The software checks the effective native Release rate latched at note-on.
+Only rates above index 50 receive a temporary RR=25 write before an immediate
+hardware Key Off. Release starts from the current native envelope level;
+there is no delayed Key Off or Master fade. Requested ADSR codes and saved PCM remain
+unchanged, and the next note-on restores the authored RR. This is a selected
+SCSP Release rate, not a fixed millisecond ramp or note-on / retrigger guard.
+The shared Playground and npm APIs retain their existing hardware behavior.
+The SSF song itself is unchanged; its paused audition uses a separate Synth.
+
 ## Code
 
 Select Code and press Run. The starter plays the current sound using beats,
@@ -111,6 +127,13 @@ It does not reinterpret Code's CH1 constant. The scoped Code API retains its
 logical lanes and A–F source operations; internal raw physical-slot commands
 are not exposed as a new public Code API. Copy operator JavaScript remains
 available in Auto.
+
+`noteOff(lane)` follows the app's Click guard preference. `keyOff(lane)` always
+bypasses it and follows the programmed hardware Release, which can still have
+a long tail. Both address the current Code-owned group for that logical lane,
+not the physical CH tab. Raw `keyOff()` is not a transport Stop. Read the host
+preference with `(await scsp.getState()).clickGuard`; change it with the UI
+checkbox rather than a Code setter.
 
 ```javascript
 // Change source A's mix while the melody continues.
