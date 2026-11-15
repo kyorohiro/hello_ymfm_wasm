@@ -148,6 +148,7 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 	const home = 'https://kyorohiro.github.io/hello_ymfm_wasm/';
 	let html = await readFile(join(root, 'docs/synth-aswan/index.html'), 'utf8');
 	html = html.replace(/href="(\.\.\/[^"#]+)"/g, (_match, path) => {
+		if (path === '../tetorica_aswan_synth.webp') return `href="${path}"`;
 		if (path === '../js/wonderswansynth.js')
 			return 'href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/tetorica_src/runtime/wonderswansynth.js"';
 		return `href="${new URL(path, home + 'synth-aswan/').href}"`;
@@ -155,10 +156,12 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 	await writeFile(join(stage, 'synth-aswan/index.html'), html);
 	await writeFile(
 		join(stage, 'index.html'),
-		html.replace(
-			/\b(href|src)="\.\/(synth\.(?:css|js)(?:\?[^"#]*)?)"/g,
-			'$1="./synth-aswan/$2"',
-		),
+		html
+			.replaceAll('../tetorica_aswan_synth.webp', './tetorica_aswan_synth.webp')
+			.replace(
+				/\b(href|src)="\.\/(synth\.(?:css|js)(?:\?[^"#]*)?)"/g,
+				'$1="./synth-aswan/$2"',
+			),
 	);
 	await copyRuntimeArtifacts({
 		root,
@@ -168,6 +171,10 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 	});
 	const sourceCheck = await copyWonderSwanSources(stage);
 	await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
+	await copyFile(
+		join(root, 'docs/tetorica_aswan_synth.webp'),
+		join(stage, 'tetorica_aswan_synth.webp'),
+	);
 	const guide = (await readFile(join(root, 'docs/synth-aswan/README.md'), 'utf8')).replace(
 		/\]\(([^)]+)\)/g,
 		(match, target) => {
@@ -184,6 +191,7 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 	for (const path of [
 		'docs/synth-aswan/index.html',
 		'docs/synth-aswan/README.md',
+		'docs/tetorica_aswan_synth.webp',
 		'LICENSE',
 		'package.json',
 		'package-lock.json',

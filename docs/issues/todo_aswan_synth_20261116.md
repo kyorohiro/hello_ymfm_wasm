@@ -4,6 +4,21 @@ Product identifier: `tetorica-aswan-synth`; browser entry: `docs/synth-aswan/`.
 Use HuC6280 Synth's layout and shared Code/Files components, with the existing
 WonderSwan WASM/API. Keep other Synths and their imported projects unchanged.
 
+## Adopted icon follow-up
+
+- [x] Preserve the approved PNG and convert it to 1254×1254 sRGB WebP, matching
+      the other Synth assets without changing the approved design.
+- [x] Replace the CSS placeholder in the header, add favicon/touch-icon links,
+      and use the same artwork on the Sound Laboratory product card.
+- [x] Include the icon in standalone root/nested entries and source receipts.
+- [x] Verify image dimensions, package references and desktop/mobile rendering
+      in muted browsers. No commit, push, tag or publication.
+
+Icon verification: two packaging tests and 16 browser/layout checks passed.
+See [icon verification](verification_aswan_icon_20261116.json).
+
+## Initial implementation
+
 - [x] Inspect WonderSwan authoring, VGM extraction/playback, mixer calibration,
       and the current HuC6280 UI/Code/Files contracts.
 - [x] Add four physical channels and Auto keyboard allocation, 32-point 4-bit
@@ -25,8 +40,8 @@ WonderSwan WASM/API. Keep other Synths and their imported projects unchanged.
 
 No commit, push, tag, npm publication or external release. No Tauri app in this
 task. Use self-authored test music and fresh browser storage; keep physical
-audio muted during automated checks. An ASWAN-specific icon can follow later;
-do not mislabel the PC Engine icon as a WonderSwan asset.
+audio muted during automated checks. The approved ASWAN artwork is retained as
+a PNG original and a 1254×1254 WebP used by the app, catalogue and ZIP.
 
 ## Verification and remaining work
 
@@ -45,8 +60,7 @@ do not mislabel the PC Engine icon as a WonderSwan asset.
 Try `/synth-aswan/index.html` on the normal docs server, or package with
 `sh scripts/package_itch_aswan_synth.sh VERSION`.
 
-Human listening and real-game VGM checks remain. The current wordmark is a
-text/CSS placeholder for a future dedicated icon. Narrow Envelope plot header
+Human listening and real-game VGM checks remain. Narrow Envelope plot header
 labels can be polished further. VGM Live controls are read-only in this first
 version; Copy to Auto keeps song position and takes a known Wave/Noise sound
 into the editor. Transient Voice DAC bytes cannot be captured as a fake sample;

@@ -1,0 +1,14 @@
+Generator: built-in image_gen.
+Approved original: docs/tetorica_aswan_synth.png.
+Adopted application asset: docs/tetorica_aswan_synth.webp.
+Conversion: ImageMagick, 1254x1254, sRGB RGB, WebP quality 92 / method 6.
+References: user-supplied translucent blue WonderSwan photograph,
+docs/tetorica_dmg_synth.webp, docs/tetorica_huc6280_synth.webp.
+
+Prompt:
+Use case: stylized-concept. Create ONE finished square raster application icon for "Tetorica ASWAN Synth".
+References: the supplied photograph of the translucent cobalt-blue WonderSwan handheld is the hardware/material/button reference. The two square Tetorica DMG and HuC6280 icons are references for the existing product family's sculpted typography, rounded-square outline, crisp waveform window and high-quality 3D rendering. Do not copy the DMG or HuC names or their colors.
+Design: an elegant compact rounded-square emblem inspired by that lightweight handheld. A slim translucent sapphire/cobalt-blue polycarbonate shell, subtle visible blue internal circuit traces, cool silver LCD bezel and light-gray button caps. Airy, portable, light plastic feel, restrained depth; avoid massive industrial chrome or heavy armored framing.
+Make the distinctive controller controls recognizable: TWO separate clusters of four rounded triangular/petal buttons, and a separate diagonal pair of pale action buttons, echoing the photographed device. Do not replace these with a generic single cross-shaped D-pad. Integrate them neatly at the edges of the emblem while preserving an uncluttered center. All buttons are pale gray, not rainbow colored.
+Typography must be clear and exactly spelled: "Tetorica" near the top, "ASWAN" very large as the main hero word, and "SYNTH" below it. Bold raised lettering, readable even as a small app icon. Under the lettering, a small wide dark LCD/oscilloscope window with a crisp cyan stepped wavetable trace and four small voice indicators. No other words, logos, manufacturer names or dense tiny labels.
+Front-facing nearly orthographic composition, centered, full emblem visible, balanced margins, polished product illustration with soft studio light, subtle highlights on the transparent blue plastic, light neutral outer background and minimal soft shadow. Square 1:1 image, high detail, clean silhouette. This is a distinctive Tetorica musical instrument badge, not a photograph or a diagram.

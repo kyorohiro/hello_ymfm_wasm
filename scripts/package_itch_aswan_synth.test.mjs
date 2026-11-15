@@ -61,6 +61,16 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 	assert.equal(info.receipt.product, 'Tetorica ASWAN Synth');
 	assert.equal(info.receipt.productId, 'tetorica-aswan-synth');
 	assert.match(a.archive, /tetorica_aswan_synth_test_itch\.zip$/);
+	const icon = await readFile(new URL('../docs/tetorica_aswan_synth.webp', import.meta.url));
+	assert.deepEqual(await readFile(join(a.stage, 'tetorica_aswan_synth.webp')), icon);
+	assert(info.names.includes('tetorica_aswan_synth.webp'));
+	assert.deepEqual(
+		info.receipt.originalInputs.find(
+			(input) => input.path === 'docs/tetorica_aswan_synth.webp',
+		),
+		{ path: 'docs/tetorica_aswan_synth.webp', bytes: icon.length, sha256: sha(icon) },
+	);
+
 	for (const name of ['wonderswan_wasm.js', 'wonderswan_wasm.wasm'])
 		assert.deepEqual(
 			await readFile(join(a.stage, 'generated', name)),
@@ -175,6 +185,20 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 		assert(info.receipt.originalInputs.some((input) => input.path === path));
 	for (const entry of ['index.html', 'synth-aswan/index.html']) {
 		const html = await readFile(join(a.stage, entry), 'utf8');
+		const iconPath =
+			entry === 'index.html' ? './tetorica_aswan_synth.webp' : '../tetorica_aswan_synth.webp';
+		for (const rel of ['icon', 'apple-touch-icon']) {
+			const link = [...html.matchAll(/<link\b[^>]*>/g)]
+				.map((match) => match[0])
+				.find((tag) => tag.includes(`rel="${rel}"`));
+			assert(link, `${entry}: ${rel} link`);
+			assert(link.includes(`href="${iconPath}"`), `${entry}: ${rel} uses its local image`);
+		}
+		const image = [...html.matchAll(/<img\b[^>]*>/g)]
+			.map((match) => match[0])
+			.find((tag) => /class="[^"]*\bproduct-icon\b[^"]*"/.test(tag));
+		assert(image?.includes(`src="${iconPath}"`), `${entry}: header uses the same local icon`);
+
 		assert.match(html, /<title>Tetorica ASWAN Synth<\/title>/);
 		assert.match(html, /<meta name="application-name" content="Tetorica ASWAN Synth"\s*\/?>/);
 		for (const match of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
