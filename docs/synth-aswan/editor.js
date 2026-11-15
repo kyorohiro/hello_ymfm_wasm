@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Passive WonderSwan instrument controls; audio starts only through the host.
 import { createDefaultPreset, readPreset } from './preset.js';
+import { ASWAN_LIVE_PARAMETERS, createAswanLiveHighlighter } from './live_highlight.js';
 
 export function waveShape(shape) {
 	return Array.from({ length: 32 }, (_, i) => {
@@ -710,8 +711,21 @@ export function createEditor({
 								: '32 samples · 4-bit wave RAM · four voices in Auto.';
 		draw();
 	}
+	const highlighter = createAswanLiveHighlighter({
+		controls: Object.fromEntries(
+			ASWAN_LIVE_PARAMETERS.map((name) => {
+				const input = name === 'wave' ? canvas : fields.get(name).input;
+				return [name, input.type === 'checkbox' ? input.closest('.aswan-field') : input];
+			}),
+		),
+	});
+	for (const item of [waveCard, stereo, sweepCard, noiseCard, pcmCard, envCard])
+		listen(item.element, 'toggle', () => highlighter.clear());
 	render();
 	return {
+		highlightLive: (view) => highlighter.update(view),
+		clearLiveHighlight: () => highlighter.clear(),
+		setHighlightEnabled: (value) => highlighter.setEnabled(value),
 		setPreset(value, options = {}) {
 			preset = readPreset(value);
 			view = { readOnly: false, channel: null, ...options };
@@ -722,6 +736,7 @@ export function createEditor({
 		},
 		dispose() {
 			disposed = true;
+			highlighter.dispose();
 			finish();
 			for (const cleanup of cleanups) cleanup();
 			root.replaceChildren();

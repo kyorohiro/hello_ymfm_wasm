@@ -61,6 +61,13 @@ let codeHost = null,
 	songState = { playing: false, paused: false },
 	selectedSongPath = '',
 	loadedSongKey = '';
+let highlightCodeEpoch = 0,
+	highlightCodeActive = false,
+	observedHighlightEpoch = -1;
+const highlightPreference = 'tetorica-aswan-synth-live-highlight';
+try {
+	$('aswanHighlightEnabled').checked = localStorage.getItem(highlightPreference) !== 'off';
+} catch {}
 const physical = Array.from({ length: 4 }, () => readPreset(preset)),
 	notes = new Map(),
 	channelEnabled = Array(4).fill(true);
@@ -258,6 +265,7 @@ async function ensureAudio() {
 	return opening;
 }
 function display(force = false) {
+	if (!highlightContext()) editor.highlightLive(null);
 	if (!force && pendingEdits) return;
 	const song = liveSong();
 	let sound = target === null ? preset : physical[target],
@@ -369,7 +377,67 @@ function display(force = false) {
 		tab.tabIndex = active ? 0 : -1;
 		if (active) $('voiceEditor').setAttribute('aria-labelledby', tab.id);
 	}
+	editor.highlightLive(highlightContext());
 	syncAudition();
+}
+// Observe only the same values already presented by Live. VGM snapshots belong
+// to heard history; Code snapshots come from the existing guarded poll.
+function highlightContext() {
+	if (
+		disposed ||
+		document.hidden ||
+		$('aswanChipPanel').hidden ||
+		target === null ||
+		!$('aswanLiveEnabled').checked ||
+		!$('aswanHighlightEnabled').checked ||
+		songState.busy
+	)
+		return null;
+	if (songActive()) {
+		if (!songState.playing || !songState.liveState || songState.editSession == null)
+			return null;
+		const view = aswanSongLiveView(songState.liveState, target);
+		return {
+			channel: `vgm:${songState.editSession}:${target}`,
+			physicalChannel: target,
+			snapshot: { preset: displayed, frame: songState.liveState.frame },
+			waveKnown: view.waveKnown,
+			unknownFields:
+				target === 2 &&
+				(!songState.liveState.registerKnown?.[12] ||
+					!songState.liveState.registerKnown?.[13])
+					? [...view.unknownFields, 'sweep']
+					: view.unknownFields,
+		};
+	}
+	if (
+		!highlightCodeActive ||
+		observedHighlightEpoch !== highlightCodeEpoch ||
+		!observed?.channels?.[target]
+	)
+		return null;
+	return {
+		channel: `code:${highlightCodeEpoch}:${target}`,
+		physicalChannel: target,
+		snapshot: { preset: displayed },
+		waveKnown: true,
+		unknownFields: [],
+	};
+}
+function invalidateCodeHighlight() {
+	highlightCodeEpoch++;
+	observedHighlightEpoch = -1;
+	editor.highlightLive(null);
+}
+function codeActivity() {
+	const state = codeHost?.getState(),
+		active = Boolean(state?.running && !state.busy && !state.stopping);
+	if (active !== highlightCodeActive) {
+		highlightCodeActive = active;
+		invalidateCodeHighlight();
+	}
+	if (!active) editor.highlightLive(null);
+	syncActivity();
 }
 async function applyPreset(value, { channel = target, isCurrent = () => true } = {}) {
 	const next = readPreset(value),
@@ -528,6 +596,16 @@ const editor = createEditor({
 	onError: report,
 	onLoadAudio: loadPcm,
 });
+editor.setHighlightEnabled($('aswanHighlightEnabled').checked);
+$('aswanHighlightEnabled').addEventListener('change', () => {
+	const enabled = $('aswanHighlightEnabled').checked;
+	editor.setHighlightEnabled(enabled);
+	try {
+		localStorage.setItem(highlightPreference, enabled ? 'on' : 'off');
+	} catch {}
+	$('aswanHighlightEnabled').blur();
+	editor.highlightLive(highlightContext());
+});
 
 async function stopKeyboard() {
 	const held = [...notes.values()];
@@ -550,6 +628,7 @@ async function stopKeyboard() {
 	]);
 }
 function selectChannel(value) {
+	editor.highlightLive(null);
 	selectionGeneration++;
 	const wasReference = Boolean(songActive());
 	void stopKeyboard().catch(report);
@@ -585,6 +664,7 @@ for (const [index, tab] of tabs.entries()) {
 	});
 }
 $('aswanLiveEnabled').addEventListener('change', () => {
+	invalidateCodeHighlight();
 	$('aswanLiveEnabled').blur();
 	songPlayer.setLiveEnabled($('aswanLiveEnabled').checked);
 	display(true);
@@ -912,6 +992,7 @@ for (const [id, panel] of [
 	['aswanMixerTab', 'aswanMixerPanel'],
 ])
 	$(id).addEventListener('click', () => {
+		editor.highlightLive(null);
 		for (const [t, p] of [
 			['aswanChipTab', 'aswanChipPanel'],
 			['aswanMixerTab', 'aswanMixerPanel'],
@@ -921,6 +1002,7 @@ for (const [id, panel] of [
 			$(p).hidden = p !== panel;
 		}
 		$(id).blur();
+		display();
 	});
 for (const button of document.querySelectorAll('[data-visual-mode]'))
 	button.addEventListener('click', () => {
@@ -1030,7 +1112,8 @@ codeHost = setupAswanCodeHost({
 	},
 	stopKeyboard,
 	stopSong: () => songPlayer.stop(),
-	onActivity: syncActivity,
+	beforeRun: invalidateCodeHighlight,
+	onActivity: codeActivity,
 	setStatus: status,
 });
 const unsubscribeProject = codeHost.project.onDidChange(refreshSongFiles);
@@ -1189,11 +1272,23 @@ const poll = setInterval(async () => {
 	)
 		return;
 	polling = true;
-	const owner = audio;
+	const owner = audio,
+		codeEpoch = highlightCodeEpoch,
+		selection = selectionGeneration,
+		channel = target;
 	try {
 		const state = await owner.read();
-		if (!disposed && audio === owner) {
+		if (
+			!disposed &&
+			audio === owner &&
+			codeEpoch === highlightCodeEpoch &&
+			selection === selectionGeneration &&
+			target === channel &&
+			$('aswanLiveEnabled').checked &&
+			!songActive()
+		) {
 			observed = state;
+			observedHighlightEpoch = highlightCodeActive ? codeEpoch : -1;
 			display();
 		}
 	} catch (error) {

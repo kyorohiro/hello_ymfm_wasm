@@ -873,3 +873,39 @@ button[aria-pressed='true'],
 	min-height: 30px;
 	padding: 3px 6px;
 }
+
+/* Display-only pulses reuse Live refreshes and never change control geometry. */
+.aswan-editor [data-live-parameter].is-live-changed {
+	animation: synth-live-change 500ms ease-out;
+}
+@keyframes synth-live-change {
+	0%,
+	35% {
+		outline: 2px solid #bd8323;
+		outline-offset: 2px;
+		background-color: rgba(232, 181, 72, 0.19);
+	}
+	100% {
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+		background-color: transparent;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.aswan-editor [data-live-parameter].is-live-changed {
+		animation-timing-function: step-end;
+	}
+	@keyframes synth-live-change {
+		0%,
+		99% {
+			outline: 1px solid #bd8323;
+			outline-offset: 2px;
+			background-color: rgba(232, 181, 72, 0.1);
+		}
+		100% {
+			outline: 1px solid transparent;
+			outline-offset: 2px;
+			background-color: transparent;
+		}
+	}
+}

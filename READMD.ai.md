@@ -24,6 +24,10 @@ preventing old KeyUps from cutting a newer game note. Auto stays separate.
 Auto update Off freezes observation, not manual writes. Software Envelope/name
 and PCM loading are unavailable on the running reference channel. See the
 [live manual TODO](docs/issues/todo_aswan_live_manual_20261116.md).
+VGM / Code observations also highlight changed existing controls; the default-On
+Live highlight preference lives in the channel help and is local to the device.
+It uses the current heard-frame / Code observation cadence without new timers.
+See the [highlight TODO](docs/issues/todo_aswan_live_highlight_20261116.md).
 Paused Wave / Sweep / Noise channels support isolated keyboard audition and
 sparse hardware edits on the reference run. Preview Software Envelope is host
 only; Resume retains queued audio, and later VGM writes take over. See

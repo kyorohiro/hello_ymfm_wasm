@@ -62,6 +62,37 @@ function installSilentAudit() {
 		serial: 0,
 		bufferEvents: [],
 		bufferSerial: 0,
+		highlightEvents: [],
+		intervalCalls: 0,
+	});
+	const interval = window.setInterval;
+	window.setInterval = function (...args) {
+		audit.intervalCalls++;
+		return interval.apply(this, args);
+	};
+	new MutationObserver((records) => {
+		for (const record of records) {
+			const element = record.target;
+			if (
+				!element.dataset?.liveParameter ||
+				!element.classList.contains('is-live-changed') ||
+				String(record.oldValue ?? '')
+					.split(/\s+/)
+					.includes('is-live-changed')
+			)
+				continue;
+			audit.highlightEvents.push({
+				key: element.dataset.liveParameter,
+				frame: Number(document.getElementById('aswanChannelControls')?.dataset.songFrame),
+				position: Number(document.getElementById('aswanSongSeek')?.value),
+				origin: document.getElementById('aswanChannelControls')?.dataset.origin,
+			});
+		}
+	}).observe(document, {
+		subtree: true,
+		attributes: true,
+		attributeOldValue: true,
+		attributeFilter: ['class'],
 	});
 	window.AudioContext = class extends Context {
 		constructor(...args) {
@@ -171,10 +202,11 @@ function installSilentAudit() {
 	};
 }
 async function check(browser, engine, origin, fixture) {
-	const page = await browser.newPage({
+	const context = await browser.newContext({
 		viewport: { width: 1240, height: 1100 },
 		acceptDownloads: true,
 	});
+	const page = await context.newPage();
 	page.setDefaultTimeout(20000);
 	const errors = [],
 		checks = [],
@@ -276,6 +308,226 @@ async function check(browser, engine, origin, fixture) {
 			'VGM import complete',
 		);
 	}
+	async function checkLiveHighlights() {
+		const events = () => page.evaluate(() => __aswanAudit.highlightEvents.slice());
+		const clearEvents = () =>
+			page.evaluate(() => {
+				__aswanAudit.highlightEvents.length = 0;
+			});
+		const active = () => page.locator('[data-live-parameter].is-live-changed').count();
+		const eventFor = async (key) => (await events()).find((event) => event.key === key);
+		const at = (seconds) =>
+			until(
+				() =>
+					page
+						.locator('#aswanSongSeek')
+						.inputValue()
+						.then((value) => Number(value) >= seconds),
+				'highlight reference reaches ' + seconds,
+			);
+		async function toggle(enabled) {
+			const popup = page.locator('#aswanChannelControls details.spu-code-help');
+			if (!(await popup.evaluate((node) => node.open)))
+				await popup.locator('summary').click();
+			if (enabled) await page.check('#aswanHighlightEnabled');
+			else await page.uncheck('#aswanHighlightEnabled');
+			assert.notEqual(
+				await page.evaluate(() => document.activeElement?.id),
+				'aswanHighlightEnabled',
+			);
+			assert.equal(await active(), 0, 'toggle clears prior pulses immediately');
+			await popup.locator('summary').click();
+		}
+		step('heard VGM controls highlight only changed fields; Off, Pause and frozen Live rebase');
+		const authored = (await state()).preset;
+		await importVgm('highlight.vgm', fixture.highlight);
+		await page.selectOption('#aswanSongSelect', '/vgm/highlight.vgm');
+		await channel(0);
+		await clearEvents();
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-origin')
+					.then((value) => value === 'vgm'),
+			'new highlight reference baseline',
+		);
+		await at(0.65);
+		assert.deepEqual(await events(), [], 'initial observed controls do not all flash');
+		await until(() => eventFor('volumeLeft'), 'left-only VGM volume pulse');
+		let seen = await events();
+		assert(
+			seen.every((event) => event.key === 'volumeLeft'),
+			'unchanged right and Wave stay quiet',
+		);
+		assert(
+			seen.every((event) => event.frame >= 1.2 * 44100),
+			'rendered-ahead future change never flashes early',
+		);
+		await until(() => eventFor('wave'), 'actual VGM Wave RAM pulse');
+		assert((await eventFor('wave')).frame >= 1.8 * 44100);
+		await until(() => eventFor('volumeRight'), 'right-only VGM volume pulse');
+		assert((await eventFor('volumeRight')).frame >= 2.4 * 44100);
+		await channel(2);
+		assert.equal(
+			await active(),
+			0,
+			'CH selection clears old pulses without flashing its baseline',
+		);
+		await clearEvents();
+		await until(() => eventFor('sweepStep'), 'selected CH3 hardware Sweep step pulse');
+		assert((await events()).every((event) => event.key === 'sweepStep'));
+		await until(() => eventFor('sweepTime'), 'selected CH3 hardware Sweep time pulse');
+		await channel(3);
+		assert.equal(await active(), 0);
+		await clearEvents();
+		await until(() => eventFor('noiseType'), 'selected CH4 Noise feedback pulse');
+		assert((await events()).every((event) => event.key === 'noiseType'));
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'), 'paused');
+		assert.equal(await active(), 0, 'Pause immediately clears animated controls');
+		await clearEvents();
+		await choose('noiseType', '4');
+		await wait(160);
+		assert.deepEqual(await events(), [], 'paused/manual preview edits are not live automation');
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await channel(0);
+		await clearEvents();
+		const intervalCount = await page.evaluate(() => __aswanAudit.intervalCalls);
+		const stopsBefore = await page.evaluate(
+			() => __aswanAudit.bufferEvents.filter((event) => event.method === 'stop').length,
+		);
+		await toggle(false);
+		await at(5.15);
+		assert.deepEqual(
+			await events(),
+			[],
+			'Off performs no pulses while registers keep changing',
+		);
+		assert.equal(
+			await page.evaluate(() => __aswanAudit.intervalCalls),
+			intervalCount,
+			'toggle adds no polling interval',
+		);
+		await toggle(true);
+		assert.deepEqual(
+			await events(),
+			[],
+			'On establishes a current baseline instead of replaying missed changes',
+		);
+		await until(() => eventFor('volumeLeft'), 'new VGM change pulses after re-enabling');
+		assert((await eventFor('volumeLeft')).frame >= 5.5 * 44100);
+		await page.uncheck('#aswanLiveEnabled');
+		assert.equal(await active(), 0, 'frozen Auto update clears pulses');
+		await clearEvents();
+		await at(6.75);
+		assert.deepEqual(
+			await events(),
+			[],
+			'frozen observation does not follow hidden driver updates',
+		);
+		await page.check('#aswanLiveEnabled');
+		assert.equal(
+			await active(),
+			0,
+			'unfreeze rebases instead of flashing changed frozen fields',
+		);
+		await channel('auto');
+		assert.equal(await active(), 0);
+		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'), 'playing');
+		assert.equal(
+			await page.evaluate(
+				() => __aswanAudit.bufferEvents.filter((event) => event.method === 'stop').length,
+			),
+			stopsBefore,
+			'display settings never cancel reference buffers',
+		);
+		await page.click('#aswanSongStopButton');
+		assert.equal(await active(), 0);
+		assert.deepEqual(
+			(await state()).preset,
+			authored,
+			'highlight and reference observation never replace Auto',
+		);
+		checks.push(
+			'Heard VGM Wave/stereo/Sweep/Noise changes pulse only their existing controls; initial/CH/Pause/Resume/Off/On/frozen/Auto/Stop baselines stay quiet, with no new polling interval or buffer cancellation',
+		);
+
+		step(
+			'Code register changes highlight through the same controls and display preference persists',
+		);
+		await channel(0);
+		if (!(await page.locator('#aswanFilesPanel').isVisible()))
+			await page.click('#aswanFilesToggle');
+		await page.click('#aswanFilesPanel button[data-file-path="/index.js"]');
+		await page.click('#synthInputCodeTab');
+		await until(
+			() => page.locator('#synthCodeRunButton').isEnabled(),
+			'selected runnable index.js',
+		);
+		await page
+			.locator('#synthCodeEditor')
+			.fill(
+				'const ws = await useSoundChip("wonderswan");\nsetBpm(120);\nawait ws.setVolume(CH1, 15, 15);\nawait ws.setFrequency(CH1, 220);\nawait ws.keyOn(CH1);\nliveLoop("highlight", async () => {\n await beat(1); await ws.writeRegister(0x88, 0xef);\n await beat(1); await ws.writeRegister(0x88, 0xcf);\n});\n',
+			);
+		await clearEvents();
+		await page.click('#synthCodeRunButton');
+		await until(async () => (await state()).codeActive, 'Code highlight source runs');
+		await until(
+			async () =>
+				(await events()).some(
+					(event) => event.origin === 'code' && event.key === 'volumeLeft',
+				),
+			'raw Code register change reaches the existing highlighted field',
+		);
+		seen = (await events()).filter((event) => event.origin === 'code');
+		assert(
+			seen.every((event) => event.key === 'volumeLeft'),
+			'new Code baseline does not flash unchanged source/right/Wave fields',
+		);
+		await page.click('#synthInputKeyboardTab');
+		assert((await state()).codeActive, 'view tab does not stop the highlighted performance');
+		await toggle(false);
+		await clearEvents();
+		await wait(650);
+		assert.deepEqual(await events(), [], 'Code does not pulse while highlight Off');
+		assert((await state()).codeActive);
+		await page.click('#synthInputCodeTab');
+		await page.click('#synthCodeStopButton');
+		await until(async () => !(await state()).codeActive, 'Code stops normally');
+		assert.equal(await active(), 0);
+		for (const fresh of [false, true]) {
+			const siblingContext = fresh ? await browser.newContext() : context;
+			const sibling = await siblingContext.newPage();
+			try {
+				await sibling.addInitScript(installSilentAudit);
+				await sibling.route('**/*', (route) =>
+					new URL(route.request().url()).origin === origin
+						? route.continue()
+						: route.abort(),
+				);
+				await sibling.goto(origin + config.entry);
+				await sibling.locator('#aswanHighlightEnabled').waitFor({ state: 'attached' });
+				assert.equal(
+					await sibling.locator('#aswanHighlightEnabled').isChecked(),
+					fresh,
+					fresh ? 'fresh storage defaults On' : 'Off survives a same-origin new page',
+				);
+				assert.equal(
+					await sibling.evaluate(() => __aswanAudit.graph().contexts),
+					0,
+					'preference restoration does not start audio',
+				);
+			} finally {
+				await sibling.close();
+				if (fresh) await siblingContext.close();
+			}
+		}
+		checks.push(
+			'Raw Code stereo-register changes share the Live highlight fields without restarting Code; Off stays silent, releases keyboard focus, persists per origin and fresh storage defaults On',
+		);
+	}
 	try {
 		step('passive startup, four physical channels and wave edits keep a held note');
 		await page.goto(origin + config.entry);
@@ -288,6 +540,7 @@ async function check(browser, engine, origin, fixture) {
 			'Files ready',
 		);
 		assert.equal((await graph()).contexts, 0);
+		assert(await page.locator('#aswanHighlightEnabled').isChecked(), 'highlight defaults On');
 		assert.equal(await page.locator('#aswanChannelTabs button').count(), 5);
 		await choose('source', 'noise');
 		assert.equal((await graph()).contexts, 0);
@@ -1354,6 +1607,7 @@ async function check(browser, engine, origin, fixture) {
 		checks.push(
 			'Frozen hardware Sweep uses CH3 and Noise uses CH4 on the private preview; transient Voice DAC state never becomes a default PCM sample or author note',
 		);
+		await checkLiveHighlights();
 		for (const width of [1240, 390]) {
 			await page.setViewportSize({ width, height: 1000 });
 			await page.locator('#aswanChannelTabs').scrollIntoViewIfNeeded();
@@ -1408,6 +1662,7 @@ async function check(browser, engine, origin, fixture) {
 		throw error;
 	} finally {
 		await page.close();
+		await context.close();
 	}
 }
 const server = http.createServer(async (request, response) => {
@@ -1436,6 +1691,9 @@ const server = http.createServer(async (request, response) => {
 	const { createWonderSwanManualVgm, createWonderSwanPcmTransitionVgm } = await import(
 		pathToFileURL(path.join(repo, 'test/helpers/wonderswan_manual_vgm_fixture.mjs'))
 	);
+	const { createWonderSwanHighlightVgm } = await import(
+		pathToFileURL(path.join(repo, 'test/helpers/wonderswan_highlight_vgm_fixture.mjs'))
+	);
 	const fixture = {
 		a: createWonderSwanVgm({ seconds: 3, loop: false }),
 		b: createWonderSwanVgm({ channel: 1, seconds: 3, loop: false }),
@@ -1446,6 +1704,7 @@ const server = http.createServer(async (request, response) => {
 		pcmTransition: createWonderSwanPcmTransitionVgm(),
 		manualNoise: createWonderSwanManualVgm({ mode: 'noise' }),
 		manualSweep: createWonderSwanManualVgm({ mode: 'sweep' }),
+		highlight: createWonderSwanHighlightVgm(),
 	};
 	let failure = null;
 	try {

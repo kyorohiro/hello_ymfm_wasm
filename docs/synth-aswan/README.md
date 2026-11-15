@@ -105,6 +105,14 @@ No commercial game files are included.
 
 ### Edit and play while the song continues
 
+Changed Live controls briefly highlight while you follow a VGM or Code CH.
+Wave RAM, source, stereo volume, CH3 Sweep and CH4 Noise use the existing
+controls; newly selected channels establish a baseline without flashing.
+Open the channel **?** and turn **Live highlight** off to stop the visual
+effects. It defaults On, is remembered on this device and never changes sound.
+Pause, Stop, seek, Auto or frozen Auto update clears the highlights. Hidden or
+unknown sample fields are not highlighted as recovered data.
+
 Choose **CH1–CH4** during playback. Complete Wave / Sweep / Noise voices use
 the usual controls: draw Wave RAM or change stereo levels, hardware Sweep or
 Noise without stopping the song. Keyboard notes address that same reference
