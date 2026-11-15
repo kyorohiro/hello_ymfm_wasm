@@ -46,6 +46,10 @@ definitions hash mismatch. The HEAD validator and HEAD source reproduce the
 same failure; this task leaves that source and the historical reports intact.
 See [baseline proof](aswan_large_vgm_calibration_baseline_20261116.json).
 
+The [Monaco calibration follow-up](todo_monaco_definition_calibration_20261116.md)
+subsequently resolved this blocker with an exact passive source-navigation
+revision; the historical failure evidence above is retained.
+
 See [verification](verification_aswan_large_vgm_20261116.json) and
 [full native comparison](aswan_epilogue_native_20261116.json). No game assets or
 audio recordings are included. Human listening and publication were not performed.

@@ -20,6 +20,7 @@ import {restoreMixerCalibrationYm2608OutputGainRevision} from './mixer_calibrati
 import {restoreMixerCalibrationMonacoModelRevision} from './mixer_calibration_monaco_model_revision.mjs';
 import {restoreMixerCalibrationNesNavigationRevision} from './mixer_calibration_nes_navigation_revision.mjs';
 import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration_scsp_navigation_revision.mjs';
+import {restoreMixerCalibrationAswanNavigationRevision} from './mixer_calibration_aswan_navigation_revision.mjs';
 import {restoreMixerCalibrationScspDraftRevision} from './mixer_calibration_scsp_draft_revision.mjs';
 import {restoreMixerCalibrationScspEmptyDraftRevision} from './mixer_calibration_scsp_empty_draft_revision.mjs';
 import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
@@ -385,6 +386,8 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(outputGains!==bytes&&outputGains.length===record?.bytes&&sha(outputGains)===record.sha256)return 'ym2608-dormant-output-gain-api';
   const monacoModels=restoreMixerCalibrationMonacoModelRevision(path,bytes),monacoModelRevision=monacoModels!==bytes;bytes=monacoModels;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return monacoModelRevision?'ui-monaco-virtual-model-lifecycle':'raw';
+  const aswanNavigation=restoreMixerCalibrationAswanNavigationRevision(path,bytes),aswanNavigationRevision=aswanNavigation!==bytes;bytes=aswanNavigation;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return aswanNavigationRevision?'ui-aswan-shared-client-source-navigation':'raw';
   const scspNavigation=restoreMixerCalibrationScspNavigationRevision(path,bytes),scspNavigationRevision=scspNavigation!==bytes;bytes=scspNavigation;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return scspNavigationRevision?'ui-scsp-shared-client-source-navigation':'raw';
   const nesNavigation=restoreMixerCalibrationNesNavigationRevision(path,bytes),nesNavigationRevision=nesNavigation!==bytes;bytes=nesNavigation;

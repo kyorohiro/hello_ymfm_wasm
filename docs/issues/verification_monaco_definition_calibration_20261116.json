@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-16",
+  "passed": true,
+  "scope": "passive ASWAN source-navigation calibration revision and Analyzer SPC module closure",
+  "source": {
+    "path": "docs/playground/playground_monaco_definitions.js",
+    "changedDuringThisTask": false,
+    "reviewedInsertionBytes": 335,
+    "receipt": "aswan_shared_client_navigation_ui_revision_01.json",
+    "receiptObjectSha256": "ecb9e444e9a0425510ed3ea4f5b03b676367bdda64d496d610f0dc555929949c"
+  },
+  "immutable": [
+    {
+      "path": "docs/issues/ps1_spc_voice_edit_chip_levels_01.json",
+      "bytes": 546854,
+      "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/ps1_spc_voice_edit_chip_levels_verify_01.json",
+      "bytes": 557840,
+      "sha256": "4cacb672674301e4c35026dbd1a3a39c8ad99f06b9cd5f5ba353ae061c9eea5c",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json",
+      "bytes": 507088,
+      "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/wonderswan_spc_voice_edit_chip_levels_verify_01.json",
+      "bytes": 504578,
+      "sha256": "12c1bd63da19b9f2123eea3c9ffe5584c3765dbaffdc8802211e1b3e0a348c6c",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/pokey_spc_voice_edit_chip_levels_01.json",
+      "bytes": 1030997,
+      "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/pokey_spc_voice_edit_chip_levels_verify_01.json",
+      "bytes": 1052003,
+      "sha256": "d2342ad63d9ab6c6fb93694179416adfb3ad6127b161da792ff9b3437a0ad5a0",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/scsp_spc_voice_edit_chip_levels_01.json",
+      "bytes": 625175,
+      "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426",
+      "unchanged": true
+    },
+    {
+      "path": "docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json",
+      "bytes": 636467,
+      "sha256": "a68f119dd24842460db3bdb50aff32d895d1780d81f12979237c20f0abb3fc9f",
+      "unchanged": true
+    },
+    {
+      "path": "tetorica_src/runtime/soundchip_mixer_presets.js",
+      "bytes": 3277,
+      "sha256": "fd8800fae833a7439e6788a42ac8e8d465bd16a96161f7931519546506fffae4",
+      "unchanged": true
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "bytes": 3296,
+      "sha256": "17689984f6a076a45eae52efb695f9f448f392a602e8280a70b1761916ae4e8c",
+      "unchanged": true
+    }
+  ],
+  "independentChecks": {
+    "schemaVersion": 1,
+    "passed": true,
+    "immutable": [
+      {
+        "path": "docs/issues/ps1_spc_voice_edit_chip_levels_01.json",
+        "bytes": 546854,
+        "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/ps1_spc_voice_edit_chip_levels_verify_01.json",
+        "bytes": 557840,
+        "sha256": "4cacb672674301e4c35026dbd1a3a39c8ad99f06b9cd5f5ba353ae061c9eea5c",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json",
+        "bytes": 507088,
+        "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/wonderswan_spc_voice_edit_chip_levels_verify_01.json",
+        "bytes": 504578,
+        "sha256": "12c1bd63da19b9f2123eea3c9ffe5584c3765dbaffdc8802211e1b3e0a348c6c",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/pokey_spc_voice_edit_chip_levels_01.json",
+        "bytes": 1030997,
+        "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/pokey_spc_voice_edit_chip_levels_verify_01.json",
+        "bytes": 1052003,
+        "sha256": "d2342ad63d9ab6c6fb93694179416adfb3ad6127b161da792ff9b3437a0ad5a0",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/scsp_spc_voice_edit_chip_levels_01.json",
+        "bytes": 625175,
+        "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426",
+        "unchanged": true
+      },
+      {
+        "path": "docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json",
+        "bytes": 636467,
+        "sha256": "a68f119dd24842460db3bdb50aff32d895d1780d81f12979237c20f0abb3fc9f",
+        "unchanged": true
+      },
+      {
+        "path": "tetorica_src/runtime/soundchip_mixer_presets.js",
+        "bytes": 3277,
+        "sha256": "fd8800fae833a7439e6788a42ac8e8d465bd16a96161f7931519546506fffae4",
+        "unchanged": true
+      },
+      {
+        "path": "docs/js/soundchip_mixer_presets.js",
+        "bytes": 3296,
+        "sha256": "17689984f6a076a45eae52efb695f9f448f392a602e8280a70b1761916ae4e8c",
+        "unchanged": true
+      }
+    ],
+    "reports": [
+      {
+        "file": "docs/issues/ps1_spc_voice_edit_chip_levels_01.json",
+        "sourceCount": 313,
+        "counts": {
+          "raw": 305,
+          "scsp-loop-link-hardware-api": 1,
+          "wonderswan-host-preparation-budget": 2,
+          "ym2608-dormant-output-gain-api": 2,
+          "ui-fm2608-hardware-source-navigation": 1,
+          "ui-monaco-virtual-model-lifecycle": 1,
+          "ui-scsp-empty-draft-checkpoint": 1
+        },
+        "failures": []
+      },
+      {
+        "file": "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json",
+        "sourceCount": 311,
+        "counts": {
+          "raw": 303,
+          "scsp-loop-link-hardware-api": 1,
+          "wonderswan-host-preparation-budget": 2,
+          "ym2608-dormant-output-gain-api": 2,
+          "ui-fm2608-hardware-source-navigation": 1,
+          "ui-monaco-virtual-model-lifecycle": 1,
+          "ui-scsp-empty-draft-checkpoint": 1
+        },
+        "failures": []
+      },
+      {
+        "file": "docs/issues/pokey_spc_voice_edit_chip_levels_01.json",
+        "sourceCount": 312,
+        "counts": {
+          "raw": 304,
+          "scsp-loop-link-hardware-api": 1,
+          "wonderswan-host-preparation-budget": 2,
+          "ym2608-dormant-output-gain-api": 2,
+          "ui-fm2608-hardware-source-navigation": 1,
+          "ui-monaco-virtual-model-lifecycle": 1,
+          "ui-scsp-empty-draft-checkpoint": 1
+        },
+        "failures": []
+      },
+      {
+        "file": "docs/issues/scsp_spc_voice_edit_chip_levels_01.json",
+        "sourceCount": 312,
+        "counts": {
+          "raw": 304,
+          "scsp-loop-link-hardware-api": 1,
+          "wonderswan-host-preparation-budget": 2,
+          "ym2608-dormant-output-gain-api": 2,
+          "ui-fm2608-hardware-source-navigation": 1,
+          "ui-monaco-virtual-model-lifecycle": 1,
+          "ui-scsp-empty-draft-checkpoint": 1
+        },
+        "failures": []
+      }
+    ],
+    "commands": [
+      {
+        "name": "globalMixer",
+        "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+        "exitCode": 0,
+        "signal": null,
+        "elapsedMs": 638.172042,
+        "stdout": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/tetorica_src/runtime/soundchip_mixer_presets.js\n",
+        "stderr": ""
+      },
+      {
+        "name": "playgroundRuntime",
+        "command": "node scripts/runtime_artifact_profiles.mjs playground --check",
+        "exitCode": 0,
+        "signal": null,
+        "elapsedMs": 139.267875,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "name": "sidModels",
+        "command": "node scripts/sid_model_artifacts.mjs --check",
+        "exitCode": 0,
+        "signal": null,
+        "elapsedMs": 47.218791999999894,
+        "stdout": "SID standalone model modules and endpoint verified.\n",
+        "stderr": ""
+      },
+      {
+        "name": "playgroundMixer",
+        "command": "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+        "exitCode": 0,
+        "signal": null,
+        "elapsedMs": 607.1447500000002,
+        "stdout": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/docs/playground/playground_mixer_defaults.js; target amplitude 0.12881777435541153\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "tests": {
+    "calibrationDefinitionsPackaging": 404,
+    "navigationChainAndDefinitions": 30
+  },
+  "packaging": {
+    "passed": true,
+    "archives": [
+      {
+        "path": "release/hello_ymfm_wasm_monaco_check_20261116_a103a92a_itch_playground.zip",
+        "bytes": 38159977,
+        "sha256": "1e9023e0f11fa40f82c33cf4a9a5ec27b5b340f3026abb588c40d489996985c4"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_monaco_check_20261116_a103a92a_itch_playground_for_run.zip",
+        "bytes": 38516531,
+        "sha256": "62e72ab83ec29d4a8954c0b6df44e5f8102a5b4fa6b1dcc61e681b9b38d02ed5"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_monaco_check_20261116_a103a92a_analyzerfix_itch_vgm_analyzer.zip",
+        "bytes": 3242454,
+        "sha256": "ab2ee6708bbe2e8b4c316ac325c6e05f77773b5e8ea262bb1bbf90f905a07188"
+      }
+    ],
+    "existingReleaseVersionsOverwritten": false,
+    "analyzerFix": {
+      "addedModule": "js/spc_voice_edit.js",
+      "sourceAudioCodeChanged": false
+    }
+  },
+  "ci": {
+    "newRegressionTests": true,
+    "scspCheckoutHistory": "full history for existing committed-source recorder tests"
+  },
+  "audio": {
+    "renderersChanged": false,
+    "gainsChanged": false,
+    "remeasurementNeeded": false,
+    "physicalAudioOpened": false
+  },
+  "commitCreated": false,
+  "published": false
+}

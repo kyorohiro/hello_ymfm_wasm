@@ -24,6 +24,8 @@ on:
       - 'test/helpers/scsp_ssf_fixture.mjs'
       - 'test/runtime/*scsp*'
       - 'scripts/*scsp*'
+      - 'scripts/mixer_calibration_aswan_navigation_revision*'
+      - 'docs/issues/aswan_shared_client_navigation_ui_revision_01.json'
       - 'scripts/*ssf*'
       - 'scripts/copy_readable_modules.mjs'
       - 'scripts/runtime_artifacts.mjs'
@@ -48,6 +50,7 @@ on:
       - 'test/helpers/scsp_ssf_fixture.mjs'
       - 'test/runtime/*scsp*'
       - 'scripts/**'
+      - 'docs/issues/aswan_shared_client_navigation_ui_revision_01.json'
       - 'third_party/**'
       - 'package*.json'
       - '.github/workflows/scsp-synth.yml'
@@ -61,6 +64,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Navigation receipt tests compare the original committed sources.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

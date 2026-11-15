@@ -6,6 +6,12 @@ Updated: 2026-11-16 (ASWAN Synth entry point; earlier SPU and SID handoffs retai
 
 ## ASWAN Synth entry point
 
+The passive ASWAN source-navigation additions are now connected to the exact
+Mixer calibration source-revision chain. Original measured reports, generated
+gains and the definition-viewer source remain unchanged. The global
+`node scripts/generate_soundchip_mixer_presets.mjs --check` succeeds; see the
+[source-freshness follow-up](docs/issues/todo_monaco_definition_calibration_20261116.md).
+
 [ASWAN Synth](docs/synth-aswan/index.html) adds a dedicated WonderSwan instrument;
 its public chip identifier remains `wonderswan`. Start with its
 [guide and limits](docs/synth-aswan/README.md). The app reuses the existing

@@ -116,6 +116,7 @@ seek_playback.js
 
 JS_FILES="
 spc.js
+spc_voice_edit.js
 spc_file.js
 spc_events.js
 spc_performance.js
