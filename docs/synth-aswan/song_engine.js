@@ -7,6 +7,7 @@ import {
 import factory from '../generated/wonderswan_wasm.js';
 import { readAswanVgm } from './vgm_import.js';
 import { aswanSongVoiceChanges } from './song_voice_edits.js';
+import { createAswanSongManual } from './song_manual.js';
 
 export async function prepareAswanSongSource(bytes, options = {}) {
 	const source = await readAswanVgm(bytes, options),
@@ -39,12 +40,14 @@ export async function createAswanSongEngine(source, { moduleFactory = factory, w
 		outputSampleRate: 44100,
 		masterVolume: 1,
 	});
-	let cursor = createWonderSwanTimelineCursor(source.timeline, 44100),
+	let manual = null,
+		cursor = createWonderSwanTimelineCursor(source.timeline, 44100),
 		frame = 0,
 		disposed = false;
 	const registerKnown = new Uint8Array(32),
 		memoryKnown = new Uint8Array(0x4000);
-	function apply(kind, address, value) {
+	function apply(kind, address, value, origin = 'vgm') {
+		if (origin === 'vgm') manual?.observe(kind, address, value, engine.registers);
 		if (kind === 0) {
 			engine.writeWonderSwan(address - 0x80, value);
 			registerKnown[address - 0x80] = 1;
@@ -158,8 +161,13 @@ export async function createAswanSongEngine(source, { moduleFactory = factory, w
 				throw new Error(
 					'The rendered-ahead CH2 is Voice PCM; song sample editing is unavailable',
 				);
+			if (Object.hasOwn(changes, 'source')) {
+				const released = manual.releaseChannel(channel);
+				if (released?.changes?.some((change) => change.gate === false))
+					changes.gate = false;
+			}
 			const write = (index, mask, value) =>
-				apply(0, 0x80 + index, (r[index] & ~mask) | (value & mask));
+				apply(0, 0x80 + index, (r[index] & ~mask) | (value & mask), 'editor');
 			if (Object.hasOwn(changes, 'left')) write(8 + channel, 0xf0, changes.left << 4);
 			if (Object.hasOwn(changes, 'right')) write(8 + channel, 15, changes.right);
 			if (Object.hasOwn(changes, 'sweepStep')) write(12, 255, changes.sweepStep & 255);
@@ -178,9 +186,30 @@ export async function createAswanSongEngine(source, { moduleFactory = factory, w
 						1,
 						base + index,
 						changes.wave[index * 2] | (changes.wave[index * 2 + 1] << 4),
+						'editor',
 					);
 			}
-			return { nativeFrame: frame, changes };
+			return { nativeFrame: frame, changes, manualState: manual.read() };
+		},
+		manualNoteOn: (...args) => {
+			open();
+			return manual.noteOn(...args);
+		},
+		manualNoteOff: (...args) => {
+			open();
+			return manual.noteOff(...args);
+		},
+		setManualPitch: (value) => {
+			open();
+			return manual.setPitch(value);
+		},
+		releaseKeyboard: () => {
+			open();
+			return manual.releaseKeyboard();
+		},
+		getManualState: () => {
+			open();
+			return manual.read();
 		},
 		setChannelMuted(channel, muted) {
 			open();
@@ -195,6 +224,7 @@ export async function createAswanSongEngine(source, { moduleFactory = factory, w
 		},
 		reset() {
 			open();
+			manual.reset();
 			engine.reset();
 			frame = 0;
 			registerKnown.fill(0);
@@ -205,8 +235,15 @@ export async function createAswanSongEngine(source, { moduleFactory = factory, w
 		dispose() {
 			if (disposed) return;
 			disposed = true;
+			manual.dispose();
 			engine.dispose();
 		},
 	};
+	manual = createAswanSongManual({
+		clock: source.clock,
+		getFrame: () => frame,
+		readSnapshot: () => api.snapshot(),
+		write: (kind, address, value) => apply(kind, address, value, 'manual'),
+	});
 	return api;
 }

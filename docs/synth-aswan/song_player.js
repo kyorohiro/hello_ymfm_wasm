@@ -43,7 +43,8 @@ export function createAswanSongPlayer({
 		liveEnabled = true,
 		liveState = null,
 		volume = 1;
-	let editSequence = 0;
+	let editSequence = 0,
+		manualSequence = 0;
 	const enabled = Array(4).fill(true);
 	const getEditSession = () =>
 		active && !loading && !seeking && ['playing', 'paused'].includes(playback)
@@ -70,6 +71,43 @@ export function createAswanSongPlayer({
 			frame = Math.max(frame, segment.firstFrame + Math.min(segment.frames, elapsed));
 		}
 		return Math.min(run.renderedFrames, frame);
+	}
+	function heardSnapshot(run = active) {
+		if (!run) return null;
+		const frame = position(run);
+		let index = 0;
+		while (index + 1 < run.history.length && run.history[index + 1].frame <= frame) index++;
+		return run.history[index];
+	}
+	function getManualState() {
+		const native = active?.engine.getManualState?.() ?? { pitch: 0, voices: [] };
+		return {
+			...structuredClone(native),
+			session: getEditSession(),
+			epoch: active?.manualEpoch ?? manualSequence,
+		};
+	}
+	function recordManual(run, result) {
+		if (!result || !Array.isArray(result.changes)) return false;
+		let changed = false;
+		for (const item of result.changes) {
+			const { channel, ...changes } = item;
+			changed = run.edits.record(channel, changes, result.nativeFrame) || changed;
+		}
+		return changed;
+	}
+	function projectCommitted(run) {
+		if (active !== run) return;
+		if (liveEnabled || !liveState) publish(true);
+		else liveState = run.edits.project(liveState);
+	}
+	function cleanupManual(run) {
+		if (!run || run.released) return false;
+		const result = run.engine.releaseKeyboard?.();
+		run.manualEpoch = ++manualSequence;
+		const changed = recordManual(run, result);
+		if (changed) projectCommitted(run);
+		return result;
 	}
 	function publish(force = false) {
 		if (!active || seeking) return;
@@ -114,6 +152,7 @@ export function createAswanSongPlayer({
 			liveState,
 			editSession: getEditSession(),
 			manualRevision: active?.edits.revision ?? 0,
+			manualState: getManualState(),
 			volume,
 			seeking: Boolean(seeking),
 			seekProgress: seeking?.progress ?? 0,
@@ -150,6 +189,7 @@ export function createAswanSongPlayer({
 	}
 	function release(run) {
 		if (!run || run.released) return;
+		cleanupManual(run);
 		run.released = true;
 		cancelNodes(run);
 		run.gain.disconnect();
@@ -179,6 +219,7 @@ export function createAswanSongPlayer({
 		const abort = () => controller.abort();
 		signal?.addEventListener('abort', abort, { once: true });
 		if (signal?.aborted) controller.abort();
+		cleanupManual(active);
 		loading = true;
 		emit();
 		try {
@@ -249,6 +290,7 @@ export function createAswanSongPlayer({
 				engine,
 				gain,
 				editSession: ++editSequence,
+				manualEpoch: ++manualSequence,
 				edits: new AswanSongEditJournal(),
 				history: [engine.snapshot()],
 				renderedFrames: 0,
@@ -385,6 +427,7 @@ export function createAswanSongPlayer({
 		generation++;
 		active.basePosition = position();
 		positionFrames = active.basePosition;
+		cleanupManual(active);
 		publish(true);
 		cancelNodes(active);
 		active.segments = active.segments.filter(
@@ -432,6 +475,7 @@ export function createAswanSongPlayer({
 		const controller = new AbortController();
 		seeking = { controller, progress: 0 };
 		if (previous) {
+			cleanupManual(previous);
 			previous.basePosition = previousPosition;
 			cancelNodes(previous);
 		}
@@ -497,27 +541,126 @@ export function createAswanSongPlayer({
 		const run = active;
 		if (
 			!run ||
-			playback !== 'paused' ||
+			!['playing', 'paused'].includes(playback) ||
 			loading ||
 			seeking ||
 			session === null ||
 			session !== getEditSession()
 		)
 			throw aborted();
-		publish(true);
-		const view = aswanSongLiveView(liveState, channel);
+		publish();
+		const view = aswanSongLiveView(run.edits.project(heardSnapshot(run)), channel);
 		if (!view.canCapture) throw new Error(view.captureReason);
 		if (next?.source === 'wave' && !view.waveKnown)
 			throw new Error('The selected voice has incomplete written Wave RAM.');
 		const result = run.engine.editVoice(channel, before, next);
 		run.edits.record(channel, result.changes, result.nativeFrame);
-		publish(true);
+		projectCommitted(run);
 		emit();
 		return {
 			session,
 			manualRevision: run.edits.revision,
 			nativeFrame: result.nativeFrame,
 			liveState: structuredClone(liveState),
+		};
+	}
+	const manualCurrent = (session, epoch) =>
+		active &&
+		playback === 'playing' &&
+		!loading &&
+		!seeking &&
+		session !== null &&
+		session === getEditSession() &&
+		epoch === active.manualEpoch;
+	function manualNoteOn(
+		id,
+		midi,
+		channel,
+		{
+			session = getEditSession(),
+			epoch = getManualState().epoch,
+			referenceMidi = 60,
+			frequencyHz,
+		} = {},
+	) {
+		open();
+		if (!manualCurrent(session, epoch)) throw aborted();
+		publish();
+		const run = active,
+			view = aswanSongLiveView(run.edits.project(heardSnapshot(run)), channel);
+		if (!view.canPlayLive) throw new Error(view.liveReason);
+		const result = run.engine.manualNoteOn(id, midi, channel, {
+			referenceMidi,
+			...(frequencyHz === undefined ? {} : { frequencyHz }),
+		});
+		recordManual(run, result);
+		projectCommitted(run);
+		emit();
+		return {
+			...result,
+			session,
+			epoch,
+			manualRevision: run.edits.revision,
+			manualState: getManualState(),
+		};
+	}
+	function manualNoteOff(
+		id,
+		{ session = getEditSession(), epoch = getManualState().epoch } = {},
+	) {
+		open();
+		if (!manualCurrent(session, epoch)) return false;
+		const run = active,
+			result = run.engine.manualNoteOff(id);
+		if (!result) return false;
+		recordManual(run, result);
+		projectCommitted(run);
+		emit();
+		return {
+			...result,
+			session,
+			epoch,
+			manualRevision: run.edits.revision,
+			manualState: getManualState(),
+		};
+	}
+	function setManualPitch(
+		value,
+		{ session = getEditSession(), epoch = getManualState().epoch } = {},
+	) {
+		open();
+		if (!manualCurrent(session, epoch)) return false;
+		const run = active,
+			result = run.engine.setManualPitch(value);
+		recordManual(run, result);
+		projectCommitted(run);
+		emit();
+		return {
+			...result,
+			session,
+			epoch,
+			manualRevision: run.edits.revision,
+			manualState: getManualState(),
+		};
+	}
+	function releaseKeyboard({ session = getEditSession(), epoch = getManualState().epoch } = {}) {
+		open();
+		if (
+			!active ||
+			session === null ||
+			session !== getEditSession() ||
+			epoch !== active.manualEpoch
+		)
+			return false;
+		const run = active,
+			result = cleanupManual(run);
+		emit();
+		return {
+			...result,
+			session,
+			epoch: run.manualEpoch,
+			manualRevision: run.edits.revision,
+			manualState: getManualState(),
 		};
 	}
 	function setLiveEnabled(value) {
@@ -569,6 +712,11 @@ export function createAswanSongPlayer({
 		getState,
 		getEditSession,
 		editVoice,
+		manualNoteOn,
+		manualNoteOff,
+		setManualPitch,
+		releaseKeyboard,
+		getManualState,
 		read: getState,
 		setLiveEnabled,
 		setChannelEnabled,

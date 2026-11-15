@@ -61,10 +61,12 @@ Try `/synth-aswan/index.html` on the normal docs server, or package with
 `sh scripts/package_itch_aswan_synth.sh VERSION`.
 
 Human listening and real-game VGM checks remain. Narrow Envelope plot header
-labels can be polished further. Playing VGM Live controls remain read-only;
-the [paused-channel follow-up](todo_aswan_paused_audition_20261116.md) adds
+labels can be polished further. The
+[paused-channel follow-up](todo_aswan_paused_audition_20261116.md) adds
 Wave / Sweep / Noise audition and sparse edits while keeping Auto and the song
-position. Transient Voice DAC bytes cannot be captured as a fake sample;
+position. The [live manual follow-up](todo_aswan_live_manual_20261116.md)
+also adds direct edits and keyboard input while the VGM continues.
+Transient Voice DAC bytes cannot be captured as a fake sample;
 use the recorded PCM extraction path. Hardware speaker output, HyperVoice, DMA,
 a full console CPU, Tauri, Looper and Event Rec are outside this initial slice.
 

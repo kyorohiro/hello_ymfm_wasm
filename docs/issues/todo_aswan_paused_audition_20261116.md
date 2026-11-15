@@ -48,3 +48,7 @@ Sweep and noise phase are not captured. Human listening and real-game VGM
 checks remain useful. No publication was performed.
 
 See [verification](verification_aswan_paused_audition_20261116.json).
+
+The [live manual follow-up](todo_aswan_live_manual_20261116.md) adds direct
+hardware edits and same-CH keyboard input while reference playback continues.
+The normal-clock restriction above applies only to the private paused preview.

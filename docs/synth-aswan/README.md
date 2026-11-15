@@ -103,6 +103,30 @@ song remains separate from those presets. A snapshot is a moment of hardware
 settings, not the game's changing software instrument or its whole score.
 No commercial game files are included.
 
+### Edit and play while the song continues
+
+Choose **CH1–CH4** during playback. Complete Wave / Sweep / Noise voices use
+the usual controls: draw Wave RAM or change stereo levels, hardware Sweep or
+Noise without stopping the song. Keyboard notes address that same reference
+chip and use ordinary MIDI pitches. Auto remains your separate authored
+instrument. Code and VGM still run one at a time.
+
+Later VGM writes take over the fields they change. A frequency-byte write
+reclaims that CH's pitch, so the wheel no longer changes its old manual note.
+A full control-register write reclaims all gates; releasing an old key cannot
+then cut the game's note. Until such a gate write, KeyUp releases the gate
+owned by your key. A newer manual key also replaces the older key's ownership.
+Wave / stereo-volume edits keep held notes running. Stop, seek and transport
+changes retire stale keyboard owners without restoring old register values.
+
+Already-rendered PCM stays queued, which adds a small delay before edits are
+heard. **Auto update Off** freezes observation, not the hardware: explicitly
+edited fields still acknowledge your changes. Copy / Save includes committed
+edits without enabling Auto update or replacing the VGM bytes. Software-only
+Envelope, name and PCM loading are unavailable on the playing reference CH.
+Unknown Wave RAM or a transient CH2 DAC byte remains unavailable; no sample is
+invented. Live manual input uses the song's source clock.
+
 ### Pause, audition and edit one channel
 
 1. Play a VGM, **Pause**, and choose **CH1–CH4**.

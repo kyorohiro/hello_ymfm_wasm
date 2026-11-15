@@ -17,6 +17,13 @@ musical timing, without a global `play()` starter. Files / Cassette retain
 editable JS, portable `.aswan.json` presets and original `/vgm/` files.
 Static VGM extraction also creates `/presets/<song>/` instruments. Static sounds
 are distinct from full reference playback and later driver automation.
+Playing Wave / Sweep / Noise channels accept sparse hardware edits and keyboard
+pitch/gate writes into the reference chip without stopping queued playback.
+Later VGM frequency writes reclaim pitch; full control writes reclaim gates,
+preventing old KeyUps from cutting a newer game note. Auto stays separate.
+Auto update Off freezes observation, not manual writes. Software Envelope/name
+and PCM loading are unavailable on the running reference channel. See the
+[live manual TODO](docs/issues/todo_aswan_live_manual_20261116.md).
 Paused Wave / Sweep / Noise channels support isolated keyboard audition and
 sparse hardware edits on the reference run. Preview Software Envelope is host
 only; Resume retains queued audio, and later VGM writes take over. See

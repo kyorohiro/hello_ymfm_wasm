@@ -88,6 +88,8 @@ export function aswanSongLiveView(snapshot, channel) {
 			? 'Paused keyboard audition currently requires the normal 3072000 Hz WonderSwan clock.'
 			: '');
 	const canAudition = !auditionReason;
+	const canEditPlaying = canCapture,
+		canPlayLive = canCapture;
 	return {
 		preset: readPreset(preset),
 		channel,
@@ -100,6 +102,10 @@ export function aswanSongLiveView(snapshot, channel) {
 		observation: snapshot.observation,
 		canCapture,
 		canAudition,
+		canEditPlaying,
+		canPlayLive,
+		liveReason: captureReason,
+		playingReason: captureReason,
 		playable: canAudition,
 		reason: auditionReason,
 		auditionReason,

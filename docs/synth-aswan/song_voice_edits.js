@@ -42,6 +42,11 @@ export function projectAswanSongVoiceChanges(snapshot, channel, changes) {
 		r[index] = (r[index] & ~mask) | (value & mask);
 		if (known) known[index] = 1;
 	};
+	if (Object.hasOwn(changes, 'periodCode')) {
+		write(channel * 2, 255, changes.periodCode & 255);
+		write(channel * 2 + 1, 7, changes.periodCode >>> 8);
+	}
+	if (Object.hasOwn(changes, 'gate')) write(16, 1 << channel, changes.gate ? 1 << channel : 0);
 	if (Object.hasOwn(changes, 'left')) write(8 + channel, 0xf0, changes.left << 4);
 	if (Object.hasOwn(changes, 'right')) write(8 + channel, 0x0f, changes.right);
 	if (Object.hasOwn(changes, 'source')) write(16, 128, changes.source === 'noise' ? 128 : 0);
@@ -62,6 +67,10 @@ export function projectAswanSongVoiceChanges(snapshot, channel, changes) {
 					: channel === 1 && r[16] & 32
 						? 'pcm'
 						: 'wave',
+			gate: Boolean(r[16] & (1 << channel)),
+			frequency:
+				(Math.floor(result.clock / 128) * 128) /
+				(32 * (2048 - (r[channel * 2] | ((r[channel * 2 + 1] & 7) << 8)))),
 			left: r[8 + channel] >> 4,
 			right: r[8 + channel] & 15,
 			sweep: channel === 2 && Boolean(r[16] & 64),

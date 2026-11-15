@@ -60,11 +60,25 @@ function installSilentAudit() {
 		meters: [],
 		commands: [],
 		serial: 0,
+		bufferEvents: [],
+		bufferSerial: 0,
 	});
 	window.AudioContext = class extends Context {
 		constructor(...args) {
 			super(...args);
 			audit.contexts.push(this);
+		}
+		createBufferSource(...args) {
+			const node = super.createBufferSource(...args),
+				id = ++audit.bufferSerial;
+			for (const name of ['start', 'stop']) {
+				const original = node[name].bind(node);
+				node[name] = (...values) => {
+					audit.bufferEvents.push({ method: name, id, time: this.currentTime });
+					return original(...values);
+				};
+			}
+			return node;
 		}
 	};
 	if (window.webkitAudioContext) window.webkitAudioContext = window.AudioContext;
@@ -278,7 +292,51 @@ async function check(browser, engine, origin, fixture) {
 		await choose('source', 'noise');
 		assert.equal((await graph()).contexts, 0);
 		await choose('source', 'wave');
+		await page.evaluate(() => {
+			__aswanAudit.holdNextMethod = 'setPitch';
+			const input = document.getElementById('pitchBend');
+			input.value = '.5';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
 		await page.click('#startAudio');
+		await until(
+			() => page.evaluate(() => Boolean(__aswanAudit.held)),
+			'cold-start Pitch ACK deliberately held',
+		);
+		await page.evaluate(() => {
+			const input = document.getElementById('pitchBend');
+			input.value = '2';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		assert.equal(Number(await page.locator('#pitchBend').inputValue()), 2);
+		await page.evaluate(() => __aswanAudit.releaseHeld());
+		await until(
+			() =>
+				page
+					.locator('#startAudio')
+					.textContent()
+					.then((value) => value === 'Audio ready'),
+			'cold startup publishes only the reconciled audio',
+		);
+		assert.equal(
+			(await state()).pitch,
+			2,
+			'newer authored Pitch replaces the delayed startup ACK',
+		);
+		assert.equal(Number(await page.locator('#pitchBend').inputValue()), 2);
+		await page.evaluate(() => {
+			const input = document.getElementById('pitchBend');
+			input.value = '0';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		await until(
+			async () => (await state()).pitch === 0,
+			'baseline Pitch restored after causal startup test',
+		);
+		checks.push(
+			'Cold-start delayed Pitch ACK cannot overwrite a newer UI bend: startup reconciles .5→+2 before publishing audio, then baseline reset works',
+		);
+
 		await until(async () => {
 			try {
 				return (await state()).initialized;
@@ -438,7 +496,10 @@ async function check(browser, engine, origin, fixture) {
 					.then((text) => /VGM CH1/.test(text)),
 			'Live CH1',
 		);
-		assert(await page.locator('[data-shape="square"]').isDisabled());
+		assert(
+			!(await page.locator('[data-shape="square"]').isDisabled()),
+			'playing selected Wave allows hardware edits',
+		);
 		const position = await page.locator('#aswanSongSeek').inputValue();
 		await page.click('#aswanSongPlayButton', { delay: 120 });
 		await until(
@@ -782,7 +843,381 @@ async function check(browser, engine, origin, fixture) {
 		await output(false);
 		await page.click('#aswanChipTab');
 		checks.push(
-			'VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing read-only Live, paused audition/editing, Copy to Auto and per-channel mute work',
+			'VGM import preserves authored sound and saves source/presets; shared-context playback, Pause/Resume, playing hardware Live editing, paused audition/editing, Copy to Auto and per-channel mute work',
+		);
+		step(
+			'playing keys and hardware edits share the selected song CH without restarting buffers',
+		);
+		await channel('auto');
+		await page.evaluate(() => {
+			const input = document.getElementById('pitchBend');
+			input.value = '2';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		await until(async () => (await state()).pitch === 2, 'persistent authored Pitch set to +2');
+		assert.equal(Number(await page.locator('#pitchBend').inputValue()), 2);
+		await importVgm('manual-live.vgm', fixture.manual);
+		await page.selectOption('#aswanSongSelect', '/vgm/manual-live.vgm');
+		await channel(0);
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await until(
+			() =>
+				page
+					.locator('#aswanSongPlayer')
+					.getAttribute('data-state')
+					.then((value) => value === 'playing'),
+			'manual reference playing',
+		);
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-playing-editable')
+					.then((value) => value === 'true'),
+			'playing controls editable',
+		);
+		assert(
+			await page.locator('#envelopeEnabled').isDisabled(),
+			'software Envelope does not become a song envelope',
+		);
+		assert(
+			!(await page.locator('#aswanReferenceControl').isVisible()),
+			'playing keys use ordinary MIDI rather than paused Reference mapping',
+		);
+		assert.equal(
+			Number(await page.locator('#pitchBend').inputValue()),
+			0,
+			'reference keyboard starts with its own zero bend',
+		);
+		assert.equal((await state()).pitch, 2, 'entering reference preserves authored native bend');
+		const unchangedAuthor = (await state()).preset;
+		const baselineLoads = await page.evaluate(
+			() =>
+				__aswanAudit.commands.filter((command) => command.method === 'loadAudition').length,
+		);
+		const referenceSquare = await page
+			.locator('#waveCanvas')
+			.evaluate((canvas) => canvas.toDataURL());
+		const sourceStops = await page.evaluate(
+			() => __aswanAudit.bufferEvents.filter((event) => event.method === 'stop').length,
+		);
+		await page.evaluate(() => {
+			const audit = __aswanAudit,
+				transport = document.getElementById('aswanSongPlayer');
+			audit.playStates = [transport.dataset.state];
+			audit.playPositions = [];
+			audit.playObserver = new MutationObserver(() =>
+				audit.playStates.push(transport.dataset.state),
+			);
+			audit.playObserver.observe(transport, {
+				attributes: true,
+				attributeFilter: ['data-state'],
+			});
+			audit.playTimer = setInterval(
+				() =>
+					audit.playPositions.push(
+						Number(document.getElementById('aswanSongSeek').value),
+					),
+				10,
+			);
+		});
+		async function playingKey(note) {
+			await page.evaluate(() => document.activeElement?.blur());
+			const letter = await page
+				.locator('#keyboard .key')
+				.filter({ hasText: new RegExp('\\b' + note + '\\b') })
+				.first()
+				.getAttribute('data-key');
+			assert(letter);
+			await page.keyboard.down(letter);
+			await until(
+				() =>
+					page
+						.locator('#aswanChannelControls')
+						.getAttribute('data-song-key-owner')
+						.then((value) => Boolean(value)),
+				'playing manual keyboard gate',
+			);
+			return letter;
+		}
+		letter = await playingKey('D4');
+		const firstLiveOwner = await page
+			.locator('#aswanChannelControls')
+			.getAttribute('data-song-key-owner');
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-song-frequency')
+					.then((value) => Math.abs(Number(value) - 293.6648) < 3),
+			'ordinary MIDI D4 in actual song',
+		);
+		assert.equal(
+			(await state()).voices.length,
+			0,
+			'playing key never starts the primary author instrument',
+		);
+		await page.click('[data-shape="saw"]');
+		await page.click('[data-stepper-for="volumeLeft"][data-stepper-delta="-1"]');
+		await page.click('[data-stepper-for="volumeRight"][data-stepper-delta="-1"]');
+		await until(
+			() =>
+				page
+					.locator('#volumeRight')
+					.getAttribute('aria-valuenow')
+					.then((value) => value === '14'),
+			'playing stereo edit visible',
+		);
+		assert.equal(
+			await page.locator('#aswanChannelControls').getAttribute('data-song-key-owner'),
+			firstLiveOwner,
+			'Wave/stereo edits preserve the held gate owner',
+		);
+		const manualSaw = await page
+			.locator('#waveCanvas')
+			.evaluate((canvas) => canvas.toDataURL());
+		assert.notEqual(manualSaw, referenceSquare);
+		await page.uncheck('#aswanLiveEnabled');
+		const frozenLiveFrame = await page
+			.locator('#aswanChannelControls')
+			.getAttribute('data-song-frame');
+		const frozenLiveFrequency = await page
+			.locator('#aswanChannelControls')
+			.getAttribute('data-song-frequency');
+		await page.click('[data-stepper-for="volumeLeft"][data-stepper-delta="-1"]');
+		await until(
+			() =>
+				page
+					.locator('#volumeLeft')
+					.getAttribute('aria-valuenow')
+					.then((value) => value === '13'),
+			'explicit edit updates frozen field',
+		);
+		assert.equal(
+			await page.locator('#aswanChannelControls').getAttribute('data-song-frame'),
+			frozenLiveFrame,
+			'manual edit does not replace the frozen snapshot',
+		);
+		await until(
+			() =>
+				page
+					.locator('#aswanSongSeek')
+					.inputValue()
+					.then((value) => Number(value) >= 3.65),
+			'driver control overwrites manual gate during continuous playback',
+		);
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-song-key-owner')
+					.then((value) => !value),
+			'driver control took the gate owner',
+		);
+		assert.equal(
+			await page.locator('#aswanChannelControls').getAttribute('data-song-frequency'),
+			frozenLiveFrequency,
+			'Auto update Off keeps untargeted frozen pitch',
+		);
+		assert.equal(
+			await page.locator('#waveCanvas').evaluate((canvas) => canvas.toDataURL()),
+			manualSaw,
+			'driver Wave RAM does not secretly unfreeze display',
+		);
+		assert.equal(await page.locator('#volumeLeft').getAttribute('aria-valuenow'), '13');
+		await page.keyboard.up(letter);
+		await page.check('#aswanLiveEnabled');
+		await until(
+			() =>
+				page
+					.locator('#volumeLeft')
+					.getAttribute('aria-valuenow')
+					.then((value) => value === '15'),
+			'driver volume visible after unfreeze',
+		);
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-song-frequency')
+					.then((value) => Math.abs(Number(value) - 440) < 3),
+			'driver pitch visible after unfreeze',
+		);
+		assert.equal(
+			await page.locator('#aswanChannelControls').getAttribute('data-song-gate'),
+			'true',
+			'old keyboard KeyUp cannot cut the new driver gate',
+		);
+		assert.equal(
+			await page.locator('#waveCanvas').evaluate((canvas) => canvas.toDataURL()),
+			referenceSquare,
+		);
+		await output();
+		const firstLetter = await playingKey('C4');
+		const earlierOwner = await page
+			.locator('#aswanChannelControls')
+			.getAttribute('data-song-key-owner');
+		const secondLetter = await playingKey('D4');
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-song-key-owner')
+					.then((value) => value && value !== earlierOwner),
+			'new human key steals the same selected CH',
+		);
+		const latestOwner = await page
+			.locator('#aswanChannelControls')
+			.getAttribute('data-song-key-owner');
+		await page.keyboard.up(firstLetter);
+		assert.equal(
+			await page.locator('#aswanChannelControls').getAttribute('data-song-key-owner'),
+			latestOwner,
+			'old human KeyUp cannot release the replacement',
+		);
+		await page.keyboard.up(secondLetter);
+		await until(
+			() =>
+				page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-song-gate')
+					.then((value) => value === 'false'),
+			'current manual KeyUp releases only its gate',
+		);
+		const continuity = await page.evaluate(() => {
+			const audit = __aswanAudit;
+			clearInterval(audit.playTimer);
+			audit.playObserver.disconnect();
+			return {
+				states: audit.playStates,
+				positions: audit.playPositions,
+				stops: audit.bufferEvents.filter((event) => event.method === 'stop').length,
+			};
+		});
+		assert(
+			continuity.states.every((value) => value === 'playing'),
+			'no edit or key pauses/stops/restarts the transport',
+		);
+		assert(
+			continuity.positions.length > 10 &&
+				continuity.positions.at(-1) > continuity.positions[0],
+		);
+		assert(
+			continuity.positions.every(
+				(value, index, array) => !index || value >= array[index - 1],
+			),
+			'song clock remains monotonic',
+		);
+		assert.equal(
+			continuity.stops,
+			sourceStops,
+			'manual input never cancels scheduled AudioBufferSources',
+		);
+		assert.deepEqual(
+			(await state()).preset,
+			unchangedAuthor,
+			'live song manipulation keeps Auto unchanged',
+		);
+		assert.equal(
+			await page.evaluate(
+				() =>
+					__aswanAudit.commands.filter((command) => command.method === 'loadAudition')
+						.length,
+			),
+			baselineLoads,
+			'playing does not load a private preview',
+		);
+		await channel('auto');
+		assert.equal(
+			Number(await page.locator('#pitchBend').inputValue()),
+			2,
+			'returning Auto restores authored Pitch UI',
+		);
+		assert.equal((await state()).pitch, 2, 'returning Auto matches its unchanged native bend');
+		await channel(0);
+		assert.equal(
+			Number(await page.locator('#pitchBend').inputValue()),
+			0,
+			'returning reference restores manual zero bend',
+		);
+		assert.equal((await state()).pitch, 2);
+
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await until(
+			() =>
+				page
+					.locator('#aswanSongPlayer')
+					.getAttribute('data-state')
+					.then((value) => value === 'paused'),
+			'manual song pauses normally',
+		);
+		letter = await previewKey('C4');
+		assert.equal((await audition()).audition.channel, 0);
+		await output();
+		await releasePreview(letter);
+		await page.click('#aswanSongStopButton');
+		checks.push(
+			'Playing Wave/stereo edits and same-CH keys keep monotonic clock and scheduled buffers; frozen fields stay frozen, driver writes win, stale KeyUps are harmless, Auto sound/bend unchanged and Pause still auditions privately',
+		);
+		step('queued key highlight clears when a driver makes the target PCM before its NoteOn');
+		await importVgm('pcm-transition.vgm', fixture.pcmTransition);
+		await page.selectOption('#aswanSongSelect', '/vgm/pcm-transition.vgm');
+		await channel('auto');
+		await page.click('#aswanSongPlayButton', { delay: 120 });
+		await until(
+			() =>
+				page
+					.locator('#aswanSongPlayer')
+					.getAttribute('data-state')
+					.then((value) => value === 'playing'),
+			'queued-key reference starts',
+		);
+		await page.evaluate(() => {
+			__aswanAudit.holdNextMethod = 'setPitch';
+			const input = document.getElementById('pitchBend');
+			input.value = '1';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		await until(
+			() => page.evaluate(() => Boolean(__aswanAudit.held)),
+			'primary ACK blocks the queued live key',
+		);
+		await channel(1);
+		await page.evaluate(() => document.activeElement?.blur());
+		const pendingKey = page
+				.locator('#keyboard .key')
+				.filter({ hasText: /\bD4\b/ })
+				.first(),
+			pendingLetter = await pendingKey.getAttribute('data-key');
+		assert(pendingLetter);
+		await page.keyboard.down(pendingLetter);
+		await until(
+			() => pendingKey.evaluate((node) => node.classList.contains('is-active')),
+			'pending key lights before the mode transition',
+		);
+		await until(
+			() =>
+				page
+					.locator('#voiceCapacity')
+					.textContent()
+					.then((value) => /Voice PCM/.test(value)),
+			'driver changes the still-queued target to transient PCM',
+		);
+		await page.evaluate(() => __aswanAudit.releaseHeld());
+		await until(
+			() => pendingKey.evaluate((node) => !node.classList.contains('is-active')),
+			'invalidated pending key clears without KeyUp',
+		);
+		assert.equal(
+			await page.locator('#aswanChannelControls').getAttribute('data-song-key-owner'),
+			'',
+		);
+		assert.equal((await state()).voices.length, 0);
+		assert.equal(await page.locator('#aswanSongPlayer').getAttribute('data-state'), 'playing');
+		await page.keyboard.up(pendingLetter);
+		await page.click('#aswanSongStopButton');
+		checks.push(
+			'A driver Wave→PCM transition while native ACK holds a queued key skips its NoteOn and clears the pending highlight before KeyUp, without stopping playback',
 		);
 		step('paused hardware Sweep and Noise audition; transient DAC snapshots stay unavailable');
 		async function pauseFixture(name, bytes, ch) {
@@ -798,6 +1233,66 @@ async function check(browser, engine, origin, fixture) {
 				'extra source starts',
 			);
 			await channel(ch);
+			if (name === 'sweep.vgm' || name === 'noise.vgm') {
+				const startsAt = Number(await page.locator('#aswanSongSeek').inputValue());
+				const stopsBefore = await page.evaluate(
+					() =>
+						__aswanAudit.bufferEvents.filter((event) => event.method === 'stop').length,
+				);
+				const liveLetter = await playingKey('D4');
+				const ownerBefore = await page
+					.locator('#aswanChannelControls')
+					.getAttribute('data-song-key-owner');
+				if (name === 'sweep.vgm') {
+					await page.click('[data-stepper-for="sweepStep"][data-stepper-delta="1"]');
+					await until(
+						() =>
+							page
+								.locator('#sweepStep')
+								.getAttribute('aria-valuenow')
+								.then((value) => value === '2'),
+						'playing Sweep step edit',
+					);
+				} else {
+					await choose('noiseType', '3');
+					await until(
+						() =>
+							page
+								.locator('[data-choice-for="noiseType"][data-choice-value="3"]')
+								.getAttribute('aria-checked')
+								.then((value) => value === 'true'),
+						'playing Noise feedback edit',
+					);
+				}
+				await until(
+					() =>
+						page
+							.locator('#aswanSongSeek')
+							.inputValue()
+							.then((value) => Number(value) > startsAt + 0.1),
+					'effect edit keeps the song clock moving',
+				);
+				assert.equal(
+					await page.locator('#aswanChannelControls').getAttribute('data-song-key-owner'),
+					ownerBefore,
+					'effect changes retain the current keyboard gate',
+				);
+				assert.equal(
+					await page.locator('#aswanSongPlayer').getAttribute('data-state'),
+					'playing',
+				);
+				assert.equal(
+					await page.evaluate(
+						() =>
+							__aswanAudit.bufferEvents.filter((event) => event.method === 'stop')
+								.length,
+					),
+					stopsBefore,
+					'effect edit does not replace reference buffers',
+				);
+				await output();
+				await page.keyboard.up(liveLetter);
+			}
 			await page.click('#aswanSongPlayButton', { delay: 120 });
 			await until(
 				() =>
@@ -938,12 +1433,19 @@ const server = http.createServer(async (request, response) => {
 	const { createWonderSwanVgm } = await import(
 		pathToFileURL(path.join(repo, 'test/helpers/wonderswan_vgm_fixture.mjs'))
 	);
+	const { createWonderSwanManualVgm, createWonderSwanPcmTransitionVgm } = await import(
+		pathToFileURL(path.join(repo, 'test/helpers/wonderswan_manual_vgm_fixture.mjs'))
+	);
 	const fixture = {
 		a: createWonderSwanVgm({ seconds: 3, loop: false }),
 		b: createWonderSwanVgm({ channel: 1, seconds: 3, loop: false }),
 		sweep: createWonderSwanVgm({ mode: 'sweep', seconds: 3, loop: false }),
 		noise: createWonderSwanVgm({ mode: 'noise', seconds: 3, loop: false }),
 		voice: createWonderSwanVgm({ mode: 'voice', seconds: 3, loop: false }),
+		manual: createWonderSwanManualVgm(),
+		pcmTransition: createWonderSwanPcmTransitionVgm(),
+		manualNoise: createWonderSwanManualVgm({ mode: 'noise' }),
+		manualSweep: createWonderSwanManualVgm({ mode: 'sweep' }),
 	};
 	let failure = null;
 	try {
