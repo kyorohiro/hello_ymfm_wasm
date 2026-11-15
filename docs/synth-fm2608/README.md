@@ -1,0 +1,90 @@
+# Tetorica FM2608 Synth
+
+The product identifier is `tetorica-fm2608-synth`. The sound chip is the
+YM2608 / OPNA used by PC-98 sound hardware.
+
+[Open the Synth](index.html) · [PC-98 Playground](../playground/index.html?mode=pc98)
+
+Play and edit one YM2608 with six FM channels, three SSG channels, six fixed
+rhythm voices and one ADPCM-B sample voice. The workspace follows FM2612 Synth
+with sound-section tabs, physical channels, a compact keyboard, Octave, two
+Pitch controls, Files and JavaScript Code.
+
+## Play and edit
+
+Enable audio, choose a sound section and play the displayed computer keys or
+pointer keyboard. Auto allocates melodic notes across the section's channels.
+Choose a physical CH to edit and play that channel directly.
+
+The FM editor exposes the algorithm, feedback, four operators and hardware
+LFO. SSG supports Tone and Noise mixing per channel, a shared Noise period
+and the shared hardware envelope. Rhythm has six fixed instrument slots with
+hardware level and left/right output controls. ADPCM-B plays a selected mono
+sample with adjustable tuning, playback level and whole-sample Repeat.
+Base rate sets the playback speed at the Root note. The Playback readout follows
+the hardware rate while keyboard notes transpose that base rate.
+
+Import and export FM patches as TFI or VGI from the top-left menu. A complete
+OPNA sound, including its ADPCM sample, can be saved as a JSON preset in Files.
+The Mixer provides software channel mutes shared by Keyboard and Code.
+The preset embeds the sample selected in the ADPCM tab. Samples loaded directly
+into memory by Code remain part of that performance.
+
+The rhythm sounds use Tetorica's original synthetic rhythm ROM. Its source and
+BSD-3-Clause license are included in the standalone package.
+
+## Files and Code
+
+Save a sound to Files and select it to apply its settings. Export or import a
+project Cassette to transfer the sound and editable JavaScript together.
+Local drafts are restored when the same browser opens the app again.
+
+Choose Code to edit `/index.js`. Run starts a performance, Apply updates named
+loops while keeping prepared state, and Stop releases the performance.
+The code and the upper controls operate the same YM2608. Choose a physical
+channel with Auto update enabled to follow its settings and edit them directly.
+Changing sound presets or switching to Keyboard keeps the Code loops running.
+
+```javascript
+const opna = await useSoundChip("ym2608");
+setBpm(120);
+
+liveLoop("melody", async () => {
+  opna.noteOn(CH1, choose(scale("E3", "minorPentatonic", 2)));
+  await beat(0.5);
+  opna.noteOff(CH1);
+  await beat(0.25);
+});
+```
+
+SSG, Rhythm and ADPCM-B are available through `opna.ssg`, `opna.rhythm` and
+`opna.adpcm`. Hardware channel numbers in Code are zero-based. The `CH1` to
+`CH6` constants correspond to FM channels 0 to 5.
+
+Keyboard allocation, keyboard Pitch and Code scheduling are software performance
+features. The two Pitch controls bend keyboard-held notes. Code can control
+pitch through the chip API. Code effects run in the host after the chip output. The FM, SSG,
+Rhythm and ADPCM-B controls configure the YM2608 sections.
+
+## Package
+
+From the repository root, run the following command.
+
+```sh
+sh scripts/package_itch_fm2608_synth.sh VERSION
+```
+
+The script creates `release/tetorica_fm2608_synth_VERSION_itch.zip` and a staging
+directory. Upload the ZIP as an HTML project with `index.html` as its entry.
+The archive includes readable browser modules, matching WASM, native rebuild
+sources, the synthetic rhythm generator and applicable licenses.
+
+Reference-song playback and capture, special CH3 / CSM editing, Looper / Event recording and a dedicated
+Tauri application are subsequent development tasks in the project TODO.
+
+## Sources
+
+- [YM2608 high-level API](../../tetorica_src/runtime/ym2608synth.js)
+- [FM2608 Synth source](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/docs/synth-fm2608)
+- [Native sound-chip SDK](https://github.com/kyorohiro/tetorica-soundchip-native)
+- [Tetorica license](../../LICENSE)

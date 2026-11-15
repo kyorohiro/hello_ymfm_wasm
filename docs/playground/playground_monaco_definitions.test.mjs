@@ -3,6 +3,43 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {definitionSource, sourcePosition, sourceChip, globalDefinition, runtimeImport} from './playground_monaco_definitions.js';
 
+test('FM2608 Synth section definitions point to the matching hardware helper class', () => {
+  const declarations = `interface Fm2608CodeClient {
+  keyOff(channel:number):void;
+  allNotesOff():void;
+  ssg:{
+    noteOn(channel:number,note:string):void;
+  };
+  rhythm:{
+    keyOn(voice:number):void;
+  };
+  adpcm:{
+    keyOn(options?:{repeat?:boolean}):void;
+  };
+}`;
+  const lines = declarations.split('\n');
+  const at = (line, symbol) => definitionSource(declarations,
+    {lineNumber:line + 1, column:lines[line].indexOf(symbol) + 1}, 'ym2608');
+  assert.deepEqual(at(1, 'keyOff'), {file:'opn_fm_synth.js', symbol:'keyOff'});
+  assert.deepEqual(at(2, 'allNotesOff'), {file:'synth-fm2608/code_client.js', symbol:'allNotesOff'});
+  assert.deepEqual(at(4, 'noteOn'), {file:'ssgsynth.js', symbol:'SSGSynth.noteOn'});
+  assert.deepEqual(at(7, 'keyOn'), {file:'ym2608synth.js', symbol:'YM2608RhythmSynth.keyOn'});
+  assert.deepEqual(at(10, 'keyOn'), {file:'ym2608synth.js', symbol:'YM2608AdpcmSynth.keyOn'});
+});
+
+test('class-qualified implementation positions select the correct duplicate method name', () => {
+  const source = `export class Rhythm {
+  keyOn() {}
+}
+export class Adpcm {
+  async keyOn() {}
+}
+`;
+  assert.deepEqual(sourcePosition(source, 'Rhythm.keyOn'), {lineNumber:2, column:3});
+  assert.deepEqual(sourcePosition(source, 'Adpcm.keyOn'), {lineNumber:5, column:9});
+  assert.deepEqual(sourcePosition(source, 'Missing.keyOn'), {lineNumber:1, column:1});
+});
+
 test('actual Playground declarations navigate to the factory and YM2612 implementation', async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
   for (const [symbol, file] of [['useSoundChip', 'playground_runtime.js'], ['setBpm', 'playground_runtime.js'], ['createTimeline', 'playground_runtime.js'], ['encodeBrr', 'snes_brr_encoder.js'], ['encodeAdpcmA', 'adpcm_a_sample.js'], ['encodePs1Adpcm', 'ps1_adpcm_encoder.js'], ['setFrequency', 'ym2612synth.js']]) {

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tetorica FM2608 Synth. Edit YM2608 / OPNA FM, SSG, Rhythm and ADPCM-B sounds, play the keyboard and perform with JavaScript.">
+  <meta name="theme-color" content="#e9e8e2">
+  <title>Tetorica FM2608 Synth</title>
+  <link rel="icon" type="image/webp" href="../tetorica_fm2608_synth.webp">
+  <link rel="apple-touch-icon" href="../tetorica_fm2608_synth.webp">
+  <link rel="stylesheet" href="./synth.css">
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <a class="laboratory-link" href="../index.html">Tetorica <span>Sound Laboratory</span></a>
+      <nav aria-label="Sound Laboratory">
+        <a href="../synth/index.html">FM2612 Synth</a>
+        <a href="../synth-spu/index.html">SPU Synth</a>
+        <a href="../playground/index.html?mode=pc98">Playground</a>
+      </nav>
+    </header>
+    <article class="synth-shell" aria-labelledby="synthTitle">
+      <header class="synth-heading">
+        <div class="title-row">
+          <details id="synthMenu" class="synth-menu">
+            <summary class="synth-icon-button" aria-label="Menu" title="Menu">☰</summary>
+            <div class="synth-menu-panel">
+              <section class="synth-menu-section synth-menu-actions"><h2>Import</h2>
+                <div id="opnaMenuProjectImport"></div>
+                <button id="importSoundButton" type="button">OPNA preset / TFI / VGI…</button>
+                <button id="importAudioButton" type="button">ADPCM audio…</button>
+                <div id="opnaMenuFilesImport"></div>
+              </section>
+              <section class="synth-menu-section synth-menu-actions"><h2>Export</h2>
+                <div id="opnaMenuProjectExport"></div>
+                <button id="exportSoundButton" type="button">OPNA preset · JSON</button>
+                <button id="exportTfiButton" type="button">Selected FM · TFI</button>
+                <button id="exportVgiButton" type="button">Selected FM · VGI</button>
+                <div id="opnaMenuFileExport"></div>
+              </section>
+              <section class="synth-menu-section"><p>System default · Web Audio</p><a href="./README.md">Guide and source</a></section>
+            </div>
+          </details>
+          <div class="product-identity">
+            <img class="product-icon" src="../tetorica_fm2608_synth.webp" width="112" height="112" alt="" decoding="async">
+            <div class="product-copy">
+              <h1 id="synthTitle">Tetorica <span class="product-name">FM2608 Synth</span></h1>
+              <p class="description">YM2608 / OPNA · FM · SSG · Rhythm · ADPCM-B</p>
+            </div>
+          </div>
+        </div>
+        <div class="audio-toolbar">
+          <div class="transport-actions">
+            <button id="startAudio" class="primary" type="button">Enable audio</button>
+            <button id="stopAudio" type="button">Stop all sound</button>
+            <button id="opnaFilesToggle" type="button" aria-expanded="false" aria-controls="opnaFilesPanel">Files</button>
+          </div>
+          <label class="master-control" for="masterVolume"><span>Master</span>
+            <input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume">
+            <output id="masterVolumeValue" for="masterVolume">70%</output>
+          </label>
+        </div>
+        <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard.</p>
+      </header>
+
+      <div id="synthWorkspace" class="opna-code-workspace">
+        <aside id="opnaFilesPanel" class="opna-files-panel" aria-label="Project files" hidden></aside>
+        <div class="opna-main">
+          <div id="chipTabs" class="opna-tabs" role="tablist" aria-label="OPNA sound section">
+            <button id="tab-fm" type="button" role="tab" aria-selected="true" aria-controls="panel-fm" data-section="fm">FM</button>
+            <button id="tab-ssg" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-ssg" data-section="ssg">SSG</button>
+            <button id="tab-rhythm" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-rhythm" data-section="rhythm">Rhythm</button>
+            <button id="tab-adpcm" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-adpcm" data-section="adpcm">ADPCM</button>
+            <button id="tab-mixer" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mixer" data-section="mixer">Mixer</button>
+          </div>
+
+          <div id="channelBar" class="opna-channel-bar">
+            <div id="channelTabs" role="tablist" aria-label="Auto and physical channels"></div>
+            <label class="check-control"><input id="liveUpdate" type="checkbox" checked>Auto update</label>
+            <details class="inline-help"><summary aria-label="About channel selection">?</summary><p>Auto allocates keyboard notes across the section's channels. Editing a value in Auto applies that value to all channels. Selecting Auto preserves each channel's settings until you edit. CH selection aligns the displayed settings and keyboard target. Auto update follows Code writes on a selected CH.</p></details>
+          </div>
+          <p id="channelReadout" class="subtext" role="status">FM · Auto · 6 hardware channels</p>
+
+          <section class="spu-monitor" aria-label="Audio monitor">
+            <div class="opna-monitor-toolbar">
+              <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
+                <button type="button" data-visual-mode="envelope" aria-pressed="true">Envelope</button>
+                <button type="button" data-visual-mode="waveform" aria-pressed="false">Waveform</button>
+                <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+              </div>
+              <label class="monitor-master">Vol <input id="monitorVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Monitor master volume"><output id="monitorVolumeValue">70%</output></label>
+            </div>
+            <p id="visualizerDescription">Live output level after Master volume.</p>
+            <div class="monitor-body">
+              <div class="monitor-plot"><canvas id="outputCanvas" width="900" height="210" role="img" aria-label="Live OPNA output"></canvas></div>
+              <label class="monitor-pitch" for="pitchBend"><span>Pitch</span><input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Software pitch bend"><output id="pitchValue">+0.00</output></label>
+            </div>
+          </section>
+
+          <section id="panel-fm" class="opna-panel" role="tabpanel" aria-labelledby="tab-fm">
+            <div class="section-heading"><h2>FM · 4 operators</h2>
+              <label class="instrument-preset-control">Builtin <select id="fmPreset" aria-label="Builtin FM sound"></select></label>
+              <details class="inline-help"><summary aria-label="About FM controls">?</summary><p>Each of six FM channels has four operators and one of eight algorithms. TL controls operator attenuation. AR, D1R, D2R, SL and RR shape its envelope. AM, AMS and PMS use the shared hardware LFO. SSG-EG is an FM envelope feature. The separate SSG tab controls OPNA's three square-wave channels.</p></details>
+            </div>
+            <div id="fmCommonControls" class="opna-control-grid"></div>
+            <div class="opna-operator-scroll"><div id="operatorHeader" class="operator-header"></div><div id="operatorControls"></div></div>
+            <details id="fmEnvelope" class="opna-card" open><summary>Operator envelope</summary>
+              <div class="envelope-toolbar"><button type="button" data-envelope-operator="1">OP1</button><button type="button" data-envelope-operator="2">OP2</button><button type="button" data-envelope-operator="3">OP3</button><button type="button" data-envelope-operator="4" aria-pressed="true">OP4</button></div>
+              <div class="operator-envelope-plot"><canvas data-operator-envelope width="850" height="200" aria-label="Editable operator envelope"></canvas><button type="button" data-envelope-handle="attack" class="envelope-handle">A</button><button type="button" data-envelope-handle="decay" class="envelope-handle">D</button><button type="button" data-envelope-handle="sustain" class="envelope-handle">S</button><button type="button" data-envelope-handle="release" class="envelope-handle">R</button></div>
+              <p data-envelope-readout class="subtext"></p>
+            </details>
+            <details class="opna-card"><summary>Shared hardware LFO</summary><div id="lfoControls" class="opna-control-grid"></div></details>
+          </section>
+
+          <section id="panel-ssg" class="opna-panel" role="tabpanel" aria-labelledby="tab-ssg" hidden>
+            <div class="section-heading"><h2>SSG · Tone + Noise</h2><details class="inline-help"><summary aria-label="About SSG">?</summary><p>Each of three SSG channels mixes Tone and Noise. Noise period and the hardware envelope are shared by all three channels. Enabling Envelope routes the shared envelope to this channel's volume. Writing its shape restarts the shared envelope. SSG has mono output.</p></details></div>
+            <div id="ssgControls" class="opna-control-grid"></div>
+            <div class="opna-card"><h3>Shared noise</h3><div id="noiseControls" class="opna-control-grid"></div></div>
+            <div class="opna-card"><h3>Shared hardware envelope</h3><div id="ssgEnvelopeControls" class="opna-control-grid"></div><canvas id="ssgEnvelopeCanvas" width="850" height="140" aria-label="Shared SSG envelope shape"></canvas></div>
+          </section>
+
+          <section id="panel-rhythm" class="opna-panel" role="tabpanel" aria-labelledby="tab-rhythm" hidden>
+            <div class="section-heading"><h2>Rhythm · 6 fixed sounds</h2><details class="inline-help"><summary aria-label="About Rhythm">?</summary><p>The six hardware rhythm voices use the bundled Tetorica synthetic rhythm ROM. Each voice has its own hardware level and left / right output gates. Level is a register value. Pads trigger the selected voice, and keyboard notes map cyclically to the six voices in Auto.</p></details></div>
+            <div id="rhythmSharedControls" class="opna-control-grid"></div><div id="rhythmPads" class="opna-rhythm-pads" role="group" aria-label="Rhythm pads"></div><div id="rhythmControls" class="opna-control-grid"></div>
+            <p class="subtext">Tetorica synthetic rhythm ROM · <a href="../assets/opna-rhythm/LICENSE">BSD-3-Clause</a></p>
+          </section>
+
+          <section id="panel-adpcm" class="opna-panel" role="tabpanel" aria-labelledby="tab-adpcm" hidden>
+            <div class="section-heading"><h2>ADPCM-B · 1 sample voice</h2><details class="inline-help"><summary aria-label="About ADPCM-B">?</summary><p>Audio is downmixed to mono and encoded as YM2608 ADPCM-B. Root note is a software tuning reference. Base rate sets the playback speed at Root note. Keyboard notes transpose this rate, and Playback shows the current hardware rate. Repeat loops the complete selected sample. The memory range is aligned to 32 encoded bytes. Drawing re-encodes the sample on release.</p></details></div>
+            <div class="sample-actions"><button id="loadAudioButton" type="button">Load audio…</button><button id="saveWaveButton" type="button">Export WAV</button><label class="check-control"><input id="drawWave" type="checkbox">Draw waveform</label></div>
+            <div id="adpcmControls" class="opna-control-grid"></div>
+            <canvas id="waveCanvas" width="900" height="210" role="img" aria-label="ADPCM decoded sample waveform"></canvas>
+            <div class="opna-wave-shapes" role="group" aria-label="Software waveform generators"><span>Software wave</span><button type="button" data-wave-shape="sine">Sine</button><button type="button" data-wave-shape="triangle">Triangle</button><button type="button" data-wave-shape="saw">Saw</button><button type="button" data-wave-shape="square">Square</button></div>
+            <p id="sampleInfo" class="subtext" role="status"></p>
+          </section>
+
+          <section id="panel-mixer" class="opna-panel" role="tabpanel" aria-labelledby="tab-mixer" hidden>
+            <div class="section-heading"><h2>Mixer</h2><details class="inline-help"><summary aria-label="About Mixer">?</summary><p>Software monitor mute for physical channels, shared by Keyboard and Code. Muting changes the outgoing level / pan writes while retaining the latest source settings for unmute. Source levels are edited in their sound tabs. Master is the final software output gain.</p></details></div>
+            <div id="mixerControls" class="opna-mixer"></div>
+          </section>
+
+          <section class="instrument-toolbar" aria-label="Saved OPNA settings">
+            <label class="instrument-name-control" for="instrumentName">Name <input id="instrumentName" type="text" maxlength="80" value="OPNA Sine" autocomplete="off"></label>
+            <label class="instrument-preset-control" for="opnaPresetSelect">Saved sounds <select id="opnaPresetSelect" disabled><option value="">No playable presets</option></select></label>
+            <button id="opnaSaveSoundAs" type="button" disabled>Save sound as…</button>
+          </section>
+
+          <section id="synthInputSection" class="keyboard-section opna-input-section" data-input-mode="keyboard">
+            <div class="opna-input-tabs" role="tablist" aria-label="Performance input">
+              <button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+              <button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+              <button id="synthCodeExpandButton" class="opna-code-expand" type="button" aria-label="Maximize Code" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+            </div>
+            <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
+              <div class="keyboard-toolbar"><div class="octave-control"><button id="octaveDown" type="button" aria-label="Lower keyboard octave">−</button><span>Octave <output id="octaveValue">+0</output></span><button id="octaveUp" type="button" aria-label="Raise keyboard octave">+</button></div><p id="keyboardHint" class="subtext">Keyboard and Code share this OPNA.</p></div>
+              <div class="performance-keyboard"><label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend"><span>Pitch</span><input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Keyboard software pitch bend"><output id="keyboardPitchValue">+0.00</output></label><div id="keyboard" class="keyboard-mount"></div></div>
+            </div>
+            <div id="synthCodePanel" class="opna-code-panel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+              <div class="opna-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
+              <p class="subtext">Software performance · same OPNA as the controls above. Run Ctrl/Cmd+Enter · Apply Ctrl/Cmd+Shift+Enter.</p>
+              <div id="synthCodeEditorHost" class="opna-code-editor-host"></div>
+              <textarea id="synthCodeEditor" class="opna-code-editor" spellcheck="false" aria-label="OPNA performance JavaScript" rows="12" readonly></textarea>
+              <p id="synthCodeEditorNote" class="subtext">Code saves in Files.</p>
+              <pre id="synthCodeError" class="opna-code-error" role="alert"></pre>
+              <details class="opna-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
+              <details class="inline-help"><summary aria-label="About Code">?</summary><p>Use <code>const opna = await useSoundChip("ym2608")</code>. FM is on the main object; SSG, Rhythm and ADPCM are available as <code>opna.ssg</code>, <code>opna.rhythm</code> and <code>opna.adpcm</code>. Code addresses physical channels. Apply retains context and named loops. Keyboard input remains available while Code runs; click outside the editor to play. <code>liveFx</code> is a software effect after the hardware output.</p></details>
+            </div>
+          </section>
+        </div>
+        <section id="synthExpandedCodeSlot" class="opna-expanded-code" hidden aria-label="Expanded Code"></section>
+      </div>
+      <footer><p>YM2608 / OPNA · Hardware FM, SSG, Rhythm and ADPCM-B. Auto allocation, note tuning, Pitch and Code effects are software controls.</p><div><a href="./README.md">Guide</a><a href="https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/docs/synth-fm2608">Application source</a><a href="../js/ym2608synth.js">YM2608 API source</a></div></footer>
+    </article>
+  </main>
+  <input id="soundFileInput" type="file" accept=".json,.tfi,.vgi" hidden>
+  <input id="audioFileInput" type="file" accept="audio/*,.wav,.ogg,.mp3,.m4a,.flac" hidden>
+  <script type="module" src="./synth.js"></script>
+</body>
+</html>
