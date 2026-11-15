@@ -68,11 +68,17 @@ function describe(snapshot, slotIndex, referenceMidi) {
 		);
 	for (const [key, label] of Object.entries({
 		attackHold: 'Attack hold',
-		loopLink: 'Attack / loop link',
 		envelopeBypass: 'Envelope bypass',
 		soundDirect: 'Sound-direct bypass',
 	}))
 		if (flag(flags[key], label)) fail(`${label} is not supported by this Synth preset.`);
+	const loopLink = flag(flags.loopLink, 'Attack / loop link');
+	// One-shot samples in the existing PCM adapter program LSA=0. Do not
+	// silently move a linked one-shot's separate Attack transition threshold.
+	if (loopLink && sample.loopMode === 0 && sample.loopStart !== 0)
+		fail(
+			'Attack / loop link with a nonzero one-shot threshold cannot be preserved by this Synth preset.',
+		);
 	const modulation = voice.modulation;
 	if (!modulation) fail('The modulation state is missing.');
 	integer(modulation.depth, 0, 15, 'Modulation depth');
@@ -206,7 +212,7 @@ export function createScspSsfCapture(snapshot, slotIndex, { referenceMidi = 60 }
 			totalLevel: voice.totalLevel,
 			directLevel: voice.directLevel,
 			pan: voice.pan,
-			envelope: { ...voice.envelope },
+			envelope: { ...voice.envelope, loopLink: slot.flags.loopLink },
 			lfo: { ...voice.lfo },
 		},
 	};

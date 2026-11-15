@@ -255,6 +255,11 @@ per-slot hardware LFO: `frequencyCode` 0..31, `pitchWave` / `amplitudeWave` 0..3
 the next keyOn. Display tables are exported as `SCSP_LFO_FREQUENCIES_HZ`,
 `SCSP_LFO_PITCH_CENTS`, `SCSP_LFO_AMPLITUDE_DB` and `SCSP_LFO_WAVEFORMS`.
 LFO requires 0.2.36 or later.
+The current repository adds optional boolean `envelope.loopLink` (default
+false): hardware LPSLNK transitions Attack to Decay 1 at the programmed loop
+start. `setEnvelope(slot, {loopLink:true})` affects the next keyOn. This
+addition is pending the next npm publication; older presets retain their
+previous behavior when the field is omitted.
 See the [SCSP API and limitations](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md).
 
 Version 0.2.37 also adds `setModulation(slot, patch)` and

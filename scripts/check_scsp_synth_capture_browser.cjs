@@ -56,7 +56,24 @@ function installSilentAudit() {
 		delayed = 0,
 		ackDelay = null,
 		ackDelayed = 0;
-	const posted = new WeakMap();
+	const posted = new WeakMap(),
+		pointerEvents = [];
+	for (const type of ['pointerdown', 'pointerup', 'click'])
+		document.addEventListener(
+			type,
+			(event) => {
+				const button = event.target.closest?.('button');
+				if (button?.id?.startsWith('scspSong'))
+					pointerEvents.push({
+						type,
+						id: button.id,
+						text: button.textContent,
+						trusted: event.isTrusted,
+						time: performance.now(),
+					});
+			},
+			true,
+		);
 	const contexts = [],
 		worklets = [],
 		meters = [],
@@ -149,6 +166,7 @@ function installSilentAudit() {
 		},
 		ackDelayed: () => ackDelayed,
 		commands: () => commands.slice(),
+		pointerEvents: () => pointerEvents.slice(),
 		graph: () => ({
 			contexts: contexts.length,
 			destinationEdges: meters.length,
@@ -412,14 +430,14 @@ async function check(browser, engine, origin, fixture) {
 		checks.push('Import remains silent with Capture disabled until a native snapshot exists');
 
 		step('paused physical-slot audition leaves authored state and draft intact');
-		await page.click('#scspSongPlay');
+		await page.click('#scspSongPlay', { delay: 5 });
 		await pcm(page);
 		await until(
 			() =>
 				view(page).then((value) => value.liveActive === 'true' && Number(value.frame) > 0),
 			'native snapshot ready',
 		);
-		await page.click('#scspSongPause');
+		await page.click('#scspSongPause', { delay: 120 });
 		await until(() => view(page).then((value) => value.pause === 'Resume'), 'paused song');
 		await pcm(page, false);
 		await selectSlot(page, 0);
@@ -453,7 +471,7 @@ async function check(browser, engine, origin, fixture) {
 		assert(await page.locator('[data-chip-action="scsp-apply"]').isEnabled());
 		await page.check('#scspSsfLiveEnabled');
 		checks.push(
-			'PCM16 and PCM8 selected-slot auditions use distinct samples and pitch while Pause, authored state and dirty draft remain intact',
+			'A 120ms held Pause click works through Live updates; PCM16/PCM8 auditions retain Pause, authored state and the dirty draft',
 		);
 
 		step('pending preparation keyup and slot-change cancellation');
@@ -523,6 +541,10 @@ async function check(browser, engine, origin, fixture) {
 			'editable captured view',
 		);
 		await until(() => control(page, 'attackRate').isEnabled(), 'captured controls editable');
+		await until(
+			() => view(page).then((value) => /^Captured SSF Slot 2/.test(value.status)),
+			'PCM capture committed',
+		);
 		await captured(fixture.captures[48][1].preset);
 		assert.equal((await view(page)).enabled, false);
 		await page.check('#scspSsfLiveEnabled');
@@ -586,7 +608,7 @@ async function check(browser, engine, origin, fixture) {
 		}, 'ordinary authored keyboard after Capture');
 		measurements.capturedKeyboard = await pcm(page);
 		await page.keyboard.up(regularKey);
-		await page.click('#scspSongPause');
+		await page.click('#scspSongPause', { delay: 5 });
 		await until(
 			() =>
 				view(page).then(
@@ -595,7 +617,11 @@ async function check(browser, engine, origin, fixture) {
 			'Resume preserved song',
 		);
 		measurements.resumed = await pcm(page);
-		await page.click('#scspSongPause');
+		await page.click('#scspSongPause', { delay: 5 });
+		await until(
+			() => view(page).then((value) => value.pause === 'Resume'),
+			'paused before layout',
+		);
 		await pcm(page, false);
 		for (const width of [1240, 390]) {
 			await page.setViewportSize({ width, height: 1000 });
@@ -687,6 +713,154 @@ async function check(browser, engine, origin, fixture) {
 		await noHeld();
 		await pcm(page, false);
 		checks.push('Stop during precommit preparation cancels Capture before any authored load');
+		step('hardware Attack / loop link preview keeps the draft and frozen song');
+		await page.uncheck('#scspSsfLiveEnabled');
+		await page.click('[data-chip-action="scsp-square"]');
+		await control(page, 'root').fill('500');
+		await control(page, 'root').dispatchEvent('change');
+		const linkDraftWave = await canvas(page),
+			linkAuthoredBefore = await authoring(page);
+		await load(page, 'loop-link.ssf', fixture.linked.bytes);
+		await page.check('#scspSsfLiveEnabled');
+		await page.click('#scspSongPlay', { delay: 5 });
+		await pcm(page);
+		await until(
+			() =>
+				view(page).then((value) => value.liveActive === 'true' && Number(value.frame) > 0),
+			'loopLink snapshot ready',
+		);
+		await page.click('#scspSongPause', { delay: 5 });
+		await until(
+			() => view(page).then((value) => value.pause === 'Resume'),
+			'loopLink song paused',
+		);
+		await pcm(page, false);
+		await selectSlot(page, 0);
+		await page.selectOption('#scspSsfReference', '60');
+		await until(
+			() => page.locator('#scspSsfCapture').isEnabled(),
+			'linked PCM capture available',
+		);
+		assert(await control(page, 'loopLink').isChecked());
+		assert(await control(page, 'loopLink').isDisabled());
+		const linkFrozen = await view(page),
+			linkedExpected = fixture.linked.capture.preset;
+		assert.equal(linkedExpected.voice.envelope.loopLink, true);
+		assert.equal(linkedExpected.options.loopStartSamples, 512);
+		assert.equal(linkedExpected.pcm.length, 2048);
+		const linkedPreviewKey = await press('C4');
+		await held(linkedExpected);
+		await paused(linkFrozen);
+		assert.equal(await authoring(page), linkAuthoredBefore);
+		await page.keyboard.up(linkedPreviewKey);
+		await noHeld();
+		await pcm(page, false);
+		await page.uncheck('#scspSsfLiveEnabled');
+		assert.equal(await canvas(page), linkDraftWave);
+		assert.equal(await control(page, 'root').inputValue(), '500');
+		assert(await page.locator('[data-chip-action="scsp-apply"]').isEnabled());
+		await page.check('#scspSsfLiveEnabled');
+		await paused(linkFrozen);
+		checks.push(
+			'Hardware loopLink and LSA512 are read-only in Live, selected-slot preview preserves the paused frame and unapplied draft',
+		);
+
+		step('loopLink Capture and saved-preset round trip retain the hardware flag');
+		await page.click('#scspSsfCapture', { delay: 5 });
+		await until(() => control(page, 'loopLink').isEnabled(), 'captured loopLink is editable');
+		await until(
+			() => view(page).then((value) => /^Captured SSF Slot 1/.test(value.status)),
+			'loopLink capture committed',
+		);
+		await captured(linkedExpected);
+		assert(await control(page, 'loopLink').isChecked());
+		assert.equal(await control(page, 'loop').inputValue(), '512');
+		await paused(linkFrozen);
+		const savedLinked = await save();
+		assert.equal(savedLinked.operators.carrier.voice.envelope.loopLink, true);
+		assert.equal(savedLinked.operators.carrier.options.loopStartSamples, 512);
+		assert.deepEqual(savedLinked.operators.carrier.pcm, linkedExpected.pcm);
+		await page.setInputFiles('#open', {
+			name: 'loop-link-roundtrip.json',
+			mimeType: 'application/json',
+			buffer: Buffer.from(JSON.stringify(savedLinked)),
+		});
+		await until(
+			() =>
+				page
+					.locator('#status')
+					.textContent()
+					.then((value) => /instrument loaded/i.test(value)),
+			'linked preset reload',
+		);
+		await captured(linkedExpected);
+		assert(await control(page, 'loopLink').isChecked());
+		await paused(linkFrozen);
+		checks.push(
+			'Capture and portable save/reload preserve loopLink=true, all2048samples and the nonzero loop-start threshold',
+		);
+
+		for (const width of [1240, 390]) {
+			await page.setViewportSize({ width, height: 1000 });
+			await control(page, 'loopLink').evaluate((node) =>
+				node.closest('fieldset').scrollIntoView({ block: 'center' }),
+			);
+			await page.evaluate(
+				() =>
+					new Promise((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(resolve)),
+					),
+			);
+			assert(
+				await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+				'loopLink layout fits ' + width,
+			);
+			await page.screenshot({
+				path: path.join(config.screenshots, engine + '-loop-link-' + width + '.png'),
+			});
+		}
+		await page.setViewportSize({ width: 1240, height: 1100 });
+		step('turning hardware loopLink off changes fresh-note attack behavior');
+		const linkedKey = await press('C4');
+		await until(
+			async () => (await read()).state.voiceGroups.some((group) => group.held),
+			'linked captured note started',
+		);
+		await wait(250);
+		measurements.loopLinkOn = await pcm(page);
+		await page.keyboard.up(linkedKey);
+		await pcm(page, false);
+		await control(page, 'loopLink').uncheck();
+		await until(
+			async () => (await read()).operators[0].voice.envelope.loopLink === false,
+			'loopLink false committed',
+		);
+		const unlinkedExpected = structuredClone(linkedExpected);
+		unlinkedExpected.voice.envelope.loopLink = false;
+		await captured(unlinkedExpected);
+		const unlinkedKey = await press('C4');
+		await until(
+			async () => (await read()).state.voiceGroups.some((group) => group.held),
+			'unlinked fresh note started',
+		);
+		await wait(250);
+		measurements.loopLinkOff = await pcm(page);
+		assert(
+			measurements.loopLinkOff.rms > measurements.loopLinkOn.rms * 3,
+			'removing the early hardware attack threshold raises the fresh-note level',
+		);
+		await page.keyboard.up(unlinkedKey);
+		await pcm(page, false);
+		await paused(linkFrozen);
+		const savedUnlinked = await save();
+		assert.equal(savedUnlinked.operators.carrier.voice.envelope.loopLink, false);
+		assert.equal(savedUnlinked.operators.carrier.options.loopStartSamples, 512);
+		checks.push(
+			'The editable hardware checkbox changes actual native fresh-note PCM while retaining the waveform, LSA and paused song',
+		);
+		await page.click('#scspSongStop', { delay: 5 });
+		await pcm(page, false);
+
 		assert.equal((await graph(page)).contexts, 1);
 		assert.equal((await graph(page)).destinationEdges, 1);
 		assert.deepEqual(errors, []);
@@ -720,6 +894,9 @@ async function check(browser, engine, origin, fixture) {
 			error: error.stack,
 			view: await view(page).catch(() => null),
 			graph: await graph(page).catch(() => null),
+			pointerEvents: await page
+				.evaluate(() => __scspLiveAudit.pointerEvents())
+				.catch(() => null),
 		};
 		throw error;
 	} finally {
@@ -747,7 +924,7 @@ const server = http.createServer(async (request, response) => {
 	}
 });
 (async () => {
-	const { createScspSsfCaptureFixture } = await import(
+	const { createScspSsfCaptureFixture, createScspSsfLoopLinkFixture } = await import(
 		pathToFileURL(path.join(repo, 'test/helpers/scsp_ssf_fixture.mjs')).href
 	);
 	const fixture = createScspSsfCaptureFixture();
@@ -780,6 +957,22 @@ const server = http.createServer(async (request, response) => {
 	} finally {
 		renderer.dispose();
 	}
+	const linked = createScspSsfLoopLinkFixture();
+	const linkedSource = await prepareScspSsfSource(linked.files, '/ssf/loop-link.ssf');
+	const linkedRenderer = await createScspSsfRenderer(linkedSource, {
+		wasmBinary: await fs.readFile(
+			path.join(config.root, 'generated/ssf-player/ssf_player.wasm'),
+		),
+	});
+	try {
+		linkedRenderer.process(new Float32Array(4096), new Float32Array(4096), 4096);
+		linked.capture = createScspSsfCapture(linkedRenderer.readSnapshot(), 0, {
+			referenceMidi: 60,
+		});
+	} finally {
+		linkedRenderer.dispose();
+	}
+	fixture.linked = linked;
 	let failure = null;
 	try {
 		await new Promise((resolve, reject) => {

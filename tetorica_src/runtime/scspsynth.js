@@ -28,12 +28,13 @@ const positive = (v,name) => {
 function keys(value,allowed,name) {
   if (!value||typeof value!=='object'||Array.isArray(value)||Reflect.ownKeys(value).some(k=>!allowed.includes(k))) throw new TypeError(`Invalid ${name}`);
 }
-const envelopeDefaults = () => ({attackRate:31,decay1Rate:0,decay2Rate:0,decayLevel:0,releaseRate:31,keyRateScaling:15});
+const envelopeDefaults = () => ({attackRate:31,decay1Rate:0,decay2Rate:0,decayLevel:0,releaseRate:31,keyRateScaling:15,loopLink:false});
 const voiceDefaults = () => ({sample:null,frequencyHz:440,totalLevel:0,directLevel:7,pan:0,envelope:envelopeDefaults(),lfo:lfoDefaults(),modulation:modulationDefaults()});
 function envelope(value) {
   keys(value,Object.keys(envelopeDefaults()),'SCSP envelope');
   const result={...envelopeDefaults(),...value};
-  for (const k of Object.keys(result)) int(result[k],0,k==='keyRateScaling'?15:31,k);
+  for (const k of Object.keys(result)) if(k!=='loopLink')int(result[k],0,k==='keyRateScaling'?15:31,k);
+  if(typeof result.loopLink!=='boolean')throw new TypeError('SCSP envelope loopLink must be boolean');
   return Object.freeze(result);
 }
 /** Quantize a source advance ratio to signed OCT / FNS. No silent clamping. */
@@ -207,7 +208,7 @@ export class ScspSynth {
     const control=(s.address>>>16)|(s.bits===8?16:0)|(s.loopStartSamples===null?0:32);
     for(const [r,value]of [[2,s.address&65535],[4,s.loopStartSamples??0],[6,s.length],
       [8,(e.decay2Rate<<11)|(e.decay1Rate<<6)|e.attackRate],
-      [10,(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value);
+      [10,(e.loopLink?0x4000:0)|(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value);
     this.#core.write(b,control|0x1800);this.#gates[slot]=true;this.#playing[slot]=s;this.#playingLfos[slot]=v.lfo;this.#playingModulations[slot]=v.modulation;this.#playingFrequencies[slot]=v.frequencyHz;
   }
   keyOff(slot) {slot=this.#slot(slot);this.#core.write(slot*32,0x1000,0x1800);this.#gates[slot]=false;}
@@ -245,7 +246,7 @@ export class ScspSynth {
       const s=this.#voices[i].sample;
       if(s&&next.get(s.id)!==s){
         const actual=state.slots?.[i],replacement=actual?.sample?next.get(actual.sample.id):null;
-        this.#voices[i]=actual?{...actual,envelope:{...actual.envelope},lfo:{...lfoDefaults(),...actual.lfo},modulation:{...modulationDefaults(),...actual.modulation},sample:replacement}:{...this.#voices[i],sample:null};
+        this.#voices[i]=actual?{...actual,envelope:{...envelopeDefaults(),...actual.envelope},lfo:{...lfoDefaults(),...actual.lfo},modulation:{...modulationDefaults(),...actual.modulation},sample:replacement}:{...this.#voices[i],sample:null};
         this.#gates[i]=actual?.gate??false;
         if(next.get(this.#playing[i]?.id)!==this.#playing[i])this.#playing[i]=null;
       }
@@ -254,7 +255,7 @@ export class ScspSynth {
   /** Internal editor metadata delta; the caller has excluded scheduled commands. */
   _adoptEditorState(slot,state) {
     slot=this.#slot(slot);this._adoptResources(state);const v=state.slots[slot];
-    this.#voices[slot]={...v,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation},sample:v.sample?this._resolveSample(v.sample):null};
+    this.#voices[slot]={...v,envelope:{...envelopeDefaults(),...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation},sample:v.sample?this._resolveSample(v.sample):null};
     this.#gates[slot]=!!v.gate;
     const frequency=state.playingFrequencies?.[slot],playingLfo=state.playingLfos?.[slot],playingModulation=state.playingModulations?.[slot];
     // null means stopped; only an omitted field in an older snapshot falls back.
@@ -265,7 +266,7 @@ export class ScspSynth {
   }
   _adoptState(state) {
     this._adoptResources(state);
-    this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation}}));
+    this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...envelopeDefaults(),...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation}}));
     this.#playingFrequencies=state.slots.map((v,i)=>state.playingFrequencies?.[i]===undefined?v.frequencyHz:state.playingFrequencies[i]);
     this.#playingLfos=state.slots.map((v,i)=>state.playingLfos?.[i]===null?null:state.playingLfos?.[i]?{...state.playingLfos[i]}:{...lfoDefaults(),...v.lfo});
     this.#playingModulations=state.slots.map((v,i)=>state.playingModulations?.[i]===null?null:({...modulationDefaults(),...(state.playingModulations?.[i]??v.modulation)}));

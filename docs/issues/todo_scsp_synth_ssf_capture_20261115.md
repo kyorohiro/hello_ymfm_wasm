@@ -2,6 +2,9 @@
 
 Requested 2026-11-15 after read-only SSF Live inspection.
 
+Follow-up: [Attack / loop link](todo_scsp_synth_loop_link_20261115.md) adds
+linked forward-loop capture after the initial v0.0.1 scope recorded below.
+
 - [x] Define a bounded, validated capture of one ordinary PCM slot from a
       same-time native slot / RAM snapshot, with an explicit reference key.
 - [x] Preserve supported PCM format, waveform, loop, Envelope, LFO and direct

@@ -9,6 +9,23 @@ let module;
 async function create(t){module??=factory({wasmBinary:await readFile(new URL('../generated/scsp_wasm.wasm',import.meta.url))});const i=new SynthInstrument(await Scsp.create({moduleFactory:()=>module}));t.after(()=>i.dispose());return i;}
 const peak=a=>Math.max(...a.map(Math.abs));
 
+test('Code keeps hardware loopLink on its selected operator across grouped note allocation',async t=>{
+  for(const mode of ['pcm','fm2','fm4','fm6']){
+    const i=await create(t);i.setConfig({mode});const session=i.beginCode().session;
+    i.code(session,'setEnvelope',[0,{loopLink:true}]);
+    i.code(session,'noteOn',[3,60]);
+    const group=i.read().voiceGroups[0],slot=operatorSlot(group,0);
+    assert.equal(i.core.read(slot*32+10)&0x4000,0x4000);
+    const before=i.read();assert.throws(()=>i.code(session,'setEnvelope',[0,{loopLink:1}]),/boolean/);assert.deepEqual(i.read(),before);
+    i.code(session,'setEnvelope',[0,{loopLink:false}]);
+    assert.equal(i.core.read(slot*32+10)&0x4000,0x4000,'a pending edit does not rewrite the held envelope');
+    i.code(session,'noteOff',[3]);i.code(session,'noteOn',[3,60]);
+    const next=operatorSlot(i.read().voiceGroups.find(g=>g.held),0);
+    assert.equal(i.core.read(next*32+10)&0x4000,0);
+    assert.equal(i.exportPatch().operators.carrier.voice.envelope.loopLink,false);
+  }
+});
+
 test('Code attacks use the identical authored 2/4/6-op patch on the shared SCSP',async t=>{
   for(const mode of ['pcm','fm2','fm4','fm6'])for(const algorithm of ['chain','pairs','branch']){
     const a=await create(t),b=await create(t);

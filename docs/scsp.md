@@ -91,7 +91,10 @@ and default register levels are unchanged. The npm Mixer calibrated preset also
 includes the measured SCSP fallback; it remains opt-in.
 See [measurement and verification](issues/scsp_calibration_01.md) and the
 [Native integration record](issues/native_scsp_transport_01.md) for the current measurements.
-SSF/68000 execution and DSP controls remain later stages. Slot modulation is described below.
+The standalone [SCSP Synth](synth-scsp/README.md) also provides SSF / 68000 song
+playback, Live inspection, paused PCM audition / Capture and an experimental
+fixed DSP Delay. These are application features, separate from the raw
+Playground chip API. Slot modulation is described below.
 
 ### Desktop Native Audio
 
@@ -164,6 +167,13 @@ try {
   Rates are hardware codes, with larger values faster, not milliseconds.
   Defaults are immediate attack/release and no decay. The inherited EG is an
   approximation; its initial gain is not guaranteed to be exactly unity.
+- The current repository also supports optional boolean `envelope.loopLink`
+  (hardware LPSLNK), default false for older presets. It retains Attack until
+  the programmed LSA threshold and then transitions to Decay 1; a full Attack
+  level alone does not end that stage when enabled. `setEnvelope(slot,
+  {loopLink:true})` authors the next keyOn. Forward samples use their
+  `loopStartSamples` as LSA; the high-level one-shot adapter uses zero.
+  This is separate from Attack hold and a software envelope.
 - Mix fields are `totalLevel` (0..255 attenuation), `directLevel` (0..7 send),
   and raw `pan` / DIPAN (0..31). Pan 0 is center, 15 right-only, 31 left-only.
   These are hardware codes rather than linear sliders. Summed output retains

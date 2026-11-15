@@ -2746,6 +2746,8 @@ interface PlaygroundScspEnvelope {
   decayLevel: number;
   releaseRate: number;
   keyRateScaling: number;
+  /** Hardware LPSLNK: hold Attack until the sample reaches its loop start. Default false. */
+  loopLink?: boolean;
 }
 interface PlaygroundScspMix {
   /** 0..255 attenuation; 0 loudest. */

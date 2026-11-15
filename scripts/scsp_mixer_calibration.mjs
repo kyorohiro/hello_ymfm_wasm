@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {buildScspCalibrationReference} from './soundchip_calibration_scsp.mjs';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
 import {buildFmCalibrationReference} from './soundchip_calibration_fm.mjs';
+import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 export const SCSP_CALIBRATION_BASELINE_PATH='docs/issues/playground_chip_levels_01.json';
@@ -183,7 +184,7 @@ export async function validateScspMixerCalibrationSources({reportPath,scspReport
   const result=validateScspMixerCalibration(JSON.parse(bytes),scspReport);
   for(const [path,hash]of Object.entries(scspReport.scripts)){
     const absolute=resolve(root,relocatedSourcePaths[path]??path);if(!absolute.startsWith(resolve(root)+sep))fail('script path escapes repository');
-    const current=await readFile(absolute);
+    const current=restoreMixerCalibrationScspLoopLinkRevision(path,await readFile(absolute));
     if(sha(current)!==hash&&!isScspCalibrationSourceLayoutRevision(path,current,hash))fail('script source changed; remeasure: '+path);
   }
   for(const [path,record]of Object.entries(scspReport.sources)){

@@ -22,6 +22,7 @@ on:
       - 'tetorica_src/native/audio_effect/**'
       - 'tetorica_src/wasm/ssf_player/**'
       - 'test/helpers/scsp_ssf_fixture.mjs'
+      - 'test/runtime/*scsp*'
       - 'scripts/*scsp*'
       - 'scripts/*ssf*'
       - 'scripts/copy_readable_modules.mjs'
@@ -45,6 +46,7 @@ on:
       - 'tetorica_src/native/audio_effect/**'
       - 'tetorica_src/wasm/ssf_player/**'
       - 'test/helpers/scsp_ssf_fixture.mjs'
+      - 'test/runtime/*scsp*'
       - 'scripts/**'
       - 'third_party/**'
       - 'package*.json'
@@ -68,6 +70,8 @@ jobs:
       - name: Test and package the standalone SCSP Synth
         run: |
           npm run test:scsp-synth
+          npm run test:runtime:types
+          node --test test/runtime/scsp_loop_link.test.mjs scripts/mixer_calibration_scsp_loop_link_revision.test.mjs
           node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs scripts/mixer_calibration_scsp_draft_revision.test.mjs
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci

@@ -232,6 +232,15 @@ select {
 	gap: 6px;
 	margin: 10px 0;
 }
+#voice .scsp-envelope-option {
+	align-items: center;
+}
+#voice .scsp-envelope-option > label {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 0.73rem;
+}
 #voice fieldset > fieldset {
 	background: #182431;
 }

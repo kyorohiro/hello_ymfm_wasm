@@ -35,8 +35,25 @@ function rig({ssfLibraries = [], ssfGate} = {}) {
     setStatus:message => {status = message;},createPlayer:settings => {options = settings; return player;}});
   const put = (path, data) => {files.set(path,{path,type:'binary',data,revision:(files.get(path)?.revision ?? 0) + 1}); listeners.get('change')?.();};
   const remove = path => {files.delete(path);listeners.get('change')?.();};
-  return {controller,nodes,files,put,remove,calls,get loaded() {return loaded;},get status() {return status;},get audioRequests() {return audioRequests;},listeners};
+  return {controller,nodes,files,put,remove,calls,emit(patch) {state={...state,...patch};options.onState(state);},get loaded() {return loaded;},get status() {return status;},get audioRequests() {return audioRequests;},listeners};
 }
+
+test('playback ticks keep the Pause text node stable until its label actually changes', async () => {
+  const r=rig();
+  try {
+    r.put('/vgm/first.vgm',Uint8Array.of(1));await r.controller.selectFile('/vgm/first.vgm');
+    const button=r.nodes.get('scspSongPause');let text=button.textContent,writes=0;
+    Object.defineProperty(button,'textContent',{get:()=>text,set(value){text=value;writes++;}});
+    for(let n=0;n<20;n++)r.emit({playback:'playing',playing:true,paused:false,canPause:true,canResume:false,positionSeconds:n*.05});
+    assert.equal(text,'Pause');assert.equal(writes,0,'steady playback must not replace its text child');
+    r.emit({playback:'paused',playing:false,paused:true,canPause:false,canResume:true});
+    assert.equal(text,'Resume');assert.equal(writes,1);
+    for(let n=0;n<10;n++)r.emit({paused:true});
+    assert.equal(writes,1);
+    r.emit({playback:'playing',playing:true,paused:false,canPause:true,canResume:false});
+    assert.equal(text,'Pause');assert.equal(writes,2);
+  } finally {r.controller.dispose();}
+});
 
 test('Files songs populate selection and a failed replacement retains its selected source', async () => {
   const r = rig();

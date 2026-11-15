@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-loop-link-optional-hardware-envelope-api",
+  "baseCommit": "3ffde6b7fb1c8d1759b07d529a75b78259ee1953",
+  "review": "Only optional boolean envelope.loopLink (default false), register +10 bit14 on keyOn, legacy snapshot defaults and type declarations are added. Native core, reference programs, resampling and Mixer gains are unchanged. Exact previous source bodies are reconstructed; no report is rewritten. Real-WASM tests compare predecessor/current omitted/false native PCM and register traces and separately prove enabled LPSLNK timing / release. This does not claim a new browser calibration or hardware fidelity.",
+  "reports": {
+    "docs/issues/ps1_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 546854,
+      "sha256": "ed3afd1abfc55643b3cebae066e2094330e55bb159f328f5e7ba90a581a63db0"
+    },
+    "docs/issues/ps1_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 557840,
+      "sha256": "4cacb672674301e4c35026dbd1a3a39c8ad99f06b9cd5f5ba353ae061c9eea5c"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 507088,
+      "sha256": "277520705d6fae62db743efcbf42b27008729b6c4e1a798254d318186ad2f6a1"
+    },
+    "docs/issues/wonderswan_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 504578,
+      "sha256": "12c1bd63da19b9f2123eea3c9ffe5584c3765dbaffdc8802211e1b3e0a348c6c"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 1030997,
+      "sha256": "0b3202fda25c5caa204bb85ea829f325268910d61038db99f03b08a7e7972448"
+    },
+    "docs/issues/pokey_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 1052003,
+      "sha256": "d2342ad63d9ab6c6fb93694179416adfb3ad6127b161da792ff9b3437a0ad5a0"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_01.json": {
+      "bytes": 625175,
+      "sha256": "5f04b635bd9f40e37caf240a2072523879a5c93ed4a857d0d7dde9acebad1426"
+    },
+    "docs/issues/scsp_spc_voice_edit_chip_levels_verify_01.json": {
+      "bytes": 636467,
+      "sha256": "a68f119dd24842460db3bdb50aff32d895d1780d81f12979237c20f0abb3fc9f"
+    }
+  },
+  "sources": {
+    "tetorica_src/runtime/scspsynth.js": {
+      "before": {
+        "bytes": 22404,
+        "sha256": "5a47a06bb9346b2ba1676bf31d52d07f609331633f0ca950b0ecf2dc0d8e3376"
+      },
+      "after": {
+        "bytes": 22628,
+        "sha256": "d9f22336310d263c5af909cfcee0590895d0411a648f9e81e998fc5ec3dc4274"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2521,
+          "afterBytes": 137,
+          "beforeText": "const envelopeDefaults = () => ({attackRate:31,decay1Rate:0,decay2Rate:0,decayLevel:0,releaseRate:31,keyRateScaling:15});\n"
+        },
+        {
+          "afterOffset": 2969,
+          "afterBytes": 207,
+          "beforeText": "  for (const k of Object.keys(result)) int(result[k],0,k==='keyRateScaling'?15:31,k);\n"
+        },
+        {
+          "afterOffset": 15869,
+          "afterBytes": 285,
+          "beforeText": "      [10,(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value);\n"
+        },
+        {
+          "afterOffset": 18718,
+          "afterBytes": 243,
+          "beforeText": "        this.#voices[i]=actual?{...actual,envelope:{...actual.envelope},lfo:{...lfoDefaults(),...actual.lfo},modulation:{...modulationDefaults(),...actual.modulation},sample:replacement}:{...this.#voices[i],sample:null};\n"
+        },
+        {
+          "afterOffset": 19307,
+          "afterBytes": 214,
+          "beforeText": "    this.#voices[slot]={...v,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation},sample:v.sample?this._resolveSample(v.sample):null};\n"
+        },
+        {
+          "afterOffset": 20249,
+          "afterBytes": 230,
+          "beforeText": "    this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation}}));\n"
+        }
+      ]
+    },
+    "docs/js/scspsynth.js": {
+      "before": {
+        "bytes": 22416,
+        "sha256": "0b07f9c20d99a3f7c63376f4d076ff3d73b5ba1d419edc87a3db1da3272f442b"
+      },
+      "after": {
+        "bytes": 22640,
+        "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2533,
+          "afterBytes": 137,
+          "beforeText": "const envelopeDefaults = () => ({attackRate:31,decay1Rate:0,decay2Rate:0,decayLevel:0,releaseRate:31,keyRateScaling:15});\n"
+        },
+        {
+          "afterOffset": 2981,
+          "afterBytes": 207,
+          "beforeText": "  for (const k of Object.keys(result)) int(result[k],0,k==='keyRateScaling'?15:31,k);\n"
+        },
+        {
+          "afterOffset": 15881,
+          "afterBytes": 285,
+          "beforeText": "      [10,(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value);\n"
+        },
+        {
+          "afterOffset": 18730,
+          "afterBytes": 243,
+          "beforeText": "        this.#voices[i]=actual?{...actual,envelope:{...actual.envelope},lfo:{...lfoDefaults(),...actual.lfo},modulation:{...modulationDefaults(),...actual.modulation},sample:replacement}:{...this.#voices[i],sample:null};\n"
+        },
+        {
+          "afterOffset": 19319,
+          "afterBytes": 214,
+          "beforeText": "    this.#voices[slot]={...v,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation},sample:v.sample?this._resolveSample(v.sample):null};\n"
+        },
+        {
+          "afterOffset": 20261,
+          "afterBytes": 230,
+          "beforeText": "    this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation}}));\n"
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 143235,
+        "sha256": "cb5f91e6de2fe80670d580af69b883476ef64e774d41d12c94045c986ce98889"
+      },
+      "after": {
+        "bytes": 143351,
+        "sha256": "a1264ba6910777c6edbbdca48387bcd2808d5bb53b80b3245bfd0f172e46756c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 136028,
+          "afterBytes": 116,
+          "beforeText": ""
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/scspsynth.d.ts": {
+      "bytes": 5243,
+      "sha256": "1a811a6ba8f91908da723c6cc42c0e25025bf7772f6c6ae87a8705903910595a"
+    },
+    "scripts/soundchip_calibration_scsp.mjs": {
+      "bytes": 2630,
+      "sha256": "78de88a45cbdc37dce6f47c244f071020bad96e14fa665f6392c3c52c58e4e60"
+    },
+    "tetorica_src/runtime/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "fd8800fae833a7439e6788a42ac8e8d465bd16a96161f7931519546506fffae4"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "17689984f6a076a45eae52efb695f9f448f392a602e8280a70b1761916ae4e8c"
+    }
+  }
+}

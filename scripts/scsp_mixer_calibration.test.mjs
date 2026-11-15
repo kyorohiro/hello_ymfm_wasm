@@ -13,6 +13,7 @@ import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,isSoundChipPsgS
 import {SoundChipMixer} from '../tetorica_src/runtime/soundchip_mixer.js';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
 const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.url),'utf8'));
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
@@ -55,7 +56,7 @@ test('complete SCSP measurement retains every script/source fingerprint through 
  const bytes=await readFile(new URL('../'+currentScspReportPath,import.meta.url)),current=JSON.parse(bytes);
  await validateScspMixerCalibrationSources({reportPath,scspReport:current});
  const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
- for(const [path,expected]of Object.entries(current.scripts))assert.equal(sha(await readFile(new URL('../'+path,import.meta.url))),expected,path);
+ for(const [path,expected]of Object.entries(current.scripts))assert.equal(sha(restoreMixerCalibrationScspLoopLinkRevision(path,await readFile(new URL('../'+path,import.meta.url)))),expected,path);
  for(const [path,record]of Object.entries(current.sources)){
    const actual=await readFile(new URL('../docs/'+path,import.meta.url));
    assert.doesNotThrow(()=>assertMixerCalibrationSourceFreshness({path,bytes:actual,record,report:current}),path);

@@ -81,7 +81,10 @@ export function setupScspSongControls({
 			play.disabled = !loaded || loading || current.busy || current.playing || current.paused;
 		if (pause) {
 			pause.disabled = !current.canPause && !current.canResume;
-			pause.textContent = current.paused ? 'Resume' : 'Pause';
+			const label = current.paused ? 'Resume' : 'Pause';
+			// Retain the same text node between pointerdown and pointerup.
+			// Replacing it on every playback tick can suppress clicks in WebKit.
+			if (pause.textContent !== label) pause.textContent = label;
 		}
 		if (stop) stop.disabled = !current.canStop;
 		if (seek) {

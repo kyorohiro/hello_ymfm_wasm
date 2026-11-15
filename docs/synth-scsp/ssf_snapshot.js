@@ -40,6 +40,7 @@ export function decodeScspSsfSnapshot(words, ram) {
 				decayLevel: (r[5] >> 5) & 31,
 				releaseRate: r[5] & 31,
 				keyRateScaling: (r[5] >> 10) & 15,
+				loopLink: Boolean(r[5] & 0x4000),
 			},
 			lfo: {
 				frequencyCode: (r[9] >> 10) & 31,

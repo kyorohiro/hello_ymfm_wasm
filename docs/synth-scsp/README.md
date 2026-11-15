@@ -45,6 +45,14 @@ All modulator ratios sets A to 1 and B–F to the chosen ratio, after which each
 ratio can be edited separately. PCM uses A at the keyboard pitch. Output
 operators supply the audible Direct level and Pan.
 
+Envelope includes **Attack / loop link**, the hardware LPSLNK setting. When
+enabled, Attack transitions to Decay 1 when playback reaches the programmed
+loop start, even if Attack has not reached its usual level. Until that
+threshold, reaching the full Attack level holds it in Attack. This differs
+from Attack hold, which is a separate hardware feature. The checkbox applies
+to new notes and is read-only while viewing SSF slots. Captured forward-loop
+instruments retain both the loop start and this setting.
+
 ## Code
 
 Select Code and press Run. The starter plays the current sound using beats,
@@ -80,6 +88,8 @@ operators A–F through indices 0–5.
 // Change source A's mix while the melody continues.
 await scsp.setMix(0, { pan: 8 });
 await scsp.setConfig({ fm: { depth: 8 } });
+// Hardware Attack / loop link for source A, on its next note.
+await scsp.setEnvelope(0, { loopLink: true });
 ```
 
 The scoped API also provides `setPreset`, `getPCM`, `loadPCM`, `setNote`,
@@ -197,9 +207,13 @@ unchanged.
 This first capture supports independent PCM8 / PCM16 slots with ordinary
 one-shot or forward loops and 2–65,535 samples. Unsupported noise / zero
 sources, source-bit operations, short-wave / extended pitch coding, reverse /
-alternating loops, hold / loop-link / bypass modes and linked sound-stack
+alternating loops, hold / bypass modes and linked sound-stack
 modulation show their reason beside Capture. Slots without audible direct
 output and loops too short for their playback step are also unavailable.
+Attack / loop link is supported for forward loops and one-shots with a zero
+threshold. A linked one-shot with a nonzero threshold is unavailable because
+the current high-level one-shot adapter programs its loop-start register to
+zero; capture does not silently replace that threshold or add a forward loop.
 Failed validation preserves the authored instrument and paused recording.
 Paired-slot capture remains follow-up work.
 

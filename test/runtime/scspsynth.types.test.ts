@@ -4,7 +4,8 @@ async function example() {
   const chip=await Scsp.create({moduleFactory:async()=>({})});
   const synth=new ScspSynth(chip),initial=createScspInitSample();
   const sample:ScspSample=synth.loadPCM(initial.pcm,initial.options);
-  synth.setPreset(31,{sample,envelope:{attackRate:31,releaseRate:20}});
+  synth.setPreset(31,{sample,envelope:{attackRate:31,releaseRate:20,loopLink:true}});
+  synth.setEnvelope(31,{loopLink:false});
   synth.noteOn(31,'C4');synth.setFrequency(31,440);synth.setMix(31,{pan:15});
   const state=synth.getState();const rate:44100=state.sampleRate;
   const pcm=synth.generateStereo(rate);synth.renderInto(pcm.left,pcm.right,128);
@@ -18,6 +19,8 @@ async function example() {
   sample.address=0;
   // @ts-expect-error Raw envelopes have named fields.
   synth.setEnvelope(0,{attack:10});
+  // @ts-expect-error Hardware loop link takes a boolean.
+  synth.setEnvelope(0,{loopLink:1});
   // @ts-expect-error Unsupported modulation controls must not appear supported.
   synth.setPreset(0,{fmDepth:1});
   synth.noteOff(31);synth.allNotesOff();synth.stopVoices();synth.reset({clearRam:true});synth.dispose();

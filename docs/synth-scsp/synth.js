@@ -8,6 +8,7 @@ import { enhanceScspNumberControls } from './controls.js';
 import { setupScspCodeHost } from './code_host.js';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
+import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
@@ -170,12 +171,14 @@ function renderState() {
 	const observing = liveView?.update(songState, songControls?.player.getLiveSnapshot());
 	syncAuditionSelection();
 	if (observing) {
+		envelopeControls.update({ voice: liveView.getPCM().voice, readOnly: true });
 		if (!wasLive) chipTab(false);
 		numberControls?.update();
 		return;
 	}
 	const state = latestState;
 	if (!$('voice').querySelector('.is-dragging')) panel.update(state);
+	envelopeControls.update({ voice: state.slots[panel.getSelectedChannel()], readOnly: false });
 	const memory = $('voice').querySelector(':scope > p');
 	if (memory)
 		memory.textContent = memory.textContent.replace(
@@ -354,6 +357,26 @@ for (const label of $('voice').querySelectorAll(':scope > label'))
 const copyButton = $('voice').querySelector('[data-chip-action="scsp-copy"]');
 copyButton.textContent = 'Copy operator JavaScript';
 const numberControls = enhanceScspNumberControls(document.querySelector('.synth-shell'));
+const envelopeControls = setupScspEnvelopeControls({
+	root: $('voice'),
+	getSelectedSlot: () => panel.getSelectedChannel(),
+	invoke: (method, args) =>
+		enqueue(async () => {
+			if (liveView?.isActive())
+				throw new Error(
+					'SSF Live view is read-only. Turn off Live to edit the instrument.',
+				);
+			try {
+				const result = await invoke(method, args);
+				await refresh({ dirty: true });
+				return result;
+			} catch (error) {
+				await refresh();
+				throw error;
+			}
+		}),
+	onError: report,
+});
 panel.setConnected(true);
 for (const id of ['voiceMode', 'pitch', ...effectControls]) $(id).disabled = false;
 for (const button of operatorButtons) button.disabled = false;
@@ -926,6 +949,7 @@ window.addEventListener('pagehide', (event) => {
 	monitorResize.disconnect();
 	visualizer.dispose();
 	liveView.dispose();
+	envelopeControls.dispose();
 	panel.dispose();
 	numberControls.dispose();
 	songControls.dispose();

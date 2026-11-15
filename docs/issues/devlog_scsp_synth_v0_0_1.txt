@@ -1,0 +1,67 @@
+# Tetorica SCSP Synth v0.0.1 — Explore Sega Saturn Sound
+
+The first release of Tetorica SCSP Synth is now available in your browser!
+
+Play the keyboard, draw a waveform, explore slot modulation, or write a JavaScript performance. You can also open an SSF recording, watch how its sound settings change, and bring a supported instrument into the Synth for your own experiments.
+
+Try it here.
+https://kyorohiro.itch.io/tetorica-scsp-synth
+
+## Shape a sound with PCM, Envelope and LFO
+
+Start with a built-in waveform, draw your own, or import audio. Adjust the sample's tuning and loop, then shape its Envelope, LFO, level and pan.
+
+The controls use the same Keyboard / Code workspace as the other Tetorica Synths. Numeric controls have minus / plus buttons and horizontal dragging, so you can keep playing while adjusting a sound. Waveform and Spectrum help you follow the result.
+
+## Explore Saturn-style slot modulation
+
+SCSP has 32 hardware slots. In addition to ordinary PCM playback, its sound stack allows slots to modulate other slots.
+
+The Synth provides 2-, 4- and 6-operator modes, with Chain, Pairs and Branch connections. A diagram shows the connections and audible outputs. Select A–F to edit each operator's PCM, Envelope, LFO and frequency ratio on the same canvas.
+
+These operator groups, connection templates and keyboard allocation are software tools built over the SCSP's slot-modulation hardware. They make it easier to explore the chip without manually assigning every physical slot. Six operators is a Synth mode, not the hardware's limit.
+
+## Play with JavaScript and the controls together
+
+Switch to Code and use useSoundChip("scsp") to control the same edited sound. The starter uses liveLoop(), beat() and setBpm(), so changing BPM changes the melody's tempo.
+
+Keep a phrase running while adjusting the controls or playing the keyboard alongside it. Switching between Keyboard and Code keeps the program running. Apply updates named loops while retaining prepared state.
+
+Files keeps index.js, reusable modules and instrument presets together. Export a Cassette ZIP to keep your project and share it.
+
+## See how an SSF song makes its sounds
+
+Import a local SSF / MiniSSF folder from Menu, including its related SSFLib files. Select a song, then use Play, Pause, Resume and the position bar.
+
+Live from SSF shows the activity of all 32 physical slots. Select one to inspect its PCM preview, Envelope, LFO, mix and modulation settings through the existing controls. Pause freezes the view, letting you compare slots at the same moment.
+
+While paused, you can audition a supported PCM slot on the keyboard. Reference key sets which key reproduces the captured playback rate; it defaults to C4.
+
+Capture to Synth brings that instrument into the editable workspace while keeping the song paused and ready to Resume. Edit the waveform or settings, then save it to presets in Files.
+
+This first Capture supports independent PCM8 / PCM16 instruments with ordinary one-shot or forward loops. Unsupported settings, such as linked modulation or attack / loop link, show an explanation. Capture starts a fresh note and takes the dry instrument; the song's DSP processing and global master volume are not copied.
+
+SCSP VGM / VGZ reference playback is also available.
+
+## DSP is still being developed
+
+DSP assembler and microprogram editing are under construction. The DSP tab currently includes an experimental fixed Delay running in the SCSP DSP. The Code runtime's liveFx is a separate software effect feature.
+
+## Play, understand, then make it your own
+
+Tetorica aims to make classic sound technology something we can investigate, learn from and use to create new work.
+
+The downloadable Web package includes readable JavaScript and CSS with comments and names intact, matching WASM, corresponding source code, licenses and rebuild instructions.
+
+Try a sound, see what creates it, then take the code further. You can bring the project to your own Codex and modify it into an instrument, game or experiment of your own.
+
+SCSP Synth source and guide:
+https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/docs/synth-scsp
+
+Tetorica toolkit and JavaScript / WASM APIs:
+https://github.com/kyorohiro/hello_ymfm_wasm
+
+Native sound-chip sources and build instructions:
+https://github.com/kyorohiro/tetorica-soundchip-native
+
+Have fun exploring Saturn sound!

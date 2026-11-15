@@ -39,6 +39,7 @@ test('passive words decode hardware fields including raw zero-rate pitch and sou
 		decayLevel: 7,
 		releaseRate: 15,
 		keyRateScaling: 9,
+		loopLink: true,
 	});
 	assert.deepEqual(slot.voice.lfo, {
 		frequencyCode: 20,

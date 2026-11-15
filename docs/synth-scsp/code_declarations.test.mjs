@@ -21,6 +21,8 @@ const pitchBend:number=state.pitchBend;
 const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopStartSamples:0});
 await scsp.setPreset(0,{sample});await scsp.setConfig({mode:'fm6',fm:{algorithm:'pairs'}});
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
+await scsp.setEnvelope(0,{loopLink:true});
+await scsp.setPreset(0,{envelope:{loopLink:false}});
 await scsp.setLfo(0,{pitchDepth:2});await scsp.setMix(0,{totalLevel:9});
 await scsp.applyPCM(0,new Int16Array([0,1]),{rootNote:'C4'});
 await scsp.getPCM(5);await scsp.exportPatch();await scsp.keyOn(31);await scsp.keyOff(31);
@@ -41,6 +43,8 @@ scsp.reset();
 scsp.writeDsp(0x4c,1);
 // @ts-expect-error no independent instance
 createSoundChip('scsp');
+// @ts-expect-error hardware loopLink is boolean
+scsp.setEnvelope(0,{loopLink:1});
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}

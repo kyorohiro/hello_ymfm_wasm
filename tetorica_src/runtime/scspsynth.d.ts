@@ -60,6 +60,8 @@ export interface ScspEnvelope {
   decayLevel: number;
   releaseRate: number;
   keyRateScaling: number;
+  /** LPSLNK: hold Attack until the sample reaches its loop start. Omitted is false. */
+  loopLink?: boolean;
 }
 export interface ScspMix {
   /** 0..255 attenuation; 0 loudest. */

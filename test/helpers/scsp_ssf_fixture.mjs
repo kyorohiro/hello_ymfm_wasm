@@ -262,3 +262,47 @@ export function createScspSsfCaptureFixture() {
 		unsupportedSlot: 2,
 	};
 }
+
+/** Long original PCM16 with a nonzero LSA and a deliberately slow attack.
+ * LPSLNK changes the hardware attack at sample 512, well before AR18 reaches
+ * its maximum. The retained loop is a repeated 64-sample sine. */
+export function createScspSsfLoopLinkFixture({ loopLink = true } = {}) {
+	if (typeof loopLink !== 'boolean') throw new TypeError('Fixture loopLink must be boolean');
+	const original = createScspSsfCaptureFixture();
+	const image = new Uint8Array(0x3000);
+	image.set(original.image);
+	const view = new DataView(image.buffer);
+	const writes = new Map([
+		[0x100002, 0x2000],
+		[0x100004, 512],
+		[0x100006, 2048],
+		[0x100008, 18],
+		[0x10000a, 0x3c1f | (loopLink ? 0x4000 : 0)],
+		[0x100012, 0],
+	]);
+	for (let address = 0x100; address < original.image.length - 8; address += 2) {
+		if (view.getUint16(address, false) !== 0x33fc) continue;
+		const target = view.getUint32(address + 4, false);
+		if (writes.has(target)) view.setUint16(address + 2, writes.get(target), false);
+	}
+	for (let index = 0; index < 2048; index++)
+		view.setInt16(
+			0x2000 + index * 2,
+			Math.round(8192 * Math.sin((index * Math.PI) / 32)),
+			false,
+		);
+	const bytes = ssfFromProgram(
+		image,
+		0,
+		'title=Tetorica original SSF Attack loop link\nartist=Tetorica\nlength=0:08\nfade=0:00.25\n',
+	);
+	return {
+		image,
+		bytes,
+		files: [{ path: '/ssf/loop-link.ssf', data: bytes }],
+		loopStart: 512,
+		length: 2048,
+		attackRate: 18,
+		loopLink,
+	};
+}

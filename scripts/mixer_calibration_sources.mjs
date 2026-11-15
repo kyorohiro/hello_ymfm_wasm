@@ -21,6 +21,7 @@ import {restoreMixerCalibrationMonacoModelRevision} from './mixer_calibration_mo
 import {restoreMixerCalibrationNesNavigationRevision} from './mixer_calibration_nes_navigation_revision.mjs';
 import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration_scsp_navigation_revision.mjs';
 import {restoreMixerCalibrationScspDraftRevision} from './mixer_calibration_scsp_draft_revision.mjs';
+import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -370,6 +371,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const loopLink=restoreMixerCalibrationScspLoopLinkRevision(path,bytes),loopLinkRevision=loopLink!==bytes;bytes=loopLink;
+  if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return loopLinkRevision?'scsp-loop-link-hardware-api':'raw';
   const draftCheckpoint=restoreMixerCalibrationScspDraftRevision(path,bytes),draftRevision=draftCheckpoint!==bytes;bytes=draftCheckpoint;
   if(record&&bytes.length===record.bytes&&sha(bytes)===record.sha256)return draftRevision?'ui-scsp-draft-checkpoint':'raw';
   const outputGains=restoreMixerCalibrationYm2608OutputGainRevision(path,bytes,{report,record});

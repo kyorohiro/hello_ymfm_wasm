@@ -13,6 +13,7 @@ import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_captu
 import {
 	createScspSsfPlaybackFixture,
 	createScspSsfCaptureFixture,
+	createScspSsfLoopLinkFixture,
 	createScspSsfLiveFixture,
 } from '../../test/helpers/scsp_ssf_fixture.mjs';
 
@@ -194,7 +195,7 @@ test('unsupported dependencies and malformed snapshots fail before replacing the
 		[(s) => (s.slots[0].sample.loopStart = 64), /start before/],
 		[(s) => (s.slots[0].registers[8] |= 0x8000), /Short-wave/],
 		[(s) => (s.slots[0].registers[8] |= 0x400), /Extended FNS/],
-		...['attackHold', 'loopLink', 'envelopeBypass', 'soundDirect'].map((key) => [
+		...['attackHold', 'envelopeBypass', 'soundDirect'].map((key) => [
 			(s) => (s.slots[0].flags[key] = true),
 			/not supported/,
 		]),
@@ -202,6 +203,15 @@ test('unsupported dependencies and malformed snapshots fail before replacing the
 		[(s) => (s.slots[0].voice.directLevel = 0), /no direct output/],
 		[(s) => (s.slots[0].voice.totalLevel = 255), /attenuation/],
 		[(s) => (s.slots[0].voice.frequencyHz = 0), /zero or invalid/],
+		[
+			(s) => {
+				s.slots[0].flags.loopLink = true;
+				s.slots[0].sample.loopMode = 0;
+				s.slots[0].sample.loopStart = 8;
+			},
+			/nonzero one-shot threshold/,
+		],
+		[(s) => (s.slots[0].flags.loopLink = 1), /missing from this snapshot/],
 		[(s) => (s.slots[0].sample.loopStart = 63), /short forward loop/],
 		[(s) => (s.ram = new Uint8Array(1)), /same-time/],
 	];
@@ -220,6 +230,51 @@ test('unsupported dependencies and malformed snapshots fail before replacing the
 	}
 	assert.throws(() => createScspSsfCapture(snapshot, 32), /Slot/);
 	assert.throws(() => createScspSsfCapture(snapshot, 0, { referenceMidi: 128 }), /Reference/);
+});
+
+test('linked SSF Attack retains its nonzero loop threshold through Capture and preset round trips', async () => {
+	const fixture = createScspSsfLoopLinkFixture();
+	const snapshot = await observe(fixture);
+	assert(snapshot.slots[0].flags.loopLink);
+	assert(snapshot.slots[0].voice.envelope.loopLink);
+	assert(getScspSsfCaptureAvailability(snapshot, 0).available);
+	const { preset } = createScspSsfCapture(snapshot, 0);
+	assert.equal(preset.voice.envelope.loopLink, true);
+	assert.equal(preset.options.loopStartSamples, fixture.loopStart);
+	assert.equal(preset.pcm.length, fixture.length);
+	const linked = new SynthInstrument(await core());
+	const restored = new SynthInstrument(await core());
+	const ordinary = new SynthInstrument(await core());
+	try {
+		linked.loadPatch(preset);
+		const portable = JSON.parse(JSON.stringify(linked.exportPatch()));
+		assert.equal(portable.operators.carrier.voice.envelope.loopLink, true);
+		restored.loadPatch(portable);
+		ordinary.loadPatch({
+			...preset,
+			voice: { ...preset.voice, envelope: { ...preset.voice.envelope, loopLink: false } },
+		});
+		for (const instrument of [linked, restored, ordinary]) instrument.noteOn('reference', 60);
+		const slot = linked.read().voiceGroups[0].slots[0];
+		assert.equal(linked.core.read(slot * 32 + 10) & 0x4000, 0x4000);
+		assert.equal(linked.core.read(slot * 32 + 4), fixture.loopStart);
+		const audio = linked.core.generateStereo(8192);
+		assert.deepEqual(audio, restored.core.generateStereo(8192));
+		const unlinked = ordinary.core.generateStereo(8192);
+		const energy = (wave) => wave.subarray(4096).reduce((sum, value) => sum + value * value, 0);
+		assert(audio.left.every(Number.isFinite));
+		assert(energy(audio.left) > 0);
+		assert(
+			energy(unlinked.left) > energy(audio.left) * 1.5,
+			'the ordinary Attack keeps rising after the linked threshold',
+		);
+		linked.noteOff('reference');
+		assert.equal(linked.read().voiceGroups[0].held, false);
+	} finally {
+		linked.dispose();
+		restored.dispose();
+		ordinary.dispose();
+	}
 });
 
 test('shared DSP and global master are explicitly reported as dry-capture limitations', async () => {
