@@ -2,7 +2,7 @@
 
 Status: design and TODO only, updated on 2026-11-16. **Not implemented.** No runtime, declarations, defaults, DSP or WASM changes belong to this step.
 
-Tetorica should make both a SoundChip operation and its resulting register writes understandable. Record high-level operations without reading chip state, resolve them when they execute, and expose that same conversion separately for inspection. This revision withdraws the earlier build-time state copy and eager fixed-write compilation inside `build()`.
+Tetorica should make both a SoundChip operation and its resulting register writes understandable. Record high-level operations without reading chip state, resolve them when they execute, and expose that same conversion separately for inspection. This revision withdraws the earlier build-time state copy and eager fixed-write compilation inside `build()`. Reusable state snapshots extend compilation so different operation lists can be compared from exactly the same baseline.
 
 ## 1. Public roles and compatibility
 
@@ -41,7 +41,7 @@ Those descriptive aliases are not currently AY methods; adding immediate aliases
 
 Preserve existing YM2612 `scheduleWrites(entries)` / `clearScheduledWrites()` signatures, absolute AudioContext-time semantics and behavior. New `schedule(operations, options)` accepts operation data with relative offsets and must not reinterpret legacy entries. Compiled rows are inspection data, not implicitly legacy scheduling arguments; that API still requires its existing absolute-time format.
 
-Keep `initialState` as the proposed compile option name, default `"current"`, with `"reset"` selecting a reset baseline. Use `referenceSampleRate` for authoring sample units to distinguish them from device `sampleRate`.
+Keep `initialState` as the proposed compile option name: default `"current"`, `"reset"`, or a previously captured state snapshot. Add the proposed asynchronous `captureState()` name for obtaining reusable compilation snapshots. Existing `getState()` behavior is unchanged; section 4 explains the distinction. Use `referenceSampleRate` for authoring sample units to distinguish them from device `sampleRate`.
 
 ## 2. `build()` is a lightweight operation recorder
 
@@ -120,11 +120,50 @@ const resetWrites = fm.compile(operations, { initialState: "reset" });
 
 - Default / `initialState: "current"`: use a coherent snapshot of authoritative chip state and required metadata associated with the compilation request.
 - `initialState: "reset"`: construct the chip's defined reset registers and semantic metadata, retaining the instance clock / model configuration. Do not substitute the current preset, Synth starter patch or `initialize()` sound.
+- `initialState: snapshot`: use the compatible snapshot returned by `captureState()` as the complete baseline. Do not recapture current state or merge live values into it.
 - Resolve sequentially against temporary work state using the same chip resolver as scheduling. Virtual changes affect later operations but never live registers, retained levels, UI, clock or reservations.
 - Emit only operation-generated writes. Baseline construction contributes no rows and forwards no live reset or constructor / initialization writes.
 - Retain repeated values, commands and write order. Simulate register / control state only; do not render audio or emulate a complete machine.
 
 Reset descriptors need a per-chip audit: AY has retained-level metadata, and OPN authoring defaults are not a complete hardware reset register image. Deriving reset compilation blindly from constructor defaults would be incorrect.
+
+### Reusable snapshots through `captureState()`
+
+```javascript
+// Proposed API; not implemented.
+const snapshot = await fm.captureState();
+
+const writesA = await fm.compile(operationsA, {
+  initialState: snapshot,
+});
+const writesB = await fm.compile(operationsB, {
+  initialState: snapshot,
+});
+```
+
+Choose `captureState()` rather than changing `getState()`. Existing YM2612 / OPN `getState()` synchronously returns a copy of authoring state; it is not an authoritative Worklet snapshot and can omit applied raw-register changes. The AY Synth Code wrapper also has a display / instrument `getState()` with different contents. None of those existing methods gains new timing, return types or snapshot guarantees. Their results are not implicitly accepted as compilation snapshots.
+
+The snapshot contract is deliberately limited to repeatable register-operation resolution:
+
+- Include authoritative register contents and all internal control / authoring state needed by supported operations: AY retained key-on levels, decoded OPN operator / channel / mode state and any relevant register-latch metadata. Include the clock / model / configuration used by conversion. Registers alone are insufficient.
+- Capture registers, metadata and conversion configuration coherently between complete operation / write batches, never halfway through an OPN high/low frequency pair or before matching metadata is committed.
+- Use the same ordered asynchronous AudioWorklet request / response mechanism proposed for current-state compilation. The capture point is its audio-side processing position, not the JS invocation instant. Copy bounded state there and return independent data; continue rendering without pause, reset, seek, draining future reservations or stopping playback.
+- Expose a detached read-only value with no shared mutable references to the live chip, client, UI or later captures. Copy nested data / buffers; do not transfer ownership of live audio buffers. Subsequent playing, manual writes, reset or UI updates do not change an already returned snapshot.
+- For each `compile()`, create separate working state from the snapshot. Never consume or mutate it, including during failed compilation. Compiling A then B, B then A, or both independently must start each from the same captured state. Changes made virtually by A must not leak into B.
+- Supplied-snapshot compilation needs no new live-state readback. It checks target compatibility and uses captured resolution state; output does not depend on later live register values. `"current"` still obtains a fresh ordered snapshot for each compile request, and `"reset"` still constructs its own isolated reset baseline.
+- Snapshot capture / reuse emits no chip writes and changes no live registers, retained metadata, UI, schedules or ownership. Data access never grants permission to bypass existing client lifecycle / ownership guards.
+
+These are compilation snapshots, not complete audio-emulator save states. Include internal fields required to resolve supported register operations, not unrelated oscillator phase, full PCM memory, DSP state, pending reservations or loop ownership. This addition creates no state-restore API, snapshot editor or persistence / interchange format.
+
+#### Identity and compatibility
+
+Validate the snapshot before compiling. Require a supported snapshot format / resolver version, the same underlying chip instance, the same chip kind and concrete model / variant, and a compatible conversion configuration. Check clock, register / port layout, channel / operator mapping and any flags affecting supported operation conversion. Reject wrong kinds, incompatible configuration, malformed or incomplete snapshots explicitly; do not reinterpret them or fill missing fields from live state.
+
+The initial scope is reuse with the same underlying chip instance, as in the example. Cross-instance snapshot portability is not introduced. Instance identity is stable across wrappers / Run generations for that chip; it is not a loop owner or Run-generation token. A historical snapshot remains a valid baseline after live register changes or Run changes while that same instance and compatible configuration remain. Existing rules for stopped / disposed clients still apply. Changing clock / model to an incompatible configuration rejects reuse without altering the snapshot or retuning the live chip.
+
+Capture frame / state-version provenance can document the snapshot point. Output device sample rate and capture frame describe provenance, not conversion compatibility; authoring `referenceSampleRate` remains a property of the operation list. Changing output rate alone must not change compiled register results. Keep validation chip-specific and bounded rather than introducing a general state-portability framework.
+
+### Compiled write rows
 
 Return ordered flat records suitable for `console.table()` and analyzer use:
 
@@ -139,7 +178,7 @@ Return ordered flat records suitable for `console.table()` and analyzer use:
 
 Times are relative offsets independent of device rate; the input retains original units and reference rate. Indices explain one-to-many conversion and order. Compile one pass; repetition belongs to scheduling options.
 
-This is a prediction from one baseline, **not actual playback history**. Manual interleaving can correctly change scheduled partial-write results from previously compiled rows. Playback-history recording is not added here.
+This is a prediction from one baseline, **not actual playback history**. Manual interleaving can correctly change scheduled partial-write results from previously compiled rows. Snapshot reuse does not change `schedule()`: it still resolves against actual state at execution, and neither accepts nor restores a compilation snapshot. Playback-history recording is not added here.
 
 ### Open return-contract decision: current state across threads
 
@@ -152,7 +191,7 @@ const writes = await fm.compile(operations);
 const resetWrites = await fm.compile(operations, { initialState: "reset" });
 ```
 
-For live connections, take a coherent snapshot using an ordered request to the chip-owning audio thread and compile on a copy. Define the snapshot point as the audio-side processing position of that request, before later operations, with internal frame / state-version provenance for verification. This does not claim to read the exact JavaScript wall-clock instant of invocation.
+For live connections, current-state compilation uses the same coherent snapshot acquisition as `captureState()` and compiles on a copy. Define the snapshot point as the audio-side processing position of that request, before later operations, with internal frame / state-version provenance for verification. This does not claim to read the exact JavaScript wall-clock instant of invocation. With `initialState: snapshot`, reuse its earlier capture point; do not take another snapshot.
 
 **Settle this return / snapshot contract before implementation.** It is a proposed adjustment to the synchronous example, not permission to silently use a stale authoring copy. Reset compilation can be local, but one awaitable contract avoids backend-dependent return types. No timer fallback may approximate snapshot ordering or execution.
 
@@ -207,6 +246,11 @@ These checks establish representability against current code. They are design re
 | YM2612 Key On/Off | Keep port 0 / `0x28` values `0xF0`, `0xF1`, `0x00`, `0xF0` in order: CH1 On, CH2 On, CH1 Off, CH1 On. Reuse existing channel / operator mapping. |
 | Same-time operations | Preserve operation order and contiguous write batches. Later operations see earlier changes. |
 | Compile current / reset | For the R7 example, current `0xC9` gives `0xC8` / `0xD8`; AY's zeroed reset register baseline gives `0x00` / `0x10`. No baseline writes or live mutations. |
+| One snapshot, different operations | Capture AY R7 = `0xC9`. From that same snapshot, A = CH1 Tone On gives `0xC8`; B = CH1 Tone Off gives `0xC9`. Compiling A first must not affect B, even after live R7 changes. Repeating A gives identical rows. |
+| Snapshot includes semantic state | With raw AY volume zero but retained level 9, compile Key On from the snapshot and obtain level 9. Preserve relevant OPN packed fields / mode / latch metadata coherently too. A register-only or existing display `getState()` object is rejected. |
+| Snapshot isolation / concurrent reuse | Capture state, keep a copy and advance live playing / editing. Snapshot remains unchanged. Compile A / B independently, including failures; neither snapshot nor live state changes and virtual writes do not leak between runs. |
+| Asynchronous capture during playback | Capture between complete batches while audio and reservations continue. No reset, pause, skipped writes, draining future work or mismatched raw / semantic state. Returned data owns independent buffers. |
+| Snapshot identity / configuration | Reject another chip instance, wrong chip / model / clock / layout, incompatible version and malformed or missing state without changing live state or reservations. Compatible historical state is not invalidated merely by later register writes, Run generation or output sample rate. |
 | Compile / schedule agreement | Same baseline / configuration without interference gives identical compiled and instrumented applied writes. Manual interleaving intentionally changes dependent fields. |
 | Mixed time / output rates | `atSeconds(0.1)` and `atSample(4410)` tie at frames 4,410 / 4,800 at 44.1 / 48 kHz, retaining order. Configurable reference rate describes equivalent times. |
 | Repetition / render blocks | Long 110 Hz repeats remain within half an output frame of ideal anchored times without accumulated drift. One-frame, 128-frame and irregular blocks agree; storage stays bounded. |
@@ -225,7 +269,7 @@ These checks establish representability against current code. They are design re
 - `docs/synth-ym2149-st/code_audio.js` / `code_host.js`: borrowed immediate client and shared Code runtime; new methods need later integration.
 - Existing WonderSwan / POKEY Timeline builders eagerly resolve against private authoring state. Their reset / prepare / replay semantics are not the new `build()` contract.
 
-Scope remains AY first, with YM2612 as a concrete design witness and compatibility constraint. Do not add PCM transfers, DSP, complete-machine emulation, playback-history recording, Looper / Event Rec or a giant all-chip abstraction. Other chips need explicit capability decisions and validation.
+Scope remains AY first, with YM2612 as a concrete design witness and compatibility constraint. Reusable snapshots add same-state compilation comparison, without snapshot restore, cross-instance portability or a save-state format. Do not add PCM transfers, DSP, complete-machine emulation, playback-history recording, Looper / Event Rec or a giant all-chip abstraction. Other chips need explicit capability decisions and validation.
 
 ### Design work in this step
 
@@ -233,6 +277,7 @@ Scope remains AY first, with YM2612 as a concrete design witness and compatibili
 - [x] Specify shared chip resolution, execution-time partial updates, strobe writes and isolated compilation.
 - [x] Preserve timing, compact repeats, Main / Worker, Performance Queue and ownership contracts.
 - [x] Review requested AY / OPN / timing cases and record reset, raw-state synchronization and snapshot gaps.
+- [x] Add reusable asynchronous `captureState()` snapshots and `initialState: snapshot`, including required semantic state, independent working copies, coherent capture, compatibility validation and comparison acceptance cases; preserve existing `getState()` behavior.
 - [ ] Settle `compile()` return / snapshot contract; recommend an awaitable authoritative snapshot.
 
 ### Implementation after design agreement — not started
@@ -240,6 +285,7 @@ Scope remains AY first, with YM2612 as a concrete design witness and compatibili
 - [ ] Finalize operation allowlists / schema, naming, start anchor and measured limits without changing immediate APIs or legacy `scheduleWrites()`.
 - [ ] Share chip validation / conversion; synchronize authoritative state and define reset descriptors / required metadata. Cover R7, R13, packed OPN fields, raw writes and key commands.
 - [ ] Implement lightweight recording and isolated compilation with snapshot ordering and no live side effects.
+- [ ] Add coherent non-stopping `captureState()` acquisition and reusable read-only state values; validate chip identity / configuration and compile each call on its own work copy. Verify same-baseline comparison, historical / concurrent reuse, rejection and no live mutations.
 - [ ] Implement compact sample-accurate reservations, atomic admission / replacement and fresh resolution at every occurrence.
 - [ ] Connect AY Worklet, Main / Worker, client and Synth Code ownership; retain Run / Apply / Stop and manual Gate guards.
 - [ ] Execute the acceptance matrix, including applied-write comparison, state-dependent failure and both output rates.
