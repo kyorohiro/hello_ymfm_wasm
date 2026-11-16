@@ -1,0 +1,78 @@
+name: YM2149 ST Synth
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/synth-ym2149-st/**'
+      - 'docs/js/ay8910*'
+      - 'docs/js/playground_ay8910*'
+      - 'docs/js/playground_code_runtime.js'
+      - 'docs/js/tetorica_virtual_files/**'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/file_context_menu.js'
+      - 'docs/playground/playground_cassette.js'
+      - 'docs/playground/playground_file_tree.js'
+      - 'docs/playground/playground_monaco*'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'tetorica_src/runtime/ay8910*'
+      - 'tetorica_src/runtime/playground_ay8910*'
+      - 'tetorica_src/runtime/generated/ay8910*'
+      - 'scripts/*ym2149*'
+      - 'scripts/copy_ay8910_sources.mjs'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'third_party/mame-ay8910/**'
+      - 'third_party/soundchip-sdk.json'
+      - 'third_party/tetorica-soundchip-native/**'
+      - 'package*.json'
+      - '.github/workflows/ym2149-st-synth.yml'
+  pull_request:
+    paths:
+      - 'docs/synth-ym2149-st/**'
+      - 'docs/js/**'
+      - 'docs/generated/ay8910*'
+      - 'docs/synth/synth_code*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/**'
+      - 'docs/playground/playground_cassette.js'
+      - 'docs/playground/playground_file_tree.js'
+      - 'docs/playground/playground_monaco*'
+      - 'docs/playground/tetorica-*.d.ts'
+      - 'tetorica_src/runtime/**'
+      - 'scripts/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/ym2149-st-synth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test and package the standalone YM2149 ST Synth
+        run: |
+          npm run test:ym2149-st-synth
+          sh scripts/package_itch_ym2149_st_synth.sh ci
+          python3 -m zipfile -e release/tetorica_ym2149_st_synth_ci_itch.zip release/ym2149-st-synth-browser
+          node scripts/check_ym2149_st_synth_browser.cjs --root=release/ym2149-st-synth-browser --entry=/index.html --out=release/ym2149-st-synth-browser.json --screenshots=release/ym2149-st-synth-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ym2149-st-synth-check
+          path: |
+            release/tetorica_ym2149_st_synth_ci_itch.zip
+            release/ym2149-st-synth-browser.json
+            release/ym2149-st-synth-images/
+          if-no-files-found: ignore

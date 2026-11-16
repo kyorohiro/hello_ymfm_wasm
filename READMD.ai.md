@@ -4,6 +4,18 @@
 
 Updated: 2026-11-16 (ASWAN Synth entry point; earlier SPU and SID handoffs retained below). This is an entry point for AI agents investigating the repository and resuming work.
 
+## YM2149 ST Synth entry point
+
+[Tetorica YM2149 ST Synth](docs/synth-ym2149-st/index.html) is the basic browser
+instrument for the Atari ST's YM2149 at 2,000,000 Hz. Three physical tone voices
+share one noise generator and one hardware envelope. Keyboard, manual controls
+and JavaScript Code share one initialized chip client and audio output; Files /
+Cassette retain readable presets, JavaScript and local projects. The public
+chip identifier remains `ay8910`. See the [guide and limits](docs/synth-ym2149-st/README.md)
+and [implementation TODO](docs/issues/todo_ym2149_st_synth_20261116.md).
+YM / SNDH reference playback and extraction remain follow-up work; this is not
+a complete Atari ST machine or an STE DMA player.
+
 ## ASWAN Synth entry point
 
 The passive ASWAN source-navigation additions are now connected to the exact

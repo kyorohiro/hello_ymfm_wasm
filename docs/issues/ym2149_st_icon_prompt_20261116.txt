@@ -1,0 +1,8 @@
+Tool: built-in imagegen (image edit).
+Input: approved Tetorica YM2149 Synth icon generated earlier in this conversation.
+Selected output: docs/tetorica_ym2149_st_synth.png
+Web asset: docs/tetorica_ym2149_st_synth.webp
+The original generated concept is retained unchanged.
+
+Final edit prompt:
+Use case: text-localization. Edit target: the supplied Tetorica YM2149 Synth square icon. Change only the blue text line "SYNTH" to the exact text "ST SYNTH", retaining its bold italic style and balanced spacing between the blue horizontal rules. The full product name must read "Tetorica YM2149 ST Synth": retain "Tetorica" and the large "YM2149" exactly. Preserve the entire existing design: cool light-gray textured housing, diagonal vents, royal-blue text, cyan square-wave screen, three white keys, dark chip, front-on view, lighting, white background and square framing. Do not add other words or logos. Keep the YM2149 text as large as in the original.

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Tetorica YM2149 ST Synth: play three Atari ST tone voices, shared noise and the YM2149 hardware envelope in your browser." />
+    <meta name="theme-color" content="#edf0f4" />
+    <meta name="application-name" content="Tetorica YM2149 ST Synth" />
+    <title>Tetorica YM2149 ST Synth</title>
+    <link rel="icon" type="image/webp" href="../tetorica_ym2149_st_synth.webp" />
+    <link rel="apple-touch-icon" href="../tetorica_ym2149_st_synth.webp" />
+    <link rel="stylesheet" href="./synth.css" />
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <a class="laboratory-link" href="../index.html">Tetorica <span>Sound Laboratory</span></a>
+        <nav aria-label="Sound Laboratory">
+          <a href="../synth-aswan/index.html">ASWAN Synth</a>
+          <a href="../synth-spu/index.html">SPU Synth</a>
+          <a href="../playground/index.html?mode=atari-st">Playground</a>
+        </nav>
+      </header>
+      <article class="synth-shell" aria-labelledby="synthTitle">
+        <header class="synth-heading">
+          <div class="title-row">
+            <div class="product-identity">
+              <img class="product-icon" src="../tetorica_ym2149_st_synth.webp" width="112" height="112" alt="" decoding="async" />
+              <div class="product-copy">
+                <p class="eyebrow">TONE · NOISE · HARDWARE ENVELOPE</p>
+                <h1 id="synthTitle">Tetorica <span class="product-name">YM2149 ST Synth</span></h1>
+                <p class="description">Atari ST · Three voices. One shared envelope. Your code.</p>
+              </div>
+            </div>
+            <span class="engine-badge">YM2149 <span>2 MHz · 3 HARDWARE CHANNELS</span></span>
+          </div>
+          <div class="audio-toolbar">
+            <div class="transport-actions">
+              <details id="synthMenu" class="synth-menu">
+                <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </summary>
+                <div id="synthMenuPanel" class="synth-menu-panel">
+                  <section class="synth-menu-section">
+                    <h2>Import</h2>
+                    <div class="synth-menu-actions">
+                      <div id="ymMenuProjectImport"></div>
+                      <div id="ymMenuFilesImport"></div>
+                    </div>
+                  </section>
+                  <section class="synth-menu-section">
+                    <h2>Export</h2>
+                    <div class="synth-menu-actions">
+                      <div id="ymMenuProjectExport"></div>
+                      <div id="ymMenuFileExport"></div>
+                    </div>
+                  </section>
+                </div>
+              </details>
+              <button id="enableAudio" class="primary" type="button">Enable audio</button>
+              <button id="stopSound" type="button">Stop all sound</button>
+              <button id="ymFilesToggle" type="button" aria-expanded="false" aria-controls="ymFilesPanel">Files</button>
+            </div>
+          </div>
+          <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
+        </header>
+
+        <div id="synthWorkspace" class="spu-code-workspace ym-code-workspace">
+          <aside id="ymFilesPanel" class="spu-files-panel ym-files-panel" aria-label="Project files" hidden></aside>
+          <div id="ymSynthMain" class="spu-main ym-main">
+            <section class="spu-monitor ym-monitor" aria-label="Output display">
+              <div class="ym-monitor-toolbar">
+                <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
+                  <button type="button" data-visual-mode="envelope" aria-pressed="true">Envelope</button>
+                  <button type="button" data-visual-mode="waveform" aria-pressed="false">Waveform</button>
+                  <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+                </div>
+                <label class="master-control" for="masterVolume"><span>Master</span><input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.6" aria-label="Master volume, zero to 380 percent" /><output id="masterValue" for="masterVolume">60%</output></label>
+              </div>
+              <p id="visualizerDescription">Live output after Master volume.</p>
+              <div class="monitor-body">
+                <div class="monitor-plot">
+                  <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live YM2149 audio output" hidden></canvas>
+                  <canvas id="envelopeCanvas" width="900" height="220" role="img" aria-label="Output level history"></canvas>
+                </div>
+                <label class="monitor-pitch" for="pitchBendTop"><span>Pitch</span><input id="pitchBendTop" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend in semitones" /><output id="pitchBendTopValue" for="pitchBendTop">0.00</output></label>
+              </div>
+            </section>
+
+            <div class="instrument-toolbar ym-instrument-toolbar">
+              <label class="instrument-preset-control" for="ymPresetSelect">Instrument <select id="ymPresetSelect"><option value="">Current sound</option></select></label>
+              <label class="instrument-name-control" for="presetName">Name <input id="presetName" type="text" value="ST square" maxlength="120" autocomplete="off" /></label>
+              <button id="savePreset" type="button">Save sound</button>
+              <details class="spu-code-help ym-inline-help">
+                <summary aria-label="About instruments and Files">?</summary>
+                <p>Save sound keeps the current instrument as readable JSON in Files. Use the menu to import files or a Cassette project, and export a Cassette to keep a portable copy.</p>
+              </details>
+            </div>
+            <div class="ym-chip-tabs" role="tablist" aria-label="Sound chip">
+              <button id="ymChipTab" type="button" role="tab" data-chip-tab="ym2149" aria-selected="true" aria-controls="ymChipPanel">YM2149</button>
+              <button id="ymMixerTab" type="button" role="tab" data-chip-tab="mixer" aria-selected="false" aria-controls="ymMixerPanel" tabindex="-1">Mixer</button>
+            </div>
+            <section id="ymChipPanel" class="ym-chip-panel" role="tabpanel" aria-labelledby="ymChipTab">
+              <div class="ym-channel-heading">
+                <div class="ym-channel-tabs" role="tablist" aria-label="Keyboard and parameter channel">
+                  <button id="ymChannelAutoTab" type="button" role="tab" data-channel="auto" aria-selected="true" aria-controls="voiceEditor">Auto</button>
+                  <button id="ymChannel1Tab" type="button" role="tab" data-channel="0" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH1</button>
+                  <button id="ymChannel2Tab" type="button" role="tab" data-channel="1" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH2</button>
+                  <button id="ymChannel3Tab" type="button" role="tab" data-channel="2" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH3</button>
+                </div>
+                <details class="spu-code-help ym-inline-help">
+                  <summary aria-label="About channel selection">?</summary>
+                  <p>Auto shares keyboard notes across three physical channels and replaces the oldest note when full. A CH selects that voice for display, editing and keyboard input. Selecting a tab preserves the other channels; editing in Auto applies that setting to all three. Code and the keyboard use the same chip.</p>
+                </details>
+              </div>
+              <p id="channelStatus" class="subtext" role="status">Auto · three tone voices · round robin.</p>
+              <div id="voiceEditor" class="ym-editor" role="tabpanel" aria-labelledby="ymChannelAutoTab">
+                <section class="ym-card" aria-labelledby="voiceTitle">
+                  <div class="ym-card-heading">
+                    <h2 id="voiceTitle">Channel voice</h2>
+                    <output id="voiceFrequency" for="tonePeriod">440.14 Hz</output>
+                  </div>
+                  <div class="ym-fields">
+                    <label class="ym-field" for="tonePeriod"><span>Tone period</span><input id="tonePeriod" type="number" min="0" max="4095" step="1" value="284" inputmode="numeric" /></label>
+                    <label class="ym-field" for="fixedVolume"><span>Fixed volume</span><input id="fixedVolume" type="number" min="0" max="15" step="1" value="9" inputmode="numeric" /></label>
+                    <div class="ym-gates" role="group" aria-label="Channel generators and level">
+                      <label class="ym-check"><input id="toneEnabled" type="checkbox" checked /><span>Tone</span></label>
+                      <label class="ym-check"><input id="noiseEnabled" type="checkbox" /><span>Noise</span></label>
+                      <label class="ym-check"><input id="envelopeEnabled" type="checkbox" /><span>Hardware envelope</span></label>
+                    </div>
+                    <details class="spu-code-help ym-inline-help">
+                      <summary aria-label="About the channel voice">?</summary>
+                      <p>Tone and Noise can sound together. Fixed volume is 0–15; Hardware envelope replaces it with the shared envelope level. At 2 MHz, tone frequency is 2,000,000 ÷ (16 × period). Period 0 behaves as 1. The lowest tone is about 30.53 Hz; keyboard notes below this hardware range are limited to that pitch.</p>
+                    </details>
+                  </div>
+                </section>
+                <section class="ym-card ym-shared-card" aria-labelledby="sharedTitle">
+                  <div class="ym-card-heading"><h2 id="sharedTitle">Shared generators</h2><span class="ym-shared-badge">ALL THREE CHANNELS</span></div>
+                  <div class="ym-fields">
+                    <label class="ym-field" for="noisePeriod"><span>Noise period</span><input id="noisePeriod" type="number" min="0" max="31" step="1" value="16" inputmode="numeric" /></label>
+                    <label class="ym-field" for="envelopePeriod"><span>Envelope period</span><input id="envelopePeriod" type="number" min="0" max="65535" step="1" value="1000" inputmode="numeric" /></label>
+                    <label class="ym-field ym-shape-field" for="envelopeShape"><span>Envelope shape</span><select id="envelopeShape">
+                      <option value="0">0 · Decay, hold 0</option>
+                      <option value="1">1 · Decay, hold 0</option>
+                      <option value="2">2 · Decay, hold 0</option>
+                      <option value="3">3 · Decay, hold 0</option>
+                      <option value="4">4 · Rise, drop to 0</option>
+                      <option value="5">5 · Rise, drop to 0</option>
+                      <option value="6">6 · Rise, drop to 0</option>
+                      <option value="7">7 · Rise, drop to 0</option>
+                      <option value="8">8 · Repeating decay</option>
+                      <option value="9" selected>9 · Decay, hold 0</option>
+                      <option value="10">10 · Triangle, down first</option>
+                      <option value="11">11 · Decay, jump to maximum</option>
+                      <option value="12">12 · Repeating rise</option>
+                      <option value="13">13 · Rise, hold maximum</option>
+                      <option value="14">14 · Triangle, up first</option>
+                      <option value="15">15 · Rise, drop to 0</option>
+                    </select></label>
+                    <button id="retriggerEnvelope" type="button">Retrigger envelope</button>
+                    <details class="spu-code-help ym-inline-help">
+                      <summary aria-label="About shared noise and envelope">?</summary>
+                      <p>The chip has one noise generator and one envelope generator. These settings affect every channel using them. Changing Shape or pressing Retrigger envelope restarts that shared envelope for all participating voices. Changing only Envelope period does not restart it. This is the YM2149 hardware envelope; the Synth adds no ADSR controls.</p>
+                    </details>
+                  </div>
+                </section>
+              </div>
+            </section>
+            <section id="ymMixerPanel" class="ym-mixer-panel" role="tabpanel" aria-labelledby="ymMixerTab" hidden>
+              <div class="section-heading"><h2>Chip output</h2><p>One YM2149 · controls, keyboard and Code</p></div>
+              <label class="ym-mix-volume" for="chipVolume"><span>YM2149 gain</span><input id="chipVolume" type="range" min="0" max="3.8" step="0.01" value="1" aria-label="YM2149 chip gain, zero to 380 percent" /><output id="chipVolumeValue" for="chipVolume">100%</output></label>
+              <details class="spu-code-help ym-inline-help">
+                <summary aria-label="About output gain">?</summary>
+                <p>Chip gain scales the shared YM2149 output before Master. Both are software output controls, separate from each channel's fixed volume and the hardware envelope.</p>
+              </details>
+            </section>
+
+            <section id="synthInputSection" class="keyboard-section" data-input-mode="keyboard">
+              <div class="spu-input-tabs" role="tablist" aria-label="Performance input">
+                <button id="synthInputKeyboardTab" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+                <button id="synthInputCodeTab" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+                <button id="synthCodeExpandButton" class="spu-code-expand" type="button" aria-label="Maximize Code" aria-pressed="false" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg></button>
+              </div>
+              <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
+                <div class="keyboard-toolbar">
+                  <div class="octave-control" role="group" aria-label="Keyboard octave"><button id="octaveDown" type="button" aria-label="Lower octave">−</button><span>Octave <output id="octaveLabel">+0</output></span><button id="octaveUp" type="button" aria-label="Raise octave">+</button></div>
+                  <button id="resetPitch" class="quiet-button" type="button">Reset pitch</button>
+                  <p class="keyboard-hint">Auto replaces the oldest note when full.</p>
+                </div>
+                <div id="fretboardControls"></div>
+                <div class="performance-keyboard">
+                  <label class="monitor-pitch keyboard-wheel" for="pitchBend"><span>Pitch</span><input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend in semitones" /><output id="pitchBendValue" for="pitchBend">0.00</output></label>
+                  <div id="keyboard" class="keyboard-mount"></div>
+                </div>
+              </div>
+              <div id="synthCodePanel" class="spu-code-panel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+                <div class="spu-code-toolbar"><button id="synthCodeRunButton" class="primary" type="button">Run</button><button id="synthCodeApplyButton" type="button" disabled>Apply</button><button id="synthCodeStopButton" type="button" disabled>Stop</button><span id="synthCodeState" role="status">Idle</span></div>
+                <p class="ym-help spu-code-caption">Software performance · this same YM2149 chip. Run: Ctrl/Cmd+Enter · Apply: Ctrl/Cmd+Shift+Enter.</p>
+                <div id="synthCodeEditorHost" class="spu-code-editor-host"></div>
+                <textarea id="synthCodeEditor" class="spu-code-editor" spellcheck="false" aria-label="YM2149 performance JavaScript" rows="12" readonly></textarea>
+                <p id="synthCodeEditorNote" class="ym-help">Code is saved in Files. Restoring a project never runs it.</p>
+                <pre id="synthCodeError" class="spu-code-error" role="alert"></pre>
+                <details class="spu-code-console"><summary>Console</summary><pre id="synthCodeLog" aria-live="polite"></pre></details>
+                <details class="spu-code-help"><summary aria-label="About YM2149 Code">?</summary><p>Use <code>const ay = await useSoundChip("ay8910")</code>. Hardware controls are synchronous; CH1–CH3 are the physical channels. Use <code>setBpm()</code> and <code>await beat()</code> for tempo. Run starts fresh; Apply retains context and named loops. Changing tabs and editing controls keep Code running. Click outside the editor to play computer keys. Noise and envelope settings are shared hardware state.</p></details>
+              </div>
+            </section>
+          </div>
+          <div id="synthExpandedCodeSlot" class="spu-expanded-code" hidden></div>
+        </div>
+        <footer>
+          <p>YM2149 at 2 MHz · three tone channels, one shared noise generator and one shared hardware envelope. Keyboard allocation, timing and output gain are software tools.</p>
+          <div><a href="../playground/index.html?mode=atari-st">Open Playground</a> · <a href="../js/ay8910synth.js">JavaScript source</a> · <a href="./README.md">Guide &amp; credits</a></div>
+        </footer>
+      </article>
+      <noscript><p>Enable JavaScript to use this synthesizer.</p></noscript>
+    </main>
+    <script type="module" src="./synth.js"></script>
+  </body>
+</html>
