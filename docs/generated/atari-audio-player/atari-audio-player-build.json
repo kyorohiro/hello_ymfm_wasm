@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "component": "ym2149-atari-audio-reference-player",
+  "upstream": {
+    "repository": "https://github.com/arnaud-carre/AtariAudio",
+    "revision": "1dd9fca810a4f00b4b5e6a5348872ac0a21d88fb",
+    "version": "1.31"
+  },
+  "sampleRate": 44100,
+  "channels": 1,
+  "maximumFileBytes": 8388608,
+  "maximumMemoryBytes": 67108864,
+  "maximumRenderFrames": 4096,
+  "inputs": {
+    "LICENSE": {
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    "third_party/atari-audio/src/AtariAudio.h": {
+      "bytes": 350,
+      "sha256": "9fa11ad3a9126487df2a6a71c43afb761968f978c3e3707ec2fb56e6cc972721"
+    },
+    "third_party/atari-audio/src/AtariAudioRenderer.cpp": {
+      "bytes": 3760,
+      "sha256": "34b46a3e9f92bc89e7fbef3c6b5493c8e5420f3100c1e3f5c9d11baaf1aa619e"
+    },
+    "third_party/atari-audio/src/AtariAudioRenderer.h": {
+      "bytes": 5347,
+      "sha256": "0aca1c0ae90240f971ad77c14f129bde95279c3952939507fccd5903fe65a3d5"
+    },
+    "third_party/atari-audio/src/AtariMachine.cpp": {
+      "bytes": 15000,
+      "sha256": "e018d028658244eb79e8c763cb5c26c2aa9db99bdfbd8e4d5cccb18ee9dd5c95"
+    },
+    "third_party/atari-audio/src/AtariMachine.h": {
+      "bytes": 2269,
+      "sha256": "5ac65da71fa8ace2f61eccc51359dab8c3737e6fb358028dcb811fa3daa53542"
+    },
+    "third_party/atari-audio/src/Blitter.cpp": {
+      "bytes": 5045,
+      "sha256": "6136d13ee6a34ae340c82b2e256136df1cbad251384ae4a950556955994039b2"
+    },
+    "third_party/atari-audio/src/Blitter.h": {
+      "bytes": 1325,
+      "sha256": "eca31d1395bc1b0fd75d4d40da356ec0d25db0c5aed7fffa88593052f84272dd"
+    },
+    "third_party/atari-audio/src/Mk68901.cpp": {
+      "bytes": 4127,
+      "sha256": "80aa5000bad1cfef521bc1947c982255d3f6778326c03438aa7a1b660ed8a2e6"
+    },
+    "third_party/atari-audio/src/Mk68901.h": {
+      "bytes": 1370,
+      "sha256": "5bf67285687fb7b0bf46cfa068f606d97ed731216e0dc153eb723522b5247ce1"
+    },
+    "third_party/atari-audio/src/SndhRenderer.cpp": {
+      "bytes": 7449,
+      "sha256": "25c95f7a582aa049d665686b6d06573730645148db16699f9e9749647d347c7f"
+    },
+    "third_party/atari-audio/src/SndhRenderer.h": {
+      "bytes": 1798,
+      "sha256": "88857598a23d45e8dc694c90e46a388ac061ffb7916406e4f99607c23d2fcc5b"
+    },
+    "third_party/atari-audio/src/SteDac.cpp": {
+      "bytes": 5012,
+      "sha256": "56f407b00521b83161efc9bad4f4dae3fec3b3a5087686ff2801e00635f4ed3b"
+    },
+    "third_party/atari-audio/src/SteDac.h": {
+      "bytes": 1121,
+      "sha256": "e415dc4b6587f878b39a0093def9df9c14ace5729a7d3c9475d7eb6ef7a6fd1a"
+    },
+    "third_party/atari-audio/src/YmRenderer.cpp": {
+      "bytes": 19115,
+      "sha256": "c6812d3d53dd9d1f6b1355bf293aabf1bc219b2977628338e7e67c0008ca1028"
+    },
+    "third_party/atari-audio/src/YmRenderer.h": {
+      "bytes": 4212,
+      "sha256": "5dee61bd2e575829c573d0c07b2c1459e44074b2e08212c300b198f4a43e18ad"
+    },
+    "third_party/atari-audio/src/external/Musashi/history.txt": {
+      "bytes": 5872,
+      "sha256": "d47d536cc229bbb07518c09c4fd64b450c2bd789954feabf4a91759ea7154c98"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68k.cpp": {
+      "bytes": 32197,
+      "sha256": "69897d2ba8d6236b9023cc69ee592bb19d68e8b46967ffa8a625327e385adc4f"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68k.h": {
+      "bytes": 5380,
+      "sha256": "ad51f003e16b9a9aa805e61b1210b41f0cd44a99bcbbc0aacf9c5508d63cc219"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68k_func.inc": {
+      "bytes": 55618,
+      "sha256": "9b40808214744b6e2750152b92140b7f12aee1b77001f563cfb823f5547bd869"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kconf.h": {
+      "bytes": 10045,
+      "sha256": "979cd6a4fb15abeca61cc388858cc58ce1f13b4b6a0790ec5037d40d2a906f54"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kcpu.cpp": {
+      "bytes": 31252,
+      "sha256": "35015f3aec0e81cba1585c779effcc45c9c199fa468e33e78843479bffb55850"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kcpu.h": {
+      "bytes": 28254,
+      "sha256": "4016c5d9e10cbdae5e4f670f03d3ac0ce27bccadef14648d569407b0c2234470"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kops.cpp": {
+      "bytes": 744217,
+      "sha256": "a962c15e046e59fe7839bb8f4b1f7fd88d12b5f8777a1387f1ef85bdb4bd44b6"
+    },
+    "third_party/atari-audio/src/external/Musashi/m68kops.h": {
+      "bytes": 8384,
+      "sha256": "dcb628e08b39cee615e0f609b53f028db4768dbfedda656dedcbbeb9a51d2d54"
+    },
+    "third_party/atari-audio/src/external/Musashi/readme.txt": {
+      "bytes": 12586,
+      "sha256": "a1906bb4ab8089abf68555bd6035735ad1c0933ab15a2683d55d9356e41c6a2f"
+    },
+    "third_party/atari-audio/src/external/ice_24.cpp": {
+      "bytes": 4943,
+      "sha256": "f2e2671822f14e84822a2affe2fb3dd10592614804414ca98f5a07c782196af7"
+    },
+    "third_party/atari-audio/src/external/ice_24.h": {
+      "bytes": 1572,
+      "sha256": "2019fab81a4d637c38ceb298ca76580e360696a1319f31182282241841480b6c"
+    },
+    "third_party/atari-audio/src/external/lzh.cpp": {
+      "bytes": 11094,
+      "sha256": "83466f2206eec321a6cbbf48ed1c9c02c21913755bddc9b149e4761445732aa9"
+    },
+    "third_party/atari-audio/src/external/lzh.h": {
+      "bytes": 3187,
+      "sha256": "89c111ae32a46a0ccb57b12aca1a14ac5495e12c00ff5a64894cbe39615d1383"
+    },
+    "third_party/atari-audio/src/external/timedb.inc.h": {
+      "bytes": 1157727,
+      "sha256": "0881d7b229aa902f4f9af8e64d0d7ba203abd896013139c9358b0ba204d9b277"
+    },
+    "third_party/atari-audio/src/timedb.cpp": {
+      "bytes": 1712,
+      "sha256": "b28456196c85b7e7716be750517feec2a12c76fa76d509b9e1309842db69d352"
+    },
+    "third_party/atari-audio/src/timedb.h": {
+      "bytes": 378,
+      "sha256": "1b2d53d070df55d7d98b4e780240288d29c37cf6c9e1b1d0c4e2f4895c75bc87"
+    },
+    "third_party/atari-audio/src/ym2149_tables.h": {
+      "bytes": 238940,
+      "sha256": "b8b224a8d70d3a1fbf4e84115f05a3072809866b3cbc7a81d4d53846da7e1456"
+    },
+    "third_party/atari-audio/src/ym2149c.cpp": {
+      "bytes": 7032,
+      "sha256": "f09a7e18d0dca61f82e8bcaf23db99a3d9e091acdae71ec1efff0c552528a313"
+    },
+    "third_party/atari-audio/src/ym2149c.h": {
+      "bytes": 1745,
+      "sha256": "9121922c938fe7ff507a1be71c717c254b578bc9a6d3888f3e5fb14a857d0c94"
+    },
+    "third_party/atari-audio/src/ym2data.h": {
+      "bytes": 125667,
+      "sha256": "f529b25f71a2da74838d5ece2a63f1ee17599d75627a5e43c2a6ca75982c47dd"
+    },
+    "third_party/atari-audio/LICENSE": {
+      "bytes": 1070,
+      "sha256": "3969bd71fd2a8b1ffa92b174aace1d338265270fe150335d8571f1358d319c8d"
+    },
+    "third_party/atari-audio/UPSTREAM_README.md": {
+      "bytes": 6488,
+      "sha256": "cd1ed8fb4133c32a12727e1b82b41cc70598ce6bacd95941b7487b58a3900109"
+    },
+    "third_party/atari-audio/upstream.json": {
+      "bytes": 8815,
+      "sha256": "e135a0d49094f031dbd6751b2ad5448a877e2391cdc1a61635058360650ae4e7"
+    },
+    "third_party/atari-audio/PATCHES.md": {
+      "bytes": 2931,
+      "sha256": "ed51e9cf720284d1c6f0cf6f5a447eaf43937bf7d9472ac78229149ba5c94439"
+    },
+    "third_party/atari-audio/local.patch": {
+      "bytes": 7589,
+      "sha256": "af42e18cc03139f1bf3c843bb63cbd643b6663edcc6534a1d42a2603e3b9432e"
+    },
+    "tetorica_src/wasm/atari_audio_player_wasm.cpp": {
+      "bytes": 14785,
+      "sha256": "c2003ba0767054d4d6bdd30e57e2025105e2fdb1c71dc8a16ab3f9de228ede92"
+    },
+    "scripts/build_atari_audio_player_wasm.sh": {
+      "bytes": 1196,
+      "sha256": "e1ac101ffe86340a4ee8671ab7a50771d265197cae7afcf215394e7192d84397"
+    },
+    "scripts/atari_audio_player_artifacts.mjs": {
+      "bytes": 3907,
+      "sha256": "9a2341a1e9f3c7f89278effdf04441077cb167ef012534a50472fe3f54a5e7eb"
+    }
+  },
+  "output": {
+    "bytes": 450722,
+    "sha256": "ee17e9922c12051f29ae38217a893c61e39a5c10f7659dfee22bf57509e13c26"
+  }
+}

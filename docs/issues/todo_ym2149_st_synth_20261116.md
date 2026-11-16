@@ -1,6 +1,6 @@
 # Tetorica YM2149 ST Synth
 
-Confirmed on 2026-11-16. Basic browser implementation started after the user's instruction to proceed. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. Reference playback and high-rate register reservation remain later work.
+Confirmed on 2026-11-16. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback is implemented. High-rate JavaScript register reservation remains later work.
 
 ## Identity
 
@@ -28,10 +28,23 @@ Initial implementation and readable itch ZIP are complete. See [verification_ym2
 
 ## Follow-up design / research
 
-- [ ] Decide a reference playback / import path. Investigate available YM and SNDH collections and their timing / CPU requirements before committing to a file format or promising complete replay.
+- [x] Decide a reference playback / import path: user requested VGM / VGZ and SNDH / YM reference playback on 2026-11-16. Reuse existing AY VGM rendering and evaluate pinned AtariAudio sources for SNDH / YM.
 - [ ] Design and validate a named register reservation API for high-rate effects after the basic Synth works. Keep loop timing separate from physical channel state; account for shared generators, repeat, Stop, Apply, cancellation and manual edits.
 - [ ] Demonstrate audio-rate envelope retriggering (Sync-buzzer), timed volume modulation and sample playback through volume writes. Distinguish host-sample timing from exact original-machine cycle behavior.
 - [ ] Leave STE DMA, a complete Atari ST machine, Looper / Event Rec and Tauri as separate follow-ups.
+
+## Reference playback implementation
+
+- [x] Pin and retain AtariAudio's native sources, dependency notices and rebuild recipe; isolate its reference-player WASM from the existing editable AY/YM Synth and SDK artifacts.
+- [x] Prepare bounded VGM / VGZ sources using the existing parser and AY renderer, with explicit errors for unsupported chips / configurations. Preserve repeated Shape writes and chip / song clocks.
+- [x] Decode SNDH and YM using AtariAudio, including subtune selection and bounded rendering. Expose observed YM register state for Live controls; distinguish raw requested volume from a static editable sound.
+- [x] Store original VGM / VGZ in Files `/vgm/` and SNDH / YM in `/music/`, retain them in Cassette, and use one compact song selector above the output monitor. Import / failure / cancellation must preserve the current edited instrument.
+- [x] Add Play / Pause / Resume / Stop, position display / seek, Auto update and CH1–CH3 Live display. Use the existing AudioContext / Master / passive output visualizer. Code and reference playback are mutually exclusive.
+- [x] Pause selected-channel keyboard audition without discarding the paused song position; capture the selected hardware sound to the editable Synth and save a readable preset through Files.
+- [x] Verify actual PCM / snapshots, malformed input and cancellation, resource cleanup, transport fences, all three formats and real Chromium / WebKit playback with speaker output muted.
+- [x] Update readable itch packaging, CI / docs and record remaining format or timer limitations accurately.
+
+See [reference verification and format limits](verification_ym2149_st_reference_20261116.md). Human listening and arbitrary collection compatibility remain user checks; commercial music is not included.
 
 ## Existing implementation references
 

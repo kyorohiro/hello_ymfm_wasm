@@ -18,7 +18,7 @@ export async function createAudio({volume = 0.6, preset = createDefaultPreset(),
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('Web Audio is unavailable');
   const context = new Context({latencyHint: 'interactive'}), controller = new AbortController();
-  let endpoint, client, instrument, chipBalance, fade, master, closed = false, closing, fatal, rejectStartup, timer;
+  let endpoint, client, instrument, chipBalance, fade, master, songInput, closed = false, closing, fatal, rejectStartup, timer;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   void startupFailure.catch(() => {});
   function check() {
@@ -32,7 +32,7 @@ export async function createAudio({volume = 0.6, preset = createDefaultPreset(),
     try { instrument?.dispose(); } catch {}
     try { client?.dispose(); } catch {}
     try { endpoint?.dispose(); } catch {}
-    for (const node of [chipBalance, fade, master]) try { node?.disconnect(); } catch {}
+    for (const node of [chipBalance, fade, master, songInput]) try { node?.disconnect(); } catch {}
     closing = Promise.resolve().then(() => context.state === 'closed' ? undefined : context.close());
     return closing;
   }
@@ -52,6 +52,8 @@ export async function createAudio({volume = 0.6, preset = createDefaultPreset(),
     fade = context.createGain(); fade.gain.value = 1;
     master = context.createGain(); master.gain.value = volume;
     chipBalance.connect(fade); fade.connect(master); master.connect(context.destination);
+    songInput = context.createGain(); songInput.gain.value = YM2149_ST_SYNTH_BALANCE;
+    songInput.connect(master);
     const resumed = context.resume();
     const created = createAy8910Audio(context, chipBalance, {
       clock: YM2149_ST_CLOCK, type: 0x10, flags: 1, signal: controller.signal,
@@ -68,10 +70,10 @@ export async function createAudio({volume = 0.6, preset = createDefaultPreset(),
     client.initialize();
     instrument = createInstrument({client, preset, onChange});
     return {
-      context, client, instrument, outputNode: master,
+      context, client, instrument, outputNode: master, songInputNode: songInput,
       codeInputNode: chipBalance, codeOutputNode: fade, codeFadeNode: fade,
       setVolume(value) { check(); master.gain.value = gain(value, 'Master'); },
-      setChipVolume(value) { check(); chipBalance.gain.value = YM2149_ST_SYNTH_BALANCE * gain(value, 'Mixer'); },
+      setChipVolume(value) { check(); chipBalance.gain.value = songInput.gain.value = YM2149_ST_SYNTH_BALANCE * gain(value, 'Mixer'); },
       async resume() { check(); await context.resume(); check(); },
       stop() { check(); instrument.stop(); }, dispose,
     };

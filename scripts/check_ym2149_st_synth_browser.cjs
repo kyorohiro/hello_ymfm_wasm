@@ -70,7 +70,8 @@ async function main() {
         for(const key of ['z','x','c','v']) {
           await page.keyboard.press('Escape');await page.evaluate(()=>document.activeElement?.blur());
           await page.keyboard.down(key);await page.waitForFunction(()=>tetoricaYm2149StSynth.getState().activeChannels.length===1);
-          allocation.push((await snapshot()).activeChannels[0]);await page.waitForTimeout(45);
+          allocation.push((await snapshot()).activeChannels[0]);
+          await page.waitForFunction(()=>__ymAudit.level().rms>0.0001,{},{timeout:3000});
           const level=await page.evaluate(()=>__ymAudit.level());assert(level.rms>0.0001,'actual YM2149 PCM is audible before the test mute');
           await page.keyboard.up(key);await page.waitForFunction(()=>tetoricaYm2149StSynth.getState().activeChannels.length===0);
         }

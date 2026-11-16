@@ -1,0 +1,128 @@
+{
+  "passed": true,
+  "entry": "/index.html",
+  "physicalOutputMuted": true,
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "allocation": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "codePCM": {
+        "peak": 0.08500000834465027,
+        "rms": 0.010322734527346361
+      },
+      "audit": {
+        "contexts": 1,
+        "speakerRoutes": 1,
+        "allPhysicalOutputsMuted": true,
+        "processors": [
+          {
+            "name": "tetorica-ay8910",
+            "options": {
+              "clock": 2000000,
+              "type": 16,
+              "flags": 1
+            }
+          },
+          {
+            "name": "tetorica-native-fx",
+            "options": {}
+          }
+        ],
+        "writes": 92
+      },
+      "closedDeviceRecovery": true,
+      "editor": "offline fallback exercised; CDN deliberately blocked",
+      "errors": [],
+      "missing": []
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "allocation": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "codePCM": {
+        "peak": 0,
+        "rms": 0
+      },
+      "audit": {
+        "contexts": 1,
+        "speakerRoutes": 1,
+        "allPhysicalOutputsMuted": true,
+        "processors": [
+          {
+            "name": "tetorica-ay8910",
+            "options": {
+              "clock": 2000000,
+              "type": 16,
+              "flags": 1
+            }
+          },
+          {
+            "name": "tetorica-native-fx",
+            "options": {}
+          }
+        ],
+        "writes": 92
+      },
+      "closedDeviceRecovery": true,
+      "editor": "offline fallback exercised; CDN deliberately blocked",
+      "errors": [],
+      "missing": []
+    }
+  ],
+  "webkitTelemetryRepeat": {
+    "passed": true,
+    "entry": "/index.html",
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "engine": "webkit",
+        "passed": true,
+        "allocation": [
+          0,
+          1,
+          2,
+          0
+        ],
+        "codePCM": {
+          "peak": 0.08500000834465027,
+          "rms": 0.009230735278181086
+        },
+        "audit": {
+          "contexts": 1,
+          "speakerRoutes": 1,
+          "allPhysicalOutputsMuted": true,
+          "processors": [
+            {
+              "name": "tetorica-ay8910",
+              "options": {
+                "clock": 2000000,
+                "type": 16,
+                "flags": 1
+              }
+            },
+            {
+              "name": "tetorica-native-fx",
+              "options": {}
+            }
+          ],
+          "writes": 92
+        },
+        "closedDeviceRecovery": true,
+        "editor": "offline fallback exercised; CDN deliberately blocked",
+        "errors": [],
+        "missing": []
+      }
+    ]
+  }
+}

@@ -40,7 +40,7 @@ test('uses the fixed ST endpoint and exactly one calibrated source-to-master rou
   const errors = [];
   const audio = await createAudio({onError: error => errors.push(error)});
   try {
-    const context = audio.context, node = worklets.at(-1), [balance, fade, master] = context.gains;
+    const context = audio.context, node = worklets.at(-1), [balance, fade, master, songInput] = context.gains;
     assert.equal(node.name, 'tetorica-ay8910');
     assert.deepEqual([node.options.processorOptions.clock, node.options.processorOptions.type, node.options.processorOptions.flags], [2000000, 0x10, 1]);
     assert.match(context.moduleUrl, /playground_ay8910_worklet\.js$/);
@@ -48,6 +48,8 @@ test('uses the fixed ST endpoint and exactly one calibrated source-to-master rou
     assert.deepEqual(balance.connections, [fade]);
     assert.deepEqual(fade.connections, [master]);
     assert.deepEqual(master.connections, [context.destination]);
+    assert.deepEqual(songInput.connections,[master]);
+    assert.equal(audio.songInputNode,songInput);
     assert.equal(balance.gain.value, YM2149_ST_SYNTH_BALANCE);
     assert.equal(balance.gain.value, 0.85);
     assert.equal(master.gain.value, 0.6);
@@ -61,6 +63,7 @@ test('uses the fixed ST endpoint and exactly one calibrated source-to-master rou
     audio.setVolume(3.8); audio.setChipVolume(0);
     assert.equal(master.gain.value, 3.8); assert.equal(balance.gain.value, 0);
     audio.setChipVolume(1);assert.equal(balance.gain.value,0.85);
+    assert.equal(songInput.gain.value,0.85);
     audio.setChipVolume(2);assert.equal(balance.gain.value,1.7);
     assert.throws(() => audio.setVolume(3.81));
     await audio.dispose(); await audio.dispose();

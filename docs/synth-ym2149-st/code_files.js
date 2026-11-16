@@ -3,6 +3,7 @@ import { renderFileTree } from '../playground/playground_file_tree.js';
 import { transferVirtualFiles, isCheckpointPath } from '../js/tetorica_virtual_files/filesystem.js';
 import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { installSpuFileContextMenu as installYmFileContextMenu } from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
+import {ymMusicEntries} from './music_files.js';
 import {
 	createYmCodeProject,
 	createYmProjectStore,
@@ -935,6 +936,20 @@ export function setupYmCodeFiles({
 	});
 	const api = {
 		project,
+		async importMusicSources(sources,{isCurrent=()=>true}={}) {
+			await api.ready;
+			if(disposed||busy||!isCurrent())return [];
+			const token=++operation,current=()=>!disposed&&token===operation&&isCurrent();
+			setBusy(true,{lockMain:false});
+			try {
+				if((await code?.flush?.())===false||!current())return [];
+				const candidate=createYmCodeProject({snapshot:project.snapshot()});
+				const entries=ymMusicEntries(candidate,sources);candidate.importFiles(entries);
+				if(!current())return [];
+				project.fs.restore(candidate.fs.snapshot());
+				render();await persistCode();return entries.map(entry=>entry.path);
+			} finally {if(!disposed)setBusy(false);}
+		},
 		get workspaceId() {
 			return identity;
 		},

@@ -7,6 +7,11 @@ on:
       - 'docs/synth-ym2149-st/**'
       - 'docs/js/ay8910*'
       - 'docs/js/playground_ay8910*'
+      - 'docs/js/vgm_file.js'
+      - 'docs/js/vgmplayer.js'
+      - 'docs/js/ym2612vgm.js'
+      - 'docs/js/opn_fm_vgm.js'
+      - 'docs/generated/atari-audio-player/**'
       - 'docs/js/playground_code_runtime.js'
       - 'docs/js/tetorica_virtual_files/**'
       - 'docs/synth/synth_code*'
@@ -22,8 +27,12 @@ on:
       - 'tetorica_src/runtime/generated/ay8910*'
       - 'scripts/*ym2149*'
       - 'scripts/copy_ay8910_sources.mjs'
+      - 'scripts/copy_atari_audio_sources.mjs'
+      - 'scripts/*atari_audio_player*'
       - 'scripts/copy_readable_modules.mjs'
       - 'third_party/mame-ay8910/**'
+      - 'third_party/atari-audio/**'
+      - 'tetorica_src/wasm/atari_audio_player_wasm.cpp'
       - 'third_party/soundchip-sdk.json'
       - 'third_party/tetorica-soundchip-native/**'
       - 'package*.json'
@@ -33,6 +42,7 @@ on:
       - 'docs/synth-ym2149-st/**'
       - 'docs/js/**'
       - 'docs/generated/ay8910*'
+      - 'docs/generated/atari-audio-player/**'
       - 'docs/synth/synth_code*'
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth-spu/**'
@@ -52,7 +62,7 @@ permissions:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -64,9 +74,12 @@ jobs:
       - name: Test and package the standalone YM2149 ST Synth
         run: |
           npm run test:ym2149-st-synth
+          node scripts/atari_audio_player_artifacts.mjs --check
+          node scripts/check_ym2149_st_reference_browser.cjs --engines=chromium,webkit --out=release/ym2149-st-reference-source.json --screenshots=release/ym2149-st-reference-source-images
           sh scripts/package_itch_ym2149_st_synth.sh ci
           python3 -m zipfile -e release/tetorica_ym2149_st_synth_ci_itch.zip release/ym2149-st-synth-browser
           node scripts/check_ym2149_st_synth_browser.cjs --root=release/ym2149-st-synth-browser --entry=/index.html --out=release/ym2149-st-synth-browser.json --screenshots=release/ym2149-st-synth-images
+          node scripts/check_ym2149_st_reference_browser.cjs --root=release/ym2149-st-synth-browser --entry=/index.html --engines=chromium,webkit --out=release/ym2149-st-reference-browser.json --screenshots=release/ym2149-st-reference-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -75,4 +88,8 @@ jobs:
             release/tetorica_ym2149_st_synth_ci_itch.zip
             release/ym2149-st-synth-browser.json
             release/ym2149-st-synth-images/
+            release/ym2149-st-reference-source.json
+            release/ym2149-st-reference-source-images/
+            release/ym2149-st-reference-browser.json
+            release/ym2149-st-reference-images/
           if-no-files-found: ignore

@@ -1,0 +1,128 @@
+{
+  "passed": true,
+  "entry": "/synth-ym2149-st/index.html",
+  "physicalOutputMuted": true,
+  "fixtures": "original generated VGM/VGZ, LHA YM5, ICE SNDH with 68000 init/play",
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "vgmPCM": {
+        "peak": 0.022549167275428772,
+        "rms": 0.012472498026608558
+      },
+      "ymPCM": {
+        "peak": 0.19500716030597687,
+        "rms": 0.1363647807763999
+      },
+      "sndhPCM": {
+        "peak": 0.17958764731884003,
+        "rms": 0.13428884016914552
+      },
+      "pausedFrame": 6379,
+      "pausedAudition": true,
+      "capturePreservesPause": true,
+      "subsongDurations": true,
+      "seek": true,
+      "codeExclusive": true,
+      "invalidImportKeepsSong": true,
+      "audit": {
+        "contexts": 1,
+        "speakerRoutes": 1,
+        "allPhysicalOutputsMuted": true,
+        "workers": [
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          }
+        ]
+      },
+      "errors": [],
+      "missing": []
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "vgmPCM": {
+        "peak": 0.022549167275428772,
+        "rms": 0.012490735326859119
+      },
+      "ymPCM": {
+        "peak": 0.18565204739570618,
+        "rms": 0.1356934962799472
+      },
+      "sndhPCM": {
+        "peak": 0.20080317556858063,
+        "rms": 0.1354943305475708
+      },
+      "pausedFrame": 6144,
+      "pausedAudition": true,
+      "capturePreservesPause": true,
+      "subsongDurations": true,
+      "seek": true,
+      "codeExclusive": true,
+      "invalidImportKeepsSong": true,
+      "audit": {
+        "contexts": 1,
+        "speakerRoutes": 1,
+        "allPhysicalOutputsMuted": true,
+        "workers": [
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          },
+          {
+            "url": "http://127.0.0.1:50419/synth-ym2149-st/atari_worker.js",
+            "closed": true
+          }
+        ]
+      },
+      "errors": [],
+      "missing": []
+    }
+  ]
+}

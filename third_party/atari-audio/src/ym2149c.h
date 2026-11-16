@@ -1,0 +1,61 @@
+//----------------------------------------------------------
+//
+//	AtariAudio 1.31
+//	Small & accurate ATARI-ST audio emulation
+//	by Arnaud Carré aka Leonard/Oxygene (@leonard_coder)
+//
+//----------------------------------------------------------
+#pragma once
+#include <stdint.h>
+
+class Ym2149c
+{
+public:
+
+	void Reset(uint32_t hostReplayRate, uint32_t ymClock, bool predictibleState = false);
+	void	WritePort(uint8_t port, uint8_t value);
+	uint8_t ReadPort(uint8_t port) const;
+	int16_t	ComputeNextSample();
+	void	InsideTimerIrq(bool inside);
+
+	uint32_t ComputeCurrentVisualLevels() const; // only used for some player visual, contains 3 YM voices volume and STE DAC in 8888 format
+
+	// Local read-only observability API. Registers 14/15 are not emulated.
+	uint8_t GetRegister(unsigned reg) const { return reg < 14 ? m_regs[reg] : 0; }
+	void MuteVoices(uint32_t muteMask);
+	int16_t		dcAdjust(int16_t v);
+
+private:
+	void	WriteReg(int reg, uint8_t value);
+	int Tick();
+
+	static const uint32_t kDcAdjustHistoryBit = 11;	// 2048 values (~20ms at 44Khz) 
+
+	int			m_selectedReg;
+	const uint8_t* m_pCurrentEnv;
+	uint32_t	m_ymClockOneEighth;
+	uint32_t	m_hostReplayRate;
+	uint32_t	m_toneCounter[3];
+	uint32_t	m_tonePeriod[3];
+	uint32_t	m_toneEdges;
+
+	uint32_t	m_envCounter;
+	int			m_envPos;
+	uint32_t	m_envPeriod;
+	uint32_t	m_noiseCounter;
+	uint32_t	m_noisePeriod;
+	uint32_t	m_toneMask;
+	uint32_t	m_noiseMask;
+	uint32_t	m_noiseRndRack;
+	uint32_t	m_currentNoiseMask;
+	uint16_t 	m_currentVisualLevels;
+	int16_t		m_dcAdjustBuffer[1<<kDcAdjustHistoryBit];
+	int32_t		m_dcAdjustPos;
+	int32_t		m_dcAdjustSum;
+	uint8_t		m_regs[14];
+	uint32_t	m_innerCycle;
+	uint32_t 	m_noiseHalf;
+	uint32_t 	m_enableMask;
+	bool		m_insideTimerIrq;
+	bool		m_edgeNeedReset[3];
+};

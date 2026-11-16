@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { version as esbuildVersion } from 'esbuild';
 import { checkRuntimeArtifacts, copyRuntimeArtifacts } from './runtime_artifacts.mjs';
 import { copyAy8910Sources } from './copy_ay8910_sources.mjs';
+import { copyAtariAudioSources } from './copy_atari_audio_sources.mjs';
 import { copyReadableModules } from './copy_readable_modules.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const record = (bytes) => ({
@@ -78,6 +79,7 @@ export async function packageYm2149StSynth({
 		stage,
 		entries: [
 			'docs/synth-ym2149-st/synth.js',
+			'docs/synth-ym2149-st/atari_worker.js',
 			'docs/js/playground_ay8910_worklet.js',
 			'docs/synth-ym2149-st/synth.css',
 			'docs/js/native-fx-worklet.js',
@@ -170,6 +172,15 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 		includeMetadata: false,
 	});
 	const sourceCheck = await copyAy8910Sources(stage);
+	const atariSourceCheck = await copyAtariAudioSources(stage);
+	for (const path of atariSourceCheck.inputPaths) inputs.add(path);
+	// This generated guide describes only the instrument core. The standalone
+	// product also contains the independent AtariAudio reference component.
+	const ayGuide = join(stage, 'sources/AY8910.md');
+	await writeFile(ayGuide, (await readFile(ayGuide, 'utf8')).replace(
+		'This package does not include YM / SNDH song playback,\nSTE DMA, an Atari ST CPU or commercial music.',
+		'This instrument core is independent of the AtariAudio YM / SNDH reference\nplayer described in ATARI-AUDIO.md. No commercial music is included.',
+	));
 	await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
 	await copyFile(
 		join(root, 'docs/tetorica_ym2149_st_synth.webp'),
@@ -186,7 +197,7 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 	await writeFile(
 		join(stage, 'README.md'),
 		guide +
-			'\n## Included sources\n\nSee [AY/YM native sources and rebuilding](sources/AY8910.md), [browser build inputs](sources/ym2149-st-synth-browser-inputs.zip) and their [hash receipt](sources/ym2149-st-synth-browser.json).\n',
+			'\n## Included sources\n\nSee [AY/YM instrument sources and rebuilding](sources/AY8910.md), [AtariAudio reference sources and rebuilding](sources/ATARI-AUDIO.md), [browser build inputs](sources/ym2149-st-synth-browser-inputs.zip) and their [hash receipt](sources/ym2149-st-synth-browser.json). All browser modules and the Worker retain their authored source.\n',
 	);
 	for (const path of [
 		'docs/synth-ym2149-st/index.html',
@@ -198,6 +209,7 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 		'scripts/package_itch_ym2149_st_synth.mjs',
 		'scripts/package_itch_ym2149_st_synth.sh',
 		'scripts/copy_ay8910_sources.mjs',
+		'scripts/copy_atari_audio_sources.mjs',
 		'scripts/copy_readable_modules.mjs',
 		'scripts/runtime_artifacts.mjs',
 		'scripts/wasm_sdk_inventory.mjs',
@@ -228,6 +240,8 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 			...record(await readFile(join(stage, sourceArchive))),
 		},
 		sourceCheck,
+		atariSourceCheck,
+		referenceArtifacts: atariSourceCheck.generated,
 		runtimeArtifacts: await Promise.all(runtime.files.map(async (path) => ({
 			path: `generated/${path}`, ...record(await readFile(join(stage, 'generated', path))),
 		}))),
@@ -255,6 +269,7 @@ An explicit output directory keeps this rebuild independent of artifact-sync too
 		bundles: bundles.length,
 		archiveRecord: record(await readFile(archive)),
 		sourceCheck,
+		atariSourceCheck,
 	};
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

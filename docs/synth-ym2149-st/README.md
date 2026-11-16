@@ -6,7 +6,7 @@ controls, keyboard and JavaScript Code use the same chip and audio output.
 
 Open [the Synth](index.html), press **Enable audio**, and play the on-screen or
 computer keyboard. **Auto** allocates notes across the three physical channels,
-replacing the oldest note when full. Choose **CH1–CH3** to display, edit and play
+rotating through voices when full. Choose **CH1–CH3** to display, edit and play
 one channel. Selecting a channel does not copy its settings to the others.
 Selecting Auto also preserves per-channel differences until a value is edited.
 
@@ -70,14 +70,60 @@ menu. Local project storage keeps drafts on this browser; export a Cassette
 for a portable copy. Restoring a project does not execute its code. Master,
 octave and transient playback state are host preferences.
 
-## Initial scope
+## Reference performances: VGM / VGZ, SNDH and YM
 
-This version is a browser instrument for the YM2149. It does not replay Atari
-ST programs or provide a complete Atari ST machine. YM / SNDH reference
-playback and instrument extraction remain follow-up work. STE DMA, high-rate
-register reservation tools, Sync-buzzer demonstrations, sample playback
-through volume writes, Looper / Event Rec and a Tauri application are also
-outside this initial version. No commercial music or game files are included.
+Choose **Menu → Music · VGM / SNDH / YM…**. Original VGM / VGZ bytes are kept
+in Files `/vgm/`; SNDH / YM bytes are kept in `/music/`. They are included in
+Cassette exports. Loading music preserves the edited sound and does not open
+audio. Files imported through the general Files menu also appear in the song
+selector when their extension is supported.
+
+The song selector above the output monitor provides **Play**, **Pause / Resume**,
+**Stop**, seeking and SNDH subsongs. Playback is one pass. An unknown duration
+has a disclosed three-minute limit. Pause retains its native renderer and
+unconsumed PCM; Resume continues at the same position. The Synth, reference
+player and visualizer share one AudioContext and post-Master output.
+
+**Auto update** is on by default. Select **CH1–CH3** to see the heard song's
+tone/noise gates, period, volume and shared envelope in the existing controls.
+These reference fields are read-only. Select **Auto**, or turn Auto update off,
+to return to the editable Synth. **Code and reference playback are exclusive**:
+starting either stops the other.
+
+While paused, the keyboard auditions a sounding selected channel without
+altering the song position or the edited instrument. C4 plays its recorded
+tone pitch. **Capture to Synth** copies that channel and its shared generator
+settings to Auto, saves a readable preset and keeps the previous sound as a
+second preset. The song remains paused and can still resume. Other reference
+channels remain available when selected again.
+
+Capture is a static instrument snapshot. It does not recover later register
+changes, timer effects, volume-register sample data, oscillator phase or the
+current envelope phase. Silent, incomplete and direct DAC levels are not
+advertised as playable static instruments. Captured clock-dependent periods
+are converted to the editable 2 MHz Synth's representable range.
+
+VGM / VGZ supports one AY-3-8910 or YM2149 using the existing AY core, with raw
+register writes and waits. Companion chips, dual chips, unsupported commands
+and streams are reported; VGM loop repetition is not added. Source clocks and
+repeated Envelope Shape writes are retained.
+
+SNDH / YM replay uses a separate, pinned **AtariAudio 1.31** reference component
+inside a disposable Worker. It supports raw or ICE-packed SNDH and raw or
+level-0 LH5/LHA-packed YM2, YM3, YM3b, YM5 and YM6 register formats. PCM-only
+MIX1 / YMT files are explicitly unsupported. SNDH can include STE DAC audio;
+Live observes the three YM register voices. This does not add STE DMA to the
+editable Synth or implement a general-purpose Atari ST emulator.
+
+VGM source / expansion limits are 16 / 32 MiB. AtariAudio source and expanded
+data are limited to 8 MiB, with a 64 MiB WASM ceiling, per-request deadlines
+and a maximum of four native Workers. Project data retains the existing
+16 MiB Cassette limit. Failed or cancelled preparation keeps the previous
+song and edited sound.
+
+High-rate JavaScript register reservation tools, standalone Sync-buzzer code
+examples, Looper / Event Rec and Tauri remain follow-up work. No commercial
+music or game files are included.
 
 Serve the application over HTTP. Opening `index.html` through `file://` cannot
 reliably load JavaScript modules and AudioWorklets. The optional Monaco editor
@@ -96,3 +142,12 @@ Retain its copyright notices, attribution and license when redistributing.
 See the [AY core license](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/mame-ay8910/LICENSE) and the repository's
 [BSD-3-Clause license](../../LICENSE). This instrument makes no claim of exact
 analog Atari ST output reproduction. Imported files retain their own rights.
+
+Reference playback uses [AtariAudio](https://github.com/arnaud-carre/AtariAudio)
+by Arnaud Carré / Leonard, pinned to commit
+`1dd9fca810a4f00b4b5e6a5348872ac0a21d88fb`. Its MIT license, Karl Stenerud's
+Musashi notice, Hans Wessels' public-domain ICE attribution and LZH credits
+are retained in [the vendored source](../../third_party/atari-audio/).
+[Local patches](../../third_party/atari-audio/PATCHES.md), source hashes, the
+[rebuild script](../../scripts/build_atari_audio_player_wasm.sh) and the
+native wrapper are included in the readable itch distribution.

@@ -44,6 +44,8 @@
                   <section class="synth-menu-section">
                     <h2>Import</h2>
                     <div class="synth-menu-actions">
+                      <button id="ymLoadMusic" type="button" data-close-synth-menu>Music · VGM / SNDH / YM…</button>
+                      <input id="ymMusicInput" class="file-input" type="file" accept=".vgm,.vgz,.sndh,.ym" multiple aria-label="Choose reference music" />
                       <div id="ymMenuProjectImport"></div>
                       <div id="ymMenuFilesImport"></div>
                     </div>
@@ -68,6 +70,20 @@
         <div id="synthWorkspace" class="spu-code-workspace ym-code-workspace">
           <aside id="ymFilesPanel" class="spu-files-panel ym-files-panel" aria-label="Project files" hidden></aside>
           <div id="ymSynthMain" class="spu-main ym-main">
+            <section id="ymSongPanel" class="ym-song-panel" aria-label="Reference performance">
+              <div class="ym-song-toolbar">
+                <label class="ym-song-choice">Song <select id="ymSongSelect" aria-label="Reference song"><option value="">Import music from Menu…</option></select></label>
+                <button id="ymSongPlay" type="button" disabled>Play</button>
+                <button id="ymSongPause" type="button" disabled>Pause</button>
+                <button id="ymSongStop" type="button" disabled>Stop</button>
+                <label id="ymSubsongField" hidden>Subsong <select id="ymSubsong" aria-label="Subsong"></select></label>
+                <label class="ym-check"><input id="ymSongLive" type="checkbox" checked /><span>Auto update</span></label>
+                <button id="ymSongCapture" type="button" disabled>Capture to Synth</button>
+                <details class="spu-code-help ym-inline-help"><summary aria-label="About reference playback">?</summary><p>Import VGM / VGZ into Files/vgm, or SNDH / YM into Files/music, then choose a song. Play shows CH1–CH3 in the same controls. Pause to audition a sounding selected channel: C4 plays its recorded pitch. Capture copies its static settings into Auto and saves a preset; later timer effects and sample streams are not captured. Auto or turning Auto update off shows your editable Synth. Reference playback and Code run separately. Playback is one pass; unknown song lengths are limited to three minutes. Unsupported VGM chips or encodings are reported.</p></details>
+              </div>
+              <div class="ym-song-seek"><input id="ymSongSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="Reference position in seconds" disabled /><output id="ymSongPosition">0:00 / 0:00</output></div>
+              <p id="ymSongStatus" class="subtext" role="status">Import a VGM, VGZ, SNDH or YM from Menu. Your edited sound is kept.</p>
+            </section>
             <section class="spu-monitor ym-monitor" aria-label="Output display">
               <div class="ym-monitor-toolbar">
                 <div class="visual-mode-controls" role="group" aria-label="Audio visualization">

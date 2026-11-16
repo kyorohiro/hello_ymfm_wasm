@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/arnaud-carre/AtariAudio",
+  "revision": "1dd9fca810a4f00b4b5e6a5348872ac0a21d88fb",
+  "version": "1.31",
+  "license": "MIT",
+  "files": [
+    {
+      "path": "src/AtariAudio.h",
+      "upstreamSha256": "9fa11ad3a9126487df2a6a71c43afb761968f978c3e3707ec2fb56e6cc972721",
+      "sha256": "9fa11ad3a9126487df2a6a71c43afb761968f978c3e3707ec2fb56e6cc972721"
+    },
+    {
+      "path": "src/AtariAudioRenderer.cpp",
+      "upstreamSha256": "34b46a3e9f92bc89e7fbef3c6b5493c8e5420f3100c1e3f5c9d11baaf1aa619e",
+      "sha256": "34b46a3e9f92bc89e7fbef3c6b5493c8e5420f3100c1e3f5c9d11baaf1aa619e"
+    },
+    {
+      "path": "src/AtariAudioRenderer.h",
+      "upstreamSha256": "2fece86341725d2f878004ef88525feeb2b328c033e2d5fa7f311bf9f1894555",
+      "sha256": "0aca1c0ae90240f971ad77c14f129bde95279c3952939507fccd5903fe65a3d5"
+    },
+    {
+      "path": "src/AtariMachine.cpp",
+      "upstreamSha256": "e018d028658244eb79e8c763cb5c26c2aa9db99bdfbd8e4d5cccb18ee9dd5c95",
+      "sha256": "e018d028658244eb79e8c763cb5c26c2aa9db99bdfbd8e4d5cccb18ee9dd5c95"
+    },
+    {
+      "path": "src/AtariMachine.h",
+      "upstreamSha256": "763c83241f5983ac5b0bfc28ec81269f087d3a5c4df93e77916765d1f45543ec",
+      "sha256": "5ac65da71fa8ace2f61eccc51359dab8c3737e6fb358028dcb811fa3daa53542"
+    },
+    {
+      "path": "src/Blitter.cpp",
+      "upstreamSha256": "6136d13ee6a34ae340c82b2e256136df1cbad251384ae4a950556955994039b2",
+      "sha256": "6136d13ee6a34ae340c82b2e256136df1cbad251384ae4a950556955994039b2"
+    },
+    {
+      "path": "src/Blitter.h",
+      "upstreamSha256": "eca31d1395bc1b0fd75d4d40da356ec0d25db0c5aed7fffa88593052f84272dd",
+      "sha256": "eca31d1395bc1b0fd75d4d40da356ec0d25db0c5aed7fffa88593052f84272dd"
+    },
+    {
+      "path": "src/Mk68901.cpp",
+      "upstreamSha256": "80aa5000bad1cfef521bc1947c982255d3f6778326c03438aa7a1b660ed8a2e6",
+      "sha256": "80aa5000bad1cfef521bc1947c982255d3f6778326c03438aa7a1b660ed8a2e6"
+    },
+    {
+      "path": "src/Mk68901.h",
+      "upstreamSha256": "5bf67285687fb7b0bf46cfa068f606d97ed731216e0dc153eb723522b5247ce1",
+      "sha256": "5bf67285687fb7b0bf46cfa068f606d97ed731216e0dc153eb723522b5247ce1"
+    },
+    {
+      "path": "src/SndhRenderer.cpp",
+      "upstreamSha256": "b4247d5983584bcbbc703dcc7db051d0a0a37ea104e634bcebb6f44d7e928ae8",
+      "sha256": "25c95f7a582aa049d665686b6d06573730645148db16699f9e9749647d347c7f"
+    },
+    {
+      "path": "src/SndhRenderer.h",
+      "upstreamSha256": "585bbec2c116e3b84611f2fe229bbcbbb7646d2b37d59581e9605859ef4c7f56",
+      "sha256": "88857598a23d45e8dc694c90e46a388ac061ffb7916406e4f99607c23d2fcc5b"
+    },
+    {
+      "path": "src/SteDac.cpp",
+      "upstreamSha256": "56f407b00521b83161efc9bad4f4dae3fec3b3a5087686ff2801e00635f4ed3b",
+      "sha256": "56f407b00521b83161efc9bad4f4dae3fec3b3a5087686ff2801e00635f4ed3b"
+    },
+    {
+      "path": "src/SteDac.h",
+      "upstreamSha256": "e415dc4b6587f878b39a0093def9df9c14ace5729a7d3c9475d7eb6ef7a6fd1a",
+      "sha256": "e415dc4b6587f878b39a0093def9df9c14ace5729a7d3c9475d7eb6ef7a6fd1a"
+    },
+    {
+      "path": "src/YmRenderer.cpp",
+      "upstreamSha256": "c6812d3d53dd9d1f6b1355bf293aabf1bc219b2977628338e7e67c0008ca1028",
+      "sha256": "c6812d3d53dd9d1f6b1355bf293aabf1bc219b2977628338e7e67c0008ca1028"
+    },
+    {
+      "path": "src/YmRenderer.h",
+      "upstreamSha256": "d0fa8dbad17a82cf2cd027bf1cf0aea955ccaed36f41a5578e30a7c11f643708",
+      "sha256": "5dee61bd2e575829c573d0c07b2c1459e44074b2e08212c300b198f4a43e18ad"
+    },
+    {
+      "path": "src/external/Musashi/history.txt",
+      "upstreamSha256": "d47d536cc229bbb07518c09c4fd64b450c2bd789954feabf4a91759ea7154c98",
+      "sha256": "d47d536cc229bbb07518c09c4fd64b450c2bd789954feabf4a91759ea7154c98"
+    },
+    {
+      "path": "src/external/Musashi/m68k.cpp",
+      "upstreamSha256": "69897d2ba8d6236b9023cc69ee592bb19d68e8b46967ffa8a625327e385adc4f",
+      "sha256": "69897d2ba8d6236b9023cc69ee592bb19d68e8b46967ffa8a625327e385adc4f"
+    },
+    {
+      "path": "src/external/Musashi/m68k.h",
+      "upstreamSha256": "ad51f003e16b9a9aa805e61b1210b41f0cd44a99bcbbc0aacf9c5508d63cc219",
+      "sha256": "ad51f003e16b9a9aa805e61b1210b41f0cd44a99bcbbc0aacf9c5508d63cc219"
+    },
+    {
+      "path": "src/external/Musashi/m68k_func.inc",
+      "upstreamSha256": "9b40808214744b6e2750152b92140b7f12aee1b77001f563cfb823f5547bd869",
+      "sha256": "9b40808214744b6e2750152b92140b7f12aee1b77001f563cfb823f5547bd869"
+    },
+    {
+      "path": "src/external/Musashi/m68kconf.h",
+      "upstreamSha256": "979cd6a4fb15abeca61cc388858cc58ce1f13b4b6a0790ec5037d40d2a906f54",
+      "sha256": "979cd6a4fb15abeca61cc388858cc58ce1f13b4b6a0790ec5037d40d2a906f54"
+    },
+    {
+      "path": "src/external/Musashi/m68kcpu.cpp",
+      "upstreamSha256": "35015f3aec0e81cba1585c779effcc45c9c199fa468e33e78843479bffb55850",
+      "sha256": "35015f3aec0e81cba1585c779effcc45c9c199fa468e33e78843479bffb55850"
+    },
+    {
+      "path": "src/external/Musashi/m68kcpu.h",
+      "upstreamSha256": "4016c5d9e10cbdae5e4f670f03d3ac0ce27bccadef14648d569407b0c2234470",
+      "sha256": "4016c5d9e10cbdae5e4f670f03d3ac0ce27bccadef14648d569407b0c2234470"
+    },
+    {
+      "path": "src/external/Musashi/m68kops.cpp",
+      "upstreamSha256": "a962c15e046e59fe7839bb8f4b1f7fd88d12b5f8777a1387f1ef85bdb4bd44b6",
+      "sha256": "a962c15e046e59fe7839bb8f4b1f7fd88d12b5f8777a1387f1ef85bdb4bd44b6"
+    },
+    {
+      "path": "src/external/Musashi/m68kops.h",
+      "upstreamSha256": "dcb628e08b39cee615e0f609b53f028db4768dbfedda656dedcbbeb9a51d2d54",
+      "sha256": "dcb628e08b39cee615e0f609b53f028db4768dbfedda656dedcbbeb9a51d2d54"
+    },
+    {
+      "path": "src/external/Musashi/readme.txt",
+      "upstreamSha256": "a1906bb4ab8089abf68555bd6035735ad1c0933ab15a2683d55d9356e41c6a2f",
+      "sha256": "a1906bb4ab8089abf68555bd6035735ad1c0933ab15a2683d55d9356e41c6a2f"
+    },
+    {
+      "path": "src/external/ice_24.cpp",
+      "upstreamSha256": "f2e2671822f14e84822a2affe2fb3dd10592614804414ca98f5a07c782196af7",
+      "sha256": "f2e2671822f14e84822a2affe2fb3dd10592614804414ca98f5a07c782196af7"
+    },
+    {
+      "path": "src/external/ice_24.h",
+      "upstreamSha256": "2019fab81a4d637c38ceb298ca76580e360696a1319f31182282241841480b6c",
+      "sha256": "2019fab81a4d637c38ceb298ca76580e360696a1319f31182282241841480b6c"
+    },
+    {
+      "path": "src/external/lzh.cpp",
+      "upstreamSha256": "c584ce0bd6260b9bc993fa3c80e0468de1f9f9a213765ce6a4c7387422326d06",
+      "sha256": "83466f2206eec321a6cbbf48ed1c9c02c21913755bddc9b149e4761445732aa9"
+    },
+    {
+      "path": "src/external/lzh.h",
+      "upstreamSha256": "89c111ae32a46a0ccb57b12aca1a14ac5495e12c00ff5a64894cbe39615d1383",
+      "sha256": "89c111ae32a46a0ccb57b12aca1a14ac5495e12c00ff5a64894cbe39615d1383"
+    },
+    {
+      "path": "src/external/timedb.inc.h",
+      "upstreamSha256": "0881d7b229aa902f4f9af8e64d0d7ba203abd896013139c9358b0ba204d9b277",
+      "sha256": "0881d7b229aa902f4f9af8e64d0d7ba203abd896013139c9358b0ba204d9b277"
+    },
+    {
+      "path": "src/timedb.cpp",
+      "upstreamSha256": "b28456196c85b7e7716be750517feec2a12c76fa76d509b9e1309842db69d352",
+      "sha256": "b28456196c85b7e7716be750517feec2a12c76fa76d509b9e1309842db69d352"
+    },
+    {
+      "path": "src/timedb.h",
+      "upstreamSha256": "1b2d53d070df55d7d98b4e780240288d29c37cf6c9e1b1d0c4e2f4895c75bc87",
+      "sha256": "1b2d53d070df55d7d98b4e780240288d29c37cf6c9e1b1d0c4e2f4895c75bc87"
+    },
+    {
+      "path": "src/ym2149_tables.h",
+      "upstreamSha256": "b8b224a8d70d3a1fbf4e84115f05a3072809866b3cbc7a81d4d53846da7e1456",
+      "sha256": "b8b224a8d70d3a1fbf4e84115f05a3072809866b3cbc7a81d4d53846da7e1456"
+    },
+    {
+      "path": "src/ym2149c.cpp",
+      "upstreamSha256": "f09a7e18d0dca61f82e8bcaf23db99a3d9e091acdae71ec1efff0c552528a313",
+      "sha256": "f09a7e18d0dca61f82e8bcaf23db99a3d9e091acdae71ec1efff0c552528a313"
+    },
+    {
+      "path": "src/ym2149c.h",
+      "upstreamSha256": "6375a08628655588cd3ece22c5c920e1becd5e3adf249b66d49940bfdffada73",
+      "sha256": "9121922c938fe7ff507a1be71c717c254b578bc9a6d3888f3e5fb14a857d0c94"
+    },
+    {
+      "path": "src/ym2data.h",
+      "upstreamSha256": "f529b25f71a2da74838d5ece2a63f1ee17599d75627a5e43c2a6ca75982c47dd",
+      "sha256": "f529b25f71a2da74838d5ece2a63f1ee17599d75627a5e43c2a6ca75982c47dd"
+    },
+    {
+      "path": "LICENSE",
+      "upstreamSha256": "3969bd71fd2a8b1ffa92b174aace1d338265270fe150335d8571f1358d319c8d",
+      "sha256": "3969bd71fd2a8b1ffa92b174aace1d338265270fe150335d8571f1358d319c8d"
+    },
+    {
+      "path": "UPSTREAM_README.md",
+      "upstreamSha256": "cd1ed8fb4133c32a12727e1b82b41cc70598ce6bacd95941b7487b58a3900109",
+      "sha256": "cd1ed8fb4133c32a12727e1b82b41cc70598ce6bacd95941b7487b58a3900109"
+    }
+  ]
+}

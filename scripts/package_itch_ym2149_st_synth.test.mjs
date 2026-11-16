@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { packageYm2149StSynth, validateYm2149StSynthVersion } from './package_itch_ym2149_st_synth.mjs';
+import {copyAtariAudioSources, ATARI_AUDIO_PLAYER_OUTPUTS} from './copy_atari_audio_sources.mjs';
+import {ATARI_AUDIO_PLAYER_BUILD_INPUTS, checkAtariAudioPlayerBuild} from './atari_audio_player_artifacts.mjs';
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 test('YM2149 ST package version cannot escape its release directory', () => {
 	for (const value of [
@@ -31,7 +33,7 @@ test('YM2149 ST ZIP runs original editable modules with standalone deterministic
 	const b = await packageYm2149StSynth({ version: 'test', releaseDir: join(directory, 'b') });
 	assert.deepEqual(await readFile(a.archive), await readFile(b.archive));
 	assert(a.files < 1000);
-	assert.equal(a.bundles, 4);
+	assert.equal(a.bundles, 5);
 	const info = JSON.parse(
 		execFileSync(
 			'python3',
@@ -78,8 +80,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 		);
 	assert.deepEqual(
 		info.names.filter((name) => name.endsWith('.wasm')).sort(),
-		['generated/ay8910_wasm.wasm', 'js/native_audio_effect.wasm'],
-		'ship only the APU and host effects binaries',
+		['generated/atari-audio-player/atari-audio-player.wasm', 'generated/ay8910_wasm.wasm', 'js/native_audio_effect.wasm'],
+		'ship the AY instrument, independent Atari reference player and host effects binaries',
 	);
 	assert.deepEqual(
 		await readFile(join(a.stage, 'js/native_audio_effect.wasm')),
@@ -104,14 +106,54 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 		'js/playground_ay8910_audio.js',
 		'js/playground_ay8910_worklet.js',
 		'synth-ym2149-st/code_host.js',
+		'synth-ym2149-st/music_files.js',
+		'synth-ym2149-st/song_live.js',
+		'synth-ym2149-st/song_player.js',
+		'synth-ym2149-st/vgm_source.js',
+		'synth-ym2149-st/vgm_engine.js',
+		'synth-ym2149-st/atari_engine.js',
+		'synth-ym2149-st/atari_worker.js',
+		'js/ym2612vgm.js',
 		'js/ay8910synth.js',
 	])
 		assert(info.names.includes(name), `standalone YM2149 dependency: ${name}`);
 	assert(!info.names.includes('synth-ym2149-st/processor.js'), 'use the existing AY Worklet');
-	assert(!info.names.some(name => /^synth-ym2149-st\/(?:song_|vgm_import)/.test(name)));
+	assert(!info.names.some(name => /third_party\/atari-audio\/.*\.(?:sndh|ym\d?|vgm|vgz)$/i.test(name)), 'upstream example music is omitted');
 	assert(info.names.includes('licenses/tetorica-virtual-files/LICENSE'));
 	assert(info.names.includes('playground/vendor/fflate-LICENSE'));
 	assert(info.names.includes('sources/code-effects/scripts/build_native_audio_effect.sh'));
+	const atari = JSON.parse(await readFile(join(a.stage, 'sources/ATARI-AUDIO.json')));
+	assert.equal(atari.component, 'ym2149-atari-audio-reference-player');
+	assert.equal(atari.upstream.repository, 'https://github.com/arnaud-carre/AtariAudio');
+	assert.equal(atari.upstream.revision, '1dd9fca810a4f00b4b5e6a5348872ac0a21d88fb');
+	assert.deepEqual(atari.build, await checkAtariAudioPlayerBuild());
+	assert.deepEqual(atari.build, await checkAtariAudioPlayerBuild({
+		root: join(a.stage, 'sources/atari-audio-player'),
+		directory: join(a.stage, 'generated/atari-audio-player'),
+	}), 'the complete extracted source kit verifies its shipped native output');
+	assert.equal(atari.inputs.length, ATARI_AUDIO_PLAYER_BUILD_INPUTS.length);
+	for (const entry of [...atari.inputs, ...atari.generated]) {
+		const bytes = await readFile(join(a.stage, entry.path));
+		assert.equal(bytes.length, entry.bytes); assert.equal(sha(bytes), entry.sha256);
+	}
+	for (const name of ATARI_AUDIO_PLAYER_OUTPUTS)
+		assert.deepEqual(await readFile(join(a.stage, 'generated/atari-audio-player', name)), await readFile(new URL('../docs/generated/atari-audio-player/' + name, import.meta.url)));
+	for (const path of [
+		'scripts/build_atari_audio_player_wasm.sh', 'scripts/atari_audio_player_artifacts.mjs',
+		'tetorica_src/wasm/atari_audio_player_wasm.cpp', 'third_party/atari-audio/upstream.json',
+		'third_party/atari-audio/PATCHES.md', 'third_party/atari-audio/local.patch',
+		'third_party/atari-audio/src/external/Musashi/m68k.cpp',
+		'third_party/atari-audio/src/external/ice_24.cpp', 'third_party/atari-audio/src/external/lzh.cpp',
+	]) {
+		assert(info.names.includes('sources/atari-audio-player/' + path), `native rebuild input: ${path}`);
+		assert(info.receipt.originalInputs.some(input => input.path === path), `browser source archive includes native input: ${path}`);
+	}
+	assert.match(await readFile(join(a.stage, 'licenses/atari-audio/LICENSE'), 'utf8'), /Arnaud Carr/);
+	assert.match(await readFile(join(a.stage, 'licenses/musashi/readme.txt'), 'utf8'), /Permission is hereby granted/);
+	assert.match(await readFile(join(a.stage, 'licenses/ice/ice_24.cpp'), 'utf8'), /public domain 2007 by Hans Wessels/);
+	assert.match(await readFile(join(a.stage, 'licenses/lzh/lzh.cpp'), 'utf8'), /Haruhiko Okumura.*Kerwin F. Medina/);
+	assert.match(await readFile(join(a.stage, 'sources/ATARI-AUDIO.md'), 'utf8'), /build_atari_audio_player_wasm\.sh/);
+	assert.deepEqual(info.receipt.referenceArtifacts, atari.generated);
 	const native = JSON.parse(await readFile(join(a.stage, 'sources/AY8910.json')));
 	for (const entry of native.inputs) {
 		const bytes = await readFile(join(a.stage, entry.path));
@@ -181,6 +223,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 	assert(info.receipt.modules.some((module) => module.path === 'synth-spu/synth.css'));
 	for (const path of [
 		'scripts/copy_readable_modules.mjs',
+		'scripts/copy_atari_audio_sources.mjs',
 		'scripts/runtime_artifacts.mjs',
 		'scripts/wasm_sdk_inventory.mjs',
 	])
@@ -229,10 +272,36 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 	assert.match(audio, /new URL\('\.\.\/js\/playground_ay8910_worklet\.js', import\.meta\.url\)/);
 	assert.deepEqual(await readFile(join(a.stage, 'js/playground_ay8910_worklet.js')), await readFile(new URL('../docs/js/playground_ay8910_worklet.js', import.meta.url)));
 	assert.match(await readFile(join(a.stage, 'js/playground_ay8910_worklet.js'), 'utf8'), /import factory from '\.\.\/generated\/ay8910_wasm\.js'/);
+	assert.deepEqual(await readFile(join(a.stage, 'synth-ym2149-st/atari_worker.js')), await readFile(new URL('../docs/synth-ym2149-st/atari_worker.js', import.meta.url)));
+	assert.match(await readFile(join(a.stage, 'synth-ym2149-st/atari_worker.js'), 'utf8'), /new URL\('\.\.\/generated\/atari-audio-player\/atari-audio-player\.wasm', import\.meta\.url\)/);
+	assert.match(await readFile(join(a.stage, 'synth-ym2149-st/atari_engine.js'), 'utf8'), /new Worker\(new URL\('\.\/atari_worker\.js', import\.meta\.url\)/);
 	const original = await readFile(a.archive);
 	await assert.rejects(
 		packageYm2149StSynth({ version: 'test', releaseDir: join(directory, 'a') }),
 		/already exists/,
 	);
 	assert.deepEqual(await readFile(a.archive), original);
+});
+
+test('native reference source copier rejects changed inputs and WASM against the shipped build receipt', async t => {
+	const directory = await mkdtemp(join(tmpdir(), 'ym2149-atari-source-check-'));
+	t.after(() => rm(directory, {recursive: true, force: true}));
+	const mirror = join(directory, 'repository');
+	for (const path of [...ATARI_AUDIO_PLAYER_BUILD_INPUTS, ...ATARI_AUDIO_PLAYER_OUTPUTS.map(name => 'docs/generated/atari-audio-player/' + name)]) {
+		await mkdir(dirname(join(mirror, path)), {recursive: true});
+		await writeFile(join(mirror, path), await readFile(new URL('../' + path, import.meta.url)));
+	}
+	const wrapper = 'tetorica_src/wasm/atari_audio_player_wasm.cpp';
+	const original = await readFile(join(mirror, wrapper));
+	await writeFile(join(mirror, wrapper), Buffer.concat([original, Buffer.from('\n// stale build\n')]));
+	await assert.rejects(copyAtariAudioSources(join(directory, 'stale-source'), {root: mirror}), /receipt differs/);
+	await writeFile(join(mirror, wrapper), original);
+	const vendorPath = join(mirror, 'third_party/atari-audio/src/YmRenderer.cpp');
+	const vendor = await readFile(vendorPath);
+	await writeFile(vendorPath, Buffer.concat([vendor, Buffer.from('\n// changed vendor source\n')]));
+	await assert.rejects(copyAtariAudioSources(join(directory, 'stale-vendor'), {root: mirror}), /vendored source differs/);
+	await writeFile(vendorPath, vendor);
+	const wasmPath = join(mirror, 'docs/generated/atari-audio-player/atari-audio-player.wasm');
+	const wasm = await readFile(wasmPath); wasm[wasm.length - 1] ^= 1; await writeFile(wasmPath, wasm);
+	await assert.rejects(copyAtariAudioSources(join(directory, 'stale-output'), {root: mirror}), /receipt differs/);
 });

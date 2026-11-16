@@ -1,5 +1,21 @@
 @import url('../synth-spu/synth.css');
 
+.ym-song-panel {border:1px solid var(--line);border-radius:12px;background:#f0f3f8;padding:12px;margin-bottom:14px;min-width:0;}
+.ym-song-toolbar {display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0;}
+.ym-song-toolbar button,.ym-song-toolbar select {min-height:32px;}
+.ym-song-toolbar label {display:flex;gap:6px;align-items:center;font-size:.76rem;min-width:0;}
+.ym-song-choice {flex:1 1 220px;}
+.ym-song-choice select {width:100%;min-width:0;max-width:100%;}
+.ym-song-toolbar .ym-check {flex:none;white-space:nowrap;}
+.ym-song-seek {display:flex;gap:8px;align-items:center;margin-top:9px;}
+.ym-song-seek input {min-width:0;flex:1;}
+.ym-song-seek output {font-size:.72rem;min-width:84px;text-align:right;}
+.ym-song-panel .subtext {margin:7px 0 0;font-size:.72rem;overflow-wrap:anywhere;}
+.ym-song-panel[data-error='true'] #ymSongStatus {color:#a42c2c;}
+.ym-main[data-reference-view='true'] #voiceEditor {border-left:3px solid #315eaa;padding-left:7px;}
+.ym-main[data-reference-view='true'] #channelStatus {color:#285598;font-weight:600;}
+.ym-song-toolbar [hidden] {display:none;}
+
 :root {
   --bg: #e6e9ee;
   --panel: #f4f5f8;

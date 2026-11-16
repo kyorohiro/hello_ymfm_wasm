@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-16 (ASWAN Synth entry point; earlier SPU and SID handoffs retained below). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-16 (YM2149 ST reference playback; earlier Synth handoffs retained below). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## YM2149 ST Synth entry point
 
@@ -13,8 +13,17 @@ and JavaScript Code share one initialized chip client and audio output; Files /
 Cassette retain readable presets, JavaScript and local projects. The public
 chip identifier remains `ay8910`. See the [guide and limits](docs/synth-ym2149-st/README.md)
 and [implementation TODO](docs/issues/todo_ym2149_st_synth_20261116.md).
-YM / SNDH reference playback and extraction remain follow-up work; this is not
-a complete Atari ST machine or an STE DMA player.
+VGM / VGZ, SNDH and YM reference playback share the existing AudioContext and
+Master output. Reference and Code playback are mutually exclusive. Following
+CH1–CH3 shows heard register snapshots in the same read-only controls; paused
+audition and static Capture preserve the song position and edited sound.
+Original music remains in Files `/vgm/` or `/music/` and Cassette exports.
+VGM uses the existing AY renderer; SNDH / YM uses pinned AtariAudio 1.31 in a
+bounded Worker with its own WASM and retained rebuild sources / notices.
+Capture does not reconstruct timer routines, sample streams or envelope phase.
+This is not a general Atari ST machine; STE audio may occur in SNDH reference
+playback, while editable STE DMA and high-rate JavaScript reservations remain
+follow-up work. See the [reference verification](docs/issues/verification_ym2149_st_reference_20261116.md).
 
 ## ASWAN Synth entry point
 

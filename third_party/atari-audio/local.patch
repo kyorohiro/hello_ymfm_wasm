@@ -1,0 +1,243 @@
+--- a/src/AtariAudioRenderer.h
++++ b/src/AtariAudioRenderer.h
+@@ -89,6 +89,10 @@
+ 	static const uint32_t kSTEDac = (1 << 3);
+ 	virtual void MuteVoices(uint32_t muteVoiceMask) = 0;
+ 
++	// Local read-only API used by the isolated browser reference player.
++	virtual uint8_t GetYmRegister(unsigned reg) const = 0;
++	virtual bool IsReplayValid() const { return true; }
++
+ protected:
+ 	static	const	int		kSubsongCountMax = 128;
+ 
+--- a/src/AtariMachine.h
++++ b/src/AtariMachine.h
+@@ -44,6 +44,7 @@
+ 	void			ResetCb(void);
+ 	void 			IllegalCb(void);
+ 	void 			MuteVoices(uint32_t muteMask);
++	uint8_t GetYmRegister(unsigned reg) const { return m_ym2149.GetRegister(reg); }
+ 
+ private:
+ 	static	const	uint32_t	RTE_INSTRUCTION_ADDR = 0x500;
+--- a/src/SndhRenderer.cpp
++++ b/src/SndhRenderer.cpp
+@@ -85,7 +85,7 @@
+ 					read8 += 4 + si.subsongCount * 2;			// skip 2bytes per offset
+ 					tagCount++;
+ 				}
+-				if (0 == strncmp(read8, "#!", 2))
++				else if (0 == strncmp(read8, "#!", 2))
+ 				{
+ 					si.defaultSubsong = atoi(read8 + 2);
+ 					read8 = SkipNTString(read8+2);
+--- a/src/SndhRenderer.h
++++ b/src/SndhRenderer.h
+@@ -21,6 +21,8 @@
+ 	void AudioRender(int16_t* buffer, uint32_t sampleCount);
+ 	void AudioRenderWithVisualInfos(int16_t* buffer, uint32_t sampleCount, uint32_t* pVisualSamples);
+ 	void MuteVoices(uint32_t muteVoiceMask) { m_atariMachine.MuteVoices(muteVoiceMask); }
++	uint8_t GetYmRegister(unsigned reg) const { return m_atariMachine.GetYmRegister(reg); }
++	bool IsReplayValid() const { return m_subsongInit; }
+ 
+ private:
+ 	static	const	uint32_t	SNDH_UPLOAD_ADDR = 0x10002;		// some SNDH can't play below (ie SynthDream2) Also some driver crash if loaded at 64KiB bound ( metal planet by Floopy at 1:44 )
+--- a/src/YmRenderer.h
++++ b/src/YmRenderer.h
+@@ -22,6 +22,7 @@
+ 	void AudioRender(int16_t* buffer, uint32_t sampleCount);
+ 	void AudioRenderWithVisualInfos(int16_t* buffer, uint32_t sampleCount, uint32_t* pVisualSamples);
+ 	void MuteVoices(uint32_t muteVoiceMask);
++	uint8_t GetYmRegister(unsigned reg) const { return m_ym2149.GetRegister(reg); }
+ 
+ private:
+ 
+--- a/src/external/lzh.cpp
++++ b/src/external/lzh.cpp
+@@ -13,7 +13,7 @@
+ 
+ bool LzhDepacker::IsLzhPacked(const void* data, uint32_t size)
+ {
+-	if (size < 16)
++	if (size < 22)
+ 		return false;
+ 
+ 	const char* pr = (const char*)data;
+@@ -106,6 +106,7 @@
+ /** Shift bitbuf n bits left, read n bits */
+ void LzhDepacker::fillbuf (int n)
+ {
++    if (n < 0 || n > 16) { with_error = 1; return; }
+     bitbuf = (bitbuf << n) & 0xffff;
+     while (n > bitcount)
+     {
+@@ -147,14 +148,20 @@
+ int LzhDepacker::make_table (int nchar, uchar *bitlen,
+ 							  int tablebits, ushort *table)
+ {
+-    ushort count[17], weight[17], start[18], *p;
++    ushort count[17] = {}, weight[17], start[18], *p;
+     uint jutbits, avail, mask;
+ 	int i,ch,len,nextcode;
+ 
+     for (i = 1; i <= 16; i++)
+         count[i] = 0;
+     for (i = 0; i < nchar; i++)
++    {
++        if (bitlen[i] > 16) return 1;
+         count[bitlen[i]]++;
++    }
++    uint32_t totalWeight = 0;
++    for (i = 1; i <= 16; i++) totalWeight += uint32_t(count[i]) << (16 - i);
++    if (totalWeight != 65536) return 1;
+ 
+     start[1] = 0;
+     for (i = 1; i <= 16; i++)
+@@ -197,15 +204,18 @@
+         else
+         {
+             uint k = start[len];
++            if ((k >> jutbits) >= (1u << tablebits)) return 1;
+             p = &table[k >> jutbits];
+             i = len - tablebits;
+             while (i != 0)
+             {
+                 if (*p == 0)
+                 {
++                    if (avail >= 2 * NC - 1) return 1;
+                     right[avail] = left[avail] = 0;
+                     *p = avail++;
+                 }
++                if (*p >= 2 * NC - 1) return 1;
+                 if (k & mask)
+                     p = &right[*p];
+                 else
+@@ -232,9 +242,11 @@
+     ushort mask;
+ 
+     n = getbits (nbit);
++    if (n > nn) { with_error = 1; return; }
+     if (n == 0)
+     {
+         c = getbits (nbit);
++        if (c >= nn) { with_error = 1; return; }
+         for (i = 0; i < nn; i++)
+             pt_len[i] = 0;
+         for (i = 0; i < 256; i++)
+@@ -255,18 +267,20 @@
+                     c++;
+                 }
+             }
++            if (c > 16) { with_error = 1; return; }
+             fillbuf ((c < 7) ? 3 : c - 3);
+             pt_len[i++] = uchar(c);
+             if (i == i_special)
+             {
+                 c = getbits (2);
++                if (i + c > nn) { with_error = 1; return; }
+                 while (--c >= 0)
+                     pt_len[i++] = 0;
+             }
+         }
+         while (i < nn)
+             pt_len[i++] = 0;
+-        make_table (nn, pt_len, 8, pt_table);
++        if (make_table (nn, pt_len, 8, pt_table)) with_error = 1;
+     }
+ }
+ 
+@@ -276,9 +290,11 @@
+     ushort mask;
+ 
+     n = getbits (CBIT);
++    if (n > NC) { with_error = 1; return; }
+     if (n == 0)
+     {
+         c = getbits (CBIT);
++        if (c >= NC) { with_error = 1; return; }
+         for (i = 0; i < NC; i++)
+             c_len[i] = 0;
+         for (i = 0; i < 4096; i++)
+@@ -295,6 +311,7 @@
+                 mask = 1U << (BITBUFSIZ - 1 - 8);
+                 do
+                 {
++                    if (!mask || c >= 2 * NC - 1) { with_error = 1; return; }
+                     if (bitbuf & mask)
+ 						c = right[c];
+                     else
+@@ -311,6 +328,7 @@
+                     c = getbits (4) + 3;
+                 else
+                     c = getbits (CBIT) + 20;
++                if (i + c > NC) { with_error = 1; return; }
+                 while (--c >= 0)
+                     c_len[i++] = 0;
+             }
+@@ -319,7 +337,7 @@
+         }
+         while (i < NC)
+             c_len[i++] = 0;
+-        make_table (NC, c_len, 12, c_table);
++        if (make_table (NC, c_len, 12, c_table)) with_error = 1;
+     }
+ }
+ 
+@@ -330,9 +348,13 @@
+     if (blocksize == 0)
+     {
+         blocksize = getbits (16);
++        if (!blocksize) { with_error = 1; return 0; }
+         read_pt_len (NT, TBIT, 3);
++        if (with_error) return 0;
+         read_c_len ();
++        if (with_error) return 0;
+         read_pt_len (NP, PBIT, -1);
++        if (with_error) return 0;
+     }
+     blocksize--;
+     j = c_table[bitbuf >> (BITBUFSIZ - 12)];
+@@ -341,6 +363,7 @@
+         mask = 1U << (BITBUFSIZ - 1 - 12);
+         do
+         {
++            if (!mask || j >= 2 * NC - 1) { with_error = 1; return 0; }
+             if (bitbuf & mask)
+ 				j = right[j];
+             else
+@@ -363,6 +386,7 @@
+         mask = 1U << (BITBUFSIZ - 1 - 8);
+         do
+         {
++            if (!mask || j >= 2 * NC - 1) { with_error = 1; return 0; }
+             if (bitbuf & mask)
+ 				j = right[j];
+             else
+@@ -415,6 +439,7 @@
+     for (;;)
+     {
+         c = decode_c ();
++        if (with_error) return;
+         if (c <= UCHAR_MAX)
+         {
+             buffer[r] = c;
+@@ -425,6 +450,7 @@
+         {
+             decode_j = c - (UCHAR_MAX + 1 - THRESHOLD);
+             decode_i = (r - decode_p () - 1) & (DICSIZ - 1);
++            if (with_error) return;
+             while (--decode_j >= 0)
+             {
+                 buffer[r] = buffer[decode_i];
+--- a/src/ym2149c.h
++++ b/src/ym2149c.h
+@@ -20,6 +20,8 @@
+ 
+ 	uint32_t ComputeCurrentVisualLevels() const; // only used for some player visual, contains 3 YM voices volume and STE DAC in 8888 format
+ 
++	// Local read-only observability API. Registers 14/15 are not emulated.
++	uint8_t GetRegister(unsigned reg) const { return reg < 14 ? m_regs[reg] : 0; }
+ 	void MuteVoices(uint32_t muteMask);
+ 	int16_t		dcAdjust(int16_t v);
+ 
