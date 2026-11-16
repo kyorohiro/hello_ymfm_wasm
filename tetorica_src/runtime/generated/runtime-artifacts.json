@@ -7,9 +7,9 @@
     "name": "tetorica-soundchip-native",
     "version": "0.1.8-fm2608-mixer",
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-    "archiveName": "tetorica-soundchip-native-0.1.8-fm2608-mixer-sources.zip",
-    "archiveSha256": "1cb0a575448c160793654a95860d00748496ff24db4472dc4804f3ca5b678103",
-    "manifestSha256": "a02a0f8749420079d9bc9e0655f41c419dc5fd88362ad191e2915c9efabfa877",
+    "archiveName": "tetorica-soundchip-native-ay-single-output-sources.zip",
+    "archiveSha256": "53dfb59440a29ca397dfaa6880dfa87fd205e57fe531ad8152177768a7294801",
+    "manifestSha256": "b3312faf56f7ddfb94f547a74ff99b583ad9ebf84baa9e447cd8e12f8eef0e4d",
     "fileCount": 482,
     "unpublished": true,
     "localCandidate": {
@@ -32,11 +32,15 @@
         "sdk.json",
         "tests/huc6280_state_wasm_smoke.mjs",
         "tests/ym2608_output_gains_wasm_smoke.mjs",
+        "vendor/mame-ay8910/README.md",
+        "vendor/mame-ay8910/ay8910.cpp",
+        "vendor/mame-ay8910/ay8910.h",
         "vendor/mame-huc6280/README.md",
         "vendor/mame-huc6280/huc6280.cpp",
         "vendor/mame-huc6280/huc6280.h",
         "vendor/snes-spc/README.md",
         "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "wasm/ay8910_wasm.cpp",
         "wasm/huc6280_wasm.cpp",
         "wasm/spc_wasm.cpp",
         "wasm/ym2608_wasm.cpp"
@@ -64,8 +68,8 @@
           "mirrors": [
             "docs/generated/ay8910_wasm.wasm"
           ],
-          "size": 13549,
-          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+          "size": 15254,
+          "sha256": "45f1d0cf1ece4ee609cae3a37dbe3c6293961c7f22d9d6ad82fc268a29ab3d74"
         }
       ],
       "sourceFiles": [
@@ -1789,7 +1793,7 @@
         "docs/generated/build-info.json"
       ],
       "size": 145465,
-      "sha256": "4d4b0856bc7132b4fbb6b7d3d4d4d9188ca847e453a83be80eaf3c14f9fbcece"
+      "sha256": "9921e0a8e6957d9dbd9af1a46d678b3783970a7b261595ca267060f807dd3fd7"
     },
     {
       "path": "ps1_spu_build.json",
@@ -1797,8 +1801,8 @@
       "mirrors": [
         "docs/generated/ps1_spu_build.json"
       ],
-      "size": 5726,
-      "sha256": "218e24f9a9c051716997642b49c9742a17d85eb970c45390af4c705f7aea90e3"
+      "size": 5876,
+      "sha256": "573db7c6bbc4e87abf6fd39047c1633dbb2a971e3daa4534508b9c9c298dc3d2"
     }
   ]
 }

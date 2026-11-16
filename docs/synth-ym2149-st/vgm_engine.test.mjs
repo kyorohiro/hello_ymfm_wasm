@@ -41,7 +41,12 @@ function render(engine, count, parts = [count]) {
   return {left, right};
 }
 
-for (const options of [{type: 0x10, flags: 1, clock: 2000000}, {type: 0x10, flags: 0x11, clock: 1773400}, {type: 0, flags: 1, clock: 1789773}, {type: 0x10, flags: 0, clock: 2000000}])
+for (const options of [
+  {type: 0x10, flags: 1, clock: 2000000}, {type: 0x10, flags: 0x11, clock: 1773400},
+  {type: 0, flags: 1, clock: 1789773}, {type: 0x10, flags: 0, clock: 2000000},
+  ...[2, 3].flatMap(flags => [{type: 0, flags, clock: 1789773}, {type: 0x10, flags, clock: 2000000}]),
+  ...[0x12, 0x13].map(flags => ({type: 0x10, flags, clock: 2000000})),
+])
   test(`native AY PCM / shape restarts equal existing VgmPlayer and SynthWorklet (${JSON.stringify(options)})`, async () => {
     const source = await readYmVgmSource(createYmVgmFixture(undefined, options));
     const actual = await createYmVgmEngine(source, {moduleFactory}), reference = await referencePlayer(source);

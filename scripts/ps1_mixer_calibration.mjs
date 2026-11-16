@@ -187,8 +187,9 @@ export async function validatePs1MixerCalibrationSources({reportPath,ps1Report})
       uiReceipt=JSON.parse(await readFile(resolve(root,'docs/issues/ps1_chip_levels_ui_receipt_01.json'),'utf8'));
       measuredReportSha256=sha(await readFile(resolve(root,'docs/issues/ps1_chip_levels_01.json')));
     }
-    assertMixerCalibrationSourceFreshness({path,bytes,record,report:ps1Report,reportSha256:measuredReportSha256,
-      receipt:uiReceipt,receiptObjectSha256:PS1_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});
+    try {assertMixerCalibrationSourceFreshness({path,bytes,record,report:ps1Report,reportSha256:measuredReportSha256,
+      receipt:uiReceipt,receiptObjectSha256:PS1_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});}
+    catch(error) {fail('served DSP/WASM source changed; remeasure: docs/'+path+' ('+error.message+')');}
   }
   return result;
 }

@@ -1,7 +1,8 @@
 import {renderPlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
 import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
 import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
-import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
+import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
 import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -85,14 +86,14 @@ test('changing the receipt cannot authorize a new after body without changing th
   assert.throws(()=>isolated.restoreMixerCalibrationSidRevision(paths[0],Buffer.alloc(1)),/independently pinned SHA/);
 });
 
-test('all four historical reports retain their gains and require remeasurement after SPC voice editing',async()=>{
+test('all four historical reports retain their gains and require fresh evidence after AY output and SPC voice editing',async()=>{
   const baselinePath=join(root,'docs/issues/playground_chip_levels_01.json');
   assert.equal(sha(await readFile(baselinePath)),'9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234');
   const validators=[['ps1Report',validatePs1MixerCalibrationSources],['wsReport',validateWonderSwanMixerCalibrationSources],['pokeyReport',validatePokeyMixerCalibrationSources],['scspReport',validateScspMixerCalibrationSources]];
   for(let index=0;index<reports.length;index++){
     const path=reports[index],bytes=await read(path),report=JSON.parse(bytes),original=JSON.stringify(report),[parameter,validate]=validators[index];
     assert.equal(bytes.length,receipt.reports[path].bytes);assert.equal(sha(bytes),receipt.reports[path].sha256);
-    await assert.rejects(validate({reportPath:baselinePath,[parameter]:report}),/source changed; remeasure: (?:docs\/)?js\/playground_spc_audio\.js/);
+    await assert.rejects(validate({reportPath:baselinePath,[parameter]:report}),/source changed; remeasure: (?:docs\/)?js\/(?:ay8910|playground_spc_audio)\.js/);
     assert(report.calibration.routes.every(route=>route.volume>0));
     assert.equal(JSON.stringify(report),original);assert.deepEqual(await read(path),bytes);
   }

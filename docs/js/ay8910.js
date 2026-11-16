@@ -15,7 +15,7 @@ export function validateAy8910({clock=AY8910_CLOCK,sampleRate=44100,type=0,flags
   if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(sampleRate)||sampleRate<=0||sampleRate>384000)
     throw new RangeError('Invalid AY clock or sample rate');
   if (![0,0x10].includes(type)) throw new Error(`AY chip type 0x${Number(type).toString(16)}: Support coming soon.`);
-  if(!Number.isInteger(flags)||flags<0||flags>255||(flags & ~0x11)||(type===0 && (flags&0x10)))
+  if(!Number.isInteger(flags)||flags<0||flags>255||(flags & ~0x13)||(type===0 && (flags&0x10)))
     throw new Error(`AY flags 0x${Number(flags).toString(16)}: Support coming soon.`);
 }
 /**

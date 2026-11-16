@@ -89,7 +89,9 @@ async function main() {
         await page.locator('#synthCodeRunButton').click();
         await page.waitForFunction(()=>tetoricaYm2149StSynth.getCodeState().running);
         await page.waitForFunction(()=>tetoricaYm2149StSynth.getState().activeChannels.length>0);
-        const codePCM=await page.evaluate(()=>__ymAudit.level());
+        // Sample a sounding part of the loop, rather than its intended rest.
+        const sounding=await page.waitForFunction(()=>{const pcm=__ymAudit.level();return pcm.rms>0.0001?pcm:false;},{},{timeout:3000});
+        const codePCM=await sounding.jsonValue();await sounding.dispose();
         await page.locator('[data-channel="0"]').click();await page.locator('#noiseEnabled').check();
         assert.equal((await snapshot()).preset.voices[0].noise,true);
         assert.equal(await page.evaluate(()=>tetoricaYm2149StSynth.getCodeState().running),true,'hardware edit keeps Code running');

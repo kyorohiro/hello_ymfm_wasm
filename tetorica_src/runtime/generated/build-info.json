@@ -4,7 +4,7 @@
     {
       "id": "ay8910",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "46140608cb69618194cf96115e03eb37ba4a7ee4cf9742884d8475b9550f3e0b",
+      "sourceFingerprint": "e31283ea736b144d24556ef94d75eae89683e93a1a97ba7aea385371f5b4fdcd",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -23,13 +23,13 @@
         },
         {
           "path": "vendor/mame-ay8910/ay8910.cpp",
-          "sha256": "3ea3efe1b29a554c39a2b1995e9ed3d2588c16d24b085ca1565c3a24f4414646",
-          "size": 4783
+          "sha256": "e6f3cf07bd25e1f5f18455db302758993910154a82e401ee1566103e184f432b",
+          "size": 7415
         },
         {
           "path": "vendor/mame-ay8910/ay8910.h",
-          "sha256": "e93d1904d2c232f820c23a6df59dfebf309550a6f8b0032e20c51295e7d31e7a",
-          "size": 2431
+          "sha256": "1663b65a64715f23826eece168489ca2a15e001f01fee93779bf4cf307ae7156",
+          "size": 2697
         },
         {
           "path": "vendor/mame-ay8910/upstream/ay8910.cpp",
@@ -43,7 +43,7 @@
         },
         {
           "path": "wasm/ay8910_wasm.cpp",
-          "sha256": "15107f52744c9e67db2daf0bfa052ebb04a63dc92779576e46c4c10b64009ebb",
+          "sha256": "d5a03082806adc7d1aac6ce8f4fae0aa96b669707b22d837749a19eefe55846b",
           "size": 851
         }
       ],
@@ -55,8 +55,8 @@
         },
         {
           "path": "ay8910_wasm.wasm",
-          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
-          "size": 13549
+          "sha256": "45f1d0cf1ece4ee609cae3a37dbe3c6293961c7f22d9d6ad82fc268a29ab3d74",
+          "size": 15254
         }
       ],
       "compiler": {

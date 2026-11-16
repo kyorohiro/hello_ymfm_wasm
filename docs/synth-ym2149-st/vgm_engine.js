@@ -17,7 +17,7 @@ export async function createYmVgmEngine(source, {signal, moduleFactory = factory
   });
   let disposed = false, frame = 0, cursor = 0, muteMask = 7, speakerOffset = 0;
   const registers = new Uint8Array(16), registerKnown = new Uint8Array(16), events = source.trace.events;
-  const centerSpeaker = type === 0x10 && !!(flags & 1);
+  const centerSpeaker = type === 0x10 && !!(flags & 1) && !(flags & 2);
   const open = () => {
     if (disposed) throw new Error('YM VGM engine is disposed');
     checkYmVgmAbort(signal);

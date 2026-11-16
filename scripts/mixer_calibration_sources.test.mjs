@@ -201,7 +201,7 @@ for(const [kind,receiptObjectSha256]of [
     const options={path,bytes,record:report.sources[path],report,reportSha256:sha(reportBytes),receipt,receiptObjectSha256};
     // Both shipped UI bodies now include feature changes. The old token-only
     // receipt must authorize neither; current reports cover their new hashes.
-    assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
+    assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed|pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm/);
   }
   const dspPath='js/ps1synth.js',dspBytes=await readFile(new URL('../docs/'+dspPath,import.meta.url));
   assert.throws(()=>assertMixerCalibrationSourceFreshness({path:dspPath,bytes:dspBytes,record:report.sources[dspPath],report,

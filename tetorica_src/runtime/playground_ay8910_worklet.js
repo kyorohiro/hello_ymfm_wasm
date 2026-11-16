@@ -10,7 +10,9 @@ class Processor extends AudioWorkletProcessor{
     // The normalized YM DAC has a -0.125 baseline per voice. Hard muting that
     // baseline at each key edge creates a louder step than a quiet tone itself.
     // Restore its zero at this speaker boundary; raw chip PCM stays unchanged.
-    this.centerSpeaker=type===0x10&&!!(flags&1);this.speakerOffset=0;
+    // The tied-output table has a different baseline and already starts at
+    // zero when normalized. Its level must not receive the per-voice offset.
+    this.centerSpeaker=type===0x10&&!!(flags&1)&&!(flags&2);this.speakerOffset=0;
     this.performance=createProcessorPerformance({chip:'ay8910',getAyRegisters:()=>this.registers,immediate:['stopVoices'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{

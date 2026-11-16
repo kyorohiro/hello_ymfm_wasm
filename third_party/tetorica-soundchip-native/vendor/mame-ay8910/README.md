@@ -10,8 +10,8 @@ Both original files are retained unmodified in `upstream/`.
 ## Scope and changes
 
 `ay8910.cpp` retains the MAME three-tone counters, prescaled 17-bit noise LFSR,
-shared envelope and single-channel resistor tables. `tone_t`, `envelope_t`,
-resistor parameters and `build_single_table` come from the pinned source.
+shared envelope and resistor tables. `tone_t`, `envelope_t`, resistor parameters,
+`build_single_table` and `build_3D_table` come from the pinned source.
 The native tick is the AY8910/YM2149 subset of `sound_stream_update`.
 Register writes retain raw latch values and apply the original masks when
 updating tone/noise/volume state. Same-value shape writes retrigger the envelope,
@@ -28,21 +28,20 @@ exposed. Unsupported types/flags are rejected before creating the WASM chip.
 
 ## Output model
 
-- Three independent MAME single-output resistor tables, 1000 ohm load per channel.
-- Flag bit 0 selects MAME legacy normalization; zero uses the unnormalized table.
+- Without flag bit 1, three independent MAME resistor tables use a 1000 ohm load per channel. The existing output path is unchanged.
+- Flag bit 1 (`0x02`, Single Output) uses the pinned MAME nonlinear `build_3D_table` / `mix_3D` model with a 1000 ohm tied-output load. Fixed and envelope levels retain their separate resistor parameters, including gated level zero.
+- Flag bit 0 selects MAME legacy normalization; zero uses the unnormalized table. The tied table uses MAME's normalization factor 3 exactly.
 - AY uses 16 envelope levels with a two-tick step; YM2149 uses 32 with a one-tick step.
 - Native sample rate is clock / 8. YM2149 flag bit 4 (pin 26 low) adds a /2 divider.
-- Flags other than bits 0 and 4 are rejected; bit 4 is rejected for AY8910.
-  In particular, single-pin nonlinear mixing, resistor/raw output and stereo-pan
-  flags are not silently treated as the chosen output model.
-- Host output averages A/B/C, producing identical left/right mono samples.
-  This is an explicit host mix, not MAME's nonlinear `mix_3D` single-pin model.
+- Flags other than bits 0, 1 and 4 are rejected; bit 4 is rejected for AY8910.
+  Resistor/raw output and stereo-pan flags are not silently treated as the chosen output model.
+- The host retains its /3 output normalization: independent output averages A/B/C; Single Output divides the one nonlinear MAME level by 3. Both produce identical left/right mono samples. Thus normalized Single Output spans 0 to 1 rather than MAME's 0 to 3; unnormalized Single Output is also scaled by 1/3.
+- `tick()` retains the three independent native table outputs for diagnostics. With flag `0x02`, `mixed_tick_output()` exposes the latest full MAME tied-output level before the host /3 scale. The tied table is allocated only when this flag is selected.
 - Native table DC levels are retained, including legacy normalization's negative
   baseline. No artificial zero-volume gate or DC filter is applied.
 - Resampling integrates the held native samples over each output sample using
   integer phase durations. Chunk boundaries do not change waveform or phase.
-- Mutes act after native synthesis, before channel averaging; counters and the
-  shared envelope continue. Unmuting therefore resumes the current chip state.
+- Mutes act after native synthesis; counters and the shared envelope continue. Independent output retains the original per-channel averaging behavior. Single Output sets muted channels' cached level codes to zero before the nonlinear lookup, retaining envelope/fixed electrical parameters. All three host mutes force silence. Mute changes apply to the currently held native sample without advancing chip phase; unmuting resumes the current state.
 
 The native range is bounded by the chosen tables. A standalone AY output is not
 clipped. The app's master volume and AY+OPLL mix can exceed unity, as can other
@@ -53,9 +52,10 @@ This models the selected MAME output conditions, not an MSX motherboard circuit.
 
 `python3 scripts/verify_ay8910_reference.py` compiles the pinned original write,
 reset and render methods with framework stubs. It compares all three outputs
-against the adaptation for AY and YM, normalized and unnormalized tables:
-2,652,608 native ticks, all envelope shapes, zero/min/max periods, same-value
-shape writes, dynamic periods, randomized registers and all mixer combinations.
+against the adaptation for AY and YM, normalized and unnormalized tables,
+including Single Output. It covers all envelope shapes, zero/min/max periods,
+same-value shape writes, dynamic periods, randomized registers, all mixer
+combinations and partial host mutes.
 The output tables are independently built by the original MAME routine.
 This check does not claim equivalence of the host resampler to MAME's resampler.
 

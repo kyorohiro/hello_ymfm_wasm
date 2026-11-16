@@ -211,8 +211,9 @@ export async function validatePokeyMixerCalibrationSources({reportPath,pokeyRepo
       uiReceipt=JSON.parse(await readFile(resolve(root,'docs/issues/pokey_chip_levels_ui_receipt_01.json'),'utf8'));
       measuredReportSha256=sha(await readFile(resolve(root,'docs/issues/pokey_chip_levels_01.json')));
     }
-    assertMixerCalibrationSourceFreshness({path,bytes,record,report:pokeyReport,reportSha256:measuredReportSha256,
-      receipt:uiReceipt,receiptObjectSha256:POKEY_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});
+    try {assertMixerCalibrationSourceFreshness({path,bytes,record,report:pokeyReport,reportSha256:measuredReportSha256,
+      receipt:uiReceipt,receiptObjectSha256:POKEY_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});}
+    catch(error) {fail('served DSP/WASM source changed; remeasure: docs/'+path+' ('+error.message+')');}
   }
   return result;
 }

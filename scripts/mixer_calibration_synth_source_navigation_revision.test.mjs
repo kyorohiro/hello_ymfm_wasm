@@ -13,6 +13,8 @@ import {
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {HUC6280_UI_REVISION_RECEIPT_PATH} from './mixer_calibration_huc6280_ui_revision.mjs';
 import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
+import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+import {historicalVabSourceFixture} from '../test/helpers/historical_vab_source_fixture.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -35,7 +37,12 @@ test('Synth navigation restores the exact independently pinned HuC6280 viewer bo
       const bytes = read(reportPath), report = JSON.parse(bytes), identity = receipt.reports[reportPath];
       assert.equal(bytes.length, identity.bytes);
       assert.equal(sha(bytes), identity.sha256);
-      assert.doesNotThrow(() => fresh({path, bytes:current, record:report.sources[path], report}));
+      // Keep the old measured DSP contract stale for today's AY output assets.
+      // Its source-viewer chain remains independently reproducible from the
+      // exact archived VAB predecessor, without a production DSP exception.
+      assert.throws(() => fresh({path, bytes:current, record:report.sources[path], report}), /pinned report\/helper\/cache dependency changed/);
+      const historical=historicalVabSourceFixture(path,restoreMixerCalibrationHuc6280UiRevision(path,original));
+      assert.doesNotThrow(() => fresh({path, bytes:historical, record:report.sources[path], report}));
       assert.deepEqual(read(reportPath), bytes);
     }
   }

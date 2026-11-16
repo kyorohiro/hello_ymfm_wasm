@@ -26,6 +26,7 @@ on:
       - 'tetorica_src/runtime/playground_ay8910*'
       - 'tetorica_src/runtime/generated/ay8910*'
       - 'scripts/*ym2149*'
+      - 'scripts/verify_ay8910_reference.py'
       - 'scripts/copy_ay8910_sources.mjs'
       - 'scripts/copy_atari_audio_sources.mjs'
       - 'scripts/*atari_audio_player*'
@@ -74,6 +75,7 @@ jobs:
       - name: Test and package the standalone YM2149 ST Synth
         run: |
           npm run test:ym2149-st-synth
+          python3 scripts/verify_ay8910_reference.py
           node scripts/atari_audio_player_artifacts.mjs --check
           node scripts/check_ym2149_st_reference_browser.cjs --engines=chromium,webkit --out=release/ym2149-st-reference-source.json --screenshots=release/ym2149-st-reference-source-images
           sh scripts/package_itch_ym2149_st_synth.sh ci

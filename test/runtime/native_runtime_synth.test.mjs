@@ -389,9 +389,14 @@ for(const stage of ['fetch','module','ready'])test(`YM2149 close during ${stage}
   assert(nodes.every(node=>node.port.closed&&!node.connections.length));await synth.start();assert(synth.isReady());
   assert.equal(nodes.at(-1).options.processorOptions.type,0x10);assert.equal(synth.ay.clock,2000000);
 });
-for(const profile of [{type:17,flags:1},{type:16,flags:2},{type:0,flags:17}])test(`unsupported AY profile ${JSON.stringify(profile)} fails before assets or nodes load`,async t=>{
+for(const profile of [{type:17,flags:1},{type:16,flags:4},{type:0,flags:17}])test(`unsupported AY profile ${JSON.stringify(profile)} fails before assets or nodes load`,async t=>{
   const {synth,nodes,fetches,moduleLoads}=harness(t,'ay8910',{clock:2000000,...profile});
   await assert.rejects(synth.start(),/Support coming soon/);assert.deepEqual(nodes,[]);assert.deepEqual(fetches,[]);assert.deepEqual(moduleLoads,[]);
+});
+for(const profile of [{type:0,flags:2},{type:16,flags:2},{type:16,flags:0x13}])test(`Single Output AY profile ${JSON.stringify(profile)} reaches the primary unchanged`,async t=>{
+  const {synth,nodes}=harness(t,'ay8910',{clock:2000000,...profile});await synth.start();
+  assert.equal(nodes.length,1);assert.equal(nodes[0].options.processorOptions.type,profile.type);assert.equal(nodes[0].options.processorOptions.flags,profile.flags);
+  assert.equal(synth.primaryEndpoints[0].type,profile.type);assert.equal(synth.primaryEndpoints[0].flags,profile.flags);
 });
 for(const mode of ['msx','msx-audio'])test(`${mode} keeps the original AY-3-8910 profile`,async t=>{
   const {synth,nodes}=harness(t,mode);await synth.start();

@@ -58,3 +58,5 @@ sh scripts/build_spc_wasm.sh
 The complete modified library source and build wrapper must accompany a binary
 distribution that includes this LGPL component, as with the existing Nuked
 component. This repository does not change the licenses of the other chips.
+
+Local extension: bounded host writes to per-voice volume, PITCH, ADSR and GAIN at the current DSP phase, with observer notifications. No CPU reset, DSP reset, RAM replacement or KON/KOFF injection.

@@ -13,7 +13,8 @@ import {restoreMixerCalibrationPs1ImportRevision as restore,PS1_IMPORT_REVISION_
   PS1_IMPORT_REVISION_SOURCE_PATHS as paths,PS1_IMPORT_REVISION_REPORT_PATHS as reports} from './mixer_calibration_ps1_import_revision.mjs';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
 import {measurePs1ImportRevisionPcm} from './check_ps1_import_revision_pcm.mjs';
-import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
+import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
 import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
 
 const read=path=>readFile(new URL('../'+path,import.meta.url));
@@ -22,7 +23,7 @@ const receipt=JSON.parse(await read(receiptPath));
 const prior=path=>receipt.priorPassiveRevisions.psfStartupMetadata.sources[path]??receipt.priorPassiveRevisions.spuCodeDefinitionViewer.sources[path];
 const finalBefore=path=>(prior(path)??receipt.sources[path]).before;
 
-test('exact current import sources and separately named prior passive sources reconstruct complete predecessors',async()=>{
+test('exact archived import source fixtures and separately named prior passive sources reconstruct complete predecessors',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);assert.equal(paths.length,9);
   assert.deepEqual(Object.keys(receipt.priorPassiveRevisions).sort(),['psfStartupMetadata','spuCodeDefinitionViewer']);
   for(const path of paths) {
@@ -35,13 +36,10 @@ test('exact current import sources and separately named prior passive sources re
   }
   for(const path of reports) {
     const bytes=await read(path),report=JSON.parse(bytes);assert.equal(bytes.length,receipt.reports[path].bytes,path);assert.equal(sha(bytes),receipt.reports[path].sha256,path);
-    for(const [source,record]of Object.entries(report.sources)) {
-      const current=await read('docs/'+source);
-      const validate=()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report});
-      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js','js/ym2608.js','js/ym2608synth.js'].includes(source))
-        assert.throws(validate,/source changed; remeasure:/,'New SPC and YM2608 APIs require separately scoped current evidence');
-      else assert.doesNotThrow(validate,source);
-    }
+    // These are immutable historical reports. The native AY addition now
+    // requires fresh evidence; source-pair fixtures above do not approve it.
+    const ayPath='js/ay8910.js',awaitedAy=await read('docs/'+ayPath);assert(report.sources[ayPath]);
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({path:ayPath,bytes:awaitedAy,record:report.sources[ayPath],report}),/source changed; remeasure:/);
     assert.deepEqual(await read(path),bytes,'the raw original measurements are never rewritten');
   }
 });

@@ -30,12 +30,14 @@ test('VAB receipt is independently pinned, deterministic and retains untouched o
   assert.notEqual(sha(JSON.stringify(forged)),VAB_API_REVISION_RECEIPT_OBJECT_SHA256,'editing evidence cannot retain the independent pin');
 });
 
-test('each complete current source reconstructs its exact predecessor, including the separately named earlier raw VAB export',()=>{
+test('the historical VAB export receipt cannot approve current sources after the AY native output revision',()=>{
   for(const path of VAB_API_REVISION_SOURCE_PATHS) {
-    const bytes=readFileSync(url(path)),current=restoreMixerCalibrationHuc6280UiRevision(path.replace(/^docs\//,''),restoreNavigation(path.replace(/^docs\//,''),bytes)),restored=restoreMixerCalibrationVabApiRevision(path,current);
-    const expected=VAB_API_PRIOR_EXPORT_PATHS.includes(path)?evidence.priorSourceExport.sources[path].before:evidence.sources[path].before;
-    assert.equal(restored.length,expected.bytes,path);assert.equal(sha(restored),expected.sha256,path);
-    if(path.startsWith('docs/'))assert.deepEqual(restoreMixerCalibrationVabApiRevision(path.slice(5),current),restored,'served source names use the same fixed inventory');
+    const bytes=readFileSync(url(path)),current=restoreMixerCalibrationHuc6280UiRevision(path.replace(/^docs\//,''),restoreNavigation(path.replace(/^docs\//,''),bytes));
+    const known=[evidence.sources[path],evidence.priorSourceExport.sources[path]].some(entry=>entry&&current.length===entry.after.bytes&&sha(current)===entry.after.sha256);
+    if(!known) {
+      assert.equal(restoreMixerCalibrationVabApiRevision(path,current),current,'An unlisted later source body is outside this exact VAB source pair');
+    }else assert.throws(()=>restoreMixerCalibrationVabApiRevision(path,current),/pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm/,
+      'Actual AY WASM changes require new measurements; an export-only receipt cannot authorize them');
   }
 });
 
@@ -60,13 +62,13 @@ test('every added helper, cache, declaration, example and measured dependency is
   }
 });
 
-test('the canonical PSG factory guard accepts only the pinned additive VAB exports and still requires the historical layout hash',()=>{
+test('the canonical PSG factory requires fresh PSG06 evidence after the AY WASM addition',()=>{
   const path='tetorica_src/runtime/soundchip.js',current=readFileSync(url(path));
-  const report=JSON.parse(readFileSync(url('docs/issues/soundchip_psg_levels_05.json'),'utf8')),expected=report.sources[path];
-  const accepted=bytes=>sha(bytes)===expected||isSoundChipPsgSourceLayoutRevision(path,bytes,expected);
-  assert.equal(typeof expected,'string');assert.equal(accepted(current),false);
-  const restored=restoreMixerCalibrationVabApiRevision(path,current);
-  assert.equal(accepted(restored),true);
-  const changed=Buffer.concat([current,Buffer.from('\n')]);
-  assert.equal(accepted(restoreMixerCalibrationVabApiRevision(path,changed)),false);
+  const historical=JSON.parse(readFileSync(url('docs/issues/soundchip_psg_levels_05.json'),'utf8'));
+  assert.notEqual(sha(current),historical.sources[path]);
+  assert.throws(()=>restoreMixerCalibrationVabApiRevision(path,current),/pinned report\/helper\/cache dependency changed: docs\/generated\/ay8910_wasm\.wasm/);
+  const measured=JSON.parse(readFileSync(url('docs/issues/soundchip_psg_levels_06.json'),'utf8'));
+  assert.equal(sha(current),measured.sources[path]);
+  assert.equal(sha(readFileSync(url('docs/generated/ay8910_wasm.wasm'))),measured.sources['docs/generated/ay8910_wasm.wasm']);
+  const changed=Buffer.concat([current,Buffer.from('\n')]);assert.equal(restoreMixerCalibrationVabApiRevision(path,changed),changed);
 });

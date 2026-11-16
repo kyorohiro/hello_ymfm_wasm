@@ -208,6 +208,15 @@ int spc_load_ram(Player* p, const unsigned char* data, int size, int offset) {
 void spc_write_dsp(Player* p, int reg, int value) {
   if (p && p->dsp_only && reg >= 0 && reg < 128) p->dsp->write(reg, value & 255);
 }
+// Bounded full-SPC host editing. Offline trace/read-mask sessions reject edits.
+int spc_write_voice(Player* p, int reg, int value) {
+  if (!p) return 0;
+  if (p->dsp_only || p->original.empty() || p->tracing || p->read_tracking ||
+      !p->cpu->write_tetorica_voice_register(reg, value)) {
+    p->error = "Invalid SPC voice edit or offline observation is active"; return 0;
+  }
+  return 1;
+}
 int spc_read_dsp(Player* p, int reg) {
   return p && p->dsp_only && reg >= 0 && reg < 128 ? p->dsp->read(reg) : -1;
 }

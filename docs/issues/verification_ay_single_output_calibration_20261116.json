@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-16",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "originalMeasurementsUnchanged": true,
+  "ps1WasmUnchanged": true,
+  "ps1WasmSha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f",
+  "reports": {
+    "ps1": {
+      "path": "docs/issues/ps1_ay_single_output_chip_levels_01.json",
+      "sha256": "be6c1a7fcc9e6a6081d7d1142001eb78046fac0d2214f5543ffa5cb92272963e",
+      "rows": 48,
+      "anchors": 8,
+      "sources": 313,
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "gains": {
+        "primary": 0.129331,
+        "extra": 0.129331
+      }
+    },
+    "wonderswan": {
+      "path": "docs/issues/wonderswan_ay_single_output_chip_levels_01.json",
+      "sha256": "afacfcc1da1dc9a5fa6afb8ca4f6e43d770a0e5d8d9ca2a5910a288756fa7e6d",
+      "rows": 48,
+      "anchors": 8,
+      "sources": 311,
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "gains": {
+        "primary": 1.172528,
+        "extra": 1.172528
+      }
+    },
+    "pokey": {
+      "path": "docs/issues/pokey_ay_single_output_chip_levels_01.json",
+      "sha256": "057b6f7d6f94ba609c6312fa9f2d570ad55b8741cd798a30fb12a082107b8be7",
+      "rows": 96,
+      "anchors": 8,
+      "sources": 312,
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "gains": {
+        "primary": 0.41305,
+        "dual-first": 0.413051,
+        "dual-second": 0.413051,
+        "extra": 0.413052
+      },
+      "verification": {
+        "path": "docs/issues/pokey_ay_single_output_chip_levels_verify_01.json",
+        "sha256": "65aa112e06abcf6a7fc75bbbc718b85af66bb861636c52f79eeb86a16aee38b0",
+        "passed": true,
+        "rawProvenanceMatches": true
+      }
+    },
+    "scsp": {
+      "path": "docs/issues/scsp_ay_single_output_chip_levels_01.json",
+      "sha256": "6476bd4f36264958557197d1eb2dbc04dda5909fc8af2c282ca8d0bc1ae2c0bf",
+      "rows": 48,
+      "anchors": 8,
+      "sources": 312,
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "gains": {
+        "primary": 0.128825,
+        "extra": 0.128825
+      },
+      "verification": {
+        "path": "docs/issues/scsp_ay_single_output_chip_levels_verify_01.json",
+        "sha256": "3b2d997465cf29f9e8cf73b45a277f3c3d3f0ca2a6d42b043a763bade8ab9e67",
+        "passed": true,
+        "rawProvenanceMatches": true
+      }
+    }
+  },
+  "generatedPolicies": {
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "beforeSha256": "fd8800fae833a7439e6788a42ac8e8d465bd16a96161f7931519546506fffae4",
+      "afterSha256": "e974b019c7ff3bb48fef644ea9ef1fbf4308e7f60ed8fa45da51f14ee6721568"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "beforeSha256": "17689984f6a076a45eae52efb695f9f448f392a602e8280a70b1761916ae4e8c",
+      "afterSha256": "6bdb304a4c74efba44ba76d5414c40d47dbf1bbf92b2fc66fcf4e2122d04fc20"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "beforeSha256": "887b35e7f139cc1b7408b0b4be5437a002d9a9afd5a1794600db3c6cad99e784",
+      "afterSha256": "3de5081f55347d96c663a36cd472340a0a5f5c877fadd03c0778cf53c037d57a"
+    }
+  },
+  "baselineGuardProof": {
+    "commit": "2484643630a824dd4168c4731997ff0fe4eec647",
+    "tests": 447,
+    "passed": 447,
+    "isolatedHeadArchive": true
+  },
+  "passiveUiCacheRestoration": {
+    "path": "docs/issues/ay_single_output_passive_cache_restore_revision_01.json",
+    "sha256": "29cda2722d78b2749028d7c3cadf0f334ab4881ad033a04b047ef12432907bba",
+    "objectSha256": "113fdf5c540bcec6a073386d1c349b2fcfaff97de70d87a0619c7125bde9860a",
+    "paths": [
+      "playground/playground_monaco.js",
+      "playground/wonderswan_vgm_import.js"
+    ],
+    "measuredReportsPreserved": 6,
+    "scope": "exact complete source bodies and import-cache values only"
+  },
+  "completeGuardSuite": {
+    "baselineCommit": "2484643630a824dd4168c4731997ff0fe4eec647",
+    "baseline": {
+      "tests": 447,
+      "passed": 447,
+      "failed": 0
+    },
+    "current": {
+      "tests": 459,
+      "passed": 459,
+      "failed": 0
+    },
+    "command": "node --test scripts/*mixer_calibration*.test.mjs",
+    "baselineLogSha256": "142e7b70ffb3efb736d586b726d4eac24c038adfdfe6984a14006a3a6f16928d",
+    "currentLogSha256": "acd1f5b2a1f1c9447c401203b749ad00624fec8b9d3337bb41234811719be17f"
+  }
+}

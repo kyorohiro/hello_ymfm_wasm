@@ -10,7 +10,7 @@ import {validateScspMixerCalibration,validateScspMixerCalibrationSources} from '
 import {publicRuntimeModule} from './runtime_module_layout.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 
-const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_05.json',import.meta.url));
+const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_06.json',import.meta.url));
 const psgHistoricalSourcePaths=Object.freeze(Object.fromEntries([
   'soundchip.js','soundchip_factory.js','segapsg.js','ay8910.js','nesapu.js','nesapu_wasm.js','nesapusynth.js',
 ].map(name=>['web/'+name,'tetorica_src/runtime/'+name])));
@@ -139,10 +139,10 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
 async function main(args) {
   const options = {
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_spc_voice_edit_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_spc_voice_edit_chip_levels_01.json',import.meta.url)),
-    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_spc_voice_edit_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_spc_voice_edit_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_ay_single_output_chip_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_ay_single_output_chip_levels_01.json',import.meta.url)),
+    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_ay_single_output_chip_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_ay_single_output_chip_levels_01.json',import.meta.url)),
     outPath:fileURLToPath(new URL('../tetorica_src/runtime/soundchip_mixer_presets.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false,noScsp=false,explicitScsp=false;

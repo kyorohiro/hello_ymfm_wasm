@@ -1,7 +1,7 @@
 #include "ay8910.h"
 extern "C" {
 void *ay8910_create(uint32_t rate,uint32_t clock,uint8_t type,uint8_t flags) {
-    if(!rate || !clock || (type!=0 && type!=0x10) || (flags & ~0x11) || (type==0 && (flags & 0x10)))return nullptr;
+    if(!rate || !clock || (type!=0 && type!=0x10) || (flags & ~0x13) || (type==0 && (flags & 0x10)))return nullptr;
     return new AY8910(rate,clock,type,flags);
 }
 void ay8910_destroy(void *p){delete static_cast<AY8910*>(p);}

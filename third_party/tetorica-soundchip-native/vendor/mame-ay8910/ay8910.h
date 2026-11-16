@@ -4,6 +4,7 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include <vector>
 using u8=uint8_t; using u32=uint32_t; using s8=int8_t; using s32=int32_t;
 class AY8910 {
 public:
@@ -16,6 +17,9 @@ public:
     void set_mute_mask(uint32_t mask) {mute_mask=mask & 7;}
     // One native clock/8 tick, before host resampling or muting.
     std::array<float,3> tick();
+    // Pinned MAME nonlinear tied-output level for the most recent tick.
+    // Requires flag 0x02. generate() applies the host's /3 normalization.
+    float mixed_tick_output() const;
 struct ay_ym_param
 	{
 		double r_up;
@@ -111,6 +115,8 @@ struct envelope_t
     uint8_t env_mask, env_step;
     float volumes[32]{}, envelopes[32]{};
     std::array<float,3> last{};
+    std::vector<float> mixed_table;
+    uint32_t last_index=0;
     // Integer phase units: each output sample spans `clock` units,
     // and each chip tick spans `rate * divider` units.
     uint64_t tick_remaining=0;

@@ -4,6 +4,7 @@
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import {restoreMixerCalibrationAySingleOutputPolicyRevision} from './mixer_calibration_ay_single_output_policy_revision.mjs';
 
 export const SCSP_LOOP_LINK_REVISION_BASE_COMMIT = '3ffde6b7fb1c8d1759b07d529a75b78259ee1953';
 export const SCSP_LOOP_LINK_REVISION_RECEIPT_PATH =
@@ -129,7 +130,7 @@ export function restoreMixerCalibrationScspLoopLinkRevision(
 		...SCSP_LOOP_LINK_REVISION_RELATED_PATHS,
 	]) {
 		const expected = value.reports[path] ?? value.relatedSources[path],
-			actual = readSource(new URL('../' + path, import.meta.url));
+			actual = restoreMixerCalibrationAySingleOutputPolicyRevision(path,readSource(new URL('../' + path, import.meta.url)),{readSource});
 		if (actual.length !== expected.bytes || sha(actual) !== expected.sha256)
 			fail('pinned report/helper/cache dependency changed: ' + path);
 	}

@@ -60,10 +60,38 @@ for(const type of [0,16])test(`AY type ${type}: PCM, partitioning, IO and mute p
 });
 test('AY type, clock, flags and unsupported combinations reject explicitly',()=>{
   for(const type of [1,2,3,17,255])assert.throws(()=>validateAy8910({type}),/Support coming soon/);
-  for(const flags of [2,4,8,32,128])assert.throws(()=>validateAy8910({flags}),/Support coming soon/);
+  for(const flags of [4,8,32,128])assert.throws(()=>validateAy8910({flags}),/Support coming soon/);
+  for(const type of [0,16])for(const flags of [0,1,2,3])assert.doesNotThrow(()=>validateAy8910({type,flags}));
+  for(const flags of [0x10,0x11,0x12,0x13])assert.doesNotThrow(()=>validateAy8910({type:16,flags}));
   for(const clock of [0,-1,NaN,Infinity])assert.throws(()=>validateAy8910({clock}),RangeError);
   assert.throws(()=>validateAyPlaybackHeader({ay8910Clock:0x40000001}),/Multiple/);
   assert.throws(()=>validateAyPlaybackHeader({ay8910Clock:1789773,k051649Clock:1789773}),/k051649/);
+});
+const singleProfiles=[...[2,3].map(flags=>({type:0,flags})),...[2,3,0x12,0x13].map(flags=>({type:16,flags}))];
+for(const profile of singleProfiles)test(`Single Output ${JSON.stringify(profile)}: actual PCM, nonlinear mixing, partitions and mute phase`,async()=>{
+  const a=await Ay8910.create({...options,...profile}),b=await Ay8910.create({...options,...profile});
+  const configure=chip=>{
+    for(const [r,v]of[[0,29],[2,47],[4,91],[6,7],[7,0],[8,15],[9,16],[10,9],[11,3],[12,0],[13,10]])chip.writeRegister(r,v);
+  };
+  try{
+    configure(a);configure(b);
+    const full=a.generateStereo(4096),parts=[1,17,127,509,1024,2418].map(count=>b.generateStereo(count).left);
+    assert.deepEqual(Float32Array.from(parts.flatMap(part=>[...part])),full.left);
+    assert.deepEqual(full.left,full.right);
+    assert(full.left.every(value=>Number.isFinite(value)&&value>=0&&value<=1));
+    assert(Math.max(...full.left)-Math.min(...full.left)>.001,'three-voice tone/noise/envelope program must vary');
+    for(const chip of [a,b]){chip.writeRegister(7,63);chip.writeRegister(9,15);}
+    a.setMuteMask(2);const partial=a.generateStereo(137),normal=b.generateStereo(137);
+    assert.notDeepEqual(partial.left,normal.left,'partial mute changes the nonlinear mixed output');
+    for(const chip of [a,b])configure(chip);
+    a.setMuteMask(7);assert(a.generateStereo(303).left.every(value=>value===0));b.generateStereo(303);
+    for(const chip of [a,b]){chip.writeRegister(2,61);chip.writeRegister(6,13);chip.generateStereo(71);}
+    a.setMuteMask(0);assert.deepEqual(a.generateStereo(500),b.generateStereo(500),'muted counters and integration keep advancing');
+    a.reset();configure(a);assert.deepEqual(a.generateStereo(4096),full,'reset replays the complete PCM');
+    const held=levels=>{a.reset();a.writeRegister(7,63);for(let ch=0;ch<3;ch++)a.writeRegister(8+ch,levels[ch]);return a.generateStereo(1).left[0];};
+    const zero=held([0,0,0]),one=held([15,0,0]),two=held([0,15,0]),both=held([15,15,0]);
+    assert(Math.abs(both-(one+two-zero))>1e-5,'tied channels must interact, rather than average or scale independent channels');
+  }finally{a.dispose();b.dispose();}
 });
 test('AY VGM reset, pause, seek and loop preserve PCM and time',async()=>{
   const engine=await Ay8910AudioEngine.create(options);

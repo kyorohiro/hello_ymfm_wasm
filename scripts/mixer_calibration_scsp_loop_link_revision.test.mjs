@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import { readFile, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -113,7 +114,7 @@ test('reports, native output assets, reference, gain and declaration dependencie
 			() =>
 				restore(path, bytes, {
 					readSource(location) {
-						const original = originals.get(location.href);
+						const original = originals.get(location.href)??readFileSync(location);
 						return location.href === target
 							? Buffer.concat([original, Buffer.from([0])])
 							: original;
@@ -136,6 +137,7 @@ test('forging the receipt cannot preserve its independent pin', async (t) => {
 		modulePath,
 		await read('scripts/mixer_calibration_scsp_loop_link_revision.mjs'),
 	);
+	await writeFile(join(directory,'scripts/mixer_calibration_ay_single_output_policy_revision.mjs'),await read('scripts/mixer_calibration_ay_single_output_policy_revision.mjs'));
 	const forged = structuredClone(receipt);
 	forged.sources[paths[0]].after.sha256 = '0'.repeat(64);
 	await writeFile(jsonPath, JSON.stringify(forged));

@@ -25,7 +25,7 @@ function installSilentAudit(){
     const analyser=this.context.createAnalyser(),mute=this.context.createGain();analyser.fftSize=4096;mute.gain.value=0;
     connect.call(this,analyser);connect.call(analyser,mute);connect.call(mute,destination);audit.meters.push({analyser,mute});return destination;
   };
-  audit.level=()=>{let peak=0,sum=0,count=0;for(const {analyser}of audit.meters){const pcm=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(pcm);for(const v of pcm){peak=Math.max(peak,Math.abs(v));sum+=v*v;count++;}}return{peak,rms:Math.sqrt(sum/Math.max(1,count))};};
+  audit.level=()=>{let peak=0,sum=0,total=0,count=0;for(const {analyser}of audit.meters){const pcm=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(pcm);for(const v of pcm){peak=Math.max(peak,Math.abs(v));sum+=v*v;total+=v;count++;}}const dc=total/Math.max(1,count),rms=Math.sqrt(sum/Math.max(1,count));return{peak,rms,dc,acRms:Math.sqrt(Math.max(0,rms*rms-dc*dc))};};
 }
 async function main(){
   const {createYmVgmFixture,ayWrite,ayWait}=await import(pathToFileURL(path.join(root,'docs/synth-ym2149-st/vgm_test_helpers.mjs')));
@@ -35,7 +35,8 @@ async function main(){
   const vgm=createYmVgmFixture(commands),ym=packLhaFixture(makeYm5Fixture({ticks:400}));
   const sndh=makeSndhFixture(),frms=Buffer.from(sndh).indexOf('FRMS');
   const view=new DataView(sndh.buffer);view.setUint32(frms+4,5000);view.setUint32(frms+8,6000);
-  const files=[{name:'reference.vgm',bytes:vgm},{name:'reference.vgz',bytes:gzipSync(vgm)},{name:'reference.ym',bytes:ym},{name:'reference.sndh',bytes:packIceFixture(sndh)}];
+  const single=createYmVgmFixture(commands,{flags:2});
+  const files=[{name:'reference.vgm',bytes:vgm},{name:'reference.vgz',bytes:gzipSync(vgm)},{name:'reference.ym',bytes:ym},{name:'reference.sndh',bytes:packIceFixture(sndh)},{name:'single-output.vgm',bytes:single}];
   await fs.mkdir(config.screenshots,{recursive:true});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin=`http://127.0.0.1:${server.address().port}`,results=[];
   try{for(const engine of config.engines.split(',')){
@@ -55,7 +56,7 @@ async function main(){
       assert.equal((await state()).format,'vgm');assert.equal(await page.evaluate(()=>__referenceAudit.contexts.length),0,'import does not request audio');
       assert.deepEqual(await settings(),original,'import keeps edited sound');
       const paths=await page.locator('#ymSongSelect option').evaluateAll(options=>options.map(o=>o.value).filter(Boolean));
-      assert.deepEqual(paths.sort(),['/music/reference.sndh','/music/reference.ym','/vgm/reference.vgm','/vgm/reference.vgz']);
+      assert.deepEqual(paths.sort(),['/music/reference.sndh','/music/reference.ym','/vgm/reference.vgm','/vgm/reference.vgz','/vgm/single-output.vgm']);
       await page.locator('#ymSongPlay').click();
       await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().playing&&tetoricaYm2149StSynth.getSongState().positionFrames>4410,{},{timeout:8000}).catch(async error=>{
         console.error(JSON.stringify({stage:'first VGM play',state:await state(),status:await page.locator('#audioStatus').textContent(),errors,missing}));throw error;
@@ -82,6 +83,14 @@ async function main(){
       await page.locator('#ymSongStop').click();
       await page.locator('#ymSongSelect').selectOption('/vgm/reference.vgz');await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().name==='reference.vgz'&&!tetoricaYm2149StSynth.getSongState().busy);
       await page.locator('#ymSongPlay').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().positionFrames>1024);
+      await page.locator('#ymSongStop').click();
+      await page.locator('#ymSongSelect').selectOption('/vgm/single-output.vgm');await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().name==='single-output.vgm'&&!tetoricaYm2149StSynth.getSongState().busy);
+      await page.locator('#ymSongPlay').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().positionFrames>4410);
+      await page.waitForFunction(()=>__referenceAudit.level().acRms>0.0001);
+      const singleOutputPCM=await page.evaluate(()=>__referenceAudit.level());assert.equal((await state()).liveState.flags,2);
+      await page.locator('#ymSongPause').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().paused);
+      const singlePaused=(await state()).positionFrames;await page.waitForTimeout(80);assert.equal((await state()).positionFrames,singlePaused);
+      await page.locator('#ymSongPause').click();await page.waitForFunction(n=>tetoricaYm2149StSynth.getSongState().positionFrames>n,singlePaused);
       await page.locator('#ymSongStop').click();
       await page.locator('#ymSongSelect').selectOption('/music/reference.ym');await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().format==='ym'&&!tetoricaYm2149StSynth.getSongState().busy);
       await page.locator('#ymSongPlay').click();await page.waitForFunction(()=>tetoricaYm2149StSynth.getSongState().positionFrames>4410);
@@ -118,11 +127,11 @@ async function main(){
       const audit=await page.evaluate(()=>({contexts:__referenceAudit.contexts.length,speakerRoutes:__referenceAudit.meters.length,allPhysicalOutputsMuted:__referenceAudit.meters.every(m=>m.mute.gain.value===0),workers:__referenceAudit.workers}));
       assert.equal(audit.contexts,1);assert.equal(audit.speakerRoutes,1);assert(audit.allPhysicalOutputsMuted);
       assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
-      results.push({engine,passed:true,vgmPCM,ymPCM,sndhPCM,pausedFrame:paused,pausedAudition:true,capturePreservesPause:true,subsongDurations:true,seek:true,codeExclusive:true,invalidImportKeepsSong:true,audit,errors,missing});
+      results.push({engine,passed:true,vgmPCM,singleOutputPCM,singleOutputPauseResume:true,ymPCM,sndhPCM,pausedFrame:paused,pausedAudition:true,capturePreservesPause:true,subsongDurations:true,seek:true,codeExclusive:true,invalidImportKeepsSong:true,audit,errors,missing});
       await context.close();
     }finally{await browser.close();}
   }
-    const result={passed:true,entry:config.entry,physicalOutputMuted:true,fixtures:'original generated VGM/VGZ, LHA YM5, ICE SNDH with 68000 init/play',results};
+    const result={passed:true,entry:config.entry,physicalOutputMuted:true,fixtures:'original generated VGM/VGZ including Single Output flags0x2, LHA YM5, ICE SNDH with 68000 init/play',results};
     await fs.mkdir(path.dirname(config.out),{recursive:true});await fs.writeFile(config.out,JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result,null,2));
   }finally{await new Promise(resolve=>server.close(resolve));}
 }

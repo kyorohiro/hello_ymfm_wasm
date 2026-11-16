@@ -108,6 +108,17 @@ register writes and waits. Companion chips, dual chips, unsupported commands
 and streams are reported; VGM loop repetition is not added. Source clocks and
 repeated Envelope Shape writes are retained.
 
+VGM flag `0x02` (**Single Output**) uses the pinned MAME nonlinear
+tied-channel resistor model, including fixed-volume / envelope combinations.
+Bits `0x01` (legacy table normalization) and `0x10` (YM2149 clock divider) can
+be combined with it. The shared native host applies its usual factor of
+one third to the resulting mono level. The independent-channel speaker
+baseline adjustment is not applied to this output model. Resistor / raw
+output and stereo-pan flags remain unsupported.
+This flag belongs to reference playback. Static Capture copies register
+settings into the existing 2 MHz YM2149 instrument; it does not copy the
+reference chip's analog output model or the other channels' interaction.
+
 SNDH / YM replay uses a separate, pinned **AtariAudio 1.31** reference component
 inside a disposable Worker. It supports raw or ICE-packed SNDH and raw or
 level-0 LH5/LHA-packed YM2, YM3, YM3b, YM5 and YM6 register formats. PCM-only

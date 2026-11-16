@@ -192,8 +192,9 @@ export async function validateWonderSwanMixerCalibrationSources({reportPath,wsRe
       measuredReportSha256=sha(await readFile(resolve(root,'docs/issues/wonderswan_chip_levels_01.json')));
       if(measuredReportSha256!==WONDERSWAN_CALIBRATION_REPORT_SHA256)fail('original WonderSwan report raw SHA changed; do not rewrite measurement evidence');
     }
-    assertMixerCalibrationSourceFreshness({path,bytes,record,report:wsReport,reportSha256:measuredReportSha256,
-      receipt:uiReceipt,receiptObjectSha256:WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});
+    try {assertMixerCalibrationSourceFreshness({path,bytes,record,report:wsReport,reportSha256:measuredReportSha256,
+      receipt:uiReceipt,receiptObjectSha256:WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});}
+    catch(error) {fail('served DSP/WASM source changed; remeasure: docs/'+path+' ('+error.message+')');}
   }
   return result;
 }

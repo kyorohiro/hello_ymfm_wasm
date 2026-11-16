@@ -46,6 +46,21 @@ Initial implementation and readable itch ZIP are complete. See [verification_ym2
 
 See [reference verification and format limits](verification_ym2149_st_reference_20261116.md). Human listening and arbitrary collection compatibility remain user checks; commercial music is not included.
 
+## Single Output VGM support
+
+User reported `AY flags 0x2: Support coming soon` and authorized support. This bit selects MAME's tied-channel nonlinear output; clearing the flag or using the existing independent-channel average is not equivalent.
+
+- [x] Port the pinned MAME `build_3D_table` / `mix_3D` path for AY and YM, retaining the existing output of flags 0 / 1 / 0x10 / 0x11.
+- [x] Add the same native support to the canonical native SDK, update the authenticated source snapshot, rebuild AY WASM and synchronize runtime artifacts.
+- [x] Accept bit 1 in JavaScript validation, retain source flags in VGM / Live snapshots, and avoid applying independent-channel speaker centering to the nonlinear output.
+- [x] Compare against original MAME routines; verify actual WASM timing, muting, envelope / fixed-volume combinations and unchanged legacy output.
+- [x] Check flags 0x2 VGM replay through source and readable package in Chromium / WebKit with physical output muted; refresh documentation and calibration provenance as required.
+- [x] Establish pre-change results for the complete historical calibration guard suite and reconcile obsolete DSP-dependent test assumptions without weakening live validation.
+- [x] Retain the original cache identities of two unrelated passive UI modules; authenticate their exact equivalence to the aliases captured in the new calibration reports.
+- [x] Rebuild the final readable package after the passive cache restoration and verify the complete historical guard suite plus packaged browser checks.
+
+See [Single Output verification](verification_ym2149_st_single_output_20261116.md). Human listening with the original user file remains a follow-up.
+
 ## Existing implementation references
 
 - `tetorica_src/runtime/ay8910synth.js`: tone, noise, volume, envelope and raw register authoring.

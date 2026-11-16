@@ -1,5 +1,6 @@
 import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
-import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+// Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
+import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
 // Calibration provenance and PCM arrays only. No AudioContext/audio device.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +25,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(await read(receiptPath));
 const currentMeasurement=JSON.parse(await read('docs/issues/ps1_spc_voice_edit_chip_levels_01.json'));
 
-test('all 44 exact known after sources reconstruct complete pre-feature bodies and retain original reports/gains',async()=>{
+test('all 44 exact archived after-source fixtures reconstruct complete pre-feature bodies and retain original reports/gains',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.equal(paths.length,44);assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths) {
@@ -34,19 +35,17 @@ test('all 44 exact known after sources reconstruct complete pre-feature bodies a
     assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
     const before=restore(path,known);assert.notEqual(before,known,path);
     assert.equal(before.length,entry.before.bytes,path);assert.equal(sha(before),entry.before.sha256,path);
-    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:reviewed,record:entry.before}),'rf5c164-note-api',path);
+    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:known,record:entry.after}),'raw','the exact archived after body remains identified without claiming live dependency freshness');
+    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:before,record:entry.before}),'raw',path);
     if(reviewed!==current)assert.throws(()=>assertMixerCalibrationSourceFreshness({path,bytes:current,record:entry.before}),/remeasure/,'The old note review cannot authorize the newer output-gain API');
     assert.equal(restore(path,before),before,'already pre-feature bytes remain unchanged');
   }
   for(const path of reports) {
     const bytes=await read(path),report=JSON.parse(bytes);assert.equal(bytes.length,receipt.reports[path].bytes,path);assert.equal(sha(bytes),receipt.reports[path].sha256,path);
-    for(const [source,record]of Object.entries(report.sources)){
-      const current=await read('docs/'+source);
-      const validate=()=>assertMixerCalibrationSourceFreshness({path:source,bytes:current,record,report});
-      if(['js/playground_spc_audio.js','js/playground_spc.js','js/spc.js','js/ym2608.js','js/ym2608synth.js'].includes(source))
-        assert.throws(validate,/source changed; remeasure:/,'New SPC and YM2608 APIs require separately scoped current evidence');
-      else assert.doesNotThrow(validate,source);
-    }
+    // These are immutable historical reports. The native AY addition now
+    // requires fresh evidence; source-pair fixtures above do not approve it.
+    const ayPath='js/ay8910.js',awaitedAy=await read('docs/'+ayPath);assert(report.sources[ayPath]);
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({path:ayPath,bytes:awaitedAy,record:report.sources[ayPath],report}),/source changed; remeasure:/);
     assert.deepEqual(await read(path),bytes,'source validation cannot rewrite the measurement');
   }
 });

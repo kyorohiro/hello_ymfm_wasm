@@ -11,9 +11,9 @@ import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mj
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 for(const [kind,parameter,validate,current,prior]of [
-  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_spc_voice_edit_chip_levels_01','ps1_state_restore_chip_levels_01'],
-  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_spc_voice_edit_chip_levels_01','wonderswan_state_restore_chip_levels_01'],
-  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_spc_voice_edit_chip_levels_01','pokey_state_restore_chip_levels_01'],
+  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_ay_single_output_chip_levels_01','ps1_spc_voice_edit_chip_levels_01'],
+  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_ay_single_output_chip_levels_01','wonderswan_spc_voice_edit_chip_levels_01'],
+  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_ay_single_output_chip_levels_01','pokey_spc_voice_edit_chip_levels_01'],
 ])test(`${kind} latest complete measurement matches current scripts and served sources`,async()=>{
   const path=`docs/issues/${current}.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
   const old=await readFile(new URL(`docs/issues/${prior}.json`,root));assert.notEqual(sha(bytes),sha(old));
@@ -29,8 +29,8 @@ for(const [kind,parameter,validate,current,prior]of [
   assert.equal(sha(await readFile(new URL(`docs/issues/${prior}.json`,root))),sha(old),'Prior measurements remain untouched');
   await assert.rejects(validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:JSON.parse(old)}),
     /source changed; remeasure:/,
-    'The additive SPC voice-edit API requires new measurement provenance');
-  const oldReport=JSON.parse(old),spcPath='js/playground_spc.js',spcBytes=await readFile(new URL('docs/'+spcPath,root));
+    'The additive AY Single Output implementation requires new measurement provenance');
+  const oldReport=JSON.parse(await readFile(new URL(`docs/issues/${kind}_state_restore_chip_levels_01.json`,root))),spcPath='js/playground_spc.js',spcBytes=await readFile(new URL('docs/'+spcPath,root));
   assert.throws(()=>assertMixerCalibrationSourceFreshness({path:spcPath,bytes:spcBytes,record:oldReport.sources[spcPath]}),
     /served DSP\/WASM source changed; remeasure: docs\/js\/playground_spc\.js/,
     'Passive source-navigation receipts must not authorize the SPC voice-edit API');

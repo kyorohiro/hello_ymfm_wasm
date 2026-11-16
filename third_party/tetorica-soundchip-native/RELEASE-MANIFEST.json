@@ -1005,16 +1005,16 @@
       "size": 1510
     },
     "vendor/mame-ay8910/README.md": {
-      "sha256": "d41552a7edc4156988dfee0395d501431507f5c8429217786d6a4be5078ae99f",
-      "size": 4194
+      "sha256": "431783f35c52689eb9cc0d39d8073e62f6d0ccf2fbf2eed5c108522c5646eb4b",
+      "size": 5222
     },
     "vendor/mame-ay8910/ay8910.cpp": {
-      "sha256": "3ea3efe1b29a554c39a2b1995e9ed3d2588c16d24b085ca1565c3a24f4414646",
-      "size": 4783
+      "sha256": "e6f3cf07bd25e1f5f18455db302758993910154a82e401ee1566103e184f432b",
+      "size": 7415
     },
     "vendor/mame-ay8910/ay8910.h": {
-      "sha256": "e93d1904d2c232f820c23a6df59dfebf309550a6f8b0032e20c51295e7d31e7a",
-      "size": 2431
+      "sha256": "1663b65a64715f23826eece168489ca2a15e001f01fee93779bf4cf307ae7156",
+      "size": 2697
     },
     "vendor/mame-ay8910/upstream/ay8910.cpp": {
       "sha256": "865e8ea6ff17acf107f00c48f39ee04df48319fc1780aa0ddb635d754fa2d514",
@@ -1793,7 +1793,7 @@
       "size": 7752
     },
     "wasm/ay8910_wasm.cpp": {
-      "sha256": "15107f52744c9e67db2daf0bfa052ebb04a63dc92779576e46c4c10b64009ebb",
+      "sha256": "d5a03082806adc7d1aac6ce8f4fae0aa96b669707b22d837749a19eefe55846b",
       "size": 851
     },
     "wasm/cdda_wasm.c": {

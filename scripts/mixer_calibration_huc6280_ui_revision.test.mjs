@@ -11,6 +11,7 @@ import {
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {definitionSource,runtimeSourceUrl} from '../docs/playground/playground_monaco_definitions.js';
 import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
+import {historicalVabSourceFixture} from '../test/helpers/historical_vab_source_fixture.mjs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
@@ -29,7 +30,12 @@ test('the independently pinned passive revision reconstructs exact VAB predecess
     for(const reportPath of reports) {
       const bytes=read(reportPath),report=JSON.parse(bytes),identity=receipt.reports[reportPath];
       assert.equal(bytes.length,identity.bytes);assert.equal(sha(bytes),identity.sha256);
-      assert.doesNotThrow(()=>fresh({path,bytes:current,record:report.sources[path],report}));
+      // These immutable reports precede the newer AY WASM. The current UI no
+      // longer authorizes that old DSP dependency; reconstruct the archived
+      // VAB predecessor separately to test the historical navigation chain.
+      assert.throws(()=>fresh({path,bytes:current,record:report.sources[path],report}),/pinned report\/helper\/cache dependency changed/);
+      const historical=historicalVabSourceFixture(path,original);
+      assert.doesNotThrow(()=>fresh({path,bytes:historical,record:report.sources[path],report}));
       assert.deepEqual(read(reportPath),bytes,'validation never rewrites source fingerprints or measured levels');
     }
   }

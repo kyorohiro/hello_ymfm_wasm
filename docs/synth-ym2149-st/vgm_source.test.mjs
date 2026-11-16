@@ -44,7 +44,7 @@ test('rejects malformed headers, EOF/data offsets, truncated commands, unknown r
 });
 
 test('rejects non-AY, dual/variant clocks, unsupported AY modes and all companion clock fields', async () => {
-  for (const options of [{clock: 0}, {clock: 0x40000000 | 2000000}, {clock: 0x80000000 | 2000000}, {type: 1}, {flags: 2}, {type: 0, flags: 0x11}])
+  for (const options of [{clock: 0}, {clock: 0x40000000 | 2000000}, {clock: 0x80000000 | 2000000}, {type: 1}, {flags: 4}, {type: 0, flags: 0x11}])
     await assert.rejects(readYmVgmSource(createYmVgmFixture(undefined, options)), /clock|multiple AY|type|flags/);
   for (const offset of [0x0c, 0x10, 0x38, 0x40, 0x44, 0x80, 0xb0, 0xc0, 0xf0]) {
     const bytes = createYmVgmFixture(); new DataView(bytes.buffer).setUint32(offset, 1000000, true);
@@ -57,6 +57,15 @@ test('rejects non-AY, dual/variant clocks, unsupported AY modes and all companio
     await assert.rejects(readYmVgmSource(createYmVgmFixture([...commands, 0x66])), /unsupported command/);
   for (const options of [{type: 0, flags: 0}, {type: 0x10, flags: 0x11}])
     await assert.doesNotReject(readYmVgmSource(createYmVgmFixture(undefined, options)));
+});
+
+test('Single Output flags are retained for AY and YM instead of falling back to independent outputs', async () => {
+  for (const type of [0, 0x10]) for (const flags of type ? [2, 3, 0x12, 0x13] : [2, 3]) {
+    const source = await readYmVgmSource(createYmVgmFixture(undefined, {type, flags}));
+    assert.equal(source.type, type);
+    assert.equal(source.flags, flags);
+    assert.equal(source.header.ay8910Flags, flags);
+  }
 });
 
 test('source, gzip expansion, commands and duration are bounded; long parsing is cancellable', async () => {

@@ -4,13 +4,47 @@
   "sdk": {
     "schemaVersion": 1,
     "name": "tetorica-soundchip-native",
-    "version": "0.1.7",
+    "version": "0.1.8-fm2608-mixer",
     "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
-    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "5f7cdf35bc85a7453eef42576259f615411d4fdcdd47b8778242eb2a2d7f2b9c",
-    "manifestSha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365",
-    "fileCount": 476,
-    "unpublished": true
+    "archiveName": "tetorica-soundchip-native-ay-single-output-sources.zip",
+    "archiveSha256": "53dfb59440a29ca397dfaa6880dfa87fd205e57fe531ad8152177768a7294801",
+    "manifestSha256": "b3312faf56f7ddfb94f547a74ff99b583ad9ebf84baa9e447cd8e12f8eef0e4d",
+    "fileCount": 482,
+    "unpublished": true,
+    "localCandidate": {
+      "baseCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "CMakeLists.txt",
+        "catalog/chips.json",
+        "catalog/native_inventory.json",
+        "catalog/source_inventory.json",
+        "docs/huc6280-local-candidate.json",
+        "docs/huc6280-state.md",
+        "native/CMakeLists.txt",
+        "native/include/tetorica/huc6280.hpp",
+        "native/include/tetorica/huc6280_state.h",
+        "native/tests/huc6280_state_fixture.cpp",
+        "scripts/build_huc6280_wasm.sh",
+        "scripts/build_spc_wasm.sh",
+        "scripts/build_ym2608_wasm.sh",
+        "sdk.json",
+        "tests/huc6280_state_wasm_smoke.mjs",
+        "tests/ym2608_output_gains_wasm_smoke.mjs",
+        "vendor/mame-ay8910/README.md",
+        "vendor/mame-ay8910/ay8910.cpp",
+        "vendor/mame-ay8910/ay8910.h",
+        "vendor/mame-huc6280/README.md",
+        "vendor/mame-huc6280/huc6280.cpp",
+        "vendor/mame-huc6280/huc6280.h",
+        "vendor/snes-spc/README.md",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "wasm/ay8910_wasm.cpp",
+        "wasm/huc6280_wasm.cpp",
+        "wasm/spc_wasm.cpp",
+        "wasm/ym2608_wasm.cpp"
+      ]
+    }
   },
   "inputs": [
     {
@@ -30,8 +64,8 @@
     },
     {
       "path": "sources/scsp-sdk/sdk.json",
-      "bytes": 285,
-      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7"
+      "bytes": 298,
+      "sha256": "fed055b65e3fd40abee4b3ca5783c57ab313843a48296d9b7ca5d144adfae668"
     },
     {
       "path": "sources/scsp-sdk/vendor/mame-scsp/LICENSE",
