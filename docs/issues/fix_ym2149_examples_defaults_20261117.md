@@ -1,5 +1,9 @@
 # Default YM2149 example files and startup cache — 2026-11-17
 
+Subsequent update: [New Project](ym2149_new_project_20261117.md) replaces the
+redundant Examples repair button. Automatic sample files remain. The manual
+repair action and hashes below describe this earlier verification checkpoint.
+
 The user could not find the manual **Files → Examples** workflow, then asked
 for `examples/` to be present by default. This follow-up makes sample discovery
 part of normal Files startup. A separate New Project action is a future TODO.

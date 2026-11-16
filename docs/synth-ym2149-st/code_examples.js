@@ -50,7 +50,7 @@ liveLoop("buzzer-motion", async () => {
 Select sync-buzzer.js in Files, switch to Code if needed, and press Run.
 Waveform / Spectrum use the existing output monitor. Console shows the compiled
 R13 write and the current retrigger rate. Selecting or adding files never runs
-them, and Examples never overwrites an existing file or index.js.
+them. Startup supplies missing examples without overwriting files or index.js.
 
 ## What to try
 

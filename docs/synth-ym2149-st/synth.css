@@ -138,6 +138,11 @@ button[aria-pressed='true'] { background: #2c5dbb; border-color: #234fa7; }
 #ymFilesTree button:hover, #ymFilesTree summary:hover { background: #e4ecfb; }
 #ymFilesTree button:focus-visible { outline-offset: -2px; }
 #ymFileNameDialog { width: min(420px, 90vw); border: 1px solid var(--line); border-radius: 10px; background: #f3f5fa; color: inherit; padding: 18px; }
+#ymNewProjectDialog { width: min(500px, 90vw); border: 1px solid var(--line); border-radius: 10px; background: #f3f5fa; color: inherit; padding: 18px; }
+#ymNewProjectDialog::backdrop { background: rgb(20 32 53 / 45%); }
+#ymNewProjectDialog h2 { margin-top: 0; font-size: 1rem; }
+#ymNewProjectDialog p { line-height: 1.55; }
+#ymNewProjectDialog button { margin: 4px 6px 4px 0; }
 #ymFileNameDialog input { box-sizing: border-box; width: 100%; margin: 8px 0 14px; padding: 8px; }
 .ym-file-context-menu { position: fixed; z-index: 1000; display: grid; gap: 5px; min-width: 210px; max-width: calc(100vw - 8px); max-height: calc(100vh - 8px); overflow: auto; box-sizing: border-box; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: #edf1f9; color: var(--ink); box-shadow: 0 8px 24px #26344135; }
 .ym-file-context-menu button { width: 100%; min-height: 32px; padding: 6px 12px; text-align: left; font-size: .8rem; box-shadow: none; }

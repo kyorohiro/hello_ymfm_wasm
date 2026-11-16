@@ -37,9 +37,9 @@ const fixtures = new Map([
 assert(legacyHtml.includes('src="./synth.js"'));
 assert(!fixtures.get('/synth-ym2149-st/code_files.js?v=draft-reconnect-1').body.includes('ymFileExamplesButton'));
 const freshResources = [
-  '/synth-ym2149-st/synth.js?v=ym-examples-1',
-  '/synth-ym2149-st/code_host.js?v=ym-examples-1',
-  '/synth-ym2149-st/code_files.js?v=ym-examples-1',
+  '/synth-ym2149-st/synth.js?v=ym-project-1',
+  '/synth-ym2149-st/code_host.js?v=ym-project-1',
+  '/synth-ym2149-st/code_files.js?v=ym-project-1',
   '/js/playground_code_runtime.js?v=console-table-1',
   '/js/playground_log.js?v=console-table-1',
 ];
@@ -148,7 +148,7 @@ async function sentinels(page, write = false) {
 
 async function ready(page, examples) {
   await page.waitForFunction(examples => {
-    const button = document.getElementById(examples ? 'ymFileExamplesButton' : 'ymFileNewButton');
+    const button = document.getElementById(examples ? 'ymProjectNewButton' : 'ymFileNewButton');
     return Boolean(window.tetoricaYm2149StSynth && button && !button.disabled);
   }, examples);
 }
@@ -266,7 +266,8 @@ async function check(name, origin) {
     await page.locator('#ymFilesTree button[data-file-path="/examples/README.md"]').waitFor({state: 'visible'});
     const recovered = await liveState(page);
     preserved(baseline, recovered);
-    assert.equal(await page.locator('#ymFileExamplesButton').isVisible(), true);
+    assert.equal(await page.locator('#ymFileExamplesButton').count(), 0, 'redundant Examples action is removed');
+    assert.equal(await page.locator('#ymProjectNewButton').count(), 1, 'New Project is available in the menu');
     const resources = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => {
       const url = new URL(entry.name); return url.pathname + url.search;
     }));
@@ -291,11 +292,8 @@ async function check(name, origin) {
     assert.equal(savedAfter.filesystem.files.length, savedBefore.filesystem.files.length + 2);
     assert.deepEqual(await sentinels(page), storage, 'recovery preserves localStorage and binary/text IndexedDB data');
 
-    // Examples is now a repair action. A click must keep the defaults and the
-    // existing project unchanged rather than being necessary to discover them.
-    await page.locator('#ymFileExamplesButton').click();
-    await page.waitForFunction(() => document.getElementById('ymFilesStatus').textContent.includes('existing files were kept'));
-    assert.deepEqual(await project(page), savedAfter, 're-adding defaults is idempotent');
+    // Default files require no toolbar action or project replacement.
+    assert.deepEqual(await project(page), savedAfter, 'discovery preserves the saved project');
     preserved(baseline, await liveState(page));
     await page.locator('#synthInputCodeTab').click();
     await page.locator('#synthCodeEditor').waitFor({state: 'visible'});
@@ -314,10 +312,10 @@ async function check(name, origin) {
       negativeControl: {freshDocument: true, newJsVisible: true, saveSoundVisible: true,
         examplesButtonPresent: false, exampleFilesPresent: false, oldStartupServedFromHttpCache: true},
       recovery: {entry: config.entry, freshResources, defaultExamplesVisibleBeforeClick: true,
-        examplesButtonVisible: true, matchingExamplePaths: Object.keys(examples),
+        examplesButtonPresent: false, newProjectMenuPresent: true, matchingExamplePaths: Object.keys(examples),
         savedIndexSha256: digest(savedIndex), savedSettings: recovered.settings,
         selectedPath: recovered.selectedPath, inputMode: recovered.inputMode,
-        oldStartupStillCached: true, examplesRepairIsIdempotent: true,
+        oldStartupStillCached: true,
         projectFilesBefore: savedBefore.filesystem.files.map(file => file.path),
         projectFilesAfter: savedAfter.filesystem.files.map(file => file.path)},
       storagePreserved: storage, audio: {contexts: 0, codeRunning: false, physicalRoutes: 0},

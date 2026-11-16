@@ -6,6 +6,7 @@ Latest checkpoint: [restart handoff](thread_handoff_20261116_ym2149_timed_api.md
 Latest completed work: [Sync-buzzer example verification](verification_ym2149_buzzer_examples_20261117.md).
 Follow-up fix: [Console table import cache verification](fix_log_table_cache_20261117.md).
 Current sample discovery: [default example files and UI cache verification](fix_ym2149_examples_defaults_20261117.md).
+Current project workflow: [New Project verification](ym2149_new_project_20261117.md).
 
 ## Identity
 
@@ -43,9 +44,14 @@ The user then requested `examples/` in Files by default. Add missing examples on
 - [x] Add default examples on fresh / restored startup, persist successful additions, and keep capacity / directory conflicts nonfatal. Failed or invalid storage reads must not overwrite the unknown draft.
 - [x] Reproduce the old Files panel without Examples using real HTTP caching; verify current source / packaged startup shows the button, inserts the example, and preserves user data without enabling audio. Node 134 cases and both source / packaged Chromium / WebKit pass; see [verification](fix_ym2149_examples_defaults_20261117.md).
 
-### Later project lifecycle
+### New Project workflow — completed 2026-11-17
 
-- [ ] Design a separate **New Project** workflow, including preserving or exporting the current project before replacement. No reset / data deletion action is implemented in this change.
+User requested removal of the redundant Examples button and a menu New Project action. Keep automatic example files. Replace the current workspace only after a dialog choice; offer export before creation and a no-op Cancel / Escape path.
+
+- [x] Remove the Examples toolbar action; keep automatic examples for startup and fresh projects.
+- [x] Add Menu → New Project with Cancel, Export current & create, and Create without export. Prepare a validated starter / default-sound / examples workspace before retiring the current one; preserve flushed text, recoverable state and explicit save-failure reporting.
+- [x] Stop Code / reference / held notes only after confirmation, cancel pending music imports, unload song state, reset Auto / Pitch / Octave, and preserve output preferences without opening audio.
+- [x] Verify cancellation, export contents, replacement / rollback, storage recovery, races, browser workflow and readable packaging. Node 164 cases, real source / final r2 ZIP Chromium / WebKit and cache checks pass; see [verification](ym2149_new_project_20261117.md).
 
 ### Console table import cache fix — completed 2026-11-17
 

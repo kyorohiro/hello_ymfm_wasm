@@ -5,6 +5,8 @@ import { createYmCodeProject, YM_PROJECT_FILE_BYTES } from './code_project.js';
 import { createDefaultPreset, readPreset } from './preset.js';
 import { YM_CODE_EXAMPLES } from './code_examples.js';
 
+const STARTER_CODE = '// fresh starter';
+
 class Element {
 	constructor(doc, tag = 'div') {
 		Object.assign(this, {
@@ -99,7 +101,7 @@ function fixture(t, options = {}) {
 	main.id = 'ymSynthMain';
 	doc.append(main);
 	doc.querySelector = (selector) => (selector === '.ym-main' ? main : null);
-	for (const id of ['ymFilesPanel', 'ymFilesToggle', 'synthWorkspace']) {
+	for (const id of ['ymFilesPanel', 'ymFilesToggle', 'synthWorkspace', 'ymMenuProjectNew']) {
 		const node = new Element(doc);
 		node.id = id;
 		node.hidden = id === 'ymFilesPanel';
@@ -110,9 +112,6 @@ function fixture(t, options = {}) {
 	doc.append(select);
 	const previous = globalThis.document;
 	globalThis.document = doc;
-	t.after(() => {
-		globalThis.document = previous;
-	});
 	let settings = readPreset(options.settings ?? createDefaultPreset());
 	const project = options.project ?? createYmCodeProject({ settings, starterCode: '// kept' }),
 		writes = [],
@@ -132,6 +131,7 @@ function fixture(t, options = {}) {
 		document: doc,
 		store,
 		getSettings: () => settings,
+		getStarterCode: () => STARTER_CODE,
 		applySettings: async (value) => {
 			calls.push(['apply', value]);
 			settings = readPreset(value);
@@ -149,7 +149,10 @@ function fixture(t, options = {}) {
 		},
 		setBusy() {},
 	});
-	t.after(() => files.dispose());
+	t.after(async () => {
+		try { await files.dispose(); }
+		finally { globalThis.document = previous; }
+	});
 	return {
 		files,
 		project,
@@ -228,9 +231,8 @@ test('YM2149 ST startup adds missing examples to old Files and keeps edited sour
 		workspaceReplaced: () => assert.fail('Examples never replaces the workspace'),
 	});
 	await f.files.ready;
-	const button = f.doc.getElementById('ymFileExamplesButton');
-	assert.equal(button.textContent, 'Examples');
-	assert.match(button.title, /Existing files are kept; Code is not run/);
+	assert.equal(f.doc.getElementById('ymFileExamplesButton'), undefined);
+	assert.equal(f.files.addExamples, undefined);
 	for (const [path, source] of Object.entries(YM_CODE_EXAMPLES))
 		assert.equal(f.project.fs.get(path).data, path === editedPath ? '// edited example' : source);
 	assert.equal(f.project.fs.get('/index.js').data, '// saved user melody');
@@ -240,7 +242,7 @@ test('YM2149 ST startup adds missing examples to old Files and keeps edited sour
 	assert.deepEqual(f.project.settings, saved.settings);
 	assert.equal(f.doc.getElementById('ymFilesPanel').hidden, true);
 	assert.equal(f.doc.querySelector('.ym-main').inert, false);
-	assert.equal(button.disabled, false);
+	assert.equal(f.doc.getElementById('ymProjectNewButton').disabled, false);
 	assert.deepEqual(f.calls.map((call) => call[0]), ['before', 'apply']);
 	assert.deepEqual(f.opened, []);
 	assert.equal(writes.length, 0);
@@ -251,18 +253,7 @@ test('YM2149 ST startup adds missing examples to old Files and keeps edited sour
 	assert.equal(persisted.fs.get(paths[1]).data, YM_CODE_EXAMPLES[paths[1]]);
 	assert.equal(persisted.fs.get('/index.js').data, '// saved user melody');
 	assert.deepEqual(persisted.getCodeState(), saved.getCodeState());
-	const before = f.project.snapshot();
-	assert.deepEqual(await f.files.addExamples(), []);
-	assert.deepEqual(f.project.snapshot(), before);
-	assert.match(f.statuses.at(-1), /existing files were kept/);
-	// The optional action still repairs deleted examples without replacing edits.
-	f.project.fs.remove(paths[1]);
-	await button.fire('click');
-	await new Promise((resolve) => setImmediate(resolve));
-	assert.equal(f.project.fs.get(paths[1]).data, YM_CODE_EXAMPLES[paths[1]]);
-	assert.equal(f.project.fs.get(editedPath).data, '// edited example');
-	assert.equal(f.doc.getElementById('ymFilesPanel').hidden, false);
-	assert.match(f.statuses.at(-1), /Choose a file in Code, then Run/);
+
 });
 
 test('YM2149 ST default examples wait for local restore before inserting and persisting files', async (t) => {
@@ -283,7 +274,7 @@ test('YM2149 ST default examples wait for local restore before inserting and per
 	saved.setCodeState({ mode: 'code', path: '/index.js' });
 	const paths = Object.keys(YM_CODE_EXAMPLES);
 	await Promise.resolve();
-	assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, true);
+	assert.equal(f.doc.getElementById('ymProjectNewButton').disabled, true);
 	for (const path of paths) assert.equal(f.project.fs.has(path), false);
 	await waitForSave();
 	assert.equal(writes.length, 0);
@@ -298,33 +289,7 @@ test('YM2149 ST default examples wait for local restore before inserting and per
 	await waitForSave();
 	assert.equal(writes.length, 1);
 	assert.equal(writes.at(-1).filesystem.files.find((file) => file.path === '/index.js').data, '// restored user melody');
-	assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, false);
-});
-
-test('YM2149 ST Examples preserves existing case variants and folders at example paths', async (t) => {
-	for (const collision of ['case', 'folder'])
-		await t.test(collision, async (t) => {
-			const f = fixture(t);
-			await f.files.ready;
-			f.project.fs.remove('/examples', { recursive: true });
-			const paths = Object.keys(YM_CODE_EXAMPLES),
-				path = paths[0],
-				casePath = path.toUpperCase();
-			if (collision === 'case')
-				f.project.importFiles([{ path: casePath, data: '// user example' }]);
-			else f.project.fs.mkdir(path, { recursive: true });
-			f.project.select('/index.js');
-			const state = f.project.getCodeState();
-			assert.deepEqual(await f.files.addExamples(), paths.slice(1));
-			if (collision === 'case') {
-				assert.equal(f.project.fs.get(casePath).data, '// user example');
-				assert.equal(f.project.fs.has(path), false);
-			} else assert.equal(f.project.fs.stat(path).type, 'directory');
-			assert.equal(f.project.selectedPath, '/index.js');
-			assert.deepEqual(f.project.getCodeState(), state);
-			assert.deepEqual(f.calls, []);
-			assert.deepEqual(f.opened, []);
-		});
+	assert.equal(f.doc.getElementById('ymProjectNewButton').disabled, false);
 });
 
 test('YM2149 ST startup preserves case variants and directories at example paths', async (t) => {
@@ -380,7 +345,7 @@ test('YM2149 ST full or colliding startup Files keeps the known workspace usable
 			assert.match(f.statuses.at(-1), /Default examples could not be added; current files kept/);
 			assert.doesNotMatch(f.statuses.at(-1), /restore failed/);
 			assert.equal(f.doc.querySelector('.ym-main').inert, false);
-			assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, false);
+			assert.equal(f.doc.getElementById('ymProjectNewButton').disabled, false);
 			assert.deepEqual(f.opened, []);
 			assert.equal(writes.length, 0);
 			f.project.writeEditorText('/index.js', '// edited user source');
@@ -389,25 +354,307 @@ test('YM2149 ST full or colliding startup Files keeps the known workspace usable
 		});
 });
 
-test('YM2149 ST Examples capacity failure leaves Files and selection atomic', async (t) => {
+test('YM2149 ST New Project opens a confirmation and Cancel or Escape leaves the current project and performance alone', async (t) => {
 	const f = fixture(t);
 	await f.files.ready;
-	f.project.fs.remove('/examples', { recursive: true });
-	f.project.importFiles([
-		{ path: '/padding.bin', type: 'binary', data: new Uint8Array(YM_PROJECT_FILE_BYTES - projectBytes(f.project) - 100) },
-	]);
-	f.project.select('/index.js');
-	f.project.setCodeState({ mode: 'code', path: '/index.js' });
+	f.project.importFiles([{ path: '/custom.txt', data: 'unsaved work' }]);
+	f.project.select('/custom.txt');
+	f.project.setCodeState({ mode: 'code', path: '/custom.txt' });
+	f.files.setCodeControls({
+		setBusy() {},
+		flush: () => assert.fail('Opening or cancelling never flushes'),
+		workspaceReplaced: () => assert.fail('Opening or cancelling never stops Code'),
+		openFile: () => assert.fail('Opening or cancelling never opens a file'),
+	});
 	const before = f.project.snapshot(),
-		writes = f.writes.length;
-	await assert.rejects(f.files.addExamples(), /16 MiB/);
-	assert.deepEqual(f.project.snapshot(), before);
-	assert.equal(f.writes.length, writes);
-	assert.equal(f.doc.getElementById('ymFilesPanel').hidden, true);
-	assert.equal(f.doc.querySelector('.ym-main').inert, false);
-	assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, false);
+		identity = f.files.workspaceId,
+		button = f.doc.getElementById('ymProjectNewButton'),
+		dialog = f.doc.getElementById('ymNewProjectDialog');
+	assert.equal(button.parentNode.id, 'ymMenuProjectNew');
+	assert.equal(f.doc.getElementById('ymFileExamplesButton'), undefined);
+	assert.equal(dialog.parentNode, f.doc.body, 'confirmation remains visible when Files is hidden');
+	assert.equal(dialog.getAttribute('role'), 'dialog', 'modal participates in the host musical-key guard');
+	assert.match(dialog.children[1].textContent, /replaces the current browser project and stops the current performance/);
+	for (const action of ['cancel', 'escape']) {
+		await button.fire('click');
+		assert.equal(dialog.open, true);
+		assert.equal(f.doc.querySelector('.ym-main').inert, false);
+		if (action === 'cancel') await f.doc.getElementById('ymNewProjectCancel').fire('click');
+		else await dialog.fire('cancel');
+		assert.equal(dialog.open, false);
+		assert.deepEqual(f.project.snapshot(), before);
+		assert.equal(f.files.workspaceId, identity);
+		assert.equal(f.doc.getElementById('ymFilesPanel').hidden, true);
+	}
 	assert.deepEqual(f.calls, []);
 	assert.deepEqual(f.opened, []);
+	// Restore the fixture's teardown flush after checking the no-op paths.
+	f.files.setCodeControls({ setBusy() {}, flush: async () => true });
+});
+
+test('YM2149 ST confirmed New Project replaces custom files with the starter, examples and default sound, then saves a new identity', async (t) => {
+	const events = [],
+		f = fixture(t, { onBeforeNewProject: () => events.push('new') });
+	await f.files.ready;
+	const sound = createDefaultPreset();
+	sound.voices[0].volume = 2;
+	f.setSettings(sound);
+	f.project.importFiles([
+		{ path: '/custom.js', data: '// old source' },
+		{ path: '/custom.bin', type: 'binary', data: Uint8Array.of(0, 128, 255) },
+		{ path: '/presets/Custom.ym2149-st.json', data: JSON.stringify(sound) },
+	]);
+	f.project.select('/custom.js');
+	f.project.setCodeState({ mode: 'code', path: '/custom.js' });
+	const identity = f.files.workspaceId;
+	f.files.setCodeControls({
+		setBusy() {},
+		captureState: () => ({ mode: 'code', path: '/custom.js' }),
+		flush: async () => { events.push('flush'); return true; },
+		workspaceReplaced: async () => { events.push('retire'); return true; },
+		restoreState: async (state) => { events.push(['restore', state]); return true; },
+		openFile: () => assert.fail('New Project restores the editor without selecting/running files'),
+	});
+	assert.equal(await f.files.newProject(), true);
+	assert.deepEqual(events, ['flush', 'retire', 'new', ['restore', { mode: 'keyboard', path: '/index.js' }]]);
+	assert.deepEqual(f.calls.map((call) => call[0]), ['before', 'apply']);
+	assert.deepEqual(f.project.fs.list().map((file) => file.path).sort(), ['/index.js', ...Object.keys(YM_CODE_EXAMPLES)].sort());
+	assert.equal(f.project.fs.get('/index.js').data, STARTER_CODE);
+	for (const [path, source] of Object.entries(YM_CODE_EXAMPLES)) assert.equal(f.project.fs.get(path).data, source);
+	assert.deepEqual(f.project.settings, createDefaultPreset());
+	assert.deepEqual(f.project.getCodeState(), { mode: 'keyboard', path: '/index.js' });
+	assert.equal(f.project.selectedPath, '/index.js');
+	assert.notEqual(f.files.workspaceId, identity);
+	assert.equal(f.writes.at(-1).workspaceId, f.files.workspaceId);
+	assert.deepEqual(createYmCodeProject({ snapshot: f.writes.at(-1) }).snapshot(), f.project.snapshot());
+	assert.match(f.statuses.at(-1), /New YM2149 ST project created.*Saved locally/);
+	assert.equal(f.doc.querySelector('.ym-main').inert, false);
+});
+
+test('YM2149 ST Export current & create captures flushed source, live settings and Code state before stopping', async (t) => {
+	const downloads = [],
+		events = [],
+		f = fixture(t, {
+			downloadFile: async (bytes, name, type) => {
+				events.push('download');
+				downloads.push({ bytes, name, type });
+				assert.equal(f.calls.length, 0, 'export completes before performance retirement');
+			},
+		});
+	await f.files.ready;
+	const sound = createDefaultPreset();
+	sound.name = 'Actual live settings';
+	sound.envelope.period = 321;
+	f.setSettings(sound);
+	f.project.importFiles([{ path: '/custom.bin', type: 'binary', data: Uint8Array.of(0, 255) }]);
+	f.project.select('/index.js');
+	f.files.setCodeControls({
+		setBusy() {},
+		captureState: () => ({ mode: 'code', path: '/index.js' }),
+		flush: async () => { events.push('flush'); f.project.writeEditorText('/index.js', '// unsaved editor source'); return true; },
+		workspaceReplaced: async () => { events.push('retire'); return true; },
+		restoreState: async () => true,
+	});
+	await f.doc.getElementById('ymProjectNewButton').fire('click');
+	await f.doc.getElementById('ymNewProjectExport').fire('click');
+	await new Promise((resolve) => setImmediate(resolve));
+	assert.deepEqual(events, ['flush', 'download', 'retire']);
+	assert.equal(downloads.length, 1);
+	assert.equal(downloads[0].type, 'application/zip');
+	assert.match(downloads[0].name, /\.cassette\.zip$/);
+	const exported = createYmCodeProject();
+	exported.restore(await exported.prepareImport(downloads[0].bytes));
+	assert.equal(exported.fs.get('/index.js').data, '// unsaved editor source');
+	assert.deepEqual(exported.fs.get('/custom.bin').data, Uint8Array.of(0, 255));
+	assert.deepEqual(exported.settings, sound);
+	assert.deepEqual(exported.getCodeState(), { mode: 'code', path: '/index.js' });
+	assert.equal(exported.selectedPath, '/index.js');
+	assert.equal(f.project.fs.get('/index.js').data, STARTER_CODE);
+});
+
+test('YM2149 ST a failed or declined export keeps the flushed project and never retires performance', async (t) => {
+	for (const failure of ['false', 'throw']) await t.test(failure, async (t) => {
+		const f = fixture(t, {
+			downloadFile: async () => {
+				if (failure === 'throw') throw Error('Injected export failure');
+				return false;
+			},
+		});
+		await f.files.ready;
+		const identity = f.files.workspaceId;
+		let flushed;
+		f.files.setCodeControls({
+			setBusy() {},
+			flush: async () => { f.project.writeEditorText('/index.js', '// flushed and kept'); flushed = f.project.snapshot(); return true; },
+			workspaceReplaced: () => assert.fail('An unsuccessful export never stops Code'),
+		});
+		if (failure === 'throw') await assert.rejects(f.files.newProject({ exportCurrent: true }), /Injected export failure/);
+		else assert.equal(await f.files.newProject({ exportCurrent: true }), false);
+		assert.deepEqual(f.project.snapshot(), flushed);
+		assert.equal(f.files.workspaceId, identity);
+		assert.deepEqual(f.calls, []);
+		assert.equal(f.doc.querySelector('.ym-main').inert, false);
+	});
+});
+
+test('YM2149 ST New Project rejects invalid options before flushing or retiring performance', async (t) => {
+	const f = fixture(t);
+	await f.files.ready;
+	const before = f.project.snapshot();
+	f.files.setCodeControls({
+		setBusy() {},
+		flush: () => assert.fail('Invalid options never flush'),
+		workspaceReplaced: () => assert.fail('Invalid options never stop Code'),
+	});
+	await assert.rejects(f.files.newProject({ exportCurrent: 'yes' }), /exportCurrent must be a boolean/);
+	assert.deepEqual(f.project.snapshot(), before);
+	f.files.setCodeControls({ setBusy() {}, flush: async () => true });
+});
+
+test('YM2149 ST New Project validation, retirement, hooks, apply and editor failures preserve flushed Files and restore editor state', async (t) => {
+	for (const failure of ['starter', 'flush', 'retire', 'before', 'new-hook', 'apply', 'apply-throw', 'editor', 'editor-throw'])
+		await t.test(failure, async (t) => {
+			const events = [];
+			let applications = 0;
+			const f = fixture(t, {
+				getStarterCode: () => failure === 'starter' ? 123 : STARTER_CODE,
+				onBeforeWorkspaceReplace: async () => { if (failure === 'before') throw Error('Injected before failure'); },
+				onBeforeNewProject: async () => failure !== 'new-hook',
+				applySettings: async (value) => {
+					applications++;
+					f.setSettings(value);
+					if (applications === 1 && failure === 'apply-throw') throw Error('Injected apply failure');
+					return !(applications === 1 && failure === 'apply');
+				},
+			});
+			await f.files.ready;
+			const sound = createDefaultPreset();
+			sound.voices[1].volume = 2;
+			f.setSettings(sound);
+			f.project.setSettings(sound);
+			f.project.importFiles([{ path: '/custom.js', data: '// old source' }]);
+			f.project.select('/custom.js');
+			const oldState = { mode: 'code', path: '/custom.js' };
+			f.project.setCodeState(oldState);
+			const identity = f.files.workspaceId;
+			let flushed;
+			f.files.setCodeControls({
+				setBusy() {},
+				captureState: () => oldState,
+				flush: async () => { f.project.writeEditorText('/custom.js', '// latest unflushed source'); flushed = f.project.snapshot(); return failure !== 'flush'; },
+				workspaceReplaced: async () => {
+					events.push('retire');
+					f.project.setCodeState({ mode: 'keyboard', path: null });
+					return failure !== 'retire';
+				},
+				restoreState: async (state) => {
+					events.push(state);
+					if (state.mode === 'keyboard' && failure === 'editor-throw') throw Error('Injected editor failure');
+					return !(state.mode === 'keyboard' && failure === 'editor');
+				},
+			});
+			if (['starter', 'before', 'apply-throw', 'editor-throw'].includes(failure)) await assert.rejects(f.files.newProject());
+			else assert.equal(await f.files.newProject(), false);
+			assert.deepEqual(f.project.snapshot(), flushed);
+			assert.equal(f.files.workspaceId, identity);
+			if (!['starter', 'flush'].includes(failure)) assert.deepEqual(events.at(-1), oldState);
+			assert.equal(f.doc.querySelector('.ym-main').inert, false);
+			assert.equal(f.doc.getElementById('ymProjectNewButton').disabled, false);
+			await f.files.persistCode();
+			assert.deepEqual(f.writes.at(-1).settings, sound, 'rollback restores the actual previous host sound');
+		});
+});
+
+test('YM2149 ST cancelling an asynchronous New Project confirmation never commits a stale replacement', async (t) => {
+	for (const stage of ['flush', 'export', 'retire', 'apply', 'editor']) await t.test(stage, async (t) => {
+		const gate = deferred(), begun = deferred();
+		let paused = false;
+		const pause = async (at) => {
+			if (stage === at && !paused) { paused = true; begun.resolve(); await gate.promise; }
+		};
+		const f = fixture(t, {
+			downloadFile: () => pause('export'),
+			applySettings: async (value) => { f.setSettings(value); await pause('apply'); return true; },
+		});
+		await f.files.ready;
+		f.project.select('/index.js');
+		f.project.setCodeState({ mode: 'code', path: '/index.js' });
+		const before = f.project.snapshot(), identity = f.files.workspaceId;
+		f.files.setCodeControls({
+			setBusy() {}, captureState: () => before.codeState,
+			flush: async () => { await pause('flush'); return true; },
+			workspaceReplaced: async () => { f.project.setCodeState({ mode: 'keyboard', path: null }); await pause('retire'); return true; },
+			restoreState: async (state) => { if (state.mode === 'keyboard') await pause('editor'); return true; },
+		});
+		await f.doc.getElementById('ymProjectNewButton').fire('click');
+		const pending = f.files.newProject({ exportCurrent: true });
+		await begun.promise;
+		assert.equal(f.doc.querySelector('.ym-main').inert, true, 'confirmation locks before flush/export');
+		await f.doc.getElementById('ymNewProjectCancel').fire('click');
+		gate.resolve();
+		assert.equal(await pending, false);
+		assert.deepEqual(f.project.snapshot(), before);
+		assert.equal(f.files.workspaceId, identity);
+		assert.equal(f.doc.querySelector('.ym-main').inert, false);
+	});
+});
+
+test('YM2149 ST disposal during New Project retirement or editor restoration never commits the replacement', async (t) => {
+	for (const stage of ['retire', 'editor']) await t.test(stage, async (t) => {
+		const f = fixture(t), gate = deferred(), begun = deferred();
+		await f.files.ready;
+		f.project.select('/index.js');
+		f.project.setCodeState({ mode: 'code', path: '/index.js' });
+		const before = f.project.snapshot(), identity = f.files.workspaceId;
+		f.files.setCodeControls({
+			setBusy() {}, flush: async () => true,
+			workspaceReplaced: async () => {
+				if (stage === 'retire') { begun.resolve(); await gate.promise; }
+				return true;
+			},
+			restoreState: async () => {
+				if (stage === 'editor') { begun.resolve(); await gate.promise; }
+				return true;
+			},
+		});
+		const pending = f.files.newProject();
+		await begun.promise;
+		await f.files.dispose();
+		gate.resolve();
+		assert.equal(await pending, false);
+		assert.deepEqual(f.project.snapshot(), before);
+		assert.equal(f.files.workspaceId, identity);
+		assert.equal(f.writes.length, 0, 'a tentative replacement must not be persisted on disposal');
+	});
+});
+
+test('YM2149 ST a confirmed New Project recovers unread local storage, while a save failure reports a volatile project', async (t) => {
+	for (const save of ['success', 'false', 'throw']) await t.test(save, async (t) => {
+		const writes = [],
+			f = fixture(t, {
+				store: {
+					read: async () => { throw Error('Unknown old storage'); },
+					write: async (value) => {
+						writes.push(structuredClone(value));
+						if (save === 'throw') throw Error('Injected save failure');
+						return save === 'success';
+					},
+				},
+			});
+		await f.files.ready;
+		for (const path of Object.keys(YM_CODE_EXAMPLES)) assert.equal(f.project.fs.has(path), false);
+		assert.equal(await f.files.persistCode(), false);
+		assert.equal(writes.length, 0);
+		assert.equal(await f.files.newProject(), true);
+		assert.equal(writes.length, 1);
+		assert.equal(f.project.fs.get('/index.js').data, STARTER_CODE);
+		for (const path of Object.keys(YM_CODE_EXAMPLES)) assert.equal(f.project.fs.has(path), true);
+		if (save === 'success') assert.match(f.statuses.at(-1), /Saved locally/);
+		else {
+			assert.match(f.statuses.at(-1), /created.*Local save unavailable; export the project/);
+			assert.doesNotMatch(f.statuses.at(-1), /Saved locally/);
+		}
+	});
 });
 
 test('YM2149 ST saves named presets without acquiring audio, applying or changing Code mode/focus', async (t) => {
@@ -952,7 +1199,6 @@ test('YM2149 ST failed initial restores cannot be overwritten by later edits, Fi
 			f.project.writeEditorText('/index.js', '// unsaved current edit');
 			assert.equal(await f.files.persistCode(), false);
 			await f.files.createFile('/notes.txt');
-			assert.deepEqual(await f.files.addExamples(), Object.keys(YM_CODE_EXAMPLES));
 			assert.equal(writes.length, 0);
 			const exported = await f.files.exportProject(),
 				copy = createYmCodeProject();

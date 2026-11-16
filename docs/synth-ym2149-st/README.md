@@ -76,12 +76,25 @@ Open **Files**, choose **`examples/sync-buzzer.js`**, switch to **Code**, and
 press **Run**. The `examples/` folder is supplied at startup, after any saved
 project has been restored. Existing `index.js`, edited examples, settings and
 Keyboard / Code mode are kept; only missing example files are added. Nothing
-runs or opens audio automatically. **Examples** restores missing sample files
-if you delete them. `examples/README.md` explains the experiment and controls.
+runs or opens audio automatically. Missing sample files are supplied on the
+next startup. `examples/README.md` explains the experiment and controls.
 
 If a project is full or its `examples` path is occupied by a file, it is kept
 intact and Files reports that automatic insertion could not complete. A failed
 local-project read never saves new defaults over the unknown stored project.
+
+### Start a new project
+
+Choose **Menu → New Project…**. Before starting creation, **Cancel** or Escape
+keeps the current project and performance. **Export current & create** downloads the current Cassette
+before creating a fresh project; **Create without export** replaces it directly.
+
+The fresh project contains the default sound, `index.js` and `examples/`.
+Code, reference playback and held notes stop; channel selection returns to
+Auto, Pitch and Octave to zero, and the input view to Keyboard. Master / mixer
+volume, the audio device and keyboard-layout preferences are retained. The
+new project does not automatically start audio or run Code. If local saving
+is unavailable, export the new project to keep a portable copy.
 
 The script uses CH1 for a melody while a separate named loop changes the R13
 Envelope retrigger rate through 100 / 125 / 160 / 200 Hz. Individual writes are

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js';
 import {createDefaultPreset, readPreset} from './preset.js';
-import {setupYmCodeHost} from './code_host.js?v=ym-examples-1';
+import {setupYmCodeHost} from './code_host.js?v=ym-project-1';
 import {setupNumberControls} from './controls.js';
 import {createYmSongPlayer} from './song_player.js';
 import {prepareYmReference,createYmReferenceEngine} from './reference_source.js';
@@ -286,7 +286,14 @@ document.addEventListener('change',event=>{if(event.target.matches('select,input
 document.addEventListener('pointerup',event=>{if(event.target.matches('input[type="range"]'))event.target.blur();});
 
 codeHost=setupYmCodeHost({ensureAudio,getAudio:()=>audio,getSettings,applySettings,stopKeyboard,
-  stopSong:()=>{stopKeyboard();songPlayer?.stop();},onActivity:requestRender,setStatus:status});
+  stopSong:()=>{stopKeyboard();songPlayer?.stop();},onActivity:requestRender,setStatus:status,
+  onBeforeNewProject({isCurrent=()=>true}={}) {
+    if(!isCurrent())return false;
+    songPanel?.reset();stopKeyboard();audio?.stop();
+    target=null;pitch=0;octave=0;
+    audio?.instrument.selectChannel(null);audio?.instrument.setPitch(0);
+    renderKeyboard();render();
+  }});
 songPlayer=createYmSongPlayer({getAudio:()=>audio,prepareSource:prepareYmReference,createEngine:createYmReferenceEngine,
   beforePlay:async()=>{
     stopKeyboard();await codeHost.stop();await ensureAudio();audio.stop();

@@ -75,6 +75,15 @@ export function setupYmSongPanel({project,files,player,onStatus=()=>{}}) {
       say(parts.join('. '));
     }
   }
+  function reset() {
+    if(disposed)return false;
+    selection++;pendingSelection?.controller.abort();pendingSelection=null;
+    importGeneration++;controller?.abort();controller=null;
+    selectedPath='';selectedRevision=null;signature=null;seeking=false;stickyError='';
+    $('ymMusicInput').value='';$('ymSongSelect').value='';
+    player.unload();refresh();update();say('Import music from Menu…');
+    return true;
+  }
   listen('ymLoadMusic','click',()=>{$('ymMusicInput').value='';$('ymMusicInput').click();});
   listen('ymMusicInput','change',async()=>{
     const chosen=Array.from($('ymMusicInput').files??[]);$('ymMusicInput').value='';if(!chosen.length)return;
@@ -85,12 +94,14 @@ export function setupYmSongPanel({project,files,player,onStatus=()=>{}}) {
     const generation=++importGeneration;controller?.abort();controller=new AbortController();const signal=controller.signal;
     const current=()=>!disposed&&generation===importGeneration&&!signal.aborted;
     say(`Reading ${chosen.length} music file(s)…`);
-    const sources=[];
-    for(const file of chosen){if(file.size>MUSIC_FILE_LIMIT)throw new Error('Music files must be at most 16 MiB');sources.push({name:file.name,bytes:new Uint8Array(await file.arrayBuffer())});if(!current())return;}
-    const paths=await files.importMusicSources(sources,{isCurrent:current});
-    if(!current())return;
-    if(!paths.length)throw new Error('Files are busy; try importing again');
-    refresh();await select(paths[0],{signal});
+    try {
+      const sources=[];
+      for(const file of chosen){if(file.size>MUSIC_FILE_LIMIT)throw new Error('Music files must be at most 16 MiB');sources.push({name:file.name,bytes:new Uint8Array(await file.arrayBuffer())});if(!current())return;}
+      const paths=await files.importMusicSources(sources,{isCurrent:current});
+      if(!current())return;
+      if(!paths.length)throw new Error('Files are busy; try importing again');
+      refresh();await select(paths[0],{signal});
+    } catch(error) {if(current())throw error;}
   });
   listen('ymSongSelect','change',()=>{const path=$('ymSongSelect').value;$('ymSongSelect').blur();if(path)return select(path);});
   listen('ymSongPlay','click',()=>{stickyError='';return player.play();});
@@ -104,5 +115,5 @@ export function setupYmSongPanel({project,files,player,onStatus=()=>{}}) {
   listen('ymSongSeek','pointercancel',()=>{seeking=false;update();});
   const unwatch=project.onDidChange(refresh);refresh();update();
   const ready=files.ready.then(()=>{refresh();update();});
-  return {ready,update,select,get selectedPath(){return selectedPath;},dispose(){disposed=true;selection++;pendingSelection?.controller.abort();pendingSelection=null;importGeneration++;controller?.abort();unwatch();for(const off of listeners)off();}};
+  return {ready,update,select,reset,get selectedPath(){return selectedPath;},dispose(){disposed=true;selection++;pendingSelection?.controller.abort();pendingSelection=null;importGeneration++;controller?.abort();unwatch();for(const off of listeners)off();}};
 }

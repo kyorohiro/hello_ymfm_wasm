@@ -1,0 +1,502 @@
+{
+  "passed": true,
+  "servedRoot": "release/itch_ym2149_st_synth_new-project-20261117-r2-QKCgCP",
+  "entry": "/index.html",
+  "resourceVersion": "ym-project-1",
+  "currentSources": [
+    {
+      "resource": "/synth-ym2149-st/synth.js?v=ym-project-1",
+      "bytes": 19502,
+      "sha256": "9973f0bee1876f91b036043684292854201bf02040175db739fa80f3fd281c8b"
+    },
+    {
+      "resource": "/synth-ym2149-st/code_host.js?v=ym-project-1",
+      "bytes": 4989,
+      "sha256": "44ea0f70f170fd12192588dabc1102f8fe22ac3fb255a12f204aab9d15c95c4e"
+    },
+    {
+      "resource": "/synth-ym2149-st/code_files.js?v=ym-project-1",
+      "bytes": 40660,
+      "sha256": "ae45e1e3141694e23b6d0c608822ba5fbabc4ef57decdfc234c15ee8410771d4"
+    }
+  ],
+  "physicalOutputMuted": true,
+  "disposableBrowserProfiles": true,
+  "fixture": "Original generated 30-second YM2149 VGM; no third-party music",
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "cold": {
+        "contexts": 0,
+        "cancelPreservesAllData": true,
+        "escapePreservesAllData": true,
+        "mobile": {
+          "viewport": 390,
+          "width": 390,
+          "dialogWidth": 351
+        },
+        "menuWorksWithFilesHidden": true,
+        "modalBlocksMusicalKeys": true,
+        "examplesAutomatic": true,
+        "examplesButtonAbsent": true
+      },
+      "editedWorkspace": {
+        "indexSha256": "4710d9871ec16491e5375ebef94aaac16bae2588f1ed5e811ad614ecc46142d2",
+        "presetPath": "/presets/Browser New project sound.ym2149-st.json",
+        "binaryBytes": [
+          0,
+          17,
+          128,
+          255,
+          39,
+          91,
+          0
+        ],
+        "musicPath": "/vgm/new-project-reference.vgm"
+      },
+      "runningCancel": {
+        "loops": [
+          "buzzer-motion",
+          "melody"
+        ],
+        "cancelKeepsHeldKey": true,
+        "escapeKeepsHeldKey": true,
+        "schedulingContinues": true,
+        "soundingPcm": {
+          "peak": 0.07443167269229889,
+          "rms": 0.010708895312295753
+        }
+      },
+      "exportAndCreate": {
+        "filename": "Tetorica YM2149 ST Synth.cassette.zip",
+        "bytes": 4800,
+        "sha256": "fa556bafa0fcef868fe812da0c37bca1babc57156cc73885242b3d6dc4c00fdf",
+        "cassettePaths": [
+          "examples/README.md",
+          "examples/sync-buzzer.js",
+          "index.js",
+          "metadata.json",
+          "presets/Browser New project sound.ym2149-st.json",
+          "user-data.bin",
+          "vgm/new-project-reference.vgm",
+          "ym2149-st-synth.project.json"
+        ],
+        "unappliedEditorEditIncluded": true,
+        "binaryPreserved": true,
+        "previousWorkspaceId": "69e59ac9-fa93-4b6b-a686-5e61ec627635",
+        "newWorkspaceId": "4694a618-e4d6-45e6-b639-04a9192562b2",
+        "freshPaths": [
+          "/index.js",
+          "/examples/sync-buzzer.js",
+          "/examples/README.md"
+        ],
+        "defaultSettings": {
+          "format": "tetorica-ym2149-st-voice",
+          "version": 1,
+          "name": "ST Square",
+          "voices": [
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 478
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 379
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 319
+            }
+          ],
+          "noisePeriod": 16,
+          "envelope": {
+            "period": 1600,
+            "shape": 10
+          }
+        },
+        "masterRetained": "0.37",
+        "chipGainRetained": "1.42",
+        "stopped": {
+          "durationMs": 1200,
+          "observations": 20,
+          "first": {
+            "frame": 65280,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "last": {
+            "frame": 122112,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "scheduleCount": 2
+        },
+        "audio": {
+          "contexts": 1,
+          "nodes": 1,
+          "speakerRoutes": 1,
+          "physicalOutputMuted": true,
+          "lifecycle": [
+            {
+              "action": "cancelOwner",
+              "owner": "code:f3db8665-6544-4722-8a5d-a1a1ff85355d:1:run:1:loop:1",
+              "audioTime": 1.264
+            }
+          ]
+        }
+      },
+      "reload": {
+        "workspaceId": "4694a618-e4d6-45e6-b639-04a9192562b2",
+        "freshFilesRetained": true,
+        "starterRestored": true,
+        "audioContexts": 0,
+        "codeRunning": false
+      },
+      "coldCreateWithoutExport": {
+        "workspaceId": "027757b9-dfab-4ed3-8132-d8f64cd9fd1e",
+        "audioContexts": 0,
+        "defaultSound": true,
+        "starterAndExamplesOnly": true,
+        "codeRunning": false,
+        "downloadCount": 1
+      },
+      "createWithoutExport": {
+        "playingSongBefore": "new-project-reference.vgm",
+        "cancelledSongContinues": true,
+        "heldKeyCleared": true,
+        "songUnloaded": true,
+        "defaultSettings": {
+          "format": "tetorica-ym2149-st-voice",
+          "version": 1,
+          "name": "ST Square",
+          "voices": [
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 478
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 379
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 319
+            }
+          ],
+          "noisePeriod": 16,
+          "envelope": {
+            "period": 1600,
+            "shape": 10
+          }
+        },
+        "masterRetained": "0.37",
+        "chipGainRetained": "1.42",
+        "audioContextsBefore": 1,
+        "audioContextsAfter": 1,
+        "downloadCount": 1,
+        "stopped": {
+          "durationMs": 250,
+          "observations": 4,
+          "first": {
+            "frame": 29440,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "last": {
+            "frame": 38400,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "scheduleCount": 0
+        }
+      },
+      "freshModules": [
+        "/synth-ym2149-st/synth.js?v=ym-project-1",
+        "/synth-ym2149-st/code_host.js?v=ym-project-1",
+        "/synth-ym2149-st/code_files.js?v=ym-project-1"
+      ],
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "stoppedPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "lifecycle": []
+      },
+      "errors": [],
+      "missing": []
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "cold": {
+        "contexts": 0,
+        "cancelPreservesAllData": true,
+        "escapePreservesAllData": true,
+        "mobile": {
+          "viewport": 390,
+          "width": 390,
+          "dialogWidth": 351
+        },
+        "menuWorksWithFilesHidden": true,
+        "modalBlocksMusicalKeys": true,
+        "examplesAutomatic": true,
+        "examplesButtonAbsent": true
+      },
+      "editedWorkspace": {
+        "indexSha256": "4710d9871ec16491e5375ebef94aaac16bae2588f1ed5e811ad614ecc46142d2",
+        "presetPath": "/presets/Browser New project sound.ym2149-st.json",
+        "binaryBytes": [
+          0,
+          17,
+          128,
+          255,
+          39,
+          91,
+          0
+        ],
+        "musicPath": "/vgm/new-project-reference.vgm"
+      },
+      "runningCancel": {
+        "loops": [
+          "buzzer-motion",
+          "melody"
+        ],
+        "cancelKeepsHeldKey": true,
+        "escapeKeepsHeldKey": true,
+        "schedulingContinues": true,
+        "soundingPcm": {
+          "peak": 0.027292637154459953,
+          "rms": 0.0014935880845798391
+        }
+      },
+      "exportAndCreate": {
+        "filename": "Tetorica YM2149 ST Synth.cassette.zip",
+        "bytes": 4800,
+        "sha256": "346194d82d92c070b7a01b8c409059fd9dde15d6c0c72998547e56bde8a9e53f",
+        "cassettePaths": [
+          "examples/README.md",
+          "examples/sync-buzzer.js",
+          "index.js",
+          "metadata.json",
+          "presets/Browser New project sound.ym2149-st.json",
+          "user-data.bin",
+          "vgm/new-project-reference.vgm",
+          "ym2149-st-synth.project.json"
+        ],
+        "unappliedEditorEditIncluded": true,
+        "binaryPreserved": true,
+        "previousWorkspaceId": "b676eb26-a531-4e81-9c66-4d390e6ded27",
+        "newWorkspaceId": "60a4edfb-400f-433c-85bb-b75395962ece",
+        "freshPaths": [
+          "/index.js",
+          "/examples/sync-buzzer.js",
+          "/examples/README.md"
+        ],
+        "defaultSettings": {
+          "format": "tetorica-ym2149-st-voice",
+          "version": 1,
+          "name": "ST Square",
+          "voices": [
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 478
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 379
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 319
+            }
+          ],
+          "noisePeriod": 16,
+          "envelope": {
+            "period": 1600,
+            "shape": 10
+          }
+        },
+        "masterRetained": "0.37",
+        "chipGainRetained": "1.42",
+        "stopped": {
+          "durationMs": 1200,
+          "observations": 20,
+          "first": {
+            "frame": 64640,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "last": {
+            "frame": 121856,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "scheduleCount": 2
+        },
+        "audio": {
+          "contexts": 1,
+          "nodes": 1,
+          "speakerRoutes": 1,
+          "physicalOutputMuted": true,
+          "lifecycle": [
+            {
+              "action": "cancelOwner",
+              "owner": "code:b0ffefbb-cef5-4097-8138-27c1e875cc4a:1:run:1:loop:1",
+              "audioTime": 1.24
+            }
+          ]
+        }
+      },
+      "reload": {
+        "workspaceId": "60a4edfb-400f-433c-85bb-b75395962ece",
+        "freshFilesRetained": true,
+        "starterRestored": true,
+        "audioContexts": 0,
+        "codeRunning": false
+      },
+      "coldCreateWithoutExport": {
+        "workspaceId": "1e3123ac-a359-4081-98e3-6f91b9b279ae",
+        "audioContexts": 0,
+        "defaultSound": true,
+        "starterAndExamplesOnly": true,
+        "codeRunning": false,
+        "downloadCount": 1
+      },
+      "createWithoutExport": {
+        "playingSongBefore": "new-project-reference.vgm",
+        "cancelledSongContinues": true,
+        "heldKeyCleared": true,
+        "songUnloaded": true,
+        "defaultSettings": {
+          "format": "tetorica-ym2149-st-voice",
+          "version": 1,
+          "name": "ST Square",
+          "voices": [
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 478
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 379
+            },
+            {
+              "tone": true,
+              "noise": false,
+              "volume": 9,
+              "envelope": false,
+              "period": 319
+            }
+          ],
+          "noisePeriod": 16,
+          "envelope": {
+            "period": 1600,
+            "shape": 10
+          }
+        },
+        "masterRetained": "0.37",
+        "chipGainRetained": "1.42",
+        "audioContextsBefore": 1,
+        "audioContextsAfter": 1,
+        "downloadCount": 1,
+        "stopped": {
+          "durationMs": 250,
+          "observations": 4,
+          "first": {
+            "frame": 28032,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "last": {
+            "frame": 37120,
+            "shape": 10,
+            "level": {
+              "peak": 0,
+              "rms": 0
+            }
+          },
+          "scheduleCount": 0
+        }
+      },
+      "freshModules": [
+        "/synth-ym2149-st/synth.js?v=ym-project-1",
+        "/synth-ym2149-st/code_host.js?v=ym-project-1",
+        "/synth-ym2149-st/code_files.js?v=ym-project-1"
+      ],
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "stoppedPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "lifecycle": []
+      },
+      "errors": [],
+      "missing": []
+    }
+  ]
+}

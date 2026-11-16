@@ -149,7 +149,7 @@ async function runEngine(name,origin) {
     page.on('pageerror',error=>errors.push(error.message));
     page.on('response',response=>{if(response.url().startsWith(origin)&&response.status()>=400)missing.push(response.url());});
     await page.goto(origin+config.entry);
-    await page.waitForFunction(()=>Boolean(window.tetoricaYm2149StSynth)&&!document.getElementById('ymFileExamplesButton')?.disabled);
+    await page.waitForFunction(()=>{const button=document.getElementById('ymFileNewButton');return Boolean(window.tetoricaYm2149StSynth&&button&&!button.disabled);});
     const assertCold=async()=>{
       assert.equal(await page.evaluate(()=>__ymBuzzerAudit.contexts.length),0,'Browsing/editing examples creates no AudioContext');
       assert.equal(await page.evaluate(()=>tetoricaYm2149StSynth.getCodeState().running),false,'Files never starts Code');
@@ -166,8 +166,7 @@ async function runEngine(name,origin) {
     const selectedBefore=await page.locator('#ymFilesSelected').textContent();
     await page.locator('#ymFilesTree button[data-file-path="/examples/sync-buzzer.js"]').waitFor({state:'visible'});
     await page.locator('#ymFilesTree button[data-file-path="/examples/README.md"]').waitFor({state:'visible'});
-    await page.locator('#ymFileExamplesButton').click();
-    await page.waitForFunction(()=>document.getElementById('ymFilesStatus').textContent.includes('existing files were kept'));
+    assert.equal(await page.locator('#ymFileExamplesButton').count(),0,'Examples is supplied through Files without a toolbar action');
     assert.equal(await page.locator('#ymFilesSelected').textContent(),selectedBefore,'Examples preserves selected index.js');
     assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'keyboard');
     await assertCold();
@@ -189,15 +188,13 @@ async function runEngine(name,origin) {
     assert(example.includes('const retriggerHz = [100, 125, 160, 200];')&&example.includes('await beat(2);'));
     const savedExample=example+'\n// Kept browser-check edit in the example.\n';
     await editor.fill(savedExample);
-    await page.locator('#ymFileExamplesButton').click();
-    await page.waitForFunction(()=>document.getElementById('ymFilesStatus').textContent.includes('existing files were kept'));
     assert.equal(await page.locator('#ymFilesSelected').textContent(),'/examples/sync-buzzer.js');
     assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');
     await select('/examples/README.md');
     assert((await editor.inputValue()).includes('YM2149 timed sound examples'),'README is editable text in Code');
     assert.equal(await editor.getAttribute('readonly'),null);
     await select('/examples/sync-buzzer.js');
-    assert.equal(await editor.inputValue(),savedExample,'Re-adding examples keeps existing edited source');
+    assert.equal(await editor.inputValue(),savedExample,'Switching Files keeps edited example source');
     await assertCold();
 
     await page.locator('#synthCodeRunButton').click();

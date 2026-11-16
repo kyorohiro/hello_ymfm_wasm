@@ -5,6 +5,7 @@ import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { installSpuFileContextMenu as installYmFileContextMenu } from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
 import {ymMusicEntries} from './music_files.js';
 import { addYmCodeExamples } from './code_examples.js';
+import { createDefaultPreset } from './preset.js';
 import {
 	createYmCodeProject,
 	createYmProjectStore,
@@ -83,12 +84,16 @@ function copyPath(project, path) {
 export function setupYmCodeFiles({
 	project = createYmCodeProject(),
 	getSettings = () => project.settings,
+	getStarterCode = () => '',
 	applySettings = async () => {},
 	onBeforeWorkspaceReplace = async () => {},
+	onBeforeNewProject = async () => {},
 	onBeforeSoundApply = async () => {},
 	setStatus = () => {},
 	store = createYmProjectStore(),
 	document: doc = globalThis.document,
+	// Optional download sink for hosts and tests; defaults to a browser download.
+	downloadFile,
 } = {}) {
 	const panel = doc.getElementById('ymFilesPanel'),
 		toggle = doc.getElementById('ymFilesToggle'),
@@ -117,7 +122,8 @@ export function setupYmCodeFiles({
 		editRevision = 0,
 		saveTimer = null,
 		identity = workspaceId(),
-		visibilityTouched = false;
+		visibilityTouched = false,
+		pendingNewProject = null;
 	const make = (tag, id, text) => {
 		const node = doc.createElement(tag);
 		if (id) node.id = id;
@@ -144,7 +150,7 @@ export function setupYmCodeFiles({
 	for (const [id, label] of [
 		['ymFileNewButton', 'New JS'],
 		['ymFileSaveSoundButton', 'Save sound'],
-		['ymFileExamplesButton', 'Examples'],
+		['ymProjectNewButton', 'New Project…'],
 		['ymFileRenameButton', 'Rename…'],
 		['ymFileDeleteButton', 'Delete…'],
 		['ymFileImportButton', 'Add files…'],
@@ -154,16 +160,15 @@ export function setupYmCodeFiles({
 	]) {
 		const button = make('button', id, label);
 		button.type = 'button';
-		(['ymFileNewButton', 'ymFileSaveSoundButton', 'ymFileExamplesButton'].includes(id)
+		(['ymFileNewButton', 'ymFileSaveSoundButton'].includes(id)
 			? toolbar
 			: actions
 		).append(button);
 		buttons.set(id, button);
 		if (id === 'ymFileNewButton')
 			button.title = 'New JavaScript file; end the path with / to create a folder';
-		if (id === 'ymFileExamplesButton')
-			button.title = 'Add missing YM2149 ST Code examples to examples/. Existing files are kept; Code is not run.';
 		const destination = {
+			ymProjectNewButton: ['ymMenuProjectNew', 'New Project…'],
 			ymProjectImportButton: ['ymMenuProjectImport', 'Project · ZIP…'],
 			ymProjectExportButton: ['ymMenuProjectExport', 'Project · ZIP'],
 			ymFileImportButton: ['ymMenuFilesImport', 'Project files…'],
@@ -215,6 +220,25 @@ export function setupYmCodeFiles({
 	form.append(label, nameInput, confirm, cancel);
 	dialog.append(form);
 	panel.append(heading, tree, actions, selected, info, fileInput, projectInput, dialog);
+	const newProjectDialog = make('dialog', 'ymNewProjectDialog'),
+		newProjectTitle = make('h2', 'ymNewProjectTitle', 'Create a new project?'),
+		newProjectDescription = make(
+			'p',
+			null,
+			'This replaces the current browser project and stops the current performance. The new project contains the starter code and examples with the default sound.',
+		),
+		newProjectActions = make('div'),
+		newProjectCancel = make('button', 'ymNewProjectCancel', 'Cancel'),
+		newProjectExport = make('button', 'ymNewProjectExport', 'Export current & create'),
+		newProjectCreate = make('button', 'ymNewProjectCreate', 'Create without export');
+	newProjectDialog.className = 'ym-new-project-dialog';
+	newProjectDialog.setAttribute('role', 'dialog');
+	newProjectDialog.setAttribute('aria-labelledby', newProjectTitle.id);
+	newProjectActions.className = 'ym-new-project-actions';
+	for (const button of [newProjectCancel, newProjectExport, newProjectCreate]) button.type = 'button';
+	newProjectActions.append(newProjectCancel, newProjectExport, newProjectCreate);
+	newProjectDialog.append(newProjectTitle, newProjectDescription, newProjectActions);
+	doc.body.append(newProjectDialog);
 	let dialogAction = null,
 		dialogPath = null;
 	const say = (message) => {
@@ -329,6 +353,8 @@ export function setupYmCodeFiles({
 				].includes(id) &&
 					!project.selectedPath);
 		code?.setBusy?.(busy);
+		newProjectExport.disabled = busy;
+		newProjectCreate.disabled = busy;
 		for (const button of tree.querySelectorAll('button')) button.disabled = busy;
 	}
 	function setBusy(value, { lockMain = true } = {}) {
@@ -517,6 +543,111 @@ export function setupYmCodeFiles({
 		project.setSettings(getSettings());
 		return project.exportProject();
 	}
+	function cancelNewProject() {
+		if (pendingNewProject !== null) operation++;
+		newProjectDialog.close();
+	}
+	function askNewProject() {
+		if (disposed || busy) return;
+		newProjectDialog.showModal();
+		newProjectCancel.focus();
+	}
+	async function newProject({ exportCurrent = false } = {}) {
+		if (typeof exportCurrent !== 'boolean') throw TypeError('exportCurrent must be a boolean.');
+		await api.ready;
+		if (disposed || busy) return false;
+		const token = ++operation,
+			current = () => !disposed && token === operation;
+		let previous = null,
+			previousIdentity = identity,
+			previousPersistence = persistenceReady,
+			retired = false,
+			applyAttempted = false,
+			committed = false,
+			failure = null;
+		pendingNewProject = token;
+		clearTimeout(saveTimer);
+		setBusy(true);
+		try {
+			if ((await code?.flush?.()) === false || !current()) return false;
+			restoring = true;
+			project.setSettings(getSettings());
+			if (code?.captureState) project.setCodeState(code.captureState());
+			previous = project.snapshot();
+			const fresh = createYmCodeProject({ settings: createDefaultPreset(), getStarterCode });
+			addYmCodeExamples(fresh);
+			fresh.select('/index.js');
+			fresh.setCodeState({ mode: 'keyboard', path: '/index.js' });
+			if (exportCurrent) {
+				const oldProject = createYmCodeProject({ snapshot: previous });
+				const exported = await (downloadFile ?? download)(
+					oldProject.exportProject(),
+					oldProject.cassetteName + '.cassette.zip',
+					'application/zip',
+				);
+				if (exported === false || !current()) return false;
+			}
+			if (!current()) return false;
+			// Block incidental saves until the replacement and editor state both
+			// commit. A confirmed new project may recover an unread old draft.
+			persistenceReady = false;
+			retired = true;
+			if ((await code?.workspaceReplaced?.()) === false || !current()) return false;
+			if ((await onBeforeWorkspaceReplace({ isCurrent: current })) === false || !current()) return false;
+			if ((await onBeforeNewProject({ isCurrent: current })) === false || !current()) return false;
+			applyAttempted = true;
+			if ((await applySettings(fresh.settings, { isCurrent: current })) === false || !current()) return false;
+			project.restore(fresh.snapshot());
+			identity = workspaceId();
+			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
+			committed = true;
+			persistenceReady = true;
+			restoring = false;
+			appliedPreset = null;
+			presetCache.clear();
+			newProjectDialog.close();
+			const persisted = await persistCode();
+			say(
+				'New YM2149 ST project created. Code was not run.' +
+					(persisted === false
+						? ' Local save unavailable; export the project to keep it.'
+						: ' Saved locally.'),
+			);
+			return true;
+		} catch (error) {
+			failure = error;
+			throw error;
+		} finally {
+			if (!committed) {
+				persistenceReady = previousPersistence;
+				if (previous && retired) {
+					project.restore(previous);
+					identity = previousIdentity;
+					if (!disposed) {
+						if (applyAttempted) {
+							try {
+								await applySettings(previous.settings, {
+									isCurrent: () => !disposed && pendingNewProject === token,
+								});
+							} catch (error) { report(Error('Previous sound could not be restored: ' + error.message)); }
+						}
+						try { await code?.restoreState?.(previous.codeState); }
+						catch (error) { report(Error('Previous Code display could not be restored: ' + error.message)); }
+					}
+				}
+			}
+			restoring = false;
+			if (!committed && !failure && current())
+				say('New Project was not created; previous project kept.');
+			if (pendingNewProject === token) {
+				pendingNewProject = null;
+				if (!disposed) {
+					setBusy(false);
+					if (!committed && previous && persistenceReady) schedule();
+				}
+			}
+		}
+	}
 	async function move(source, destination, copy = false) {
 		if (disposed || busy) return false;
 		const token = ++operation;
@@ -689,28 +820,6 @@ export function setupYmCodeFiles({
 			if (!disposed) setBusy(false);
 		}
 	}
-	async function addExamples() {
-		await api.ready;
-		if (disposed || busy) return [];
-		const token = ++operation;
-		setBusy(true, { lockMain: false });
-		try {
-			const paths = addYmCodeExamples(project);
-			for (const path of paths) reveal(path);
-			setVisible(true);
-			render();
-			const persisted = await persistCode();
-			if (disposed || token !== operation) return paths;
-			say(
-				paths.length
-					? `Added ${paths.length} example(s) to examples/. Choose a file in Code, then Run.${persisted === false ? ' Local save unavailable; export the project to keep it.' : ''}`
-					: 'Examples are already in Files; existing files were kept.',
-			);
-			return paths;
-		} finally {
-			if (!disposed) setBusy(false);
-		}
-	}
 	/** Capture is a two-preset transaction. Audio ownership stays with the host;
 	 * validation and capacity failures happen before its apply callback. */
 	async function saveCapturedSound(
@@ -878,12 +987,20 @@ export function setupYmCodeFiles({
 			.catch(report);
 	});
 	listen(cancel, 'click', () => dialog.close());
+	listen(newProjectCancel, 'click', cancelNewProject);
+	listen(newProjectDialog, 'cancel', (event) => {
+		event.preventDefault();
+		cancelNewProject();
+	});
+	listen(newProjectExport, 'click', () => void newProject({ exportCurrent: true }).catch(report));
+	listen(newProjectCreate, 'click', () => void newProject().catch(report));
 	listen(presetSelect, 'change', () => {
 		const choice = presetOptions.get(presetSelect.value);
 		presetSelect.blur();
 		if (choice) void selectFile(choice.path).catch(report);
 	});
 	for (const [id, fn] of [
+		['ymProjectNewButton', askNewProject],
 		['ymFileNewButton', () => ask('new')],
 		['ymFileRenameButton', () => ask('rename')],
 		['ymFileDeleteButton', () => ask('delete')],
@@ -904,7 +1021,6 @@ export function setupYmCodeFiles({
 			},
 		],
 		['ymFileSaveSoundButton', () => void saveSound().catch(report)],
-		['ymFileExamplesButton', () => void addExamples().catch(report)],
 		[
 			'ymProjectExportButton',
 			() =>
@@ -996,11 +1112,11 @@ export function setupYmCodeFiles({
 		importProject,
 		exportProject,
 		createFile,
+		newProject,
 		move,
 		duplicate,
 		remove,
 		saveSound,
-		addExamples,
 		saveCapturedSound,
 		markSoundDirty() {
 			editRevision++;
@@ -1014,6 +1130,8 @@ export function setupYmCodeFiles({
 			if (disposed) return;
 			operation++;
 			contextMenu.dispose();
+			newProjectDialog.close();
+			newProjectDialog.remove();
 			await code?.flush?.();
 			await persistCode();
 			disposed = true;
