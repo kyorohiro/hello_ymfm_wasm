@@ -1,5 +1,10 @@
 # 次スレッドへの引き継ぎ — 2026-10-29
 
+**Current restart checkpoint (2026-11-16):**
+[YM2149 timed API handoff](thread_handoff_20261116_ym2149_timed_api.md).
+Read that checkpoint first for current status and next steps. The dated entries
+below are historical and must not be treated as the current pending task list.
+
 このファイルがスレッド終了時点の入口。まず本書を読み、詳細が必要な箇所だけ
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。

@@ -1,6 +1,8 @@
 # Tetorica YM2149 ST Synth
 
-Confirmed on 2026-11-16. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback is implemented. High-rate JavaScript register reservation remains later work.
+Confirmed on 2026-11-16. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback and the browser AY / YM2149 timed operation API are implemented. Concrete high-rate sound-making examples remain follow-up work.
+
+Latest checkpoint: [restart handoff](thread_handoff_20261116_ym2149_timed_api.md).
 
 ## Identity
 
@@ -28,7 +30,15 @@ Initial implementation and readable itch ZIP are complete. See [verification_ym2
 
 ## Follow-up design / research
 
-### Timed API implementation — started 2026-11-16
+### Next sound-making examples — proposed, not started
+
+- [ ] Extend the existing periodic Envelope retrigger (Sync-buzzer) Code example: vary melody and retrigger motion independently, inspect R13 writes through `compile()`, and compare Waveform / Spectrum. Keep host timing distinct from original CPU / MFP timing.
+- [ ] Add a timed volume-modulation Code example after checking the first example's usability.
+- [ ] Explore sample playback through volume writes with explicit rate / timing limits. Do not treat this as a PCM transfer or whole-machine implementation.
+
+These are the next tasks discussed before restart; no example / default-code change has been made yet.
+
+### Timed API implementation — browser AY scope completed 2026-11-16
 
 User authorized implementation after reviewing the design additions. Start with browser AY / YM2149; keep existing immediate APIs and legacy YM2612 scheduling compatible. Use an awaitable `compile()` across all baseline modes. Keep unsupported Native / offline scheduling explicit.
 
