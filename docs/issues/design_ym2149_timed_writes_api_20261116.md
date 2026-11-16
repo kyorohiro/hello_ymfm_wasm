@@ -41,7 +41,7 @@ Those descriptive aliases are not currently AY methods; adding immediate aliases
 
 Preserve existing YM2612 `scheduleWrites(entries)` / `clearScheduledWrites()` signatures, absolute AudioContext-time semantics and behavior. New `schedule(operations, options)` accepts operation data with relative offsets and must not reinterpret legacy entries. Compiled rows are inspection data, not implicitly legacy scheduling arguments; that API still requires its existing absolute-time format.
 
-Keep `initialState` as the proposed compile option name: default `"current"`, `"reset"`, or a previously captured state snapshot. Add the proposed asynchronous `captureState()` name for obtaining reusable compilation snapshots. Existing `getState()` behavior is unchanged; section 4 explains the distinction. Use `referenceSampleRate` for authoring sample units to distinguish them from device `sampleRate`.
+Keep `initialState` as the proposed compile option name: default `"current"`, explicit `"client"`, `"reset"`, or a previously captured state snapshot. `"client"` names the calling JavaScript client's local view; no additional alias is needed. Add the proposed asynchronous `captureState()` name for obtaining reusable authoritative compilation snapshots. Existing `getState()` behavior is unchanged; section 4 explains the distinction. Use `referenceSampleRate` for authoring sample units to distinguish them from device `sampleRate`.
 
 ## 2. `build()` is a lightweight operation recorder
 
@@ -105,6 +105,8 @@ For YM2612 CH1 / OP1, current register `0x30 = 0x53` followed by `{ multi: 7 }` 
 
 Every applied path, including raw writes, legacy scheduling, manual edits and new operations, must update the resolver's authoritative state. Include semantic metadata such as AY retained key-on levels. A UI snapshot or unmodified client shadow is insufficient.
 
+This authoritative-state requirement applies to execution and renderer-derived snapshots / `"current"` compilation. The explicitly weaker `"client"` compilation baseline below does not replace it or change scheduling guarantees.
+
 Current `YM2612Synth.write()` explicitly does not synchronize `channels`. Replaying current high-level methods against that stale shadow would fail partial updates after raw writes. Later implementation must synchronize / decode the authoritative register mirror while reusing existing packing logic.
 
 Immediate API semantics remain the reference. Audit existing partial-operator Key Off behavior before exposing it in recording; this revision does not redefine it. The validation cases below cover whole-channel Key On/Off.
@@ -119,6 +121,7 @@ const resetWrites = fm.compile(operations, { initialState: "reset" });
 ```
 
 - Default / `initialState: "current"`: use a coherent snapshot of authoritative chip state and required metadata associated with the compilation request.
+- `initialState: "client"`: copy the calling JavaScript client's existing local resolution state and configuration without requesting renderer / Native state. It need not match the renderer's current state; reject unavailable or incomplete required local state as specified below.
 - `initialState: "reset"`: construct the chip's defined reset registers and semantic metadata, retaining the instance clock / model configuration. Do not substitute the current preset, Synth starter patch or `initialize()` sound.
 - `initialState: snapshot`: use the compatible snapshot returned by `captureState()` as the complete baseline. Do not recapture current state or merge live values into it.
 - Resolve sequentially against temporary work state using the same chip resolver as scheduling. Virtual changes affect later operations but never live registers, retained levels, UI, clock or reservations.
@@ -126,6 +129,54 @@ const resetWrites = fm.compile(operations, { initialState: "reset" });
 - Retain repeated values, commands and write order. Simulate register / control state only; do not render audio or emulate a complete machine.
 
 Reset descriptors need a per-chip audit: AY has retained-level metadata, and OPN authoring defaults are not a complete hardware reset register image. Deriving reset compilation blindly from constructor defaults would be incorrect.
+
+### Local inspection through `initialState: "client"`
+
+```javascript
+// Proposed API; not implemented. Awaitable usage follows the recommendation below.
+const a = await fm.compile(operations); // Same as initialState: "current".
+const b = await fm.compile(operations, { initialState: "client" });
+const c = await fm.compile(operations, { initialState: "reset" });
+const d = await fm.compile(operations, { initialState: snapshot });
+```
+
+| Baseline | State source | New renderer state request for this compile |
+| --- | --- | --- |
+| `"current"` (default) | Coherent authoritative snapshot at the ordered capture point | Yes, for a live Worklet connection |
+| `"client"` | Existing state held by the calling JS client | No |
+| `"reset"` | Defined reset registers and metadata | No |
+| Captured snapshot | Previously captured state | No |
+
+The local option provides a quick explanation of what supported chip operations generate from the client's view. Keep the name `"client"`: it identifies the state source without implying authoritative or applied hardware state.
+
+- Copy local registers, required semantic metadata and cached conversion configuration once on JS entry, before yielding; resolve sequentially on a separate work copy. Never mutate the client, UI, live chip, input operations or reservations, including on failure.
+- Perform no AudioWorklet / Worker / Native state request, capture, flush, queue drain, synchronization barrier or playback control. Reuse only already held local information. `"current"`, `"reset"` and supplied snapshots retain their existing contracts.
+- Completeness and freshness are different. A complete local view can be stale or optimistic. A posted immediate edit may already be represented before the renderer applies it. Conversely, scheduled operations, manual writes through another client, inspector updates or Native changes not yet reflected locally are excluded. Do not predict or replay pending reservations into this baseline.
+- No renderer-freshness guarantee is made. Two client compilations can differ if local state changes between calls; unchanged local state gives the same writes. For a fixed authoritative baseline, keep using `captureState()` and a supplied snapshot.
+- Keep the same resolver, output rows, order, equal-value writes and isolation as other compile modes. Only the baseline source changes. No new output wrapper or playback-history feature is needed.
+- An awaitable public interface does not imply remote communication in this mode. Copying and conversion still take JS CPU time proportional to the operations; communication-free does not mean zero latency or a guaranteed duration. No scheduling or rendering is paused.
+
+#### Incomplete local state: explicit rejection
+
+An adapter must establish that the existing local state is sufficient and internally coherent for its explicitly supported register-operation subset. If needed registers, retained metadata, configuration or their validity are missing / unknown, reject the entire compilation with a descriptive error identifying the missing state or unsupported client adapter. Return no partial trace.
+
+Do not silently substitute `"current"`, `"reset"`, zero bytes, constructor defaults or reconstructed retained levels. Do not combine a raw register cache with conflicting decoded metadata. A known gap caused by a local raw-write path cannot be excused merely as permitted renderer staleness. A stale but internally complete baseline is permitted; an unproven or internally inconsistent baseline is not.
+
+Use conservative per-adapter capability / completeness checks and, where necessary, bounded local invalidation metadata. Do not add a general operation-dependency engine, a new full shadow for every chip or a constant renderer-to-client synchronization service. An adapter lacking sufficient local coverage may reject `"client"` until that coverage is explicitly supported. The caller can separately choose an authoritative snapshot or reset baseline; no automatic fallback occurs.
+
+#### Existing client-state inventory — read-only investigation
+
+These are source-code findings, not implemented client-mode support or runtime test results:
+
+| Existing path | State already held locally | Gap / consequence for client compilation |
+| --- | --- | --- |
+| `AY8910Synth` (`ay8910synth.js:64–114`, `:192`) | Sixteen register bytes, three retained key-on levels, clock and three-channel identity. `_getState()` copies registers plus levels; ordinary writes update them and Key Off retains the configured level. | `getRegisterSnapshot()` omits levels. Raw-only adoption reconstructs zero levels as 9, losing the distinction from an intentionally configured zero. Constructor-filled arrays alone do not prove a known baseline for a borrowed chip. Use validated full backing state. |
+| AY register client / YM2149 Synth (`playground_ay8910.js:13–28`; `docs/synth-ym2149-st/audio.js:58–70`, `code_audio.js:41`) | Local clock / initialized status and full private state adoption. The Synth knows the fixed 2 MHz, model type `0x10`, flags `1` configuration. | Concrete model / flags live on the endpoint, not in `_getState()`. The Code `getState()` is display / instrument data plus raw bytes, not the canonical registers-plus-levels source. A client adapter must use the backing state and already cached endpoint configuration. |
+| AY browser state adoption (`playground_ay8910_worklet.js:31–34,55–58`; `playground_runtime.js:1027–1030`; `playground_logic_worker.js:408,1044`) | Playground can adopt delivered inspector state and forward it to the Worker. | Inspector edits publish state; ordinary remote writes do not continuously publish it. The Synth setup lacks equivalent state adoption. Existing delivery may update a local baseline, but client compilation must not request a refresh or claim renderer freshness. |
+| YM2612 / common OPN (`ym2612synth.js:434–465,542–632,970–994,1046–1058,1181–1188`; `opn_fm_synth.js:219–242,489–516,552–600`) | Channel / operator parameters, pitch / special frequencies, mode / LFO, instance clock / configuration; YM2612 also has DAC authoring state. High-level helpers pack partial fields from this semantic state. | Public `getState()` is not a complete raw bank and omits some conversion context / latches. Raw / data writes do not reconcile semantic channel state; `scheduleWrites()` forwards rather than applying to the shadow. High-level-only subsets may reuse known state, but generic full raw / semantic completeness and validity are not established. |
+| Existing Native adapters (`native_genesis_msx.js:10–38`; `native_genesis_extra_ym2612.js:22–72`) | Native AY keeps JS register / retained-level state with explicit adoption and optimistic patching. Native YM2612 has an inspector-owned two-port raw cache and decoder separate from its semantic client state. | Caches are updated on existing adoption paths, not universally with every outgoing / Native change, and are not all exposed in `getState()`. Reuse only covered, coherent cached state; do not invoke readback / flush for `"client"`. |
+
+AY already retains most required fields; the local adapter still needs explicit baseline validity and model / flags coverage. OPN semantic state is useful, but raw / semantic disagreement and missing coverage markers block a blanket support claim. This addition records those gaps; it does not implement synchronization or modify existing immediate APIs.
 
 ### Reusable snapshots through `captureState()`
 
@@ -179,6 +230,8 @@ Return ordered flat records suitable for `console.table()` and analyzer use:
 Times are relative offsets independent of device rate; the input retains original units and reference rate. Indices explain one-to-many conversion and order. Compile one pass; repetition belongs to scheduling options.
 
 This is a prediction from one baseline, **not actual playback history**. Manual interleaving can correctly change scheduled partial-write results from previously compiled rows. Snapshot reuse does not change `schedule()`: it still resolves against actual state at execution, and neither accepts nor restores a compilation snapshot. Playback-history recording is not added here.
+
+Likewise, choosing `"client"` for inspection never changes execution to use a client shadow: scheduled partial updates still resolve from authoritative state at their actual application points.
 
 ### Open return-contract decision: current state across threads
 
@@ -246,6 +299,10 @@ These checks establish representability against current code. They are design re
 | YM2612 Key On/Off | Keep port 0 / `0x28` values `0xF0`, `0xF1`, `0x00`, `0xF0` in order: CH1 On, CH2 On, CH1 Off, CH1 On. Reuse existing channel / operator mapping. |
 | Same-time operations | Preserve operation order and contiguous write batches. Later operations see earlier changes. |
 | Compile current / reset | For the R7 example, current `0xC9` gives `0xC8` / `0xD8`; AY's zeroed reset register baseline gives `0x00` / `0x10`. No baseline writes or live mutations. |
+| Client baseline without communication | With valid local R7 = `0xC9` and renderer R7 different, compile local CH1 Tone On to `0xC8`. Make zero renderer / Worker / Native capture, read or flush requests; change no live state. `"current"` still uses its authoritative capture. |
+| Client freshness / optimistic writes | Unreflected scheduled / Native writes do not enter the trace. Already represented posted edits may enter before remote application. Do not apply pending schedules virtually; results follow the copied local view. |
+| Client completeness / coherence | Missing retained levels, model / clock, unknown required registers or conflicting raw / OPN metadata rejects the whole compile with a descriptive error. Constructor defaults / display snapshots alone are insufficient; no fallback, new sync request or partial result. |
+| Client work-copy isolation | Copy before yielding; later local edits do not affect that compile. Virtual changes never leak into local / live state or another compile. Unchanged valid local baseline and operations produce identical writes. |
 | One snapshot, different operations | Capture AY R7 = `0xC9`. From that same snapshot, A = CH1 Tone On gives `0xC8`; B = CH1 Tone Off gives `0xC9`. Compiling A first must not affect B, even after live R7 changes. Repeating A gives identical rows. |
 | Snapshot includes semantic state | With raw AY volume zero but retained level 9, compile Key On from the snapshot and obtain level 9. Preserve relevant OPN packed fields / mode / latch metadata coherently too. A register-only or existing display `getState()` object is rejected. |
 | Snapshot isolation / concurrent reuse | Capture state, keep a copy and advance live playing / editing. Snapshot remains unchanged. Compile A / B independently, including failures; neither snapshot nor live state changes and virtual writes do not leak between runs. |
@@ -278,6 +335,7 @@ Scope remains AY first, with YM2612 as a concrete design witness and compatibili
 - [x] Preserve timing, compact repeats, Main / Worker, Performance Queue and ownership contracts.
 - [x] Review requested AY / OPN / timing cases and record reset, raw-state synchronization and snapshot gaps.
 - [x] Add reusable asynchronous `captureState()` snapshots and `initialState: snapshot`, including required semantic state, independent working copies, coherent capture, compatibility validation and comparison acceptance cases; preserve existing `getState()` behavior.
+- [x] Add explicit `initialState: "client"` for communication-free inspection, distinguish local completeness from renderer freshness, audit existing AY / OPN / Native state, and specify conservative rejection / isolation acceptance cases without new constant synchronization.
 - [ ] Settle `compile()` return / snapshot contract; recommend an awaitable authoritative snapshot.
 
 ### Implementation after design agreement — not started
@@ -285,6 +343,7 @@ Scope remains AY first, with YM2612 as a concrete design witness and compatibili
 - [ ] Finalize operation allowlists / schema, naming, start anchor and measured limits without changing immediate APIs or legacy `scheduleWrites()`.
 - [ ] Share chip validation / conversion; synchronize authoritative state and define reset descriptors / required metadata. Cover R7, R13, packed OPN fields, raw writes and key commands.
 - [ ] Implement lightweight recording and isolated compilation with snapshot ordering and no live side effects.
+- [ ] Add supported local-state adapters for `initialState: "client"`, using existing backing state / configuration, explicit completeness checks and isolated copies. Address the inventory's gaps conservatively; verify zero readback, stale / optimistic behavior, incomplete-state rejection and unchanged authoritative modes without new continuous synchronization.
 - [ ] Add coherent non-stopping `captureState()` acquisition and reusable read-only state values; validate chip identity / configuration and compile each call on its own work copy. Verify same-baseline comparison, historical / concurrent reuse, rejection and no live mutations.
 - [ ] Implement compact sample-accurate reservations, atomic admission / replacement and fresh resolution at every occurrence.
 - [ ] Connect AY Worklet, Main / Worker, client and Synth Code ownership; retain Run / Apply / Stop and manual Gate guards.
