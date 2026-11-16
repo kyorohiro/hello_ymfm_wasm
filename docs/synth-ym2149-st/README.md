@@ -124,6 +124,32 @@ the performance. Selecting CH1 and turning Tone off with Noise off isolates
 the volume-only waveform. Use CH2 / CH3 for keyboard notes that do not compete
 with this example's CH1 writes.
 
+### Try volume-register sample playback
+
+Choose **`examples/volume-sample.js`** in Files, switch to Code and Run. The
+script generates an original 80 ms kick-like waveform at 8 kHz and converts it
+to CH1's fixed-volume codes. Tone, Noise and Envelope are disabled on CH1:
+scheduled R8 writes create the waveform. This is software-driven playback
+through the chip's volume register, without a dedicated PCM unit.
+
+The conversion chooses the nearest gain from the included YM2149 resistor
+model. Rounding `sample * 15` would distort the amplitude because the levels
+are nonlinear. The generated positive-lobe input deliberately has an envelope
+bias and zero endpoints; this example is not a general signed WAV / PCM decoder
+or a calibration of a physical chip.
+
+Each hit has 640 data writes plus an explicit zero at reference sample 640.
+Console previews the first 24 of the full 641 compiled rows. One hit per
+`beat(1)` follows `setBpm()`; the sample stays 80 ms long at either 44.1 or
+48 kHz output. `await schedule()` waits for acceptance, not playback completion.
+Reusing the same reservation name retriggers CH1 and cuts unfinished tails
+instead of layering voices.
+
+Stop, or removing the entire `drums` loop on Apply, cancels future writes and
+runs `liveCleanup()` to silence the last volume. Keep CH1 Tone / Noise /
+Envelope off for this waveform. Manual volume edits compete with its scheduled
+writes; CH2 / CH3 remain available for keyboard notes.
+
 ### Start a new project
 
 Choose **Menu → New Project…**. Before starting creation, **Cancel** or Escape
@@ -274,8 +300,7 @@ and a maximum of four native Workers. Project data retains the existing
 16 MiB Cassette limit. Failed or cancelled preparation keeps the previous
 song and edited sound.
 
-Volume-register sample-playback examples, Native timed execution, Looper /
-Event Rec and Tauri remain follow-up work. No commercial
+Native timed execution, Looper / Event Rec and Tauri remain follow-up work. No commercial
 music or game files are included.
 
 Serve the application over HTTP. Opening `index.html` through `file://` cannot

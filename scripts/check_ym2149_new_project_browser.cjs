@@ -223,13 +223,14 @@ async function runEngine(name, origin, fixture, loadCassette) {
     await page.goto(origin + config.entry); await ready(page);
     const examples = await page.evaluate(async () => {
       const source = document.querySelector('script[type="module"][src]').src;
-      const url = new URL('./code_examples.js?v=ym-volume-1', source).href;
+      const url = new URL('./code_examples.js?v=ym-sample-1', source).href;
       if (!performance.getEntriesByType('resource').some(entry => entry.name === url))
         throw new Error('Startup did not request the versioned examples module');
       return (await import(url)).YM_CODE_EXAMPLES;
     });
     const examplePaths = Object.keys(examples).sort();
     assert(examplePaths.includes('/examples/volume-modulation.js'), 'the shipped examples include volume modulation');
+    assert(examplePaths.includes('/examples/volume-sample.js'), 'the shipped examples include the volume sample');
     const defaultPaths = ['/index.js', ...examplePaths].sort();
     const hiddenProject = await waitProject(page, saved => saved?.filesystem.files.length === defaultPaths.length && !saved.filesVisible,
       'the cold initial project persists while Files is hidden');
@@ -427,7 +428,7 @@ async function runEngine(name, origin, fixture, loadCassette) {
     const scriptSource = await page.locator('script[type="module"][src]').getAttribute('src');
     const directory = path.posix.dirname(new URL(scriptSource, origin + config.entry).pathname).replace(/\/$/, '');
     const freshModules = ['synth.js', 'code_host.js', 'code_files.js', 'code_examples.js']
-      .map(file => `${directory}/${file}?v=ym-volume-1`);
+      .map(file => `${directory}/${file}?v=ym-sample-1`);
     for (const module of freshModules) assert(resources.includes(module), `versioned New project dependency ${module} is requested`);
     assert.deepEqual(errors, [], 'no uncaught browser errors'); assert.deepEqual(missing, [], 'no missing local resources');
     return {engine: name, passed: true, editor: 'Offline textarea; external CDN intentionally blocked',
@@ -486,7 +487,7 @@ async function main() {
       return {resource, bytes: body.length, sha256: digest(body)};
     }));
     const report = {passed: true, servedRoot: path.relative(repository, config.root), entry: config.entry,
-      resourceVersion: 'ym-volume-1', currentSources, physicalOutputMuted: true,
+      resourceVersion: 'ym-sample-1', currentSources, physicalOutputMuted: true,
       disposableBrowserProfiles: true, fixture: 'Original generated 30-second YM2149 VGM; no third-party music', results};
     await fs.mkdir(path.dirname(config.out), {recursive: true}); await fs.writeFile(config.out, JSON.stringify(report, null, 2) + '\n');
     console.log(JSON.stringify(report, null, 2));

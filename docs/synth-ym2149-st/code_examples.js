@@ -92,14 +92,76 @@ liveCleanup(["volume-motion"], () => ym.keyOff(CH1));
 // the modulation phase. Stop cancels the loops and silences this Code run.
 // Select CH1 and turn Tone off (leave Noise off) to see volume-only output.
 `,
+	'/examples/volume-sample.js': `const ym = await useSoundChip("ay8910");
+setBpm(120);
+
+// Software-generated percussion -> YM2149 volume codes. No game sample.
+// Both generators are disabled so R8 directly controls CH1's output level.
+ym.keyOff(CH2);
+ym.keyOff(CH3);
+ym.setVoice(CH1, { tone: false, noise: false, volume: 0, envelope: false });
+
+const sampleRate = 8000;
+const durationSeconds = 0.08;
+const samples = new Float32Array(Math.round(sampleRate * durationSeconds));
+for (let i = 0; i < samples.length; i++) {
+  const t = i / sampleRate;
+  const remaining = (samples.length - 1 - i) / sampleRate;
+  const attack = (1 - Math.cos(Math.PI * Math.min(1, t / 0.001))) / 2;
+  const tail = (1 - Math.cos(Math.PI * Math.min(1, remaining / 0.005))) / 2;
+  const envelope = attack * Math.exp(-t / 0.022) * tail;
+  const phase = 2 * Math.PI * (45 * t + 125 * 0.014 * (1 - Math.exp(-t / 0.014))) - Math.PI / 2;
+  // Positive-lobe waveform: it intentionally has an envelope bias. It is not
+  // general signed PCM conversion; silence is zero, not a mid-volume code.
+  samples[i] = envelope * (1 + Math.sin(phase)) / 2;
+}
+samples[0] = samples[samples.length - 1] = 0;
+
+// Gain curve of the included MAME YM2149 model (fixed levels, 1k-ohm load).
+// See third_party/mame-ay8910/ay8910.cpp: ym2149_param / build_single_table.
+const resistors = [73770, 37586, 27458, 21451, 15864, 12371, 8922, 6796,
+  4763, 3521, 2403, 1737, 1123, 762, 438, 251];
+const raw = resistors.map(r => (1 / r + 1 / 630) / (1 / r + 1 / 630 + 1 / 801 + 1 / 1000));
+const gains = raw.map(value => (value - raw[0]) / (raw[15] - raw[0]));
+function volumeCode(value) {
+  const target = Math.max(0, Math.min(1, value));
+  let best = 0;
+  for (let code = 1; code < gains.length; code++) {
+    if (Math.abs(gains[code] - target) < Math.abs(gains[best] - target)) best = code;
+  }
+  return best;
+}
+const codes = Array.from(samples, volumeCode);
+const sample = ym.build(b => {
+  codes.forEach((code, index) => b.atSample(index).setVolume(CH1, code, false));
+  b.atSample(codes.length).setVolume(CH1, 0, false); // Explicit 80 ms end.
+}, { referenceSampleRate: sampleRate });
+
+const writes = await ym.compile(sample, { initialState: "client" });
+console.log("Volume sample: " + codes.length + " frames at " + sampleRate + " Hz; " + writes.length + " writes. Showing first 24.");
+console.table(writes.slice(0, 24)); // The complete writes array is still available.
+
+liveLoop("drums", async () => {
+  // One shot: this Promise means accepted, not that all samples have played.
+  // Reusing the name retriggers CH1 and replaces any unfinished future writes.
+  await ym.schedule(sample, { name: "volume-sample" });
+  await beat(1);
+});
+liveCleanup(["drums"], () => ym.keyOff(CH1));
+
+// BPM changes hit spacing; 8 kHz sample timing and 80 ms duration stay fixed.
+// At short beat intervals, the next hit cuts the old one rather than layering.
+// Stop / loop removal cancel future writes, then silence the final volume.
+// Keep CH1 Tone / Noise / Envelope off for this sample; use CH2/CH3 for keys.
+`,
 	'/examples/README.md': `# YM2149 timed sound examples
 
-Select sync-buzzer.js or volume-modulation.js in Files, switch to Code, and Run.
-Waveform / Spectrum use the existing output monitor. Console shows the compiled
-R13 write and the current retrigger rate. Selecting or adding files never runs
+Select sync-buzzer.js, volume-modulation.js or volume-sample.js in Files and Run
+from Code. Waveform / Spectrum use the existing output monitor. Console shows
+compiled register writes and timing information. Selecting or adding files never runs
 them. Startup supplies missing examples without overwriting files or index.js.
 
-## What to try
+## Sync-buzzer: what to try
 
 1. Start with the supplied melody. Edit notes / beat() to change the melody.
 2. Edit retriggerHz or the motion loop's beat(2), then Apply. The melody repeats
@@ -171,7 +233,27 @@ await ym.clearSchedule("volume-modulation");
 ym.keyOff(CH1);
 await beat(2);
 Stop ends both loops. Removing only melody leaves the last pitch modulating.
-No game assets, PCM import or volume-register sample player are added here.
+No game assets or PCM import are used by this modulation example.
+
+## Volume-register sample playback
+
+volume-sample.js generates an original 80 ms kick-like waveform at 8 kHz and
+converts it to CH1 fixed-volume codes. The included resistor-model gain curve
+is inverted by choosing the nearest level, not by rounding sample * 15.
+The positive-lobe input intentionally has an envelope bias and zero endpoints;
+this is not a general signed WAV / PCM decoder or a physical-chip calibration.
+
+The pattern has 640 data writes and an explicit R8=0 at reference sample 640.
+Each hit schedules one pass; await schedule() means accepted, not finished.
+One hit per beat follows BPM; sample duration remains 80 ms. Reusing the name
+replaces unfinished future writes, so fast retriggers cut tails instead of
+layering voices. Console shows only the first 24 of the full 641 compiled rows.
+
+Stop or removing drums on Apply cancels future writes and runs the keyOff
+cleanup. Keep CH1 Tone / Noise / Envelope off for the generated waveform.
+Manual volume writes on CH1 compete with playback; CH2 / CH3 remain available.
+Changing the output device from 44.1 to 48 kHz does not change reference timing.
+No audio file, game asset, dedicated PCM unit or new runtime API is added.
 `,
 });
 

@@ -4,7 +4,7 @@ import { transferVirtualFiles, isCheckpointPath } from '../js/tetorica_virtual_f
 import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { installSpuFileContextMenu as installYmFileContextMenu } from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
 import {ymMusicEntries} from './music_files.js';
-import { addYmCodeExamples } from './code_examples.js?v=ym-volume-1';
+import { addYmCodeExamples } from './code_examples.js?v=ym-sample-1';
 import { createDefaultPreset } from './preset.js';
 import {
 	createYmCodeProject,

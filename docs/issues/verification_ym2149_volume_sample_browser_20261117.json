@@ -1,0 +1,1257 @@
+{
+  "passed": true,
+  "entry": "/synth-ym2149-st/index.html",
+  "physicalOutputMuted": true,
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "files": {
+        "coldDefaultVisible": true,
+        "coldAudioContexts": 0,
+        "coldAutorun": false,
+        "editingOpenedAudio": false,
+        "savedIndexPreserved": true,
+        "editedSamplePreserved": true,
+        "savedIndexSha256": "e4f19eb31d04157d854851de3d628a7fa87ac0c4535d8b61280e489b3c6c5465",
+        "savedSampleSha256": "6d6892629200f769bc495fbfb4c95882aa2bc1ae1462284d4aa3f32e55ea85e0"
+      },
+      "compile": {
+        "initialState": "client",
+        "completeWrites": 641,
+        "previewWrites": 24,
+        "first24": [
+          {
+            "offsetSeconds": 0,
+            "register": 8,
+            "value": 0
+          },
+          {
+            "offsetSeconds": 0.000125,
+            "register": 8,
+            "value": 0
+          },
+          {
+            "offsetSeconds": 0.00025,
+            "register": 8,
+            "value": 0
+          },
+          {
+            "offsetSeconds": 0.000375,
+            "register": 8,
+            "value": 2
+          },
+          {
+            "offsetSeconds": 0.0005,
+            "register": 8,
+            "value": 5
+          },
+          {
+            "offsetSeconds": 0.000625,
+            "register": 8,
+            "value": 7
+          },
+          {
+            "offsetSeconds": 0.00075,
+            "register": 8,
+            "value": 9
+          },
+          {
+            "offsetSeconds": 0.000875,
+            "register": 8,
+            "value": 10
+          },
+          {
+            "offsetSeconds": 0.001,
+            "register": 8,
+            "value": 11
+          },
+          {
+            "offsetSeconds": 0.001125,
+            "register": 8,
+            "value": 11
+          },
+          {
+            "offsetSeconds": 0.00125,
+            "register": 8,
+            "value": 12
+          },
+          {
+            "offsetSeconds": 0.001375,
+            "register": 8,
+            "value": 12
+          },
+          {
+            "offsetSeconds": 0.0015,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.001625,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.00175,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.001875,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.002,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002125,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.00225,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002375,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.0025,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002625,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.00275,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002875,
+            "register": 8,
+            "value": 14
+          }
+        ]
+      },
+      "initial": {
+        "owner": "code:f417f12c-9982-4a54-8c01-9bb6b8b47d0a:1:run:1:loop:1",
+        "hitIntervalSeconds": 0.5,
+        "intervalsSeconds": [
+          0.512,
+          0.5066666666666666,
+          0.5173333333333334
+        ],
+        "codesSha256": "5aff987a8c4f6cb63cd4843b7c30af186136305eb1bf7a17fc1cfb738945034c",
+        "first24Codes": [
+          0,
+          0,
+          0,
+          2,
+          5,
+          7,
+          9,
+          10,
+          11,
+          11,
+          12,
+          12,
+          13,
+          13,
+          13,
+          13,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ],
+        "last12Codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "reservations": [
+          {
+            "startFrame": 2176,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 26752,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 51328,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 76160,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          }
+        ]
+      },
+      "pcm": [
+        {
+          "startSeconds": 0.04533333333333334,
+          "pulsePeak": 0.08500000834465027,
+          "restMaxRms": 0,
+          "pulseObservations": 15,
+          "restObservations": 53
+        },
+        {
+          "startSeconds": 0.5573333333333333,
+          "pulsePeak": 0.08500000834465027,
+          "restMaxRms": 0,
+          "pulseObservations": 16,
+          "restObservations": 53
+        },
+        {
+          "startSeconds": 1.0693333333333332,
+          "pulsePeak": 0.08500000834465027,
+          "restMaxRms": 0,
+          "pulseObservations": 15,
+          "restObservations": 53
+        }
+      ],
+      "voice": {
+        "volume": 0,
+        "mixer": 57,
+        "otherVolumes": [
+          0,
+          0
+        ],
+        "frame": 83456,
+        "sampleRate": 48000,
+        "level": {
+          "peak": 0,
+          "rms": 0
+        }
+      },
+      "applied": {
+        "owner": "code:f417f12c-9982-4a54-8c01-9bb6b8b47d0a:1:run:1:loop:1",
+        "hitIntervalSeconds": 0.25,
+        "intervalsSeconds": [
+          0.2559999999999998,
+          0.2666666666666666,
+          0.2560000000000002
+        ],
+        "codesSha256": "5aff987a8c4f6cb63cd4843b7c30af186136305eb1bf7a17fc1cfb738945034c",
+        "first24Codes": [
+          0,
+          0,
+          0,
+          2,
+          5,
+          7,
+          9,
+          10,
+          11,
+          11,
+          12,
+          12,
+          13,
+          13,
+          13,
+          13,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ],
+        "last12Codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "reservations": [
+          {
+            "startFrame": 107136,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 119680,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 132224,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 144512,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          }
+        ]
+      },
+      "removed": {
+        "first": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 154624,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 185088,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 30,
+        "durationMs": 650
+      },
+      "removedSentinel": {
+        "first": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 200192,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.08496021902847449
+          }
+        },
+        "last": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 231168,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.08500000834465027
+          }
+        },
+        "observations": 30,
+        "durationMs": 650
+      },
+      "armedStop": {
+        "startFrame": 247168,
+        "sampleRate": 48000,
+        "beforeStopFrame": 247808,
+        "beforeStopVolume": 12,
+        "clickAudioTime": 5.1626666666666665,
+        "elapsedSeconds": 0.013333333333333334
+      },
+      "stopped": {
+        "first": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 267264,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 298240,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 27,
+        "durationMs": 650
+      },
+      "stoppedSentinel": {
+        "first": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 299264,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 330240,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.08500000834465027
+          }
+        },
+        "observations": 29,
+        "durationMs": 650
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "finalPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "failedReceipts": [],
+        "lifecycle": [
+          {
+            "action": "releaseOwner",
+            "owner": "code:f417f12c-9982-4a54-8c01-9bb6b8b47d0a:1:run:1:loop:1",
+            "id": "chip-control:10",
+            "time": 3.6167999999988822,
+            "audioTime": 3.2106666666666666
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:f417f12c-9982-4a54-8c01-9bb6b8b47d0a:1:run:1:loop:2",
+            "id": "chip-control:12",
+            "time": 5.5685,
+            "audioTime": 5.1626666666666665
+          }
+        ]
+      },
+      "errors": [],
+      "missing": [],
+      "console": "Volume sample: 640 frames at 8000 Hz; 641 writes. Showing first 24.\n(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 8        | 0     | 0              | 0         \n1       | 0.000125      | 8        | 0     | 1              | 0         \n2       | 0.00025       | 8        | 0     | 2              | 0         \n3       | 0.000375      | 8        | 2     | 3              | 0         \n4       | 0.0005        | 8        | 5     | 4              | 0         \n5       | 0.000625      | 8        | 7     | 5              | 0         \n6       | 0.00075       | 8        | 9     | 6              | 0         \n7       | 0.000875      | 8        | 10    | 7              | 0         \n8       | 0.001         | 8        | 11    | 8              | 0         \n9       | 0.001125      | 8        | 11    | 9              | 0         \n10      | 0.00125       | 8        | 12    | 10             | 0         \n11      | 0.001375      | 8        | 12    | 11             | 0         \n12      | 0.0015        | 8        | 13    | 12             | 0         \n13      | 0.001625      | 8        | 13    | 13             | 0         \n14      | 0.00175       | 8        | 13    | 14             | 0         \n15      | 0.001875      | 8        | 13    | 15             | 0         \n16      | 0.002         | 8        | 14    | 16             | 0         \n17      | 0.002125      | 8        | 14    | 17             | 0         \n18      | 0.00225       | 8        | 14    | 18             | 0         \n19      | 0.002375      | 8        | 14    | 19             | 0         \n20      | 0.0025        | 8        | 14    | 20             | 0         \n21      | 0.002625      | 8        | 14    | 21             | 0         \n22      | 0.00275       | 8        | 14    | 22             | 0         \n23      | 0.002875      | 8        | 14    | 23             | 0         "
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "files": {
+        "coldDefaultVisible": true,
+        "coldAudioContexts": 0,
+        "coldAutorun": false,
+        "editingOpenedAudio": false,
+        "savedIndexPreserved": true,
+        "editedSamplePreserved": true,
+        "savedIndexSha256": "e4f19eb31d04157d854851de3d628a7fa87ac0c4535d8b61280e489b3c6c5465",
+        "savedSampleSha256": "6d6892629200f769bc495fbfb4c95882aa2bc1ae1462284d4aa3f32e55ea85e0"
+      },
+      "compile": {
+        "initialState": "client",
+        "completeWrites": 641,
+        "previewWrites": 24,
+        "first24": [
+          {
+            "offsetSeconds": 0,
+            "register": 8,
+            "value": 0
+          },
+          {
+            "offsetSeconds": 0.000125,
+            "register": 8,
+            "value": 0
+          },
+          {
+            "offsetSeconds": 0.00025,
+            "register": 8,
+            "value": 0
+          },
+          {
+            "offsetSeconds": 0.000375,
+            "register": 8,
+            "value": 2
+          },
+          {
+            "offsetSeconds": 0.0005,
+            "register": 8,
+            "value": 5
+          },
+          {
+            "offsetSeconds": 0.000625,
+            "register": 8,
+            "value": 7
+          },
+          {
+            "offsetSeconds": 0.00075,
+            "register": 8,
+            "value": 9
+          },
+          {
+            "offsetSeconds": 0.000875,
+            "register": 8,
+            "value": 10
+          },
+          {
+            "offsetSeconds": 0.001,
+            "register": 8,
+            "value": 11
+          },
+          {
+            "offsetSeconds": 0.001125,
+            "register": 8,
+            "value": 11
+          },
+          {
+            "offsetSeconds": 0.00125,
+            "register": 8,
+            "value": 12
+          },
+          {
+            "offsetSeconds": 0.001375,
+            "register": 8,
+            "value": 12
+          },
+          {
+            "offsetSeconds": 0.0015,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.001625,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.00175,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.001875,
+            "register": 8,
+            "value": 13
+          },
+          {
+            "offsetSeconds": 0.002,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002125,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.00225,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002375,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.0025,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002625,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.00275,
+            "register": 8,
+            "value": 14
+          },
+          {
+            "offsetSeconds": 0.002875,
+            "register": 8,
+            "value": 14
+          }
+        ]
+      },
+      "initial": {
+        "owner": "code:c238bc9c-dd6f-4797-8497-1fe4222e3a1b:1:run:1:loop:1",
+        "hitIntervalSeconds": 0.5,
+        "intervalsSeconds": [
+          0.5253333333333334,
+          0.5066666666666666,
+          0.5066666666666666
+        ],
+        "codesSha256": "5aff987a8c4f6cb63cd4843b7c30af186136305eb1bf7a17fc1cfb738945034c",
+        "first24Codes": [
+          0,
+          0,
+          0,
+          2,
+          5,
+          7,
+          9,
+          10,
+          11,
+          11,
+          12,
+          12,
+          13,
+          13,
+          13,
+          13,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ],
+        "last12Codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "reservations": [
+          {
+            "startFrame": 5888,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 30208,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 54528,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 78848,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          }
+        ]
+      },
+      "pcm": [
+        {
+          "startSeconds": 0.12266666666666666,
+          "pulsePeak": 0.04223373532295227,
+          "restMaxRms": 0,
+          "pulseObservations": 8,
+          "restObservations": 27
+        },
+        {
+          "startSeconds": 0.6293333333333333,
+          "pulsePeak": 0.08500000834465027,
+          "restMaxRms": 0,
+          "pulseObservations": 8,
+          "restObservations": 26
+        },
+        {
+          "startSeconds": 1.136,
+          "pulsePeak": 0.04223373532295227,
+          "restMaxRms": 0,
+          "pulseObservations": 8,
+          "restObservations": 27
+        }
+      ],
+      "voice": {
+        "volume": 0,
+        "mixer": 57,
+        "otherVolumes": [
+          0,
+          0
+        ],
+        "frame": 87168,
+        "sampleRate": 48000,
+        "level": {
+          "peak": 0,
+          "rms": 0
+        }
+      },
+      "applied": {
+        "owner": "code:c238bc9c-dd6f-4797-8497-1fe4222e3a1b:1:run:1:loop:1",
+        "hitIntervalSeconds": 0.25,
+        "intervalsSeconds": [
+          0.2560000000000002,
+          0.2559999999999998,
+          0.2560000000000002
+        ],
+        "codesSha256": "5aff987a8c4f6cb63cd4843b7c30af186136305eb1bf7a17fc1cfb738945034c",
+        "first24Codes": [
+          0,
+          0,
+          0,
+          2,
+          5,
+          7,
+          9,
+          10,
+          11,
+          11,
+          12,
+          12,
+          13,
+          13,
+          13,
+          13,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14,
+          14
+        ],
+        "last12Codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "reservations": [
+          {
+            "startFrame": 109568,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 121984,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 134272,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          },
+          {
+            "startFrame": 146560,
+            "outputSampleRate": 48000,
+            "sourceSampleRate": 8000,
+            "entries": 641,
+            "sampleOffsetRange": [
+              0,
+              640
+            ],
+            "consecutiveSourceOffsets": true,
+            "durationSeconds": 0.08,
+            "nominalWritesPerSecond": 8000,
+            "terminalRegister": 8,
+            "terminalValue": 0,
+            "outputFrameRange": [
+              0,
+              3840
+            ],
+            "distinctOutputFrameSteps": [
+              6
+            ]
+          }
+        ]
+      },
+      "removed": {
+        "first": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 156416,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 187392,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 30,
+        "durationMs": 650
+      },
+      "removedSentinel": {
+        "first": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 199040,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.06010408230141533
+          }
+        },
+        "last": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 229504,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.08500000834465027
+          }
+        },
+        "observations": 30,
+        "durationMs": 650
+      },
+      "armedStop": {
+        "startFrame": 249088,
+        "sampleRate": 48000,
+        "beforeStopFrame": 250240,
+        "beforeStopVolume": 12,
+        "clickAudioTime": 5.213333333333333,
+        "elapsedSeconds": 0.024
+      },
+      "stopped": {
+        "first": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 267520,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 297984,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 30,
+        "durationMs": 650
+      },
+      "stoppedSentinel": {
+        "first": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 299136,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.060074984902035417
+          }
+        },
+        "last": {
+          "volume": 15,
+          "mixer": 57,
+          "otherVolumes": [
+            0,
+            0
+          ],
+          "frame": 329856,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.08500000834465027
+          }
+        },
+        "observations": 30,
+        "durationMs": 650
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "finalPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "failedReceipts": [],
+        "lifecycle": [
+          {
+            "action": "releaseOwner",
+            "owner": "code:c238bc9c-dd6f-4797-8497-1fe4222e3a1b:1:run:1:loop:1",
+            "id": "chip-control:10",
+            "time": 3.882,
+            "audioTime": 3.248
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:c238bc9c-dd6f-4797-8497-1fe4222e3a1b:1:run:1:loop:2",
+            "id": "chip-control:12",
+            "time": 5.849,
+            "audioTime": 5.213333333333333
+          }
+        ]
+      },
+      "errors": [],
+      "missing": [],
+      "console": "Volume sample: 640 frames at 8000 Hz; 641 writes. Showing first 24.\n(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 8        | 0     | 0              | 0         \n1       | 0.000125      | 8        | 0     | 1              | 0         \n2       | 0.00025       | 8        | 0     | 2              | 0         \n3       | 0.000375      | 8        | 2     | 3              | 0         \n4       | 0.0005        | 8        | 5     | 4              | 0         \n5       | 0.000625      | 8        | 7     | 5              | 0         \n6       | 0.00075       | 8        | 9     | 6              | 0         \n7       | 0.000875      | 8        | 10    | 7              | 0         \n8       | 0.001         | 8        | 11    | 8              | 0         \n9       | 0.001125      | 8        | 11    | 9              | 0         \n10      | 0.00125       | 8        | 12    | 10             | 0         \n11      | 0.001375      | 8        | 12    | 11             | 0         \n12      | 0.0015        | 8        | 13    | 12             | 0         \n13      | 0.001625      | 8        | 13    | 13             | 0         \n14      | 0.00175       | 8        | 13    | 14             | 0         \n15      | 0.001875      | 8        | 13    | 15             | 0         \n16      | 0.002         | 8        | 14    | 16             | 0         \n17      | 0.002125      | 8        | 14    | 17             | 0         \n18      | 0.00225       | 8        | 14    | 18             | 0         \n19      | 0.002375      | 8        | 14    | 19             | 0         \n20      | 0.0025        | 8        | 14    | 20             | 0         \n21      | 0.002625      | 8        | 14    | 21             | 0         \n22      | 0.00275       | 8        | 14    | 22             | 0         \n23      | 0.002875      | 8        | 14    | 23             | 0         "
+    }
+  ]
+}

@@ -24,9 +24,9 @@ const engines = config.engines.split(',');
 assert(engines.length && engines.every(name => ['chromium', 'webkit'].includes(name)));
 const digest = body => createHash('sha256').update(body).digest('hex');
 const legacyRevision = '2e67ed92';
-const legacyExamplesRevision = '78256bcf';
+const legacyExamplesRevision = 'e3e82949';
 const legacyExamplesUrl = '/synth-ym2149-st/code_examples.js';
-const currentExamplesUrl = '/synth-ym2149-st/code_examples.js?v=ym-volume-1';
+const currentExamplesUrl = '/synth-ym2149-st/code_examples.js?v=ym-sample-1';
 const legacyPage = '/synth-ym2149-st/examples-cache-legacy.html';
 const legacyHtmlPath = 'docs/synth-ym2149-st/index.html';
 const legacyHtml = execFileSync('git', ['show', `${legacyRevision}:${legacyHtmlPath}`], {cwd: repository});
@@ -41,9 +41,9 @@ const fixtures = new Map([
 assert(legacyHtml.includes('src="./synth.js"'));
 assert(!fixtures.get('/synth-ym2149-st/code_files.js?v=draft-reconnect-1').body.includes('ymFileExamplesButton'));
 const freshResources = [
-  '/synth-ym2149-st/synth.js?v=ym-volume-1',
-  '/synth-ym2149-st/code_host.js?v=ym-volume-1',
-  '/synth-ym2149-st/code_files.js?v=ym-volume-1',
+  '/synth-ym2149-st/synth.js?v=ym-sample-1',
+  '/synth-ym2149-st/code_host.js?v=ym-sample-1',
+  '/synth-ym2149-st/code_files.js?v=ym-sample-1',
   currentExamplesUrl,
   '/js/playground_code_runtime.js?v=console-table-1',
   '/js/playground_log.js?v=console-table-1',
@@ -244,11 +244,13 @@ async function check(name, origin) {
     assert(baseline.settings.voices.every(voice => voice.noise), 'saved settings differ from defaults');
     assert(!baseline.filePaths.some(file => file.startsWith('/examples/')));
     assert.equal(baseline.audioContexts, 0);
-    // An earlier deployment also left the two-example module cached under its
+    // An earlier deployment also left the three-example module cached under its
     // unversioned URL. Loading its definitions must not add files or run Code.
     const cachedExamplePaths = await page.evaluate(async url =>
       Object.keys((await import(url)).YM_CODE_EXAMPLES).sort(), legacyExamplesUrl);
-    assert.deepEqual(cachedExamplePaths, ['/examples/README.md', '/examples/sync-buzzer.js']);
+    assert.deepEqual(cachedExamplePaths, [
+      '/examples/README.md', '/examples/sync-buzzer.js', '/examples/volume-modulation.js',
+    ]);
     assert.deepEqual(await project(page), savedBefore, 'priming the old example definitions preserves the draft');
     const afterWarm = counts([...fixtures.keys()]);
     for (const url of fixtures.keys()) assert.equal(afterWarm[url] - beforeWarm[url], 1, `warm legacy response ${url} once`);
@@ -267,7 +269,7 @@ async function check(name, origin) {
     assert(!negative.filePaths.some(file => file.startsWith('/examples/')), 'cached old panel has no default examples');
     assert.deepEqual(await page.evaluate(async url =>
       Object.keys((await import(url)).YM_CODE_EXAMPLES).sort(), legacyExamplesUrl), cachedExamplePaths,
-    'the unversioned URL still exposes the cached two-example module');
+    'the unversioned URL still exposes the cached three-example module');
     assert.deepEqual(counts([...fixtures.keys()]), afterWarm, 'negative control uses cached old startup modules');
     assert.deepEqual(await sentinels(page), storage);
     preservedDraft(savedBefore, await project(page));
@@ -284,6 +286,7 @@ async function check(name, origin) {
     }, currentExamplesUrl);
     const examplePaths = Object.keys(examples).sort();
     assert(examplePaths.includes('/examples/volume-modulation.js'), 'the shipped examples include volume modulation');
+    assert(examplePaths.includes('/examples/volume-sample.js'), 'the shipped examples include the volume sample');
     if (!await page.locator('#ymFilesPanel').isVisible()) await page.locator('#ymFilesToggle').click();
     for (const filePath of examplePaths)
       await page.locator(`#ymFilesTree button[data-file-path="${filePath}"]`).waitFor({state: 'visible'});

@@ -1,6 +1,6 @@
 # Tetorica YM2149 ST Synth
 
-Confirmed through 2026-11-17. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback, the browser AY / YM2149 timed operation API, Sync-buzzer and timed fixed-volume modulation examples are implemented. Volume-register sample playback remains follow-up work.
+Confirmed through 2026-11-17. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback, the browser AY / YM2149 timed operation API, Sync-buzzer, timed fixed-volume modulation and generated volume-register sample examples are implemented.
 
 Latest checkpoint: [restart handoff](thread_handoff_20261116_ym2149_timed_api.md).
 Latest completed work: [Sync-buzzer example verification](verification_ym2149_buzzer_examples_20261117.md).
@@ -8,6 +8,7 @@ Follow-up fix: [Console table import cache verification](fix_log_table_cache_202
 Current sample discovery: [default example files and UI cache verification](fix_ym2149_examples_defaults_20261117.md).
 Current project workflow: [New Project verification](ym2149_new_project_20261117.md).
 Current sound example: [fixed-volume modulation verification](verification_ym2149_volume_modulation_20261117.md).
+Current sample example: [volume-register sample verification](verification_ym2149_volume_sample_20261117.md).
 
 ## Identity
 
@@ -35,6 +36,15 @@ Initial implementation and readable itch ZIP are complete. See [verification_ym2
 
 ## Follow-up design / research
 
+### Volume-register sample example — completed 2026-11-17
+
+User asked to proceed with `examples/volume-sample.js`. Generate a short original percussion waveform in Code, quantize through the included YM2149 nonlinear gain curve and reserve a one-shot R8 write sequence. Keep this within the current example / timed API; do not add a file decoder, general PCM API or runtime / WASM changes.
+
+- [x] Add an 80 ms generated sample at an 8 kHz reference rate, nearest-gain 16-code conversion, zero endpoints / terminal write and an inspectable compiled trace.
+- [x] Repeat hits using `beat()`; document one-shot acceptance, named replacement / overlap and software control versus chip DAC behavior. Cancel future writes and silence the last level on loop removal / Stop.
+- [x] Preserve saved files and update startup / New Project example counts plus the cache identity of the changed example module.
+- [x] Verify actual generated code / quantization and shipped PCM at 44.1 / 48 kHz, then Run / tempo edits / mid-shot cancellation and readable distribution in muted real browsers. Node 170 cases, source / package Chromium / WebKit and package cache / New Project regressions pass; see [verification](verification_ym2149_volume_sample_20261117.md).
+
 ### Timed volume modulation example — completed 2026-11-17
 
 User asked to proceed with `examples/volume-modulation.js`. Use the existing AY recorder / scheduler and hardware fixed-volume levels; no new runtime or effects API.
@@ -42,7 +52,7 @@ User asked to proceed with `examples/volume-modulation.js`. Use the existing AY 
 - [x] Add a readable fixed-volume pattern with independent continuous melody and modulation-rate loops, a compiled R8 trace and explicit software-timing / nonlinear hardware-level explanation.
 - [x] Keep per-note release separate from repeated volume writes: use `setNote()` for melody, explain the register behavior, and clean up the modulation loop explicitly on removal / Stop.
 - [x] Preserve saved examples while supplying the new file on startup / New Project; update example-count assumptions in tests and checkers.
-- [x] Verify compiled writes / actual PCM at 44.1 / 48 kHz, real browser Run / Apply / cancellation / Stop and readable packaging. Node 167 cases, source / package Chromium / WebKit and cache / New Project regressions pass; see [verification](verification_ym2149_volume_modulation_20261117.md). Volume-register sample playback remains later work.
+- [x] Verify compiled writes / actual PCM at 44.1 / 48 kHz, real browser Run / Apply / cancellation / Stop and readable packaging. Node 167 cases, source / package Chromium / WebKit and cache / New Project regressions pass; see [verification](verification_ym2149_volume_modulation_20261117.md). The subsequent sample example is recorded above.
 
 ### Default examples / UI cache visibility — completed 2026-11-17
 
@@ -81,9 +91,9 @@ User asked to resume after restart. First implement the Envelope retrigger examp
 
 - [x] Extend the existing periodic Envelope retrigger (Sync-buzzer) Code example: vary melody and retrigger motion independently, inspect R13 writes through `compile()`, and compare Waveform / Spectrum. Keep host timing distinct from original CPU / MFP timing.
 - [x] Add a timed volume-modulation Code example after checking the first example's usability.
-- [ ] Explore sample playback through volume writes with explicit rate / timing limits. Do not treat this as a PCM transfer or whole-machine implementation.
+- [x] Explore sample playback through volume writes with explicit rate / timing limits. The generated 8 kHz / 80 ms example demonstrates one-shot R8 scheduling without PCM transfer or whole-machine implementation.
 
-Volume-register sample playback remains a later step. The default Code example does not change as part of this work.
+All three sound-making examples are available in Files. The default Code example remains unchanged.
 
 ### Timed API implementation — browser AY scope completed 2026-11-16
 
@@ -109,7 +119,7 @@ User authorized implementation after reviewing the design additions. Start with 
   - [x] Implement AY client-baseline adapters with complete retained metadata / cached configuration, explicit incomplete-state rejection and no readback / fallback / constant synchronization. Native AY supports valid local / reset inspection; timed execution / authoritative capture rejects explicitly.
   - [x] Implement shared AY resolution, recording, compilation and compact reservations. Verify Main / Worker, Performance Queue, atomic replacement, Run / Apply / Stop, loop generation, guarded scheduled Gates and manual ownership.
   - [ ] Add OPN resolver / authoritative state coverage and its packed-field / key-command tests before exposing this API on YM2612. Existing legacy `scheduleWrites()` is unchanged.
-- [ ] Finish the high-rate examples: Envelope retriggering (Sync-buzzer) and fixed-volume modulation are implemented; sample playback through volume writes remains. Distinguish host-sample timing from exact original-machine cycle behavior.
+- [x] Finish the high-rate examples: Envelope retriggering (Sync-buzzer), fixed-volume modulation and generated sample playback through volume writes. Distinguish host-sample timing from exact original-machine cycle behavior.
 - [ ] Leave STE DMA, a complete Atari ST machine, Looper / Event Rec and Tauri as separate follow-ups.
 
 ## Reference playback implementation
