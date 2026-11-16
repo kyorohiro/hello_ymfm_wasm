@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {ASWAN_NAVIGATION_REVISION_PATH as path,ASWAN_NAVIGATION_REVISION_RECEIPT_PATH as receiptPath,
   ASWAN_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256 as pin,ASWAN_NAVIGATION_REVISION_INSERTIONS as insertions,
   ASWAN_NAVIGATION_PREDECESSOR_RECEIPT_PATH as predecessorPath,

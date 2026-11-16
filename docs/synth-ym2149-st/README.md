@@ -70,6 +70,80 @@ menu. Local project storage keeps drafts on this browser; export a Cassette
 for a portable copy. Restoring a project does not execute its code. Master,
 octave and transient playback state are host preferences.
 
+### Timed register operations
+
+The browser AY / YM2149 client can record operations, inspect their register
+writes and reserve sample-timed execution on the same AudioWorklet. The
+reservation is host software; the shared Envelope and the effect of writing
+its Shape register are hardware behavior.
+
+Paste this into Code and Run. R13 is written repeatedly even when its value
+does not change. The melody and keyboard remain usable while it runs.
+
+```js
+const ym = await useSoundChip("ay8910");
+setBpm(120);
+ym.setVoice(CH1, { tone: true, noise: false, volume: 9, envelope: true });
+ym.setEnvelope({ period: 80, shape: 8 });
+
+const retrigger = ym.build(b => {
+  b.atSample(0).setEnvelope({ shape: 8 });
+});
+console.table(await ym.compile(retrigger, { initialState: "client" }));
+await ym.schedule(retrigger, { name: "buzzer", repeatSeconds: 1 / 110 });
+
+liveLoop("melody", async () => {
+  ym.noteOn(CH1, choose(scale("E3", "minorPentatonic", 2)));
+  await beat(0.4);
+  ym.noteOff(CH1);
+  await beat(0.1);
+});
+```
+
+`build()` runs its callback once without reading or changing chip state.
+Recorder methods use the familiar AY names, but do not return calculated
+periods or frequencies. `atSeconds()` and `atSample()` select absolute offsets
+from the reserved start. Samples use 44,100 Hz by default, configurable with
+`ym.build(callback, {referenceSampleRate: 48000})`, independently of the device.
+
+`compile()` returns only the operation-generated writes and changes no live
+state. Its baseline options are:
+
+| `initialState` | Baseline |
+| --- | --- |
+| `"current"` (default) | An asynchronous coherent capture of applied Worklet state |
+| `"client"` | Existing local state, without a state request; it can lag or precede actual rendering |
+| `"reset"` | Hardware reset registers and defined retained metadata |
+| A snapshot from `await ym.captureState()` | The same captured state for repeated comparisons |
+
+Every compile uses private work state. Client mode rejects missing retained
+metadata instead of filling defaults or requesting current state. Supplied
+snapshots must match the chip instance and configuration. Capture does not
+pause audio, and comparing a supplied snapshot makes no new capture request.
+Compilation still consumes JavaScript time; keep large inspections outside
+the melody loop. Compiled output describes its selected baseline, not a
+recording of manual edits that may interleave during actual playback.
+
+`schedule()` resolves when a reservation is accepted. A repeating reservation
+stores one compact pattern; partial register edits resolve from actual state
+at each occurrence. Reusing its name replaces future work atomically;
+`await ym.clearSchedule("buzzer")` cancels future occurrences. In Synth Code,
+entry reservations commit only after successful Run / Apply, omitted entry
+names are removed on successful Apply, and failed Apply preserves the previous
+pattern. A staged receipt has `staged: true`; its final start frame is chosen
+at commit. Loop reservations follow their loop's lifetime; Stop cancels them.
+Detached callbacks without an identifiable entry / loop owner cannot mutate
+reservations in Synth Code.
+
+Current bounds are 4,096 operations per pattern, 128 active patterns and
+48,000 repeating operations per second in aggregate, subject to the existing
+65,536-command storage limit. Over-limit submissions are rejected. These are
+processing bounds, not a guarantee of original Atari ST CPU / MFP cycle
+accuracy or of sustainable maximum-rate playback on every device. Native
+timed execution / authoritative capture are not implemented; valid local
+client and reset inspection remain available there. Existing immediate calls
+and YM2612 `scheduleWrites()` retain their behavior.
+
 ## Reference performances: VGM / VGZ, SNDH and YM
 
 Choose **Menu → Music · VGM / SNDH / YM…**. Original VGM / VGZ bytes are kept

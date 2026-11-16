@@ -239,11 +239,16 @@ ymf262synth.js
 ym2413synth.js
 ay8910synth.js
 ay8910.js
+ay8910_operations.js
+ay8910_timed_state.js
+ay8910_timed_client.js
+ay8910_timed_processor.js
 ay8910audioengine.js
 playground_ay8910.js
 playground_ay8910_audio.js
 playground_ay8910_worklet.js
 playground_ay8910_inspector.js
+playground_ay_timed_lifecycle.js
 ym2413.js
 ym2413audioengine.js
 playground_ym2413.js

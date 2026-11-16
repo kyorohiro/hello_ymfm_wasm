@@ -25,7 +25,7 @@ export function resolveYmCodeNoteTarget(client, target, method, args) {
 		: null;
 }
 
-const AY_METHODS = new Set(['initialize','reset','writeRegister','getRegisterSnapshot','setVoice','tone','setTone','noise','setMixer','setVolume','setEnvelope','setNoisePeriod','setTonePeriod','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','off','allNotesOff']);
+const AY_METHODS = new Set(['initialize','reset','writeRegister','getRegisterSnapshot','setVoice','tone','setTone','noise','setMixer','setVolume','setEnvelope','setNoisePeriod','setTonePeriod','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','off','allNotesOff','build','compile','captureState','schedule','clearSchedule']);
 /** A borrowed session owns no AudioContext. Retired callbacks cannot write. */
 export function createYmBorrowedClient(engine, isCurrent, dispose) {
     const methods = new Map();
@@ -39,6 +39,7 @@ export function createYmBorrowedClient(engine, isCurrent, dispose) {
             if (name === 'clock') return 2000000;
             if (name === 'dispose') return () => { if (isCurrent()) dispose(); };
             if (name === 'getState') return () => { check(); return {...engine.instrument.read(), registers:Array.from(engine.client.getRegisterSnapshot()), clock:2000000, initialized:true}; };
+            if (name === '_timedOperations') { check(); return engine.client._timedOperations; }
             if (!AY_METHODS.has(name)) return undefined;
             if (!methods.has(name)) methods.set(name, (...args) => { check(); return engine.client[name](...args); });
             return methods.get(name);

@@ -1102,6 +1102,8 @@ interface Console {
   log(...args: unknown[]): void;
   warn(...args: unknown[]): void;
   error(...args: unknown[]): void;
+  /** Text table in Code Console; large displays explicitly report omitted rows. */
+  table(data?:unknown,columns?:readonly string[]):void;
 }
 declare var console: Console;
 /** Browser timer helper available in playground examples. */
@@ -2249,9 +2251,124 @@ interface PlaygroundAy8910Voice {
   frequency?:number;
   note?:string|number;
 }
+interface PlaygroundAy8910BuildOptions {
+  /** Reference rate for atSample(), default 44100 Hz, independent of output rate. */
+  referenceSampleRate?:number;
+}
+/** Supported register operations recorded by build(). */
+type PlaygroundAy8910RecordedMethod =
+  | 'writeRegister'|'setVoice'|'tone'|'setTone'|'noise'|'setMixer'|'setVolume'
+  | 'setEnvelope'|'setNoisePeriod'|'setTonePeriod'|'setFrequency'|'setNote'
+  | 'keyOn'|'keyOff'|'noteOn'|'noteOff'|'off'|'allNotesOff';
+interface PlaygroundAy8910OperationTime {
+  readonly unit:'sample'|'seconds';
+  readonly value:number;
+}
+type PlaygroundAy8910RecordedOperation = {
+  [Method in PlaygroundAy8910RecordedMethod]: {
+    readonly time:PlaygroundAy8910OperationTime;
+    readonly order:number;
+    readonly method:Method;
+    readonly args:Readonly<Parameters<PlaygroundAy8910[Method]>>;
+  }
+}[PlaygroundAy8910RecordedMethod];
+/** Serializable operations in authored order, with at most 4096 calls. */
+interface PlaygroundAy8910OperationProgram {
+  readonly version:1;
+  readonly chip:'ay8910';
+  readonly referenceSampleRate:number;
+  readonly operations:readonly PlaygroundAy8910RecordedOperation[];
+}
+/** Synchronous recording receiver. Every mutator returns this receiver. */
+interface PlaygroundAy8910OperationRecorder {
+  /** Absolute seconds from the reservation start. Offsets must be nondecreasing. */
+  atSeconds(seconds:number):PlaygroundAy8910OperationRecorder;
+  /** Absolute reference-sample offset from the start, using the build reference rate. */
+  atSample(sample:number):PlaygroundAy8910OperationRecorder;
+  writeRegister(register:number,value:number):PlaygroundAy8910OperationRecorder;
+  setVoice(channel:PlaygroundAy8910Channel,voice:PlaygroundAy8910Voice):PlaygroundAy8910OperationRecorder;
+  tone(channel:PlaygroundAy8910Channel,options?:{period?:number;frequency?:number;note?:string|number;volume?:number;envelope?:boolean}):PlaygroundAy8910OperationRecorder;
+  setTone(channel:PlaygroundAy8910Channel,options?:{period?:number;frequency?:number;note?:string|number;volume?:number;envelope?:boolean}):PlaygroundAy8910OperationRecorder;
+  noise(channel:PlaygroundAy8910Channel,options?:{period?:number;volume?:number;envelope?:boolean}):PlaygroundAy8910OperationRecorder;
+  setMixer(channel:PlaygroundAy8910Channel,options:{tone?:boolean;noise?:boolean}):PlaygroundAy8910OperationRecorder;
+  setVolume(channel:PlaygroundAy8910Channel,volume:number,envelope?:boolean):PlaygroundAy8910OperationRecorder;
+  /** Repeated Shape writes retain each shared-envelope retrigger. */
+  setEnvelope(options:{period?:number;shape?:number}):PlaygroundAy8910OperationRecorder;
+  setNoisePeriod(period:number):PlaygroundAy8910OperationRecorder;
+  setTonePeriod(channel:PlaygroundAy8910Channel,period:number):PlaygroundAy8910OperationRecorder;
+  setFrequency(channel:PlaygroundAy8910Channel,frequency:number):PlaygroundAy8910OperationRecorder;
+  setNote(channel:PlaygroundAy8910Channel,note:string|number):PlaygroundAy8910OperationRecorder;
+  keyOn(channel:PlaygroundAy8910Channel):PlaygroundAy8910OperationRecorder;
+  keyOff(channel:PlaygroundAy8910Channel):PlaygroundAy8910OperationRecorder;
+  noteOn(channel:PlaygroundAy8910Channel,note:string|number):PlaygroundAy8910OperationRecorder;
+  noteOff(channel:PlaygroundAy8910Channel):PlaygroundAy8910OperationRecorder;
+  off(channel:PlaygroundAy8910Channel):PlaygroundAy8910OperationRecorder;
+  allNotesOff():PlaygroundAy8910OperationRecorder;
+}
+/** Detached authoritative register/control state captured between complete operations. */
+interface PlaygroundAy8910StateSnapshot {
+  readonly format:'tetorica-ay8910-state';
+  readonly version:1;
+  readonly instanceId:string|number;
+  readonly clock:number;
+  readonly type:0|16;
+  readonly flags:number;
+  /** Sixteen raw register bytes. */
+  readonly registers:readonly number[];
+  /** Three configured levels retained across Key Off. */
+  readonly levels:readonly number[];
+  readonly frame:number;
+  readonly sampleRate:number;
+}
+interface PlaygroundAy8910CompileOptions {
+  /** current captures renderer state asynchronously. client uses complete local
+   * state, including stale/optimistic values. reset constructs chip reset state.
+   * A captured snapshot reuses that fixed baseline with compatible identity/config. */
+  initialState?:'current'|'client'|'reset'|PlaygroundAy8910StateSnapshot;
+}
+interface PlaygroundAy8910CompiledWrite {
+  offsetSeconds:number;
+  register:number;
+  value:number;
+  operationIndex:number;
+  writeIndex:number;
+}
+interface PlaygroundAy8910ScheduleOptions {
+  /** One named reservation per chip. Reusing a name replaces its future operations. */
+  name:string;
+  /** Omit for one pass. A positive interval must exceed the final operation offset. */
+  repeatSeconds?:number;
+}
+interface PlaygroundAy8910ScheduleReceipt {
+  name:string;
+  /** Assigned when installed. Top-level Synth Code installs after successful evaluation. */
+  startFrame?:number;
+  sampleRate:number;
+  entries:number;
+  repeatSeconds?:number;
+  /** True while a top-level Synth Code change awaits successful evaluation. */
+  staged?:boolean;
+}
 interface PlaygroundAy8910 {
   readonly chip:'ay8910';
   readonly channels:3;
+  /** Record a synchronous callback once. Recording copies arguments and reads no
+   * live chip state. Supports at most 4096 operations. */
+  build(callback:(recorder:PlaygroundAy8910OperationRecorder)=>void|PlaygroundAy8910OperationRecorder,options?:PlaygroundAy8910BuildOptions):PlaygroundAy8910OperationProgram;
+  /** Compile one virtual pass using a private work state. client/reset/snapshot
+   * use local data. current captures applied AudioWorklet state. Incomplete
+   * client state and incompatible snapshots reject the Promise. */
+  compile(operations:PlaygroundAy8910OperationProgram,options?:PlaygroundAy8910CompileOptions):Promise<PlaygroundAy8910CompiledWrite[]>;
+  /** Capture coherent applied registers and retained levels while rendering
+   * continues. AudioWorklet support is required. Native rejects this request. */
+  captureState():Promise<PlaygroundAy8910StateSnapshot>;
+  /** Reserve sample-accurate AudioWorklet execution. Resolves on acceptance.
+   * Limits are 128 patterns, 4096 entries per pattern and 48000 aggregate repeated
+   * operations per second. Stored pattern entries and queued commands share a
+   * 65536-command limit. Native rejects scheduling. */
+  schedule(operations:PlaygroundAy8910OperationProgram,options:PlaygroundAy8910ScheduleOptions):Promise<PlaygroundAy8910ScheduleReceipt>;
+  /** Cancel future operations of this named reservation. */
+  clearSchedule(name:string):Promise<boolean>;
   initialize():void;
   reset():void;
   writeRegister(register:number,value:number):void;

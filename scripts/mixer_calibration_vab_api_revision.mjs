@@ -7,6 +7,7 @@ import {readFileSync} from 'node:fs';
 import {restoreMixerCalibrationCodeNoteRevision} from './mixer_calibration_code_note_revision.mjs';
 import {restoreMixerCalibrationMeasuredPolicyRevision} from './mixer_calibration_measured_policy_revision.mjs';
 import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
+import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
 
 export const VAB_API_REVISION_BASE_COMMIT='1ec321b014a67a757bfa7c847c998f3e47584203';
 export const VAB_API_REVISION_RECEIPT_PATH='docs/issues/ps1_vab_public_api_source_revision_01.json';
@@ -92,7 +93,8 @@ export function restoreMixerCalibrationVabApiRevision(path,bytes,{readSource=url
   if(!matches(entry)&&!matches(prior))return bytes;
   for(const source of [...VAB_API_REVISION_REPORT_PATHS,...VAB_API_REVISION_RELATED_PATHS]) {
     const expected=evidence.reports[source]??evidence.relatedSources[source].after;
-    const measured=restoreMixerCalibrationMeasuredPolicyRevision(source,readSource(new URL('../'+source,import.meta.url)),{readSource});
+    const timedAy=restoreMixerCalibrationAyTimedRevision(source,readSource(new URL('../'+source,import.meta.url)),{readSource});
+    const measured=restoreMixerCalibrationMeasuredPolicyRevision(source,timedAy,{readSource});
     const current=restoreMixerCalibrationScspLoopLinkRevision(source,restoreMixerCalibrationCodeNoteRevision(source,measured),{readSource});
     if(current.length!==expected.bytes||sha(current)!==expected.sha256)fail('pinned report/helper/cache dependency changed: '+source);
   }

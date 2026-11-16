@@ -1,0 +1,1633 @@
+{
+  "schemaVersion": 1,
+  "scope": "ay-timed-operation-api-and-default-path-compatibility",
+  "baseCommit": "6663c6d5a286f10ff08f16645953a0083dabd34b",
+  "sources": {
+    "tetorica_src/runtime/native_genesis_extra_ay8910.js": {
+      "before": {
+        "bytes": 2482,
+        "sha256": "a94bc6f81617206ff3dc1d27f3dab996ad1a15c94f50ca30d51933996e93eb80"
+      },
+      "after": {
+        "bytes": 2796,
+        "sha256": "3deff0c2e447264db172a84c7657c781ca7c39614b262b529a2288636c6a3f6d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 432,
+          "afterBytes": 62,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 676,
+          "afterBytes": 140,
+          "beforeText": "  return createNativeExtraRegisterVoice(synth,{kind:'ay8910',label:'AY8910',clock:CHIP_CLOCKS.ay8910,registerCount:16,voiceCount:3,\n"
+        },
+        {
+          "afterOffset": 2321,
+          "afterBytes": 244,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/native_genesis_extra_ay8910.js": {
+      "before": {
+        "bytes": 2605,
+        "sha256": "d565985acdf82c473561d71d1a94821dbd7cb0aecad631dbd0fca2a5edaa63e2"
+      },
+      "after": {
+        "bytes": 2934,
+        "sha256": "7741ab30a0e923a5b8d9eff91b386adfcfa4ab8ce2c6014542dc3426981ee728"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 555,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 814,
+          "afterBytes": 140,
+          "beforeText": "  return createNativeExtraRegisterVoice(synth,{kind:'ay8910',label:'AY8910',clock:CHIP_CLOCKS.ay8910,registerCount:16,voiceCount:3,\n"
+        },
+        {
+          "afterOffset": 2459,
+          "afterBytes": 244,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/native_genesis_msx.js": {
+      "before": {
+        "bytes": 5704,
+        "sha256": "ef6ea26f5de0efa6eea3ca4c82df65adf973198c323632e28a540387db743737"
+      },
+      "after": {
+        "bytes": 6391,
+        "sha256": "5c54d60b80694656eef617a7cca979985144583bdf7d330f55b7a3a0a502f2c6"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 474,
+          "afterBytes": 62,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 598,
+          "afterBytes": 104,
+          "beforeText": "  const {synth}=context;let clock=AY_CLOCK,appliedClock=AY_CLOCK,initialized=false;\n"
+        },
+        {
+          "afterOffset": 892,
+          "afterBytes": 617,
+          "beforeText": "  const getState=client._getState.bind(client),adoptState=client._adoptState.bind(client),initialize=client.initialize.bind(client);\n  Object.defineProperties(client,{id:{value:'ay8910',enumerable:true},clock:{configurable:true,enumerable:true,get:()=>clock}});client.dispose=()=>{};\n"
+        },
+        {
+          "afterOffset": 1626,
+          "afterBytes": 292,
+          "beforeText": "  client._adoptState=state=>{adoptState({registers:state.registers,...(state.levels===undefined?{}:{levels:state.levels})});if(state?.clock!==undefined)client._adoptClock(state.clock);if(state?.initialized!==undefined)initialized=!!state.initialized;};\n"
+        },
+        {
+          "afterOffset": 2003,
+          "afterBytes": 225,
+          "beforeText": "  client._forceKeyOff=ch=>{integer(ch,2,'AY8910 channel');const state=getState();state.registers[8+ch]=0;adoptState(state);context.send('ay8910',{method:'key-off',channel:ch});};\n"
+        },
+        {
+          "afterOffset": 5766,
+          "afterBytes": 368,
+          "beforeText": "  client._stopVoices=()=>{const state=getState();for(let ch=0;ch<3;ch++)state.registers[8+ch]=0;adoptState(state);return endpoint.dispatch({method:'stopVoices'});};return endpoint;\n"
+        }
+      ]
+    },
+    "docs/js/native_genesis_msx.js": {
+      "before": {
+        "bytes": 5812,
+        "sha256": "185915b64bd95cf2813eac0e93204829956cf61c36f287591e13f1c25f4117b9"
+      },
+      "after": {
+        "bytes": 6514,
+        "sha256": "21265364a0de21fec7a4d228c7d4ac4ba50e9d80d2cf92da8616cc9fa7c109c9"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 582,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 721,
+          "afterBytes": 104,
+          "beforeText": "  const {synth}=context;let clock=AY_CLOCK,appliedClock=AY_CLOCK,initialized=false;\n"
+        },
+        {
+          "afterOffset": 1015,
+          "afterBytes": 617,
+          "beforeText": "  const getState=client._getState.bind(client),adoptState=client._adoptState.bind(client),initialize=client.initialize.bind(client);\n  Object.defineProperties(client,{id:{value:'ay8910',enumerable:true},clock:{configurable:true,enumerable:true,get:()=>clock}});client.dispose=()=>{};\n"
+        },
+        {
+          "afterOffset": 1749,
+          "afterBytes": 292,
+          "beforeText": "  client._adoptState=state=>{adoptState({registers:state.registers,...(state.levels===undefined?{}:{levels:state.levels})});if(state?.clock!==undefined)client._adoptClock(state.clock);if(state?.initialized!==undefined)initialized=!!state.initialized;};\n"
+        },
+        {
+          "afterOffset": 2126,
+          "afterBytes": 225,
+          "beforeText": "  client._forceKeyOff=ch=>{integer(ch,2,'AY8910 channel');const state=getState();state.registers[8+ch]=0;adoptState(state);context.send('ay8910',{method:'key-off',channel:ch});};\n"
+        },
+        {
+          "afterOffset": 5889,
+          "afterBytes": 368,
+          "beforeText": "  client._stopVoices=()=>{const state=getState();for(let ch=0;ch<3;ch++)state.registers[8+ch]=0;adoptState(state);return endpoint.dispatch({method:'stopVoices'});};return endpoint;\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/native_runtime_synth.js": {
+      "before": {
+        "bytes": 20394,
+        "sha256": "6be2d067cb674d271ad7d2c6d7ed196c7a3da8cb2ba425d74a71752dbe9af381"
+      },
+      "after": {
+        "bytes": 20459,
+        "sha256": "2fc84584c4649586ef6daf5eb1843a7c452efceb9185c325c77218e3a0a48713"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 17077,
+          "afterBytes": 377,
+          "beforeText": "    const endpoint=await this.#addPrimary('ay8910','ay',createAy8910Audio,device=>createAy8910Client(device.port,{clock:device.clock}),{...options,onError:()=>{if(this.initializationController?.signal!==signal||signal.aborted)return;this.#releasePrimaries();this.readyPromise=null;this.state='error';}},signal);\n"
+        }
+      ]
+    },
+    "docs/js/native_runtime_synth.js": {
+      "before": {
+        "bytes": 20981,
+        "sha256": "d551349d5169ab1e4be7f2b503ecc51ed57d79046dc56e6ac97c2b18f6079df0"
+      },
+      "after": {
+        "bytes": 21046,
+        "sha256": "f6d70a0dab83b4cc2c2b4c5c95499c2750d5e3e1d19ed2621cbcb7692f23f644"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 17664,
+          "afterBytes": 377,
+          "beforeText": "    const endpoint=await this.#addPrimary('ay8910','ay',createAy8910Audio,device=>createAy8910Client(device.port,{clock:device.clock}),{...options,onError:()=>{if(this.initializationController?.signal!==signal||signal.aborted)return;this.#releasePrimaries();this.readyPromise=null;this.state='error';}},signal);\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_ay8910.js": {
+      "before": {
+        "bytes": 3658,
+        "sha256": "d915d2c438b0d981073972eabb65b5fd9ffe4f26822a4bf3ebb7f215e8a38db3"
+      },
+      "after": {
+        "bytes": 4593,
+        "sha256": "fdc7d807f64fccfd7ce0ea93d0713f2ee744a3348e89f98a133f9ba17330232e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 118,
+          "afterBytes": 62,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 322,
+          "afterBytes": 425,
+          "beforeText": " * @param {{clock?:number,close?:()=>void,request?:(method:string,args:unknown[])=>unknown}} [options] */\nexport function createAy8910RegisterClient(send,{clock=CHIP_CLOCKS.ay8910,close=()=>{},request}={}){\n  let initialized=false,disposed=false;\n"
+        },
+        {
+          "afterOffset": 794,
+          "afterBytes": 202,
+          "beforeText": "    writeRegister(register,value){if(disposed)throw new Error('AY8910 disposed');send('writeRegister',[register,value]);},\n    reset(){if(disposed)throw new Error('AY8910 disposed');send('reset',[]);},\n"
+        },
+        {
+          "afterOffset": 1085,
+          "afterBytes": 380,
+          "beforeText": "  const getState=api._getState.bind(api),adoptState=api._adoptState.bind(api),initialize=api.initialize.bind(api);\n"
+        },
+        {
+          "afterOffset": 1652,
+          "afterBytes": 878,
+          "beforeText": "    _adoptState:{value:state=>{adoptState({registers:state.registers,...(state.levels===undefined?{}:{levels:state.levels})});if(state?.clock!==undefined)api._adoptClock(state.clock);if(state?.initialized!==undefined)initialized=!!state.initialized;}},\n    _forceKeyOff:{value:channel=>{if(!Number.isInteger(channel)||channel<0||channel>2)throw new RangeError('AY8910 channel must be 0..2');const state=getState();state.registers[8+channel]=0;adoptState(state);send('forceKeyOff',[channel]);}},\n    _stopVoices:{value:()=>{const state=getState();for(let ch=0;ch<3;ch++)state.registers[8+ch]=0;adoptState(state);return request?request('stopVoices',[]):api._requestControl('stopVoices',[]);}},\n"
+        },
+        {
+          "afterOffset": 3145,
+          "afterBytes": 349,
+          "beforeText": "      try{const value=original(...args);if(before){const after=getState().levels;for(let ch=0;ch<3;ch++)if(before[ch]!==after[ch])send('setRetainedLevel',[ch,after[ch]]);}return value;}\n      finally{nesting--;}\n"
+        },
+        {
+          "afterOffset": 3588,
+          "afterBytes": 226,
+          "beforeText": "  const api=createAy8910RegisterClient((method,args)=>port.postMessage({method,args}),{clock:options.clock??CHIP_CLOCKS.ay8910,close:()=>port.close()});\n"
+        },
+        {
+          "afterOffset": 4536,
+          "afterBytes": 55,
+          "beforeText": "  return controlled;\n"
+        }
+      ]
+    },
+    "docs/js/playground_ay8910.js": {
+      "before": {
+        "bytes": 3691,
+        "sha256": "21698d41b07f6055bed5d696986e3aca5974e02e99777d2b1c6f96d9e8aeb3ea"
+      },
+      "after": {
+        "bytes": 4641,
+        "sha256": "75663381b3597c19994c799453e207c28adcfe22dd9e3346cdc7973f12c6cdb7"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 151,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 370,
+          "afterBytes": 425,
+          "beforeText": " * @param {{clock?:number,close?:()=>void,request?:(method:string,args:unknown[])=>unknown}} [options] */\nexport function createAy8910RegisterClient(send,{clock=CHIP_CLOCKS.ay8910,close=()=>{},request}={}){\n  let initialized=false,disposed=false;\n"
+        },
+        {
+          "afterOffset": 842,
+          "afterBytes": 202,
+          "beforeText": "    writeRegister(register,value){if(disposed)throw new Error('AY8910 disposed');send('writeRegister',[register,value]);},\n    reset(){if(disposed)throw new Error('AY8910 disposed');send('reset',[]);},\n"
+        },
+        {
+          "afterOffset": 1133,
+          "afterBytes": 380,
+          "beforeText": "  const getState=api._getState.bind(api),adoptState=api._adoptState.bind(api),initialize=api.initialize.bind(api);\n"
+        },
+        {
+          "afterOffset": 1700,
+          "afterBytes": 878,
+          "beforeText": "    _adoptState:{value:state=>{adoptState({registers:state.registers,...(state.levels===undefined?{}:{levels:state.levels})});if(state?.clock!==undefined)api._adoptClock(state.clock);if(state?.initialized!==undefined)initialized=!!state.initialized;}},\n    _forceKeyOff:{value:channel=>{if(!Number.isInteger(channel)||channel<0||channel>2)throw new RangeError('AY8910 channel must be 0..2');const state=getState();state.registers[8+channel]=0;adoptState(state);send('forceKeyOff',[channel]);}},\n    _stopVoices:{value:()=>{const state=getState();for(let ch=0;ch<3;ch++)state.registers[8+ch]=0;adoptState(state);return request?request('stopVoices',[]):api._requestControl('stopVoices',[]);}},\n"
+        },
+        {
+          "afterOffset": 3193,
+          "afterBytes": 349,
+          "beforeText": "      try{const value=original(...args);if(before){const after=getState().levels;for(let ch=0;ch<3;ch++)if(before[ch]!==after[ch])send('setRetainedLevel',[ch,after[ch]]);}return value;}\n      finally{nesting--;}\n"
+        },
+        {
+          "afterOffset": 3636,
+          "afterBytes": 226,
+          "beforeText": "  const api=createAy8910RegisterClient((method,args)=>port.postMessage({method,args}),{clock:options.clock??CHIP_CLOCKS.ay8910,close:()=>port.close()});\n"
+        },
+        {
+          "afterOffset": 4584,
+          "afterBytes": 55,
+          "beforeText": "  return controlled;\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_ay8910_audio.js": {
+      "before": {
+        "bytes": 4531,
+        "sha256": "6a340736ccf5cb0add10834d71328cc070fbb89bcb700f24e972e580fcbb9695"
+      },
+      "after": {
+        "bytes": 4740,
+        "sha256": "0e9c874eede5af4281aa8df93e35ffe0433ed29d35ff076692bf0677996b05be"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 317,
+          "afterBytes": 118,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1020,
+          "afterBytes": 67,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2669,
+          "afterBytes": 134,
+          "beforeText": "    numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary, clock, chip, type, flags},\n"
+        },
+        {
+          "afterOffset": 4427,
+          "afterBytes": 177,
+          "beforeText": "    return watchAudioEndpoint({node, port:channel.port2, clock, chip, type, flags, dispose}, {context,label:type===0x10?'YM2149':'AY8910',onError:options.onError});\n"
+        }
+      ]
+    },
+    "docs/js/playground_ay8910_audio.js": {
+      "before": {
+        "bytes": 4625,
+        "sha256": "7b75e184484a55a3508b0e82e66fdf88e2b558b5accd6cb8120fb23e899e3a92"
+      },
+      "after": {
+        "bytes": 4834,
+        "sha256": "726bd66320e4ce6da63a30d3472cf605064bb3fdbcb3c16733c2c1dc8c5f3bec"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 392,
+          "afterBytes": 118,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1095,
+          "afterBytes": 67,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2763,
+          "afterBytes": 134,
+          "beforeText": "    numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary, clock, chip, type, flags},\n"
+        },
+        {
+          "afterOffset": 4521,
+          "afterBytes": 177,
+          "beforeText": "    return watchAudioEndpoint({node, port:channel.port2, clock, chip, type, flags, dispose}, {context,label:type===0x10?'YM2149':'AY8910',onError:options.onError});\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_ay8910_worklet.js": {
+      "before": {
+        "bytes": 7261,
+        "sha256": "30c9cbd2fe7da7369c94d08ab15b565c9d047867738e0564f2bb0e7dd70bbbe4"
+      },
+      "after": {
+        "bytes": 8313,
+        "sha256": "6c932444131fc36ffaf22c2a9a7babb580914c496c12ecdcea88d09a1a65408a"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 395,
+          "afterBytes": 92,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 534,
+          "afterBytes": 88,
+          "beforeText": "  constructor({processorOptions:{clock=1789773,type=0,flags=1,wasmBinary}}){\n"
+        },
+        {
+          "afterOffset": 840,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1958,
+          "afterBytes": 192,
+          "beforeText": "      if(data.type==='detach-chip-port'){this.remote?.close();this.remote=null;this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();return;}\n"
+        },
+        {
+          "afterOffset": 2944,
+          "afterBytes": 439,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3515,
+          "afterBytes": 191,
+          "beforeText": "  dispose(){this.inspector?.resetAuditions();this.performance.clear();this.dead=true;this.chip?.dispose();this.chip=null;this.remote?.close();this.workerRemote?.close();}\n"
+        },
+        {
+          "afterOffset": 3991,
+          "afterBytes": 184,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4893,
+          "afterBytes": 109,
+          "beforeText": "    if(stopping||data?.method==='stopVoices')this.inspector?.invoke('auditionAllOff');\n"
+        },
+        {
+          "afterOffset": 5932,
+          "afterBytes": 216,
+          "beforeText": "  apply(data,port){\n"
+        }
+      ]
+    },
+    "docs/js/playground_ay8910_worklet.js": {
+      "before": {
+        "bytes": 7355,
+        "sha256": "700f88e620c99b5c37f4e66a830fe068b4c18d127a173840ef6269f5115f0991"
+      },
+      "after": {
+        "bytes": 8422,
+        "sha256": "5fddb9718645e2ade616db88565af6c3d9a122caee8f83a5259b19abd839bb8c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 489,
+          "afterBytes": 107,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 643,
+          "afterBytes": 88,
+          "beforeText": "  constructor({processorOptions:{clock=1789773,type=0,flags=1,wasmBinary}}){\n"
+        },
+        {
+          "afterOffset": 949,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2067,
+          "afterBytes": 192,
+          "beforeText": "      if(data.type==='detach-chip-port'){this.remote?.close();this.remote=null;this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();return;}\n"
+        },
+        {
+          "afterOffset": 3053,
+          "afterBytes": 439,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3624,
+          "afterBytes": 191,
+          "beforeText": "  dispose(){this.inspector?.resetAuditions();this.performance.clear();this.dead=true;this.chip?.dispose();this.chip=null;this.remote?.close();this.workerRemote?.close();}\n"
+        },
+        {
+          "afterOffset": 4100,
+          "afterBytes": 184,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5002,
+          "afterBytes": 109,
+          "beforeText": "    if(stopping||data?.method==='stopVoices')this.inspector?.invoke('auditionAllOff');\n"
+        },
+        {
+          "afterOffset": 6041,
+          "afterBytes": 216,
+          "beforeText": "  apply(data,port){\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_code_runtime.js": {
+      "before": {
+        "bytes": 22127,
+        "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480"
+      },
+      "after": {
+        "bytes": 29769,
+        "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 707,
+          "afterBytes": 66,
+          "beforeText": "import {formatLogArgs} from './playground_log.js';\n"
+        },
+        {
+          "afterOffset": 1349,
+          "afterBytes": 154,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3884,
+          "afterBytes": 312,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6033,
+          "afterBytes": 483,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8446,
+          "afterBytes": 4610,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13165,
+          "afterBytes": 27,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13618,
+          "afterBytes": 157,
+          "beforeText": "      tasks.release(loop);const scope=loopScopes.get(loop);scope?.detach();loopScopes.delete(loop);\n"
+        },
+        {
+          "afterOffset": 15393,
+          "afterBytes": 554,
+          "beforeText": "    return executeWithPlaygroundGuards(()=>waitForScope(fn(),scope),realm,{enabled:guardExecution});\n"
+        },
+        {
+          "afterOffset": 17976,
+          "afterBytes": 54,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 18185,
+          "afterBytes": 52,
+          "beforeText": "          const caller=scopeFor(scope);check(caller);\n"
+        },
+        {
+          "afterOffset": 18739,
+          "afterBytes": 603,
+          "beforeText": "          const result=Reflect.apply(member,target,args.map(value=>unwrap(value)));\n"
+        },
+        {
+          "afterOffset": 19672,
+          "afterBytes": 662,
+          "beforeText": "          if(result&&typeof result.then==='function')return waitForScope(result,caller).then(next=>{\n            currentLoop=caller.loop??null;check(caller);return guarded(next,caller);\n          });\n          return guarded(result,caller);\n"
+        },
+        {
+          "afterOffset": 20867,
+          "afterBytes": 174,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24164,
+          "afterBytes": 159,
+          "beforeText": "      console:{log,warn:(...args)=>log('[warn]',...args),error:(...args)=>log('[error]',...args)},log,\n"
+        },
+        {
+          "afterOffset": 24787,
+          "afterBytes": 119,
+          "beforeText": "        } catch(error) {if(clients.get(name)===pending)clients.delete(name);throw error;}\n"
+        },
+        {
+          "afterOffset": 25121,
+          "afterBytes": 63,
+          "beforeText": "      });},\n"
+        },
+        {
+          "afterOffset": 27223,
+          "afterBytes": 240,
+          "beforeText": "    const scope={epoch,id:++evaluation,path:entry,controller:new AbortController(),completed:false};\n"
+        },
+        {
+          "afterOffset": 28087,
+          "afterBytes": 55,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 28549,
+          "afterBytes": 35,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_code_runtime.js": {
+      "before": {
+        "bytes": 22127,
+        "sha256": "81a61998fc054b23db8e61e1198e59089ee9b43a282fec3395b29276ca6a5480"
+      },
+      "after": {
+        "bytes": 29769,
+        "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 707,
+          "afterBytes": 66,
+          "beforeText": "import {formatLogArgs} from './playground_log.js';\n"
+        },
+        {
+          "afterOffset": 1349,
+          "afterBytes": 154,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3884,
+          "afterBytes": 312,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6033,
+          "afterBytes": 483,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8446,
+          "afterBytes": 4610,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13165,
+          "afterBytes": 27,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13618,
+          "afterBytes": 157,
+          "beforeText": "      tasks.release(loop);const scope=loopScopes.get(loop);scope?.detach();loopScopes.delete(loop);\n"
+        },
+        {
+          "afterOffset": 15393,
+          "afterBytes": 554,
+          "beforeText": "    return executeWithPlaygroundGuards(()=>waitForScope(fn(),scope),realm,{enabled:guardExecution});\n"
+        },
+        {
+          "afterOffset": 17976,
+          "afterBytes": 54,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 18185,
+          "afterBytes": 52,
+          "beforeText": "          const caller=scopeFor(scope);check(caller);\n"
+        },
+        {
+          "afterOffset": 18739,
+          "afterBytes": 603,
+          "beforeText": "          const result=Reflect.apply(member,target,args.map(value=>unwrap(value)));\n"
+        },
+        {
+          "afterOffset": 19672,
+          "afterBytes": 662,
+          "beforeText": "          if(result&&typeof result.then==='function')return waitForScope(result,caller).then(next=>{\n            currentLoop=caller.loop??null;check(caller);return guarded(next,caller);\n          });\n          return guarded(result,caller);\n"
+        },
+        {
+          "afterOffset": 20867,
+          "afterBytes": 174,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24164,
+          "afterBytes": 159,
+          "beforeText": "      console:{log,warn:(...args)=>log('[warn]',...args),error:(...args)=>log('[error]',...args)},log,\n"
+        },
+        {
+          "afterOffset": 24787,
+          "afterBytes": 119,
+          "beforeText": "        } catch(error) {if(clients.get(name)===pending)clients.delete(name);throw error;}\n"
+        },
+        {
+          "afterOffset": 25121,
+          "afterBytes": 63,
+          "beforeText": "      });},\n"
+        },
+        {
+          "afterOffset": 27223,
+          "afterBytes": 240,
+          "beforeText": "    const scope={epoch,id:++evaluation,path:entry,controller:new AbortController(),completed:false};\n"
+        },
+        {
+          "afterOffset": 28087,
+          "afterBytes": 55,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 28549,
+          "afterBytes": 35,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_log.js": {
+      "before": {
+        "bytes": 842,
+        "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+      },
+      "after": {
+        "bytes": 2169,
+        "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 842,
+          "afterBytes": 1327,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_log.js": {
+      "before": {
+        "bytes": 842,
+        "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+      },
+      "after": {
+        "bytes": 2169,
+        "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 842,
+          "afterBytes": 1327,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "before": {
+        "bytes": 58286,
+        "sha256": "eb84089529f55651d2c70550b1672900f7c0fcf1c21220de3182f06d3d51d533"
+      },
+      "after": {
+        "bytes": 60122,
+        "sha256": "aec8474ef96e255f34bd5ea6359299546a19fed34dacbcf2cc6f1e6d614425c0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 420,
+          "afterBytes": 75,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2291,
+          "afterBytes": 70,
+          "beforeText": "import {serializeLogError} from './playground_log.js';\n"
+        },
+        {
+          "afterOffset": 10662,
+          "afterBytes": 50,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 14514,
+          "afterBytes": 469,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 17041,
+          "afterBytes": 261,
+          "beforeText": "  const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};\n"
+        },
+        {
+          "afterOffset": 32060,
+          "afterBytes": 29,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 41078,
+          "afterBytes": 121,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 44888,
+          "afterBytes": 371,
+          "beforeText": "      pcmClients.add(pcm);const api=keyboardApi(pcm);if(scoped)return resumeScopedNativeExtra(caller,token,()=>api).catch(error=>{release(true);throw error;});return api;\n"
+        },
+        {
+          "afterOffset": 45443,
+          "afterBytes": 82,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 51999,
+          "afterBytes": 108,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 52301,
+          "afterBytes": 122,
+          "beforeText": "    try {await executeWithWorkerGuards(() => userFunction(...Object.values(globals)));}\n    finally {run.collectingMusicalBinding=false;}\n"
+        },
+        {
+          "afterOffset": 52616,
+          "afterBytes": 139,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 55552,
+          "afterBytes": 81,
+          "beforeText": "        loopTasks.release(loopContext);\n"
+        },
+        {
+          "afterOffset": 55732,
+          "afterBytes": 244,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 57004,
+          "afterBytes": 235,
+          "beforeText": "      postMessage({ type: \"complete\", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size + (currentRun.keyboardTarget()?1:0) });\n"
+        },
+        {
+          "afterOffset": 57261,
+          "afterBytes": 187,
+          "beforeText": "      postMessage({ type: \"execution-error\", message: error?.message ?? String(error), stack: error?.stack });\n"
+        }
+      ]
+    },
+    "docs/js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 58738,
+        "sha256": "c5b28c358d0a773efbaefd36d8a7fceeadf8a0590904656c931d51f4c01c5e6f"
+      },
+      "after": {
+        "bytes": 60574,
+        "sha256": "75ab41992e47a50110c77ae382431a3f50b29e514645b4a9178367930d7dc505"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 533,
+          "afterBytes": 75,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2734,
+          "afterBytes": 70,
+          "beforeText": "import {serializeLogError} from './playground_log.js';\n"
+        },
+        {
+          "afterOffset": 11114,
+          "afterBytes": 50,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 14966,
+          "afterBytes": 469,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 17493,
+          "afterBytes": 261,
+          "beforeText": "  const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};\n"
+        },
+        {
+          "afterOffset": 32512,
+          "afterBytes": 29,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 41530,
+          "afterBytes": 121,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 45340,
+          "afterBytes": 371,
+          "beforeText": "      pcmClients.add(pcm);const api=keyboardApi(pcm);if(scoped)return resumeScopedNativeExtra(caller,token,()=>api).catch(error=>{release(true);throw error;});return api;\n"
+        },
+        {
+          "afterOffset": 45895,
+          "afterBytes": 82,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 52451,
+          "afterBytes": 108,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 52753,
+          "afterBytes": 122,
+          "beforeText": "    try {await executeWithWorkerGuards(() => userFunction(...Object.values(globals)));}\n    finally {run.collectingMusicalBinding=false;}\n"
+        },
+        {
+          "afterOffset": 53068,
+          "afterBytes": 139,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 56004,
+          "afterBytes": 81,
+          "beforeText": "        loopTasks.release(loopContext);\n"
+        },
+        {
+          "afterOffset": 56184,
+          "afterBytes": 244,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 57456,
+          "afterBytes": 235,
+          "beforeText": "      postMessage({ type: \"complete\", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size + (currentRun.keyboardTarget()?1:0) });\n"
+        },
+        {
+          "afterOffset": 57713,
+          "afterBytes": 187,
+          "beforeText": "      postMessage({ type: \"execution-error\", message: error?.message ?? String(error), stack: error?.stack });\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "before": {
+        "bytes": 30650,
+        "sha256": "c947942492ea11e4c8ddbb4f100a0d16fad3a19eab417ba9a4d9a447a6acc243"
+      },
+      "after": {
+        "bytes": 31186,
+        "sha256": "2c26b4d37ecec359174f885edfb61ff4b7e4690e2e814858042e3f08d0daac31"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 18874,
+          "afterBytes": 226,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 22124,
+          "afterBytes": 48,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 30826,
+          "afterBytes": 262,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_performance_processor.js": {
+      "before": {
+        "bytes": 30650,
+        "sha256": "c947942492ea11e4c8ddbb4f100a0d16fad3a19eab417ba9a4d9a447a6acc243"
+      },
+      "after": {
+        "bytes": 31186,
+        "sha256": "2c26b4d37ecec359174f885edfb61ff4b7e4690e2e814858042e3f08d0daac31"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 18874,
+          "afterBytes": 226,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 22124,
+          "afterBytes": 48,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 30826,
+          "afterBytes": 262,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_queue.js": {
+      "before": {
+        "bytes": 9950,
+        "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+      },
+      "after": {
+        "bytes": 22473,
+        "sha256": "5b43b61283877970d990d5bc45c0b1565d26febeeaeaf584ce0e10cf3b1a2008"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 1737,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2081,
+          "afterBytes": 186,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2453,
+          "afterBytes": 266,
+          "beforeText": "      !Number.isSafeInteger(maxCommands) || maxCommands < 1) {\n"
+        },
+        {
+          "afterOffset": 2920,
+          "afterBytes": 123,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3310,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3978,
+          "afterBytes": 141,
+          "beforeText": "    for (const event of heap) discard(event);\n"
+        },
+        {
+          "afterOffset": 4872,
+          "afterBytes": 8649,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13712,
+          "afterBytes": 130,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13899,
+          "afterBytes": 240,
+          "beforeText": "      if (event.performance.owner === owner) { queuedCommands -= event.commands.length; discard(event); }\n"
+        },
+        {
+          "afterOffset": 14921,
+          "afterBytes": 70,
+          "beforeText": "      clear(); canceledOwners.clear();\n"
+        },
+        {
+          "afterOffset": 15246,
+          "afterBytes": 70,
+          "beforeText": "      clear(); canceledOwners.clear();\n"
+        },
+        {
+          "afterOffset": 16281,
+          "afterBytes": 137,
+          "beforeText": "          data.commands.length > maxCommands || queuedCommands + data.commands.length > maxCommands) {\n"
+        },
+        {
+          "afterOffset": 18827,
+          "afterBytes": 211,
+          "beforeText": "        const event = pop(); queuedCommands -= event.commands.length;\n"
+        },
+        {
+          "afterOffset": 19192,
+          "afterBytes": 28,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 19341,
+          "afterBytes": 809,
+          "beforeText": "          catch (error) { sendError(event.reply, event.performance, error); }\n"
+        },
+        {
+          "afterOffset": 20175,
+          "afterBytes": 104,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 20403,
+          "afterBytes": 71,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_performance_queue.js": {
+      "before": {
+        "bytes": 9950,
+        "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+      },
+      "after": {
+        "bytes": 22473,
+        "sha256": "5b43b61283877970d990d5bc45c0b1565d26febeeaeaf584ce0e10cf3b1a2008"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 1737,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2081,
+          "afterBytes": 186,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2453,
+          "afterBytes": 266,
+          "beforeText": "      !Number.isSafeInteger(maxCommands) || maxCommands < 1) {\n"
+        },
+        {
+          "afterOffset": 2920,
+          "afterBytes": 123,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3310,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3978,
+          "afterBytes": 141,
+          "beforeText": "    for (const event of heap) discard(event);\n"
+        },
+        {
+          "afterOffset": 4872,
+          "afterBytes": 8649,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13712,
+          "afterBytes": 130,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13899,
+          "afterBytes": 240,
+          "beforeText": "      if (event.performance.owner === owner) { queuedCommands -= event.commands.length; discard(event); }\n"
+        },
+        {
+          "afterOffset": 14921,
+          "afterBytes": 70,
+          "beforeText": "      clear(); canceledOwners.clear();\n"
+        },
+        {
+          "afterOffset": 15246,
+          "afterBytes": 70,
+          "beforeText": "      clear(); canceledOwners.clear();\n"
+        },
+        {
+          "afterOffset": 16281,
+          "afterBytes": 137,
+          "beforeText": "          data.commands.length > maxCommands || queuedCommands + data.commands.length > maxCommands) {\n"
+        },
+        {
+          "afterOffset": 18827,
+          "afterBytes": 211,
+          "beforeText": "        const event = pop(); queuedCommands -= event.commands.length;\n"
+        },
+        {
+          "afterOffset": 19192,
+          "afterBytes": 28,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 19341,
+          "afterBytes": 809,
+          "beforeText": "          catch (error) { sendError(event.reply, event.performance, error); }\n"
+        },
+        {
+          "afterOffset": 20175,
+          "afterBytes": 104,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 20403,
+          "afterBytes": 71,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9308,
+        "sha256": "b1378d9591ba6fdafff5b4eb2c3f7632f76d7c46bdf90977fe8939827a13583a"
+      },
+      "after": {
+        "bytes": 9531,
+        "sha256": "bb279f65ed1e57860b7056a90ff520635143f006f9428405c0d38313ab4ec7b5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 5160,
+          "afterBytes": 223,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9308,
+        "sha256": "b1378d9591ba6fdafff5b4eb2c3f7632f76d7c46bdf90977fe8939827a13583a"
+      },
+      "after": {
+        "bytes": 9531,
+        "sha256": "bb279f65ed1e57860b7056a90ff520635143f006f9428405c0d38313ab4ec7b5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 5160,
+          "afterBytes": 223,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "before": {
+        "bytes": 161173,
+        "sha256": "965815dabf9351782aa4fb1c8ca1b28a05160e84ab4797149e83bbb88da3f00b"
+      },
+      "after": {
+        "bytes": 163631,
+        "sha256": "a56434972530040d642c610f05bc32e3659cacdfc48cef92e2a4f973bfbe95a7"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 773,
+          "afterBytes": 75,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3979,
+          "afterBytes": 66,
+          "beforeText": "import {formatLogArgs} from './playground_log.js';\n"
+        },
+        {
+          "afterOffset": 52416,
+          "afterBytes": 139,
+          "beforeText": "      return [name,nativeApiCache.get(raw)];\n"
+        },
+        {
+          "afterOffset": 80706,
+          "afterBytes": 248,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 81474,
+          "afterBytes": 90,
+          "beforeText": "      releaseTasks: loop => loopTasks.release(loop),\n"
+        },
+        {
+          "afterOffset": 81685,
+          "afterBytes": 44,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 96511,
+          "afterBytes": 471,
+          "beforeText": "        return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,engine:device.engine,state:device.client?._getState?.()??device.state,clock:device.clock,model:device.model,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};\n"
+        },
+        {
+          "afterOffset": 110555,
+          "afterBytes": 73,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 110853,
+          "afterBytes": 117,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 111005,
+          "afterBytes": 87,
+          "beforeText": "        if (loopCount === 0 && keyboardHandlerCount === 0) {\n"
+        },
+        {
+          "afterOffset": 111356,
+          "afterBytes": 78,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 124186,
+          "afterBytes": 70,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 128327,
+          "afterBytes": 134,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 130888,
+          "afterBytes": 212,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 132211,
+          "afterBytes": 412,
+          "beforeText": "        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);\n"
+        },
+        {
+          "afterOffset": 144055,
+          "afterBytes": 29,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 144176,
+          "afterBytes": 37,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 148442,
+          "afterBytes": 309,
+          "beforeText": "            fdsEnabled:endpoint.client.fdsEnabled,stereoEnabled:endpoint.client.stereoEnabled,sampleRate:endpoint.client.sampleRate,state:endpoint.client._getState?.(),port:channel.port2});\n"
+        },
+        {
+          "afterOffset": 151335,
+          "afterBytes": 81,
+          "beforeText": "        setPlaybackState(\"stopped\");\n"
+        },
+        {
+          "afterOffset": 151821,
+          "afterBytes": 37,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 152682,
+          "afterBytes": 163,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 153534,
+          "afterBytes": 130,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 154265,
+          "afterBytes": 71,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 154541,
+          "afterBytes": 107,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 154725,
+          "afterBytes": 63,
+          "beforeText": "          keyboardHandlerCount === 0\n"
+        },
+        {
+          "afterOffset": 154964,
+          "afterBytes": 48,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155194,
+          "afterBytes": 83,
+          "beforeText": "      setPlaybackState(\"stopped\");\n"
+        },
+        {
+          "afterOffset": 155709,
+          "afterBytes": 83,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 156542,
+          "afterBytes": 29,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_runtime.js": {
+      "before": {
+        "bytes": 162358,
+        "sha256": "b0ab0a88c07b84114859a74bce8999f88f2617278b5bbcb29c136f5344709ad3"
+      },
+      "after": {
+        "bytes": 164816,
+        "sha256": "8fb86c275e4eec120df438a369309f3fd731a6a26cdacfc7ac834eb986772de6"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1002,
+          "afterBytes": 75,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4956,
+          "afterBytes": 66,
+          "beforeText": "import {formatLogArgs} from './playground_log.js';\n"
+        },
+        {
+          "afterOffset": 53601,
+          "afterBytes": 139,
+          "beforeText": "      return [name,nativeApiCache.get(raw)];\n"
+        },
+        {
+          "afterOffset": 81891,
+          "afterBytes": 248,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 82659,
+          "afterBytes": 90,
+          "beforeText": "      releaseTasks: loop => loopTasks.release(loop),\n"
+        },
+        {
+          "afterOffset": 82870,
+          "afterBytes": 44,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 97696,
+          "afterBytes": 471,
+          "beforeText": "        return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,engine:device.engine,state:device.client?._getState?.()??device.state,clock:device.clock,model:device.model,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};\n"
+        },
+        {
+          "afterOffset": 111740,
+          "afterBytes": 73,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 112038,
+          "afterBytes": 117,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 112190,
+          "afterBytes": 87,
+          "beforeText": "        if (loopCount === 0 && keyboardHandlerCount === 0) {\n"
+        },
+        {
+          "afterOffset": 112541,
+          "afterBytes": 78,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 125371,
+          "afterBytes": 70,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 129512,
+          "afterBytes": 134,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 132073,
+          "afterBytes": 212,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 133396,
+          "afterBytes": 412,
+          "beforeText": "        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);\n"
+        },
+        {
+          "afterOffset": 145240,
+          "afterBytes": 29,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 145361,
+          "afterBytes": 37,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 149627,
+          "afterBytes": 309,
+          "beforeText": "            fdsEnabled:endpoint.client.fdsEnabled,stereoEnabled:endpoint.client.stereoEnabled,sampleRate:endpoint.client.sampleRate,state:endpoint.client._getState?.(),port:channel.port2});\n"
+        },
+        {
+          "afterOffset": 152520,
+          "afterBytes": 81,
+          "beforeText": "        setPlaybackState(\"stopped\");\n"
+        },
+        {
+          "afterOffset": 153006,
+          "afterBytes": 37,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 153867,
+          "afterBytes": 163,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 154719,
+          "afterBytes": 130,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155450,
+          "afterBytes": 71,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155726,
+          "afterBytes": 107,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155910,
+          "afterBytes": 63,
+          "beforeText": "          keyboardHandlerCount === 0\n"
+        },
+        {
+          "afterOffset": 156149,
+          "afterBytes": 48,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 156379,
+          "afterBytes": 83,
+          "beforeText": "      setPlaybackState(\"stopped\");\n"
+        },
+        {
+          "afterOffset": 156894,
+          "afterBytes": 83,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 157727,
+          "afterBytes": 29,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 23441,
+        "sha256": "ff98a5afa9f1be92cae19f50ae0388bfed4d006a2c9cfaadcb78809b2ee16525"
+      },
+      "after": {
+        "bytes": 24424,
+        "sha256": "d816c30009587ddd318c56bdc9b7250217ddb990f2d3a19c8554cd2c905284ee"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 7577,
+          "afterBytes": 983,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 143351,
+        "sha256": "a1264ba6910777c6edbbdca48387bcd2808d5bb53b80b3245bfd0f172e46756c"
+      },
+      "after": {
+        "bytes": 150035,
+        "sha256": "9aea7bb89486e0a49bbd7b7fe31c60b9328c5baa16eaa3e7949ed60f18c602c0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 42535,
+          "afterBytes": 140,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 107507,
+          "afterBytes": 5106,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 112691,
+          "afterBytes": 1438,
+          "beforeText": ""
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/ay8910_operations.js": {
+      "bytes": 10810,
+      "sha256": "020912378dfa537a8ce6977ae711e9b82fcc7ac7b18f98dcd7e44ec074be51ec"
+    },
+    "docs/js/ay8910_operations.js": {
+      "bytes": 10825,
+      "sha256": "ff50a169f232caac4f7c967a92c18bfc1b5acd5037def91b5732c765013a2182"
+    },
+    "tetorica_src/runtime/ay8910_timed_state.js": {
+      "bytes": 2651,
+      "sha256": "b9f3af9f19ea369f1a1f572d4e2cf53ed6f0216ac5d0cacf9f2b7c866fb89fec"
+    },
+    "docs/js/ay8910_timed_state.js": {
+      "bytes": 2686,
+      "sha256": "615120d31a3c4020d106bc955899b83a463d3e551c34e98631f2237d3b99e198"
+    },
+    "tetorica_src/runtime/ay8910_timed_client.js": {
+      "bytes": 9439,
+      "sha256": "1d8f407b0d2cc4b8025814c12a53334b31658a8f9a46a99a6f62a8cd753c8d12"
+    },
+    "docs/js/ay8910_timed_client.js": {
+      "bytes": 9489,
+      "sha256": "66ed3f126ac1ef8ae70af395f693545e39bd5249dfb5a81beb53af133482a641"
+    },
+    "tetorica_src/runtime/ay8910_timed_processor.js": {
+      "bytes": 8210,
+      "sha256": "b65847e34c6417d1439c37879e169fa3d2918d6158181cc4569eb9567b267c60"
+    },
+    "docs/js/ay8910_timed_processor.js": {
+      "bytes": 8240,
+      "sha256": "caa0be11cd03fe85d213b92f04824993a4eebe1054eeacc72bd96d9e03060f42"
+    },
+    "tetorica_src/runtime/playground_ay_timed_lifecycle.js": {
+      "bytes": 9032,
+      "sha256": "13ce60af09a9d9a6d733ad33abb6186cd8332664e4446dfe0bafadc8432e25ef"
+    },
+    "docs/js/playground_ay_timed_lifecycle.js": {
+      "bytes": 9032,
+      "sha256": "13ce60af09a9d9a6d733ad33abb6186cd8332664e4446dfe0bafadc8432e25ef"
+    },
+    "tetorica_src/runtime/ay8910synth.js": {
+      "bytes": 12899,
+      "sha256": "30fd1bdd4406162e6539136597237db3f79a4093a56e4b86b94ac9c05e13a031"
+    },
+    "docs/js/ay8910synth.js": {
+      "bytes": 12974,
+      "sha256": "4eb50108d27aa364344cbab8190f63375430fb1477cc98091a0b2c10a8bb2cb6"
+    },
+    "tetorica_src/runtime/ay8910.js": {
+      "bytes": 6210,
+      "sha256": "795422d40430adeae7a6bb57e505de1dba0378b91432bbe902f309f48a258f3b"
+    },
+    "docs/js/ay8910.js": {
+      "bytes": 6264,
+      "sha256": "f405e5dccb8142d5fae938ba1e720ce2fd821a413c179ff6a5e7e5dff8bbe2de"
+    },
+    "tetorica_src/runtime/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "tetorica_src/runtime/playground_chip_clock.js": {
+      "bytes": 5244,
+      "sha256": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d"
+    },
+    "docs/js/playground_chip_clock.js": {
+      "bytes": 5244,
+      "sha256": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d"
+    }
+  },
+  "reports": {
+    "docs/issues/ps1_ay_single_output_chip_levels_01.json": {
+      "bytes": 546877,
+      "sha256": "be6c1a7fcc9e6a6081d7d1142001eb78046fac0d2214f5543ffa5cb92272963e"
+    },
+    "docs/issues/wonderswan_ay_single_output_chip_levels_01.json": {
+      "bytes": 491288,
+      "sha256": "afacfcc1da1dc9a5fa6afb8ca4f6e43d770a0e5d8d9ca2a5910a288756fa7e6d"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_01.json": {
+      "bytes": 1030856,
+      "sha256": "057b6f7d6f94ba609c6312fa9f2d570ad55b8741cd798a30fb12a082107b8be7"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 1052077,
+      "sha256": "65aa112e06abcf6a7fc75bbbc718b85af66bb861636c52f79eeb86a16aee38b0"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_01.json": {
+      "bytes": 625216,
+      "sha256": "6476bd4f36264958557197d1eb2dbc04dda5909fc8af2c282ca8d0bc1ae2c0bf"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 636525,
+      "sha256": "3b2d997465cf29f9e8cf73b45a277f3c3d3f0ca2a6d42b043a763bade8ab9e67"
+    }
+  }
+}

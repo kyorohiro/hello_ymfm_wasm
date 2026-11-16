@@ -196,6 +196,7 @@ playground_performance_queue.js
 playground_performance_processor.js
 playground_performance_sender.js
 playground_performance_host.js
+playground_ay_timed_lifecycle.js
 playground_audition_guard.js
 playground_worker_chip.js
 playground_worker_dac.js
@@ -216,6 +217,10 @@ y8950synth.js
 ymf262synth.js
 ym2413synth.js
 ay8910synth.js
+ay8910_operations.js
+ay8910_timed_state.js
+ay8910_timed_client.js
+ay8910_timed_processor.js
 playground_ay8910.js
 playground_ay8910_audio.js
 playground_ay8910_worklet.js
@@ -288,6 +293,7 @@ playground_opn_worklet.js
 playground_audio_scheduler.js
 playground_clock.js
 playground_code_runtime.js
+playground_log.js
 playground_execution.js
 playground_live.js
 playground_logic_worker.js

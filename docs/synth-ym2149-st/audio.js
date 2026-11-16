@@ -66,7 +66,7 @@ export async function createAudio({volume = 0.6, preset = createDefaultPreset(),
     });
     await Promise.race([Promise.all([created, resumed]), startupFailure]);
     check(); clearTimeout(timer);
-    client = createAy8910Client(endpoint.port, {clock: YM2149_ST_CLOCK});
+    client = createAy8910Client(endpoint.port, {clock: YM2149_ST_CLOCK,type:0x10,flags:1,instanceId:endpoint.instanceId});
     client.initialize();
     instrument = createInstrument({client, preset, onChange});
     return {

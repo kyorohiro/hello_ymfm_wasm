@@ -19,3 +19,21 @@ export function formatLogArgs(args) {
     }
   }).join(' ');
 }
+
+/** Small bounded text table for register-write inspection in the Code Console.
+ * The API's original data is unchanged; long displays identify omitted rows. */
+export function formatLogTable(data, columns) {
+  if (!Array.isArray(data)) return formatLogArgs([data]);
+  if (!data.length) return '(empty table)';
+  const rows=data.slice(0,200);
+  const keys=columns===undefined?[...new Set(rows.flatMap(row=>row&&typeof row==='object'?Object.keys(row):['value']))]:columns;
+  if(!Array.isArray(keys)||keys.some(key=>typeof key!=='string'))throw new TypeError('Console table columns must be strings');
+  const selected=keys.slice(0,32),headers=['(index)',...selected];
+  const text=value=>formatLogArgs([value]).replace(/[\r\n\t]/g,' ').slice(0,80);
+  const cells=[headers,...rows.map((row,index)=>[String(index),...selected.map(key=>text(row&&typeof row==='object'?row[key]:key==='value'?row:undefined))])];
+  const widths=headers.map((_,column)=>Math.max(...cells.map(row=>row[column].length)));
+  const lines=cells.map(row=>row.map((value,index)=>value.padEnd(widths[index])).join(' | '));
+  if(data.length>rows.length)lines.push(`… ${data.length-rows.length} more rows (data remains complete).`);
+  if(keys.length>selected.length)lines.push(`… ${keys.length-selected.length} more columns.`);
+  return lines.join('\n');
+}

@@ -1,0 +1,461 @@
+{
+  "passed": true,
+  "entry": "/synth-ym2149-st/index.html",
+  "physicalOutputMuted": true,
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "editor": "offline textarea; external CDN intentionally blocked",
+      "timing": {
+        "currentMs": 0.699999988079071,
+        "clientMs": 0,
+        "referenceSampleRate": 44100,
+        "rows": 1,
+        "snapshotFrame": 9984
+      },
+      "timingScope": "One-operation inspection sample; browser timer resolution applies; no latency deadline is asserted",
+      "pcm": {
+        "peak": 0.08500000834465027,
+        "rms": 0.023328482883173948
+      },
+      "checkpoints": {
+        "run": [
+          {
+            "shape": 8,
+            "frame": 10752,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 11776,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 12800,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 13824,
+            "sampleRate": 48000
+          }
+        ],
+        "applied": [
+          {
+            "shape": 10,
+            "frame": 16896,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 18176,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 19200,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 20224,
+            "sampleRate": 48000
+          }
+        ],
+        "failedApply": [
+          {
+            "shape": 10,
+            "frame": 23808,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 25088,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 26112,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 27136,
+            "sampleRate": 48000
+          }
+        ],
+        "omittedEntry": [
+          {
+            "shape": 13,
+            "frame": 30720,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 31744,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 32768,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 33792,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 34816,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 35840,
+            "sampleRate": 48000
+          }
+        ],
+        "loop": [
+          {
+            "shape": 8,
+            "frame": 39424,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 40448,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 41472,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 42496,
+            "sampleRate": 48000
+          }
+        ],
+        "removedLoop": [
+          {
+            "shape": 13,
+            "frame": 45824,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 46848,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 47872,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 49152,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 50176,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 51200,
+            "sampleRate": 48000
+          }
+        ],
+        "stopped": [
+          {
+            "shape": 15,
+            "frame": 64256,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 65536,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 66560,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 67584,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 68864,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 69888,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 70912,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 71936,
+            "sampleRate": 48000
+          }
+        ]
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "pcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "scheduleTraffic": 15
+      },
+      "errors": [],
+      "missing": [],
+      "log": "TIMED_METRICS {\"currentMs\":0.699999988079071,\"clientMs\":0,\"referenceSampleRate\":44100,\"rows\":1,\"snapshotFrame\":9984}\nTIMED_READY_8\nTIMED_APPLIED_10\nTIMED_FAILED_STAGE\nCode error: EXPECTED_TIMED_APPLY_FAILURE\nTIMED_EMPTY_APPLY\nTIMED_LOOP_READY\nTIMED_REMOVED_LOOP\nTIMED_STOP_LOOP"
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "editor": "offline textarea; external CDN intentionally blocked",
+      "timing": {
+        "currentMs": 5,
+        "clientMs": 0,
+        "referenceSampleRate": 44100,
+        "rows": 1,
+        "snapshotFrame": 8704
+      },
+      "timingScope": "One-operation inspection sample; browser timer resolution applies; no latency deadline is asserted",
+      "pcm": {
+        "peak": 0.08500000834465027,
+        "rms": 0.02387483097357978
+      },
+      "checkpoints": {
+        "run": [
+          {
+            "shape": 8,
+            "frame": 9472,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 10624,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 11648,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 12800,
+            "sampleRate": 48000
+          }
+        ],
+        "applied": [
+          {
+            "shape": 10,
+            "frame": 14976,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 16000,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 17024,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 18048,
+            "sampleRate": 48000
+          }
+        ],
+        "failedApply": [
+          {
+            "shape": 10,
+            "frame": 20608,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 21632,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 22784,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 10,
+            "frame": 23808,
+            "sampleRate": 48000
+          }
+        ],
+        "omittedEntry": [
+          {
+            "shape": 13,
+            "frame": 26240,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 27264,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 28288,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 29440,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 30464,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 31488,
+            "sampleRate": 48000
+          }
+        ],
+        "loop": [
+          {
+            "shape": 8,
+            "frame": 34176,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 35200,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 36352,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 8,
+            "frame": 37376,
+            "sampleRate": 48000
+          }
+        ],
+        "removedLoop": [
+          {
+            "shape": 13,
+            "frame": 39808,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 40832,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 41856,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 43008,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 44032,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 13,
+            "frame": 45056,
+            "sampleRate": 48000
+          }
+        ],
+        "stopped": [
+          {
+            "shape": 15,
+            "frame": 57472,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 58496,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 59520,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 60544,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 61568,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 62720,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 63872,
+            "sampleRate": 48000
+          },
+          {
+            "shape": 15,
+            "frame": 65024,
+            "sampleRate": 48000
+          }
+        ]
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "pcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "scheduleTraffic": 15
+      },
+      "errors": [],
+      "missing": [],
+      "log": "TIMED_METRICS {\"currentMs\":5,\"clientMs\":0,\"referenceSampleRate\":44100,\"rows\":1,\"snapshotFrame\":8704}\nTIMED_READY_8\nTIMED_APPLIED_10\nTIMED_FAILED_STAGE\nCode error: EXPECTED_TIMED_APPLY_FAILURE\nTIMED_EMPTY_APPLY\nTIMED_LOOP_READY\nTIMED_REMOVED_LOOP\nTIMED_STOP_LOOP"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
 import {createPerformanceSender} from './playground_performance_sender.js?v=scsp-fm-1';
+import {createAyTimedLifecycle} from './playground_ay_timed_lifecycle.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
@@ -30,7 +31,7 @@ import {createRf5c164Client} from './playground_rf5c164.js?v=rf5c164-notes-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeNoiseOwnership} from './native_genesis_noise.js';
-import {serializeLogError} from './playground_log.js';
+import {serializeLogError,formatLogTable} from './playground_log.js';
 /**
  * @file playground_logic_worker.js
  * 実行環境: Browser（Web Worker）
@@ -278,6 +279,7 @@ function createClock(run) {
       for (const [key, loop] of run.runningLoops) {
         if (name === undefined || key === name) {
           run.releaseNoiseOwner?.(loop);
+          run.ayTimedLifecycle?.cancelLoop(loop);
           run.performance.cancelOwner(loop.performanceOwner); loop.stopped = true;
         }
       }
@@ -369,6 +371,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   };
   const performanceTransport = createPerformanceSender({leaseUntimed:capabilities.backend==='native-genesis',getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => {if(capabilities.backend==='native-genesis')for(const client of pcmClients)client._cancelPerformanceOwner?.(metadata.owner);postMessage({type:'performance-cancel-owner',...metadata});}});
   run.performance = performanceTransport;
+  const ayTimedLifecycle=createAyTimedLifecycle({getLoop:()=>run.currentLoop,setLoop:loop=>{run.currentLoop=loop;},
+    entryOwner:'script',loopOwner:loop=>loop.performanceOwner,cancelOwner:(_controller,owner)=>performanceTransport.cancelOwner(owner),
+    trackAsync:pending=>loopTasks.track(pending),onError:error=>postMessage({type:'log',level:'error',message:`[AY schedules] ${error?.message??serializeLogError(error)}`})});
+  run.ayTimedLifecycle=ayTimedLifecycle;
   const keyboardApi = createKeyboardApiGuard(() => run.currentLoop,value => {run.currentLoop=value;});
   const musicalKeyboard = createMusicalKeyboard({getContext:()=>run.currentLoop,setContext:value=>{run.currentLoop=value;},
     invoke:callback=>executeWithWorkerGuards(callback),onChange:target=>postMessage({type:'musical-keyboard-binding',binding:target?{name:target.name,session:musicalKeyboard.session}:null}),
@@ -394,7 +400,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     isStopped:scope=>run.stopped||(scope?scope.token!==run.token||scope.loop?.stopped:run.currentLoop?.stopped),
     decodeAudio:source=>request('pcm.decode',[source],run.currentLoop),
   });
-  const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};
+  const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>{
+    const raw=nativeBase.raw.get(name);
+    return [name,keyboardApi(raw?.chip==='ay8910'?ayTimedLifecycle.wrap(api,raw._timedOperations):api)];
+  }))};
   const primaryPcmClient = primaryPcmConnection ? createRf5c164Client(
     performanceTransport.port(primaryPcmConnection.port, 'independent'), source => request('pcm.decode',[source],run.currentLoop)) : null;
   if (primaryPcmClient) primaryPcmClient._adoptClock(primaryPcmConnection.clock ?? CHIP_CLOCKS.rf5c164);
@@ -629,6 +638,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.stop = async () => {
     if (run.stopped) return;
     const keyboardCleanup = musicalKeyboard.clear();
+    ayTimedLifecycle.stop();
     run.stopped = true;
     performanceTransport.stop();
     for (const loop of run.runningLoops.values()) loop.stopped = true;
@@ -780,6 +790,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       }, {evictOnDispose: !(name === 'rf5c164' && primaryPcm) && !(name === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       if(scoped)await resumeScopedNativeExtra(caller,token,()=>{});
+      if(name==='ay8910'){run.currentLoop=caller;if(caller?.stopped)throw new DOMException('Run stopped','AbortError');}
       return chip;
     },
     async createSoundChip(name, options = {}){
@@ -806,11 +817,14 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
       const release=immediate=>{if(disposed)return;disposed=true;try{dispose();}finally{pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId,response.instance],...(immediate?{}:{performance:performanceTransport.timestamp()})});}};
       pcm.dispose=()=>release(false);
-      pcmClients.add(pcm);const api=keyboardApi(pcm);if(scoped)return resumeScopedNativeExtra(caller,token,()=>api).catch(error=>{release(true);throw error;});return api;
+      pcmClients.add(pcm);const api=keyboardApi(name==='ay8910'?ayTimedLifecycle.wrap(pcm):pcm);
+      if(name==='ay8910'){run.currentLoop=caller;if(run.stopped||caller?.stopped){release(true);throw new DOMException('Run stopped','AbortError');}}
+      if(scoped)return resumeScopedNativeExtra(caller,token,()=>api).catch(error=>{release(true);throw error;});return api;
     },
     mixer: Object.fromEntries(['set', 'get', 'reset', 'list'].map(method => [method, (...args) => request('mixer.' + method, args, run.currentLoop)])),
     midi,
     console: {
+      table: (data,columns) => postCommand('log',[formatLogTable(data,columns)]),
       log: (...args) => postCommand("log", args),
       warn: (...args) => postCommand("warn", args),
       error: (...args) => postCommand("error", args),
@@ -932,12 +946,16 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     run.collectingKeyboard = new Map();
     run.collectingMusicalBinding = true;
     run.pendingMusicalBinding = null;
+    const timedTransaction=ayTimedLifecycle.begin(()=>!run.stopped&&generation===run.generation);
+    try {
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
     const userFunction = new AsyncFunction(...Object.keys(globals), `"use strict";\n{\n${nextSourceCode}\n}`);
-    try {await executeWithWorkerGuards(() => userFunction(...Object.values(globals)));}
-    finally {run.collectingMusicalBinding=false;}
+    await executeWithWorkerGuards(() => userFunction(...Object.values(globals)));
+    run.collectingMusicalBinding=false;
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
     await musicalKeyboard.commit(run.pendingMusicalBinding,()=>!run.stopped&&generation===run.generation);
+    if (run.stopped || generation !== run.generation) throw new Error('Run stopped');
+    await ayTimedLifecycle.commit(timedTransaction);
     if (run.stopped || generation !== run.generation) throw new Error('Run stopped');
     const definitions = run.collectingLoops;
     const cleanupDefinitions = run.collectingCleanups;
@@ -993,9 +1011,15 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
             if (run.currentLoop === loopContext) run.currentLoop = null;
           }
         }
-        loopTasks.release(loopContext);
+        loopTasks.release(loopContext);ayTimedLifecycle.cancelLoop(loopContext);
         if (run.runningLoops.get(name) === loopContext) run.runningLoops.delete(name);
       })();
+    }
+    } catch(error) {
+      ayTimedLifecycle.abort(timedTransaction);throw error;
+    } finally {
+      run.collectingMusicalBinding=false;
+      run.collectingLoops=run.collectingCleanups=run.collectingKeyboard=run.collectingLiveFx=null;
     }
   };
   return run;
@@ -1025,9 +1049,9 @@ async function handleLifecycleMessage(message, generation = lifecycleGeneration)
     }
     try {
       await currentRun.execute(message.sourceCode);
-      postMessage({ type: "complete", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size + (currentRun.keyboardTarget()?1:0) });
+      postMessage({ type: "complete", loopCount: currentRun.loops.size, keyboardHandlerCount: currentRun.keyboard.size + (currentRun.keyboardTarget()?1:0),scheduledReservationCount:currentRun.ayTimedLifecycle.entryReservationCount });
     } catch (error) {
-      postMessage({ type: "execution-error", message: error?.message ?? String(error), stack: error?.stack });
+      postMessage({ type: "execution-error", message: error?.message ?? String(error), stack: error?.stack,scheduledReservationCount:currentRun.ayTimedLifecycle.entryReservationCount });
     }
     return;
   }

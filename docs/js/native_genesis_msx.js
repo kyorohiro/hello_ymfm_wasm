@@ -4,17 +4,20 @@ import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=ps1-defer
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 import {createNativeGenesisOpll} from './native_genesis_opll.js?v=ps1-deferred-release-1';
+import {attachAyTimedClient} from './ay8910_timed_client.js?v=pokey-mode-1';
 const AY_CLOCK=1789773;
 function createNativeAy8910(context){
-  const {synth}=context;let clock=AY_CLOCK,appliedClock=AY_CLOCK,initialized=false;
+  const {synth}=context;let clock=AY_CLOCK,appliedClock=AY_CLOCK,initialized=false,completeState=false;
   const client=new AY8910Synth({clock,transport:{writeRegister(register,value){context.send('ay8910',{method:'write',register,value});},reset(){context.send('ay8910',{method:'reset'});}}});
-  const getState=client._getState.bind(client),adoptState=client._adoptState.bind(client),initialize=client.initialize.bind(client);
-  Object.defineProperties(client,{id:{value:'ay8910',enumerable:true},clock:{configurable:true,enumerable:true,get:()=>clock}});client.dispose=()=>{};
+  const getState=client._getState.bind(client),adoptState=client._adoptState.bind(client),initialize=client.initialize.bind(client),reset=client.reset.bind(client),adoptRegisters=client.adoptRegisterSnapshot.bind(client);
+  Object.defineProperties(client,{id:{value:'ay8910',enumerable:true},clock:{configurable:true,enumerable:true,get:()=>clock},_timedClientStateComplete:{get:()=>completeState}});client.dispose=()=>{};
+  client.reset=()=>{const result=reset();completeState=true;return result;};
+  client.adoptRegisterSnapshot=snapshot=>{const result=adoptRegisters(snapshot);completeState=false;return result;};
   client._adoptClock=hz=>{clock=validateChipClock(hz);};
   client._getState=()=>({...getState(),clock,initialized});
-  client._adoptState=state=>{adoptState({registers:state.registers,...(state.levels===undefined?{}:{levels:state.levels})});if(state?.clock!==undefined)client._adoptClock(state.clock);if(state?.initialized!==undefined)initialized=!!state.initialized;};
+  client._adoptState=state=>{adoptState({registers:state.registers,...(state.levels===undefined?{}:{levels:state.levels})});completeState=state.levels!==undefined;if(state?.clock!==undefined)client._adoptClock(state.clock);if(state?.initialized!==undefined)initialized=!!state.initialized;};
   client.initialize=()=>{const result=initialize();initialized=true;return result;};
-  client._forceKeyOff=ch=>{integer(ch,2,'AY8910 channel');const state=getState();state.registers[8+ch]=0;adoptState(state);context.send('ay8910',{method:'key-off',channel:ch});};
+  client._forceKeyOff=ch=>{integer(ch,2,'AY8910 channel');const state=getState(),complete=completeState;state.registers[8+ch]=0;adoptState(state);completeState=complete;context.send('ay8910',{method:'key-off',channel:ch});};
   // Use the same retained-level metadata as the Web / Worker client. A raw
   // zero write may be keyOff; an explicitly authored zero must stay zero.
   let nesting=0;
@@ -37,7 +40,10 @@ function createNativeAy8910(context){
   }
   function patch(groups){const state=client._getState();for(const group of groups)for(const c of group.commands){if(c.method==='write')state.registers[c.register]=c.value;if(c.method==='set-retained-level')state.levels[c.channel]=c.level;if(c.method==='key-off')state.registers[8+c.channel]=0;if(c.method==='reset'){state.registers.fill(0);state.levels.fill(9);}}client._adoptState(state);}
   const endpoint=createNativeVoiceEndpoint(context,{chip:'ay8910',globalName:'ay',client,inspector,translate,adopt,patch,reset(){clock=appliedClock=AY_CLOCK;initialized=false;client._adoptState({clock:AY_CLOCK,registers:Array(16).fill(0),levels:[9,9,9],initialized:false});}});
-  client._stopVoices=()=>{const state=getState();for(let ch=0;ch<3;ch++)state.registers[8+ch]=0;adoptState(state);return endpoint.dispatch({method:'stopVoices'});};return endpoint;
+  client._stopVoices=()=>{const state=getState(),complete=completeState;for(let ch=0;ch<3;ch++)state.registers[8+ch]=0;adoptState(state);completeState=complete;return endpoint.dispatch({method:'stopVoices'});};
+  // native_ay8910_create constructs the pinned AY core with type 0, flags 1.
+  attachAyTimedClient(client,{native:true,type:0,flags:1});
+  return endpoint;
 }
 export function createNativeGenesisMsx(synth){
   const context=createNativeVoiceContext(synth,{backend:'msx',statusCommand:'native_genesis_msx_status',label:'MSX'});

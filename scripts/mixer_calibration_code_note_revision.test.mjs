@@ -1,7 +1,7 @@
 // Actual runtime and deterministic fake ports; never constructs audio devices.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
 import {createPlaygroundCodeRuntime as current} from '../tetorica_src/runtime/playground_code_runtime.js';
 import {CODE_NOTE_REVISION_PATHS as paths,CODE_NOTE_REVISION_RECEIPT_PATH as path,

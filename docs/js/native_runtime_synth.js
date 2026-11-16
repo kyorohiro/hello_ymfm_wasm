@@ -294,7 +294,7 @@ export class NativeRuntimeSynth {
   }
 
   async #addAy(options,signal){
-    const endpoint=await this.#addPrimary('ay8910','ay',createAy8910Audio,device=>createAy8910Client(device.port,{clock:device.clock}),{...options,onError:()=>{if(this.initializationController?.signal!==signal||signal.aborted)return;this.#releasePrimaries();this.readyPromise=null;this.state='error';}},signal);
+    const endpoint=await this.#addPrimary('ay8910','ay',createAy8910Audio,device=>createAy8910Client(device.port,{clock:device.clock,type:device.type,flags:device.flags,instanceId:device.instanceId}),{...options,onError:()=>{if(this.initializationController?.signal!==signal||signal.aborted)return;this.#releasePrimaries();this.readyPromise=null;this.state='error';}},signal);
     endpoint.client.initialize();return endpoint;
   }
 

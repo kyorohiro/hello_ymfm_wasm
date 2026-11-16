@@ -2,7 +2,7 @@
 // Current output evidence is remeasured; original reports remain immutable.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
 import {restoreMixerCalibrationAySingleOutputUiCacheRevision} from './mixer_calibration_ay_single_output_ui_cache_revision.mjs';
 import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';

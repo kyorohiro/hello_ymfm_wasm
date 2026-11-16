@@ -1,6 +1,6 @@
 # YM2149 timed register API — revised second proposal
 
-Status: design and TODO only, updated on 2026-11-16. **Not implemented.** No runtime, declarations, defaults, DSP or WASM changes belong to this step.
+Status: revised design, with the first browser AY / YM2149 implementation authorized and started on 2026-11-16. `build`, awaitable `compile` / `captureState`, named reservations and Main / Worker / Synth Code integration are implemented for AY. Native supports valid client / reset inspection and explicitly rejects timed execution / authoritative capture. OPN examples remain design witnesses, not new YM2612 API support. See the [implementation verification](verification_ym2149_timed_api_20261116.md) for checks and limits. No DSP / WASM core rebuild is required.
 
 Tetorica should make both a SoundChip operation and its resulting register writes understandable. Record high-level operations without reading chip state, resolve them when they execute, and expose that same conversion separately for inspection. This revision withdraws the earlier build-time state copy and eager fixed-write compilation inside `build()`. Reusable state snapshots extend compilation so different operation lists can be compared from exactly the same baseline.
 
@@ -9,7 +9,7 @@ Tetorica should make both a SoundChip operation and its resulting register write
 Keep `build`, `schedule` and `compile` as the proposed names: record, execute and inspect. Existing immediate `noteOn`, `noteOff`, `setOperator` and other methods retain their signatures, return values and behavior.
 
 ```javascript
-// Proposed API; not executable yet.
+// Browser AY / YM2149 client API.
 const ym = await useSoundChip("ay8910");
 const operations = ym.build(b => {
   b.atSample(0).setMixer(CH1, { tone: true });
@@ -22,8 +22,7 @@ await ym.schedule(operations, {
   repeatSeconds: 1 / 110,
 });
 
-// Awaitable compile is recommended for an authoritative Worklet snapshot.
-// Its return contract is the open decision in section 4.
+// All compile baseline modes use the same awaitable interface.
 const writes = await ym.compile(operations);
 console.table(writes);
 await ym.clearSchedule("buzzer");
@@ -116,8 +115,8 @@ Immediate API semantics remain the reference. Audit existing partial-operator Ke
 Requested interface:
 
 ```javascript
-const writes = fm.compile(operations); // Current state baseline.
-const resetWrites = fm.compile(operations, { initialState: "reset" });
+const writes = await fm.compile(operations); // Current state baseline.
+const resetWrites = await fm.compile(operations, { initialState: "reset" });
 ```
 
 - Default / `initialState: "current"`: use a coherent snapshot of authoritative chip state and required metadata associated with the compilation request.
@@ -133,7 +132,7 @@ Reset descriptors need a per-chip audit: AY has retained-level metadata, and OPN
 ### Local inspection through `initialState: "client"`
 
 ```javascript
-// Proposed API; not implemented. Awaitable usage follows the recommendation below.
+// Awaitable interface in every baseline mode.
 const a = await fm.compile(operations); // Same as initialState: "current".
 const b = await fm.compile(operations, { initialState: "client" });
 const c = await fm.compile(operations, { initialState: "reset" });
@@ -181,7 +180,7 @@ AY already retains most required fields; the local adapter still needs explicit 
 ### Reusable snapshots through `captureState()`
 
 ```javascript
-// Proposed API; not implemented.
+// Browser AY / YM2149 client API.
 const snapshot = await fm.captureState();
 
 const writesA = await fm.compile(operationsA, {
@@ -233,11 +232,11 @@ This is a prediction from one baseline, **not actual playback history**. Manual 
 
 Likewise, choosing `"client"` for inspection never changes execution to use a client shadow: scheduled partial updates still resolve from authoritative state at their actual application points.
 
-### Open return-contract decision: current state across threads
+### Asynchronous capture and compilation
 
 The requested synchronous result is straightforward with local authoritative state. Main / Worker cannot synchronously read exact Worklet state through an ordinary MessagePort. A cached mirror can lag actual writes and must not be called current state.
 
-Recommend a consistently awaitable public API:
+The first implementation uses a consistently awaitable public API:
 
 ```javascript
 const writes = await fm.compile(operations);
@@ -246,7 +245,7 @@ const resetWrites = await fm.compile(operations, { initialState: "reset" });
 
 For live connections, current-state compilation uses the same coherent snapshot acquisition as `captureState()` and compiles on a copy. Define the snapshot point as the audio-side processing position of that request, before later operations, with internal frame / state-version provenance for verification. This does not claim to read the exact JavaScript wall-clock instant of invocation. With `initialState: snapshot`, reuse its earlier capture point; do not take another snapshot.
 
-**Settle this return / snapshot contract before implementation.** It is a proposed adjustment to the synchronous example, not permission to silently use a stale authoring copy. Reset compilation can be local, but one awaitable contract avoids backend-dependent return types. No timer fallback may approximate snapshot ordering or execution.
+This settles the return contract for the AY implementation without substituting a stale authoring copy for `"current"`. Reset / client / supplied-snapshot compilation is local, with the same awaitable public result. No timer fallback approximates snapshot ordering or execution.
 
 ## 5. Seconds and reference samples are absolute offsets
 
@@ -270,8 +269,8 @@ const operations = ym.build(b => {
 
 - AudioWorklet executes operations at sample boundaries, splitting rendering at events. No `setTimeout()` fallback or arbitrary audio-thread callbacks.
 - Keep one bounded repeating pattern, not an expanded infinite queue. Do not precompile one fixed byte list for every future live state.
-- Omitted `repeatSeconds` means one finite pass. A repeat interval must be finite, positive and exceed the final logical offset. Reject empty repeats and unsupported rates instead of clamping. Numeric rate / capacity limits remain to be measured and specified.
-- Reserve the start once from the audio clock with a documented small lead applied once. Immediate methods retain their behavior. The acceptance receipt can identify start / phase; numeric lead and any explicit-start interface remain implementation decisions.
+- Omitted `repeatSeconds` means one finite pass. A repeat interval must be finite, positive and exceed the final logical offset. Reject empty patterns and unsupported rates instead of clamping. The first implementation bounds patterns to 4,096 entries, 128 active names and 48,000 aggregate repeating operations / second, within the existing 65,536-command storage budget. These limits are admission bounds, not maximum-rate performance guarantees.
+- Reserve the start once from the audio clock. The first browser implementation uses a 128-output-frame lead for ordinary direct reservations; Worker reservations retain the existing performance lead once. Entry transactions choose a fresh anchor on commit, respecting that lead. Immediate methods retain their behavior. Accepted live receipts identify `startFrame` / `sampleRate`; staged entry receipts use `staged: true` without a final start frame. No explicit-start option is added.
 - `await schedule()` resolves on acceptance, not playback completion. Waiting for infinite repetition would block existing live-loop Apply adoption.
 - Names identify reservations per physical chip and Run. Validate then replace atomically; rejection retains the previous reservation. Owner / loop-generation metadata is internal, and stale cleanup cannot cancel a newer replacement.
 - Successful Apply commits staged top-level replacements / removals; failed Apply retains previous work. Live-loop calls update named reservations without waiting for playback completion. Removed / stopped loops lose owned reservations; Run / Stop invalidate retired sessions.
@@ -336,19 +335,18 @@ Scope remains AY first, with YM2612 as a concrete design witness and compatibili
 - [x] Review requested AY / OPN / timing cases and record reset, raw-state synchronization and snapshot gaps.
 - [x] Add reusable asynchronous `captureState()` snapshots and `initialState: snapshot`, including required semantic state, independent working copies, coherent capture, compatibility validation and comparison acceptance cases; preserve existing `getState()` behavior.
 - [x] Add explicit `initialState: "client"` for communication-free inspection, distinguish local completeness from renderer freshness, audit existing AY / OPN / Native state, and specify conservative rejection / isolation acceptance cases without new constant synchronization.
-- [ ] Settle `compile()` return / snapshot contract; recommend an awaitable authoritative snapshot.
+- [x] Settle the AY `compile()` return / snapshot contract: consistently awaitable, ordered authoritative capture for current state, local work for other baseline modes.
 
-### Implementation after design agreement — not started
+### Implementation progress — browser AY first
 
-- [ ] Finalize operation allowlists / schema, naming, start anchor and measured limits without changing immediate APIs or legacy `scheduleWrites()`.
-- [ ] Share chip validation / conversion; synchronize authoritative state and define reset descriptors / required metadata. Cover R7, R13, packed OPN fields, raw writes and key commands.
-- [ ] Implement lightweight recording and isolated compilation with snapshot ordering and no live side effects.
-- [ ] Add supported local-state adapters for `initialState: "client"`, using existing backing state / configuration, explicit completeness checks and isolated copies. Address the inventory's gaps conservatively; verify zero readback, stale / optimistic behavior, incomplete-state rejection and unchanged authoritative modes without new continuous synchronization.
-- [ ] Add coherent non-stopping `captureState()` acquisition and reusable read-only state values; validate chip identity / configuration and compile each call on its own work copy. Verify same-baseline comparison, historical / concurrent reuse, rejection and no live mutations.
-- [ ] Implement compact sample-accurate reservations, atomic admission / replacement and fresh resolution at every occurrence.
-- [ ] Connect AY Worklet, Main / Worker, client and Synth Code ownership; retain Run / Apply / Stop and manual Gate guards.
-- [ ] Execute the acceptance matrix, including applied-write comparison, state-dependent failure and both output rates.
-- [ ] Add declarations, completion descriptions, source navigation and supported-transport documentation where the API is exposed.
-- [ ] Measure actual PCM for periodic R13 writes, then make a separately verified Sync-buzzer example. Label host scheduling as software; Envelope / register effects are chip behavior.
+- [x] Add AY operation allowlist / schema, names, anchored timing and explicit bounds without changing immediate signatures or legacy YM2612 `scheduleWrites()`.
+- [x] Reuse AY validation / packing with isolated scratch state; retain full register and key-on-level metadata. Batch immediate browser writes and retained metadata to keep captures coherent.
+- [x] Add state-free recording, isolated compilation in all four modes, reusable snapshots, compatibility rejection and client completeness checks without constant synchronization.
+- [x] Add compact Worklet reservations, whole-plan admission / manifest replacement, execution-time partial resolution and nonfatal runtime-error reporting.
+- [x] Connect Main / Worker and Synth Code staging, successful omission / failed Apply, loop / generation cleanup and manual Gate guards. Global Stop cancels future work before its existing fade; loop removal may release only its own scheduled Gates.
+- [x] Add AY declarations / completion / implementation navigation and a runnable README example, including host-software and backend limits.
+- [x] Record final runtime / browser verification and distribution checks for the mirrored source tree; no maximum-rate or physical-hardware equivalence claim.
+- [ ] Extend the chip resolver / state coverage to OPN before exposing new high-level scheduling there; validate packed fields and Key On/Off with its authoritative raw state. Existing OPN examples above are not runtime test results.
+- [ ] Make a separately hardware-informed Sync-buzzer / timer-hack example after this periodic R13 prototype. Exact ST CPU / MFP timing remains outside the sample-clock API.
 
 Related: [YM2149 ST TODO](todo_ym2149_st_synth_20261116.md).

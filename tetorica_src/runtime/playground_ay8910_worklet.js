@@ -4,9 +4,12 @@ import factory from './generated/ay8910_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
+import {createAyTimedProcessor} from './ay8910_timed_processor.js';
+let instanceSequence=0;
 class Processor extends AudioWorkletProcessor{
-  constructor({processorOptions:{clock=1789773,type=0,flags=1,wasmBinary}}){
+  constructor({processorOptions:{clock=1789773,type=0,flags=1,instanceId,wasmBinary}}){
     super();this.baseClock=this.clock=clock;this.type=type;this.flags=flags;this.chip=null;this.dead=false;this.registers=new Uint8Array(16);this.mutedChannels=new Set([0,1,2]);this.resampler=new ChipClockResampler();
+    this.instanceId=instanceId??`ay-worklet:${++instanceSequence}`;
     // The normalized YM DAC has a -0.125 baseline per voice. Hard muting that
     // baseline at each key edge creates a louder step than a quiet tone itself.
     // Restore its zero at this speaker boundary; raw chip PCM stays unchanged.
@@ -17,24 +20,33 @@ class Processor extends AudioWorkletProcessor{
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{
       if(data.primaryWorker){this.workerRemote?.close();this.workerRemote=null;if(data.port){if(this.dead){data.port.close();return;}const remote=this.workerRemote=data.port;remote.onmessage=event=>{if(this.workerRemote===remote)this.receive(event.data,remote);};remote.start();}return;}
-      if(data.type==='detach-chip-port'){this.remote?.close();this.remote=null;this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();return;}
+      if(data.type==='detach-chip-port'){this.remote?.close();this.remote=null;this.timed?.clear();this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();return;}
       if(data.port){this.remote?.close();if(this.dead){data.port.close();return;}const remote=this.remote=data.port;remote.onmessage=event=>{if(this.remote===remote)this.receive(event.data,remote);};remote.start();}
       else this.receive(data,this.port);
     };
     Ay8910.create({moduleFactory:factory,moduleOptions:{wasmBinary},clock,sampleRate,type,flags}).then(chip=>{
       if(this.dead){chip.dispose();return;}this.chip=chip;this.updateMuteMask();
       this.inspector=new Ay8910VoiceInspector({clock:()=>this.clock,sampleRate,dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{owner,...metadata}),beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)});
+      this.timed=createAyTimedProcessor({performance:this.performance,
+        getState:()=>this.inspector.getState(),setLevels:levels=>{this.inspector.levels=[...levels];},
+        getConfig:()=>({instanceId:this.instanceId,clock:this.clock,type:this.type,flags:this.flags}),
+        dispatch:(command,port,_frame,metadata)=>this.performance.applyImmediate(command,port,metadata),
+        nowFrame:this.performance.nowFrame,sampleRate});
       this.port.postMessage({ready:true});
     }).catch(error=>{this.dispose();this.port.postMessage({error:error.message});});
   }
-  dispose(){this.inspector?.resetAuditions();this.performance.clear();this.dead=true;this.chip?.dispose();this.chip=null;this.remote?.close();this.workerRemote?.close();}
+  dispose(){this.inspector?.resetAuditions();this.timed?.clear();this.performance.clear();this.dead=true;this.chip?.dispose();this.chip=null;this.remote?.close();this.workerRemote?.close();}
   publishState(){this.port.postMessage({type:'ay-state',state:{clock:this.clock,type:this.type,flags:this.flags,initialized:true,...this.inspector.getState()}});}
   receive(data,port=this.port){
     if(Array.isArray(data)){for(const command of data)this.receive(command,port);return;}
+    if(data?.method==='ayTimed'){
+      if(!this.timed){port.postMessage({id:data.id,error:'AY8910 timed API is not ready'});return;}
+      this.timed.receive(data,port);return;
+    }
     if(data?.type==='chip-inspector'){receiveChipInspector(data,port,this.inspector?(action,method,args)=>{const value=action==='read'?{...this.inspector.read(),type:this.type,flags:this.flags}:this.inspector.invoke(method,args);if(action!=='read')this.publishState();return value;}:null);return;}
     if((data?.method==='clock'||data?.type==='chip-clock')&&this.inspector?.auditions.size){if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,error:'AY8910 is held by a manual audition'});return;}
     const stopping=data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
-    if(stopping||data?.method==='stopVoices')this.inspector?.invoke('auditionAllOff');
+    if(stopping||data?.method==='stopVoices'){this.timed?.clear();this.inspector?.invoke('auditionAllOff');}
     if(this.performance.receive(data,port)){if(stopping){this.stopVoices();this.performance.clear();}return;}
     this.apply(data,port);
   }
@@ -45,7 +57,9 @@ class Processor extends AudioWorkletProcessor{
   }
   forceKeyOff(channel){if(!Number.isInteger(channel)||channel<0||channel>2)throw new RangeError('AY8910 channel must be 0..2');this.writeRegister(8+channel,0);}
   stopVoices(){if(!this.chip)return;for(let ch=0;ch<3;ch++)this.forceKeyOff(ch);this.resampler.left=this.resampler.right=0;}
-  apply(data,port){
+  apply(data,port,frame,metadata){
+    // Reservation errors must reach the queue so it can retire the pattern.
+    if(data.method==='applyTimedOperation')return this.timed.apply(data.operation,port,frame,metadata);
     try{
       if(data.method==='dispose'){this.dispose();return;}if(!this.chip)throw new Error('AY8910 not ready');
       if(data.method==='clock'||data.type==='chip-clock'){

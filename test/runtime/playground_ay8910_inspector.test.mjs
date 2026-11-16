@@ -9,13 +9,14 @@ import factory from '../../docs/generated/ay8910_wasm.js';
 import {createAy8910Client} from '../../tetorica_src/runtime/playground_ay8910.js';
 import {Ay8910VoiceInspector} from '../../tetorica_src/runtime/playground_ay8910_inspector.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createAyTimedProcessor} from '../../tetorica_src/runtime/ay8910_timed_processor.js';
 import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {validateChipClock,ChipClockResampler} from '../../tetorica_src/runtime/playground_chip_clock.js';
 const RATE=48000,peak=values=>values.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
 async function setup(options={}){
   let Processor,frame=0,ready;const messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)ready(message);}},started=new Promise(resolve=>ready=resolve);
   const source=(await readFile(new URL('./playground_ay8910_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
-  vm.runInNewContext(source,{Ay8910,factory,Ay8910VoiceInspector,receiveChipInspector,validateChipClock,ChipClockResampler,sampleRate:RATE,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
+  vm.runInNewContext(source,{Ay8910,factory,Ay8910VoiceInspector,receiveChipInspector,createAyTimedProcessor,validateChipClock,ChipClockResampler,sampleRate:RATE,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
   const processor=new Processor({processorOptions:{...options,wasmBinary:await readFile(new URL('../../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createAy8910Client(clientPort,{clock:options.clock});client.initialize();
   return {processor,client,messages,port,receive:data=>processor.receive(data,port),read:()=>processor.inspector.read(),invoke:(method,args=[])=>processor.inspector.invoke(method,args),render(frames){const output=[new Float32Array(frames),new Float32Array(frames)];processor.process([],[output]);frame+=frames;return output;},close(){client.dispose();processor.dispose();}};
@@ -146,11 +147,19 @@ for(const execution of ['Main','Worker'])test(`AY ${execution}: manual leases pr
 });
 test('AY applied snapshots retain silent configured levels and Main/Worker adoption performs no writes',async()=>{
   const p=await setup();try{
-    p.client.setVoice(1,{tone:false,noise:true,volume:5,envelope:true});p.client.keyOff(1);const state=p.client._getState(),sent=[],worker=createAy8910Client({start(){},close(){},postMessage:message=>sent.push(message)});worker._adoptState(state);assert.deepEqual(sent,[]);assert.deepEqual(worker._getState(),state);worker.keyOn(1);assert.equal(sent.at(-1).args[1]&31,21);worker.dispose();
+    p.client.setVoice(1,{tone:false,noise:true,volume:5,envelope:true});p.client.keyOff(1);const state=p.client._getState(),sent=[],worker=createAy8910Client({start(){},close(){},postMessage:message=>sent.push(message)});worker._adoptState(state);assert.deepEqual(sent,[]);assert.deepEqual(worker._getState(),state);worker.keyOn(1);assert.equal(sent.flat().at(-1).args[1]&31,21);worker.dispose();
     p.invoke('setVoice',[1,{volume:0,envelope:false}]);assert.equal(p.read().channels[1].configuredVolume,0);assert.equal(p.read().channels[1].configuredEnvelope,false);
     p.client.setVolume(2,5,true);p.client.keyOff(2);assert.equal(p.read().channels[2].configuredVolume,5);assert.equal(p.read().channels[2].configuredEnvelope,true);
     p.client.setVolume(2,0,false);assert.equal(p.read().channels[2].configuredVolume,0);assert.equal(p.read().channels[2].configuredEnvelope,false);p.invoke('auditionOn',[2,69,'silent']);assert.equal(peak(p.render(128)[0]),0);
   }finally{p.close();}
+});
+test('AY immediate operations send coherent register and retained-state batches for capture',()=>{
+  const sent=[],client=createAy8910Client({start(){},close(){},postMessage:data=>sent.push(data)});
+  client.setEnvelope({period:257,shape:8});
+  assert.deepEqual(sent,[[{method:'writeRegister',args:[11,1]},{method:'writeRegister',args:[12,1]},{method:'writeRegister',args:[13,8]}]]);
+  sent.length=0;client.setVolume(0,0,false);
+  assert.deepEqual(sent,[[{method:'writeRegister',args:[8,0]},{method:'setRetainedLevel',args:[0,0]}]]);
+  client.dispose();
 });
 test('AY fixed-rate core clock changes preserve controls and pending writes remain unapplied until their audio frame',async()=>{
   const p=await setup();try{

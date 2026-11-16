@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {
   HUC6280_UI_REVISION_RECEIPT_PATH as receiptPath,HUC6280_UI_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   HUC6280_UI_REVISION_SOURCE_PATHS as paths,HUC6280_UI_REVISION_REPORT_PATHS as reports,

@@ -291,6 +291,9 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
   }
   function blockedByAudition(command,metadata) {
     if(!auditions.size)return false;
+    // Explicit timed AY edits follow actual application order. Note ownership
+    // below still protects newer manual Gates from an old scheduled release.
+    if(chipName()==='ay8910'&&metadata?.timedOperation)return false;
     // PSG noise rate 3 uses tone channel 3's divider. A held noise key owns
     // that divider as well, while the tone channel's volume remains editable.
     if(chipName()==='segapsg'&&command.method==='write'&&auditions.has(3)&&(getPsgMode?.()&3)===3){
@@ -330,6 +333,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
     return {...command,args:[0x0e,(command.args[1]&~mask)|((getOpllRhythm?.()??0)&mask)]};
   }
   function protectAyMixer(command,metadata){
+    if(metadata?.timedOperation)return command;
     if(!auditions.size||chipName()!=='ay8910'||command.method!=='writeRegister'||command.args[0]!==7)return command;
     let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=(1<<channel)|(8<<channel);
     return {...command,args:[7,(command.args[1]&~mask)|((getAyRegisters?.()?.[7]??0x38)&mask)]};
@@ -460,6 +464,13 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
     beginAudition(channel,owner){auditions.set(channel,owner);},
     endAudition(channel,owner){if(auditions.get(channel)===owner)auditions.delete(channel);},
     applyImmediate(command,port,metadata){return applyTracked(command,port,nowFrame(),metadata);},
+    schedulePattern:queue.schedulePattern,
+    validatePattern:queue.validatePattern,
+    clearPattern:queue.clearPattern,
+    commitPatterns:queue.commitPatterns,
+    cancelPatternOwner:queue.cancelPatternOwner,
+    cancelOwner:queue.cancelOwner,
+    nowFrame,
     clear(){queue.clear();owners.clear();auditions.clear();},
     getStats:queue.getStats,
   };

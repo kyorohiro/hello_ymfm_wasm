@@ -2,8 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import { readFile, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
+import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';

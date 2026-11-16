@@ -15,22 +15,22 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record=bytes=>({bytes:bytes.length,sha256:sha(bytes)});
 const historical=name=>execFileSync('git',['show',baseCommit+':'+name],{cwd:root,maxBuffer:4*1024*1024});
-export async function createNesSharedClientNavigationUiReceipt(){
-  const before=historical('docs/'+path),after=restoreMixerCalibrationScspNavigationRevision(path,await readFile(resolve(root,'docs/'+path)));
+export async function createNesSharedClientNavigationUiReceipt({readSource=readFile}={}){
+  const before=historical('docs/'+path),after=restoreMixerCalibrationScspNavigationRevision(path,await readSource(resolve(root,'docs/'+path)));
   const offset=after.indexOf(removedText);
   assert(offset>=0&&after.indexOf(removedText,offset+1)===-1,'One exact passive insertion is required');
   assert.deepEqual(Buffer.concat([after.subarray(0,offset),after.subarray(offset+Buffer.byteLength(removedText))]),before,
     'Only the reviewed NES source-navigation lines may change');
-  const predecessorBytes=await readFile(resolve(root,NES_NAVIGATION_PREDECESSOR_RECEIPT_PATH));
+  const predecessorBytes=await readSource(resolve(root,NES_NAVIGATION_PREDECESSOR_RECEIPT_PATH));
   assert.deepEqual(predecessorBytes,historical(NES_NAVIGATION_PREDECESSOR_RECEIPT_PATH),'The predecessor receipt must remain unchanged');
   const predecessor=JSON.parse(predecessorBytes);
   assert.equal(sha(JSON.stringify(predecessor)),NES_NAVIGATION_PREDECESSOR_RECEIPT_OBJECT_SHA256);
   assert.deepEqual(record(before),predecessor.after,'The complete predecessor must match its independent receipt');
-  const measured=JSON.parse(await readFile(resolve(root,MEASURED_POLICY_REVISION_RECEIPT_PATH),'utf8'));
+  const measured=JSON.parse(await readSource(resolve(root,MEASURED_POLICY_REVISION_RECEIPT_PATH),'utf8'));
   assert.equal(sha(JSON.stringify(measured)),MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256);
   assert.deepEqual(measured.reports,predecessor.reports);
   for(const [name,expected]of Object.entries(measured.reports)){
-    const bytes=await readFile(resolve(root,name));
+    const bytes=await readSource(resolve(root,name));
     assert.deepEqual(bytes,historical(name),'Original measurements must remain unchanged');
     assert.deepEqual(record(bytes),expected,'Measurement must match its independent receipt');
     assert.deepEqual(JSON.parse(bytes).sources[path],predecessor.before,'Every measured source must match the preceding navigation layer');

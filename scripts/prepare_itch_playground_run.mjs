@@ -26,6 +26,7 @@ const codeFile=name=>/\.(?:c|cc|cpp|cxx|h|hh|hpp|hxx|sh)$/i.test(name)
 const sdkBuildMetadata=new Set([
  'sdk/catalog/source_inventory.json','sdk/RELEASE-MANIFEST.json','scsp-sdk/RELEASE-MANIFEST.json',
  'sdk/sdk.json','sdk/soundchip-sdk.json','scsp-sdk/sdk.json',
+ 'CDDA.json','MSM5205.json','POKEY-SDK.json',
 ]);
 export const isItchRunArchivedSource=name=>codeFile(name)
  || sdkBuildMetadata.has(name) // Exact build metadata remains in corresponding-source.zip.

@@ -4,6 +4,7 @@
  */
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
 
 export const AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_PATH='docs/issues/ay_single_output_passive_cache_restore_revision_01.json';
 export const AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_OBJECT_SHA256='113fdf5c540bcec6a073386d1c349b2fcfaff97de70d87a0619c7125bde9860a';
@@ -64,16 +65,21 @@ export function restoreMixerCalibrationAySingleOutputUiCacheRevision(path,bytes,
   if(!AY_SINGLE_OUTPUT_UI_CACHE_SOURCE_PATHS.includes(path)||!report)return bytes;
   const receipt=verifiedReceipt(readSource),entry=receipt.sources[path];
   if(!matches(bytes,entry.served)||!sameRecord(record,entry.measured)||!sameRecord(report.sources?.[path],entry.measured))return bytes;
-  const reportObjectSha=sha(JSON.stringify(report));let recognized=false;
+  const reportObjectSha=sha(JSON.stringify(report));let recognized=false;const measurements=[];
   for(const evidencePath of AY_SINGLE_OUTPUT_UI_CACHE_REPORT_PATHS){
     const evidenceBytes=readSource(new URL('../'+evidencePath,import.meta.url));
     if(!matches(evidenceBytes,receipt.reports[evidencePath]))fail('immutable measurement changed: '+evidencePath);
     const evidence=JSON.parse(evidenceBytes);
     for(const source of AY_SINGLE_OUTPUT_UI_CACHE_SOURCE_PATHS)
       if(!sameRecord(evidence.sources?.[source],receipt.sources[source].measured))fail('measurement source pair detached: '+evidencePath);
-    for(const target of importTargets)
-      if(!matches(readSource(new URL('../docs/'+target,import.meta.url)),evidence.sources?.[target]))fail('import target changed: '+target);
+    measurements.push(evidence);
     if(sha(JSON.stringify(evidence))===reportObjectSha)recognized=true;
+  }
+  for(const evidence of measurements){
+    for(const target of importTargets){
+      const current=restoreMixerCalibrationAyTimedRevision(target,readSource(new URL('../docs/'+target,import.meta.url)),{readSource});
+      if(!matches(current,evidence.sources?.[target]))fail('import target changed: '+target);
+    }
   }
   if(!recognized)return bytes;
   return Buffer.from(entry.measuredText);

@@ -4,10 +4,11 @@ import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {nativeSnapshotArray} from './native_genesis_voice_endpoint.js';
 import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js';
+import {attachAyTimedClient} from './ay8910_timed_client.js';
 
 export const EXTRA_AY8910_CLOCK_HELD_ERROR='Release the manually held additional AY8910 voices before changing the clock';
 export function createNativeGenesisAy8910Endpoint(synth){
-  return createNativeExtraRegisterVoice(synth,{kind:'ay8910',label:'AY8910',clock:CHIP_CLOCKS.ay8910,registerCount:16,voiceCount:3,
+  const endpoint=createNativeExtraRegisterVoice(synth,{kind:'ay8910',label:'AY8910',clock:CHIP_CLOCKS.ay8910,registerCount:16,voiceCount:3,
     createClient:createAy8910RegisterClient,
     createInspector(options){const inspector=new Ay8910VoiceInspector(options),invoke=inspector.invoke.bind(inspector),read=inspector.read.bind(inspector);inspector.invoke=(method,args)=>{const before=[...inspector.levels],result=invoke(method,args);for(let channel=0;channel<3;channel++)if(before[channel]!==inspector.levels[channel])inspector.dispatch({method:'setRetainedLevel',args:[channel,inspector.levels[channel]]},undefined,{preserveOwner:true});return result;};inspector.read=()=>{const result=read();if(inspector.nativeGates)for(let channel=0;channel<3;channel++)result.channels[channel].active&&=inspector.nativeGates[channel];return result;};return inspector;},
     validate(data){nativeSnapshotArray(data.levels,3,31,'AY8910 retained levels');if(!Array.isArray(data.gates)||data.gates.length!==3||data.gates.some(value=>typeof value!=='boolean'))throw new Error('Native additional AY8910 returned invalid gates');},
@@ -16,5 +17,9 @@ export function createNativeGenesisAy8910Endpoint(synth){
     track(registers,owners,{register:r,value:v,group}){if(r>=8&&r<=10){if(v&31)owners.set(r-8,group);else owners.delete(r-8);}},
     cancelAuthor(state,owners,group){for(const [channel,owner]of owners)if(owner===group){state.registers[8+channel]=0;owners.delete(channel);}},
   });
+  // Attach after the Native endpoint installs its local clock and state hooks.
+  // native_ay8910_create uses the pinned type-0, flags-1 AY configuration.
+  attachAyTimedClient(endpoint.client,{native:true,type:0,flags:1});
+  return endpoint;
 }
 export function createNativeGenesisExtraAy8910(synth,options={}){return createNativeGenesisExtraChip(synth,{...options,kind:'ay8910',label:'AY-3-8910',clock:CHIP_CLOCKS.ay8910,createEndpoint:createNativeGenesisAy8910Endpoint});}

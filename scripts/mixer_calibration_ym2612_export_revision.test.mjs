@@ -5,7 +5,7 @@ import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} fro
 import test from 'node:test';
 import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
 import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationYm2612ExportRevision,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationSynthCodeUiRevision} from './mixer_calibration_sources.mjs';
 import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';

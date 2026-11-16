@@ -125,6 +125,8 @@
     "test:aswan-synth:browser": "node scripts/check_aswan_synth_browser.cjs",
     "pack:aswan-synth": "sh scripts/package_itch_aswan_synth.sh",
     "test:ym2149-st-synth": "node --test docs/synth-ym2149-st/*.test.mjs scripts/package_itch_ym2149_st_synth.test.mjs",
+    "test:ym2149-timed": "node --test test/runtime/ay8910_operations.test.mjs test/runtime/ay8910_timed_*.test.mjs test/runtime/playground_ay_timed_lifecycle.test.mjs test/runtime/playground_code_schedules.test.mjs test/runtime/playground_performance_patterns.test.mjs test/runtime/native_ay8910_timed_client.test.mjs test/runtime/playground_log_table.test.mjs docs/playground/playground_ay8910_timed_declarations.test.mjs",
+    "test:ym2149-timed:browser": "node scripts/check_ym2149_timed_browser.cjs",
     "test:ym2149-st-synth:browser": "node scripts/check_ym2149_st_synth_browser.cjs",
     "pack:ym2149-st-synth": "sh scripts/package_itch_ym2149_st_synth.sh",
     "test:huc6280-synth": "node --test docs/synth-huc6280/*.test.mjs test/runtime/huc6280_state.test.mjs scripts/package_itch_huc6280_synth.test.mjs",

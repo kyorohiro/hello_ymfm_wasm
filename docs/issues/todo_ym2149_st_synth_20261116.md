@@ -28,16 +28,30 @@ Initial implementation and readable itch ZIP are complete. See [verification_ym2
 
 ## Follow-up design / research
 
+### Timed API implementation — started 2026-11-16
+
+User authorized implementation after reviewing the design additions. Start with browser AY / YM2149; keep existing immediate APIs and legacy YM2612 scheduling compatible. Use an awaitable `compile()` across all baseline modes. Keep unsupported Native / offline scheduling explicit.
+
+- [x] Implement state-free operation recording and shared AY conversion; verify R7 partial updates, R13 repeated writes and retained levels.
+- [x] Add bounded compact named reservations to the existing Performance Queue, with exact output-frame timing, atomic replacement and cancellation.
+- [x] Connect authoritative capture, current / client / reset / reusable-snapshot compilation, and sample-accurate Worklet execution.
+- [x] Connect Main / Worker and Synth Code lifecycle, including Apply rollback, loop cancellation, stale ownership and Stop.
+- [x] Add public declarations / completion, a focused [README example](../synth-ym2149-st/README.md#timed-register-operations) and accurate backend limits; verify browser / runtime behavior with physical speaker output muted.
+- [x] Record [verification results and limits](verification_ym2149_timed_api_20261116.md), including real browser checks, 464 historical guards and readable distribution validation, without marking unimplemented chips as supported.
+
+### Research and earlier design decisions
+
 - [x] Decide a reference playback / import path: user requested VGM / VGZ and SNDH / YM reference playback on 2026-11-16. Reuse existing AY VGM rendering and evaluate pinned AtariAudio sources for SNDH / YM.
-- [ ] Design and validate a named register reservation API for high-rate effects after the basic Synth works. Keep loop timing separate from physical channel state; account for shared generators, repeat, Stop, Apply, cancellation and manual edits.
+- [x] Design and validate the first named register reservation API for browser AY / YM2149. Keep loop timing separate from physical channel state; account for shared generators, repeat, Stop, Apply, cancellation and manual edits. Other chip resolvers remain follow-up work.
   - [x] Update [the second API proposal](design_ym2149_timed_writes_api_20261116.md) to separate state-free `build(callback)` recording, execution-time `schedule(operations, {name, repeatSeconds})` and inspection through `compile(operations, {initialState})`. Withdraw build-time copying; preserve immediate APIs and legacy YM2612 `scheduleWrites()` compatibility. This step changes design / TODO only.
   - [x] Review AY R7 partial updates / R13 retriggers, OPN Operator fields / Key On/Off, current / reset compile baselines, order and 44.1 / 48 kHz timing. Record acceptance cases and authoritative-state / reset gaps; these are design checks, not runtime test results.
   - [x] Extend the design with asynchronous `captureState()` and reusable `compile(..., {initialState: snapshot})` baselines. Preserve existing `getState()`, `"current"` / `"reset"`, operation recording and live scheduling. Specify coherent register + semantic state, independent work copies, same-instance / configuration validation and comparison cases; no runtime implementation in this step.
   - [x] Design explicit `initialState: "client"` inspection from existing local state, without readback or new continuous synchronization. Audit AY registers / retained levels / endpoint configuration and OPN / Native semantic-versus-raw gaps; require complete coherent state while allowing a stale / optimistic renderer view. Keep all other baseline / build / schedule contracts unchanged.
-  - [ ] Settle the `compile()` return / snapshot contract. Recommend an awaitable ordered Worklet snapshot rather than calling a stale Main-thread mirror current state.
-  - [ ] Implement non-stopping snapshot capture / reuse after design agreement, including compatibility rejection, historical / concurrent comparison and no snapshot / live-state mutations. These acceptance tests remain unrun.
-  - [ ] Implement client-baseline adapters only where local state coverage is established. Report missing state / configuration or conflicting raw / semantic data explicitly, with no current / reset / default fallback. Verify no Worklet / Worker / Native readback, per-call copy isolation and excluded unreflected scheduled / Native changes; these tests remain unrun.
-  - [ ] Implement shared chip resolution, serializable recording, isolated compilation and compact reservations only after design agreement. Preserve Main / Worker, Performance Queue, atomic replacement, Run / Apply / Stop, loop-generation and manual ownership; execute the proposal's acceptance matrix before claiming support.
+  - [x] Use an awaitable `compile()` with ordered authoritative capture for `"current"`, and local work for client / reset / supplied snapshots.
+  - [x] Implement and verify non-stopping AY snapshot capture / reuse, compatibility rejection, historical comparisons and no snapshot / live-state mutations.
+  - [x] Implement AY client-baseline adapters with complete retained metadata / cached configuration, explicit incomplete-state rejection and no readback / fallback / constant synchronization. Native AY supports valid local / reset inspection; timed execution / authoritative capture rejects explicitly.
+  - [x] Implement shared AY resolution, recording, compilation and compact reservations. Verify Main / Worker, Performance Queue, atomic replacement, Run / Apply / Stop, loop generation, guarded scheduled Gates and manual ownership.
+  - [ ] Add OPN resolver / authoritative state coverage and its packed-field / key-command tests before exposing this API on YM2612. Existing legacy `scheduleWrites()` is unchanged.
 - [ ] Demonstrate audio-rate envelope retriggering (Sync-buzzer), timed volume modulation and sample playback through volume writes. Distinguish host-sample timing from exact original-machine cycle behavior.
 - [ ] Leave STE DMA, a complete Atari ST machine, Looper / Event Rec and Tauri as separate follow-ups.
 

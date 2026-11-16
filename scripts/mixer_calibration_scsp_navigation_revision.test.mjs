@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readHistoricalAyTimedFile, readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {SCSP_NAVIGATION_REVISION_PATH as path,SCSP_NAVIGATION_REVISION_RECEIPT_PATH as receiptPath,
   SCSP_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   restoreMixerCalibrationScspNavigationRevision as restore} from './mixer_calibration_scsp_navigation_revision.mjs';
@@ -15,7 +15,7 @@ const receipt=JSON.parse(read(receiptPath));
 test('the exact passive SCSP insertion reconstructs its pinned predecessor and preserves all eight reports',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);
   assert.equal(read(receiptPath).toString(),JSON.stringify(receipt,null,2)+'\n');
-  assert.deepEqual(await createScspSharedClientNavigationUiReceipt(),receipt);
+  assert.deepEqual(await createScspSharedClientNavigationUiReceipt({readSource:readHistoricalAyTimedFile}),receipt);
   const current=read('docs/'+path),before=restore(path,current);
   assert.equal(before.length,receipt.before.bytes);assert.equal(sha(before),receipt.before.sha256);
   assert.equal(restore(path,before),before);
