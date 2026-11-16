@@ -1,0 +1,306 @@
+{
+  "passed": true,
+  "entry": "/index.html",
+  "routingDisabled": true,
+  "fixture": {
+    "revision": "2e67ed92",
+    "html": {
+      "path": "docs/synth-ym2149-st/index.html",
+      "bytes": 20604,
+      "sha256": "022f5e9006ec1d8ea9519941f64026c6f4601792a2fadaeca01faf82128e5acf"
+    },
+    "modules": [
+      {
+        "url": "/synth-ym2149-st/synth.js",
+        "path": "docs/synth-ym2149-st/synth.js",
+        "revision": "2e67ed92",
+        "bytes": 19209,
+        "sha256": "ae4dbe9b010190d72d75cba4221ef9d7e5e5c6314d8a5cc3724bf129183bc410"
+      },
+      {
+        "url": "/synth-ym2149-st/code_host.js",
+        "path": "docs/synth-ym2149-st/code_host.js",
+        "revision": "2e67ed92",
+        "bytes": 4875,
+        "sha256": "ecc22dfd834dde5a7dacd9eecc5940fc9fb17da24e09ece35a7dfc1913a897bf"
+      },
+      {
+        "url": "/synth-ym2149-st/code_files.js?v=draft-reconnect-1",
+        "path": "docs/synth-ym2149-st/code_files.js",
+        "revision": "2e67ed92",
+        "bytes": 34289,
+        "sha256": "a410f8d83e27c203e350e802d6f9e0b1bb71cd3db3b28477979c50e6937d9681"
+      },
+      {
+        "url": "/js/playground_code_runtime.js",
+        "path": "docs/js/playground_code_runtime.js",
+        "revision": "2e67ed92",
+        "bytes": 29769,
+        "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+      },
+      {
+        "url": "/synth-ym2149-st/code_examples.js",
+        "path": "docs/synth-ym2149-st/code_examples.js",
+        "revision": "78256bcf",
+        "bytes": 5793,
+        "sha256": "cc5147b0f3120acecf47174a10672bf6dbe1e3f32a0b43dd94966adcbd4b9df6"
+      }
+    ]
+  },
+  "currentSources": [
+    {
+      "url": "/synth-ym2149-st/synth.js?v=ym-volume-1",
+      "bytes": 19501,
+      "sha256": "e5a2d103b4fa57f404ed1402f02fecbcd1bbfc03995fd5fdb372b7ef3e7e332c"
+    },
+    {
+      "url": "/synth-ym2149-st/code_host.js?v=ym-volume-1",
+      "bytes": 4988,
+      "sha256": "a01a6104f1524fa509db66040edfe3bbe2fea08a43474b4238e250248cf46486"
+    },
+    {
+      "url": "/synth-ym2149-st/code_files.js?v=ym-volume-1",
+      "bytes": 40674,
+      "sha256": "7fd0916912229b8df2e9865daed5742a7d964319d724d502b987ab81f19e39a2"
+    },
+    {
+      "url": "/synth-ym2149-st/code_examples.js?v=ym-volume-1",
+      "bytes": 9247,
+      "sha256": "c9b9610caf5cac1522efbd8eff7240d8afde118baba03303de79879fb61979d1"
+    },
+    {
+      "url": "/js/playground_code_runtime.js?v=console-table-1",
+      "bytes": 29787,
+      "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+    },
+    {
+      "url": "/js/playground_log.js?v=console-table-1",
+      "bytes": 2169,
+      "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+    }
+  ],
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "persistentHttpCache": true,
+      "legacyNetworkRequests": {
+        "/synth-ym2149-st/synth.js": 1,
+        "/synth-ym2149-st/code_host.js": 1,
+        "/synth-ym2149-st/code_files.js?v=draft-reconnect-1": 1,
+        "/js/playground_code_runtime.js": 1,
+        "/synth-ym2149-st/code_examples.js": 1
+      },
+      "negativeControl": {
+        "freshDocument": true,
+        "newJsVisible": true,
+        "saveSoundVisible": true,
+        "examplesButtonPresent": false,
+        "exampleFilesPresent": false,
+        "cachedExamplePaths": [
+          "/examples/README.md",
+          "/examples/sync-buzzer.js"
+        ],
+        "oldStartupServedFromHttpCache": true
+      },
+      "recovery": {
+        "entry": "/index.html",
+        "freshResources": [
+          "/synth-ym2149-st/synth.js?v=ym-volume-1",
+          "/synth-ym2149-st/code_host.js?v=ym-volume-1",
+          "/synth-ym2149-st/code_files.js?v=ym-volume-1",
+          "/synth-ym2149-st/code_examples.js?v=ym-volume-1",
+          "/js/playground_code_runtime.js?v=console-table-1",
+          "/js/playground_log.js?v=console-table-1"
+        ],
+        "defaultExamplesVisibleBeforeClick": true,
+        "examplesButtonPresent": false,
+        "newProjectMenuPresent": true,
+        "matchingExamplePaths": [
+          "/examples/sync-buzzer.js",
+          "/examples/volume-modulation.js",
+          "/examples/README.md"
+        ],
+        "savedIndexSha256": "ffa80e7cf56e572846aa883695fc7a19e939248e506414acd331f5303fc803db",
+        "savedSettings": {
+          "format": "tetorica-ym2149-st-voice",
+          "version": 1,
+          "name": "Saved cache-regression sound",
+          "voices": [
+            {
+              "tone": true,
+              "noise": true,
+              "volume": 9,
+              "envelope": false,
+              "period": 478
+            },
+            {
+              "tone": true,
+              "noise": true,
+              "volume": 9,
+              "envelope": false,
+              "period": 379
+            },
+            {
+              "tone": true,
+              "noise": true,
+              "volume": 9,
+              "envelope": false,
+              "period": 319
+            }
+          ],
+          "noisePeriod": 16,
+          "envelope": {
+            "period": 1600,
+            "shape": 10
+          }
+        },
+        "selectedPath": "/index.js",
+        "inputMode": "keyboard",
+        "oldStartupStillCached": true,
+        "projectFilesBefore": [
+          "/index.js"
+        ],
+        "projectFilesAfter": [
+          "/index.js",
+          "/examples/sync-buzzer.js",
+          "/examples/volume-modulation.js",
+          "/examples/README.md"
+        ]
+      },
+      "storagePreserved": {
+        "localStorage": "Keep my saved preferences.",
+        "indexedDB": {
+          "text": "Keep my cassette data.",
+          "binary": [
+            0,
+            17,
+            128,
+            255
+          ]
+        }
+      },
+      "audio": {
+        "contexts": 0,
+        "codeRunning": false,
+        "physicalRoutes": 0
+      },
+      "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+      "expectedEditorPolicyMessages": 2,
+      "errors": [],
+      "missing": [],
+      "unexpectedConsoleErrors": []
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "persistentHttpCache": true,
+      "legacyNetworkRequests": {
+        "/synth-ym2149-st/synth.js": 1,
+        "/synth-ym2149-st/code_host.js": 1,
+        "/synth-ym2149-st/code_files.js?v=draft-reconnect-1": 1,
+        "/js/playground_code_runtime.js": 1,
+        "/synth-ym2149-st/code_examples.js": 1
+      },
+      "negativeControl": {
+        "freshDocument": true,
+        "newJsVisible": true,
+        "saveSoundVisible": true,
+        "examplesButtonPresent": false,
+        "exampleFilesPresent": false,
+        "cachedExamplePaths": [
+          "/examples/README.md",
+          "/examples/sync-buzzer.js"
+        ],
+        "oldStartupServedFromHttpCache": true
+      },
+      "recovery": {
+        "entry": "/index.html",
+        "freshResources": [
+          "/synth-ym2149-st/synth.js?v=ym-volume-1",
+          "/synth-ym2149-st/code_host.js?v=ym-volume-1",
+          "/synth-ym2149-st/code_files.js?v=ym-volume-1",
+          "/synth-ym2149-st/code_examples.js?v=ym-volume-1",
+          "/js/playground_code_runtime.js?v=console-table-1",
+          "/js/playground_log.js?v=console-table-1"
+        ],
+        "defaultExamplesVisibleBeforeClick": true,
+        "examplesButtonPresent": false,
+        "newProjectMenuPresent": true,
+        "matchingExamplePaths": [
+          "/examples/sync-buzzer.js",
+          "/examples/volume-modulation.js",
+          "/examples/README.md"
+        ],
+        "savedIndexSha256": "ffa80e7cf56e572846aa883695fc7a19e939248e506414acd331f5303fc803db",
+        "savedSettings": {
+          "format": "tetorica-ym2149-st-voice",
+          "version": 1,
+          "name": "Saved cache-regression sound",
+          "voices": [
+            {
+              "tone": true,
+              "noise": true,
+              "volume": 9,
+              "envelope": false,
+              "period": 478
+            },
+            {
+              "tone": true,
+              "noise": true,
+              "volume": 9,
+              "envelope": false,
+              "period": 379
+            },
+            {
+              "tone": true,
+              "noise": true,
+              "volume": 9,
+              "envelope": false,
+              "period": 319
+            }
+          ],
+          "noisePeriod": 16,
+          "envelope": {
+            "period": 1600,
+            "shape": 10
+          }
+        },
+        "selectedPath": "/index.js",
+        "inputMode": "keyboard",
+        "oldStartupStillCached": true,
+        "projectFilesBefore": [
+          "/index.js"
+        ],
+        "projectFilesAfter": [
+          "/index.js",
+          "/examples/sync-buzzer.js",
+          "/examples/volume-modulation.js",
+          "/examples/README.md"
+        ]
+      },
+      "storagePreserved": {
+        "localStorage": "Keep my saved preferences.",
+        "indexedDB": {
+          "text": "Keep my cassette data.",
+          "binary": [
+            0,
+            17,
+            128,
+            255
+          ]
+        }
+      },
+      "audio": {
+        "contexts": 0,
+        "codeRunning": false,
+        "physicalRoutes": 0
+      },
+      "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+      "expectedEditorPolicyMessages": 2,
+      "errors": [],
+      "missing": [],
+      "unexpectedConsoleErrors": []
+    }
+  ]
+}

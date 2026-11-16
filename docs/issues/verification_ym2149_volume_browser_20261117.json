@@ -1,0 +1,1395 @@
+{
+  "passed": true,
+  "entry": "/synth-ym2149-st/index.html",
+  "physicalOutputMuted": true,
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "files": {
+        "coldAudioContexts": 0,
+        "keyboardModePreserved": true,
+        "newProjectExamplePresent": true,
+        "newProjectAutorun": false
+      },
+      "pcm": {
+        "peak": 0.0041779750026762486,
+        "rms": 0.0004449265059101896
+      },
+      "fixedVolume": {
+        "firstFrame": 2560,
+        "lastFrame": 11008,
+        "samples": 27,
+        "sampleRate": 48000,
+        "observedRegister8Values": [
+          2,
+          4,
+          6,
+          8,
+          10,
+          12,
+          14,
+          15
+        ],
+        "envelopeEnabled": false
+      },
+      "compile": [
+        {
+          "offsetSeconds": 0,
+          "register": 8,
+          "value": 0
+        },
+        {
+          "offsetSeconds": 0.0025,
+          "register": 8,
+          "value": 2
+        },
+        {
+          "offsetSeconds": 0.005,
+          "register": 8,
+          "value": 4
+        },
+        {
+          "offsetSeconds": 0.0075,
+          "register": 8,
+          "value": 6
+        },
+        {
+          "offsetSeconds": 0.01,
+          "register": 8,
+          "value": 8
+        },
+        {
+          "offsetSeconds": 0.0125,
+          "register": 8,
+          "value": 10
+        },
+        {
+          "offsetSeconds": 0.015,
+          "register": 8,
+          "value": 12
+        },
+        {
+          "offsetSeconds": 0.0175,
+          "register": 8,
+          "value": 14
+        },
+        {
+          "offsetSeconds": 0.02,
+          "register": 8,
+          "value": 15
+        },
+        {
+          "offsetSeconds": 0.0225,
+          "register": 8,
+          "value": 14
+        },
+        {
+          "offsetSeconds": 0.025,
+          "register": 8,
+          "value": 12
+        },
+        {
+          "offsetSeconds": 0.0275,
+          "register": 8,
+          "value": 10
+        },
+        {
+          "offsetSeconds": 0.03,
+          "register": 8,
+          "value": 8
+        },
+        {
+          "offsetSeconds": 0.0325,
+          "register": 8,
+          "value": 6
+        },
+        {
+          "offsetSeconds": 0.035,
+          "register": 8,
+          "value": 4
+        },
+        {
+          "offsetSeconds": 0.0375,
+          "register": 8,
+          "value": 2
+        }
+      ],
+      "initial": {
+        "ratesHz": [
+          25,
+          50,
+          100
+        ],
+        "stepSeconds": 1,
+        "intervalsSeconds": [
+          1.0079999999999998,
+          1.0026666666666668
+        ],
+        "owner": "code:b245e6e2-1c50-408a-b59f-5a4c2d19af26:1:run:1:loop:1",
+        "reservations": [
+          {
+            "hz": 25,
+            "startFrame": 1920,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.0025,
+              0.005,
+              0.0075,
+              0.01,
+              0.0125,
+              0.015,
+              0.0175,
+              0.02,
+              0.0225,
+              0.025,
+              0.0275,
+              0.03,
+              0.0325,
+              0.035,
+              0.0375
+            ],
+            "roundedFrameOffsets": [
+              0,
+              120,
+              240,
+              360,
+              480,
+              600,
+              720,
+              840,
+              960,
+              1080,
+              1200,
+              1320,
+              1440,
+              1560,
+              1680,
+              1800
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              15,
+              14,
+              12,
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          },
+          {
+            "hz": 50,
+            "startFrame": 50304,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.00125,
+              0.0025,
+              0.00375,
+              0.005,
+              0.00625,
+              0.0075,
+              0.00875,
+              0.01,
+              0.01125,
+              0.0125,
+              0.01375,
+              0.015,
+              0.01625,
+              0.0175,
+              0.01875
+            ],
+            "roundedFrameOffsets": [
+              0,
+              60,
+              120,
+              180,
+              240,
+              300,
+              360,
+              420,
+              480,
+              540,
+              600,
+              660,
+              720,
+              780,
+              840,
+              900
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              15,
+              14,
+              12,
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          },
+          {
+            "hz": 100,
+            "startFrame": 98432,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.000625,
+              0.00125,
+              0.001875,
+              0.0025,
+              0.003125,
+              0.00375,
+              0.004375,
+              0.005,
+              0.005625,
+              0.00625,
+              0.006875,
+              0.0075,
+              0.008125,
+              0.00875,
+              0.009375
+            ],
+            "roundedFrameOffsets": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180,
+              210,
+              240,
+              270,
+              300,
+              330,
+              360,
+              390,
+              420,
+              450
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              15,
+              14,
+              12,
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          }
+        ]
+      },
+      "initialMelody": {
+        "notes": 8,
+        "expectedSeconds": 0.25,
+        "intervalsSeconds": [
+          0.25066666666666665,
+          0.256,
+          0.2506666666666666,
+          0.2506666666666668,
+          0.2506666666666666,
+          0.2506666666666666,
+          0.2506666666666668
+        ],
+        "registers": [
+          0,
+          1
+        ]
+      },
+      "applied": {
+        "ratesHz": [
+          80,
+          40
+        ],
+        "stepSeconds": 0.5,
+        "intervalsSeconds": [
+          0.5013333333333332
+        ],
+        "owner": "code:b245e6e2-1c50-408a-b59f-5a4c2d19af26:1:run:1:loop:1",
+        "reservations": [
+          {
+            "hz": 80,
+            "startFrame": 152192,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.00078125,
+              0.0015625,
+              0.00234375,
+              0.003125,
+              0.00390625,
+              0.0046875,
+              0.00546875,
+              0.00625,
+              0.00703125,
+              0.0078125,
+              0.00859375,
+              0.009375,
+              0.01015625,
+              0.0109375,
+              0.01171875
+            ],
+            "roundedFrameOffsets": [
+              0,
+              38,
+              75,
+              113,
+              150,
+              188,
+              225,
+              263,
+              300,
+              338,
+              375,
+              413,
+              450,
+              488,
+              525,
+              563
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              7,
+              7,
+              6,
+              5,
+              4,
+              3,
+              2,
+              1
+            ]
+          },
+          {
+            "hz": 40,
+            "startFrame": 176256,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.0015625,
+              0.003125,
+              0.0046875,
+              0.00625,
+              0.0078125,
+              0.009375,
+              0.0109375,
+              0.0125,
+              0.0140625,
+              0.015625,
+              0.0171875,
+              0.01875,
+              0.0203125,
+              0.021875,
+              0.0234375
+            ],
+            "roundedFrameOffsets": [
+              0,
+              75,
+              150,
+              225,
+              300,
+              375,
+              450,
+              525,
+              600,
+              675,
+              750,
+              825,
+              900,
+              975,
+              1050,
+              1125
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              7,
+              7,
+              6,
+              5,
+              4,
+              3,
+              2,
+              1
+            ]
+          }
+        ]
+      },
+      "editedMelody": {
+        "notes": 5,
+        "expectedSeconds": 0.125,
+        "intervalsSeconds": [
+          0.1280000000000001,
+          0.12799999999999967,
+          0.1280000000000001,
+          0.1280000000000001
+        ],
+        "registers": [
+          0,
+          1
+        ]
+      },
+      "removedMotion": {
+        "first": {
+          "volume": 0,
+          "period": 758,
+          "frame": 218368,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "period": 379,
+          "frame": 249600,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 25,
+        "durationMs": 650,
+        "distinctTonePeriods": [
+          758,
+          638,
+          568,
+          506,
+          426,
+          379
+        ]
+      },
+      "remainingMelody": {
+        "notes": 5,
+        "expectedSeconds": 0.125,
+        "intervalsSeconds": [
+          0.1280000000000001,
+          0.12799999999999923,
+          0.1280000000000001,
+          0.1280000000000001
+        ],
+        "registers": [
+          0,
+          1
+        ]
+      },
+      "canceledSentinel": {
+        "first": {
+          "volume": 15,
+          "period": 319,
+          "frame": 250880,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 15,
+          "period": 758,
+          "frame": 281600,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.059881289905612804
+          }
+        },
+        "observations": 24,
+        "durationMs": 650,
+        "distinctTonePeriods": [
+          319,
+          284,
+          253,
+          213,
+          758
+        ]
+      },
+      "stopped": {
+        "first": {
+          "volume": 0,
+          "period": 758,
+          "frame": 293120,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "period": 758,
+          "frame": 323072,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 24,
+        "durationMs": 650,
+        "distinctTonePeriods": [
+          758
+        ]
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "stoppedPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "failedReceipts": [],
+        "lifecycle": [
+          {
+            "action": "releaseOwner",
+            "owner": "code:b245e6e2-1c50-408a-b59f-5a4c2d19af26:1:run:1:loop:1",
+            "id": "chip-control:8",
+            "time": 4.951,
+            "audioTime": 4.453333333333333,
+            "commandIndex": 103
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:b245e6e2-1c50-408a-b59f-5a4c2d19af26:1:run:1:loop:2",
+            "id": "chip-control:10",
+            "time": 6.500099999999628,
+            "audioTime": 6,
+            "commandIndex": 137
+          }
+        ]
+      },
+      "errors": [],
+      "missing": [],
+      "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 8        | 0     | 0              | 0         \n1       | 0.0025        | 8        | 2     | 1              | 0         \n2       | 0.005         | 8        | 4     | 2              | 0         \n3       | 0.0075        | 8        | 6     | 3              | 0         \n4       | 0.01          | 8        | 8     | 4              | 0         \n5       | 0.0125        | 8        | 10    | 5              | 0         \n6       | 0.015         | 8        | 12    | 6              | 0         \n7       | 0.0175        | 8        | 14    | 7              | 0         \n8       | 0.02          | 8        | 15    | 8              | 0         \n9       | 0.0225        | 8        | 14    | 9              | 0         \n10      | 0.025         | 8        | 12    | 10             | 0         \n11      | 0.0275        | 8        | 10    | 11             | 0         \n12      | 0.03          | 8        | 8     | 12             | 0         \n13      | 0.0325        | 8        | 6     | 13             | 0         \n14      | 0.035         | 8        | 4     | 14             | 0         \n15      | 0.0375        | 8        | 2     | 15             | 0         \nR8 fixed volume: 25 cycles/s; 400 nominal writes/s\nR8 fixed volume: 50 cycles/s; 800 nominal writes/s\nR8 fixed volume: 100 cycles/s; 1600 nominal writes/s"
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "files": {
+        "coldAudioContexts": 0,
+        "keyboardModePreserved": true,
+        "newProjectExamplePresent": true,
+        "newProjectAutorun": false
+      },
+      "pcm": {
+        "peak": 0.0041779750026762486,
+        "rms": 0.0005438450918727926
+      },
+      "fixedVolume": {
+        "firstFrame": 2816,
+        "lastFrame": 11264,
+        "samples": 24,
+        "sampleRate": 48000,
+        "observedRegister8Values": [
+          2,
+          4,
+          6,
+          8,
+          10,
+          12,
+          14,
+          15
+        ],
+        "envelopeEnabled": false
+      },
+      "compile": [
+        {
+          "offsetSeconds": 0,
+          "register": 8,
+          "value": 0
+        },
+        {
+          "offsetSeconds": 0.0025,
+          "register": 8,
+          "value": 2
+        },
+        {
+          "offsetSeconds": 0.005,
+          "register": 8,
+          "value": 4
+        },
+        {
+          "offsetSeconds": 0.0075,
+          "register": 8,
+          "value": 6
+        },
+        {
+          "offsetSeconds": 0.01,
+          "register": 8,
+          "value": 8
+        },
+        {
+          "offsetSeconds": 0.0125,
+          "register": 8,
+          "value": 10
+        },
+        {
+          "offsetSeconds": 0.015,
+          "register": 8,
+          "value": 12
+        },
+        {
+          "offsetSeconds": 0.0175,
+          "register": 8,
+          "value": 14
+        },
+        {
+          "offsetSeconds": 0.02,
+          "register": 8,
+          "value": 15
+        },
+        {
+          "offsetSeconds": 0.0225,
+          "register": 8,
+          "value": 14
+        },
+        {
+          "offsetSeconds": 0.025,
+          "register": 8,
+          "value": 12
+        },
+        {
+          "offsetSeconds": 0.0275,
+          "register": 8,
+          "value": 10
+        },
+        {
+          "offsetSeconds": 0.03,
+          "register": 8,
+          "value": 8
+        },
+        {
+          "offsetSeconds": 0.0325,
+          "register": 8,
+          "value": 6
+        },
+        {
+          "offsetSeconds": 0.035,
+          "register": 8,
+          "value": 4
+        },
+        {
+          "offsetSeconds": 0.0375,
+          "register": 8,
+          "value": 2
+        }
+      ],
+      "initial": {
+        "ratesHz": [
+          25,
+          50,
+          100
+        ],
+        "stepSeconds": 1,
+        "intervalsSeconds": [
+          1.0133333333333332,
+          1
+        ],
+        "owner": "code:83d212f7-634e-42d1-b97f-3038efd7c371:1:run:1:loop:1",
+        "reservations": [
+          {
+            "hz": 25,
+            "startFrame": 2176,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.0025,
+              0.005,
+              0.0075,
+              0.01,
+              0.0125,
+              0.015,
+              0.0175,
+              0.02,
+              0.0225,
+              0.025,
+              0.0275,
+              0.03,
+              0.0325,
+              0.035,
+              0.0375
+            ],
+            "roundedFrameOffsets": [
+              0,
+              120,
+              240,
+              360,
+              480,
+              600,
+              720,
+              840,
+              960,
+              1080,
+              1200,
+              1320,
+              1440,
+              1560,
+              1680,
+              1800
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              15,
+              14,
+              12,
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          },
+          {
+            "hz": 50,
+            "startFrame": 50688,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.00125,
+              0.0025,
+              0.00375,
+              0.005,
+              0.00625,
+              0.0075,
+              0.00875,
+              0.01,
+              0.01125,
+              0.0125,
+              0.01375,
+              0.015,
+              0.01625,
+              0.0175,
+              0.01875
+            ],
+            "roundedFrameOffsets": [
+              0,
+              60,
+              120,
+              180,
+              240,
+              300,
+              360,
+              420,
+              480,
+              540,
+              600,
+              660,
+              720,
+              780,
+              840,
+              900
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              15,
+              14,
+              12,
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          },
+          {
+            "hz": 100,
+            "startFrame": 98688,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.000625,
+              0.00125,
+              0.001875,
+              0.0025,
+              0.003125,
+              0.00375,
+              0.004375,
+              0.005,
+              0.005625,
+              0.00625,
+              0.006875,
+              0.0075,
+              0.008125,
+              0.00875,
+              0.009375
+            ],
+            "roundedFrameOffsets": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180,
+              210,
+              240,
+              270,
+              300,
+              330,
+              360,
+              390,
+              420,
+              450
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              15,
+              14,
+              12,
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          }
+        ]
+      },
+      "initialMelody": {
+        "notes": 8,
+        "expectedSeconds": 0.25,
+        "intervalsSeconds": [
+          0.25066666666666665,
+          0.2506666666666667,
+          0.2506666666666666,
+          0.2533333333333334,
+          0.2533333333333332,
+          0.2506666666666668,
+          0.2533333333333332
+        ],
+        "registers": [
+          0,
+          1
+        ]
+      },
+      "applied": {
+        "ratesHz": [
+          80,
+          40
+        ],
+        "stepSeconds": 0.5,
+        "intervalsSeconds": [
+          0.504
+        ],
+        "owner": "code:83d212f7-634e-42d1-b97f-3038efd7c371:1:run:1:loop:1",
+        "reservations": [
+          {
+            "hz": 80,
+            "startFrame": 148352,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.00078125,
+              0.0015625,
+              0.00234375,
+              0.003125,
+              0.00390625,
+              0.0046875,
+              0.00546875,
+              0.00625,
+              0.00703125,
+              0.0078125,
+              0.00859375,
+              0.009375,
+              0.01015625,
+              0.0109375,
+              0.01171875
+            ],
+            "roundedFrameOffsets": [
+              0,
+              38,
+              75,
+              113,
+              150,
+              188,
+              225,
+              263,
+              300,
+              338,
+              375,
+              413,
+              450,
+              488,
+              525,
+              563
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              7,
+              7,
+              6,
+              5,
+              4,
+              3,
+              2,
+              1
+            ]
+          },
+          {
+            "hz": 40,
+            "startFrame": 172544,
+            "sampleRate": 48000,
+            "offsetsSeconds": [
+              0,
+              0.0015625,
+              0.003125,
+              0.0046875,
+              0.00625,
+              0.0078125,
+              0.009375,
+              0.0109375,
+              0.0125,
+              0.0140625,
+              0.015625,
+              0.0171875,
+              0.01875,
+              0.0203125,
+              0.021875,
+              0.0234375
+            ],
+            "roundedFrameOffsets": [
+              0,
+              75,
+              150,
+              225,
+              300,
+              375,
+              450,
+              525,
+              600,
+              675,
+              750,
+              825,
+              900,
+              975,
+              1050,
+              1125
+            ],
+            "registers": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ],
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              7,
+              7,
+              6,
+              5,
+              4,
+              3,
+              2,
+              1
+            ]
+          }
+        ]
+      },
+      "editedMelody": {
+        "notes": 5,
+        "expectedSeconds": 0.125,
+        "intervalsSeconds": [
+          0.1253333333333333,
+          0.1253333333333333,
+          0.12533333333333374,
+          0.12533333333333285
+        ],
+        "registers": [
+          0,
+          1
+        ]
+      },
+      "removedMotion": {
+        "first": {
+          "volume": 0,
+          "period": 758,
+          "frame": 214784,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "period": 426,
+          "frame": 244736,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 24,
+        "durationMs": 650,
+        "distinctTonePeriods": [
+          758,
+          638,
+          568,
+          506,
+          426
+        ]
+      },
+      "remainingMelody": {
+        "notes": 5,
+        "expectedSeconds": 0.125,
+        "intervalsSeconds": [
+          0.12533333333333374,
+          0.12533333333333285,
+          0.12533333333333374,
+          0.12533333333333285
+        ],
+        "registers": [
+          0,
+          1
+        ]
+      },
+      "canceledSentinel": {
+        "first": {
+          "volume": 15,
+          "period": 379,
+          "frame": 246016,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 15,
+          "period": 758,
+          "frame": 276864,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0.08500000834465027,
+            "rms": 0.060098334559306174
+          }
+        },
+        "observations": 23,
+        "durationMs": 650,
+        "distinctTonePeriods": [
+          379,
+          319,
+          284,
+          253,
+          213,
+          758
+        ]
+      },
+      "stopped": {
+        "first": {
+          "volume": 0,
+          "period": 758,
+          "frame": 287744,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "last": {
+          "volume": 0,
+          "period": 758,
+          "frame": 318080,
+          "sampleRate": 48000,
+          "level": {
+            "peak": 0,
+            "rms": 0
+          }
+        },
+        "observations": 23,
+        "durationMs": 650,
+        "distinctTonePeriods": [
+          758
+        ]
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "stoppedPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "failedReceipts": [],
+        "lifecycle": [
+          {
+            "action": "releaseOwner",
+            "owner": "code:83d212f7-634e-42d1-b97f-3038efd7c371:1:run:1:loop:1",
+            "id": "chip-control:8",
+            "time": 4.779,
+            "audioTime": 4.378666666666667,
+            "commandIndex": 105
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:83d212f7-634e-42d1-b97f-3038efd7c371:1:run:1:loop:2",
+            "id": "chip-control:10",
+            "time": 6.285,
+            "audioTime": 5.8853333333333335,
+            "commandIndex": 137
+          }
+        ]
+      },
+      "errors": [],
+      "missing": [],
+      "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 8        | 0     | 0              | 0         \n1       | 0.0025        | 8        | 2     | 1              | 0         \n2       | 0.005         | 8        | 4     | 2              | 0         \n3       | 0.0075        | 8        | 6     | 3              | 0         \n4       | 0.01          | 8        | 8     | 4              | 0         \n5       | 0.0125        | 8        | 10    | 5              | 0         \n6       | 0.015         | 8        | 12    | 6              | 0         \n7       | 0.0175        | 8        | 14    | 7              | 0         \n8       | 0.02          | 8        | 15    | 8              | 0         \n9       | 0.0225        | 8        | 14    | 9              | 0         \n10      | 0.025         | 8        | 12    | 10             | 0         \n11      | 0.0275        | 8        | 10    | 11             | 0         \n12      | 0.03          | 8        | 8     | 12             | 0         \n13      | 0.0325        | 8        | 6     | 13             | 0         \n14      | 0.035         | 8        | 4     | 14             | 0         \n15      | 0.0375        | 8        | 2     | 15             | 0         \nR8 fixed volume: 25 cycles/s; 400 nominal writes/s\nR8 fixed volume: 50 cycles/s; 800 nominal writes/s\nR8 fixed volume: 100 cycles/s; 1600 nominal writes/s"
+    }
+  ]
+}

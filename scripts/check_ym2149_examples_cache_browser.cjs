@@ -24,6 +24,9 @@ const engines = config.engines.split(',');
 assert(engines.length && engines.every(name => ['chromium', 'webkit'].includes(name)));
 const digest = body => createHash('sha256').update(body).digest('hex');
 const legacyRevision = '2e67ed92';
+const legacyExamplesRevision = '78256bcf';
+const legacyExamplesUrl = '/synth-ym2149-st/code_examples.js';
+const currentExamplesUrl = '/synth-ym2149-st/code_examples.js?v=ym-volume-1';
 const legacyPage = '/synth-ym2149-st/examples-cache-legacy.html';
 const legacyHtmlPath = 'docs/synth-ym2149-st/index.html';
 const legacyHtml = execFileSync('git', ['show', `${legacyRevision}:${legacyHtmlPath}`], {cwd: repository});
@@ -32,14 +35,16 @@ const fixtures = new Map([
   ['/synth-ym2149-st/code_host.js', 'docs/synth-ym2149-st/code_host.js'],
   ['/synth-ym2149-st/code_files.js?v=draft-reconnect-1', 'docs/synth-ym2149-st/code_files.js'],
   ['/js/playground_code_runtime.js', 'docs/js/playground_code_runtime.js'],
-].map(([url, source]) => [url, {source,
-  body: execFileSync('git', ['show', `${legacyRevision}:${source}`], {cwd: repository})}]));
+  [legacyExamplesUrl, 'docs/synth-ym2149-st/code_examples.js', legacyExamplesRevision],
+].map(([url, source, revision = legacyRevision]) => [url, {source, revision,
+  body: execFileSync('git', ['show', `${revision}:${source}`], {cwd: repository})}]));
 assert(legacyHtml.includes('src="./synth.js"'));
 assert(!fixtures.get('/synth-ym2149-st/code_files.js?v=draft-reconnect-1').body.includes('ymFileExamplesButton'));
 const freshResources = [
-  '/synth-ym2149-st/synth.js?v=ym-project-1',
-  '/synth-ym2149-st/code_host.js?v=ym-project-1',
-  '/synth-ym2149-st/code_files.js?v=ym-project-1',
+  '/synth-ym2149-st/synth.js?v=ym-volume-1',
+  '/synth-ym2149-st/code_host.js?v=ym-volume-1',
+  '/synth-ym2149-st/code_files.js?v=ym-volume-1',
+  currentExamplesUrl,
   '/js/playground_code_runtime.js?v=console-table-1',
   '/js/playground_log.js?v=console-table-1',
 ];
@@ -239,6 +244,12 @@ async function check(name, origin) {
     assert(baseline.settings.voices.every(voice => voice.noise), 'saved settings differ from defaults');
     assert(!baseline.filePaths.some(file => file.startsWith('/examples/')));
     assert.equal(baseline.audioContexts, 0);
+    // An earlier deployment also left the two-example module cached under its
+    // unversioned URL. Loading its definitions must not add files or run Code.
+    const cachedExamplePaths = await page.evaluate(async url =>
+      Object.keys((await import(url)).YM_CODE_EXAMPLES).sort(), legacyExamplesUrl);
+    assert.deepEqual(cachedExamplePaths, ['/examples/README.md', '/examples/sync-buzzer.js']);
+    assert.deepEqual(await project(page), savedBefore, 'priming the old example definitions preserves the draft');
     const afterWarm = counts([...fixtures.keys()]);
     for (const url of fixtures.keys()) assert.equal(afterWarm[url] - beforeWarm[url], 1, `warm legacy response ${url} once`);
 
@@ -254,6 +265,9 @@ async function check(name, origin) {
     const negative = await liveState(page);
     preserved(baseline, negative);
     assert(!negative.filePaths.some(file => file.startsWith('/examples/')), 'cached old panel has no default examples');
+    assert.deepEqual(await page.evaluate(async url =>
+      Object.keys((await import(url)).YM_CODE_EXAMPLES).sort(), legacyExamplesUrl), cachedExamplePaths,
+    'the unversioned URL still exposes the cached two-example module');
     assert.deepEqual(counts([...fixtures.keys()]), afterWarm, 'negative control uses cached old startup modules');
     assert.deepEqual(await sentinels(page), storage);
     preservedDraft(savedBefore, await project(page));
@@ -261,9 +275,18 @@ async function check(name, origin) {
     const beforeFresh = counts(freshResources);
     await page.goto(origin + config.entry);
     await ready(page, true);
+    assert(await page.evaluate(url => performance.getEntriesByType('resource').some(entry =>
+      entry.name === new URL(url, location.href).href), currentExamplesUrl),
+    'startup requests the versioned examples module before the test inspects it');
+    const examples = await page.evaluate(async url => {
+      const {YM_CODE_EXAMPLES} = await import(url);
+      return YM_CODE_EXAMPLES;
+    }, currentExamplesUrl);
+    const examplePaths = Object.keys(examples).sort();
+    assert(examplePaths.includes('/examples/volume-modulation.js'), 'the shipped examples include volume modulation');
     if (!await page.locator('#ymFilesPanel').isVisible()) await page.locator('#ymFilesToggle').click();
-    await page.locator('#ymFilesTree button[data-file-path="/examples/sync-buzzer.js"]').waitFor({state: 'visible'});
-    await page.locator('#ymFilesTree button[data-file-path="/examples/README.md"]').waitFor({state: 'visible'});
+    for (const filePath of examplePaths)
+      await page.locator(`#ymFilesTree button[data-file-path="${filePath}"]`).waitFor({state: 'visible'});
     const recovered = await liveState(page);
     preserved(baseline, recovered);
     assert.equal(await page.locator('#ymFileExamplesButton').count(), 0, 'redundant Examples action is removed');
@@ -276,20 +299,17 @@ async function check(name, origin) {
       assert.equal((served.get(url) ?? 0) - beforeFresh[url], 1, `fetch fresh startup resource ${url} once`);
     }
     assert.deepEqual(counts([...fixtures.keys()]), afterWarm, 'recovery leaves old cached startup responses untouched');
-    await waitForProject(page, saved => ['/examples/sync-buzzer.js', '/examples/README.md'].every(path =>
-        saved?.filesystem.files.some(file => file.path === path)),
+    const savedAfter = await waitForProject(page, saved => examplePaths.every(filePath =>
+        saved?.filesystem.files.some(file => file.path === filePath)),
       'the automatic examples persist without a repair click');
-    const savedAfter = await project(page);
     preservedDraft(savedBefore, savedAfter);
-    const examples = await page.evaluate(async () => {
-      const {YM_CODE_EXAMPLES} = await import('/synth-ym2149-st/code_examples.js');
-      return YM_CODE_EXAMPLES;
-    });
-    assert.deepEqual(Object.keys(examples).sort(), ['/examples/README.md', '/examples/sync-buzzer.js']);
     for (const [file, source] of Object.entries(examples))
       assert.equal(savedAfter.filesystem.files.find(entry => entry.path === file)?.data, source,
         `default example ${file} matches the shipped source`);
-    assert.equal(savedAfter.filesystem.files.length, savedBefore.filesystem.files.length + 2);
+    assert.deepEqual(savedAfter.filesystem.files.map(file => file.path).sort(),
+      [...savedBefore.filesystem.files.map(file => file.path), ...examplePaths].sort(),
+      'recovery adds exactly the shipped examples to the saved project');
+    assert.equal(savedAfter.filesystem.files.length, savedBefore.filesystem.files.length + examplePaths.length);
     assert.deepEqual(await sentinels(page), storage, 'recovery preserves localStorage and binary/text IndexedDB data');
 
     // Default files require no toolbar action or project replacement.
@@ -310,7 +330,8 @@ async function check(name, origin) {
     return {engine: name, passed: true, persistentHttpCache: true,
       legacyNetworkRequests: Object.fromEntries([...fixtures.keys()].map(url => [url, afterWarm[url] - beforeWarm[url]])),
       negativeControl: {freshDocument: true, newJsVisible: true, saveSoundVisible: true,
-        examplesButtonPresent: false, exampleFilesPresent: false, oldStartupServedFromHttpCache: true},
+        examplesButtonPresent: false, exampleFilesPresent: false, cachedExamplePaths,
+        oldStartupServedFromHttpCache: true},
       recovery: {entry: config.entry, freshResources, defaultExamplesVisibleBeforeClick: true,
         examplesButtonPresent: false, newProjectMenuPresent: true, matchingExamplePaths: Object.keys(examples),
         savedIndexSha256: digest(savedIndex), savedSettings: recovered.settings,
@@ -353,7 +374,7 @@ async function check(name, origin) {
     const report = {passed: true, entry: config.entry, routingDisabled: true,
       fixture: {revision: legacyRevision,
         html: {path: legacyHtmlPath, bytes: legacyHtml.length, sha256: digest(legacyHtml)},
-        modules: [...fixtures].map(([url, {source, body}]) => ({url, path: source,
+        modules: [...fixtures].map(([url, {source, revision, body}]) => ({url, path: source, revision,
           bytes: body.length, sha256: digest(body)}))}, currentSources, results};
     await fs.mkdir(path.dirname(config.out), {recursive: true});
     await fs.writeFile(config.out, JSON.stringify(report, null, 2) + '\n');

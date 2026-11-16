@@ -175,7 +175,7 @@ function assertFresh(saved, expected, previousIdentity) {
   assert.equal(saved.selectedPath, '/index.js'); assert.deepEqual(saved.codeState, {mode: 'keyboard', path: '/index.js'});
   assert.notEqual(saved.workspaceId, previousIdentity, 'New changes workspace identity');
   assert.deepEqual(saved.filesystem.files.map(file => file.path).sort(), expected.files.map(file => file.path).sort(),
-    'Fresh Files contains only starter index.js and the two automatic examples');
+    'Fresh Files contains only starter index.js and the shipped automatic examples');
   for (const file of expected.files)
     assert.equal(saved.filesystem.files.find(candidate => candidate.path === file.path)?.data, file.data,
       `Fresh ${file.path} matches the shipped default`);
@@ -221,7 +221,17 @@ async function runEngine(name, origin, fixture, loadCassette) {
     page.on('response', response => {if (response.url().startsWith(origin) && response.status() >= 400) missing.push(response.url());});
     page.on('download', download => downloads.push(download.suggestedFilename()));
     await page.goto(origin + config.entry); await ready(page);
-    const hiddenProject = await waitProject(page, saved => saved?.filesystem.files.length === 3 && !saved.filesVisible,
+    const examples = await page.evaluate(async () => {
+      const source = document.querySelector('script[type="module"][src]').src;
+      const url = new URL('./code_examples.js?v=ym-volume-1', source).href;
+      if (!performance.getEntriesByType('resource').some(entry => entry.name === url))
+        throw new Error('Startup did not request the versioned examples module');
+      return (await import(url)).YM_CODE_EXAMPLES;
+    });
+    const examplePaths = Object.keys(examples).sort();
+    assert(examplePaths.includes('/examples/volume-modulation.js'), 'the shipped examples include volume modulation');
+    const defaultPaths = ['/index.js', ...examplePaths].sort();
+    const hiddenProject = await waitProject(page, saved => saved?.filesystem.files.length === defaultPaths.length && !saved.filesVisible,
       'the cold initial project persists while Files is hidden');
     const hiddenState = await state(page);
     assert.equal(await page.locator('#ymFilesPanel').isVisible(), false);
@@ -232,10 +242,15 @@ async function runEngine(name, origin, fixture, loadCassette) {
     if (!await page.locator('#ymFilesPanel').isVisible()) await page.locator('#ymFilesToggle').click();
     assert.equal(await page.locator('#ymMenuProjectNew #ymProjectNewButton').count(), 1, 'New is mounted in Menu');
     assert.equal(await page.locator('#ymFileExamplesButton').count(), 0, 'automatic examples have no repair toolbar action');
-    await page.locator('#ymFilesTree button[data-file-path="/examples/sync-buzzer.js"]').waitFor({state: 'visible'});
-    await page.locator('#ymFilesTree button[data-file-path="/examples/README.md"]').waitFor({state: 'visible'});
-    const initial = await waitProject(page, saved => saved?.filesystem.files.length === 3,
+    for (const filePath of examplePaths)
+      await page.locator(`#ymFilesTree button[data-file-path="${filePath}"]`).waitFor({state: 'visible'});
+    const initial = await waitProject(page, saved => saved?.filesystem.files.length === defaultPaths.length,
       'initial starter and examples are persisted');
+    assert.deepEqual(initial.filesystem.files.map(file => file.path).sort(), defaultPaths,
+      'the initial project contains exactly the starter and shipped examples');
+    for (const [filePath, source] of Object.entries(examples))
+      assert.equal(initial.filesystem.files.find(file => file.path === filePath)?.data, source,
+        `initial example ${filePath} matches the shipped source`);
     const defaults = {settings: initial.settings, files: initial.filesystem.files};
     const starter = defaults.files.find(file => file.path === '/index.js').data;
     const originalBuzzer = defaults.files.find(file => file.path === '/examples/sync-buzzer.js').data;
@@ -329,7 +344,7 @@ async function runEngine(name, origin, fixture, loadCassette) {
     const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#ymNewProjectExport').click()]);
     const archive = await downloadBytes(download);
     await page.locator('#ymNewProjectDialog').waitFor({state: 'hidden'});
-    const fresh = await waitProject(page, saved => saved?.workspaceId !== oldIdentity && saved?.filesystem.files.length === 3,
+    const fresh = await waitProject(page, saved => saved?.workspaceId !== oldIdentity && saved?.filesystem.files.length === defaults.files.length,
       'export then create persists a fresh workspace');
     assertFresh(fresh, defaults, oldIdentity);
     const freshState = await assertFreshUi(page, defaults, preferences, 1);
@@ -369,7 +384,7 @@ async function runEngine(name, origin, fixture, loadCassette) {
     await page.locator('#synthInputKeyboardTab').click();
     await openNew(page); await page.locator('#ymNewProjectCreate').click();
     await page.locator('#ymNewProjectDialog').waitFor({state: 'hidden'});
-    const coldFresh = await waitProject(page, saved => saved?.workspaceId !== reloaded.workspaceId && saved?.filesystem.files.length === 3,
+    const coldFresh = await waitProject(page, saved => saved?.workspaceId !== reloaded.workspaceId && saved?.filesystem.files.length === defaults.files.length,
       'create without export can replace a cold workspace');
     assertFresh(coldFresh, defaults, reloaded.workspaceId);
     await assertFreshUi(page, defaults, {master: reloadState.master, chipGain: reloadState.chipGain}, 0);
@@ -395,7 +410,7 @@ async function runEngine(name, origin, fixture, loadCassette) {
     assert.equal(songCancelled.song.playing, true); assert(songCancelled.activeKeys.includes('z'));
     await openNew(page); await page.locator('#ymNewProjectCreate').click();
     await page.locator('#ymNewProjectDialog').waitFor({state: 'hidden'});
-    const secondFresh = await waitProject(page, saved => saved?.workspaceId !== secondIdentity && saved?.filesystem.files.length === 3,
+    const secondFresh = await waitProject(page, saved => saved?.workspaceId !== secondIdentity && saved?.filesystem.files.length === defaults.files.length,
       'create without export persists another fresh workspace');
     assertFresh(secondFresh, defaults, secondIdentity);
     const secondState = await assertFreshUi(page, defaults, preferences, 1); await page.keyboard.up('z');
@@ -411,7 +426,8 @@ async function runEngine(name, origin, fixture, loadCassette) {
     }));
     const scriptSource = await page.locator('script[type="module"][src]').getAttribute('src');
     const directory = path.posix.dirname(new URL(scriptSource, origin + config.entry).pathname).replace(/\/$/, '');
-    const freshModules = ['synth.js', 'code_host.js', 'code_files.js'].map(file => `${directory}/${file}?v=ym-project-1`);
+    const freshModules = ['synth.js', 'code_host.js', 'code_files.js', 'code_examples.js']
+      .map(file => `${directory}/${file}?v=ym-volume-1`);
     for (const module of freshModules) assert(resources.includes(module), `versioned New project dependency ${module} is requested`);
     assert.deepEqual(errors, [], 'no uncaught browser errors'); assert.deepEqual(missing, [], 'no missing local resources');
     return {engine: name, passed: true, editor: 'Offline textarea; external CDN intentionally blocked',
@@ -470,7 +486,7 @@ async function main() {
       return {resource, bytes: body.length, sha256: digest(body)};
     }));
     const report = {passed: true, servedRoot: path.relative(repository, config.root), entry: config.entry,
-      resourceVersion: 'ym-project-1', currentSources, physicalOutputMuted: true,
+      resourceVersion: 'ym-volume-1', currentSources, physicalOutputMuted: true,
       disposableBrowserProfiles: true, fixture: 'Original generated 30-second YM2149 VGM; no third-party music', results};
     await fs.mkdir(path.dirname(config.out), {recursive: true}); await fs.writeFile(config.out, JSON.stringify(report, null, 2) + '\n');
     console.log(JSON.stringify(report, null, 2));

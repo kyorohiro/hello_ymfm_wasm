@@ -83,19 +83,6 @@ If a project is full or its `examples` path is occupied by a file, it is kept
 intact and Files reports that automatic insertion could not complete. A failed
 local-project read never saves new defaults over the unknown stored project.
 
-### Start a new project
-
-Choose **Menu → New Project…**. Before starting creation, **Cancel** or Escape
-keeps the current project and performance. **Export current & create** downloads the current Cassette
-before creating a fresh project; **Create without export** replaces it directly.
-
-The fresh project contains the default sound, `index.js` and `examples/`.
-Code, reference playback and held notes stop; channel selection returns to
-Auto, Pitch and Octave to zero, and the input view to Keyboard. Master / mixer
-volume, the audio device and keyboard-layout preferences are retained. The
-new project does not automatically start audio or run Code. If local saving
-is unavailable, export the new project to keep a portable copy.
-
 The script uses CH1 for a melody while a separate named loop changes the R13
 Envelope retrigger rate through 100 / 125 / 160 / 200 Hz. Individual writes are
 scheduled on the Worklet. The melody advances every half beat; rate steps last
@@ -115,6 +102,41 @@ descent. This demonstrates hardware envelope behavior driven by host scheduling;
 it does not emulate Atari ST CPU / MFP timer timing. See the
 [Yamaha YM2149 datasheet](https://ftpmirror.your.org/pub/misc/bitsavers/components/yamaha/YM2149_199209.pdf)
 and [the included envelope implementation](../../third_party/mame-ay8910/ay8910.h).
+
+### Try fixed-volume modulation
+
+Choose **`examples/volume-modulation.js`** in Files, switch to Code and Run.
+It writes CH1's R8 through a 16-step volume-code pattern at 25 / 50 / 100 Hz,
+while a continuous melody changes pitch every half beat. A separate motion
+loop changes the modulation rate every two beats. Console shows the 16 compiled
+R8 writes and nominal write rates of 400 / 800 / 1,600 per second.
+
+Edit `levels`, `modulationHz` or `beat()` values, then Apply. The reservations
+use the Worklet sample clock; these are software-timed writes to the chip's
+16 fixed-volume levels. Those levels are nonlinear and are separate from the
+shared 32-level hardware envelope. Replacing the named reservation restarts
+its phase. BPM changes melody / rate-step timing; modulation rates stay in Hz.
+
+The melody uses `setNote()`, without per-note releases: repeated R8 writes
+could turn output back on after `noteOff()` writes zero. Removing the entire
+`volume-motion` loop runs `liveCleanup()` to silence its final level; Stop ends
+the performance. Selecting CH1 and turning Tone off with Noise off isolates
+the volume-only waveform. Use CH2 / CH3 for keyboard notes that do not compete
+with this example's CH1 writes.
+
+### Start a new project
+
+Choose **Menu → New Project…**. Before starting creation, **Cancel** or Escape
+keeps the current project and performance. **Export current & create** downloads
+the current Cassette before creating a fresh project; **Create without export**
+replaces it directly.
+
+The fresh project contains the default sound, `index.js` and `examples/`.
+Code, reference playback and held notes stop; channel selection returns to
+Auto, Pitch and Octave to zero, and the input view to Keyboard. Master / mixer
+volume, the audio device and keyboard-layout preferences are retained. The
+new project does not automatically start audio or run Code. If local saving
+is unavailable, export the new project to keep a portable copy.
 
 ### Timed register operations
 
@@ -252,8 +274,8 @@ and a maximum of four native Workers. Project data retains the existing
 16 MiB Cassette limit. Failed or cancelled preparation keeps the previous
 song and edited sound.
 
-Timed volume-modulation and volume-register sample-playback examples, Native
-timed execution, Looper / Event Rec and Tauri remain follow-up work. No commercial
+Volume-register sample-playback examples, Native timed execution, Looper /
+Event Rec and Tauri remain follow-up work. No commercial
 music or game files are included.
 
 Serve the application over HTTP. Opening `index.html` through `file://` cannot

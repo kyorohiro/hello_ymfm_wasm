@@ -45,9 +45,56 @@ liveLoop("buzzer-motion", async () => {
 // off, then hold a key. Try retriggerHz = [100]; see examples/README.md.
 // See examples/README.md for natural envelope rate and timing limitations.
 `,
+	'/examples/volume-modulation.js': `const ym = await useSoundChip("ay8910");
+setBpm(120);
+
+// Software schedules fixed-volume writes. The YM2149 supplies the tone and
+// its 16 nonlinear volume levels; this does not use the hardware envelope.
+ym.keyOff(CH2);
+ym.keyOff(CH3);
+ym.setVoice(CH1, { tone: true, noise: false, volume: 0, envelope: false });
+
+const notes = scale("E3", "minorPentatonic", 2);
+const levels = [0, 2, 4, 6, 8, 10, 12, 14, 15, 14, 12, 10, 8, 6, 4, 2];
+const modulationHz = [25, 50, 100];
+let noteIndex = 0;
+let motionIndex = 0;
+
+function volumePattern(hz) {
+  return ym.build(b => {
+    levels.forEach((level, index) => {
+      b.atSeconds(index / (hz * levels.length)).setVolume(CH1, level, false);
+    });
+  });
+}
+console.table(await ym.compile(volumePattern(modulationHz[0]), { initialState: "client" }));
+
+// Continuous melody: pitch changes do not fight the independent R8 writes.
+// noteOff writes volume 0, but the next scheduled volume would sound again.
+liveLoop("melody", async () => {
+  ym.setNote(CH1, notes[noteIndex++ % notes.length]);
+  await beat(0.5);
+});
+
+liveLoop("volume-motion", async () => {
+  const hz = modulationHz[motionIndex++ % modulationHz.length];
+  await ym.schedule(volumePattern(hz), { name: "volume-modulation", repeatSeconds: 1 / hz });
+  console.log("R8 fixed volume: " + hz + " cycles/s; " + (hz * levels.length) + " nominal writes/s");
+  await beat(2);
+});
+
+// Cancellation stops future writes; explicitly silence the last level too.
+// This cleanup follows volume-motion, even if melody remains on Apply.
+liveCleanup(["volume-motion"], () => ym.keyOff(CH1));
+
+// Edit levels, modulationHz or beat() values, then Apply. BPM changes the
+// melody / rate-step timing, not modulationHz. Replacing the name restarts
+// the modulation phase. Stop cancels the loops and silences this Code run.
+// Select CH1 and turn Tone off (leave Noise off) to see volume-only output.
+`,
 	'/examples/README.md': `# YM2149 timed sound examples
 
-Select sync-buzzer.js in Files, switch to Code if needed, and press Run.
+Select sync-buzzer.js or volume-modulation.js in Files, switch to Code, and Run.
 Waveform / Spectrum use the existing output monitor. Console shows the compiled
 R13 write and the current retrigger rate. Selecting or adding files never runs
 them. Startup supplies missing examples without overwriting files or index.js.
@@ -98,6 +145,33 @@ Native timed execution is not supported yet. No game music or samples are used.
 Hardware references:
 - Yamaha YM2149 datasheet: https://ftpmirror.your.org/pub/misc/bitsavers/components/yamaha/YM2149_199209.pdf
 - Core implementation: ../js/ay8910synth.js and the included MAME AY sources.
+
+## Fixed-volume modulation
+
+volume-modulation.js writes CH1's R8 fixed-volume codes, 0 through 15, with
+Envelope mode explicitly off. Its 16-step pattern runs at 25 / 50 / 100 Hz:
+400 / 800 / 1600 nominal register writes per second. One compact reservation
+handles each rate; JavaScript changes the rate only once every two beats.
+The melody changes pitch every half beat with setNote(), independently.
+
+Edit levels or modulationHz, then Apply. Register codes are not linear PCM
+amplitudes: the hardware's volume table is nonlinear. This is separate from
+the shared 32-level hardware envelope in sync-buzzer.js. The timing pattern
+is software; the stepped gain and the resulting tone come from the chip.
+With CH1 selected, turn Tone off and leave Noise off for volume-only output.
+Waveform / Spectrum show the output; Console shows the predicted 16 R8 writes.
+
+This melody is continuous. A noteOff() would write 0, but the next scheduled
+setVolume() could turn output back on. Stop the volume reservation before
+expecting manual note release to keep CH1 silent. Other CHs remain usable.
+Removing volume-motion on Apply runs liveCleanup() to silence its last level;
+keeping that loop but removing only schedule() retains the old reservation.
+For an explicit stop inside volume-motion, use:
+await ym.clearSchedule("volume-modulation");
+ym.keyOff(CH1);
+await beat(2);
+Stop ends both loops. Removing only melody leaves the last pitch modulating.
+No game assets, PCM import or volume-register sample player are added here.
 `,
 });
 

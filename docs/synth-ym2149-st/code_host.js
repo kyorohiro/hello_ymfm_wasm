@@ -8,7 +8,7 @@ import {
 	createYmCodeProject,
 	YM_PROJECT_FILE_BYTES,
 } from './code_project.js?v=draft-reconnect-1';
-import { setupYmCodeFiles } from './code_files.js?v=ym-project-1';
+import { setupYmCodeFiles } from './code_files.js?v=ym-volume-1';
 
 export const YM_STARTER_CODE = `const ym = await useSoundChip("ay8910");
 setBpm(120);
