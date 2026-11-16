@@ -70,6 +70,33 @@ menu. Local project storage keeps drafts on this browser; export a Cassette
 for a portable copy. Restoring a project does not execute its code. Master,
 octave and transient playback state are host preferences.
 
+### Try the Sync-buzzer example
+
+Open **Files → Examples**, then choose **`examples/sync-buzzer.js`**, switch to
+**Code**, and press **Run**. Adding examples keeps your `index.js`, existing
+files and current Keyboard / Code mode; it does not start audio or execute Code.
+The accompanying `examples/README.md` explains the experiment and controls.
+
+The script uses CH1 for a melody while a separate named loop changes the R13
+Envelope retrigger rate through 100 / 125 / 160 / 200 Hz. Individual writes are
+scheduled on the Worklet. The melody advances every half beat; rate steps last
+two beats. Edit the arrays or `beat()` values, then **Apply**. `setBpm()` changes
+those musical intervals, while the rates in Hz stay fixed. Console shows the
+compiled R13 write and each new rate; Waveform / Spectrum show the mixed output.
+
+Select **CH1** to edit its Tone / Noise gates while Code plays. Envelope period
+changes the descent between retriggers; R13 is deliberately rewritten to Shape 8.
+Every envelope-enabled channel shares that generator. Each rate step replaces
+and restarts its named reservation. Removing the entire `buzzer-motion` loop on
+Apply cancels its writes; **Stop** ends both loops and their reservations.
+
+At the Synth's 2 MHz clock, period 100 and Shape 8 naturally repeat at 78.125 Hz.
+Repeated R13 writes at 100 Hz restart the shape every 10 ms, shortening that
+descent. This demonstrates hardware envelope behavior driven by host scheduling;
+it does not emulate Atari ST CPU / MFP timer timing. See the
+[Yamaha YM2149 datasheet](https://ftpmirror.your.org/pub/misc/bitsavers/components/yamaha/YM2149_199209.pdf)
+and [the included envelope implementation](../../third_party/mame-ay8910/ay8910.h).
+
 ### Timed register operations
 
 The browser AY / YM2149 client can record operations, inspect their register
@@ -206,8 +233,8 @@ and a maximum of four native Workers. Project data retains the existing
 16 MiB Cassette limit. Failed or cancelled preparation keeps the previous
 song and edited sound.
 
-High-rate JavaScript register reservation tools, standalone Sync-buzzer code
-examples, Looper / Event Rec and Tauri remain follow-up work. No commercial
+Timed volume-modulation and volume-register sample-playback examples, Native
+timed execution, Looper / Event Rec and Tauri remain follow-up work. No commercial
 music or game files are included.
 
 Serve the application over HTTP. Opening `index.html` through `file://` cannot

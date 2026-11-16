@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { setupYmCodeFiles } from './code_files.js';
 import { createYmCodeProject, YM_PROJECT_FILE_BYTES } from './code_project.js';
 import { createDefaultPreset, readPreset } from './preset.js';
+import { YM_CODE_EXAMPLES } from './code_examples.js';
 
 class Element {
 	constructor(doc, tag = 'div') {
@@ -162,6 +163,146 @@ function fixture(t, options = {}) {
 		},
 	};
 }
+
+test('YM2149 ST Examples adds runnable Files without replacing a saved project or changing live Code', async (t) => {
+	const saved = createYmCodeProject({ starterCode: '// saved user melody' });
+	saved.importFiles([{ path: '/notes.txt', data: 'keep these notes' }]);
+	saved.select('/index.js');
+	saved.setCodeState({ mode: 'keyboard', path: '/index.js' });
+	const writes = [],
+		f = fixture(t, {
+			store: {
+				read: async () => saved.snapshot(),
+				write: async (value) => {
+					writes.push(structuredClone(value));
+					return true;
+				},
+				close: async () => {},
+			},
+		});
+	await f.files.ready;
+	f.calls.length = 0;
+	f.files.setCodeControls({
+		activePath: '/index.js',
+		executionPath: '/index.js',
+		isCodeMode: () => false,
+		setBusy() {},
+		flush: async () => true,
+		openFile: () => assert.fail('Examples never changes the open Code file'),
+		run: () => assert.fail('Examples never runs Code'),
+		stop: () => assert.fail('Examples never stops running Code'),
+		cancelPendingExecution: () => assert.fail('Examples never cancels a pending execution'),
+		workspaceReplaced: () => assert.fail('Examples never replaces the workspace'),
+	});
+	const paths = Object.keys(YM_CODE_EXAMPLES),
+		button = f.doc.getElementById('ymFileExamplesButton');
+	assert.equal(button.textContent, 'Examples');
+	assert.match(button.title, /Existing files are kept; Code is not run/);
+	for (const path of paths) assert.equal(f.project.fs.has(path), false);
+	await button.fire('click');
+	await new Promise((resolve) => setImmediate(resolve));
+	for (const [path, source] of Object.entries(YM_CODE_EXAMPLES))
+		assert.equal(f.project.fs.get(path).data, source);
+	assert.equal(f.project.fs.get('/index.js').data, '// saved user melody');
+	assert.equal(f.project.fs.get('/notes.txt').data, 'keep these notes');
+	assert.equal(f.project.selectedPath, '/index.js');
+	assert.deepEqual(f.files.getCodeState(), { mode: 'keyboard', path: '/index.js' });
+	assert.equal(f.doc.getElementById('ymFilesPanel').hidden, false);
+	assert.equal(f.doc.getElementById('ymFilesToggle').getAttribute('aria-expanded'), 'true');
+	assert.equal(f.doc.querySelector('.ym-main').inert, false);
+	assert.equal(button.disabled, false);
+	assert.deepEqual(f.calls, []);
+	assert.deepEqual(f.opened, []);
+	assert.match(f.statuses.at(-1), /Choose a file in Code, then Run/);
+	const persisted = createYmCodeProject({ snapshot: writes.at(-1) });
+	assert.equal(persisted.fs.get(paths[0]).data, YM_CODE_EXAMPLES[paths[0]]);
+	assert.equal(persisted.fs.get('/index.js').data, '// saved user melody');
+	assert.deepEqual(persisted.getCodeState(), saved.getCodeState());
+	f.project.writeEditorText(paths[0], '// edited example');
+	const before = f.project.snapshot();
+	assert.deepEqual(await f.files.addExamples(), []);
+	assert.deepEqual(f.project.snapshot(), before);
+	assert.match(f.statuses.at(-1), /existing files were kept/);
+});
+
+test('YM2149 ST Examples waits for local restore before inserting and persisting files', async (t) => {
+	const gate = deferred(),
+		saved = createYmCodeProject({ starterCode: '// restored user melody' }),
+		writes = [],
+		f = fixture(t, {
+			store: {
+				read: () => gate.promise,
+				write: async (value) => {
+					writes.push(structuredClone(value));
+					return true;
+				},
+				close: async () => {},
+			},
+		});
+	saved.select('/index.js');
+	saved.setCodeState({ mode: 'code', path: '/index.js' });
+	const pending = f.files.addExamples(),
+		paths = Object.keys(YM_CODE_EXAMPLES);
+	await Promise.resolve();
+	assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, true);
+	for (const path of paths) assert.equal(f.project.fs.has(path), false);
+	assert.equal(writes.length, 0);
+	gate.resolve(saved.snapshot());
+	assert.deepEqual(await pending, paths);
+	assert.equal(f.project.fs.get('/index.js').data, '// restored user melody');
+	assert.equal(f.project.selectedPath, '/index.js');
+	assert.deepEqual(f.files.getCodeState(), { mode: 'code', path: '/index.js' });
+	for (const path of paths)
+		assert.equal(f.project.fs.get(path).data, YM_CODE_EXAMPLES[path]);
+	assert(writes.length > 0);
+	assert.equal(writes.at(-1).filesystem.files.find((file) => file.path === '/index.js').data, '// restored user melody');
+	assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, false);
+});
+
+test('YM2149 ST Examples preserves existing case variants and folders at example paths', async (t) => {
+	for (const collision of ['case', 'folder'])
+		await t.test(collision, async (t) => {
+			const f = fixture(t);
+			await f.files.ready;
+			const paths = Object.keys(YM_CODE_EXAMPLES),
+				path = paths[0],
+				casePath = path.toUpperCase();
+			if (collision === 'case')
+				f.project.importFiles([{ path: casePath, data: '// user example' }]);
+			else f.project.fs.mkdir(path, { recursive: true });
+			f.project.select('/index.js');
+			const state = f.project.getCodeState();
+			assert.deepEqual(await f.files.addExamples(), paths.slice(1));
+			if (collision === 'case') {
+				assert.equal(f.project.fs.get(casePath).data, '// user example');
+				assert.equal(f.project.fs.has(path), false);
+			} else assert.equal(f.project.fs.stat(path).type, 'directory');
+			assert.equal(f.project.selectedPath, '/index.js');
+			assert.deepEqual(f.project.getCodeState(), state);
+			assert.deepEqual(f.calls, []);
+			assert.deepEqual(f.opened, []);
+		});
+});
+
+test('YM2149 ST Examples capacity failure leaves Files and selection atomic', async (t) => {
+	const f = fixture(t);
+	await f.files.ready;
+	f.project.importFiles([
+		{ path: '/padding.bin', type: 'binary', data: new Uint8Array(YM_PROJECT_FILE_BYTES - 100) },
+	]);
+	f.project.select('/index.js');
+	f.project.setCodeState({ mode: 'code', path: '/index.js' });
+	const before = f.project.snapshot(),
+		writes = f.writes.length;
+	await assert.rejects(f.files.addExamples(), /16 MiB/);
+	assert.deepEqual(f.project.snapshot(), before);
+	assert.equal(f.writes.length, writes);
+	assert.equal(f.doc.getElementById('ymFilesPanel').hidden, true);
+	assert.equal(f.doc.querySelector('.ym-main').inert, false);
+	assert.equal(f.doc.getElementById('ymFileExamplesButton').disabled, false);
+	assert.deepEqual(f.calls, []);
+	assert.deepEqual(f.opened, []);
+});
 
 test('YM2149 ST saves named presets without acquiring audio, applying or changing Code mode/focus', async (t) => {
 	const f = fixture(t);

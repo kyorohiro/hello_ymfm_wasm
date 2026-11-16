@@ -1,0 +1,519 @@
+{
+  "passed": true,
+  "entry": "/index.html",
+  "physicalOutputMuted": true,
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "files": {
+        "coldAudioContexts": 0,
+        "mobile": {
+          "viewport": 390,
+          "width": 390
+        },
+        "indexPreserved": true,
+        "keyboardModePreserved": true,
+        "selectionPreserved": true,
+        "editableExampleAndReadme": true,
+        "editedExamplePreserved": true
+      },
+      "pcm": {
+        "peak": 0.07332614064216614,
+        "rms": 0.011261385910805046
+      },
+      "initial": {
+        "ratesHz": [
+          100,
+          125,
+          160,
+          200,
+          100
+        ],
+        "stepSeconds": 1,
+        "intervalsSeconds": [
+          1.0026666666666666,
+          1.0026666666666666,
+          1.0026666666666668,
+          1.0026666666666664
+        ],
+        "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:loop:1",
+        "operation": {
+          "time": {
+            "unit": "sample",
+            "value": 0
+          },
+          "order": 0,
+          "method": "setEnvelope",
+          "args": [
+            {
+              "shape": 8
+            }
+          ]
+        },
+        "scheduleOptions": [
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.01
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.008
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.00625
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.005
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.01
+          }
+        ]
+      },
+      "initialFrames": {
+        "first": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 194304,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 198400,
+          "sampleRate": 48000
+        },
+        "observations": 4,
+        "durationMs": 100
+      },
+      "controls": {
+        "selectedChannel": "CH1",
+        "toneOffMixer": 57,
+        "heldKeyboardPreservesLoops": true
+      },
+      "applied": {
+        "ratesHz": [
+          110,
+          137
+        ],
+        "stepSeconds": 0.25,
+        "intervalsSeconds": [
+          0.2506666666666666
+        ],
+        "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:loop:1",
+        "operation": {
+          "time": {
+            "unit": "sample",
+            "value": 0
+          },
+          "order": 0,
+          "method": "setEnvelope",
+          "args": [
+            {
+              "shape": 8
+            }
+          ]
+        },
+        "scheduleOptions": [
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.00909090909090909
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.0072992700729927005
+          }
+        ]
+      },
+      "failedApply": {
+        "first": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 258560,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 264960,
+          "sampleRate": 48000
+        },
+        "observations": 6,
+        "durationMs": 160
+      },
+      "removedMotion": {
+        "first": {
+          "shape": 13,
+          "mixer": 56,
+          "frame": 269568,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 13,
+          "mixer": 56,
+          "frame": 295680,
+          "sampleRate": 48000
+        },
+        "observations": 21,
+        "durationMs": 550
+      },
+      "stopped": {
+        "first": {
+          "shape": 15,
+          "mixer": 56,
+          "frame": 307200,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 15,
+          "mixer": 56,
+          "frame": 337152,
+          "sampleRate": 48000
+        },
+        "observations": 24,
+        "durationMs": 650
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "stoppedPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "failedReceipts": [],
+        "lifecycle": [
+          {
+            "action": "stage",
+            "transactionId": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:evaluation:4",
+            "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:entry",
+            "method": "schedule",
+            "args": [
+              {
+                "version": 1,
+                "chip": "ay8910",
+                "referenceSampleRate": 44100,
+                "operations": [
+                  {
+                    "time": {
+                      "unit": "sample",
+                      "value": 0
+                    },
+                    "order": 0,
+                    "method": "setEnvelope",
+                    "args": [
+                      {
+                        "shape": 12
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "failed-entry",
+                "repeatSeconds": 0.011111111111111112
+              }
+            ],
+            "id": "chip-control:8",
+            "time": 6.478200000000187,
+            "audioTime": 5.365333333333333
+          },
+          {
+            "action": "abort",
+            "transactionId": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:evaluation:4",
+            "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:entry",
+            "id": "chip-control:9",
+            "time": 6.479200000000186,
+            "audioTime": 5.365333333333333
+          },
+          {
+            "action": "releaseOwner",
+            "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:loop:1",
+            "id": "chip-control:11",
+            "time": 6.710899999999441,
+            "audioTime": 5.6
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:entry",
+            "id": "chip-control:13",
+            "time": 7.4105,
+            "audioTime": 6.298666666666667
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:4b4324e1-366b-47d5-bcf1-614151e6ce3b:1:run:1:loop:2",
+            "id": "chip-control:14",
+            "time": 7.4105999999996275,
+            "audioTime": 6.298666666666667
+          }
+        ]
+      },
+      "errors": [],
+      "missing": [],
+      "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 13       | 8     | 0              | 0         \nR13 Shape 8: 100 retriggers/s\nR13 Shape 8: 125 retriggers/s\nR13 Shape 8: 160 retriggers/s\nR13 Shape 8: 200 retriggers/s\nR13 Shape 8: 100 retriggers/s"
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "editor": "Offline textarea; external CDN intentionally blocked",
+      "files": {
+        "coldAudioContexts": 0,
+        "mobile": {
+          "viewport": 390,
+          "width": 390
+        },
+        "indexPreserved": true,
+        "keyboardModePreserved": true,
+        "selectionPreserved": true,
+        "editableExampleAndReadme": true,
+        "editedExamplePreserved": true
+      },
+      "pcm": {
+        "peak": 0.07332614064216614,
+        "rms": 0.008889602979715968
+      },
+      "initial": {
+        "ratesHz": [
+          100,
+          125,
+          160,
+          200,
+          100
+        ],
+        "stepSeconds": 1,
+        "intervalsSeconds": [
+          1.0026666666666666,
+          1.0053333333333334,
+          1.0053333333333332,
+          1.0026666666666668
+        ],
+        "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:loop:1",
+        "operation": {
+          "time": {
+            "unit": "sample",
+            "value": 0
+          },
+          "order": 0,
+          "method": "setEnvelope",
+          "args": [
+            {
+              "shape": 8
+            }
+          ]
+        },
+        "scheduleOptions": [
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.01
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.008
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.00625
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.005
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.01
+          }
+        ]
+      },
+      "initialFrames": {
+        "first": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 195456,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 199552,
+          "sampleRate": 48000
+        },
+        "observations": 4,
+        "durationMs": 100
+      },
+      "controls": {
+        "selectedChannel": "CH1",
+        "toneOffMixer": 57,
+        "heldKeyboardPreservesLoops": true
+      },
+      "applied": {
+        "ratesHz": [
+          110,
+          137
+        ],
+        "stepSeconds": 0.25,
+        "intervalsSeconds": [
+          0.2560000000000002
+        ],
+        "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:loop:1",
+        "operation": {
+          "time": {
+            "unit": "sample",
+            "value": 0
+          },
+          "order": 0,
+          "method": "setEnvelope",
+          "args": [
+            {
+              "shape": 8
+            }
+          ]
+        },
+        "scheduleOptions": [
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.00909090909090909
+          },
+          {
+            "name": "sync-buzzer",
+            "repeatSeconds": 0.0072992700729927005
+          }
+        ]
+      },
+      "failedApply": {
+        "first": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 259072,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 8,
+          "mixer": 56,
+          "frame": 265600,
+          "sampleRate": 48000
+        },
+        "observations": 6,
+        "durationMs": 160
+      },
+      "removedMotion": {
+        "first": {
+          "shape": 13,
+          "mixer": 56,
+          "frame": 268928,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 13,
+          "mixer": 56,
+          "frame": 294784,
+          "sampleRate": 48000
+        },
+        "observations": 21,
+        "durationMs": 550
+      },
+      "stopped": {
+        "first": {
+          "shape": 15,
+          "mixer": 56,
+          "frame": 305408,
+          "sampleRate": 48000
+        },
+        "last": {
+          "shape": 15,
+          "mixer": 56,
+          "frame": 335744,
+          "sampleRate": 48000
+        },
+        "observations": 24,
+        "durationMs": 650
+      },
+      "audit": {
+        "contexts": 1,
+        "nodes": 1,
+        "speakerRoutes": 1,
+        "physicalOutputMuted": true,
+        "stoppedPcm": {
+          "peak": 0,
+          "rms": 0
+        },
+        "failedReceipts": [],
+        "lifecycle": [
+          {
+            "action": "stage",
+            "transactionId": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:evaluation:4",
+            "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:entry",
+            "method": "schedule",
+            "args": [
+              {
+                "version": 1,
+                "chip": "ay8910",
+                "referenceSampleRate": 44100,
+                "operations": [
+                  {
+                    "time": {
+                      "unit": "sample",
+                      "value": 0
+                    },
+                    "order": 0,
+                    "method": "setEnvelope",
+                    "args": [
+                      {
+                        "shape": 12
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "failed-entry",
+                "repeatSeconds": 0.011111111111111112
+              }
+            ],
+            "id": "chip-control:8",
+            "time": 6.164,
+            "audioTime": 5.381333333333333
+          },
+          {
+            "action": "abort",
+            "transactionId": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:evaluation:4",
+            "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:entry",
+            "id": "chip-control:9",
+            "time": 6.165,
+            "audioTime": 5.384
+          },
+          {
+            "action": "releaseOwner",
+            "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:loop:1",
+            "id": "chip-control:11",
+            "time": 6.382,
+            "audioTime": 5.6
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:entry",
+            "id": "chip-control:13",
+            "time": 7.043,
+            "audioTime": 6.261333333333333
+          },
+          {
+            "action": "cancelOwner",
+            "owner": "code:751173be-e0aa-4733-a25d-aaafda1adc24:1:run:1:loop:2",
+            "id": "chip-control:14",
+            "time": 7.043,
+            "audioTime": 6.261333333333333
+          }
+        ]
+      },
+      "errors": [],
+      "missing": [],
+      "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 13       | 8     | 0              | 0         \nR13 Shape 8: 100 retriggers/s\nR13 Shape 8: 125 retriggers/s\nR13 Shape 8: 160 retriggers/s\nR13 Shape 8: 200 retriggers/s\nR13 Shape 8: 100 retriggers/s"
+    }
+  ]
+}

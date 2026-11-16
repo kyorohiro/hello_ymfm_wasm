@@ -1,5 +1,16 @@
 # Restart handoff — YM2149 timed operations, 2026-11-16
 
+## Resumed work — 2026-11-17
+
+The user resumed this checkpoint. The first Sync-buzzer example is now available
+through **Files → Examples**, with independent melody / retrigger-motion loops,
+compiled register output and an editable README. Default `index.js`, runtime and
+DSP are unchanged. Node 126 cases and source / final ZIP Chromium / WebKit checks
+pass. See [the latest verification](verification_ym2149_buzzer_examples_20261117.md)
+and [updated TODO](todo_ym2149_st_synth_20261116.md) before treating the proposed
+Sync-buzzer work below as pending. Timed volume modulation is the next candidate;
+it has not been started. This section does not imply publication or a new commit.
+
 This is the current entry point for resuming this conversation. The user is
 restarting the computer; this handoff records completed work and the proposed
 next task. No new runtime work was started while preparing it.

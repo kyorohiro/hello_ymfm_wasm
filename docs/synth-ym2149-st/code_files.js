@@ -4,6 +4,7 @@ import { transferVirtualFiles, isCheckpointPath } from '../js/tetorica_virtual_f
 import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import { installSpuFileContextMenu as installYmFileContextMenu } from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
 import {ymMusicEntries} from './music_files.js';
+import { addYmCodeExamples } from './code_examples.js';
 import {
 	createYmCodeProject,
 	createYmProjectStore,
@@ -103,6 +104,7 @@ export function setupYmCodeFiles({
 		listeners = [],
 		expanded = new Map([
 			['/presets', true],
+			['/examples', true],
 			['/lib', true],
 			['/data', true],
 		]);
@@ -142,6 +144,7 @@ export function setupYmCodeFiles({
 	for (const [id, label] of [
 		['ymFileNewButton', 'New JS'],
 		['ymFileSaveSoundButton', 'Save sound'],
+		['ymFileExamplesButton', 'Examples'],
 		['ymFileRenameButton', 'Rename…'],
 		['ymFileDeleteButton', 'Delete…'],
 		['ymFileImportButton', 'Add files…'],
@@ -151,13 +154,15 @@ export function setupYmCodeFiles({
 	]) {
 		const button = make('button', id, label);
 		button.type = 'button';
-		(id === 'ymFileNewButton' || id === 'ymFileSaveSoundButton'
+		(['ymFileNewButton', 'ymFileSaveSoundButton', 'ymFileExamplesButton'].includes(id)
 			? toolbar
 			: actions
 		).append(button);
 		buttons.set(id, button);
 		if (id === 'ymFileNewButton')
 			button.title = 'New JavaScript file; end the path with / to create a folder';
+		if (id === 'ymFileExamplesButton')
+			button.title = 'Add missing YM2149 ST Code examples to examples/. Existing files are kept; Code is not run.';
 		const destination = {
 			ymProjectImportButton: ['ymMenuProjectImport', 'Project · ZIP…'],
 			ymProjectExportButton: ['ymMenuProjectExport', 'Project · ZIP'],
@@ -684,6 +689,28 @@ export function setupYmCodeFiles({
 			if (!disposed) setBusy(false);
 		}
 	}
+	async function addExamples() {
+		await api.ready;
+		if (disposed || busy) return [];
+		const token = ++operation;
+		setBusy(true, { lockMain: false });
+		try {
+			const paths = addYmCodeExamples(project);
+			for (const path of paths) reveal(path);
+			setVisible(true);
+			render();
+			const persisted = await persistCode();
+			if (disposed || token !== operation) return paths;
+			say(
+				paths.length
+					? `Added ${paths.length} example(s) to examples/. Choose a file in Code, then Run.${persisted === false ? ' Local save unavailable; export the project to keep it.' : ''}`
+					: 'Examples are already in Files; existing files were kept.',
+			);
+			return paths;
+		} finally {
+			if (!disposed) setBusy(false);
+		}
+	}
 	/** Capture is a two-preset transaction. Audio ownership stays with the host;
 	 * validation and capacity failures happen before its apply callback. */
 	async function saveCapturedSound(
@@ -877,6 +904,7 @@ export function setupYmCodeFiles({
 			},
 		],
 		['ymFileSaveSoundButton', () => void saveSound().catch(report)],
+		['ymFileExamplesButton', () => void addExamples().catch(report)],
 		[
 			'ymProjectExportButton',
 			() =>
@@ -972,6 +1000,7 @@ export function setupYmCodeFiles({
 		duplicate,
 		remove,
 		saveSound,
+		addExamples,
 		saveCapturedSound,
 		markSoundDirty() {
 			editRevision++;

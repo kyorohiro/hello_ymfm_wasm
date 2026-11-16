@@ -1,8 +1,9 @@
 # Tetorica YM2149 ST Synth
 
-Confirmed on 2026-11-16. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback and the browser AY / YM2149 timed operation API are implemented. Concrete high-rate sound-making examples remain follow-up work.
+Confirmed through 2026-11-17. The base is ASWAN Synth's layout / Files / Code integration, connected to the existing Atari ST YM2149 endpoint. VGM / VGZ, SNDH and YM reference playback, the browser AY / YM2149 timed operation API and the first Sync-buzzer Code example are implemented. Timed volume-modulation and sample-playback examples remain follow-up work.
 
 Latest checkpoint: [restart handoff](thread_handoff_20261116_ym2149_timed_api.md).
+Latest completed work: [Sync-buzzer example verification](verification_ym2149_buzzer_examples_20261117.md).
 
 ## Identity
 
@@ -30,13 +31,19 @@ Initial implementation and readable itch ZIP are complete. See [verification_ym2
 
 ## Follow-up design / research
 
-### Next sound-making examples — proposed, not started
+### Sound-making examples — Sync-buzzer completed 2026-11-17
 
-- [ ] Extend the existing periodic Envelope retrigger (Sync-buzzer) Code example: vary melody and retrigger motion independently, inspect R13 writes through `compile()`, and compare Waveform / Spectrum. Keep host timing distinct from original CPU / MFP timing.
+User asked to resume after restart. First implement the Envelope retrigger example only, using the existing browser timed API. Keep the current default `index.js`, saved projects, runtime and DSP unchanged.
+
+- [x] Add an explicit Files **Examples** action, following HuC6280 Synth: add missing `/examples/` files without overwriting or running user files.
+- [x] Add a readable Sync-buzzer example with independent named melody / retrigger-motion loops, `beat()` timing and inspectable `compile()` output.
+- [x] Verify the real example's register writes, PCM differences and Stop / Apply lifecycle with speaker output muted, plus standalone packaging and preservation of existing projects. Node 126 cases pass; source and final ZIP pass Chromium / WebKit. See [verification](verification_ym2149_buzzer_examples_20261117.md).
+
+- [x] Extend the existing periodic Envelope retrigger (Sync-buzzer) Code example: vary melody and retrigger motion independently, inspect R13 writes through `compile()`, and compare Waveform / Spectrum. Keep host timing distinct from original CPU / MFP timing.
 - [ ] Add a timed volume-modulation Code example after checking the first example's usability.
 - [ ] Explore sample playback through volume writes with explicit rate / timing limits. Do not treat this as a PCM transfer or whole-machine implementation.
 
-These are the next tasks discussed before restart; no example / default-code change has been made yet.
+Timed volume modulation and sample playback remain later steps. The default Code example does not change as part of this work.
 
 ### Timed API implementation — browser AY scope completed 2026-11-16
 
@@ -62,7 +69,7 @@ User authorized implementation after reviewing the design additions. Start with 
   - [x] Implement AY client-baseline adapters with complete retained metadata / cached configuration, explicit incomplete-state rejection and no readback / fallback / constant synchronization. Native AY supports valid local / reset inspection; timed execution / authoritative capture rejects explicitly.
   - [x] Implement shared AY resolution, recording, compilation and compact reservations. Verify Main / Worker, Performance Queue, atomic replacement, Run / Apply / Stop, loop generation, guarded scheduled Gates and manual ownership.
   - [ ] Add OPN resolver / authoritative state coverage and its packed-field / key-command tests before exposing this API on YM2612. Existing legacy `scheduleWrites()` is unchanged.
-- [ ] Demonstrate audio-rate envelope retriggering (Sync-buzzer), timed volume modulation and sample playback through volume writes. Distinguish host-sample timing from exact original-machine cycle behavior.
+- [ ] Finish the high-rate examples: Envelope retriggering (Sync-buzzer) is implemented; timed volume modulation and sample playback through volume writes remain. Distinguish host-sample timing from exact original-machine cycle behavior.
 - [ ] Leave STE DMA, a complete Atari ST machine, Looper / Event Rec and Tauri as separate follow-ups.
 
 ## Reference playback implementation

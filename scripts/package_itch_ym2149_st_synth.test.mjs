@@ -106,6 +106,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 		'js/playground_ay8910_audio.js',
 		'js/playground_ay8910_worklet.js',
 		'synth-ym2149-st/code_host.js',
+		'synth-ym2149-st/code_examples.js',
 		'synth-ym2149-st/music_files.js',
 		'synth-ym2149-st/song_live.js',
 		'synth-ym2149-st/song_player.js',
