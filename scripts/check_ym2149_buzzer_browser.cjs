@@ -164,8 +164,10 @@ async function runEngine(name,origin) {
     await page.locator('#synthInputKeyboardTab').click();
     if(!await page.locator('#ymFilesPanel').isVisible())await page.locator('#ymFilesToggle').click();
     const selectedBefore=await page.locator('#ymFilesSelected').textContent();
+    await page.locator('#ymFilesTree button[data-file-path="/examples/sync-buzzer.js"]').waitFor({state:'visible'});
+    await page.locator('#ymFilesTree button[data-file-path="/examples/README.md"]').waitFor({state:'visible'});
     await page.locator('#ymFileExamplesButton').click();
-    await page.waitForFunction(()=>document.getElementById('ymFilesStatus').textContent.includes('Added 2 example'));
+    await page.waitForFunction(()=>document.getElementById('ymFilesStatus').textContent.includes('existing files were kept'));
     assert.equal(await page.locator('#ymFilesSelected').textContent(),selectedBefore,'Examples preserves selected index.js');
     assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'keyboard');
     await assertCold();

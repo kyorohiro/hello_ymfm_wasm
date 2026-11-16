@@ -1027,6 +1027,7 @@ export function setupYmCodeFiles({
 	const initialEditRevision = editRevision;
 	api.ready = Promise.resolve().then(async () => {
 		const before = initialEditRevision;
+		let examplesAdded = false;
 		try {
 			const saved = await store.read();
 			if (disposed) return;
@@ -1052,12 +1053,24 @@ export function setupYmCodeFiles({
 			// Never save defaults over an unread or invalid stored project. Only
 			// the initial successful restore enables persistence; reconnect is I/O.
 			persistenceReady = true;
+			// Seed only the known startup workspace, after its saved state has been
+			// validated. Explicit project imports remain exactly as imported.
+			restoring = true;
+			try {
+				examplesAdded = addYmCodeExamples(project).length > 0;
+			} catch (error) {
+				report(
+					Error('Default examples could not be added; current files kept. ' + error.message),
+				);
+			} finally {
+				restoring = false;
+			}
 		} catch (error) {
 			report(Error('Local project restore failed; current files kept. ' + error.message));
 		} finally {
 			if (!disposed) {
 				setBusy(false);
-				if (persistenceReady && before !== editRevision) schedule();
+				if (persistenceReady && (examplesAdded || before !== editRevision)) schedule();
 			}
 		}
 	});

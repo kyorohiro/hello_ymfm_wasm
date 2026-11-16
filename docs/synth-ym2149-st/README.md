@@ -72,10 +72,16 @@ octave and transient playback state are host preferences.
 
 ### Try the Sync-buzzer example
 
-Open **Files → Examples**, then choose **`examples/sync-buzzer.js`**, switch to
-**Code**, and press **Run**. Adding examples keeps your `index.js`, existing
-files and current Keyboard / Code mode; it does not start audio or execute Code.
-The accompanying `examples/README.md` explains the experiment and controls.
+Open **Files**, choose **`examples/sync-buzzer.js`**, switch to **Code**, and
+press **Run**. The `examples/` folder is supplied at startup, after any saved
+project has been restored. Existing `index.js`, edited examples, settings and
+Keyboard / Code mode are kept; only missing example files are added. Nothing
+runs or opens audio automatically. **Examples** restores missing sample files
+if you delete them. `examples/README.md` explains the experiment and controls.
+
+If a project is full or its `examples` path is occupied by a file, it is kept
+intact and Files reports that automatic insertion could not complete. A failed
+local-project read never saves new defaults over the unknown stored project.
 
 The script uses CH1 for a melody while a separate named loop changes the R13
 Envelope retrigger rate through 100 / 125 / 160 / 200 Hz. Individual writes are

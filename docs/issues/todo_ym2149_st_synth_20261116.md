@@ -5,6 +5,7 @@ Confirmed through 2026-11-17. The base is ASWAN Synth's layout / Files / Code in
 Latest checkpoint: [restart handoff](thread_handoff_20261116_ym2149_timed_api.md).
 Latest completed work: [Sync-buzzer example verification](verification_ym2149_buzzer_examples_20261117.md).
 Follow-up fix: [Console table import cache verification](fix_log_table_cache_20261117.md).
+Current sample discovery: [default example files and UI cache verification](fix_ym2149_examples_defaults_20261117.md).
 
 ## Identity
 
@@ -31,6 +32,20 @@ Follow-up fix: [Console table import cache verification](fix_log_table_cache_202
 Initial implementation and readable itch ZIP are complete. See [verification_ym2149_st_synth_20261116.md](verification_ym2149_st_synth_20261116.md) and the [packaged Chromium / WebKit report](verification_ym2149_st_synth_browser_20261116.json). Automated speaker outputs were muted; listening remains a user check.
 
 ## Follow-up design / research
+
+### Default examples / UI cache visibility — completed 2026-11-17
+
+User could not find the Files Examples workflow. The new button is in the dynamic Files adapter, but its startup chain retained prefeature module URLs; a cached older Files adapter can render a working panel without that button.
+
+The user then requested `examples/` in Files by default. Add missing examples only after successful initial project restoration, retaining user edits / settings / selection and avoiding audio or Code execution. Explicit Cassette import remains an exact user-file operation.
+
+- [x] Version the complete YM2149 entry → Synth → Code host → Files chain. Ensure that host also requests the current Code runtime containing the logger cache fix; preserve saved projects and current layout.
+- [x] Add default examples on fresh / restored startup, persist successful additions, and keep capacity / directory conflicts nonfatal. Failed or invalid storage reads must not overwrite the unknown draft.
+- [x] Reproduce the old Files panel without Examples using real HTTP caching; verify current source / packaged startup shows the button, inserts the example, and preserves user data without enabling audio. Node 134 cases and both source / packaged Chromium / WebKit pass; see [verification](fix_ym2149_examples_defaults_20261117.md).
+
+### Later project lifecycle
+
+- [ ] Design a separate **New Project** workflow, including preserving or exporting the current project before replacement. No reset / data deletion action is implemented in this change.
 
 ### Console table import cache fix — completed 2026-11-17
 

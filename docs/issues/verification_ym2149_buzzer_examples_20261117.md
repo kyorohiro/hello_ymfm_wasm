@@ -1,5 +1,9 @@
 # YM2149 Sync-buzzer example — 2026-11-17
 
+Subsequent discovery update: [default examples and startup cache](fix_ym2149_examples_defaults_20261117.md).
+The manual Examples insertion and package hashes below describe the original
+verification checkpoint; current startup now supplies missing examples automatically.
+
 Scope: a runnable, readable example using the existing browser timed API.
 The implementation checkpoint is `2e67ed92`; the restart notes were committed
 as `523705f2`. This follow-up changes the YM2149 Files adapter, example source,

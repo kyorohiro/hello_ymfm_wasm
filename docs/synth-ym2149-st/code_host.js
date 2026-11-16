@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared Code runtime/editor over the upper editor's existing physical APU.
-import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
+import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js?v=console-table-1';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js?v=draft-reconnect-1';
 import { selectYmCodeDeclarations } from './code_declarations.js';
 import { createYmCodeAudio } from './code_audio.js';
@@ -8,7 +8,7 @@ import {
 	createYmCodeProject,
 	YM_PROJECT_FILE_BYTES,
 } from './code_project.js?v=draft-reconnect-1';
-import { setupYmCodeFiles } from './code_files.js?v=draft-reconnect-1';
+import { setupYmCodeFiles } from './code_files.js?v=ym-examples-1';
 
 export const YM_STARTER_CODE = `const ym = await useSoundChip("ay8910");
 setBpm(120);
