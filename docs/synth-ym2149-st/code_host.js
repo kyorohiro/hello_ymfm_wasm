@@ -33,6 +33,7 @@ export function setupYmCodeHost({
 	beforeRun = async () => {},
 	prepareOutput = async () => {},
 	onBeforeNewProject = async () => {},
+	downloadFile,
 	onActivity = () => {},
 	setStatus = () => {},
 } = {}) {
@@ -71,6 +72,7 @@ export function setupYmCodeHost({
 		project,
 		getStarterCode: () => YM_STARTER_CODE,
 		onBeforeNewProject,
+		downloadFile,
 		getSettings,
 		applySettings,
 		setStatus,

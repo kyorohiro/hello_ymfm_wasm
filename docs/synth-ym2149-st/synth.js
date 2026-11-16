@@ -13,7 +13,11 @@ import {createFretboardState, createFretboardLayout, renderFretboardControls,
   buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 
 const $ = id => document.getElementById(id);
+const localDesktop=window.top===window && typeof window.__TAURI_INTERNALS__?.invoke==='function' &&
+  ((location.protocol==='tauri:' && location.hostname==='localhost') ||
+  (['http:','https:'].includes(location.protocol) && location.hostname==='tauri.localhost'));
 let audio = null, opening = null, disposed = false, codeHost = null;
+let switchingAudioOutput = false;
 let preset = createDefaultPreset(), target = null, pitch = 0, octave = 0;
 let serial = 0, revision = 0, renderFrame = null;
 let songPlayer=null,songPanel=null,audition=null;
@@ -126,6 +130,10 @@ async function ensureAudio() {
   })().finally(()=>{opening=null;});
   return opening;
 }
+function ensurePerformanceAudio() {
+  if(switchingAudioOutput) throw new DOMException('Audio output is changing. Try again when it is ready.','AbortError');
+  return ensureAudio();
+}
 function changed() {revision++; codeHost?.markSoundDirty(); render();}
 function applySettings(value) {
   const next=readPreset(value);
@@ -161,7 +169,7 @@ async function stopAll() {
   render(); status('All sound stopped.');
 }
 setupSynthMenu({document,window});
-listen('enableAudio','click',ensureAudio);
+listen('enableAudio','click',ensurePerformanceAudio);
 listen('stopSound','click',stopAll);
 listen('savePreset','click',()=>codeHost.files.saveSound());
 listen('presetName','change',()=>{
@@ -238,7 +246,7 @@ function renderKeyboard() {
   $('octaveDown').disabled=octave<=-2;$('octaveUp').disabled=octave>=2;
 }
 function press(source,entry) {
-  if(disposed || held.has(source)||songState.busy) return;
+  if(disposed || switchingAudioOutput || held.has(source)||songState.busy) return;
   const view=referenceView();
   if(view&&songState.playing){status('Pause the reference song to audition the selected channel.');return;}
   if(view&&!view.canAudition){status(view.reason);return;}
@@ -285,7 +293,8 @@ document.addEventListener('pointerdown',event=>{
 document.addEventListener('change',event=>{if(event.target.matches('select,input[type="checkbox"]'))event.target.blur();});
 document.addEventListener('pointerup',event=>{if(event.target.matches('input[type="range"]'))event.target.blur();});
 
-codeHost=setupYmCodeHost({ensureAudio,getAudio:()=>audio,getSettings,applySettings,stopKeyboard,
+codeHost=setupYmCodeHost({ensureAudio:ensurePerformanceAudio,getAudio:()=>audio,getSettings,applySettings,stopKeyboard,
+  downloadFile:localDesktop && typeof window.tetoricaSynthSave==='function' ? window.tetoricaSynthSave : undefined,
   stopSong:()=>{stopKeyboard();songPlayer?.stop();},onActivity:requestRender,setStatus:status,
   onBeforeNewProject({isCurrent=()=>true}={}) {
     if(!isCurrent())return false;
@@ -296,7 +305,7 @@ codeHost=setupYmCodeHost({ensureAudio,getAudio:()=>audio,getSettings,applySettin
   }});
 songPlayer=createYmSongPlayer({getAudio:()=>audio,prepareSource:prepareYmReference,createEngine:createYmReferenceEngine,
   beforePlay:async()=>{
-    stopKeyboard();await codeHost.stop();await ensureAudio();audio.stop();
+    stopKeyboard();await codeHost.stop();await ensurePerformanceAudio();audio.stop();
     if(target===null){target=0;audio.instrument.selectChannel(target);}
   },
   onState(state) {
@@ -325,3 +334,17 @@ window.addEventListener('pagehide',()=>{
 // Read-only host diagnostics also make source examples easy to inspect.
 window.tetoricaYm2149StSynth=Object.freeze({getSettings,getState:()=>audio?.instrument.read()??{preset:getSettings(),selectedChannel:target,pitch,activeChannels:[],revision},
   getCodeState:()=>codeHost.getState(),getSongState:()=>songPlayer.read()});
+
+// The desktop wrapper routes this same final Master bus to its output device.
+// Web pages and embedded frames never expose native output controls.
+if(localDesktop) {
+  Object.defineProperty(window,'tetoricaSynthAudio',{value:Object.freeze({
+    setSwitching(value) {switchingAudioOutput=value===true;},
+    async ensureReady() {
+      const host=await ensureAudio();
+      return {context:host.context,output:host.outputNode};
+    },
+    stopPlayback:stopAll,
+  })});
+  window.dispatchEvent(new Event('tetorica-synth-ready'));
+}
