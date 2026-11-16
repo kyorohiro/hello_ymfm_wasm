@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "scope": "log-table-import-cache-query-only",
+  "baseCommit": "7593d0f06ed85579fc1c5e89c5de03e4a2c96601",
+  "review": "Exactly one playground_log.js import cache query in each Main, Worker and Synth Code runtime source and served mirror. The complete prior and served bodies are authenticated. Logger implementation, immutable AY timed receipt, audio reports, measured gains, DSP and WASM are unchanged. No future source or cache-query revision is covered.",
+  "sources": {
+    "tetorica_src/runtime/playground_code_runtime.js": {
+      "before": {
+        "bytes": 29769,
+        "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+      },
+      "after": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      }
+    },
+    "docs/js/playground_code_runtime.js": {
+      "before": {
+        "bytes": 29769,
+        "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+      },
+      "after": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      }
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "before": {
+        "bytes": 163631,
+        "sha256": "a56434972530040d642c610f05bc32e3659cacdfc48cef92e2a4f973bfbe95a7"
+      },
+      "after": {
+        "bytes": 163649,
+        "sha256": "d28109196bfb711355c933a65fabce6d2083e7bad836efeb06cd75f93e31a733"
+      }
+    },
+    "docs/js/playground_runtime.js": {
+      "before": {
+        "bytes": 164816,
+        "sha256": "8fb86c275e4eec120df438a369309f3fd731a6a26cdacfc7ac834eb986772de6"
+      },
+      "after": {
+        "bytes": 164834,
+        "sha256": "622638eeb6e23a1b0fcf70b1bc669d8a8967753bd87709549d14a1c6276ba9ec"
+      }
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "before": {
+        "bytes": 60122,
+        "sha256": "aec8474ef96e255f34bd5ea6359299546a19fed34dacbcf2cc6f1e6d614425c0"
+      },
+      "after": {
+        "bytes": 60140,
+        "sha256": "523969c30adeca0e12eabf0dab997c32ab77e4338d3d1e9a45d65d8ae372fe8b"
+      }
+    },
+    "docs/js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 60574,
+        "sha256": "75ab41992e47a50110c77ae382431a3f50b29e514645b4a9178367930d7dc505"
+      },
+      "after": {
+        "bytes": 60592,
+        "sha256": "4c4ce76f679fee5de54d0578ae3ffe6c9dc250f00bc310b41aa56cc560dd724d"
+      }
+    }
+  },
+  "loggers": {
+    "tetorica_src/runtime/playground_log.js": {
+      "bytes": 2169,
+      "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+    },
+    "docs/js/playground_log.js": {
+      "bytes": 2169,
+      "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+    }
+  }
+}

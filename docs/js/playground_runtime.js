@@ -59,7 +59,7 @@ import {createYm2608Client} from './playground_ym2608.js?v=rf5c164-notes-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=rf5c164-notes-1';
 import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=rf5c164-notes-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
-import {formatLogArgs,formatLogTable} from './playground_log.js';
+import {formatLogArgs,formatLogTable} from './playground_log.js?v=console-table-1';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
 /**
  * @file playground_runtime.js

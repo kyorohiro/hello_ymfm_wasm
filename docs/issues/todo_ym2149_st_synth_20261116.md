@@ -4,6 +4,7 @@ Confirmed through 2026-11-17. The base is ASWAN Synth's layout / Files / Code in
 
 Latest checkpoint: [restart handoff](thread_handoff_20261116_ym2149_timed_api.md).
 Latest completed work: [Sync-buzzer example verification](verification_ym2149_buzzer_examples_20261117.md).
+Follow-up fix: [Console table import cache verification](fix_log_table_cache_20261117.md).
 
 ## Identity
 
@@ -30,6 +31,14 @@ Latest completed work: [Sync-buzzer example verification](verification_ym2149_bu
 Initial implementation and readable itch ZIP are complete. See [verification_ym2149_st_synth_20261116.md](verification_ym2149_st_synth_20261116.md) and the [packaged Chromium / WebKit report](verification_ym2149_st_synth_browser_20261116.json). Automated speaker outputs were muted; listening remains a user check.
 
 ## Follow-up design / research
+
+### Console table import cache fix — completed 2026-11-17
+
+User reported missing `formatLogTable` on `http://localhost:8787/synth-ym2149-st/index.html`. The server currently serves the complete new logger; the previous logger did not export that function.
+
+- [x] Version the logger dependency URL in the Synth / Main / Worker importers and their served mirrors.
+- [x] Reproduce the missing-export error with a real cached predecessor, then verify current startup / Console table without clearing user storage or opening audible output. Source and final ZIP pass Chromium / WebKit with persistent HTTP cache and no request routing.
+- [x] Retain exact source freshness through a strictly query-only revision over the immutable AY timed receipt; run targeted runtime, packaging and calibration checks. Historical guards pass 468/468; both mixer generation checks and related runtime / package tests pass. See [verification](fix_log_table_cache_20261117.md).
 
 ### Sound-making examples — Sync-buzzer completed 2026-11-17
 

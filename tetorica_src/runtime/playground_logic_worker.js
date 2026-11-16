@@ -31,7 +31,7 @@ import {createRf5c164Client} from './playground_rf5c164.js';
 import {createNativeSampleController} from './native_sample.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeNoiseOwnership} from './native_genesis_noise.js';
-import {serializeLogError,formatLogTable} from './playground_log.js';
+import {serializeLogError,formatLogTable} from './playground_log.js?v=console-table-1';
 /**
  * @file playground_logic_worker.js
  * 実行環境: Browser（Web Worker）

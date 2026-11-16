@@ -9,7 +9,7 @@ import {createLiveFxLifecycle} from './native_fx.js';
 import {executeWithPlaygroundGuards} from './playground_execution.js';
 import {midiToOpnPitch,opnPitchFromHz} from './soundchip_pitch.js';
 import {FM_PRESETS} from './megasynth-fm-presets.js';
-import {formatLogArgs,formatLogTable} from './playground_log.js';
+import {formatLogArgs,formatLogTable} from './playground_log.js?v=console-table-1';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
 
 /** @typedef {'ym2612'|'segapsg'|'rf5c164'|'pwm'} DefaultCodeSoundChip */

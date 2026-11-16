@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createPerformanceQueue} from '../tetorica_src/runtime/playground_performance_queue.js';
 import {createProcessorPerformance} from '../tetorica_src/runtime/playground_performance_processor.js';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+import {restoreMixerCalibrationLogTableCacheRevision} from './mixer_calibration_log_table_cache_revision.mjs';
 import {
   restoreMixerCalibrationAyTimedRevision as restore,
   AY_TIMED_REVISION_BASE_COMMIT as baseCommit,
@@ -35,8 +36,9 @@ test('exact AY API receipt restores complete predecessors and preserves immutabl
   assert.deepEqual(Object.keys(receipt.sources), [...paths]);
   for (const path of paths) {
     const current = read(path), original = restore(path, current), entry = receipt.sources[path];
-    assert.equal(current.length, entry.after.bytes);
-    assert.equal(sha(current), entry.after.sha256);
+    const reviewed = restoreMixerCalibrationLogTableCacheRevision(path, current);
+    assert.equal(reviewed.length, entry.after.bytes);
+    assert.equal(sha(reviewed), entry.after.sha256);
     assert.equal(original.length, entry.before.bytes);
     assert.equal(sha(original), entry.before.sha256);
     assert.equal(restore(path, original), original);

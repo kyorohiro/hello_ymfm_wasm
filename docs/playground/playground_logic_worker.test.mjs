@@ -15,10 +15,11 @@ import {midiToOpnPitch, opnPitchFromHz} from '../../tetorica_src/runtime/soundch
 import {CHIP_CLOCKS} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import {createYm2151Client} from '../../tetorica_src/runtime/playground_ym2151.js';
 import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
-import {serializeLogError} from '../../tetorica_src/runtime/playground_log.js';
+import {serializeLogError,formatLogTable} from '../../tetorica_src/runtime/playground_log.js';
 import {createSegaPsgClient} from '../../tetorica_src/runtime/playground_segapsg.js';
 import {resolvePlaySeconds,resolvePlayDuration} from '../../tetorica_src/runtime/playground_duration.js';
 import {createLoopAsyncTasks} from '../../tetorica_src/runtime/playground_async_tasks.js';
+import {createAyTimedLifecycle} from '../../tetorica_src/runtime/playground_ay_timed_lifecycle.js';
 import {createCycle, createPlaygroundMusic} from '../../tetorica_src/runtime/playground_music.js';
 import {createOpnClient} from '../../tetorica_src/runtime/playground_opn.js';
 import {createRf5c164Client} from '../../tetorica_src/runtime/playground_rf5c164.js';
@@ -52,7 +53,7 @@ function createWorkerHarness(overrides = {}) {
   const context = {
     // Imported encoders use instanceof; share their PCM constructor with the VM.
     encodeBrr, encodeAdpcmA, encodePs1Adpcm, readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES, Float32Array,
-    validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
+    validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, formatLogTable, createAyTimedLifecycle, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
@@ -1858,7 +1859,7 @@ test('Master System Worker source shares direct PSG and OPLL primaries, constant
 
 test('MSX Worker source borrows only AY and OPLL without injecting an OPL instrument',async () => {
   const worker = createWorkerHarness(), sent = {ay:[],opll:[]};
-  const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(message); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
+  const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(...(Array.isArray(message)?message:[message])); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
   const ayAuthor = new AY8910Synth({transport:{writeRegister() {},reset() {}}}), opllAuthor = new YM2413Synth({transport:{writeRegister() {},reset() {}}});
   for (const synth of [ayAuthor,opllAuthor]) synth.initialize();
   await worker.send({type:'native-primary-ports',endpoints:[
@@ -1916,7 +1917,7 @@ test('Y8950 Worker stopAll cancels pending sample decode and its primary client 
 
 test('MSX Audio Worker source borrows all three physical chips and adopts AY retained levels without replay',async () => {
   const worker = createWorkerHarness(), sent = {ay:[],opll:[],opl:[]};
-  const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(message); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
+  const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(...(Array.isArray(message)?message:[message])); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
   const ayAuthor = new AY8910Synth({transport:{writeRegister() {},reset() {}}}), opllAuthor = new YM2413Synth({transport:{writeRegister() {},reset() {}}}), oplAuthor = new OPLSynth({chip:'y8950',transport:{writeRegister() {},reset() {}}});
   for (const synth of [ayAuthor,opllAuthor,oplAuthor]) synth.initialize();
   ayAuthor.setVoice(2,{tone:false,noise:true,volume:6,envelope:true}); ayAuthor.keyOff(2);

@@ -4,6 +4,7 @@
  */
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {restoreMixerCalibrationLogTableCacheRevision} from './mixer_calibration_log_table_cache_revision.mjs';
 
 export const AY_TIMED_REVISION_BASE_COMMIT = '6663c6d5a286f10ff08f16645953a0083dabd34b';
 export const AY_TIMED_REVISION_RECEIPT_PATH = 'docs/issues/ay_timed_operations_source_revision_01.json';
@@ -90,16 +91,19 @@ export function restoreMixerCalibrationAyTimedRevision(path, bytes, {readSource 
   const name = sourceName(path);
   if (!AY_TIMED_REVISION_SOURCE_PATHS.includes(name)) return bytes;
   const receipt = evidence(readSource), entry = receipt.sources[name];
-  if (!matches(bytes, entry.after)) return bytes;
+  const reviewed = restoreMixerCalibrationLogTableCacheRevision(name, bytes, {readSource});
+  if (!matches(reviewed, entry.after)) return bytes;
   for (const dependency of [
     ...AY_TIMED_REVISION_SOURCE_PATHS, ...AY_TIMED_REVISION_RELATED_PATHS, ...AY_TIMED_REVISION_REPORT_PATHS,
   ]) {
     const expected = receipt.sources[dependency]?.after ?? receipt.relatedSources[dependency] ?? receipt.reports[dependency];
-    if (!matches(readSource(new URL('../' + dependency, import.meta.url)), expected)) {
+    const current = restoreMixerCalibrationLogTableCacheRevision(dependency,
+      readSource(new URL('../' + dependency, import.meta.url)), {readSource});
+    if (!matches(current, expected)) {
       fail('pinned source/report dependency changed: ' + dependency);
     }
   }
-  const current = Buffer.from(bytes), parts = [];
+  const current = Buffer.from(reviewed), parts = [];
   let cursor = 0;
   for (const hunk of entry.reverseHunks) {
     parts.push(current.subarray(cursor, hunk.afterOffset), Buffer.from(hunk.beforeText));

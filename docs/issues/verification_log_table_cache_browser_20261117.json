@@ -1,0 +1,102 @@
+{
+  "passed": true,
+  "entry": "/synth-ym2149-st/index.html",
+  "routingDisabled": true,
+  "fixture": {
+    "revision": "6663c6d5",
+    "path": "docs/js/playground_log.js",
+    "bytes": 842,
+    "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+  },
+  "currentLogger": {
+    "url": "/js/playground_log.js?v=console-table-1",
+    "bytes": 2169,
+    "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+  },
+  "results": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "persistentHttpCache": true,
+      "negativeControl": {
+        "name": "SyntaxError",
+        "message": "The requested module './playground_log.js' does not provide an export named 'formatLogTable'",
+        "freshDocument": true,
+        "legacyLoggerNetworkRequests": 1
+      },
+      "recovery": {
+        "entry": "/synth-ym2149-st/index.html",
+        "readyBeforeAudio": true,
+        "logger": "/js/playground_log.js?v=console-table-1",
+        "loggerNetworkRequests": 1,
+        "staleBareLoggerStillCached": true,
+        "consoleTable": true,
+        "table": "(index) | register | value | label               \n0       | 13       | 8     | LOG_TABLE_WARM_CACHE\nLOG_TABLE_CACHE_COMPLETE"
+      },
+      "storagePreserved": {
+        "localStorage": "Keep my console-table preferences.",
+        "indexedDB": {
+          "text": "Keep my cassette data.",
+          "binary": [
+            0,
+            17,
+            128,
+            255
+          ]
+        }
+      },
+      "audio": {
+        "contexts": 1,
+        "physicalRoutes": 1,
+        "allPhysicalOutputsMuted": true
+      },
+      "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+      "expectedEditorPolicyMessages": 1,
+      "errors": [],
+      "missing": [],
+      "unexpectedConsoleErrors": []
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "persistentHttpCache": true,
+      "negativeControl": {
+        "name": "SyntaxError",
+        "message": "Importing binding name 'formatLogTable' is not found.",
+        "freshDocument": true,
+        "legacyLoggerNetworkRequests": 1
+      },
+      "recovery": {
+        "entry": "/synth-ym2149-st/index.html",
+        "readyBeforeAudio": true,
+        "logger": "/js/playground_log.js?v=console-table-1",
+        "loggerNetworkRequests": 1,
+        "staleBareLoggerStillCached": true,
+        "consoleTable": true,
+        "table": "(index) | register | value | label               \n0       | 13       | 8     | LOG_TABLE_WARM_CACHE\nLOG_TABLE_CACHE_COMPLETE"
+      },
+      "storagePreserved": {
+        "localStorage": "Keep my console-table preferences.",
+        "indexedDB": {
+          "text": "Keep my cassette data.",
+          "binary": [
+            0,
+            17,
+            128,
+            255
+          ]
+        }
+      },
+      "audio": {
+        "contexts": 1,
+        "physicalRoutes": 1,
+        "allPhysicalOutputsMuted": true
+      },
+      "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+      "expectedEditorPolicyMessages": 1,
+      "errors": [],
+      "missing": [],
+      "unexpectedConsoleErrors": []
+    }
+  ]
+}
