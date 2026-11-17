@@ -242,7 +242,10 @@ test('SCSP DSP setup and live coefficients retain owner admission while bypassin
   const command={method,args:[],id:method};port.postMessage(command);
   assert.deepEqual(f.sent.at(-1),{performance:{session:1,owner:'dsp-motion',time:3.15},commands:[command]});
  }
+ const indexed={method:'setDspReturn',args:[1,{level:7,pan:15}],id:80};port.postMessage(indexed);
+ assert.deepEqual(f.sent.at(-1),{performance:{session:1,owner:'dsp-motion',time:3.15},commands:[indexed]});
  const before=f.sent.length;f.sender.cancelOwner('dsp-motion');
  assert.throws(()=>port.postMessage({method:'setDspCoefficients',args:[{2:0}],id:81}),{name:'AbortError'});
+ assert.throws(()=>port.postMessage({method:'setDspReturn',args:[1,{level:0}],id:82}),{name:'AbortError'});
  assert.equal(f.sent.length,before+1,'Only owner cancellation crossed the port');
 });

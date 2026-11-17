@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCSP DSP routing — Tetorica source-build example</title>
+  <style>
+    body {max-width:56rem;margin:2rem auto;padding:0 1rem;font:16px/1.5 system-ui,sans-serif;color:#172c38;background:#f3f7f9;}
+    .controls {display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin:1rem 0;}
+    button {font:inherit;padding:.4rem .7rem;}
+    .coefficient {display:grid;grid-template-columns:minmax(10rem,1fr) 3fr 4rem;align-items:center;gap:.75rem;margin:.7rem 0;}
+    input[type="range"] {width:100%;} output {font-variant-numeric:tabular-nums;text-align:right;}
+    pre {padding:1rem;overflow:auto;background:#172c38;color:#dceef8;border-radius:.5rem;}
+    @media(max-width:34rem) {.coefficient {grid-template-columns:1fr 4rem;} .coefficient input {grid-column:1/-1;grid-row:2;}}
+  </style>
+  <script type="importmap">
+  {"imports":{
+    "tetorica-fm2612/playground_scsp_audio.js":"../../playground_scsp_audio.js",
+    "tetorica-fm2612/playground_scsp.js":"../../playground_scsp.js",
+    "tetorica-fm2612/scsp_dsp_assembler.js":"../../scsp_dsp_assembler.js"
+  }}
+  </script>
+</head>
+<body>
+  <h1>Two SCSP DSP paths</h1>
+  <p>Unpublished source-build example. npm 0.2.44 does not include two-bus routing.</p>
+  <p>Both slots play the same quiet saw at A3. MIXS0 reaches Gain on the left; MIXS1 reaches IIR on the right. Direct output is muted.</p>
+  <div class="controls">
+    <button id="start" type="button">Start audio</button>
+    <button id="stop" type="button" disabled>Stop</button>
+    <label><input id="leftEnabled" type="checkbox" checked> EFREG0 → Left</label>
+    <label><input id="rightEnabled" type="checkbox" checked> EFREG1 → Right</label>
+  </div>
+  <p id="status" role="status" data-state="idle">Start audio to compare the two paths.</p>
+  <div class="coefficient">
+    <label for="gain">COEF0 · left gain</label>
+    <input id="gain" type="range" min="-4096" max="4095" step="1" value="4095">
+    <output id="gainValue" for="gain">4095</output>
+  </div>
+  <div class="coefficient">
+    <label for="history">COEF1 · IIR history</label>
+    <input id="history" type="range" min="1" max="4095" step="1" value="3840">
+    <output id="historyValue" for="history">3840</output>
+  </div>
+  <p>COEF2 is 4096 − COEF1. Coefficient codes are signed Q12. Send input numbers and effect output numbers are separate from physical slot numbers. The output gain is 20%.</p>
+  <h2>DSP source</h2><pre id="source"></pre>
+  <h2>Applied state</h2><pre id="snapshot">Start audio to read the chip's setup.</pre>
+  <p><a href="routing-browser.js">Read the browser source</a> · <a href="README.md">Run the offline example</a> · <a href="execution.html">Single-path Gain / IIR</a></p>
+  <script type="module" src="routing-browser.js"></script>
+</body>
+</html>

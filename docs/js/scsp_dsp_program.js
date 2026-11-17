@@ -15,7 +15,7 @@ function stepError(step, message) {
  * @param {Uint16Array | readonly number[]} words
  * @returns {Uint16Array} An owned, validated 512-word image.
  */
-export function validateScspDspDelayProgram(words) {
+function validateScspDspProgram(words, effectOutputs) {
   if (!(words instanceof Uint16Array) && !Array.isArray(words)) {
     throw new TypeError('SCSP DSP words must be a Uint16Array or an array of numbers');
   }
@@ -45,8 +45,10 @@ export function validateScspDspDelayProgram(words) {
     if (((word1 >>> 13) & 3) === 1 && ((word3 >>> 9) & 0x3f) > 2) {
       throw stepError(step, 'COEF must be 0..2 when YSEL=1, using the existing Delay coefficients');
     }
-    if ((word2 & 0x1000) && ((word2 >>> 8) & 0x0f) !== 0) {
-      throw stepError(step, 'EWA must be 0 when EWT=1, using the existing EFREG0 return');
+    if ((word2 & 0x1000) && ((word2 >>> 8) & 0x0f) >= effectOutputs) {
+      throw stepError(step, effectOutputs === 1
+        ? 'EWA must be 0 when EWT=1, using the existing EFREG0 return'
+        : 'EWA must be 0..1 when EWT=1, using the two owned effect returns');
     }
     if (word2 & 0x6000) {
       if (!(step & 1)) throw stepError(step, 'MRD / MWT require an odd physical step');
@@ -58,6 +60,14 @@ export function validateScspDspDelayProgram(words) {
     }
   }
   return program;
+}
+
+/** The dedicated Synth keeps its existing mono Delay execution profile.
+ * @param {Uint16Array | readonly number[]} words
+ * @returns {Uint16Array}
+ */
+export function validateScspDspDelayProgram(words) {
+  return validateScspDspProgram(words, 1);
 }
 
 /** Assemble first, then check the narrower executable Synth profile.
@@ -93,13 +103,13 @@ export function checkScspDspDelaySource(source) {
 }
 
 /** Validate the register-only execution profile used by Playground.
- * TEMP, MEMS, MIXS and EFREG0 remain available to Gain / FIR / IIR programs.
+ * TEMP, MEMS, MIXS and EFREG0 / EFREG1 are available to Gain / FIR / IIR programs.
  * Sample RAM and its address controls require a separately reserved memory bank.
  * @param {Uint16Array | readonly number[]} words
  * @returns {Uint16Array}
  */
 export function validateScspDspRegisterProgram(words) {
-  const program = validateScspDspDelayProgram(words);
+  const program = validateScspDspProgram(words, 2);
   for (let step = 0; step < 128; step++) {
     const word2 = program[step * 4 + 2];
     const word3 = program[step * 4 + 3];

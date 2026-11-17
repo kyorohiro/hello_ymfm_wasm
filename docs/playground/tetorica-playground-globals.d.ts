@@ -2992,8 +2992,10 @@ interface PlaygroundScspMix {
   directLevel: number;
   /** Hardware DIPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan: number;
-  /** Hardware IMXL 0..7 into DSP MIXS0; omitted/0 disables the send. Native requires 0. */
+  /** Hardware IMXL 0..7; omitted/0 disables the send. Native requires 0. */
   dspSend?: number;
+  /** Hardware ISEL input bus 0..1; omitted uses MIXS0. Web Audio only. */
+  dspInput?: number;
 }
 /** Signed Q12 hardware coefficient codes, each -4096..4095. */
 type PlaygroundScspDspCoefficientPatch = Partial<{0:number; 1:number; 2:number}>;
@@ -3001,7 +3003,7 @@ interface PlaygroundScspDspCoefficients {codes:number[];}
 /** A setup update supplies every supported coefficient atomically. */
 interface PlaygroundScspDspApplyOptions {coefficients:{0:number; 1:number; 2:number};}
 interface PlaygroundScspDspReturn {
-  /** EFREG0 return level 0..7; 0 is muted. */
+  /** Selected EFREG0 / EFREG1 return level 0..7; 0 is muted. */
   level:number;
   /** Hardware EFPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan:number;
@@ -3021,6 +3023,8 @@ interface PlaygroundScspDspProgramBase {
   revision:number;
   coefficients:PlaygroundScspDspCoefficients;
   return:PlaygroundScspDspReturn;
+  /** Present after indexed return control; `return` is still output 0. */
+  returns?:[PlaygroundScspDspReturn,PlaygroundScspDspReturn];
 }
 /** Independent snapshots retain owned instruction and coefficient arrays. */
 interface PlaygroundScspDspRegisterProgram extends PlaygroundScspDspProgramBase {
@@ -3098,9 +3102,15 @@ interface PlaygroundScsp {
    * await scsp.setDspCoefficients({1:3840,2:256});
    */
   setDspCoefficients(patch:PlaygroundScspDspCoefficientPatch):Promise<PlaygroundScspDspCoefficients>;
-  /** Live EFREG0 return level/pan; only MIXS0/EFREG0 are exposed by this profile.
-   * Per-slot setMix({dspSend:7}) enables sends; directLevel controls the dry path. */
+  /** Legacy live EFREG0 return level/pan. Per-slot setMix({dspSend:7}) enables
+   * sends; dspInput selects MIXS0/1, directLevel controls the dry path. */
   setDspReturn(patch:Partial<PlaygroundScspDspReturn>):Promise<PlaygroundScspDspReturn>;
+  /** Independent EFREG0 / EFREG1 return. Hardware pan 31 is left, 15 is right.
+   * @example
+   * await scsp.setDspReturn(0,{level:7,pan:31});
+   * await scsp.setDspReturn(1,{level:7,pan:15});
+   */
+  setDspReturn(output:0|1,patch:Partial<PlaygroundScspDspReturn>):Promise<PlaygroundScspDspReturn>;
   /** Reserve a 64 KiB ring and apply the fixed SCSP Delay program. Time is
    * 20..700 integer milliseconds. Feedback is quantized to signed Q12.
    * Time / enabled edits clear the ring. Feedback edits preserve its tail.

@@ -154,7 +154,7 @@ test('Start preserves word504 and a later empty program replaces the entire prio
 
 test('invalid programs, setup tables and partial settings are rejected before every core write', () => {
   const writes = [], owner = new ScspDspProgram({write: (...args) => writes.push(args)}), initial = owner.readProgram();
-  const sources = ['000: RAW0=0x8000', '000: IRA=50', '000: YSEL=1 COEF=3', '000: EWT=1 EWA=1',
+  const sources = ['000: RAW0=0x8000', '000: IRA=50', '000: YSEL=1 COEF=3', '000: EWT=1 EWA=2',
     '001: MRD=1', '001: MWT=1', '000: TABLE=1', '000: NOFL=1', '000: MASA=1', '000: ADREB=1', '000: NXADR=1'];
   for (const source of sources) assert.throws(() => owner.applyProgram(assembleScspDsp(source)), /Step/);
   for (const value of [null, [], new Uint8Array(512), Array(511).fill(0), [...Array(511).fill(0), -1]]) {

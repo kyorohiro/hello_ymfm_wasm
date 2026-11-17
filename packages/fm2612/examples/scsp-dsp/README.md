@@ -132,3 +132,50 @@ automatic effect compilation. The pure assembler and released Gain / IIR
 examples above keep their existing behavior. The Delay controls require Web
 Audio Main / Worker or a local owned `ScspSynth`; Native DSP transport rejects
 them explicitly with `NotSupportedError`.
+
+## Two input / output paths — unpublished source build
+
+`routing.mjs` and `routing.html` use a new source-build routing extension.
+**The published npm 0.2.44 does not include it.** Build the repository package
+with `npm run build:fm2612`, then install that local `dist/fm2612` directory in
+a separate project:
+
+```sh
+npm install /path/to/hello_ymfm/dist/fm2612
+node node_modules/tetorica-fm2612/examples/scsp-dsp/routing.mjs
+```
+
+The Node example sends identical original impulses through two simultaneous
+paths. MIXS0 reaches Gain / EFREG0 on the left; MIXS1 reaches one-pole IIR /
+EFREG1 on the right. It compares both channels with independent fixed-point
+calculations, checks unchanged PCM RAM and verifies Stop silence. Import
+`runRoutingExample()` from that file to inspect its owned `actual` and
+`reference` stereo arrays, decoded source and acknowledged setup.
+
+Serve the installed project and open
+<http://localhost:8080/node_modules/tetorica-fm2612/examples/scsp-dsp/routing.html>.
+**Start audio** explicitly starts two equal saw notes at A3. Gain and IIR
+history controls change COEF0 and COEF1 / COEF2 while notes remain held. The
+two Return checkboxes mute each effect output separately. **Stop** closes this
+page's audio session. Program source, actual returns and each slot's input bus
+remain visible, with a separate 20% output gain for listening.
+
+```js
+saturn.setMix(0, {directLevel: 0, dspSend: 7, dspInput: 0});
+saturn.setMix(1, {directLevel: 0, dspSend: 7, dspInput: 1});
+await saturn.setDspReturn(0, {level: 7, pan: 31}); // Left.
+await saturn.setDspReturn(1, {level: 7, pan: 15}); // Right.
+```
+
+The source extension accepts `dspInput:0|1` in `setPreset()` / `setMix()` and
+output `0|1` in the indexed Return call. Input bus, output number and physical
+slot are distinct. A slot sends to one MIXS bus; the DSP instructions determine
+which EFREG receives it. The example uses IRA=32 / 33 and EWA=0 / 1.
+
+The legacy `setDspReturn({level,pan})` still addresses output 0. An indexed call
+adds a detached `returns:[return0,return1]` snapshot; `return` remains output 0's
+alias. The profile name stays `ram-free`, and this five-step program does not
+allocate a Delay ring. The managed fixed Delay retains its MIXS0 → EFREG0 path.
+Routing changes do not retrigger held slots. Native DSP transport rejects these
+controls explicitly. This example does not add arbitrary RAM programs, a new
+DSP language or an effect-graph editor.

@@ -11,17 +11,20 @@ export type ScspControlMethod = 'setPreset' | 'setEnvelope' | 'setLfo' |
 export type ScspDspMethod = 'applyDspProgram' | 'getDspProgram' |
   'getDspCoefficients' | 'setDspCoefficients' | 'setDspReturn' | 'setDspDelay';
 type ScspOperationMethod = ScspControlMethod | ScspDspMethod | 'loadPCM' | 'getState';
+type ScspOperationArgs<Method extends ScspOperationMethod> = Method extends 'setDspReturn'
+  ? [patch: Partial<ScspDspReturn>] | [output: 0 | 1, patch: Partial<ScspDspReturn>]
+  : Parameters<ScspSynth[Method]>;
 
 export const SCSP_CONTROLS: readonly ScspControlMethod[];
 export const SCSP_DSP_METHODS: readonly ScspDspMethod[];
 export function assertNativeScspControl(method: string, args?: readonly unknown[]): void;
 export function createScspValidation(): ScspSynth;
 export function validateScspDspCommand<Method extends ScspDspMethod>(
-  validation: ScspSynth, method: Method, args: Parameters<ScspSynth[Method]>,
+  validation: ScspSynth, method: Method, args: ScspOperationArgs<Method>,
 ): ReturnType<ScspSynth[Method]>;
 export function scspCommandArgs<Method extends ScspOperationMethod>(
-  synth: ScspSynth, method: Method, args: Parameters<ScspSynth[Method]>,
-): Parameters<ScspSynth[Method]>;
+  synth: ScspSynth, method: Method, args: ScspOperationArgs<Method>,
+): ScspOperationArgs<Method>;
 
 export interface ScspClientInitial {
   sampleRate?: number;
@@ -68,6 +71,7 @@ export interface ScspClient extends Pick<ScspSynth, ScspControlMethod> {
   getDspCoefficients(): Promise<ScspDspCoefficients>;
   setDspCoefficients(patch: ScspDspCoefficientPatch): Promise<ScspDspCoefficients>;
   setDspReturn(patch: Partial<ScspDspReturn>): Promise<ScspDspReturn>;
+  setDspReturn(output: 0 | 1, patch: Partial<ScspDspReturn>): Promise<ScspDspReturn>;
   /** Reserve a fixed Delay ring and apply the acknowledged time / feedback settings. */
   setDspDelay(patch: ScspDspDelayPatch): Promise<ScspDspDelayProgram>;
   dispose(): void;

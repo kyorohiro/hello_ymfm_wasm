@@ -11,9 +11,10 @@ import {restoreMixerCalibrationScspDspDelayRevision as restore,
   SCSP_DSP_DELAY_REVISION_RELATED_PATHS as related,
   SCSP_DSP_DELAY_REVISION_REPORT_PATHS as reports} from './mixer_calibration_scsp_dsp_delay_revision.mjs';
 import {createScspDspExecutionRevisionReader} from './mixer_calibration_scsp_dsp_execution_revision.mjs';
+import {createScspDspRoutingRevisionReadContext} from './mixer_calibration_scsp_dsp_routing_revision.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
 
-const url=path=>new URL('../'+path,import.meta.url),read=path=>readFileSync(url(path));
+const url=path=>new URL('../'+path,import.meta.url),read=path=>createScspDspRoutingRevisionReadContext().readSource(url(path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const match=(bytes,record)=>{assert.equal(bytes.length,record.bytes);assert.equal(sha(bytes),record.sha256);};

@@ -74,6 +74,9 @@ jobs:
           node --test scripts/soundchip_calibration_pokey.test.mjs scripts/pokey_mixer_calibration.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-tests.log"
           node scripts/check_pokey_calibration_offline.mjs --out "$RUNNER_TEMP/itch-web/pokey-mixer-offline.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-offline.log"
           node scripts/calibrate_pokey_levels.cjs --verify --baseline docs/issues/pokey_ay_single_output_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/pokey-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer.log"
+      - name: Test SCSP two-bus DSP routing and unchanged default output
+        run: |
+          node --test test/runtime/scsp_dsp_routing.test.mjs test/runtime/scspsynth_routing.test.mjs test/runtime/playground_scsp_worklet.test.mjs docs/playground/playground_scsp_dsp_routing_example.test.mjs docs/playground/playground_scsp_dsp_execution_declarations.test.mjs scripts/mixer_calibration_scsp_dsp_routing_revision.test.mjs scripts/playground_scsp_dsp_routing_default_parity.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-routing-tests.log"
       - name: Verify SCSP current source provenance, state restoration and generated Mixer defaults
         run: |
           node --test scripts/scsp_mixer_calibration.test.mjs scripts/vab_mixer_calibration.test.mjs scripts/mixer_calibration_virtual_files_revision.test.mjs test/runtime/native_runtime_synth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-mixer-tests.log"

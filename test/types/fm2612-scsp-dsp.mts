@@ -3,7 +3,7 @@ import {assembleScspDsp, disassembleScspDsp} from 'tetorica-fm2612/scsp_dsp_asse
 import {assembleScspDsp as assembleBare, disassembleScspDsp as disassembleBare} from 'tetorica-fm2612/scsp_dsp_assembler';
 import {ScspSynth} from 'tetorica-fm2612/scspsynth.js';
 import {ScspSynth as BareScspSynth} from 'tetorica-fm2612/scspsynth';
-import {createScspClient} from 'tetorica-fm2612/playground_scsp.js';
+import {createScspClient,validateScspDspCommand,scspCommandArgs} from 'tetorica-fm2612/playground_scsp.js';
 import {createScspClient as createBareScspClient} from 'tetorica-fm2612/playground_scsp';
 import {createPerformanceSender} from 'tetorica-fm2612/playground_performance_sender.js';
 import type {ScspClient, ScspClientPort} from 'tetorica-fm2612/playground_scsp.js';
@@ -68,9 +68,17 @@ const coefficients:ScspDspCoefficients = synth.setDspCoefficients(patch);
 const currentCodes:ScspDspCoefficients = synth.getDspCoefficients();
 const returned:ScspDspReturn = synth.setDspReturn({level:7});
 const panned:ScspDspReturn = synth.setDspReturn({pan:31});
+const indexedReturn:ScspDspReturn = synth.setDspReturn(1, {level:7, pan:15});
+const optionalReturns:[ScspDspReturn,ScspDspReturn] | undefined = snapshot.returns;
+if(snapshot.returns) {const right:ScspDspReturn=snapshot.returns[1];void right;}
+const validatedLegacy:ScspDspReturn = validateScspDspCommand(synth,'setDspReturn',[{pan:31}]);
+const validatedIndexed:ScspDspReturn = validateScspDspCommand(synth,'setDspReturn',[1,{pan:15}]);
+const indexedArgs = scspCommandArgs(synth,'setDspReturn',[1,{level:7}]);
 const sourceMix:ScspMix = {totalLevel:0, directLevel:7, pan:0};
 synth.setMix(0, {directLevel:0, dspSend:7});
 synth.setPreset(0, {dspSend:0});
+synth.setMix(1, {dspInput:1, dspSend:7});
+synth.setPreset(2, {dspInput:0});
 const state:ScspState = synth.getState();
 const optionalSetup:ScspDspProgram | undefined = state.dsp;
 const optionalRing:ScspDspRam | undefined = state.dspRam;
@@ -86,7 +94,8 @@ snapshot.coefficients.codes[0] = 1024;
 synth.stopVoices();
 synth.reset({clearRam:true});
 void [sameSynth, setup, setupFromReadonly, profile, configured, coefficients, currentCodes,
-  returned, panned, sourceMix, optionalSetup, optionalRing, delaySetup];
+  returned, panned, indexedReturn, optionalReturns, validatedLegacy, validatedIndexed, indexedArgs,
+  sourceMix, optionalSetup, optionalRing, delaySetup];
 
 // @ts-expect-error Executable images contain logical 16-bit words.
 synth.applyDspProgram(new Uint8Array(1024));
@@ -102,6 +111,14 @@ synth.setDspCoefficients({3:1024});
 synth.setDspCoefficients({cutoff:440});
 // @ts-expect-error Return patches use level and pan.
 synth.setDspReturn({send:7});
+// @ts-expect-error Only output indices 0 and 1 are exposed.
+synth.setDspReturn(2, {level:7});
+// @ts-expect-error An indexed return requires its patch.
+synth.setDspReturn(1);
+// @ts-expect-error ISEL is a numeric hardware code.
+synth.setMix(0, {dspInput:true});
+// @ts-expect-error Generic validation also retains indexed return argument types.
+validateScspDspCommand(synth,'setDspReturn',[2,{level:7}]);
 // @ts-expect-error Send uses a hardware integer code.
 synth.setMix(0, {dspSend:true});
 // @ts-expect-error DSP readback takes no arguments.
@@ -150,11 +167,13 @@ const remoteSnapshot:Promise<ScspDspProgram> = client.getDspProgram();
 const remoteCodes:Promise<ScspDspCoefficients> = client.getDspCoefficients();
 const remoteChanged:Promise<ScspDspCoefficients> = client.setDspCoefficients({1:3072});
 const remoteReturn:Promise<ScspDspReturn> = client.setDspReturn({pan:31});
+const remoteIndexedReturn:Promise<ScspDspReturn> = client.setDspReturn(1,{level:7,pan:15});
 const remoteDelay:Promise<ScspDspProgram> = client.setDspDelay(delayPatch);
 const remoteState:Promise<ScspState> = client.getState();
 const remoteSample = client.loadPCM(new Int16Array(64), {rootNote:'A4', loopStartSamples:0});
 client.setMix(0, {directLevel:0, dspSend:7});
 client.setPreset(0, {dspSend:0, envelope:{attackRate:31}});
+client.setMix(1, {dspInput:1, dspSend:7});
 client.setLfo(0, {pitchDepth:3});
 client.setModulation(0, {depth:0});
 const remoteFrequency:number = client.setNote(0, 'A4');
@@ -163,7 +182,7 @@ client.keyOff(0);
 client.reset();
 client.dispose();
 void [sameClientFactory, remoteSetup, remoteReadonly, remoteSnapshot, remoteCodes,
-  remoteChanged, remoteReturn, remoteDelay, remoteState, remoteSample, remoteFrequency, queuedClient, facadeClient];
+  remoteChanged, remoteReturn, remoteIndexedReturn, remoteDelay, remoteState, remoteSample, remoteFrequency, queuedClient, facadeClient];
 
 // @ts-expect-error Remote results are acknowledged asynchronously.
 const immediateRemote:ScspDspProgram = client.getDspProgram();
@@ -175,6 +194,12 @@ client.applyDspProgram(words, {coefficients:{0:1024}});
 client.setDspCoefficients({3:1024});
 // @ts-expect-error Remote return level is a hardware numeric code.
 client.setDspReturn({level:true});
+// @ts-expect-error Only the two exposed effect outputs are indexable.
+client.setDspReturn(2,{pan:15});
+// @ts-expect-error Remote indexed returns require a patch.
+client.setDspReturn(0);
+// @ts-expect-error The bus code has no string coercion.
+client.setPreset(0,{dspInput:'1'});
 // @ts-expect-error Remote Delay requires numeric milliseconds.
 client.setDspDelay({timeMs:'240'});
 // @ts-expect-error Delay routing uses the slot / return API.

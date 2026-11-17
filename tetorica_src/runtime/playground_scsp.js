@@ -5,7 +5,8 @@ export const SCSP_DSP_METHODS=Object.freeze(['applyDspProgram','getDspProgram','
 export function assertNativeScspControl(method,args=[]) {
   const patch=args[1];
   if(SCSP_DSP_METHODS.includes(method)||
-      (['setPreset','setMix'].includes(method)&&patch&&Object.hasOwn(patch,'dspSend')&&patch.dspSend!==0)) {
+      (['setPreset','setMix'].includes(method)&&patch&&
+        (Object.hasOwn(patch,'dspInput')||Object.hasOwn(patch,'dspSend')&&patch.dspSend!==0))) {
     throw new DOMException('SCSP DSP controls require Web Audio. Native DSP transport is not available.','NotSupportedError');
   }
 }

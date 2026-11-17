@@ -1,0 +1,1222 @@
+{
+  "schemaVersion": 1,
+  "scope": "playground-scsp-two-bus-routing-and-default-path",
+  "baseCommit": "be6f8faf28045093eeb9213ffa6a5735c2f0e0a9",
+  "sources": {
+    "tetorica_src/runtime/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9818,
+        "sha256": "563c7db269e6c3c8a831e27a567ab69fa031f314a0a87a9709411cb8af972398"
+      },
+      "after": {
+        "bytes": 9818,
+        "sha256": "563c7db269e6c3c8a831e27a567ab69fa031f314a0a87a9709411cb8af972398"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 0,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9818,
+        "sha256": "563c7db269e6c3c8a831e27a567ab69fa031f314a0a87a9709411cb8af972398"
+      },
+      "after": {
+        "bytes": 9818,
+        "sha256": "563c7db269e6c3c8a831e27a567ab69fa031f314a0a87a9709411cb8af972398"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 0,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "before": {
+        "bytes": 164138,
+        "sha256": "8ab89db80e1e4505a93bdb25816134ba2e66e8ab39f6c62a55b0492af130402a"
+      },
+      "after": {
+        "bytes": 164140,
+        "sha256": "846c0f97625ffc3156ad619e154b959c1cb3d0160049ceb38207c3186b98f121"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 13993,
+          "afterBytes": 59,
+          "beforeText": "      \"./playground_logic_worker.js?v=scsp-dsp-delay-1\",\n"
+        }
+      ]
+    },
+    "docs/js/playground_runtime.js": {
+      "before": {
+        "bytes": 165307,
+        "sha256": "ff889c1c58fcf3820d8fe68994c57eb472364d623f990f0377e834f656f22c70"
+      },
+      "after": {
+        "bytes": 165309,
+        "sha256": "d2efdf56bd42c669519f70816c8e6df466db64ec4b377b1eb0bbd71bc2903316"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 15162,
+          "afterBytes": 59,
+          "beforeText": "      \"./playground_logic_worker.js?v=scsp-dsp-delay-1\",\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_scsp.js": {
+      "before": {
+        "bytes": 7723,
+        "sha256": "ee0c94e8a67f71ad03459470eeff99414ebcf23f8e913cac8bc25ddc914dda8b"
+      },
+      "after": {
+        "bytes": 7767,
+        "sha256": "146e962bfc151618a1fcbe1901f8a34db33ff7a38fe95ca9aba853b1e73b14d3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 546,
+          "afterBytes": 153,
+          "beforeText": "      (['setPreset','setMix'].includes(method)&&patch&&Object.hasOwn(patch,'dspSend')&&patch.dspSend!==0)) {\n"
+        }
+      ]
+    },
+    "docs/js/playground_scsp.js": {
+      "before": {
+        "bytes": 7723,
+        "sha256": "ee0c94e8a67f71ad03459470eeff99414ebcf23f8e913cac8bc25ddc914dda8b"
+      },
+      "after": {
+        "bytes": 7767,
+        "sha256": "146e962bfc151618a1fcbe1901f8a34db33ff7a38fe95ca9aba853b1e73b14d3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 546,
+          "afterBytes": 153,
+          "beforeText": "      (['setPreset','setMix'].includes(method)&&patch&&Object.hasOwn(patch,'dspSend')&&patch.dspSend!==0)) {\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_scsp_audio.js": {
+      "before": {
+        "bytes": 3688,
+        "sha256": "00154c7e4ab94fe4ab76342f5dd7ecc6eda753785f838aa19039928150b41fa5"
+      },
+      "after": {
+        "bytes": 3690,
+        "sha256": "3f9a8c17b4c7e090929122f31c40a79d04b94a62c65cba8ab21b099a4c0e2aa0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 621,
+          "afterBytes": 118,
+          "beforeText": "  const url=String(options.workletUrl??new URL('./playground_scsp_worklet.js?v=scsp-dsp-delay-1',import.meta.url));\n"
+        }
+      ]
+    },
+    "docs/js/playground_scsp_audio.js": {
+      "before": {
+        "bytes": 3689,
+        "sha256": "41e3e2e9e1b29a35f25f36af3f71627ae1d56240e65a0b5e056a9d521c65a5ae"
+      },
+      "after": {
+        "bytes": 3691,
+        "sha256": "63d545eb8f50741ca1db0416a70d7e7d61ffe272a9f2c088a6bc4c2c5725d861"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 621,
+          "afterBytes": 118,
+          "beforeText": "  const url=String(options.workletUrl??new URL('./playground_scsp_worklet.js?v=scsp-dsp-delay-1',import.meta.url));\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_scsp_worklet.js": {
+      "before": {
+        "bytes": 8528,
+        "sha256": "a10316ad2ffcb6482ac7092617536dbbddfd407636083441f32730d46c135c72"
+      },
+      "after": {
+        "bytes": 8528,
+        "sha256": "a10316ad2ffcb6482ac7092617536dbbddfd407636083441f32730d46c135c72"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 0,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_scsp_worklet.js": {
+      "before": {
+        "bytes": 8529,
+        "sha256": "ad8767d604cdc0e1a35b49e62f93b2b3b91e64b2b7d8f652d0e6bbab458f9952"
+      },
+      "after": {
+        "bytes": 8529,
+        "sha256": "ad8767d604cdc0e1a35b49e62f93b2b3b91e64b2b7d8f652d0e6bbab458f9952"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 0,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/scsp_dsp.js": {
+      "before": {
+        "bytes": 11496,
+        "sha256": "c13e8c9a85d6dc54ff13faf9434d7237e9446be989e6d9da0ec25491bdf64000"
+      },
+      "after": {
+        "bytes": 14304,
+        "sha256": "403279239f049e1239130bbf12f71e2775e27eb8c04c50e97ffb9e815211944e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1831,
+          "afterBytes": 24,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2459,
+          "afterBytes": 94,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3656,
+          "afterBytes": 134,
+          "beforeText": "  #commit(program, codes, outputReturn, force = false, delay = this.#delay, ram = this.#ram) {\n"
+        },
+        {
+          "afterOffset": 4332,
+          "afterBytes": 229,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4844,
+          "afterBytes": 94,
+          "beforeText": "    if (!install && !changedCodes.length && !changedReturn && !clearRing) {\n"
+        },
+        {
+          "afterOffset": 4973,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5497,
+          "afterBytes": 231,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5983,
+          "afterBytes": 81,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6572,
+          "afterBytes": 65,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7413,
+          "afterBytes": 84,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7630,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8995,
+          "afterBytes": 1073,
+          "beforeText": "  setReturn(patch) {\n    const next = resolveReturn(patch, this.#return);\n    this.#commit(this.#program, [...this.#codes], next);\n    return {...this.#return};\n"
+        },
+        {
+          "afterOffset": 10850,
+          "afterBytes": 147,
+          "beforeText": "    checkKeys(snapshot, ['profile', 'configured', 'words', 'revision', 'coefficients', 'return', 'delay', 'ram'], 'SCSP DSP snapshot');\n"
+        },
+        {
+          "afterOffset": 11053,
+          "afterBytes": 205,
+          "beforeText": "    if (Reflect.ownKeys(snapshot).length !== (hasDelay ? 8 : 6) || !['ram-free', 'delay-ring'].includes(snapshot.profile) ||\n"
+        },
+        {
+          "afterOffset": 13004,
+          "afterBytes": 912,
+          "beforeText": "    if (!snapshot.configured && (snapshot.revision || program.some(Boolean) || codes.some(Boolean) || outputReturn.level || outputReturn.pan)) {\n"
+        },
+        {
+          "afterOffset": 14098,
+          "afterBytes": 39,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/scsp_dsp.js": {
+      "before": {
+        "bytes": 11496,
+        "sha256": "c13e8c9a85d6dc54ff13faf9434d7237e9446be989e6d9da0ec25491bdf64000"
+      },
+      "after": {
+        "bytes": 14304,
+        "sha256": "403279239f049e1239130bbf12f71e2775e27eb8c04c50e97ffb9e815211944e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1831,
+          "afterBytes": 24,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2459,
+          "afterBytes": 94,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3656,
+          "afterBytes": 134,
+          "beforeText": "  #commit(program, codes, outputReturn, force = false, delay = this.#delay, ram = this.#ram) {\n"
+        },
+        {
+          "afterOffset": 4332,
+          "afterBytes": 229,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4844,
+          "afterBytes": 94,
+          "beforeText": "    if (!install && !changedCodes.length && !changedReturn && !clearRing) {\n"
+        },
+        {
+          "afterOffset": 4973,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5497,
+          "afterBytes": 231,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5983,
+          "afterBytes": 81,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6572,
+          "afterBytes": 65,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7413,
+          "afterBytes": 84,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7630,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8995,
+          "afterBytes": 1073,
+          "beforeText": "  setReturn(patch) {\n    const next = resolveReturn(patch, this.#return);\n    this.#commit(this.#program, [...this.#codes], next);\n    return {...this.#return};\n"
+        },
+        {
+          "afterOffset": 10850,
+          "afterBytes": 147,
+          "beforeText": "    checkKeys(snapshot, ['profile', 'configured', 'words', 'revision', 'coefficients', 'return', 'delay', 'ram'], 'SCSP DSP snapshot');\n"
+        },
+        {
+          "afterOffset": 11053,
+          "afterBytes": 205,
+          "beforeText": "    if (Reflect.ownKeys(snapshot).length !== (hasDelay ? 8 : 6) || !['ram-free', 'delay-ring'].includes(snapshot.profile) ||\n"
+        },
+        {
+          "afterOffset": 13004,
+          "afterBytes": 912,
+          "beforeText": "    if (!snapshot.configured && (snapshot.revision || program.some(Boolean) || codes.some(Boolean) || outputReturn.level || outputReturn.pan)) {\n"
+        },
+        {
+          "afterOffset": 14098,
+          "afterBytes": 39,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/scspsynth.js": {
+      "before": {
+        "bytes": 25972,
+        "sha256": "208281f1ac6129c73c21b624f91d1a36c434d458c3a6da36e8ac973c3a093c2a"
+      },
+      "after": {
+        "bytes": 26445,
+        "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 11146,
+          "afterBytes": 162,
+          "beforeText": "    slot=this.#slot(slot);keys(patch,['sample','frequencyHz','totalLevel','directLevel','pan','dspSend','envelope','lfo','modulation'],'SCSP preset');\n"
+        },
+        {
+          "afterOffset": 11624,
+          "afterBytes": 73,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 15639,
+          "afterBytes": 106,
+          "beforeText": "    slot=this.#slot(slot);keys(patch,['totalLevel','directLevel','pan','dspSend'],'SCSP mix');\n"
+        },
+        {
+          "afterOffset": 15951,
+          "afterBytes": 406,
+          "beforeText": "    if(Object.hasOwn(patch,'dspSend')) {\n      if(next.dspSend)this.#dspCall('ensureStarted');\n      this.#core.write(slot*32+20,next.dspSend);\n"
+        },
+        {
+          "afterOffset": 17052,
+          "afterBytes": 211,
+          "beforeText": "  /** EFREG0 hardware return: level 0..7 (0 mute), pan 0..31. */\n  setDspReturn(patch) {return this.#dspCall('setReturn',patch);}\n"
+        },
+        {
+          "afterOffset": 18824,
+          "afterBytes": 352,
+          "beforeText": "      [10,(e.loopLink?0x4000:0)|(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,v.dspSend??0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value,r===22?0xff00:0xffff);\n"
+        }
+      ]
+    },
+    "docs/js/scspsynth.js": {
+      "before": {
+        "bytes": 25972,
+        "sha256": "208281f1ac6129c73c21b624f91d1a36c434d458c3a6da36e8ac973c3a093c2a"
+      },
+      "after": {
+        "bytes": 26445,
+        "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 11146,
+          "afterBytes": 162,
+          "beforeText": "    slot=this.#slot(slot);keys(patch,['sample','frequencyHz','totalLevel','directLevel','pan','dspSend','envelope','lfo','modulation'],'SCSP preset');\n"
+        },
+        {
+          "afterOffset": 11624,
+          "afterBytes": 73,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 15639,
+          "afterBytes": 106,
+          "beforeText": "    slot=this.#slot(slot);keys(patch,['totalLevel','directLevel','pan','dspSend'],'SCSP mix');\n"
+        },
+        {
+          "afterOffset": 15951,
+          "afterBytes": 406,
+          "beforeText": "    if(Object.hasOwn(patch,'dspSend')) {\n      if(next.dspSend)this.#dspCall('ensureStarted');\n      this.#core.write(slot*32+20,next.dspSend);\n"
+        },
+        {
+          "afterOffset": 17052,
+          "afterBytes": 211,
+          "beforeText": "  /** EFREG0 hardware return: level 0..7 (0 mute), pan 0..31. */\n  setDspReturn(patch) {return this.#dspCall('setReturn',patch);}\n"
+        },
+        {
+          "afterOffset": 18824,
+          "afterBytes": 352,
+          "beforeText": "      [10,(e.loopLink?0x4000:0)|(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,v.dspSend??0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value,r===22?0xff00:0xffff);\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_scsp.d.ts": {
+      "before": {
+        "bytes": 3872,
+        "sha256": "1caece7054d425e0959fe289c0a0ccea11d0d63387aa02a7f5a7650dfbcea3af"
+      },
+      "after": {
+        "bytes": 4157,
+        "sha256": "37ebb222af23970bfcd839c344659d8d700d9c546f455577513e748aab683a71"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 697,
+          "afterBytes": 211,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1235,
+          "afterBytes": 74,
+          "beforeText": "  validation: ScspSynth, method: Method, args: Parameters<ScspSynth[Method]>,\n"
+        },
+        {
+          "afterOffset": 1412,
+          "afterBytes": 99,
+          "beforeText": "  synth: ScspSynth, method: Method, args: Parameters<ScspSynth[Method]>,\n): Parameters<ScspSynth[Method]>;\n"
+        },
+        {
+          "afterOffset": 3303,
+          "afterBytes": 86,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/scspsynth.d.ts": {
+      "before": {
+        "bytes": 8292,
+        "sha256": "a41b8b4cef4cdb68e3824242294bf89f0c1c2117aca0ba478b7b7fb7370583cb"
+      },
+      "after": {
+        "bytes": 8667,
+        "sha256": "4882ce48f3ea176665d597c3f1d1621e40179d6395641cf0c48a1247c3508f0c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2715,
+          "afterBytes": 62,
+          "beforeText": "  /** Hardware IMXL 0..7 into MIXS0; omitted/0 disables the DSP send. */\n"
+        },
+        {
+          "afterOffset": 2797,
+          "afterBytes": 85,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3292,
+          "afterBytes": 82,
+          "beforeText": "  /** EFREG0 hardware EFSDL 0..7; 0 mutes the effect return. */\n"
+        },
+        {
+          "afterOffset": 3391,
+          "afterBytes": 69,
+          "beforeText": "  /** EFREG0 hardware EFPAN 0..31; 0 center, 15 right, 31 left. */\n"
+        },
+        {
+          "afterOffset": 4072,
+          "afterBytes": 125,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7013,
+          "afterBytes": 85,
+          "beforeText": "  /** Read the current program, coefficients and EFREG0 return without mutation. */\n"
+        },
+        {
+          "afterOffset": 7330,
+          "afterBytes": 82,
+          "beforeText": "  /** Explicit live EFREG0 return level/pan. Per-slot sends use setMix(dspSend). */\n"
+        },
+        {
+          "afterOffset": 7474,
+          "afterBytes": 157,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/scspsynth.d.ts": {
+      "before": {
+        "bytes": 8292,
+        "sha256": "a41b8b4cef4cdb68e3824242294bf89f0c1c2117aca0ba478b7b7fb7370583cb"
+      },
+      "after": {
+        "bytes": 8667,
+        "sha256": "4882ce48f3ea176665d597c3f1d1621e40179d6395641cf0c48a1247c3508f0c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2715,
+          "afterBytes": 62,
+          "beforeText": "  /** Hardware IMXL 0..7 into MIXS0; omitted/0 disables the DSP send. */\n"
+        },
+        {
+          "afterOffset": 2797,
+          "afterBytes": 85,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3292,
+          "afterBytes": 82,
+          "beforeText": "  /** EFREG0 hardware EFSDL 0..7; 0 mutes the effect return. */\n"
+        },
+        {
+          "afterOffset": 3391,
+          "afterBytes": 69,
+          "beforeText": "  /** EFREG0 hardware EFPAN 0..31; 0 center, 15 right, 31 left. */\n"
+        },
+        {
+          "afterOffset": 4072,
+          "afterBytes": 125,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7013,
+          "afterBytes": 85,
+          "beforeText": "  /** Read the current program, coefficients and EFREG0 return without mutation. */\n"
+        },
+        {
+          "afterOffset": 7330,
+          "afterBytes": 82,
+          "beforeText": "  /** Explicit live EFREG0 return level/pan. Per-slot sends use setMix(dspSend). */\n"
+        },
+        {
+          "afterOffset": 7474,
+          "afterBytes": 157,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/index.html": {
+      "before": {
+        "bytes": 132892,
+        "sha256": "9c3b11826c597630e3769866b37fb8864e683e225ae2abcc9dea3ee99101f5a2"
+      },
+      "after": {
+        "bytes": 132894,
+        "sha256": "0dab730b6568589f7b7f02fc5a43579f50cb3be55d98d777446ddcdc62b02225"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 132753,
+          "afterBytes": 109,
+          "beforeText": "      import('./playground.js?v=scsp-dsp-delay-1').catch(error => window.__playgroundStartup.fail(error));\n"
+        }
+      ]
+    },
+    "docs/playground/playground.js": {
+      "before": {
+        "bytes": 124901,
+        "sha256": "4f4179c1d63cb209357003caaba080b6509ac3f5c88c7383ebbfe61838806a72"
+      },
+      "after": {
+        "bytes": 124909,
+        "sha256": "e7155ab42eb6b730e4b694f2cf7b2bd555812414bc26953b68cfc5112f913097"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1447,
+          "afterBytes": 103,
+          "beforeText": "  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-dsp-delay-1';\n"
+        },
+        {
+          "afterOffset": 4181,
+          "afterBytes": 255,
+          "beforeText": "import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from \"./playground_examples.js?v=scsp-dsp-delay-1\";\nimport { initializePlaygroundMonaco } from \"./playground_monaco.js?v=scsp-dsp-delay-1\";\n"
+        },
+        {
+          "afterOffset": 5534,
+          "afterBytes": 59,
+          "beforeText": "} from \"../js/playground_runtime.js?v=scsp-dsp-delay-1\";\n"
+        }
+      ]
+    },
+    "docs/playground/playground_examples.js": {
+      "before": {
+        "bytes": 228283,
+        "sha256": "801158286bdcaf0ce98af4185c92d3b994604858167fa220c29f7089ccb1e4d7"
+      },
+      "after": {
+        "bytes": 231070,
+        "sha256": "34ea39edfa5d3c9bea2adfb7ef45591ee83dd7b880571edd1f73419e1b6574e4"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 197666,
+          "afterBytes": 2745,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 225736,
+          "afterBytes": 81,
+          "beforeText": "    \"/examples/scsp/scsp-dsp-delay.js\"\n"
+        }
+      ]
+    },
+    "docs/playground/playground_mode.js": {
+      "before": {
+        "bytes": 13110,
+        "sha256": "b5f57aab8adfd553d8a99f61bba7b41e9a90e3d7cadcbd34c2ecc4f12c24c1b8"
+      },
+      "after": {
+        "bytes": 13112,
+        "sha256": "41bb22fe65250da387a9d92404ffc93335ac66975dc1290ffe614a9cfaa02c7e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 8218,
+          "afterBytes": 87,
+          "beforeText": "    workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-dsp-delay-1',base).href,\n"
+        }
+      ]
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "before": {
+        "bytes": 5768,
+        "sha256": "88c169c762d866c74ef14559654340467b9160e0f3f904274fc5f7c9b71a229e"
+      },
+      "after": {
+        "bytes": 5810,
+        "sha256": "d4003901dc3faceceb7e33d88a10b274b25c43b732e8e96c689d4135e75ee4d4"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1971,
+          "afterBytes": 157,
+          "beforeText": "    '/examples/scsp/scsp-dsp-gain.js','/examples/scsp/scsp-dsp-iir-motion.js','/examples/scsp/scsp-dsp-delay.js'],\n"
+        }
+      ]
+    },
+    "docs/playground/playground_monaco.js": {
+      "before": {
+        "bytes": 23123,
+        "sha256": "7c4d0f2d2f797b42d4efbfb12ef5ae127c61403bc056a8327f2529a31dd24ce6"
+      },
+      "after": {
+        "bytes": 23125,
+        "sha256": "be30124bb6976ba2b82dc7fd18662619bec989a3618eb7346c7a538e56d8b1a0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 10511,
+          "afterBytes": 128,
+          "beforeText": "    const response = await nativeFetch(new URL(`./${name}.d.ts?v=scsp-dsp-delay-1`, import.meta.url), { cache: \"no-cache\" });\n"
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 161201,
+        "sha256": "0b3a9153d310304418dc0d20f6de7da4cdaf39e3d657319ee4dfde1ef925019f"
+      },
+      "after": {
+        "bytes": 161723,
+        "sha256": "4d1d4b128f46758d34617be70a4f52214b6cf3466f10a4a322448ade663728b5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 150268,
+          "afterBytes": 77,
+          "beforeText": "  /** Hardware IMXL 0..7 into DSP MIXS0; omitted/0 disables the send. Native requires 0. */\n"
+        },
+        {
+          "afterOffset": 150365,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 150861,
+          "afterBytes": 65,
+          "beforeText": "  /** EFREG0 return level 0..7; 0 is muted. */\n"
+        },
+        {
+          "afterOffset": 151574,
+          "afterBytes": 137,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155460,
+          "afterBytes": 156,
+          "beforeText": "  /** Live EFREG0 return level/pan; only MIXS0/EFREG0 are exposed by this profile.\n   * Per-slot setMix({dspSend:7}) enables sends; directLevel controls the dry path. */\n"
+        },
+        {
+          "afterOffset": 155705,
+          "afterBytes": 300,
+          "beforeText": ""
+        }
+      ]
+    },
+    "scripts/record_playground_scsp_dsp_default_parity.mjs": {
+      "before": {
+        "bytes": 15299,
+        "sha256": "3f3c72d2a463b15ac272788d3ca870dc62af685ff7d4da3e38763bce1756dca5"
+      },
+      "after": {
+        "bytes": 15299,
+        "sha256": "3f3c72d2a463b15ac272788d3ca870dc62af685ff7d4da3e38763bce1756dca5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 0,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/scsp_dsp_program.js": {
+      "before": {
+        "bytes": 4693,
+        "sha256": "d0d4f26d1d9535c5130c4ddcee9581c74df7fa23529fff20ff8af6722f67f8be"
+      },
+      "after": {
+        "bytes": 5069,
+        "sha256": "894bd32c4083cc3efd6cdd98f29b5269891c6bf8235daf52689eac61b5671275"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 626,
+          "afterBytes": 56,
+          "beforeText": "export function validateScspDspDelayProgram(words) {\n"
+        },
+        {
+          "afterOffset": 2091,
+          "afterBytes": 268,
+          "beforeText": "    if ((word2 & 0x1000) && ((word2 >>> 8) & 0x0f) !== 0) {\n      throw stepError(step, 'EWA must be 0 when EWT=1, using the existing EFREG0 return');\n"
+        },
+        {
+          "afterOffset": 2866,
+          "afterBytes": 252,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4284,
+          "afterBytes": 84,
+          "beforeText": " * TEMP, MEMS, MIXS and EFREG0 remain available to Gain / FIR / IIR programs.\n"
+        },
+        {
+          "afterOffset": 4586,
+          "afterBytes": 52,
+          "beforeText": "  const program = validateScspDspDelayProgram(words);\n"
+        }
+      ]
+    },
+    "docs/js/scsp_dsp_program.js": {
+      "before": {
+        "bytes": 4693,
+        "sha256": "d0d4f26d1d9535c5130c4ddcee9581c74df7fa23529fff20ff8af6722f67f8be"
+      },
+      "after": {
+        "bytes": 5069,
+        "sha256": "894bd32c4083cc3efd6cdd98f29b5269891c6bf8235daf52689eac61b5671275"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 626,
+          "afterBytes": 56,
+          "beforeText": "export function validateScspDspDelayProgram(words) {\n"
+        },
+        {
+          "afterOffset": 2091,
+          "afterBytes": 268,
+          "beforeText": "    if ((word2 & 0x1000) && ((word2 >>> 8) & 0x0f) !== 0) {\n      throw stepError(step, 'EWA must be 0 when EWT=1, using the existing EFREG0 return');\n"
+        },
+        {
+          "afterOffset": 2866,
+          "afterBytes": 252,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4284,
+          "afterBytes": 84,
+          "beforeText": " * TEMP, MEMS, MIXS and EFREG0 remain available to Gain / FIR / IIR programs.\n"
+        },
+        {
+          "afterOffset": 4586,
+          "afterBytes": 52,
+          "beforeText": "  const program = validateScspDspDelayProgram(words);\n"
+        }
+      ]
+    },
+    "scripts/mixer_calibration_scsp_dsp_delay_revision.mjs": {
+      "before": {
+        "bytes": 11648,
+        "sha256": "b44b1268240e23490b4bfbf2187605ed427f1d0fbdb0f62bda4c34e055b39535"
+      },
+      "after": {
+        "bytes": 12019,
+        "sha256": "dc03c9b49058211719c4d6da78ef96507207d6bf27f4526405eac004a8dad307"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 384,
+          "afterBytes": 107,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10117,
+          "afterBytes": 149,
+          "beforeText": "  return createRestorer(readSource)(path, bytes);\n"
+        },
+        {
+          "afterOffset": 10503,
+          "afterBytes": 104,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 11353,
+          "afterBytes": 101,
+          "beforeText": "  return {restore, readSource: reader};\n"
+        }
+      ]
+    },
+    "scripts/record_playground_scsp_dsp_delay_default_parity.mjs": {
+      "before": {
+        "bytes": 15003,
+        "sha256": "ef095fbab437303fdd65922188f7085d993fa10706c5d8240d57ae1bdef6653e"
+      },
+      "after": {
+        "bytes": 15362,
+        "sha256": "0a4dc89567fb067b3ad844bb49cff973cad76228c0ee2da9cb55b4cb0c0e5906"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 548,
+          "afterBytes": 75,
+          "beforeText": "import {ScspSynth,createScspInitSample} from '../tetorica_src/runtime/scspsynth.js';\n"
+        },
+        {
+          "afterOffset": 1146,
+          "afterBytes": 107,
+          "beforeText": "import {createPerformanceSender} from '../tetorica_src/runtime/playground_performance_sender.js';\n"
+        },
+        {
+          "afterOffset": 2766,
+          "afterBytes": 75,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10235,
+          "afterBytes": 118,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10441,
+          "afterBytes": 160,
+          "beforeText": "  const currentSynth=await readFile(path('tetorica_src/runtime/scspsynth.js'));\n  const currentWorklet=await readFile(path('tetorica_src/runtime/playground_scsp_worklet.js'));\n"
+        },
+        {
+          "afterOffset": 10859,
+          "afterBytes": 175,
+          "beforeText": "  const BeforeSynth=await originalSynth(beforeSynth),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));\n"
+        },
+        {
+          "afterOffset": 11494,
+          "afterBytes": 91,
+          "beforeText": "  const sources={};for(const name of sourceNames)sources[name]=record(await readFile(path(name)));\n"
+        },
+        {
+          "afterOffset": 11891,
+          "afterBytes": 147,
+          "beforeText": "    const after=route==='local'?await local(ScspSynth,rate,wasmBinary):await worklet(currentWorklet.toString(),ScspSynth,rate,wasmBinary,false);\n"
+        },
+        {
+          "afterOffset": 13097,
+          "afterBytes": 111,
+          "beforeText": "  const oldSenderSource=reconstructScspDspDelayParityPredecessor(senderPath,await readFile(path(senderPath)),receipt);\n"
+        },
+        {
+          "afterOffset": 13346,
+          "afterBytes": 151,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13641,
+          "afterBytes": 102,
+          "beforeText": "    const before=senderPackets(oldSender,kind,policy),after=senderPackets(createPerformanceSender,kind,policy);\n"
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/scsp_dsp_delay.js": {
+      "bytes": 3165,
+      "sha256": "81944feec3a34ff633bca3ac59591edb9c185d6b08d1babc37f5ba6e1f04e597"
+    },
+    "docs/js/scsp_dsp_delay.js": {
+      "bytes": 3165,
+      "sha256": "81944feec3a34ff633bca3ac59591edb9c185d6b08d1babc37f5ba6e1f04e597"
+    },
+    "tetorica_src/runtime/scsp_dsp_coefficients.js": {
+      "bytes": 1857,
+      "sha256": "89970ded43fc3f857ad49978d3eb82971148872f02e3ddca51cc0a953e691496"
+    },
+    "docs/js/scsp_dsp_coefficients.js": {
+      "bytes": 1857,
+      "sha256": "89970ded43fc3f857ad49978d3eb82971148872f02e3ddca51cc0a953e691496"
+    },
+    "tetorica_src/runtime/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/js/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "tetorica_src/runtime/scsp_dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "docs/js/scsp_dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "tetorica_src/runtime/scsp.js": {
+      "bytes": 10554,
+      "sha256": "50dcc4f4df918163e04fe67be99e6acb2720e19d5f4ee160b2cf3cbd4b08b407"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "tetorica_src/runtime/scsp.d.ts": {
+      "bytes": 980,
+      "sha256": "5de80f6711dcc68def6a1d5fa14fb805911fe53d32055fb7da1cb4c82de92f57"
+    },
+    "docs/js/scsp.d.ts": {
+      "bytes": 980,
+      "sha256": "5de80f6711dcc68def6a1d5fa14fb805911fe53d32055fb7da1cb4c82de92f57"
+    },
+    "tetorica_src/runtime/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "docs/js/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "tetorica_src/runtime/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "bytes": 31224,
+      "sha256": "f6809ebe61cddc6a975d820711acfc15d839a37ccdf416ab5da914ccf13a73d2"
+    },
+    "docs/js/playground_performance_processor.js": {
+      "bytes": 31224,
+      "sha256": "f6809ebe61cddc6a975d820711acfc15d839a37ccdf416ab5da914ccf13a73d2"
+    },
+    "tetorica_src/runtime/playground_performance_queue.js": {
+      "bytes": 24020,
+      "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+    },
+    "docs/js/playground_performance_queue.js": {
+      "bytes": 24020,
+      "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+    },
+    "tetorica_src/runtime/playground_scsp_inspector.js": {
+      "bytes": 3434,
+      "sha256": "56c49068000db411e8985d68aaca78391196c8533d00935ac591765a03f92e1a"
+    },
+    "docs/js/playground_scsp_inspector.js": {
+      "bytes": 3469,
+      "sha256": "14f3f4da1e16368430176a3ebce12e8342eb7789e06a4febde02955a3e1fefba"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "e974b019c7ff3bb48fef644ea9ef1fbf4308e7f60ed8fa45da51f14ee6721568"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "6bdb304a4c74efba44ba76d5414c40d47dbf1bbf92b2fc66fcf4e2122d04fc20"
+    },
+    "tetorica_src/runtime/native_genesis_scsp.js": {
+      "bytes": 15984,
+      "sha256": "e234b696a9214da1325a573cf8da2a7ee4a8cd772fdf88231739a099ec16781d"
+    },
+    "docs/js/native_genesis_scsp.js": {
+      "bytes": 15984,
+      "sha256": "e234b696a9214da1325a573cf8da2a7ee4a8cd772fdf88231739a099ec16781d"
+    },
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 8998,
+      "sha256": "6c275811a85a7ed6904f00868241414029ec919776bc68f897120a99e031ebb0"
+    },
+    "docs/synth-scsp/dsp_program.js": {
+      "bytes": 215,
+      "sha256": "34e3da7a3ffbe083348ac50555ce2176e35dafd202722e313f6bfd55cba4f2b7"
+    },
+    "docs/synth-scsp/dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/synth-scsp/dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "docs/playground/examples/scsp/scsp-dsp-gain.js": {
+      "bytes": 1819,
+      "sha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229"
+    },
+    "docs/playground/examples/scsp/scsp-dsp-iir-motion.js": {
+      "bytes": 2028,
+      "sha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c"
+    },
+    "docs/playground/examples/scsp/scsp-dsp-delay.js": {
+      "bytes": 1965,
+      "sha256": "d9a81f425e74e8b38dbccf051adbf486dba667a64bc938566cc4cb2e33ef0740"
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "bytes": 25574,
+      "sha256": "f5f0ba18daa518fb69ad44d0edd16c35b22f02b96366653bd14ebb1025690eb7"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13458,
+      "sha256": "3de5081f55347d96c663a36cd472340a0a5f5c877fadd03c0778cf53c037d57a"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "scripts/mixer_calibration_scsp_dsp_execution_revision.mjs": {
+      "bytes": 11851,
+      "sha256": "79983ecffa9aafb0ab9dfcd5de935bb3c8d6885672997176410844b178d540d2"
+    },
+    "scripts/mixer_calibration_scsp_dsp_delay_revision.test.mjs": {
+      "bytes": 5425,
+      "sha256": "35172568d61096e8bbfefe9c64f511af4bc3e846313c0d64928f11e547228762"
+    },
+    "scripts/playground_scsp_dsp_delay_default_parity.test.mjs": {
+      "bytes": 1976,
+      "sha256": "f83d0ccbbb12d1ea122159d860734060f5019760fd67c0f291c08b539d911874"
+    },
+    "scripts/record_playground_scsp_dsp_routing_default_parity.mjs": {
+      "bytes": 15047,
+      "sha256": "e0acd4b4085531b2ca83bd096191bcef659dad4cce8729749de9e687ffccdd93"
+    },
+    "scripts/playground_scsp_dsp_routing_default_parity.test.mjs": {
+      "bytes": 2006,
+      "sha256": "cdbc455f7249dfbd7d536a2e8217b32f735f448a48ecbe260db5d45ee73b96ec"
+    },
+    "test/runtime/scsp_dsp_delay.test.mjs": {
+      "bytes": 13426,
+      "sha256": "2f8a642d1362f09aef35a6f8bfec586e3aa81af9963579eace36b2d59fe371c4"
+    },
+    "test/runtime/scspsynth_delay.test.mjs": {
+      "bytes": 8068,
+      "sha256": "858d5e16a69d62aae34bd4f051468e3070128f68c23eac7e8955ecfc613175f9"
+    },
+    "test/runtime/scsp_dsp_routing.test.mjs": {
+      "bytes": 10875,
+      "sha256": "d521f904e48a110c2b5d5f00ddbb1a4771e7f4a2b17cd44d92dcbe4d436e56c2"
+    },
+    "test/runtime/scspsynth_routing.test.mjs": {
+      "bytes": 8435,
+      "sha256": "50a299c7683d9932ac0b480a74d90bb8580053d6ba360368fc178599eeb96588"
+    },
+    "test/runtime/playground_scsp_worklet.test.mjs": {
+      "bytes": 33997,
+      "sha256": "c03643f7c1c7fc75ad661473436f12034cb579e7dddce6c16e1adbc9deaebfd6"
+    },
+    "test/runtime/native_genesis_scsp.test.mjs": {
+      "bytes": 13144,
+      "sha256": "e6d34e0fc94025cc8b7ca8c56f50d5f6e28457b21f406019f385e392281bcde8"
+    },
+    "docs/playground/examples/scsp/scsp-dsp-routing.js": {
+      "bytes": 2577,
+      "sha256": "a7575ceec9ac5e4bcaa5bf99984dc1d753d24ed333ff513cb7bd345a97b36eb7"
+    },
+    "packages/fm2612/examples/scsp-dsp/routing.mjs": {
+      "bytes": 3859,
+      "sha256": "3dfe46a75948e9f9c52861110d8088c7f8cda246e7612cbc9d3e20ce4ef4da5b"
+    },
+    "packages/fm2612/examples/scsp-dsp/routing-browser.js": {
+      "bytes": 5910,
+      "sha256": "c837f8d22391f9fe32a74ab60fd03a2cc2547fbd8bdc0e1cdca5d2f177fa8145"
+    },
+    "packages/fm2612/examples/scsp-dsp/routing.html": {
+      "bytes": 2904,
+      "sha256": "037d8adc6d9fdaea1933735871a1a648bdd21218ed68b228dd066aff6f3822a4"
+    }
+  },
+  "reports": {
+    "docs/issues/verification_ym2612_timed_core_20261117.json": {
+      "bytes": 1991,
+      "sha256": "93a01a70f6385da44334ccc810a43cbc09e02621348f8b5cf78cd2691b16b797"
+    },
+    "docs/issues/ym2612_timed_default_parity_01.json": {
+      "bytes": 5396,
+      "sha256": "28684a7ad4047f68b36c426f4157a8c4c0b75ad2b2ade411f5d677203a20d440"
+    },
+    "docs/issues/playground_chip_levels_01.json": {
+      "bytes": 248714,
+      "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    "docs/issues/soundchip_psg_levels_05.json": {
+      "bytes": 35484,
+      "sha256": "67abbf42ba6e29c3d684969bc8ee7c0a09cf100c2dd8aa680dd29c47716031ad"
+    },
+    "docs/issues/soundchip_psg_levels_06.json": {
+      "bytes": 35484,
+      "sha256": "db07553c8756f70d530ba88c3591ad02605df06929621de3b6daa773a5ed77d8"
+    },
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/ps1_ay_single_output_chip_levels_01.json": {
+      "bytes": 546877,
+      "sha256": "be6c1a7fcc9e6a6081d7d1142001eb78046fac0d2214f5543ffa5cb92272963e"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/wonderswan_ay_single_output_chip_levels_01.json": {
+      "bytes": 491288,
+      "sha256": "afacfcc1da1dc9a5fa6afb8ca4f6e43d770a0e5d8d9ca2a5910a288756fa7e6d"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_01.json": {
+      "bytes": 1030856,
+      "sha256": "057b6f7d6f94ba609c6312fa9f2d570ad55b8741cd798a30fb12a082107b8be7"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 1052077,
+      "sha256": "65aa112e06abcf6a7fc75bbbc718b85af66bb861636c52f79eeb86a16aee38b0"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_01.json": {
+      "bytes": 625216,
+      "sha256": "6476bd4f36264958557197d1eb2dbc04dda5909fc8af2c282ca8d0bc1ae2c0bf"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 636525,
+      "sha256": "3b2d997465cf29f9e8cf73b45a277f3c3d3f0ca2a6d42b043a763bade8ab9e67"
+    },
+    "docs/issues/playground_scsp_dsp_default_parity_01.json": {
+      "bytes": 29663,
+      "sha256": "f3357e195c1cc4b41c89f39dc5cc67d5219233bd5bd0ff4916fc090130333612"
+    },
+    "docs/issues/playground_scsp_dsp_delay_default_parity_01.json": {
+      "bytes": 29647,
+      "sha256": "b6e7c17cb448041d6845be1289cbbfa878d1d99ba2f4a6dbffa3fd60dae79998"
+    },
+    "docs/issues/playground_scsp_dsp_routing_default_parity_01.json": {
+      "bytes": 29653,
+      "sha256": "f0b2034ba910ae89964046ca2c103d05650eb5255e2d10c6d688c183a8b68ef1"
+    }
+  }
+}

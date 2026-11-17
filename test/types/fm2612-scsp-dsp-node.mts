@@ -10,4 +10,6 @@ const client:ScspClient = createScspClient(port);
 const bareClient:ScspClient = createBareScspClient(port);
 const codes:Promise<{codes:number[]}> = client.setDspCoefficients({0:2048});
 const delay = client.setDspDelay({enabled:true,timeMs:240,feedback:.35});
-void [transport, client, bareClient, codes, delay];
+const effect = client.setDspReturn(1,{level:7,pan:15});
+client.setMix(1,{dspSend:7,dspInput:1});
+void [transport, client, bareClient, codes, delay, effect];

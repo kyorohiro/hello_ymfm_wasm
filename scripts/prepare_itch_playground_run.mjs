@@ -36,6 +36,7 @@ const sdkBuildMetadata=new Set([
 // Source-kit copies retain their original paths in corresponding-source.zip.
 // Their identical attribution guides stay individually readable under licenses/.
 export const ITCH_RUN_DUPLICATE_SOURCE_GUIDES=Object.freeze({
+ 'native/cdda/NOTICE.md':'licenses/tetorica-cdda/NOTICE.md',
  'third_party/tetorica-nes/README.md':'licenses/tetorica-nes/README.md',
  'third_party/tetorica-nes/AUTHORS-JSNES.md':'licenses/tetorica-nes/AUTHORS-JSNES.md',
  'third_party/tetorica-nes/UPSTREAM-FDS.md':'licenses/tetorica-nes/UPSTREAM-FDS.md',

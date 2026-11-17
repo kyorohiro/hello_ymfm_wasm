@@ -400,6 +400,35 @@ reservation unless `clearRam:true` clears the bank. Insufficient RAM or invalid
 settings reject without changing the existing sound. Arbitrary RAM layouts,
 extra effect programs and Native DSP transport remain outside this profile.
 
+### Two SCSP DSP paths (unpublished source build)
+
+The current repository adds a bounded routing extension to `ScspSynth` and its
+acknowledged Main / Worker Web Audio client. **npm 0.2.44 does not include it.**
+See the [source-build routing examples](examples/scsp-dsp/README.md#two-input--output-paths--unpublished-source-build)
+for complete local-package Node / browser setups and readable field source.
+
+`setPreset()` / `setMix()` accept `dspInput:0|1`, alongside the existing
+hardware `dspSend` level. New presets default to input 0; a partial `setMix()`
+leaves omitted fields unchanged. The indexed Return overload configures
+EFREG0 or EFREG1, independently of the input and physical slot number:
+
+```js
+saturn.setMix(0, {directLevel: 0, dspSend: 7, dspInput: 0});
+saturn.setMix(1, {directLevel: 0, dspSend: 7, dspInput: 1});
+saturn.setDspReturn(0, {level: 7, pan: 31});
+saturn.setDspReturn(1, {level: 7, pan: 15});
+```
+
+The five-step example processes MIXS0 through Gain on the left and MIXS1 through
+IIR on the right, using equal source PCM / pitch. RAM-free programs can emit
+EWA=0 or 1; the profile name remains `ram-free`. The legacy
+`setDspReturn({level,pan})` continues to target output 0. Indexed calls add the
+detached optional `returns:[return0,return1]` snapshot while `return` stays the
+output-0 alias. Existing mono snapshots retain their shape until that API is
+used. The managed fixed Delay retains MIXS0 → EFREG0 routing. No new sample RAM,
+core/WASM or default gain is introduced; Native DSP transport remains explicitly
+unsupported for these controls.
+
 ### Standard PS1 VAB banks
 
 Available from **0.2.40**.

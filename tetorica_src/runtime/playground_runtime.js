@@ -282,7 +282,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=scsp-dsp-delay-1",
+      "./playground_logic_worker.js?v=scsp-dsp-routing-1",
       import.meta.url
     );
   const logicWorkerUrl =

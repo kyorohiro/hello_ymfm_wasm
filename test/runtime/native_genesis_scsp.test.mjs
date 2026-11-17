@@ -112,7 +112,13 @@ for(const extra of [false,true])test(`Native SCSP ${extra?'additional':'primary'
  for(const method of ['setMix','setPreset']){
   assert.throws(()=>client[method](0,{dspSend:7}),{name:'NotSupportedError'});
   await assert.rejects(endpoint.invoke(method,[0,{dspSend:7}]),{name:'NotSupportedError'});
+  for(const dspInput of [0,1]){
+   assert.throws(()=>client[method](0,{dspInput}),{name:'NotSupportedError'});
+   assert.throws(()=>endpoint.dispatch({method,id:913,args:[0,{dspInput}]}),{name:'NotSupportedError'});
+   await assert.rejects(endpoint.invoke(method,[0,{dspInput}]),{name:'NotSupportedError'});
+  }
  }
+ await assert.rejects(client.setDspReturn(1,{level:7}),{name:'NotSupportedError'});
  assert.equal(f.calls.length,before,'No native request or command batch was emitted');
  assert.deepEqual(await client.getState(),state);
  assert.deepEqual(f.errors,[]);
@@ -122,7 +128,11 @@ test('Native Worker DSP calls and sends reject before crossing the MessagePort',
  const sent=[],port={postMessage:message=>sent.push(message),start(){},close(){}};
  const client=createScspClient(port,{native:true});t.after(()=>client.dispose());
  for(const method of SCSP_DSP_METHODS)await assert.rejects(client[method](),{name:'NotSupportedError'});
- for(const method of ['setMix','setPreset'])assert.throws(()=>client[method](0,{dspSend:1}),{name:'NotSupportedError'});
+ for(const method of ['setMix','setPreset']){
+  assert.throws(()=>client[method](0,{dspSend:1}),{name:'NotSupportedError'});
+  for(const dspInput of [0,1])assert.throws(()=>client[method](0,{dspInput}),{name:'NotSupportedError'});
+ }
+ await assert.rejects(client.setDspReturn(1,{level:7}),{name:'NotSupportedError'});
  assert.equal(sent.length,0);
  client.setMix(0,{dspSend:0});client.setPreset(0,{dspSend:0});
  assert.deepEqual(sent.map(message=>message.method),['setMix','setPreset']);

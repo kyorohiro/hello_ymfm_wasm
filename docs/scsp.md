@@ -137,6 +137,36 @@ The Delay reuses the existing bounded hardware program. It does not open
 arbitrary RAM I/O, a general RAM layout editor or a software delay effect.
 The released RAM-free Gain / IIR APIs above remain unchanged.
 
+## Two DSP input / output paths (current source build)
+
+The source build adds `dspInput:0|1` to slot presets / live mix and
+`setDspReturn(output, patch)` for EFREG0 / EFREG1. **Published npm 0.2.44 does
+not include this routing extension.** In SCSP Playground, choose **Files →
+examples → scsp → scsp-dsp-routing.js → Code → Run**. Two equal saw notes pass
+through Gain on the left and IIR on the right; a separate coefficient loop
+moves IIR smoothing while the note tempo follows `setBpm()` / `beat()`.
+
+```js
+saturn.setMix(0, {directLevel: 0, dspSend: 7, dspInput: 0});
+saturn.setMix(1, {directLevel: 0, dspSend: 7, dspInput: 1});
+await saturn.setDspReturn(0, {level: 7, pan: 31});
+await saturn.setDspReturn(1, {level: 7, pan: 15});
+const setup = await saturn.getDspProgram();
+log({returns: setup.returns, coefficients: setup.coefficients});
+```
+
+Slots send to MIXS0 / MIXS1; program IRA=32 / 33 reads them, and EWA=0 / 1
+selects effect outputs. These numbers do not select physical voices. The
+legacy Return object call still targets output 0. An indexed call adds the
+detached `returns:[return0,return1]` field; `return` remains output 0's alias.
+The `ram-free` profile supports the five-step comparison without a Delay ring.
+The managed fixed Delay keeps MIXS0 → EFREG0. Native routing controls reject
+with `NotSupportedError`.
+
+The [source-build Node / browser examples](../packages/fm2612/examples/scsp-dsp/README.md#two-input--output-paths--unpublished-source-build)
+also expose readable instructions, independent stereo PCM references and
+separate effect-return mutes.
+
 ## Try it in Playground
 
 Open [Playground in Saturn mode](playground/index.html?mode=scsp). Choose **SCSP →

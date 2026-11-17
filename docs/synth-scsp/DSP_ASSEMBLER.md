@@ -144,6 +144,36 @@ retaining setup. Reset clears DSP setup but retains reserved RAM unless
 reject without changing the existing sound. This does not expose arbitrary
 RAM layouts or general effect compilation; Native DSP transport rejects it.
 
+### Source-build routing: two inputs and two outputs
+
+The current source build exposes a bounded MIXS0 / MIXS1 and EFREG0 / EFREG1
+routing extension. **npm 0.2.44 does not include it.** In Playground's Files,
+**scsp-dsp-routing.js** uses this five-step RAM-free program:
+
+```text
+000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0
+001: EWT=1 EWA=0 ZERO=1
+002: TRA=1 XSEL=0 YSEL=1 ZERO=1 COEF=1
+003: XSEL=1 YSEL=1 IRA=33 BSEL=1 COEF=2
+004: TWT=1 TWA=0 EWT=1 EWA=1 ZERO=1
+```
+
+The first path multiplies MIXS0 by COEF0 and writes EFREG0. The second path
+combines prior TEMP history times COEF1 with MIXS1 times COEF2, then stores and
+emits the preceding accumulator to EFREG1. At 4095 / 3840 / 256, the left path
+is nearly unity Gain and the right path is a one-pole low-pass. The source PCM
+and note are equal so the DSP changes are easy to compare.
+
+Slot `dspInput:0|1` chooses MIXS0 / MIXS1; `setDspReturn(0|1,{level,pan})`
+chooses the hardware output, with pan 31 left-only and 15 right-only. The
+legacy `setDspReturn({level,pan})` still edits output 0. Indexed calls expose
+`returns:[return0,return1]`; the existing `return` field remains output 0's
+alias. No coefficient or return edit retriggers the held notes. The managed
+fixed Delay keeps its existing MIXS0 → EFREG0 path.
+
+[Local-package Node / browser examples](../../packages/fm2612/examples/scsp-dsp/README.md#two-input--output-paths--unpublished-source-build)
+show independent left / right reference rendering and explicit audio start.
+
 ### Synth Code: compile, apply, change coefficients
 
 In a fresh project's **Files**, open **examples/dsp-iir-motion.js → Code → Run**.

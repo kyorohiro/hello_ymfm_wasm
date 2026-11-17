@@ -146,11 +146,12 @@ export class ScspSynth {
   }
   /** Configure a slot for its next keyOn. Invalid patches leave the slot intact. */
   setPreset(slot,patch) {
-    slot=this.#slot(slot);keys(patch,['sample','frequencyHz','totalLevel','directLevel','pan','dspSend','envelope','lfo','modulation'],'SCSP preset');
+    slot=this.#slot(slot);keys(patch,['sample','frequencyHz','totalLevel','directLevel','pan','dspSend','dspInput','envelope','lfo','modulation'],'SCSP preset');
     const current=this.#voices[slot],next={dspSend:0,...current,...patch};
     if(next.sample!==null)this.#sample(next.sample);
     positive(next.frequencyHz,'frequencyHz');int(next.totalLevel,0,255,'totalLevel');int(next.directLevel,0,7,'directLevel');int(next.pan,0,31,'pan');
     int(next.dspSend,0,7,'dspSend');
+    if(Object.hasOwn(next,'dspInput'))int(next.dspInput,0,1,'dspInput');
     next.envelope=envelope({...current.envelope,...(patch.envelope??{})});
     if(Object.hasOwn(patch,'envelope'))keys(patch.envelope,Object.keys(envelopeDefaults()),'SCSP envelope');
     if(Object.hasOwn(patch,'lfo'))keys(patch.lfo,Object.keys(lfoMasks),'SCSP LFO');
@@ -205,13 +206,16 @@ export class ScspSynth {
   /** Raw hardware attenuation/send/pan codes. TL=0 is loudest, DISDL=0 mute;
    * DIPAN=0 center, 15 right-only, 31 left-only. No software gain compensation. */
   setMix(slot,patch) {
-    slot=this.#slot(slot);keys(patch,['totalLevel','directLevel','pan','dspSend'],'SCSP mix');
+    slot=this.#slot(slot);keys(patch,['totalLevel','directLevel','pan','dspSend','dspInput'],'SCSP mix');
     const next={dspSend:0,...this.#voices[slot],...patch};
     int(next.totalLevel,0,255,'totalLevel');int(next.directLevel,0,7,'directLevel');int(next.pan,0,31,'pan');
     int(next.dspSend,0,7,'dspSend');
-    if(Object.hasOwn(patch,'dspSend')) {
-      if(next.dspSend)this.#dspCall('ensureStarted');
-      this.#core.write(slot*32+20,next.dspSend);
+    if(Object.hasOwn(next,'dspInput'))int(next.dspInput,0,1,'dspInput');
+    const sendEdited=Object.hasOwn(patch,'dspSend'),inputEdited=Object.hasOwn(patch,'dspInput');
+    if(sendEdited||inputEdited) {
+      if(sendEdited&&next.dspSend)this.#dspCall('ensureStarted');
+      const mask=(sendEdited?0x7:0)|(inputEdited?0x78:0);
+      this.#core.write(slot*32+20,((next.dspInput??0)<<3)|next.dspSend,mask);
     }
     this.#core.write(slot*32+12,next.totalLevel,255);
     this.#core.write(slot*32+22,(next.directLevel<<13)|(next.pan<<8),0xff00);this.#voices[slot]=next;
@@ -223,8 +227,9 @@ export class ScspSynth {
   getDspCoefficients() {return this.#dspCall('readCoefficients');}
   /** Signed Q12 hardware codes; live edits retain held notes and DSP history. */
   setDspCoefficients(patch) {return this.#dspCall('setCoefficients',patch);}
-  /** EFREG0 hardware return: level 0..7 (0 mute), pan 0..31. */
-  setDspReturn(patch) {return this.#dspCall('setReturn',patch);}
+  /** Hardware effect return: legacy (patch) selects EFREG0; (output, patch)
+   * selects EFREG0 / EFREG1. Level 0..7 (0 mute), pan 0..31. */
+  setDspReturn(...args) {return this.#dspCall('setReturn',...args);}
   /** Configure the managed fixed Delay. Its 64 KiB ring is appended once at an
    * 8 KiB hardware boundary, without moving PCM. Reservation lasts until a RAM
    * clearing reset. Time / Enable clear the ring; Feedback retains its tail.
@@ -250,7 +255,7 @@ export class ScspSynth {
     const control=(s.address>>>16)|(s.bits===8?16:0)|(s.loopStartSamples===null?0:32);
     for(const [r,value]of [[2,s.address&65535],[4,s.loopStartSamples??0],[6,s.length],
       [8,(e.decay2Rate<<11)|(e.decay1Rate<<6)|e.attackRate],
-      [10,(e.loopLink?0x4000:0)|(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,v.dspSend??0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value,r===22?0xff00:0xffff);
+      [10,(e.loopLink?0x4000:0)|(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel|(v.modulation.writeInhibit?0x200:0)],[14,modulationWord(v.modulation)],[16,pitch.word],[18,lfoWord(v.lfo)],[20,((v.dspInput??0)<<3)|(v.dspSend??0)],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value,r===22?0xff00:r===20?0x7f:0xffff);
     this.#core.write(b,control|0x1800);this.#gates[slot]=true;this.#playing[slot]=s;this.#playingLfos[slot]=v.lfo;this.#playingModulations[slot]=v.modulation;this.#playingFrequencies[slot]=v.frequencyHz;
   }
   keyOff(slot) {slot=this.#slot(slot);this.#core.write(slot*32,0x1000,0x1800);this.#gates[slot]=false;}

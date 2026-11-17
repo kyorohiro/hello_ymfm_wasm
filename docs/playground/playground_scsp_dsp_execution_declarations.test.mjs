@@ -19,14 +19,21 @@ const localProgram:ScspDspProgram = local.applyDspProgram(readonlyWords, setup);
 const localRead:ScspDspProgram = local.getDspProgram();
 const localCodes:ScspDspCoefficients = local.setDspCoefficients({0:-4096,2:4095});
 const localReturn:ScspDspReturn = local.setDspReturn({level:7,pan:31});
+const localRight:ScspDspReturn = local.setDspReturn(1,{level:7,pan:15});
+const optionalReturns:[ScspDspReturn,ScspDspReturn]|undefined = localRead.returns;
 local.setMix(0,{dspSend:7,directLevel:0});
 local.setPreset(0,{dspSend:0});
+local.setMix(1,{dspSend:7,dspInput:1});
 const primary = await useSoundChip('scsp');
 const extra = await createSoundChip('scsp');
 const remoteProgram:PlaygroundScspDspProgram = await primary.applyDspProgram(words, setup);
 const remoteRead:PlaygroundScspDspProgram = await extra.getDspProgram();
 const remoteCodes:PlaygroundScspDspCoefficients = await primary.setDspCoefficients({1:3072,2:1024});
 const remoteReturn:PlaygroundScspDspReturn = await extra.setDspReturn({pan:15});
+const remoteRight:PlaygroundScspDspReturn = await extra.setDspReturn(1,{pan:15,level:7});
+const remoteReturns:[PlaygroundScspDspReturn,PlaygroundScspDspReturn]|undefined = remoteRead.returns;
+if(localRead.returns) {const right:number=localRead.returns[1].level;void right;}
+if(remoteRead.returns) {const right:number=remoteRead.returns[1].pan;void right;}
 const rawProfile:'ram-free' = localProgram.profile;
 const remoteProfile:'ram-free' = remoteProgram.profile;
 const localDelay:ScspDspProgram=local.setDspDelay({enabled:true,timeMs:240,feedback:.35});
@@ -43,6 +50,7 @@ const remoteState=await primary.getState();
 if(remoteState.dsp) {const stored:number=remoteState.dsp.coefficients.codes[1];void stored;}
 primary.setMix(0,{dspSend:7,directLevel:0});
 extra.setPreset(1,{dspSend:7});
+extra.setMix(1,{dspInput:1});
 // @ts-expect-error Applying words locally is synchronous.
 const queued:Promise<ScspDspProgram> = local.applyDspProgram(words);
 // @ts-expect-error An owner acknowledgement is asynchronous.
@@ -67,8 +75,14 @@ local.setDspReturn({level:true});
 primary.setDspReturn({bus:2});
 // @ts-expect-error dspSend is a level, not a boolean switch.
 primary.setMix(0,{dspSend:true});
-// @ts-expect-error DSP send bus selection is fixed to MIXS0 in this profile.
+// @ts-expect-error The input code is named dspInput.
 local.setMix(0,{dspBus:1});
+// @ts-expect-error Only effect outputs 0 and 1 are exposed.
+primary.setDspReturn(2,{level:7});
+// @ts-expect-error An indexed return requires a patch.
+primary.setDspReturn(1);
+// @ts-expect-error dspInput uses a numeric hardware code.
+primary.setMix(0,{dspInput:true});
 // @ts-expect-error Use the separate pure assembler helper.
 primary.compileDsp('000:');
 // @ts-expect-error Delay input uses numeric milliseconds.
@@ -77,7 +91,7 @@ primary.setDspDelay({timeMs:'240'});
 primary.setDspDelay({send:7});
 // @ts-expect-error Remote Delay setup awaits its owner acknowledgement.
 const immediateDelay:PlaygroundScspDspProgram=primary.setDspDelay({enabled:true});
-void [localProgram,localRead,localCodes,localReturn,localDelay,remoteDelay,remoteRead,remoteCodes,remoteReturn,rawProfile,remoteProfile,configured,code,remoteApply,remoteSetter,queued,immediate,immediateDelay];
+void [localProgram,localRead,localCodes,localReturn,localRight,optionalReturns,localDelay,remoteDelay,remoteRead,remoteCodes,remoteReturn,remoteRight,remoteReturns,rawProfile,remoteProfile,configured,code,remoteApply,remoteSetter,queued,immediate,immediateDelay];
 `;
 
 test('SCSP local and acknowledged DSP contracts match in strict Playground mode consumers', async () => {
@@ -105,14 +119,18 @@ test('SCSP DSP declarations and slot sends navigate to the real owning implement
   const source=await readFile(new URL('../../tetorica_src/runtime/scspsynth.js',import.meta.url),'utf8');
   const lines=globals.split('\n');
   const start=lines.findIndex(line=>line==='interface PlaygroundScsp {');
+  const end=lines.findIndex((line,index)=>index>start&&line==='}');
   for (const symbol of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay','setMix']) {
-    const index=lines.findIndex((line, index)=>index>start&&line.trimStart().startsWith(symbol+'('));
-    assert(index>=0,symbol);
-    const target=definitionSource(globals,{lineNumber:index+1,column:lines[index].indexOf(symbol)+1},'scsp');
-    assert.deepEqual(target,{file:'scspsynth.js',symbol:'ScspSynth.'+symbol});
-    const position=sourcePosition(source,target.symbol);
-    assert(position.lineNumber>1,symbol);
-    assert.match(source.split('\n')[position.lineNumber-1],new RegExp(symbol+'\\s*\\('));
+    const indexes=lines.flatMap((line,index)=>index>start&&index<end&&line.trimStart().startsWith(symbol+'(')?[index]:[]);
+    assert(indexes.length>0,symbol);
+    if(symbol==='setDspReturn')assert.equal(indexes.length,2,'Both return overloads have source navigation');
+    for(const index of indexes){
+      const target=definitionSource(globals,{lineNumber:index+1,column:lines[index].indexOf(symbol)+1},'scsp');
+      assert.deepEqual(target,{file:'scspsynth.js',symbol:'ScspSynth.'+symbol});
+      const position=sourcePosition(source,target.symbol);
+      assert(position.lineNumber>1,symbol);
+      assert.match(source.split('\n')[position.lineNumber-1],new RegExp(symbol+'\\s*\\('));
+    }
   }
 });
 
@@ -134,7 +152,8 @@ const chip=new ScspSynth(core);
 const legacyMix:ScspMix={totalLevel:12,directLevel:7,pan:0};
 chip.setMix(0,legacyMix);
 const setup:ScspDspProgram=chip.applyDspProgram(new Uint16Array(512),{coefficients:{0:2048,1:0,2:0}});
-chip.setDspReturn({level:7});chip.setDspCoefficients({0:1024});
+chip.setDspReturn({level:7});chip.setDspReturn(1,{level:7,pan:15});chip.setDspCoefficients({0:1024});
+chip.setMix(1,{dspInput:1,dspSend:7});
 const profile:'ram-free'=setup.profile;
 const delay:ScspDspProgram=chip.setDspDelay({enabled:true,timeMs:20,feedback:.5});
 if(delay.profile==='delay-ring') {const bytes:number=delay.ram.byteLength;void bytes;}

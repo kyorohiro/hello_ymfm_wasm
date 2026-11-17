@@ -7,6 +7,14 @@ async function example() {
   synth.setPreset(31,{sample,envelope:{attackRate:31,releaseRate:20,loopLink:true}});
   synth.setEnvelope(31,{loopLink:false});
   synth.noteOn(31,'C4');synth.setFrequency(31,440);synth.setMix(31,{pan:15});
+  synth.setMix(1,{dspInput:1,dspSend:7});
+  synth.setDspReturn(0,{level:7,pan:31});synth.setDspReturn(1,{level:7,pan:15});
+  const returns=synth.getDspProgram().returns;
+  if(returns){const pan:number=returns[1].pan;void pan;}
+  // @ts-expect-error Only two effect return indices are exposed.
+  synth.setDspReturn(2,{level:7});
+  // @ts-expect-error Input bus selection requires a numeric code.
+  synth.setMix(0,{dspInput:'1'});
   const state=synth.getState();const rate:44100=state.sampleRate;
   const delay=synth.setDspDelay({enabled:true,timeMs:240,feedback:.35});
   if(delay.profile==='delay-ring') {

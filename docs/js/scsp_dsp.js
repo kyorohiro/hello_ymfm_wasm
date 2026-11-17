@@ -45,6 +45,7 @@ export class ScspDspProgram {
   #program = new Uint16Array(512);
   #codes = [0, 0, 0];
   #return = {level: 0, pan: 0};
+  #secondReturn = null;
   #configured = false;
   #revision = 0;
   #delay = null;
@@ -69,6 +70,7 @@ export class ScspDspProgram {
       revision: this.#revision,
       coefficients: this.readCoefficients(),
       return: {...this.#return},
+      ...(this.#secondReturn ? {returns: [{...this.#return}, {...this.#secondReturn}]} : {}),
       ...(this.#delay ? {delay: {...this.#delay}, ram: {...this.#ram}} : {}),
     };
   }
@@ -100,19 +102,24 @@ export class ScspDspProgram {
     return bytes.slice();
   }
 
-  #commit(program, codes, outputReturn, force = false, delay = this.#delay, ram = this.#ram) {
+  #commit(program, codes, outputReturn, force = false, delay = this.#delay, ram = this.#ram,
+    secondReturn = this.#secondReturn) {
     const changedProgram = !program.every((word, index) => word === this.#program[index]);
     const changedProfile = Boolean(delay) !== Boolean(this.#delay) || ram?.address !== this.#ram?.address;
     const install = force || !this.#configured || changedProgram || changedProfile;
     const changedCodes = codes.flatMap((value, index) => force || value !== this.#codes[index] ? [index] : []);
     const returnWord = this.#returnWord(outputReturn, delay);
     const changedReturn = returnWord !== this.#returnWord(this.#return, this.#delay);
+    const secondWord = secondReturn ? this.#returnWord(secondReturn, delay) : 0;
+    const changedSecond = secondReturn && (force || !this.#secondReturn ||
+      secondWord !== this.#returnWord(this.#secondReturn, this.#delay));
     const changedTime = delay && delay.timeMs !== this.#delay?.timeMs;
     const changedEnabled = delay && delay.enabled !== this.#delay?.enabled;
     const configureRing = delay && (install || changedTime);
     const clearRing = delay && (install || changedTime || changedEnabled);
-    if (!install && !changedCodes.length && !changedReturn && !clearRing) {
+    if (!install && !changedCodes.length && !changedReturn && !changedSecond && !clearRing) {
       this.#return = outputReturn;
+      this.#secondReturn = secondReturn ? {...secondReturn} : null;
       return;
     }
 
@@ -121,11 +128,15 @@ export class ScspDspProgram {
     const previousCodes = changedCodes.map(index => this.#read(0x700 + index * 2, coefficientWord(this.#codes[index])));
     const restoreReturn = install || clearRing || changedReturn;
     const previousReturn = restoreReturn ? this.#read(22, this.#returnWord(this.#return, this.#delay)) : null;
+    const restoreSecond = secondReturn && (install || clearRing || changedSecond);
+    const previousSecond = restoreSecond
+      ? this.#read(54, this.#secondReturn ? this.#returnWord(this.#secondReturn, this.#delay) : 0) : null;
     const previousAddress = configureRing
       ? [0x402, 0x780, 0x782].map(offset => this.#read(offset, 0)) : null;
     const previousRing = clearRing ? this.#readRing(ram) : null;
     try {
       if (install || clearRing) this.#core.write(22, 0, 0xff);
+      if (secondReturn && (install || clearRing)) this.#core.write(54, 0, 0xff);
       if (configureRing) {
         this.#core.write(0x402, (2 << 7) | (ram.address / 8192), 0x1bf);
         this.#core.write(0x780, Math.round(delay.timeMs * 44.1));
@@ -135,6 +146,7 @@ export class ScspDspProgram {
       if (install) this.#upload(program);
       if (clearRing) this.#core.loadRam(createScspDspDelaySilence(), ram.address);
       if (restoreReturn) this.#core.write(22, returnWord, 0xff);
+      if (restoreSecond) this.#core.write(54, secondWord, 0xff);
     } catch (error) {
       const failures = [];
       const restore = callback => {
@@ -151,11 +163,13 @@ export class ScspDspProgram {
       }
       if (clearRing) restore(() => this.#core.loadRam(previousRing, ram.address));
       if (restoreReturn) restore(() => this.#core.write(22, previousReturn, 0xff));
+      if (restoreSecond) restore(() => this.#core.write(54, previousSecond, 0xff));
       rollbackFailure(error, failures);
     }
     this.#program = program;
     this.#codes = codes;
     this.#return = outputReturn;
+    this.#secondReturn = secondReturn ? {...secondReturn} : null;
     this.#delay = delay ? {...delay} : null;
     this.#ram = ram ? {...ram} : null;
     this.#configured = true;
@@ -187,10 +201,23 @@ export class ScspDspProgram {
     return this.readCoefficients();
   }
 
-  setReturn(patch) {
-    const next = resolveReturn(patch, this.#return);
-    this.#commit(this.#program, [...this.#codes], next);
-    return {...this.#return};
+  setReturn(outputOrPatch, patch) {
+    const indexed = typeof outputOrPatch === 'number';
+    const output = indexed ? outputOrPatch : 0;
+    if (!Number.isInteger(output) || output < 0 || output > 1) {
+      throw new RangeError('SCSP DSP return output must be 0..1');
+    }
+    if (arguments.length !== (indexed ? 2 : 1)) throw new TypeError('Invalid SCSP DSP return arguments');
+    const input = indexed ? patch : outputOrPatch;
+    checkKeys(input, ['level', 'pan'], 'SCSP DSP return');
+    // Materialize user getters before consulting live metadata. Reentrant edits
+    // can then be merged without reevaluating the caller's settings object.
+    const saved = {...input};
+    const next = resolveReturn(saved, output ? this.#secondReturn ?? {level: 0, pan: 0} : this.#return);
+    const first = output ? {...this.#return} : next;
+    const second = output ? next : indexed ? {...(this.#secondReturn ?? {level: 0, pan: 0})} : this.#secondReturn;
+    this.#commit(this.#program, [...this.#codes], first, false, this.#delay, this.#ram, second);
+    return {...next};
   }
 
   ensureStarted() {
@@ -217,9 +244,10 @@ export class ScspDspProgram {
 
   /** Trusted transport staging copies metadata into a validation-only owner. */
   adoptState(snapshot) {
-    checkKeys(snapshot, ['profile', 'configured', 'words', 'revision', 'coefficients', 'return', 'delay', 'ram'], 'SCSP DSP snapshot');
+    checkKeys(snapshot, ['profile', 'configured', 'words', 'revision', 'coefficients', 'return', 'returns', 'delay', 'ram'], 'SCSP DSP snapshot');
     const hasDelay = snapshot.profile === 'delay-ring';
-    if (Reflect.ownKeys(snapshot).length !== (hasDelay ? 8 : 6) || !['ram-free', 'delay-ring'].includes(snapshot.profile) ||
+    const hasReturns = Object.hasOwn(snapshot, 'returns');
+    if (Reflect.ownKeys(snapshot).length !== (hasDelay ? 8 : 6) + Number(hasReturns) || !['ram-free', 'delay-ring'].includes(snapshot.profile) ||
         typeof snapshot.configured !== 'boolean' || !Number.isSafeInteger(snapshot.revision) || snapshot.revision < 0) {
       throw new TypeError('Invalid SCSP DSP snapshot');
     }
@@ -246,12 +274,27 @@ export class ScspDspProgram {
     checkKeys(snapshot.return, ['level', 'pan'], 'SCSP DSP return snapshot');
     if (Reflect.ownKeys(snapshot.return).length !== 2) throw new TypeError('Invalid SCSP DSP return snapshot');
     const outputReturn = resolveReturn(snapshot.return, {level: 0, pan: 0});
-    if (!snapshot.configured && (snapshot.revision || program.some(Boolean) || codes.some(Boolean) || outputReturn.level || outputReturn.pan)) {
+    let secondReturn = null;
+    if (hasReturns) {
+      if (!Array.isArray(snapshot.returns) || snapshot.returns.length !== 2) throw new TypeError('SCSP DSP returns must contain two outputs');
+      const returns = [0, 1].map(index => {
+        const value = snapshot.returns[index];
+        checkKeys(value, ['level', 'pan'], 'SCSP DSP output return snapshot');
+        if (Reflect.ownKeys(value).length !== 2) throw new TypeError('Invalid SCSP DSP output return snapshot');
+        return resolveReturn(value, {level: 0, pan: 0});
+      });
+      if (returns[0].level !== outputReturn.level || returns[0].pan !== outputReturn.pan) {
+        throw new TypeError('SCSP DSP return must match returns[0]');
+      }
+      secondReturn = returns[1];
+    }
+    if (!snapshot.configured && (hasReturns || snapshot.revision || program.some(Boolean) || codes.some(Boolean) || outputReturn.level || outputReturn.pan)) {
       throw new TypeError('Unconfigured SCSP DSP snapshot must contain initial values');
     }
     this.#program = program;
     this.#codes = codes;
     this.#return = outputReturn;
+    this.#secondReturn = secondReturn;
     this.#configured = snapshot.configured;
     this.#revision = snapshot.revision;
     this.#delay = delay;

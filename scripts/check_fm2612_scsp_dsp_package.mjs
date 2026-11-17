@@ -17,6 +17,7 @@ const exampleFilenames = [
   'index.html', 'roundtrip.mjs', 'README.md',
   'execution.mjs', 'execution.html', 'execution-browser.js',
   'delay.mjs', 'delay.html', 'delay-browser.js',
+  'routing.mjs', 'routing.html', 'routing-browser.js',
 ].map(name => 'examples/scsp-dsp/' + name);
 
 export function assertScspDspPackageFiles(paths) {
@@ -102,6 +103,8 @@ try {
   assert.equal(typeof executionExample.runDspExamples, 'function');
   const delayExample = await import('./node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs');
   assert.equal(typeof delayExample.runDelayExample, 'function');
+  const routingExample = await import('./node_modules/tetorica-fm2612/examples/scsp-dsp/routing.mjs');
+  assert.equal(typeof routingExample.runRoutingExample, 'function');
   assert.equal(fetches, 0);
   assert.equal(audioContexts, 0);
   assert.equal(wasmAccesses, 0);
@@ -287,6 +290,14 @@ try {
   const renderedDelay = await runDelayExample();
   assert.equal(renderedDelay.pcmUnchanged, true);assert(renderedDelay.tailPeak > .001);
   assert.equal(renderedDelay.ram.byteLength, 65536);
+  const {runRoutingExample} = await import('./node_modules/tetorica-fm2612/examples/scsp-dsp/routing.mjs');
+  const renderedRouting = await runRoutingExample();
+  assert.equal(renderedRouting.sampleRate,44100);assert.equal(renderedRouting.exact,true);
+  assert.equal(renderedRouting.ramUnchanged,true);
+  assert.deepEqual(renderedRouting.actual.left,renderedRouting.reference.left);
+  assert.deepEqual(renderedRouting.actual.right,renderedRouting.reference.right);
+  assert.notDeepEqual(renderedRouting.actual.left,renderedRouting.actual.right);
+  assert.deepEqual(renderedRouting.setup.returns,[{level:7,pan:31},{level:7,pan:15}]);
   assert.equal(deviceRequests, 0);
   console.log('Installed SCSP DSP execution verified through both Synth subpaths, exact Gain/IIR PCM, live history, routing, atomic rejection, ownership and Stop/reset.');
 } finally {
@@ -302,4 +313,8 @@ try {
     'node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs')], {cwd:consumer, encoding:'utf8'});
   assert.match(delayOutput, /SCSP DSP Delay: PASS/);
   console.log(delayOutput);
+  const routingOutput = execFileSync(process.execPath, [join(consumer,
+    'node_modules/tetorica-fm2612/examples/scsp-dsp/routing.mjs')], {cwd:consumer, encoding:'utf8'});
+  assert.match(routingOutput,/SCSP DSP routing: PASS/);
+  console.log(routingOutput);
 }

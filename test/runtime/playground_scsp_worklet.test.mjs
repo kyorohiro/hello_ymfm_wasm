@@ -32,6 +32,8 @@ async function setup(t,rate=48000){
 async function worker(t,p){const channel=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:channel.port1}});const client=createScspClient(channel.port2,p.metadata);t.after(()=>client.dispose());await client.getState();return client;}
 const gainProgram=()=>assembleScspDsp('000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=2\n001: EWT=1 ZERO=1');
 const gainSetup=code=>({coefficients:{0:0,1:0,2:code}});
+const twoBusProgram=()=>assembleScspDsp('000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0\n001: EWT=1 EWA=0 ZERO=1\n002: XSEL=1 YSEL=1 IRA=33 ZERO=1 COEF=0\n003: EWT=1 EWA=1 ZERO=1');
+const twoBusSetup=()=>({coefficients:{0:2048,1:0,2:0}});
 
 test('SCSP Worklet renders tuned stereo at 44100, 48000 and 96000, with phase-stable host conversion',async t=>{
  for(const rate of [44100,48000,96000]){
@@ -210,6 +212,69 @@ test('DSP Gain changes actual wet PCM without retriggering held slots at both ho
  }
 });
 
+test('indexed return acknowledgements synchronize both clients with small ordered deltas',async t=>{
+ const p=await setup(t),w=await worker(t,p),other=await setup(t);
+ await p.client.applyDspProgram(twoBusProgram(),twoBusSetup());
+ assert.equal(Object.hasOwn(await w.getDspProgram(),'returns'),false);
+ const broadcast=[];p.processor.port.postMessage=message=>broadcast.push(message);
+ const patch={level:7,pan:15},pending=w.setDspReturn(1,patch);patch.level=0;patch.pan=0;
+ assert.deepEqual(await pending,{level:7,pan:15});
+ assert.deepEqual(await p.client.setDspReturn(0,{level:6,pan:31}),{level:6,pan:31});
+ const expected=[{level:6,pan:31},{level:7,pan:15}];
+ assert.deepEqual((await w.getDspProgram()).returns,expected);
+ assert.deepEqual(p.client._getState().dsp.returns,expected);
+ assert.deepEqual((await p.client.getDspProgram()).return,expected[0]);
+ const deltas=broadcast.filter(message=>message.type==='scsp-dsp-update');
+ assert.deepEqual(deltas.map(({method,args})=>({method,args})),[
+  {method:'setDspReturn',args:[1,{level:7,pan:15}]},
+  {method:'setDspReturn',args:[0,{level:6,pan:31}]},
+ ]);
+ assert(deltas[1].revision>deltas[0].revision);
+ assert(deltas.every(message=>!JSON.stringify(message).includes('words')),'Return motion sends no program image');
+ const detached=await w.getDspProgram();detached.returns[1].pan=0;
+ assert.deepEqual((await p.client.getDspProgram()).returns,expected);
+ assert.equal(Object.hasOwn(await other.client.getDspProgram(),'returns'),false);
+ const state=await p.client.getState();
+ for(const dspInput of [-1,2,.5,null]){
+  assert.throws(()=>w.setMix(31,{dspInput}));assert.throws(()=>w.setPreset(31,{dspInput}));
+ }
+ for(const args of [[2,{level:7}],[1,{level:8}],[0]])await assert.rejects(w.setDspReturn(...args));
+ assert.deepEqual(await p.client.getState(),state);
+ await w._stopVoices();assert.deepEqual((await p.client.getDspProgram()).returns,expected);
+ assert.equal(peak(p.render(512).left),0);assert.equal(peak(p.render(512).right),0);
+ w.reset();await w.getState();await p.client.getState();
+ assert.equal(p.client._getState().dsp,undefined);
+ assert.equal(Object.hasOwn(await p.client.getDspProgram(),'returns'),false);
+});
+
+test('two-bus live and next-keyOn routing preserve held PCM phase at 44100 and 48000',async t=>{
+ for(const rate of [44100,48000]){
+  const p=await setup(t,rate),reference=await setup(t,rate),w=await worker(t,p);
+  for(const current of [p,reference]){
+   await current.client.applyDspProgram(twoBusProgram(),twoBusSetup());
+   await current.client.setDspReturn(0,{level:7,pan:31});
+   await current.client.setDspReturn(1,{level:7,pan:15});
+   current.client.setPreset(31,{directLevel:0,dspSend:7,dspInput:0});
+   current.client.noteOn(31,69);await current.client.getState();
+  }
+  const first=p.render(2048),expectedFirst=reference.render(2048);
+  assert.deepEqual(first,expectedFirst);assert(peak(first.left)>.01);assert.equal(peak(first.right),0);
+  const before=await w.getState(),frame=p.scope.currentFrame;
+  w.setMix(31,{dspInput:1});await w.getState();
+  assert.equal(p.scope.currentFrame,frame);
+  const after=await p.client.getState();assert.equal(after.slots[31].gate,true);
+  assert.deepEqual(after.playingSampleIds,before.playingSampleIds);
+  const routed=p.render(1024),expected=reference.render(1024).left;
+  assert.equal(peak(routed.left.subarray(8)),0);
+  assert.deepEqual(routed.right.subarray(8),expected.subarray(8));
+  w.setPreset(31,{dspInput:0});await w.getState();
+  assert.equal(peak(p.render(512).left),0,'setPreset leaves the playing bus alone');
+  assert(peak(p.render(512).right)>.01);
+  w.noteOn(31,69);await w.getState();
+  const rekey=p.render(512);assert(peak(rekey.left)>.01);assert.equal(peak(rekey.right.subarray(8)),0);
+ }
+});
+
 test('DSP invalid programs and coefficient patches retain applied state and PCM bank',async t=>{
  const p=await setup(t);
  await p.client.applyDspProgram(gainProgram(),gainSetup(2048));
@@ -236,15 +301,21 @@ test('Worker DSP preparation retains owners and completes before rendering the n
  assert.equal(p.scope.currentFrame,0,'No rendering or lookahead wait is needed for setup');
  assert.equal(p.processor.performance.getStats().queuedCommands,0);
  await client.setDspCoefficients({2:2048});assert.deepEqual(await client.getDspCoefficients(),{codes:[0,0,2048]});
+ await client.setDspReturn(1,{level:6,pan:15});
+ assert.deepEqual((await p.client.getDspProgram()).returns,[{level:0,pan:0},{level:6,pan:15}]);
+ assert.equal(p.scope.currentFrame,0,'Indexed return preparation also bypasses note lookahead');
  client.noteOn(31,69);await client.getState();
  assert.equal(p.processor.synth.getState().slots[31].gate,false);
  assert(p.processor.performance.getStats().queuedCommands>0);
+ sender.cancelOwner('dsp-loop');
+ await assert.rejects(client.setDspReturn(1,{level:0}),{name:'AbortError'});
  sender.stop();p.processor.receive({type:'performance-stop',session:29},{postMessage(){}});
  assert.deepEqual((await p.client.getDspProgram()).words,applied.words);
  const replies=[];
  p.processor.receive({performance:{session:29,owner:'dsp-loop',time:2},commands:[{method:'setDspCoefficients',args:[{2:0}],id:812}]},{postMessage:message=>replies.push(message)});
  assert(replies.some(message=>message.id===812&&message.error));
  assert.deepEqual(await p.client.getDspCoefficients(),{codes:[0,0,2048]});
+ assert.deepEqual((await p.client.getDspProgram()).returns,[{level:0,pan:0},{level:6,pan:15}]);
  assert(p.render(256).left.every(value=>value===0));
 });
 
@@ -389,4 +460,16 @@ test('a delayed Delay reply cannot restore a ring after the client reset fence a
  assert.equal(client._getState().dspRam,undefined);
  assert.equal(client._getState().dsp,undefined);
  assert.equal(client._getState().ramUsedBytes,0);
+});
+
+test('late indexed return deltas and acknowledgements cannot cross the client reset fence',async t=>{
+ const sent=[],port={postMessage:message=>sent.push(message),start(){},close(){}};
+ const client=createScspClient(port);t.after(()=>client.dispose());
+ const pending=client.setDspReturn(1,{level:7,pan:15}),request=sent.at(-1);
+ client.reset();assert.equal(sent.at(-1).resourceFence,1);
+ port.onmessage({data:{type:'scsp-dsp-update',method:'setDspReturn',args:[1,{level:7,pan:15}],revision:1,resourceFence:0}});
+ port.onmessage({data:{id:request.id,value:{level:7,pan:15}}});
+ await assert.rejects(pending,{name:'AbortError'});
+ assert.equal(client._getState().dsp,undefined);
+ assert(client._getState().slots.every(slot=>!Object.hasOwn(slot,'dspInput')));
 });

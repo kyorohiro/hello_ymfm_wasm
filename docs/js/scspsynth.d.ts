@@ -70,8 +70,10 @@ export interface ScspMix {
   directLevel: number;
   /** Hardware DIPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan: number;
-  /** Hardware IMXL 0..7 into MIXS0; omitted/0 disables the DSP send. */
+  /** Hardware IMXL 0..7; omitted/0 disables the DSP send. */
   dspSend?: number;
+  /** Hardware ISEL: DSP input bus 0..1. Omitted uses MIXS0. */
+  dspInput?: number;
 }
 /** Signed Q12 hardware coefficient codes; each value is -4096..4095. */
 export type ScspDspCoefficientPatch = Partial<{0: number; 1: number; 2: number}>;
@@ -79,9 +81,9 @@ export interface ScspDspCoefficients {codes: number[];}
 /** When provided, setup supplies all three supported coefficient codes. */
 export interface ScspDspApplyOptions {coefficients: {0: number; 1: number; 2: number};}
 export interface ScspDspReturn {
-  /** EFREG0 hardware EFSDL 0..7; 0 mutes the effect return. */
+  /** Selected EFREG0 / EFREG1 hardware EFSDL 0..7; 0 mutes the effect return. */
   level: number;
-  /** EFREG0 hardware EFPAN 0..31; 0 center, 15 right, 31 left. */
+  /** Selected hardware EFPAN 0..31; 0 center, 15 right, 31 left. */
   pan: number;
 }
 /** Owned Delay storage is reserved until reset({clearRam:true}). */
@@ -103,6 +105,8 @@ interface ScspDspProgramBase {
   revision: number;
   coefficients: ScspDspCoefficients;
   return: ScspDspReturn;
+  /** Present after using indexed return controls. `return` remains output 0. */
+  returns?: [ScspDspReturn, ScspDspReturn];
 }
 /** Detached authoring snapshots have owned word and coefficient arrays. */
 export interface ScspDspRegisterProgram extends ScspDspProgramBase {
@@ -162,13 +166,15 @@ export class ScspSynth {
    * outputs are rejected. Does not allocate or overwrite sample RAM.
    * Held voices and DSP TEMP history remain intact. */
   applyDspProgram(words: Uint16Array | readonly number[], options?: ScspDspApplyOptions): ScspDspRegisterProgram;
-  /** Read the current program, coefficients and EFREG0 return without mutation. */
+  /** Read the current program, coefficients and effect returns without mutation. */
   getDspProgram(): ScspDspProgram;
   getDspCoefficients(): ScspDspCoefficients;
   /** Partial COEF0..2 update; keeps other codes, voices and DSP history. */
   setDspCoefficients(patch: ScspDspCoefficientPatch): ScspDspCoefficients;
-  /** Explicit live EFREG0 return level/pan. Per-slot sends use setMix(dspSend). */
+  /** Legacy live EFREG0 return level/pan. Per-slot sends use setMix(dspSend). */
   setDspReturn(patch: Partial<ScspDspReturn>): ScspDspReturn;
+  /** Live indexed EFREG0 / EFREG1 return; preserves direct slot mix fields. */
+  setDspReturn(output: 0 | 1, patch: Partial<ScspDspReturn>): ScspDspReturn;
   /** Reserve 64 KiB on demand and use the fixed SCSP Delay program.
    * Time / enabled changes clear the ring. Feedback edits preserve its tail.
    * Per-slot sends and shared return use setMix() and setDspReturn(). */
