@@ -1,0 +1,4135 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-17T08:36:34.757Z",
+  "passed": true,
+  "scope": "ST Synth editable envelope-only note-pitched retrigger example",
+  "baseCommit": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+  "virtualPath": "/examples/envelope-melody.js",
+  "cacheVersion": "ym-envelope-melody-1",
+  "physicalAudioUsed": false,
+  "listeningPerformed": false,
+  "newRuntimeApi": false,
+  "sources": {
+    "docs/synth-ym2149-st/code_examples.js": {
+      "bytes": 18287,
+      "sha256": "665246b734f1c388ddd73a09fba77970a1551d2ef86e8b47d97cb592c6ed212b"
+    },
+    "docs/synth-ym2149-st/index.html": {
+      "bytes": 20844,
+      "sha256": "15b07159993464ec41e461bb4710c0bcbf4cbd70ac733b896fb21ae5083322bd"
+    },
+    "docs/synth-ym2149-st/synth.js": {
+      "bytes": 20710,
+      "sha256": "b26ec0e7fe6791d6fa8700a399e5899a7af748a3e34b65dca2e115fefc058b21"
+    },
+    "docs/synth-ym2149-st/code_host.js": {
+      "bytes": 5028,
+      "sha256": "f95b55e8bfe053e5c6e0adb9521f9646ff2f8c410977938464bc9a21fa55cc15"
+    },
+    "docs/synth-ym2149-st/code_files.js": {
+      "bytes": 40683,
+      "sha256": "d1f28ce08085b3e67388ecc3bf298a642af42710b7aae3879f198ddaf11fe550"
+    },
+    "docs/synth-ym2149-st/README.md": {
+      "bytes": 19590,
+      "sha256": "9338bac74930ed2af775f6ff6941a24ae2a42cd1262e33e171aa5a35132337d5"
+    },
+    "docs/synth-ym2149-st/envelope_melody.test.mjs": {
+      "bytes": 13626,
+      "sha256": "2c47b40d5e4eae918291d29ad250f6d7abdaa93436cb1f445d7dd075ecc49e09"
+    },
+    "scripts/check_ym2149_envelope_melody_browser.cjs": {
+      "bytes": 20303,
+      "sha256": "867c335ac6e02504403d2190f335cec82cb0ee8f13cb3a063826aeda0eb26f88"
+    },
+    "scripts/check_ym2149_examples_cache_browser.cjs": {
+      "bytes": 33953,
+      "sha256": "b3fe048ada385c8a7f2342041c4a1a1c54e82c474c1ebb27c0a00017389615fb"
+    },
+    "scripts/check_ym2149_new_project_browser.cjs": {
+      "bytes": 35844,
+      "sha256": "97070fecef9d07024aa9caaacce6ffda71ccbdbc21e652ba59206942073c8a14"
+    }
+  },
+  "suite": {
+    "passed": true,
+    "tests": 176,
+    "newCpuTests": 6,
+    "logSha256": "d6ae0d783f9a40e56dca61f5962b023455823e091b23781ed581ae40d86afa0a"
+  },
+  "calibration": {
+    "passed": true,
+    "checks": 2,
+    "gainOrEvidenceChanged": false,
+    "logSha256": "a0db9c75861092e31c9aa8651c18498c3806faceba83e33c03350c22a6941db5"
+  },
+  "distribution": {
+    "passed": true,
+    "archive": "release/tetorica_ym2149_st_synth_envelope-melody-20261117_itch.zip",
+    "stage": "release/itch_ym2149_st_synth_envelope-melody-20261117-3bWxTU",
+    "files": 202,
+    "bytes": 2457377,
+    "sha256": "c1c0fa8abdccb1e5bc4df755fe5ba9c89c3e753045500716716e84e249913d05",
+    "exampleMatchesSource": true
+  },
+  "browserCases": {
+    "performance": 4,
+    "httpCache": 8,
+    "newProject": 4,
+    "total": 16
+  },
+  "reports": {
+    "cpu": {
+      "bytes": 3546,
+      "sha256": "1cfd6273d2a0aeb788a429a3f36e0d71278b66d58b53ed5581aebc55fb3c4686",
+      "value": {
+        "passed": true,
+        "tests": 6,
+        "sampleRates": [
+          44100,
+          48000
+        ],
+        "physicalAudioUsed": false,
+        "source": "docs/synth-ym2149-st/envelope_melody.test.mjs",
+        "scheduler": "production createPerformanceQueue",
+        "core": "shipped YM2149 WASM",
+        "observations": [
+          {
+            "kind": "pitch",
+            "sampleRate": 44100,
+            "midi": 52,
+            "expectedHz": 164.81377845643496,
+            "observedHz": 164.81282067523912,
+            "acRms": 0.043103775941688155,
+            "range": 0.15534832328557968,
+            "retriggerFrameSteps": [
+              267,
+              268
+            ],
+            "storedPatternEntries": 1,
+            "rawZeroReleaseExact": true,
+            "withoutRetriggersDecaysToZero": true
+          },
+          {
+            "kind": "pitch",
+            "sampleRate": 44100,
+            "midi": 57,
+            "expectedHz": 220,
+            "observedHz": 219.9955516014235,
+            "acRms": 0.041197465208287216,
+            "range": 0.14483013562858105,
+            "retriggerFrameSteps": [
+              200,
+              201
+            ],
+            "storedPatternEntries": 1,
+            "rawZeroReleaseExact": true,
+            "withoutRetriggersDecaysToZero": true
+          },
+          {
+            "kind": "timbre",
+            "sampleRate": 44100,
+            "expectedHz": 164.81377845643496,
+            "periods": [
+              30,
+              100,
+              200
+            ],
+            "profiles": [
+              {
+                "range": 0.1666666679084301,
+                "mean": -0.020452614825771924,
+                "acRms": 0.03839020880324359,
+                "observedHz": 164.81282067523912
+              },
+              {
+                "range": 0.15534832328557968,
+                "mean": 0.018956443149172053,
+                "acRms": 0.043103775941688155,
+                "observedHz": 164.81282067523912
+              },
+              {
+                "range": 0.12459086591843516,
+                "mean": 0.0532355961935597,
+                "acRms": 0.035862048601579044,
+                "observedHz": 164.81282067523912
+              }
+            ],
+            "meanDelta": 0.07368821101933162,
+            "rangeDelta": 0.04207580198999494
+          },
+          {
+            "kind": "pitch",
+            "sampleRate": 48000,
+            "midi": 52,
+            "expectedHz": 164.81377845643496,
+            "observedHz": 164.81406040854333,
+            "acRms": 0.04310610772216312,
+            "range": 0.15534832328557968,
+            "retriggerFrameSteps": [
+              291,
+              292
+            ],
+            "storedPatternEntries": 1,
+            "rawZeroReleaseExact": true,
+            "withoutRetriggersDecaysToZero": true
+          },
+          {
+            "kind": "pitch",
+            "sampleRate": 48000,
+            "midi": 57,
+            "expectedHz": 220,
+            "observedHz": 219.99708071814334,
+            "acRms": 0.04120214224794903,
+            "range": 0.14483013562858105,
+            "retriggerFrameSteps": [
+              218,
+              219
+            ],
+            "storedPatternEntries": 1,
+            "rawZeroReleaseExact": true,
+            "withoutRetriggersDecaysToZero": true
+          },
+          {
+            "kind": "timbre",
+            "sampleRate": 48000,
+            "expectedHz": 164.81377845643496,
+            "periods": [
+              30,
+              100,
+              200
+            ],
+            "profiles": [
+              {
+                "range": 0.1666666679084301,
+                "mean": -0.02045260932719615,
+                "acRms": 0.03839248634554414,
+                "observedHz": 164.81406040854333
+              },
+              {
+                "range": 0.15534832328557968,
+                "mean": 0.01895627993750353,
+                "acRms": 0.04310610772216312,
+                "observedHz": 164.81406040854333
+              },
+              {
+                "range": 0.12459086591843516,
+                "mean": 0.0532343740348004,
+                "acRms": 0.035864864997425805,
+                "observedHz": 164.81406040854333
+              }
+            ],
+            "meanDelta": 0.07368698336199656,
+            "rangeDelta": 0.04207580198999494
+          }
+        ]
+      }
+    },
+    "source-browser": {
+      "bytes": 22006,
+      "sha256": "42f5037a4f63a2c886636f14d0d8a8d8a62bdb2e86e16d5154318f7b87f0eeed",
+      "value": {
+        "passed": true,
+        "entry": "/synth-ym2149-st/index.html",
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "results": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "files": {
+              "coldAudioContexts": 0,
+              "keyboardModePreserved": true,
+              "editedSourcePreserved": true
+            },
+            "sound": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 100,
+              "frame": 2816,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.023269618621310398,
+                "acRms": 0.020523728464203896
+              }
+            },
+            "initial": {
+              "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.5,
+              "observedIntervalsSeconds": [
+                0.504,
+                0.504
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "displayedShape": "9",
+            "manual": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 48,
+              "frame": 54528,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.03713331640285557,
+                "acRms": 0.025100817308276322
+              },
+              "observations": [
+                {
+                  "period": 48,
+                  "frame": 55040
+                },
+                {
+                  "period": 48,
+                  "frame": 56320
+                },
+                {
+                  "period": 48,
+                  "frame": 57600
+                },
+                {
+                  "period": 48,
+                  "frame": 58880
+                },
+                {
+                  "period": 48,
+                  "frame": 60160
+                },
+                {
+                  "period": 48,
+                  "frame": 61440
+                },
+                {
+                  "period": 48,
+                  "frame": 62720
+                },
+                {
+                  "period": 48,
+                  "frame": 64256
+                },
+                {
+                  "period": 48,
+                  "frame": 65536
+                },
+                {
+                  "period": 48,
+                  "frame": 66816
+                },
+                {
+                  "period": 48,
+                  "frame": 68096
+                },
+                {
+                  "period": 48,
+                  "frame": 69376
+                },
+                {
+                  "period": 48,
+                  "frame": 70656
+                },
+                {
+                  "period": 48,
+                  "frame": 72192
+                },
+                {
+                  "period": 48,
+                  "frame": 73472
+                },
+                {
+                  "period": 48,
+                  "frame": 74752
+                },
+                {
+                  "period": 48,
+                  "frame": 76032
+                },
+                {
+                  "period": 48,
+                  "frame": 77312
+                },
+                {
+                  "period": 48,
+                  "frame": 79872
+                },
+                {
+                  "period": 48,
+                  "frame": 81152
+                },
+                {
+                  "period": 48,
+                  "frame": 82432
+                },
+                {
+                  "period": 48,
+                  "frame": 83712
+                },
+                {
+                  "period": 48,
+                  "frame": 84992
+                },
+                {
+                  "period": 48,
+                  "frame": 86272
+                },
+                {
+                  "period": 48,
+                  "frame": 87808
+                },
+                {
+                  "period": 48,
+                  "frame": 89088
+                },
+                {
+                  "period": 48,
+                  "frame": 90368
+                },
+                {
+                  "period": 48,
+                  "frame": 91648
+                },
+                {
+                  "period": 48,
+                  "frame": 92928
+                },
+                {
+                  "period": 48,
+                  "frame": 94208
+                },
+                {
+                  "period": 48,
+                  "frame": 95488
+                },
+                {
+                  "period": 48,
+                  "frame": 96768
+                },
+                {
+                  "period": 48,
+                  "frame": 98048
+                },
+                {
+                  "period": 48,
+                  "frame": 99328
+                },
+                {
+                  "period": 48,
+                  "frame": 100608
+                },
+                {
+                  "period": 48,
+                  "frame": 101888
+                },
+                {
+                  "period": 48,
+                  "frame": 103168
+                },
+                {
+                  "period": 48,
+                  "frame": 104448
+                },
+                {
+                  "period": 48,
+                  "frame": 105728
+                },
+                {
+                  "period": 48,
+                  "frame": 107008
+                },
+                {
+                  "period": 48,
+                  "frame": 108288
+                },
+                {
+                  "period": 48,
+                  "frame": 109568
+                }
+              ]
+            },
+            "applied": {
+              "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.25,
+              "observedIntervalsSeconds": [
+                0.2559999999999998,
+                0.2560000000000002
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "removedLoop": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 172544,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0.08500000834465027,
+                  "rms": 0.03925942370589891,
+                  "acRms": 0.02687137269751812
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 190720,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 14
+            },
+            "stopped": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 201472,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 222720,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 17
+            },
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0,
+                "acRms": 0
+              },
+              "failedReceipts": [],
+              "lifecycle": [
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:2",
+                  "time": 1.1772999999988825,
+                  "audioTime": 0.44266666666666665
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:4",
+                  "time": 1.6827999999988825,
+                  "audioTime": 0.9493333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:6",
+                  "time": 2.1877999999988824,
+                  "audioTime": 1.456
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:8",
+                  "time": 2.6899000000003723,
+                  "audioTime": 1.9573333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:10",
+                  "time": 3.1535,
+                  "audioTime": 2.421333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:12",
+                  "time": 3.4080999999996275,
+                  "audioTime": 2.6773333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:14",
+                  "time": 3.6650999999996277,
+                  "audioTime": 2.933333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:16",
+                  "time": 3.9219000000003725,
+                  "audioTime": 3.1893333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:18",
+                  "time": 4.178099999999628,
+                  "audioTime": 3.445333333333333
+                },
+                {
+                  "action": "releaseOwner",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:1",
+                  "id": "chip-control:20",
+                  "time": 4.311199999999255,
+                  "audioTime": 3.578666666666667
+                },
+                {
+                  "action": "cancelOwner",
+                  "owner": "code:23a7c01b-dc67-452e-b0b9-fe3aa25a46b5:1:run:1:loop:2",
+                  "id": "chip-control:22",
+                  "time": 4.860900000000372,
+                  "audioTime": 4.128
+                }
+              ]
+            },
+            "errors": [],
+            "missing": [],
+            "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 13       | 9     | 0              | 0         \nEnvelope pitch: E3 / 164.814 Hz\nEnvelope pitch: G3 / 195.998 Hz\nEnvelope pitch: A3 / 220.000 Hz"
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "files": {
+              "coldAudioContexts": 0,
+              "keyboardModePreserved": true,
+              "editedSourcePreserved": true
+            },
+            "sound": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 100,
+              "frame": 2816,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.027810412671151117,
+                "acRms": 0.022545396553835046
+              }
+            },
+            "initial": {
+              "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.5,
+              "observedIntervalsSeconds": [
+                0.5093333333333333,
+                0.504
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "displayedShape": "9",
+            "manual": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 48,
+              "frame": 53120,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.03873586761155576,
+                "acRms": 0.023063976143877264
+              },
+              "observations": [
+                {
+                  "period": 48,
+                  "frame": 53248
+                },
+                {
+                  "period": 48,
+                  "frame": 54528
+                },
+                {
+                  "period": 48,
+                  "frame": 55936
+                },
+                {
+                  "period": 48,
+                  "frame": 57216
+                },
+                {
+                  "period": 48,
+                  "frame": 58496
+                },
+                {
+                  "period": 48,
+                  "frame": 59776
+                },
+                {
+                  "period": 48,
+                  "frame": 61184
+                },
+                {
+                  "period": 48,
+                  "frame": 62592
+                },
+                {
+                  "period": 48,
+                  "frame": 64000
+                },
+                {
+                  "period": 48,
+                  "frame": 65408
+                },
+                {
+                  "period": 48,
+                  "frame": 66944
+                },
+                {
+                  "period": 48,
+                  "frame": 68352
+                },
+                {
+                  "period": 48,
+                  "frame": 70016
+                },
+                {
+                  "period": 48,
+                  "frame": 71424
+                },
+                {
+                  "period": 48,
+                  "frame": 72704
+                },
+                {
+                  "period": 48,
+                  "frame": 74112
+                },
+                {
+                  "period": 48,
+                  "frame": 75648
+                },
+                {
+                  "period": 48,
+                  "frame": 76928
+                },
+                {
+                  "period": 48,
+                  "frame": 78336
+                },
+                {
+                  "period": 48,
+                  "frame": 79744
+                },
+                {
+                  "period": 48,
+                  "frame": 81152
+                },
+                {
+                  "period": 48,
+                  "frame": 82688
+                },
+                {
+                  "period": 48,
+                  "frame": 84096
+                },
+                {
+                  "period": 48,
+                  "frame": 85504
+                },
+                {
+                  "period": 48,
+                  "frame": 87296
+                },
+                {
+                  "period": 48,
+                  "frame": 88832
+                },
+                {
+                  "period": 48,
+                  "frame": 90240
+                },
+                {
+                  "period": 48,
+                  "frame": 91648
+                },
+                {
+                  "period": 48,
+                  "frame": 93184
+                },
+                {
+                  "period": 48,
+                  "frame": 94592
+                },
+                {
+                  "period": 48,
+                  "frame": 96000
+                },
+                {
+                  "period": 48,
+                  "frame": 97408
+                },
+                {
+                  "period": 48,
+                  "frame": 98688
+                },
+                {
+                  "period": 48,
+                  "frame": 100096
+                },
+                {
+                  "period": 48,
+                  "frame": 101376
+                },
+                {
+                  "period": 48,
+                  "frame": 102656
+                },
+                {
+                  "period": 48,
+                  "frame": 103936
+                },
+                {
+                  "period": 48,
+                  "frame": 105216
+                },
+                {
+                  "period": 48,
+                  "frame": 106624
+                },
+                {
+                  "period": 48,
+                  "frame": 108160
+                }
+              ]
+            },
+            "applied": {
+              "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.25,
+              "observedIntervalsSeconds": [
+                0.2613333333333334,
+                0.25333333333333297
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "removedLoop": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 170368,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0.08500000834465027,
+                  "rms": 0.04853268574474784,
+                  "acRms": 0.02183276690490318
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 188416,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 15
+            },
+            "stopped": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 198016,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 219008,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 17
+            },
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0,
+                "acRms": 0
+              },
+              "failedReceipts": [],
+              "lifecycle": [
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:2",
+                  "time": 0.995,
+                  "audioTime": 0.44533333333333336
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:4",
+                  "time": 1.499,
+                  "audioTime": 0.9466666666666667
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:6",
+                  "time": 2.007,
+                  "audioTime": 1.456
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:8",
+                  "time": 2.513,
+                  "audioTime": 1.9626666666666666
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:10",
+                  "time": 2.957,
+                  "audioTime": 2.4053333333333335
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:12",
+                  "time": 3.219,
+                  "audioTime": 2.6693333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:14",
+                  "time": 3.471,
+                  "audioTime": 2.92
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:16",
+                  "time": 3.724,
+                  "audioTime": 3.1733333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:18",
+                  "time": 3.977,
+                  "audioTime": 3.4266666666666667
+                },
+                {
+                  "action": "releaseOwner",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:1",
+                  "id": "chip-control:20",
+                  "time": 4.097,
+                  "audioTime": 3.546666666666667
+                },
+                {
+                  "action": "cancelOwner",
+                  "owner": "code:6a3b3543-4968-4dec-a8e8-46aa940f90e5:1:run:1:loop:2",
+                  "id": "chip-control:22",
+                  "time": 4.609,
+                  "audioTime": 4.058666666666666
+                }
+              ]
+            },
+            "errors": [],
+            "missing": [],
+            "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 13       | 9     | 0              | 0         \nEnvelope pitch: E3 / 164.814 Hz\nEnvelope pitch: G3 / 195.998 Hz\nEnvelope pitch: A3 / 220.000 Hz"
+          }
+        ]
+      }
+    },
+    "package-browser": {
+      "bytes": 22086,
+      "sha256": "f7fa005b2eda4dfd9967d31e558332c322b551b9fc4c364fba8be5db695fefd2",
+      "value": {
+        "passed": true,
+        "entry": "/index.html",
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "results": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "files": {
+              "coldAudioContexts": 0,
+              "keyboardModePreserved": true,
+              "editedSourcePreserved": true
+            },
+            "sound": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 100,
+              "frame": 1280,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.07332614064216614,
+                "rms": 0.012476928552105068,
+                "acRms": 0.012041609208993474
+              }
+            },
+            "initial": {
+              "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.5,
+              "observedIntervalsSeconds": [
+                0.512,
+                0.5013333333333333
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "displayedShape": "9",
+            "manual": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 48,
+              "frame": 52736,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.030808221629472842,
+                "acRms": 0.022951880729116702
+              },
+              "observations": [
+                {
+                  "period": 48,
+                  "frame": 53504
+                },
+                {
+                  "period": 48,
+                  "frame": 54784
+                },
+                {
+                  "period": 48,
+                  "frame": 56064
+                },
+                {
+                  "period": 48,
+                  "frame": 57344
+                },
+                {
+                  "period": 48,
+                  "frame": 58624
+                },
+                {
+                  "period": 48,
+                  "frame": 59904
+                },
+                {
+                  "period": 48,
+                  "frame": 61440
+                },
+                {
+                  "period": 48,
+                  "frame": 62464
+                },
+                {
+                  "period": 48,
+                  "frame": 64000
+                },
+                {
+                  "period": 48,
+                  "frame": 65280
+                },
+                {
+                  "period": 48,
+                  "frame": 66560
+                },
+                {
+                  "period": 48,
+                  "frame": 67840
+                },
+                {
+                  "period": 48,
+                  "frame": 68864
+                },
+                {
+                  "period": 48,
+                  "frame": 70400
+                },
+                {
+                  "period": 48,
+                  "frame": 71680
+                },
+                {
+                  "period": 48,
+                  "frame": 72960
+                },
+                {
+                  "period": 48,
+                  "frame": 74240
+                },
+                {
+                  "period": 48,
+                  "frame": 75520
+                },
+                {
+                  "period": 48,
+                  "frame": 76800
+                },
+                {
+                  "period": 48,
+                  "frame": 78080
+                },
+                {
+                  "period": 48,
+                  "frame": 79360
+                },
+                {
+                  "period": 48,
+                  "frame": 80896
+                },
+                {
+                  "period": 48,
+                  "frame": 82176
+                },
+                {
+                  "period": 48,
+                  "frame": 83456
+                },
+                {
+                  "period": 48,
+                  "frame": 84992
+                },
+                {
+                  "period": 48,
+                  "frame": 86272
+                },
+                {
+                  "period": 48,
+                  "frame": 87552
+                },
+                {
+                  "period": 48,
+                  "frame": 88832
+                },
+                {
+                  "period": 48,
+                  "frame": 90112
+                },
+                {
+                  "period": 48,
+                  "frame": 91392
+                },
+                {
+                  "period": 48,
+                  "frame": 92672
+                },
+                {
+                  "period": 48,
+                  "frame": 93952
+                },
+                {
+                  "period": 48,
+                  "frame": 95232
+                },
+                {
+                  "period": 48,
+                  "frame": 96768
+                },
+                {
+                  "period": 48,
+                  "frame": 98048
+                },
+                {
+                  "period": 48,
+                  "frame": 99328
+                },
+                {
+                  "period": 48,
+                  "frame": 100608
+                },
+                {
+                  "period": 48,
+                  "frame": 101888
+                },
+                {
+                  "period": 48,
+                  "frame": 103424
+                },
+                {
+                  "period": 48,
+                  "frame": 104704
+                },
+                {
+                  "period": 48,
+                  "frame": 106240
+                },
+                {
+                  "period": 48,
+                  "frame": 107520
+                }
+              ]
+            },
+            "applied": {
+              "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.25,
+              "observedIntervalsSeconds": [
+                0.2560000000000002,
+                0.2559999999999998
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "removedLoop": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 171008,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0.08500000834465027,
+                  "rms": 0.039484073830732234,
+                  "acRms": 0.027034967909867754
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 189696,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 15
+            },
+            "stopped": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 199936,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 220928,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 17
+            },
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0,
+                "acRms": 0
+              },
+              "failedReceipts": [],
+              "lifecycle": [
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:2",
+                  "time": 1.024,
+                  "audioTime": 0.42133333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:4",
+                  "time": 1.5328000000007451,
+                  "audioTime": 0.9333333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:6",
+                  "time": 2.0359000000003724,
+                  "audioTime": 1.4346666666666668
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:8",
+                  "time": 2.5404000000003726,
+                  "audioTime": 1.9413333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:10",
+                  "time": 2.9935999999996277,
+                  "audioTime": 2.3946666666666667
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:12",
+                  "time": 3.249199999999255,
+                  "audioTime": 2.6506666666666665
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:14",
+                  "time": 3.507199999999255,
+                  "audioTime": 2.9066666666666667
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:16",
+                  "time": 3.766199999999255,
+                  "audioTime": 3.168
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:18",
+                  "time": 4.0235,
+                  "audioTime": 3.424
+                },
+                {
+                  "action": "releaseOwner",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:1",
+                  "id": "chip-control:20",
+                  "time": 4.1455,
+                  "audioTime": 3.546666666666667
+                },
+                {
+                  "action": "cancelOwner",
+                  "owner": "code:ed16d6c4-8012-4183-a9ea-87d2dad0a063:1:run:1:loop:2",
+                  "id": "chip-control:22",
+                  "time": 4.694699999999255,
+                  "audioTime": 4.096
+                }
+              ]
+            },
+            "errors": [],
+            "missing": [],
+            "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 13       | 9     | 0              | 0         \nEnvelope pitch: E3 / 164.814 Hz\nEnvelope pitch: G3 / 195.998 Hz\nEnvelope pitch: A3 / 220.000 Hz"
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "files": {
+              "coldAudioContexts": 0,
+              "keyboardModePreserved": true,
+              "editedSourcePreserved": true
+            },
+            "sound": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 100,
+              "frame": 6528,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.025346916187518467,
+                "acRms": 0.021677132689860254
+              }
+            },
+            "initial": {
+              "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.5,
+              "observedIntervalsSeconds": [
+                0.5093333333333333,
+                0.504
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "displayedShape": "9",
+            "manual": {
+              "mixer": 57,
+              "volume": 16,
+              "others": [
+                0,
+                0
+              ],
+              "shape": 9,
+              "period": 48,
+              "frame": 57216,
+              "sampleRate": 48000,
+              "level": {
+                "peak": 0.08500000834465027,
+                "rms": 0.03993478788410456,
+                "acRms": 0.024861701833618802
+              },
+              "observations": [
+                {
+                  "period": 48,
+                  "frame": 57344
+                },
+                {
+                  "period": 48,
+                  "frame": 58624
+                },
+                {
+                  "period": 48,
+                  "frame": 60032
+                },
+                {
+                  "period": 48,
+                  "frame": 61312
+                },
+                {
+                  "period": 48,
+                  "frame": 62592
+                },
+                {
+                  "period": 48,
+                  "frame": 63872
+                },
+                {
+                  "period": 48,
+                  "frame": 65280
+                },
+                {
+                  "period": 48,
+                  "frame": 66560
+                },
+                {
+                  "period": 48,
+                  "frame": 67840
+                },
+                {
+                  "period": 48,
+                  "frame": 69120
+                },
+                {
+                  "period": 48,
+                  "frame": 70528
+                },
+                {
+                  "period": 48,
+                  "frame": 71808
+                },
+                {
+                  "period": 48,
+                  "frame": 73088
+                },
+                {
+                  "period": 48,
+                  "frame": 74368
+                },
+                {
+                  "period": 48,
+                  "frame": 75648
+                },
+                {
+                  "period": 48,
+                  "frame": 76928
+                },
+                {
+                  "period": 48,
+                  "frame": 78208
+                },
+                {
+                  "period": 48,
+                  "frame": 79616
+                },
+                {
+                  "period": 48,
+                  "frame": 80896
+                },
+                {
+                  "period": 48,
+                  "frame": 82176
+                },
+                {
+                  "period": 48,
+                  "frame": 83456
+                },
+                {
+                  "period": 48,
+                  "frame": 84736
+                },
+                {
+                  "period": 48,
+                  "frame": 86016
+                },
+                {
+                  "period": 48,
+                  "frame": 87424
+                },
+                {
+                  "period": 48,
+                  "frame": 88704
+                },
+                {
+                  "period": 48,
+                  "frame": 90112
+                },
+                {
+                  "period": 48,
+                  "frame": 91520
+                },
+                {
+                  "period": 48,
+                  "frame": 92800
+                },
+                {
+                  "period": 48,
+                  "frame": 94208
+                },
+                {
+                  "period": 48,
+                  "frame": 95488
+                },
+                {
+                  "period": 48,
+                  "frame": 96768
+                },
+                {
+                  "period": 48,
+                  "frame": 98176
+                },
+                {
+                  "period": 48,
+                  "frame": 99456
+                },
+                {
+                  "period": 48,
+                  "frame": 100736
+                },
+                {
+                  "period": 48,
+                  "frame": 102144
+                },
+                {
+                  "period": 48,
+                  "frame": 103424
+                },
+                {
+                  "period": 48,
+                  "frame": 104704
+                },
+                {
+                  "period": 48,
+                  "frame": 106112
+                },
+                {
+                  "period": 48,
+                  "frame": 107520
+                },
+                {
+                  "period": 48,
+                  "frame": 108928
+                },
+                {
+                  "period": 48,
+                  "frame": 110336
+                },
+                {
+                  "period": 48,
+                  "frame": 111616
+                }
+              ]
+            },
+            "applied": {
+              "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+              "frequenciesHz": [
+                164.81377845643496,
+                195.99771799087463,
+                220
+              ],
+              "repeatSeconds": [
+                0.006067453882591066,
+                0.00510210021958806,
+                0.004545454545454545
+              ],
+              "melodyStepSeconds": 0.25,
+              "observedIntervalsSeconds": [
+                0.2506666666666666,
+                0.2533333333333334
+              ],
+              "operation": {
+                "time": {
+                  "unit": "sample",
+                  "value": 0
+                },
+                "order": 0,
+                "method": "setEnvelope",
+                "args": [
+                  {
+                    "shape": 9
+                  }
+                ]
+              }
+            },
+            "removedLoop": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 173952,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0.08500000834465027,
+                  "rms": 0.03917519778927661,
+                  "acRms": 0.02688215251255811
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 13,
+                "period": 100,
+                "frame": 192640,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 15
+            },
+            "stopped": {
+              "first": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 201856,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "last": {
+                "mixer": 57,
+                "volume": 0,
+                "others": [
+                  0,
+                  0
+                ],
+                "shape": 15,
+                "period": 100,
+                "frame": 222976,
+                "sampleRate": 48000,
+                "level": {
+                  "peak": 0,
+                  "rms": 0,
+                  "acRms": 0
+                }
+              },
+              "observations": 17
+            },
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0,
+                "acRms": 0
+              },
+              "failedReceipts": [],
+              "lifecycle": [
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:2",
+                  "time": 1.085,
+                  "audioTime": 0.5253333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:4",
+                  "time": 1.591,
+                  "audioTime": 1.032
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:6",
+                  "time": 2.094,
+                  "audioTime": 1.536
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:8",
+                  "time": 2.596,
+                  "audioTime": 2.037333333333333
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:10",
+                  "time": 3.031,
+                  "audioTime": 2.472
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:12",
+                  "time": 3.284,
+                  "audioTime": 2.7253333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:14",
+                  "time": 3.536,
+                  "audioTime": 2.976
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:16",
+                  "time": 3.789,
+                  "audioTime": 3.2293333333333334
+                },
+                {
+                  "action": "clear",
+                  "name": "envelope-melody",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:18",
+                  "time": 4.043,
+                  "audioTime": 3.485333333333333
+                },
+                {
+                  "action": "releaseOwner",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:1",
+                  "id": "chip-control:20",
+                  "time": 4.166,
+                  "audioTime": 3.608
+                },
+                {
+                  "action": "cancelOwner",
+                  "owner": "code:47a9e3e4-15d8-4fea-85e6-e436335fee7b:1:run:1:loop:2",
+                  "id": "chip-control:22",
+                  "time": 4.696,
+                  "audioTime": 4.1386666666666665
+                }
+              ]
+            },
+            "errors": [],
+            "missing": [],
+            "console": "(index) | offsetSeconds | register | value | operationIndex | writeIndex\n0       | 0             | 13       | 9     | 0              | 0         \nEnvelope pitch: E3 / 164.814 Hz\nEnvelope pitch: G3 / 195.998 Hz\nEnvelope pitch: A3 / 220.000 Hz"
+          }
+        ]
+      }
+    },
+    "cache-source": {
+      "bytes": 16636,
+      "sha256": "15d3b132705df2e3317330351c2bf20f607b5c20315424ff9636462d0ae72335",
+      "value": {
+        "passed": true,
+        "entry": "/synth-ym2149-st/index.html",
+        "routingDisabled": true,
+        "fixture": {
+          "revision": "2e67ed92",
+          "html": {
+            "path": "docs/synth-ym2149-st/index.html",
+            "bytes": 20604,
+            "sha256": "022f5e9006ec1d8ea9519941f64026c6f4601792a2fadaeca01faf82128e5acf"
+          },
+          "modules": [
+            {
+              "url": "/synth-ym2149-st/synth.js",
+              "path": "docs/synth-ym2149-st/synth.js",
+              "revision": "2e67ed92",
+              "bytes": 19209,
+              "sha256": "ae4dbe9b010190d72d75cba4221ef9d7e5e5c6314d8a5cc3724bf129183bc410"
+            },
+            {
+              "url": "/synth-ym2149-st/code_host.js",
+              "path": "docs/synth-ym2149-st/code_host.js",
+              "revision": "2e67ed92",
+              "bytes": 4875,
+              "sha256": "ecc22dfd834dde5a7dacd9eecc5940fc9fb17da24e09ece35a7dfc1913a897bf"
+            },
+            {
+              "url": "/synth-ym2149-st/code_files.js?v=draft-reconnect-1",
+              "path": "docs/synth-ym2149-st/code_files.js",
+              "revision": "2e67ed92",
+              "bytes": 34289,
+              "sha256": "a410f8d83e27c203e350e802d6f9e0b1bb71cd3db3b28477979c50e6937d9681"
+            },
+            {
+              "url": "/js/playground_code_runtime.js",
+              "path": "docs/js/playground_code_runtime.js",
+              "revision": "2e67ed92",
+              "bytes": 29769,
+              "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+            },
+            {
+              "url": "/synth-ym2149-st/code_examples.js",
+              "path": "docs/synth-ym2149-st/code_examples.js",
+              "revision": "e3e82949",
+              "bytes": 9247,
+              "sha256": "c9b9610caf5cac1522efbd8eff7240d8afde118baba03303de79879fb61979d1"
+            }
+          ]
+        },
+        "previousReleaseFixture": {
+          "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+          "html": {
+            "path": "docs/synth-ym2149-st/index.html",
+            "bytes": 20835,
+            "sha256": "c96840bb9a973861bfc44adfe450870004aadad9aa9ed1b8573a44c2b646dbf4"
+          },
+          "modules": [
+            {
+              "url": "/synth-ym2149-st/synth.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/synth.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 20701,
+              "sha256": "f085767b92074fc2fedb5ffc0f083bd3c7d8175c4e91483c08f2516ca9db7c56"
+            },
+            {
+              "url": "/synth-ym2149-st/code_host.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/code_host.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 5019,
+              "sha256": "be09861aef207b4fee6062c28d957058289c24190e4197f3cb0251899cdcc4af"
+            },
+            {
+              "url": "/synth-ym2149-st/code_files.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/code_files.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 40674,
+              "sha256": "7b38a1ed738ecf6aff59d0a916e6695b633664ced1b46b284444e77ac70db0f9"
+            },
+            {
+              "url": "/synth-ym2149-st/code_examples.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/code_examples.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 13503,
+              "sha256": "76067b9efcc180cfa8567dbbbdd06f8cc1ec342f1cce992636189fa1be466338"
+            }
+          ]
+        },
+        "currentSources": [
+          {
+            "url": "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+            "bytes": 20710,
+            "sha256": "b26ec0e7fe6791d6fa8700a399e5899a7af748a3e34b65dca2e115fefc058b21"
+          },
+          {
+            "url": "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+            "bytes": 5028,
+            "sha256": "f95b55e8bfe053e5c6e0adb9521f9646ff2f8c410977938464bc9a21fa55cc15"
+          },
+          {
+            "url": "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+            "bytes": 40683,
+            "sha256": "d1f28ce08085b3e67388ecc3bf298a642af42710b7aae3879f198ddaf11fe550"
+          },
+          {
+            "url": "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+            "bytes": 18287,
+            "sha256": "665246b734f1c388ddd73a09fba77970a1551d2ef86e8b47d97cb592c6ed212b"
+          },
+          {
+            "url": "/js/playground_code_runtime.js?v=console-table-1",
+            "bytes": 29787,
+            "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+          },
+          {
+            "url": "/js/playground_log.js?v=console-table-1",
+            "bytes": 2169,
+            "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+          }
+        ],
+        "results": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "persistentHttpCache": true,
+            "legacyNetworkRequests": {
+              "/synth-ym2149-st/synth.js": 1,
+              "/synth-ym2149-st/code_host.js": 1,
+              "/synth-ym2149-st/code_files.js?v=draft-reconnect-1": 1,
+              "/js/playground_code_runtime.js": 1,
+              "/synth-ym2149-st/code_examples.js": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "newJsVisible": true,
+              "saveSoundVisible": true,
+              "examplesButtonPresent": false,
+              "exampleFilesPresent": false,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js"
+              ],
+              "oldStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/synth-ym2149-st/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+                "/js/playground_code_runtime.js?v=console-table-1",
+                "/js/playground_log.js?v=console-table-1"
+              ],
+              "defaultExamplesVisibleBeforeClick": true,
+              "examplesButtonPresent": false,
+              "newProjectMenuPresent": true,
+              "matchingExamplePaths": [
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "savedIndexSha256": "ffa80e7cf56e572846aa883695fc7a19e939248e506414acd331f5303fc803db",
+              "savedSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "Saved cache-regression sound",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "selectedPath": "/index.js",
+              "inputMode": "keyboard",
+              "oldStartupStillCached": true,
+              "projectFilesBefore": [
+                "/index.js"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+            "expectedEditorPolicyMessages": 2,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "persistentHttpCache": true,
+            "legacyNetworkRequests": {
+              "/synth-ym2149-st/synth.js": 1,
+              "/synth-ym2149-st/code_host.js": 1,
+              "/synth-ym2149-st/code_files.js?v=draft-reconnect-1": 1,
+              "/js/playground_code_runtime.js": 1,
+              "/synth-ym2149-st/code_examples.js": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "newJsVisible": true,
+              "saveSoundVisible": true,
+              "examplesButtonPresent": false,
+              "exampleFilesPresent": false,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js"
+              ],
+              "oldStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/synth-ym2149-st/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+                "/js/playground_code_runtime.js?v=console-table-1",
+                "/js/playground_log.js?v=console-table-1"
+              ],
+              "defaultExamplesVisibleBeforeClick": true,
+              "examplesButtonPresent": false,
+              "newProjectMenuPresent": true,
+              "matchingExamplePaths": [
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "savedIndexSha256": "ffa80e7cf56e572846aa883695fc7a19e939248e506414acd331f5303fc803db",
+              "savedSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "Saved cache-regression sound",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "selectedPath": "/index.js",
+              "inputMode": "keyboard",
+              "oldStartupStillCached": true,
+              "projectFilesBefore": [
+                "/index.js"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+            "expectedEditorPolicyMessages": 2,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          }
+        ],
+        "previousReleaseResults": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "persistentHttpCache": true,
+            "fixtureRevision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+            "previousNetworkRequests": {
+              "/synth-ym2149-st/synth.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_host.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_files.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_examples.js?v=ym-sample-1": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js"
+              ],
+              "newExamplePresent": false,
+              "previousStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/synth-ym2149-st/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+              ],
+              "addedPath": "/examples/envelope-melody.js",
+              "sourceMatchesCurrent": true,
+              "previousStartupStillCached": true,
+              "savedIndexSha256": "8df6926752a937c04b95e77e1f0f91bfcaff8061de619893757e5b0874c7ccfb",
+              "editedExampleSha256": "63629d8800bf762fb921143154708e5552f2d02ef1beb6fc1b85da70beb0707f",
+              "selectedPath": "/examples/sync-buzzer.js",
+              "inputMode": "code",
+              "projectFilesBefore": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md",
+                "/examples/envelope-melody.js"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "expectedEditorPolicyMessages": 3,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "persistentHttpCache": true,
+            "fixtureRevision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+            "previousNetworkRequests": {
+              "/synth-ym2149-st/synth.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_host.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_files.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_examples.js?v=ym-sample-1": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js"
+              ],
+              "newExamplePresent": false,
+              "previousStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/synth-ym2149-st/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+              ],
+              "addedPath": "/examples/envelope-melody.js",
+              "sourceMatchesCurrent": true,
+              "previousStartupStillCached": true,
+              "savedIndexSha256": "8df6926752a937c04b95e77e1f0f91bfcaff8061de619893757e5b0874c7ccfb",
+              "editedExampleSha256": "63629d8800bf762fb921143154708e5552f2d02ef1beb6fc1b85da70beb0707f",
+              "selectedPath": "/examples/sync-buzzer.js",
+              "inputMode": "code",
+              "projectFilesBefore": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md",
+                "/examples/envelope-melody.js"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "expectedEditorPolicyMessages": 3,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          }
+        ]
+      }
+    },
+    "cache-package": {
+      "bytes": 16556,
+      "sha256": "6339fca4bff858f8db375ddaf068e3446a7a927d3dedf68c1546dd7b01defd4b",
+      "value": {
+        "passed": true,
+        "entry": "/index.html",
+        "routingDisabled": true,
+        "fixture": {
+          "revision": "2e67ed92",
+          "html": {
+            "path": "docs/synth-ym2149-st/index.html",
+            "bytes": 20604,
+            "sha256": "022f5e9006ec1d8ea9519941f64026c6f4601792a2fadaeca01faf82128e5acf"
+          },
+          "modules": [
+            {
+              "url": "/synth-ym2149-st/synth.js",
+              "path": "docs/synth-ym2149-st/synth.js",
+              "revision": "2e67ed92",
+              "bytes": 19209,
+              "sha256": "ae4dbe9b010190d72d75cba4221ef9d7e5e5c6314d8a5cc3724bf129183bc410"
+            },
+            {
+              "url": "/synth-ym2149-st/code_host.js",
+              "path": "docs/synth-ym2149-st/code_host.js",
+              "revision": "2e67ed92",
+              "bytes": 4875,
+              "sha256": "ecc22dfd834dde5a7dacd9eecc5940fc9fb17da24e09ece35a7dfc1913a897bf"
+            },
+            {
+              "url": "/synth-ym2149-st/code_files.js?v=draft-reconnect-1",
+              "path": "docs/synth-ym2149-st/code_files.js",
+              "revision": "2e67ed92",
+              "bytes": 34289,
+              "sha256": "a410f8d83e27c203e350e802d6f9e0b1bb71cd3db3b28477979c50e6937d9681"
+            },
+            {
+              "url": "/js/playground_code_runtime.js",
+              "path": "docs/js/playground_code_runtime.js",
+              "revision": "2e67ed92",
+              "bytes": 29769,
+              "sha256": "879ad1f9cbe7d7bea45fd262f396e139d95235a56aea6f4e6e47cb9614dcccb3"
+            },
+            {
+              "url": "/synth-ym2149-st/code_examples.js",
+              "path": "docs/synth-ym2149-st/code_examples.js",
+              "revision": "e3e82949",
+              "bytes": 9247,
+              "sha256": "c9b9610caf5cac1522efbd8eff7240d8afde118baba03303de79879fb61979d1"
+            }
+          ]
+        },
+        "previousReleaseFixture": {
+          "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+          "html": {
+            "path": "docs/synth-ym2149-st/index.html",
+            "bytes": 20835,
+            "sha256": "c96840bb9a973861bfc44adfe450870004aadad9aa9ed1b8573a44c2b646dbf4"
+          },
+          "modules": [
+            {
+              "url": "/synth-ym2149-st/synth.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/synth.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 20701,
+              "sha256": "f085767b92074fc2fedb5ffc0f083bd3c7d8175c4e91483c08f2516ca9db7c56"
+            },
+            {
+              "url": "/synth-ym2149-st/code_host.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/code_host.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 5019,
+              "sha256": "be09861aef207b4fee6062c28d957058289c24190e4197f3cb0251899cdcc4af"
+            },
+            {
+              "url": "/synth-ym2149-st/code_files.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/code_files.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 40674,
+              "sha256": "7b38a1ed738ecf6aff59d0a916e6695b633664ced1b46b284444e77ac70db0f9"
+            },
+            {
+              "url": "/synth-ym2149-st/code_examples.js?v=ym-sample-1",
+              "path": "docs/synth-ym2149-st/code_examples.js",
+              "revision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+              "bytes": 13503,
+              "sha256": "76067b9efcc180cfa8567dbbbdd06f8cc1ec342f1cce992636189fa1be466338"
+            }
+          ]
+        },
+        "currentSources": [
+          {
+            "url": "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+            "bytes": 20710,
+            "sha256": "b26ec0e7fe6791d6fa8700a399e5899a7af748a3e34b65dca2e115fefc058b21"
+          },
+          {
+            "url": "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+            "bytes": 5028,
+            "sha256": "f95b55e8bfe053e5c6e0adb9521f9646ff2f8c410977938464bc9a21fa55cc15"
+          },
+          {
+            "url": "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+            "bytes": 40683,
+            "sha256": "d1f28ce08085b3e67388ecc3bf298a642af42710b7aae3879f198ddaf11fe550"
+          },
+          {
+            "url": "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+            "bytes": 18287,
+            "sha256": "665246b734f1c388ddd73a09fba77970a1551d2ef86e8b47d97cb592c6ed212b"
+          },
+          {
+            "url": "/js/playground_code_runtime.js?v=console-table-1",
+            "bytes": 29787,
+            "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+          },
+          {
+            "url": "/js/playground_log.js?v=console-table-1",
+            "bytes": 2169,
+            "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+          }
+        ],
+        "results": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "persistentHttpCache": true,
+            "legacyNetworkRequests": {
+              "/synth-ym2149-st/synth.js": 1,
+              "/synth-ym2149-st/code_host.js": 1,
+              "/synth-ym2149-st/code_files.js?v=draft-reconnect-1": 1,
+              "/js/playground_code_runtime.js": 1,
+              "/synth-ym2149-st/code_examples.js": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "newJsVisible": true,
+              "saveSoundVisible": true,
+              "examplesButtonPresent": false,
+              "exampleFilesPresent": false,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js"
+              ],
+              "oldStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+                "/js/playground_code_runtime.js?v=console-table-1",
+                "/js/playground_log.js?v=console-table-1"
+              ],
+              "defaultExamplesVisibleBeforeClick": true,
+              "examplesButtonPresent": false,
+              "newProjectMenuPresent": true,
+              "matchingExamplePaths": [
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "savedIndexSha256": "ffa80e7cf56e572846aa883695fc7a19e939248e506414acd331f5303fc803db",
+              "savedSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "Saved cache-regression sound",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "selectedPath": "/index.js",
+              "inputMode": "keyboard",
+              "oldStartupStillCached": true,
+              "projectFilesBefore": [
+                "/index.js"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+            "expectedEditorPolicyMessages": 2,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "persistentHttpCache": true,
+            "legacyNetworkRequests": {
+              "/synth-ym2149-st/synth.js": 1,
+              "/synth-ym2149-st/code_host.js": 1,
+              "/synth-ym2149-st/code_files.js?v=draft-reconnect-1": 1,
+              "/js/playground_code_runtime.js": 1,
+              "/synth-ym2149-st/code_examples.js": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "newJsVisible": true,
+              "saveSoundVisible": true,
+              "examplesButtonPresent": false,
+              "exampleFilesPresent": false,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js"
+              ],
+              "oldStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+                "/js/playground_code_runtime.js?v=console-table-1",
+                "/js/playground_log.js?v=console-table-1"
+              ],
+              "defaultExamplesVisibleBeforeClick": true,
+              "examplesButtonPresent": false,
+              "newProjectMenuPresent": true,
+              "matchingExamplePaths": [
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "savedIndexSha256": "ffa80e7cf56e572846aa883695fc7a19e939248e506414acd331f5303fc803db",
+              "savedSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "Saved cache-regression sound",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": true,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "selectedPath": "/index.js",
+              "inputMode": "keyboard",
+              "oldStartupStillCached": true,
+              "projectFilesBefore": [
+                "/index.js"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "editor": "Local textarea fallback; CDN scripts denied by server CSP",
+            "expectedEditorPolicyMessages": 2,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          }
+        ],
+        "previousReleaseResults": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "persistentHttpCache": true,
+            "fixtureRevision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+            "previousNetworkRequests": {
+              "/synth-ym2149-st/synth.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_host.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_files.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_examples.js?v=ym-sample-1": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js"
+              ],
+              "newExamplePresent": false,
+              "previousStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+              ],
+              "addedPath": "/examples/envelope-melody.js",
+              "sourceMatchesCurrent": true,
+              "previousStartupStillCached": true,
+              "savedIndexSha256": "8df6926752a937c04b95e77e1f0f91bfcaff8061de619893757e5b0874c7ccfb",
+              "editedExampleSha256": "63629d8800bf762fb921143154708e5552f2d02ef1beb6fc1b85da70beb0707f",
+              "selectedPath": "/examples/sync-buzzer.js",
+              "inputMode": "code",
+              "projectFilesBefore": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md",
+                "/examples/envelope-melody.js"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "expectedEditorPolicyMessages": 3,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "persistentHttpCache": true,
+            "fixtureRevision": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+            "previousNetworkRequests": {
+              "/synth-ym2149-st/synth.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_host.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_files.js?v=ym-sample-1": 1,
+              "/synth-ym2149-st/code_examples.js?v=ym-sample-1": 1
+            },
+            "negativeControl": {
+              "freshDocument": true,
+              "cachedExamplePaths": [
+                "/examples/README.md",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js"
+              ],
+              "newExamplePresent": false,
+              "previousStartupServedFromHttpCache": true
+            },
+            "recovery": {
+              "entry": "/index.html",
+              "freshResources": [
+                "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+                "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+              ],
+              "addedPath": "/examples/envelope-melody.js",
+              "sourceMatchesCurrent": true,
+              "previousStartupStillCached": true,
+              "savedIndexSha256": "8df6926752a937c04b95e77e1f0f91bfcaff8061de619893757e5b0874c7ccfb",
+              "editedExampleSha256": "63629d8800bf762fb921143154708e5552f2d02ef1beb6fc1b85da70beb0707f",
+              "selectedPath": "/examples/sync-buzzer.js",
+              "inputMode": "code",
+              "projectFilesBefore": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md"
+              ],
+              "projectFilesAfter": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/README.md",
+                "/examples/envelope-melody.js"
+              ]
+            },
+            "storagePreserved": {
+              "localStorage": "Keep my saved preferences.",
+              "indexedDB": {
+                "text": "Keep my cassette data.",
+                "binary": [
+                  0,
+                  17,
+                  128,
+                  255
+                ]
+              }
+            },
+            "audio": {
+              "contexts": 0,
+              "codeRunning": false,
+              "physicalRoutes": 0
+            },
+            "expectedEditorPolicyMessages": 3,
+            "errors": [],
+            "missing": [],
+            "unexpectedConsoleErrors": []
+          }
+        ]
+      }
+    },
+    "new-project-browser": {
+      "bytes": 14660,
+      "sha256": "a6369bd924da217124722a2fa300ec6fd996233c5afe4866a96ef0c81111978a",
+      "value": {
+        "passed": true,
+        "servedRoot": "docs",
+        "entry": "/synth-ym2149-st/index.html",
+        "resourceVersion": "ym-envelope-melody-1",
+        "currentSources": [
+          {
+            "resource": "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+            "bytes": 20710,
+            "sha256": "b26ec0e7fe6791d6fa8700a399e5899a7af748a3e34b65dca2e115fefc058b21"
+          },
+          {
+            "resource": "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+            "bytes": 5028,
+            "sha256": "f95b55e8bfe053e5c6e0adb9521f9646ff2f8c410977938464bc9a21fa55cc15"
+          },
+          {
+            "resource": "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+            "bytes": 40683,
+            "sha256": "d1f28ce08085b3e67388ecc3bf298a642af42710b7aae3879f198ddaf11fe550"
+          },
+          {
+            "resource": "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+            "bytes": 18287,
+            "sha256": "665246b734f1c388ddd73a09fba77970a1551d2ef86e8b47d97cb592c6ed212b"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "disposableBrowserProfiles": true,
+        "fixture": "Original generated 30-second YM2149 VGM; no third-party music",
+        "results": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "editor": "Offline textarea; external CDN intentionally blocked",
+            "cold": {
+              "contexts": 0,
+              "cancelPreservesAllData": true,
+              "escapePreservesAllData": true,
+              "mobile": {
+                "viewport": 390,
+                "width": 390,
+                "dialogWidth": 351
+              },
+              "menuWorksWithFilesHidden": true,
+              "modalBlocksMusicalKeys": true,
+              "examplesAutomatic": true,
+              "examplesButtonAbsent": true
+            },
+            "editedWorkspace": {
+              "indexSha256": "4710d9871ec16491e5375ebef94aaac16bae2588f1ed5e811ad614ecc46142d2",
+              "presetPath": "/presets/Browser New project sound.ym2149-st.json",
+              "binaryBytes": [
+                0,
+                17,
+                128,
+                255,
+                39,
+                91,
+                0
+              ],
+              "musicPath": "/vgm/new-project-reference.vgm"
+            },
+            "runningCancel": {
+              "loops": [
+                "buzzer-motion",
+                "melody"
+              ],
+              "cancelKeepsHeldKey": true,
+              "escapeKeepsHeldKey": true,
+              "schedulingContinues": true,
+              "soundingPcm": {
+                "peak": 0.06420925259590149,
+                "rms": 0.007919028089907744
+              }
+            },
+            "exportAndCreate": {
+              "filename": "Tetorica YM2149 ST Synth.cassette.zip",
+              "bytes": 10923,
+              "sha256": "66624ad5d9a82d55c39dc99a6406d8be310928e24817280c0586ea01760c5555",
+              "cassettePaths": [
+                "examples/README.md",
+                "examples/envelope-melody.js",
+                "examples/sync-buzzer.js",
+                "examples/volume-modulation.js",
+                "examples/volume-sample.js",
+                "index.js",
+                "metadata.json",
+                "presets/Browser New project sound.ym2149-st.json",
+                "user-data.bin",
+                "vgm/new-project-reference.vgm",
+                "ym2149-st-synth.project.json"
+              ],
+              "unappliedEditorEditIncluded": true,
+              "binaryPreserved": true,
+              "previousWorkspaceId": "98545e42-e813-44f2-932f-c33d45f69c5c",
+              "newWorkspaceId": "cb595537-18b0-43ab-9a33-894114f977ee",
+              "freshPaths": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "stopped": {
+                "durationMs": 1200,
+                "observations": 20,
+                "first": {
+                  "frame": 64256,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 120832,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 2
+              },
+              "audio": {
+                "contexts": 1,
+                "nodes": 1,
+                "speakerRoutes": 1,
+                "physicalOutputMuted": true,
+                "lifecycle": [
+                  {
+                    "action": "cancelOwner",
+                    "owner": "code:c316a6f6-b33b-4bee-bcb6-3dc593a998b5:1:run:1:loop:1",
+                    "audioTime": 1.2426666666666666
+                  }
+                ]
+              }
+            },
+            "reload": {
+              "workspaceId": "cb595537-18b0-43ab-9a33-894114f977ee",
+              "freshFilesRetained": true,
+              "starterRestored": true,
+              "audioContexts": 0,
+              "codeRunning": false
+            },
+            "coldCreateWithoutExport": {
+              "workspaceId": "81315cb5-efb4-4035-b902-2b5921c63e02",
+              "audioContexts": 0,
+              "defaultSound": true,
+              "starterAndExamplesOnly": true,
+              "codeRunning": false,
+              "downloadCount": 1
+            },
+            "createWithoutExport": {
+              "playingSongBefore": "new-project-reference.vgm",
+              "cancelledSongContinues": true,
+              "heldKeyCleared": true,
+              "songUnloaded": true,
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "audioContextsBefore": 1,
+              "audioContextsAfter": 1,
+              "downloadCount": 1,
+              "stopped": {
+                "durationMs": 250,
+                "observations": 4,
+                "first": {
+                  "frame": 30208,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 39424,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 0
+              }
+            },
+            "freshModules": [
+              "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+            ],
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0
+              },
+              "lifecycle": []
+            },
+            "errors": [],
+            "missing": []
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "editor": "Offline textarea; external CDN intentionally blocked",
+            "cold": {
+              "contexts": 0,
+              "cancelPreservesAllData": true,
+              "escapePreservesAllData": true,
+              "mobile": {
+                "viewport": 390,
+                "width": 390,
+                "dialogWidth": 351
+              },
+              "menuWorksWithFilesHidden": true,
+              "modalBlocksMusicalKeys": true,
+              "examplesAutomatic": true,
+              "examplesButtonAbsent": true
+            },
+            "editedWorkspace": {
+              "indexSha256": "4710d9871ec16491e5375ebef94aaac16bae2588f1ed5e811ad614ecc46142d2",
+              "presetPath": "/presets/Browser New project sound.ym2149-st.json",
+              "binaryBytes": [
+                0,
+                17,
+                128,
+                255,
+                39,
+                91,
+                0
+              ],
+              "musicPath": "/vgm/new-project-reference.vgm"
+            },
+            "runningCancel": {
+              "loops": [
+                "buzzer-motion",
+                "melody"
+              ],
+              "cancelKeepsHeldKey": true,
+              "escapeKeepsHeldKey": true,
+              "schedulingContinues": true,
+              "soundingPcm": {
+                "peak": 0.07443167269229889,
+                "rms": 0.00964340040608795
+              }
+            },
+            "exportAndCreate": {
+              "filename": "Tetorica YM2149 ST Synth.cassette.zip",
+              "bytes": 10923,
+              "sha256": "3121d9a1cd0dac079b1bdaf8b08f9742d32d2198772ef93404dbfe7ac89c107f",
+              "cassettePaths": [
+                "examples/README.md",
+                "examples/envelope-melody.js",
+                "examples/sync-buzzer.js",
+                "examples/volume-modulation.js",
+                "examples/volume-sample.js",
+                "index.js",
+                "metadata.json",
+                "presets/Browser New project sound.ym2149-st.json",
+                "user-data.bin",
+                "vgm/new-project-reference.vgm",
+                "ym2149-st-synth.project.json"
+              ],
+              "unappliedEditorEditIncluded": true,
+              "binaryPreserved": true,
+              "previousWorkspaceId": "258ef944-8072-494e-8f77-1b5103cb2f74",
+              "newWorkspaceId": "6f8e941a-db97-45b8-803e-472b85bbc52c",
+              "freshPaths": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "stopped": {
+                "durationMs": 1200,
+                "observations": 20,
+                "first": {
+                  "frame": 64512,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 121600,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 2
+              },
+              "audio": {
+                "contexts": 1,
+                "nodes": 1,
+                "speakerRoutes": 1,
+                "physicalOutputMuted": true,
+                "lifecycle": [
+                  {
+                    "action": "cancelOwner",
+                    "owner": "code:ab1db37f-14f7-491a-8376-a2291de69685:1:run:1:loop:1",
+                    "audioTime": 1.24
+                  }
+                ]
+              }
+            },
+            "reload": {
+              "workspaceId": "6f8e941a-db97-45b8-803e-472b85bbc52c",
+              "freshFilesRetained": true,
+              "starterRestored": true,
+              "audioContexts": 0,
+              "codeRunning": false
+            },
+            "coldCreateWithoutExport": {
+              "workspaceId": "e1c692d2-4fe3-4b9d-a079-a1e06c98bab1",
+              "audioContexts": 0,
+              "defaultSound": true,
+              "starterAndExamplesOnly": true,
+              "codeRunning": false,
+              "downloadCount": 1
+            },
+            "createWithoutExport": {
+              "playingSongBefore": "new-project-reference.vgm",
+              "cancelledSongContinues": true,
+              "heldKeyCleared": true,
+              "songUnloaded": true,
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "audioContextsBefore": 1,
+              "audioContextsAfter": 1,
+              "downloadCount": 1,
+              "stopped": {
+                "durationMs": 250,
+                "observations": 4,
+                "first": {
+                  "frame": 31360,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 40320,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 0
+              }
+            },
+            "freshModules": [
+              "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+            ],
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0
+              },
+              "lifecycle": []
+            },
+            "errors": [],
+            "missing": []
+          }
+        ]
+      }
+    },
+    "package-new-project-browser": {
+      "bytes": 14702,
+      "sha256": "75665206d91de5515983ebf0ee54a9f401db6b7c061a10c645741c4993ea60b5",
+      "value": {
+        "passed": true,
+        "servedRoot": "release/itch_ym2149_st_synth_envelope-melody-20261117-3bWxTU",
+        "entry": "/index.html",
+        "resourceVersion": "ym-envelope-melody-1",
+        "currentSources": [
+          {
+            "resource": "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+            "bytes": 20710,
+            "sha256": "b26ec0e7fe6791d6fa8700a399e5899a7af748a3e34b65dca2e115fefc058b21"
+          },
+          {
+            "resource": "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+            "bytes": 5028,
+            "sha256": "f95b55e8bfe053e5c6e0adb9521f9646ff2f8c410977938464bc9a21fa55cc15"
+          },
+          {
+            "resource": "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+            "bytes": 40683,
+            "sha256": "d1f28ce08085b3e67388ecc3bf298a642af42710b7aae3879f198ddaf11fe550"
+          },
+          {
+            "resource": "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1",
+            "bytes": 18287,
+            "sha256": "665246b734f1c388ddd73a09fba77970a1551d2ef86e8b47d97cb592c6ed212b"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "disposableBrowserProfiles": true,
+        "fixture": "Original generated 30-second YM2149 VGM; no third-party music",
+        "results": [
+          {
+            "engine": "chromium",
+            "passed": true,
+            "editor": "Offline textarea; external CDN intentionally blocked",
+            "cold": {
+              "contexts": 0,
+              "cancelPreservesAllData": true,
+              "escapePreservesAllData": true,
+              "mobile": {
+                "viewport": 390,
+                "width": 390,
+                "dialogWidth": 351
+              },
+              "menuWorksWithFilesHidden": true,
+              "modalBlocksMusicalKeys": true,
+              "examplesAutomatic": true,
+              "examplesButtonAbsent": true
+            },
+            "editedWorkspace": {
+              "indexSha256": "4710d9871ec16491e5375ebef94aaac16bae2588f1ed5e811ad614ecc46142d2",
+              "presetPath": "/presets/Browser New project sound.ym2149-st.json",
+              "binaryBytes": [
+                0,
+                17,
+                128,
+                255,
+                39,
+                91,
+                0
+              ],
+              "musicPath": "/vgm/new-project-reference.vgm"
+            },
+            "runningCancel": {
+              "loops": [
+                "buzzer-motion",
+                "melody"
+              ],
+              "cancelKeepsHeldKey": true,
+              "escapeKeepsHeldKey": true,
+              "schedulingContinues": true,
+              "soundingPcm": {
+                "peak": 0.07443167269229889,
+                "rms": 0.009023878045251543
+              }
+            },
+            "exportAndCreate": {
+              "filename": "Tetorica YM2149 ST Synth.cassette.zip",
+              "bytes": 10923,
+              "sha256": "66624ad5d9a82d55c39dc99a6406d8be310928e24817280c0586ea01760c5555",
+              "cassettePaths": [
+                "examples/README.md",
+                "examples/envelope-melody.js",
+                "examples/sync-buzzer.js",
+                "examples/volume-modulation.js",
+                "examples/volume-sample.js",
+                "index.js",
+                "metadata.json",
+                "presets/Browser New project sound.ym2149-st.json",
+                "user-data.bin",
+                "vgm/new-project-reference.vgm",
+                "ym2149-st-synth.project.json"
+              ],
+              "unappliedEditorEditIncluded": true,
+              "binaryPreserved": true,
+              "previousWorkspaceId": "20685794-7ec2-425a-87d9-ee570e7c4164",
+              "newWorkspaceId": "6cf50373-806d-4308-b9b2-471b3f8967f0",
+              "freshPaths": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "stopped": {
+                "durationMs": 1200,
+                "observations": 20,
+                "first": {
+                  "frame": 66048,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 122880,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 2
+              },
+              "audio": {
+                "contexts": 1,
+                "nodes": 1,
+                "speakerRoutes": 1,
+                "physicalOutputMuted": true,
+                "lifecycle": [
+                  {
+                    "action": "cancelOwner",
+                    "owner": "code:edfa74cf-c8b3-4672-9ab6-62eae74e89fb:1:run:1:loop:1",
+                    "audioTime": 1.2693333333333334
+                  }
+                ]
+              }
+            },
+            "reload": {
+              "workspaceId": "6cf50373-806d-4308-b9b2-471b3f8967f0",
+              "freshFilesRetained": true,
+              "starterRestored": true,
+              "audioContexts": 0,
+              "codeRunning": false
+            },
+            "coldCreateWithoutExport": {
+              "workspaceId": "cb5175f0-0d29-4b17-af33-ec50cd3307f3",
+              "audioContexts": 0,
+              "defaultSound": true,
+              "starterAndExamplesOnly": true,
+              "codeRunning": false,
+              "downloadCount": 1
+            },
+            "createWithoutExport": {
+              "playingSongBefore": "new-project-reference.vgm",
+              "cancelledSongContinues": true,
+              "heldKeyCleared": true,
+              "songUnloaded": true,
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "audioContextsBefore": 1,
+              "audioContextsAfter": 1,
+              "downloadCount": 1,
+              "stopped": {
+                "durationMs": 250,
+                "observations": 4,
+                "first": {
+                  "frame": 30208,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 39424,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 0
+              }
+            },
+            "freshModules": [
+              "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+            ],
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0
+              },
+              "lifecycle": []
+            },
+            "errors": [],
+            "missing": []
+          },
+          {
+            "engine": "webkit",
+            "passed": true,
+            "editor": "Offline textarea; external CDN intentionally blocked",
+            "cold": {
+              "contexts": 0,
+              "cancelPreservesAllData": true,
+              "escapePreservesAllData": true,
+              "mobile": {
+                "viewport": 390,
+                "width": 390,
+                "dialogWidth": 351
+              },
+              "menuWorksWithFilesHidden": true,
+              "modalBlocksMusicalKeys": true,
+              "examplesAutomatic": true,
+              "examplesButtonAbsent": true
+            },
+            "editedWorkspace": {
+              "indexSha256": "4710d9871ec16491e5375ebef94aaac16bae2588f1ed5e811ad614ecc46142d2",
+              "presetPath": "/presets/Browser New project sound.ym2149-st.json",
+              "binaryBytes": [
+                0,
+                17,
+                128,
+                255,
+                39,
+                91,
+                0
+              ],
+              "musicPath": "/vgm/new-project-reference.vgm"
+            },
+            "runningCancel": {
+              "loops": [
+                "buzzer-motion",
+                "melody"
+              ],
+              "cancelKeepsHeldKey": true,
+              "escapeKeepsHeldKey": true,
+              "schedulingContinues": true,
+              "soundingPcm": {
+                "peak": 0.07443167269229889,
+                "rms": 0.008391494480409871
+              }
+            },
+            "exportAndCreate": {
+              "filename": "Tetorica YM2149 ST Synth.cassette.zip",
+              "bytes": 10923,
+              "sha256": "3121d9a1cd0dac079b1bdaf8b08f9742d32d2198772ef93404dbfe7ac89c107f",
+              "cassettePaths": [
+                "examples/README.md",
+                "examples/envelope-melody.js",
+                "examples/sync-buzzer.js",
+                "examples/volume-modulation.js",
+                "examples/volume-sample.js",
+                "index.js",
+                "metadata.json",
+                "presets/Browser New project sound.ym2149-st.json",
+                "user-data.bin",
+                "vgm/new-project-reference.vgm",
+                "ym2149-st-synth.project.json"
+              ],
+              "unappliedEditorEditIncluded": true,
+              "binaryPreserved": true,
+              "previousWorkspaceId": "b8d4cc07-b765-4936-8cac-c719d69000d6",
+              "newWorkspaceId": "83ad3fab-50fe-4dbd-a7ce-773a59c71fa8",
+              "freshPaths": [
+                "/index.js",
+                "/examples/sync-buzzer.js",
+                "/examples/volume-modulation.js",
+                "/examples/volume-sample.js",
+                "/examples/envelope-melody.js",
+                "/examples/README.md"
+              ],
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "stopped": {
+                "durationMs": 1200,
+                "observations": 20,
+                "first": {
+                  "frame": 66816,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 124032,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 2
+              },
+              "audio": {
+                "contexts": 1,
+                "nodes": 1,
+                "speakerRoutes": 1,
+                "physicalOutputMuted": true,
+                "lifecycle": [
+                  {
+                    "action": "cancelOwner",
+                    "owner": "code:a96c534b-7c64-4f1a-812a-fa1410eae5f9:1:run:1:loop:1",
+                    "audioTime": 1.296
+                  }
+                ]
+              }
+            },
+            "reload": {
+              "workspaceId": "83ad3fab-50fe-4dbd-a7ce-773a59c71fa8",
+              "freshFilesRetained": true,
+              "starterRestored": true,
+              "audioContexts": 0,
+              "codeRunning": false
+            },
+            "coldCreateWithoutExport": {
+              "workspaceId": "04dcb08f-3450-4fef-9c74-6f1385209ba9",
+              "audioContexts": 0,
+              "defaultSound": true,
+              "starterAndExamplesOnly": true,
+              "codeRunning": false,
+              "downloadCount": 1
+            },
+            "createWithoutExport": {
+              "playingSongBefore": "new-project-reference.vgm",
+              "cancelledSongContinues": true,
+              "heldKeyCleared": true,
+              "songUnloaded": true,
+              "defaultSettings": {
+                "format": "tetorica-ym2149-st-voice",
+                "version": 1,
+                "name": "ST Square",
+                "voices": [
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 478
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 379
+                  },
+                  {
+                    "tone": true,
+                    "noise": false,
+                    "volume": 9,
+                    "envelope": false,
+                    "period": 319
+                  }
+                ],
+                "noisePeriod": 16,
+                "envelope": {
+                  "period": 1600,
+                  "shape": 10
+                }
+              },
+              "masterRetained": "0.37",
+              "chipGainRetained": "1.42",
+              "audioContextsBefore": 1,
+              "audioContextsAfter": 1,
+              "downloadCount": 1,
+              "stopped": {
+                "durationMs": 250,
+                "observations": 4,
+                "first": {
+                  "frame": 31232,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "last": {
+                  "frame": 40320,
+                  "shape": 10,
+                  "level": {
+                    "peak": 0,
+                    "rms": 0
+                  }
+                },
+                "scheduleCount": 0
+              }
+            },
+            "freshModules": [
+              "/synth-ym2149-st/synth.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1",
+              "/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1"
+            ],
+            "audit": {
+              "contexts": 1,
+              "nodes": 1,
+              "speakerRoutes": 1,
+              "physicalOutputMuted": true,
+              "stoppedPcm": {
+                "peak": 0,
+                "rms": 0
+              },
+              "lifecycle": []
+            },
+            "errors": [],
+            "missing": []
+          }
+        ]
+      }
+    }
+  },
+  "limits": [
+    "Physical listening was not performed.",
+    "Host sample-clock scheduling; no Atari ST CPU/MFP cycle-exact claim.",
+    "Shared Envelope affects all Envelope-enabled channels.",
+    "Manual writes compete in actual application order; Apply reruns initial Period/Shape setup.",
+    "Native timed execution remains unsupported.",
+    "No runtime/DSP/WASM/SDK rebuild, npm publication, commit, push, Tauri import, or release upload performed."
+  ]
+}

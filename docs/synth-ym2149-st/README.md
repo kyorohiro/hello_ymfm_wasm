@@ -103,6 +103,31 @@ it does not emulate Atari ST CPU / MFP timer timing. See the
 [Yamaha YM2149 datasheet](https://ftpmirror.your.org/pub/misc/bitsavers/components/yamaha/YM2149_199209.pdf)
 and [the included envelope implementation](../../third_party/mame-ay8910/ay8910.h).
 
+### Play a melody using only the Envelope
+
+Choose **`examples/envelope-melody.js`** in Files, switch to Code and Run.
+CH1 Tone and Noise are both off. Periodic R13 writes restart the shared
+hardware Envelope at the note frequency: E3 is about 164.814 Hz, A3 is 220 Hz.
+No Tone-frequency writes are needed. The ordinary Tone pitch control does not
+transpose this melody; edit `notes` in Code instead.
+
+Shape 9 descends once and holds zero. A shorter Envelope Period finishes the
+descent sooner; it does not repeat another ramp without a new R13 write.
+Select **CH1** and try **Envelope period** 30, 100 or 200 while Code runs.
+The reservation writes R13 only, so it preserves live Period changes to
+R11/R12. **Apply** reruns the setup and restores its Period.
+
+The software retrigger frequency sets the repetition pitch; the hardware
+Period changes the waveform between retriggers. `setBpm()` changes note/rest
+lengths without transposing the notes. Each note has a compact reservation;
+release cancels it before Key Off. **Stop** or removing `envelope-melody` on
+Apply also silences CH1. Console shows the R13 write and note / target Hz;
+Waveform and Spectrum show the result.
+
+Envelope remains shared by every Envelope-enabled channel. Manual writes
+compete in application order. Timing is rounded to output samples; this is a
+software-retriggered experiment, not Atari ST CPU / MFP cycle emulation.
+
 ### Try fixed-volume modulation
 
 Choose **`examples/volume-modulation.js`** in Files, switch to Code and Run.

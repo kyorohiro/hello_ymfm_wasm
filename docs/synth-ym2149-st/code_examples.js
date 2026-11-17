@@ -154,9 +154,55 @@ liveCleanup(["drums"], () => ym.keyOff(CH1));
 // Stop / loop removal cancel future writes, then silence the final volume.
 // Keep CH1 Tone / Noise / Envelope off for this sample; use CH2/CH3 for keys.
 `,
+	'/examples/envelope-melody.js': `const ym = await useSoundChip("ay8910");
+setBpm(120);
+
+// Tone / Noise are OFF. The shared hardware envelope itself supplies the wave.
+// Software schedules R13 retriggers at each note's frequency (A4 = 440 Hz).
+ym.keyOff(CH2);
+ym.keyOff(CH3);
+ym.setVoice(CH1, { tone: false, noise: false, volume: 0, envelope: true });
+ym.keyOff(CH1); // Retain Envelope selection, but stay silent until the first note.
+ym.setEnvelope({ period: 100, shape: 9 }); // Keep the controls on the same Shape.
+// Period changes timbre: try 30 / 100 / 200, or use the UI. Fixed volume is
+// ignored in Envelope mode; keyOff/keyOn disable/restore the Envelope selector.
+
+// Shape 9 decays once, then holds zero until the next R13 write.
+// Unlike repeating Shape 8, a short decay cannot start extra ramps by itself.
+const retrigger = ym.build(b => {
+  b.atSample(0).setEnvelope({ shape: 9 });
+});
+console.table(await ym.compile(retrigger, { initialState: "client" }));
+
+const notes = scale("E3", "minorPentatonic", 1);
+let noteIndex = 0;
+liveLoop("envelope-melody", async () => {
+  const note = notes[noteIndex++ % notes.length];
+  const hz = 440 * 2 ** ((parseNoteName(note) - 69) / 12);
+  ym.keyOn(CH1); // Restore Envelope output; no Tone-frequency writes are needed.
+  await ym.schedule(retrigger, {
+    name: "envelope-melody", repeatSeconds: 1 / hz,
+  });
+  console.log("Envelope pitch: " + note + " / " + hz.toFixed(3) + " Hz");
+  await beat(0.8);
+
+  // Cancel future retriggers before silencing the channel for the rest.
+  await ym.clearSchedule("envelope-melody");
+  ym.keyOff(CH1);
+  await beat(0.2);
+});
+liveCleanup(["envelope-melody"], () => ym.keyOff(CH1));
+
+// Select CH1 and edit Envelope Period while Code runs. Only R13 is scheduled,
+// so these notes do not overwrite R11/R12. Apply reruns the setup above.
+// BPM changes note lengths, not the Hz of an individual note.
+// Stop / removing this loop on Apply cancels its reservation and silences CH1.
+// R11/R12/R13 are shared by all Envelope-enabled channels. Timing is software,
+// not an emulation of Atari ST CPU/MFP timers. See examples/README.md.
+`,
 	'/examples/README.md': `# YM2149 timed sound examples
 
-Select sync-buzzer.js, volume-modulation.js or volume-sample.js in Files and Run
+Select sync-buzzer.js, envelope-melody.js, volume-modulation.js or volume-sample.js in Files and Run
 from Code. Waveform / Spectrum use the existing output monitor. Console shows
 compiled register writes and timing information. Selecting or adding files never runs
 them. Startup supplies missing examples without overwriting files or index.js.
@@ -207,6 +253,46 @@ Native timed execution is not supported yet. No game music or samples are used.
 Hardware references:
 - Yamaha YM2149 datasheet: https://ftpmirror.your.org/pub/misc/bitsavers/components/yamaha/YM2149_199209.pdf
 - Core implementation: ../js/ay8910synth.js and the included MAME AY sources.
+
+## Envelope-pitched melody: pitch versus timbre
+
+envelope-melody.js disables CH1 Tone and Noise. Its sound comes from the shared
+32-level hardware Envelope alone. R13 is periodically rewritten at each note's
+frequency: E3 is about 164.814 Hz, A3 is 220 Hz. One named compact reservation
+per note supplies these writes on the AudioWorklet sample clock. A4=440 Hz
+equal temperament is calculated from parseNoteName(); there are no Tone-period
+writes. The ordinary Tone pitch control does not set this melody's pitch.
+
+Shape 9 decays once, then holds zero until another R13 write restarts it. This
+differs from the existing repeating Shape 8 experiment. A shorter Period can
+complete the decay before the next retrigger without starting extra ramps.
+Period controls the decay duration / waveform; the software retrigger rate
+sets the repetition pitch. At 2 MHz, the nominal 32-step envelope span is
+12.8 ms at Period 100, or 3.84 ms at Period 30. Individual levels also depend on
+retained divider phase and output-sample rounding. A retrigger can cut a descent short.
+Extremely long periods may produce very little amplitude change per note cycle.
+
+Run, select CH1, then change the shared Envelope Period in the UI: try 30, 100
+and 200. R11/R12 are set only once at setup; subsequent notes schedule R13
+alone, so they preserve your live Period edit. Apply reruns setup and restores
+its Period. Shape is deliberately rewritten as 9 at every retrigger. Tone and
+Noise must remain off to isolate this sound; enabling either mixes gating into
+the envelope wave. Manual changes to CH1 compete in actual application order.
+
+Edit notes or beat(0.8) / beat(0.2), then Apply. setBpm() changes note/rest
+durations without transposing notes. Each note replaces the named reservation
+and restarts its phase. clearSchedule() is awaited before Key Off and the rest;
+loop removal / Stop also cancel its future writes and run the Key Off cleanup.
+Deleting only the schedule() line while retaining the loop is not cancellation.
+
+Console shows the compiled R13=9 write and the current note / target Hz.
+Waveform / Spectrum show the output, including the ordinary software DC blocker.
+The shared Envelope affects every Envelope-enabled channel, including any you
+play manually. CH2/CH3 start silent. They are not independent Envelope voices.
+This is a software-retriggered sound experiment, not cycle-exact ST CPU / MFP
+emulation or a claim to reproduce every historical Sync-buzzer implementation.
+Arbitrary note frequencies are rounded to output samples; the sample clock
+distributes the repeat intervals instead of using a timer for every R13 write.
 
 ## Fixed-volume modulation
 

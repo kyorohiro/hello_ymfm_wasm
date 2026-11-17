@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-17T08:14:53.072Z",
+  "package": "tetorica-fm2612@0.2.41",
+  "parentBase": "d3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e",
+  "examplesBase": "dd4544c839e343c9ab4f5f7bfd2cc50b66eac864",
+  "passed": true,
+  "newBrowserCases": 20,
+  "nodeCases": 52,
+  "existingAyBrowserCases": 2,
+  "existingVabBrowserCases": 2,
+  "sampleRates": [
+    44100,
+    48000
+  ],
+  "browsers": [
+    "chromium",
+    "webkit"
+  ],
+  "physicalOutputUsed": false,
+  "payload": {
+    "files": 1275,
+    "bytes": 11636124,
+    "sha256": "743ab4e22003e951a8905ee23426fb4150bad6bfe83d2662c362184c612bbab4",
+    "categories": {
+      "javascript": 449,
+      "declarations": 420,
+      "wasm": 37,
+      "licenses": 56,
+      "sources": 307,
+      "thirdPartySources": 164
+    },
+    "authoredSourceReadabilitySamples": [
+      {
+        "file": "ay8910_operations.js",
+        "lines": 223,
+        "bytes": 10810,
+        "sha256": "020912378dfa537a8ce6977ae711e9b82fcc7ac7b18f98dcd7e44ec074be51ec"
+      },
+      {
+        "file": "ay8910_timed_client.js",
+        "lines": 195,
+        "bytes": 9439,
+        "sha256": "1d8f407b0d2cc4b8025814c12a53334b31658a8f9a46a99a6f62a8cd753c8d12"
+      },
+      {
+        "file": "ym2612_operations.js",
+        "lines": 240,
+        "bytes": 12889,
+        "sha256": "01c93a26453d393b4ca06e20c4ca57df524299513a61766f27a3a155bbc10f20"
+      },
+      {
+        "file": "ym2612_timed_client.js",
+        "lines": 233,
+        "bytes": 12059,
+        "sha256": "9d4d4279afb7b1a74795e5447a237a9f6d2eb473349a7f0f1bc7cb024ed78e20"
+      },
+      {
+        "file": "playground_opn_audio.js",
+        "lines": 44,
+        "bytes": 2575,
+        "sha256": "e55526932b1b31498cd2c3d3e334a3912299f82c6c31b9d238af9d95cea119b0"
+      },
+      {
+        "file": "playground_ay8910_audio.js",
+        "lines": 71,
+        "bytes": 4740,
+        "sha256": "0e9c874eede5af4281aa8df93e35ffe0433ed29d35ff076692bf0677996b05be"
+      }
+    ],
+    "important": {
+      "LICENSE": {
+        "bytes": 1519,
+        "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+      },
+      "THIRD_PARTY_LICENSES.txt": {
+        "bytes": 3014,
+        "sha256": "9e0155af521eaa7238931f3e4bdda0466c87000130ab58bff740b2a281966f79"
+      },
+      "ay8910_operations.d.ts": {
+        "bytes": 2040,
+        "sha256": "139085c13302a05f3c3a0513c7210613471c25457f4f557dfef944bcd8dd1c48"
+      },
+      "ym2612_operations.d.ts": {
+        "bytes": 4082,
+        "sha256": "8bcce6fb5100261f598916424e8e1a5d69c2111d98655a1bd081b8ba12c6bce9"
+      },
+      "generated/ay8910_wasm.wasm": {
+        "bytes": 15254,
+        "sha256": "45f1d0cf1ece4ee609cae3a37dbe3c6293961c7f22d9d6ad82fc268a29ab3d74"
+      },
+      "generated/ym2612_wasm.wasm": {
+        "bytes": 40357,
+        "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+      },
+      "generated/nuked_opn2_wasm.wasm": {
+        "bytes": 21071,
+        "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+      }
+    }
+  },
+  "sitesEqual": {
+    "passed": true,
+    "files": 1589,
+    "bytes": 12703048,
+    "sha256": "cf49f7e04da7b22084f6cf7e1cfaf777e5b6fa28e6fe8e48df85d46b7cacc50a",
+    "missing": [],
+    "extra": [],
+    "different": []
+  },
+  "authoredSources": {
+    "examples/atari-st/ym2149/01-sync-buzzer/README.md": {
+      "bytes": 3642,
+      "sha256": "fff56de4a771a5e198a9af534bb17590f993eb3f0f237098f8b3e3739ab7f51f"
+    },
+    "examples/atari-st/ym2149/01-sync-buzzer/web/index.html": {
+      "bytes": 3022,
+      "sha256": "c9d1c75079461ec9282a4bf61b81cc3e196c3a1af5d52740f34977176f923632"
+    },
+    "examples/atari-st/ym2149/01-sync-buzzer/web/main.js": {
+      "bytes": 7289,
+      "sha256": "d2539c82ee8b47ed533062224ad0df39d6dd857f590da5a7fa94c0ca415c9ee6"
+    },
+    "examples/atari-st/ym2149/02-volume-modulation/README.md": {
+      "bytes": 3133,
+      "sha256": "0d7edf91b95b39643230545afe7c8ac287ffa18606daa9723588ae112c27a95f"
+    },
+    "examples/atari-st/ym2149/02-volume-modulation/web/index.html": {
+      "bytes": 3069,
+      "sha256": "935df87926ae38fc48a87e7d891d87b0612053ef9279e068f421c589f86d73a3"
+    },
+    "examples/atari-st/ym2149/02-volume-modulation/web/main.js": {
+      "bytes": 7534,
+      "sha256": "7f385ca88f2ae5369a3fcef40341d61bd8c4d1b6b93ba37ea1ca1266da8017f1"
+    },
+    "examples/genesis/fm/07-timed-operators/README.md": {
+      "bytes": 3818,
+      "sha256": "a529a915123280bf405be096a0ebcf679b834b3fb253034bca47832add5e0858"
+    },
+    "examples/genesis/fm/07-timed-operators/web/index.html": {
+      "bytes": 3744,
+      "sha256": "a25c43b2d3b78bd9fde24d6da2a318ee72478374117b85457b5b75f88aac9867"
+    },
+    "examples/genesis/fm/07-timed-operators/web/main.js": {
+      "bytes": 10655,
+      "sha256": "954d6319abb57a1508f6caa4710d4ed5bf4342362a6863b2b8c3abeadffc6d14"
+    },
+    "examples/chip-raw/02-compile-compare/README.md": {
+      "bytes": 3802,
+      "sha256": "e458c3f766cab78b93ed61d81175eaab4a0f7836654821f3031e3cc6bf7d3528"
+    },
+    "examples/chip-raw/02-compile-compare/node/main.mjs": {
+      "bytes": 4869,
+      "sha256": "f5da83ce37f016dc16761d85e0d06700a02050f95690dba38152beeab270bd80"
+    },
+    "examples/chip-raw/02-compile-compare/web/index.html": {
+      "bytes": 3172,
+      "sha256": "3373b2e95b853e954b8abcc39d96ffea4cf7483dff485202ac8725b1cd15a7f5"
+    },
+    "examples/chip-raw/02-compile-compare/web/main.js": {
+      "bytes": 9345,
+      "sha256": "af42323a68a1221434a973ff8385d257de064f2008140ce8af072ea75cf0b58a"
+    }
+  },
+  "detailedReport": "w/tetorica-fm2612-examples/notes/timed-api-verification-20261117.json",
+  "detailedReportSha256": "164f97e9456b2d931392f4f8ca6b63100653ac903a940339f0ed0327fc243ad9",
+  "limits": [
+    "No physical listening performed.",
+    "Native timed playback is explicitly unsupported; no wall-clock fallback.",
+    "Node compile comparison uses a documented known local state; it does not pretend to capture an AudioWorklet.",
+    "Compile rows predict the selected baseline, not the interleaved execution history.",
+    "No commit, push, Pages deployment, Tauri import, package publication, SDK or C++/WASM rebuild."
+  ]
+}

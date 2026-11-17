@@ -26,7 +26,7 @@ const digest = body => createHash('sha256').update(body).digest('hex');
 const legacyRevision = '2e67ed92';
 const legacyExamplesRevision = 'e3e82949';
 const legacyExamplesUrl = '/synth-ym2149-st/code_examples.js';
-const currentExamplesUrl = '/synth-ym2149-st/code_examples.js?v=ym-sample-1';
+const currentExamplesUrl = '/synth-ym2149-st/code_examples.js?v=ym-envelope-melody-1';
 const legacyPage = '/synth-ym2149-st/examples-cache-legacy.html';
 const legacyHtmlPath = 'docs/synth-ym2149-st/index.html';
 const legacyHtml = execFileSync('git', ['show', `${legacyRevision}:${legacyHtmlPath}`], {cwd: repository});
@@ -40,16 +40,30 @@ const fixtures = new Map([
   body: execFileSync('git', ['show', `${revision}:${source}`], {cwd: repository})}]));
 assert(legacyHtml.includes('src="./synth.js"'));
 assert(!fixtures.get('/synth-ym2149-st/code_files.js?v=draft-reconnect-1').body.includes('ymFileExamplesButton'));
+// Pin the immediate predecessor as well as the older missing-Examples graph.
+// Never use a moving HEAD here: committing this test must not change fixtures.
+const previousRevision = 'd3f20bfb9d5170b0ede6ef9882ebb0ba18e3105e';
+const previousPage = '/synth-ym2149-st/examples-cache-previous-release.html';
+const previousExamplesUrl = '/synth-ym2149-st/code_examples.js?v=ym-sample-1';
+const previousHtml = execFileSync('git', ['show', `${previousRevision}:${legacyHtmlPath}`], {cwd: repository});
+const previousFixtures = new Map(['synth.js', 'code_host.js', 'code_files.js', 'code_examples.js'].map(module => {
+  const source = 'docs/synth-ym2149-st/' + module;
+  return ['/synth-ym2149-st/' + module + '?v=ym-sample-1', {source, revision: previousRevision,
+    body: execFileSync('git', ['show', `${previousRevision}:${source}`], {cwd: repository})}];
+}));
+assert(previousHtml.includes('src="./synth.js?v=ym-sample-1"'));
+assert(previousFixtures.get(previousExamplesUrl).body.includes("'/examples/volume-sample.js'"));
+assert(!previousFixtures.get(previousExamplesUrl).body.includes("'/examples/envelope-melody.js'"));
 const freshResources = [
-  '/synth-ym2149-st/synth.js?v=ym-sample-1',
-  '/synth-ym2149-st/code_host.js?v=ym-sample-1',
-  '/synth-ym2149-st/code_files.js?v=ym-sample-1',
+  '/synth-ym2149-st/synth.js?v=ym-envelope-melody-1',
+  '/synth-ym2149-st/code_host.js?v=ym-envelope-melody-1',
+  '/synth-ym2149-st/code_files.js?v=ym-envelope-melody-1',
   currentExamplesUrl,
   '/js/playground_code_runtime.js?v=console-table-1',
   '/js/playground_log.js?v=console-table-1',
 ];
 const served = new Map();
-let serveLegacy = false;
+let serveLegacy = false, servePrevious = false;
 const mime = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.wasm': 'application/wasm', '.json': 'application/json', '.svg': 'image/svg+xml',
   '.webp': 'image/webp', '.ts': 'text/plain'};
@@ -68,8 +82,14 @@ const server = http.createServer(async (request, response) => {
       // Each navigation gets a fresh document/module map without refetching JS.
       body = legacyHtml;
       response.setHeader('Cache-Control', 'no-store');
+    } else if (url.pathname === previousPage) {
+      body = previousHtml;
+      response.setHeader('Cache-Control', 'no-store');
     } else if (serveLegacy && fixtures.has(resource)) {
       body = fixtures.get(resource).body;
+      response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (servePrevious && previousFixtures.has(resource)) {
+      body = previousFixtures.get(resource).body;
       response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     } else {
       body = await fs.readFile(filename);
@@ -287,6 +307,7 @@ async function check(name, origin) {
     const examplePaths = Object.keys(examples).sort();
     assert(examplePaths.includes('/examples/volume-modulation.js'), 'the shipped examples include volume modulation');
     assert(examplePaths.includes('/examples/volume-sample.js'), 'the shipped examples include the volume sample');
+    assert(examplePaths.includes('/examples/envelope-melody.js'), 'the shipped examples include envelope melody');
     if (!await page.locator('#ymFilesPanel').isVisible()) await page.locator('#ymFilesToggle').click();
     for (const filePath of examplePaths)
       await page.locator(`#ymFilesTree button[data-file-path="${filePath}"]`).waitFor({state: 'visible'});
@@ -363,6 +384,131 @@ async function check(name, origin) {
   }
 }
 
+async function checkPreviousRelease(name, origin) {
+  const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'ym2149-previous-release-cache-'));
+  let context, page;
+  const errors = [], missing = [], editorPolicyMessages = [], unexpectedConsoleErrors = [];
+  const counts = urls => Object.fromEntries(urls.map(url => [url, served.get(url) ?? 0]));
+  const previousPaths = ['/examples/README.md', '/examples/sync-buzzer.js',
+    '/examples/volume-modulation.js', '/examples/volume-sample.js'].sort();
+  const newPath = '/examples/envelope-melody.js', editedPath = '/examples/sync-buzzer.js';
+  const newResources = freshResources.filter(url => url.startsWith('/synth-ym2149-st/'));
+  const savedIndex = '// Saved before the envelope-melody release.\nthrow new Error("Saved index must never auto-run");\n';
+  const savedExample = '// Keep my edited Sync-buzzer example.\nthrow new Error("Saved example must never auto-run");\n';
+  function checkPreserved(before, after) {
+    assert.deepEqual(after.settings, before.settings, 'previous-release instrument settings survive');
+    assert.equal(after.selectedPath, editedPath, 'previous-release selected example survives');
+    assert.equal(after.inputMode, 'code', 'previous-release Code mode survives without auto-run');
+    assert.equal(after.running, false, 'previous-release saved Code never runs');
+    assert.equal(after.audioContexts, 0, 'previous-release restoration never creates audio');
+  }
+  try {
+    context = await ({chromium, webkit}[name]).launchPersistentContext(profile, {
+      headless: true, serviceWorkers: 'block', viewport: {width: 1280, height: 900}});
+    await context.addInitScript(installSilentAudit);
+    page = await context.newPage(); page.setDefaultTimeout(20000);
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('response', response => {
+      if (response.url().startsWith(origin + '/') && response.status() >= 400) missing.push(response.url());
+    });
+    page.on('console', message => {
+      if (message.type() !== 'error') return;
+      if (message.text().includes('cdnjs.cloudflare.com/ajax/libs/monaco-editor/')) editorPolicyMessages.push(message.text());
+      else unexpectedConsoleErrors.push(message.text());
+    });
+    servePrevious = true;
+    const beforeWarm = counts([...previousFixtures.keys()]);
+    await page.goto(origin + previousPage + '?warm=1'); await ready(page, true);
+    const oldDefinitions = await page.evaluate(async url =>
+      (await import(url)).YM_CODE_EXAMPLES, previousExamplesUrl);
+    assert.deepEqual(Object.keys(oldDefinitions).sort(), previousPaths, 'pinned prior release has exactly four definitions');
+    await waitForProject(page, saved => previousPaths.every(filePath =>
+      saved?.filesystem.files.some(file => file.path === filePath)), 'previous-release defaults persist');
+    await page.locator('#presetName').fill('Saved prior-release sound');
+    await page.locator('#presetName').dispatchEvent('change');
+    await page.locator('#noiseEnabled').check();
+    if (!await page.locator('#ymFilesPanel').isVisible()) await page.locator('#ymFilesToggle').click();
+    await page.locator('#synthInputCodeTab').click();
+    await page.waitForFunction(() => !document.getElementById('synthCodeEditor').readOnly);
+    await page.locator('#ymFilesTree button[data-file-path="/index.js"]').click();
+    await page.waitForFunction(() => document.getElementById('ymFilesSelected').textContent === '/index.js');
+    await page.locator('#synthCodeEditor').fill(savedIndex);
+    await page.locator(`#ymFilesTree button[data-file-path="${editedPath}"]`).click();
+    await page.waitForFunction(file => document.getElementById('ymFilesSelected').textContent === file, editedPath);
+    await page.locator('#synthCodeEditor').fill(savedExample);
+    const savedBefore = await waitForProject(page, saved =>
+      saved?.settings.name === 'Saved prior-release sound' && saved.selectedPath === editedPath &&
+      saved.codeState.mode === 'code' && saved.codeState.path === editedPath &&
+      saved.filesystem.files.some(file => file.path === '/index.js' && file.data === savedIndex) &&
+      saved.filesystem.files.some(file => file.path === editedPath && file.data === savedExample),
+    'both user edits and Code selection persist before deployment');
+    const baseline = await liveState(page), storage = await sentinels(page, true);
+    checkPreserved(baseline, baseline);
+    assert(!baseline.filePaths.includes(newPath));
+    const afterWarm = counts([...previousFixtures.keys()]);
+    for (const url of previousFixtures.keys())
+      assert.equal(afterWarm[url] - beforeWarm[url], 1, `warm previous-release response ${url} once`);
+
+    // Current bytes are now the only server responses. A fresh document using
+    // the previous HTML still sees the immutable old graph and four definitions.
+    servePrevious = false;
+    await page.goto(origin + previousPage + '?negative=1'); await ready(page, true);
+    const negative = await liveState(page); checkPreserved(baseline, negative);
+    assert(!negative.filePaths.includes(newPath), 'cached prior graph cannot discover the new definition');
+    assert.deepEqual(await page.evaluate(async url =>
+      Object.keys((await import(url)).YM_CODE_EXAMPLES).sort(), previousExamplesUrl), previousPaths);
+    assert.deepEqual(counts([...previousFixtures.keys()]), afterWarm, 'prior-release negative control uses actual HTTP cache');
+    preservedDraft(savedBefore, await project(page));
+    assert.deepEqual(await sentinels(page), storage);
+    assert.equal(await page.locator('#synthCodeEditor').inputValue(), savedExample);
+
+    const beforeFresh = counts(newResources);
+    await page.goto(origin + config.entry); await ready(page, true);
+    assert(await page.evaluate(url => performance.getEntriesByType('resource').some(entry =>
+      entry.name === new URL(url, location.href).href), currentExamplesUrl), 'fresh startup itself requests new definitions');
+    const definitions = await page.evaluate(async url =>
+      (await import(url)).YM_CODE_EXAMPLES, currentExamplesUrl);
+    assert.deepEqual(Object.keys(definitions).sort(), [...previousPaths, newPath].sort(), 'current release adds one definition');
+    const savedAfter = await waitForProject(page, saved =>
+      saved?.filesystem.files.some(file => file.path === newPath), 'new example persists automatically');
+    preservedDraft(savedBefore, savedAfter);
+    assert.equal(savedAfter.filesystem.files.length, savedBefore.filesystem.files.length + 1);
+    assert.equal(savedAfter.filesystem.files.find(file => file.path === newPath)?.data, definitions[newPath]);
+    assert.deepEqual(savedAfter.filesystem.files.map(file => file.path).sort(),
+      [...savedBefore.filesystem.files.map(file => file.path), newPath].sort(), 'only the missing example is inserted');
+    if (!await page.locator('#ymFilesPanel').isVisible()) await page.locator('#ymFilesToggle').click();
+    await page.locator(`#ymFilesTree button[data-file-path="${newPath}"]`).waitFor({state: 'visible'});
+    const recovered = await liveState(page); checkPreserved(baseline, recovered);
+    await page.locator('#synthCodeEditor').waitFor({state: 'visible'});
+    assert.equal(await page.locator('#synthCodeEditor').inputValue(), savedExample, 'edited example remains visible and unchanged');
+    assert.equal(savedAfter.filesystem.files.find(file => file.path === '/index.js')?.data, savedIndex);
+    for (const url of newResources)
+      assert.equal((served.get(url) ?? 0) - beforeFresh[url], 1, `fresh new-release resource ${url} once`);
+    assert.deepEqual(counts([...previousFixtures.keys()]), afterWarm, 'new startup leaves old immutable responses cached');
+    assert.deepEqual(await sentinels(page), storage);
+    assert.deepEqual(errors, []); assert.deepEqual(missing, []); assert.deepEqual(unexpectedConsoleErrors, []);
+    return {engine: name, passed: true, persistentHttpCache: true, fixtureRevision: previousRevision,
+      previousNetworkRequests: Object.fromEntries([...previousFixtures.keys()].map(url => [url, afterWarm[url] - beforeWarm[url]])),
+      negativeControl: {freshDocument: true, cachedExamplePaths: previousPaths, newExamplePresent: false,
+        previousStartupServedFromHttpCache: true},
+      recovery: {entry: config.entry, freshResources: newResources, addedPath: newPath,
+        sourceMatchesCurrent: true, previousStartupStillCached: true,
+        savedIndexSha256: digest(savedIndex), editedExampleSha256: digest(savedExample),
+        selectedPath: recovered.selectedPath, inputMode: recovered.inputMode,
+        projectFilesBefore: savedBefore.filesystem.files.map(file => file.path),
+        projectFilesAfter: savedAfter.filesystem.files.map(file => file.path)},
+      storagePreserved: storage, audio: {contexts: 0, codeRunning: false, physicalRoutes: 0},
+      expectedEditorPolicyMessages: editorPolicyMessages.length, errors, missing, unexpectedConsoleErrors};
+  } catch (error) {
+    if (page) {try {console.error(JSON.stringify({phase: 'previous-release', engine: name, errors, missing,
+      unexpectedConsoleErrors, state: await liveState(page), stored: await project(page)}, null, 2));} catch {}}
+    throw error;
+  } finally {
+    servePrevious = false;
+    await context?.close(); await fs.rm(profile, {recursive: true, force: true});
+  }
+}
+
 (async () => {
   const currentSources = [];
   for (const url of freshResources) {
@@ -372,13 +518,20 @@ async function check(name, origin) {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const origin = `http://127.0.0.1:${server.address().port}`;
-    const results = [];
-    for (const name of engines) results.push(await check(name, origin));
+    const results = [], previousReleaseResults = [];
+    for (const name of engines) {
+      results.push(await check(name, origin));
+      previousReleaseResults.push(await checkPreviousRelease(name, origin));
+    }
     const report = {passed: true, entry: config.entry, routingDisabled: true,
       fixture: {revision: legacyRevision,
         html: {path: legacyHtmlPath, bytes: legacyHtml.length, sha256: digest(legacyHtml)},
         modules: [...fixtures].map(([url, {source, revision, body}]) => ({url, path: source, revision,
-          bytes: body.length, sha256: digest(body)}))}, currentSources, results};
+          bytes: body.length, sha256: digest(body)}))},
+      previousReleaseFixture: {revision: previousRevision,
+        html: {path: legacyHtmlPath, bytes: previousHtml.length, sha256: digest(previousHtml)},
+        modules: [...previousFixtures].map(([url, {source, revision, body}]) => ({url, path: source, revision,
+          bytes: body.length, sha256: digest(body)}))}, currentSources, results, previousReleaseResults};
     await fs.mkdir(path.dirname(config.out), {recursive: true});
     await fs.writeFile(config.out, JSON.stringify(report, null, 2) + '\n');
     console.log(JSON.stringify(report, null, 2));

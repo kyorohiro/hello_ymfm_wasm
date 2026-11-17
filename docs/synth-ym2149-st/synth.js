@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js';
 import {createDefaultPreset, readPreset} from './preset.js';
-import {setupYmCodeHost} from './code_host.js?v=ym-sample-1';
+import {setupYmCodeHost} from './code_host.js?v=ym-envelope-melody-1';
 import {setupNumberControls} from './controls.js';
 import {createYmSongPlayer} from './song_player.js';
 import {prepareYmReference,createYmReferenceEngine} from './reference_source.js';
