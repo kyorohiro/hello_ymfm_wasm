@@ -9,9 +9,9 @@ import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-coef-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-fir-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-hp-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-fir-1';
-import { createScspDspExample, identifyScspDspExample } from './dsp_examples.js';
+import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-hp-1';
 import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-dsp-coef-1';
@@ -56,7 +56,8 @@ let selectedOperator = 0,
 	songControls = null,
 	songState = null,
 	liveView = null,
-	channelView = null;
+	channelView = null,
+	dspProgramView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -226,9 +227,12 @@ function drawConnections(state) {
 }
 function renderDspCoefficients(state, readOnly = false) {
 	const codes = state.dspCoefficients;
-	const exampleId = identifyScspDspExample(appliedDspWords);
-	const fir = exampleId === 'fir2-lowpass';
-	const roles = exampleId ? createScspDspExample(exampleId).roles : ['Coefficient', 'Coefficient', 'Coefficient'];
+	const family = identifyScspDspProgram(appliedDspWords);
+	const exampleId = identifyScspDspExample(appliedDspWords, codes);
+	const fir = family === 'fir2';
+	const roles = fir ? createScspDspExample('fir2-lowpass').roles
+		: family === 'delay' ? createScspDspExample('delay').roles : ['Coefficient', 'Coefficient', 'Coefficient'];
+	dspProgramView?.update({ words: appliedDspWords, codes });
 	for (let index = 0; index < 3; index++) {
 		const input = $(`scspDspCoef${index}`);
 		if (!input) continue;
@@ -246,7 +250,12 @@ function renderDspCoefficients(state, readOnly = false) {
 	text($('scspDspFeedbackLabel'), fir ? 'Previous tap · COEF1' : exampleId === 'delay' ? 'Feedback' : 'COEF1 multiplier');
 	text($('scspDspParametersSummary'), fir ? 'Experimental · FIR routing' : 'Experimental · DSP routing / Delay');
 	text($('scspDspParametersHint'), fir
-		? 'The FIR averages two adjacent samples using TEMP history. Time does not affect it. Use direct level 0 for wet-only comparison; high notes, Saw or Noise and Spectrum make the gentle high-frequency reduction easier to see.'
+		? (exampleId === 'fir2-highpass'
+			? 'The high-pass example subtracts the previous sample to reduce low frequencies.'
+			: exampleId === 'fir2-lowpass'
+				? 'The low-pass example averages adjacent samples to reduce high frequencies.'
+				: 'The FIR combines current and previous samples using the live coefficients; its response depends on both tap weights.')
+			+ ' Time does not affect this FIR. Use direct level 0 for wet-only comparison and Spectrum to compare the examples.'
 		: 'The built-in program produces mono Delay. Time and Enable changes clear its DSP ring. DSP reserves 64 KiB, leaving 448 KiB for PCM and guards. Edited programs may use the same parameters differently.');
 }
 function renderState() {
@@ -331,8 +340,8 @@ function renderState() {
 	text(
 		$('scspDspTab'),
 		state.config.effect.enabled
-			? identifyScspDspExample(appliedDspWords) === 'fir2-lowpass' ? 'DSP · FIR on'
-				: identifyScspDspExample(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
+			? identifyScspDspProgram(appliedDspWords) === 'fir2' ? 'DSP · FIR on'
+				: identifyScspDspProgram(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
 	);
 	const { inputs, outputs, count } = state.routing;
 	$('routingSummary').textContent = inputs
@@ -1214,8 +1223,9 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
-const disposeDspProgramView = setupScspDspProgramView({
+dspProgramView = setupScspDspProgramView({
 	getAppliedProgram: () => appliedDspWords,
+	getAppliedCoefficients: () => [sessionDspCoefficients[0], Math.floor(cachedPatch.effect.feedback * 4096), sessionDspCoefficients[2]],
 	applyProgram: (words, options) => {
 		const candidate = validateScspDspDelayProgram(words);
 		const setup = validateScspDspProgramOptions(options);
@@ -1358,7 +1368,7 @@ window.addEventListener('pagehide', (event) => {
 		return;
 	}
 	disposed = true;
-	disposeDspProgramView();
+	dspProgramView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

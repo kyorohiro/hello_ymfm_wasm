@@ -58,3 +58,7 @@ See [verification](verification_scsp_dsp_fir_20261117.md) and
 [machine evidence](verification_scsp_dsp_fir_20261117.json).
 No commit, push or publication. Further filter examples / generic DSP API remain
 separate decisions.
+
+The [high-pass comparison](todo_scsp_dsp_fir_highpass_20261117.md) is now complete:
+identical FIR words, opposite COEF1 sign, and Applied labels following actual
+LP / HP / custom coefficients.

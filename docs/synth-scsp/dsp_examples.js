@@ -35,6 +35,15 @@ const firSource = `; Tetorica SCSP DSP - two-tap FIR low-pass example
 ; Unlisted steps 004..127 contain zero words.
 `;
 
+const firHighpassSource = firSource
+  .replace('two-tap FIR low-pass example', 'two-tap FIR high-pass example')
+  .replace('COEF1=2048', 'COEF1=-2048')
+  .replace('(x[n] + (4095/4096) * x[n-1]) / 2', '(x[n] - (4095/4096) * x[n-1]) / 2')
+  .replace(
+    '; The filter averages adjacent native 44.1 kHz samples. High frequencies\n; change most, while a low sine note changes little. Listen to the wet output.',
+    '; The filter subtracts adjacent native 44.1 kHz samples to suppress low\n; frequencies. Q12 history quantization leaves a small DC residual.\n; Listen to the wet output and compare low notes with the low-pass example.',
+  );
+
 const delaySource = [
   '; Tetorica SCSP DSP - built-in Synth Delay example',
   '; Recommended codes are COEF0=4095, COEF1=1433, COEF2=4095.',
@@ -67,6 +76,17 @@ const examples = [
     roles: ['History capture', 'Previous sample', 'Current sample'],
     filename: 'tetorica-scsp-fir2-lowpass.scspasm',
   },
+  {
+    id: 'fir2-highpass',
+    name: '2-tap FIR high-pass',
+    source: firHighpassSource,
+    words: checkScspDspDelaySource(firHighpassSource).words,
+    codes: [4095, -2048, 2048],
+    description: 'Subtract the preceding input sample to reduce low-frequency content.',
+    equation: 'y[n] ~= 0.5*x[n] - 0.5*(4095/4096)*x[n-1]',
+    roles: ['History capture', 'Previous sample', 'Current sample'],
+    filename: 'tetorica-scsp-fir2-highpass.scspasm',
+  },
 ];
 
 /** Fresh descriptors for a compact example chooser. */
@@ -81,9 +101,28 @@ export function createScspDspExample(id) {
   return {...example, words: example.words.slice(), codes: [...example.codes], roles: [...example.roles]};
 }
 
-/** Identify only the program words. Coefficients remain independently editable. */
-export function identifyScspDspExample(words) {
+/** Identify the shared instruction program independently of its coefficients. */
+export function identifyScspDspProgram(words) {
   if (!(words instanceof Uint16Array) && !Array.isArray(words)) return null;
   if (words.length !== 512) return null;
-  return examples.find(example => example.words.every((value, index) => value === words[index]))?.id ?? null;
+  const example = examples.find(candidate => candidate.words.every((value, index) => value === words[index]));
+  if (!example) return null;
+  return example.id === 'delay' ? 'delay' : 'fir2';
+}
+
+/** Match named FIR coefficients, retaining the legacy word-only identifier
+ * when coefficients are omitted. */
+export function identifyScspDspExample(words, codes) {
+  if (codes !== undefined) {
+    if (!Array.isArray(codes) || codes.length !== 3) return null;
+    for (const value of codes) {
+      if (!Number.isInteger(value) || value < -4096 || value > 4095) return null;
+    }
+  }
+  const program = identifyScspDspProgram(words);
+  if (program === 'delay') return 'delay';
+  if (program !== 'fir2') return null;
+  if (codes === undefined) return 'fir2-lowpass';
+  return examples.find(example => example.id !== 'delay' &&
+    example.codes.every((value, index) => value === codes[index]))?.id ?? null;
 }

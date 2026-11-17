@@ -3,7 +3,7 @@
 import {delayProgram} from './dsp.js?v=scsp-dsp-fir-1';
 import {disassembleScspDsp} from './dsp_assembler.js';
 import {checkScspDspDelaySource, validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
-import {createScspDspExample, identifyScspDspExample, listScspDspExamples} from './dsp_examples.js';
+import {createScspDspExample, identifyScspDspExample, identifyScspDspProgram, listScspDspExamples} from './dsp_examples.js?v=scsp-dsp-hp-1';
 
 export const SCSP_DSP_DRAFT_STORAGE_KEY = 'tetorica-scsp-dsp-draft-v1';
 
@@ -69,12 +69,12 @@ function fallbackCopy(root, source) {
  */
 export function setupScspDspProgramView({root = globalThis.document,
   clipboard = globalThis.navigator?.clipboard, applyProgram = null,
-  getAppliedProgram = delayProgram, storage} = {}) {
+  getAppliedProgram = delayProgram, getAppliedCoefficients = () => [4095, 1433, 4095], storage} = {}) {
   const body = root.getElementById('scspDspProgramRows');
   const copy = root.getElementById('scspDspProgramCopy');
   const save = root.getElementById('scspDspProgramSave');
   const feedback = root.getElementById('scspDspProgramStatus');
-  if (!body || !copy || !save || !feedback) return () => {};
+  if (!body || !copy || !save || !feedback) return {update() {}, dispose() {}};
   const editor = root.getElementById('scspDspProgramEditor');
   const check = root.getElementById('scspDspProgramCheck');
   const apply = root.getElementById('scspDspProgramApply');
@@ -112,6 +112,7 @@ export function setupScspDspProgramView({root = globalThis.document,
   let disposed = false, copying = false, applying = false, checked = null;
   let pendingExample = null, draftExample = null, draftFilename = listing.filename;
   let appliedWords = validateScspDspDelayProgram(getAppliedProgram());
+  let appliedCodes = Array.from(getAppliedCoefficients());
   let appliedSource = listing.source;
   const downloads = new Map();
   function message(value, error = false) {
@@ -127,9 +128,12 @@ export function setupScspDspProgramView({root = globalThis.document,
   const sameWords = (a, b) => a.length === b.length && a.every((word, index) => word === b[index]);
   function showApplied() {
     if (!appliedStatus) return;
-    const id = identifyScspDspExample(appliedWords);
-    appliedStatus.textContent = 'Applied: ' + (id ? createScspDspExample(id).name : 'Custom program');
-    appliedStatus.dataset.custom = String(id !== 'delay');
+    const id = identifyScspDspExample(appliedWords, appliedCodes);
+    const family = identifyScspDspProgram(appliedWords);
+    const name = id ? createScspDspExample(id).name : family === 'fir2' ? '2-tap FIR (custom coefficients)' : 'Custom program';
+    const label = 'Applied: ' + name, custom = String(id !== 'delay');
+    if (appliedStatus.textContent !== label) appliedStatus.textContent = label;
+    if (appliedStatus.dataset.custom !== custom) appliedStatus.dataset.custom = custom;
   }
   function showExample() {
     if (exampleInfo) {
@@ -201,6 +205,7 @@ export function setupScspDspProgramView({root = globalThis.document,
       const accepted = validateScspDspDelayProgram(result?.words ?? candidate.words);
       if (!sameWords(accepted, candidate.words)) throw Error('The applied program did not match the checked draft.');
       appliedWords = accepted;
+      appliedCodes = Array.from(getAppliedCoefficients());
       appliedSource = candidate.source;
       if (candidate.setup && pendingExample === candidate.setup) {
         pendingExample = null;
@@ -345,7 +350,8 @@ export function setupScspDspProgramView({root = globalThis.document,
   copy.addEventListener('click', onCopy);
   save.addEventListener('click', onSave);
   scrollRegion?.addEventListener('keydown', onScrollKey);
-  return () => {
+  function dispose() {
+    if (disposed) return;
     disposed = true;
     copy.removeEventListener('click', onCopy);
     save.removeEventListener('click', onSave);
@@ -360,5 +366,17 @@ export function setupScspDspProgramView({root = globalThis.document,
     }
     copy.disabled = false;
     for (const url of [...downloads.keys()]) releaseDownload(url);
+  }
+  return {
+    update({words = appliedWords, codes = appliedCodes} = {}) {
+      if (disposed) return;
+      const changedWords = !sameWords(appliedWords, words);
+      if (!changedWords && sameWords(appliedCodes, codes)) return;
+      if (changedWords) appliedWords = validateScspDspDelayProgram(words);
+      appliedCodes = Array.from(codes);
+      // Observing the owner must not replace a draft or consume staged settings.
+      showApplied();
+    },
+    dispose,
   };
 }

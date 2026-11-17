@@ -341,7 +341,7 @@ profile. The collapsed **Built-in Delay reference** retains the six-step role
 explanations; it describes the original program, independently of the current draft.
 On narrow screens its table scrolls horizontally, including with Left / Right keys.
 
-### Two-tap FIR low-pass example
+### Two-tap FIR low-pass / high-pass examples
 
 In **DSP → Example**, choose **2-tap FIR low-pass**.
 Use **Check → Apply program + coefficients**. Choosing the example changes only the draft and its staged
@@ -359,6 +359,27 @@ y[n] = Q12(x[n] × COEF2) + Q12(h[n−1] × COEF1)
      ≈ 0.5 × x[n] + 0.5 × (4095/4096) × x[n−1]
 ```
 
+Choose **2-tap FIR high-pass** and apply it to subtract the previous sample.
+Its codes are `[4095,-2048,2048]`: only COEF1 changes sign. All 512 program
+words remain identical to the low-pass example.
+
+```text
+Low-pass:  y[n] ≈ 0.5 × x[n] + 0.5 × (4095/4096) × x[n−1]
+High-pass: y[n] ≈ 0.5 × x[n] − 0.5 × (4095/4096) × x[n−1]
+```
+
+Adding neighboring samples reduces high frequencies; subtracting them reduces
+low frequencies. The high-pass has a small fixed-point DC residual because
+positive unity is represented by 4095/4096, not exactly 1. Compare both with
+direct level 0 / DSP return enabled and use Spectrum to follow the change.
+
+The **Applied** label follows actual program words and all three coefficients.
+Changing COEF1 to −2048 / +2048, or using Code `setEffect({feedback:-0.5})` /
+`setEffect({feedback:0.5})`, switches the named variant when the other values
+match. Other FIR weights display **2-tap FIR (custom coefficients)**. Loading a
+different draft does not relabel the currently applied sound. Both variants
+retain FIR routing / tap roles and disabled Time.
+
 Q12 uses integer floor divisions and 24-bit saturation; the source comments give the
 exact steps. COEF0 captures history, COEF1 weights the previous sample, and COEF2
 weights the current sample. Its four microsteps demonstrate the previous-ACC
@@ -367,13 +388,14 @@ The applied label and coefficient roles follow the recognized program; **Time**
 is disabled for this FIR and **Previous tap · COEF1** replaces the Feedback label.
 
 Enable **DSP return** and set the voice's direct level to 0 for a wet-only
-comparison. This short average gently reduces high frequencies: low sine notes
+comparison. The low-pass gently reduces high frequencies: low sine notes
 change little, while high notes, Saw / Noise and Spectrum make its effect easier
 to observe. It has no variable cutoff or resonance. At a program switch the
 first processed frame can contain old TEMP history; the next frame already uses
 the current input history. Stop still resets the core and clears that history.
 
-The editable fixture is [examples/fir2-lowpass.scspasm](examples/fir2-lowpass.scspasm).
+Editable fixtures are [fir2-lowpass.scspasm](examples/fir2-lowpass.scspasm) and
+[fir2-highpass.scspasm](examples/fir2-highpass.scspasm).
 Copy / Save keeps source comments containing the recommended codes, but does not
 embed an applied configuration. Reload restores source only, without staging or
 applying coefficients. Choose the example again to stage its complete setup.

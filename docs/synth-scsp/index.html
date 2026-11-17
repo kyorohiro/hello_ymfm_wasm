@@ -604,10 +604,12 @@
 										only source text, so load the example again to stage its coefficients.
 									</p>
 									<p>
-										The 2-tap FIR gently reduces high frequencies. Enable DSP return and
-										use direct level 0 for wet-only comparison. High notes, Saw or Noise
-										and Spectrum make the difference easier to see; a low sine changes
-										little. At a program switch, the first frame can contain old TEMP
+										The FIR low-pass adds adjacent samples; the high-pass subtracts the
+										previous sample using the same instructions and negative COEF1.
+										Enable DSP return and use direct level 0 for wet-only comparison.
+										Use Spectrum to compare low-frequency attenuation in high-pass and
+										high-frequency attenuation in low-pass. A low sine changes little
+										in low-pass. At a program switch, the first frame can contain old TEMP
 										history; the next frame uses the new input history.
 									</p>
 									<p>
@@ -923,6 +925,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-fir-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-hp-1"></script>
 	</body>
 </html>

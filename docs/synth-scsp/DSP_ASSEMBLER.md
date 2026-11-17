@@ -105,7 +105,7 @@ and loading voice presets retain it within the current Synth session. Reloading
 the page starts with the built-in program and restores only draft text.
 Apply targets the Synth DSP, independently of SSF playback / paused audition.
 
-### Two-tap FIR example
+### Two-tap FIR examples
 
 Choose **Example → 2-tap FIR low-pass → Check → Apply program + coefficients**.
 Selecting / checking stages text and `[4095,2048,2048]`; it does not change live
@@ -136,6 +136,20 @@ switch. That frame writes current history, so subsequent frames use only current
 input history. No voice reset or native rendering is inserted into Apply.
 Tests check an independent fixed-point reference, adjacent impulse taps,
 frequency response, render partitioning and this one-frame initialization bound.
+
+**2-tap FIR high-pass** uses the exact same 512 words with COEF1 = −2048.
+Its readable fixture is [fir2-highpass.scspasm](examples/fir2-highpass.scspasm).
+The recommended table `[4095,-2048,2048]` approximates
+`y[n] = 0.5*x[n] - 0.5*(4095/4096)*x[n-1]`. It suppresses low frequencies
+instead of high ones, with a small Q12 DC residual rather than exact cancellation.
+The real core produces adjacent impulse outputs 2048 / −2048 for input 4096.
+Switching LP / HP is a coefficient-only setup Apply: no MPRO writes or program
+revision change, and held voices / sample phase remain intact.
+
+The UI distinguishes the shared `fir2` word-image family from exact named
+coefficient configurations. Applied labels and hints follow live / Code changes;
+unmatched taps display **2-tap FIR (custom coefficients)**. The draft's reference
+equation continues to describe its chosen example independently of live edits.
 
 **Built-in Delay** stages its program and default coefficient codes for return.
 Reset draft restores only source. Reload restores only text, so choose an example
