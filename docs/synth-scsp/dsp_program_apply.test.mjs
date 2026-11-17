@@ -193,7 +193,7 @@ async function processor(t) {
   };
 }
 
-test('processor revalidates primary-only program commands and leaves audition and Code endpoint independent', async t => {
+test('processor revalidates GUI and Code program commands on primary and leaves audition independent', async t => {
   const owner = await processor(t), primary = owner.value.instrument, audition = owner.value.audition;
   const before = { state: audition.read(), program: audition.readDspProgram(), ram: audition.core.readRam(), words: mpro(audition.core) };
   const { session } = (await owner.command('beginCode')).value;
@@ -205,11 +205,20 @@ test('processor revalidates primary-only program commands and leaves audition an
   assert.deepEqual(audition.readDspProgram(), before.program);
   assert.deepEqual(audition.core.readRam(), before.ram);
   assert.deepEqual(mpro(audition.core), before.words);
-  assert.match((await owner.command('code', [session, 'applyDspProgram', [Array.from(delayProgram())]])).error, /Unknown SCSP Code method/);
+  const response = await owner.command('code', [session, 'applyDspProgram', [Array.from(delayProgram())]]);
+  assert(!response.error);
+  assert.deepEqual(response.value, {...primary.readDspProgram(), coefficients: primary.readDspCoefficients()});
+  assert.equal(response.value.custom, false);
+  assert.equal(primary.codeActive, true);
+  assert.deepEqual(audition.read(), before.state);
+  assert.deepEqual(audition.readDspProgram(), before.program);
+  assert.deepEqual(audition.core.readRam(), before.ram);
+  assert.deepEqual(mpro(audition.core), before.words);
+  const program = primary.readDspProgram();
   const invalid = Array.from(delayProgram());
   invalid[4] = 0x8000;
   assert.match((await owner.command('applyDspProgram', [invalid])).error, /RAW0/);
-  assert.equal(primary.readDspProgram().custom, true);
+  assert.deepEqual(primary.readDspProgram(), program);
 });
 
 test('unrecoverable rollback terminates the audio owner with a fatal message and keeps last acknowledged metadata', async t => {

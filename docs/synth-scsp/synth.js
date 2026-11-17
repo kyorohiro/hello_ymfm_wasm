@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-dsp-fir-1';
-import { SynthInstrument } from './instrument.js?v=scsp-dsp-fir-1';
+import { createAudio } from './audio.js?v=scsp-dsp-code-1';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-code-1';
 import { readPatch, writePatch } from './patch.js?v=scsp-dsp-coef-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-coef-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-code-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
@@ -448,6 +448,23 @@ async function ensureAudio() {
 			const engine = await createAudio({
 				volume: Number($('volume').value),
 				onError: audioFailed,
+				onDspChange({ method, value }) {
+					if (disposed || audio !== engine) return;
+					if (method === 'applyDspProgram') {
+						const words = validateScspDspDelayProgram(value.words);
+						rememberDspCoefficients(value.coefficients);
+						appliedDspWords = words;
+					} else if (method === 'setDspCoefficients') rememberDspCoefficients(value);
+					else {
+						cachedPatch = { ...cachedPatch, effect: { ...value } };
+					}
+					// The owner has committed. Update the restart memo and Applied view
+					// now, without a read round-trip or replacing the authored draft.
+					const codes = [sessionDspCoefficients[0], Math.floor(cachedPatch.effect.feedback * 4096), sessionDspCoefficients[2]];
+					renderDspCoefficients({ dspCoefficients: codes }, Boolean(liveView?.isActive()));
+					if (!liveView?.isActive() && document.activeElement !== $('delayFeedback') && !$('delayFeedback').classList.contains('is-dragging'))
+						$('delayFeedback').value = String(codes[1] / 4096);
+				},
 			});
 			try {
 				let applied;

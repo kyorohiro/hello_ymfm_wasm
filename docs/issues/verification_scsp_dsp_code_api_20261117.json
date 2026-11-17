@@ -1,0 +1,2309 @@
+{
+  "format": "tetorica-scsp-dsp-code-verification",
+  "version": 1,
+  "date": "2026-11-17",
+  "passed": true,
+  "programWordDigestEncoding": "512 unsigned 16-bit words, little-endian",
+  "tests": [
+    {
+      "command": "npm run test:scsp-synth",
+      "tests": 269,
+      "passed": true
+    },
+    {
+      "command": "npm run test:scsp-dsp-assembler",
+      "tests": 12,
+      "passed": true
+    },
+    {
+      "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+      "passed": true
+    },
+    {
+      "command": "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+      "passed": true
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "sourceBrowser": {
+    "passed": true,
+    "entry": "/synth-scsp/index.html",
+    "physicalOutputMuted": true,
+    "operatingSystemClipboardUsed": false,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "cases": [
+          "fresh Files exposes the editable IIR Code example without automatically starting audio",
+          "real Code Run compiles locally, applies a complete IIR setup and reads it back over one primary Worklet",
+          "Code ACK updates Main Applied roles and coefficients while preserving the independent GUI DSP draft",
+          "Code Apply and live GUI partial coefficient edits retain held voices, unrelated coefficients and MPRO revision",
+          "invalid source, unsafe words, incomplete setups and malicious direct Worklet requests retain the full previous setup",
+          "caller mutation after Apply cannot change the snapshotted program or atomic coefficient payload",
+          "partial setter arguments are copied and program-only Apply preserves every existing coefficient",
+          "Code Stop retires notes and stale clients while retaining the shared DSP program and coefficients",
+          "the shipped Code example plays beat-based notes and independently tweens complementary IIR coefficients on one engine",
+          "Code Apply ACK survives blocked authoring observation and AudioContext closure with complete program/coefficient restart recovery",
+          "restarted Code uses the same retained setup; narrow layout fits and global Stop clears output without duplicate routes"
+        ],
+        "compiled": {
+          "typed": true,
+          "length": 512,
+          "commandsBefore": 8,
+          "commandsAfter": 8,
+          "independent": true,
+          "secondUnchanged": true
+        },
+        "roles": [
+          "COEF0 \u00b7 Unused",
+          "COEF1 \u00b7 Output feedback",
+          "COEF2 \u00b7 Input"
+        ],
+        "audible": {
+          "peak": 0.01048965472728014,
+          "rms": 0.007418755483484364,
+          "acRms": 0.007418680778921162
+        },
+        "invalid": [
+          {
+            "name": "SyntaxError",
+            "message": "Line 1: unknown field UNKNOWN"
+          },
+          {
+            "name": "RangeError",
+            "message": "Line 1: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          },
+          {
+            "name": "RangeError",
+            "message": "SCSP DSP program must contain exactly 512 words"
+          },
+          {
+            "name": "TypeError",
+            "message": "DSP setup Apply requires COEF0, COEF1 and COEF2"
+          },
+          {
+            "name": "RangeError",
+            "message": "COEF1 must be an integer from -4096 to 4095"
+          }
+        ],
+        "directRejected": [
+          "page.evaluate: RangeError: COEF1 must be an integer from -4096 to 4095\n    at MessagePort.receive (<anonymous>:105:38)",
+          "page.evaluate: RangeError: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile\n    at MessagePort.receive (<anonymous>:105:38)",
+          "page.evaluate: Error: Unknown SCSP Code method\n    at MessagePort.receive (<anonymous>:105:38)"
+        ],
+        "motionCodes": [
+          [
+            4095,
+            3072,
+            1024
+          ],
+          [
+            4095,
+            3078,
+            1018
+          ],
+          [
+            4095,
+            3097,
+            999
+          ],
+          [
+            4095,
+            3127,
+            969
+          ],
+          [
+            4095,
+            3169,
+            927
+          ],
+          [
+            4095,
+            3209,
+            887
+          ],
+          [
+            4095,
+            3267,
+            829
+          ],
+          [
+            4095,
+            3333,
+            763
+          ]
+        ],
+        "bridgeAck": {
+          "api": {
+            "done": true,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            },
+            "mainCodesAtResolve": [
+              1234,
+              3500,
+              596
+            ],
+            "appliedAtResolve": "Applied: 1-pole IIR (custom coefficients)"
+          },
+          "ack": {
+            "id": 100,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            }
+          },
+          "heldReads": 1
+        },
+        "restarted": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              1234,
+              3500,
+              596
+            ],
+            "feedback": 0.8544921875
+          }
+        },
+        "graph": {
+          "contexts": 2,
+          "contextStates": [
+            "closed",
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 2,
+          "physicalOutputMuted": true
+        },
+        "mobileOverflow": 0,
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "cases": [
+          "fresh Files exposes the editable IIR Code example without automatically starting audio",
+          "real Code Run compiles locally, applies a complete IIR setup and reads it back over one primary Worklet",
+          "Code ACK updates Main Applied roles and coefficients while preserving the independent GUI DSP draft",
+          "Code Apply and live GUI partial coefficient edits retain held voices, unrelated coefficients and MPRO revision",
+          "invalid source, unsafe words, incomplete setups and malicious direct Worklet requests retain the full previous setup",
+          "caller mutation after Apply cannot change the snapshotted program or atomic coefficient payload",
+          "partial setter arguments are copied and program-only Apply preserves every existing coefficient",
+          "Code Stop retires notes and stale clients while retaining the shared DSP program and coefficients",
+          "the shipped Code example plays beat-based notes and independently tweens complementary IIR coefficients on one engine",
+          "Code Apply ACK survives blocked authoring observation and AudioContext closure with complete program/coefficient restart recovery",
+          "restarted Code uses the same retained setup; narrow layout fits and global Stop clears output without duplicate routes"
+        ],
+        "compiled": {
+          "typed": true,
+          "length": 512,
+          "commandsBefore": 8,
+          "commandsAfter": 8,
+          "independent": true,
+          "secondUnchanged": true
+        },
+        "roles": [
+          "COEF0 \u00b7 Unused",
+          "COEF1 \u00b7 Output feedback",
+          "COEF2 \u00b7 Input"
+        ],
+        "audible": {
+          "peak": 0.01048965472728014,
+          "rms": 0.007419610452565933,
+          "acRms": 0.007419549447520118
+        },
+        "invalid": [
+          {
+            "name": "SyntaxError",
+            "message": "Line 1: unknown field UNKNOWN"
+          },
+          {
+            "name": "RangeError",
+            "message": "Line 1: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          },
+          {
+            "name": "RangeError",
+            "message": "SCSP DSP program must contain exactly 512 words"
+          },
+          {
+            "name": "TypeError",
+            "message": "DSP setup Apply requires COEF0, COEF1 and COEF2"
+          },
+          {
+            "name": "RangeError",
+            "message": "COEF1 must be an integer from -4096 to 4095"
+          }
+        ],
+        "directRejected": [
+          "page.evaluate: RangeError: COEF1 must be an integer from -4096 to 4095",
+          "page.evaluate: RangeError: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile",
+          "page.evaluate: Error: Unknown SCSP Code method"
+        ],
+        "motionCodes": [
+          [
+            4095,
+            3072,
+            1024
+          ],
+          [
+            4095,
+            3079,
+            1017
+          ],
+          [
+            4095,
+            3095,
+            1001
+          ],
+          [
+            4095,
+            3127,
+            969
+          ],
+          [
+            4095,
+            3159,
+            937
+          ],
+          [
+            4095,
+            3213,
+            883
+          ],
+          [
+            4095,
+            3272,
+            824
+          ],
+          [
+            4095,
+            3338,
+            758
+          ]
+        ],
+        "bridgeAck": {
+          "api": {
+            "done": true,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            },
+            "mainCodesAtResolve": [
+              1234,
+              3500,
+              596
+            ],
+            "appliedAtResolve": "Applied: 1-pole IIR (custom coefficients)"
+          },
+          "ack": {
+            "id": 99,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            }
+          },
+          "heldReads": 1
+        },
+        "restarted": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              1234,
+              3500,
+              596
+            ],
+            "feedback": 0.8544921875
+          }
+        },
+        "graph": {
+          "contexts": 2,
+          "contextStates": [
+            "closed",
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 2,
+          "physicalOutputMuted": true
+        },
+        "mobileOverflow": 0,
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      }
+    ],
+    "assets": {
+      "generated/scsp_wasm.js": {
+        "bytes": 11384,
+        "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+      },
+      "generated/scsp_wasm.wasm": {
+        "bytes": 17722,
+        "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+      },
+      "generated/ssf-player/ssf_player.js": {
+        "bytes": 133059,
+        "sha256": "0e17044c84ff29621c7e377bca63bc48eeb40e2757d802f1b128049ce30c785a"
+      },
+      "js/adpcm_b_sample.js": {
+        "bytes": 7109,
+        "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+      },
+      "js/audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "js/custom_fx.js": {
+        "bytes": 5764,
+        "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+      },
+      "js/megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "js/native-fx-worklet.js": {
+        "bytes": 8783,
+        "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+      },
+      "js/native_audio_effect.wasm": {
+        "bytes": 48297,
+        "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+      },
+      "js/native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "js/native_fx_engine.js": {
+        "bytes": 7061,
+        "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+      },
+      "js/native_fx_graph.js": {
+        "bytes": 3612,
+        "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+      },
+      "js/native_fx_rack.js": {
+        "bytes": 2128,
+        "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+      },
+      "js/native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "js/native_sample.js": {
+        "bytes": 3645,
+        "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+      },
+      "js/native_sample_processor.js": {
+        "bytes": 4443,
+        "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+      },
+      "js/pcm_44100_resampler.js": {
+        "bytes": 4242,
+        "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+      },
+      "js/pitch.js": {
+        "bytes": 1888,
+        "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+      },
+      "js/playground_async_tasks.js": {
+        "bytes": 2223,
+        "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+      },
+      "js/playground_clock.js": {
+        "bytes": 19367,
+        "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+      },
+      "js/playground_code_runtime.js": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      },
+      "js/playground_duration.js": {
+        "bytes": 2009,
+        "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+      },
+      "js/playground_execution.js": {
+        "bytes": 8875,
+        "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+      },
+      "js/playground_live.js": {
+        "bytes": 14734,
+        "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+      },
+      "js/playground_log.js": {
+        "bytes": 2169,
+        "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+      },
+      "js/playground_music.js": {
+        "bytes": 11300,
+        "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+      },
+      "js/playground_performance_queue.js": {
+        "bytes": 24020,
+        "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+      },
+      "js/playground_sample_edit.js": {
+        "bytes": 17672,
+        "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+      },
+      "js/playground_scsp.js": {
+        "bytes": 5781,
+        "sha256": "3668fe4630fb98d398be8d9c433ad07ed3826f9066623f83fbda1a3b9e17f496"
+      },
+      "js/ps1_parameters.js": {
+        "bytes": 6237,
+        "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+      },
+      "js/ps1_spu.js": {
+        "bytes": 10862,
+        "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+      },
+      "js/ps1_vab.js": {
+        "bytes": 14976,
+        "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+      },
+      "js/ps1synth.js": {
+        "bytes": 21748,
+        "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+      },
+      "js/scsp.js": {
+        "bytes": 10590,
+        "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+      },
+      "js/scsp_sample.js": {
+        "bytes": 2785,
+        "sha256": "2a7bf44cb99f284ebd00d345764ea1ee918a3345eace3e6c4ee0e46dd5d503cf"
+      },
+      "js/scspsynth.js": {
+        "bytes": 22640,
+        "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+      },
+      "js/soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "js/tetorica_virtual_files/filesystem.js": {
+        "bytes": 20206,
+        "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+      },
+      "js/tetorica_virtual_files/path.js": {
+        "bytes": 1112,
+        "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+      },
+      "js/tetorica_virtual_files/reader.js": {
+        "bytes": 1404,
+        "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+      },
+      "js/tetorica_virtual_files/sync.js": {
+        "bytes": 5701,
+        "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+      },
+      "js/vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "playground/playground_cassette.js": {
+        "bytes": 14751,
+        "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+      },
+      "playground/playground_declarations.js": {
+        "bytes": 2945,
+        "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+      },
+      "playground/playground_example_order.js": {
+        "bytes": 315,
+        "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+      },
+      "playground/playground_file_tree.js": {
+        "bytes": 4862,
+        "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+      },
+      "playground/playground_monaco.js": {
+        "bytes": 23112,
+        "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+      },
+      "playground/playground_monaco_completion.js": {
+        "bytes": 45033,
+        "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+      },
+      "playground/playground_monaco_definitions.js": {
+        "bytes": 25281,
+        "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+      },
+      "playground/playground_scsp_voice_panel.js": {
+        "bytes": 22889,
+        "sha256": "fbd4f73d9618fb50b050764d196930bbe0fed2de1f99c98e698eca0410dcf14a"
+      },
+      "playground/playground_virtual_files.js": {
+        "bytes": 5205,
+        "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+      },
+      "playground/vendor/fflate.js": {
+        "bytes": 90922,
+        "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+      },
+      "synth-2a03/state_observer.js": {
+        "bytes": 3794,
+        "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+      },
+      "synth-scsp/audio.js": {
+        "bytes": 7920,
+        "sha256": "5e968e8db04b84ff5efb62edd8e3160ef85be6413d95e419826a0b68f6b755a2"
+      },
+      "synth-scsp/channel_view.js": {
+        "bytes": 5548,
+        "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+      },
+      "synth-scsp/code_audio.js": {
+        "bytes": 6073,
+        "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+      },
+      "synth-scsp/code_declarations.js": {
+        "bytes": 7587,
+        "sha256": "346322ef9ffa772ba20ec0f5bfa35421890813e3c42557f08ecaea6348996c20"
+      },
+      "synth-scsp/code_endpoint.js": {
+        "bytes": 4231,
+        "sha256": "6d0b5c13b7f8cbfd8049ea9eb7885b7a7eb44b75641438b40751c476d85fcb41"
+      },
+      "synth-scsp/code_examples.js": {
+        "bytes": 1965,
+        "sha256": "f283badb7fb8c430aa297051ae3c0ed71aedd10efe54a9c021ec40a4705d0a4e"
+      },
+      "synth-scsp/code_files.js": {
+        "bytes": 34362,
+        "sha256": "8c694306a082fc65ba57312b66fb70793d6655fa8ffc127181b84b93c09e9665"
+      },
+      "synth-scsp/code_host.js": {
+        "bytes": 4821,
+        "sha256": "41dcf384a54037fe298186a117e5230d556a175c9c76cbf410035ea4a07e63ae"
+      },
+      "synth-scsp/code_project.js": {
+        "bytes": 12291,
+        "sha256": "06f027b4a6d8c2629ef0931248e5a590a22a21b23d65791678f4cc8e550b34fb"
+      },
+      "synth-scsp/controls.js": {
+        "bytes": 4651,
+        "sha256": "45beef26858bbab26d2f93a4c5e02830353661e4898c85e67c7769c1182bccaa"
+      },
+      "synth-scsp/dsp.js": {
+        "bytes": 10499,
+        "sha256": "dd2b7f500d7e75ae111187776acb12481d9a8e1ade8af190cc0aea4dd7033821"
+      },
+      "synth-scsp/dsp_assembler.js": {
+        "bytes": 8081,
+        "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+      },
+      "synth-scsp/dsp_examples.js": {
+        "bytes": 8027,
+        "sha256": "e53e3fc3268d79fe87df9ab245eb0839372db756b3ce23022863e87b275c3659"
+      },
+      "synth-scsp/dsp_program.js": {
+        "bytes": 3837,
+        "sha256": "e6cd7dfa7ca3c932c4435c3e77deeba098bafef45f3d7c6b0360f425b11c0c77"
+      },
+      "synth-scsp/dsp_program_view.js": {
+        "bytes": 17777,
+        "sha256": "cf4b8a82167b19b340f1aefe1c344ef2707b80653d738fe301defde465ab57e7"
+      },
+      "synth-scsp/examples/dsp-iir-motion.js": {
+        "bytes": 1764,
+        "sha256": "a27ba1488ae21b5f80caeae6edee67efbb21690db3ff8975c9f54d6d6759d2e7"
+      },
+      "synth-scsp/index.html": {
+        "bytes": 34159,
+        "sha256": "e895018c2733467250781815e572e2c6bf8dd778d39bcb5afa7d17a84a761934"
+      },
+      "synth-scsp/instrument.js": {
+        "bytes": 30576,
+        "sha256": "e57a3ea6f15cef74047d5fbf1d785094da0711e08d6baebbd839733c55a89053"
+      },
+      "synth-scsp/patch.js": {
+        "bytes": 3967,
+        "sha256": "3bdf8d1d20ad3f4328fa0173f31717a6e7c09c4dcf26940e84cc383f14223533"
+      },
+      "synth-scsp/preset.js": {
+        "bytes": 1968,
+        "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+      },
+      "synth-scsp/processor.js": {
+        "bytes": 8797,
+        "sha256": "d67d1f791ca818e40dcbb21086f94e91355fe38b45cb24fcc5c4b7305119fe95"
+      },
+      "synth-scsp/release_guard.js": {
+        "bytes": 2410,
+        "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+      },
+      "synth-scsp/routing.js": {
+        "bytes": 2133,
+        "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+      },
+      "synth-scsp/scsp_envelope_controls.js": {
+        "bytes": 2168,
+        "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+      },
+      "synth-scsp/song_controls.js": {
+        "bytes": 10265,
+        "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+      },
+      "synth-scsp/song_player.js": {
+        "bytes": 20191,
+        "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+      },
+      "synth-scsp/song_source.js": {
+        "bytes": 13566,
+        "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+      },
+      "synth-scsp/ssf_capture.js": {
+        "bytes": 9683,
+        "sha256": "186058414a53bca0022285691eb5a74c2ba837c576539c18ea5b4fabf5c4fd35"
+      },
+      "synth-scsp/ssf_live_history.js": {
+        "bytes": 991,
+        "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+      },
+      "synth-scsp/ssf_live_view.js": {
+        "bytes": 18251,
+        "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+      },
+      "synth-scsp/ssf_renderer.js": {
+        "bytes": 7791,
+        "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+      },
+      "synth-scsp/ssf_snapshot.js": {
+        "bytes": 5340,
+        "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+      },
+      "synth-scsp/ssf_source.js": {
+        "bytes": 12682,
+        "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+      },
+      "synth-scsp/ssf_voice_edits.js": {
+        "bytes": 3774,
+        "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+      },
+      "synth-scsp/ssf_voice_parameters.js": {
+        "bytes": 2306,
+        "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+      },
+      "synth-scsp/synth.css": {
+        "bytes": 23814,
+        "sha256": "79f9a216330b8ea70b2042a964395b18eca8112604adb4960754321099c34f2e"
+      },
+      "synth-scsp/synth.js": {
+        "bytes": 51110,
+        "sha256": "439f3e0943427b1983bcdb7c5b4e2ef4c568be8982530478fdc58971933e56f0"
+      },
+      "synth-spu/file_context_menu.js": {
+        "bytes": 6313,
+        "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+      },
+      "synth-spu/spu_synth_visualizer.js": {
+        "bytes": 10421,
+        "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+      },
+      "synth-spu/synth.css": {
+        "bytes": 36580,
+        "sha256": "d3c1a57beb040cb1a4cecea807eeb9c15aa527a9d036c4c04f8d11ca67b56869"
+      },
+      "synth/synth_code_controls.js": {
+        "bytes": 21848,
+        "sha256": "a95e856263570b9e77ba3a97a8eb9ef58564c55472da17de4f67a5c3ffc95216"
+      },
+      "synth/synth_code_declarations.js": {
+        "bytes": 7470,
+        "sha256": "81481fb37ff76c23afb9996432caa40f962a3446a892e9cb2a3ce968f85c9d93"
+      },
+      "synth/synth_code_output.js": {
+        "bytes": 4973,
+        "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+      },
+      "synth/synth_code_project.js": {
+        "bytes": 1623,
+        "sha256": "7fbc1f8b5df80b2fbbfb4d19fa1f36906563f8762317466102ba19d228d17026"
+      },
+      "synth/synth_draft_store.js": {
+        "bytes": 3656,
+        "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+      },
+      "synth/synth_keyboard.js": {
+        "bytes": 10010,
+        "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+      },
+      "synth/synth_menu.js": {
+        "bytes": 1808,
+        "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+      },
+      "synth/synth_project_store.js": {
+        "bytes": 1835,
+        "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+      },
+      "tetorica-scsp-synth.webp": {
+        "bytes": 496728,
+        "sha256": "3ba12223115111300d7a6f0df3d3232489be15fdb354d188a85af1e2b70f2740"
+      }
+    }
+  },
+  "zipBrowser": {
+    "passed": true,
+    "entry": "/index.html",
+    "physicalOutputMuted": true,
+    "operatingSystemClipboardUsed": false,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "cases": [
+          "fresh Files exposes the editable IIR Code example without automatically starting audio",
+          "real Code Run compiles locally, applies a complete IIR setup and reads it back over one primary Worklet",
+          "Code ACK updates Main Applied roles and coefficients while preserving the independent GUI DSP draft",
+          "Code Apply and live GUI partial coefficient edits retain held voices, unrelated coefficients and MPRO revision",
+          "invalid source, unsafe words, incomplete setups and malicious direct Worklet requests retain the full previous setup",
+          "caller mutation after Apply cannot change the snapshotted program or atomic coefficient payload",
+          "partial setter arguments are copied and program-only Apply preserves every existing coefficient",
+          "Code Stop retires notes and stale clients while retaining the shared DSP program and coefficients",
+          "the shipped Code example plays beat-based notes and independently tweens complementary IIR coefficients on one engine",
+          "Code Apply ACK survives blocked authoring observation and AudioContext closure with complete program/coefficient restart recovery",
+          "restarted Code uses the same retained setup; narrow layout fits and global Stop clears output without duplicate routes"
+        ],
+        "compiled": {
+          "typed": true,
+          "length": 512,
+          "commandsBefore": 8,
+          "commandsAfter": 8,
+          "independent": true,
+          "secondUnchanged": true
+        },
+        "roles": [
+          "COEF0 \u00b7 Unused",
+          "COEF1 \u00b7 Output feedback",
+          "COEF2 \u00b7 Input"
+        ],
+        "audible": {
+          "peak": 0.01048965472728014,
+          "rms": 0.0074020358460057814,
+          "acRms": 0.007402032469856987
+        },
+        "invalid": [
+          {
+            "name": "SyntaxError",
+            "message": "Line 1: unknown field UNKNOWN"
+          },
+          {
+            "name": "RangeError",
+            "message": "Line 1: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          },
+          {
+            "name": "RangeError",
+            "message": "SCSP DSP program must contain exactly 512 words"
+          },
+          {
+            "name": "TypeError",
+            "message": "DSP setup Apply requires COEF0, COEF1 and COEF2"
+          },
+          {
+            "name": "RangeError",
+            "message": "COEF1 must be an integer from -4096 to 4095"
+          }
+        ],
+        "directRejected": [
+          "page.evaluate: RangeError: COEF1 must be an integer from -4096 to 4095\n    at MessagePort.receive (<anonymous>:105:38)",
+          "page.evaluate: RangeError: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile\n    at MessagePort.receive (<anonymous>:105:38)",
+          "page.evaluate: Error: Unknown SCSP Code method\n    at MessagePort.receive (<anonymous>:105:38)"
+        ],
+        "motionCodes": [
+          [
+            4095,
+            3072,
+            1024
+          ],
+          [
+            4095,
+            3078,
+            1018
+          ],
+          [
+            4095,
+            3097,
+            999
+          ],
+          [
+            4095,
+            3127,
+            969
+          ],
+          [
+            4095,
+            3171,
+            925
+          ],
+          [
+            4095,
+            3212,
+            884
+          ],
+          [
+            4095,
+            3269,
+            827
+          ],
+          [
+            4095,
+            3336,
+            760
+          ]
+        ],
+        "bridgeAck": {
+          "api": {
+            "done": true,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            },
+            "mainCodesAtResolve": [
+              1234,
+              3500,
+              596
+            ],
+            "appliedAtResolve": "Applied: 1-pole IIR (custom coefficients)"
+          },
+          "ack": {
+            "id": 101,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            }
+          },
+          "heldReads": 1
+        },
+        "restarted": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              1234,
+              3500,
+              596
+            ],
+            "feedback": 0.8544921875
+          }
+        },
+        "graph": {
+          "contexts": 2,
+          "contextStates": [
+            "closed",
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 2,
+          "physicalOutputMuted": true
+        },
+        "mobileOverflow": 0,
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "cases": [
+          "fresh Files exposes the editable IIR Code example without automatically starting audio",
+          "real Code Run compiles locally, applies a complete IIR setup and reads it back over one primary Worklet",
+          "Code ACK updates Main Applied roles and coefficients while preserving the independent GUI DSP draft",
+          "Code Apply and live GUI partial coefficient edits retain held voices, unrelated coefficients and MPRO revision",
+          "invalid source, unsafe words, incomplete setups and malicious direct Worklet requests retain the full previous setup",
+          "caller mutation after Apply cannot change the snapshotted program or atomic coefficient payload",
+          "partial setter arguments are copied and program-only Apply preserves every existing coefficient",
+          "Code Stop retires notes and stale clients while retaining the shared DSP program and coefficients",
+          "the shipped Code example plays beat-based notes and independently tweens complementary IIR coefficients on one engine",
+          "Code Apply ACK survives blocked authoring observation and AudioContext closure with complete program/coefficient restart recovery",
+          "restarted Code uses the same retained setup; narrow layout fits and global Stop clears output without duplicate routes"
+        ],
+        "compiled": {
+          "typed": true,
+          "length": 512,
+          "commandsBefore": 8,
+          "commandsAfter": 8,
+          "independent": true,
+          "secondUnchanged": true
+        },
+        "roles": [
+          "COEF0 \u00b7 Unused",
+          "COEF1 \u00b7 Output feedback",
+          "COEF2 \u00b7 Input"
+        ],
+        "audible": {
+          "peak": 0.01048965472728014,
+          "rms": 0.007419738717207937,
+          "acRms": 0.007419677250650842
+        },
+        "invalid": [
+          {
+            "name": "SyntaxError",
+            "message": "Line 1: unknown field UNKNOWN"
+          },
+          {
+            "name": "RangeError",
+            "message": "Line 1: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          },
+          {
+            "name": "RangeError",
+            "message": "SCSP DSP program must contain exactly 512 words"
+          },
+          {
+            "name": "TypeError",
+            "message": "DSP setup Apply requires COEF0, COEF1 and COEF2"
+          },
+          {
+            "name": "RangeError",
+            "message": "COEF1 must be an integer from -4096 to 4095"
+          }
+        ],
+        "directRejected": [
+          "page.evaluate: RangeError: COEF1 must be an integer from -4096 to 4095",
+          "page.evaluate: RangeError: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile",
+          "page.evaluate: Error: Unknown SCSP Code method"
+        ],
+        "motionCodes": [
+          [
+            4095,
+            3072,
+            1024
+          ],
+          [
+            4095,
+            3078,
+            1018
+          ],
+          [
+            4095,
+            3094,
+            1002
+          ],
+          [
+            4095,
+            3122,
+            974
+          ],
+          [
+            4095,
+            3165,
+            931
+          ],
+          [
+            4095,
+            3207,
+            889
+          ],
+          [
+            4095,
+            3264,
+            832
+          ],
+          [
+            4095,
+            3322,
+            774
+          ]
+        ],
+        "bridgeAck": {
+          "api": {
+            "done": true,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            },
+            "mainCodesAtResolve": [
+              1234,
+              3500,
+              596
+            ],
+            "appliedAtResolve": "Applied: 1-pole IIR (custom coefficients)"
+          },
+          "ack": {
+            "id": 100,
+            "value": {
+              "words": {
+                "count": 512,
+                "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+              },
+              "custom": true,
+              "revision": 3,
+              "coefficients": {
+                "codes": [
+                  1234,
+                  3500,
+                  596
+                ],
+                "feedback": 0.8544921875
+              }
+            }
+          },
+          "heldReads": 1
+        },
+        "restarted": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "a0c377d1641b8faed55c46dd502c555a6c3af82609d8a53aeca5a5415581e2d3"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              1234,
+              3500,
+              596
+            ],
+            "feedback": 0.8544921875
+          }
+        },
+        "graph": {
+          "contexts": 2,
+          "contextStates": [
+            "closed",
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-native-fx",
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 2,
+          "physicalOutputMuted": true
+        },
+        "mobileOverflow": 0,
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      }
+    ],
+    "assets": {
+      "generated/scsp_wasm.js": {
+        "bytes": 11384,
+        "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+      },
+      "generated/scsp_wasm.wasm": {
+        "bytes": 17722,
+        "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+      },
+      "generated/ssf-player/ssf_player.js": {
+        "bytes": 133059,
+        "sha256": "0e17044c84ff29621c7e377bca63bc48eeb40e2757d802f1b128049ce30c785a"
+      },
+      "index.html": {
+        "bytes": 34411,
+        "sha256": "56fbfb3ecf9a215aa47b1f7512af4448efd11fb15ec9b33d5739fba1eb9181be"
+      },
+      "js/adpcm_b_sample.js": {
+        "bytes": 7109,
+        "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+      },
+      "js/audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "js/custom_fx.js": {
+        "bytes": 5764,
+        "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+      },
+      "js/megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "js/native-fx-worklet.js": {
+        "bytes": 8783,
+        "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+      },
+      "js/native_audio_effect.wasm": {
+        "bytes": 48297,
+        "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+      },
+      "js/native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "js/native_fx_engine.js": {
+        "bytes": 7061,
+        "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+      },
+      "js/native_fx_graph.js": {
+        "bytes": 3612,
+        "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+      },
+      "js/native_fx_rack.js": {
+        "bytes": 2128,
+        "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+      },
+      "js/native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "js/native_sample.js": {
+        "bytes": 3645,
+        "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+      },
+      "js/native_sample_processor.js": {
+        "bytes": 4443,
+        "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+      },
+      "js/pcm_44100_resampler.js": {
+        "bytes": 4242,
+        "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+      },
+      "js/pitch.js": {
+        "bytes": 1888,
+        "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+      },
+      "js/playground_async_tasks.js": {
+        "bytes": 2223,
+        "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+      },
+      "js/playground_clock.js": {
+        "bytes": 19367,
+        "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+      },
+      "js/playground_code_runtime.js": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      },
+      "js/playground_duration.js": {
+        "bytes": 2009,
+        "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+      },
+      "js/playground_execution.js": {
+        "bytes": 8875,
+        "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+      },
+      "js/playground_live.js": {
+        "bytes": 14734,
+        "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+      },
+      "js/playground_log.js": {
+        "bytes": 2169,
+        "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+      },
+      "js/playground_music.js": {
+        "bytes": 11300,
+        "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+      },
+      "js/playground_performance_queue.js": {
+        "bytes": 24020,
+        "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+      },
+      "js/playground_sample_edit.js": {
+        "bytes": 17672,
+        "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+      },
+      "js/playground_scsp.js": {
+        "bytes": 5781,
+        "sha256": "3668fe4630fb98d398be8d9c433ad07ed3826f9066623f83fbda1a3b9e17f496"
+      },
+      "js/ps1_parameters.js": {
+        "bytes": 6237,
+        "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+      },
+      "js/ps1_spu.js": {
+        "bytes": 10862,
+        "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+      },
+      "js/ps1_vab.js": {
+        "bytes": 14976,
+        "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+      },
+      "js/ps1synth.js": {
+        "bytes": 21748,
+        "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+      },
+      "js/scsp.js": {
+        "bytes": 10590,
+        "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+      },
+      "js/scsp_sample.js": {
+        "bytes": 2785,
+        "sha256": "2a7bf44cb99f284ebd00d345764ea1ee918a3345eace3e6c4ee0e46dd5d503cf"
+      },
+      "js/scspsynth.js": {
+        "bytes": 22640,
+        "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+      },
+      "js/soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "js/tetorica_virtual_files/filesystem.js": {
+        "bytes": 20206,
+        "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+      },
+      "js/tetorica_virtual_files/path.js": {
+        "bytes": 1112,
+        "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+      },
+      "js/tetorica_virtual_files/reader.js": {
+        "bytes": 1404,
+        "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+      },
+      "js/tetorica_virtual_files/sync.js": {
+        "bytes": 5701,
+        "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+      },
+      "js/vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "playground/playground_cassette.js": {
+        "bytes": 14751,
+        "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+      },
+      "playground/playground_declarations.js": {
+        "bytes": 2945,
+        "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+      },
+      "playground/playground_example_order.js": {
+        "bytes": 315,
+        "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+      },
+      "playground/playground_file_tree.js": {
+        "bytes": 4862,
+        "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+      },
+      "playground/playground_monaco.js": {
+        "bytes": 23112,
+        "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+      },
+      "playground/playground_monaco_completion.js": {
+        "bytes": 45033,
+        "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+      },
+      "playground/playground_monaco_definitions.js": {
+        "bytes": 25281,
+        "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+      },
+      "playground/playground_scsp_voice_panel.js": {
+        "bytes": 22889,
+        "sha256": "fbd4f73d9618fb50b050764d196930bbe0fed2de1f99c98e698eca0410dcf14a"
+      },
+      "playground/playground_virtual_files.js": {
+        "bytes": 5205,
+        "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+      },
+      "playground/vendor/fflate.js": {
+        "bytes": 90922,
+        "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+      },
+      "synth-2a03/state_observer.js": {
+        "bytes": 3794,
+        "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+      },
+      "synth-scsp/audio.js": {
+        "bytes": 7920,
+        "sha256": "5e968e8db04b84ff5efb62edd8e3160ef85be6413d95e419826a0b68f6b755a2"
+      },
+      "synth-scsp/channel_view.js": {
+        "bytes": 5548,
+        "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+      },
+      "synth-scsp/code_audio.js": {
+        "bytes": 6073,
+        "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+      },
+      "synth-scsp/code_declarations.js": {
+        "bytes": 7587,
+        "sha256": "346322ef9ffa772ba20ec0f5bfa35421890813e3c42557f08ecaea6348996c20"
+      },
+      "synth-scsp/code_endpoint.js": {
+        "bytes": 4231,
+        "sha256": "6d0b5c13b7f8cbfd8049ea9eb7885b7a7eb44b75641438b40751c476d85fcb41"
+      },
+      "synth-scsp/code_examples.js": {
+        "bytes": 1965,
+        "sha256": "f283badb7fb8c430aa297051ae3c0ed71aedd10efe54a9c021ec40a4705d0a4e"
+      },
+      "synth-scsp/code_files.js": {
+        "bytes": 34362,
+        "sha256": "8c694306a082fc65ba57312b66fb70793d6655fa8ffc127181b84b93c09e9665"
+      },
+      "synth-scsp/code_host.js": {
+        "bytes": 4821,
+        "sha256": "41dcf384a54037fe298186a117e5230d556a175c9c76cbf410035ea4a07e63ae"
+      },
+      "synth-scsp/code_project.js": {
+        "bytes": 12291,
+        "sha256": "06f027b4a6d8c2629ef0931248e5a590a22a21b23d65791678f4cc8e550b34fb"
+      },
+      "synth-scsp/controls.js": {
+        "bytes": 4651,
+        "sha256": "45beef26858bbab26d2f93a4c5e02830353661e4898c85e67c7769c1182bccaa"
+      },
+      "synth-scsp/dsp.js": {
+        "bytes": 10499,
+        "sha256": "dd2b7f500d7e75ae111187776acb12481d9a8e1ade8af190cc0aea4dd7033821"
+      },
+      "synth-scsp/dsp_assembler.js": {
+        "bytes": 8081,
+        "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+      },
+      "synth-scsp/dsp_examples.js": {
+        "bytes": 8027,
+        "sha256": "e53e3fc3268d79fe87df9ab245eb0839372db756b3ce23022863e87b275c3659"
+      },
+      "synth-scsp/dsp_program.js": {
+        "bytes": 3837,
+        "sha256": "e6cd7dfa7ca3c932c4435c3e77deeba098bafef45f3d7c6b0360f425b11c0c77"
+      },
+      "synth-scsp/dsp_program_view.js": {
+        "bytes": 17777,
+        "sha256": "cf4b8a82167b19b340f1aefe1c344ef2707b80653d738fe301defde465ab57e7"
+      },
+      "synth-scsp/examples/dsp-iir-motion.js": {
+        "bytes": 1764,
+        "sha256": "a27ba1488ae21b5f80caeae6edee67efbb21690db3ff8975c9f54d6d6759d2e7"
+      },
+      "synth-scsp/instrument.js": {
+        "bytes": 30576,
+        "sha256": "e57a3ea6f15cef74047d5fbf1d785094da0711e08d6baebbd839733c55a89053"
+      },
+      "synth-scsp/patch.js": {
+        "bytes": 3967,
+        "sha256": "3bdf8d1d20ad3f4328fa0173f31717a6e7c09c4dcf26940e84cc383f14223533"
+      },
+      "synth-scsp/preset.js": {
+        "bytes": 1968,
+        "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+      },
+      "synth-scsp/processor.js": {
+        "bytes": 8797,
+        "sha256": "d67d1f791ca818e40dcbb21086f94e91355fe38b45cb24fcc5c4b7305119fe95"
+      },
+      "synth-scsp/release_guard.js": {
+        "bytes": 2410,
+        "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+      },
+      "synth-scsp/routing.js": {
+        "bytes": 2133,
+        "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+      },
+      "synth-scsp/scsp_envelope_controls.js": {
+        "bytes": 2168,
+        "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+      },
+      "synth-scsp/song_controls.js": {
+        "bytes": 10265,
+        "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+      },
+      "synth-scsp/song_player.js": {
+        "bytes": 20191,
+        "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+      },
+      "synth-scsp/song_source.js": {
+        "bytes": 13566,
+        "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+      },
+      "synth-scsp/ssf_capture.js": {
+        "bytes": 9683,
+        "sha256": "186058414a53bca0022285691eb5a74c2ba837c576539c18ea5b4fabf5c4fd35"
+      },
+      "synth-scsp/ssf_live_history.js": {
+        "bytes": 991,
+        "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+      },
+      "synth-scsp/ssf_live_view.js": {
+        "bytes": 18251,
+        "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+      },
+      "synth-scsp/ssf_renderer.js": {
+        "bytes": 7791,
+        "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+      },
+      "synth-scsp/ssf_snapshot.js": {
+        "bytes": 5340,
+        "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+      },
+      "synth-scsp/ssf_source.js": {
+        "bytes": 12682,
+        "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+      },
+      "synth-scsp/ssf_voice_edits.js": {
+        "bytes": 3774,
+        "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+      },
+      "synth-scsp/ssf_voice_parameters.js": {
+        "bytes": 2306,
+        "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+      },
+      "synth-scsp/synth.css": {
+        "bytes": 23814,
+        "sha256": "79f9a216330b8ea70b2042a964395b18eca8112604adb4960754321099c34f2e"
+      },
+      "synth-scsp/synth.js": {
+        "bytes": 51110,
+        "sha256": "439f3e0943427b1983bcdb7c5b4e2ef4c568be8982530478fdc58971933e56f0"
+      },
+      "synth-spu/file_context_menu.js": {
+        "bytes": 6313,
+        "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+      },
+      "synth-spu/spu_synth_visualizer.js": {
+        "bytes": 10421,
+        "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+      },
+      "synth-spu/synth.css": {
+        "bytes": 36580,
+        "sha256": "d3c1a57beb040cb1a4cecea807eeb9c15aa527a9d036c4c04f8d11ca67b56869"
+      },
+      "synth/synth_code_controls.js": {
+        "bytes": 21848,
+        "sha256": "a95e856263570b9e77ba3a97a8eb9ef58564c55472da17de4f67a5c3ffc95216"
+      },
+      "synth/synth_code_declarations.js": {
+        "bytes": 7470,
+        "sha256": "81481fb37ff76c23afb9996432caa40f962a3446a892e9cb2a3ce968f85c9d93"
+      },
+      "synth/synth_code_output.js": {
+        "bytes": 4973,
+        "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+      },
+      "synth/synth_code_project.js": {
+        "bytes": 1623,
+        "sha256": "7fbc1f8b5df80b2fbbfb4d19fa1f36906563f8762317466102ba19d228d17026"
+      },
+      "synth/synth_draft_store.js": {
+        "bytes": 3656,
+        "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+      },
+      "synth/synth_keyboard.js": {
+        "bytes": 10010,
+        "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+      },
+      "synth/synth_menu.js": {
+        "bytes": 1808,
+        "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+      },
+      "synth/synth_project_store.js": {
+        "bytes": 1835,
+        "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+      },
+      "tetorica-scsp-synth.webp": {
+        "bytes": 496728,
+        "sha256": "3ba12223115111300d7a6f0df3d3232489be15fdb354d188a85af1e2b70f2740"
+      }
+    }
+  },
+  "priorFirRegression": {
+    "passed": true,
+    "entry": "/synth-scsp/index.html",
+    "physicalOutputMuted": true,
+    "operatingSystemClipboardUsed": false,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "cases": [
+          "cold FIR selection stages readable source and coefficients; Check leaves applied sound and audio untouched",
+          "FIR source Copy / Save and packaged editable fixture retain the complete microprogram",
+          "explicit cold Apply installs the complete FIR setup without acquiring an audio device",
+          "cold-applied FIR program and recommended coefficients migrate together to the real Worklet",
+          "FIR renders real wet PCM with held Code and keyboard; roles and routing controls describe its taps",
+          "live example selection and Check preserve the current FIR program, coefficients and signal",
+          "older complete-setup ACK preserves newer checked FIR text, recommended coefficients and pending Apply",
+          "failed complete setup Apply retains the previous program, coefficients, applied label and held signal",
+          "invalid text and Reset draft never install staged example coefficients",
+          "same complete FIR setup is a no-op and preserves real output continuity and every voice owner",
+          "existing Code Feedback remains the FIR previous-tap coefficient and leaves separate audition untouched",
+          "selecting and applying the Delay example restores its program and recommended coefficients together",
+          "ACK followed by authoring-refresh failure retains complete FIR setup and applied label across audio restart",
+          "390px example chooser, pending setup and editable source fit without document overflow",
+          "reload restores source text only, retaining explicit Check / Apply and session coefficient boundaries"
+        ],
+        "initialCodes": [
+          4095,
+          1433,
+          4095
+        ],
+        "stagedFir": "On Apply \u00b7 COEF0=4095 (\u00d70.999755859375) \u00b7 COEF1=2048 (\u00d70.5) \u00b7 COEF2=2048 (\u00d70.5)",
+        "migrated": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "b082f0b90fcd18d178a06dbb0e8cdce8d6a04d7a24ad6f95c6c7422276e2179c"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              4095,
+              2048,
+              2048
+            ],
+            "feedback": 0.5
+          }
+        },
+        "exportedFir": {
+          "filename": "tetorica-scsp-fir2-lowpass.scspasm",
+          "bytes": 1529,
+          "sha256": "a7c37a201a9665e65f32c40a378fefb19c69fe7c64946c8bb49e7d2336a1b513"
+        },
+        "fixture": {
+          "bytes": 1529,
+          "sha256": "a7c37a201a9665e65f32c40a378fefb19c69fe7c64946c8bb49e7d2336a1b513"
+        },
+        "roles": [
+          "COEF0 \u00b7 History capture",
+          "COEF1 \u00b7 Previous sample",
+          "COEF2 \u00b7 Current sample"
+        ],
+        "audibleFir": {
+          "peak": 0.022269001230597496,
+          "rms": 0.010524679880708822,
+          "acRms": 0.010524382713665608
+        },
+        "audibleDelay": {
+          "peak": 0.018218994140625,
+          "rms": 0.0004884141055450608,
+          "acRms": 0.0004881835098577001
+        },
+        "restarted": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "b082f0b90fcd18d178a06dbb0e8cdce8d6a04d7a24ad6f95c6c7422276e2179c"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              4095,
+              2048,
+              2048
+            ],
+            "feedback": 0.5
+          }
+        },
+        "mobileOverflow": 0,
+        "continuity": {
+          "samples": 43,
+          "minimumAcRms": 0.010461672743556957
+        },
+        "graph": {
+          "contexts": 2,
+          "contextStates": [
+            "closed",
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx",
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 2,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "cases": [
+          "cold FIR selection stages readable source and coefficients; Check leaves applied sound and audio untouched",
+          "FIR source Copy / Save and packaged editable fixture retain the complete microprogram",
+          "explicit cold Apply installs the complete FIR setup without acquiring an audio device",
+          "cold-applied FIR program and recommended coefficients migrate together to the real Worklet",
+          "FIR renders real wet PCM with held Code and keyboard; roles and routing controls describe its taps",
+          "live example selection and Check preserve the current FIR program, coefficients and signal",
+          "older complete-setup ACK preserves newer checked FIR text, recommended coefficients and pending Apply",
+          "failed complete setup Apply retains the previous program, coefficients, applied label and held signal",
+          "invalid text and Reset draft never install staged example coefficients",
+          "same complete FIR setup is a no-op and preserves real output continuity and every voice owner",
+          "existing Code Feedback remains the FIR previous-tap coefficient and leaves separate audition untouched",
+          "selecting and applying the Delay example restores its program and recommended coefficients together",
+          "ACK followed by authoring-refresh failure retains complete FIR setup and applied label across audio restart",
+          "390px example chooser, pending setup and editable source fit without document overflow",
+          "reload restores source text only, retaining explicit Check / Apply and session coefficient boundaries"
+        ],
+        "initialCodes": [
+          4095,
+          1433,
+          4095
+        ],
+        "stagedFir": "On Apply \u00b7 COEF0=4095 (\u00d70.999755859375) \u00b7 COEF1=2048 (\u00d70.5) \u00b7 COEF2=2048 (\u00d70.5)",
+        "migrated": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "b082f0b90fcd18d178a06dbb0e8cdce8d6a04d7a24ad6f95c6c7422276e2179c"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              4095,
+              2048,
+              2048
+            ],
+            "feedback": 0.5
+          }
+        },
+        "exportedFir": {
+          "filename": "tetorica-scsp-fir2-lowpass.scspasm",
+          "bytes": 1529,
+          "sha256": "a7c37a201a9665e65f32c40a378fefb19c69fe7c64946c8bb49e7d2336a1b513"
+        },
+        "fixture": {
+          "bytes": 1529,
+          "sha256": "a7c37a201a9665e65f32c40a378fefb19c69fe7c64946c8bb49e7d2336a1b513"
+        },
+        "roles": [
+          "COEF0 \u00b7 History capture",
+          "COEF1 \u00b7 Previous sample",
+          "COEF2 \u00b7 Current sample"
+        ],
+        "audibleFir": {
+          "peak": 0.02221723273396492,
+          "rms": 0.010833037492205964,
+          "acRms": 0.010829253534883595
+        },
+        "audibleDelay": {
+          "peak": 0.011164856143295765,
+          "rms": 0.0014769282499369916,
+          "acRms": 0.001440179703151671
+        },
+        "restarted": {
+          "program": {
+            "words": {
+              "count": 512,
+              "sha256": "b082f0b90fcd18d178a06dbb0e8cdce8d6a04d7a24ad6f95c6c7422276e2179c"
+            },
+            "custom": true,
+            "revision": 1
+          },
+          "coefficients": {
+            "codes": [
+              4095,
+              2048,
+              2048
+            ],
+            "feedback": 0.5
+          }
+        },
+        "mobileOverflow": 0,
+        "continuity": {
+          "samples": 32,
+          "minimumAcRms": 0.010467875924661115
+        },
+        "graph": {
+          "contexts": 2,
+          "contextStates": [
+            "closed",
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx",
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 2,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      }
+    ],
+    "assets": {
+      "generated/scsp_wasm.js": {
+        "bytes": 11384,
+        "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+      },
+      "generated/scsp_wasm.wasm": {
+        "bytes": 17722,
+        "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+      },
+      "generated/ssf-player/ssf_player.js": {
+        "bytes": 133059,
+        "sha256": "0e17044c84ff29621c7e377bca63bc48eeb40e2757d802f1b128049ce30c785a"
+      },
+      "js/adpcm_b_sample.js": {
+        "bytes": 7109,
+        "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+      },
+      "js/audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "js/custom_fx.js": {
+        "bytes": 5764,
+        "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+      },
+      "js/megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "js/native-fx-worklet.js": {
+        "bytes": 8783,
+        "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+      },
+      "js/native_audio_effect.wasm": {
+        "bytes": 48297,
+        "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+      },
+      "js/native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "js/native_fx_engine.js": {
+        "bytes": 7061,
+        "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+      },
+      "js/native_fx_graph.js": {
+        "bytes": 3612,
+        "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+      },
+      "js/native_fx_rack.js": {
+        "bytes": 2128,
+        "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+      },
+      "js/native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "js/native_sample.js": {
+        "bytes": 3645,
+        "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+      },
+      "js/native_sample_processor.js": {
+        "bytes": 4443,
+        "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+      },
+      "js/pcm_44100_resampler.js": {
+        "bytes": 4242,
+        "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+      },
+      "js/pitch.js": {
+        "bytes": 1888,
+        "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+      },
+      "js/playground_async_tasks.js": {
+        "bytes": 2223,
+        "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+      },
+      "js/playground_clock.js": {
+        "bytes": 19367,
+        "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+      },
+      "js/playground_code_runtime.js": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      },
+      "js/playground_duration.js": {
+        "bytes": 2009,
+        "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+      },
+      "js/playground_execution.js": {
+        "bytes": 8875,
+        "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+      },
+      "js/playground_live.js": {
+        "bytes": 14734,
+        "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+      },
+      "js/playground_log.js": {
+        "bytes": 2169,
+        "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+      },
+      "js/playground_music.js": {
+        "bytes": 11300,
+        "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+      },
+      "js/playground_performance_queue.js": {
+        "bytes": 24020,
+        "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+      },
+      "js/playground_sample_edit.js": {
+        "bytes": 17672,
+        "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+      },
+      "js/playground_scsp.js": {
+        "bytes": 5781,
+        "sha256": "3668fe4630fb98d398be8d9c433ad07ed3826f9066623f83fbda1a3b9e17f496"
+      },
+      "js/ps1_parameters.js": {
+        "bytes": 6237,
+        "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+      },
+      "js/ps1_spu.js": {
+        "bytes": 10862,
+        "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+      },
+      "js/ps1_vab.js": {
+        "bytes": 14976,
+        "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+      },
+      "js/ps1synth.js": {
+        "bytes": 21748,
+        "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+      },
+      "js/scsp.js": {
+        "bytes": 10590,
+        "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+      },
+      "js/scsp_sample.js": {
+        "bytes": 2785,
+        "sha256": "2a7bf44cb99f284ebd00d345764ea1ee918a3345eace3e6c4ee0e46dd5d503cf"
+      },
+      "js/scspsynth.js": {
+        "bytes": 22640,
+        "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+      },
+      "js/soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "js/tetorica_virtual_files/filesystem.js": {
+        "bytes": 20206,
+        "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+      },
+      "js/tetorica_virtual_files/path.js": {
+        "bytes": 1112,
+        "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+      },
+      "js/tetorica_virtual_files/reader.js": {
+        "bytes": 1404,
+        "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+      },
+      "js/tetorica_virtual_files/sync.js": {
+        "bytes": 5701,
+        "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+      },
+      "js/vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "playground/playground_cassette.js": {
+        "bytes": 14751,
+        "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+      },
+      "playground/playground_declarations.js": {
+        "bytes": 2945,
+        "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+      },
+      "playground/playground_example_order.js": {
+        "bytes": 315,
+        "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+      },
+      "playground/playground_file_tree.js": {
+        "bytes": 4862,
+        "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+      },
+      "playground/playground_monaco.js": {
+        "bytes": 23112,
+        "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+      },
+      "playground/playground_monaco_completion.js": {
+        "bytes": 45033,
+        "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+      },
+      "playground/playground_monaco_definitions.js": {
+        "bytes": 25281,
+        "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+      },
+      "playground/playground_scsp_voice_panel.js": {
+        "bytes": 22889,
+        "sha256": "fbd4f73d9618fb50b050764d196930bbe0fed2de1f99c98e698eca0410dcf14a"
+      },
+      "playground/playground_virtual_files.js": {
+        "bytes": 5205,
+        "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+      },
+      "playground/vendor/fflate.js": {
+        "bytes": 90922,
+        "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+      },
+      "synth-2a03/state_observer.js": {
+        "bytes": 3794,
+        "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+      },
+      "synth-scsp/audio.js": {
+        "bytes": 7920,
+        "sha256": "5e968e8db04b84ff5efb62edd8e3160ef85be6413d95e419826a0b68f6b755a2"
+      },
+      "synth-scsp/channel_view.js": {
+        "bytes": 5548,
+        "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+      },
+      "synth-scsp/code_audio.js": {
+        "bytes": 6073,
+        "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+      },
+      "synth-scsp/code_declarations.js": {
+        "bytes": 7587,
+        "sha256": "346322ef9ffa772ba20ec0f5bfa35421890813e3c42557f08ecaea6348996c20"
+      },
+      "synth-scsp/code_endpoint.js": {
+        "bytes": 4231,
+        "sha256": "6d0b5c13b7f8cbfd8049ea9eb7885b7a7eb44b75641438b40751c476d85fcb41"
+      },
+      "synth-scsp/code_examples.js": {
+        "bytes": 1965,
+        "sha256": "f283badb7fb8c430aa297051ae3c0ed71aedd10efe54a9c021ec40a4705d0a4e"
+      },
+      "synth-scsp/code_files.js": {
+        "bytes": 34362,
+        "sha256": "8c694306a082fc65ba57312b66fb70793d6655fa8ffc127181b84b93c09e9665"
+      },
+      "synth-scsp/code_host.js": {
+        "bytes": 4821,
+        "sha256": "41dcf384a54037fe298186a117e5230d556a175c9c76cbf410035ea4a07e63ae"
+      },
+      "synth-scsp/code_project.js": {
+        "bytes": 12291,
+        "sha256": "06f027b4a6d8c2629ef0931248e5a590a22a21b23d65791678f4cc8e550b34fb"
+      },
+      "synth-scsp/controls.js": {
+        "bytes": 4651,
+        "sha256": "45beef26858bbab26d2f93a4c5e02830353661e4898c85e67c7769c1182bccaa"
+      },
+      "synth-scsp/dsp.js": {
+        "bytes": 10499,
+        "sha256": "dd2b7f500d7e75ae111187776acb12481d9a8e1ade8af190cc0aea4dd7033821"
+      },
+      "synth-scsp/dsp_assembler.js": {
+        "bytes": 8081,
+        "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+      },
+      "synth-scsp/dsp_examples.js": {
+        "bytes": 8027,
+        "sha256": "e53e3fc3268d79fe87df9ab245eb0839372db756b3ce23022863e87b275c3659"
+      },
+      "synth-scsp/dsp_program.js": {
+        "bytes": 3837,
+        "sha256": "e6cd7dfa7ca3c932c4435c3e77deeba098bafef45f3d7c6b0360f425b11c0c77"
+      },
+      "synth-scsp/dsp_program_view.js": {
+        "bytes": 17777,
+        "sha256": "cf4b8a82167b19b340f1aefe1c344ef2707b80653d738fe301defde465ab57e7"
+      },
+      "synth-scsp/examples/fir2-lowpass.scspasm": {
+        "bytes": 1529,
+        "sha256": "a7c37a201a9665e65f32c40a378fefb19c69fe7c64946c8bb49e7d2336a1b513"
+      },
+      "synth-scsp/index.html": {
+        "bytes": 34159,
+        "sha256": "e895018c2733467250781815e572e2c6bf8dd778d39bcb5afa7d17a84a761934"
+      },
+      "synth-scsp/instrument.js": {
+        "bytes": 30576,
+        "sha256": "e57a3ea6f15cef74047d5fbf1d785094da0711e08d6baebbd839733c55a89053"
+      },
+      "synth-scsp/patch.js": {
+        "bytes": 3967,
+        "sha256": "3bdf8d1d20ad3f4328fa0173f31717a6e7c09c4dcf26940e84cc383f14223533"
+      },
+      "synth-scsp/preset.js": {
+        "bytes": 1968,
+        "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+      },
+      "synth-scsp/processor.js": {
+        "bytes": 8797,
+        "sha256": "d67d1f791ca818e40dcbb21086f94e91355fe38b45cb24fcc5c4b7305119fe95"
+      },
+      "synth-scsp/release_guard.js": {
+        "bytes": 2410,
+        "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+      },
+      "synth-scsp/routing.js": {
+        "bytes": 2133,
+        "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+      },
+      "synth-scsp/scsp_envelope_controls.js": {
+        "bytes": 2168,
+        "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+      },
+      "synth-scsp/song_controls.js": {
+        "bytes": 10265,
+        "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+      },
+      "synth-scsp/song_player.js": {
+        "bytes": 20191,
+        "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+      },
+      "synth-scsp/song_source.js": {
+        "bytes": 13566,
+        "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+      },
+      "synth-scsp/ssf_capture.js": {
+        "bytes": 9683,
+        "sha256": "186058414a53bca0022285691eb5a74c2ba837c576539c18ea5b4fabf5c4fd35"
+      },
+      "synth-scsp/ssf_live_history.js": {
+        "bytes": 991,
+        "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+      },
+      "synth-scsp/ssf_live_view.js": {
+        "bytes": 18251,
+        "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+      },
+      "synth-scsp/ssf_renderer.js": {
+        "bytes": 7791,
+        "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+      },
+      "synth-scsp/ssf_snapshot.js": {
+        "bytes": 5340,
+        "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+      },
+      "synth-scsp/ssf_source.js": {
+        "bytes": 12682,
+        "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+      },
+      "synth-scsp/ssf_voice_edits.js": {
+        "bytes": 3774,
+        "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+      },
+      "synth-scsp/ssf_voice_parameters.js": {
+        "bytes": 2306,
+        "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+      },
+      "synth-scsp/synth.css": {
+        "bytes": 23814,
+        "sha256": "79f9a216330b8ea70b2042a964395b18eca8112604adb4960754321099c34f2e"
+      },
+      "synth-scsp/synth.js": {
+        "bytes": 51110,
+        "sha256": "439f3e0943427b1983bcdb7c5b4e2ef4c568be8982530478fdc58971933e56f0"
+      },
+      "synth-spu/file_context_menu.js": {
+        "bytes": 6313,
+        "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+      },
+      "synth-spu/spu_synth_visualizer.js": {
+        "bytes": 10421,
+        "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+      },
+      "synth-spu/synth.css": {
+        "bytes": 36580,
+        "sha256": "d3c1a57beb040cb1a4cecea807eeb9c15aa527a9d036c4c04f8d11ca67b56869"
+      },
+      "synth/synth_code_controls.js": {
+        "bytes": 21848,
+        "sha256": "a95e856263570b9e77ba3a97a8eb9ef58564c55472da17de4f67a5c3ffc95216"
+      },
+      "synth/synth_code_declarations.js": {
+        "bytes": 7470,
+        "sha256": "81481fb37ff76c23afb9996432caa40f962a3446a892e9cb2a3ce968f85c9d93"
+      },
+      "synth/synth_code_output.js": {
+        "bytes": 4973,
+        "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+      },
+      "synth/synth_code_project.js": {
+        "bytes": 1623,
+        "sha256": "7fbc1f8b5df80b2fbbfb4d19fa1f36906563f8762317466102ba19d228d17026"
+      },
+      "synth/synth_draft_store.js": {
+        "bytes": 3656,
+        "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+      },
+      "synth/synth_keyboard.js": {
+        "bytes": 10010,
+        "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+      },
+      "synth/synth_menu.js": {
+        "bytes": 1808,
+        "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+      },
+      "synth/synth_project_store.js": {
+        "bytes": 1835,
+        "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+      },
+      "tetorica-scsp-synth.webp": {
+        "bytes": 496728,
+        "sha256": "3ba12223115111300d7a6f0df3d3232489be15fdb354d188a85af1e2b70f2740"
+      }
+    }
+  },
+  "package": {
+    "passed": true,
+    "stage": "release/itch_scsp_synth_dsp-code-20261117-roz69X",
+    "archive": "release/tetorica_scsp_synth_dsp-code-20261117_itch.zip",
+    "files": 367,
+    "bundles": 4,
+    "archiveRecord": {
+      "bytes": 4246057,
+      "sha256": "532c9b07264dd9f716e61dea2997c42de764d1333f04c47cd18234a328d3e246"
+    },
+    "sourceCheck": {
+      "inputs": 19,
+      "files": 24
+    }
+  },
+  "boundaries": {
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "portableFormatsChanged": false,
+    "calibrationChanged": false,
+    "nativeOrWasmRebuilt": false,
+    "publicNpmDspExportAdded": false,
+    "commitPushOrPublicationPerformed": false
+  }
+}

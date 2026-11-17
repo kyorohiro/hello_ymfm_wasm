@@ -53,6 +53,24 @@ interface ScspCodeEffect {
   feedback:number;
   send:number;returnLevel:number;
 }
+/** Signed 13-bit COEF0..2 codes (-4096..4095); multiplier = code / 4096. */
+type ScspCodeDspCoefficientPatch = Partial<{0:number;1:number;2:number}>;
+interface ScspCodeDspCoefficients {
+  codes:[number,number,number];
+  /** Existing Feedback request; the actual COEF1 code is floor(feedback * 4096). */
+  feedback:number;
+}
+interface ScspCodeDspProgram {
+  words:number[];
+  custom:boolean;
+  /** Advances when program words change; coefficient-only edits keep the revision. */
+  revision:number;
+  coefficients:ScspCodeDspCoefficients;
+}
+interface ScspCodeDspApplyOptions {
+  /** Supply all three entries to apply program and coefficients atomically. */
+  coefficients:{0:number;1:number;2:number};
+}
 type ScspCodeConfigPatch = Partial<Omit<ScspCodeConfig,'fm'|'effect'>> & {fm?:Partial<ScspCodeConfig['fm']>};
 type ScspCodePresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'|'lfo'|'modulation'>> & {envelope?:Partial<PlaygroundScspEnvelope>;lfo?:Partial<PlaygroundScspLfo>};
 interface ScspCodePortableOperator {
@@ -93,6 +111,22 @@ interface ScspCodeClient {
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
+  /** Parse source and check this Synth's DSP execution profile locally.
+   * Returns an owned 512-word image without an audio-owner request or rendering.
+   * useSoundChip() prepares audio; compilation itself does not modify it. */
+  compileDsp(source:string):Uint16Array;
+  /** Apply to the shared Synth DSP; does not reset held voices or Code.
+   * Omit options to retain coefficients, or supply all three for atomic setup.
+   * Changed setup clears the DSP RAM ring. Identical setup is a no-op.
+   * Code Stop retains this session's program and coefficients. */
+  applyDspProgram(words:Uint16Array|readonly number[],options?:ScspCodeDspApplyOptions):Promise<ScspCodeDspProgram>;
+  /** Read the shared program and coefficient snapshot without advancing audio. */
+  getDspProgram():Promise<ScspCodeDspProgram>;
+  /** Read COEF0..2 and the existing Feedback value. */
+  getDspCoefficients():Promise<ScspCodeDspCoefficients>;
+  /** Atomically update only supplied signed COEF0..2 codes (-4096..4095).
+   * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
+  setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
   /** Load an existing portable SCSP preset, version 1 through 4. */
   loadPatch(patch:unknown):Promise<boolean>;

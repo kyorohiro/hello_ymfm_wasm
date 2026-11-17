@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
+import { checkScspDspDelaySource } from './dsp_program.js?v=scsp-dsp-code-1';
 
 export const SCSP_CODE_METHODS = Object.freeze([
 	'getState',
@@ -12,6 +13,10 @@ export const SCSP_CODE_METHODS = Object.freeze([
 	'setLfo',
 	'setConfig',
 	'setEffect',
+	'getDspProgram',
+	'applyDspProgram',
+	'getDspCoefficients',
+	'setDspCoefficients',
 	'exportPatch',
 	'loadPatch',
 	'setFrequency',
@@ -42,6 +47,10 @@ export function validateScspCodeCall(method, args) {
 		setLfo: 2,
 		setConfig: 1,
 		setEffect: 1,
+		getDspProgram: 0,
+		applyDspProgram: 1,
+		getDspCoefficients: 0,
+		setDspCoefficients: 1,
 		exportPatch: 0,
 		loadPatch: 1,
 		setFrequency: 2,
@@ -53,8 +62,10 @@ export function validateScspCodeCall(method, args) {
 		allNotesOff: 0,
 		dispose: 0,
 	};
-	if (args.length !== arity[method])
-		throw new TypeError(`${method} takes ${arity[method]} arguments`);
+	if (args.length !== arity[method] && !(method === 'applyDspProgram' && args.length === 2)) {
+		const expected = method === 'applyDspProgram' ? '1 or 2' : arity[method];
+		throw new TypeError(`${method} takes ${expected} arguments`);
+	}
 	if (
 		['setFrequency', 'setNote', 'noteOn', 'noteOff', 'keyOn', 'keyOff'].includes(method) &&
 		(!Number.isInteger(args[0]) || args[0] < 0 || args[0] > 31)
@@ -104,6 +115,11 @@ export function createScspCodeClient({ metadata, invoke, isCurrent, dispose } = 
 		sampleRate: 44100,
 		nativeSampleRate: 44100,
 		isCurrent: current,
+		compileDsp(...args) {
+			check();
+			if (args.length !== 1) throw new TypeError('compileDsp takes 1 argument');
+			return checkScspDspDelaySource(args[0]).words;
+		},
 	};
 	for (const method of SCSP_CODE_METHODS) {
 		if (method === 'dispose') continue;

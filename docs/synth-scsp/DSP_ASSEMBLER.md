@@ -79,8 +79,60 @@ console.log(disassembleScspDsp(words, {includeTrailingZeros:true}));
 ```
 
 These are pure local functions. They neither mutate their inputs nor resolve
-live chip state, and are not yet part of the npm / Synth Code public API.
+live chip state. They are not npm exports; Synth Code exposes the checked
+`compileDsp()` facade described below.
 The source and declaration file can be read directly.
+
+### Synth Code: compile, apply, change coefficients
+
+In a fresh project's **Files**, open **examples/dsp-iir-motion.js → Code → Run**.
+The [editable example](examples/dsp-iir-motion.js) compiles a three-step IIR,
+applies its complete coefficient table, and plays the current PCM A through it.
+Its melody follows `setBpm()` through `beat()`, while a separate four-second
+`tween()` moves the coefficients. Try Saw to see and hear the smoothing.
+Existing saved/imported Files are kept; use **Add files** to add the example
+there. The default `index.js` remains the simple PCM / FM melody.
+
+```js
+const scsp = await useSoundChip('scsp');
+const words = scsp.compileDsp(`
+000: TRA=1 XSEL=0 YSEL=1 ZERO=1 COEF=1
+001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2
+002: TWT=1 TWA=0 EWT=1 EWA=0 ZERO=1
+`);
+await scsp.applyDspProgram(words, {
+  coefficients: {0: 4095, 1: 3840, 2: 256},
+});
+await scsp.setDspCoefficients({1: 3072, 2: 1024});
+const setup = await scsp.getDspProgram();
+const coefficients = await scsp.getDspCoefficients();
+```
+
+`compileDsp(source)` is synchronous: it parses and checks the execution profile
+locally, returning a new `Uint16Array(512)` without RPC, rendering or mutation.
+`useSoundChip()` itself prepares the audio connection. Invalid source reports
+its line / step; compilation is not accepted as a remote Worklet command.
+
+The other four methods are asynchronous owner-acknowledged calls on the same
+Synth DSP used by the GUI, independent of SSF playback. Program-only Apply
+retains current coefficients. An optional **complete** three-entry table uses
+the same atomic setup Apply as the GUI. Partial `setDspCoefficients()` edits
+retain history and voices; COEF1 also updates saved Feedback. Invalid requests
+leave the entire setup unchanged. Argument data is copied before enqueueing.
+
+`getDspProgram()` and Apply return detached `{words, custom, revision,
+coefficients}` snapshots. `coefficients` is `{codes:[c0,c1,c2], feedback}`;
+`getDspCoefficients()` and the coefficient setter return that smaller object.
+Only word-image changes advance `revision`. Coefficient motion does not poll or
+transfer the program image. Applied labels and coefficient controls follow
+acknowledged changes without replacing the DSP editor draft.
+
+The example uses `livePrepare()` for setup once per Run. Apply updates named
+loops while retaining live setup; use Run after changing setup source. Code
+Stop releases its notes and retains the shared DSP program / coefficients.
+Reload restores only authored Files / draft text, never executes them, and
+starts the audio setup with the built-in Delay. These methods do not introduce
+sample-timed scheduling or a public npm DSP API.
 
 ## Applying in the Synth
 
@@ -201,17 +253,18 @@ and their actual register addresses, `0x700`, `0x702` and `0x704`.
 For the built-in Delay the entries scale ring read, feedback and input,
 respectively. COEF1 and the existing Feedback control stay synchronized;
 Feedback shows the quantized hardware value. The existing Code call
-`scsp.setEffect({feedback:-0.5})` selects COEF1 = −2048. Other coefficient edits
-are Synth controls, not a new public Code API. `getState().dspCoefficients`
+`scsp.setEffect({feedback:-0.5})` selects COEF1 = −2048. Code can also use
+`scsp.setDspCoefficients({0:4095,2:2048})`. `getState().dspCoefficients`
 exposes their current signed codes for inspection.
 
 COEF0 / COEF2 are session state and survive Stop / mode / voice-preset loads;
 reload starts them at 4095. COEF1 is the existing saved Feedback field. Preset
 shape is unchanged, but negative / above-0.85 Feedback needs this newer reader.
-`.scspasm` Copy / Save exports instructions without coefficient values. Program
-Program-only Apply and Reset draft do not change coefficients. Example Apply
+`.scspasm` Copy / Save exports instructions without coefficient values. Program-only
+Apply and Reset draft do not change coefficients. Example Apply
 includes its three staged values. SSF has its own DSP; these
-controls are disabled during SSF Live editing.
+controls are disabled during SSF Live editing; Code DSP calls still address
+the primary Synth DSP, not the separate SSF engine.
 
 To hear a minimal edit, enable DSP return, change `EWT=1` to `EWT=0`, Check and Apply.
 The wet output disappears while direct voice output continues. Reset draft,
@@ -238,4 +291,5 @@ positions remain the author's responsibility. Range-valid fields are not a
 guarantee of a meaningful runnable program (for example, the core's input
 selection has fewer implemented sources than IRA's six-bit encoding permits).
 Macros, automatic scheduling, additional coefficient entries / RAM-layout editing and general
-effect compilation are later work. No public npm or Synth Code DSP API is added.
+effect compilation are later work. The Synth Code facade above remains separate
+from a future public npm DSP API.

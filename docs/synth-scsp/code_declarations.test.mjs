@@ -26,6 +26,14 @@ const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopSt
 await scsp.setPreset(0,{sample});await scsp.setConfig({mode:'fm6',fm:{algorithm:'pairs'}});
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
+const dspWords:Uint16Array=scsp.compileDsp('000: ZERO=1');
+const dsp:ScspCodeDspProgram=await scsp.applyDspProgram(dspWords);
+await scsp.applyDspProgram(Object.freeze(Array.from(dspWords)),{coefficients:{0:4095,1:3840,2:256}});
+const dspSnapshot:ScspCodeDspProgram=await scsp.getDspProgram();
+const dspCoefficients:ScspCodeDspCoefficients=await scsp.getDspCoefficients();
+const dspCoefficient:number=dspCoefficients.codes[2];
+const updatedDsp:ScspCodeDspCoefficients=await scsp.setDspCoefficients({1:3072,2:1024});
+await scsp.setDspCoefficients({0:-4096});
 await scsp.setEnvelope(0,{loopLink:true});
 await scsp.setPreset(0,{envelope:{loopLink:false}});
 await scsp.setLfo(0,{pitchDepth:2});await scsp.setMix(0,{totalLevel:9});
@@ -56,6 +64,24 @@ scsp.setClickGuard(false);
 scsp.setConfig({clickGuard:false});
 // @ts-expect-error portable instrument presets exclude host preferences
 (await scsp.exportPatch()).clickGuard;
+// @ts-expect-error source is readable field text, not words
+scsp.compileDsp(new Uint16Array(512));
+// @ts-expect-error compilation is local and synchronous
+const compilePromise:Promise<Uint16Array>=scsp.compileDsp('000: ZERO=1');
+// @ts-expect-error program input is a word image, not source text
+scsp.applyDspProgram('000: ZERO=1');
+// @ts-expect-error setup must provide every coefficient
+scsp.applyDspProgram(dspWords,{coefficients:{1:3840,2:256}});
+// @ts-expect-error only the existing three-entry setup is supported
+scsp.applyDspProgram(dspWords,{coefficients:{0:4095,1:3840,2:256},reset:true});
+// @ts-expect-error coefficient indices are 0, 1 or 2
+scsp.setDspCoefficients({3:0});
+// @ts-expect-error coefficients are signed integer codes, represented by numbers
+scsp.setDspCoefficients({1:'0.5'});
+// @ts-expect-error coefficient reads take no parameters
+scsp.getDspCoefficients(0);
+// @ts-expect-error raw DSP register access is not exposed
+scsp.setDspRegister(0x700,0x7ff8);
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}
@@ -66,7 +92,7 @@ test('SCSP Code implementation links open its actual performance client instead 
   const {definitionSource,sourcePosition}=await import('../playground/playground_monaco_definitions.js');
   const declarations=selectScspCodeDeclarations(source),lines=declarations.split('\n');
   const client=await readFile(new URL('./code_endpoint.js',import.meta.url),'utf8');
-  for(const symbol of ['noteOn','noteOff','getState','allNotesOff','dispose']){
+  for(const symbol of ['noteOn','noteOff','getState','allNotesOff','dispose','compileDsp','applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients']){
     const line=lines.findIndex(value=>value.trimStart().startsWith(symbol+'('));assert(line>=0,symbol);
     assert.deepEqual(definitionSource(declarations,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'scsp',{runtimeFile:'playground_code_runtime.js'}),{file:'synth-scsp/code_endpoint.js',symbol:'createScspCodeClient'});
     assert(sourcePosition(client,'createScspCodeClient').lineNumber>1,symbol);

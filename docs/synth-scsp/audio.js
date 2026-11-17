@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createScspCodeClient,scspCodeCancelled} from './code_endpoint.js';
+import {createScspCodeClient,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 const nativeSetTimer=globalThis.setTimeout.bind(globalThis),nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 const BALANCE=.125,DEADLINE=15000;
 const validateVolume=value=>{if(!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('SCSP Master must be 0..3.8');};
@@ -8,8 +8,9 @@ const validateVolume=value=>{if(!Number.isFinite(value)||value<0||value>3.8)thro
  * optional Code FX route, Stop fade and Master. outputNode is post-Master and
  * may be monitored without making another speaker connection.
  */
-export async function createAudio({volume=.6,onError=()=>{}}={}){
+export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{}}={}){
   validateVolume(volume);
+  if(typeof onDspChange!=='function')throw new TypeError('SCSP DSP observer must be a function');
   const Context=globalThis.AudioContext??globalThis.webkitAudioContext;
   if(!Context)throw new Error('Web Audio is unavailable');
   const context=new Context({latencyHint:'interactive'}),controller=new AbortController(),pending=new Map();
@@ -38,7 +39,7 @@ export async function createAudio({volume=.6,onError=()=>{}}={}){
     const resumed=context.resume();
     const [wasmBinary]=await Promise.race([Promise.all([
       fetch(new URL('../generated/scsp_wasm.wasm',import.meta.url),{signal:controller.signal}).then(r=>{if(!r.ok)throw new Error(`SCSP WASM HTTP ${r.status}`);return r.arrayBuffer();}),
-      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-dsp-fir-1',import.meta.url)),resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-dsp-code-1',import.meta.url)),resumed,
     ]),startupFailure]);assertOpen();
     const ready=new Promise(resolve=>{readyResolve=resolve;});
     node=new AudioWorkletNode(context,'tetorica-scsp-synth',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary}});
@@ -73,7 +74,19 @@ export async function createAudio({volume=.6,onError=()=>{}}={}){
       owner.promise=owner.begin.then(metadata=>{
         if(!current())throw scspCodeCancelled();
         return owner.client=createScspCodeClient({metadata,isCurrent:current,
-          invoke:(method,args)=>{if(!current())throw scspCodeCancelled();return command('code',[metadata.session,method,args]);},
+          invoke:async(method,args)=>{
+            if(!current())throw scspCodeCancelled();
+            const value=await command('code',[metadata.session,method,args]);
+            // Remember owner-acknowledged setup before the borrowed call resolves.
+            // Coefficient motion sends only three codes, never the MPRO image.
+            // Stop retires a client but keeps already-committed shared DSP edits.
+            if(!closed&&!fatal&&context.state!=='closed'&&['applyDspProgram','setDspCoefficients','setEffect'].includes(method)){
+              try{onDspChange({method,value});}
+              catch(error){console.error('SCSP Code DSP display sync failed',error);}
+            }
+            if(!current())throw scspCodeCancelled();
+            return value;
+          },
           dispose:()=>stopCode(owner.client)});
       }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
       return owner.promise;

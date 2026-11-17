@@ -212,8 +212,11 @@ test('processor forwards complete setup only to primary and preserves its held C
   assert.equal(primary.codeActive, true);
   assert.equal(primary.config.effect.feedback, -.25);
   assert.deepEqual(snapshot(audition), untouched);
-  assert.match((await owner.command('code', [session, 'applyDspProgram', [Array.from(changedProgram()), {coefficients}]])).error,
-    /Unknown SCSP Code method/);
+  const codeResponse = await owner.command('code', [session, 'applyDspProgram', [Array.from(changedProgram()), {coefficients}]]);
+  assert(!codeResponse.error);
+  assert.deepEqual(codeResponse.value, response.value);
+  assert.equal(primary.codeActive, true);
+  assert.deepEqual(snapshot(audition), untouched);
 });
 
 test('failed setup restoration stops the owner and retains last acknowledged program / coefficient metadata', async t => {

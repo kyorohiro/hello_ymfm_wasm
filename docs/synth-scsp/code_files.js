@@ -12,7 +12,7 @@ import {
 	SCSP_PROJECT_MANIFEST,
 	SCSP_PROJECT_CODE_LENGTH,
 	SCSP_PROJECT_FILE_BYTES,
-} from './code_project.js?v=scsp-dsp-coef-1';
+} from './code_project.js?v=scsp-dsp-code-1';
 
 const inside = (path, directory) => path === directory || path?.startsWith(directory + '/');
 const basename = (path) => path.split('/').pop(),

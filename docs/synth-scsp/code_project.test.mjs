@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import {createScspCodeProject,createScspProjectStore,createDefaultScspProjectSound,readScspProjectSound,SCSP_PROJECT_MANIFEST,SCSP_PROJECT_FILE_BYTES,SCSP_PROJECT_STORAGE_KEY} from './code_project.js';
 import {readPatch} from './patch.js';
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
+import {readFile} from 'node:fs/promises';
+
+test('fresh Files include the byte-exact editable DSP example, while saved projects are not reseeded',async()=>{
+  const path='/examples/dsp-iir-motion.js',source=await readFile(new URL('./examples/dsp-iir-motion.js',import.meta.url),'utf8');
+  const fresh=createScspCodeProject({getStarterCode:()=> '// same default melody'});
+  assert.equal(fresh.fs.get('/index.js').data,'// same default melody');assert.equal(fresh.fs.get(path).data,source);
+  fresh.fs.writeText(path,'// user edit');
+  const restored=createScspCodeProject({snapshot:fresh.snapshot(),getStarterCode:()=>assert.fail('No reseed')});
+  assert.equal(restored.fs.get(path).data,'// user edit');
+  const empty=createScspCodeProject(),copy=createScspCodeProject({snapshot:empty.snapshot(),getStarterCode:()=>assert.fail('No reseed')});
+  assert.equal(copy.fs.has(path),false);
+});
 
 test('SCSP project preserves the six-operator v4 patch, source text, binary audio/VGM and editor mode',async()=>{
   const settings=createDefaultScspProjectSound();settings.mode='fm6';settings.fm.algorithm='pairs';settings.effect.enabled=true;

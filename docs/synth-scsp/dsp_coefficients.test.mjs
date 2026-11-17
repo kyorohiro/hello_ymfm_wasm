@@ -210,7 +210,12 @@ test('processor coefficients target only primary Synth and revalidate before any
   assert.deepEqual(audition.core.readRam(), before.ram);
   assert.deepEqual(coefficientWords(audition.core), before.words);
   assert.equal(primary.codeActive, true);
-  assert.match((await owner.command('code', [session, 'setDspCoefficients', [{0: 0}]])).error, /Unknown SCSP Code method/);
+  assert.deepEqual((await owner.command('code', [session, 'setDspCoefficients', [{0: 0}]])).value,
+    {codes: [0, -2048, 4095], feedback: -.5});
+  assert.equal(primary.readDspCoefficients().codes[0], 0);
+  assert.deepEqual(audition.read(), before.state);
+  assert.deepEqual(audition.core.readRam(), before.ram);
+  assert.deepEqual(coefficientWords(audition.core), before.words);
   const saved = primary.readDspCoefficients();
   assert.match((await owner.command('setDspCoefficients', [{0: 0, 2: 4096}])).error, /COEF2/);
   assert.deepEqual(primary.readDspCoefficients(), saved);

@@ -14,6 +14,7 @@ import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-dsp-coef-
 import { createScspValidation } from '../js/playground_scsp.js';
 import { createScspInitSample } from '../js/scspsynth.js';
 import { OPERATOR_KEYS } from './routing.js';
+import { SCSP_DSP_IIR_CODE } from './code_examples.js?v=scsp-dsp-code-1';
 
 export const SCSP_PROJECT_FORMAT = 'tetorica-scsp-code-project';
 export const SCSP_PROJECT_MANIFEST = '/scsp-synth.project.json';
@@ -328,6 +329,9 @@ export function createScspCodeProject({
 	if (starterCode !== undefined) {
 		if (typeof starterCode !== 'string') throw TypeError('Starter code must be text.');
 		fs.writeText('/index.js', starterCode);
+		// Fresh projects include an editable example. A saved/imported snapshot
+		// replaces the filesystem below; it is never reseeded or executed.
+		fs.writeText('/examples/dsp-iir-motion.js', SCSP_DSP_IIR_CODE);
 	}
 	if (snapshot) project.restore(snapshot);
 	return project;

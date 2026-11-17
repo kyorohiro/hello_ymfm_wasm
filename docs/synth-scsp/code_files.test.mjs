@@ -127,7 +127,8 @@ test('SCSP folder import validates paths, duplicates and byte budgets before rea
 
 test('SCSP malformed projects and oversized sound saves preserve the workspace atomically',async t=>{
   const f=fixture(t);await f.files.ready;const before=f.project.snapshot();await assert.rejects(f.files.importProject(Uint8Array.of(1,2,3)));assert.deepEqual(f.project.snapshot(),before);
-  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(SCSP_PROJECT_FILE_BYTES-100)}]);const full=f.project.snapshot();await assert.rejects(f.files.saveSound(),/12 MiB/);assert.deepEqual(f.project.snapshot(),full);assert.equal(f.doc.querySelector('.scsp-main').inert,false);
+  const used=f.project.fs.list().reduce((sum,file)=>sum+(file.type==='text'?new TextEncoder().encode(file.data).byteLength:file.data.byteLength),0);
+  f.project.importFiles([{path:'/padding.bin',type:'binary',data:new Uint8Array(SCSP_PROJECT_FILE_BYTES-used-100)}]);const full=f.project.snapshot();await assert.rejects(f.files.saveSound(),/12 MiB/);assert.deepEqual(f.project.snapshot(),full);assert.equal(f.doc.querySelector('.scsp-main').inert,false);
 });
 
 test('SCSP cancelled workspace patch application leaves the current Files intact',async t=>{
@@ -165,8 +166,8 @@ test('SCSP unread or invalid durable drafts remain untouched by later edits and 
 });
 
 test('SCSP Save sound as captures its source at dialog open and Cancel leaves Files unchanged',async t=>{
-  const f=fixture(t);await f.files.ready;const button=f.doc.getElementById('scspSaveSoundAs');await button.fire('click');const dialog=f.doc.getElementById('scspFileNameDialog'),input=f.doc.getElementById('scspFileNameInput');assert.equal(dialog.open,true);assert.equal(input.value,'Sine');
-  await f.doc.getElementById('scspFileNameCancel').fire('click');assert.equal(f.project.fs.list().length,1);
+  const f=fixture(t);await f.files.ready;const before=f.project.fs.snapshot(),button=f.doc.getElementById('scspSaveSoundAs');await button.fire('click');const dialog=f.doc.getElementById('scspFileNameDialog'),input=f.doc.getElementById('scspFileNameInput');assert.equal(dialog.open,true);assert.equal(input.value,'Sine');
+  await f.doc.getElementById('scspFileNameCancel').fire('click');assert.deepEqual(f.project.fs.snapshot(),before);
   await button.fire('click');const changed=createDefaultPreset();changed.transpose=12;f.setSettings(changed);f.files.markSoundDirty();input.value='Captured before edit';await dialog.children[0].fire('submit');await new Promise(r=>setImmediate(r));
   assert.equal(JSON.parse(f.project.fs.get('/presets/Captured before edit.scsp.json').data).transpose,0);assert.deepEqual(f.project.settings,changed);assert.deepEqual(f.calls,[]);
 });

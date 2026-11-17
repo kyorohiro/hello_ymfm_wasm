@@ -7,7 +7,7 @@ import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?
 import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-fir-1';
 import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
-import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js';
+import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 import {ScspReleaseGuard} from './release_guard.js';
 const clone=v=>Array.isArray(v)?v.map(clone):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,clone(x)])):v;
 const sourceSlot=n=>{if(!Number.isInteger(n)||n<0||n>=SOURCE_COUNT)throw new RangeError('Choose operator A–F');return n;};
@@ -308,6 +308,10 @@ export class SynthInstrument {
     if(!this.codeActive||session!==this.codeSession)throw scspCodeCancelled();
     validateScspCodeCall(method,args);
     if(method==='getState')return this.read();
+    if(method==='getDspProgram')return {...this.readDspProgram(),coefficients:this.readDspCoefficients()};
+    if(method==='applyDspProgram')return {...this.applyDspProgram(...args),coefficients:this.readDspCoefficients()};
+    if(method==='getDspCoefficients')return this.readDspCoefficients();
+    if(method==='setDspCoefficients')return this.setDspCoefficients(...args);
     if(method==='dispose')return this.endCode(session);
     if(method==='allNotesOff'){for(const group of this.groups.values())if(group.owner?.kind==='code'&&group.owner.session===session)this.noteOff(group.id);return true;}
     if(method==='loadPCM')return this.synth.loadPCM(...args);
