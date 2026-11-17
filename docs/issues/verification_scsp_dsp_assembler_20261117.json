@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-17T09:13:51.918Z",
+  "passed": true,
+  "baseCommit": "787f52500fcd17356016551834acc56415b47c24",
+  "scope": "Experimental pure SCSP DSP field codec / local CLI, existing Delay fixture",
+  "physicalAudioUsed": false,
+  "listeningPerformed": false,
+  "sources": {
+    "docs/synth-scsp/dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/synth-scsp/dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "docs/synth-scsp/dsp_assembler.test.mjs": {
+      "bytes": 13965,
+      "sha256": "5d1a74a69e8224813d0f017bdbbce6ebdea5e62136196e4d0b59c71c9c0e966a"
+    },
+    "docs/synth-scsp/examples/delay.scspasm": {
+      "bytes": 1166,
+      "sha256": "d8bfc97d9436cc7a41886d0a78dcffe649abc3704c67350f9dd000b5aedc2f99"
+    },
+    "docs/synth-scsp/DSP_ASSEMBLER.md": {
+      "bytes": 4522,
+      "sha256": "c5982e6654270a8882ddeef38b304a0ab3371a2a0c7b61c2fcf3dcc1794d5a29"
+    },
+    "scripts/scsp_dsp_assembler.mjs": {
+      "bytes": 1955,
+      "sha256": "39ecac3464ce68e95ca05a0c2456148d6452861f4ce84e8dbec53f8b1764eab2"
+    },
+    "scripts/scsp_dsp_assembler.test.mjs": {
+      "bytes": 3718,
+      "sha256": "fb77f4952d743928d660d9d8d867c0fa35e4a4373abd9b071cb80d5ecbbf6892"
+    }
+  },
+  "unchanged": {
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 3815,
+      "sha256": "8a11271703090633972794bd8b0df9801a50e09df81b134f2f1dc2280a6de3e9"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 8482,
+      "sha256": "bb559fa9aa06774215301be561d161893591e4aa7d3b4db73eb985cc31e0e346"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 22640,
+      "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+    }
+  },
+  "checks": {
+    "targetedTests": {
+      "passed": true,
+      "count": 12,
+      "logSha256": "31aa9f4a1384b4b03ab9ee26face3b0fc0a2e6eb17d75d62713ba2adbde6329e"
+    },
+    "scspSynthRegression": {
+      "passed": true,
+      "count": 207,
+      "includesNineCodecTests": true,
+      "logSha256": "646dddc361a730262df5619fb94c692919021bb09f4abebbf8e68dcc5050de6f"
+    },
+    "declarations": {
+      "passed": true,
+      "strictTypeScript": true,
+      "expectedErrorsChecked": true
+    },
+    "calibration": {
+      "passed": true,
+      "checks": 2,
+      "logSha256": "a0db9c75861092e31c9aa8651c18498c3806faceba83e33c03350c22a6941db5"
+    },
+    "nodeCli": {
+      "passed": true,
+      "decodedDelay": "000: XSEL=1 YSEL=1 ZERO=1\n001: XSEL=1 YSEL=1 MRD=1 ZERO=1\n002: XSEL=1 YSEL=1 IWT=1 ZERO=1\n003: XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1\n004: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n005: XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1\n"
+    }
+  },
+  "cpu": {
+    "passed": true,
+    "scope": "shipped SCSP DSP Delay PCM comparison",
+    "physicalAudioUsed": false,
+    "sampleRate": 44100,
+    "programWords": 512,
+    "programSha256": "9911a4da383fdeae769ce64a838b69e5aed3e37d26a07987ecb50651eea5f612",
+    "fixtureSha256": "d8bfc97d9436cc7a41886d0a78dcffe649abc3704c67350f9dd000b5aedc2f99",
+    "observations": [
+      {
+        "feedback": 0,
+        "frames": 6174,
+        "exactStereoPcm": true,
+        "partitionedRenderExact": true,
+        "echoPeaks": [
+          0.09027099609375,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "leftPcmSha256": "4cf80ff01884b96ac8c9f5984c37cab0176e0f9e45675b3ca03d4312fcf7da4f",
+        "rightPcmSha256": "4cf80ff01884b96ac8c9f5984c37cab0176e0f9e45675b3ca03d4312fcf7da4f"
+      },
+      {
+        "feedback": 0.5,
+        "frames": 6174,
+        "exactStereoPcm": true,
+        "partitionedRenderExact": true,
+        "echoPeaks": [
+          0.09027099609375,
+          0.045135498046875,
+          0.022552490234375,
+          0.011260986328125,
+          0.005615234375,
+          0.0028076171875
+        ],
+        "leftPcmSha256": "c04d5a053f547c64bf66d04346711804e7b2101b53635fd19d2874ea5d598a69",
+        "rightPcmSha256": "c04d5a053f547c64bf66d04346711804e7b2101b53635fd19d2874ea5d598a69"
+      }
+    ],
+    "editedEwtOnly": true,
+    "editedWetOutputSilent": true,
+    "pcmRamProtected": true
+  },
+  "references": [
+    {
+      "title": "Pinned MAME-derived SCSP decoder",
+      "path": "third_party/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.cpp",
+      "line": 95
+    },
+    {
+      "title": "SEGA SCSP User Manual",
+      "url": "https://antime.kapsi.fi/sega/files/ST-077-R2-052594.pdf"
+    },
+    {
+      "title": "SEGA dAsms User Manual",
+      "url": "https://antime.kapsi.fi/sega/files/ST-228-R1-030596.pdf"
+    }
+  ],
+  "limits": [
+    "Syntax is provisional, not a SEGA assembler compatibility claim.",
+    "Raw uninterpreted bits are preserved for lossless inspection; encoding validity does not certify runnable behavior.",
+    "No live installer replacement, UI feature, runtime update, Native rebuild, WASM/SDK rebuild, npm/Tauri changes, commit, push or publication.",
+    "The existing DSP remains the comparison baseline; physical Saturn fidelity and human listening are outside these checks."
+  ]
+}

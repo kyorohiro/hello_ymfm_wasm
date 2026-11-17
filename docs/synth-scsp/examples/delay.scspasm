@@ -1,0 +1,23 @@
+; Tetorica experimental SCSP DSP field assembly.
+; One line is one physical microstep, with several parallel control fields.
+; Missing fields and omitted physical steps are zero. The image has 128 steps.
+;
+; Original six-step Delay from ../dsp.js. Keep the step positions: memory I/O
+; runs on odd steps in the pinned core, and SHIFTED uses the previous ACC.
+; Coefficients, MADRS, ring RAM and send/return are configured by DspDelay,
+; not by this text. COEF and MASA below are table indices, not their contents.
+
+; Calculate with MEMS0 / COEF0 and a zero B input.
+000: XSEL=1 YSEL=1 ZERO=1
+; Issue the delay-ring read using MADRS0 + DEC.
+001: XSEL=1 YSEL=1 MRD=1 ZERO=1
+; Latch the preceding read into MEMS0. Preserve this pipeline step.
+002: XSEL=1 YSEL=1 IWT=1 ZERO=1
+; Emit the previous accumulator to EFREG0; calculate the feedback product.
+003: XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1
+; Add MIXS0 * COEF2 to the accumulator (IRA 0x20 selects MIXS0).
+004: XSEL=1 YSEL=1 IRA=0x20 BSEL=1 COEF=2
+; Write the previous accumulator into the ring using MADRS1 + DEC.
+005: XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1
+
+; Steps 006..127 remain zero, exactly as in the existing program.

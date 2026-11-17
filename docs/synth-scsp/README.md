@@ -333,6 +333,10 @@ The first 64 KiB of RAM remains reserved for the DSP ring, leaving
 448 KiB for editor PCM and modulation guards. Feedback, Send and Return
 update live. DSP Lab provides a dedicated dry / wet comparison.
 
+An experimental local [DSP field assembler](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
+can display and reassemble this Delay from editable text. Its first version is
+a pure JavaScript codec and Node CLI; live program editing in this tab is later work.
+
 ## Implementation and distribution
 
 Slot PCM, EG, LFO, modulation and the fixed Delay execute in the SCSP core.

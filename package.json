@@ -75,6 +75,8 @@
     "setup:browser": "playwright install chromium",
     "test:fm2612:types": "node scripts/check_fm2612_types.mjs",
     "test:scsp-synth": "node --test docs/synth-scsp/*.test.mjs scripts/package_itch_scsp_synth.test.mjs",
+    "test:scsp-dsp-assembler": "node --test docs/synth-scsp/dsp_assembler.test.mjs scripts/scsp_dsp_assembler.test.mjs",
+    "scsp:dsp": "node scripts/scsp_dsp_assembler.mjs",
     "pack:scsp-synth": "sh scripts/package_itch_scsp_synth.sh",
     "test:scsp-synth:browser": "node scripts/check_scsp_synth_browser.cjs",
     "test:scsp-synth:code-browser": "node scripts/check_scsp_synth_code_browser.cjs",
