@@ -43,7 +43,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  for(const [name,entry]of Object.entries(native.generated))assert.equal(sha(await readFile(join(a.stage,'generated',name))),entry.sha256);
  assert.deepEqual(info.receipt.bundles.map(entry=>entry.path),['synth-scsp/synth.js','synth-scsp/processor.js','playground/scsp_dsp_lab.js','js/native-fx-worklet.js']);
  for(const name of ['synth-scsp/code_host.js','synth-scsp/code_endpoint.js','synth-scsp/song_player.js',
-  'synth-scsp/dsp_program_view.js','synth-scsp/dsp_assembler.js','synth-scsp/dsp_assembler.d.ts',
+  'synth-scsp/dsp_program_view.js','synth-scsp/dsp_program.js','synth-scsp/dsp_assembler.js','synth-scsp/dsp_assembler.d.ts',
   'synth-scsp/DSP_ASSEMBLER.md','synth-scsp/examples/delay.scspasm',
   'synth-scsp/ssf_source.js','synth-scsp/ssf_renderer.js',
   'generated/ssf-player/ssf_player.js','generated/ssf-player/ssf_player.wasm','generated/ssf-player/NOTICE.txt',

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Original mono-delay microprogram for the pinned SCSP DSP, not Web Audio DSP.
+import {validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
 export const DSP_RAM_BYTES=65536; // RBL=2: 32K words at address 0.
 export const EFFECT_DEFAULTS=Object.freeze({enabled:false,timeMs:240,feedback:.35,send:7,returnLevel:6});
 export function effectSettings(value={}){
@@ -27,7 +28,60 @@ export function delayProgram(){
   steps.forEach((instruction,index)=>program.set(instruction,index*4));return program;
 }
 export class DspDelay{
+  #program = delayProgram();
+  #revision = 0;
   constructor(core,settings=EFFECT_DEFAULTS){this.core=core;this.settings=effectSettings(settings);this.install();}
+  readProgram() {
+    const legacy = delayProgram();
+    return {
+      words: Array.from(this.#program),
+      custom: this.#program.some((word, index) => word !== legacy[index]),
+      revision: this.#revision,
+    };
+  }
+  #upload(program) {
+    for (let index = 0; index < program.length; index++) {
+      this.core.write(0x800 + index * 2, program[index]);
+    }
+    // 0xBF0 is both word 504 and Start. Preserve the complete instruction.
+    this.core.write(0xbf0, program[504]);
+  }
+  applyProgram(words) {
+    const program = validateScspDspDelayProgram(words);
+    if (program.every((word, index) => word === this.#program[index])) return this.readProgram();
+    const core = this.core;
+    if ((core.read(0x402) & 0x1bf) !== (2 << 7)) {
+      throw new Error('DSP Apply requires the existing RBP=0 / RBL=2 Delay ring');
+    }
+    const previous = this.#program;
+    const ring = core.readRam(0, DSP_RAM_BYTES);
+    const outputReturn = core.read(22);
+    try {
+      core.write(22, 0, 0xff);
+      this.#upload(program);
+      this.clear();
+      core.write(22, outputReturn, 0xff);
+    } catch (error) {
+      const failures = [];
+      // Make every restoration attempt before allowing the owner to resume.
+      try { this.#upload(previous); } catch (failure) { failures.push(failure); }
+      try { core.loadRam(ring, 0); } catch (failure) { failures.push(failure); }
+      try { core.write(22, outputReturn, 0xff); } catch (failure) { failures.push(failure); }
+      if (failures.length) {
+        const fatal = new Error(
+          'DSP Apply failed and rollback could not restore the audio owner. Restart audio before continuing.',
+          { cause: new AggregateError([error, ...failures]) },
+        );
+        fatal.name = 'ScspDspRollbackError';
+        fatal.fatal = true;
+        throw fatal;
+      }
+      throw error;
+    }
+    this.#program = program;
+    this.#revision++;
+    return this.readProgram();
+  }
   install(){
     const core=this.core;
     core.write(22,0,0xff); // Mute EFREG0 while replacing its program.
@@ -36,9 +90,9 @@ export class DspDelay{
     core.write(0x700,0x7ff8); // 4095/4096, largest positive Q12 coefficient.
     core.write(0x704,0x7ff8); // Unity input: MIXS scaling already matches the DSP return path.
     core.write(0x782,0); // write address: DEC
-    const program=delayProgram();
+    const program=this.#program;
     for(let index=0;index<program.length;index++)if(program[index])core.write(0x800+index*2,program[index]);
-    core.write(0xbf0,0); // Explicit Start after every instruction is uploaded.
+    core.write(0xbf0,program[504]); // Explicit Start preserving physical step 126.
     this.clear();this.parameters();
   }
   clear(){const silence=new Uint8Array(DSP_RAM_BYTES);for(let i=0;i<silence.length;i+=2)silence[i]=0x60;this.core.loadRam(silence,0);}

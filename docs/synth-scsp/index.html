@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-dsp-view-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-edit-1" />
 	</head>
 	<body>
 		<main>
@@ -555,44 +555,76 @@
 							<section id="scspDspProgramView" aria-labelledby="scspDspProgramHeading">
 								<div class="scsp-dsp-program-heading">
 									<div>
-										<h3 id="scspDspProgramHeading">Built-in Synth Delay · Read-only</h3>
-										<p class="scsp-dsp-program-summary">6 authored steps in a 128-step image.</p>
+										<h3 id="scspDspProgramHeading">Synth DSP program</h3>
+										<p class="scsp-dsp-program-summary">Edit a draft, Check it, then Apply to Synth.</p>
 									</div>
 									<div class="scsp-dsp-program-actions">
 										<button id="scspDspProgramCopy" type="button">Copy .scspasm</button>
 										<button id="scspDspProgramSave" type="button">Save .scspasm</button>
 									</div>
 								</div>
-								<div
-									class="scsp-dsp-program-scroll"
-									role="region"
-									aria-label="Built-in Delay instructions"
-									tabindex="0"
-								>
-									<table class="scsp-dsp-program-table">
-										<thead>
-											<tr><th scope="col">Step</th><th scope="col">Instruction</th><th scope="col">Role</th></tr>
-										</thead>
-										<tbody id="scspDspProgramRows"></tbody>
-									</table>
+								<p id="scspDspProgramApplied" class="scsp-dsp-program-applied" role="status" aria-live="polite">Applied: Built-in Delay</p>
+								<label class="scsp-dsp-program-editor-label" for="scspDspProgramEditor">Draft · .scspasm</label>
+								<textarea
+									id="scspDspProgramEditor"
+									class="scsp-dsp-program-editor"
+									rows="16"
+									spellcheck="false"
+									wrap="off"
+									aria-describedby="scspDspProgramDraftStatus scspDspProgramError"
+								></textarea>
+								<div class="scsp-dsp-program-actions scsp-dsp-program-commands">
+									<button id="scspDspProgramCheck" type="button">Check</button>
+									<button id="scspDspProgramApply" type="button" disabled>Apply to Synth</button>
+									<button id="scspDspProgramReset" type="button">Reset draft</button>
 								</div>
+								<p id="scspDspProgramDraftStatus" class="scsp-dsp-program-status">Draft changes are not applied.</p>
+								<pre id="scspDspProgramError" class="scsp-dsp-program-error" role="status" aria-live="polite"></pre>
 								<p id="scspDspProgramStatus" class="scsp-dsp-program-status" role="status" aria-live="polite"></p>
 								<details class="scsp-inline-help scsp-dsp-program-help">
-									<summary aria-label="About the Delay program">?</summary>
+									<summary aria-label="About DSP drafts and Apply">?</summary>
 									<p>
-										Each step sets several controls in parallel. Output and memory writes
-										use the previous accumulator. In the current core, RAM reads and
-										writes run on odd steps, and IWT latches the preceding read.
+										Editing and Check leave the current sound unchanged. Apply changes
+										the Synth DSP after validation. A changed program clears its wet
+										tail while voices continue; failed Apply keeps the previous program.
+										SSF playback owns a separate DSP program in the song engine.
 									</p>
 									<p>
-										Coefficients, RAM addresses and routing are configured alongside
-										this program. SSF playback owns its DSP program in the song engine.
-										Program editing and live replacement are planned.
+										This first profile keeps the existing packed 64 KiB ring, COEF0–2,
+										MADRS0–1 and EFREG0 return. Check rejects unsupported controls.
+										Each step sets controls in parallel; output and memory writes use
+										the previous accumulator. RAM I/O runs on odd steps in this core.
 									</p>
+									<p>
+										Copy and Save export the draft, including unapplied edits. Restored
+										draft text is never applied automatically. Voice presets and Cassettes
+										do not include this DSP source; save a .scspasm copy to keep it.
+									</p>
+								</details>
+								<details id="scspDspProgramPreviewPanel" class="scsp-disclosure scsp-dsp-program-preview-panel">
+									<summary>Checked instructions</summary>
+									<pre id="scspDspProgramPreview" class="scsp-dsp-program-preview"></pre>
+								</details>
+								<details id="scspDspReferencePanel" class="scsp-disclosure">
+									<summary>Built-in Delay reference</summary>
+									<p>These six steps describe the built-in program.</p>
+									<div
+										class="scsp-dsp-program-scroll"
+										role="region"
+										aria-label="Built-in Delay instructions"
+										tabindex="0"
+									>
+										<table class="scsp-dsp-program-table">
+											<thead>
+												<tr><th scope="col">Step</th><th scope="col">Instruction</th><th scope="col">Role</th></tr>
+											</thead>
+											<tbody id="scspDspProgramRows"></tbody>
+										</table>
+									</div>
 								</details>
 							</section>
 							<details id="scspDelayPanel" class="scsp-disclosure">
-								<summary>Experimental · fixed mono Delay</summary>
+								<summary>Experimental · Delay parameters</summary>
 								<div class="scsp-fields">
 									<label class="effect-enable"
 										><input id="effectEnabled" type="checkbox" disabled />
@@ -637,9 +669,9 @@
 									/></label>
 								</div>
 								<p>
-									One fixed six-step program runs in the SCSP DSP. Release a short
-									note to hear repeats. Time and Enable changes clear echoes. The
-									DSP reserves 64 KiB, leaving 448 KiB for PCM and guards.
+									The built-in program produces mono Delay. Time and Enable changes
+									clear its DSP ring. The same coefficient and ring parameters remain
+									available after Apply. DSP reserves 64 KiB, leaving 448 KiB for PCM and guards.
 								</p>
 								<a href="../playground/scsp-dsp.html">Open DSP Lab</a>
 							</details>
@@ -838,6 +870,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-view-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-edit-1"></script>
 	</body>
 </html>

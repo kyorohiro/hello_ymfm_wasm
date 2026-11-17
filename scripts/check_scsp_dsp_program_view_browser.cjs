@@ -237,7 +237,8 @@ async function check(browser, name, origin, assembleScspDsp, expectedWords) {
     await page.locator('#scspDspTab').click();
     await page.locator('#scspDspProgramView').waitFor({state: 'visible'});
     assert.match(await page.locator('#scspDspProgramView').textContent(), /built.in|synth.*delay/i);
-    assert.equal(await page.locator('#scspDspProgramView textarea').count(), 0);
+    assert.equal(await page.locator('#scspDspProgramView textarea').count(), 1);
+    await page.locator('#scspDspReferencePanel > summary').click();
     const rows = await page.locator('#scspDspProgramRows tr').evaluateAll(nodes => nodes.map(node => ({
       step: node.children[0].textContent.trim(),
       instruction: node.children[1].textContent.trim(),

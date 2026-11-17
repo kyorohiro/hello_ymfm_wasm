@@ -409,6 +409,79 @@ select {
 #scspDspProgramView {
 	min-width: 0;
 }
+.scsp-dsp-program-applied {
+	margin: 0 0 12px;
+	color: #9dd6f4;
+	font-size: 0.73rem;
+}
+.scsp-dsp-program-editor-label {
+	display: block;
+	margin-bottom: 6px;
+	color: var(--muted);
+	font-size: 0.73rem;
+}
+.scsp-dsp-program-editor {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	padding: 12px;
+	resize: vertical;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #101c2a;
+	color: #dcebf7;
+	font: 0.72rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+	tab-size: 2;
+}
+.scsp-dsp-program-editor:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.scsp-dsp-program-commands {
+	margin-top: 10px;
+}
+.scsp-dsp-program-commands button {
+	min-width: 96px;
+}
+#scspDspProgramApply:not(:disabled) {
+	border-color: #71c8ef;
+	background: #285e8a;
+	color: #edf8ff;
+}
+.scsp-dsp-program-error {
+	margin: 10px 0 0;
+	padding: 10px 12px;
+	border: 1px solid #b56c69;
+	border-radius: 8px;
+	background: #482d31;
+	color: #ffd5ce;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	font: 0.72rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.scsp-dsp-program-error:empty {
+	display: none;
+}
+.scsp-dsp-program-preview-panel,
+#scspDspReferencePanel {
+	min-width: 0;
+	margin-top: 12px;
+}
+.scsp-dsp-program-preview {
+	max-height: 300px;
+	margin: 10px 0 0;
+	padding: 12px;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #162332;
+	color: #dcebf7;
+	white-space: pre;
+	font: 0.68rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
 .scsp-dsp-program-scroll {
 	max-width: 100%;
 	overflow: auto;

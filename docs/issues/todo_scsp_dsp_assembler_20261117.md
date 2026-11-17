@@ -86,3 +86,7 @@ See [usage](../synth-scsp/DSP_ASSEMBLER.md),
 No commit or push was performed during that milestone. The subsequent
 [read-only DSP listing](todo_scsp_dsp_program_view_20261117.md) is now complete.
 Live program replacement remains a later milestone.
+
+That follow-up is now implemented separately in
+[DSP draft / Check / Apply](todo_scsp_dsp_edit_apply_20261117.md), with a narrower
+execution profile. The codec's lossless inspection format remains unchanged.

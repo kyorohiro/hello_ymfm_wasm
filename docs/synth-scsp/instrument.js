@@ -4,7 +4,7 @@ import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
 import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js';
-import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js';
+import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-edit-1';
 import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js';
@@ -76,6 +76,8 @@ export class SynthInstrument {
   #apply(commands){for(const [method,args]of commands){this.synth[method](...args);if(method==='keyOn')this.#latchRelease(args[0]);}}
   setClickGuard(value){return this.releaseGuard.setEnabled(value);}
   setEffect(patch){const effect=this.effect.configure(patch);this.config={...this.config,effect};this.#routeEffect();return effect;}
+  readDspProgram(){return this.effect.readProgram();}
+  applyDspProgram(words){return this.effect.applyProgram(words);}
   #bendCommands(semitones){
     const commands=[];
     for(const group of this.groups.values()){

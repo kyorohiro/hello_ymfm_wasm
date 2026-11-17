@@ -317,33 +317,56 @@ The recording formats are described in the original VGM and PSF specifications.
 [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)
 and [PSF / SSF specification](https://gist.github.com/SaxxonPike/11618bd321a45a70c01febae43ff564e).
 
-## Experimental DSP Delay
+## Experimental DSP program and Delay
 
-The DSP tab displays the built-in Synth Delay as six numbered instructions,
-with a short explanation of each step's role. The listing is available before
-audio starts. **Copy .scspasm** and **Save .scspasm** export annotated text that
-the field assembler can turn back into its complete 128-step image. The listing
-shows the Synth's fixed Delay source. SSF playback owns its DSP program in the
-song engine. The **?** opens the pipeline and program configuration notes.
-On a narrow screen, scroll the table horizontally to read the Role column.
-Focusing the table also enables Left / Right arrow navigation.
+The **DSP** tab contains an editable `.scspasm` draft, an explicit applied-program
+status, and **Check** / **Apply to Synth**. Editing or Check leaves the current
+sound unchanged. Check compiles the current text, reports syntax or execution-profile
+errors with source lines, and shows the canonical result under **Checked instructions**.
+Apply becomes available after the current draft passes Check.
 
-The collapsed experimental section contains the fixed mono Delay controls.
-The tab indicates when this effect is enabled. Enable it and release a short
-note to hear repeats.
+Apply replaces the Synth DSP program. A changed program clears the wet Delay tail
+while keyboard and Code voices continue. Rejected Apply keeps the previous program;
+a transfer failure restores it before rendering resumes. If restoration itself
+fails, audio stops and reports that it must be restarted.
+SSF playback owns a separate DSP program in the song engine; **Apply to Synth**
+does not edit that song program. **Reset draft** restores the built-in source in
+the editor; use Check and Apply to restore that program in the Synth.
+
+**Copy .scspasm** and **Save .scspasm** export the draft text, including invalid or
+unapplied edits. Restoring saved draft text never applies it automatically. Voice
+presets and Cassette exports retain their existing format and do not include DSP
+source, so keep a `.scspasm` copy. The **?** explains this workflow and the execution
+profile. The collapsed **Built-in Delay reference** retains the six-step role
+explanations; it describes the original program, independently of the current draft.
+On narrow screens its table scrolls horizontally, including with Left / Right keys.
+
+### First execution profile
+
+This version retains the existing packed-format 64 KiB DSP ring, coefficient
+entries COEF0–2, address entries MADRS0–1 and EFREG0 return. Check rejects unsupported
+controls; the audio owner validates again before applying. The lossless assembler
+can still inspect broader bit patterns, but that does not make them executable
+through this profile. [DSP field assembler guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
+
+To try a small change, start with the built-in source and change `EWT=1` to
+`EWT=0`, then Check and Apply. That removes its effect output. Restore with
+Reset draft, Check and Apply. The direct voice output remains available.
+
+### Delay parameters
+
+The collapsed experimental section keeps the existing Delay configuration.
+The tab indicates whether this effect return is enabled. The built-in program
+produces mono Delay; an edited program can use those same parameters differently.
 
 Time spans 20–700 ms, Feedback 0–0.85, and Send / Return hardware levels
 0–7. Initial Send 7 / Return 6 produces a first echo near half the dry
-amplitude. Output operators feed the effect. Direct level zero allows
-wet-only output. Time / Enable changes clear echoes, and ordinary release
-retains the tail. Stop all sound and Mode / Connection changes clear it.
-The first 64 KiB of RAM remains reserved for the DSP ring, leaving
-448 KiB for editor PCM and modulation guards. Feedback, Send and Return
-update live. DSP Lab provides a dedicated dry / wet comparison.
-
-The experimental local field assembler provides JavaScript functions and a
-Node CLI for editing the exported text. Program editing and live replacement
-in the DSP tab are planned. [DSP field assembler guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
+amplitude for the built-in program. Output operators feed the effect. Direct
+level zero allows wet-only output. Time / Enable changes clear the ring, and
+ordinary release retains the tail. Stop all sound and Mode / Connection changes
+clear it. The first 64 KiB of RAM remains reserved for the DSP ring, leaving
+448 KiB for editor PCM and modulation guards. Feedback, Send and Return update
+live. DSP Lab retains its dedicated built-in dry / wet comparison.
 
 ## Implementation and distribution
 

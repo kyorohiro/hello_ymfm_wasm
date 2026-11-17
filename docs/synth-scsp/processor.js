@@ -2,7 +2,7 @@
 import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { Pcm44100Resampler } from '../js/pcm_44100_resampler.js';
-import { SynthInstrument } from './instrument.js';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-edit-1';
 
 function auditionToken(value) {
 	if (typeof value !== 'string' || !value.length || value.length > 256)
@@ -181,6 +181,8 @@ class SynthProcessor extends AudioWorkletProcessor {
 							'noteOff',
 							'setConfig',
 							'setEffect',
+							'readDspProgram',
+							'applyDspProgram',
 							'setPitchBend',
 							'loadPatch',
 							'exportPatch',
@@ -208,6 +210,12 @@ class SynthProcessor extends AudioWorkletProcessor {
 					} else throw new Error('Unknown Synth command');
 					if (data.id !== undefined) this.port.postMessage({ id: data.id, value });
 				} catch (error) {
+					if (error.fatal) {
+						this.dead = true;
+						this.instrument.dispose();
+						this.audition.dispose();
+						this.port.postMessage({ fatal: true, error: error.message });
+					}
 					this.port.postMessage({
 						id: data.id,
 						error: error.message,

@@ -1,0 +1,1174 @@
+{
+  "format": "tetorica-scsp-dsp-edit-apply-verification",
+  "version": 1,
+  "date": "2026-11-17",
+  "passed": true,
+  "tests": [
+    {
+      "command": "npm run test:scsp-synth",
+      "passed": true,
+      "tests": 221
+    },
+    {
+      "command": "npm run test:scsp-dsp-assembler",
+      "passed": true,
+      "tests": 12
+    },
+    {
+      "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+      "passed": true
+    },
+    {
+      "command": "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+      "passed": true
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "sourceBrowser": {
+    "passed": true,
+    "entry": "/synth-scsp/index.html",
+    "physicalOutputMuted": true,
+    "operatingSystemClipboardUsed": false,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "cases": [
+          "cold editor and Check do not create audio or issue mutations",
+          "Copy and Save preserve current invalid draft with no sound commands",
+          "reload restores only draft, without Check, Apply or audio",
+          "cold Apply remains silent and does not create AudioContext",
+          "390px editor and keyboard-scrollable collapsed reference",
+          "cold-applied MPRO migrates through asynchronous real Worklet startup",
+          "Check preserves held voices, Code session, program and real wet signal",
+          "syntax and four execution-profile errors preserve program, voices and wet output",
+          "successful older Apply ACK preserves newer checked draft, enabled Apply and unapplied status",
+          "pending transport failure does not claim or install a new program",
+          "explicit EWT=0 Apply changes actual wet output while voices and Code survive",
+          "Worklet rejects unchecked invalid program atomically",
+          "Reset/Check/Apply restores wet sound; unchanged Apply preserves program revision and held output"
+        ],
+        "mobileOverflow": 0,
+        "clipboard": [
+          {
+            "mode": "success",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "fallback",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": true,
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "failure",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": false,
+                "bytes": 893
+              }
+            ],
+            "status": "Copy unavailable. Use Save .scspasm."
+          }
+        ],
+        "invalidExport": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 894,
+          "sha256": "546884846f4bd842a3acd83e7c915051d1e6cabe4f6e4e69bc8d8780bf209620"
+        },
+        "savedValid": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 878,
+          "sha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713"
+        },
+        "rejected": [
+          {
+            "kind": "syntax",
+            "error": "Line 24: unknown field UNKNOWN"
+          },
+          {
+            "kind": "TABLE",
+            "error": "Line 10: Step 001: TABLE must be 0 for RAM I/O inside the reserved Delay ring"
+          },
+          {
+            "kind": "IRA",
+            "error": "Line 19: Step 004: IRA must be 0..49 for the pinned DSP core"
+          },
+          {
+            "kind": "even memory read",
+            "error": "Line 7: Step 000: MRD / MWT require an odd physical step"
+          },
+          {
+            "kind": "RAW",
+            "error": "Line 7: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          }
+        ],
+        "rawRejected": "Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile",
+        "beforeProgram": {
+          "revision": 2,
+          "custom": false
+        },
+        "changedProgram": {
+          "revision": 3,
+          "custom": true
+        },
+        "audibleBefore": {
+          "peak": 0.01116185262799263,
+          "rms": 0.00508529455841207,
+          "acRms": 0.005084175733879223
+        },
+        "audibleAfterCheck": {
+          "peak": 0.022310830652713776,
+          "rms": 0.010787021770041332,
+          "acRms": 0.01078589216200612
+        },
+        "silentAfterApply": {
+          "peak": 0,
+          "rms": 0,
+          "acRms": 0
+        },
+        "audibleRestored": {
+          "peak": 0.021855127066373825,
+          "rms": 0.007111832258945415,
+          "acRms": 0.007108715939300772
+        },
+        "unchangedApplyContinuity": {
+          "samples": 51,
+          "minimumAcRms": 0.008056513790484646
+        },
+        "graph": {
+          "contexts": 1,
+          "contextStates": [
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 1,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "cases": [
+          "cold editor and Check do not create audio or issue mutations",
+          "Copy and Save preserve current invalid draft with no sound commands",
+          "reload restores only draft, without Check, Apply or audio",
+          "cold Apply remains silent and does not create AudioContext",
+          "390px editor and keyboard-scrollable collapsed reference",
+          "cold-applied MPRO migrates through asynchronous real Worklet startup",
+          "Check preserves held voices, Code session, program and real wet signal",
+          "syntax and four execution-profile errors preserve program, voices and wet output",
+          "successful older Apply ACK preserves newer checked draft, enabled Apply and unapplied status",
+          "pending transport failure does not claim or install a new program",
+          "explicit EWT=0 Apply changes actual wet output while voices and Code survive",
+          "Worklet rejects unchecked invalid program atomically",
+          "Reset/Check/Apply restores wet sound; unchanged Apply preserves program revision and held output"
+        ],
+        "mobileOverflow": 0,
+        "clipboard": [
+          {
+            "mode": "success",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "fallback",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": true,
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "failure",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": false,
+                "bytes": 893
+              }
+            ],
+            "status": "Copy unavailable. Use Save .scspasm."
+          }
+        ],
+        "invalidExport": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 894,
+          "sha256": "546884846f4bd842a3acd83e7c915051d1e6cabe4f6e4e69bc8d8780bf209620"
+        },
+        "savedValid": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 878,
+          "sha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713"
+        },
+        "rejected": [
+          {
+            "kind": "syntax",
+            "error": "Line 24: unknown field UNKNOWN"
+          },
+          {
+            "kind": "TABLE",
+            "error": "Line 10: Step 001: TABLE must be 0 for RAM I/O inside the reserved Delay ring"
+          },
+          {
+            "kind": "IRA",
+            "error": "Line 19: Step 004: IRA must be 0..49 for the pinned DSP core"
+          },
+          {
+            "kind": "even memory read",
+            "error": "Line 7: Step 000: MRD / MWT require an odd physical step"
+          },
+          {
+            "kind": "RAW",
+            "error": "Line 7: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          }
+        ],
+        "rawRejected": "Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile",
+        "beforeProgram": {
+          "revision": 2,
+          "custom": false
+        },
+        "changedProgram": {
+          "revision": 3,
+          "custom": true
+        },
+        "audibleBefore": {
+          "peak": 0.011162224225699902,
+          "rms": 0.004206720130385181,
+          "acRms": 0.004206718660336855
+        },
+        "audibleAfterCheck": {
+          "peak": 0.02213287353515625,
+          "rms": 0.011157385232923308,
+          "acRms": 0.011152700308693668
+        },
+        "silentAfterApply": {
+          "peak": 0,
+          "rms": 0,
+          "acRms": 0
+        },
+        "audibleRestored": {
+          "peak": 0.021599121391773224,
+          "rms": 0.006468456186153711,
+          "acRms": 0.006468265406467215
+        },
+        "unchangedApplyContinuity": {
+          "samples": 34,
+          "minimumAcRms": 0.0076360378909995
+        },
+        "graph": {
+          "contexts": 1,
+          "contextStates": [
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 1,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      }
+    ],
+    "servedAssetCount": 99,
+    "servedAssetHashesMatchFinalFiles": true,
+    "testedProgramAssets": {
+      "synth-scsp/audio.js": {
+        "bytes": 7128,
+        "sha256": "f9ca4203a61bb41fe4a136fe2ea7a4a11efaf4a39e80078e316c8d23a5daff17"
+      },
+      "synth-scsp/channel_view.js": {
+        "bytes": 5548,
+        "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+      },
+      "synth-scsp/code_audio.js": {
+        "bytes": 6073,
+        "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+      },
+      "synth-scsp/code_declarations.js": {
+        "bytes": 5498,
+        "sha256": "a447b177fc18d331f1a0f49ebef474dc4349ff8c8c91428a2f544472a76e26e3"
+      },
+      "synth-scsp/code_endpoint.js": {
+        "bytes": 3676,
+        "sha256": "ae8e657fa848b8db44650cb135df3cab5bea63fc684c99f8f930fee848ac907b"
+      },
+      "synth-scsp/code_files.js": {
+        "bytes": 34364,
+        "sha256": "b478fb1585d6058b185ced7f14a0ff36d25e73f9c8893de9dc0fcb9d94be5de4"
+      },
+      "synth-scsp/code_host.js": {
+        "bytes": 4809,
+        "sha256": "8b2ed6d8d344fa04a4910e052965c710a06894297d6affc4ec7f70e3f1261c0b"
+      },
+      "synth-scsp/code_project.js": {
+        "bytes": 11988,
+        "sha256": "915199b4dbf245787f3a2baccb3e6aaf43d60ee5b5718f5e050d58d30db01ce9"
+      },
+      "synth-scsp/controls.js": {
+        "bytes": 4351,
+        "sha256": "54320271655aa311e5492d21e006a4e19c2b840365e2d41f07b7b936471f8187"
+      },
+      "synth-scsp/dsp.js": {
+        "bytes": 5880,
+        "sha256": "52fee31aab51f82d285f0fdc12b8b9f16e7048fd40e66f004dd891158d27feab"
+      },
+      "synth-scsp/dsp_assembler.js": {
+        "bytes": 8081,
+        "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+      },
+      "synth-scsp/dsp_program.js": {
+        "bytes": 3837,
+        "sha256": "e6cd7dfa7ca3c932c4435c3e77deeba098bafef45f3d7c6b0360f425b11c0c77"
+      },
+      "synth-scsp/dsp_program_view.js": {
+        "bytes": 13395,
+        "sha256": "6e8a14fd9a723ae642ee872d10fd618c94731fa2772a2726809415066edb5d2e"
+      },
+      "synth-scsp/index.html": {
+        "bytes": 29520,
+        "sha256": "6eb49534ed38ec876e7c64b78e9f9404bf7988e88247b23461e409672891aac6"
+      },
+      "synth-scsp/instrument.js": {
+        "bytes": 29739,
+        "sha256": "0764294c0f963a508a17261a3e39b455aebb6b18871fccdaeb2d642b8ea81125"
+      },
+      "synth-scsp/patch.js": {
+        "bytes": 3949,
+        "sha256": "cc2e9e509602ac99cf2cdc39b795b26d9a666e3b084f508965ea8b850f12ccaf"
+      },
+      "synth-scsp/preset.js": {
+        "bytes": 1968,
+        "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+      },
+      "synth-scsp/processor.js": {
+        "bytes": 8738,
+        "sha256": "e1814b5e266d89591cf0f68e1f5f57ebb4f013306f0337fdec1feea19d37e952"
+      },
+      "synth-scsp/release_guard.js": {
+        "bytes": 2410,
+        "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+      },
+      "synth-scsp/routing.js": {
+        "bytes": 2133,
+        "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+      },
+      "synth-scsp/scsp_envelope_controls.js": {
+        "bytes": 2168,
+        "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+      },
+      "synth-scsp/song_controls.js": {
+        "bytes": 10265,
+        "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+      },
+      "synth-scsp/song_player.js": {
+        "bytes": 20191,
+        "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+      },
+      "synth-scsp/song_source.js": {
+        "bytes": 13566,
+        "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+      },
+      "synth-scsp/ssf_capture.js": {
+        "bytes": 9665,
+        "sha256": "54c805483f225d2f767d3b1593664c79ace1ff87bc77b4aa4388b1b3b6d6920a"
+      },
+      "synth-scsp/ssf_live_history.js": {
+        "bytes": 991,
+        "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+      },
+      "synth-scsp/ssf_live_view.js": {
+        "bytes": 18251,
+        "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+      },
+      "synth-scsp/ssf_renderer.js": {
+        "bytes": 7791,
+        "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+      },
+      "synth-scsp/ssf_snapshot.js": {
+        "bytes": 5340,
+        "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+      },
+      "synth-scsp/ssf_source.js": {
+        "bytes": 12682,
+        "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+      },
+      "synth-scsp/ssf_voice_edits.js": {
+        "bytes": 3774,
+        "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+      },
+      "synth-scsp/ssf_voice_parameters.js": {
+        "bytes": 2306,
+        "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+      },
+      "synth-scsp/synth.css": {
+        "bytes": 22527,
+        "sha256": "f015a94c90b1259f574365ca0f6bb11e52f2538cd90157171613008abece8851"
+      },
+      "synth-scsp/synth.js": {
+        "bytes": 43970,
+        "sha256": "5e452eba9edaad32b8b98a907d1d529c3f5287fffac9609085e7da9ad4ec5ff6"
+      }
+    }
+  },
+  "isolatedPackageBrowser": {
+    "passed": true,
+    "entry": "/index.html",
+    "physicalOutputMuted": true,
+    "operatingSystemClipboardUsed": false,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "cases": [
+          "cold editor and Check do not create audio or issue mutations",
+          "Copy and Save preserve current invalid draft with no sound commands",
+          "reload restores only draft, without Check, Apply or audio",
+          "cold Apply remains silent and does not create AudioContext",
+          "390px editor and keyboard-scrollable collapsed reference",
+          "cold-applied MPRO migrates through asynchronous real Worklet startup",
+          "Check preserves held voices, Code session, program and real wet signal",
+          "syntax and four execution-profile errors preserve program, voices and wet output",
+          "successful older Apply ACK preserves newer checked draft, enabled Apply and unapplied status",
+          "pending transport failure does not claim or install a new program",
+          "explicit EWT=0 Apply changes actual wet output while voices and Code survive",
+          "Worklet rejects unchecked invalid program atomically",
+          "Reset/Check/Apply restores wet sound; unchanged Apply preserves program revision and held output"
+        ],
+        "mobileOverflow": 0,
+        "clipboard": [
+          {
+            "mode": "success",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "fallback",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": true,
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "failure",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": false,
+                "bytes": 893
+              }
+            ],
+            "status": "Copy unavailable. Use Save .scspasm."
+          }
+        ],
+        "invalidExport": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 894,
+          "sha256": "546884846f4bd842a3acd83e7c915051d1e6cabe4f6e4e69bc8d8780bf209620"
+        },
+        "savedValid": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 878,
+          "sha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713"
+        },
+        "rejected": [
+          {
+            "kind": "syntax",
+            "error": "Line 24: unknown field UNKNOWN"
+          },
+          {
+            "kind": "TABLE",
+            "error": "Line 10: Step 001: TABLE must be 0 for RAM I/O inside the reserved Delay ring"
+          },
+          {
+            "kind": "IRA",
+            "error": "Line 19: Step 004: IRA must be 0..49 for the pinned DSP core"
+          },
+          {
+            "kind": "even memory read",
+            "error": "Line 7: Step 000: MRD / MWT require an odd physical step"
+          },
+          {
+            "kind": "RAW",
+            "error": "Line 7: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          }
+        ],
+        "rawRejected": "Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile",
+        "beforeProgram": {
+          "revision": 2,
+          "custom": false
+        },
+        "changedProgram": {
+          "revision": 3,
+          "custom": true
+        },
+        "audibleBefore": {
+          "peak": 0.011162224225699902,
+          "rms": 0.005087031091493854,
+          "acRms": 0.005085952892801225
+        },
+        "audibleAfterCheck": {
+          "peak": 0.022311288863420486,
+          "rms": 0.011794318985018945,
+          "acRms": 0.011787575664129128
+        },
+        "silentAfterApply": {
+          "peak": 0,
+          "rms": 0,
+          "acRms": 0
+        },
+        "audibleRestored": {
+          "peak": 0.021537495777010918,
+          "rms": 0.006638302888075698,
+          "acRms": 0.006624790623387634
+        },
+        "unchangedApplyContinuity": {
+          "samples": 51,
+          "minimumAcRms": 0.00934958182025094
+        },
+        "graph": {
+          "contexts": 1,
+          "contextStates": [
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 1,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "cases": [
+          "cold editor and Check do not create audio or issue mutations",
+          "Copy and Save preserve current invalid draft with no sound commands",
+          "reload restores only draft, without Check, Apply or audio",
+          "cold Apply remains silent and does not create AudioContext",
+          "390px editor and keyboard-scrollable collapsed reference",
+          "cold-applied MPRO migrates through asynchronous real Worklet startup",
+          "Check preserves held voices, Code session, program and real wet signal",
+          "syntax and four execution-profile errors preserve program, voices and wet output",
+          "successful older Apply ACK preserves newer checked draft, enabled Apply and unapplied status",
+          "pending transport failure does not claim or install a new program",
+          "explicit EWT=0 Apply changes actual wet output while voices and Code survive",
+          "Worklet rejects unchecked invalid program atomically",
+          "Reset/Check/Apply restores wet sound; unchanged Apply preserves program revision and held output"
+        ],
+        "mobileOverflow": 0,
+        "clipboard": [
+          {
+            "mode": "success",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "fallback",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": true,
+                "bytes": 893
+              }
+            ],
+            "status": "Copied DSP draft."
+          },
+          {
+            "mode": "failure",
+            "attempts": [
+              {
+                "method": "clipboard",
+                "bytes": 893
+              },
+              {
+                "method": "execCommand",
+                "command": "copy",
+                "result": false,
+                "bytes": 893
+              }
+            ],
+            "status": "Copy unavailable. Use Save .scspasm."
+          }
+        ],
+        "invalidExport": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 894,
+          "sha256": "546884846f4bd842a3acd83e7c915051d1e6cabe4f6e4e69bc8d8780bf209620"
+        },
+        "savedValid": {
+          "filename": "tetorica-scsp-delay.scspasm",
+          "bytes": 878,
+          "sha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713"
+        },
+        "rejected": [
+          {
+            "kind": "syntax",
+            "error": "Line 24: unknown field UNKNOWN"
+          },
+          {
+            "kind": "TABLE",
+            "error": "Line 10: Step 001: TABLE must be 0 for RAM I/O inside the reserved Delay ring"
+          },
+          {
+            "kind": "IRA",
+            "error": "Line 19: Step 004: IRA must be 0..49 for the pinned DSP core"
+          },
+          {
+            "kind": "even memory read",
+            "error": "Line 7: Step 000: MRD / MWT require an odd physical step"
+          },
+          {
+            "kind": "RAW",
+            "error": "Line 7: Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile"
+          }
+        ],
+        "rawRejected": "Step 000: RAW0 contains uninterpreted bits unsupported by this execution profile",
+        "beforeProgram": {
+          "revision": 2,
+          "custom": false
+        },
+        "changedProgram": {
+          "revision": 3,
+          "custom": true
+        },
+        "audibleBefore": {
+          "peak": 0.011162567883729935,
+          "rms": 0.004685965229526898,
+          "acRms": 0.004662978082441968
+        },
+        "audibleAfterCheck": {
+          "peak": 0.02213287353515625,
+          "rms": 0.010540485934213528,
+          "acRms": 0.010520787657652159
+        },
+        "silentAfterApply": {
+          "peak": 0,
+          "rms": 0,
+          "acRms": 0
+        },
+        "audibleRestored": {
+          "peak": 0.021596373990178108,
+          "rms": 0.006465285764792166,
+          "acRms": 0.006465077034858433
+        },
+        "unchangedApplyContinuity": {
+          "samples": 33,
+          "minimumAcRms": 0.008035200450729836
+        },
+        "graph": {
+          "contexts": 1,
+          "contextStates": [
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth",
+            "tetorica-native-fx"
+          ],
+          "destinationRoutes": 1,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [
+          "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+        ],
+        "errors": [],
+        "missing": []
+      }
+    ],
+    "servedAssetCount": 99,
+    "servedAssetHashesMatchFinalFiles": true,
+    "testedProgramAssets": {
+      "synth-scsp/audio.js": {
+        "bytes": 7128,
+        "sha256": "f9ca4203a61bb41fe4a136fe2ea7a4a11efaf4a39e80078e316c8d23a5daff17"
+      },
+      "synth-scsp/channel_view.js": {
+        "bytes": 5548,
+        "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+      },
+      "synth-scsp/code_audio.js": {
+        "bytes": 6073,
+        "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+      },
+      "synth-scsp/code_declarations.js": {
+        "bytes": 5498,
+        "sha256": "a447b177fc18d331f1a0f49ebef474dc4349ff8c8c91428a2f544472a76e26e3"
+      },
+      "synth-scsp/code_endpoint.js": {
+        "bytes": 3676,
+        "sha256": "ae8e657fa848b8db44650cb135df3cab5bea63fc684c99f8f930fee848ac907b"
+      },
+      "synth-scsp/code_files.js": {
+        "bytes": 34364,
+        "sha256": "b478fb1585d6058b185ced7f14a0ff36d25e73f9c8893de9dc0fcb9d94be5de4"
+      },
+      "synth-scsp/code_host.js": {
+        "bytes": 4809,
+        "sha256": "8b2ed6d8d344fa04a4910e052965c710a06894297d6affc4ec7f70e3f1261c0b"
+      },
+      "synth-scsp/code_project.js": {
+        "bytes": 11988,
+        "sha256": "915199b4dbf245787f3a2baccb3e6aaf43d60ee5b5718f5e050d58d30db01ce9"
+      },
+      "synth-scsp/controls.js": {
+        "bytes": 4351,
+        "sha256": "54320271655aa311e5492d21e006a4e19c2b840365e2d41f07b7b936471f8187"
+      },
+      "synth-scsp/dsp.js": {
+        "bytes": 5880,
+        "sha256": "52fee31aab51f82d285f0fdc12b8b9f16e7048fd40e66f004dd891158d27feab"
+      },
+      "synth-scsp/dsp_assembler.js": {
+        "bytes": 8081,
+        "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+      },
+      "synth-scsp/dsp_program.js": {
+        "bytes": 3837,
+        "sha256": "e6cd7dfa7ca3c932c4435c3e77deeba098bafef45f3d7c6b0360f425b11c0c77"
+      },
+      "synth-scsp/dsp_program_view.js": {
+        "bytes": 13395,
+        "sha256": "6e8a14fd9a723ae642ee872d10fd618c94731fa2772a2726809415066edb5d2e"
+      },
+      "synth-scsp/instrument.js": {
+        "bytes": 29739,
+        "sha256": "0764294c0f963a508a17261a3e39b455aebb6b18871fccdaeb2d642b8ea81125"
+      },
+      "synth-scsp/patch.js": {
+        "bytes": 3949,
+        "sha256": "cc2e9e509602ac99cf2cdc39b795b26d9a666e3b084f508965ea8b850f12ccaf"
+      },
+      "synth-scsp/preset.js": {
+        "bytes": 1968,
+        "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+      },
+      "synth-scsp/processor.js": {
+        "bytes": 8738,
+        "sha256": "e1814b5e266d89591cf0f68e1f5f57ebb4f013306f0337fdec1feea19d37e952"
+      },
+      "synth-scsp/release_guard.js": {
+        "bytes": 2410,
+        "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+      },
+      "synth-scsp/routing.js": {
+        "bytes": 2133,
+        "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+      },
+      "synth-scsp/scsp_envelope_controls.js": {
+        "bytes": 2168,
+        "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+      },
+      "synth-scsp/song_controls.js": {
+        "bytes": 10265,
+        "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+      },
+      "synth-scsp/song_player.js": {
+        "bytes": 20191,
+        "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+      },
+      "synth-scsp/song_source.js": {
+        "bytes": 13566,
+        "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+      },
+      "synth-scsp/ssf_capture.js": {
+        "bytes": 9665,
+        "sha256": "54c805483f225d2f767d3b1593664c79ace1ff87bc77b4aa4388b1b3b6d6920a"
+      },
+      "synth-scsp/ssf_live_history.js": {
+        "bytes": 991,
+        "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+      },
+      "synth-scsp/ssf_live_view.js": {
+        "bytes": 18251,
+        "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+      },
+      "synth-scsp/ssf_renderer.js": {
+        "bytes": 7791,
+        "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+      },
+      "synth-scsp/ssf_snapshot.js": {
+        "bytes": 5340,
+        "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+      },
+      "synth-scsp/ssf_source.js": {
+        "bytes": 12682,
+        "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+      },
+      "synth-scsp/ssf_voice_edits.js": {
+        "bytes": 3774,
+        "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+      },
+      "synth-scsp/ssf_voice_parameters.js": {
+        "bytes": 2306,
+        "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+      },
+      "synth-scsp/synth.css": {
+        "bytes": 22527,
+        "sha256": "f015a94c90b1259f574365ca0f6bb11e52f2538cd90157171613008abece8851"
+      },
+      "synth-scsp/synth.js": {
+        "bytes": 43970,
+        "sha256": "5e452eba9edaad32b8b98a907d1d529c3f5287fffac9609085e7da9ad4ec5ff6"
+      }
+    }
+  },
+  "referenceRegression": {
+    "passed": true,
+    "entry": "/synth-scsp/index.html",
+    "physicalOutputMuted": true,
+    "operatingSystemClipboardUsed": false,
+    "listeningPerformed": false,
+    "staticSiteOnly": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "rows": [
+          {
+            "step": "000",
+            "instruction": "XSEL=1 YSEL=1 ZERO=1",
+            "role": "Prepare accumulatorUse MEMS0 and COEF0 with a zero B input."
+          },
+          {
+            "step": "001",
+            "instruction": "XSEL=1 YSEL=1 MRD=1 ZERO=1",
+            "role": "Read delay ringRequest RAM at MADRS0 + DEC on an odd step."
+          },
+          {
+            "step": "002",
+            "instruction": "XSEL=1 YSEL=1 IWT=1 ZERO=1",
+            "role": "Latch read resultIWT latches the preceding read into MEMS0."
+          },
+          {
+            "step": "003",
+            "instruction": "XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1",
+            "role": "Output + feedbackEmit the previous accumulator to EFREG0 while calculating feedback with COEF1."
+          },
+          {
+            "step": "004",
+            "instruction": "XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2",
+            "role": "Add inputAdd MIXS0 × COEF2 to the feedback accumulator."
+          },
+          {
+            "step": "005",
+            "instruction": "XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1",
+            "role": "Write delay ringWrite the previous shifted accumulator at MADRS1 + DEC."
+          }
+        ],
+        "coldAudioContexts": 0,
+        "exportedFilename": "tetorica-scsp-delay.scspasm",
+        "exportedBytes": 878,
+        "exportedSha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+        "clipboardSuccess": true,
+        "clipboardFallback": true,
+        "clipboardFailure": "Copy unavailable. Use Save .scspasm.",
+        "temporaryFocusRestored": true,
+        "coldSettingsPreserved": true,
+        "exportWordsExact": true,
+        "heldVoicePreserved": true,
+        "soundCommandsDuringExports": 0,
+        "audibleBefore": {
+          "peak": 0.011167102493345737,
+          "rms": 0.004453826719374734,
+          "acRms": 0.004453791098420363
+        },
+        "audibleAfter": {
+          "peak": 0.011168346740305424,
+          "rms": 0.007858288109411795,
+          "acRms": 0.007857316369958815
+        },
+        "delayIndicatorAndControls": true,
+        "keyboardRelease": true,
+        "mobileOverflow": 0,
+        "mobileRoles": {
+          "scrollLeft": 390,
+          "roleVisible": true
+        },
+        "graph": {
+          "contexts": 1,
+          "contextStates": [
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth"
+          ],
+          "destinationRoutes": 1,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [],
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "rows": [
+          {
+            "step": "000",
+            "instruction": "XSEL=1 YSEL=1 ZERO=1",
+            "role": "Prepare accumulatorUse MEMS0 and COEF0 with a zero B input."
+          },
+          {
+            "step": "001",
+            "instruction": "XSEL=1 YSEL=1 MRD=1 ZERO=1",
+            "role": "Read delay ringRequest RAM at MADRS0 + DEC on an odd step."
+          },
+          {
+            "step": "002",
+            "instruction": "XSEL=1 YSEL=1 IWT=1 ZERO=1",
+            "role": "Latch read resultIWT latches the preceding read into MEMS0."
+          },
+          {
+            "step": "003",
+            "instruction": "XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1",
+            "role": "Output + feedbackEmit the previous accumulator to EFREG0 while calculating feedback with COEF1."
+          },
+          {
+            "step": "004",
+            "instruction": "XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2",
+            "role": "Add inputAdd MIXS0 × COEF2 to the feedback accumulator."
+          },
+          {
+            "step": "005",
+            "instruction": "XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1",
+            "role": "Write delay ringWrite the previous shifted accumulator at MADRS1 + DEC."
+          }
+        ],
+        "coldAudioContexts": 0,
+        "exportedFilename": "tetorica-scsp-delay.scspasm",
+        "exportedBytes": 878,
+        "exportedSha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+        "clipboardSuccess": true,
+        "clipboardFallback": true,
+        "clipboardFailure": "Copy unavailable. Use Save .scspasm.",
+        "temporaryFocusRestored": true,
+        "coldSettingsPreserved": true,
+        "exportWordsExact": true,
+        "heldVoicePreserved": true,
+        "soundCommandsDuringExports": 0,
+        "audibleBefore": {
+          "peak": 0.011167287826538086,
+          "rms": 0.005167204311669366,
+          "acRms": 0.005167072101506741
+        },
+        "audibleAfter": {
+          "peak": 0.011167831718921661,
+          "rms": 0.007933241327685926,
+          "acRms": 0.007925253939560966
+        },
+        "delayIndicatorAndControls": true,
+        "keyboardRelease": true,
+        "mobileOverflow": 0,
+        "mobileRoles": {
+          "scrollLeft": 390,
+          "roleVisible": true
+        },
+        "graph": {
+          "contexts": 1,
+          "contextStates": [
+            "running"
+          ],
+          "nodes": [
+            "tetorica-scsp-synth"
+          ],
+          "destinationRoutes": 1,
+          "physicalOutputMuted": true
+        },
+        "blockedEditor": [],
+        "errors": [],
+        "missing": []
+      }
+    ]
+  },
+  "package": {
+    "command": "sh scripts/package_itch_scsp_synth.sh dsp-edit-apply-20261117-r2",
+    "path": "release/tetorica_scsp_synth_dsp-edit-apply-20261117-r2_itch.zip",
+    "stage": "release/itch_scsp_synth_dsp-edit-apply-20261117-r2-yHwpt4",
+    "files": 361,
+    "entryPoints": 4,
+    "bytes": 4201849,
+    "sha256": "89fccfe1e89112b29069241dc6fd40676af98c2201f5df608f871d86b35eeee5"
+  },
+  "inputs": {
+    "docs/synth-scsp/dsp_program.js": {
+      "bytes": 3837,
+      "sha256": "e6cd7dfa7ca3c932c4435c3e77deeba098bafef45f3d7c6b0360f425b11c0c77"
+    },
+    "docs/synth-scsp/dsp_program.test.mjs": {
+      "bytes": 3099,
+      "sha256": "41360598879db056672a751fb7b85ab285656c012527949ff6f4cf14d5a5fa31"
+    },
+    "docs/synth-scsp/dsp_program_apply.test.mjs": {
+      "bytes": 11297,
+      "sha256": "77b3c636a774c842aaf4aeba6f0856ca3714be1798e14f79f4af165490dff808"
+    },
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 5880,
+      "sha256": "52fee31aab51f82d285f0fdc12b8b9f16e7048fd40e66f004dd891158d27feab"
+    },
+    "docs/synth-scsp/dsp_program_view.js": {
+      "bytes": 13395,
+      "sha256": "6e8a14fd9a723ae642ee872d10fd618c94731fa2772a2726809415066edb5d2e"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 43970,
+      "sha256": "5e452eba9edaad32b8b98a907d1d529c3f5287fffac9609085e7da9ad4ec5ff6"
+    },
+    "docs/synth-scsp/instrument.js": {
+      "bytes": 29739,
+      "sha256": "0764294c0f963a508a17261a3e39b455aebb6b18871fccdaeb2d642b8ea81125"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 8738,
+      "sha256": "e1814b5e266d89591cf0f68e1f5f57ebb4f013306f0337fdec1feea19d37e952"
+    },
+    "docs/synth-scsp/audio.js": {
+      "bytes": 7128,
+      "sha256": "f9ca4203a61bb41fe4a136fe2ea7a4a11efaf4a39e80078e316c8d23a5daff17"
+    },
+    "docs/synth-scsp/index.html": {
+      "bytes": 29520,
+      "sha256": "6eb49534ed38ec876e7c64b78e9f9404bf7988e88247b23461e409672891aac6"
+    },
+    "docs/synth-scsp/synth.css": {
+      "bytes": 22527,
+      "sha256": "f015a94c90b1259f574365ca0f6bb11e52f2538cd90157171613008abece8851"
+    },
+    "docs/synth-scsp/DSP_ASSEMBLER.md": {
+      "bytes": 6967,
+      "sha256": "9702ab2dd493fc3a0c0dea2d8c1d386fde101bf8e1d8cacab5adef79b29b3945"
+    },
+    "docs/synth-scsp/README.md": {
+      "bytes": 24330,
+      "sha256": "b19c8df1e9ed082c04462047a49997fcc2516930818ad77692da32cfad3483e6"
+    },
+    "scripts/check_scsp_dsp_program_apply_browser.cjs": {
+      "bytes": 33918,
+      "sha256": "5c253e8830a75db45e43bdcdc86fa1f4470cba947fff4aa48b923a368e4f3756"
+    },
+    "scripts/check_scsp_dsp_program_view_browser.cjs": {
+      "bytes": 19900,
+      "sha256": "37cd165276848ed123c99e54affc835f59254f0eab8038be9bbcfa3242701780"
+    },
+    "scripts/package_itch_scsp_synth.test.mjs": {
+      "bytes": 8558,
+      "sha256": "0cddc9fe1718b00b64037456af34591d5a2428448a3837ccfce3b9fa4befdaa2"
+    }
+  },
+  "semantics": {
+    "storageKey": "tetorica-scsp-dsp-draft-v1",
+    "storedDraftAutoApplies": false,
+    "changedApplyClearsWetRing": true,
+    "sameWordsApplyIsNoOp": true,
+    "keepsHeldVoicesAndCode": true,
+    "recoverableFailureRestoresProgramRingAndReturn": true,
+    "rollbackFailureStopsAudioOwner": true,
+    "sessionProgramSurvivesStopModeAndVoicePresets": true,
+    "portableVoicePresetsIncludeDspSource": false,
+    "targetsSeparateSsfProgram": false,
+    "newPublicCodeOrNpmApi": false,
+    "runtimeSdkOrWasmRebuilt": false,
+    "publishedCommittedOrPushed": false
+  },
+  "limits": [
+    "Existing packed-format 64 KiB Delay ring, COEF0..2, MADRS0..1, EFREG0 only.",
+    "This validates compatibility with the pinned core, not physical Saturn accuracy.",
+    "Reload restores draft text only; a new Synth session uses built-in Delay.",
+    "Human listening and real game SSF testing were not performed."
+  ]
+}

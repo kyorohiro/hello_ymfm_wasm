@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js';
-import { SynthInstrument } from './instrument.js';
+import { createAudio } from './audio.js?v=scsp-dsp-edit-1';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-edit-1';
 import { readPatch, writePatch } from './patch.js';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js';
@@ -9,7 +9,9 @@ import { setupScspCodeHost } from './code_host.js';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-view-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-edit-1';
+import { delayProgram } from './dsp.js?v=scsp-dsp-edit-1';
+import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
@@ -109,6 +111,9 @@ const draft = new SynthInstrument({
 	},
 	dispose() {},
 });
+// This session's acknowledged DSP image is separate from portable voice patches.
+// Cold Apply changes setup only; restoring saved draft text never reaches here.
+let appliedDspWords = delayProgram();
 cachedPatch = draft.exportPatch();
 const command = (method, args = []) => {
 	if (audio) return audio.command(method, args);
@@ -395,7 +400,9 @@ async function ensureAudio() {
 				// every committed draft mutation must survive asynchronous startup.
 				do {
 					applied = draftRevision;
+					const dspWords = Array.from(appliedDspWords);
 					await engine.command('loadIdleState', [draft.exportIdleState()]);
+					await engine.command('applyDspProgram', [dspWords]);
 					await engine.command('setPitchBend', [bend]);
 					await applyClickGuard(engine);
 				} while (applied !== draftRevision);
@@ -1129,7 +1136,28 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
-const disposeDspProgramView = setupScspDspProgramView();
+const disposeDspProgramView = setupScspDspProgramView({
+	getAppliedProgram: () => appliedDspWords,
+	applyProgram: (words) => {
+		const candidate = validateScspDspDelayProgram(words);
+		return enqueue(async () => {
+			if (disposed) throw new Error('SCSP Synth is closed');
+			const engine = audio;
+			if (!engine) {
+				appliedDspWords = candidate;
+				draftRevision++;
+				return { words: Array.from(candidate), active: false };
+			}
+			const result = await engine.command('applyDspProgram', [Array.from(candidate)]);
+			if (audio !== engine) throw new Error('SCSP audio changed during DSP Apply. Start audio again.');
+			const accepted = validateScspDspDelayProgram(result.words);
+			if (!accepted.every((word, index) => word === candidate[index]))
+				throw new Error('SCSP DSP reply did not match the requested program.');
+			appliedDspWords = accepted;
+			return { ...result, active: true };
+		});
+	},
+});
 setupSynthMenu({ document, window });
 $('loadPreset').addEventListener('click', () => $('open').click());
 $('open').addEventListener('change', async () => {

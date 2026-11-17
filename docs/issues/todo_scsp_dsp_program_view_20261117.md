@@ -39,3 +39,7 @@ See [verification](verification_scsp_dsp_program_view_20261117.md) and
 [machine evidence](verification_scsp_dsp_program_view_20261117.json).
 No commit / push / upload performed. Live editing / Apply remains a later
 milestone with its own program replacement and failure / ownership design.
+
+That follow-up is now implemented in
+[DSP draft / Check / Apply](todo_scsp_dsp_edit_apply_20261117.md). The original
+six-role listing is retained as a collapsed built-in reference.
