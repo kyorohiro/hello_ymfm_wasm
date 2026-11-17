@@ -609,8 +609,18 @@
 										Enable DSP return and use direct level 0 for wet-only comparison.
 										Use Spectrum to compare low-frequency attenuation in high-pass and
 										high-frequency attenuation in low-pass. A low sine changes little
-										in low-pass. At a program switch, the first frame can contain old TEMP
-										history; the next frame uses the new input history.
+										in low-pass. At a switch to FIR, the first frame can contain old TEMP
+										history; its next frame uses the new input history.
+									</p>
+									<p>
+										The 1-pole IIR stores the previous 24-bit internal output, then mixes
+										COEF1 × previous output with COEF2 × current input. COEF0 and Time
+										are unused. Recommended codes 3840 / 256 give stable decay and add
+										to 4096 for approximately unity passband gain. Other raw values can
+										change gain and sustain; no automatic tuning is performed. Old IIR
+										history recurs across samples rather than disappearing after one frame.
+										Clearing Delay RAM with Apply / Enable does not reset TEMP. Stop
+										resets the history.
 									</p>
 									<p>
 										This first profile keeps the existing packed 64 KiB ring, COEF0–2,
@@ -925,6 +935,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-hp-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-iir-1"></script>
 	</body>
 </html>

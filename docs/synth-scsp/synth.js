@@ -9,9 +9,9 @@ import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-coef-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-hp-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-iir-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-fir-1';
-import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-hp-1';
+import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-iir-1';
 import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-dsp-coef-1';
@@ -230,14 +230,17 @@ function renderDspCoefficients(state, readOnly = false) {
 	const family = identifyScspDspProgram(appliedDspWords);
 	const exampleId = identifyScspDspExample(appliedDspWords, codes);
 	const fir = family === 'fir2';
+	const iir = family === 'iir1';
 	const roles = fir ? createScspDspExample('fir2-lowpass').roles
-		: family === 'delay' ? createScspDspExample('delay').roles : ['Coefficient', 'Coefficient', 'Coefficient'];
+		: iir ? createScspDspExample('iir1-lowpass').roles
+			: family === 'delay' ? createScspDspExample('delay').roles : ['Coefficient', 'Coefficient', 'Coefficient'];
 	dspProgramView?.update({ words: appliedDspWords, codes });
 	for (let index = 0; index < 3; index++) {
 		const input = $(`scspDspCoef${index}`);
 		if (!input) continue;
 		text(document.querySelector(`label[for="scspDspCoef${index}"]`), `COEF${index} · ${roles[index]}`);
-		input.disabled = readOnly || !codes;
+		input.disabled = readOnly || !codes || (iir && index === 0);
+		input.title = iir && index === 0 ? 'This IIR program does not read COEF0.' : '';
 		if (!codes) continue;
 		if (document.activeElement !== input && !input.classList.contains('is-dragging'))
 			input.value = String(codes[index]);
@@ -245,11 +248,13 @@ function renderDspCoefficients(state, readOnly = false) {
 		const word = ((codes[index] & 0x1fff) << 3).toString(16).toUpperCase().padStart(4, '0');
 		text($(`scspDspCoef${index}Register`), `0x${(0x700 + index * 2).toString(16).toUpperCase()} = 0x${word}`);
 	}
-	$('delayTime').disabled = readOnly || fir;
-	$('delayTime').title = fir ? 'This FIR uses sample history in TEMP and does not use Delay time.' : '';
-	text($('scspDspFeedbackLabel'), fir ? 'Previous tap · COEF1' : exampleId === 'delay' ? 'Feedback' : 'COEF1 multiplier');
-	text($('scspDspParametersSummary'), fir ? 'Experimental · FIR routing' : 'Experimental · DSP routing / Delay');
-	text($('scspDspParametersHint'), fir
+	$('delayTime').disabled = readOnly || fir || iir;
+	$('delayTime').title = fir || iir ? 'This filter uses TEMP history and does not use Delay time.' : '';
+	text($('scspDspFeedbackLabel'), fir ? 'Previous tap · COEF1' : iir ? 'Output feedback · COEF1' : exampleId === 'delay' ? 'Feedback' : 'COEF1 multiplier');
+	text($('scspDspParametersSummary'), fir ? 'Experimental · FIR routing' : iir ? 'Experimental · IIR routing' : 'Experimental · DSP routing / Delay');
+	text($('scspDspParametersHint'), iir
+		? 'This IIR reuses its previous internal output. Its state persists across samples and the coefficients set its gain and decay. COEF0 and Time are unused. Stop clears the history. Use direct level 0 for wet-only comparison.'
+		: fir
 		? (exampleId === 'fir2-highpass'
 			? 'The high-pass example subtracts the previous sample to reduce low frequencies.'
 			: exampleId === 'fir2-lowpass'
@@ -341,7 +346,8 @@ function renderState() {
 		$('scspDspTab'),
 		state.config.effect.enabled
 			? identifyScspDspProgram(appliedDspWords) === 'fir2' ? 'DSP · FIR on'
-				: identifyScspDspProgram(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
+				: identifyScspDspProgram(appliedDspWords) === 'iir1' ? 'DSP · IIR on'
+					: identifyScspDspProgram(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
 	);
 	const { inputs, outputs, count } = state.routing;
 	$('routingSummary').textContent = inputs

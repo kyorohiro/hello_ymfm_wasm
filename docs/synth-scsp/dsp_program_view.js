@@ -3,7 +3,7 @@
 import {delayProgram} from './dsp.js?v=scsp-dsp-fir-1';
 import {disassembleScspDsp} from './dsp_assembler.js';
 import {checkScspDspDelaySource, validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
-import {createScspDspExample, identifyScspDspExample, identifyScspDspProgram, listScspDspExamples} from './dsp_examples.js?v=scsp-dsp-hp-1';
+import {createScspDspExample, identifyScspDspExample, identifyScspDspProgram, listScspDspExamples} from './dsp_examples.js?v=scsp-dsp-iir-1';
 
 export const SCSP_DSP_DRAFT_STORAGE_KEY = 'tetorica-scsp-dsp-draft-v1';
 
@@ -130,7 +130,8 @@ export function setupScspDspProgramView({root = globalThis.document,
     if (!appliedStatus) return;
     const id = identifyScspDspExample(appliedWords, appliedCodes);
     const family = identifyScspDspProgram(appliedWords);
-    const name = id ? createScspDspExample(id).name : family === 'fir2' ? '2-tap FIR (custom coefficients)' : 'Custom program';
+    const name = id ? createScspDspExample(id).name : family === 'fir2' ? '2-tap FIR (custom coefficients)'
+      : family === 'iir1' ? '1-pole IIR (custom coefficients)' : 'Custom program';
     const label = 'Applied: ' + name, custom = String(id !== 'delay');
     if (appliedStatus.textContent !== label) appliedStatus.textContent = label;
     if (appliedStatus.dataset.custom !== custom) appliedStatus.dataset.custom = custom;
@@ -272,7 +273,7 @@ export function setupScspDspProgramView({root = globalThis.document,
     invalidate();
     showApplied();
     showExample();
-    if (restored !== null && restored !== undefined) message('Draft restored. It has not been applied.');
+    if (restored !== null && restored !== undefined) message('Draft restored. It has not been applied. Coefficients are separate; choose the example again to stage its recommended values.');
     editor.addEventListener('input', onInput);
     editor.addEventListener('keydown', onEditorKey);
     check.addEventListener('click', onCheck);

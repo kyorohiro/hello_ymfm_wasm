@@ -47,3 +47,7 @@ ZIP: `release/tetorica_scsp_synth_dsp-fir-highpass-20261117_itch.zip`.
 See [verification](verification_scsp_dsp_fir_highpass_20261117.md) and
 [machine evidence](verification_scsp_dsp_fir_highpass_20261117.json).
 No commit, push or publication.
+
+The [one-pole IIR low-pass follow-up](todo_scsp_dsp_iir_20261117.md) is complete,
+demonstrating previous-output feedback and recursive TEMP history using the
+same editor / coefficient controls and existing atomic setup Apply.

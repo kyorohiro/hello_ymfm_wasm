@@ -70,13 +70,17 @@ test('example sources retain independent word vectors, profile validation and ow
   assert.deepEqual(highpass.roles, fir.roles);
   assert.match(highpass.source, /small DC residual/);
   assert.equal(highpass.filename, 'tetorica-scsp-fir2-highpass.scspasm');
-  assert.deepEqual(listScspDspExamples().map(value => value.id), ['delay', 'fir2-lowpass', 'fir2-highpass']);
+  assert.deepEqual(listScspDspExamples().map(value => value.id), ['delay', 'fir2-lowpass', 'fir2-highpass', 'iir1-lowpass']);
   assert.equal(identifyScspDspExample(fir.words), 'fir2-lowpass');
   assert.equal(identifyScspDspProgram(highpass.words), 'fir2');
   assert.equal(identifyScspDspProgram(delayProgram()), 'delay');
   assert.equal(identifyScspDspExample(fir.words, fir.codes), 'fir2-lowpass');
   assert.equal(identifyScspDspExample(fir.words, highpass.codes), 'fir2-highpass');
   assert.equal(identifyScspDspExample(fir.words, [4095, -1024, 2048]), null);
+  assert.equal(identifyScspDspExample(fir.words, [4095, 3840, 256]), null);
+  const iir = createScspDspExample('iir1-lowpass');
+  assert.equal(identifyScspDspExample(iir.words, fir.codes), null);
+  assert.equal(identifyScspDspExample(iir.words, highpass.codes), null);
   assert.equal(identifyScspDspExample(delayProgram(), [2048, 0, -1024]), 'delay');
   for (const codes of [null, [], Array(3), [4095, 2048], [4095, 2048, NaN], [4095, 2048, Infinity],
     [4095, 2048, '2048'], [4095, 2048, 2048.5], [-4097, 2048, 2048], [4096, 2048, 2048]]) {

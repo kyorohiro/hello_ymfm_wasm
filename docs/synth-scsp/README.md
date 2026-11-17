@@ -412,6 +412,40 @@ To try a small change, start with the built-in source and change `EWT=1` to
 `EWT=0`, then Check and Apply. That removes its effect output. Restore with
 Reset draft, Check and Apply. The direct voice output remains available.
 
+### One-pole IIR low-pass example
+
+Choose **DSP → Example → 1-pole IIR low-pass → Check → Apply program + coefficients**.
+The SCSP DSP stores the preceding **24-bit internal output** in TEMP and mixes
+it back with current input. Recommended codes `[4095,3840,256]` give:
+
+```text
+y[n] = sat24(floor(0.9375 × y[n−1]) + floor(0.0625 × x[n]))
+EFREG0 = y[n] >> 8
+```
+
+COEF1 controls output feedback; COEF2 controls new input. COEF0 is unused and its
+control is disabled. Delay Time is also unused. The example's two active codes
+sum to 4096 for approximately unity passband gain. To compare another matched
+pair, use COEF1 = 3072 and COEF2 = 1024. Independently changing them also changes
+gain; the controls do not calculate tuning or compensation automatically.
+
+This feedback reuses previous output across many samples. Inherited TEMP history
+does not disappear after one frame as it does with the FIR example. Recommended
+feedback is below unit magnitude and decays; the full raw coefficient range is
+still exposed, so other values can sustain history. Q12 floor divisions can leave
+a small negative zero-input residual: the shipped core can settle at internal
+state −15, emitted as −1 PCM16 step. Stop resets DSP history. Clearing Delay RAM
+with Apply / Enable does not reset TEMP.
+
+Enable DSP return and use direct level 0 for comparison. Saw / Noise and Spectrum
+make smoothing easier to observe. All voices share this DSP state. The Applied
+label follows default / custom active coefficients, including existing Code
+`setEffect({feedback})`. Since COEF0 is unused, its value does not affect named
+IIR recognition. The readable source is
+[iir1-lowpass.scspasm](examples/iir1-lowpass.scspasm). Source-only restore,
+coefficient session scope and portable preset formats follow the same rules as
+the other DSP examples; a voice preset alone does not restore the program.
+
 ### Live coefficients
 
 **Synth DSP coefficients · live** exposes COEF0–2 as signed 13-bit integer
@@ -460,7 +494,7 @@ live. DSP Lab retains its dedicated built-in dry / wet comparison.
 
 ## Implementation and distribution
 
-Slot PCM, EG, LFO, modulation and the authored Delay / FIR execute in the SCSP core.
+Slot PCM, EG, LFO, modulation and the authored Delay / FIR / IIR execute in the SCSP core.
 Drawing, conversion, guard samples, connection presets, grouped voices and
 Code are software features. The editor core uses zero slot-write delay.
 Physical SCSP timing, low-depth modulation and address clipping still need

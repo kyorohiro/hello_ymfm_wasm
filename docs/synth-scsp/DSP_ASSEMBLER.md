@@ -156,6 +156,40 @@ Reset draft restores only source. Reload restores only text, so choose an exampl
 again to stage coefficients. Copy / Save includes descriptive coefficient
 comments, not an automatically applied configuration; portable formats are unchanged.
 
+### One-pole IIR example
+
+Choose **Example → 1-pole IIR low-pass → Check → Apply program + coefficients**.
+[iir1-lowpass.scspasm](examples/iir1-lowpass.scspasm) uses three physical steps:
+
+1. Read preceding internal output from TEMP at TRA=1 and multiply by COEF1.
+2. Add current MIXS0 input multiplied by COEF2 using the preceding accumulator.
+3. Store the preceding saturated accumulator at TWA=0 using TWT and emit it
+   to EFREG0 using EWT. DEC decrements after the frame, selecting that stored
+   value as the next preceding output.
+
+```text
+state[n] = sat24(floor(state[n−1] * COEF1 / 4096)
+                 + floor(x[n] * COEF2 / 4096))
+EFREG0 = state[n] >> 8
+```
+
+The feedback is the stored 24-bit state, not the quantized 16-bit EFREG output.
+Recommended `[4095,3840,256]` means `a=0.9375`, `b=0.0625`. COEF0 is unused.
+Positive active codes adding to 4096 give nominal unity DC gain; individual edits
+also change gain. The example has no cutoff / resonance knob or software tuning.
+
+IIR history recurs, so a switch can retain old TEMP influence beyond the FIR's
+one-frame bound. The recommended feedback decays, with fixed-point floor effects:
+negative zero-input state can settle at −15 internally / −1 PCM16 step. Unit
+feedback magnitude, such as COEF1 = −4096, can preserve alternating history.
+Stop resets the core's DSP history; Apply / Enable RAM-ring clearing does not.
+No native frame is rendered or unrelated voice reset to prime the filter.
+
+Tests match an independent recursive Q24 reference sample for sample, including
+signed extremes, impulse decay, frequency response, inherited history, residuals,
+render partitions and irrelevant Delay Time changes. This program stays within
+the existing profile and never writes sample / Delay RAM.
+
 ### Coefficient values
 
 The **Synth DSP coefficients · live** controls edit COEF0–2 without replacing

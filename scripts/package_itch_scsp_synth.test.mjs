@@ -44,14 +44,14 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  assert.deepEqual(info.receipt.bundles.map(entry=>entry.path),['synth-scsp/synth.js','synth-scsp/processor.js','playground/scsp_dsp_lab.js','js/native-fx-worklet.js']);
  for(const name of ['synth-scsp/code_host.js','synth-scsp/code_endpoint.js','synth-scsp/song_player.js',
   'synth-scsp/dsp_program_view.js','synth-scsp/dsp_program.js','synth-scsp/dsp_examples.js','synth-scsp/dsp_assembler.js','synth-scsp/dsp_assembler.d.ts',
-  'synth-scsp/DSP_ASSEMBLER.md','synth-scsp/examples/delay.scspasm','synth-scsp/examples/fir2-lowpass.scspasm','synth-scsp/examples/fir2-highpass.scspasm',
+  'synth-scsp/DSP_ASSEMBLER.md','synth-scsp/examples/delay.scspasm','synth-scsp/examples/fir2-lowpass.scspasm','synth-scsp/examples/fir2-highpass.scspasm','synth-scsp/examples/iir1-lowpass.scspasm',
   'synth-scsp/ssf_source.js','synth-scsp/ssf_renderer.js',
   'generated/ssf-player/ssf_player.js','generated/ssf-player/ssf_player.wasm','generated/ssf-player/NOTICE.txt',
   'licenses/ssfplay/COPYING','licenses/ssfplay/zlib-LICENSE','sources/ssf-player/third_party/ssfplay/UPSTREAM.json',
   'sources/ssf-player/scripts/build_ssf_player.mjs','sources/ssf-player/tetorica_src/wasm/ssf_player/ssf_player.cpp',
   'playground/tetorica-playground-globals.d.ts','playground/tetorica-playground-scsp.d.ts','playground/tetorica-shell.d.ts',
   'js/native_audio_effect.wasm','sources/code-effects/tetorica_src/native/audio_effect/gain.c']) assert(info.names.includes(name),name);
- for(const name of ['dsp_assembler.d.ts','DSP_ASSEMBLER.md','examples/delay.scspasm','examples/fir2-lowpass.scspasm','examples/fir2-highpass.scspasm']){
+ for(const name of ['dsp_assembler.d.ts','DSP_ASSEMBLER.md','examples/delay.scspasm','examples/fir2-lowpass.scspasm','examples/fir2-highpass.scspasm','examples/iir1-lowpass.scspasm']){
   const source='docs/synth-scsp/'+name,bytes=await readFile(new URL('../'+source,import.meta.url));
   assert.deepEqual(await readFile(join(a.stage,'synth-scsp',name)),bytes,source+': documentation / editable assets stay byte-exact');
   assert(info.receipt.originalInputs.some(input=>input.path===source&&input.sha256===sha(bytes)));

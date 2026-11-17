@@ -44,6 +44,37 @@ const firHighpassSource = firSource
     '; The filter subtracts adjacent native 44.1 kHz samples to suppress low\n; frequencies. Q12 history quantization leaves a small DC residual.\n; Listen to the wet output and compare low notes with the low-pass example.',
   );
 
+const iirSource = `; Tetorica SCSP DSP - one-pole IIR low-pass example
+; Recommended codes are COEF0=4095, COEF1=3840, COEF2=256.
+; COEF0 is unused by these instructions. Values and routing are configured separately.
+;
+; x[n] is the 24-bit MIXS0 input after the core's four-bit input shift.
+; y[n] = sat24(floor(y[n-1] * COEF1 / 4096)
+;              + floor(x[n] * COEF2 / 4096)).
+; TEMP stores y[n] and EFREG0 receives y[n] >> 8.
+; Recommended values give y[n] ~= 0.9375*y[n-1] + 0.0625*x[n].
+; Their positive coefficients sum to 4096 for nominal unity DC gain.
+;
+; The shifter uses the previous accumulator. Each physical step also
+; calculates a new accumulator with its selected operands.
+
+; Read the preceding output and compute its feedback product.
+; DEC decreases after every frame, so TRA=1 reads the preceding TWA=0 cell.
+000: TRA=1 XSEL=0 YSEL=1 ZERO=1 COEF=1
+; Add the current input product to the preceding feedback accumulator.
+001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2
+; Store the preceding saturated accumulator as current output history and emit it.
+002: TWT=1 TWA=0 EWT=1 EWA=0 ZERO=1
+
+; The native sample rate is 44100 Hz. Delay Time does not affect this program.
+; Output history is recursive. At the recommended feedback it decays gradually.
+; Inherited TEMP history can therefore influence several later frames.
+; Q12 floor divisions can retain a small negative zero-input residual.
+; COEF1=-4096 has unit feedback magnitude and can preserve alternating history.
+; Stop resets DSP history. Apply keeps the current voices and their sample phase.
+; Unlisted steps 003..127 contain zero words.
+`;
+
 const delaySource = [
   '; Tetorica SCSP DSP - built-in Synth Delay example',
   '; Recommended codes are COEF0=4095, COEF1=1433, COEF2=4095.',
@@ -87,6 +118,17 @@ const examples = [
     roles: ['History capture', 'Previous sample', 'Current sample'],
     filename: 'tetorica-scsp-fir2-highpass.scspasm',
   },
+  {
+    id: 'iir1-lowpass',
+    name: '1-pole IIR low-pass',
+    source: iirSource,
+    words: checkScspDspDelaySource(iirSource).words,
+    codes: [4095, 3840, 256],
+    description: 'Feed the preceding output back into the current input sum to smooth high frequencies.',
+    equation: 'y[n] ~= 0.9375*y[n-1] + 0.0625*x[n]',
+    roles: ['Unused', 'Output feedback', 'Input'],
+    filename: 'tetorica-scsp-iir1-lowpass.scspasm',
+  },
 ];
 
 /** Fresh descriptors for a compact example chooser. */
@@ -107,10 +149,11 @@ export function identifyScspDspProgram(words) {
   if (words.length !== 512) return null;
   const example = examples.find(candidate => candidate.words.every((value, index) => value === words[index]));
   if (!example) return null;
+  if (example.id === 'iir1-lowpass') return 'iir1';
   return example.id === 'delay' ? 'delay' : 'fir2';
 }
 
-/** Match named FIR coefficients, retaining the legacy word-only identifier
+/** Match named coefficient configurations, retaining the legacy word-only identifier
  * when coefficients are omitted. */
 export function identifyScspDspExample(words, codes) {
   if (codes !== undefined) {
@@ -121,8 +164,11 @@ export function identifyScspDspExample(words, codes) {
   }
   const program = identifyScspDspProgram(words);
   if (program === 'delay') return 'delay';
+  if (program === 'iir1') {
+    return codes === undefined || (codes[1] === 3840 && codes[2] === 256) ? 'iir1-lowpass' : null;
+  }
   if (program !== 'fir2') return null;
   if (codes === undefined) return 'fir2-lowpass';
-  return examples.find(example => example.id !== 'delay' &&
+  return examples.find(example => example.id.startsWith('fir2-') &&
     example.codes.every((value, index) => value === codes[index]))?.id ?? null;
 }
