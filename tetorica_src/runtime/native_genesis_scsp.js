@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Only authored controls and owned PCM copies live here. DSP runs in Native.
 import {ScspSynth,createScspInitSample} from './scspsynth.js';
-import {SCSP_CONTROLS,scspCommandArgs,createScspValidation} from './playground_scsp.js';
+import {SCSP_CONTROLS,SCSP_DSP_METHODS,assertNativeScspControl,scspCommandArgs,createScspValidation} from './playground_scsp.js';
 import {ScspVoiceInspector} from './playground_scsp_inspector.js';
 import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js';
 export const SCSP_MEMORY_HELD_ERROR='Stop SCSP voices before replacing protected sample RAM or state';
@@ -57,6 +57,7 @@ export function createNativeGenesisScsp(owner,{additional=false}={}){
   function contextCommand(){return additional?'native_genesis_extra_scsp_status':'native_genesis_scsp_status';}
   async function barrier(ram=false){const message=identify({method:'barrier',ram});send(message,{},undefined);await owner.flush();return snapshot({after:message.id,...(ram?{ram:true}:{})});}
   function control(method,args=[],timing={},manual){
+    assertNativeScspControl(method,args);
     const saved=clone(args),bank=bankGeneration;
     return enqueue(async(check,capturedScope)=>{
       if(timing.time===undefined&&['setFrequency','setNote','setLfo','setModulation'].includes(method)){await snapshot();check();}
@@ -101,6 +102,7 @@ export function createNativeGenesisScsp(owner,{additional=false}={}){
     beginAudition:(ch,leaseOwner)=>leases.set(ch,{owner:leaseOwner,voice:context.identity()}),endAudition:()=>{}});
   function invoke(method,args=[]){const token=context.capture(),epoch=version,saved=clone(args),result=editorSerial.then(()=>{context.current(token);if(epoch!==version)throw abort();return invokeNow(method,saved);});editorSerial=result.catch(()=>{});return result;}
   async function invokeNow(method,args=[]){
+    assertNativeScspControl(method,args);
     if(method==='getPCM'){await client.getState();return inspector.invoke(method,args);}
     if(method==='applyPCM')return enqueue(async check=>{
       await snapshot();check();if(authors.size||activeGroups.size||owner.activePerformance)throw new Error('Stop scheduled playback before applying PCM. The waveform draft is retained.');
@@ -121,9 +123,10 @@ export function createNativeGenesisScsp(owner,{additional=false}={}){
     _stopVoices:()=>{cancel(()=>true);activeGroups.clear();return enqueue(async check=>{const m=identify({method:'stop-voices',audition:true});send(m,{},undefined);await owner.flush();check();await snapshot({after:m.id});applied.synth.stopVoices();rebuild();});},
     loadPCM,getState:()=>enqueue(async check=>{await barrier();check();return applied.synth.getState();}),dispose(){}};
   for(const method of SCSP_CONTROLS)client[method]=(...args)=>{report(control(method,args));};
+  for(const method of SCSP_DSP_METHODS)client[method]=async(...args)=>{assertNativeScspControl(method,args);};
   function stopped(){version++;activeGroups.clear();cancel(()=>true);leases.clear();inspector.resetAuditions();notes.clear();applied.synth.stopVoices();rebuild();}
   return {client,invoke,read(){return enqueue(async check=>{await snapshot();check();return inspector.read();});},
-    dispatch(message,timing={}){const {method,args=[]}=message;const work=method==='dispose'?Promise.resolve(true):method==='loadPCM'?loadPCM(...args,timing):method==='getState'?client.getState():method==='stopVoices'?client._stopVoices():control(method,args,timing);
+    dispatch(message,timing={}){const {method,args=[]}=message;const work=SCSP_DSP_METHODS.includes(method)?client[method](...args):method==='dispose'?Promise.resolve(true):method==='loadPCM'?loadPCM(...args,timing):method==='getState'?client.getState():method==='stopVoices'?client._stopVoices():control(method,args,timing);
       return {deferred:Promise.resolve(work).then(value=>message.id===undefined?undefined:{id:message.id,value,...(method==='loadPCM'?{state:state()}:{} )})};},
     async initialize(){context.enable('scsp');if(initialized)return;await control('reset',[]);{const init=createScspInitSample(),wave=await loadPCM(init.pcm,init.options);for(let ch=0;ch<32;ch++)await control('setPreset',[ch,{sample:wave,totalLevel:12}]);}initialized=true;},
     async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid SCSP mix');send({method:'mix',volume,pan},{},undefined);await owner.flush();},

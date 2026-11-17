@@ -5,6 +5,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import {restoreMixerCalibrationAySingleOutputPolicyRevision} from './mixer_calibration_ay_single_output_policy_revision.mjs';
+import {createScspDspExecutionRevisionReadContext} from './mixer_calibration_scsp_dsp_execution_revision.mjs';
 
 export const SCSP_LOOP_LINK_REVISION_BASE_COMMIT = '3ffde6b7fb1c8d1759b07d529a75b78259ee1953';
 export const SCSP_LOOP_LINK_REVISION_RECEIPT_PATH =
@@ -112,6 +113,9 @@ export function restoreMixerCalibrationScspLoopLinkRevision(
 	bytes,
 	{ readSource = (url) => readFileSync(url) } = {},
 ) {
+	const latest = createScspDspExecutionRevisionReadContext(readSource);
+	bytes = latest.restore(path, bytes);
+	readSource = latest.readSource;
 	const name =
 		path === 'web/scspsynth.js'
 			? 'tetorica_src/runtime/scspsynth.js'

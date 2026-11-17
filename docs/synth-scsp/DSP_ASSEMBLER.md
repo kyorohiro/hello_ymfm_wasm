@@ -97,6 +97,30 @@ in Main or Worker. They execute synchronously in JavaScript without changing
 the chip. Run still follows the mode's normal audio preparation lifecycle.
 This example inspects instructions; it does not upload or start a DSP program.
 
+### Playground Code: run a RAM-free effect
+
+The same **Files → examples → scsp** folder also includes
+**scsp-dsp-gain.js** and **scsp-dsp-iir-motion.js**. These assemble and apply a
+short program to the selected Playground SCSP, send slot 0 into MIXS0, and
+return EFREG0. Their notes follow `beat()` / `setBpm()`, while a separate
+four-second `tween()` changes signed Q12 coefficient codes. DSP executes in the
+SCSP core; JavaScript supplies the source and coefficient motion.
+
+Playground exposes acknowledged `applyDspProgram()`, `getDspProgram()`,
+`getDspCoefficients()`, `setDspCoefficients()` and `setDspReturn()` on the
+`useSoundChip('scsp')` object. `setMix(slot, {dspSend:7, directLevel:0})` enables
+the live wet path. The initial **ram-free** execution profile has COEF0..2,
+MIXS0 and EFREG0, and rejects RAM I/O/address controls and RAW bits. It does not
+reserve or overwrite PCM RAM. Program / coefficient edits preserve held voices
+and TEMP history; Stop clears history and retains setup; explicit reset clears
+setup too. Snapshots are detached from the live owner.
+
+These operations work in Main / Worker Web Audio. Native rejects DSP methods
+and nonzero sends with `NotSupportedError`. See the
+[Playground DSP API](../scsp.md#run-a-ram-free-dsp-program-in-playground) for
+coefficient and routing ranges. This RAM-free profile is separate from the
+Synth's reserved Delay-ring profile and effect controls described below.
+
 ### Synth Code: compile, apply, change coefficients
 
 In a fresh project's **Files**, open **examples/dsp-iir-motion.js → Code → Run**.

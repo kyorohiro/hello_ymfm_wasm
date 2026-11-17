@@ -1,3 +1,4 @@
+import {ITCH_RUN_DUPLICATE_SOURCE_GUIDES} from './prepare_itch_playground_run.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import test from 'node:test';
@@ -72,6 +73,10 @@ async function fixture(t,{fullDirectories=0,sidKits=false}={}) {
       'sources/sid8580-machine/sid8580-machine-build.json':'{"originalBuildReceipt":true}\n',
       'generated/sid8580-machine/sid8580-machine-build.json':'{"originalBuildReceipt":true}\n',
     });
+    if(item.id==='playground-full')for(const [source,retained]of Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)){
+      const value=files['sources/'+source]??`# Original duplicate guide ${source}\n`;
+      files['sources/'+source]=value;files[retained]=value;
+    }
     for(const [name,bytes]of Object.entries(files))await put(stage,name,bytes);
   }
   const full=join(release,'itch_playground_dev'),run=join(release,'itch_playground_dev_for_run');
@@ -140,7 +145,7 @@ test('SID kits follow the current source-only archive policy while guides and re
     'sources/sid8580-machine/third_party/sidera/LICENSE','sources/sid8580-machine/third_party/toolchain-notices/NOTICE.txt','sources/sid8580-machine/source-kit.json'])
     await assert.rejects(readFile(join(f.run,name)),{code:'ENOENT'},'Kit member is preserved in the complete archive without a duplicate '+name);
   for(const [name,link]of [['sources/SID8580.md','corresponding-source.zip'],['sources/sid/README.md','../corresponding-source.zip'],
-    ['sources/sid/third_party/chips-m6581/PATCHES.md','../../../corresponding-source.zip'],['sources/sid8580-machine/README.md','../corresponding-source.zip']]){
+    ['sources/sid8580-machine/README.md','../corresponding-source.zip']]){
     const guide=await readFile(join(f.run,name),'utf8');
     assert(guide.includes(`](${link})`),'Navigation uses the retained guide directory: '+name);
     assert(guide.endsWith(await readFile(join(f.full,name),'utf8')),'Only the navigation preface is added: '+name);
@@ -241,4 +246,12 @@ test('manifest outputs cannot overwrite any validated artifact or stage input',a
   const f=await fixture(t);
   await assert.rejects(writeItchReleaseManifest({release:f.release,out:f.archive('synth'),checksums:join(f.release,'SHA256SUMS'),sourceCommit:null}),/cannot overwrite validated inputs/);
   await assert.rejects(writeItchReleaseManifest({release:f.release,out:join(f.run,'index.html'),checksums:join(f.release,'SHA256SUMS'),sourceCommit:null}),/cannot overwrite validated inputs/);
+});
+
+for(const changeFull of [false,true])test(`retained duplicate attribution guide rejects ${changeFull?'both full and browser':'browser-only'} edits`,async t=>{
+ const f=await fixture(t),retained=Object.values(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)[0];
+ await writeFile(join(f.run,retained),'Changed component attribution copy\n');
+ zip(f.release,'playground-run');
+ if(changeFull){await writeFile(join(f.full,retained),'Changed component attribution copy\n');zip(f.release,'playground-full',{dirs:true});}
+ await assert.rejects(check(f),changeFull?/Original source \/ attribution guide bytes/:/Individually readable attribution guide bytes/);
 });

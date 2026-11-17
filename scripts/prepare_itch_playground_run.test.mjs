@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,mkdir,readFile,writeFile,access,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
-import {checkItchPlaygroundZip,prepareItchPlaygroundRun,validateItchZipEntries,isItchRunArchivedSource} from './prepare_itch_playground_run.mjs';
+import {checkItchPlaygroundZip,prepareItchPlaygroundRun,validateItchZipEntries,isItchRunArchivedSource,ITCH_RUN_DUPLICATE_SOURCE_GUIDES} from './prepare_itch_playground_run.mjs';
 const file=(name,bytes=0)=>({name,bytes,directory:false,symlink:false});
 
 test('1000 means all ZIP entries, including directory records',()=>{
@@ -17,7 +17,9 @@ test('1000 means all ZIP entries, including directory records',()=>{
 });
 test('only explicit build metadata and upstream change history move into the complete source archive',()=>{
  for(const name of ['sdk/RELEASE-MANIFEST.json','scsp-sdk/RELEASE-MANIFEST.json','sdk/catalog/source_inventory.json','sdk/sdk.json','scsp-sdk/sdk.json','sdk/soundchip-sdk.json','CDDA.json','MSM5205.json','POKEY-SDK.json','PS1-SPU.json','SCSP.json','third_party/snes-spc/changes.txt'])assert.equal(isItchRunArchivedSource(name),true,name);
- for(const name of ['third_party/chip/RELEASE-MANIFEST.json','js/ps1_vab.js','js/scsp_dsp_assembler.js','js/scsp_dsp_assembler.d.ts','examples/ps1/ps1-vab-tone.js','examples/scsp/scsp-dsp-roundtrip.js','third_party/snes-spc/LICENSE','third_party/snes-spc/license.txt','third_party/snes-spc/README.md'])assert.equal(isItchRunArchivedSource(name),false,name);
+ for(const name of ['third_party/chip/RELEASE-MANIFEST.json','js/ps1_vab.js','js/scsp_dsp_assembler.js','js/scsp_dsp_assembler.d.ts','examples/ps1/ps1-vab-tone.js','examples/scsp/scsp-dsp-roundtrip.js','third_party/snes-spc/LICENSE','third_party/snes-spc/license.txt'])assert.equal(isItchRunArchivedSource(name),false,name);
+ for(const [source,retained]of Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)){assert.equal(isItchRunArchivedSource(source),true,source);assert.equal(isItchRunArchivedSource(retained),false,retained);}
+ assert.equal(Object.keys(ITCH_RUN_DUPLICATE_SOURCE_GUIDES).length,7);
  for(const name of ['native/ps1/upstream/REVISION','native/ps1/upstream/SHA256SUMS',
   'scsp-sdk/vendor/mame-scsp/upstream/REVISION','scsp-sdk/vendor/mame-scsp/upstream/SHA256SUMS',
   'third_party/libvgm-pokey/upstream/snapshot-manifest.json'])assert.equal(isItchRunArchivedSource(name),true,name);
@@ -78,14 +80,22 @@ test('browser stage keeps complete source ZIP and original runtime/licenses/rece
   'sources/sid/scripts/prepare_sid_core.py':'# Original preparation script\n',
   'sources/sid/scripts/sid_artifacts.mjs':'// Original source receipt verifier\n',
  };
+ for(const [source,retained]of Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)){
+  const value=`# Original attribution guide ${source}\n`;payload['sources/'+source]=value;payload[retained]=value;
+ }
  try{
   for(const[name,value]of Object.entries(payload)){await mkdir(dirname(join(full,name)),{recursive:true});await writeFile(join(full,name),value);}
-  const result=await prepareItchPlaygroundRun(full,run);assert(result.passed&&result.fullStageUnchanged);assert.equal(result.removedCompilationFiles.length,25);assert.equal(result.sourceArchive.files,32);
+  const result=await prepareItchPlaygroundRun(full,run);assert(result.passed&&result.fullStageUnchanged);assert.equal(result.removedCompilationFiles.length,32);assert.equal(result.sourceArchive.files,39);assert.equal(result.archivedDuplicateSourceGuides.length,7);
   for(const name of ['index.html','LICENSE','js/app.js','js/sid.js','generated/audio.wasm','licenses/chip/NOTICE.md','sources/NOTICE.md','sources/native/chip/NOTICE.md','sources/native/chip/LICENSE','sources/Chip.json'])assert.deepEqual(await readFile(join(run,name)),await readFile(join(full,name)),name);
   for(const name of result.removedCompilationFiles)await assert.rejects(access(join(run,name)),{code:'ENOENT'});
   const guide=await readFile(join(run,'sources/Chip.md'),'utf8');assert(guide.endsWith(payload['sources/Chip.md']));assert.match(guide,/\]\(corresponding-source\.zip\)/);
   const nested=await readFile(join(run,'sources/native/chip/README.md'),'utf8');assert(nested.endsWith(payload['sources/native/chip/README.md']));assert.match(nested,/\]\(\.\.\/\.\.\/corresponding-source\.zip\)/);
   const sidGuide=await readFile(join(run,'sources/sid/README.md'),'utf8');assert(sidGuide.endsWith(payload['sources/sid/README.md']));assert.match(sidGuide,/\]\(\.\.\/corresponding-source\.zip\)/);
+  const index=await readFile(join(run,'sources/README-for-run.md'),'utf8');
+  for(const [source,retained]of Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)){
+   assert.deepEqual(await readFile(join(run,retained)),Buffer.from(payload['sources/'+source]));
+   assert(index.includes(`](../${retained})`));
+  }
   const restored=join(scratch,'restored');
   execFileSync(process.env.PYTHON||'python3',['-c','import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as z:z.extractall(sys.argv[2])',join(run,'sources/corresponding-source.zip'),restored]);
   for(const[name,value]of Object.entries(payload)){assert.deepEqual(await readFile(join(full,name)),Buffer.from(value),'Full stage unchanged '+name);if(name.startsWith('sources/'))assert.deepEqual(await readFile(join(restored,name.slice(8))),Buffer.from(value),'Complete original archive '+name);}
@@ -195,5 +205,28 @@ test('Run bundle is generated before enforcing the final hosting entry limit',as
   await assert.rejects(access(join(run,'page0.js')),{code:'ENOENT'});
   await access(join(run,'sources/browser-bundle-inputs.zip'));
   await access(join(run,'sources/corresponding-source.zip'));
+ }finally{await rm(scratch,{recursive:true,force:true});}
+});
+
+test('archiving a duplicate guide requires its identical readable attribution copy on every preparation',async()=>{
+ const scratch=await mkdtemp(join(tmpdir(),'itch-duplicate-guide-')),full=join(scratch,'full');
+ const [source,retained]=Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)[0],body='# Original component attribution\n';
+ try{
+  const payload={'index.html':'Original entry','LICENSE':'Original license','sources/core.c':'int sample(void){return 0;}',['sources/'+source]:body};
+  for(const[name,value]of Object.entries(payload)){await mkdir(dirname(join(full,name)),{recursive:true});await writeFile(join(full,name),value);}
+  const missing=join(scratch,'missing');
+  await assert.rejects(prepareItchPlaygroundRun(full,missing),/Missing retained attribution guide/);
+  await assert.rejects(access(missing),{code:'ENOENT'});
+  await mkdir(dirname(join(full,retained)),{recursive:true});await writeFile(join(full,retained),body+'Changed copy\n');
+  const changed=join(scratch,'changed');
+  await assert.rejects(prepareItchPlaygroundRun(full,changed),/Duplicate source guide differs/);
+  await assert.rejects(access(changed),{code:'ENOENT'});
+  await writeFile(join(full,retained),body);
+  const valid=await prepareItchPlaygroundRun(full,join(scratch,'valid'));
+  assert.equal(valid.archivedDuplicateSourceGuides.length,1);
+  assert.equal(await readFile(join(full,'sources',source),'utf8'),body);
+  await writeFile(join(full,'sources',source),body+'Changed source\n');
+  await assert.rejects(prepareItchPlaygroundRun(full,join(scratch,'later')),/Duplicate source guide differs/);
+  assert.equal(await readFile(join(full,retained),'utf8'),body);
  }finally{await rm(scratch,{recursive:true,force:true});}
 });

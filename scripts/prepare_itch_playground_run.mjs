@@ -33,8 +33,20 @@ const sdkBuildMetadata=new Set([
  // Upstream source history, preserved byte-exact with its complete source kit.
  'third_party/snes-spc/changes.txt',
 ]);
+// Source-kit copies retain their original paths in corresponding-source.zip.
+// Their identical attribution guides stay individually readable under licenses/.
+export const ITCH_RUN_DUPLICATE_SOURCE_GUIDES=Object.freeze({
+ 'third_party/tetorica-nes/README.md':'licenses/tetorica-nes/README.md',
+ 'third_party/nuked-opn2/README.md':'licenses/nuked-opn2/README.md',
+ 'third_party/mame-32x-pwm/README.md':'licenses/mame-32x-pwm/README.md',
+ 'third_party/libvgm-pokey/README.md':'licenses/libvgm-pokey/README.md',
+ 'third_party/snes-spc/README.md':'licenses/snes-spc/README.md',
+ 'sid/third_party/chips-m6581/README.md':'licenses/chips-m6581/README.md',
+ 'sid/third_party/chips-m6581/PATCHES.md':'licenses/chips-m6581/PATCHES.md',
+});
 export const isItchRunArchivedSource=name=>codeFile(name)
  || sdkBuildMetadata.has(name) // Exact build metadata remains in corresponding-source.zip.
+ || Object.hasOwn(ITCH_RUN_DUPLICATE_SOURCE_GUIDES,name)
  || name.startsWith('sid8580-machine/')&&name!=='sid8580-machine/README.md';
 export const isItchRunSourceGuide=name=>! /^(?:LICENSE|COPYING|NOTICE|AUTHORS|UPSTREAM)(?:[.\-_]|$)/i.test(basename(name))&&(/^[^/]+\.md$/i.test(name)||/^native\/[^/]+\/README\.md$/.test(name)||/^sid\/(?:README\.md|third_party\/chips-m6581\/(?:README|PATCHES)\.md)$/.test(name)||name==='sid8580-machine/README.md');
 
@@ -88,7 +100,8 @@ async function walk(directory,prefix=''){
 }
 export function itchRunSourcePreface(name,archiveSha){
  const link=slash(relative(dirname(name),archiveName));
- return `> Browser upload source bundle: [Download the complete corresponding source](${link}) (SHA-256: \`${archiveSha}\`).\n> Extract that ZIP into a new directory before following the build instructions below. Its root matches the complete downloadable distribution's \`sources/\` tree, including the original \`sid/\` and \`sid8580-machine/\` kit paths where provided. The ZIP preserves every original source, guide, license, notice and receipt byte. Hashes in receipts describe those extracted originals; this browser-facing guide has only this navigation preface.\n\n`;
+ const index=slash(relative(dirname(name),'README-for-run.md'));
+ return `> Browser upload source bundle: [Download the complete corresponding source](${link}) (SHA-256: \`${archiveSha}\`).\n> Extract that ZIP into a new directory before following the build instructions below. Its root matches the complete downloadable distribution's \`sources/\` tree, including the original \`sid/\` and \`sid8580-machine/\` kit paths where provided. The ZIP preserves every original source, guide, license, notice and receipt byte. Hashes in receipts describe those extracted originals; this browser-facing guide has only this navigation preface. Component guides duplicated under \`licenses/\` are linked from the [browser source guide](${index}).\n\n`;
 }
 
 export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}={}){
@@ -106,6 +119,14 @@ export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}
  let committed=false;
  try{
   for(const name of inputFiles){const bytes=await readFile(join(full,name));original.set(name,{bytes:bytes.length,sha256:sha(bytes)});await mkdir(dirname(join(temporary,name)),{recursive:true});await writeFile(join(temporary,name),bytes);}
+  const duplicateGuides=[];
+  for(const [name,retained]of Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)) {
+   if(!sourceNames.includes(name))continue;
+   if(!original.has(retained))throw Error('Missing retained attribution guide: '+retained);
+   const source=await readFile(join(temporary,'sources',name)),copy=await readFile(join(temporary,retained));
+   if(!source.equals(copy))throw Error('Duplicate source guide differs from retained attribution copy: '+name+' -> '+retained);
+   duplicateGuides.push({source:'sources/'+name,retained,...original.get(retained)});
+  }
   const sourceArchive=join(temporary,'sources',archiveName);
   const buildZip=String.raw`
 import json,sys,zipfile
@@ -125,6 +146,12 @@ with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compressle
   const guides=sourceNames.filter(name=>!isItchRunArchivedSource(name)&&isItchRunSourceGuide(name));
   for(const name of guides){const file=join(temporary,'sources',name);await writeFile(file,itchRunSourcePreface(name,archiveSha)+await readFile(file,'utf8'));}
   await writeFile(join(temporary,'sources/README-for-run.md'),`# Corresponding source for this browser upload\n\n[Download all corresponding sources](${archiveName}) (SHA-256: \`${archiveSha}\`). The ZIP contains all ${sourceNames.length} original source files, standalone build recipes, licenses, notices, provenance and receipts, without changes. Extract into a new directory and follow the included chip guides. The extracted source root retains every original relative path; with Emscripten installed, for example, run \`sh scripts/build_cdda_wasm.sh ../generated\`.\n\nThe complete downloadable Playground distribution also retains the expanded source tree. This browser upload moves C/C++/header/shell build files, SDK build scripts, build configuration/pin metadata, build catalog and release inventories, upstream source change history, duplicate SID source-kit scripts and the complete \`sid8580-machine/\` native source kit into that same source ZIP to stay within [itch.io HTML upload limits](https://itch.io/docs/creators/html5#zip-file-requirements). The archived 8580 kit includes its Rust/Cargo and native sources, toolchain licenses/notices, matching build receipt and source manifest. Its README and the top-level SID8580 guide remain accessible with source-download navigation. Other retained source guides, license/notice/provenance files and receipts remain accessible individually. Audio modules, WASM, samples, examples and declarations retain their original files. ${bundle?'Page UI modules are bundled and minified; the bundle receipt and original UI inputs are included separately under sources/.':'Page UI modules also retain their original files.'} Guide copies have a download preface; receipt hashes refer to the unmodified files inside the source ZIP.\n`);
+  if(duplicateGuides.length) {
+   const links=duplicateGuides.map(({retained})=>`- [${basename(dirname(retained))}/${basename(retained)}](../${retained})`).join('\n');
+   const guidePath=join(temporary,'sources/README-for-run.md');
+   await writeFile(guidePath,await readFile(guidePath,'utf8')+
+    `\n## Component documentation\n\nDuplicate source documentation is preserved at its original paths inside the complete source ZIP. Each document has an identical copy readable under \`licenses/\`, including the marked patch history. Packaging verifies every pair before archiving the source copy.\n\n${links}\n`);
+  }
   const guidePaths=new Set(guides.map(name=>'sources/'+name)),removedPaths=new Set(removed.map(name=>'sources/'+name));
   let unchanged=0;
   for(const name of inputFiles){
@@ -140,7 +167,7 @@ with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compressle
   const outputEntries=await Promise.all(outputFiles.map(async name=>({name,directory:false,symlink:false,bytes:(await lstat(join(temporary,name))).size})));
   const predicted=validateItchZipEntries(outputEntries);
   await rename(temporary,run);committed=true;
-  return {passed:true,fullStage:full,runStage:run,inputFiles:inputFiles.length,sourceArchive:{path:'sources/'+archiveName,files:inner.length,bytes:archiveBytes.length,sha256:archiveSha,allOriginalSourceBytesVerified:true,directoryEntries:0},removedCompilationFiles:removed.map(name=>'sources/'+name),prefacedGuides:[...guidePaths],unchangedFilesVerifiedBeforeBundle:unchanged,fullStageUnchanged:true,bundle:bundled,predictedZip:predicted,note:'Create the outer ZIP with no directory records (zip -D), then use --check-zip to validate the actual archive including directory entries.'};
+  return {passed:true,fullStage:full,runStage:run,inputFiles:inputFiles.length,sourceArchive:{path:'sources/'+archiveName,files:inner.length,bytes:archiveBytes.length,sha256:archiveSha,allOriginalSourceBytesVerified:true,directoryEntries:0},archivedDuplicateSourceGuides:duplicateGuides,removedCompilationFiles:removed.map(name=>'sources/'+name),prefacedGuides:[...guidePaths],unchangedFilesVerifiedBeforeBundle:unchanged,fullStageUnchanged:true,bundle:bundled,predictedZip:predicted,note:'Create the outer ZIP with no directory records (zip -D), then use --check-zip to validate the actual archive including directory entries.'};
  }finally{if(!committed)await rm(temporary,{recursive:true,force:true});}
 }
 

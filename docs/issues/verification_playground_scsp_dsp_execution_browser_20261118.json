@@ -1,0 +1,1508 @@
+{
+  "passed": true,
+  "source": {
+    "passed": true,
+    "root": "docs",
+    "entry": "/playground/index.html?mode=scsp",
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "uiBundleModified": false,
+    "results": [
+      {
+        "browser": "chromium",
+        "rate": 44100,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.0065727743613002675,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.000604949960375794,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0012768527881548942,
+                  "peak": 0.008975447155535221,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006572774361300267,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678121,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.000552129403768623,
+                  "peak": 0.0031097587198019028,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0010933239028733037,
+                  "peak": 0.008822121657431126,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            44100
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "chromium",
+        "rate": 48000,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006564786590413372,
+              "peak": 0.01609870046377182,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003288355544623926,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0006000752350744385,
+                  "peak": 0.0023981211706995964,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0018037429975447086,
+                  "peak": 0.008721427991986275,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.0065653386892299695,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.0032894858231723666,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0007094379740336228,
+                  "peak": 0.003078086068853736,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0015728526965611575,
+                  "peak": 0.008280076086521149,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            48000
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "webkit",
+        "rate": 44100,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.0065727743613002675,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.00035017652511081,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.001221490303118639,
+                  "peak": 0.008704178966581821,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006572774361300267,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0007672884231572655,
+                  "peak": 0.003101895796135068,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0005590499357441054,
+                  "peak": 0.007996521890163422,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            44100
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "webkit",
+        "rate": 48000,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006577249787322959,
+              "peak": 0.01609870046377182,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286146713663774,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.00042551499660089577,
+                  "peak": 0.002397629665210843,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.001382747171841277,
+                  "peak": 0.008618424646556377,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006563608269192117,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003283933300689865,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0005010597491745717,
+                  "peak": 0.0031004215124994516,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.001382128732743041,
+                  "peak": 0.008822121657431126,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            48000
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      }
+    ],
+    "servedAssetAudit": {
+      "files": 316,
+      "allBytesAndHashesVerified": true,
+      "inventorySha256": "c7cb458b95c50ded0f5364f878df6489242ef21a31127314d678bc60a1214d61"
+    }
+  },
+  "package": {
+    "passed": true,
+    "root": "release/itch_playground_scsp-dsp-execution-20261118",
+    "entry": "/index.html?mode=scsp",
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "uiBundleModified": false,
+    "results": [
+      {
+        "browser": "chromium",
+        "rate": 48000,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006560935839786963,
+              "peak": 0.01609870046377182,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003279230993628528,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.000590491341862269,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.002163513753801181,
+                  "peak": 0.008958345279097557,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006557467471949187,
+              "peak": 0.01609870046377182,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.0032844256036805406,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0006697720023327009,
+                  "peak": 0.0031031244434416294,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.00166195629604196,
+                  "peak": 0.008593509905040264,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            48000
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "webkit",
+        "rate": 48000,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006577093724918727,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003288223982106596,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.00048784268747125174,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0007691141915021201,
+                  "peak": 0.0085959667339921,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006566951484844548,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.0032807749018967545,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0004992532736096298,
+                  "peak": 0.003065751399844885,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0008406040405270808,
+                  "peak": 0.00861375592648983,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            48000
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      }
+    ],
+    "servedAssetAudit": {
+      "files": 313,
+      "allBytesAndHashesVerified": true,
+      "inventorySha256": "9ab8f44ef06ed0b037e82d2344971dc03cdbdd1ff9bc8399d8511ca7fe91d0ee"
+    }
+  },
+  "for-run": {
+    "passed": true,
+    "root": "Isolated extraction of release/hello_ymfm_wasm_scsp-dsp-execution-20261118_itch_playground_for_run.zip",
+    "entry": "/index.html?mode=scsp",
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "uiBundleModified": false,
+    "results": [
+      {
+        "browser": "chromium",
+        "rate": 44100,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.0065727743613002675,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0006489414727326803,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0019325787889724595,
+                  "peak": 0.008833915926516056,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006572774361300267,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0006762200248264622,
+                  "peak": 0.0030665129888802767,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0014026585704261037,
+                  "peak": 0.008865367621183395,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            44100
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "chromium",
+        "rate": 48000,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006568860831711583,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003279131300392758,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0005980711338118777,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0021069550130904473,
+                  "peak": 0.00895431637763977,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006560617692614197,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003288223982106596,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0007354226815960817,
+                  "peak": 0.003121552988886833,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0014253138975910426,
+                  "peak": 0.008962866850197315,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            48000
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "webkit",
+        "rate": 44100,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.0065727743613002675,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.0004163462137148661,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0014164096963400845,
+                  "peak": 0.008731698617339134,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006572774361300267,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.003286922789678122,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.00027230974499174157,
+                  "peak": 0.0030901015270501375,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0012244800687774718,
+                  "peak": 0.008991173468530178,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            44100
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      },
+      {
+        "browser": "webkit",
+        "rate": 48000,
+        "passed": true,
+        "results": [
+          {
+            "execution": "main",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.006567605449532609,
+              "peak": 0.01609870046377182,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.0032792917984851783,
+              "peak": 0.008051562123000622,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.00041488252431135376,
+                  "peak": 0.0023981702979654074,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0015290225142721421,
+                  "peak": 0.008618424646556377,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          },
+          {
+            "execution": "worker",
+            "rejected": 2,
+            "configured": true,
+            "words": 512,
+            "codes": [
+              0,
+              0,
+              2048
+            ],
+            "gate": true,
+            "pcmBytes": 130,
+            "full": {
+              "rms": 0.0065721551443897,
+              "peak": 0.016099192202091217,
+              "nonFinite": 0
+            },
+            "muted": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "half": {
+              "rms": 0.0032889729996880895,
+              "peak": 0.008051316253840923,
+              "nonFinite": 0
+            },
+            "stopped": {
+              "rms": 0,
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "examples": [
+              {
+                "path": "/examples/scsp/scsp-dsp-gain.js",
+                "sourceSha256": "f7e2bbd2369073fd51079d9d47285281713880ca2d401ef48c87ee4ca4fbe229",
+                "marker": "SCSP DSP gain: MIXS0 \u2192 COEF0 \u2192 EFREG0",
+                "audible": {
+                  "rms": 0.00015591564118062437,
+                  "peak": 0.0027949742507189512,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              },
+              {
+                "path": "/examples/scsp/scsp-dsp-iir-motion.js",
+                "sourceSha256": "3439977b42c93d1760e9ab8f692d52b2a02073ff57568bdec8eca5f65b37566c",
+                "marker": "SCSP DSP IIR: COEF1 = history, COEF2 = new input",
+                "audible": {
+                  "rms": 0.0013703000920144413,
+                  "peak": 0.008487164042890072,
+                  "nonFinite": 0
+                },
+                "stopped": {
+                  "rms": 0,
+                  "peak": 0,
+                  "nonFinite": 0
+                }
+              }
+            ]
+          }
+        ],
+        "audit": {
+          "rates": [
+            48000
+          ],
+          "physicalOutputMuted": true
+        },
+        "errors": [],
+        "missing": [],
+        "optionalExternalRequestsBlocked": 1
+      }
+    ],
+    "servedAssetAudit": {
+      "files": 237,
+      "allBytesAndHashesVerified": true,
+      "inventorySha256": "af12e0ca4d60e90576f1a7d91cb28f7e3075227faa7b302665d786f3a3af2608"
+    }
+  }
+}

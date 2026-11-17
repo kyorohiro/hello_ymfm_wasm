@@ -187,6 +187,11 @@ scspsynth.js
 scsp_sample.js
 scsp_dsp_assembler.js
 scsp_dsp_assembler.d.ts
+scsp_dsp_program.js
+scsp_dsp_coefficients.js
+scsp_dsp.js
+scspsynth.d.ts
+scsp.d.ts
 playground_scsp.js
 playground_scsp_audio.js
 playground_scsp_worklet.js

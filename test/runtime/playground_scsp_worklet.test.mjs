@@ -9,16 +9,17 @@ import factory from '../../docs/generated/scsp_wasm.js';
 import {Scsp} from '../../tetorica_src/runtime/scsp.js';
 import {ScspSynth,createScspInitSample} from '../../tetorica_src/runtime/scspsynth.js';
 import {Pcm44100Resampler} from '../../tetorica_src/runtime/pcm_44100_resampler.js';
-import {createScspClient,SCSP_CONTROLS,createScspValidation,scspCommandArgs} from '../../tetorica_src/runtime/playground_scsp.js';
+import {createScspClient,SCSP_CONTROLS,SCSP_DSP_METHODS,createScspValidation,scspCommandArgs,validateScspDspCommand} from '../../tetorica_src/runtime/playground_scsp.js';
 import {ScspVoiceInspector} from '../../tetorica_src/runtime/playground_scsp_inspector.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {assembleScspDsp} from '../../tetorica_src/runtime/scsp_dsp_assembler.js';
 const peak=a=>a.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
 async function setup(t,rate=48000){
  const wasmBinary=await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl)),source=await readFile(new URL('./playground_scsp_worklet.js',runtimeDirectoryUrl),'utf8');
  const main=new MessageChannel();let Processor;
- const scope={factory,Scsp,ScspSynth,createScspInitSample,Pcm44100Resampler,SCSP_CONTROLS,createScspValidation,scspCommandArgs,ScspVoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,
+ const scope={factory,Scsp,ScspSynth,createScspInitSample,Pcm44100Resampler,SCSP_CONTROLS,SCSP_DSP_METHODS,createScspValidation,scspCommandArgs,validateScspDspCommand,ScspVoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,
  AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(name,Class){assert.equal(name,'tetorica-playground-scsp');Processor=Class;}};
  scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate,nowFrame:()=>scope.currentFrame});
  vm.runInNewContext(source.replace(/^import .*;\n/gm,'').replace('export class ScspInstrumentProcessor','class ScspInstrumentProcessor'),scope);
@@ -29,6 +30,8 @@ async function setup(t,rate=48000){
  return {processor,client,scope,metadata,render(frames){const left=new Float32Array(frames),right=left.slice();assert(processor.process([],[[left,right]]));scope.currentFrame+=frames;return {left,right};}};
 }
 async function worker(t,p){const channel=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:channel.port1}});const client=createScspClient(channel.port2,p.metadata);t.after(()=>client.dispose());await client.getState();return client;}
+const gainProgram=()=>assembleScspDsp('000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=2\n001: EWT=1 ZERO=1');
+const gainSetup=code=>({coefficients:{0:0,1:0,2:code}});
 
 test('SCSP Worklet renders tuned stereo at 44100, 48000 and 96000, with phase-stable host conversion',async t=>{
  for(const rate of [44100,48000,96000]){
@@ -159,4 +162,114 @@ test('slot modulation crosses Main/Worker ports, keeps padded PCM owned and resp
  p.processor.receive({performance:{session:88,owner:'fm-code',time:0},commands:[{method:'setModulation',args:[1,{depth:0}]},{method:'setLfo',args:[1,{amplitudeDepth:7}]}]},scheduled);p.render(128);assert.equal(p.processor.synth.getState().slots[1].modulation.depth,10);assert.equal(p.processor.synth.getState().slots[1].lfo.amplitudeDepth,0);
  p.processor.receive({type:'chip-inspector',action:'invoke',method:'setModulation',args:[1,{depth:8}],id:8788},p.processor.port);assert.equal(p.processor.synth.getState().slots[1].modulation.depth,8);
  await w._stopVoices();assert.equal(peak(p.render(128).left),0);assert.equal((await w.getState()).samples.find(s=>s.id===sample.id).modulationDepth,12);
+});
+
+test('DSP owner acknowledgements retain independent word images and synchronize both clients',async t=>{
+ const p=await setup(t),w=await worker(t,p),other=await setup(t);
+ const words=gainProgram(),expected=Array.from(words),options=gainSetup(4095);
+ const pending=w.applyDspProgram(words,options);
+ words.fill(0);options.coefficients[2]=0;
+ const applied=await pending;
+ assert.equal(applied.profile,'ram-free');assert.equal(applied.configured,true);
+ assert.deepEqual(applied.words,expected);assert.deepEqual(applied.coefficients.codes,[0,0,4095]);
+ assert.deepEqual(await p.client.getDspProgram(),applied);
+ applied.words.fill(0);applied.coefficients.codes[2]=0;
+ assert.deepEqual((await p.client.getDspProgram()).words,expected);
+ assert.equal((await other.client.getDspProgram()).configured,false);
+ const broadcast=[],receive=p.client._getState();
+ p.processor.port.postMessage=message=>broadcast.push(message);
+ const coefficients=await w.setDspCoefficients({2:2048});
+ assert.deepEqual(coefficients,{codes:[0,0,2048]});
+ assert.deepEqual(p.client._getState().dsp.coefficients,coefficients);
+ const delta=broadcast.find(message=>message.type==='scsp-dsp-update');
+ assert.deepEqual(delta.args,[{2:2048}]);assert.equal(delta.method,'setDspCoefficients');
+ assert(!JSON.stringify(delta).includes('words'),'Coefficient motion sends a small delta');
+ assert.deepEqual(p.client._getState().dsp.words,receive.dsp.words);
+ await p.client.setDspReturn({level:7,pan:16});
+ assert.deepEqual((await w.getDspProgram()).return,{level:7,pan:16});
+});
+
+test('DSP Gain changes actual wet PCM without retriggering held slots at both host rates',async t=>{
+ for(const rate of [44100,48000]){
+  const full=await setup(t,rate),half=await setup(t,rate);
+  for(const [p,code]of [[full,4095],[half,2048]]){
+   await p.client.applyDspProgram(gainProgram(),gainSetup(code));
+   await p.client.setDspReturn({level:7});
+   p.client.setMix(31,{directLevel:0,dspSend:7});p.client.noteOn(31,69);await p.client.getState();
+   assert.equal(p.processor.synth.getState().slots[31].gate,true);
+  }
+  const a=full.render(8192).left,b=half.render(8192).left;
+  assert(peak(a)>.01);assert(Math.abs(peak(b)/peak(a)-.5)<.01);
+  const before=await full.client.getState();
+  assert.deepEqual(await full.client.setDspCoefficients({2:0}),{codes:[0,0,0]});
+  assert.equal((await full.client.getState()).slots[31].gate,true);
+  assert.deepEqual((await full.client.getState()).playingSampleIds,before.playingSampleIds);
+  assert(full.render(512).left.subarray(8).every(value=>value===0));
+  await full.client.setDspCoefficients({2:4095});
+  assert(peak(full.render(512).left)>.01);
+ }
+});
+
+test('DSP invalid programs and coefficient patches retain applied state and PCM bank',async t=>{
+ const p=await setup(t);
+ await p.client.applyDspProgram(gainProgram(),gainSetup(2048));
+ const before=await p.client.getState(),program=await p.client.getDspProgram();
+ for(const invoke of [
+  ()=>p.client.applyDspProgram(assembleScspDsp('001: MRD=1')),
+  ()=>p.client.applyDspProgram(gainProgram(),{coefficients:{2:4095}}),
+  ()=>p.client.setDspCoefficients({2:4096}),
+  ()=>p.client.setDspReturn({level:8}),
+ ])await assert.rejects(invoke());
+ assert.deepEqual(await p.client.getDspProgram(),program);
+ assert.deepEqual(await p.client.getState(),before);
+});
+
+test('Worker DSP preparation retains owners and completes before rendering the note lookahead',async t=>{
+ const p=await setup(t),channel=new MessageChannel(),owner={performanceOwner:'dsp-loop'};
+ p.processor.port.onmessage({data:{primaryWorker:true,port:channel.port1}});
+ const sender=createPerformanceSender({now:()=>1000,getLoop:()=>owner});
+ sender.configure({session:29,audioSeconds:0,performanceEpochMs:1000,lookaheadSeconds:2});
+ p.processor.receive({type:'performance-start',session:29},{postMessage(){}});
+ const client=createScspClient(sender.port(channel.port2,'independent'),p.metadata);t.after(()=>client.dispose());
+ const applied=await client.applyDspProgram(gainProgram(),gainSetup(4095));
+ assert.deepEqual(applied.words,Array.from(gainProgram()));
+ assert.equal(p.scope.currentFrame,0,'No rendering or lookahead wait is needed for setup');
+ assert.equal(p.processor.performance.getStats().queuedCommands,0);
+ await client.setDspCoefficients({2:2048});assert.deepEqual(await client.getDspCoefficients(),{codes:[0,0,2048]});
+ client.noteOn(31,69);await client.getState();
+ assert.equal(p.processor.synth.getState().slots[31].gate,false);
+ assert(p.processor.performance.getStats().queuedCommands>0);
+ sender.stop();p.processor.receive({type:'performance-stop',session:29},{postMessage(){}});
+ assert.deepEqual((await p.client.getDspProgram()).words,applied.words);
+ const replies=[];
+ p.processor.receive({performance:{session:29,owner:'dsp-loop',time:2},commands:[{method:'setDspCoefficients',args:[{2:0}],id:812}]},{postMessage:message=>replies.push(message)});
+ assert(replies.some(message=>message.id===812&&message.error));
+ assert.deepEqual(await p.client.getDspCoefficients(),{codes:[0,0,2048]});
+ assert(p.render(256).left.every(value=>value===0));
+});
+
+test('DSP replies restore the captured caller and reject a stopped caller',async t=>{
+ let current={name:'first'},stopped=false;const sent=[];
+ const port={postMessage:message=>sent.push(message),start(){},close(){}};
+ const client=createScspClient(port,{}, {captureContext:()=>current,restoreContext:scope=>{current=scope;},isStopped:()=>stopped});
+ t.after(()=>client.dispose());
+ const first=current,pending=client.setDspCoefficients({2:2048}),request=sent.at(-1);
+ current={name:'other'};port.onmessage({data:{id:request.id,value:{codes:[0,0,2048]}}});
+ await pending;assert.equal(current,first);
+ const cancelled=client.getDspProgram(),next=sent.at(-1);stopped=true;
+ port.onmessage({data:{id:next.id,value:{profile:'ram-free'}}});
+ await assert.rejects(cancelled,{name:'AbortError'});
+});
+
+test('a DSP restore failure on Stop rejects its request immediately and retires the owner',async t=>{
+ const p=await setup(t);
+ await p.client.applyDspProgram(gainProgram(),gainSetup(4095));
+ p.processor.synth.stopVoices=()=>{
+  const error=new Error('Injected DSP restore failure');error.name='ScspDspRestoreError';error.fatal=true;throw error;
+ };
+ await assert.rejects(p.client._stopVoices(),{name:'ScspDspRestoreError'});
+ assert.equal(p.processor.dead,true);
+ const left=new Float32Array(128).fill(.5),right=left.slice();
+ assert.equal(p.processor.process([],[[left,right]]),false);
+ assert(left.every(value=>value===0));assert(right.every(value=>value===0));
 });

@@ -70,6 +70,28 @@ export interface ScspMix {
   directLevel: number;
   /** Hardware DIPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan: number;
+  /** Hardware IMXL 0..7 into MIXS0; omitted/0 disables the DSP send. */
+  dspSend?: number;
+}
+/** Signed Q12 hardware coefficient codes; each value is -4096..4095. */
+export type ScspDspCoefficientPatch = Partial<{0: number; 1: number; 2: number}>;
+export interface ScspDspCoefficients {codes: number[];}
+/** When provided, setup supplies all three supported coefficient codes. */
+export interface ScspDspApplyOptions {coefficients: {0: number; 1: number; 2: number};}
+export interface ScspDspReturn {
+  /** EFREG0 hardware EFSDL 0..7; 0 mutes the effect return. */
+  level: number;
+  /** EFREG0 hardware EFPAN 0..31; 0 center, 15 right, 31 left. */
+  pan: number;
+}
+/** Detached authoring snapshot; changes to its arrays do not edit the chip. */
+export interface ScspDspProgram {
+  profile: 'ram-free';
+  configured: boolean;
+  words: number[];
+  revision: number;
+  coefficients: ScspDspCoefficients;
+  return: ScspDspReturn;
 }
 export interface ScspPreset extends ScspMix {
   sample: ScspSample | null;
@@ -85,6 +107,8 @@ export interface ScspState {
   nextSampleId: number;
   ramUsedBytes: number;
   ramFreeBytes: number;
+  /** Present after DSP state has been created; absent for untouched legacy instruments. */
+  dsp?: ScspDspProgram;
   /** Native source references include releasing voices; gate alone is insufficient. */
   playingFrequencies?: (number | null)[];
   playingLfos?: (ScspLfo | null)[];
@@ -110,14 +134,26 @@ export class ScspSynth {
   setFrequency(slot: number, frequencyHz: number): number;
   setNote(slot: number, note: ScspNote): number;
   setMix(slot: number, patch: Partial<ScspMix>): void;
+  /** Validate and apply a complete 512-word RAM-free DSP image atomically.
+   * RAW bits, RAM I/O/address controls and unsupported coefficient / effect
+   * outputs are rejected. Does not allocate or overwrite sample RAM.
+   * Held voices and DSP TEMP history remain intact. */
+  applyDspProgram(words: Uint16Array | readonly number[], options?: ScspDspApplyOptions): ScspDspProgram;
+  /** Read the current program, coefficients and EFREG0 return without mutation. */
+  getDspProgram(): ScspDspProgram;
+  getDspCoefficients(): ScspDspCoefficients;
+  /** Partial COEF0..2 update; keeps other codes, voices and DSP history. */
+  setDspCoefficients(patch: ScspDspCoefficientPatch): ScspDspCoefficients;
+  /** Explicit live EFREG0 return level/pan. Per-slot sends use setMix(dspSend). */
+  setDspReturn(patch: Partial<ScspDspReturn>): ScspDspReturn;
   keyOn(slot: number): void;
   keyOff(slot: number): void;
   noteOn(slot: number, note: ScspNote): void;
   noteOff(slot: number): void;
   allNotesOff(): void;
-  /** Immediate silence; retains bank/presets, resets native frame clock. */
+  /** Immediate silence; retains bank/presets/DSP setup, clears DSP history and resets native frame clock. */
   stopVoices(): void;
-  /** Clears presets; retains samples unless clearRam is true. */
+  /** Clears presets and DSP setup; retains samples unless clearRam is true. */
   reset(options?: {clearRam?: boolean}): void;
   getState(): ScspState;
   prepare(frames: number): void;

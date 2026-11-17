@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "download": {
+    "zip": "release/hello_ymfm_wasm_scsp-dsp-execution-20261118_itch_playground.zip",
+    "bytes": 38224655,
+    "sha256": "31f455bbeb278bb6401a120bccc8a26a89ad60a4af14c47b732f5b2a113d54c2",
+    "entries": 1516,
+    "files": 1333,
+    "crcAndStageBytesVerified": true
+  },
+  "browser": {
+    "zip": "release/hello_ymfm_wasm_scsp-dsp-execution-20261118_itch_playground_for_run.zip",
+    "bytes": 38555362,
+    "sha256": "f865c3904624bfb888ce5bd9f68d6ed082daa1580fcc06b7d74d7040b4f63bf2",
+    "entries": 1000,
+    "files": 1000,
+    "crcAndStageBytesVerified": true
+  },
+  "completeSource": {
+    "files": 304,
+    "allOriginalBytesVerified": true
+  },
+  "unchangedEditableAssets": [
+    "js/scsp_dsp.js",
+    "js/scsp_dsp_coefficients.js",
+    "js/scsp_dsp_program.js",
+    "js/scspsynth.js",
+    "js/scsp.d.ts",
+    "js/scspsynth.d.ts",
+    "examples/scsp/scsp-dsp-gain.js",
+    "examples/scsp/scsp-dsp-iir-motion.js"
+  ]
+}

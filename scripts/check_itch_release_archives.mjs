@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile} from 'node:fs/promises';
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkItchPlaygroundZip, validateItchZipEntries, isItchRunArchivedSource, isItchRunSourceGuide, itchRunSourcePreface} from './prepare_itch_playground_run.mjs';
+import {checkItchPlaygroundZip, validateItchZipEntries, isItchRunArchivedSource, isItchRunSourceGuide, itchRunSourcePreface, ITCH_RUN_DUPLICATE_SOURCE_GUIDES} from './prepare_itch_playground_run.mjs';
 
 export const ITCH_RELEASE_ARTIFACTS = Object.freeze([
   {id:'synth', stage:'itch_synth_dev', archive:'hello_ymfm_wasm_dev_itch_synth.zip', browserPlayable:true,
@@ -120,6 +120,12 @@ async function checkPlaygroundRun(full,run) {
   const fullSources=new Map([...fullFiles].filter(([name])=>name.startsWith('sources/')).map(([name,value])=>[name.slice(8),value]));
   assert(fullSources.size>0,'Complete Playground source tree is present');
   exactFiles(metadata(sources),fullSources,'Complete original audio/build/license source archive');
+  for(const [name,retained]of Object.entries(ITCH_RUN_DUPLICATE_SOURCE_GUIDES)) {
+    if(!fullSources.has(name))continue;
+    const originalGuide=await readFile(join(full.stage,'sources',name));
+    same(await readFile(join(full.stage,retained)),originalGuide,'Original source / attribution guide bytes: '+name);
+    same(await read(retained),originalGuide,'Individually readable attribution guide bytes: '+retained);
+  }
   const code=[...fullSources.keys()].filter(sourceCode);
   assert(code.length>0,'Corresponding compilation sources are present');
   const archived=[...fullSources.keys()].filter(isItchRunArchivedSource);

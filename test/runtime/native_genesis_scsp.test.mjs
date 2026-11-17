@@ -8,7 +8,7 @@ import {Scsp} from '../../tetorica_src/runtime/scsp.js';
 import factory from '../../docs/generated/scsp_wasm.js';
 import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
 import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
-import {createScspClient} from '../../tetorica_src/runtime/playground_scsp.js';
+import {createScspClient,SCSP_DSP_METHODS} from '../../tetorica_src/runtime/playground_scsp.js';
 let module;
 async function fixture(t){
  module??=factory({wasmBinary:await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
@@ -98,4 +98,32 @@ for(const extra of [false,true])test(`Native modulation ${extra?'extra':'primary
  await endpoint.invoke('auditionOn',[1,69,'fm']);await endpoint.invoke('setModulation',[1,{writeInhibit:true}]);await endpoint.invoke('setMix',[1,{totalLevel:12}]);assert.equal(core.read(44),0x20c);
  await endpoint.invoke('setModulation',[1,{depth:0}]);assert.equal(core.read(46),0);assert.equal((await client.getState()).slots[1].gate,true);
  await client._stopVoices();assert.equal(peak(core.generateStereo(128).left),0);assert.deepEqual(f.errors,[]);
+});
+
+for(const extra of [false,true])test(`Native SCSP ${extra?'additional':'primary'} rejects DSP before sending commands`,async t=>{
+ const f=await fixture(t),device=extra?await f.synth.createExtraScsp({id:'unsupported-dsp'}):null;
+ const client=device?.client??f.synth.scsp,endpoint=device?.endpoint??f.synth.nativeScsp;
+ const state=await client.getState(),before=f.calls.length;
+ for(const method of SCSP_DSP_METHODS){
+  await assert.rejects(client[method](),{name:'NotSupportedError'});
+  await assert.rejects(endpoint.dispatch({method,id:912,args:[]}).deferred,{name:'NotSupportedError'});
+  await assert.rejects(endpoint.invoke(method,[]),{name:'NotSupportedError'});
+ }
+ for(const method of ['setMix','setPreset']){
+  assert.throws(()=>client[method](0,{dspSend:7}),{name:'NotSupportedError'});
+  await assert.rejects(endpoint.invoke(method,[0,{dspSend:7}]),{name:'NotSupportedError'});
+ }
+ assert.equal(f.calls.length,before,'No native request or command batch was emitted');
+ assert.deepEqual(await client.getState(),state);
+ assert.deepEqual(f.errors,[]);
+});
+
+test('Native Worker DSP calls and sends reject before crossing the MessagePort',async t=>{
+ const sent=[],port={postMessage:message=>sent.push(message),start(){},close(){}};
+ const client=createScspClient(port,{native:true});t.after(()=>client.dispose());
+ for(const method of SCSP_DSP_METHODS)await assert.rejects(client[method](),{name:'NotSupportedError'});
+ for(const method of ['setMix','setPreset'])assert.throws(()=>client[method](0,{dspSend:1}),{name:'NotSupportedError'});
+ assert.equal(sent.length,0);
+ client.setMix(0,{dspSend:0});client.setPreset(0,{dspSend:0});
+ assert.deepEqual(sent.map(message=>message.method),['setMix','setPreset']);
 });

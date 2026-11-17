@@ -10,7 +10,6 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 import { Scsp } from '../tetorica_src/runtime/scsp.js';
-import { ScspSynth } from '../tetorica_src/runtime/scspsynth.js';
 import { noteToHz } from '../tetorica_src/runtime/soundchip_pitch.js';
 import factory from '../docs/generated/scsp_wasm.js';
 import { buildScspCalibrationReference } from './soundchip_calibration_scsp.mjs';
@@ -139,6 +138,8 @@ test('forging the receipt cannot preserve its independent pin', async (t) => {
 		await read('scripts/mixer_calibration_scsp_loop_link_revision.mjs'),
 	);
 	await writeFile(join(directory,'scripts/mixer_calibration_ay_single_output_policy_revision.mjs'),await read('scripts/mixer_calibration_ay_single_output_policy_revision.mjs'));
+	await writeFile(join(directory,'scripts/mixer_calibration_scsp_dsp_execution_revision.mjs'),await read('scripts/mixer_calibration_scsp_dsp_execution_revision.mjs'));
+	await writeFile(join(directory,'docs/issues/playground_scsp_dsp_execution_source_revision_01.json'),await read('docs/issues/playground_scsp_dsp_execution_source_revision_01.json'));
 	const forged = structuredClone(receipt);
 	forged.sources[paths[0]].after.sha256 = '0'.repeat(64);
 	await writeFile(jsonPath, JSON.stringify(forged));
@@ -154,8 +155,8 @@ test('predecessor and current omitted / false APIs run the exact measured refere
 		'tetorica_src/runtime/scspsynth.js',
 		await read('tetorica_src/runtime/scspsynth.js'),
 	);
-	const OldSynth = vm.runInNewContext(
-		before
+	const fromSource = source => vm.runInNewContext(
+		source
 			.toString()
 			.replace(/^import .*;\n/gm, '')
 			.replace(/^export /gm, '') + '\nScspSynth;',
@@ -176,6 +177,8 @@ test('predecessor and current omitted / false APIs run the exact measured refere
 			Error,
 		},
 	);
+	const OldSynth = fromSource(before);
+	const HistoricalSynth = fromSource(await read('tetorica_src/runtime/scspsynth.js'));
 	const wasmBinary = await read('docs/generated/scsp_wasm.wasm');
 	let verifiedFrames = 0;
 	for (const role of ['primary', 'extra'])
@@ -184,8 +187,8 @@ test('predecessor and current omitted / false APIs run the exact measured refere
 			try {
 				for (const [Type, explicitFalse] of [
 					[OldSynth, false],
-					[ScspSynth, false],
-					[ScspSynth, true],
+					[HistoricalSynth, false],
+					[HistoricalSynth, true],
 				]) {
 					const core = await Scsp.create({
 							moduleFactory: factory,

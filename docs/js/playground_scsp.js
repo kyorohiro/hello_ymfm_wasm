@@ -1,8 +1,32 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {ScspSynth} from './scspsynth.js?v=scsp-fm-1';
+import {ScspSynth} from './scspsynth.js';
 export const SCSP_CONTROLS=Object.freeze(['setPreset','setEnvelope','setLfo','setModulation','setFrequency','setNote','setMix','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
+export const SCSP_DSP_METHODS=Object.freeze(['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn']);
+export function assertNativeScspControl(method,args=[]) {
+  const patch=args[1];
+  if(SCSP_DSP_METHODS.includes(method)||
+      (['setPreset','setMix'].includes(method)&&patch&&Object.hasOwn(patch,'dspSend')&&patch.dspSend!==0)) {
+    throw new DOMException('SCSP DSP controls require Web Audio. Native DSP transport is not available.','NotSupportedError');
+  }
+}
 export function createScspValidation() {
-  return new ScspSynth({sampleRate:44100,nativeFrames:0,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
+  const registers=new Uint16Array(2048);
+  return new ScspSynth({sampleRate:44100,nativeFrames:0,
+    reset(){registers.fill(0);},
+    write(address,value,mask=0xffff){registers[address/2]=(registers[address/2]&~mask)|(value&mask);},
+    read:address=>registers[address/2],
+    loadRam(){},renderInto(){},dispose(){},
+  });
+}
+/** Validate without changing either the owner's state or the client shadow. */
+export function validateScspDspCommand(validation,method,args) {
+  const check=createScspValidation();
+  try {
+    check._adoptState(validation.getState());
+    return check[method](...args);
+  } finally {
+    check.dispose();
+  }
 }
 /** Resolve cloned handles only at a transport boundary. Numeric IDs alone are
  * deliberately insufficient: two SCSP instances can allocate the same ID. */
@@ -25,12 +49,21 @@ export function createScspClient(port,initial={},lifecycle={}) {
   }
   function control(method,args) {
     check(lifecycle.captureContext?.());if(client._before?.({method,args})===false)return;
+    if(initial.native)assertNativeScspControl(method,args);
     const result=validation[method](...scspCommandArgs(validation,method,args));
     if(method==='reset'){revision++;if(args[0]?.clearRam){bankRevision++;pendingClearFence=revision;}else if(pendingClearFence!==null)pendingClearFence=revision;}
     send(method,args,method==='reset'?{resourceFence:revision}:{});client._observe?.({method,args});return result;
   }
   port.onmessage=({data})=>{
     if(disposed)return;
+    if(data.type==='scsp-dsp-update') {
+      if(data.resourceFence!==revision||data.revision<resourceRevision)return;
+      if(!['setDspCoefficients','setDspReturn'].includes(data.method))return;
+      validation[data.method](...data.args);
+      resourceRevision=data.revision;
+      client._onStateChange?.();
+      return;
+    }
     if(data.type==='scsp-resources') {
       if(data.resourceFence!==revision||data.revision<resourceRevision)return;
       const ownClear=pendingClearFence===data.resourceFence;
@@ -62,7 +95,17 @@ export function createScspClient(port,initial={},lifecycle={}) {
     dispose(){if(disposed)return;disposed=true;revision++;try{port.postMessage({method:'dispose',args:[]});}catch{}finally{for(const p of pending.values()){clearTimeout(p.timer);p.reject(failed??abort('SCSP instance is disposed'));}pending.clear();port.onmessage=null;port.onmessageerror=null;port.close();validation.dispose();}},
   };
   for(const method of SCSP_CONTROLS)client[method]=(...args)=>control(method,structuredClone(args));
-  for(const method of ['loadPCM','getState']){
+  for(const method of SCSP_DSP_METHODS)client[method]=async(...args)=>{
+    check(lifecycle.captureContext?.());
+    if(initial.native)assertNativeScspControl(method,args);
+    const saved=structuredClone(args),at=revision;
+    validateScspDspCommand(validation,method,saved);
+    const result=await request(method,saved);
+    open();
+    if(at!==revision)throw abort('SCSP DSP operation cancelled by reset');
+    return result;
+  };
+  for(const method of ['loadPCM','getState',...SCSP_DSP_METHODS]){
     const original=client[method];client[method]=(...args)=>{
       const context=lifecycle.captureContext?.();check(context);
       const resume=callback=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));

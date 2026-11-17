@@ -47,6 +47,61 @@ The helpers themselves do not prepare audio, send chip commands or apply a DSP
 program. Run keeps its existing mode audio preparation behavior. Completion
 documents the word layout, and source navigation opens the actual codec.
 
+## Run a RAM-free DSP program in Playground
+
+Use the current repository build for these execution methods. npm 0.2.42
+provides the pure instruction codec described above.
+
+In **Files → examples → scsp**, choose **scsp-dsp-gain.js** for coefficient gain
+or **scsp-dsp-iir-motion.js** for a one-pole low-pass. Both use the SCSP core's
+hardware DSP. JavaScript authors the program and moves its coefficient codes;
+this does not add a Web Audio filter. The examples work with Main / Worker
+Web Audio, including independent SCSP instances.
+
+```js
+const saturn = await useSoundChip('scsp');
+const words = assembleScspDsp(`
+000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0
+001: EWT=1 EWA=0 ZERO=1
+`);
+await saturn.applyDspProgram(words, {coefficients: {0: 2048, 1: 0, 2: 0}});
+saturn.setMix(0, {directLevel: 0, dspSend: 7});
+await saturn.setDspReturn({level: 7, pan: 0});
+// Play an assigned sample on slot 0; its wet signal is multiplied by 0.5.
+await saturn.setDspCoefficients({0: 1024}); // Now 0.25, without a retrigger.
+const setup = await saturn.getDspProgram();
+const coefficients = await saturn.getDspCoefficients();
+```
+
+The initial executable profile is **ram-free**: 512 logical words, COEF0..2,
+MIXS0 input and EFREG0 output. It rejects RAW bits, RAM reads/writes, address
+controls and unsupported table / output selections before changing the owner.
+No DSP sample-RAM reservation is made, so existing PCM allocations stay intact.
+The pure assembler intentionally accepts a broader instruction image.
+
+`applyDspProgram()` accepts an optional complete three-code coefficient setup;
+`setDspCoefficients()` accepts a partial patch. Codes are signed hardware Q12,
+**-4096..4095**, rather than cutoff in Hz. Applying or changing coefficients
+keeps held voices and DSP TEMP history. `setMix(slot, {dspSend})` is live and retained
+for subsequent notes; `setPreset(slot, {dspSend})` is next-keyOn only. Send is 0..7,
+return level is 0..7 and return pan is the hardware code 0..31. All slots in an
+instance share its DSP, MIXS0 and EFREG0; separate instances keep their own setup.
+
+DSP reads return detached authoring snapshots. Program snapshots contain
+`{profile, configured, words, revision, coefficients, return}`; coefficient
+snapshots contain `{codes}`. Code Stop silences voices and clears DSP history
+while retaining setup. Explicit `reset()` clears DSP setup as well. The Files
+examples use `livePrepare()` once per Run, beat-based notes and a separate
+four-second coefficient `tween()`. Apply replaces loops without redoing setup.
+These controls use the normal ordered audio transport, not a new sample-timed
+DSP scheduling API.
+
+Native playback continues to support the existing PCM / LFO / modulation APIs.
+Its DSP methods and nonzero `dspSend` explicitly reject with `NotSupportedError`;
+choose Web Audio for these examples. Local `ScspSynth` exposes the same DSP
+operations synchronously over its owned core; the Playground facade resolves
+them after its audio owner acknowledges the change.
+
 ## Try it in Playground
 
 Open [Playground in Saturn mode](playground/index.html?mode=scsp). Choose **SCSP →
@@ -373,7 +428,8 @@ Time／Enable変更は残響をクリアし、Stop／mode／接続変更は全�
 DSP用に先頭64KiBを常時予約するため、PCMとguardには448KiBを利用できる。
 DSP ringは波形一覧に出さず、editorの再利用対象にも含めない。旧presetでも予算超過時は演奏を変える前に拒否する。
 [Playground DSP Lab](playground/scsp-dsp.html) は独立ページで短音・wet-only・bypassを試せる。
-Main／Worker／Nativeの共通Playground APIへDSPを公開する作業とReverbは後続。
+PlaygroundのMain／Worker Web Audioでは、上記のRAM-free Gain／IIR APIを利用できる。
+NativeのDSP transport、RAMを使うDSPプログラムの共通API、Reverbは後続。
 
 専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。
 

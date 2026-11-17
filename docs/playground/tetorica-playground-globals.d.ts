@@ -2992,6 +2992,28 @@ interface PlaygroundScspMix {
   directLevel: number;
   /** Hardware DIPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan: number;
+  /** Hardware IMXL 0..7 into DSP MIXS0; omitted/0 disables the send. Native requires 0. */
+  dspSend?: number;
+}
+/** Signed Q12 hardware coefficient codes, each -4096..4095. */
+type PlaygroundScspDspCoefficientPatch = Partial<{0:number; 1:number; 2:number}>;
+interface PlaygroundScspDspCoefficients {codes:number[];}
+/** A setup update supplies every supported coefficient atomically. */
+interface PlaygroundScspDspApplyOptions {coefficients:{0:number; 1:number; 2:number};}
+interface PlaygroundScspDspReturn {
+  /** EFREG0 return level 0..7; 0 is muted. */
+  level:number;
+  /** Hardware EFPAN 0..31; 0 center, 15 right only, 31 left only. */
+  pan:number;
+}
+/** Independent authoring snapshot. Editing it does not change the live chip. */
+interface PlaygroundScspDspProgram {
+  profile:'ram-free';
+  configured:boolean;
+  words:number[];
+  revision:number;
+  coefficients:PlaygroundScspDspCoefficients;
+  return:PlaygroundScspDspReturn;
 }
 interface PlaygroundScspLfo {
   frequencyCode: number;
@@ -3017,6 +3039,8 @@ interface PlaygroundScspState {
   nextSampleId: number;
   ramUsedBytes: number;
   ramFreeBytes: number;
+  /** Present after DSP state has been created; absent for untouched instruments. */
+  dsp?:PlaygroundScspDspProgram;
   playingSampleIds?: (number | null)[];
   samples: PlaygroundScspSample[];
   /** Authored presets; gate is the requested key state, not an activity meter. */
@@ -3036,6 +3060,28 @@ interface PlaygroundScsp {
   setFrequency(slot:number,hz:number):number;
   setNote(slot:number,note:string|number):number;
   setMix(slot:number,patch:Partial<PlaygroundScspMix>):void;
+  /** Apply a complete 512-word RAM-free DSP image and optional complete COEF0..2
+   * setup in audio-owner order. Rejects RAW bits, RAM I/O/address controls and
+   * unsupported coefficient/effect outputs before mutation. Allocates no RAM;
+   * retains samples, held voices and DSP TEMP history. Main/Worker Web Audio.
+   * Native rejects DSP methods with NotSupportedError. Pure assembly is separate.
+   * @example
+   * const words = assembleScspDsp('000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0\n001: EWT=1 ZERO=1');
+   * await scsp.applyDspProgram(words, {coefficients:{0:2048,1:0,2:0}});
+   */
+  applyDspProgram(words:Uint16Array|readonly number[],options?:PlaygroundScspDspApplyOptions):Promise<PlaygroundScspDspProgram>;
+  /** Detached program/coefficients/return snapshot; no change to the audio owner. */
+  getDspProgram():Promise<PlaygroundScspDspProgram>;
+  getDspCoefficients():Promise<PlaygroundScspDspCoefficients>;
+  /** Partial signed COEF0..2 hardware codes, -4096..4095. Changes only coefficients;
+   * held voices and DSP TEMP history continue. This is not cutoff in Hz.
+   * @example
+   * await scsp.setDspCoefficients({1:3840,2:256});
+   */
+  setDspCoefficients(patch:PlaygroundScspDspCoefficientPatch):Promise<PlaygroundScspDspCoefficients>;
+  /** Live EFREG0 return level/pan; only MIXS0/EFREG0 are exposed by this profile.
+   * Per-slot setMix({dspSend:7}) enables sends; directLevel controls the dry path. */
+  setDspReturn(patch:Partial<PlaygroundScspDspReturn>):Promise<PlaygroundScspDspReturn>;
   keyOn(slot:number):void;
   keyOff(slot:number):void;
   noteOn(slot:number,note:string|number):void;

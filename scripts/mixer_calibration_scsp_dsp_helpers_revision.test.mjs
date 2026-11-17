@@ -15,9 +15,11 @@ import {
 } from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 import {createYm2612TimedRevisionReader} from './mixer_calibration_ym2612_timed_revision.mjs';
 import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
+import {createScspDspExecutionRevisionReader} from './mixer_calibration_scsp_dsp_execution_revision.mjs';
 
 const url = path => new URL('../' + path, import.meta.url);
-const read = path => readFileSync(url(path));
+const currentPredecessor = createScspDspExecutionRevisionReader();
+const read = path => currentPredecessor(url(path));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 function match(bytes, record) {
