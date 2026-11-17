@@ -1,0 +1,340 @@
+{
+  "format": "tetorica-scsp-dsp-npm-preparation-verification",
+  "version": 1,
+  "date": "2026-11-17",
+  "passed": true,
+  "branch": "work/scsp-dsp-npm-20261117",
+  "worktreeRelativeToMain": "w/_codex-scsp-dsp-npm-20261117",
+  "baseCommit": "c0b9a24ee3b47ae4975ffc8e342fdf7ae2eff10d",
+  "mainCheckout": {
+    "unchanged": true,
+    "branch": "main",
+    "commit": "c0b9a24ee3b47ae4975ffc8e342fdf7ae2eff10d",
+    "clean": true
+  },
+  "tests": [
+    {
+      "command": "npm run build:fm2612",
+      "passed": true,
+      "runtimeModules": 372,
+      "chipEnginePairs": 28,
+      "checkedDeclarations": 424
+    },
+    {
+      "command": "node scripts/check_fm2612_package.mjs --skip-build",
+      "passed": true,
+      "isolatedOfflineConsumer": true,
+      "packagedNodeExample": true,
+      "allWasmEnginesLoaded": 28
+    },
+    {
+      "command": "node scripts/check_fm2612_types.mjs dist/fm2612",
+      "passed": true,
+      "resolutions": [
+        "NodeNext",
+        "Bundler",
+        "browser DOM only"
+      ]
+    },
+    {
+      "command": "node --test test/runtime/scsp_dsp_assembler.test.mjs docs/synth-scsp/dsp_assembler.test.mjs scripts/scsp_dsp_assembler.test.mjs",
+      "passed": true,
+      "tests": 17
+    },
+    {
+      "command": "npm run test:scsp-synth",
+      "passed": true,
+      "tests": 288
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "sourceCopies": {
+    "js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    }
+  },
+  "package": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.41",
+    "size": 2870215,
+    "unpackedSize": 11653647,
+    "shasum": "c2c9d9968b5ae2e88c617472c9c472320042ba4f",
+    "integrity": "sha512-EOGRgI+WbubnZjKyiP0OmBJ7sZFjFGsU3NbGguHMEcB2TyodeP16Ykmds/ZuX20agepfphDSRPaKnM3scJYMGw==",
+    "filename": "tetorica-fm2612-0.2.41.tgz"
+  },
+  "packageFiles": 1281,
+  "candidate": {
+    "path": "dist/candidate/tetorica-fm2612-0.2.41.tgz",
+    "sha256": "a18aaa97985314e8d3691c3243e0fa665d4b37034093dd6dc63b70eef7af7cbc",
+    "publicationStatus": "unpublished development candidate; metadata version unchanged"
+  },
+  "browser": {
+    "passed": true,
+    "tarball": {
+      "filename": "tetorica-fm2612-0.2.41.tgz",
+      "bytes": 2870215,
+      "sha256": "a18aaa97985314e8d3691c3243e0fa665d4b37034093dd6dc63b70eef7af7cbc"
+    },
+    "physicalOutputBlocked": true,
+    "audioContextsCreated": 0,
+    "listeningPerformed": false,
+    "isolatedInstalledConsumer": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "cases": [
+          "both npm subpaths resolve to the same installed pure assembler exports",
+          "independent field words, explicit zero positions and compact/full source preserve the 512-word image",
+          "owned outputs and readonly inputs retain opaque bits through complete round trips",
+          "invalid source preserves line diagnostics and invalid options reject without invoking getters",
+          "import and codec calls create no AudioContext, fetch, WebAssembly instance or Worklet",
+          "the packaged browser example runs against its locally installed npm dependency"
+        ],
+        "identity": {
+          "sameAssemble": true,
+          "sameDisassemble": true,
+          "exports": [
+            "assembleScspDsp",
+            "disassembleScspDsp"
+          ]
+        },
+        "layout": {
+          "typed": true,
+          "length": 512,
+          "vector": [
+            0,
+            40960,
+            4098,
+            512
+          ],
+          "gapsZero": true,
+          "restZero": true,
+          "compact": "000:\n001:\n002:\n003: XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1\n",
+          "fullLines": 128,
+          "fullLast": "127:",
+          "roundTrip": true,
+          "emptyCompact": ""
+        },
+        "ownership": {
+          "independent": true,
+          "unchanged": true,
+          "roundTrip": true,
+          "raw": "000: RAW0=0x8000 RAW1=0x1000 RAW3=0x0180\n001:\n002:\n003:\n004:\n005:\n006:\n007:\n008:\n009:\n010:\n011:\n012:\n013:\n014:\n015:\n016:\n017:\n018:\n019:\n020:\n021:\n022:\n023:\n024:\n025:\n026:\n027:\n028:\n029:\n030:\n031:\n032:\n033:\n034:\n035:\n036:\n037:\n038:\n039:\n040:\n041:\n042:\n043:\n044:\n045:\n046:\n047:\n048:\n049:\n050:\n051:\n052:\n053:\n054:\n055:\n056:\n057:\n058:\n059:\n060:\n061:\n062:\n063:\n064:\n065:\n066:\n067:\n068:\n069:\n070:\n071:\n072:\n073:\n074:\n075:\n076:\n077:\n078:\n079:\n080:\n081:\n082:\n083:\n084:\n085:\n086:\n087:\n088:\n089:\n090:\n091:\n092:\n093:\n094:\n095:\n096:\n097:\n098:\n099:\n100:\n101:\n102:\n103:\n104:\n105:\n106:\n107:\n108:\n109:\n110:\n111:\n112:\n113:\n114:\n115:\n116:\n117:\n118:\n119:\n120:\n121:\n122:\n123:\n124:\n125:\n126:\n127: NXADR=1\n",
+          "readonlySource": "000: RAW0=0x8000 RAW1=0x1000 RAW3=0x0180\n001:\n002:\n003:\n004:\n005:\n006:\n007:\n008:\n009:\n010:\n011:\n012:\n013:\n014:\n015:\n016:\n017:\n018:\n019:\n020:\n021:\n022:\n023:\n024:\n025:\n026:\n027:\n028:\n029:\n030:\n031:\n032:\n033:\n034:\n035:\n036:\n037:\n038:\n039:\n040:\n041:\n042:\n043:\n044:\n045:\n046:\n047:\n048:\n049:\n050:\n051:\n052:\n053:\n054:\n055:\n056:\n057:\n058:\n059:\n060:\n061:\n062:\n063:\n064:\n065:\n066:\n067:\n068:\n069:\n070:\n071:\n072:\n073:\n074:\n075:\n076:\n077:\n078:\n079:\n080:\n081:\n082:\n083:\n084:\n085:\n086:\n087:\n088:\n089:\n090:\n091:\n092:\n093:\n094:\n095:\n096:\n097:\n098:\n099:\n100:\n101:\n102:\n103:\n104:\n105:\n106:\n107:\n108:\n109:\n110:\n111:\n112:\n113:\n114:\n115:\n116:\n117:\n118:\n119:\n120:\n121:\n122:\n123:\n124:\n125:\n126:\n127: NXADR=1\n"
+        },
+        "errors": {
+          "invalid": [
+            {
+              "name": "SyntaxError",
+              "message": "Line 2: unknown field UNKNOWN"
+            },
+            {
+              "name": "SyntaxError",
+              "message": "Line 2: step 3 must follow step 4 in strictly increasing order"
+            },
+            {
+              "name": "SyntaxError",
+              "message": "Line 1: duplicate field ZERO"
+            },
+            {
+              "name": "RangeError",
+              "message": "Line 1: step must be 0..127"
+            },
+            {
+              "name": "RangeError",
+              "message": "Line 1: RAW0 may contain only opaque bits in mask 0x8000"
+            },
+            {
+              "name": "RangeError",
+              "message": "SCSP DSP program must contain exactly 512 words"
+            },
+            {
+              "name": "TypeError",
+              "message": "includeTrailingZeros must be a boolean value"
+            },
+            {
+              "name": "TypeError",
+              "message": "Unknown SCSP DSP disassembly option unknown"
+            },
+            {
+              "name": "TypeError",
+              "message": "includeTrailingZeros must be a boolean value"
+            }
+          ],
+          "getterCalls": 0
+        },
+        "audit": {
+          "audio": [],
+          "fetch": [],
+          "wasm": [],
+          "xhr": []
+        },
+        "exampleAudit": {
+          "audio": [],
+          "fetch": [],
+          "wasm": [],
+          "xhr": []
+        },
+        "example": "512 words / 128 physical steps\n\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nRound trip: PASS",
+        "requests": [
+          "/consumer.html",
+          "/node_modules/tetorica-fm2612/scsp_dsp_assembler.js",
+          "/node_modules/tetorica-fm2612/examples/scsp-dsp/index.html",
+          "/node_modules/tetorica-fm2612/examples/scsp-dsp/roundtrip.mjs",
+          "/node_modules/tetorica-fm2612/scsp_dsp_assembler.js"
+        ],
+        "sourceHash": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43",
+        "failures": [],
+        "missing": [],
+        "external": []
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "cases": [
+          "both npm subpaths resolve to the same installed pure assembler exports",
+          "independent field words, explicit zero positions and compact/full source preserve the 512-word image",
+          "owned outputs and readonly inputs retain opaque bits through complete round trips",
+          "invalid source preserves line diagnostics and invalid options reject without invoking getters",
+          "import and codec calls create no AudioContext, fetch, WebAssembly instance or Worklet",
+          "the packaged browser example runs against its locally installed npm dependency"
+        ],
+        "identity": {
+          "sameAssemble": true,
+          "sameDisassemble": true,
+          "exports": [
+            "assembleScspDsp",
+            "disassembleScspDsp"
+          ]
+        },
+        "layout": {
+          "typed": true,
+          "length": 512,
+          "vector": [
+            0,
+            40960,
+            4098,
+            512
+          ],
+          "gapsZero": true,
+          "restZero": true,
+          "compact": "000:\n001:\n002:\n003: XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1\n",
+          "fullLines": 128,
+          "fullLast": "127:",
+          "roundTrip": true,
+          "emptyCompact": ""
+        },
+        "ownership": {
+          "independent": true,
+          "unchanged": true,
+          "roundTrip": true,
+          "raw": "000: RAW0=0x8000 RAW1=0x1000 RAW3=0x0180\n001:\n002:\n003:\n004:\n005:\n006:\n007:\n008:\n009:\n010:\n011:\n012:\n013:\n014:\n015:\n016:\n017:\n018:\n019:\n020:\n021:\n022:\n023:\n024:\n025:\n026:\n027:\n028:\n029:\n030:\n031:\n032:\n033:\n034:\n035:\n036:\n037:\n038:\n039:\n040:\n041:\n042:\n043:\n044:\n045:\n046:\n047:\n048:\n049:\n050:\n051:\n052:\n053:\n054:\n055:\n056:\n057:\n058:\n059:\n060:\n061:\n062:\n063:\n064:\n065:\n066:\n067:\n068:\n069:\n070:\n071:\n072:\n073:\n074:\n075:\n076:\n077:\n078:\n079:\n080:\n081:\n082:\n083:\n084:\n085:\n086:\n087:\n088:\n089:\n090:\n091:\n092:\n093:\n094:\n095:\n096:\n097:\n098:\n099:\n100:\n101:\n102:\n103:\n104:\n105:\n106:\n107:\n108:\n109:\n110:\n111:\n112:\n113:\n114:\n115:\n116:\n117:\n118:\n119:\n120:\n121:\n122:\n123:\n124:\n125:\n126:\n127: NXADR=1\n",
+          "readonlySource": "000: RAW0=0x8000 RAW1=0x1000 RAW3=0x0180\n001:\n002:\n003:\n004:\n005:\n006:\n007:\n008:\n009:\n010:\n011:\n012:\n013:\n014:\n015:\n016:\n017:\n018:\n019:\n020:\n021:\n022:\n023:\n024:\n025:\n026:\n027:\n028:\n029:\n030:\n031:\n032:\n033:\n034:\n035:\n036:\n037:\n038:\n039:\n040:\n041:\n042:\n043:\n044:\n045:\n046:\n047:\n048:\n049:\n050:\n051:\n052:\n053:\n054:\n055:\n056:\n057:\n058:\n059:\n060:\n061:\n062:\n063:\n064:\n065:\n066:\n067:\n068:\n069:\n070:\n071:\n072:\n073:\n074:\n075:\n076:\n077:\n078:\n079:\n080:\n081:\n082:\n083:\n084:\n085:\n086:\n087:\n088:\n089:\n090:\n091:\n092:\n093:\n094:\n095:\n096:\n097:\n098:\n099:\n100:\n101:\n102:\n103:\n104:\n105:\n106:\n107:\n108:\n109:\n110:\n111:\n112:\n113:\n114:\n115:\n116:\n117:\n118:\n119:\n120:\n121:\n122:\n123:\n124:\n125:\n126:\n127: NXADR=1\n"
+        },
+        "errors": {
+          "invalid": [
+            {
+              "name": "SyntaxError",
+              "message": "Line 2: unknown field UNKNOWN"
+            },
+            {
+              "name": "SyntaxError",
+              "message": "Line 2: step 3 must follow step 4 in strictly increasing order"
+            },
+            {
+              "name": "SyntaxError",
+              "message": "Line 1: duplicate field ZERO"
+            },
+            {
+              "name": "RangeError",
+              "message": "Line 1: step must be 0..127"
+            },
+            {
+              "name": "RangeError",
+              "message": "Line 1: RAW0 may contain only opaque bits in mask 0x8000"
+            },
+            {
+              "name": "RangeError",
+              "message": "SCSP DSP program must contain exactly 512 words"
+            },
+            {
+              "name": "TypeError",
+              "message": "includeTrailingZeros must be a boolean value"
+            },
+            {
+              "name": "TypeError",
+              "message": "Unknown SCSP DSP disassembly option unknown"
+            },
+            {
+              "name": "TypeError",
+              "message": "includeTrailingZeros must be a boolean value"
+            }
+          ],
+          "getterCalls": 0
+        },
+        "audit": {
+          "audio": [],
+          "fetch": [],
+          "wasm": [],
+          "xhr": []
+        },
+        "exampleAudit": {
+          "audio": [],
+          "fetch": [],
+          "wasm": [],
+          "xhr": []
+        },
+        "example": "512 words / 128 physical steps\n\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nRound trip: PASS",
+        "requests": [
+          "/consumer.html",
+          "/node_modules/tetorica-fm2612/scsp_dsp_assembler.js",
+          "/node_modules/tetorica-fm2612/examples/scsp-dsp/index.html",
+          "/node_modules/tetorica-fm2612/examples/scsp-dsp/roundtrip.mjs",
+          "/node_modules/tetorica-fm2612/scsp_dsp_assembler.js"
+        ],
+        "sourceHash": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43",
+        "failures": [],
+        "missing": [],
+        "external": []
+      }
+    ],
+    "assets": {
+      "consumer.html": {
+        "bytes": 699,
+        "sha256": "86f83a6b574c2cac5aabb7b336b76317715cebd5c45ab26440e44818d5286166"
+      },
+      "node_modules/tetorica-fm2612/scsp_dsp_assembler.js": {
+        "bytes": 8081,
+        "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+      },
+      "node_modules/tetorica-fm2612/examples/scsp-dsp/index.html": {
+        "bytes": 1729,
+        "sha256": "50facf599154cab1fe8d4f79717800db6c916303b88a0b93d9a5afc02bfaad84"
+      },
+      "node_modules/tetorica-fm2612/examples/scsp-dsp/roundtrip.mjs": {
+        "bytes": 1118,
+        "sha256": "c12e1319b9cd4008cf35a21a68e9e6f052b830f5948bec420bf777dbde064a9b"
+      }
+    }
+  },
+  "boundaries": {
+    "synthRuntimeAssetsChanged": false,
+    "synthGuideOnlyUpdated": true,
+    "parserAlgorithmChanged": false,
+    "nativeOrWasmRebuilt": false,
+    "calibrationChanged": false,
+    "publicDspExecutionApiAdded": false,
+    "audioDeviceOpened": false,
+    "listeningPerformed": false,
+    "commitPushTagOrPublicationPerformed": false
+  }
+}

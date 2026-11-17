@@ -6,12 +6,12 @@ import {withFm2612DeclarationSources} from './fm2612_type_sources.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = join(root, 'dist/fm2612');
-// These public SID contracts describe fixed models/clocks and ordered client
-// reads. Install them before resolving dependent JS modules, and do not emit
-// inferred replacements over declarations that may already be staged.
-const sidDeclarations=['sid.d.ts','sid8580.d.ts','sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts'];
-const explicitSidModules=new Set(sidDeclarations.map(name=>name.replace(/\.d\.ts$/,'.js')));
-for(const name of sidDeclarations)await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
+// Public contracts retain fixed model details, ordered reads and readonly DSP
+// input arrays. Install these before resolving dependent JS modules and retain
+// the authored signatures during declaration generation.
+const explicitDeclarations=['sid.d.ts','sid8580.d.ts','sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts','scsp_dsp_assembler.d.ts'];
+const explicitModules=new Set(explicitDeclarations.map(name=>name.replace(/\.d\.ts$/,'.js')));
+for(const name of explicitDeclarations)await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
 const files = [];
 async function walk(directory) {
   for (const item of await readdir(directory, {withFileTypes: true})) {
@@ -20,7 +20,7 @@ async function walk(directory) {
     // its JS would overwrite .d.ts files resolved by the Playground worklet.
     if (item.isDirectory() && !['sources', 'licenses', 'assets', 'msfa_dx7'].includes(item.name)) await walk(path);
     else if (item.isFile() && /\.(?:m?js)$/.test(item.name)
-      && !(directory===stage&&explicitSidModules.has(item.name))) files.push(path);
+      && !(directory===stage&&explicitModules.has(item.name))) files.push(path);
   }
 }
 await walk(stage);

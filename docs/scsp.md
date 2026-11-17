@@ -14,6 +14,25 @@ supports primary/additional instances, Main/Worker, PCM upload and the same edit
 A dedicated PCM/LFO Synth and npm `tetorica-fm2612/scspsynth.js` entry point are available.
 `createSoundChip('scsp')` is the Playground runtime factory, separate from that instrument entry point.
 
+## Pure DSP instruction assembler (npm 0.2.42+)
+
+The package provides
+`tetorica-fm2612/scsp_dsp_assembler.js` (or the extensionless subpath) for
+`assembleScspDsp(source)` and `disassembleScspDsp(words, options?)`. These are
+synchronous pure JavaScript helpers: no WASM, audio device or chip handle is
+created. These helpers are available from npm version 0.2.42.
+
+The canonical implementation and declarations are in
+[scsp_dsp_assembler.js](../tetorica_src/runtime/scsp_dsp_assembler.js) and
+[scsp_dsp_assembler.d.ts](../tetorica_src/runtime/scsp_dsp_assembler.d.ts).
+The original Synth assembler remains a byte-identical compatibility copy.
+See the [package example](../packages/fm2612/examples/scsp-dsp/README.md) for a
+standalone Node / browser round trip, and the
+[field format guide](synth-scsp/DSP_ASSEMBLER.md) for syntax and execution limits.
+Assembly returns 512 unsigned 16-bit words in logical MPRO order. It does not
+configure coefficients / RAM / routing, apply a program, or enforce the narrower
+Synth execution profile. The syntax is provisional, not SEGA assembler compatibility.
+
 ## Try it in Playground
 
 Open [Playground in Saturn mode](playground/index.html?mode=scsp). Choose **SCSP →

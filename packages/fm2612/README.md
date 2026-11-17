@@ -67,6 +67,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Experimental Saturn SCSP, low level | `tetorica-fm2612/scsp.js` | `Scsp`: register/RAM access and 44.1 kHz stereo PCM |
 | SCSP tuned PCM instruments / host rate | `tetorica-fm2612/scspsynth.js`, `tetorica-fm2612/pcm_44100_resampler.js` | `ScspSynth`, `createScspInitSample`, `Pcm44100Resampler` |
 | Audio selection to SCSP PCM | `tetorica-fm2612/scsp_sample.js` | `readScspAudio`, `prepareScspPCM` |
+| Pure SCSP DSP instruction assembly | `tetorica-fm2612/scsp_dsp_assembler.js` | `assembleScspDsp`, `disassembleScspDsp`; no WASM / audio initialization |
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
 | PS1 named ADSR / reverb parameters | `tetorica-fm2612/ps1_parameters.js` | `decodePs1Envelope`, `encodePs1Envelope`, `patchPs1Envelope`, `PS1_REVERB_PRESETS` |
@@ -246,8 +247,9 @@ prepared for the 512 KiB SCSP RAM. These are software preparation helpers.
 The shared Playground runtime supports `useSoundChip('scsp')` and independent
 `createSoundChip('scsp')` instances in Main/Worker. Compatible, updated Tauri hosts
 also support Native transport; the npm package does not install a Tauri binary.
-The package-root chip factory is separate. DSP controls and SSF/68000 execution
-are not included.
+The package-root chip factory is separate. DSP execution controls and SSF/68000
+execution are not included in this shared musical API. The pure instruction
+assembler below is independent of audio execution.
 Version 0.2.36 adds `setLfo(slot, patch)` and `preset.lfo` for live
 per-slot hardware LFO: `frequencyCode` 0..31, `pitchWave` / `amplitudeWave` 0..3
 (saw, square, triangle, noise), `pitchDepth` / `amplitudeDepth` 0..7, and boolean
@@ -255,11 +257,10 @@ per-slot hardware LFO: `frequencyCode` 0..31, `pitchWave` / `amplitudeWave` 0..3
 the next keyOn. Display tables are exported as `SCSP_LFO_FREQUENCIES_HZ`,
 `SCSP_LFO_PITCH_CENTS`, `SCSP_LFO_AMPLITUDE_DB` and `SCSP_LFO_WAVEFORMS`.
 LFO requires 0.2.36 or later.
-The current repository adds optional boolean `envelope.loopLink` (default
-false): hardware LPSLNK transitions Attack to Decay 1 at the programmed loop
-start. `setEnvelope(slot, {loopLink:true})` affects the next keyOn. This
-addition is pending the next npm publication; older presets retain their
-previous behavior when the field is omitted.
+Version 0.2.41 includes optional boolean `envelope.loopLink` (default false):
+hardware LPSLNK transitions Attack to Decay 1 at the programmed loop start.
+`setEnvelope(slot, {loopLink:true})` affects the next keyOn. Older presets retain
+their previous behavior when the field is omitted.
 See the [SCSP API and limitations](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md).
 
 Version 0.2.37 also adds `setModulation(slot, patch)` and
@@ -272,6 +273,56 @@ delay; no physical SCSP timing/address-clipping fidelity is claimed. Main/Worker
 and updated Native hosts accept these controls. A multi-slot Synth voice allocator
 and patch serialization remain later work. These additions are not in published
 0.2.36. See the SCSP guide for a two-slot example and scheduling limitations.
+
+### Pure SCSP DSP assembler
+
+Available from **0.2.42**. Install `tetorica-fm2612@^0.2.42` to use this entry.
+
+```js
+import {
+  assembleScspDsp,
+  disassembleScspDsp,
+} from 'tetorica-fm2612/scsp_dsp_assembler.js';
+
+const words = assembleScspDsp(`
+003: XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1
+`);
+console.log(words.length); // 512 unsigned 16-bit words, four per physical step.
+console.log(disassembleScspDsp(words));
+console.log(disassembleScspDsp(words, {includeTrailingZeros:true}));
+```
+
+The extensionless `tetorica-fm2612/scsp_dsp_assembler` subpath provides the same
+functions and types. These synchronous, dependency-free functions work in Node
+and browser ES modules without loading WASM, opening audio or changing a chip.
+The [included Node / browser example](examples/scsp-dsp/README.md) runs directly
+from an installed package; its import map uses local files and needs no CDN.
+
+`assembleScspDsp(source)` returns a new `Uint16Array(512)`. Decimal steps 0–127
+must increase strictly. Field names are case-insensitive; values are unsigned
+decimal or hexadecimal; `;` begins a comment. Omitted fields and positions are
+zero-filled. Invalid source throws with a line number in the message.
+
+`disassembleScspDsp(words, options?)` accepts a complete `Uint16Array` or readonly
+number array and does not mutate it. Default output retains every physical
+position through the last nonzero instruction; all-zero input returns an empty
+string. `includeTrailingZeros:true` emits all 128 positions. Reassembling either
+form preserves all 512 words, including uninterpreted RAW bits in existing data.
+
+This provisional field syntax follows Tetorica's pinned SCSP core; it is not
+SEGA assembler compatibility. A microstep describes parallel controls and
+pipeline behavior, not sequential CPU instructions. Successful assembly encodes
+an instruction image. Coefficients, RAM layout, routing and execution must be
+configured separately. The lossless codec accepts a broader field format than
+the SCSP Synth's guarded execution profile; it does not validate whether a
+program will execute meaningfully or accurately on hardware. Use zero for
+undefined bits when authoring; RAW fields support inspection / preservation.
+
+The helper and examples use BSD-3-Clause. Included SCSP core sources, credits
+and notices remain under `sources/` and `licenses/mame-scsp/`. See the
+[field format guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
+for syntax and the distinct Synth execution limits. These two pure exports do
+not add Synth Code's `compileDsp()` / `applyDspProgram()` session facade to npm.
 
 ### Standard PS1 VAB banks
 
@@ -1667,6 +1718,12 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.42` adds `scsp_dsp_assembler.js` (and its extensionless subpath): pure
+SCSP DSP field assembly / disassembly with explicit types, local Node / browser
+examples and lossless 512-word inspection. This does not change audio execution
+or the Synth. The same authored codec is retained in the reusable runtime and
+served / original Synth paths, with drift checks and unchanged parser behavior.
 
 `0.2.41` adds timed register-operation authoring for AY/YM2149 and YM2612:
 state-free `build()`, detached `compile()` traces, reusable `captureState()`

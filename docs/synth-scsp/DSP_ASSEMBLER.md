@@ -79,9 +79,13 @@ console.log(disassembleScspDsp(words, {includeTrailingZeros:true}));
 ```
 
 These are pure local functions. They neither mutate their inputs nor resolve
-live chip state. They are not npm exports; Synth Code exposes the checked
-`compileDsp()` facade described below.
-The source and declaration file can be read directly.
+live chip state. The npm package (0.2.42+) exposes them from
+`tetorica-fm2612/scsp_dsp_assembler.js` (or the extensionless subpath), with
+explicit types and [Node / browser examples](../../packages/fm2612/examples/scsp-dsp/README.md).
+Install `tetorica-fm2612@^0.2.42` for these pure helpers. The reusable
+runtime, public served module and original Synth import path are byte-identical.
+This lossless codec is separate from Synth Code's checked `compileDsp()` facade
+described below; its source and declaration file remain directly readable.
 
 ### Synth Code: compile, apply, change coefficients
 
@@ -132,7 +136,8 @@ loops while retaining live setup; use Run after changing setup source. Code
 Stop releases its notes and retains the shared DSP program / coefficients.
 Reload restores only authored Files / draft text, never executes them, and
 starts the audio setup with the built-in Delay. These methods do not introduce
-sample-timed scheduling or a public npm DSP API.
+sample-timed scheduling or a public npm DSP execution API. The npm codec above
+only encodes / decodes instruction images.
 
 ### Save the current setup as Code
 
@@ -314,5 +319,5 @@ positions remain the author's responsibility. Range-valid fields are not a
 guarantee of a meaningful runnable program (for example, the core's input
 selection has fewer implemented sources than IRA's six-bit encoding permits).
 Macros, automatic scheduling, additional coefficient entries / RAM-layout editing and general
-effect compilation are later work. The Synth Code facade above remains separate
-from a future public npm DSP API.
+effect compilation are later work. The Synth Code execution facade above remains
+separate from the pure npm assembler / disassembler.

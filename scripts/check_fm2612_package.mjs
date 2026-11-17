@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {assertSidPackageFiles,checkInstalledSidNode} from './check_fm2612_sid_package.mjs';
+import {assertScspDspPackageFiles,checkInstalledScspDspNode} from './check_fm2612_scsp_dsp_package.mjs';
 import {createVabFixture} from '../test/helpers/spu_vab_fixture.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'tetorica-fm2612-check-'));
@@ -20,6 +21,7 @@ try {
     for (const extension of ['js','d.ts']) assert(packedPaths.has(name+'.'+extension),'YM2612 timed API payload missing '+name+'.'+extension);
   }
   assertSidPackageFiles(packedPaths);
+  assertScspDspPackageFiles(packedPaths);
   for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
     assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
   }
@@ -119,6 +121,7 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await checkInstalledScspDspNode(consumer);
   await writeFile(join(consumer,'ym2612-timed-check.mjs'),`
 import assert from 'node:assert/strict';
 import {YM2612Synth} from 'tetorica-fm2612/ym2612synth';

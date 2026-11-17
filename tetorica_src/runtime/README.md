@@ -16,6 +16,7 @@ This document identifies where to edit the implementation.
 | --- | --- | --- |
 | A chip by name | [soundchip.js](soundchip.js), [factory reference](soundchip.md) | Factory, supported chip IDs and execution options |
 | Registers and PCM | [ym2612.js](ym2612.js), [ps1_spu.js](ps1_spu.js), [scsp.js](scsp.js) | Low-level chip access; WASM factories can be supplied by the caller |
+| SCSP DSP instruction images | [scsp_dsp_assembler.js](scsp_dsp_assembler.js), [types](scsp_dsp_assembler.d.ts) | Pure provisional field assembly / disassembly, without chip or audio initialization |
 | Notes, presets and instruments | [ym2612synth.js](ym2612synth.js), [ps1synth.js](ps1synth.js), [scspsynth.js](scspsynth.js) | Musical operations built on the chip APIs; coverage varies by chip |
 | Browser audio output | [genesisaudioengine.js](genesisaudioengine.js), [ym2612-worklet.js](ym2612-worklet.js) | AudioContext/AudioWorklet lifecycle and audio rendering |
 | Embedded live coding | [playground_runtime.js](playground_runtime.js), [playground_logic_worker.js](playground_logic_worker.js) | Script execution, loops and chip control |
@@ -29,6 +30,12 @@ points. Choose register/PCM APIs for an emulator or renderer, Synth helpers for
 notes and instruments, and the Playground runtime for live-code execution.
 PS1 SPU and SCSP use their standalone modules; their presence does not imply
 support in the package-root `createSoundChip()` factory.
+
+The reusable SCSP DSP assembler is canonical here. Its public `docs/js/` copies
+and existing `docs/synth-scsp/dsp_assembler.js` / `.d.ts` compatibility copies
+are byte-identical. `sync_web_js_to_docs.sh` maintains these copies; runtime
+tests reject drift. Encoding instructions remains separate from the Synth's
+narrower execution-profile checks and shared audio-owner controls.
 
 ## Source, generated output and applications
 

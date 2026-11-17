@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCSP DSP assembler — Tetorica npm example</title>
+  <style>
+    body {max-width: 56rem; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 system-ui, sans-serif; color: #172c38; background: #f3f7f9;}
+    pre {padding: 1rem; overflow: auto; background: #172c38; color: #dceef8; border-radius: .5rem;}
+  </style>
+  <!-- Serve this installed package example at its original URL. No CDN needed. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "tetorica-fm2612/scsp_dsp_assembler.js": "../../scsp_dsp_assembler.js",
+      "tetorica-fm2612/scsp_dsp_assembler": "../../scsp_dsp_assembler.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <h1>SCSP DSP assembler</h1>
+  <p>Convert field source into 512 unsigned 16-bit words, then recover editable source.</p>
+  <p>These pure functions do not load WASM, open audio or apply a DSP program.</p>
+  <h2>Input source</h2>
+  <pre id="source"></pre>
+  <h2>Canonical source and round trip</h2>
+  <pre id="output">Loading the installed module…</pre>
+  <p>The field syntax is provisional. It describes physical microsteps, not SEGA assembler compatibility. Execution, coefficient tables and audio routing are separate.</p>
+  <script type="module">
+    import {source, words, canonical, equal} from './roundtrip.mjs';
+    document.getElementById('source').textContent = source;
+    const output = document.getElementById('output');
+    output.textContent = `${words.length} words / ${words.length / 4} physical steps\n\n${canonical}\nRound trip: ${equal ? 'PASS' : 'FAIL'}`;
+    output.dataset.passed = String(equal);
+  </script>
+</body>
+</html>

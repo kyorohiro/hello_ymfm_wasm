@@ -36,6 +36,8 @@ pcm_44100_resampler.js
 scsp.js
 scspsynth.js
 scsp_sample.js
+scsp_dsp_assembler.js
+scsp_dsp_assembler.d.ts
 playground_scsp.js
 playground_scsp_audio.js
 playground_scsp_worklet.js
@@ -390,6 +392,11 @@ for file in ${SYNC_FILES}; do
   cp "${src}" "${dst}"
   echo "synced ${file}"
 done
+
+# Keep the original Synth import paths as byte-identical compatibility copies.
+# The reusable runtime now owns this pure field codec and its public contract.
+cp "${WEB_DIR}/scsp_dsp_assembler.js" "${ROOT_DIR}/docs/synth-scsp/dsp_assembler.js"
+cp "${WEB_DIR}/scsp_dsp_assembler.d.ts" "${ROOT_DIR}/docs/synth-scsp/dsp_assembler.d.ts"
 
 node "${ROOT_DIR}/scripts/runtime_module_layout.mjs" "${DOCS_JS_DIR}"
 
