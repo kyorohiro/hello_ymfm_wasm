@@ -3,6 +3,8 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js';
 import {ScspDspProgram} from './scsp_dsp.js';
+import {SCSP_DSP_DELAY_RAM_BYTES, SCSP_DSP_DELAY_ALIGNMENT,
+  resolveScspDspDelay, validateScspDspDelayRam} from './scsp_dsp_delay.js';
 export const SCSP_SLOT_COUNT = 32;
 /** Nominal manual rates; the oscillator runs at fixed 44.1 kHz. */
 export const SCSP_LFO_FREQUENCIES_HZ=Object.freeze([.17,.19,.23,.27,.34,.39,.45,.55,.68,.78,.92,1.10,1.39,1.60,1.87,2.27,2.87,3.31,3.92,4.79,6.15,7.18,8.60,10.8,14.4,17.2,21.5,28.7,43.1,57.4,86.1,172.3]);
@@ -50,13 +52,13 @@ export function scspPitch(ratio) {
 }
 
 /** Musical PCM adapter over an exclusively owned Scsp. No device, automatic voice
- * allocation, public sample replacement or file decoder. Explicit RAM-free DSP
+ * allocation, public sample replacement or file decoder. Explicit managed DSP
  * setup uses the same owned core. Do not write the raw
  * core while this adapter owns its registers/RAM. Preset changes take effect on
  * the next keyOn; setFrequency and setMix are explicit live controls.
  */
 export class ScspSynth {
-  #dsp=null; #failure=null;
+  #dsp=null; #dspRam=null; #failure=null;
   #bankId=`scsp-${Date.now().toString(36)}-${++bankSequence}-${Math.random().toString(36).slice(2)}`;
   #editorPages=[]; #core; #samples=new Map(); #nextId=1; #used=0; #voices=Array.from({length:32},voiceDefaults); #gates=Array(32).fill(false); #playing=Array(32).fill(null); #playingLfos=Array(32).fill(null); #playingModulations=Array(32).fill(null); #playingFrequencies=Array(32).fill(null); #disposed=false;
   constructor(core) {
@@ -124,7 +126,7 @@ export class ScspSynth {
     let encoded,template;
     const check=new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(bytes){encoded=bytes;},renderInto(){},dispose(){}});
     try {
-      check._adoptState({...this.getState(),ramUsedBytes:0});
+      check._adoptState({...this.getState(),ramUsedBytes:0,dsp:undefined,dspRam:undefined});
       template=check.loadPCM(pcm,options);check.setPreset(slot,{sample:template});
     }finally{check.dispose();}
     const pinned=sample=>this.#playing.includes(sample)||this.#voices.some((v,i)=>i!==slot&&v.sample===sample);
@@ -223,6 +225,22 @@ export class ScspSynth {
   setDspCoefficients(patch) {return this.#dspCall('setCoefficients',patch);}
   /** EFREG0 hardware return: level 0..7 (0 mute), pan 0..31. */
   setDspReturn(patch) {return this.#dspCall('setReturn',patch);}
+  /** Configure the managed fixed Delay. Its 64 KiB ring is appended once at an
+   * 8 KiB hardware boundary, without moving PCM. Reservation lasts until a RAM
+   * clearing reset. Time / Enable clear the ring; Feedback retains its tail.
+   * Per-slot sends and shared return use setMix / setDspReturn explicitly. */
+  setDspDelay(patch) {
+    this.#open();
+    const settings=resolveScspDspDelay(patch,this.#dsp?.readProgram().delay);
+    const ram=this.#dspRam??{
+      address:Math.ceil(this.#used/SCSP_DSP_DELAY_ALIGNMENT)*SCSP_DSP_DELAY_ALIGNMENT,
+      byteLength:SCSP_DSP_DELAY_RAM_BYTES,
+    };
+    if(ram.address+ram.byteLength>SCSP_RAM_BYTES)throw new RangeError('SCSP Delay needs a free aligned 64 KiB ring. Existing PCM and DSP setup were kept.');
+    const result=this.#dspCall('setDelay',settings,ram);
+    if(!this.#dspRam){this.#dspRam=Object.freeze({...ram});this.#used=ram.address+ram.byteLength;}
+    return result;
+  }
   keyOn(slot) {
     slot=this.#slot(slot);const v=this.#voices[slot],s=this.#sample(v.sample),pitch=this.#pitch(v),b=slot*32,e=v.envelope;
     if(v.dspSend)this.#dspCall('ensureStarted');
@@ -253,7 +271,7 @@ export class ScspSynth {
     if(options.clearRam!==undefined&&typeof options.clearRam!=='boolean')throw new TypeError('clearRam must be boolean');
     this.#core.reset(options);this.#core.write(0x400,0x020f);this.#gates.fill(false);this.#playing.fill(null);this.#playingLfos.fill(null);this.#playingModulations.fill(null);this.#playingFrequencies.fill(null);this.#voices=Array.from({length:32},voiceDefaults);
     this.#dsp=null;
-    if(options.clearRam){this.#samples.clear();this.#editorPages=[];this.#used=0;}
+    if(options.clearRam){this.#samples.clear();this.#editorPages=[];this.#used=0;this.#dspRam=null;}
   }
   /** Internal structured-clone transport bridge. Public PCM handles stay owned. */
   _resolveSample(value) {
@@ -264,7 +282,11 @@ export class ScspSynth {
   /** Internal trusted Worklet resource snapshot; never uploads or writes RAM. */
   _adoptResources(state) {
     this.#open();
+    const dspRam=state.dspRam?validateScspDspDelayRam(state.dspRam):null;
+    if(dspRam&&dspRam.address+dspRam.byteLength>state.ramUsedBytes)throw new TypeError('SCSP Delay reservation exceeds the allocated bank');
+    if(state.dsp?.profile==='delay-ring'&&(!dspRam||state.dsp.ram?.address!==dspRam.address||state.dsp.ram?.byteLength!==dspRam.byteLength))throw new TypeError('SCSP Delay program does not match its RAM reservation');
     if(state.dsp){const owner=this.#dsp??new ScspDspProgram(this.#core);owner.adoptState(state.dsp);this.#dsp=owner;}else this.#dsp=null;
+    this.#dspRam=dspRam?Object.freeze(dspRam):null;
     const previous=this.#samples,next=new Map(state.samples.map(s=>[s.id,previous.get(s.id)?.bankId===s.bankId?previous.get(s.id):Object.freeze({...s})]));
     this.#samples=next;this.#used=state.ramUsedBytes;this.#nextId=state.nextSampleId;
     this.#bankId=state.bankId;
@@ -304,7 +326,7 @@ export class ScspSynth {
     this.#editorPages=source.#editorPages.map(p=>({...p,sample:p.sample?this.#samples.get(p.sample.id):null}));
   }
   getState() {
-    this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,...(this.#dsp?{dsp:this.#dsp.readProgram()}:{}),playingFrequencies:[...this.#playingFrequencies],playingLfos:this.#playingLfos.map(l=>l?{...l}:null),playingModulations:this.#playingModulations.map(m=>m?{...m}:null),playingSampleIds:this.#playing.map(s=>s?.id??null),samples:[...this.#samples.values()],
+    this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,...(this.#dsp?{dsp:this.#dsp.readProgram()}:{}),...(this.#dspRam?{dspRam:{...this.#dspRam}}:{}),playingFrequencies:[...this.#playingFrequencies],playingLfos:this.#playingLfos.map(l=>l?{...l}:null),playingModulations:this.#playingModulations.map(m=>m?{...m}:null),playingSampleIds:this.#playing.map(s=>s?.id??null),samples:[...this.#samples.values()],
       slots:this.#voices.map((v,i)=>({...v,envelope:{...v.envelope},lfo:{...v.lfo},modulation:{...v.modulation},gate:this.#gates[i]}))};
   }
   prepare(frames) {this.#open();this.#core.prepare(frames);}

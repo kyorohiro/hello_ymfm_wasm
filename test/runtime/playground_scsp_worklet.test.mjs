@@ -273,3 +273,120 @@ test('a DSP restore failure on Stop rejects its request immediately and retires 
  assert.equal(p.processor.process([],[[left,right]]),false);
  assert(left.every(value=>value===0));assert(right.every(value=>value===0));
 });
+
+test('managed Delay acknowledgements synchronize its reserved ring and preserve existing PCM handles',async t=>{
+ const p=await setup(t),w=await worker(t,p),other=await setup(t);
+ const initial=await p.client.getState(),original=initial.samples[0];
+ p.client.noteOn(0,69);await p.client.getState();p.render(256);
+ const settings={enabled:true,timeMs:40,feedback:.5};
+ const pending=w.setDspDelay(settings);
+ settings.timeMs=700;settings.feedback=0;
+ const applied=await pending;
+ assert.equal(applied.profile,'delay-ring');
+ assert.deepEqual(applied.delay,{enabled:true,timeMs:40,feedback:.5});
+ assert.equal(applied.ram.byteLength,65536);
+ assert.equal(applied.ram.address%8192,0);
+ assert(applied.ram.address>=initial.ramUsedBytes);
+ const state=await p.client.getState();
+ assert.deepEqual(state.dspRam,applied.ram);
+ assert.equal(state.ramUsedBytes,applied.ram.address+65536);
+ assert.equal(state.slots[0].sample.id,original.id);
+ assert.equal(state.samples[0].address,original.address);
+ assert.equal(state.slots[0].gate,true);
+ assert.deepEqual(p.client._getState().dspRam,state.dspRam);
+ assert.deepEqual(w._getState().dspRam,state.dspRam);
+ assert.equal((await other.client.getState()).dspRam,undefined);
+ assert.deepEqual(await w.getDspProgram(),applied);
+ applied.ram.address=0;applied.delay.timeMs=700;
+ assert.equal((await p.client.getDspProgram()).delay.timeMs,40);
+ await w.setDspCoefficients({1:1024});
+ assert.equal((await p.client.getDspProgram()).delay.feedback,.25);
+ assert.equal(p.client._getState().dsp.delay.feedback,.25);
+ const next=await p.client.loadPCM(new Int8Array(64),{rootNote:69});
+ assert(next.address>=state.dspRam.address+state.dspRam.byteLength);
+});
+
+test('managed Delay produces wet audio at both host rates and Stop retains setup while clearing the tail',async t=>{
+ for(const rate of [44100,48000]){
+  const p=await setup(t,rate),w=await worker(t,p);
+  await w.setDspDelay({enabled:true,timeMs:20,feedback:.5});
+  await w.setDspReturn({level:7});
+  w.setMix(0,{directLevel:0,dspSend:7});w.noteOn(0,69);await w.getState();
+  assert.equal(peak(p.render(Math.floor(rate*.018)).left),0);
+  assert(peak(p.render(Math.ceil(rate*.04)).left)>.01);
+  const held=await w.getState(),program=await w.getDspProgram();
+  await w.setDspDelay({feedback:.25});
+  const changed=await w.getState();
+  assert.equal(changed.slots[0].gate,true);
+  assert.deepEqual(changed.playingSampleIds,held.playingSampleIds);
+  assert.deepEqual(changed.dspRam,held.dspRam);
+  assert.equal(changed.dsp.delay.feedback,.25);
+  assert.equal(changed.dsp.revision,program.revision);
+  const beforeStop=await w.getDspProgram();
+  await w._stopVoices();
+  assert.equal(peak(p.render(Math.ceil(rate*.1)).left),0);
+  assert.deepEqual(await w.getDspProgram(),beforeStop);
+  w.reset();await w.getState();
+  assert.equal((await w.getState()).dsp,undefined);
+  assert.deepEqual(w._getState().dspRam,held.dspRam);
+  w.reset({clearRam:true});await w.getState();await p.client.getState();
+  assert.equal(w._getState().dspRam,undefined);
+  assert.equal(p.client._getState().dspRam,undefined);
+ }
+});
+
+test('Delay rejects insufficient RAM and invalid patches before changing either client or the audio owner',async t=>{
+ const p=await setup(t),w=await worker(t,p);
+ for(let index=0;index<3;index++)await w.loadPCM(new Int16Array(65535),{rootNote:69});
+ await w.loadPCM(new Int16Array(60000),{rootNote:69});
+ const before=await w.getState();
+ for(const settings of [{enabled:true},{timeMs:19},{timeMs:701},{feedback:1},{enabled:1},{send:7}]){
+  await assert.rejects(w.setDspDelay(settings));
+  assert.deepEqual(await w.getState(),before);
+  assert.deepEqual(p.client._getState().dspRam,before.dspRam);
+ }
+ assert.equal(p.processor.dead,false);
+});
+
+test('Worker Delay setup observes owner cancellation and completes before note lookahead',async t=>{
+ const p=await setup(t),channel=new MessageChannel(),owner={performanceOwner:'delay-loop'};
+ p.processor.port.onmessage({data:{primaryWorker:true,port:channel.port1}});
+ const sender=createPerformanceSender({now:()=>1000,getLoop:()=>owner});
+ sender.configure({session:39,audioSeconds:0,performanceEpochMs:1000,lookaheadSeconds:2});
+ p.processor.receive({type:'performance-start',session:39},{postMessage(){}});
+ const client=createScspClient(sender.port(channel.port2,'independent'),p.metadata);
+ t.after(()=>client.dispose());
+ const applied=await client.setDspDelay({enabled:true,timeMs:40,feedback:.5});
+ assert.equal(applied.profile,'delay-ring');
+ assert.equal(p.scope.currentFrame,0);
+ assert.equal(p.processor.performance.getStats().queuedCommands,0);
+ const before=await client.getState();
+ sender.cancelOwner('delay-loop');
+ await assert.rejects(client.setDspDelay({timeMs:80}),{name:'AbortError'});
+ assert.deepEqual(await p.client.getState(),before);
+ const replies=[];
+ p.processor.receive({performance:{session:39,owner:'delay-loop',time:2},commands:[
+  {method:'setDspDelay',args:[{timeMs:80}],id:913},
+ ]},{postMessage:message=>replies.push(message)});
+ assert(replies.some(message=>message.id===913&&message.error));
+ assert.equal((await p.client.getDspProgram()).delay.timeMs,40);
+});
+
+test('a delayed Delay reply cannot restore a ring after the client reset fence advances',async t=>{
+ const sent=[],port={postMessage:message=>sent.push(message),start(){},close(){}};
+ const client=createScspClient(port),validation=createScspValidation();
+ t.after(()=>{client.dispose();validation.dispose();});
+ const staleProgram=validation.setDspDelay({enabled:true,timeMs:40,feedback:.5});
+ const staleState=validation.getState();
+ const pending=client.setDspDelay({enabled:true,timeMs:40,feedback:.5});
+ const request=sent.at(-1);
+ client.reset({clearRam:true});
+ const reset=sent.at(-1);
+ assert.equal(reset.resourceFence,1);
+ port.onmessage({data:{type:'scsp-resources',resourceFence:0,revision:1,bankEpoch:0,state:staleState}});
+ port.onmessage({data:{id:request.id,value:staleProgram}});
+ await assert.rejects(pending,{name:'AbortError'});
+ assert.equal(client._getState().dspRam,undefined);
+ assert.equal(client._getState().dsp,undefined);
+ assert.equal(client._getState().ramUsedBytes,0);
+});

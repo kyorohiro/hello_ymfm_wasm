@@ -11,6 +11,7 @@ import type {Scsp} from 'tetorica-fm2612/scsp';
 import type {
   ScspDspProgram, ScspDspCoefficients, ScspDspCoefficientPatch,
   ScspDspApplyOptions, ScspDspReturn, ScspMix, ScspState,
+  ScspDspDelayPatch, ScspDspDelaySettings, ScspDspRam,
 } from 'tetorica-fm2612/scspsynth';
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
@@ -61,7 +62,7 @@ const options:ScspDspApplyOptions = {coefficients:{0:0, 1:3840, 2:256}};
 const setup:ScspDspProgram = synth.applyDspProgram(words, options);
 const setupFromReadonly:ScspDspProgram = synth.applyDspProgram(readonlyWords);
 const snapshot:ScspDspProgram = synth.getDspProgram();
-const profile:'ram-free' = snapshot.profile;
+const profile:'ram-free' | 'delay-ring' = snapshot.profile;
 const configured:boolean = snapshot.configured;
 const coefficients:ScspDspCoefficients = synth.setDspCoefficients(patch);
 const currentCodes:ScspDspCoefficients = synth.getDspCoefficients();
@@ -72,12 +73,20 @@ synth.setMix(0, {directLevel:0, dspSend:7});
 synth.setPreset(0, {dspSend:0});
 const state:ScspState = synth.getState();
 const optionalSetup:ScspDspProgram | undefined = state.dsp;
+const optionalRing:ScspDspRam | undefined = state.dspRam;
+const delayPatch:ScspDspDelayPatch = {enabled:true, timeMs:240, feedback:.35};
+const delaySetup:ScspDspProgram = synth.setDspDelay(delayPatch);
+if (delaySetup.profile === 'delay-ring') {
+  const settings:ScspDspDelaySettings = delaySetup.delay;
+  const ring:ScspDspRam = delaySetup.ram;
+  void [settings, ring];
+}
 snapshot.words[0] = 0;
 snapshot.coefficients.codes[0] = 1024;
 synth.stopVoices();
 synth.reset({clearRam:true});
 void [sameSynth, setup, setupFromReadonly, profile, configured, coefficients, currentCodes,
-  returned, panned, sourceMix, optionalSetup];
+  returned, panned, sourceMix, optionalSetup, optionalRing, delaySetup];
 
 // @ts-expect-error Executable images contain logical 16-bit words.
 synth.applyDspProgram(new Uint8Array(1024));
@@ -103,7 +112,17 @@ const asynchronousSetup:Promise<ScspDspProgram> = synth.applyDspProgram(words);
 const byteImage:Uint8Array = snapshot.words;
 // @ts-expect-error The initial execution profile has a fixed name.
 const delayProfile:'delay' = snapshot.profile;
-void [asynchronousSetup, byteImage, delayProfile];
+// @ts-expect-error Delay input uses a boolean enable flag.
+synth.setDspDelay({enabled:1});
+// @ts-expect-error Delay settings require numeric feedback.
+synth.setDspDelay({feedback:'0.5'});
+// @ts-expect-error Delay time is given in milliseconds.
+synth.setDspDelay({seconds:.24});
+// @ts-expect-error Local Delay setup is synchronous.
+const asynchronousDelay:Promise<ScspDspProgram> = synth.setDspDelay({timeMs:240});
+// @ts-expect-error Ring metadata is available on the Delay profile.
+const uncheckedRing:ScspDspRam = snapshot.ram;
+void [asynchronousSetup, byteImage, delayProfile, asynchronousDelay, uncheckedRing];
 
 type RemoteProgramIsTyped = Assert<IsAny<Awaited<ReturnType<ScspClient['getDspProgram']>>> extends false ? true : false>;
 type RemoteCodesAreTyped = Assert<IsAny<Awaited<ReturnType<ScspClient['getDspCoefficients']>>['codes'][number]> extends false ? true : false>;
@@ -131,6 +150,7 @@ const remoteSnapshot:Promise<ScspDspProgram> = client.getDspProgram();
 const remoteCodes:Promise<ScspDspCoefficients> = client.getDspCoefficients();
 const remoteChanged:Promise<ScspDspCoefficients> = client.setDspCoefficients({1:3072});
 const remoteReturn:Promise<ScspDspReturn> = client.setDspReturn({pan:31});
+const remoteDelay:Promise<ScspDspProgram> = client.setDspDelay(delayPatch);
 const remoteState:Promise<ScspState> = client.getState();
 const remoteSample = client.loadPCM(new Int16Array(64), {rootNote:'A4', loopStartSamples:0});
 client.setMix(0, {directLevel:0, dspSend:7});
@@ -143,7 +163,7 @@ client.keyOff(0);
 client.reset();
 client.dispose();
 void [sameClientFactory, remoteSetup, remoteReadonly, remoteSnapshot, remoteCodes,
-  remoteChanged, remoteReturn, remoteState, remoteSample, remoteFrequency, queuedClient, facadeClient];
+  remoteChanged, remoteReturn, remoteDelay, remoteState, remoteSample, remoteFrequency, queuedClient, facadeClient];
 
 // @ts-expect-error Remote results are acknowledged asynchronously.
 const immediateRemote:ScspDspProgram = client.getDspProgram();
@@ -155,8 +175,14 @@ client.applyDspProgram(words, {coefficients:{0:1024}});
 client.setDspCoefficients({3:1024});
 // @ts-expect-error Remote return level is a hardware numeric code.
 client.setDspReturn({level:true});
+// @ts-expect-error Remote Delay requires numeric milliseconds.
+client.setDspDelay({timeMs:'240'});
+// @ts-expect-error Delay routing uses the slot / return API.
+client.setDspDelay({dspSend:7});
+// @ts-expect-error Remote Delay setup waits for owner acknowledgement.
+const immediateDelay:ScspDspProgram = client.setDspDelay({enabled:true});
 // @ts-expect-error Typed PCM data carries its signed sample width.
 client.loadPCM(new Uint8Array(64), {rootNote:'A4'});
 // @ts-expect-error Existing slot controls retain their parameter types.
 client.setEnvelope(0, {releaseRate:'slow'});
-void immediateRemote;
+void [immediateRemote, immediateDelay];

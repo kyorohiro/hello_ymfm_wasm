@@ -8,14 +8,15 @@ import {fileURLToPath} from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const filenames = [
   'scsp_dsp_assembler.js', 'scsp_dsp_assembler.d.ts',
-  'scsp_dsp.js', 'scsp_dsp_coefficients.js', 'scsp_dsp_program.js',
+  'scsp_dsp.js', 'scsp_dsp_coefficients.js', 'scsp_dsp_program.js', 'scsp_dsp_delay.js',
   'scspsynth.js', 'scspsynth.d.ts', 'scsp.js', 'scsp.d.ts',
   'playground_scsp.d.ts',
 ];
-const inferredDeclarations = ['scsp_dsp.d.ts', 'scsp_dsp_coefficients.d.ts', 'scsp_dsp_program.d.ts'];
+const inferredDeclarations = ['scsp_dsp.d.ts', 'scsp_dsp_coefficients.d.ts', 'scsp_dsp_program.d.ts', 'scsp_dsp_delay.d.ts'];
 const exampleFilenames = [
   'index.html', 'roundtrip.mjs', 'README.md',
   'execution.mjs', 'execution.html', 'execution-browser.js',
+  'delay.mjs', 'delay.html', 'delay-browser.js',
 ].map(name => 'examples/scsp-dsp/' + name);
 
 export function assertScspDspPackageFiles(paths) {
@@ -99,6 +100,8 @@ try {
   assert.deepEqual(example.words, js.assembleScspDsp(example.source));
   const executionExample = await import('./node_modules/tetorica-fm2612/examples/scsp-dsp/execution.mjs');
   assert.equal(typeof executionExample.runDspExamples, 'function');
+  const delayExample = await import('./node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs');
+  assert.equal(typeof delayExample.runDelayExample, 'function');
   assert.equal(fetches, 0);
   assert.equal(audioContexts, 0);
   assert.equal(wasmAccesses, 0);
@@ -127,7 +130,7 @@ import factory from 'tetorica-fm2612/generated/scsp_wasm.js';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 
 assert.equal(ScspSynth, BareScspSynth);
-for (const method of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn']) {
+for (const method of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay']) {
   assert.equal(typeof ScspSynth.prototype[method], 'function', method);
 }
 let deviceRequests = 0;
@@ -261,6 +264,29 @@ try {
     assert.equal(example.ramUnchanged, true);
     assert(example.peak > 0 && example.peak < .2);
   }
+  const d = await instrument(Int16Array.from({length:64}, (_, index) => Math.round(4096 * Math.sin(index * Math.PI / 32))));
+  const sourcePcm = d.core.readRam(d.sample.address, d.sample.byteLength);
+  const delay = d.synth.setDspDelay({enabled:true, timeMs:20, feedback:.5});
+  assert.equal(delay.profile, 'delay-ring');
+  assert.deepEqual(delay.ram, {address:8192, byteLength:65536});
+  d.synth.setDspReturn({level:7});d.synth.keyOn(0);
+  assert(d.synth.generateStereo(500).left.every(value => value === 0));
+  d.synth.noteOff(0);
+  const tail = d.synth.generateStereo(4096).left;
+  assert(tail.some(value => Math.abs(value) > .01));
+  assert.deepEqual(d.core.readRam(d.sample.address, d.sample.byteLength), sourcePcm);
+  const ring = d.core.readRam(delay.ram.address, delay.ram.byteLength);
+  d.synth.setDspDelay({feedback:.25});
+  assert.deepEqual(d.core.readRam(delay.ram.address, delay.ram.byteLength), ring);
+  assert.equal(d.synth.getDspProgram().delay.feedback, .25);
+  d.synth.stopVoices();assert(d.synth.generateStereo(4096).left.every(value => value === 0));
+  assert.equal(d.synth.getDspProgram().profile, 'delay-ring');
+  d.synth.reset();assert.deepEqual(d.synth.getState().dspRam, delay.ram);
+  d.synth.reset({clearRam:true});assert.equal(d.synth.getState().dspRam, undefined);
+  const {runDelayExample} = await import('./node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs');
+  const renderedDelay = await runDelayExample();
+  assert.equal(renderedDelay.pcmUnchanged, true);assert(renderedDelay.tailPeak > .001);
+  assert.equal(renderedDelay.ram.byteLength, 65536);
   assert.equal(deviceRequests, 0);
   console.log('Installed SCSP DSP execution verified through both Synth subpaths, exact Gain/IIR PCM, live history, routing, atomic rejection, ownership and Stop/reset.');
 } finally {
@@ -272,4 +298,8 @@ try {
     'node_modules/tetorica-fm2612/examples/scsp-dsp/execution.mjs')], {cwd:consumer, encoding:'utf8'});
   assert.match(output, /SCSP DSP execution: PASS/);
   console.log(output);
+  const delayOutput = execFileSync(process.execPath, [join(consumer,
+    'node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs')], {cwd:consumer, encoding:'utf8'});
+  assert.match(delayOutput, /SCSP DSP Delay: PASS/);
+  console.log(delayOutput);
 }

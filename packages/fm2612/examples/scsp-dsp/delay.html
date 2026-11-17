@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCSP DSP Delay — Tetorica source-build example</title>
+  <style>
+    body {max-width: 56rem; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 system-ui, sans-serif; color: #172c38; background: #f3f7f9;}
+    .controls {display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1rem 0;}
+    button, input {font: inherit;}
+    button {padding: .4rem .7rem;}
+    .parameter {display: grid; grid-template-columns: 10rem minmax(0, 1fr) 6rem; align-items: center; gap: .75rem; margin: .7rem 0;}
+    input[type="range"] {width: 100%; min-width: 0;}
+    output {font-variant-numeric: tabular-nums; text-align: right;}
+    pre {padding: 1rem; overflow: auto; background: #172c38; color: #dceef8; border-radius: .5rem;}
+    @media (max-width: 34rem) {.parameter {grid-template-columns: 1fr 6rem;} .parameter input {grid-column: 1 / -1; grid-row: 2;}}
+  </style>
+  <script type="importmap">
+  {"imports": {
+    "tetorica-fm2612/playground_scsp_audio.js": "../../playground_scsp_audio.js",
+    "tetorica-fm2612/playground_scsp.js": "../../playground_scsp.js",
+    "tetorica-fm2612/scsp_dsp_assembler.js": "../../scsp_dsp_assembler.js"
+  }}
+  </script>
+</head>
+<body>
+  <h1>SCSP DSP Delay</h1>
+  <p>Unpublished source-build example. npm 0.2.43 has Gain / IIR execution; this Delay API requires the newer local build.</p>
+  <p>One managed 64 KiB RAM ring holds echoes for the chip's shared hardware DSP.</p>
+  <div class="controls">
+    <button id="start" type="button">Start audio</button>
+    <button id="noteOn" type="button" disabled>Play A3</button>
+    <button id="noteOff" type="button" disabled>Release note</button>
+    <button id="stop" type="button" disabled>Stop audio</button>
+    <label><input id="enabled" type="checkbox" checked> Enable Delay</label>
+  </div>
+  <p id="status" role="status" data-state="idle">Start audio, then play and release the note to hear its echoes.</p>
+  <div class="parameter">
+    <label for="time">Delay time</label>
+    <input id="time" type="range" min="20" max="700" step="1" value="240">
+    <output id="timeValue" for="time">240 ms</output>
+  </div>
+  <div class="parameter">
+    <label for="feedback">Feedback · Q12</label>
+    <input id="feedback" type="range" min="-4096" max="4095" step="1" value="1433">
+    <output id="feedbackValue" for="feedback">1433 / 4096</output>
+  </div>
+  <p>Feedback, send and return edits retain the tail. Changing Time or Enable clears the ring. Releasing a note leaves its echoes; Stop audio closes the whole session.</p>
+  <p>Slot 0 sends at level 7 and has direct level 5. EFREG0 returns at level 7, centered. The example's output gain is 20%.</p>
+  <h2>Applied DSP source</h2>
+  <pre id="source">Start audio to inspect the managed Delay program.</pre>
+  <h2>Applied state</h2>
+  <pre id="snapshot">No audio session.</pre>
+  <p><a href="delay-browser.js">Read the browser source</a> · <a href="README.md">Run the offline example</a> · <a href="execution.html">Gain / IIR</a></p>
+  <script type="module" src="delay-browser.js"></script>
+</body>
+</html>

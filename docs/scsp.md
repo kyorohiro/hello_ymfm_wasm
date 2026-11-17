@@ -102,6 +102,41 @@ choose Web Audio for these examples. Local `ScspSynth` exposes the same DSP
 operations synchronously over its owned core; the Playground facade resolves
 them after its audio owner acknowledges the change.
 
+## Managed DSP Delay (current source build)
+
+The current repository adds `setDspDelay()`; **npm 0.2.43 does not include it**.
+In Playground, open **Files → examples → scsp → scsp-dsp-delay.js → Code → Run**.
+Its beat-based short notes leave echoes, while a separate `tween()` changes
+feedback without clearing the ring. The code also prints the applied DSP
+instructions and managed RAM reservation. Main / Worker Web Audio use the same
+acknowledged method; Native DSP transport rejects it.
+
+```js
+const saturn = await useSoundChip('scsp');
+await saturn.setDspDelay({enabled: true, timeMs: 240, feedback: 0.35});
+saturn.setMix(0, {dspSend: 7, directLevel: 5});
+await saturn.setDspReturn({level: 7, pan: 0});
+const setup = await saturn.getDspProgram();
+log({profile: setup.profile, delay: setup.delay, ram: setup.ram});
+```
+
+The first call reserves one 64 KiB ring alongside existing PCM; it never moves
+samples. Later calls reuse that reservation. `getDspProgram()` reports
+`profile:'delay-ring'`, `delay:{enabled,timeMs,feedback}` and
+`ram:{address,byteLength}`. Time is an integer 20..700 ms; feedback is
+−1..4095/4096, quantized downward to signed Q12. Time / Enable changes clear
+ring history. Feedback / send / return changes keep history and held voices;
+`noteOff()` leaves the effect tail. Code Stop clears voices/history and keeps
+setup. `reset()` clears setup but retains ring space; `reset({clearRam:true})`
+releases the bank and ring. Insufficient RAM or invalid settings leave the
+previous sound intact. The source-build
+[Node / browser examples](../packages/fm2612/examples/scsp-dsp/README.md#managed-hardware-delay--unpublished-source-build)
+show independent use without Playground.
+
+The Delay reuses the existing bounded hardware program. It does not open
+arbitrary RAM I/O, a general RAM layout editor or a software delay effect.
+The released RAM-free Gain / IIR APIs above remain unchanged.
+
 ## Try it in Playground
 
 Open [Playground in Saturn mode](playground/index.html?mode=scsp). Choose **SCSP →

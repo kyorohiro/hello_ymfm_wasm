@@ -9,4 +9,5 @@ const transport:ScspClientPort = port;
 const client:ScspClient = createScspClient(port);
 const bareClient:ScspClient = createBareScspClient(port);
 const codes:Promise<{codes:number[]}> = client.setDspCoefficients({0:2048});
-void [transport, client, bareClient, codes];
+const delay = client.setDspDelay({enabled:true,timeMs:240,feedback:.35});
+void [transport, client, bareClient, codes, delay];

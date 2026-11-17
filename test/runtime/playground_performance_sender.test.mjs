@@ -238,7 +238,7 @@ test('Native-only untimed leases fence preparation, cleanup and keyboard without
 
 test('SCSP DSP setup and live coefficients retain owner admission while bypassing the lead at preparation',()=>{
  const f=fixture(),port=f.sender.port(f.port,'independent');f.setLoop({performanceOwner:'dsp-motion'});
- for(const method of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn']){
+ for(const method of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay']){
   const command={method,args:[],id:method};port.postMessage(command);
   assert.deepEqual(f.sent.at(-1),{performance:{session:1,owner:'dsp-motion',time:3.15},commands:[command]});
  }

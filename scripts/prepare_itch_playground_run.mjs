@@ -37,6 +37,9 @@ const sdkBuildMetadata=new Set([
 // Their identical attribution guides stay individually readable under licenses/.
 export const ITCH_RUN_DUPLICATE_SOURCE_GUIDES=Object.freeze({
  'third_party/tetorica-nes/README.md':'licenses/tetorica-nes/README.md',
+ 'third_party/tetorica-nes/AUTHORS-JSNES.md':'licenses/tetorica-nes/AUTHORS-JSNES.md',
+ 'third_party/tetorica-nes/UPSTREAM-FDS.md':'licenses/tetorica-nes/UPSTREAM-FDS.md',
+ 'third_party/tetorica-nes/UPSTREAM-JSNES.md':'licenses/tetorica-nes/UPSTREAM-JSNES.md',
  'third_party/nuked-opn2/README.md':'licenses/nuked-opn2/README.md',
  'third_party/mame-32x-pwm/README.md':'licenses/mame-32x-pwm/README.md',
  'third_party/libvgm-pokey/README.md':'licenses/libvgm-pokey/README.md',

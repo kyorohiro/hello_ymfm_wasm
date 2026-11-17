@@ -9,13 +9,13 @@ import {resolve} from 'node:path';
 import vm from 'node:vm';
 import factory from '../docs/generated/scsp_wasm.js';
 import {Scsp} from '../tetorica_src/runtime/scsp.js';
-import {ScspSynth,createScspInitSample} from '../tetorica_src/runtime/scspsynth.js';
+import {createScspInitSample} from '../tetorica_src/runtime/scspsynth.js';
 import {Pcm44100Resampler} from '../tetorica_src/runtime/pcm_44100_resampler.js';
 import {SCSP_CONTROLS,SCSP_DSP_METHODS,createScspValidation,scspCommandArgs,validateScspDspCommand} from '../tetorica_src/runtime/playground_scsp.js';
 import {ScspVoiceInspector} from '../tetorica_src/runtime/playground_scsp_inspector.js';
 import {receiveChipInspector} from '../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {createProcessorPerformance} from '../tetorica_src/runtime/playground_performance_processor.js';
-import {createPerformanceSender} from '../tetorica_src/runtime/playground_performance_sender.js';
+import {createScspDspDelayRevisionReadContext} from './mixer_calibration_scsp_dsp_delay_revision.mjs';
 
 export const SCSP_DSP_PARITY_BASE_COMMIT='c2ba69cb78d318265ad03282b67d710349a0e3fc';
 export const SCSP_DSP_PARITY_RECEIPT='docs/issues/playground_scsp_dsp_execution_source_revision_01.json';
@@ -37,6 +37,7 @@ const compare=(a,b,label)=>assert.deepEqual(a,b,label);
 export function reconstructScspDspParityPredecessor(name,current,receipt) {
   const entry=receipt.sources[name],pin=predecessors[name];
   assert(pin,'Only independently pinned predecessor paths may be loaded');
+  current=createScspDspDelayRevisionReadContext().restore(name,current);
   assert.equal(receipt.baseCommit,SCSP_DSP_PARITY_BASE_COMMIT);
   compare(record(current),entry.after,'Current parity source matches its reviewed complete body');
   const parts=[];let cursor=0;
@@ -142,20 +143,22 @@ async function exercise(owner,route,rate,hz,scenario) {
 }
 
 export async function measureScspDspDefaultParity() {
+  const context=createScspDspDelayRevisionReadContext();
+  const readReviewed=name=>context.readSource(path(name));
   const receipt=JSON.parse(await readFile(path(SCSP_DSP_PARITY_RECEIPT),'utf8'));
-  const currentSynth=await readFile(path('tetorica_src/runtime/scspsynth.js'));
-  const currentWorklet=await readFile(path('tetorica_src/runtime/playground_scsp_worklet.js'));
+  const currentSynth=readReviewed('tetorica_src/runtime/scspsynth.js');
+  const currentWorklet=readReviewed('tetorica_src/runtime/playground_scsp_worklet.js');
   const beforeSynth=reconstructScspDspParityPredecessor('tetorica_src/runtime/scspsynth.js',currentSynth,receipt);
   const beforeWorklet=reconstructScspDspParityPredecessor('tetorica_src/runtime/playground_scsp_worklet.js',currentWorklet,receipt);
-  const BeforeSynth=await originalSynth(beforeSynth),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));
+  const BeforeSynth=await originalSynth(beforeSynth),AfterSynth=await originalSynth(currentSynth.toString()),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));
   const sourceNames=['tetorica_src/runtime/scspsynth.js','tetorica_src/runtime/playground_scsp_worklet.js','tetorica_src/runtime/playground_scsp.js',
     'tetorica_src/runtime/scsp.js','tetorica_src/runtime/pcm_44100_resampler.js','tetorica_src/runtime/playground_performance_processor.js',
     'tetorica_src/runtime/playground_performance_queue.js','tetorica_src/runtime/playground_performance_sender.js','tetorica_src/runtime/playground_scsp_inspector.js'];
-  const sources={};for(const name of sourceNames)sources[name]=record(await readFile(path(name)));
+  const sources={};for(const name of sourceNames)sources[name]=record(readReviewed(name));
   const cases=[];
   for(const route of ['local','main','worker'])for(const rate of [44100,48000])for(const scenario of ['pcm16','pcm8'])for(const hz of [220,440,880]) {
     const before=route==='local'?await local(BeforeSynth,rate,wasmBinary):await worklet(beforeWorklet,BeforeSynth,rate,wasmBinary,true);
-    const after=route==='local'?await local(ScspSynth,rate,wasmBinary):await worklet(currentWorklet.toString(),ScspSynth,rate,wasmBinary,false);
+    const after=route==='local'?await local(AfterSynth,rate,wasmBinary):await worklet(currentWorklet.toString(),AfterSynth,rate,wasmBinary,false);
     try{
       const a=await exercise(before,route,rate,hz,scenario),b=await exercise(after,route,rate,hz,scenario);
       const label=[route,rate,scenario,hz].join('/');
@@ -170,11 +173,13 @@ export async function measureScspDspDefaultParity() {
     }finally{before.dispose();after.dispose();}
   }
   const senderPath='tetorica_src/runtime/playground_performance_sender.js';
-  const oldSenderSource=reconstructScspDspParityPredecessor(senderPath,await readFile(path(senderPath)),receipt);
+  const currentSenderSource=readReviewed(senderPath);
+  const oldSenderSource=reconstructScspDspParityPredecessor(senderPath,currentSenderSource,receipt);
   const oldSender=(await import('data:text/javascript;base64,'+Buffer.from(oldSenderSource).toString('base64'))).createPerformanceSender;
+  const currentSender=(await import('data:text/javascript;base64,'+currentSenderSource.toString('base64'))).createPerformanceSender;
   const transportCases=[];
   for(const kind of ['chip','fx','spc','independent','primary'])for(const policy of ['timed','native','keyboard']) {
-    const before=senderPackets(oldSender,kind,policy),after=senderPackets(createPerformanceSender,kind,policy);
+    const before=senderPackets(oldSender,kind,policy),after=senderPackets(currentSender,kind,policy);
     compare(after,before,'Legacy Worker packets: '+kind+'/'+policy);
     transportCases.push({kind,policy,exactPacketsEqual:true,packets:after.length,sha256:sha(JSON.stringify(after))});
   }

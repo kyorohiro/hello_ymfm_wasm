@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "scope": "managed-scsp-dsp-delay-playground-npm-source-candidate",
+  "sourceBaseCommit": "54f0290587811904a8a9ab43c81c369b42c72ac8",
+  "published": false,
+  "versionChanged": false,
+  "audioDeviceOpenedByNode": false,
+  "physicalListeningPerformed": false,
+  "evidence": {
+    "coreTransport": {
+      "path": "build/scsp-managed-delay-20261118/coreTransport.log",
+      "sha256": "bf20644a4f20067cc08f43ca1a565be7f9048123337625ef5a03f88aec8cd51a"
+    },
+    "exampleUnit": {
+      "path": "build/scsp-managed-delay-20261118/exampleUnit.log",
+      "sha256": "7f98c4d09a9be8875c8483418575dac0528df906ad1a220345a76f888b5ec7ac"
+    },
+    "synthReference": {
+      "path": "build/scsp-managed-delay-20261118/synthReference.log",
+      "sha256": "4d3dfe51cc7b1200284d394c2c7c5c11abdfb8b9fcd37d03caead320901b129c"
+    },
+    "declarations": {
+      "path": "build/scsp-managed-delay-20261118/declarations.log",
+      "sha256": "f3df34e008c5fa11034d70736761b50079045821deef3b93b662d067fddb9ff3"
+    },
+    "package": {
+      "path": "build/scsp-managed-delay-20261118/package.log",
+      "sha256": "6294b91786c241fa4715692a928ede1fe0fddb740abc83c83757be139c26b969"
+    },
+    "packaging": {
+      "path": "build/scsp-managed-delay-20261118/packaging.log",
+      "sha256": "d1181a373ecfbda90bdeea19a7891620366c752984a4b9a5f14915d0b604d427"
+    },
+    "calibration": {
+      "path": "build/scsp-managed-delay-20261118/calibration.log",
+      "sha256": "ba57b1ca0b9a286a25460796920f672b111076eac052afb89fa3b6c8162006ff"
+    },
+    "independentReview": {
+      "path": "build/scsp-managed-delay-20261118/independentReview.log",
+      "sha256": "5135b1e71a3ed01350972c676b6b9b3bcb2bf4ebf8ab0dccab159e5197cc997b"
+    }
+  },
+  "archiveAudit": {
+    "passed": true,
+    "archives": [
+      {
+        "path": "release/hello_ymfm_wasm_scsp-dsp-delay-20261118_itch_playground.zip",
+        "bytes": 38231586,
+        "sha256": "552f7ca1b8cd771ff045f4a31558174341f985081ab4a6224a545b7d8fda6edf",
+        "files": 1336,
+        "entries": 1519,
+        "crcPassed": true,
+        "matchingStageOrOriginalSource": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_scsp-dsp-delay-20261118_itch_playground_for_run.zip",
+        "bytes": 38562071,
+        "sha256": "abf8854d3f03ef2b0ebc7473ef2b922d214366ce250942a091fad23cfac06526",
+        "files": 1000,
+        "entries": 1000,
+        "crcPassed": true,
+        "matchingStageOrOriginalSource": true
+      }
+    ],
+    "originalCorrespondingSourceFiles": 304,
+    "allOriginalSourceBytesPreserved": true,
+    "browserExtractedRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-managed-delay-20261118/browser-zip"
+  },
+  "nodeChecks": {
+    "coreAndTransportPassed": 96,
+    "synthReferencePassed": 288,
+    "existingDeclarationsAndExamplesPassed": 21,
+    "newDelayExamplePassed": 2,
+    "calibrationRevisionPassed": 120,
+    "packagingPassed": 11,
+    "loadedWasmEngines": 28,
+    "strictInstalledTypesPassed": true,
+    "mixerGeneratorsUnchanged": true
+  },
+  "sourceBrowser": {
+    "passed": true,
+    "record": "build/scsp-managed-delay-20261118/browser-source.json",
+    "sha256": "44d9c537fe26087075b2afff2d4d652fefe6f60cb4a9942a6f193b591f6502bb",
+    "physicalOutputMuted": true,
+    "rates": [
+      44100,
+      48000
+    ],
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "servedFiles": 317
+  },
+  "npmBrowser": {
+    "passed": true,
+    "record": "build/scsp-managed-delay-20261118/browser-npm-delay.json",
+    "sha256": "db9d0c021022107fd8ac8cc6e126ea859754dbdf9728bf09eef368d46d65107d",
+    "physicalOutputMuted": true,
+    "rates": [
+      44100,
+      48000
+    ],
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "servedFiles": 27
+  },
+  "zipBrowser": {
+    "passed": true,
+    "record": "build/scsp-managed-delay-20261118/browser-zip.json",
+    "sha256": "54c1fb0938598b736d6a427b5da1e62f2ec2a35f5b0aa9da128bdc340da16c32",
+    "physicalOutputMuted": true,
+    "rates": [
+      48000
+    ],
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "mainWorkerAndFiles": true,
+    "servedFiles": 238
+  },
+  "npmCandidate": {
+    "path": "build/scsp-managed-delay-20261118/npm-source-candidate.tgz",
+    "sha256": "d377a6eeb20104c07b9dd819a14a9b9bc2b8110958872e2b088b19987b83ec3c",
+    "bytes": 2899921,
+    "fileCount": 1299,
+    "unpackedBytes": 11730228,
+    "published": false
+  },
+  "unchangedWasmFiles": 37,
+  "allAutomatedChecksPassed": true,
+  "manualTasks": [
+    "Listen to Delay on an actual audio device; compare release tail and Time/Enable changes."
+  ]
+}

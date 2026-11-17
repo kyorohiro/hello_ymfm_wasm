@@ -1,14 +1,15 @@
 import type {
   ScspSynth, ScspPCMOptions, ScspSample, ScspState,
   ScspDspProgram, ScspDspApplyOptions, ScspDspCoefficients,
-  ScspDspCoefficientPatch, ScspDspReturn,
+  ScspDspCoefficientPatch, ScspDspReturn, ScspDspDelayPatch,
+  ScspDspRegisterProgram, ScspDspDelayProgram,
 } from './scspsynth.js';
 
 export type ScspControlMethod = 'setPreset' | 'setEnvelope' | 'setLfo' |
   'setModulation' | 'setFrequency' | 'setNote' | 'setMix' | 'keyOn' | 'keyOff' |
   'noteOn' | 'noteOff' | 'allNotesOff' | 'reset';
 export type ScspDspMethod = 'applyDspProgram' | 'getDspProgram' |
-  'getDspCoefficients' | 'setDspCoefficients' | 'setDspReturn';
+  'getDspCoefficients' | 'setDspCoefficients' | 'setDspReturn' | 'setDspDelay';
 type ScspOperationMethod = ScspControlMethod | ScspDspMethod | 'loadPCM' | 'getState';
 
 export const SCSP_CONTROLS: readonly ScspControlMethod[];
@@ -62,11 +63,13 @@ export interface ScspClient extends Pick<ScspSynth, ScspControlMethod> {
   readonly channelCount: 32;
   loadPCM(pcm: Int8Array | Int16Array, options: ScspPCMOptions): Promise<ScspSample>;
   getState(): Promise<ScspState>;
-  applyDspProgram(words: Uint16Array | readonly number[], options?: ScspDspApplyOptions): Promise<ScspDspProgram>;
+  applyDspProgram(words: Uint16Array | readonly number[], options?: ScspDspApplyOptions): Promise<ScspDspRegisterProgram>;
   getDspProgram(): Promise<ScspDspProgram>;
   getDspCoefficients(): Promise<ScspDspCoefficients>;
   setDspCoefficients(patch: ScspDspCoefficientPatch): Promise<ScspDspCoefficients>;
   setDspReturn(patch: Partial<ScspDspReturn>): Promise<ScspDspReturn>;
+  /** Reserve a fixed Delay ring and apply the acknowledged time / feedback settings. */
+  setDspDelay(patch: ScspDspDelayPatch): Promise<ScspDspDelayProgram>;
   dispose(): void;
   /** Internal transport hooks used by the Playground host. */
   _getState(): ScspState;

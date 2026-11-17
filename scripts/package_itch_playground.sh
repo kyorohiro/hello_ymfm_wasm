@@ -190,9 +190,11 @@ scsp_dsp_assembler.d.ts
 scsp_dsp_program.js
 scsp_dsp_coefficients.js
 scsp_dsp.js
+scsp_dsp_delay.js
 scspsynth.d.ts
 scsp.d.ts
 playground_scsp.js
+playground_scsp.d.ts
 playground_scsp_audio.js
 playground_scsp_worklet.js
 playground_scsp_inspector.js

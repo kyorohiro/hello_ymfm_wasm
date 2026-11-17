@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {ScspSynth} from './scspsynth.js';
 export const SCSP_CONTROLS=Object.freeze(['setPreset','setEnvelope','setLfo','setModulation','setFrequency','setNote','setMix','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
-export const SCSP_DSP_METHODS=Object.freeze(['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn']);
+export const SCSP_DSP_METHODS=Object.freeze(['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay']);
 export function assertNativeScspControl(method,args=[]) {
   const patch=args[1];
   if(SCSP_DSP_METHODS.includes(method)||
@@ -15,6 +15,7 @@ export function createScspValidation() {
     reset(){registers.fill(0);},
     write(address,value,mask=0xffff){registers[address/2]=(registers[address/2]&~mask)|(value&mask);},
     read:address=>registers[address/2],
+    readRam:(address=0,length=524288-address)=>new Uint8Array(length),
     loadRam(){},renderInto(){},dispose(){},
   });
 }

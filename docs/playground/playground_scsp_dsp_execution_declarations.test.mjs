@@ -29,12 +29,16 @@ const remoteCodes:PlaygroundScspDspCoefficients = await primary.setDspCoefficien
 const remoteReturn:PlaygroundScspDspReturn = await extra.setDspReturn({pan:15});
 const rawProfile:'ram-free' = localProgram.profile;
 const remoteProfile:'ram-free' = remoteProgram.profile;
+const localDelay:ScspDspProgram=local.setDspDelay({enabled:true,timeMs:240,feedback:.35});
+const remoteDelay:PlaygroundScspDspProgram=await primary.setDspDelay({enabled:true,timeMs:240,feedback:.35});
+if(localDelay.profile==='delay-ring') {const address:number=localDelay.ram.address;void address;}
+if(remoteDelay.profile==='delay-ring') {const time:number=remoteDelay.delay.timeMs;void time;}
 const configured:boolean = remoteRead.configured;
 const code:number = (await primary.getDspCoefficients()).codes[0];
 const remoteApply:(words:Parameters<ScspSynth['applyDspProgram']>[0],options?:Parameters<ScspSynth['applyDspProgram']>[1])=>Promise<ReturnType<ScspSynth['applyDspProgram']>> = primary.applyDspProgram;
 const remoteSetter:(patch:Parameters<ScspSynth['setDspCoefficients']>[0])=>Promise<ReturnType<ScspSynth['setDspCoefficients']>> = primary.setDspCoefficients;
 const localState=local.getState();
-if(localState.dsp) {const stored:'ram-free'=localState.dsp.profile;void stored;}
+if(localState.dsp) {const stored:'ram-free'|'delay-ring'=localState.dsp.profile;void stored;}
 const remoteState=await primary.getState();
 if(remoteState.dsp) {const stored:number=remoteState.dsp.coefficients.codes[1];void stored;}
 primary.setMix(0,{dspSend:7,directLevel:0});
@@ -67,7 +71,13 @@ primary.setMix(0,{dspSend:true});
 local.setMix(0,{dspBus:1});
 // @ts-expect-error Use the separate pure assembler helper.
 primary.compileDsp('000:');
-void [localProgram,localRead,localCodes,localReturn,remoteRead,remoteCodes,remoteReturn,rawProfile,remoteProfile,configured,code,remoteApply,remoteSetter,queued,immediate];
+// @ts-expect-error Delay input uses numeric milliseconds.
+primary.setDspDelay({timeMs:'240'});
+// @ts-expect-error Delay routes use setMix / setDspReturn.
+primary.setDspDelay({send:7});
+// @ts-expect-error Remote Delay setup awaits its owner acknowledgement.
+const immediateDelay:PlaygroundScspDspProgram=primary.setDspDelay({enabled:true});
+void [localProgram,localRead,localCodes,localReturn,localDelay,remoteDelay,remoteRead,remoteCodes,remoteReturn,rawProfile,remoteProfile,configured,code,remoteApply,remoteSetter,queued,immediate,immediateDelay];
 `;
 
 test('SCSP local and acknowledged DSP contracts match in strict Playground mode consumers', async () => {
@@ -95,7 +105,7 @@ test('SCSP DSP declarations and slot sends navigate to the real owning implement
   const source=await readFile(new URL('../../tetorica_src/runtime/scspsynth.js',import.meta.url),'utf8');
   const lines=globals.split('\n');
   const start=lines.findIndex(line=>line==='interface PlaygroundScsp {');
-  for (const symbol of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setMix']) {
+  for (const symbol of ['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay','setMix']) {
     const index=lines.findIndex((line, index)=>index>start&&line.trimStart().startsWith(symbol+'('));
     assert(index>=0,symbol);
     const target=definitionSource(globals,{lineNumber:index+1,column:lines[index].indexOf(symbol)+1},'scsp');
@@ -126,6 +136,8 @@ chip.setMix(0,legacyMix);
 const setup:ScspDspProgram=chip.applyDspProgram(new Uint16Array(512),{coefficients:{0:2048,1:0,2:0}});
 chip.setDspReturn({level:7});chip.setDspCoefficients({0:1024});
 const profile:'ram-free'=setup.profile;
+const delay:ScspDspProgram=chip.setDspDelay({enabled:true,timeMs:20,feedback:.5});
+if(delay.profile==='delay-ring') {const bytes:number=delay.ram.byteLength;void bytes;}
 // @ts-expect-error The complete coefficient table is required in an Apply setup.
 chip.applyDspProgram(new Uint16Array(512),{coefficients:{1:3840}});
 void profile;

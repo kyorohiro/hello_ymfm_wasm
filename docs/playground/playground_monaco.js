@@ -388,7 +388,7 @@ export async function registerMonacoPlaygroundGlobals(
 ) {
   const libraryModels = new Map();
   for (const name of options.declarationFiles??["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
-    const response = await nativeFetch(new URL(`./${name}.d.ts?v=scsp-dsp-execution-1`, import.meta.url), { cache: "no-cache" });
+    const response = await nativeFetch(new URL(`./${name}.d.ts?v=scsp-dsp-delay-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
     if(options.transformDeclarations)declarations=options.transformDeclarations(declarations,name,chip);

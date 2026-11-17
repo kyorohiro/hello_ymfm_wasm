@@ -4,7 +4,7 @@
 /** Default script lead; UI audition bypasses this transport. In seconds. */
 export const DEFAULT_WORKER_LOOKAHEAD_SECONDS = 0.5;
 const timelineUploadMethods=new Set(['beginTimelineUpload','appendTimelineChunk','commitTimelineUpload','abortTimelineUpload']);
-const scspDspMethods=new Set(['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn']);
+const scspDspMethods=new Set(['applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspReturn','setDspDelay']);
 
 export function validateWorkerLookahead(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 2) {

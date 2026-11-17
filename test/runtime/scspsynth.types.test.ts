@@ -8,6 +8,16 @@ async function example() {
   synth.setEnvelope(31,{loopLink:false});
   synth.noteOn(31,'C4');synth.setFrequency(31,440);synth.setMix(31,{pan:15});
   const state=synth.getState();const rate:44100=state.sampleRate;
+  const delay=synth.setDspDelay({enabled:true,timeMs:240,feedback:.35});
+  if(delay.profile==='delay-ring') {
+    const address:number=delay.ram.address;
+    const time:number=delay.delay.timeMs;
+    void [address,time];
+  }
+  // @ts-expect-error Delay settings use an explicit numeric time.
+  synth.setDspDelay({timeMs:'240'});
+  // @ts-expect-error Delay routes use existing slot send / shared return controls.
+  synth.setDspDelay({send:7});
   const pcm=synth.generateStereo(rate);synth.renderInto(pcm.left,pcm.right,128);
   // @ts-expect-error Tuning is required.
   synth.loadPCM(new Int16Array(64),{});

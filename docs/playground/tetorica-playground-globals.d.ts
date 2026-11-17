@@ -3006,15 +3006,32 @@ interface PlaygroundScspDspReturn {
   /** Hardware EFPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan:number;
 }
-/** Independent authoring snapshot. Editing it does not change the live chip. */
-interface PlaygroundScspDspProgram {
-  profile:'ram-free';
+interface PlaygroundScspDspRam {address:number; byteLength:number;}
+interface PlaygroundScspDspDelaySettings {
+  enabled:boolean;
+  /** Integer milliseconds, 20..700 at the native 44.1 kHz rate. */
+  timeMs:number;
+  /** Realized signed COEF1 / 4096, -1..4095/4096. */
+  feedback:number;
+}
+type PlaygroundScspDspDelayPatch = Partial<PlaygroundScspDspDelaySettings>;
+interface PlaygroundScspDspProgramBase {
   configured:boolean;
   words:number[];
   revision:number;
   coefficients:PlaygroundScspDspCoefficients;
   return:PlaygroundScspDspReturn;
 }
+/** Independent snapshots retain owned instruction and coefficient arrays. */
+interface PlaygroundScspDspRegisterProgram extends PlaygroundScspDspProgramBase {
+  profile:'ram-free';
+}
+interface PlaygroundScspDspDelayProgram extends PlaygroundScspDspProgramBase {
+  profile:'delay-ring';
+  delay:PlaygroundScspDspDelaySettings;
+  ram:PlaygroundScspDspRam;
+}
+type PlaygroundScspDspProgram = PlaygroundScspDspRegisterProgram | PlaygroundScspDspDelayProgram;
 interface PlaygroundScspLfo {
   frequencyCode: number;
   pitchWave: number;
@@ -3041,6 +3058,8 @@ interface PlaygroundScspState {
   ramFreeBytes: number;
   /** Present after DSP state has been created; absent for untouched instruments. */
   dsp?:PlaygroundScspDspProgram;
+  /** Managed ring reservation remains until reset({clearRam:true}). */
+  dspRam?:PlaygroundScspDspRam;
   playingSampleIds?: (number | null)[];
   samples: PlaygroundScspSample[];
   /** Authored presets; gate is the requested key state, not an activity meter. */
@@ -3069,7 +3088,7 @@ interface PlaygroundScsp {
    * const words = assembleScspDsp('000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0\n001: EWT=1 ZERO=1');
    * await scsp.applyDspProgram(words, {coefficients:{0:2048,1:0,2:0}});
    */
-  applyDspProgram(words:Uint16Array|readonly number[],options?:PlaygroundScspDspApplyOptions):Promise<PlaygroundScspDspProgram>;
+  applyDspProgram(words:Uint16Array|readonly number[],options?:PlaygroundScspDspApplyOptions):Promise<PlaygroundScspDspRegisterProgram>;
   /** Detached program/coefficients/return snapshot; no change to the audio owner. */
   getDspProgram():Promise<PlaygroundScspDspProgram>;
   getDspCoefficients():Promise<PlaygroundScspDspCoefficients>;
@@ -3082,6 +3101,16 @@ interface PlaygroundScsp {
   /** Live EFREG0 return level/pan; only MIXS0/EFREG0 are exposed by this profile.
    * Per-slot setMix({dspSend:7}) enables sends; directLevel controls the dry path. */
   setDspReturn(patch:Partial<PlaygroundScspDspReturn>):Promise<PlaygroundScspDspReturn>;
+  /** Reserve a 64 KiB ring and apply the fixed SCSP Delay program. Time is
+   * 20..700 integer milliseconds. Feedback is quantized to signed Q12.
+   * Time / enabled edits clear the ring. Feedback edits preserve its tail.
+   * Send and return use setMix() / setDspReturn(). Main/Worker Web Audio.
+   * @example
+   * await scsp.setDspDelay({enabled:true,timeMs:240,feedback:.35});
+   * scsp.setMix(CH1,{dspSend:7});
+   * await scsp.setDspReturn({level:6});
+   */
+  setDspDelay(patch:PlaygroundScspDspDelayPatch):Promise<PlaygroundScspDspDelayProgram>;
   keyOn(slot:number):void;
   keyOff(slot:number):void;
   noteOn(slot:number,note:string|number):void;

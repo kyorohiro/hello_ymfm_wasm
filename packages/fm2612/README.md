@@ -376,6 +376,30 @@ Current Native Playground transport rejects DSP methods and nonzero sends with
 core/WASM and calibrated default gains remain unchanged. The existing pure
 assembler retains its wider inspection format and side-effect-free behavior.
 
+### Managed SCSP Delay (unpublished source build)
+
+The current source build adds `saturn.setDspDelay({enabled:true, timeMs:240,
+feedback:0.35})` to the local `ScspSynth` and acknowledged Web Audio client.
+**This API is not included in npm 0.2.43.** The
+[Delay examples](examples/scsp-dsp/README.md#managed-hardware-delay--unpublished-source-build)
+describe building / installing the local package and rendering or playing it.
+
+The first call reserves one managed 64 KiB RAM ring without moving existing PCM.
+The fixed six-step hardware DSP program uses the same MIXS0 send and EFREG0
+return as the RAM-free effects. Keep routing explicit with
+`setMix(slot,{dspSend:7})` and `setDspReturn({level:7,pan:0})`; the Delay setter
+does not select a voice or open a device. `getDspProgram()` reports the
+`delay-ring` profile, `{enabled,timeMs,feedback}` and `{address,byteLength}` RAM
+reservation. Individual instances own separate rings.
+
+Time is an integer 20..700 ms. Feedback accepts −1..4095/4096 and is quantized
+downward to signed Q12. Time / Enable changes clear the ring; feedback, send and
+return edits retain it. Voice release leaves the shared effect tail. Stop clears
+history and voices while retaining setup. Reset clears setup and keeps the ring
+reservation unless `clearRam:true` clears the bank. Insufficient RAM or invalid
+settings reject without changing the existing sound. Arbitrary RAM layouts,
+extra effect programs and Native DSP transport remain outside this profile.
+
 ### Standard PS1 VAB banks
 
 Available from **0.2.40**.

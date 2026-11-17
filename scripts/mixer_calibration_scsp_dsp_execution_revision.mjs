@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createScspDspDelayRevisionReadContext} from './mixer_calibration_scsp_dsp_delay_revision.mjs';
 
 export const SCSP_DSP_EXECUTION_REVISION_BASE_COMMIT = 'c2ba69cb78d318265ad03282b67d710349a0e3fc';
 export const SCSP_DSP_EXECUTION_REVISION_RECEIPT_PATH = 'docs/issues/playground_scsp_dsp_execution_source_revision_01.json';
@@ -149,13 +150,16 @@ function createRestorer(readSource, snapshot = false) {
 }
 
 export function restoreMixerCalibrationScspDspExecutionRevision(path, bytes, {readSource = read} = {}) {
-  return createRestorer(readSource)(path, bytes);
+  const latest = createScspDspDelayRevisionReadContext(readSource);
+  return createRestorer(latest.readSource)(path, latest.restore(path, bytes));
 }
 
 /** One synchronous verification owns this immutable read snapshot. Callers
  * create a fresh context for every top-level proof, including custom readers.
  */
 export function createScspDspExecutionRevisionReadContext(readSource = read) {
+  const latest = createScspDspDelayRevisionReadContext(readSource);
+  readSource = latest.readSource;
   const originals = new Map(), predecessors = new Map();
   const original = url => {
     const key = url instanceof URL ? url.href : url;
@@ -174,7 +178,7 @@ export function createScspDspExecutionRevisionReadContext(readSource = read) {
     return predecessors.get(key);
   };
   predecessorReaders.add(reader);
-  return {restore, readSource: reader};
+  return {restore: (path, bytes) => restore(path, latest.restore(path, bytes)), readSource: reader};
 }
 
 /** Nested reads into earlier evidence layers receive this exact predecessor. */

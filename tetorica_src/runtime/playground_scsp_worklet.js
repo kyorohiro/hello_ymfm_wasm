@@ -82,7 +82,7 @@ export class ScspInstrumentProcessor extends AudioWorkletProcessor {
         this.validation.reset(...args);this.inspector.resetAuditions();this.performance.clear();
       }
       const value=this.synth[method](...scspCommandArgs(this.synth,method,args));
-      if(method==='loadPCM'||method==='applyDspProgram')this.resourcesChanged();
+      if(method==='loadPCM'||method==='applyDspProgram'||method==='setDspDelay')this.resourcesChanged();
       else if(method==='setDspCoefficients'||method==='setDspReturn')this.dspChanged(method,args);
       else if(!queued&&method!=='getState'&&method!=='reset'&&!SCSP_DSP_METHODS.includes(method))this.validation[method](...scspCommandArgs(this.validation,method,args));
       if(method==='reset'){

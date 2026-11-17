@@ -94,3 +94,44 @@ The browser client resolves its asynchronous calls after the AudioWorklet applie
 them. Read program state with `getDspProgram()` and coefficient state with
 `getDspCoefficients()`. `applyDspProgram()` accepts a complete optional coefficient
 table, while `setDspCoefficients()` merges a partial patch.
+
+## Managed hardware Delay — unpublished source build
+
+`delay.mjs` and `delay.html` use the newer repository's `setDspDelay()` API.
+**npm 0.2.43 does not provide it.** Build and install the current local package
+first; do not use the released 0.2.43 installation for these two examples.
+The repository's `npm run build:fm2612` produces the local `dist/fm2612` package.
+From a separate project, install that directory using its absolute path:
+
+```sh
+npm install /path/to/hello_ymfm/dist/fm2612
+node node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs
+```
+
+The Node example renders a 50 ms sine note followed by one second of hardware
+DSP echoes into owned stereo arrays. It confirms nonzero wet output after
+release and unchanged source PCM; it never opens an output device. Import
+`runDelayExample()` from the example file to inspect `held`, `tail`, the decoded
+instruction source and the applied `delay` / `ram` snapshots.
+
+Serve that installed project and open
+<http://localhost:8080/node_modules/tetorica-fm2612/examples/scsp-dsp/delay.html>.
+**Start audio** prepares the chip without playing a note. **Play A3** starts it,
+and **Release note** leaves its echoes. **Stop audio** closes this example's
+audio session. The explicit Time and Q12 Feedback controls show the actual
+configuration and disassembled Delay program.
+
+`setDspDelay({enabled: true, timeMs: 240, feedback: 0.35})` reserves one managed
+64 KiB ring on first use, without moving or overwriting PCM. It is shared by
+the slots in that SCSP instance. Time is an integer 20..700 ms; feedback is
+−1..4095/4096 and quantized downward to signed Q12. Time / Enable changes clear
+the ring. Feedback / send / return changes retain its tail and held voices.
+`noteOff()` releases the voice without clearing the tail. Code Stop clears
+history / voices and retains setup; `reset()` clears DSP setup but retains the
+RAM reservation, while `reset({clearRam:true})` releases the bank and ring.
+
+This is the existing bounded Delay program, not arbitrary DSP RAM access or
+automatic effect compilation. The pure assembler and released Gain / IIR
+examples above keep their existing behavior. The Delay controls require Web
+Audio Main / Worker or a local owned `ScspSynth`; Native DSP transport rejects
+them explicitly with `NotSupportedError`.

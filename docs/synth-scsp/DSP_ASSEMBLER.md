@@ -121,6 +121,29 @@ and nonzero sends with `NotSupportedError`. See the
 coefficient and routing ranges. This RAM-free profile is separate from the
 Synth's reserved Delay-ring profile and effect controls described below.
 
+### Playground / local package: managed Delay ring
+
+The current source build adds **scsp-dsp-delay.js** to Playground's Files. It uses
+`await saturn.setDspDelay({enabled:true,timeMs:240,feedback:0.35})` on the same
+SCSP instance as its PCM notes. **npm 0.2.43 does not include this new setter**;
+the [source-build Node / browser examples](../../packages/fm2612/examples/scsp-dsp/README.md#managed-hardware-delay--unpublished-source-build)
+describe installing the local package. Local `ScspSynth` is synchronous;
+Playground / Web Audio methods resolve after owner acknowledgement.
+
+The `delay-ring` profile installs the existing six-step Delay and reserves a
+managed 64 KiB ring on first use. It leaves already allocated PCM in place and
+reuses its reservation. `getDspProgram()` exposes the decoded instruction words,
+`delay:{enabled,timeMs,feedback}` and `ram:{address,byteLength}`. Send and return
+remain explicit: `setMix(slot,{dspSend:7})`, `setDspReturn({level:7,pan:0})`.
+
+Time accepts integer 20..700 ms, feedback −1..4095/4096 with downward Q12
+quantization. Time / Enable changes clear the ring; feedback / send / return
+edits retain it. `noteOff()` leaves echoes; Stop clears voices and history while
+retaining setup. Reset clears DSP setup but retains reserved RAM unless
+`clearRam:true` clears the whole bank. Invalid settings or insufficient free RAM
+reject without changing the existing sound. This does not expose arbitrary
+RAM layouts or general effect compilation; Native DSP transport rejects it.
+
 ### Synth Code: compile, apply, change coefficients
 
 In a fresh project's **Files**, open **examples/dsp-iir-motion.js → Code → Run**.
