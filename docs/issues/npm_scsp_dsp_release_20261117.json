@@ -362,5 +362,24 @@
   "gitCommitPushTagPerformed": false,
   "nativeOrWasmRebuilt": false,
   "physicalOutputUsed": false,
-  "examplesRepositoryChanged": false
+  "examplesRepositoryChanged": false,
+  "mainIntegration": {
+    "date": "2026-11-18",
+    "sourceCommit": "7c3a8f093ba5237864569a47bd73f67a01bc5cb2",
+    "previousMainCommit": "c0b9a24ee3b47ae4975ffc8e342fdf7ae2eff10d",
+    "mainIntegration": "fast-forward",
+    "sourcePushVerified": true,
+    "localOriginAndGithubApiMatch": true,
+    "remote": "origin",
+    "branch": "main",
+    "transport": "HTTPS using existing gh credential; remote config unchanged",
+    "focusedTests": {
+      "passed": true,
+      "tests": 17,
+      "command": "node --test test/runtime/scsp_dsp_assembler.test.mjs docs/synth-scsp/dsp_assembler.test.mjs scripts/scsp_dsp_assembler.test.mjs"
+    },
+    "synthRuntimeAssetsChanged": false,
+    "npmRepublished": false,
+    "newVersionOrTagCreated": false
+  }
 }

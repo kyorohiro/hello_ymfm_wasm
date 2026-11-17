@@ -131,3 +131,9 @@ main / GitHub. Earlier statements that main was unchanged or changes were
 uncommitted describe the preparation / publication phases only. Current
 integration status is tracked in
 [todo_scsp_dsp_main_integration_20261118.md](todo_scsp_dsp_main_integration_20261118.md).
+
+Main integration completed on 2026-11-18: source commit
+`7c3a8f093ba5237864569a47bd73f67a01bc5cb2` was fast-forwarded into main and
+pushed to GitHub. Local / origin / GitHub API commit equality and 17 focused
+tests passed. The previous uncommitted-worktree / unchanged-main descriptions
+are historical. See the linked integration TODO for the completion evidence.
