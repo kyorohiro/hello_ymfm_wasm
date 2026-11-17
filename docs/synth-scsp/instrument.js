@@ -77,6 +77,10 @@ export class SynthInstrument {
   setClickGuard(value){return this.releaseGuard.setEnabled(value);}
   setEffect(patch){const effect=this.effect.configure(patch);this.config={...this.config,effect};this.#routeEffect();return effect;}
   readDspProgram(){return this.effect.readProgram();}
+  readDspSetup(...args){
+    if(args.length)throw new TypeError('readDspSetup takes no arguments');
+    return {...this.readDspProgram(),coefficients:this.readDspCoefficients(),effect:{...this.config.effect}};
+  }
   applyDspProgram(words,options){
     const result=this.effect.applyProgram(words,options);
     if(options!==undefined)this.config={...this.config,effect:{...this.effect.settings}};

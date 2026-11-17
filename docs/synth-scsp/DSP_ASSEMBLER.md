@@ -134,6 +134,29 @@ Reload restores only authored Files / draft text, never executes them, and
 starts the audio setup with the built-in Delay. These methods do not introduce
 sample-timed scheduling or a public npm DSP API.
 
+### Save the current setup as Code
+
+Choose **DSP → Save setup to Code**, beside **Applied**. This saves the
+acknowledged primary Synth program, all three coefficient codes and the five
+effect settings as readable JavaScript in **Files → dsp → SCSP DSP setup.js**.
+Further saves use numbered names, keeping existing files. An active audio owner
+captures program / coefficients / settings together; saving before Enable audio
+uses the current passive setup without creating an AudioContext.
+
+Saving does not apply the draft or a staged example, stop the performance, run
+code, or switch Keyboard into Code. The saved file is selected for editing.
+Select Code and explicitly **Run** it to restore the captured setup through
+`compileDsp()`, complete `applyDspProgram()` and `setEffect()` calls. Loading or
+restoring the project never executes it automatically.
+
+**Copy / Save .scspasm** still export the draft source verbatim. **Save setup
+to Code** instead exports what is applied, so it remains available even when
+the draft is invalid or a different example is staged. It does not capture
+PCM, notes, voice routing, live RAM / TEMP history or the separate SSF DSP.
+The generated script uses the current voices; save an instrument separately
+when its sample / voice setup also needs to be kept. Local-storage failure
+keeps the new file in Files and offers project export for recovery.
+
 ## Applying in the Synth
 
 The first execution profile retains the existing coefficient entries COEF0–2,

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-dsp-code-1';
-import { SynthInstrument } from './instrument.js?v=scsp-dsp-code-1';
+import { createAudio } from './audio.js?v=scsp-dsp-save-1';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-save-1';
 import { readPatch, writePatch } from './patch.js?v=scsp-dsp-coef-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-code-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-save-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-iir-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-save-1';
+import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-save-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-fir-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-iir-1';
 import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
@@ -1249,6 +1250,25 @@ for (const [id, dsp] of [
 dspProgramView = setupScspDspProgramView({
 	getAppliedProgram: () => appliedDspWords,
 	getAppliedCoefficients: () => [sessionDspCoefficients[0], Math.floor(cachedPatch.effect.feedback * 4096), sessionDspCoefficients[2]],
+	async saveSetupCode() {
+		const files = codeHost.files;
+		await files.ready;
+		const workspace = files.workspaceId, owner = audio;
+		const current = () => !disposed && audio === owner && files.workspaceId === workspace;
+		const cancelled = () => new DOMException('The SCSP workspace or audio changed during save.', 'AbortError');
+		const snapshot = await enqueue(async () => {
+			if (!current()) throw cancelled();
+			// One owner turn captures program, coefficients and effect together.
+			// The passive branch never acquires or renders an audio device.
+			return owner ? owner.command('readDspSetup') : {
+				words: Array.from(appliedDspWords),
+				coefficients: draft.readDspCoefficients(),
+				effect: { ...cachedPatch.effect },
+			};
+		});
+		if (!current()) throw cancelled();
+		return codeHost.saveDspSetupCode(createScspDspSetupCode(snapshot), { isCurrent: current });
+	},
 	applyProgram: (words, options) => {
 		const candidate = validateScspDspDelayProgram(words);
 		const setup = validateScspDspProgramOptions(options);

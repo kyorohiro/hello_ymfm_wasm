@@ -38,6 +38,170 @@ test('SCSP saves named presets without applying, acquiring audio or changing Cod
   assert.equal(f.doc.getElementById('scspPresetSelect').value,'');
 });
 
+test('SCSP saves generated DSP Code to unique Files without changing the sound, mode or running Code', async t => {
+  const f = fixture(t);
+  await f.files.ready;
+  const settings = f.project.settings;
+  let mode = false;
+  f.files.setCodeControls({
+    activePath: '/index.js', executionPath: '/index.js', isCodeMode: () => mode,
+    setBusy() {}, flush: async () => true,
+    openFile: async (path, options) => f.opened.push({path, options}),
+    stop: () => assert.fail('Saving keeps Code running'),
+    workspaceReplaced: () => assert.fail('Saving keeps the workspace'),
+  });
+  const source = 'globalThis.scspDspSaveMustNotRun = true;\n';
+  const first = await f.files.saveCode({source});
+  assert.equal(first, '/dsp/SCSP DSP setup.js');
+  assert.equal(f.project.fs.get(first).data, source);
+  assert.equal(f.project.selectedPath, first);
+  assert.equal(mode, false);
+  mode = true;
+  f.project.fs.mkdir('/dsp/SCSP DSP SETUP (2).JS');
+  const third = await f.files.saveCode({source: '// second snapshot'});
+  assert.equal(third, '/dsp/SCSP DSP setup (3).js');
+  assert.equal(f.project.fs.get(first).data, source);
+  assert.equal(mode, true);
+  assert.deepEqual(f.opened, [first, third].map(path => ({path, options: {show: false}})));
+  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.project.settings, settings);
+  assert.equal(f.doc.getElementById('scspFilesPanel').hidden, false);
+  assert.equal(globalThis.scspDspSaveMustNotRun, undefined);
+  assert.match(f.statuses.at(-1), /Run this file to restore it/);
+  const copy = createScspCodeProject();
+  copy.restore(await copy.prepareImport(await f.files.exportProject()));
+  assert.equal(copy.fs.get(first).data, source);
+  assert.equal(copy.fs.get(third).data, '// second snapshot');
+});
+
+test('SCSP generated Code validates names and file budgets before changing Files', async t => {
+  const f = fixture(t);
+  await f.files.ready;
+  const before = f.project.snapshot();
+  for (const source of [undefined, null, {}, new String('text')])
+    await assert.rejects(f.files.saveCode({source}), /must be text/);
+  await assert.rejects(f.files.saveCode({source: '', name: ' '}), /file name/);
+  await assert.rejects(f.files.saveCode({source: '', isCurrent: false}), /callback/);
+  await assert.rejects(f.files.saveCode({source: 'x'.repeat(2 * 1024 * 1024 + 1)}), /2 MiB/);
+  assert.deepEqual(f.project.snapshot(), before);
+  assert.deepEqual(f.opened, []);
+  const used = f.project.fs.list().reduce((sum, file) => sum +
+    (file.type === 'text' ? new TextEncoder().encode(file.data).length : file.data.length), 0);
+  f.project.importFiles([{path: '/padding.bin', type: 'binary',
+    data: new Uint8Array(SCSP_PROJECT_FILE_BYTES - used - 5)}]);
+  const full = f.project.snapshot();
+  await assert.rejects(f.files.saveCode({source: '// too large'}), /12 MiB/);
+  assert.deepEqual(f.project.snapshot(), full);
+  assert.equal(f.doc.querySelector('.scsp-main').inert, false);
+});
+
+test('SCSP generated Code reuses a case-insensitive dsp folder and safely rejects a parent file collision', async t => {
+  const f = fixture(t);
+  await f.files.ready;
+  f.project.fs.mkdir('/DSP');
+  f.project.importFiles([{path: '/DSP/custom.js', data: 'kept'}]);
+  const saved = await f.files.saveCode({source: '// generated', name: 'custom.js'});
+  assert.equal(saved, '/DSP/custom (2).js');
+  assert.equal(f.project.fs.get('/DSP/custom.js').data, 'kept');
+  assert(!f.project.fs.listDirectories().includes('/dsp'));
+  f.project.select(null);
+  f.project.fs.remove('/DSP', {recursive: true});
+  f.project.importFiles([{path: '/DsP', data: 'keep this file'}]);
+  const before = f.project.snapshot();
+  await assert.rejects(f.files.saveCode({source: '// generated'}), /folder name is already used/);
+  assert.deepEqual(f.project.snapshot(), before);
+});
+
+test('SCSP generated Code captures its input before readiness and drops stale or disposing saves', async t => {
+  const ready = deferred(), writes = [];
+  const f = fixture(t, {store: {read: () => ready.promise,
+    write: async value => {writes.push(value); return true;}, close: async () => {}}});
+  const request = {source: '// captured', name: 'Captured'};
+  const pending = f.files.saveCode(request);
+  request.source = '// changed'; request.name = 'Changed';
+  ready.resolve(null);
+  assert.equal(await pending, '/dsp/Captured.js');
+  assert.equal(f.project.fs.get('/dsp/Captured.js').data, '// captured');
+  const before = f.project.snapshot();
+  assert.equal(await f.files.saveCode({source: '// stale', isCurrent: () => false}), false);
+  assert.deepEqual(f.project.snapshot(), before);
+  const flush = deferred();
+  f.files.setCodeControls({setBusy() {}, flush: () => flush.promise});
+  const disposal = f.files.dispose();
+  assert.equal(await f.files.saveCode({source: '// disposed'}), false);
+  assert.deepEqual(f.project.snapshot(), before);
+  flush.resolve(); await disposal;
+  assert.equal(await f.files.saveCode({source: '// closed'}), false);
+});
+
+test('SCSP generated Code remains available for project export when durable storage fails', async t => {
+  const f = fixture(t, {store: {read: async () => null,
+    write: async () => {throw Error('Injected storage failure');}, close: async () => {}}});
+  await f.files.ready;
+  const source = '// Keep this DSP setup';
+  const path = await f.files.saveCode({source});
+  assert.equal(f.project.fs.get(path).data, source);
+  assert.match(f.statuses.at(-1), /Local save unavailable; export the project/);
+  const restored = createScspCodeProject();
+  restored.restore(await restored.prepareImport(await f.files.exportProject()));
+  assert.equal(restored.fs.get(path).data, source);
+});
+
+test('SCSP committed DSP Code still reports success if audio changes while opening or persisting it', async t => {
+  for (const phase of ['open', 'persist']) await t.test(phase, async t => {
+    const started = deferred(), release = deferred();
+    let currentAudio = true;
+    const f = fixture(t, {store: {
+      read: async () => null,
+      write: async () => {
+        if (phase === 'persist') {
+          started.resolve();
+          await release.promise;
+        }
+        return true;
+      },
+      close: async () => {},
+    }});
+    await f.files.ready;
+    f.files.setCodeControls({setBusy() {}, flush: async () => true,
+      openFile: async () => {
+        if (phase === 'open') {
+          started.resolve();
+          await release.promise;
+        }
+      },
+    });
+    const source = '// Captured before the audio restart';
+    const pending = f.files.saveCode({source, isCurrent: () => currentAudio});
+    await started.promise;
+    assert.equal(f.project.fs.get('/dsp/SCSP DSP setup.js').data, source);
+    currentAudio = false;
+    release.resolve();
+    assert.equal(await pending, '/dsp/SCSP DSP setup.js');
+    assert.match(f.statuses.at(-1), /DSP setup saved/);
+    assert.equal(f.project.fs.get('/dsp/SCSP DSP setup.js').data, source);
+  });
+});
+
+test('SCSP pending DSP Code save retires with its Files owner when a workspace is replaced', async t => {
+  const opened = deferred(), release = deferred();
+  const previous = fixture(t);
+  await previous.files.ready;
+  previous.files.setCodeControls({setBusy() {}, flush: async () => true,
+    openFile: async () => {opened.resolve(); await release.promise;}});
+  const pending = previous.files.saveCode({source: '// Previous workspace setup'});
+  await opened.promise;
+  await previous.files.dispose();
+  const replacement = fixture(t, {project: createScspCodeProject({starterCode: '// Replacement'})});
+  await replacement.files.ready;
+  const before = replacement.project.snapshot();
+  release.resolve();
+  assert.equal(await pending, false);
+  assert.deepEqual(replacement.project.snapshot(), before);
+  assert.equal(replacement.project.fs.has('/dsp/SCSP DSP setup.js'), false);
+  assert.equal(previous.statuses.some(message => /DSP setup saved/.test(message)), false);
+});
+
 test('SCSP JSON selection preserves Keyboard/Code mode and running Code while explicit preset selection applies',async t=>{
   const f=fixture(t);await f.files.ready;let mode=false;
   f.files.setCodeControls({flush:async()=>true,isCodeMode:()=>mode,openFile:async(path,options)=>f.opened.push({path,options}),setBusy(){},stop:()=>assert.fail('A preset selection preserves running Code'),workspaceReplaced:()=>assert.fail('A preset selection preserves its runtime')});

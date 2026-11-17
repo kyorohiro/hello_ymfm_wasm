@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-dsp-fir-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-save-1" />
 	</head>
 	<body>
 		<main>
@@ -563,7 +563,12 @@
 										<button id="scspDspProgramSave" type="button">Save .scspasm</button>
 									</div>
 								</div>
-								<p id="scspDspProgramApplied" class="scsp-dsp-program-applied" role="status" aria-live="polite">Applied: Built-in Delay</p>
+								<div class="scsp-dsp-program-heading scsp-dsp-setup-heading">
+									<p id="scspDspProgramApplied" class="scsp-dsp-program-applied" role="status" aria-live="polite">Applied: Built-in Delay</p>
+									<div class="scsp-dsp-program-actions">
+										<button id="scspDspSetupSave" type="button" aria-describedby="scspDspProgramApplied" title="Save the applied Synth DSP program, coefficients and effect settings as JavaScript in Files.">Save setup to Code</button>
+									</div>
+								</div>
 								<div class="scsp-dsp-example-picker">
 									<label for="scspDspProgramExample">Example</label>
 									<select id="scspDspProgramExample" aria-describedby="scspDspProgramExampleInfo scspDspProgramSetupStatus">
@@ -596,6 +601,13 @@
 										the Synth DSP after validation. A changed program clears its wet
 										tail while voices continue; failed Apply keeps the previous program.
 										SSF playback owns a separate DSP program in the song engine.
+									</p>
+									<p>
+										Save setup to Code writes the applied Synth DSP program, coefficients
+										and effect settings to Files. It keeps your draft and current
+										performance. Select the saved JavaScript and Run to restore that
+										setup. PCM, voice routing, live DSP history and the separate SSF
+										engine are not included.
 									</p>
 									<p>
 										Loading an example stages source and its recommended coefficients.
@@ -935,6 +947,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-code-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-save-1"></script>
 	</body>
 </html>

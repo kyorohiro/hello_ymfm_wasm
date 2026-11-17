@@ -134,6 +134,7 @@ export function setupScspCodeFiles({
 	let code = null,
 		busy = true,
 		disposed = false,
+		disposing = false,
 		restoring = false,
 		persistenceReady = false,
 		operation = 0,
@@ -755,6 +756,61 @@ export function setupScspCodeFiles({
 			}
 		}
 	}
+	async function saveCode({
+		source,
+		name = 'SCSP DSP setup',
+		isCurrent = () => true,
+	} = {}) {
+		if (typeof source !== 'string') throw TypeError('Generated Code must be text.');
+		if (typeof name !== 'string' || !name.trim()) throw TypeError('Enter a Code file name.');
+		if (typeof isCurrent !== 'function') throw TypeError('Code save requires a current-workspace callback.');
+		await api.ready;
+		if (disposed || disposing || busy || !isCurrent()) return false;
+		const token = ++operation,
+			saveEditRevision = editRevision,
+			workspaceIdentity = identity;
+		const currentWorkspace = () =>
+			!disposed && !disposing && token === operation && identity === workspaceIdentity;
+		setBusy(true, { lockMain: false });
+		try {
+			const directory =
+				project.fs.listDirectories().find((path) => foldedPath(path) === '/dsp') ?? '/dsp';
+			if (project.fs.list().some((file) => foldedPath(file.path) === '/dsp'))
+				throw Error('The dsp folder name is already used by a file. Rename that file to save DSP Code.');
+			const stem = soundFileStem(name, /\.js$/i);
+			let index = 1,
+				path = `${directory}/${stem}.js`;
+			while (occupied(project, path)) path = `${directory}/${stem} (${++index}).js`;
+			if (!currentWorkspace() || !isCurrent()) return false;
+			// The project validates its candidate before creating folders or files.
+			project.importFiles([{ path, type: 'text', data: source }]);
+			// The file now owns its captured setup. Audio changes during the
+			// remaining editor / storage work do not cancel this saved artifact.
+			project.select(path);
+			reveal(path);
+			setVisible(true);
+			render();
+			await code?.openFile?.(path, { show: false });
+			if (!currentWorkspace()) return false;
+			const persisted = await persistCode();
+			if (!currentWorkspace()) return false;
+			say(
+				'DSP setup saved to ' + path + '. Run this file to restore it.' +
+					(persisted === false
+						? ' Local save unavailable; export the project to keep it.'
+						: ''),
+			);
+			return path;
+		} finally {
+			if (!disposed) {
+				setBusy(false);
+				if (token === operation && saveEditRevision !== editRevision) {
+					project.setSettings(getSettings());
+					schedule();
+				}
+			}
+		}
+	}
 	function download(bytes, filename, type = 'application/octet-stream') {
 		const url = URL.createObjectURL(new Blob([bytes], { type })),
 			link = make('a');
@@ -983,6 +1039,7 @@ export function setupScspCodeFiles({
 		duplicate,
 		remove,
 		saveSound,
+		saveCode,
 		askSaveSound,
 		markSoundDirty() {
 			editRevision++;
@@ -993,7 +1050,8 @@ export function setupScspCodeFiles({
 			schedule();
 		},
 		async dispose() {
-			if (disposed) return;
+			if (disposed || disposing) return;
+			disposing = true;
 			operation++;
 			contextMenu.dispose();
 			await code?.flush?.();

@@ -69,6 +69,7 @@ function fallbackCopy(root, source) {
  */
 export function setupScspDspProgramView({root = globalThis.document,
   clipboard = globalThis.navigator?.clipboard, applyProgram = null,
+  saveSetupCode = null,
   getAppliedProgram = delayProgram, getAppliedCoefficients = () => [4095, 1433, 4095], storage} = {}) {
   const body = root.getElementById('scspDspProgramRows');
   const copy = root.getElementById('scspDspProgramCopy');
@@ -79,6 +80,7 @@ export function setupScspDspProgramView({root = globalThis.document,
   const check = root.getElementById('scspDspProgramCheck');
   const apply = root.getElementById('scspDspProgramApply');
   const reset = root.getElementById('scspDspProgramReset');
+  const saveSetup = root.getElementById('scspDspSetupSave');
   const appliedStatus = root.getElementById('scspDspProgramApplied');
   const draftStatus = root.getElementById('scspDspProgramDraftStatus');
   const errorDisplay = root.getElementById('scspDspProgramError');
@@ -109,7 +111,7 @@ export function setupScspDspProgramView({root = globalThis.document,
     return tr;
   });
   body.replaceChildren(...rows);
-  let disposed = false, copying = false, applying = false, checked = null;
+  let disposed = false, copying = false, applying = false, savingSetup = false, checked = null;
   let pendingExample = null, draftExample = null, draftFilename = listing.filename;
   let appliedWords = validateScspDspDelayProgram(getAppliedProgram());
   let appliedCodes = Array.from(getAppliedCoefficients());
@@ -337,6 +339,27 @@ export function setupScspDspProgramView({root = globalThis.document,
     }
     if (event.detail > 0) save.blur();
   }
+  async function onSaveSetup(event) {
+    if (disposed || savingSetup || typeof saveSetupCode !== 'function') return;
+    savingSetup = true;
+    saveSetup.disabled = true;
+    saveSetup.textContent = 'Saving…';
+    if (event.detail > 0) saveSetup.blur();
+    try {
+      const path = await saveSetupCode();
+      message(path ? `Applied DSP setup saved to ${path}. Run that Code to restore it. Current sound kept.`
+        : 'DSP setup save cancelled. Previous files kept.');
+    } catch (error) {
+      message(error.name === 'AbortError' ? 'DSP setup save cancelled. Previous files kept.'
+        : 'Could not save DSP setup: ' + error.message, error.name !== 'AbortError');
+    } finally {
+      savingSetup = false;
+      if (!disposed) {
+        saveSetup.disabled = false;
+        saveSetup.textContent = 'Save setup to Code';
+      }
+    }
+  }
   // WebKit does not scroll a focused overflow region with horizontal arrows.
   // Consume only those navigation keys; musical letter keys remain available.
   function onScrollKey(event) {
@@ -350,12 +373,18 @@ export function setupScspDspProgramView({root = globalThis.document,
   }
   copy.addEventListener('click', onCopy);
   save.addEventListener('click', onSave);
+  if (saveSetup) {
+    saveSetup.disabled = typeof saveSetupCode !== 'function';
+    saveSetup.addEventListener('click', onSaveSetup);
+  }
   scrollRegion?.addEventListener('keydown', onScrollKey);
   function dispose() {
     if (disposed) return;
     disposed = true;
     copy.removeEventListener('click', onCopy);
     save.removeEventListener('click', onSave);
+    saveSetup?.removeEventListener('click', onSaveSetup);
+    if (saveSetup) saveSetup.disabled = true;
     scrollRegion?.removeEventListener('keydown', onScrollKey);
     if (editable) {
       editor.removeEventListener('input', onInput);

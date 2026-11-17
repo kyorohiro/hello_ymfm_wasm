@@ -8,7 +8,7 @@ import {
 	createScspCodeProject,
 	SCSP_PROJECT_FILE_BYTES,
 } from './code_project.js?v=scsp-dsp-code-1';
-import { setupScspCodeFiles } from './code_files.js?v=scsp-dsp-code-1';
+import { setupScspCodeFiles } from './code_files.js?v=scsp-dsp-save-1';
 
 export const SCSP_STARTER_CODE = `const scsp = await useSoundChip('scsp');
 setBpm(120);
@@ -164,6 +164,7 @@ export function setupScspCodeHost({
 		stop,
 		openOutput,
 		markSoundDirty: () => files.markSoundDirty(),
+		saveDspSetupCode: (source, options = {}) => files.saveCode({ ...options, source }),
 		async dispose() {
 			if (disposed) return;
 			await stop();
