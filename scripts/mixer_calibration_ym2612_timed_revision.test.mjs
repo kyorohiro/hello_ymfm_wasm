@@ -13,8 +13,10 @@ import {
 } from './mixer_calibration_ym2612_timed_revision.mjs';
 import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+import {createScspDspHelpersRevisionReader} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 
-const read = path => readFileSync(new URL('../' + path, import.meta.url));
+const readPredecessor = createScspDspHelpersRevisionReader();
+const read = path => readPredecessor(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 const match = (bytes, record) => { assert.equal(bytes.length, record.bytes); assert.equal(sha(bytes), record.sha256); };

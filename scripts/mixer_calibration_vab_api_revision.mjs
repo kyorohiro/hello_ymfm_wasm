@@ -9,6 +9,7 @@ import {restoreMixerCalibrationMeasuredPolicyRevision} from './mixer_calibration
 import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
 import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
 import {restoreMixerCalibrationYm2612TimedRevision, createYm2612TimedRevisionReader} from './mixer_calibration_ym2612_timed_revision.mjs';
+import {createScspDspHelpersRevisionReadContext} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 
 export const VAB_API_REVISION_BASE_COMMIT='1ec321b014a67a757bfa7c847c998f3e47584203';
 export const VAB_API_REVISION_RECEIPT_PATH='docs/issues/ps1_vab_public_api_source_revision_01.json';
@@ -87,6 +88,8 @@ function restore(bytes,entry,path) {
  * readSource is a test seam; the pinned receipt and inventories never vary.
  */
 export function restoreMixerCalibrationVabApiRevision(path,bytes,{readSource=url=>readFileSync(url)}={}) {
+  const latest=createScspDspHelpersRevisionReadContext(readSource);
+  bytes=latest.restore(path,bytes);readSource=latest.readSource;
   const name=path==='web/soundchip.js'?'tetorica_src/runtime/soundchip.js':path.startsWith('js/')||path.startsWith('playground/')?'docs/'+path:path;
   bytes=restoreMixerCalibrationYm2612TimedRevision(name,bytes,{readSource});
   readSource=createYm2612TimedRevisionReader(readSource);

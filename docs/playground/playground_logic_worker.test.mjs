@@ -8,6 +8,7 @@ import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
 import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
 import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from '../../tetorica_src/runtime/ps1_vab.js';
+import {assembleScspDsp,disassembleScspDsp} from '../../tetorica_src/runtime/scsp_dsp_assembler.js';
 import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
 import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../tetorica_src/runtime/playground_native_primary.js';
 import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
@@ -51,8 +52,9 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
-    // Imported encoders use instanceof; share their PCM constructor with the VM.
+    // Imported codecs use instanceof; share their typed-array constructors with the VM.
     encodeBrr, encodeAdpcmA, encodePs1Adpcm, readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES, Float32Array,
+    assembleScspDsp, disassembleScspDsp, Uint16Array,
     validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, formatLogTable, createAyTimedLifecycle, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,

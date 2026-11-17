@@ -13,8 +13,10 @@ import {createMonacoVirtualModelsUiReceipt} from './record_monaco_virtual_models
 import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
 import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
 import {restoreMixerCalibrationSynthSourceNavigationRevision} from './mixer_calibration_synth_source_navigation_revision.mjs';
+import {createScspDspHelpersRevisionReader} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 
-const read = path => readFileSync(new URL('../' + path,import.meta.url));
+const readPredecessor = createScspDspHelpersRevisionReader();
+const read = path => readPredecessor(new URL('../' + path,import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 

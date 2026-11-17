@@ -4,6 +4,7 @@ import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
+import {assembleScspDsp, disassembleScspDsp} from './scsp_dsp_assembler.js';
 import {createPerformanceSender} from './playground_performance_sender.js?v=scsp-fm-1';
 import {createAyTimedLifecycle} from './playground_ay_timed_lifecycle.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
@@ -760,6 +761,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     encodeAdpcmA,
     encodePs1Adpcm,
     readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES,
+    assembleScspDsp, disassembleScspDsp,
     trackAsync: promise => loopTasks.track(promise),
     createSampleInstrument: (audio,options={}) => createSampleInstrumentFactory({pg:globals,audio,chip:capabilities.chip,...options}),
     keyboard: {bind(name,handlers) {

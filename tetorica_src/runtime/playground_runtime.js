@@ -9,6 +9,7 @@ import {encodeBrr} from './snes_brr_encoder.js';
 import {encodeAdpcmA} from './adpcm_a_sample.js';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
+import {assembleScspDsp, disassembleScspDsp} from './scsp_dsp_assembler.js';
 import {createChipInspector} from './playground_chip_inspector.js';
 import {createPerformanceHost} from './playground_performance_host.js';
 import {createAyTimedLifecycle} from './playground_ay_timed_lifecycle.js';
@@ -281,7 +282,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js",
+      "./playground_logic_worker.js?v=scsp-dsp-helpers-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -2557,6 +2558,7 @@ export function createPlaygroundRuntime(
       encodeAdpcmA,
       encodePs1Adpcm,
       readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES,
+      assembleScspDsp, disassembleScspDsp,
       mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
       inputAudio: inputOptions => inputAudio(inputOptions, runToken),
@@ -2793,6 +2795,8 @@ export function createPlaygroundRuntime(
         encodeBrr: pg.encodeBrr,
         encodeAdpcmA: pg.encodeAdpcmA,
         encodePs1Adpcm: pg.encodePs1Adpcm,
+        assembleScspDsp: pg.assembleScspDsp,
+        disassembleScspDsp: pg.disassembleScspDsp,
         readVab: pg.readVab,
         prepareVabTone: pg.prepareVabTone,
         exportVab: pg.exportVab,

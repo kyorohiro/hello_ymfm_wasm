@@ -6,6 +6,7 @@ export const SYNTH_CODE_GLOBALS=Object.freeze([
   'stopLoop','stopAllLoops','liveCleanup','trackAsync','parseNoteName','toPitch','noteToBlockFnum','noteLerp','hzToBlockFnum',
   'midiToNoteName','scale','chord','lerp','choose','cycle','rand','rrange','randInt','pg',
   'readVab','prepareVabTone','exportVab','MAX_VAB_FILE_BYTES',
+  'assembleScspDsp','disassembleScspDsp',
 ]);
 
 /** Read whole top-level type/interface/ambient declarations, including multiline

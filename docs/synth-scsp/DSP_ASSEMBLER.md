@@ -87,6 +87,16 @@ runtime, public served module and original Synth import path are byte-identical.
 This lossless codec is separate from Synth Code's checked `compileDsp()` facade
 described below; its source and declaration file remain directly readable.
 
+### Playground Code: inspect instructions
+
+Open [Playground in SCSP mode](../playground/index.html?mode=scsp), then **Files →
+examples → scsp → scsp-dsp-roundtrip.js → Code → Run**. The editable example
+prints a word table, canonical source and a 512-word round-trip check. Use
+`assembleScspDsp()` / `disassembleScspDsp()` directly, or their `pg` aliases,
+in Main or Worker. They execute synchronously in JavaScript without changing
+the chip. Run still follows the mode's normal audio preparation lifecycle.
+This example inspects instructions; it does not upload or start a DSP program.
+
 ### Synth Code: compile, apply, change coefficients
 
 In a fresh project's **Files**, open **examples/dsp-iir-motion.js → Code → Run**.

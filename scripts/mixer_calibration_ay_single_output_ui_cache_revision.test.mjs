@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+import {createScspDspHelpersRevisionReader} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 import {
   AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_PATH as receiptPath,
   AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_OBJECT_SHA256 as pin,
@@ -12,7 +13,8 @@ import {
   restoreMixerCalibrationAySingleOutputUiCacheRevision as restore,
 } from './mixer_calibration_ay_single_output_ui_cache_revision.mjs';
 
-const read=path=>readFileSync(new URL('../'+path,import.meta.url));
+const readPredecessor=createScspDspHelpersRevisionReader();
+const read=path=>readPredecessor(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const measuredReports=reports.map(path=>JSON.parse(read(path)));

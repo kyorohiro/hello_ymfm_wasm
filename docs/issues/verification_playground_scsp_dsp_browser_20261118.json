@@ -1,0 +1,696 @@
+{
+  "passed": true,
+  "runs": {
+    "source": {
+      "passed": true,
+      "entry": "/playground/index.html?mode=scsp",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "isolatedStaticSite": true,
+      "instrumentation": {
+        "appLexicalHook": true,
+        "workerTransportCounters": true
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "cases": [
+            "cold SCSP mode exposes the exact Files inspection example without audio or automatic execution",
+            "main: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "main: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "worker: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "worker: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "served declarations navigate both helpers to the real public assembler implementation",
+            "Main/Worker inspection sends no notes and Stop leaves exact silent PCM through permanently muted speaker routes"
+          ],
+          "metrics": [
+            {
+              "execution": "main",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              },
+              "after": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              }
+            },
+            {
+              "execution": "worker",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "messages": 0,
+                "ports": 1
+              },
+              "after": {
+                "messages": 0,
+                "ports": 1
+              }
+            }
+          ],
+          "exampleLogs": [
+            {
+              "execution": "main",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_main\n"
+            },
+            {
+              "execution": "worker",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_worker\n"
+            }
+          ],
+          "navigation": [
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "assembleScspDsp"
+            },
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "disassembleScspDsp"
+            }
+          ],
+          "audit": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-playground-scsp",
+              "tetorica-native-fx"
+            ],
+            "routes": 3,
+            "physicalOutputMuted": true,
+            "level": {
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "playback": "stopped"
+          },
+          "mobileOverflow": 0,
+          "optionalExternalRequestsBlocked": [
+            "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+          ],
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "cases": [
+            "cold SCSP mode exposes the exact Files inspection example without audio or automatic execution",
+            "main: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "main: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "worker: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "worker: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "served declarations navigate both helpers to the real public assembler implementation",
+            "Main/Worker inspection sends no notes and Stop leaves exact silent PCM through permanently muted speaker routes"
+          ],
+          "metrics": [
+            {
+              "execution": "main",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              },
+              "after": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              }
+            },
+            {
+              "execution": "worker",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "messages": 0,
+                "ports": 1
+              },
+              "after": {
+                "messages": 0,
+                "ports": 1
+              }
+            }
+          ],
+          "exampleLogs": [
+            {
+              "execution": "main",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_main\n"
+            },
+            {
+              "execution": "worker",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_worker\n"
+            }
+          ],
+          "navigation": [
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "assembleScspDsp"
+            },
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "disassembleScspDsp"
+            }
+          ],
+          "audit": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-playground-scsp",
+              "tetorica-native-fx"
+            ],
+            "routes": 3,
+            "physicalOutputMuted": true,
+            "level": {
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "playback": "stopped"
+          },
+          "mobileOverflow": 0,
+          "optionalExternalRequestsBlocked": [
+            "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+          ],
+          "errors": [],
+          "missing": []
+        }
+      ],
+      "root": "docs",
+      "servedAssetAudit": {
+        "files": 313,
+        "allBytesAndHashesVerified": true,
+        "inventorySha256": "71ecae21ae49ed69aa1d31cfc891f13c0012c41a5eb3d026006cb620d03b4f3d"
+      }
+    },
+    "package": {
+      "passed": true,
+      "entry": "/index.html?mode=scsp",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "isolatedStaticSite": true,
+      "instrumentation": {
+        "appLexicalHook": true,
+        "workerTransportCounters": true
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "cases": [
+            "cold SCSP mode exposes the exact Files inspection example without audio or automatic execution",
+            "main: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "main: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "worker: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "worker: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "served declarations navigate both helpers to the real public assembler implementation",
+            "Main/Worker inspection sends no notes and Stop leaves exact silent PCM through permanently muted speaker routes"
+          ],
+          "metrics": [
+            {
+              "execution": "main",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              },
+              "after": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              }
+            },
+            {
+              "execution": "worker",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "messages": 0,
+                "ports": 1
+              },
+              "after": {
+                "messages": 0,
+                "ports": 1
+              }
+            }
+          ],
+          "exampleLogs": [
+            {
+              "execution": "main",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_main\n"
+            },
+            {
+              "execution": "worker",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_worker\n"
+            }
+          ],
+          "navigation": [
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "assembleScspDsp"
+            },
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "disassembleScspDsp"
+            }
+          ],
+          "audit": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-playground-scsp",
+              "tetorica-native-fx"
+            ],
+            "routes": 3,
+            "physicalOutputMuted": true,
+            "level": {
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "playback": "stopped"
+          },
+          "mobileOverflow": 0,
+          "optionalExternalRequestsBlocked": [
+            "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+          ],
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "cases": [
+            "cold SCSP mode exposes the exact Files inspection example without audio or automatic execution",
+            "main: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "main: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "worker: globals and pg aliases preserve typed words, physical positions, RAW data, ownership and diagnostics without any synchronous transport activity",
+            "worker: the real Files example runs through the Run toolbar with table/canonical output while preserving user edits and the current starter",
+            "served declarations navigate both helpers to the real public assembler implementation",
+            "Main/Worker inspection sends no notes and Stop leaves exact silent PCM through permanently muted speaker routes"
+          ],
+          "metrics": [
+            {
+              "execution": "main",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              },
+              "after": {
+                "ports": 1,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              }
+            },
+            {
+              "execution": "worker",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "messages": 0,
+                "ports": 1
+              },
+              "after": {
+                "messages": 0,
+                "ports": 1
+              }
+            }
+          ],
+          "exampleLogs": [
+            {
+              "execution": "main",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_main\n"
+            },
+            {
+              "execution": "worker",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_worker\n"
+            }
+          ],
+          "navigation": [
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "assembleScspDsp"
+            },
+            {
+              "file": "scsp_dsp_assembler.js",
+              "symbol": "disassembleScspDsp"
+            }
+          ],
+          "audit": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-playground-scsp",
+              "tetorica-native-fx"
+            ],
+            "routes": 3,
+            "physicalOutputMuted": true,
+            "level": {
+              "peak": 0,
+              "nonFinite": 0
+            },
+            "playback": "stopped"
+          },
+          "mobileOverflow": 0,
+          "optionalExternalRequestsBlocked": [
+            "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+          ],
+          "errors": [],
+          "missing": []
+        }
+      ],
+      "root": "release/itch_playground_scsp-dsp-helpers-20261118",
+      "servedAssetAudit": {
+        "files": 311,
+        "allBytesAndHashesVerified": true,
+        "inventorySha256": "1eebde3a7955d1b8b58f99ba1ee7ce48393be491fbfa6fc7c57457e971b21551"
+      }
+    },
+    "browserZip": {
+      "passed": true,
+      "entry": "/index.html?mode=scsp",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "isolatedStaticSite": true,
+      "instrumentation": {
+        "appLexicalHook": false,
+        "workerTransportCounters": true
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "domOnly": true,
+          "cases": [
+            "unmodified UI bundle cold-loads the real SCSP Files example without audio or execution",
+            "main: actual Files example and global/pg helpers execute via DOM with typed/RAW/full/error/no-transport assertions",
+            "worker: actual Files example and global/pg helpers execute via DOM with typed/RAW/full/error/no-transport assertions",
+            "bundled browser site remains silent with no missing local assets or browser errors"
+          ],
+          "metrics": [
+            {
+              "execution": "main",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "ports": 8,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              },
+              "after": {
+                "ports": 8,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              }
+            },
+            {
+              "execution": "worker",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "messages": 8,
+                "ports": 6
+              },
+              "after": {
+                "messages": 8,
+                "ports": 6
+              }
+            }
+          ],
+          "exampleLogs": [
+            {
+              "execution": "main",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_main\n"
+            },
+            {
+              "execution": "worker",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_worker\n"
+            }
+          ],
+          "audit": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-playground-scsp",
+              "tetorica-native-fx"
+            ],
+            "routes": 3,
+            "physicalOutputMuted": true,
+            "level": {
+              "peak": 0,
+              "nonFinite": 0
+            }
+          },
+          "mobileOverflow": 0,
+          "optionalExternalRequestsBlocked": [
+            "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+          ],
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "domOnly": true,
+          "cases": [
+            "unmodified UI bundle cold-loads the real SCSP Files example without audio or execution",
+            "main: actual Files example and global/pg helpers execute via DOM with typed/RAW/full/error/no-transport assertions",
+            "worker: actual Files example and global/pg helpers execute via DOM with typed/RAW/full/error/no-transport assertions",
+            "bundled browser site remains silent with no missing local assets or browser errors"
+          ],
+          "metrics": [
+            {
+              "execution": "main",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "ports": 8,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              },
+              "after": {
+                "ports": 8,
+                "contexts": 1,
+                "nodes": 2,
+                "routes": 3
+              }
+            },
+            {
+              "execution": "worker",
+              "typed": true,
+              "wordCount": 512,
+              "fullLines": 128,
+              "vector": [
+                0,
+                40960,
+                4098,
+                512
+              ],
+              "owned": true,
+              "raw": true,
+              "lineError": "Line 3: COEF must be 0..63",
+              "optionRejected": true,
+              "before": {
+                "messages": 8,
+                "ports": 6
+              },
+              "after": {
+                "messages": 8,
+                "ports": 6
+              }
+            }
+          ],
+          "exampleLogs": [
+            {
+              "execution": "main",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_main\n"
+            },
+            {
+              "execution": "worker",
+              "log": "SCSP DSP: 512 words / 128 physical steps\n(index) | step | word0  | word1  | word2  | word3 \n0       | 0    | 0x0100 | 0x2000 | 0x0002 | 0x0200\n1       | 1    | 0x0000 | 0xa800 | 0x0001 | 0x0400\n2       | 2    | 0x0080 | 0x0000 | 0x1002 | 0x0000\nCanonical source:\n000: TRA=1 YSEL=1 ZERO=1 COEF=1\n001: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n002: TWT=1 EWT=1 ZERO=1\n\nSCSP DSP round trip: PASS\nFull listing: 128 physical steps\nPG_SCSP_DSP_EXAMPLE_DONE_worker\n"
+            }
+          ],
+          "audit": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-playground-scsp",
+              "tetorica-native-fx"
+            ],
+            "routes": 3,
+            "physicalOutputMuted": true,
+            "level": {
+              "peak": 0,
+              "nonFinite": 0
+            }
+          },
+          "mobileOverflow": 0,
+          "optionalExternalRequestsBlocked": [
+            "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"
+          ],
+          "errors": [],
+          "missing": []
+        }
+      ],
+      "root": "Isolated extraction of release/hello_ymfm_wasm_scsp-dsp-helpers-20261118_itch_playground_for_run.zip",
+      "servedAssetAudit": {
+        "files": 234,
+        "allBytesAndHashesVerified": true,
+        "inventorySha256": "b59a95cecbe21094c157b0f97f32772c4ca1e714a6d8aed6151ebc1c2328b095"
+      }
+    }
+  }
+}

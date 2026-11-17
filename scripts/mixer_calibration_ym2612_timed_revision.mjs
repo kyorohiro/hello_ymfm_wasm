@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createScspDspHelpersRevisionReadContext} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 
 export const YM2612_TIMED_REVISION_BASE_COMMIT = 'd620c38f701d0c8906ae0c05387019a891237d3b';
 export const YM2612_TIMED_REVISION_RECEIPT_PATH = 'docs/issues/ym2612_timed_operations_source_revision_01.json';
@@ -90,6 +91,9 @@ function evidence(readSource) {
  * The complete feature graph and differential evidence are authenticated first.
  * Unknown paths/future edits receive no normalization or hash exemption. */
 export function restoreMixerCalibrationYm2612TimedRevision(path, bytes, {readSource = read} = {}) {
+  const latest = createScspDspHelpersRevisionReadContext(readSource);
+  bytes = latest.restore(path, bytes);
+  readSource = latest.readSource;
   const name = sourceName(path);
   if (!YM2612_TIMED_REVISION_SOURCE_PATHS.includes(name)) return bytes;
   const receipt = evidence(readSource), entry = receipt.sources[name];

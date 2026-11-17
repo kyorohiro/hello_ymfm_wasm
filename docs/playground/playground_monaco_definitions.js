@@ -9,6 +9,8 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   const prefix = lines.slice(0, position?.startLineNumber ?? position?.lineNumber ?? 1).join('\n');
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
+  if (symbol === 'assembleScspDsp' || symbol === 'disassembleScspDsp')
+    return {file:'scsp_dsp_assembler.js',symbol};
   // Member names such as play/stop belong to their declared media interface,
   // before similarly named global music helpers are considered.
   if(owner==='SnesCodeClient'&&['noteOn','noteOff','getState','allNotesOff','dispose'].includes(symbol))

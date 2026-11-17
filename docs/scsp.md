@@ -33,6 +33,20 @@ Assembly returns 512 unsigned 16-bit words in logical MPRO order. It does not
 configure coefficients / RAM / routing, apply a program, or enforce the narrower
 Synth execution profile. The syntax is provisional, not SEGA assembler compatibility.
 
+In [Playground's SCSP mode](playground/index.html?mode=scsp), open **Files →
+examples → scsp → scsp-dsp-roundtrip.js**, then **Code → Run**. It shows three
+physical instructions, their word values and a lossless round trip. Both Main
+and Worker expose the synchronous globals and their `pg` aliases:
+
+```js
+const words = assembleScspDsp('003: EWT=1 COEF=1');
+log(pg.disassembleScspDsp(words, {includeTrailingZeros: true}));
+```
+
+The helpers themselves do not prepare audio, send chip commands or apply a DSP
+program. Run keeps its existing mode audio preparation behavior. Completion
+documents the word layout, and source navigation opens the actual codec.
+
 ## Try it in Playground
 
 Open [Playground in Saturn mode](playground/index.html?mode=scsp). Choose **SCSP →

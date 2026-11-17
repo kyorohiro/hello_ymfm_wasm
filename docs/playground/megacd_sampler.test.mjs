@@ -39,14 +39,15 @@ test('cancelling source selection leaves every sampler example silent and unboun
 });
 
 test('samplers remain discoverable alongside compact machine demos', () => {
-  for (const [mode, path] of [
-    ['mega-cd', 'mega-cd/megacd-sampler'], ['gameboy', 'gameboy/gameboy-sampler'],
-    ['pc98', 'pc98/pc98-sampler'], ['neogeo', 'neogeo/neogeo-sampler'], ['neogeo-b', 'neogeo/neogeo-sampler'],
+  for (const [mode, path, count] of [
+    ['mega-cd', 'mega-cd/megacd-sampler', 3], ['gameboy', 'gameboy/gameboy-sampler', 3],
+    ['pc98', 'pc98/pc98-sampler', 3], ['neogeo', 'neogeo/neogeo-sampler', 4], ['neogeo-b', 'neogeo/neogeo-sampler', 4],
   ]) {
     const examples = MODE_STARTERS[mode].examples;
-    assert.equal(examples.length, 3);
+    assert.equal(examples.length, count, mode);
     assert.ok(examples.includes(`/examples/${path}.js`));
   }
   assert.ok(MODE_STARTERS['neogeo-b'].examples.includes('/examples/neogeo/neogeo-b-six-channel.js'));
+  for (const mode of ['neogeo','neogeo-b']) assert.ok(MODE_STARTERS[mode].examples.includes('/examples/neogeo/neogeo-adpcm-a-drums.js'));
   assert.ok(MODE_STARTERS.gameboy.examples.includes('/examples/gameboy/gameboy-mode-wave.js'));
 });

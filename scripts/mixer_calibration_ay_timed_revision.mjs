@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {restoreMixerCalibrationLogTableCacheRevision} from './mixer_calibration_log_table_cache_revision.mjs';
 import {restoreMixerCalibrationYm2612TimedRevision, createYm2612TimedRevisionReader} from './mixer_calibration_ym2612_timed_revision.mjs';
+import {createScspDspHelpersRevisionReadContext} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 
 export const AY_TIMED_REVISION_BASE_COMMIT = '6663c6d5a286f10ff08f16645953a0083dabd34b';
 export const AY_TIMED_REVISION_RECEIPT_PATH = 'docs/issues/ay_timed_operations_source_revision_01.json';
@@ -89,6 +90,8 @@ function sourceName(path) {
  * feature graph. Other edits remain subject to the caller's source hash check.
  */
 export function restoreMixerCalibrationAyTimedRevision(path, bytes, {readSource = read} = {}) {
+  const latest = createScspDspHelpersRevisionReadContext(readSource);
+  bytes = latest.restore(path, bytes); readSource = latest.readSource;
   const name = sourceName(path);
   bytes = restoreMixerCalibrationYm2612TimedRevision(name, bytes, {readSource});
   readSource = createYm2612TimedRevisionReader(readSource);

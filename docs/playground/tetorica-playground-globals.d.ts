@@ -1271,6 +1271,8 @@ type PlaygroundAPIBase = {
   prepareVabTone: typeof prepareVabTone;
   exportVab: typeof exportVab;
   MAX_VAB_FILE_BYTES: typeof MAX_VAB_FILE_BYTES;
+  assembleScspDsp: typeof assembleScspDsp;
+  disassembleScspDsp: typeof disassembleScspDsp;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1940,6 +1942,32 @@ declare function prepareVabTone(bank:Ps1VabBank, toneNumber:number):Ps1VabPrepar
 /** Export the unchanged source bank returned by readVab, or one available Tone.
  * Preserves source ADPCM/metadata; edited or cloned banks must be reopened first. */
 declare function exportVab(bank:Ps1VabBank, options?:Ps1VabExportOptions):Uint8Array;
+/** Assemble provisional SCSP DSP field source locally into an independent
+ * Uint16Array of 512 logical MPRO words, four words per physical step.
+ * Decimal steps 0–127 increase strictly. Missing fields and positions are zero.
+ * Semicolons begin source comments. Validation errors report source lines.
+ * Pure synchronous helper, also available as pg.assembleScspDsp.
+ * Runs locally in JavaScript without WASM loading, audio setup or chip mutation.
+ * Run follows the selected mode's existing audio preparation lifecycle.
+ * The codec supports field source and RAW0–RAW3 inspection data. Synth execution
+ * uses a guarded profile, with coefficient setup and validation performed separately.
+ * @example
+ * const words = assembleScspDsp('003: EWT=1 COEF=1');
+ * console.table(Array.from(words));
+ */
+declare function assembleScspDsp(source:string):Uint16Array;
+/** Recover editable field source from a complete 512-word SCSP DSP image.
+ * Input words retain their values. Compact output includes internal zero steps
+ * through the last nonzero instruction. All-zero input produces an empty string.
+ * includeTrailingZeros emits all 128 physical positions. RAW fields preserve
+ * uninterpreted bits in existing instruction images for inspection and round trips.
+ * Pure synchronous helper, also available as pg.disassembleScspDsp.
+ * Runs locally in JavaScript without WASM loading, audio setup or chip mutation.
+ * @example
+ * const source = disassembleScspDsp(words, {includeTrailingZeros:true});
+ * console.log(source);
+ */
+declare function disassembleScspDsp(words:Uint16Array|readonly number[], options?:{includeTrailingZeros?:boolean}):string;
 interface PlaygroundBrrEncodeOptions {
   /** Null/omitted for one-shots. Loop start and source length must be multiples of 16. */
   loopStartSamples?:number | null;

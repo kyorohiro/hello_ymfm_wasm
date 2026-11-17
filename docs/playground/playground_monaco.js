@@ -1,5 +1,5 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=sdsp-code-review-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=ps1-vab-api-1";
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=scsp-dsp-helpers-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=scsp-dsp-helpers-1";
 import {selectPlaygroundDeclarations} from './playground_declarations.js?v=ps1-vab-api-1';
 // Asset loading must remain trusted while user liveLoop callbacks install the
 // execution guard over global fetch. Loading Monaco itself is still lazy.
@@ -388,7 +388,7 @@ export async function registerMonacoPlaygroundGlobals(
 ) {
   const libraryModels = new Map();
   for (const name of options.declarationFiles??["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
-    const response = await nativeFetch(new URL(`./${name}.d.ts?v=native-modes-1`, import.meta.url), { cache: "no-cache" });
+    const response = await nativeFetch(new URL(`./${name}.d.ts?v=scsp-dsp-helpers-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
     if(options.transformDeclarations)declarations=options.transformDeclarations(declarations,name,chip);

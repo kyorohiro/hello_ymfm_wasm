@@ -11,6 +11,7 @@ import {midiToOpnPitch,opnPitchFromHz} from './soundchip_pitch.js';
 import {FM_PRESETS} from './megasynth-fm-presets.js';
 import {formatLogArgs,formatLogTable} from './playground_log.js?v=console-table-1';
 import {readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES} from './ps1_vab.js';
+import {assembleScspDsp, disassembleScspDsp} from './scsp_dsp_assembler.js';
 
 /** @typedef {'ym2612'|'segapsg'|'rf5c164'|'pwm'} DefaultCodeSoundChip */
 /** @type {readonly DefaultCodeSoundChip[]} */
@@ -377,6 +378,7 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,suppor
     const log=(...args)=>{ensure();onLog(formatLogArgs(args));};
     const globals={context:runtime.context,fm:fm(),fx:guarded(effectApi,scope),FM_PRESETS,CH1:0,CH2:1,CH3:2,CH4:3,CH5:4,CH6:5,
       readVab,prepareVabTone,exportVab,MAX_VAB_FILE_BYTES,
+      assembleScspDsp, disassembleScspDsp,
       PSG1:0,PSG2:1,PSG3:2,OP1:0,OP2:1,OP3:2,OP4:3,
       console:{log,warn:(...args)=>log('[warn]',...args),error:(...args)=>log('[error]',...args),table:(data,columns)=>log(formatLogTable(data,columns))},log,
       async useSoundChip(name) {

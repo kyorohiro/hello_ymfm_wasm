@@ -1,0 +1,460 @@
+{
+  "schemaVersion": 1,
+  "scope": "playground-pure-scsp-dsp-codec-bindings",
+  "baseCommit": "6beead4162358c3ff393790aff47d7b4bfb8d231",
+  "review": "Direct synchronous bindings reuse the published lossless SCSP DSP codec in Main, logic Worker and shared Code. Exact passive changes cover Playground declarations, source navigation, the self-authored round-trip example and cache imports. The existing codec, SCSP audio paths, WASM, measured reports and Mixer gains retain the predecessor bytes.",
+  "sources": {
+    "tetorica_src/runtime/playground_runtime.js": {
+      "before": {
+        "bytes": 163903,
+        "sha256": "9686d1d0769d22aceeb3118804d5c7ad32aa4d691ad7ea45af22b9bfc4bb6d40"
+      },
+      "after": {
+        "bytes": 164140,
+        "sha256": "3112cfaee7c2ae5547809375e2700ab11dcece5b8ecc78b48f8eb704b231ca43"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 633,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 14028,
+          "afterBytes": 21,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 125943,
+          "afterBytes": 43,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 137532,
+          "afterBytes": 96,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_runtime.js": {
+      "before": {
+        "bytes": 165088,
+        "sha256": "5432374c6a56db62b9e55fcc63639e09481d52458889f3b358792458112a78d2"
+      },
+      "after": {
+        "bytes": 165309,
+        "sha256": "a9e03224c38c8a61d90cc9ec2f33be64084102e92ccf01ed38579163953049b4"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 828,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 15200,
+          "afterBytes": 16,
+          "beforeText": "ps1-vab-api"
+        },
+        {
+          "afterOffset": 127112,
+          "afterBytes": 43,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 138701,
+          "afterBytes": 96,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "before": {
+        "bytes": 60244,
+        "sha256": "63601913401ec77596a58c7b97c98770d73907e28a74d3beb0f636e82988491a"
+      },
+      "after": {
+        "bytes": 60362,
+        "sha256": "788f19798b0e0554805bd3a136d68fc0d025e7245678f0a6ab4d26631ced9567"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 344,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 38658,
+          "afterBytes": 41,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 60696,
+        "sha256": "efc25210e9aaa7dc7a04c2be41cc47f714235a71d8095d6b6913165627d4b1a5"
+      },
+      "after": {
+        "bytes": 60814,
+        "sha256": "7f262b914d186ef10a2813d64bd867224bfcba38c98674a618a6bb1d6c12a8b1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 445,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 39110,
+          "afterBytes": 41,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_code_runtime.js": {
+      "before": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      },
+      "after": {
+        "bytes": 29907,
+        "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 873,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24207,
+          "afterBytes": 43,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_code_runtime.js": {
+      "before": {
+        "bytes": 29787,
+        "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+      },
+      "after": {
+        "bytes": 29907,
+        "sha256": "9bcb1b9268fa0e4fdf5aa8506d889dfca3be21ed27c0f90c6f168bd9b4339b9b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 873,
+          "afterBytes": 77,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24207,
+          "afterBytes": 43,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/index.html": {
+      "before": {
+        "bytes": 132889,
+        "sha256": "18f11ac142c40eb74dcba6c6eeac0f5e81e154cdbdda471d85e372a7ad15dced"
+      },
+      "after": {
+        "bytes": 132894,
+        "sha256": "d33e1e6f946ccb5219d99f3f01c49268d18480ae4b6500814bf794617ce7462d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 132785,
+          "afterBytes": 16,
+          "beforeText": "ps1-vab-api"
+        }
+      ]
+    },
+    "docs/playground/playground.js": {
+      "before": {
+        "bytes": 124885,
+        "sha256": "ce227ffbc5594fc13cac71b4e61c854ed15bb8ce8953c3e45f50930e58c54916"
+      },
+      "after": {
+        "bytes": 124900,
+        "sha256": "932e395afe1f37be5760e012504484edca81bcbfa0bbd4919de64b7400ccf249"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4316,
+          "afterBytes": 106,
+          "beforeText": "ps1-vab-api-1\";\nimport { initializePlaygroundMonaco } from \"./playground_monaco.js?v=ps1-vab-api"
+        },
+        {
+          "afterOffset": 5563,
+          "afterBytes": 16,
+          "beforeText": "ps1-vab-api"
+        }
+      ]
+    },
+    "docs/playground/playground_examples.js": {
+      "before": {
+        "bytes": 219946,
+        "sha256": "9fa4386e4c5dfc62ff76d889e2acfdb23acc6a60340e21bfb33b946f4550c4d1"
+      },
+      "after": {
+        "bytes": 221897,
+        "sha256": "9ba711588214622799c67d21a3b9bf131960772dea726f452aa830e9c6c14a11"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 189497,
+          "afterBytes": 1907,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 216599,
+          "afterBytes": 44,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "before": {
+        "bytes": 5615,
+        "sha256": "20437207e122ef3f7cf098181409531421d460e238a62c82c1dc29b03d4581c5"
+      },
+      "after": {
+        "bytes": 5654,
+        "sha256": "1a69756eb391e29830042e7b4fad8826d8d5c2d1fad207ded7bd893f27ba74e1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1930,
+          "afterBytes": 39,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_monaco.js": {
+      "before": {
+        "bytes": 23112,
+        "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+      },
+      "after": {
+        "bytes": 23121,
+        "sha256": "07a89f03e23f6c17ab2c0f7d5dc967a11e31235d64468aa0b58d6bf86c890a88"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 76,
+          "afterBytes": 115,
+          "beforeText": "dsp-code-review-1';\nimport { registerMonacoCompletions } from \"./playground_monaco_completion.js?v=ps1-vab-api"
+        },
+        {
+          "afterOffset": 10572,
+          "afterBytes": 15,
+          "beforeText": "native-mode"
+        }
+      ]
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 25281,
+        "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+      },
+      "after": {
+        "bytes": 25402,
+        "sha256": "800dc125558885b42a9aa2e7a2f1fb2db893e52d35fbaacf85e446d3d4f157b1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 748,
+          "afterBytes": 121,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 155491,
+        "sha256": "ccdd7a4b67f756742987670a234e259cedaf28d27521dd07c468201c9649ab3a"
+      },
+      "after": {
+        "bytes": 157238,
+        "sha256": "de6699dff8a5d2509c46b80d83adf6482a21fbeb4ed4ae99569b9b769e148e82"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 51080,
+          "afterBytes": 92,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 87388,
+          "afterBytes": 1655,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth/synth_code_declarations.js": {
+      "before": {
+        "bytes": 7470,
+        "sha256": "81481fb37ff76c23afb9996432caa40f962a3446a892e9cb2a3ce968f85c9d93"
+      },
+      "after": {
+        "bytes": 7512,
+        "sha256": "6900321b87afed830e3b95b202f39567c57a019cf49aca94e1ad8b256500f770"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 734,
+          "afterBytes": 42,
+          "beforeText": ""
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "tetorica_src/runtime/scsp_dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "docs/js/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/js/scsp_dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "docs/synth-scsp/dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/synth-scsp/dsp_assembler.d.ts": {
+      "bytes": 987,
+      "sha256": "3266ebf4a07852f978ed6639d590b71ff4b53bf4462a2f2b212be3f13132fc64"
+    },
+    "docs/playground/examples/scsp/scsp-dsp-roundtrip.js": {
+      "bytes": 1761,
+      "sha256": "1b6fa088d1f5cb77743922706a019f5d2ceee42da202306b7157cc07caf6ed13"
+    },
+    "tetorica_src/runtime/scsp.js": {
+      "bytes": 10554,
+      "sha256": "50dcc4f4df918163e04fe67be99e6acb2720e19d5f4ee160b2cf3cbd4b08b407"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "tetorica_src/runtime/scspsynth.js": {
+      "bytes": 22628,
+      "sha256": "d9f22336310d263c5af909cfcee0590895d0411a648f9e81e998fc5ec3dc4274"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 22640,
+      "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+    },
+    "tetorica_src/runtime/playground_scsp_worklet.js": {
+      "bytes": 7593,
+      "sha256": "8e5243be46dead94422b86e56fce284069207729547ca8210c56738b4910a994"
+    },
+    "docs/js/playground_scsp_worklet.js": {
+      "bytes": 7684,
+      "sha256": "7c5724dbbf0941052d9403c000e95734a7ff7db9e9fa317b03efade46a8f54a9"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "e974b019c7ff3bb48fef644ea9ef1fbf4308e7f60ed8fa45da51f14ee6721568"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "6bdb304a4c74efba44ba76d5414c40d47dbf1bbf92b2fc66fcf4e2122d04fc20"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13458,
+      "sha256": "3de5081f55347d96c663a36cd472340a0a5f5c877fadd03c0778cf53c037d57a"
+    }
+  },
+  "reports": {
+    "docs/issues/verification_ym2612_timed_core_20261117.json": {
+      "bytes": 1991,
+      "sha256": "93a01a70f6385da44334ccc810a43cbc09e02621348f8b5cf78cd2691b16b797"
+    },
+    "docs/issues/ym2612_timed_default_parity_01.json": {
+      "bytes": 5396,
+      "sha256": "28684a7ad4047f68b36c426f4157a8c4c0b75ad2b2ade411f5d677203a20d440"
+    },
+    "docs/issues/playground_chip_levels_01.json": {
+      "bytes": 248714,
+      "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    "docs/issues/soundchip_psg_levels_05.json": {
+      "bytes": 35484,
+      "sha256": "67abbf42ba6e29c3d684969bc8ee7c0a09cf100c2dd8aa680dd29c47716031ad"
+    },
+    "docs/issues/soundchip_psg_levels_06.json": {
+      "bytes": 35484,
+      "sha256": "db07553c8756f70d530ba88c3591ad02605df06929621de3b6daa773a5ed77d8"
+    },
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/ps1_ay_single_output_chip_levels_01.json": {
+      "bytes": 546877,
+      "sha256": "be6c1a7fcc9e6a6081d7d1142001eb78046fac0d2214f5543ffa5cb92272963e"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/wonderswan_ay_single_output_chip_levels_01.json": {
+      "bytes": 491288,
+      "sha256": "afacfcc1da1dc9a5fa6afb8ca4f6e43d770a0e5d8d9ca2a5910a288756fa7e6d"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_01.json": {
+      "bytes": 1030856,
+      "sha256": "057b6f7d6f94ba609c6312fa9f2d570ad55b8741cd798a30fb12a082107b8be7"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 1052077,
+      "sha256": "65aa112e06abcf6a7fc75bbbc718b85af66bb861636c52f79eeb86a16aee38b0"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_01.json": {
+      "bytes": 625216,
+      "sha256": "6476bd4f36264958557197d1eb2dbc04dda5909fc8af2c282ca8d0bc1ae2c0bf"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 636525,
+      "sha256": "3b2d997465cf29f9e8cf73b45a277f3c3d3f0ca2a6d42b043a763bade8ab9e67"
+    }
+  }
+}

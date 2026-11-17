@@ -32,6 +32,14 @@ test('Code types accept its four clients, shared helpers and FX while rejecting 
     await writeFile(join(scratch,'globals.d.ts'),selected);
     await writeFile(join(scratch,'entry.ts'),`export {};
 const fm = await useSoundChip('ym2612');
+const dspWords:Uint16Array = assembleScspDsp('003: EWT=1 COEF=1');
+const dspSource:string = pg.disassembleScspDsp(dspWords, {includeTrailingZeros:true});
+const pgDspWords:Uint16Array = pg.assembleScspDsp(dspSource);
+const compactDspSource:string = disassembleScspDsp(Array.from(pgDspWords));
+// @ts-expect-error Source is field assembly text.
+assembleScspDsp(dspWords);
+// @ts-expect-error Logical MPRO words use 16-bit values.
+pg.disassembleScspDsp(new Uint8Array(512));
 fm.setPreset(CH1, FM_PRESETS.sine);
 fm.noteOn(CH1, 'C4'); fm.noteOff(CH1);
 const psg = await useSoundChip('segapsg'); psg.tone(PSG1,{note:'C4'}); psg.keyOn(3); psg.noteOff(3);

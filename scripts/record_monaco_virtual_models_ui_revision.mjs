@@ -13,6 +13,7 @@ import {
   MONACO_MODEL_REVISION_REPORT_PATHS as reports,
 } from './mixer_calibration_monaco_model_revision.mjs';
 import {MEASURED_POLICY_REVISION_RECEIPT_PATH,MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256} from './mixer_calibration_measured_policy_revision.mjs';
+import {restoreMixerCalibrationScspDspHelpersRevision} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
 
 const root = fileURLToPath(new URL('../',import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -46,7 +47,8 @@ function reverseHunks(before,after) {
 }
 
 export async function createMonacoVirtualModelsUiReceipt() {
-  const before = historical('docs/' + path), after = await readFile(resolve(root,'docs/' + path));
+  const before = historical('docs/' + path);
+  const after = restoreMixerCalibrationScspDspHelpersRevision('docs/' + path, await readFile(resolve(root,'docs/' + path)));
   assert(!before.equals(after),'Expected the reviewed editor-model lifecycle change');
   assert(Buffer.from(after.toString('utf8')).equals(after),'Expected UTF-8 JavaScript');
   const measurements = JSON.parse(await readFile(resolve(root,MEASURED_POLICY_REVISION_RECEIPT_PATH),'utf8'));

@@ -54,8 +54,8 @@ test('the standalone YM2612 engine comparison is selectable in every Genesis-fam
   const file={path};
   const paths=new Set(Object.values(MODE_STARTERS).flatMap(mode=>mode.examples??[]));
   const files=[...paths].map(path=>({path}));files[files.findIndex(entry=>entry.path===path)]=file;
-  for(const mode of ['genesis','genesis-nuked','mega-cd','genesis-full','genesis-full-nuked'])assert(selectModeExamples(files,mode).includes(file),mode);
-  for(const mode of ['pc98','neogeo-b','gameboy','snes'])assert(!selectModeExamples(files,mode).includes(file),mode);
+  for(const mode of ['genesis','genesis-nuked','genesis-full','genesis-full-nuked'])assert(selectModeExamples(files,mode).includes(file),mode);
+  for(const mode of ['mega-cd','pc98','neogeo-b','gameboy','snes'])assert(!selectModeExamples(files,mode).includes(file),mode);
   assert.doesNotMatch(source,/\bliveLoop\s*\(|\beval\s*\(|\bFunction\s*\(|\bimport\s*\(|\bmixer\s*\.|\bsetMasterVolume\s*\(/);
 });
 

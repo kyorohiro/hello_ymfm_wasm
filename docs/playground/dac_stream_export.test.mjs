@@ -12,6 +12,8 @@ import {createPerformanceQueue, createPerformanceChipOwnership} from '../js/play
 import {createOpnAuditionGuard, createPsgAuditionGuard, receiveOpnAuditionCommand} from '../js/playground_audition_guard.js';
 import {OpnKeyboardInspector} from '../js/playground_opn_inspector.js';
 import {PsgInspectorState,receiveChipInspector} from '../js/playground_chip_inspector_state.js';
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../js/ym2612_timed_processor.js';
+import {validateChipClock} from '../js/playground_chip_clock.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
 
@@ -46,11 +48,13 @@ async function renderer(rate) {
   const scope = {
     sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createPerformanceQueue, createPerformanceChipOwnership,
+    createYm2612TimedProcessor, observeYm2612TimedChip, validateChipClock,
     createOpnAuditionGuard,createPsgAuditionGuard,OpnKeyboardInspector,PsgInspectorState,receiveChipInspector, receiveOpnAuditionCommand, createYm2612, ym2612ModuleFactory,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: message => messages.push(message)};}},
     registerProcessor: (_name, type) => {Processor = type;},
   };
-  vm.runInNewContext(readFileSync(new URL('../js/ym2612-worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);
+  vm.runInNewContext(readFileSync(new URL('../js/ym2612-worklet.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replace(/^export class /gm, 'class '), scope);
   const processor = new Processor();
   await processor.init(readFileSync(new URL('../generated/ym2612_wasm.wasm', import.meta.url)));
   assert.ok(messages.some(message => message.type === 'ready'));

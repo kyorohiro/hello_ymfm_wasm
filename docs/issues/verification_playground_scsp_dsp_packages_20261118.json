@@ -1,0 +1,27 @@
+{
+  "download": {
+    "zip": "release/hello_ymfm_wasm_scsp-dsp-helpers-20261118_itch_playground.zip",
+    "bytes": 38210115,
+    "sha256": "b740432d880e37694777118670c086f87339605e586cb025d98faf1f09c6ab22",
+    "entries": 1509,
+    "files": 1326,
+    "crcAndStageBytesVerified": true
+  },
+  "browser": {
+    "zip": "release/hello_ymfm_wasm_scsp-dsp-helpers-20261118_itch_playground_for_run.zip",
+    "bytes": 38554009,
+    "sha256": "f2710a50d209771f28155bd0108b7f6ed41a6983401fcd329470a6034c4f0e36",
+    "entries": 1000,
+    "files": 1000,
+    "crcAndStageBytesVerified": true
+  },
+  "correspondingSource": {
+    "files": 304,
+    "allOriginalBytesVerified": true
+  },
+  "unchangedEditableAssets": [
+    "js/scsp_dsp_assembler.js",
+    "js/scsp_dsp_assembler.d.ts",
+    "examples/scsp/scsp-dsp-roundtrip.js"
+  ]
+}

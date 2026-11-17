@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
-test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
-  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,27);
+test('Native supports the existing standard modes and keeps Atari ST and C64 on Web Audio',()=>{
+  const webAudioOnly=['atari-st','c64'];
+  assert.equal(PLAYGROUND_MODES.filter(mode=>!webAudioOnly.includes(mode.id)).length,27);
   for(const mode of PLAYGROUND_MODES){
-    const native=mode.id!=='atari-st';
+    const native=!webAudioOnly.includes(mode.id);
     assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);
     assert.equal(supportsPlaygroundAudioEngineMode('native',mode.id),native,mode.id);
     assert.equal(resolvePlaygroundAudioEngine({search:'?audioEngine=native',desktop:true,modeId:mode.id}).engine,native?'native':'webaudio');

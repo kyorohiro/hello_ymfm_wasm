@@ -185,6 +185,8 @@ pcm_44100_resampler.js
 scsp.js
 scspsynth.js
 scsp_sample.js
+scsp_dsp_assembler.js
+scsp_dsp_assembler.d.ts
 playground_scsp.js
 playground_scsp_audio.js
 playground_scsp_worklet.js

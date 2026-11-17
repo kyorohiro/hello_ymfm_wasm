@@ -97,6 +97,8 @@ synth_looper.js
 "
 RUNTIME_FILES="
 playground_code_runtime.js
+scsp_dsp_assembler.js
+scsp_dsp_assembler.d.ts
 ps1_vab.js
 ps1synth.js
 ps1_spu.js
