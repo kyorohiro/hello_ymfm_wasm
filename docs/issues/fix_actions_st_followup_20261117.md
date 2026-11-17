@@ -82,3 +82,30 @@ part of this CI check.
 
 Parent fixes are local and **not committed or pushed**. Its remote failed runs
 still refer to `c33bfde2`; a new push is required for hosted revalidation.
+
+## Hosted recheck — e566f833
+
+User committed and pushed the preceding fixes as `e566f833`. Hosted npm,
+WASM SDK, VGM and SBI checks now pass. itch web progressed past those tests
+but failed packaging Synth because `playground/wonderswan_vgm_import.js`
+imports `../js/wonderswan_timeline.js`, which the standalone file list omits.
+
+- [x] Include the missing runtime dependency in the Synth ZIP.
+- [x] Verify fresh standalone packages and their local import closure.
+- [x] Prepare the additional fix for the requested commit / push and hosted recheck.
+
+Remaining run: https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/43995519048
+
+The newly reached Analyzer packaging step also rejected report 08 because its
+AY wrapper / WASM source hashes predate the current build. A fresh no-device
+measurement, `analyzer_psg_levels_09.json`, has identical defaults, reference
+values and all 12 measurement rows; only those two source hashes change.
+The generator now selects 09, and the generated module changes only its report
+reference comment. Report 08 and all actual gain values remain intact. Strict
+regressions reject the older report and altered current JS / WASM.
+
+Local preflight passes: 15 Analyzer generator tests, actual Synth / Analyzer /
+Playground download / Run ZIP generation, four archive / staged-byte / source
+closure checks, and muted Chromium / WebKit tests of the Synth and Analyzer
+packages. The additional code change is one Synth runtime-file-list entry;
+there is no sound-chip execution or WASM modification.

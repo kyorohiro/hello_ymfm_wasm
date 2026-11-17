@@ -138,6 +138,7 @@ chip_worklet_transport.js
 audio_decode.js
 soundchip_pitch.js
 playground_chip_clock.js
+wonderswan_timeline.js
 nesapu.js
 nesapu_wasm.js
 nesapuaudioengine.js

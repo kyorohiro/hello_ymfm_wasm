@@ -61,8 +61,27 @@ test('the new YM2608 output-gain build retains every remeasured Analyzer PSG sam
   assert.deepEqual(after.reference,before.reference);
   assert.deepEqual(after.rows,before.rows);
   assert.notEqual(after.sources['docs/generated/ym2608_wasm.wasm'],before.sources['docs/generated/ym2608_wasm.wasm']);
-  await verifyAnalyzerCalibrationSources([after]);
   await assert.rejects(verifyAnalyzerCalibrationSources([before]),/source changed; remeasure:/,'The dormant Playground review cannot authorize the old measured YM2608 anchor');
+});
+
+test('AY Single Output refresh preserves canonical Analyzer statistics and rejects stale or changed renderer evidence',async()=>{
+  const root=new URL('../',import.meta.url);
+  const before=JSON.parse(await readFile(new URL('docs/issues/analyzer_psg_levels_08.json',root),'utf8'));
+  const after=JSON.parse(await readFile(new URL('docs/issues/analyzer_psg_levels_09.json',root),'utf8'));
+  assert.deepEqual(after.defaults,before.defaults);
+  assert.deepEqual(after.reference,before.reference);
+  assert.deepEqual(after.rows,before.rows);
+  const changed=Object.keys(after.sources).filter(path=>after.sources[path]!==before.sources[path]);
+  assert.deepEqual(changed.sort(),['docs/generated/ay8910_wasm.wasm','docs/js/ay8910.js']);
+  await verifyAnalyzerCalibrationSources([after]);
+  await assert.rejects(verifyAnalyzerCalibrationSources([before]),/source changed; remeasure:/,
+    'The old AY build cannot stand in for a real current-renderer measurement');
+  for(const changedPath of changed) {
+    await assert.rejects(verifyAnalyzerCalibrationSources([after],async path=>{
+      const bytes=await readFile(new URL(path,root));
+      return path===changedPath?Buffer.concat([bytes,Buffer.from('\nmutation')]):bytes;
+    }),/source changed; remeasure:/,changedPath);
+  }
 });
 
 test('measurement source hashes stay mandatory and reject a changed renderer',async()=>{
