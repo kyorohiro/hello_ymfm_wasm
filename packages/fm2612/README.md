@@ -321,8 +321,60 @@ undefined bits when authoring; RAW fields support inspection / preservation.
 The helper and examples use BSD-3-Clause. Included SCSP core sources, credits
 and notices remain under `sources/` and `licenses/mame-scsp/`. See the
 [field format guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
-for syntax and the distinct Synth execution limits. These two pure exports do
-not add Synth Code's `compileDsp()` / `applyDspProgram()` session facade to npm.
+for syntax and the distinct Synth execution limits. The pure codec is independent
+of the RAM-free execution API below. Synth Code's session-managed Delay-ring
+facade remains an application feature.
+
+### Execute RAM-free SCSP DSP programs (0.2.43)
+
+`ScspSynth` now exposes program application, coefficient editing and an EFREG0
+return on its owned SCSP core. Install `tetorica-fm2612@^0.2.43`. See the
+[installed Node / browser examples](examples/scsp-dsp/README.md) for complete
+Gain and one-pole IIR setups, explicit audio start and offline PCM rendering.
+
+For an existing `ScspSynth` named `saturn`, with PCM assigned to slot 0:
+
+```js
+const words = assembleScspDsp(`
+000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0
+001: EWT=1 EWA=0 ZERO=1
+`);
+saturn.applyDspProgram(words, {coefficients: {0: 2048, 1: 0, 2: 0}});
+saturn.setMix(0, {directLevel: 0, dspSend: 7});
+saturn.setDspReturn({level: 7, pan: 0});
+saturn.noteOn(0, 'A4');
+// COEF0 / 4096 changes gain from 0.5 to 0.25 without retriggering the slot.
+saturn.setDspCoefficients({0: 1024});
+const setup = saturn.getDspProgram();
+const coefficients = saturn.getDspCoefficients();
+```
+
+Local `ScspSynth` methods are synchronous and do not open an output device.
+The `createScspClient()` Web Audio facade exposes the same DSP methods as
+acknowledged promises, including Main / Worker and independent instances.
+Worker coefficient edits retain ownership and bypass note lookahead. The
+browser example shows the direct AudioContext / client setup without Playground.
+
+The initial `ram-free` profile uses COEF0..2, MIXS0 and EFREG0. It rejects RAM
+I/O / addressing, RAW bits and unsupported coefficient/output selections before
+changing the owner. Existing PCM allocations stay intact. Apply optionally takes
+a complete three-code table; `setDspCoefficients()` takes a partial patch with
+signed Q12 hardware codes **-4096..4095**, not a cutoff frequency in Hz. Input
+send and output return levels are hardware codes 0..7; return pan is 0..31.
+All slots in one instance share this DSP. `setPreset(slot, {dspSend})` configures the
+next keyOn; `setMix(slot, {dspSend})` is live and retained for subsequent notes.
+
+`getDspProgram()` returns a detached `{profile, configured, words, revision,
+coefficients, return}` snapshot. Inputs are copied. Applying a program preserves
+held voices and TEMP history; coefficient changes preserve the program revision
+and touch only the changed coefficient words. Stop clears history / voices and
+retains setup; explicit reset clears setup. Invalid settings retain the previous
+sound, and a failed rollback retires the audio owner.
+
+Current Native Playground transport rejects DSP methods and nonzero sends with
+`NotSupportedError`; use Web Audio for these client controls. The fixed SCSP
+core/WASM and calibrated default gains remain unchanged. The existing pure
+assembler retains its wider inspection format and side-effect-free behavior.
 
 ### Standard PS1 VAB banks
 
@@ -1718,6 +1770,14 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.43` adds RAM-free hardware SCSP DSP execution through `ScspSynth` and its
+acknowledged Web Audio client: program Apply/readback, live coefficient updates,
+per-slot DSP sends and the shared EFREG0 return. Installed Node / browser Gain
+and IIR examples, strict declarations and complete readable dependencies are
+included. Existing default PCM output, core/WASM and measured gains are unchanged.
+Playground also exposes the pure assembler helpers and editable examples.
+Native DSP transport explicitly rejects unsupported execution controls.
 
 `0.2.42` adds `scsp_dsp_assembler.js` (and its extensionless subpath): pure
 SCSP DSP field assembly / disassembly with explicit types, local Node / browser

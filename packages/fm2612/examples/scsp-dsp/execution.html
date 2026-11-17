@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCSP DSP execution — Tetorica npm example</title>
+  <style>
+    body {max-width: 56rem; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 system-ui, sans-serif; color: #172c38; background: #f3f7f9;}
+    .controls {display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1rem 0;}
+    button, select {font: inherit; padding: .4rem .7rem;}
+    .coefficient {display: grid; grid-template-columns: minmax(10rem, 1fr) 3fr 4rem; align-items: center; gap: .75rem; margin: .7rem 0;}
+    input[type="range"] {width: 100%;}
+    output {font-variant-numeric: tabular-nums; text-align: right;}
+    pre {padding: 1rem; overflow: auto; background: #172c38; color: #dceef8; border-radius: .5rem;}
+    @media (max-width: 34rem) {.coefficient {grid-template-columns: 1fr 4rem;} .coefficient input {grid-column: 1 / -1; grid-row: 2;}}
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "tetorica-fm2612/playground_scsp_audio.js": "../../playground_scsp_audio.js",
+      "tetorica-fm2612/playground_scsp.js": "../../playground_scsp.js",
+      "tetorica-fm2612/scsp_dsp_assembler.js": "../../scsp_dsp_assembler.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <h1>SCSP DSP execution</h1>
+  <p>Play a sustained note through the chip's DSP and change its signed Q12 coefficients.</p>
+  <div class="controls">
+    <label>Program <select id="program"><option value="gain">Gain</option><option value="iir">IIR low-pass</option></select></label>
+    <button id="start" type="button">Start audio</button>
+    <button id="stop" type="button" disabled>Stop</button>
+  </div>
+  <p id="status" role="status" data-state="idle">Choose a program, then start audio.</p>
+  <div class="coefficient">
+    <label id="coef0Label" for="coef0">COEF0 · gain</label>
+    <input id="coef0" type="range" min="-4096" max="4095" step="1" value="2048">
+    <output id="coef0Value" for="coef0">2048</output>
+  </div>
+  <div class="coefficient">
+    <label id="coef1Label" for="coef1">COEF1 · unused</label>
+    <input id="coef1" type="range" min="-4096" max="4095" step="1" value="0" disabled>
+    <output id="coef1Value" for="coef1">0</output>
+  </div>
+  <div class="coefficient">
+    <label id="coef2Label" for="coef2">COEF2 · unused</label>
+    <input id="coef2" type="range" min="-4096" max="4095" step="1" value="0" disabled>
+    <output id="coef2Value" for="coef2">0</output>
+  </div>
+  <p>Gain uses COEF0 / 4096. IIR uses COEF1 for history and COEF2 for new input. Codes range from −4096 to 4095. The note continues while coefficients change.</p>
+  <p>Slot 0 sends to shared MIXS0 at level 7. EFREG0 returns at level 7, centered. Direct output is muted. The example's output gain is 20%.</p>
+  <h2>DSP source</h2>
+  <pre id="source"></pre>
+  <h2>Applied state</h2>
+  <pre id="snapshot">Start audio to read the chip's setup.</pre>
+  <p><a href="execution-browser.js">Read the browser source</a> · <a href="index.html">Instruction round trip</a> · <a href="README.md">Run the Node example</a></p>
+  <script type="module" src="execution-browser.js"></script>
+</body>
+</html>

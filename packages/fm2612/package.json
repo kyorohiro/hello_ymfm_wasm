@@ -1,6 +1,6 @@
 {
   "name": "tetorica-fm2612",
-  "version": "0.2.42",
+  "version": "0.2.43",
   "description": "Tetorica sound chip WASM cores, Synth helpers and browser audio runtime",
   "type": "module",
   "license": "BSD-3-Clause",
@@ -123,7 +123,10 @@
     "c64",
     "sid",
     "6581",
-    "8580"
+    "8580",
+    "scsp",
+    "sega-saturn",
+    "dsp"
   ],
   "types": "./soundchip.d.ts"
 }

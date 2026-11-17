@@ -18,12 +18,13 @@ try {
   await cp(join(root, 'test/types/fm2612-vab.mts'), join(scratch, 'vab.mts'));
   await cp(join(root, 'test/types/fm2612-timed.mts'), join(scratch, 'timed.mts'));
   await cp(join(root, 'test/types/fm2612-scsp-dsp.mts'), join(scratch, 'scsp-dsp.mts'));
+  await cp(join(root, 'test/types/fm2612-scsp-dsp-node.mts'), join(scratch, 'scsp-dsp-node.mts'));
   for (const resolution of ['NodeNext', 'Bundler']) {
     await writeFile(join(scratch, 'tsconfig.json'), JSON.stringify({compilerOptions: {
       strict: true, noEmit: true, skipLibCheck: false, target: 'ES2022',
       module: resolution === 'NodeNext' ? 'NodeNext' : 'ESNext', moduleResolution: resolution,
       types: ['node'], typeRoots: [join(root, 'node_modules/@types')],
-    }, files: ['consumer.mts','sid.mts','vab.mts','timed.mts','scsp-dsp.mts']}));
+    }, files: ['consumer.mts','sid.mts','vab.mts','timed.mts','scsp-dsp.mts','scsp-dsp-node.mts']}));
     execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(scratch, 'tsconfig.json')], {stdio: 'inherit'});
   }
   await writeFile(join(scratch, 'tsconfig.json'), JSON.stringify({compilerOptions: {

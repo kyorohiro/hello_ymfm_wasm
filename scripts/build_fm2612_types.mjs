@@ -9,7 +9,7 @@ const stage = join(root, 'dist/fm2612');
 // Public contracts retain fixed model details, ordered reads and readonly DSP
 // input arrays. Install these before resolving dependent JS modules and retain
 // the authored signatures during declaration generation.
-const explicitDeclarations=['sid.d.ts','sid8580.d.ts','sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts','scsp_dsp_assembler.d.ts'];
+const explicitDeclarations=['sid.d.ts','sid8580.d.ts','sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts','scsp_dsp_assembler.d.ts','playground_scsp.d.ts'];
 const explicitModules=new Set(explicitDeclarations.map(name=>name.replace(/\.d\.ts$/,'.js')));
 for(const name of explicitDeclarations)await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
 const files = [];

@@ -1,0 +1,283 @@
+{
+  "package": "tetorica-fm2612",
+  "version": "0.2.43",
+  "sourceCommit": "941c0e7879e38afaa69f1651db635bfd146e9890",
+  "status": "published-and-verified",
+  "candidate": {
+    "path": "build/npm-scsp-dsp-execution-20261118/candidate/tetorica-fm2612-0.2.43.tgz",
+    "bytes": 2893863,
+    "unpackedBytes": 11702037,
+    "files": 1292,
+    "sha256": "2ec7e7a481ee089873e9410ce154e8537fd7af22b88408a4940badb71b8df441",
+    "sha1": "b2506dc6398ff79c1f3f44f3f7a6b77249abe66c",
+    "integrity": "sha512-B5EH+VVyQNXqXXQfAQDhzW45wpLY3x2aYKeJN/idU7gYNbx2w07s1y9g5Bn9sk4lzE1beQkYduRBwze4DLMI8A=="
+  },
+  "payloadComparison": {
+    "baseline": "build/npm-scsp-dsp-execution-20261118/baseline/tetorica-fm2612-0.2.42.tgz",
+    "candidate": "build/npm-scsp-dsp-execution-20261118/candidate/tetorica-fm2612-0.2.43.tgz",
+    "baselineFiles": 1281,
+    "candidateFiles": 1292,
+    "added": [
+      "package/examples/scsp-dsp/execution-browser.d.ts",
+      "package/examples/scsp-dsp/execution-browser.js",
+      "package/examples/scsp-dsp/execution.d.mts",
+      "package/examples/scsp-dsp/execution.html",
+      "package/examples/scsp-dsp/execution.mjs",
+      "package/scsp_dsp.d.ts",
+      "package/scsp_dsp.js",
+      "package/scsp_dsp_coefficients.d.ts",
+      "package/scsp_dsp_coefficients.js",
+      "package/scsp_dsp_program.d.ts",
+      "package/scsp_dsp_program.js"
+    ],
+    "removed": [],
+    "changed": [
+      "package/README.md",
+      "package/RUNTIME.md",
+      "package/examples/scsp-dsp/README.md",
+      "package/examples/scsp-dsp/index.html",
+      "package/native_genesis_media.d.ts",
+      "package/native_genesis_scsp.d.ts",
+      "package/native_genesis_scsp.js",
+      "package/native_genesis_synth.d.ts",
+      "package/package.json",
+      "package/playground_code_runtime.js",
+      "package/playground_logic_worker.js",
+      "package/playground_performance_sender.js",
+      "package/playground_runtime.js",
+      "package/playground_scsp.d.ts",
+      "package/playground_scsp.js",
+      "package/playground_scsp_audio.js",
+      "package/playground_scsp_worklet.d.ts",
+      "package/playground_scsp_worklet.js",
+      "package/runtime-manifest.json",
+      "package/scspsynth.d.ts",
+      "package/scspsynth.js",
+      "package/sources/README.md"
+    ],
+    "wasmFiles": 37,
+    "unchangedWasm": true,
+    "sha256": "2ec7e7a481ee089873e9410ce154e8537fd7af22b88408a4940badb71b8df441"
+  },
+  "checks": {
+    "fullIsolatedPackage": true,
+    "wasmEnginesLoaded": 28,
+    "exactGainIirPcm": true,
+    "strictNodeNextBundlerDomAndNodePort": true,
+    "pureBrowser": {
+      "passed": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "physicalOutputBlocked": true,
+      "audioContextsCreated": 0
+    },
+    "executionBrowser": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "sourceModified": false,
+      "servedFiles": 26,
+      "results": [
+        {
+          "browser": "chromium",
+          "rate": 44100,
+          "passed": true,
+          "cases": [
+            "cold installed example creates no audio context, Worklet or WASM playback",
+            "Start runs the actual installed SCSP DSP Gain through the explicit UI action",
+            "live full/half/zero coefficients preserve the held PCM and bank, and zero is silent",
+            "IIR live feedback preserves the held PCM; readable DSP and browser source remain available",
+            "Stop is silent and every physical output route remained permanently muted"
+          ],
+          "graph": {
+            "contexts": 1,
+            "rates": [
+              44100
+            ],
+            "contextStates": [
+              "closed"
+            ],
+            "worklets": [
+              "tetorica-playground-scsp"
+            ],
+            "routes": 1,
+            "physicalOutputMuted": true,
+            "mediaAttempts": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "external": []
+        },
+        {
+          "browser": "chromium",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "cold installed example creates no audio context, Worklet or WASM playback",
+            "Start runs the actual installed SCSP DSP Gain through the explicit UI action",
+            "live full/half/zero coefficients preserve the held PCM and bank, and zero is silent",
+            "IIR live feedback preserves the held PCM; readable DSP and browser source remain available",
+            "Stop is silent and every physical output route remained permanently muted"
+          ],
+          "graph": {
+            "contexts": 1,
+            "rates": [
+              48000
+            ],
+            "contextStates": [
+              "closed"
+            ],
+            "worklets": [
+              "tetorica-playground-scsp"
+            ],
+            "routes": 1,
+            "physicalOutputMuted": true,
+            "mediaAttempts": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "external": []
+        },
+        {
+          "browser": "webkit",
+          "rate": 44100,
+          "passed": true,
+          "cases": [
+            "cold installed example creates no audio context, Worklet or WASM playback",
+            "Start runs the actual installed SCSP DSP Gain through the explicit UI action",
+            "live full/half/zero coefficients preserve the held PCM and bank, and zero is silent",
+            "IIR live feedback preserves the held PCM; readable DSP and browser source remain available",
+            "Stop is silent and every physical output route remained permanently muted"
+          ],
+          "graph": {
+            "contexts": 1,
+            "rates": [
+              44100
+            ],
+            "contextStates": [
+              "closed"
+            ],
+            "worklets": [
+              "tetorica-playground-scsp"
+            ],
+            "routes": 1,
+            "physicalOutputMuted": true,
+            "mediaAttempts": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "external": []
+        },
+        {
+          "browser": "webkit",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "cold installed example creates no audio context, Worklet or WASM playback",
+            "Start runs the actual installed SCSP DSP Gain through the explicit UI action",
+            "live full/half/zero coefficients preserve the held PCM and bank, and zero is silent",
+            "IIR live feedback preserves the held PCM; readable DSP and browser source remain available",
+            "Stop is silent and every physical output route remained permanently muted"
+          ],
+          "graph": {
+            "contexts": 1,
+            "rates": [
+              48000
+            ],
+            "contextStates": [
+              "closed"
+            ],
+            "worklets": [
+              "tetorica-playground-scsp"
+            ],
+            "routes": 1,
+            "physicalOutputMuted": true,
+            "mediaAttempts": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "external": []
+        }
+      ]
+    },
+    "independentRegistryInstall": {
+      "passed": true,
+      "sourceAndExampleBytes": true,
+      "exactGainIirPcm": true,
+      "liveHistoryOwnershipRoutingAtomicityStopReset": true,
+      "nodeExampleCli": true,
+      "strictNodeNextBundlerDomAndNodePort": true
+    }
+  },
+  "publication": {
+    "accepted": true,
+    "publishExitCode": 0,
+    "tagRequested": "latest",
+    "submittedArchiveSha256": "2ec7e7a481ee089873e9410ce154e8537fd7af22b88408a4940badb71b8df441",
+    "registryVerified": true,
+    "downloadBytes": 2893863,
+    "identicalCandidate": true,
+    "sha256": "2ec7e7a481ee089873e9410ce154e8537fd7af22b88408a4940badb71b8df441",
+    "sha1": "b2506dc6398ff79c1f3f44f3f7a6b77249abe66c",
+    "integrity": "sha512-B5EH+VVyQNXqXXQfAQDhzW45wpLY3x2aYKeJN/idU7gYNbx2w07s1y9g5Bn9sk4lzE1beQkYduRBwze4DLMI8A==",
+    "latest": "0.2.43",
+    "verifiedAt": "2026-11-17T17:13:03.148Z",
+    "metadata": {
+      "name": "tetorica-fm2612",
+      "version": "0.2.43",
+      "dist": {
+        "shasum": "b2506dc6398ff79c1f3f44f3f7a6b77249abe66c",
+        "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.43.tgz",
+        "fileCount": 1292,
+        "integrity": "sha512-B5EH+VVyQNXqXXQfAQDhzW45wpLY3x2aYKeJN/idU7gYNbx2w07s1y9g5Bn9sk4lzE1beQkYduRBwze4DLMI8A==",
+        "signatures": [
+          {
+            "sig": "MEYCIQCPsgik/2p5PsC4Ro8UVoY4zgrRRbMP94Im7wPLcYk4ZwIhAJgpqdDHinKTECgYW4eYgrVgukzoJa1s95KcigiPRnUi",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+            "sig": "MEYCIQDGCUwUY7zVM8J1sKVDu6mXMQEPdXuVomHzMowPBOn6ewIhAPOlhb5G4x1c91+bqt2EZfh4D+bSC4Lj88GXerJt0uOQ"
+          }
+        ],
+        "unpackedSize": 11702037
+      },
+      "distTags": {
+        "latest": "0.2.43"
+      },
+      "publishedAt": "2026-11-17T17:11:52.151Z"
+    }
+  },
+  "physicalListeningPerformed": false,
+  "evidence": {
+    "candidateCheckLog": {
+      "path": "build/npm-scsp-dsp-execution-20261118/candidate-check.log",
+      "sha256": "1175de719fcce268283cd5e72ac402fb9a07b21ae6eeac04dff2dd696b38c805"
+    },
+    "pureBrowser": {
+      "path": "build/npm-scsp-dsp-execution-20261118/pure-browser.json",
+      "sha256": "7f3a0bc5d61973b15ca26fa9a8282c0fde330a25ad448024e5a19188acde8456"
+    },
+    "executionBrowser": {
+      "path": "build/npm-scsp-dsp-execution-20261118/execution-browser.json",
+      "sha256": "8978034013bcb6c2cdebda25516257c593408c4dacc7fdd06281b1fa7eb8eefd"
+    },
+    "payloadComparison": {
+      "path": "build/npm-scsp-dsp-execution-20261118/payload-comparison.json",
+      "sha256": "27beedbcb62eda6c351aae33bde335b09de6f533424029aba5ed0d09c6bdf358"
+    },
+    "registryConsumer": {
+      "path": "build/npm-scsp-dsp-execution-20261118/registry-consumer-check.log",
+      "sha256": "3af23e1a058c23182adb8cdd586d8a703ca21b11d1373d6279a1ef4c8f5c652d"
+    },
+    "registryTypes": {
+      "path": "build/npm-scsp-dsp-execution-20261118/registry-types-check.log",
+      "sha256": "0b9a5c38ad6d981429e66217030eeebe42f40ba000d7b115cdf7b159aa24e234"
+    }
+  }
+}

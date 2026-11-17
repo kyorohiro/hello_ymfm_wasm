@@ -49,8 +49,8 @@ documents the word layout, and source navigation opens the actual codec.
 
 ## Run a RAM-free DSP program in Playground
 
-Use the current repository build for these execution methods. npm 0.2.42
-provides the pure instruction codec described above.
+These execution methods are included in npm `tetorica-fm2612@^0.2.43` and the
+current repository build. npm 0.2.42 provides the pure instruction codec above.
 
 In **Files → examples → scsp**, choose **scsp-dsp-gain.js** for coefficient gain
 or **scsp-dsp-iir-motion.js** for a one-pole low-pass. Both use the SCSP core's

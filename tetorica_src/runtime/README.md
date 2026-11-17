@@ -17,6 +17,7 @@ This document identifies where to edit the implementation.
 | A chip by name | [soundchip.js](soundchip.js), [factory reference](soundchip.md) | Factory, supported chip IDs and execution options |
 | Registers and PCM | [ym2612.js](ym2612.js), [ps1_spu.js](ps1_spu.js), [scsp.js](scsp.js) | Low-level chip access; WASM factories can be supplied by the caller |
 | SCSP DSP instruction images | [scsp_dsp_assembler.js](scsp_dsp_assembler.js), [types](scsp_dsp_assembler.d.ts) | Pure provisional field assembly / disassembly, without chip or audio initialization |
+| RAM-free SCSP DSP execution | [scspsynth.js](scspsynth.js), [owner](scsp_dsp.js), [validation](scsp_dsp_program.js) | Explicit Gain / IIR setup, signed Q12 coefficients and shared sends/return on an owned core; no automatic audio device |
 | Notes, presets and instruments | [ym2612synth.js](ym2612synth.js), [ps1synth.js](ps1synth.js), [scspsynth.js](scspsynth.js) | Musical operations built on the chip APIs; coverage varies by chip |
 | Browser audio output | [genesisaudioengine.js](genesisaudioengine.js), [ym2612-worklet.js](ym2612-worklet.js) | AudioContext/AudioWorklet lifecycle and audio rendering |
 | Embedded live coding | [playground_runtime.js](playground_runtime.js), [playground_logic_worker.js](playground_logic_worker.js) | Script execution, loops and chip control |
