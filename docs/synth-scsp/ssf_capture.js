@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Software instrument capture from an immutable, passive SSF observation.
 import { readPreset } from './preset.js';
-import { readPatch } from './patch.js';
+import { readPatch } from './patch.js?v=scsp-dsp-coef-1';
 import { scspPitch, SCSP_LFO_PITCH_CENTS } from '../js/scspsynth.js';
 import { SCSP_SSF_RAM_BYTES } from './ssf_snapshot.js';
 

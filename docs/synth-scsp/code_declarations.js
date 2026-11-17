@@ -47,7 +47,12 @@ interface ScspCodeConfig {
   transpose:number;
   effect:ScspCodeEffect;
 }
-interface ScspCodeEffect {enabled:boolean;timeMs:number;feedback:number;send:number;returnLevel:number;}
+interface ScspCodeEffect {
+  enabled:boolean;timeMs:number;
+  /** COEF1 multiplier, -1..4095/4096; the hardware uses floor(feedback * 4096). */
+  feedback:number;
+  send:number;returnLevel:number;
+}
 type ScspCodeConfigPatch = Partial<Omit<ScspCodeConfig,'fm'|'effect'>> & {fm?:Partial<ScspCodeConfig['fm']>};
 type ScspCodePresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'|'lfo'|'modulation'>> & {envelope?:Partial<PlaygroundScspEnvelope>;lfo?:Partial<PlaygroundScspLfo>};
 interface ScspCodePortableOperator {
@@ -61,6 +66,8 @@ interface ScspCodePatch {
 }
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
+  /** Current Synth COEF0..2 signed 13-bit codes; multiplier = code / 4096. */
+  dspCoefficients:[number,number,number];
   /** App-only software release preference; excluded from portable presets. */
   clickGuard:boolean;
   voiceGroups:{id:string;midi:number;slots:number[];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];

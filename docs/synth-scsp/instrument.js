@@ -3,8 +3,8 @@
 import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
-import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js';
-import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-edit-1';
+import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-dsp-coef-1';
+import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-coef-1';
 import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js';
@@ -78,6 +78,12 @@ export class SynthInstrument {
   setEffect(patch){const effect=this.effect.configure(patch);this.config={...this.config,effect};this.#routeEffect();return effect;}
   readDspProgram(){return this.effect.readProgram();}
   applyDspProgram(words){return this.effect.applyProgram(words);}
+  readDspCoefficients(){return this.effect.readCoefficients();}
+  setDspCoefficients(patch){
+    const result=this.effect.setCoefficients(patch);
+    this.config={...this.config,effect:{...this.effect.settings}};
+    return result;
+  }
   #bendCommands(semitones){
     const commands=[];
     for(const group of this.groups.values()){
@@ -319,6 +325,6 @@ export class SynthInstrument {
     const state=this.read(),operators=Array.from({length:SOURCE_COUNT},(_,slot)=>{const sample=state.slots[slot].sample;return sampleKeys[slot]===`${sample.bankId}:${sample.id}`?null:this.invoke('getPCM',[slot]);});
     return {state,operators};
   }
-  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,kind:'scsp',config:clone(this.config),pitchBend:this.pitchBend,clickGuard:this.releaseGuard.enabled,voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),manualVoices:[...this.manualVoices.values()].map(voice=>({...voice})),codeActive:this.codeActive,codeSession:this.codeSession,codeLanes:this.codeLanes.map((lane,channel)=>({channel,midi:lane.midi,groupId:this.#codeGroup(channel)?.id??null,slots:[...(this.#codeGroup(channel)?.slots??[])]})),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
+  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,dspCoefficients:this.effect.readCoefficients().codes,kind:'scsp',config:clone(this.config),pitchBend:this.pitchBend,clickGuard:this.releaseGuard.enabled,voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),manualVoices:[...this.manualVoices.values()].map(voice=>({...voice})),codeActive:this.codeActive,codeSession:this.codeSession,codeLanes:this.codeLanes.map((lane,channel)=>({channel,midi:lane.midi,groupId:this.#codeGroup(channel)?.id??null,slots:[...(this.#codeGroup(channel)?.slots??[])]})),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
   dispose(){this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();this.synth.dispose();}
 }

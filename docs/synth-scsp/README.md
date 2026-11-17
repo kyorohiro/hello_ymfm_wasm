@@ -353,13 +353,43 @@ To try a small change, start with the built-in source and change `EWT=1` to
 `EWT=0`, then Check and Apply. That removes its effect output. Restore with
 Reset draft, Check and Apply. The direct voice output remains available.
 
+### Live coefficients
+
+**Synth DSP coefficients · live** exposes COEF0–2 as signed 13-bit integer
+codes from −4096 through 4095. Each card shows the actual multiplier
+`code / 4096` and the word written to register `0x700`, `0x702` or `0x704`.
+For the built-in Delay, COEF0 scales the ring read, COEF1 controls feedback,
+and COEF2 scales input. An edited microprogram may use these entries differently.
+The **?** contains the encoding and persistence details.
+
+Coefficient changes apply immediately, retaining the DSP ring tail, held voices
+and Code session. They do not require program Check / Apply. Invalid edits leave
+the old coefficients in place. These controls address the Synth's DSP, separately
+from SSF playback / audition. They are disabled while the SSF Live editor is active.
+
+COEF1 and **Feedback** are two views of the same coefficient. Feedback displays
+the quantized hardware multiplier, including after Code calls
+`await scsp.setEffect({feedback:-0.5})`. That example writes code −2048
+(`0xC000`) and reverses the sign of successive feedback repeats in the built-in
+Delay. Setting COEF2 to 2048 halves new input; setting it to zero stops new input
+while existing ring contents continue. Restore COEF0 / COEF2 to 4095 for their
+built-in values. The initial Feedback request remains 0.35, represented by code
+1433 and multiplier 0.349853515625 in the hardware.
+
+COEF0 / COEF2 last for the Synth session, including Stop, mode changes and voice
+preset loads. Page reload starts them at 4095. COEF1 follows the existing Feedback
+field in voice presets. `.scspasm` exports contain instructions only; program
+Apply and Reset draft do not reset coefficients. Portable formats are unchanged.
+New negative / above-0.85 Feedback values require this version of Synth; older
+versions accepted only 0–0.85.
+
 ### Delay parameters
 
 The collapsed experimental section keeps the existing Delay configuration.
 The tab indicates whether this effect return is enabled. The built-in program
 produces mono Delay; an edited program can use those same parameters differently.
 
-Time spans 20–700 ms, Feedback 0–0.85, and Send / Return hardware levels
+Time spans 20–700 ms, Feedback −1–4095/4096, and Send / Return hardware levels
 0–7. Initial Send 7 / Return 6 produces a first echo near half the dry
 amplitude for the built-in program. Output operators feed the effect. Direct
 level zero allows wet-only output. Time / Enable changes clear the ring, and

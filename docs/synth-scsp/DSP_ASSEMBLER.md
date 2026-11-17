@@ -105,6 +105,28 @@ and loading voice presets retain it within the current Synth session. Reloading
 the page starts with the built-in program and restores only draft text.
 Apply targets the Synth DSP, independently of SSF playback / paused audition.
 
+### Coefficient values
+
+The **Synth DSP coefficients · live** controls edit COEF0–2 without replacing
+the microprogram or clearing its ring. Their signed 13-bit codes range from
+−4096 through 4095. The DSP multiplier is `code / 4096`; the 16-bit register word
+is `(code & 0x1fff) << 3`, with low three bits zero. The UI shows both numbers
+and their actual register addresses, `0x700`, `0x702` and `0x704`.
+
+For the built-in Delay the entries scale ring read, feedback and input,
+respectively. COEF1 and the existing Feedback control stay synchronized;
+Feedback shows the quantized hardware value. The existing Code call
+`scsp.setEffect({feedback:-0.5})` selects COEF1 = −2048. Other coefficient edits
+are Synth controls, not a new public Code API. `getState().dspCoefficients`
+exposes their current signed codes for inspection.
+
+COEF0 / COEF2 are session state and survive Stop / mode / voice-preset loads;
+reload starts them at 4095. COEF1 is the existing saved Feedback field. Preset
+shape is unchanged, but negative / above-0.85 Feedback needs this newer reader.
+`.scspasm` Copy / Save exports instructions without coefficient values. Program
+Apply and Reset draft do not change coefficients. SSF has its own DSP; these
+controls are disabled during SSF Live editing.
+
 To hear a minimal edit, enable Delay, change `EWT=1` to `EWT=0`, Check and Apply.
 The wet output disappears while direct voice output continues. Reset draft,
 Check and Apply restores the built-in program. The existing Time / Feedback /

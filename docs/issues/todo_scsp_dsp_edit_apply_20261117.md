@@ -60,3 +60,7 @@ See [verification](verification_scsp_dsp_edit_apply_20261117.md) and
 [machine evidence](verification_scsp_dsp_edit_apply_20261117.json).
 No commit / push / publication. Subsequent work can choose a small additional
 effect example or coefficient editing; no API expansion is decided here.
+
+The bounded [live COEF0–2 follow-up](todo_scsp_dsp_coefficients_20261117.md)
+adds signed coefficient controls synchronized with Feedback, without expanding
+the executable program profile or changing portable format shapes.

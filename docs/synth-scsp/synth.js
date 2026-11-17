@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-dsp-edit-1';
-import { SynthInstrument } from './instrument.js?v=scsp-dsp-edit-1';
-import { readPatch, writePatch } from './patch.js';
+import { createAudio } from './audio.js?v=scsp-dsp-coef-1';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-coef-1';
+import { readPatch, writePatch } from './patch.js?v=scsp-dsp-coef-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
-import { enhanceScspNumberControls } from './controls.js';
-import { setupScspCodeHost } from './code_host.js';
+import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-coef-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-edit-1';
-import { delayProgram } from './dsp.js?v=scsp-dsp-edit-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-coef-1';
+import { delayProgram } from './dsp.js?v=scsp-dsp-coef-1';
 import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
 import { setupScspChannelView } from './channel_view.js';
-import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
+import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-dsp-coef-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
@@ -114,12 +114,15 @@ const draft = new SynthInstrument({
 // This session's acknowledged DSP image is separate from portable voice patches.
 // Cold Apply changes setup only; restoring saved draft text never reaches here.
 let appliedDspWords = delayProgram();
+// COEF1 belongs to the voice patch's Feedback. COEF0/2 belong to this DSP session.
+let sessionDspCoefficients = { 0: 4095, 2: 4095 };
+let coefficientEditSequence = 0;
 cachedPatch = draft.exportPatch();
 const command = (method, args = []) => {
 	if (audio) return audio.command(method, args);
 	const value = draft[method](...args);
 	if (
-		!['readPhysical', 'readAuthoring', 'exportPatch', 'exportIdleState'].includes(method) &&
+		!['readPhysical', 'readAuthoring', 'readDspCoefficients', 'exportPatch', 'exportIdleState'].includes(method) &&
 		!(method === 'invokePhysical' && args[0] === 'getPCM')
 	)
 		draftRevision++;
@@ -214,12 +217,27 @@ function drawConnections(state) {
 	$('connections').setAttribute('aria-label', $('routingSummary').textContent);
 	$('selectedOperator').textContent = OPERATOR_NAMES[selectedOperator];
 }
+function renderDspCoefficients(state, readOnly = false) {
+	const codes = state.dspCoefficients;
+	for (let index = 0; index < 3; index++) {
+		const input = $(`scspDspCoef${index}`);
+		if (!input) continue;
+		input.disabled = readOnly || !codes;
+		if (!codes) continue;
+		if (document.activeElement !== input && !input.classList.contains('is-dragging'))
+			input.value = String(codes[index]);
+		text($(`scspDspCoef${index}Value`), `× ${codes[index] / 4096}`);
+		const word = ((codes[index] & 0x1fff) << 3).toString(16).toUpperCase().padStart(4, '0');
+		text($(`scspDspCoef${index}Register`), `0x${(0x700 + index * 2).toString(16).toUpperCase()} = 0x${word}`);
+	}
+}
 function renderState() {
 	if (!latestState || disposed) return;
 	const wasLive = liveView?.isActive();
 	const ssfSnapshot = songControls?.player.getLiveSnapshot();
 	ssfVoiceEdits.sync(songControls?.player.getEditSession() ?? null, songState?.playback, ssfSnapshot);
 	const observing = liveView?.update(songState, ssfSnapshot);
+	renderDspCoefficients(latestState, Boolean(observing));
 	if (observing && channelView?.getSelected() === null)
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
 	if (observing && channelView) liveView.selectSlot(channelView.getSelected());
@@ -288,7 +306,8 @@ function renderState() {
 		['effectReturn', 'returnLevel'],
 	]) {
 		if (document.activeElement !== $(id) && !$(id).classList.contains('is-dragging'))
-			$(id).value = String(state.config.effect[key]);
+			$(id).value = String(key === 'feedback' && state.dspCoefficients
+				? state.dspCoefficients[1] / 4096 : state.config.effect[key]);
 	}
 	$('effectEnabled').checked = state.config.effect.enabled;
 	text(
@@ -374,6 +393,7 @@ function audioFailed(error) {
 	songControls?.stop();
 	void codeHost?.stop().catch(() => {});
 	draft.loadPatch(cachedPatch);
+	draft.setDspCoefficients(sessionDspCoefficients);
 	draftRevision++;
 	sampleKeys = [];
 	operatorReads = [];
@@ -401,7 +421,9 @@ async function ensureAudio() {
 				do {
 					applied = draftRevision;
 					const dspWords = Array.from(appliedDspWords);
+					const coefficients = { ...sessionDspCoefficients };
 					await engine.command('loadIdleState', [draft.exportIdleState()]);
+					await engine.command('setDspCoefficients', [coefficients]);
 					await engine.command('applyDspProgram', [dspWords]);
 					await engine.command('setPitchBend', [bend]);
 					await applyClickGuard(engine);
@@ -1093,9 +1115,45 @@ for (const [id, key] of [
 				renderState();
 				return;
 			}
-			await command('setEffect', [{ [key]: value }]);
-			await refresh({ dirty: true });
-			status('Experimental DSP Delay updated.');
+			try {
+				await command('setEffect', [{ [key]: value }]);
+				await refresh({ dirty: true });
+				status('Experimental DSP Delay updated.');
+			} catch (error) {
+				await refresh();
+				throw error;
+			}
+		}).catch(report);
+	});
+}
+for (let index = 0; index < 3; index++) {
+	const input = $(`scspDspCoef${index}`);
+	input?.addEventListener('change', () => {
+		const code = input.value.trim() === '' ? NaN : Number(input.value), request = ++coefficientEditSequence;
+		input.blur();
+		void enqueue(async () => {
+			if (liveView?.isActive()) {
+				renderState();
+				return;
+			}
+			const feedback = $('scspDspCoefficientsStatus');
+			try {
+				const result = await command('setDspCoefficients', [{ [index]: code }]);
+				sessionDspCoefficients = { 0: result.codes[0], 2: result.codes[2] };
+				await refresh({ dirty: index === 1 });
+				if (request === coefficientEditSequence && feedback) {
+					feedback.textContent = `COEF${index} updated. Voices and DSP tail kept.`;
+					feedback.dataset.error = 'false';
+					status(feedback.textContent);
+				}
+			} catch (error) {
+				await refresh();
+				if (request === coefficientEditSequence && feedback) {
+					feedback.textContent = 'Coefficient update failed: ' + error.message;
+					feedback.dataset.error = 'true';
+				}
+				throw error;
+			}
 		}).catch(report);
 	});
 }

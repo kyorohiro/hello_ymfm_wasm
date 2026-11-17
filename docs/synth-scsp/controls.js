@@ -17,9 +17,13 @@ export function enhanceScspNumberControls(root) {
 		const step = stepFor(input),
 			minimum = input.min === '' ? -Infinity : Number(input.min);
 		const maximum = input.max === '' ? Infinity : Number(input.max);
-		const next = Math.max(minimum, Math.min(maximum, Math.round(value / step) * step));
+		const [mantissa, exponent = '0'] = String(step).toLowerCase().split('e');
+		const precision = Math.max(0, (mantissa.split('.')[1]?.length ?? 0) - Number(exponent));
+		const quantized = Number((Math.round(value / step) * step).toFixed(Math.min(100, precision)));
+		// Clamp after rounding so an exact hardware limit survives serialization.
+		const next = Math.max(minimum, Math.min(maximum, quantized));
 		if (!Number.isFinite(next) || String(next) === input.value) return;
-		input.value = String(Number(next.toFixed(6)));
+		input.value = String(next);
 		input.dispatchEvent(new win.Event('input', { bubbles: true }));
 		input.dispatchEvent(new win.Event('change', { bubbles: true }));
 		update();

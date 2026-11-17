@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // DSP draft authoring stays local; only explicit Apply uses the audio owner.
-import {delayProgram} from './dsp.js?v=scsp-dsp-edit-1';
+import {delayProgram} from './dsp.js?v=scsp-dsp-coef-1';
 import {disassembleScspDsp} from './dsp_assembler.js';
 import {checkScspDspDelaySource, validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
 

@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Original mono-delay microprogram for the pinned SCSP DSP, not Web Audio DSP.
-import {validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
+import {validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-coef-1';
 export const DSP_RAM_BYTES=65536; // RBL=2: 32K words at address 0.
+export const DSP_COEFFICIENT_MIN = -4096;
+export const DSP_COEFFICIENT_MAX = 4095;
+export const DSP_FEEDBACK_MAX = DSP_COEFFICIENT_MAX / 4096;
 export const EFFECT_DEFAULTS=Object.freeze({enabled:false,timeMs:240,feedback:.35,send:7,returnLevel:6});
 export function effectSettings(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!Object.hasOwn(EFFECT_DEFAULTS,k)))throw new TypeError('Invalid DSP Delay settings');
   const result={...EFFECT_DEFAULTS,...value};
   if(typeof result.enabled!=='boolean')throw new TypeError('DSP Enable must be boolean');
   if(!Number.isInteger(result.timeMs)||result.timeMs<20||result.timeMs>700)throw new RangeError('DSP Delay time must be 20..700 ms');
-  if(!Number.isFinite(result.feedback)||result.feedback<0||result.feedback>.85)throw new RangeError('DSP Delay feedback must be 0..0.85');
+  if(!Number.isFinite(result.feedback)||result.feedback< -1||result.feedback>DSP_FEEDBACK_MAX)throw new RangeError(`DSP Delay feedback must be -1..${DSP_FEEDBACK_MAX}`);
   for(const key of ['send','returnLevel'])if(!Number.isInteger(result[key])||result[key]<0||result[key]>7)throw new RangeError('DSP Send / Return must be 0..7');
   return result;
 }
@@ -27,10 +30,59 @@ export function delayProgram(){
   const steps=[word(),word({read:true}),word({iwt:true}),word({emit:true,coef:1}),word({ira:0x20,coef:2,acc:true}),word({write:true,masa:1})];
   steps.forEach((instruction,index)=>program.set(instruction,index*4));return program;
 }
+// The DSP consumes the signed high 13 bits as Q12 and ignores the low three.
+const coefficientWord = value => (value & 0x1fff) << 3;
 export class DspDelay{
   #program = delayProgram();
   #revision = 0;
+  #coef0 = DSP_COEFFICIENT_MAX;
+  #coef2 = DSP_COEFFICIENT_MAX;
   constructor(core,settings=EFFECT_DEFAULTS){this.core=core;this.settings=effectSettings(settings);this.install();}
+  readCoefficients() {
+    return {codes: [this.#coef0, Math.floor(this.settings.feedback * 4096), this.#coef2], feedback: this.settings.feedback};
+  }
+  setCoefficients(patch) {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch) || ArrayBuffer.isView(patch)) {
+      throw new TypeError('DSP coefficients require an object with keys 0, 1 or 2');
+    }
+    const keys = Reflect.ownKeys(patch);
+    const previous = this.readCoefficients().codes;
+    const next = [...previous];
+    for (const key of keys) {
+      if (!['0', '1', '2'].includes(key)) throw new TypeError('DSP coefficient keys must be 0, 1 or 2');
+      const value = patch[key];
+      if (!Number.isInteger(value) || value < DSP_COEFFICIENT_MIN || value > DSP_COEFFICIENT_MAX) {
+        throw new RangeError(`COEF${key} must be an integer from ${DSP_COEFFICIENT_MIN} to ${DSP_COEFFICIENT_MAX}`);
+      }
+      next[Number(key)] = value;
+    }
+    const changed = next.flatMap((value, index) => value === previous[index] ? [] : [index]);
+    const oldWords = changed.map(index => typeof this.core.read === 'function'
+      ? this.core.read(0x700 + index * 2) : coefficientWord(previous[index]));
+    try {
+      for (const index of changed) this.core.write(0x700 + index * 2, coefficientWord(next[index]));
+    } catch (error) {
+      const failures = [];
+      for (let position = 0; position < changed.length; position++) {
+        try { this.core.write(0x700 + changed[position] * 2, oldWords[position]); }
+        catch (failure) { failures.push(failure); }
+      }
+      if (failures.length) {
+        const fatal = new Error(
+          'DSP coefficient update failed and rollback could not restore the audio owner. Restart audio before continuing.',
+          {cause: new AggregateError([error, ...failures])},
+        );
+        fatal.name = 'ScspDspRollbackError';
+        fatal.fatal = true;
+        throw fatal;
+      }
+      throw error;
+    }
+    this.#coef0 = next[0];
+    this.#coef2 = next[2];
+    if (keys.includes('1')) this.settings = {...this.settings, feedback: next[1] / 4096};
+    return this.readCoefficients();
+  }
   readProgram() {
     const legacy = delayProgram();
     return {
@@ -87,8 +139,8 @@ export class DspDelay{
     core.write(22,0,0xff); // Mute EFREG0 while replacing its program.
     for(let offset=0;offset<1024;offset+=2)core.write(0x800+offset,0);
     core.write(0x402,2<<7);
-    core.write(0x700,0x7ff8); // 4095/4096, largest positive Q12 coefficient.
-    core.write(0x704,0x7ff8); // Unity input: MIXS scaling already matches the DSP return path.
+    core.write(0x700,coefficientWord(this.#coef0));
+    core.write(0x704,coefficientWord(this.#coef2));
     core.write(0x782,0); // write address: DEC
     const program=this.#program;
     for(let index=0;index<program.length;index++)if(program[index])core.write(0x800+index*2,program[index]);
@@ -97,7 +149,7 @@ export class DspDelay{
   }
   clear(){const silence=new Uint8Array(DSP_RAM_BYTES);for(let i=0;i<silence.length;i+=2)silence[i]=0x60;this.core.loadRam(silence,0);}
   parameters(){
-    this.core.write(0x702,Math.floor(this.settings.feedback*4096)*8);
+    this.core.write(0x702,coefficientWord(Math.floor(this.settings.feedback*4096)));
     this.core.write(0x780,Math.round(this.settings.timeMs*44.1));
     this.core.write(22,this.settings.enabled?this.settings.returnLevel<<5:0,0xff);
   }

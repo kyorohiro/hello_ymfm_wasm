@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createScspValidation} from '../js/playground_scsp.js';
 import {readPreset,writePreset} from './preset.js';
-import {effectSettings,reserveDspRam} from './dsp.js';
+import {effectSettings,reserveDspRam} from './dsp.js?v=scsp-dsp-coef-1';
 import {SOURCE_COUNT,OPERATOR_KEYS,voiceCommands,operatorCount} from './routing.js';
 export const FM_MAX_DEPTH=12;
 export function settings(value) {

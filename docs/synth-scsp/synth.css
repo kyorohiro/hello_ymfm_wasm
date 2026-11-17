@@ -558,6 +558,55 @@ select {
 .scsp-dsp-program-help {
 	margin-top: 10px;
 }
+#scspDspCoefficients {
+	min-width: 0;
+	margin: 18px 0;
+}
+.scsp-dsp-coefficients-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	margin-bottom: 10px;
+}
+.scsp-dsp-coefficients-heading h3 {
+	margin: 0;
+	color: #c9e5f8;
+	font-size: 0.8rem;
+}
+.scsp-dsp-coefficient-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	gap: 10px;
+}
+.scsp-dsp-coefficient {
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #162332;
+}
+.scsp-dsp-coefficient label {
+	display: block;
+	margin-bottom: 8px;
+	color: #c9e5f8;
+	font-size: 0.73rem;
+}
+.scsp-dsp-coefficient-value,
+.scsp-dsp-coefficient-register {
+	display: block;
+	margin-top: 6px;
+	overflow-wrap: anywhere;
+	font-size: 0.68rem;
+	font-variant-numeric: tabular-nums;
+}
+.scsp-dsp-coefficient-value {
+	color: #dcebf7;
+}
+.scsp-dsp-coefficient-register {
+	color: var(--muted);
+	font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
 @media (max-width: 480px) {
 	.scsp-dsp-program-actions {
 		width: 100%;

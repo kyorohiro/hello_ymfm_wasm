@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-dsp-edit-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-coef-1" />
 	</head>
 	<body>
 		<main>
@@ -623,6 +623,38 @@
 									</div>
 								</details>
 							</section>
+							<section id="scspDspCoefficients" aria-labelledby="scspDspCoefficientsHeading">
+								<div class="scsp-dsp-coefficients-heading">
+									<h3 id="scspDspCoefficientsHeading">Synth DSP coefficients · live</h3>
+									<details class="scsp-inline-help">
+										<summary aria-label="About DSP coefficients">?</summary>
+										<p>Signed 13-bit Q12. Multiplier = code / 4096. Register word = (code &amp; 0x1fff) &lt;&lt; 3.</p>
+										<p>Changes apply immediately to Synth while voices and the DSP ring continue. SSF has its own DSP.</p>
+										<p>These roles describe the built-in Delay. Edited programs may use the entries differently. COEF0 and COEF2 last for this session. COEF1 is saved as Feedback in voice presets. Save .scspasm exports instructions without these coefficient values.</p>
+									</details>
+								</div>
+								<div class="scsp-dsp-coefficient-grid">
+									<div class="scsp-dsp-coefficient">
+										<label for="scspDspCoef0">COEF0 · Ring read</label>
+										<input id="scspDspCoef0" type="number" min="-4096" max="4095" step="1" value="4095" aria-describedby="scspDspCoef0Value scspDspCoef0Register" />
+										<span id="scspDspCoef0Value" class="scsp-dsp-coefficient-value">× 0.999755859375</span>
+										<span id="scspDspCoef0Register" class="scsp-dsp-coefficient-register">0x700 = 0x7ff8</span>
+									</div>
+									<div class="scsp-dsp-coefficient">
+										<label for="scspDspCoef1">COEF1 · Feedback</label>
+										<input id="scspDspCoef1" type="number" min="-4096" max="4095" step="1" value="1433" aria-describedby="scspDspCoef1Value scspDspCoef1Register" />
+										<span id="scspDspCoef1Value" class="scsp-dsp-coefficient-value">× 0.349853515625</span>
+										<span id="scspDspCoef1Register" class="scsp-dsp-coefficient-register">0x702 = 0x2cc8</span>
+									</div>
+									<div class="scsp-dsp-coefficient">
+										<label for="scspDspCoef2">COEF2 · Input</label>
+											<input id="scspDspCoef2" type="number" min="-4096" max="4095" step="1" value="4095" aria-describedby="scspDspCoef2Value scspDspCoef2Register" />
+											<span id="scspDspCoef2Value" class="scsp-dsp-coefficient-value">× 0.999755859375</span>
+											<span id="scspDspCoef2Register" class="scsp-dsp-coefficient-register">0x704 = 0x7ff8</span>
+									</div>
+								</div>
+								<p id="scspDspCoefficientsStatus" class="scsp-dsp-program-status" role="status" aria-live="polite"></p>
+							</section>
 							<details id="scspDelayPanel" class="scsp-disclosure">
 								<summary>Experimental · Delay parameters</summary>
 								<div class="scsp-fields">
@@ -643,9 +675,9 @@
 										<input
 											id="delayFeedback"
 											type="number"
-											min="0"
-											max="0.85"
-											step="0.01"
+											min="-1"
+											max="0.999755859375"
+											step="0.000244140625"
 											value="0.35"
 											disabled /></label
 									><label
@@ -870,6 +902,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-edit-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-coef-1"></script>
 	</body>
 </html>
