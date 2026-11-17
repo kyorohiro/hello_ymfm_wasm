@@ -1,0 +1,1210 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-17T09:40:34.345Z",
+  "passed": true,
+  "baseCommit": "8a343d8da8120eacff5dafddf04f933ee8cb41ef",
+  "scope": "Passive SCSP Synth built-in Delay program listing / Copy / Save",
+  "physicalAudioUsed": false,
+  "operatingSystemClipboardUsed": false,
+  "listeningPerformed": false,
+  "sources": {
+    "docs/synth-scsp/index.html": {
+      "bytes": 27559,
+      "sha256": "5a5208b20913d26f3fad48673bf390e350d2c9d199e3dd2f761d94d39f06a25d"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 42630,
+      "sha256": "73188f69df2807038879f6178052cf70b8677fb8ba47f8dc0d5cac45d548d66a"
+    },
+    "docs/synth-scsp/synth.css": {
+      "bytes": 20966,
+      "sha256": "330baf65e612d1c944c0d3fc50b626c7fcb39f25068a698de09b711ab5a849af"
+    },
+    "docs/synth-scsp/dsp_program_view.js": {
+      "bytes": 6810,
+      "sha256": "39649606186adec68a22476ff8ee5e0adbfc7c917ef659975a4d4f478737d450"
+    },
+    "docs/synth-scsp/dsp_program_view.test.mjs": {
+      "bytes": 3604,
+      "sha256": "4fc651c398e9010b39343acf9964b341f7699e1baa8abdb202466672f3480b2a"
+    },
+    "docs/synth-scsp/README.md": {
+      "bytes": 22863,
+      "sha256": "6f529126bde203b76dabb0c0024bc8061c98ed096613e2b7ecc6cc576830d1fc"
+    },
+    "docs/synth-scsp/DSP_ASSEMBLER.md": {
+      "bytes": 4849,
+      "sha256": "65335b7ce013f70d3da890baa9943d17cd003d556ea6b57ae6fa7815c24bbdd2"
+    },
+    "scripts/package_itch_scsp_synth.mjs": {
+      "bytes": 13368,
+      "sha256": "2594251d42bdbfaeeed77ae983e590078f2731d14119faec578722082607f82f"
+    },
+    "scripts/package_itch_scsp_synth.test.mjs": {
+      "bytes": 8530,
+      "sha256": "19c9fb64daf76b20ceaf25d715723991c6d48bca754c8a6de4752168157efcbd"
+    },
+    "scripts/check_scsp_dsp_program_view_browser.cjs": {
+      "bytes": 19832,
+      "sha256": "9304264580e91e043c75bc3ada1cf820fd4dd9c31a4f173daf145fafc9202236"
+    }
+  },
+  "unchanged": {
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 3815,
+      "sha256": "8a11271703090633972794bd8b0df9801a50e09df81b134f2f1dc2280a6de3e9"
+    },
+    "docs/synth-scsp/dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 8482,
+      "sha256": "bb559fa9aa06774215301be561d161893591e4aa7d3b4db73eb985cc31e0e346"
+    },
+    "docs/synth-scsp/instrument.js": {
+      "bytes": 29601,
+      "sha256": "3d85b0fb9b75467ac2c517cc35a2be571a415f4b5e4f32200e16638e4a0d4c66"
+    },
+    "docs/synth-scsp/audio.js": {
+      "bytes": 7126,
+      "sha256": "19b1d026f6fe2ed2ba1d03d6cd1c3396ed14dd4e3542d8c701f310068294a206"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 22640,
+      "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+    }
+  },
+  "checks": {
+    "scspSynthTests": 210,
+    "modelTestsIncluded": 3,
+    "assemblerAndCliTests": 12,
+    "browserCases": 4,
+    "calibrationChecks": 2,
+    "logs": {
+      "synth-tests": {
+        "bytes": 22554,
+        "sha256": "6e2ca33313ff3f71c60529ea2e881632bdce2bbadcb6d133d25d393fe384a0a4"
+      },
+      "assembler-tests": {
+        "bytes": 1567,
+        "sha256": "f1b264a80f29f938fba3987ad5ed20ec172bbb880a4bace3335cabafd0de8bb5"
+      },
+      "mixer": {
+        "bytes": 245,
+        "sha256": "a0db9c75861092e31c9aa8651c18498c3806faceba83e33c03350c22a6941db5"
+      }
+    }
+  },
+  "export": {
+    "filename": "tetorica-scsp-delay.scspasm",
+    "bytes": 878,
+    "sha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+    "wordCount": 512,
+    "exactLegacyImage": true,
+    "source": "; Tetorica SCSP DSP - built-in Synth Delay\n; Experimental field syntax. Each line describes one physical microstep.\n; Coefficients, ring RAM, routing and Start are configured separately.\n; Unlisted steps through 127 contain zero words.\n\n; Prepare accumulator: Use MEMS0 and COEF0 with a zero B input.\n000: XSEL=1 YSEL=1 ZERO=1\n\n; Read delay ring: Request RAM at MADRS0 + DEC on an odd step.\n001: XSEL=1 YSEL=1 MRD=1 ZERO=1\n\n; Latch read result: IWT latches the preceding read into MEMS0.\n002: XSEL=1 YSEL=1 IWT=1 ZERO=1\n\n; Output + feedback: Emit the previous accumulator to EFREG0 while calculating feedback with COEF1.\n003: XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1\n\n; Add input: Add MIXS0 × COEF2 to the feedback accumulator.\n004: XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2\n\n; Write delay ring: Write the previous shifted accumulator at MADRS1 + DEC.\n005: XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1\n"
+  },
+  "distribution": {
+    "archive": "release/tetorica_scsp_synth_dsp-program-view-20261117_itch.zip",
+    "stage": "release/itch_scsp_synth_dsp-program-view-20261117-mkmSHF",
+    "files": 360,
+    "bytes": 4188728,
+    "sha256": "4a7faff8e3e84ff30c3184d48d09496d48f241ad899075fd3d6c8e079f0ae9cb",
+    "readableAssetsByteExact": [
+      "dsp_program_view.js",
+      "dsp_assembler.js",
+      "dsp_assembler.d.ts",
+      "DSP_ASSEMBLER.md",
+      "examples/delay.scspasm"
+    ]
+  },
+  "browserReports": {
+    "source": {
+      "passed": true,
+      "entry": "/synth-scsp/index.html",
+      "physicalOutputMuted": true,
+      "operatingSystemClipboardUsed": false,
+      "listeningPerformed": false,
+      "staticSiteOnly": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "rows": [
+            {
+              "step": "000",
+              "instruction": "XSEL=1 YSEL=1 ZERO=1",
+              "role": "Prepare accumulatorUse MEMS0 and COEF0 with a zero B input."
+            },
+            {
+              "step": "001",
+              "instruction": "XSEL=1 YSEL=1 MRD=1 ZERO=1",
+              "role": "Read delay ringRequest RAM at MADRS0 + DEC on an odd step."
+            },
+            {
+              "step": "002",
+              "instruction": "XSEL=1 YSEL=1 IWT=1 ZERO=1",
+              "role": "Latch read resultIWT latches the preceding read into MEMS0."
+            },
+            {
+              "step": "003",
+              "instruction": "XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1",
+              "role": "Output + feedbackEmit the previous accumulator to EFREG0 while calculating feedback with COEF1."
+            },
+            {
+              "step": "004",
+              "instruction": "XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2",
+              "role": "Add inputAdd MIXS0 × COEF2 to the feedback accumulator."
+            },
+            {
+              "step": "005",
+              "instruction": "XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1",
+              "role": "Write delay ringWrite the previous shifted accumulator at MADRS1 + DEC."
+            }
+          ],
+          "coldAudioContexts": 0,
+          "exportedFilename": "tetorica-scsp-delay.scspasm",
+          "exportedBytes": 878,
+          "exportedSha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+          "clipboardSuccess": true,
+          "clipboardFallback": true,
+          "clipboardFailure": "Copy unavailable. Use Save .scspasm.",
+          "temporaryFocusRestored": true,
+          "coldSettingsPreserved": true,
+          "exportWordsExact": true,
+          "heldVoicePreserved": true,
+          "soundCommandsDuringExports": 0,
+          "audibleBefore": {
+            "peak": 0.011167102493345737,
+            "rms": 0.004817812969585926,
+            "acRms": 0.004803063017406043
+          },
+          "audibleAfter": {
+            "peak": 0.011168346740305424,
+            "rms": 0.007858288109411795,
+            "acRms": 0.007857316369958815
+          },
+          "delayIndicatorAndControls": true,
+          "keyboardRelease": true,
+          "mobileOverflow": 0,
+          "mobileRoles": {
+            "scrollLeft": 364,
+            "roleVisible": true
+          },
+          "graph": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-scsp-synth"
+            ],
+            "destinationRoutes": 1,
+            "physicalOutputMuted": true
+          },
+          "blockedEditor": [],
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "rows": [
+            {
+              "step": "000",
+              "instruction": "XSEL=1 YSEL=1 ZERO=1",
+              "role": "Prepare accumulatorUse MEMS0 and COEF0 with a zero B input."
+            },
+            {
+              "step": "001",
+              "instruction": "XSEL=1 YSEL=1 MRD=1 ZERO=1",
+              "role": "Read delay ringRequest RAM at MADRS0 + DEC on an odd step."
+            },
+            {
+              "step": "002",
+              "instruction": "XSEL=1 YSEL=1 IWT=1 ZERO=1",
+              "role": "Latch read resultIWT latches the preceding read into MEMS0."
+            },
+            {
+              "step": "003",
+              "instruction": "XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1",
+              "role": "Output + feedbackEmit the previous accumulator to EFREG0 while calculating feedback with COEF1."
+            },
+            {
+              "step": "004",
+              "instruction": "XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2",
+              "role": "Add inputAdd MIXS0 × COEF2 to the feedback accumulator."
+            },
+            {
+              "step": "005",
+              "instruction": "XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1",
+              "role": "Write delay ringWrite the previous shifted accumulator at MADRS1 + DEC."
+            }
+          ],
+          "coldAudioContexts": 0,
+          "exportedFilename": "tetorica-scsp-delay.scspasm",
+          "exportedBytes": 878,
+          "exportedSha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+          "clipboardSuccess": true,
+          "clipboardFallback": true,
+          "clipboardFailure": "Copy unavailable. Use Save .scspasm.",
+          "temporaryFocusRestored": true,
+          "coldSettingsPreserved": true,
+          "exportWordsExact": true,
+          "heldVoicePreserved": true,
+          "soundCommandsDuringExports": 0,
+          "audibleBefore": {
+            "peak": 0.011168661527335644,
+            "rms": 0.005166974989434175,
+            "acRms": 0.0051668453196174234
+          },
+          "audibleAfter": {
+            "peak": 0.01116926223039627,
+            "rms": 0.007933286225521497,
+            "acRms": 0.007925294718632271
+          },
+          "delayIndicatorAndControls": true,
+          "keyboardRelease": true,
+          "mobileOverflow": 0,
+          "mobileRoles": {
+            "scrollLeft": 364,
+            "roleVisible": true
+          },
+          "graph": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-scsp-synth"
+            ],
+            "destinationRoutes": 1,
+            "physicalOutputMuted": true
+          },
+          "blockedEditor": [],
+          "errors": [],
+          "missing": []
+        }
+      ],
+      "assets": {
+        "generated/scsp_wasm.js": {
+          "bytes": 11384,
+          "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+        },
+        "generated/scsp_wasm.wasm": {
+          "bytes": 17722,
+          "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+        },
+        "generated/ssf-player/ssf_player.js": {
+          "bytes": 133059,
+          "sha256": "0e17044c84ff29621c7e377bca63bc48eeb40e2757d802f1b128049ce30c785a"
+        },
+        "js/adpcm_b_sample.js": {
+          "bytes": 7109,
+          "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3645,
+          "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+        },
+        "js/pcm_44100_resampler.js": {
+          "bytes": 4242,
+          "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+        },
+        "js/pitch.js": {
+          "bytes": 1888,
+          "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+        },
+        "js/playground_async_tasks.js": {
+          "bytes": 2223,
+          "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+        },
+        "js/playground_clock.js": {
+          "bytes": 19367,
+          "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+        },
+        "js/playground_code_runtime.js": {
+          "bytes": 29787,
+          "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+        },
+        "js/playground_duration.js": {
+          "bytes": 2009,
+          "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+        },
+        "js/playground_execution.js": {
+          "bytes": 8875,
+          "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+        },
+        "js/playground_live.js": {
+          "bytes": 14734,
+          "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+        },
+        "js/playground_log.js": {
+          "bytes": 2169,
+          "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+        },
+        "js/playground_music.js": {
+          "bytes": 11300,
+          "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+        },
+        "js/playground_sample_edit.js": {
+          "bytes": 17672,
+          "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+        },
+        "js/playground_scsp.js": {
+          "bytes": 5781,
+          "sha256": "3668fe4630fb98d398be8d9c433ad07ed3826f9066623f83fbda1a3b9e17f496"
+        },
+        "js/ps1_parameters.js": {
+          "bytes": 6237,
+          "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+        },
+        "js/ps1_spu.js": {
+          "bytes": 10862,
+          "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+        },
+        "js/ps1_vab.js": {
+          "bytes": 14976,
+          "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+        },
+        "js/ps1synth.js": {
+          "bytes": 21748,
+          "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+        },
+        "js/scsp.js": {
+          "bytes": 10590,
+          "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+        },
+        "js/scsp_sample.js": {
+          "bytes": 2785,
+          "sha256": "2a7bf44cb99f284ebd00d345764ea1ee918a3345eace3e6c4ee0e46dd5d503cf"
+        },
+        "js/scspsynth.js": {
+          "bytes": 22640,
+          "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/tetorica_virtual_files/filesystem.js": {
+          "bytes": 20206,
+          "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+        },
+        "js/tetorica_virtual_files/path.js": {
+          "bytes": 1112,
+          "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+        },
+        "js/tetorica_virtual_files/reader.js": {
+          "bytes": 1404,
+          "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+        },
+        "js/tetorica_virtual_files/sync.js": {
+          "bytes": 5701,
+          "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "playground/playground_cassette.js": {
+          "bytes": 14751,
+          "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+        },
+        "playground/playground_declarations.js": {
+          "bytes": 2945,
+          "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+        },
+        "playground/playground_example_order.js": {
+          "bytes": 315,
+          "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+        },
+        "playground/playground_file_tree.js": {
+          "bytes": 4862,
+          "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+        },
+        "playground/playground_monaco.js": {
+          "bytes": 23112,
+          "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+        },
+        "playground/playground_monaco_completion.js": {
+          "bytes": 45033,
+          "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+        },
+        "playground/playground_monaco_definitions.js": {
+          "bytes": 25281,
+          "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+        },
+        "playground/playground_scsp_voice_panel.js": {
+          "bytes": 22889,
+          "sha256": "fbd4f73d9618fb50b050764d196930bbe0fed2de1f99c98e698eca0410dcf14a"
+        },
+        "playground/playground_virtual_files.js": {
+          "bytes": 5205,
+          "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+        },
+        "playground/vendor/fflate.js": {
+          "bytes": 90922,
+          "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+        },
+        "synth-2a03/state_observer.js": {
+          "bytes": 3794,
+          "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+        },
+        "synth-scsp/audio.js": {
+          "bytes": 7126,
+          "sha256": "19b1d026f6fe2ed2ba1d03d6cd1c3396ed14dd4e3542d8c701f310068294a206"
+        },
+        "synth-scsp/channel_view.js": {
+          "bytes": 5548,
+          "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+        },
+        "synth-scsp/code_audio.js": {
+          "bytes": 6073,
+          "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+        },
+        "synth-scsp/code_declarations.js": {
+          "bytes": 5498,
+          "sha256": "a447b177fc18d331f1a0f49ebef474dc4349ff8c8c91428a2f544472a76e26e3"
+        },
+        "synth-scsp/code_endpoint.js": {
+          "bytes": 3676,
+          "sha256": "ae8e657fa848b8db44650cb135df3cab5bea63fc684c99f8f930fee848ac907b"
+        },
+        "synth-scsp/code_files.js": {
+          "bytes": 34364,
+          "sha256": "b478fb1585d6058b185ced7f14a0ff36d25e73f9c8893de9dc0fcb9d94be5de4"
+        },
+        "synth-scsp/code_host.js": {
+          "bytes": 4809,
+          "sha256": "8b2ed6d8d344fa04a4910e052965c710a06894297d6affc4ec7f70e3f1261c0b"
+        },
+        "synth-scsp/code_project.js": {
+          "bytes": 11988,
+          "sha256": "915199b4dbf245787f3a2baccb3e6aaf43d60ee5b5718f5e050d58d30db01ce9"
+        },
+        "synth-scsp/controls.js": {
+          "bytes": 4351,
+          "sha256": "54320271655aa311e5492d21e006a4e19c2b840365e2d41f07b7b936471f8187"
+        },
+        "synth-scsp/dsp.js": {
+          "bytes": 3815,
+          "sha256": "8a11271703090633972794bd8b0df9801a50e09df81b134f2f1dc2280a6de3e9"
+        },
+        "synth-scsp/dsp_assembler.js": {
+          "bytes": 8081,
+          "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+        },
+        "synth-scsp/dsp_program_view.js": {
+          "bytes": 6810,
+          "sha256": "39649606186adec68a22476ff8ee5e0adbfc7c917ef659975a4d4f478737d450"
+        },
+        "synth-scsp/index.html": {
+          "bytes": 27559,
+          "sha256": "5a5208b20913d26f3fad48673bf390e350d2c9d199e3dd2f761d94d39f06a25d"
+        },
+        "synth-scsp/instrument.js": {
+          "bytes": 29601,
+          "sha256": "3d85b0fb9b75467ac2c517cc35a2be571a415f4b5e4f32200e16638e4a0d4c66"
+        },
+        "synth-scsp/patch.js": {
+          "bytes": 3949,
+          "sha256": "cc2e9e509602ac99cf2cdc39b795b26d9a666e3b084f508965ea8b850f12ccaf"
+        },
+        "synth-scsp/preset.js": {
+          "bytes": 1968,
+          "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+        },
+        "synth-scsp/processor.js": {
+          "bytes": 8482,
+          "sha256": "bb559fa9aa06774215301be561d161893591e4aa7d3b4db73eb985cc31e0e346"
+        },
+        "synth-scsp/release_guard.js": {
+          "bytes": 2410,
+          "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+        },
+        "synth-scsp/routing.js": {
+          "bytes": 2133,
+          "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+        },
+        "synth-scsp/scsp_envelope_controls.js": {
+          "bytes": 2168,
+          "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+        },
+        "synth-scsp/song_controls.js": {
+          "bytes": 10265,
+          "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+        },
+        "synth-scsp/song_player.js": {
+          "bytes": 20191,
+          "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+        },
+        "synth-scsp/song_source.js": {
+          "bytes": 13566,
+          "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+        },
+        "synth-scsp/ssf_capture.js": {
+          "bytes": 9665,
+          "sha256": "54c805483f225d2f767d3b1593664c79ace1ff87bc77b4aa4388b1b3b6d6920a"
+        },
+        "synth-scsp/ssf_live_history.js": {
+          "bytes": 991,
+          "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+        },
+        "synth-scsp/ssf_live_view.js": {
+          "bytes": 18251,
+          "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+        },
+        "synth-scsp/ssf_renderer.js": {
+          "bytes": 7791,
+          "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+        },
+        "synth-scsp/ssf_snapshot.js": {
+          "bytes": 5340,
+          "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+        },
+        "synth-scsp/ssf_source.js": {
+          "bytes": 12682,
+          "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+        },
+        "synth-scsp/ssf_voice_edits.js": {
+          "bytes": 3774,
+          "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+        },
+        "synth-scsp/ssf_voice_parameters.js": {
+          "bytes": 2306,
+          "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+        },
+        "synth-scsp/synth.css": {
+          "bytes": 20966,
+          "sha256": "330baf65e612d1c944c0d3fc50b626c7fcb39f25068a698de09b711ab5a849af"
+        },
+        "synth-scsp/synth.js": {
+          "bytes": 42630,
+          "sha256": "73188f69df2807038879f6178052cf70b8677fb8ba47f8dc0d5cac45d548d66a"
+        },
+        "synth-spu/file_context_menu.js": {
+          "bytes": 6313,
+          "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+        },
+        "synth-spu/spu_synth_visualizer.js": {
+          "bytes": 10421,
+          "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+        },
+        "synth-spu/synth.css": {
+          "bytes": 36580,
+          "sha256": "d3c1a57beb040cb1a4cecea807eeb9c15aa527a9d036c4c04f8d11ca67b56869"
+        },
+        "synth/synth_code_controls.js": {
+          "bytes": 21848,
+          "sha256": "a95e856263570b9e77ba3a97a8eb9ef58564c55472da17de4f67a5c3ffc95216"
+        },
+        "synth/synth_code_declarations.js": {
+          "bytes": 7470,
+          "sha256": "81481fb37ff76c23afb9996432caa40f962a3446a892e9cb2a3ce968f85c9d93"
+        },
+        "synth/synth_code_output.js": {
+          "bytes": 4973,
+          "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+        },
+        "synth/synth_code_project.js": {
+          "bytes": 1623,
+          "sha256": "7fbc1f8b5df80b2fbbfb4d19fa1f36906563f8762317466102ba19d228d17026"
+        },
+        "synth/synth_draft_store.js": {
+          "bytes": 3656,
+          "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 10010,
+          "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+        },
+        "synth/synth_menu.js": {
+          "bytes": 1808,
+          "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+        },
+        "synth/synth_project_store.js": {
+          "bytes": 1835,
+          "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+        },
+        "tetorica-scsp-synth.webp": {
+          "bytes": 496728,
+          "sha256": "3ba12223115111300d7a6f0df3d3232489be15fdb354d188a85af1e2b70f2740"
+        }
+      }
+    },
+    "package": {
+      "passed": true,
+      "entry": "/index.html",
+      "physicalOutputMuted": true,
+      "operatingSystemClipboardUsed": false,
+      "listeningPerformed": false,
+      "staticSiteOnly": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "rows": [
+            {
+              "step": "000",
+              "instruction": "XSEL=1 YSEL=1 ZERO=1",
+              "role": "Prepare accumulatorUse MEMS0 and COEF0 with a zero B input."
+            },
+            {
+              "step": "001",
+              "instruction": "XSEL=1 YSEL=1 MRD=1 ZERO=1",
+              "role": "Read delay ringRequest RAM at MADRS0 + DEC on an odd step."
+            },
+            {
+              "step": "002",
+              "instruction": "XSEL=1 YSEL=1 IWT=1 ZERO=1",
+              "role": "Latch read resultIWT latches the preceding read into MEMS0."
+            },
+            {
+              "step": "003",
+              "instruction": "XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1",
+              "role": "Output + feedbackEmit the previous accumulator to EFREG0 while calculating feedback with COEF1."
+            },
+            {
+              "step": "004",
+              "instruction": "XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2",
+              "role": "Add inputAdd MIXS0 × COEF2 to the feedback accumulator."
+            },
+            {
+              "step": "005",
+              "instruction": "XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1",
+              "role": "Write delay ringWrite the previous shifted accumulator at MADRS1 + DEC."
+            }
+          ],
+          "coldAudioContexts": 0,
+          "exportedFilename": "tetorica-scsp-delay.scspasm",
+          "exportedBytes": 878,
+          "exportedSha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+          "clipboardSuccess": true,
+          "clipboardFallback": true,
+          "clipboardFailure": "Copy unavailable. Use Save .scspasm.",
+          "temporaryFocusRestored": true,
+          "coldSettingsPreserved": true,
+          "exportWordsExact": true,
+          "heldVoicePreserved": true,
+          "soundCommandsDuringExports": 0,
+          "audibleBefore": {
+            "peak": 0.011166644282639027,
+            "rms": 0.004453963041116389,
+            "acRms": 0.004453928432180543
+          },
+          "audibleAfter": {
+            "peak": 0.01116887666285038,
+            "rms": 0.007858467901785742,
+            "acRms": 0.007857479731161236
+          },
+          "delayIndicatorAndControls": true,
+          "keyboardRelease": true,
+          "mobileOverflow": 0,
+          "mobileRoles": {
+            "scrollLeft": 364,
+            "roleVisible": true
+          },
+          "graph": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-scsp-synth"
+            ],
+            "destinationRoutes": 1,
+            "physicalOutputMuted": true
+          },
+          "blockedEditor": [],
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "rows": [
+            {
+              "step": "000",
+              "instruction": "XSEL=1 YSEL=1 ZERO=1",
+              "role": "Prepare accumulatorUse MEMS0 and COEF0 with a zero B input."
+            },
+            {
+              "step": "001",
+              "instruction": "XSEL=1 YSEL=1 MRD=1 ZERO=1",
+              "role": "Read delay ringRequest RAM at MADRS0 + DEC on an odd step."
+            },
+            {
+              "step": "002",
+              "instruction": "XSEL=1 YSEL=1 IWT=1 ZERO=1",
+              "role": "Latch read resultIWT latches the preceding read into MEMS0."
+            },
+            {
+              "step": "003",
+              "instruction": "XSEL=1 YSEL=1 EWT=1 ZERO=1 COEF=1",
+              "role": "Output + feedbackEmit the previous accumulator to EFREG0 while calculating feedback with COEF1."
+            },
+            {
+              "step": "004",
+              "instruction": "XSEL=1 YSEL=1 IRA=32 BSEL=1 COEF=2",
+              "role": "Add inputAdd MIXS0 × COEF2 to the feedback accumulator."
+            },
+            {
+              "step": "005",
+              "instruction": "XSEL=1 YSEL=1 MWT=1 ZERO=1 MASA=1",
+              "role": "Write delay ringWrite the previous shifted accumulator at MADRS1 + DEC."
+            }
+          ],
+          "coldAudioContexts": 0,
+          "exportedFilename": "tetorica-scsp-delay.scspasm",
+          "exportedBytes": 878,
+          "exportedSha256": "139b2669e0074922d069b2ecfd7f34d38e8d7735fcab66b5f908aeeb41c12713",
+          "clipboardSuccess": true,
+          "clipboardFallback": true,
+          "clipboardFailure": "Copy unavailable. Use Save .scspasm.",
+          "temporaryFocusRestored": true,
+          "coldSettingsPreserved": true,
+          "exportWordsExact": true,
+          "heldVoicePreserved": true,
+          "soundCommandsDuringExports": 0,
+          "audibleBefore": {
+            "peak": 0.011167287826538086,
+            "rms": 0.0050612710856399595,
+            "acRms": 0.005059848885359254
+          },
+          "audibleAfter": {
+            "peak": 0.011167831718921661,
+            "rms": 0.007850530046091457,
+            "acRms": 0.007850264982873178
+          },
+          "delayIndicatorAndControls": true,
+          "keyboardRelease": true,
+          "mobileOverflow": 0,
+          "mobileRoles": {
+            "scrollLeft": 364,
+            "roleVisible": true
+          },
+          "graph": {
+            "contexts": 1,
+            "contextStates": [
+              "running"
+            ],
+            "nodes": [
+              "tetorica-scsp-synth"
+            ],
+            "destinationRoutes": 1,
+            "physicalOutputMuted": true
+          },
+          "blockedEditor": [],
+          "errors": [],
+          "missing": []
+        }
+      ],
+      "assets": {
+        "generated/scsp_wasm.js": {
+          "bytes": 11384,
+          "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+        },
+        "generated/scsp_wasm.wasm": {
+          "bytes": 17722,
+          "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+        },
+        "generated/ssf-player/ssf_player.js": {
+          "bytes": 133059,
+          "sha256": "0e17044c84ff29621c7e377bca63bc48eeb40e2757d802f1b128049ce30c785a"
+        },
+        "index.html": {
+          "bytes": 27811,
+          "sha256": "9f880bad207ab6444121153fbb77205f2f30881363c1b2f606135abe0214c9c1"
+        },
+        "js/adpcm_b_sample.js": {
+          "bytes": 7109,
+          "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3645,
+          "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+        },
+        "js/pcm_44100_resampler.js": {
+          "bytes": 4242,
+          "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+        },
+        "js/pitch.js": {
+          "bytes": 1888,
+          "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+        },
+        "js/playground_async_tasks.js": {
+          "bytes": 2223,
+          "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+        },
+        "js/playground_clock.js": {
+          "bytes": 19367,
+          "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+        },
+        "js/playground_code_runtime.js": {
+          "bytes": 29787,
+          "sha256": "a2ee92eb46f170e48f9c24e87ce2b14156e6888c73f430707e773db8ba8350bf"
+        },
+        "js/playground_duration.js": {
+          "bytes": 2009,
+          "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+        },
+        "js/playground_execution.js": {
+          "bytes": 8875,
+          "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+        },
+        "js/playground_live.js": {
+          "bytes": 14734,
+          "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+        },
+        "js/playground_log.js": {
+          "bytes": 2169,
+          "sha256": "6f9e858988686497c6beb3b07dcd5067761463994c1de1edd4f8acd506a4f0e6"
+        },
+        "js/playground_music.js": {
+          "bytes": 11300,
+          "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+        },
+        "js/playground_sample_edit.js": {
+          "bytes": 17672,
+          "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+        },
+        "js/playground_scsp.js": {
+          "bytes": 5781,
+          "sha256": "3668fe4630fb98d398be8d9c433ad07ed3826f9066623f83fbda1a3b9e17f496"
+        },
+        "js/ps1_parameters.js": {
+          "bytes": 6237,
+          "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+        },
+        "js/ps1_spu.js": {
+          "bytes": 10862,
+          "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+        },
+        "js/ps1_vab.js": {
+          "bytes": 14976,
+          "sha256": "1f5b5f0a1f4fce7935b27a805aeccce24c1623e6f0ce5951c27639b3b5639a87"
+        },
+        "js/ps1synth.js": {
+          "bytes": 21748,
+          "sha256": "efe17157a7d127cf8835a6c0c5de1a17135ef9e11a417b111b61858050fc5193"
+        },
+        "js/scsp.js": {
+          "bytes": 10590,
+          "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+        },
+        "js/scsp_sample.js": {
+          "bytes": 2785,
+          "sha256": "2a7bf44cb99f284ebd00d345764ea1ee918a3345eace3e6c4ee0e46dd5d503cf"
+        },
+        "js/scspsynth.js": {
+          "bytes": 22640,
+          "sha256": "526bc324e3c2096175ed89c6d238bdb39306b487ad4d33a2f7331d5758e61818"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/tetorica_virtual_files/filesystem.js": {
+          "bytes": 20206,
+          "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+        },
+        "js/tetorica_virtual_files/path.js": {
+          "bytes": 1112,
+          "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+        },
+        "js/tetorica_virtual_files/reader.js": {
+          "bytes": 1404,
+          "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+        },
+        "js/tetorica_virtual_files/sync.js": {
+          "bytes": 5701,
+          "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "playground/playground_cassette.js": {
+          "bytes": 14751,
+          "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+        },
+        "playground/playground_declarations.js": {
+          "bytes": 2945,
+          "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+        },
+        "playground/playground_example_order.js": {
+          "bytes": 315,
+          "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+        },
+        "playground/playground_file_tree.js": {
+          "bytes": 4862,
+          "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+        },
+        "playground/playground_monaco.js": {
+          "bytes": 23112,
+          "sha256": "2f46e48535bdf8419dd9187c6b887dc50646bdee3f5f35a0e1c2a67860dacd45"
+        },
+        "playground/playground_monaco_completion.js": {
+          "bytes": 45033,
+          "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+        },
+        "playground/playground_monaco_definitions.js": {
+          "bytes": 25281,
+          "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+        },
+        "playground/playground_scsp_voice_panel.js": {
+          "bytes": 22889,
+          "sha256": "fbd4f73d9618fb50b050764d196930bbe0fed2de1f99c98e698eca0410dcf14a"
+        },
+        "playground/playground_virtual_files.js": {
+          "bytes": 5205,
+          "sha256": "d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41"
+        },
+        "playground/vendor/fflate.js": {
+          "bytes": 90922,
+          "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+        },
+        "synth-2a03/state_observer.js": {
+          "bytes": 3794,
+          "sha256": "8c74bb2c41eca685061aac707445c20d17f962131c8b14cca1a8771119fa33bd"
+        },
+        "synth-scsp/audio.js": {
+          "bytes": 7126,
+          "sha256": "19b1d026f6fe2ed2ba1d03d6cd1c3396ed14dd4e3542d8c701f310068294a206"
+        },
+        "synth-scsp/channel_view.js": {
+          "bytes": 5548,
+          "sha256": "1dca12229d7258775c030a34707f5fce3e4bad4d96d22a8eef6b768c708a5189"
+        },
+        "synth-scsp/code_audio.js": {
+          "bytes": 6073,
+          "sha256": "684b419f535b16667d1d35777e62c6e3060b9e71d228d105d0eac2bdcf3e284b"
+        },
+        "synth-scsp/code_declarations.js": {
+          "bytes": 5498,
+          "sha256": "a447b177fc18d331f1a0f49ebef474dc4349ff8c8c91428a2f544472a76e26e3"
+        },
+        "synth-scsp/code_endpoint.js": {
+          "bytes": 3676,
+          "sha256": "ae8e657fa848b8db44650cb135df3cab5bea63fc684c99f8f930fee848ac907b"
+        },
+        "synth-scsp/code_files.js": {
+          "bytes": 34364,
+          "sha256": "b478fb1585d6058b185ced7f14a0ff36d25e73f9c8893de9dc0fcb9d94be5de4"
+        },
+        "synth-scsp/code_host.js": {
+          "bytes": 4809,
+          "sha256": "8b2ed6d8d344fa04a4910e052965c710a06894297d6affc4ec7f70e3f1261c0b"
+        },
+        "synth-scsp/code_project.js": {
+          "bytes": 11988,
+          "sha256": "915199b4dbf245787f3a2baccb3e6aaf43d60ee5b5718f5e050d58d30db01ce9"
+        },
+        "synth-scsp/controls.js": {
+          "bytes": 4351,
+          "sha256": "54320271655aa311e5492d21e006a4e19c2b840365e2d41f07b7b936471f8187"
+        },
+        "synth-scsp/dsp.js": {
+          "bytes": 3815,
+          "sha256": "8a11271703090633972794bd8b0df9801a50e09df81b134f2f1dc2280a6de3e9"
+        },
+        "synth-scsp/dsp_assembler.js": {
+          "bytes": 8081,
+          "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+        },
+        "synth-scsp/dsp_program_view.js": {
+          "bytes": 6810,
+          "sha256": "39649606186adec68a22476ff8ee5e0adbfc7c917ef659975a4d4f478737d450"
+        },
+        "synth-scsp/instrument.js": {
+          "bytes": 29601,
+          "sha256": "3d85b0fb9b75467ac2c517cc35a2be571a415f4b5e4f32200e16638e4a0d4c66"
+        },
+        "synth-scsp/patch.js": {
+          "bytes": 3949,
+          "sha256": "cc2e9e509602ac99cf2cdc39b795b26d9a666e3b084f508965ea8b850f12ccaf"
+        },
+        "synth-scsp/preset.js": {
+          "bytes": 1968,
+          "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+        },
+        "synth-scsp/processor.js": {
+          "bytes": 8482,
+          "sha256": "bb559fa9aa06774215301be561d161893591e4aa7d3b4db73eb985cc31e0e346"
+        },
+        "synth-scsp/release_guard.js": {
+          "bytes": 2410,
+          "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+        },
+        "synth-scsp/routing.js": {
+          "bytes": 2133,
+          "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+        },
+        "synth-scsp/scsp_envelope_controls.js": {
+          "bytes": 2168,
+          "sha256": "e7eee9aa97e00d05fa1fff593bd9e2666c232cc13086287fbff81dfe2a2a198c"
+        },
+        "synth-scsp/song_controls.js": {
+          "bytes": 10265,
+          "sha256": "80214b7278288ab4e0e569c2489f14af271d585aade14228f1155fa0ad9d5b8e"
+        },
+        "synth-scsp/song_player.js": {
+          "bytes": 20191,
+          "sha256": "90d26f30463de3d07cd2e6786c8786f81aa16180e0db4741ec138f0aa2928151"
+        },
+        "synth-scsp/song_source.js": {
+          "bytes": 13566,
+          "sha256": "98598c1ce309370e914b8386bb14c06407d5488b5e910ec87dad519b824d2a5e"
+        },
+        "synth-scsp/ssf_capture.js": {
+          "bytes": 9665,
+          "sha256": "54c805483f225d2f767d3b1593664c79ace1ff87bc77b4aa4388b1b3b6d6920a"
+        },
+        "synth-scsp/ssf_live_history.js": {
+          "bytes": 991,
+          "sha256": "c86e6000c831175839dfefee82bede0352d3431a7c8aa717f4f66fc366794c90"
+        },
+        "synth-scsp/ssf_live_view.js": {
+          "bytes": 18251,
+          "sha256": "354963f8ca9221ba0304e799e3b720e68caab8e59655cd56a2596c68a6a36d26"
+        },
+        "synth-scsp/ssf_renderer.js": {
+          "bytes": 7791,
+          "sha256": "8e6f4f507794dd2f7799e9b4a0b2c3504fc69fa45214ce48cd795eb284ed9282"
+        },
+        "synth-scsp/ssf_snapshot.js": {
+          "bytes": 5340,
+          "sha256": "f120c6fbd04a7ec36bea344ec5cf1cde59c934e4980c6f6cf2560df3407ebb14"
+        },
+        "synth-scsp/ssf_source.js": {
+          "bytes": 12682,
+          "sha256": "9101d74902d03f79570cd85991a3df354fa91ee5b9749f0c518faaf03a75fa13"
+        },
+        "synth-scsp/ssf_voice_edits.js": {
+          "bytes": 3774,
+          "sha256": "b62662003d9c41b2e0e1d58c97062b9e4abf0a2bcd609162e8659feddfb3f119"
+        },
+        "synth-scsp/ssf_voice_parameters.js": {
+          "bytes": 2306,
+          "sha256": "671c4496f5b46aef5274800237b83950aa14dd128018e411e356518fa86b7d1d"
+        },
+        "synth-scsp/synth.css": {
+          "bytes": 20966,
+          "sha256": "330baf65e612d1c944c0d3fc50b626c7fcb39f25068a698de09b711ab5a849af"
+        },
+        "synth-scsp/synth.js": {
+          "bytes": 42630,
+          "sha256": "73188f69df2807038879f6178052cf70b8677fb8ba47f8dc0d5cac45d548d66a"
+        },
+        "synth-spu/file_context_menu.js": {
+          "bytes": 6313,
+          "sha256": "246c5bc3108826c68c85c3539c45bafa939e1ef99d69dd84cf81b416e40786c3"
+        },
+        "synth-spu/spu_synth_visualizer.js": {
+          "bytes": 10421,
+          "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+        },
+        "synth-spu/synth.css": {
+          "bytes": 36580,
+          "sha256": "d3c1a57beb040cb1a4cecea807eeb9c15aa527a9d036c4c04f8d11ca67b56869"
+        },
+        "synth/synth_code_controls.js": {
+          "bytes": 21848,
+          "sha256": "a95e856263570b9e77ba3a97a8eb9ef58564c55472da17de4f67a5c3ffc95216"
+        },
+        "synth/synth_code_declarations.js": {
+          "bytes": 7470,
+          "sha256": "81481fb37ff76c23afb9996432caa40f962a3446a892e9cb2a3ce968f85c9d93"
+        },
+        "synth/synth_code_output.js": {
+          "bytes": 4973,
+          "sha256": "dca6ef03aca997f55fda55684fd6e0aa8dd8beb246c68a59ef8ac85efab4e112"
+        },
+        "synth/synth_code_project.js": {
+          "bytes": 1623,
+          "sha256": "7fbc1f8b5df80b2fbbfb4d19fa1f36906563f8762317466102ba19d228d17026"
+        },
+        "synth/synth_draft_store.js": {
+          "bytes": 3656,
+          "sha256": "e5425ddf930f0860531aa8566c6ed122577598447876c17b1ce10384f96335b6"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 10010,
+          "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+        },
+        "synth/synth_menu.js": {
+          "bytes": 1808,
+          "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+        },
+        "synth/synth_project_store.js": {
+          "bytes": 1835,
+          "sha256": "6ec7a4b2f234285636a406170359810be96aba58de18e3f7450ac19f3eba1636"
+        },
+        "tetorica-scsp-synth.webp": {
+          "bytes": 496728,
+          "sha256": "3ba12223115111300d7a6f0df3d3232489be15fdb354d188a85af1e2b70f2740"
+        }
+      }
+    }
+  },
+  "limits": [
+    "Displays the built-in Synth Delay, not the separate SSF player DSP or a live program dump.",
+    "Exports microprogram text only; live coefficient / RAM / routing settings are separate.",
+    "No live editing / Apply / program replacement or new public npm API.",
+    "No runtime / DSP / SDK / WASM rebuild, Tauri import, commit, push or release upload.",
+    "Browser editor uses local fallback; all speaker routes permanently gain0 and OS clipboard stubbed."
+  ]
+}

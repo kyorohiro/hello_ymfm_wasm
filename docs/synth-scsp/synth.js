@@ -9,6 +9,7 @@ import { setupScspCodeHost } from './code_host.js';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-view-1';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
@@ -287,7 +288,7 @@ function renderState() {
 	$('effectEnabled').checked = state.config.effect.enabled;
 	text(
 		$('scspDspTab'),
-		state.config.effect.enabled ? 'DSP · Experimental Delay on' : 'DSP · Under construction',
+		state.config.effect.enabled ? 'DSP · Delay on' : 'DSP',
 	);
 	const { inputs, outputs, count } = state.routing;
 	$('routingSummary').textContent = inputs
@@ -1128,6 +1129,7 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
+const disposeDspProgramView = setupScspDspProgramView();
 setupSynthMenu({ document, window });
 $('loadPreset').addEventListener('click', () => $('open').click());
 $('open').addEventListener('change', async () => {
@@ -1239,6 +1241,7 @@ window.addEventListener('pagehide', (event) => {
 		return;
 	}
 	disposed = true;
+	disposeDspProgramView();
 	epoch++;
 	held.clear();
 	observer.dispose();

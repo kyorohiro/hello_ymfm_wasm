@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-view-1" />
 	</head>
 	<body>
 		<main>
@@ -359,7 +359,7 @@
 								aria-controls="scspDspPanel"
 								tabindex="-1"
 							>
-								DSP · Under construction
+								DSP
 							</button>
 						</div>
 						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
@@ -551,8 +551,46 @@
 							aria-labelledby="scspDspTab"
 							hidden
 						>
-							<h2>DSP programming · Under construction</h2>
-							<p>Assembler and microprogram editing are planned.</p>
+							<h2>SCSP DSP</h2>
+							<section id="scspDspProgramView" aria-labelledby="scspDspProgramHeading">
+								<div class="scsp-dsp-program-heading">
+									<div>
+										<h3 id="scspDspProgramHeading">Built-in Synth Delay · Read-only</h3>
+										<p class="scsp-dsp-program-summary">6 authored steps in a 128-step image.</p>
+									</div>
+									<div class="scsp-dsp-program-actions">
+										<button id="scspDspProgramCopy" type="button">Copy .scspasm</button>
+										<button id="scspDspProgramSave" type="button">Save .scspasm</button>
+									</div>
+								</div>
+								<div
+									class="scsp-dsp-program-scroll"
+									role="region"
+									aria-label="Built-in Delay instructions"
+									tabindex="0"
+								>
+									<table class="scsp-dsp-program-table">
+										<thead>
+											<tr><th scope="col">Step</th><th scope="col">Instruction</th><th scope="col">Role</th></tr>
+										</thead>
+										<tbody id="scspDspProgramRows"></tbody>
+									</table>
+								</div>
+								<p id="scspDspProgramStatus" class="scsp-dsp-program-status" role="status" aria-live="polite"></p>
+								<details class="scsp-inline-help scsp-dsp-program-help">
+									<summary aria-label="About the Delay program">?</summary>
+									<p>
+										Each step sets several controls in parallel. Output and memory writes
+										use the previous accumulator. In the current core, RAM reads and
+										writes run on odd steps, and IWT latches the preceding read.
+									</p>
+									<p>
+										Coefficients, RAM addresses and routing are configured alongside
+										this program. SSF playback owns its DSP program in the song engine.
+										Program editing and live replacement are planned.
+									</p>
+								</details>
+							</section>
 							<details id="scspDelayPanel" class="scsp-disclosure">
 								<summary>Experimental · fixed mono Delay</summary>
 								<div class="scsp-fields">
@@ -800,6 +838,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-view-1"></script>
 	</body>
 </html>

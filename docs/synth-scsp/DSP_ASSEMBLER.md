@@ -5,6 +5,12 @@ It translates text to a complete 128-step program and back, without connecting
 to a chip, uploading a program or opening an audio device. The running Synth
 continues to use its existing Delay installer.
 
+The Synth's **DSP** tab displays the six steps and their roles before audio
+starts. **Copy .scspasm** / **Save .scspasm** export annotated source that can
+be assembled by this codec. The view describes the built-in Synth Delay;
+SSF playback owns a separate DSP program. Editing and live replacement in the
+tab are later work.
+
 Start with [examples/delay.scspasm](examples/delay.scspasm). It is the same
 six-step program as [delayProgram()](dsp.js), expressed with the pinned core's
 field names. The syntax is provisional; it is not SEGA assembler compatibility.

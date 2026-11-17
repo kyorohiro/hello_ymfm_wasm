@@ -377,6 +377,122 @@ select {
 	font-size: 0.74rem;
 	color: var(--muted);
 }
+.scsp-dsp-program-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px 16px;
+	margin: 14px 0 12px;
+}
+.scsp-dsp-program-heading h3 {
+	margin: 0;
+	font-size: 0.8rem;
+	color: #c9e5f8;
+}
+.scsp-dsp-program-summary {
+	margin: 5px 0 0;
+	font-size: 0.7rem;
+	color: var(--muted);
+}
+.scsp-dsp-program-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	min-width: 0;
+}
+.scsp-dsp-program-actions button {
+	min-height: 32px;
+	padding: 6px 10px;
+	font-size: 0.73rem;
+}
+#scspDspProgramView {
+	min-width: 0;
+}
+.scsp-dsp-program-scroll {
+	max-width: 100%;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #162332;
+}
+.scsp-dsp-program-scroll:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+.scsp-dsp-program-table {
+	width: 100%;
+	min-width: 680px;
+	border-collapse: collapse;
+	font-size: 0.72rem;
+	text-align: left;
+}
+.scsp-dsp-program-table th,
+.scsp-dsp-program-table td {
+	padding: 10px 12px;
+	border-bottom: 1px solid #435267;
+	vertical-align: top;
+}
+.scsp-dsp-program-table thead th {
+	color: var(--muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+}
+.scsp-dsp-program-table tbody th {
+	width: 3rem;
+	color: #9dd6f4;
+	font-variant-numeric: tabular-nums;
+}
+.scsp-dsp-program-table td:nth-child(2) {
+	width: 52%;
+}
+.scsp-dsp-program-table code {
+	display: block;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #dcebf7;
+	white-space: normal;
+	font: 0.68rem/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.scsp-dsp-program-table td:last-child {
+	color: #c2d1e1;
+	line-height: 1.5;
+}
+.scsp-dsp-program-table td:last-child strong {
+	display: block;
+	color: var(--ink);
+}
+.scsp-dsp-program-table td:last-child p {
+	margin: 4px 0 0;
+	font-size: 0.68rem;
+}
+.scsp-dsp-program-table tr:last-child > * {
+	border-bottom: 0;
+}
+.scsp-dsp-program-status {
+	margin: 10px 0 0;
+	color: var(--muted);
+	font-size: 0.7rem;
+	overflow-wrap: anywhere;
+}
+.scsp-dsp-program-status:empty {
+	display: none;
+}
+.scsp-dsp-program-status[data-error='true'] {
+	color: #ffaaa0;
+}
+.scsp-dsp-program-help {
+	margin-top: 10px;
+}
+@media (max-width: 480px) {
+	.scsp-dsp-program-actions {
+		width: 100%;
+	}
+	.scsp-dsp-program-actions button {
+		flex: 1 1 130px;
+	}
+}
 .scsp-preset-toolbar {
 	display: flex;
 	flex-wrap: wrap;

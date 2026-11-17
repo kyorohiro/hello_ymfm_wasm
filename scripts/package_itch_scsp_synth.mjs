@@ -99,6 +99,15 @@ export async function packageScspSynth({
 		await copyFile(join(root, source), join(stage, 'playground', name));
 		inputs.add(source);
 	}
+	// Keep the format guide, declaration and authored example beside the copied
+	// assembler modules, so the exported program remains easy to study / reuse.
+	for (const name of ['dsp_assembler.d.ts', 'DSP_ASSEMBLER.md', 'examples/delay.scspasm']) {
+		const source = 'docs/synth-scsp/' + name;
+		const destination = join(stage, 'synth-scsp', name);
+		await mkdir(join(destination, '..'), { recursive: true });
+		await copyFile(join(root, source), destination);
+		inputs.add(source);
+	}
 	for (const [source, destination] of [
 		['docs/playground/vendor/fflate-LICENSE', 'playground/vendor/fflate-LICENSE'],
 		['packages/virtual-files/LICENSE', 'licenses/tetorica-virtual-files/LICENSE'],

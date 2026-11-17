@@ -83,5 +83,6 @@ installer, WASM / SDK, live UI and package publication remain unchanged.
 See [usage](../synth-scsp/DSP_ASSEMBLER.md),
 [verification](verification_scsp_dsp_assembler_20261117.md) and
 [machine evidence](verification_scsp_dsp_assembler_20261117.json).
-No commit or push performed. A later milestone can connect a read-only DSP
-listing to the Synth before designing live program replacement.
+No commit or push was performed during that milestone. The subsequent
+[read-only DSP listing](todo_scsp_dsp_program_view_20261117.md) is now complete.
+Live program replacement remains a later milestone.

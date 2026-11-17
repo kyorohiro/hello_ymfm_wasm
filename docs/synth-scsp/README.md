@@ -319,10 +319,18 @@ and [PSF / SSF specification](https://gist.github.com/SaxxonPike/11618bd321a45a7
 
 ## Experimental DSP Delay
 
-The DSP tab marks assembler and microprogram editing as under construction.
-Its collapsed experimental section retains the existing fixed mono Delay.
-The tab indicates when this effect is enabled. A six-step program runs in
-the SCSP DSP. Enable it and release a short note to hear repeats.
+The DSP tab displays the built-in Synth Delay as six numbered instructions,
+with a short explanation of each step's role. The listing is available before
+audio starts. **Copy .scspasm** and **Save .scspasm** export annotated text that
+the field assembler can turn back into its complete 128-step image. The listing
+shows the Synth's fixed Delay source. SSF playback owns its DSP program in the
+song engine. The **?** opens the pipeline and program configuration notes.
+On a narrow screen, scroll the table horizontally to read the Role column.
+Focusing the table also enables Left / Right arrow navigation.
+
+The collapsed experimental section contains the fixed mono Delay controls.
+The tab indicates when this effect is enabled. Enable it and release a short
+note to hear repeats.
 
 Time spans 20–700 ms, Feedback 0–0.85, and Send / Return hardware levels
 0–7. Initial Send 7 / Return 6 produces a first echo near half the dry
@@ -333,9 +341,9 @@ The first 64 KiB of RAM remains reserved for the DSP ring, leaving
 448 KiB for editor PCM and modulation guards. Feedback, Send and Return
 update live. DSP Lab provides a dedicated dry / wet comparison.
 
-An experimental local [DSP field assembler](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
-can display and reassemble this Delay from editable text. Its first version is
-a pure JavaScript codec and Node CLI; live program editing in this tab is later work.
+The experimental local field assembler provides JavaScript functions and a
+Node CLI for editing the exported text. Program editing and live replacement
+in the DSP tab are planned. [DSP field assembler guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-scsp/DSP_ASSEMBLER.md)
 
 ## Implementation and distribution
 
