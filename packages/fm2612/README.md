@@ -1165,6 +1165,11 @@ independent of the output rate.
 
 ### Inspect and schedule YM2612 register operations
 
+Available from **0.2.41**. AY/YM2149 Playground clients expose the same
+`build()` / `compile()` / `captureState()` / `schedule()` / `clearSchedule()`
+operation model through the included `ay8910_operations` and
+`ay8910_timed_client` modules, using their own register-only authoring methods.
+
 After `await synth.start()`, `synth.fm` supports the additive timed operation
 API. Existing immediate calls and `scheduleWrites()` keep their behavior.
 
@@ -1631,10 +1636,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.40.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.41.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.40.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.41.tgz
 ```
 
 The build pins an unpublished `tetorica-soundchip-native` SDK **0.1.7** source
@@ -1662,6 +1667,24 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.41` adds timed register-operation authoring for AY/YM2149 and YM2612:
+state-free `build()`, detached `compile()` traces, reusable `captureState()`
+snapshots and named `schedule()` / `clearSchedule()` reservations. Worklets
+resolve partial fields when applied, keep repeated trigger writes, and execute
+seconds / reference-sample offsets on the audio sample clock. YM2612 supports
+ymfm and Nuked with port-aware Operator and Key On/Off operations. Main/Worker,
+Run/Apply/Stop ownership, bounded admission and public declarations are included.
+Existing immediate calls and YM2612 `scheduleWrites()` remain available. Native
+timed execution and authoritative capture explicitly reject; client/reset
+compilation remains local. See the [timed API guide](#inspect-and-schedule-ym2612-register-operations).
+
+The release also includes current shared-runtime updates since 0.2.40: AY
+Single Output and flags handling with measured Mixer defaults, SCSP attack/loop
+link, dense WonderSwan VGM timelines, HuC6280 state/seek support, S-DSP direct
+voice editing and independently adjustable YM2608 FM/SSG output gains with
+updated state compatibility. Readable JavaScript, corresponding source kits,
+licenses, declarations and fixed WASM receipts remain included.
 
 `0.2.40` exposes standard PS1 VAB v6/v7 helpers at the package root and
 `ps1_vab.js` / `ps1_vab` subpaths: `readVab()`, `prepareVabTone()` and

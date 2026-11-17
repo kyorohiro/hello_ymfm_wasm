@@ -5,6 +5,10 @@ chip operations, with the existing immediate register conversion reused by a
 detached resolver. Existing immediate APIs and legacy `scheduleWrites()` remain
 available.
 
+Follow-up: `tetorica-fm2612@0.2.41` was published and registry-verified on
+2026-11-17. See [the npm release record](npm_ym2612_timed_release_20261117.md).
+The original implementation results below describe the pre-publication build.
+
 ## Try it
 
 Open FM2612 Synth, choose Files → examples → `timed-operators.js`, then Code →

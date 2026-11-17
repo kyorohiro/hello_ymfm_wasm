@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "package": "tetorica-fm2612",
+  "version": "0.2.41",
+  "status": "published and public registry tarball verified",
+  "published": true,
+  "publishRequestAccepted": true,
+  "publishExitCode": 0,
+  "publishAcceptedAt": "2026-11-17T07:37:32.135Z",
+  "sourceCommit": "0ea54fd359d6443207f4d8b1b64d1af26ee67c22",
+  "registry": "https://registry.npmjs.org/",
+  "candidate": {
+    "package": "tetorica-fm2612",
+    "version": "0.2.41",
+    "path": "build/npm-ym2612-timed-release-20261117/tetorica-fm2612-0.2.41.tgz",
+    "bytes": 2871871,
+    "sha256": "8389403b0ecc1833718ba4acf22e19720e4ed7c52402acc345e92a00c11a1fb4",
+    "shasum": "48b42b803c4c4a01cdf594c127f4f3c52b8162e5",
+    "integrity": "sha512-ZcI76xCsFaUCKsdSLBpXEnGv7IagoVUX1nCoQKrWIKZhJpKB1VY1uctf3nCGU8xYhh132CeVjbzSwZSHTr10ig==",
+    "fileCount": 1275,
+    "unpackedSize": 11636124,
+    "sourceCommit": "0ea54fd3",
+    "validation": {
+      "installedRuntime": true,
+      "wasmEngines": 28,
+      "renderers": 15,
+      "strictTypeProfiles": [
+        "NodeNext",
+        "Bundler",
+        "browser without Node ambient types"
+      ],
+      "physicalOutputUsed": false
+    },
+    "retainedCheckDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-fm2612-check-JEhpbo"
+  },
+  "comparison": {
+    "previousVersion": "0.2.40",
+    "added": [
+      "ay8910_operations.d.ts",
+      "ay8910_operations.js",
+      "ay8910_timed_client.d.ts",
+      "ay8910_timed_client.js",
+      "ay8910_timed_processor.d.ts",
+      "ay8910_timed_processor.js",
+      "ay8910_timed_state.d.ts",
+      "ay8910_timed_state.js",
+      "playground_ay_timed_lifecycle.d.ts",
+      "playground_ay_timed_lifecycle.js",
+      "spc_voice_edit.d.ts",
+      "spc_voice_edit.js",
+      "ym2612_operation_state.d.ts",
+      "ym2612_operation_state.js",
+      "ym2612_operations.d.ts",
+      "ym2612_operations.js",
+      "ym2612_timed_client.d.ts",
+      "ym2612_timed_client.js",
+      "ym2612_timed_processor.d.ts",
+      "ym2612_timed_processor.js",
+      "ym2612_timed_state.d.ts",
+      "ym2612_timed_state.js"
+    ],
+    "removed": [],
+    "changedFiles": 125,
+    "unchangedFiles": 1128,
+    "changedWasm": [
+      "generated/ay8910_wasm.wasm",
+      "generated/huc6280_wasm.wasm",
+      "generated/sid8580-machine/sid8580-endpoint.wasm",
+      "generated/sid8580-machine/sid8580-machine.wasm",
+      "generated/spc_wasm.wasm",
+      "generated/ym2608_wasm.wasm"
+    ]
+  },
+  "evidence": "docs/issues/verification_ym2612_timed_api_20261117.json",
+  "physicalOutputUsed": false,
+  "authenticationInformationStored": false,
+  "gitCommitPushTagPerformed": false,
+  "examplesRepositoryChanged": false,
+  "notes": [
+    "YM2612 and AY/YM2149 timed operations are new to npm in this release.",
+    "SID8580 endpoint/machine WASMs and source kits also include additive live manual register writes and source-write revision tracking; the upstream sidera model is unchanged."
+  ],
+  "verifiedAt": "2026-11-17T07:42:38.222Z",
+  "packagePage": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.41",
+  "distTags": {
+    "latest": "0.2.41"
+  },
+  "tarball": {
+    "package": "tetorica-fm2612",
+    "version": "0.2.41",
+    "verifiedAt": "2026-11-17T07:42:38.222Z",
+    "latest": "0.2.41",
+    "versionAvailable": true,
+    "verifiedCandidateBytesIdentical": true,
+    "bytes": 2871871,
+    "sha256": "8389403b0ecc1833718ba4acf22e19720e4ed7c52402acc345e92a00c11a1fb4",
+    "shasum": "48b42b803c4c4a01cdf594c127f4f3c52b8162e5",
+    "integrity": "sha512-ZcI76xCsFaUCKsdSLBpXEnGv7IagoVUX1nCoQKrWIKZhJpKB1VY1uctf3nCGU8xYhh132CeVjbzSwZSHTr10ig==",
+    "path": "build/npm-ym2612-timed-release-20261117/registry/tetorica-fm2612-0.2.41.tgz",
+    "url": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.41.tgz",
+    "fileCount": 1275,
+    "unpackedSize": 11636124
+  },
+  "verifiedCandidateBytesIdentical": true,
+  "registryVerification": "build/npm-ym2612-timed-release-20261117/registry-verification.json",
+  "releaseWorkingTreeRecords": {
+    "packages/fm2612/package.json": {
+      "bytes": 2482,
+      "sha256": "7b4e16e9b88a67f157a67e2fb691822a5acf4dc7da1ef4165e122b3a99567903"
+    },
+    "packages/fm2612/README.md": {
+      "bytes": 118037,
+      "sha256": "983d5cc8046f38daf0fd5d848f262a9e48f0d5f99a598125d6396335d512d38c"
+    }
+  }
+}

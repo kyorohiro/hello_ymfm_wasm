@@ -27,7 +27,11 @@ Completed evidence: [verification and usage](verification_ym2612_timed_api_20261
 and [machine-readable results](verification_ym2612_timed_api_20261117.json).
 Runtime 4033 / Synth 699 tests passed; 28 muted browser cases, installed npm
 runtime / declarations, and all four affected distribution ZIPs passed.
-The package remains unpublished at version 0.2.40. No commit or push was made.
+Implementation validation used a local 0.2.40 candidate. The user subsequently
+committed the feature as `0ea54fd3`. Follow-up publication of
+`tetorica-fm2612@0.2.41` is complete, with registry latest and exact downloaded
+tarball / integrity verified. See the [release record](npm_ym2612_timed_release_20261117.md).
+Publication metadata changes have not been committed or pushed by the agent.
 
 Do not add Looper / Event Rec, PCM transfer / DSP scheduling, all-chip abstraction
 or a new public musical `play()` API. Do not commit, push or publish unless asked.
