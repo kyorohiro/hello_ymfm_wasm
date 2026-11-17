@@ -39,7 +39,7 @@ export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{}}=
     const resumed=context.resume();
     const [wasmBinary]=await Promise.race([Promise.all([
       fetch(new URL('../generated/scsp_wasm.wasm',import.meta.url),{signal:controller.signal}).then(r=>{if(!r.ok)throw new Error(`SCSP WASM HTTP ${r.status}`);return r.arrayBuffer();}),
-      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-dsp-save-1',import.meta.url)),resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-dsp-ui-routing-1',import.meta.url)),resumed,
     ]),startupFailure]);assertOpen();
     const ready=new Promise(resolve=>{readyResolve=resolve;});
     node=new AudioWorkletNode(context,'tetorica-scsp-synth',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary}});
@@ -49,6 +49,10 @@ export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{}}=
       if(data?.fatal){fail(new Error(data.error));return;}
       if(data?.ready){readyResolve();return;}
       const p=pending.get(data?.id);if(!p)return;pending.delete(data.id);nativeClearTimer(p.timer);
+      if(!data.error&&Object.hasOwn(data,'dspRoutingState')){
+        try{onDspChange({method:'routingState',value:data.dspRoutingState});}
+        catch(error){console.error('SCSP DSP routing display sync failed',error);}
+      }
       if(data.error){const error=new Error(data.error);error.name=data.name??'Error';p.reject(error);}else p.resolve(data.value);
     };
     await Promise.race([ready,startupFailure]);assertOpen();nativeClearTimer(startupTimer);
@@ -80,8 +84,8 @@ export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{}}=
             // Remember owner-acknowledged setup before the borrowed call resolves.
             // Coefficient motion sends only three codes, never the MPRO image.
             // Stop retires a client but keeps already-committed shared DSP edits.
-            if(!closed&&!fatal&&context.state!=='closed'&&['applyDspProgram','setDspCoefficients','setEffect'].includes(method)){
-              try{onDspChange({method,value});}
+            if(!closed&&!fatal&&context.state!=='closed'&&['applyDspProgram','setDspCoefficients','setEffect','setDspSend','setDspSourceSend','setDspReturn'].includes(method)){
+              try{onDspChange({method,value,...(['setDspSend','setDspSourceSend','setDspReturn'].includes(method)?{args:structuredClone(args)}:{})});}
               catch(error){console.error('SCSP Code DSP display sync failed',error);}
             }
             if(!current())throw scspCodeCancelled();

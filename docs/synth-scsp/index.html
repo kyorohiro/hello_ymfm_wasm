@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-dsp-save-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-ui-routing-1" />
 	</head>
 	<body>
 		<main>
@@ -362,7 +362,6 @@
 								DSP
 							</button>
 						</div>
-						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
 							<div
 								id="scspChannelTabs"
 								class="scsp-channel-tabs"
@@ -372,6 +371,7 @@
 							<p id="scspChannelSummary" class="scsp-channel-summary" role="status">
 								Auto · grouped keyboard / Code voices.
 							</p>
+						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
 							<div id="scspPhysicalControls" class="scsp-fields" hidden>
 								<label for="scspPhysicalFrequency">Frequency · Hz
 									<input id="scspPhysicalFrequency" type="number" min="0.001"
@@ -552,6 +552,47 @@
 							hidden
 						>
 							<h2>SCSP DSP</h2>
+                            <section id="scspDspRouting" class="scsp-dsp-routing" aria-labelledby="scspDspRoutingHeading">
+                                <div class="scsp-dsp-routing-heading">
+                                    <h3 id="scspDspRoutingHeading">Routing · live</h3>
+                                    <label class="effect-enable"><input id="effectEnabled" type="checkbox" /> Enable DSP returns</label>
+                                    <details class="scsp-inline-help">
+                                        <summary aria-label="About DSP routing">?</summary>
+                                        <p>Each voice sends to MIXS0 or MIXS1. The DSP program decides which effect output receives it. Input buses, effect outputs and voice channels are separate.</p>
+                                        <p>Auto edits the selected source A–F and its grouped voices. A CH selection edits that physical channel. Auto allocation may overwrite a physical channel when it reuses it. Default restores inherited routing.</p>
+                                        <p>Send and Return levels are hardware codes 0–7. Pan: 0 center, 15 right only, 31 left only. Set Direct level to 0 in the voice editor to hear only the DSP.</p>
+                                        <p>These controls edit the Synth DSP; SSF has its own program. Save setup to Code keeps the DSP program, routing and returns. Voice presets keep their existing instrument format.</p>
+                                    </details>
+                                </div>
+                                <div class="scsp-dsp-routing-grid">
+                                    <div class="scsp-dsp-routing-card">
+                                        <h4 id="scspDspSendTarget">Auto · source A</h4>
+                                        <div class="scsp-fields">
+                                            <label id="scspDspSourceLabel">Source <select id="scspDspSource"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option><option value="4">E</option><option value="5">F</option></select></label>
+                                            <label>Input <select id="scspDspInput"><option value="0">MIXS0</option><option value="1">MIXS1</option></select></label>
+                                            <label>Send <input id="scspDspSend" type="number" min="0" max="7" step="1" value="7" /></label>
+                                        </div>
+                                        <button id="scspDspRouteDefault" type="button">Default</button>
+                                        <p id="scspDspRouteStatus" class="scsp-dsp-route-status">Inherited routing</p>
+                                    </div>
+                                    <div class="scsp-dsp-routing-card">
+                                        <h4>Return 0 · EFREG0</h4>
+                                        <div class="scsp-fields">
+                                            <label>Level <input id="effectReturn" type="number" min="0" max="7" step="1" value="6" /></label>
+                                            <label>Pan <input id="scspDspReturn0Pan" type="number" min="0" max="31" step="1" value="0" /></label>
+                                        </div>
+                                        <p id="scspDspReturn0Status" class="scsp-dsp-route-status">Center</p>
+                                    </div>
+                                    <div class="scsp-dsp-routing-card">
+                                        <h4>Return 1 · EFREG1</h4>
+                                        <div class="scsp-fields">
+                                            <label>Level <input id="scspDspReturn1Level" type="number" min="0" max="7" step="1" value="0" /></label>
+                                            <label>Pan <input id="scspDspReturn1Pan" type="number" min="0" max="31" step="1" value="0" /></label>
+                                        </div>
+                                        <p id="scspDspReturn1Status" class="scsp-dsp-route-status">Muted</p>
+                                    </div>
+                                </div>
+                            </section>
 							<section id="scspDspProgramView" aria-labelledby="scspDspProgramHeading">
 								<div class="scsp-dsp-program-heading">
 									<div>
@@ -606,7 +647,7 @@
 										Save setup to Code writes the applied Synth DSP program, coefficients
 										and effect settings to Files. It keeps your draft and current
 										performance. Select the saved JavaScript and Run to restore that
-										setup. PCM, voice routing, live DSP history and the separate SSF
+										setup. PCM, notes, live DSP history and the separate SSF
 										engine are not included.
 									</p>
 									<p>
@@ -636,7 +677,7 @@
 									</p>
 									<p>
 										This first profile keeps the existing packed 64 KiB ring, COEF0–2,
-										MADRS0–1 and EFREG0 return. Check rejects unsupported controls.
+										MADRS0–1 for Delay; RAM-free programs can use MIXS0/1 and EFREG0/1. Check rejects unsupported controls.
 										Each step sets controls in parallel; output and memory writes use
 										the previous accumulator. RAM I/O runs on odd steps in this core.
 									</p>
@@ -701,12 +742,9 @@
 								<p id="scspDspCoefficientsStatus" class="scsp-dsp-program-status" role="status" aria-live="polite"></p>
 							</section>
 							<details id="scspDelayPanel" class="scsp-disclosure">
-								<summary id="scspDspParametersSummary">Experimental · DSP routing / Delay</summary>
+								<summary id="scspDspParametersSummary">Delay / defaults</summary>
 								<div class="scsp-fields">
-									<label class="effect-enable"
-										><input id="effectEnabled" type="checkbox" disabled />
-										Enable DSP return</label
-									><label
+									<label
 										>Time · ms
 										<input
 											id="delayTime"
@@ -726,24 +764,14 @@
 											value="0.35"
 											disabled /></label
 									><label
-										>Send
+										>Default Send
 										<input
 											id="effectSend"
 											type="number"
 											min="0"
 											max="7"
 											value="7"
-											disabled /></label
-									><label
-										>Return
-										<input
-											id="effectReturn"
-											type="number"
-											min="0"
-											max="7"
-											value="6"
-											disabled
-									/></label>
+											disabled /></label>
 								</div>
 									<p id="scspDspParametersHint">
 									The built-in program produces mono Delay. Time and Enable changes
@@ -947,6 +975,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-save-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-ui-routing-1"></script>
 	</body>
 </html>

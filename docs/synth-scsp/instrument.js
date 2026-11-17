@@ -4,7 +4,7 @@ import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
 import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-dsp-coef-1';
-import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-fir-1';
+import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-ui-routing-1';
 import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
@@ -16,6 +16,32 @@ const hz=(midi,transpose)=>440*2**((midi-69+transpose)/12);
 const IDLE_RAM_BYTES=524288;
 const idleInteger=(value,minimum,maximum,name)=>{if(!Number.isSafeInteger(value)||value<minimum||value>maximum)throw new RangeError(`Idle ${name} must be ${minimum}..${maximum}`);};
 const sameIdleSample=(a,b)=>!!a&&!!b&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(key=>Object.hasOwn(b,key)&&a[key]===b[key]);
+function dspSendPatch(patch,current){
+  if(patch===null)return null;
+  if(!patch||typeof patch!=='object'||Array.isArray(patch)||Reflect.ownKeys(patch).some(key=>!['input','level'].includes(key)))throw new TypeError('Invalid DSP send settings');
+  const values={...patch},next={...(typeof current==='function'?current():current),...values};
+  if(!Number.isInteger(next.input)||next.input<0||next.input>1)throw new RangeError('DSP input must be 0 or 1');
+  if(!Number.isInteger(next.level)||next.level<0||next.level>7)throw new RangeError('DSP Send level must be 0..7');
+  return next;
+}
+function dspRoutingState(value){
+  if(!value||typeof value!=='object'||Reflect.ownKeys(value).length!==2||!Object.hasOwn(value,'overrides')||!Object.hasOwn(value,'returns'))throw new TypeError('Invalid idle DSP routing state');
+  const overrides=value.overrides;
+  if(!overrides||typeof overrides!=='object'||Reflect.ownKeys(overrides).length!==2||!Object.hasOwn(overrides,'sources')||!Object.hasOwn(overrides,'slots'))throw new TypeError('Invalid idle DSP routing overrides');
+  const arrays={};
+  for(const [key,count]of [['sources',SOURCE_COUNT],['slots',32]]){
+    const input=overrides[key];if(!Array.isArray(input)||input.length!==count||Reflect.ownKeys(input).length!==count+1)throw new TypeError('Invalid idle DSP routing '+key);
+    arrays[key]=Array.from(input,entry=>{if(entry!==null&&(!entry||Reflect.ownKeys(entry).length!==2||!Object.hasOwn(entry,'input')||!Object.hasOwn(entry,'level')))throw new TypeError('Incomplete idle DSP send');return dspSendPatch(entry,{input:0,level:0});});
+  }
+  if(!Array.isArray(value.returns)||value.returns.length!==2||Reflect.ownKeys(value.returns).length!==3)throw new TypeError('Invalid idle DSP returns');
+  const returns=Array.from(value.returns,entry=>{
+    if(!entry||typeof entry!=='object'||Reflect.ownKeys(entry).length!==2||!Object.hasOwn(entry,'level')||!Object.hasOwn(entry,'pan'))throw new TypeError('Invalid idle DSP return');
+    const value={level:entry.level,pan:entry.pan};
+    if(!Number.isInteger(value.level)||value.level<0||value.level>7||!Number.isInteger(value.pan)||value.pan<0||value.pan>31)throw new TypeError('Invalid idle DSP return');
+    return value;
+  });
+  return {overrides:arrays,returns};
+}
 function validateIdleTransport(state){
   if(!state||state.sampleRate!==44100||!Array.isArray(state.slots)||state.slots.length!==32||state.slots.some(voice=>voice?.gate!==false))throw new TypeError('Idle state requires 32 released requested slots');
   for(const key of ['playingFrequencies','playingLfos','playingModulations','playingSampleIds'])if(!Array.isArray(state[key])||state[key].length!==32||state[key].some(value=>value!==null))throw new TypeError('Idle state cannot contain playing references');
@@ -56,6 +82,7 @@ export class SynthInstrument {
   constructor(core){
     this.core=core;this.synth=new ScspSynth(core);this.releaseGuard=new ScspReleaseGuard(core);this.config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});this.groups=new Map();this.manualVoices=new Map();this.sequence=0;this.pitchBend=0;
     this.codeSession=0;this.codeActive=false;this.codeLanes=Array.from({length:32},()=>({midi:69,id:null}));
+    this.dspSourceSends=Array(SOURCE_COUNT).fill(null);this.dspSlotSends=Array(32).fill(null);this.dspRoutingActive=false;
     this.reserved=reserveDspRam(this.synth);this.effect=new DspDelay(core,this.config.effect);
     const {pcm,options}=createScspInitSample();
     for(let slot=0;slot<SOURCE_COUNT;slot++){
@@ -71,7 +98,46 @@ export class SynthInstrument {
       for(const [method,args]of voiceCommands(check,this.#voiceConfig(config,pitchBend),{midi:69,slots:Array.from({length:operatorCount(config.mode)},(_,i)=>SOURCE_COUNT+i)}))check[method](...scspCommandArgs(check,method,args));
     }finally{check.dispose();}
   }
-  #routeEffect(){const state=this.synth.getState();this.effect.route([...this.groups.values()].flatMap(group=>routing(group.config??this.config).outputs.map(index=>operatorSlot(group,index))).concat([...this.manualVoices.values()].filter(voice=>state.slots[voice.slot].directLevel>0).map(voice=>voice.slot)));}
+  #sourceForSlot(slot){for(const group of this.groups.values())for(let index=0;index<operatorCount((group.config??this.config).mode);index++)if(operatorSlot(group,index)===slot)return index;return null;}
+  #sendForSlot(slot){const source=this.#sourceForSlot(slot);return this.dspSlotSends[slot]??(source===null?null:this.dspSourceSends[source]);}
+  readDspRoutingOverrides(){return {sources:clone(this.dspSourceSends),slots:clone(this.dspSlotSends)};}
+  readDspRouting(){const defaults={input:0,level:this.config.effect.send};return {sources:this.dspSourceSends.map(value=>({...defaults,...value})),slots:Array.from({length:32},(_,slot)=>({...defaults,...this.#sendForSlot(slot)}))};}
+  #routeEffect(){
+    const state=this.synth.getState(),outputs=[...this.groups.values()].flatMap(group=>routing(group.config??this.config).outputs.map(index=>operatorSlot(group,index))).concat([...this.manualVoices.values()].filter(voice=>state.slots[voice.slot].directLevel>0).map(voice=>voice.slot));
+    // Explicit sends may expose a silent modulator, but never a retired voice
+    // whose gate/release is still active in hardware. Requested routes survive
+    // Code Stop; only slots with a current owner retain an audible wet send.
+    const owned=new Set([...this.groups.values()].flatMap(group=>group.slots).concat([...this.manualVoices.values()].map(voice=>voice.slot)));
+    this.effect.route(outputs,this.dspRoutingActive?Array.from({length:32},(_,slot)=>owned.has(slot)?this.#sendForSlot(slot):null):undefined);
+  }
+  #changeDspRouting(change){
+    const before={sources:clone(this.dspSourceSends),slots:clone(this.dspSlotSends),active:this.dspRoutingActive};
+    const addresses=Array.from({length:32},(_,slot)=>slot*32+20).concat([22,54,0x702,0x780]);
+    const words=typeof this.core.read==='function'?addresses.map(address=>this.core.read(address)):null;
+    change();this.dspRoutingActive=true;
+    try{this.#routeEffect();}
+    catch(error){
+      this.dspSourceSends=before.sources;this.dspSlotSends=before.slots;this.dspRoutingActive=before.active;
+      const failures=[];if(words)for(let index=0;index<addresses.length;index++)try{this.core.write(addresses[index],words[index]);}catch(failure){failures.push(failure);}
+      if(failures.length){const fatal=new Error('DSP routing update failed and rollback could not restore the audio owner. Restart audio before continuing.',{cause:new AggregateError([error,...failures])});fatal.name='ScspDspRollbackError';fatal.fatal=true;throw fatal;}
+      throw error;
+    }
+  }
+  setDspSend(slot,patch){
+    slot=physicalSlot(slot);const next=dspSendPatch(patch,()=>this.readDspRouting().slots[slot]);
+    this.#changeDspRouting(()=>{this.dspSlotSends[slot]=next;});return {...this.readDspRouting().slots[slot]};
+  }
+  setDspSourceSend(operator,patch){
+    operator=sourceSlot(operator);const next=dspSendPatch(patch,()=>this.readDspRouting().sources[operator]);
+    this.#changeDspRouting(()=>{
+      this.dspSourceSends[operator]=next;
+      // Auto authoring follows the same fanout as source mix controls. A later
+      // Auto allocation may overwrite physical edits; manual owners stay local.
+      for(const group of this.groups.values()){const slot=operatorSlot(group,operator);if(slot!==null)this.dspSlotSends[slot]=null;}
+    });return {...this.readDspRouting().sources[operator]};
+  }
+  setDspReturn(output,patch){const value=this.effect.setReturn(output,patch);this.dspRoutingActive=true;this.config={...this.config,effect:{...this.effect.settings}};return value;}
+  #resetDspRouting(){this.dspSourceSends=Array(SOURCE_COUNT).fill(null);this.dspSlotSends=Array(32).fill(null);this.dspRoutingActive=false;this.effect.resetReturns();}
   #latchRelease(slot){this.releaseGuard.keyOn(slot,typeof this.core.read==='function'?undefined:this.synth.getState().slots[slot]);}
   #apply(commands){for(const [method,args]of commands){this.synth[method](...args);if(method==='keyOn')this.#latchRelease(args[0]);}}
   setClickGuard(value){return this.releaseGuard.setEnabled(value);}
@@ -79,7 +145,7 @@ export class SynthInstrument {
   readDspProgram(){return this.effect.readProgram();}
   readDspSetup(...args){
     if(args.length)throw new TypeError('readDspSetup takes no arguments');
-    return {...this.readDspProgram(),coefficients:this.readDspCoefficients(),effect:{...this.config.effect}};
+    return {...this.readDspProgram(),coefficients:this.readDspCoefficients(),effect:{...this.config.effect},...(this.dspRoutingActive?{dspRouting:this.readDspRouting(),dspRoutingOverrides:this.readDspRoutingOverrides(),dspReturns:this.effect.readReturns()}:{})};
   }
   applyDspProgram(words,options){
     const result=this.effect.applyProgram(words,options);
@@ -128,6 +194,9 @@ export class SynthInstrument {
     const commands=voiceCommands(this.synth,this.#voiceConfig(),group);this.#check(commands);
     for(const victim of victims){this.#silence(victim);this.groups.delete(victim.id);}
     for(const [key,manual]of this.manualVoices)if(slots.includes(manual.slot))this.manualVoices.delete(key);
+    // An actual Auto allocation owns these slots and replaces prior physical
+    // routing choices with its source template / global default.
+    for(const slot of slots)this.dspSlotSends[slot]=null;
     this.#apply(commands);this.sequence++;this.groups.set(id,group);this.#routeEffect();
     return {slots:[...slots],stolenId:victims.find(v=>v!==previous)?.id??null};
   }
@@ -172,6 +241,7 @@ export class SynthInstrument {
     }
     if(!['setEnvelope','setMix','setLfo','setPreset'].includes(method))throw new Error('Unsupported operator edit');
     const patch=clone(args[1]);
+    if(['dspSend','dspInput'].some(key=>Object.hasOwn(patch,key)))throw new TypeError('Use setDspSourceSend for Synth DSP routing');
     if(patch.modulation!==undefined)throw new TypeError('Use the voice FM depth control');
     if(method==='setPreset'&&patch.sample){patch.sample=this.synth._resolveSample(patch.sample);if(patch.sample===this.reserved)throw new RangeError('DSP ring is not a playable sample');}
     const commands=[[method,[slot,patch]]];
@@ -210,6 +280,7 @@ export class SynthInstrument {
     }
     if(!['setPreset','setEnvelope','setMix','setLfo','setModulation','setFrequency'].includes(method))throw new Error('Unsupported physical edit');
     const value=clone(args[1]);
+    if(['dspSend','dspInput'].some(key=>value&&Object.hasOwn(value,key)))throw new TypeError('Use setDspSend for Synth DSP routing');
     if(method==='setPreset'&&value?.sample){value.sample=this.synth._resolveSample(value.sample);if(value.sample===this.reserved)throw new RangeError('DSP ring is not a playable sample');}
     const check=createScspValidation();try{
       check._adoptState(this.synth.getState());check[method](...scspCommandArgs(check,method,[slot,value]));
@@ -248,11 +319,13 @@ export class SynthInstrument {
   exportIdleState(){
     if(this.groups.size||this.manualVoices.size||this.codeActive)throw new TypeError('Idle migration requires no keyboard or Code owners');
     const synthState=this.synth.getState();validateIdleTransport(synthState);
-    return {format:'tetorica-scsp-idle-state',version:1,config:settings(this.config),synthState,ram:this.core.readRam(0,IDLE_RAM_BYTES),reserved:this.reserved};
+    return {format:'tetorica-scsp-idle-state',version:1,config:settings(this.config),synthState,ram:this.core.readRam(0,IDLE_RAM_BYTES),reserved:this.reserved,...(this.dspRoutingActive?{dspRoutingState:{overrides:this.readDspRoutingOverrides(),returns:this.effect.readReturns()}}:{})};
   }
   loadIdleState(snapshot){
-    if(snapshot?.format!=='tetorica-scsp-idle-state'||snapshot.version!==1||Reflect.ownKeys(snapshot).length!==6||Reflect.ownKeys(snapshot).some(key=>!['format','version','config','synthState','ram','reserved'].includes(key))||!(snapshot.ram instanceof Uint8Array)||snapshot.ram.length!==IDLE_RAM_BYTES)throw new TypeError('Invalid SCSP idle migration snapshot');
+    if(snapshot?.format!=='tetorica-scsp-idle-state'||snapshot.version!==1||Reflect.ownKeys(snapshot).length!==(Object.hasOwn(snapshot,'dspRoutingState')?7:6)||Reflect.ownKeys(snapshot).some(key=>!['format','version','config','synthState','ram','reserved','dspRoutingState'].includes(key))||!(snapshot.ram instanceof Uint8Array)||snapshot.ram.length!==IDLE_RAM_BYTES)throw new TypeError('Invalid SCSP idle migration snapshot');
     const config=settings(snapshot.config),state=snapshot.synthState;
+    const dsp=Object.hasOwn(snapshot,'dspRoutingState')?dspRoutingState(snapshot.dspRoutingState):null;
+    if(dsp&&dsp.returns[0].level!==config.effect.returnLevel)throw new TypeError('Idle DSP return differs from legacy effect level');
     validateIdleTransport(state);validateIdleResources(state,snapshot.reserved);
     const check=createScspValidation();try{
       check._adoptState(state);
@@ -264,7 +337,9 @@ export class SynthInstrument {
     this.stopVoices();this.synth.reset({clearRam:true});this.core.loadRam(snapshot.ram,0);this.synth._adoptState(state);
     this.reserved=this.synth._resolveSample(snapshot.reserved);this.config=config;this.pitchBend=0;
     this.codeActive=false;this.codeLanes=Array.from({length:32},()=>({midi:69,id:null}));
-    this.effect.settings=config.effect;this.effect.install();this.#routeEffect();return true;
+    this.#resetDspRouting();this.effect.settings=config.effect;
+    if(dsp){this.dspSourceSends=dsp.overrides.sources;this.dspSlotSends=dsp.overrides.slots;this.dspRoutingActive=true;for(let output=0;output<2;output++)this.effect.setReturn(output,dsp.returns[output]);}
+    this.effect.install();this.#routeEffect();return true;
   }
   loadPatch(value){
     const patch=readPatch(value); // complete validation before Stop or RAM reset
@@ -287,13 +362,13 @@ export class SynthInstrument {
       }finally{check.dispose();}
       for(const [slot,key]of OPERATOR_KEYS.entries())replace(this.synth,slot,patch.operators[key]);
       this.#apply(neutralCommands);this.pitchBend=0;
-      this.config=settings(patch);this.effect.configure(this.config.effect);this.#routeEffect();return true;
+      this.#resetDspRouting();this.config=settings(patch);this.effect.configure(this.config.effect);this.#routeEffect();return true;
     }
     this.stopVoices();this.synth.reset({clearRam:true});this.reserved=reserveDspRam(this.synth);
     for(const [slot,kind]of OPERATOR_KEYS.entries()){
       const operator=patch.operators[kind],sample=this.synth.loadPCM(operator.pcm,pcmOptions(operator));this.synth.setPreset(slot,{...operator.voice,sample});
     }
-    this.config=settings(patch);this.pitchBend=0;this.effect.settings=this.config.effect;this.effect.install();this.#routeEffect();return true;
+    this.#resetDspRouting();this.config=settings(patch);this.pitchBend=0;this.effect.settings=this.config.effect;this.effect.install();this.#routeEffect();return true;
   }
   beginCode(...args){
     if(args.length)throw new TypeError('Code session takes no arguments');
@@ -316,6 +391,7 @@ export class SynthInstrument {
     if(method==='applyDspProgram')return {...this.applyDspProgram(...args),coefficients:this.readDspCoefficients()};
     if(method==='getDspCoefficients')return this.readDspCoefficients();
     if(method==='setDspCoefficients')return this.setDspCoefficients(...args);
+    if(['setDspSend','setDspSourceSend','setDspReturn'].includes(method))return this[method](...args);
     if(method==='dispose')return this.endCode(session);
     if(method==='allNotesOff'){for(const group of this.groups.values())if(group.owner?.kind==='code'&&group.owner.session===session)this.noteOff(group.id);return true;}
     if(method==='loadPCM')return this.synth.loadPCM(...args);
@@ -337,6 +413,6 @@ export class SynthInstrument {
     const state=this.read(),operators=Array.from({length:SOURCE_COUNT},(_,slot)=>{const sample=state.slots[slot].sample;return sampleKeys[slot]===`${sample.bankId}:${sample.id}`?null:this.invoke('getPCM',[slot]);});
     return {state,operators};
   }
-  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,dspCoefficients:this.effect.readCoefficients().codes,kind:'scsp',config:clone(this.config),pitchBend:this.pitchBend,clickGuard:this.releaseGuard.enabled,voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),manualVoices:[...this.manualVoices.values()].map(voice=>({...voice})),codeActive:this.codeActive,codeSession:this.codeSession,codeLanes:this.codeLanes.map((lane,channel)=>({channel,midi:lane.midi,groupId:this.#codeGroup(channel)?.id??null,slots:[...(this.#codeGroup(channel)?.slots??[])]})),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
+  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,dspCoefficients:this.effect.readCoefficients().codes,dspRouting:this.readDspRouting(),dspRoutingOverrides:this.readDspRoutingOverrides(),dspReturns:this.effect.readReturns(),kind:'scsp',config:clone(this.config),pitchBend:this.pitchBend,clickGuard:this.releaseGuard.enabled,voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),manualVoices:[...this.manualVoices.values()].map(voice=>({...voice})),codeActive:this.codeActive,codeSession:this.codeSession,codeLanes:this.codeLanes.map((lane,channel)=>({channel,midi:lane.midi,groupId:this.#codeGroup(channel)?.id??null,slots:[...(this.#codeGroup(channel)?.slots??[])]})),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
   dispose(){this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();this.synth.dispose();}
 }

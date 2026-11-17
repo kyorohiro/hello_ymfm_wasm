@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {delayProgram} from './dsp.js?v=scsp-dsp-fir-1';
+import {delayProgram} from './dsp.js?v=scsp-dsp-ui-routing-1';
 import {disassembleScspDsp} from './dsp_assembler.js';
-import {checkScspDspDelaySource} from './dsp_program.js?v=scsp-dsp-fir-1';
+import {checkScspDspDelaySource, checkScspSynthDspSource} from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 
 const firSource = `; Tetorica SCSP DSP - two-tap FIR low-pass example
 ; Recommended codes are COEF0=4095, COEF1=2048, COEF2=2048.
@@ -84,6 +84,26 @@ const delaySource = [
   disassembleScspDsp(delayProgram()),
 ].join('\n');
 
+const routingSource = `; Tetorica SCSP DSP - Gain left / IIR right
+; Recommended codes: COEF0=4095, COEF1=3840, COEF2=256.
+; Send one voice to MIXS0 and another to MIXS1 using the routing controls.
+; Return 0: level 7 / pan 31 (left). Return 1: level 7 / pan 15 (right).
+; The program controls hardware DSP paths; choosing sends / returns is separate.
+;
+; Left: EFREG0 = MIXS0 * COEF0.
+000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0
+001: EWT=1 EWA=0 ZERO=1
+; Right: y[n] = COEF1*y[n-1] + COEF2*MIXS1, using TEMP history.
+002: TRA=1 XSEL=0 YSEL=1 ZERO=1 COEF=1
+003: XSEL=1 YSEL=1 IRA=33 BSEL=1 COEF=2
+004: TWT=1 TWA=0 EWT=1 EWA=1 ZERO=1
+
+; No RAM access. The existing Delay Time control does not affect this program.
+; Two physical CH tabs can send different sounds to the two input buses.
+; Auto source routing is Synth software grouping over physical SCSP slots.
+; Applying this source stages only the program and coefficients, not routing.
+`;
+
 const examples = [
   {
     id: 'delay',
@@ -129,6 +149,17 @@ const examples = [
     roles: ['Unused', 'Output feedback', 'Input'],
     filename: 'tetorica-scsp-iir1-lowpass.scspasm',
   },
+  {
+    id: 'routing-gain-iir',
+    name: 'Gain left / IIR right',
+    source: routingSource,
+    words: checkScspSynthDspSource(routingSource).words,
+    codes: [4095, 3840, 256],
+    description: 'MIXS0 reaches Gain / EFREG0; MIXS1 reaches IIR / EFREG1. Set sends and Return Pan separately.',
+    equation: 'Left = gain*MIXS0; right = a*history + b*MIXS1',
+    roles: ['Left gain', 'Right feedback', 'Right input'],
+    filename: 'tetorica-scsp-routing-gain-iir.scspasm',
+  },
 ];
 
 /** Fresh descriptors for a compact example chooser. */
@@ -149,6 +180,7 @@ export function identifyScspDspProgram(words) {
   if (words.length !== 512) return null;
   const example = examples.find(candidate => candidate.words.every((value, index) => value === words[index]));
   if (!example) return null;
+  if (example.id === 'routing-gain-iir') return 'routing';
   if (example.id === 'iir1-lowpass') return 'iir1';
   return example.id === 'delay' ? 'delay' : 'fir2';
 }
@@ -163,6 +195,8 @@ export function identifyScspDspExample(words, codes) {
     }
   }
   const program = identifyScspDspProgram(words);
+  if (program === 'routing') return codes === undefined || examples.find(value => value.id === 'routing-gain-iir')
+    .codes.every((value, index) => value === codes[index]) ? 'routing-gain-iir' : null;
   if (program === 'delay') return 'delay';
   if (program === 'iir1') {
     return codes === undefined || (codes[1] === 3840 && codes[2] === 256) ? 'iir1-lowpass' : null;

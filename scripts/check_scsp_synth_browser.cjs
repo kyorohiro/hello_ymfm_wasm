@@ -40,10 +40,10 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.waitForFunction(()=>!document.querySelector('[data-chip-action="scsp-sine"]').disabled);
    // Fresh defaults: Enable alone must produce an audible echo after release.
    assert.equal(await page.inputValue('#effectSend'),'7');assert.equal(await page.inputValue('#effectReturn'),'6');
-   await setDelay(true);await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Experimental DSP Delay updated'));
+   await setDelay(true);await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Experimental DSP parameters updated'));
    await page.keyboard.down('a');await page.waitForFunction(()=>{const a=window.audit.analysers[0],v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>.002);});await page.waitForTimeout(100);await page.keyboard.up('a');await page.waitForTimeout(150);
    await page.waitForFunction(()=>{const a=window.audit.analysers[0],v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>.002);});
-   await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));await setDelay(false);await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Experimental DSP Delay updated'));
+   await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));await setDelay(false);await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Experimental DSP parameters updated'));
    await page.keyboard.down('a');await page.keyboard.down('d');await page.keyboard.down('g');
    await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===3);
    await page.waitForFunction(()=>{const a=window.audit.analysers[0],data=new Float32Array(a.fftSize);a.getFloatTimeDomainData(data);return data.some(v=>Math.abs(v)>.01);});

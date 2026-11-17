@@ -130,6 +130,66 @@ test('saved setup preserves requested Feedback values together with their quanti
   }
 });
 
+test('two-bus setup Code restores independent returns and inherited versus explicit routing', async t => {
+  const sourceOwner = await instrument(t), target = await instrument(t);
+  const example = createScspDspExample('routing-gain-iir');
+  sourceOwner.applyDspProgram(example.words, programOptions(example.codes));
+  sourceOwner.setEffect({enabled:true, send:6, returnLevel:7});
+  sourceOwner.setDspSourceSend(0, {input:1,level:5});
+  sourceOwner.setDspSend(30, {input:0,level:7});
+  sourceOwner.setDspSend(31, {input:1,level:7});
+  sourceOwner.setDspReturn(0, {level:7,pan:31});
+  sourceOwner.setDspReturn(1, {level:6,pan:15});
+  target.setDspSourceSend(5, {input:1,level:2});
+  target.setDspSend(29, {input:1,level:1});
+  const snapshot = sourceOwner.readDspSetup(), before = structuredClone(snapshot);
+  const source = createScspDspSetupCode(snapshot);
+  assert.deepEqual(snapshot, before);
+  assert.match(source, /setDspSourceSend\(5, null\)/);
+  assert.match(source, /setDspSend\(29, null\)/);
+  assert.match(source, /setDspReturn\(1, \{"level":6,"pan":15\}\)/);
+  const borrowed = client(target);
+  await new AsyncFunction('useSoundChip',source)(async()=>borrowed);
+  assert.deepEqual(target.readDspSetup(), snapshot);
+  for (const owner of [sourceOwner,target]) {
+    // Inherited defaults still follow later global Send edits after restore.
+    owner.setEffect({send:3});
+    for (const slot of [30,31]) {
+      owner.physicalNoteOn('same-'+slot,slot,57);
+      owner.invokePhysical('setMix',[slot,{directLevel:0}]);
+    }
+  }
+  assert.deepEqual(target.readDspRoutingOverrides(), sourceOwner.readDspRoutingOverrides());
+  assert.equal(target.readDspRouting().slots[29].level,3);
+  assert.equal(target.readDspRouting().sources[0].level,5);
+  const expected=sourceOwner.synth.generateStereo(4096),actual=target.synth.generateStereo(4096);
+  assert.deepEqual(actual, expected);
+  assert.notDeepEqual(actual.left, actual.right);
+  assert(actual.left.some(value=>value!==0));
+  assert(actual.right.some(value=>value!==0));
+});
+
+test('two-bus setup rejects incomplete, sparse and inconsistent routing before emitting code', async t => {
+  const owner=await instrument(t);
+  owner.setDspSend(31,{input:1,level:7});owner.setDspReturn(1,{level:7,pan:15});
+  const snapshot=owner.readDspSetup(),before=structuredClone(snapshot);
+  for (const mutate of [
+    value=>delete value.dspReturns,
+    value=>value.dspReturns.push({level:0,pan:0}),
+    value=>delete value.dspReturns[1],
+    value=>value.dspReturns[0].level=0,
+    value=>value.dspRoutingOverrides.slots[31].input=0,
+    value=>delete value.dspRoutingOverrides.slots[0],
+    value=>value.dspRoutingOverrides.sources[0]={input:2,level:7},
+    value=>value.dspRouting.slots[0].level=8,
+    value=>value.dspRouting.extra=true,
+  ]) {
+    const invalid=structuredClone(snapshot);mutate(invalid);
+    assert.throws(()=>createScspDspSetupCode(invalid));
+  }
+  assert.deepEqual(owner.readDspSetup(),before);
+});
+
 test('invalid or inconsistent setup snapshots fail before generating executable source', async t => {
   const owner = await instrument(t), valid = owner.readDspSetup();
   const unsafeWords = [...valid.words];
@@ -212,4 +272,45 @@ test('processor reads the primary setup in message order with one consistent coe
   const invalid = await f.command('readDspSetup', [1]);
   assert.match(invalid.error, /takes no arguments/);
   assert.deepEqual(primary.readDspSetup(), second);
+});
+
+test('processor routes new primary send / return commands without changing SSF audition', async t => {
+  const f=await processor(t), audition=f.owner.audition;
+  const before=audition.readDspSetup(), ram=audition.core.readRam();
+  assert.deepEqual((await f.command('setDspSourceSend',[0,{input:1,level:5}])).value,{input:1,level:5});
+  assert.deepEqual((await f.command('setDspSend',[31,{input:1,level:7}])).value,{input:1,level:7});
+  assert.deepEqual((await f.command('setDspReturn',[1,{level:6,pan:15}])).value,{level:6,pan:15});
+  const reply=await f.command('readDspSetup');
+  assert.deepEqual(reply.value.dspRoutingOverrides.sources[0],{input:1,level:5});
+  assert.deepEqual(reply.value.dspRoutingOverrides.slots[31],{input:1,level:7});
+  assert.deepEqual(reply.value.dspReturns[1],{level:6,pan:15});
+  assert.deepEqual((await f.command('setDspSend',[31,null])).value,{input:0,level:7});
+  assert.deepEqual(audition.readDspSetup(),before);
+  assert.deepEqual(audition.core.readRam(),ram);
+});
+
+test('processor routing ACKs capture allocation/source fanout atomically and keep legacy replies unchanged', async t => {
+  const f=await processor(t);
+  const legacy=await f.command('readDspProgram');
+  assert.deepEqual(Object.keys(legacy),['id','value']);
+  const send=await f.command('setDspSend',[6,{input:1,level:3}]);
+  assert.deepEqual(send.value,{input:1,level:3});
+  assert.deepEqual(send.dspRoutingState.overrides.slots[6],{input:1,level:3});
+  const allocated=await f.command('noteOn',['keyboard',69]);
+  assert.deepEqual(allocated.value.slots,[6]);
+  assert.equal(allocated.dspRoutingState.overrides.slots[6],null);
+  await f.command('setDspSend',[6,{input:1,level:5}]);
+  const fanout=await f.command('setDspSourceSend',[0,{input:0,level:4}]);
+  assert.deepEqual(fanout.value,{input:0,level:4});
+  assert.deepEqual(fanout.dspRoutingState.overrides.sources[0],{input:0,level:4});
+  assert.equal(fanout.dspRoutingState.overrides.slots[6],null);
+  assert.deepEqual(fanout.dspRoutingState.returns,[{level:6,pan:0},{level:0,pan:0}]);
+  const audition=await f.command('readAudition');
+  assert.equal(Object.hasOwn(audition,'dspRoutingState'),false);
+  const before=structuredClone(fanout.dspRoutingState);
+  fanout.dspRoutingState.overrides.sources[0].level=0;
+  assert.deepEqual(structuredClone((await f.command('readDspProgram')).dspRoutingState),before,'ACK data is detached');
+  const reset=await f.command('loadPatch',[f.owner.instrument.exportPatch()]);
+  assert.equal(reset.dspRoutingState,null,'an explicit transition to legacy clears the client memo');
+  assert.equal(Object.hasOwn(await f.command('readDspProgram'),'dspRoutingState'),false);
 });

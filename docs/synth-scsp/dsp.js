@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Original mono-delay microprogram for the pinned SCSP DSP, not Web Audio DSP.
-import {validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-coef-1';
+// Synth-owned hardware DSP program, protected Delay ring and effect routing.
+import {validateScspSynthDspProgram} from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 export const DSP_RAM_BYTES=65536; // RBL=2: 32K words at address 0.
 import {DSP_COEFFICIENT_MAX, DSP_FEEDBACK_MAX, coefficientWord, resolveCoefficientPatch,
   validateScspDspProgramOptions} from '../js/scsp_dsp_coefficients.js';
@@ -36,7 +36,34 @@ export class DspDelay{
   #revision = 0;
   #coef0 = DSP_COEFFICIENT_MAX;
   #coef2 = DSP_COEFFICIENT_MAX;
+  #returnPan = 0;
+  #secondReturn = {level:0,pan:0};
+  #indexedReturns = false;
   constructor(core,settings=EFFECT_DEFAULTS){this.core=core;this.settings=effectSettings(settings);this.install();}
+  readReturns(){return [{level:this.settings.returnLevel,pan:this.#returnPan},{...this.#secondReturn}];}
+  #returnWord(value){return this.settings.enabled?(value.level<<5)|value.pan:0;}
+  #returnAddresses(){return this.#indexedReturns?[22,54]:[22];}
+  /** Independent hardware EFREG output controls. Direct slot mix is untouched. */
+  setReturn(output,patch){
+    if(!Number.isInteger(output)||output<0||output>1)throw new RangeError('DSP output must be 0 or 1');
+    if(!patch||typeof patch!=='object'||Array.isArray(patch)||Reflect.ownKeys(patch).some(key=>!['level','pan'].includes(key)))throw new TypeError('Invalid DSP return settings');
+    const values={...patch},next={...this.readReturns()[output],...values};
+    if(!Number.isInteger(next.level)||next.level<0||next.level>7)throw new RangeError('DSP Return level must be 0..7');
+    if(!Number.isInteger(next.pan)||next.pan<0||next.pan>31)throw new RangeError('DSP Return Pan must be 0..31');
+    const addresses=[22,54],previous=addresses.map(address=>typeof this.core.read==='function'?this.core.read(address):0);
+    const returns=this.readReturns();returns[output]=next;
+    try{for(let index=0;index<2;index++)this.core.write(addresses[index],this.#returnWord(returns[index]),0xff);}
+    catch(error){
+      const failures=[];
+      for(let index=0;index<2;index++)try{this.core.write(addresses[index],previous[index],0xff);}catch(failure){failures.push(failure);}
+      if(failures.length){const fatal=new Error('DSP return update failed and rollback could not restore the audio owner. Restart audio before continuing.',{cause:new AggregateError([error,...failures])});fatal.name='ScspDspRollbackError';fatal.fatal=true;throw fatal;}
+      throw error;
+    }
+    if(output===0){this.settings={...this.settings,returnLevel:next.level};this.#returnPan=next.pan;}else this.#secondReturn={...next};
+    this.#indexedReturns=true;return {...next};
+  }
+  /** Rebuild legacy preset routing; custom instructions remain session state. */
+  resetReturns(){if(this.#indexedReturns)this.core.write(54,0,0xff);this.#returnPan=0;this.#secondReturn={level:0,pan:0};this.#indexedReturns=false;}
   readCoefficients() {
     return {codes: [this.#coef0, Math.floor(this.settings.feedback * 4096), this.#coef2], feedback: this.settings.feedback};
   }
@@ -85,7 +112,7 @@ export class DspDelay{
     this.core.write(0xbf0, program[504]);
   }
   applyProgram(words, options) {
-    const program = validateScspDspDelayProgram(words);
+    const program = validateScspSynthDspProgram(words);
     const checkedOptions = validateScspDspProgramOptions(options);
     const coefficients = checkedOptions && resolveCoefficientPatch(checkedOptions.coefficients, this.readCoefficients().codes);
     const programChanged = !program.every((word, index) => word === this.#program[index]);
@@ -103,14 +130,15 @@ export class DspDelay{
     }
     const previous = this.#program;
     const ring = core.readRam(0, DSP_RAM_BYTES);
-    const outputReturn = core.read(22);
+    const returnAddresses = this.#returnAddresses();
+    const outputReturns = returnAddresses.map(address=>core.read(address));
     const coefficientWords = coefficientChanges.map(index => core.read(0x700 + index * 2));
     try {
-      core.write(22, 0, 0xff);
+      for(const address of returnAddresses)core.write(address,0,0xff);
       for (const index of coefficientChanges) core.write(0x700 + index * 2, coefficientWord(coefficients.next[index]));
       if (programChanged) this.#upload(program);
       this.clear();
-      core.write(22, outputReturn, 0xff);
+      for(let index=0;index<returnAddresses.length;index++)core.write(returnAddresses[index],outputReturns[index],0xff);
     } catch (error) {
       const failures = [];
       // Make every restoration attempt before allowing the owner to resume.
@@ -122,7 +150,7 @@ export class DspDelay{
         catch (failure) { failures.push(failure); }
       }
       try { core.loadRam(ring, 0); } catch (failure) { failures.push(failure); }
-      try { core.write(22, outputReturn, 0xff); } catch (failure) { failures.push(failure); }
+      for(let index=0;index<returnAddresses.length;index++)try{core.write(returnAddresses[index],outputReturns[index],0xff);}catch(failure){failures.push(failure);}
       if (failures.length) {
         const fatal = new Error(
           'DSP Apply failed and rollback could not restore the audio owner. Restart audio before continuing.',
@@ -145,7 +173,7 @@ export class DspDelay{
   }
   install(){
     const core=this.core;
-    core.write(22,0,0xff); // Mute EFREG0 while replacing its program.
+    for(const address of this.#returnAddresses())core.write(address,0,0xff);
     for(let offset=0;offset<1024;offset+=2)core.write(0x800+offset,0);
     core.write(0x402,2<<7);
     core.write(0x700,coefficientWord(this.#coef0));
@@ -160,12 +188,18 @@ export class DspDelay{
   parameters(){
     this.core.write(0x702,coefficientWord(Math.floor(this.settings.feedback*4096)));
     this.core.write(0x780,Math.round(this.settings.timeMs*44.1));
-    this.core.write(22,this.settings.enabled?this.settings.returnLevel<<5:0,0xff);
+    const returns=this.readReturns();
+    for(const [index,address]of this.#returnAddresses().entries())this.core.write(address,this.#returnWord(returns[index]),0xff);
   }
   configure(patch){if(!patch||typeof patch!=='object'||Array.isArray(patch))throw new TypeError('Invalid DSP Delay settings');const next=effectSettings({...this.settings,...patch}),clear=next.enabled!==this.settings.enabled||next.timeMs!==this.settings.timeMs;this.settings=next;if(clear)this.clear();this.parameters();return {...next};}
-  route(outputSlots){
+  route(outputSlots,overrides){
     const sends=new Set(outputSlots);
-    for(let slot=0;slot<32;slot++)this.core.write(slot*32+20,this.settings.enabled&&sends.has(slot)?this.settings.send:0);
+    for(let slot=0;slot<32;slot++){
+      const override=overrides?.[slot],value=this.settings.enabled?(override?(override.input<<3)|override.level:sends.has(slot)?this.settings.send:0):0;
+      // Legacy source routes used a full word write; opt-in routes preserve
+      // unrelated slot register bits with the hardware ISEL / IMXL mask.
+      if(overrides)this.core.write(slot*32+20,value,0x7f);else this.core.write(slot*32+20,value);
+    }
     this.parameters();
   }
 }

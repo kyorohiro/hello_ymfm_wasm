@@ -79,6 +79,7 @@ jobs:
           npm run test:runtime:types
           node --test test/runtime/scsp_loop_link.test.mjs scripts/mixer_calibration_scsp_loop_link_revision.test.mjs
           node --test scripts/mixer_calibration_scsp_navigation_revision.test.mjs scripts/mixer_calibration_scsp_draft_revision.test.mjs scripts/mixer_calibration_scsp_empty_draft_revision.test.mjs
+          node --test scripts/mixer_calibration_scsp_dsp_ui_revision.test.mjs scripts/scsp_dsp_routing_ui_default_parity.test.mjs
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci
           python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
@@ -91,6 +92,7 @@ jobs:
           node scripts/check_scsp_synth_channels_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-channels-browser.json --screenshots=release/scsp-synth-channels-images
           node scripts/check_scsp_synth_click_guard_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-click-guard-browser.json --screenshots=release/scsp-synth-click-guard-images
           node scripts/check_scsp_synth_paused_edit_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-edit-browser.json --screenshots=release/scsp-synth-ssf-edit-images
+          node scripts/check_scsp_synth_dsp_routing_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-dsp-routing-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -113,4 +115,5 @@ jobs:
             release/scsp-synth-click-guard-images/
             release/scsp-synth-ssf-edit-browser.json
             release/scsp-synth-ssf-edit-images/
+            release/scsp-synth-dsp-routing-browser.json
           if-no-files-found: ignore

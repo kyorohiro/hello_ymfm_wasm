@@ -7,7 +7,7 @@ connecting to a chip, uploading a program or opening an audio device.
 The Synth's **DSP** tab adds a draft editor and **Check → Apply to Synth**.
 Editing and Check leave the running program unchanged. Check reports source
 lines and physical steps, and displays the canonical instructions. Apply uses
-the narrower execution profile below. The collapsed built-in reference explains
+the bounded execution profiles below. The collapsed built-in reference explains
 the original six-step Delay; SSF playback owns a separate DSP program.
 
 **Copy .scspasm** / **Save .scspasm** export the current draft verbatim, including
@@ -231,7 +231,11 @@ instruction images; these methods do not introduce sample-timed scheduling.
 
 Choose **DSP → Save setup to Code**, beside **Applied**. This saves the
 acknowledged primary Synth program, all three coefficient codes and the five
-effect settings as readable JavaScript in **Files → dsp → SCSP DSP setup.js**.
+legacy effect settings as readable JavaScript in **Files → dsp → SCSP DSP setup.js**.
+After using the two-bus controls, the saved setup also includes both Return
+levels / Pan values and Auto-source / physical-slot DSP routing overrides.
+Inherited sends remain inherited: the generated `null` calls clear old overrides
+instead of freezing them to the current global Send value.
 Further saves use numbered names, keeping existing files. An active audio owner
 captures program / coefficients / settings together; saving before Enable audio
 uses the current passive setup without creating an AudioContext.
@@ -245,12 +249,55 @@ restoring the project never executes it automatically.
 **Copy / Save .scspasm** still export the draft source verbatim. **Save setup
 to Code** instead exports what is applied, so it remains available even when
 the draft is invalid or a different example is staged. It does not capture
-PCM, notes, voice routing, live RAM / TEMP history or the separate SSF DSP.
+PCM, notes, oscillator/FM connections, live RAM / TEMP history or the separate SSF DSP.
 The generated script uses the current voices; save an instrument separately
 when its sample / voice setup also needs to be kept. Local-storage failure
 keeps the new file in Files and offers project export for recovery.
 
+## Two DSP paths in the Synth
+
+In **DSP → Example**, choose **Gain left / IIR right**, then **Check → Apply**.
+This stages / applies the program and recommended coefficients. It leaves your
+existing sends, Return settings and held voices in place.
+
+The input selector and Send level follow the selected physical **CH1–CH32** or
+the selected Auto source operator. Physical sends address one actual slot.
+An **Auto** source send follows that operator into its currently allocated and
+future voice groups; this allocation is Synth software, while ISEL / IMXL are
+SCSP hardware fields. A physical send can be used even when its direct output
+is muted. Reset an override to use the global default Send again.
+
+For the example, route one sound to **MIXS0** and another to **MIXS1**. Set
+**Return 0** to level 7 / Pan 31 for left, and **Return 1** to level 7 / Pan 15
+for right. Direct level 0 gives a wet-only comparison. You can preview each bus
+in turn or use multiple held slots. Sends and Returns update without a new
+keyOn. Enable gates both Returns without discarding their requested settings.
+
+These settings belong to the DSP session. Ordinary voice presets retain their
+existing format; use **Save setup to Code** to keep the new routing and Returns.
+SSF playback owns its separate DSP and is not changed by this Synth routing.
+No preset selection or saved project executes the generated Code automatically.
+
+The borrowed Synth Code facade exposes:
+
+```js
+// Source A follows Auto allocations. This does not name a physical CH1.
+await scsp.setDspSourceSend(0, {input: 0, level: 7});
+// Physical CH32 has an independent override, irrespective of Auto allocations.
+await scsp.setDspSend(31, {input: 1, level: 7});
+await scsp.setDspReturn(0, {level: 7, pan: 31});
+await scsp.setDspReturn(1, {level: 7, pan: 15});
+// Return to the Synth's inherited Send behavior.
+await scsp.setDspSend(31, null);
+```
+
 ## Applying in the Synth
+
+The UI accepts the existing packed-ring profile below or the RAM-free
+two-return profile used by Gain / FIR / IIR. The latter permits EWA 0 / 1 and
+rejects all RAM I/O and address-mode controls. The legacy Delay validator is
+unchanged: a program using the packed ring cannot use a second Return. Source
+line diagnostics and the owner repeat the appropriate bounded validation.
 
 The first execution profile retains the existing coefficient entries COEF0–2,
 address entries MADRS0–1, packed-format 64 KiB ring at RBP=0 / RBL=2, and EFREG0

@@ -18,7 +18,7 @@ function setup(t){
   globalThis.AudioWorkletNode=class extends Node{
     constructor(context,name,options){super(context,name);this.session=0;this.options=options;this.closed=false;this.port={onmessage:null,postMessage:message=>{
       f.messages.push(message);if(message.id===undefined)return;
-      const answer=()=>{let value=true;if(message.method==='beginCode')value={session:++this.session,channels:32,operators:6,sampleRate:44100};else if(message.method==='code')value=f.codeReply?f.codeReply(message.args[1],message.args[2]):{session:message.args[0],method:message.args[1],args:message.args[2]};queueMicrotask(()=>this.port.onmessage?.({data:{id:message.id,value}}));};
+      const answer=()=>{let value=true;if(message.method==='beginCode')value={session:++this.session,channels:32,operators:6,sampleRate:44100};else if(message.method==='code')value=f.codeReply?f.codeReply(message.args[1],message.args[2]):{session:message.args[0],method:message.args[1],args:message.args[2]};queueMicrotask(()=>this.port.onmessage?.({data:{id:message.id,value,...(f.replyFields?.(message)??{})}}));};
       if(f.hold===message.method)f.held.push(answer);else answer();
     },close:()=>{this.closed=true;}};f.worklets.push(this);queueMicrotask(()=>this.port.onmessage?.({data:{ready:true}}));}
   };
@@ -83,4 +83,18 @@ test('a display callback failure does not reject an acknowledged DSP mutation or
   const engine=await createAudio({onError:error=>f.errors.push(error),onDspChange:()=>{throw Error('display failed');}});
   t.after(()=>engine.dispose());const client=await engine.getScspClient();
   await client.setDspCoefficients({2:300});assert.equal(logs.length,1);assert.equal(f.errors.length,0);assert.equal(engine.context.state,'running');
+});
+
+test('routing ACK metadata reaches the restart memo before the command resolves, including opt-out',async t=>{
+  const f=setup(t),events=[],routing={overrides:{sources:Array(6).fill(null),slots:Array(32).fill(null)},returns:[{level:6,pan:31},{level:7,pan:15}]};
+  const engine=await createAudio({onDspChange:change=>events.push(change)});t.after(()=>engine.dispose());
+  f.replyFields=()=>({dspRoutingState:structuredClone(routing)});
+  await engine.command('physicalNoteOn',['key',6,69]).then(()=>{
+    assert.equal(events.length,1);assert.deepEqual(events[0],{method:'routingState',value:routing});
+  });
+  f.replyFields=()=>({dspRoutingState:null});
+  await engine.command('loadPatch',[{}]);
+  assert.deepEqual(events[1],{method:'routingState',value:null});
+  f.replyFields=()=>({});await engine.command('readDspSetup');
+  assert.equal(events.length,2,'legacy responses do not manufacture routing metadata');
 });

@@ -20,12 +20,19 @@ const mode:ScspCodeConfig['mode']=state.config.mode;
 const pitchBend:number=state.pitchBend;
 const clickGuard:boolean=state.clickGuard;
 const coefficient:number=state.dspCoefficients[2];
+const inputBus:0|1=state.dspRouting.sources[0].input;
+const returnPan:number=state.dspReturns[1].pan;
 const physicalSlot:number|undefined=state.manualVoices[0]?.slot;
 const logicalSlots:number[]=state.codeLanes[0].slots;
 const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopStartSamples:0});
 await scsp.setPreset(0,{sample});await scsp.setConfig({mode:'fm6',fm:{algorithm:'pairs'}});
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
+const physicalSend:ScspCodeDspSend=await scsp.setDspSend(31,{input:1,level:7});
+await scsp.setDspSend(31,null);
+await scsp.setDspSourceSend(5,{input:0});
+await scsp.setDspSourceSend(5,null);
+const secondReturn:ScspCodeDspReturn=await scsp.setDspReturn(1,{level:7,pan:15});
 const dspWords:Uint16Array=scsp.compileDsp('000: ZERO=1');
 const dsp:ScspCodeDspProgram=await scsp.applyDspProgram(dspWords);
 await scsp.applyDspProgram(Object.freeze(Array.from(dspWords)),{coefficients:{0:4095,1:3840,2:256}});
@@ -82,6 +89,20 @@ scsp.setDspCoefficients({1:'0.5'});
 scsp.getDspCoefficients(0);
 // @ts-expect-error raw DSP register access is not exposed
 scsp.setDspRegister(0x700,0x7ff8);
+// @ts-expect-error physical DSP slots end at31
+scsp.setDspSend(32,{level:7});
+// @ts-expect-error Auto source templates end atF
+scsp.setDspSourceSend(6,{input:0});
+// @ts-expect-error only two owned effect returns
+scsp.setDspReturn(2,{level:7});
+// @ts-expect-error only two input buses
+scsp.setDspSend(0,{input:2});
+// @ts-expect-error Return has no routing reset shorthand
+scsp.setDspReturn(1,null);
+// @ts-expect-error Synth's DSP owner uses the explicit routing API
+scsp.setMix(0,{dspSend:7});
+// @ts-expect-error raw common Synth routing cannot replace the application DSP owner
+scsp.setPreset(0,{dspInput:1});
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}
@@ -92,7 +113,7 @@ test('SCSP Code implementation links open its actual performance client instead 
   const {definitionSource,sourcePosition}=await import('../playground/playground_monaco_definitions.js');
   const declarations=selectScspCodeDeclarations(source),lines=declarations.split('\n');
   const client=await readFile(new URL('./code_endpoint.js',import.meta.url),'utf8');
-  for(const symbol of ['noteOn','noteOff','getState','allNotesOff','dispose','compileDsp','applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients']){
+  for(const symbol of ['noteOn','noteOff','getState','allNotesOff','dispose','compileDsp','applyDspProgram','getDspProgram','getDspCoefficients','setDspCoefficients','setDspSend','setDspSourceSend','setDspReturn']){
     const line=lines.findIndex(value=>value.trimStart().startsWith(symbol+'('));assert(line>=0,symbol);
     assert.deepEqual(definitionSource(declarations,{lineNumber:line+1,column:lines[line].indexOf(symbol)+1},'scsp',{runtimeFile:'playground_code_runtime.js'}),{file:'synth-scsp/code_endpoint.js',symbol:'createScspCodeClient'});
     assert(sourcePosition(client,'createScspCodeClient').lineNumber>1,symbol);

@@ -90,13 +90,16 @@ class SynthProcessor extends AudioWorkletProcessor {
 			void this.ready.then(() => {
 				if (this.dead) return;
 				try {
-					let value;
-					if (data.type === 'chip-inspector')
+					let value, primaryResponse = false;
+					const hadRouting = this.instrument.dspRoutingActive;
+					if (data.type === 'chip-inspector') {
+						primaryResponse = true;
 						value =
 							data.action === 'read'
 								? this.instrument.read()
 								: this.instrument.invoke(data.method, data.args);
-					else if (data.method === 'setClickGuard') {
+					} else if (data.method === 'setClickGuard') {
+						primaryResponse = true;
 						const args = data.args ?? [];
 						if (args.length !== 1 || typeof args[0] !== 'boolean')
 							throw new TypeError('SCSP Click guard requires one boolean');
@@ -181,6 +184,9 @@ class SynthProcessor extends AudioWorkletProcessor {
 							'noteOff',
 							'setConfig',
 							'setEffect',
+							'setDspSend',
+							'setDspSourceSend',
+							'setDspReturn',
 							'readDspProgram',
 							'readDspSetup',
 							'applyDspProgram',
@@ -196,6 +202,7 @@ class SynthProcessor extends AudioWorkletProcessor {
 							'readAuthoring',
 						].includes(data.method)
 					) {
+						primaryResponse = true;
 						const config = this.instrument.config,
 							codeActive = this.instrument.codeActive;
 						value = this.instrument[data.method](...(data.args ?? []));
@@ -211,7 +218,17 @@ class SynthProcessor extends AudioWorkletProcessor {
 						if (data.method === 'setPitchBend')
 							this.audition.setPitchBend(...(data.args ?? []));
 					} else throw new Error('Unknown Synth command');
-					if (data.id !== undefined) this.port.postMessage({ id: data.id, value });
+					if (data.id !== undefined) {
+						// One owner turn captures the complete post-command routing.
+						// Auto allocation/source edits can clear physical overrides, so
+						// the client must not infer this state from a partial method reply.
+						const routing = primaryResponse && (hadRouting || this.instrument.dspRoutingActive)
+							? {dspRoutingState: this.instrument.dspRoutingActive ? {
+								overrides: this.instrument.readDspRoutingOverrides(),
+								returns: this.instrument.effect.readReturns(),
+							} : null} : {};
+						this.port.postMessage({ id: data.id, value, ...routing });
+					}
 				} catch (error) {
 					if (error.fatal) {
 						this.dead = true;

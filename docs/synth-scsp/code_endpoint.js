@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { noteToHz } from '../js/soundchip_pitch.js';
-import { checkScspDspDelaySource } from './dsp_program.js?v=scsp-dsp-code-1';
+import { checkScspSynthDspSource } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 
 export const SCSP_CODE_METHODS = Object.freeze([
 	'getState',
@@ -13,6 +13,9 @@ export const SCSP_CODE_METHODS = Object.freeze([
 	'setLfo',
 	'setConfig',
 	'setEffect',
+	'setDspSend',
+	'setDspSourceSend',
+	'setDspReturn',
 	'getDspProgram',
 	'applyDspProgram',
 	'getDspCoefficients',
@@ -47,6 +50,9 @@ export function validateScspCodeCall(method, args) {
 		setLfo: 2,
 		setConfig: 1,
 		setEffect: 1,
+		setDspSend: 2,
+		setDspSourceSend: 2,
+		setDspReturn: 2,
 		getDspProgram: 0,
 		applyDspProgram: 1,
 		getDspCoefficients: 0,
@@ -77,6 +83,22 @@ export function validateScspCodeCall(method, args) {
 	)
 		throw new RangeError('SCSP source operator must be A–F (0..5)');
 	if (method === 'setNote' || method === 'noteOn') noteToHz(args[1]);
+	if (['setDspSend', 'setDspSourceSend', 'setDspReturn'].includes(method)) {
+		const maximum = method === 'setDspSend' ? 31 : method === 'setDspSourceSend' ? 5 : 1;
+		if (!Number.isInteger(args[0]) || args[0] < 0 || args[0] > maximum)
+			throw new RangeError(`${method} target must be 0..${maximum}`);
+		const patch = args[1], isReturn = method === 'setDspReturn';
+		if (patch === null && !isReturn) return;
+		const fields = isReturn ? ['level', 'pan'] : ['input', 'level'];
+		if (!patch || typeof patch !== 'object' || Array.isArray(patch) ||
+			Reflect.ownKeys(patch).some(key => !fields.includes(key)))
+			throw new TypeError(`Invalid ${method} patch`);
+		for (const key of fields) if (Object.hasOwn(patch, key)) {
+			const maximum = key === 'input' ? 1 : key === 'pan' ? 31 : 7;
+			if (!Number.isInteger(patch[key]) || patch[key] < 0 || patch[key] > maximum)
+				throw new RangeError(`${key} must be 0..${maximum}`);
+		}
+	}
 	if (method === 'setFrequency' && (!Number.isFinite(args[1]) || args[1] <= 0))
 		throw new RangeError('Frequency must be positive finite Hz');
 }
@@ -118,7 +140,7 @@ export function createScspCodeClient({ metadata, invoke, isCurrent, dispose } = 
 		compileDsp(...args) {
 			check();
 			if (args.length !== 1) throw new TypeError('compileDsp takes 1 argument');
-			return checkScspDspDelaySource(args[0]).words;
+			return checkScspSynthDspSource(args[0]).words;
 		},
 	};
 	for (const method of SCSP_CODE_METHODS) {

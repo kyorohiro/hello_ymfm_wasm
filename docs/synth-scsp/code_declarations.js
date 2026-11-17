@@ -67,15 +67,21 @@ interface ScspCodeDspProgram {
   revision:number;
   coefficients:ScspCodeDspCoefficients;
 }
+/** Raw ISEL / IMXL request, distinct from a physical slot or EFREG output. */
+interface ScspCodeDspSend {input:0|1;level:number;}
+/** Raw EFSDL 0..7 / EFPAN 0..31; 31 left-only, 15 right-only, 0 center. */
+interface ScspCodeDspReturn {level:number;pan:number;}
+interface ScspCodeDspRouting {sources:ScspCodeDspSend[];slots:ScspCodeDspSend[];}
 interface ScspCodeDspApplyOptions {
   /** Supply all three entries to apply program and coefficients atomically. */
   coefficients:{0:number;1:number;2:number};
 }
 type ScspCodeConfigPatch = Partial<Omit<ScspCodeConfig,'fm'|'effect'>> & {fm?:Partial<ScspCodeConfig['fm']>};
-type ScspCodePresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'|'lfo'|'modulation'>> & {envelope?:Partial<PlaygroundScspEnvelope>;lfo?:Partial<PlaygroundScspLfo>};
+type ScspCodeMix = Omit<PlaygroundScspMix,'dspInput'|'dspSend'>;
+type ScspCodePresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'|'lfo'|'modulation'|'dspInput'|'dspSend'>> & {envelope?:Partial<PlaygroundScspEnvelope>;lfo?:Partial<PlaygroundScspLfo>};
 interface ScspCodePortableOperator {
   bits:8|16;pcm:number[];options:PlaygroundScspPCMOptions;
-  voice:Omit<PlaygroundScspPreset,'sample'|'modulation'>;
+  voice:Omit<PlaygroundScspPreset,'sample'|'modulation'|'dspInput'|'dspSend'>;
 }
 interface ScspCodePatch {
   format:'tetorica-scsp-voice';version:4;name?:string;
@@ -86,6 +92,8 @@ interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
   /** Current Synth COEF0..2 signed 13-bit codes; multiplier = code / 4096. */
   dspCoefficients:[number,number,number];
+  dspRouting:ScspCodeDspRouting;
+  dspReturns:[ScspCodeDspReturn,ScspCodeDspReturn];
   /** App-only software release preference; excluded from portable presets. */
   clickGuard:boolean;
   voiceGroups:{id:string;midi:number;slots:number[];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
@@ -107,10 +115,19 @@ interface ScspCodeClient {
   applyPCM(operator:ScspCodeOperator,pcm:Int8Array|Int16Array,options:PlaygroundScspPCMOptions):Promise<PlaygroundScspSample>;
   setPreset(operator:ScspCodeOperator,patch:ScspCodePresetPatch):Promise<boolean>;
   setEnvelope(operator:ScspCodeOperator,patch:Partial<PlaygroundScspEnvelope>):Promise<boolean>;
-  setMix(operator:ScspCodeOperator,patch:Partial<PlaygroundScspMix>):Promise<boolean>;
+  /** Source level / direct Pan. DSP routing uses setDspSourceSend(). */
+  setMix(operator:ScspCodeOperator,patch:Partial<ScspCodeMix>):Promise<boolean>;
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
+  /** Live physical-slot DSP routing. null restores the Synth default send.
+   * This method addresses actual CH1..CH32, unlike the logical note lanes. */
+  setDspSend(slot:ScspCodeLane,patch:Partial<ScspCodeDspSend>|null):Promise<ScspCodeDspSend>;
+  /** Auto source template routing; also updates its currently held groups.
+   * null restores the global default. Auto allocation is Synth software. */
+  setDspSourceSend(operator:ScspCodeOperator,patch:Partial<ScspCodeDspSend>|null):Promise<ScspCodeDspSend>;
+  /** Independent hardware effect return. Enable gates both without losing these settings. */
+  setDspReturn(output:0|1,patch:Partial<ScspCodeDspReturn>):Promise<ScspCodeDspReturn>;
   /** Parse source and check this Synth's DSP execution profile locally.
    * Returns an owned 512-word image without an audio-owner request or rendering.
    * useSoundChip() prepares audio; compilation itself does not modify it. */

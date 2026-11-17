@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-dsp-save-1';
-import { SynthInstrument } from './instrument.js?v=scsp-dsp-save-1';
+import { createAudio } from './audio.js?v=scsp-dsp-ui-routing-1';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-ui-routing-1';
 import { readPatch, writePatch } from './patch.js?v=scsp-dsp-coef-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-save-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-ui-routing-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-save-1';
-import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-save-1';
-import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-fir-1';
-import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-iir-1';
-import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
+import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
+import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
+import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
+import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
+import { validateScspSynthDspProgram } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-dsp-coef-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
@@ -58,7 +59,8 @@ let selectedOperator = 0,
 	songState = null,
 	liveView = null,
 	channelView = null,
-	dspProgramView = null;
+	dspProgramView = null,
+	dspRoutingView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -120,6 +122,32 @@ let appliedDspWords = delayProgram();
 // COEF1 belongs to the voice patch's Feedback. COEF0/2 belong to this DSP session.
 let sessionDspCoefficients = { 0: 4095, 2: 4095 };
 let coefficientEditSequence = 0;
+let sessionDspRouting = null;
+const routingMethods = ['setDspSend', 'setDspSourceSend', 'setDspReturn'];
+function rememberDspRouting(state) {
+	if (state.dspRoutingOverrides && state.dspReturns)
+		sessionDspRouting = clone({overrides: state.dspRoutingOverrides, returns: state.dspReturns});
+}
+function rememberDspRoutingEdit(method, args, value) {
+	if (!sessionDspRouting) return;
+	if (method === 'setDspReturn') {
+		const [output, patch] = args;
+		sessionDspRouting.returns[output] = {...sessionDspRouting.returns[output], ...patch};
+		if (output === 0 && patch.level !== undefined)
+			cachedPatch = {...cachedPatch, effect: {...cachedPatch.effect, returnLevel: patch.level}};
+	} else if (method === 'setDspSend' || method === 'setDspSourceSend') {
+		const [index, patch] = args, values = sessionDspRouting.overrides[method === 'setDspSend' ? 'slots' : 'sources'];
+		values[index] = patch === null ? null : clone(value);
+	} else if (method === 'setEffect') {
+		sessionDspRouting.returns[0].level = value.returnLevel;
+	}
+}
+function restoreDspRouting(owner, memo) {
+	if (!memo) return;
+	for (const [key, method] of [['sources', 'setDspSourceSend'], ['slots', 'setDspSend']])
+		memo.overrides[key].forEach((patch, index) => owner[method](index, patch));
+	memo.returns.forEach((value, output) => owner.setDspReturn(output, value));
+}
 function rememberDspCoefficients(result) {
 	sessionDspCoefficients = { 0: result.codes[0], 2: result.codes[2] };
 	// Retain the complete ACKed setup before any asynchronous view refresh.
@@ -128,7 +156,10 @@ function rememberDspCoefficients(result) {
 }
 cachedPatch = draft.exportPatch();
 const command = (method, args = []) => {
-	if (audio) return audio.command(method, args);
+	if (audio) return audio.command(method, args).then(value => {
+		rememberDspRoutingEdit(method, args, value);
+		return value;
+	});
 	const value = draft[method](...args);
 	if (
 		!['readPhysical', 'readAuthoring', 'readDspCoefficients', 'exportPatch', 'exportIdleState'].includes(method) &&
@@ -183,6 +214,7 @@ function cacheAuthoring({ state, operators }) {
 	cachedPatch = writePatch({ ...state.config, transpose: baseTranspose }, sources);
 	if (soundName) cachedPatch.name = soundName;
 	latestState = state;
+	rememberDspRouting(state);
 	const ids = new Set(state.voiceGroups.map((group) => group.id));
 	const physicalIds = new Set((state.manualVoices ?? []).map((note) => note.id));
 	for (const [source, note] of held)
@@ -232,7 +264,8 @@ function renderDspCoefficients(state, readOnly = false) {
 	const exampleId = identifyScspDspExample(appliedDspWords, codes);
 	const fir = family === 'fir2';
 	const iir = family === 'iir1';
-	const roles = fir ? createScspDspExample('fir2-lowpass').roles
+	const dual = family === 'routing';
+	const roles = dual ? createScspDspExample('routing-gain-iir').roles : fir ? createScspDspExample('fir2-lowpass').roles
 		: iir ? createScspDspExample('iir1-lowpass').roles
 			: family === 'delay' ? createScspDspExample('delay').roles : ['Coefficient', 'Coefficient', 'Coefficient'];
 	dspProgramView?.update({ words: appliedDspWords, codes });
@@ -249,11 +282,13 @@ function renderDspCoefficients(state, readOnly = false) {
 		const word = ((codes[index] & 0x1fff) << 3).toString(16).toUpperCase().padStart(4, '0');
 		text($(`scspDspCoef${index}Register`), `0x${(0x700 + index * 2).toString(16).toUpperCase()} = 0x${word}`);
 	}
-	$('delayTime').disabled = readOnly || fir || iir;
-	$('delayTime').title = fir || iir ? 'This filter uses TEMP history and does not use Delay time.' : '';
+	$('delayTime').disabled = readOnly || fir || iir || dual;
+	$('delayTime').title = fir || iir || dual ? 'This filter uses TEMP history and does not use Delay time.' : '';
 	text($('scspDspFeedbackLabel'), fir ? 'Previous tap · COEF1' : iir ? 'Output feedback · COEF1' : exampleId === 'delay' ? 'Feedback' : 'COEF1 multiplier');
-	text($('scspDspParametersSummary'), fir ? 'Experimental · FIR routing' : iir ? 'Experimental · IIR routing' : 'Experimental · DSP routing / Delay');
-	text($('scspDspParametersHint'), iir
+	text($('scspDspParametersSummary'), dual ? 'DSP defaults' : fir ? 'FIR defaults' : iir ? 'IIR defaults' : 'Delay / defaults');
+	text($('scspDspParametersHint'), dual
+		? 'MIXS0 feeds Gain on Return 0; MIXS1 feeds IIR on Return 1. Route voices above. Delay Time is unused.'
+		: iir
 		? 'This IIR reuses its previous internal output. Its state persists across samples and the coefficients set its gain and decay. COEF0 and Time are unused. Stop clears the history. Use direct level 0 for wet-only comparison.'
 		: fir
 		? (exampleId === 'fir2-highpass'
@@ -271,6 +306,8 @@ function renderState() {
 	ssfVoiceEdits.sync(songControls?.player.getEditSession() ?? null, songState?.playback, ssfSnapshot);
 	const observing = liveView?.update(songState, ssfSnapshot);
 	renderDspCoefficients(latestState, Boolean(observing));
+	dspRoutingView?.update(latestState, {selected: channelView?.getSelected() ?? null, operator: selectedOperator, readOnly: Boolean(observing)});
+	for (const id of ['effectSend', 'delayFeedback']) $(id).disabled = Boolean(observing);
 	if (observing && channelView?.getSelected() === null)
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
 	if (observing && channelView) liveView.selectSlot(channelView.getSelected());
@@ -336,7 +373,7 @@ function renderState() {
 		['delayTime', 'timeMs'],
 		['delayFeedback', 'feedback'],
 		['effectSend', 'send'],
-		['effectReturn', 'returnLevel'],
+
 	]) {
 		if (document.activeElement !== $(id) && !$(id).classList.contains('is-dragging'))
 			$(id).value = String(key === 'feedback' && state.dspCoefficients
@@ -428,7 +465,9 @@ function audioFailed(error) {
 	setWheelUi(0);
 	songControls?.stop();
 	void codeHost?.stop().catch(() => {});
+	const routingMemo = sessionDspRouting && clone(sessionDspRouting);
 	draft.loadPatch(cachedPatch);
+	restoreDspRouting(draft, routingMemo);
 	draft.setDspCoefficients(sessionDspCoefficients);
 	draftRevision++;
 	sampleKeys = [];
@@ -449,14 +488,22 @@ async function ensureAudio() {
 			const engine = await createAudio({
 				volume: Number($('volume').value),
 				onError: audioFailed,
-				onDspChange({ method, value }) {
+				onDspChange({ method, args = [], value }) {
 					if (disposed || audio !== engine) return;
+					if (method === 'routingState') {
+						sessionDspRouting = clone(value);
+						return;
+					}
+					rememberDspRoutingEdit(method, args, value);
 					if (method === 'applyDspProgram') {
-						const words = validateScspDspDelayProgram(value.words);
+						const words = validateScspSynthDspProgram(value.words);
 						rememberDspCoefficients(value.coefficients);
 						appliedDspWords = words;
 					} else if (method === 'setDspCoefficients') rememberDspCoefficients(value);
-					else {
+					else if (routingMethods.includes(method)) {
+						void refresh().catch(report);
+						return;
+					} else {
 						cachedPatch = { ...cachedPatch, effect: { ...value } };
 					}
 					// The owner has committed. Update the restart memo and Applied view
@@ -1158,7 +1205,7 @@ for (const [id, key] of [
 	['delayTime', 'timeMs'],
 	['delayFeedback', 'feedback'],
 	['effectSend', 'send'],
-	['effectReturn', 'returnLevel'],
+
 ]) {
 	$(id).addEventListener('change', () => {
 		const value = key === 'enabled' ? $(id).checked : Number($(id).value);
@@ -1247,6 +1294,29 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
+dspRoutingView = setupScspDspRoutingView({
+	onSource(operator) {
+		selectedOperator = operator;
+		renderState();
+	},
+	onSend(target, patch) {
+		return enqueue(async () => {
+			if (liveView?.isActive()) {renderState(); return;}
+			await command(target.kind === 'source' ? 'setDspSourceSend' : 'setDspSend', [target.index, patch]);
+			await refresh();
+			status('DSP send updated. Held notes continue. Save setup to Code to keep routing.');
+		});
+	},
+	onReturn(output, patch) {
+		return enqueue(async () => {
+			if (liveView?.isActive()) {renderState(); return;}
+			await command('setDspReturn', [output, patch]);
+			await refresh({dirty: output === 0 && patch.level !== undefined});
+			status(`DSP Return ${output} updated. Voices and DSP history kept.`);
+		});
+	},
+	onError: report,
+});
 dspProgramView = setupScspDspProgramView({
 	getAppliedProgram: () => appliedDspWords,
 	getAppliedCoefficients: () => [sessionDspCoefficients[0], Math.floor(cachedPatch.effect.feedback * 4096), sessionDspCoefficients[2]],
@@ -1260,17 +1330,13 @@ dspProgramView = setupScspDspProgramView({
 			if (!current()) throw cancelled();
 			// One owner turn captures program, coefficients and effect together.
 			// The passive branch never acquires or renders an audio device.
-			return owner ? owner.command('readDspSetup') : {
-				words: Array.from(appliedDspWords),
-				coefficients: draft.readDspCoefficients(),
-				effect: { ...cachedPatch.effect },
-			};
+			return owner ? owner.command('readDspSetup') : {...draft.readDspSetup(), words: Array.from(appliedDspWords)};
 		});
 		if (!current()) throw cancelled();
 		return codeHost.saveDspSetupCode(createScspDspSetupCode(snapshot), { isCurrent: current });
 	},
 	applyProgram: (words, options) => {
-		const candidate = validateScspDspDelayProgram(words);
+		const candidate = validateScspSynthDspProgram(words);
 		const setup = validateScspDspProgramOptions(options);
 		return enqueue(async () => {
 			if (disposed) throw new Error('SCSP Synth is closed');
@@ -1285,7 +1351,7 @@ dspProgramView = setupScspDspProgramView({
 			}
 			const result = await engine.command('applyDspProgram', setup ? [Array.from(candidate), setup] : [Array.from(candidate)]);
 			if (audio !== engine) throw new Error('SCSP audio changed during DSP Apply. Start audio again.');
-			const accepted = validateScspDspDelayProgram(result.words);
+			const accepted = validateScspSynthDspProgram(result.words);
 			if (!accepted.every((word, index) => word === candidate[index]))
 				throw new Error('SCSP DSP reply did not match the requested program.');
 			if (setup) {
@@ -1412,6 +1478,7 @@ window.addEventListener('pagehide', (event) => {
 	}
 	disposed = true;
 	dspProgramView?.dispose();
+	dspRoutingView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

@@ -1,0 +1,18 @@
+; Tetorica SCSP DSP - Gain left / IIR right
+; Recommended codes: COEF0=4095, COEF1=3840, COEF2=256.
+; Send one voice to MIXS0 and another to MIXS1 using the routing controls.
+; Return 0: level 7 / pan 31 (left). Return 1: level 7 / pan 15 (right).
+; The program controls hardware DSP paths; choosing sends / returns is separate.
+;
+; Left: EFREG0 = MIXS0 * COEF0.
+000: XSEL=1 YSEL=1 IRA=32 ZERO=1 COEF=0
+001: EWT=1 EWA=0 ZERO=1
+; Right: y[n] = COEF1*y[n-1] + COEF2*MIXS1, using TEMP history.
+002: TRA=1 XSEL=0 YSEL=1 ZERO=1 COEF=1
+003: XSEL=1 YSEL=1 IRA=33 BSEL=1 COEF=2
+004: TWT=1 TWA=0 EWT=1 EWA=1 ZERO=1
+
+; No RAM access. The existing Delay Time control does not affect this program.
+; Two physical CH tabs can send different sounds to the two input buses.
+; Auto source routing is Synth software grouping over physical SCSP slots.
+; Applying this source stages only the program and coefficients, not routing.

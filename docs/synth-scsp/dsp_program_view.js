@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // DSP draft authoring stays local; only explicit Apply uses the audio owner.
-import {delayProgram} from './dsp.js?v=scsp-dsp-fir-1';
+import {delayProgram} from './dsp.js?v=scsp-dsp-ui-routing-1';
 import {disassembleScspDsp} from './dsp_assembler.js';
-import {checkScspDspDelaySource, validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
-import {createScspDspExample, identifyScspDspExample, identifyScspDspProgram, listScspDspExamples} from './dsp_examples.js?v=scsp-dsp-iir-1';
+import {checkScspSynthDspSource, validateScspSynthDspProgram} from './dsp_program.js?v=scsp-dsp-ui-routing-1';
+import {createScspDspExample, identifyScspDspExample, identifyScspDspProgram, listScspDspExamples} from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
 
 export const SCSP_DSP_DRAFT_STORAGE_KEY = 'tetorica-scsp-dsp-draft-v1';
 
@@ -113,7 +113,7 @@ export function setupScspDspProgramView({root = globalThis.document,
   body.replaceChildren(...rows);
   let disposed = false, copying = false, applying = false, savingSetup = false, checked = null;
   let pendingExample = null, draftExample = null, draftFilename = listing.filename;
-  let appliedWords = validateScspDspDelayProgram(getAppliedProgram());
+  let appliedWords = validateScspSynthDspProgram(getAppliedProgram());
   let appliedCodes = Array.from(getAppliedCoefficients());
   let appliedSource = listing.source;
   const downloads = new Map();
@@ -132,7 +132,7 @@ export function setupScspDspProgramView({root = globalThis.document,
     if (!appliedStatus) return;
     const id = identifyScspDspExample(appliedWords, appliedCodes);
     const family = identifyScspDspProgram(appliedWords);
-    const name = id ? createScspDspExample(id).name : family === 'fir2' ? '2-tap FIR (custom coefficients)'
+    const name = id ? createScspDspExample(id).name : family === 'routing' ? 'Gain / IIR (custom coefficients)' : family === 'fir2' ? '2-tap FIR (custom coefficients)'
       : family === 'iir1' ? '1-pole IIR (custom coefficients)' : 'Custom program';
     const label = 'Applied: ' + name, custom = String(id !== 'delay');
     if (appliedStatus.textContent !== label) appliedStatus.textContent = label;
@@ -174,7 +174,7 @@ export function setupScspDspProgramView({root = globalThis.document,
     if (disposed || !editable) return;
     const source = editor.value;
     try {
-      const result = checkScspDspDelaySource(source);
+      const result = checkScspSynthDspSource(source);
       checked = {...result, source, setup: pendingExample};
       errorDisplay.textContent = '';
       delete errorDisplay.dataset.line;
@@ -205,7 +205,7 @@ export function setupScspDspProgramView({root = globalThis.document,
       const options = candidate.setup ? {coefficients: Object.fromEntries(candidate.setup.codes.map((code, index) => [index, code]))} : undefined;
       const result = await applyProgram(Array.from(candidate.words), options);
       if (disposed) return;
-      const accepted = validateScspDspDelayProgram(result?.words ?? candidate.words);
+      const accepted = validateScspSynthDspProgram(result?.words ?? candidate.words);
       if (!sameWords(accepted, candidate.words)) throw Error('The applied program did not match the checked draft.');
       appliedWords = accepted;
       appliedCodes = Array.from(getAppliedCoefficients());
@@ -402,7 +402,7 @@ export function setupScspDspProgramView({root = globalThis.document,
       if (disposed) return;
       const changedWords = !sameWords(appliedWords, words);
       if (!changedWords && sameWords(appliedCodes, codes)) return;
-      if (changedWords) appliedWords = validateScspDspDelayProgram(words);
+      if (changedWords) appliedWords = validateScspSynthDspProgram(words);
       appliedCodes = Array.from(codes);
       // Observing the owner must not replace a draft or consume staged settings.
       showApplied();

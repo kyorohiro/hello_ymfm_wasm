@@ -70,7 +70,7 @@ test('example sources retain independent word vectors, profile validation and ow
   assert.deepEqual(highpass.roles, fir.roles);
   assert.match(highpass.source, /small DC residual/);
   assert.equal(highpass.filename, 'tetorica-scsp-fir2-highpass.scspasm');
-  assert.deepEqual(listScspDspExamples().map(value => value.id), ['delay', 'fir2-lowpass', 'fir2-highpass', 'iir1-lowpass']);
+  assert.deepEqual(listScspDspExamples().map(value => value.id), ['delay', 'fir2-lowpass', 'fir2-highpass', 'iir1-lowpass', 'routing-gain-iir']);
   assert.equal(identifyScspDspExample(fir.words), 'fir2-lowpass');
   assert.equal(identifyScspDspProgram(highpass.words), 'fir2');
   assert.equal(identifyScspDspProgram(delayProgram()), 'delay');

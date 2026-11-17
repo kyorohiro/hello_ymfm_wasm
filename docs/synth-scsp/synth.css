@@ -575,6 +575,59 @@ select {
 	gap: 8px 12px;
 	margin-bottom: 10px;
 }
+.scsp-dsp-routing {
+	margin-bottom: 22px;
+}
+.scsp-dsp-routing-heading {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin-bottom: 10px;
+}
+.scsp-dsp-routing-heading h3 {
+	margin: 0 auto 0 0;
+	font-size: 0.85rem;
+}
+.scsp-dsp-routing-heading .effect-enable {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.75rem;
+}
+.scsp-dsp-routing-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+	gap: 12px;
+}
+.scsp-dsp-routing-card {
+	min-width: 0;
+	padding: 14px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: #162332;
+}
+.scsp-dsp-routing-card h4 {
+	margin: 0 0 12px;
+	font-size: 0.78rem;
+}
+.scsp-dsp-routing-card .scsp-fields label {
+	flex: 1 1 90px;
+}
+.scsp-dsp-routing-card .scsp-stepper,
+.scsp-dsp-routing-card select {
+	width: 100%;
+	min-width: 0;
+}
+.scsp-dsp-routing-card > button {
+	margin-top: 10px;
+	font-size: 0.68rem;
+}
+.scsp-dsp-route-status {
+	margin: 10px 0 0;
+	font-size: 0.68rem;
+	color: var(--muted);
+}
 .scsp-dsp-coefficients-heading h3 {
 	margin: 0;
 	color: #c9e5f8;

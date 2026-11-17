@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-two-input-two-return-routing-ui",
+  "baseCommit": "176eb363ef9533f9d226b4e0eed6800ac1b03d6c",
+  "published": false,
+  "npmUpdated": false,
+  "versionChanged": false,
+  "physicalListeningPerformed": false,
+  "audioDeviceOpenedByNode": false,
+  "parentCommitCreated": false,
+  "evidence": {
+    "synthSuite": {
+      "path": "build/scsp-routing-ui-20261118/synthSuite.log",
+      "bytes": 32696,
+      "sha256": "8f06342b7545799e6fed9b2e817d7cb8c42c7c8267eb7d8e1d84a62389448b0b"
+    },
+    "owner": {
+      "path": "build/scsp-routing-ui-20261118/owner.log",
+      "bytes": 6877,
+      "sha256": "b82c542809f13367a66623b9eb66063792b7adc975c28fd35a201b3638063e9d"
+    },
+    "viewAndAudio": {
+      "path": "build/scsp-routing-ui-20261118/viewAndAudio.log",
+      "bytes": 1107,
+      "sha256": "9b17c3912cf2d737e403e8fc3c7ad8d8df15b5d73a9ebde506bf33ef7d820c70"
+    },
+    "setup": {
+      "path": "build/scsp-routing-ui-20261118/setup.log",
+      "bytes": 4219,
+      "sha256": "87d70177e79a01d70af5167e97272b2843e92480cc0bb3da889e9d0cbf708338"
+    },
+    "atomicAck": {
+      "path": "build/scsp-routing-ui-20261118/atomicAck.log",
+      "bytes": 3202,
+      "sha256": "133899b07910b30532fa172e71fcf7192fec6e12738749489d730399bc799e84"
+    },
+    "calibrationRevisions": {
+      "path": "build/scsp-routing-ui-20261118/calibrationRevisions.log",
+      "bytes": 14615,
+      "sha256": "60730189c0fe9a521f5f04f97ce42d7de4bc24a223908f70c9aabd70cc27de56"
+    },
+    "proofInitial": {
+      "path": "build/scsp-routing-ui-20261118/proofInitial.log",
+      "bytes": 1587,
+      "sha256": "423a2f8894c2d326ed04e591fb646de6badfcc120424550d429921d2b5fcc685"
+    },
+    "proofGenerators": {
+      "path": "build/scsp-routing-ui-20261118/proofGenerators.log",
+      "bytes": 625,
+      "sha256": "21d0531d79353e20f3d5a8fd01f0c3770af3cd5a4b99601ce322de521f60cef8"
+    },
+    "independentAudit": {
+      "path": "build/scsp-routing-ui-20261118/independentAudit.log",
+      "bytes": 1200,
+      "sha256": "60d2ac3bce8eb7ff529c7e5c028e0b4a8e68b4bc44ef84c7aacabf36b78aded2"
+    },
+    "ciProof": {
+      "path": "build/scsp-routing-ui-20261118/ciProof.log",
+      "bytes": 826,
+      "sha256": "6d3827d6038fae7a90bd58926cb850ca054f1919bf7cf0c2e05c9775f6d9c837"
+    },
+    "packaging": {
+      "path": "build/scsp-routing-ui-20261118/packaging.log",
+      "bytes": 476,
+      "sha256": "00cb580b3ef0ccc46dbe01678b0124898c61e2d28f517cb3ffed13a27c73584d"
+    },
+    "browserSource": {
+      "path": "build/scsp-routing-ui-20261118/browserSource.log",
+      "bytes": 88,
+      "sha256": "a893e04ce823243d41916c06be9b86672530a1a48f1a3651416671dc839a65f8"
+    },
+    "browserZip": {
+      "path": "build/scsp-routing-ui-20261118/browserZip.log",
+      "bytes": 85,
+      "sha256": "db55187ba1630565aa1eb55c055033047a69b44a68844a3f71232377ce925076"
+    },
+    "browserLegacy": {
+      "path": "build/scsp-routing-ui-20261118/browserLegacy.log",
+      "bytes": 1819,
+      "sha256": "ec1ccb0784d74f66da53d22f6af89226ef437b9b871029c3f0407e388ca4e103"
+    }
+  },
+  "checks": {
+    "synthAndPackagingPassed": 310,
+    "defaultSynthPcmCases": 24,
+    "calibrationRevisionPassed": 132,
+    "newAndPreviousProofPassed": 14,
+    "exactCiProofPassed": 7,
+    "historicalJsonFilesUnchanged": 873,
+    "strictCodeTypesPassed": true,
+    "mixerGeneratorsUnchanged": true
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_dsp_routing_ui_source_revision_01.json",
+    "bytes": 16888,
+    "sha256": "e795972bcc6671ff7141253d0e7fd6479fe471ecca6cde8f20b693499b00da37"
+  },
+  "defaultParity": {
+    "path": "docs/issues/scsp_dsp_routing_ui_default_parity_01.json",
+    "bytes": 21305,
+    "sha256": "e085e4d83162d377ff867cb2a7e13f846bfbd3bcdd9c307c3051e1fc24b5aebe"
+  },
+  "sourceBrowser": {
+    "path": "build/scsp-routing-ui-20261118/browser-source.json",
+    "bytes": 23725,
+    "sha256": "b691c1feb0e3e40c809233b29746514cd3d232cf84d92287646b669764ae4979",
+    "physicalOutputMuted": true,
+    "cases": 4,
+    "rates": [
+      44100,
+      48000
+    ],
+    "engines": [
+      "chromium",
+      "webkit"
+    ]
+  },
+  "exactZipBrowser": {
+    "path": "build/scsp-routing-ui-20261118/browser-zip.json",
+    "bytes": 24881,
+    "sha256": "9d33770c8d70c456a83cdcbaa930aa2a8ee343f1a75c089d9c29736ac4332096",
+    "physicalOutputMuted": true,
+    "cases": 4,
+    "rates": [
+      44100,
+      48000
+    ],
+    "engines": [
+      "chromium",
+      "webkit"
+    ]
+  },
+  "legacyBrowser": {
+    "path": "build/scsp-routing-ui-20261118/browser-legacy.json",
+    "bytes": 2527,
+    "sha256": "8499ea194c56e9e390f4cfc5d51480ef77cace946a95660ca3cdfcde42b9388d",
+    "passed": true,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "physicalOutputMuted": true
+  },
+  "archiveAudit": {
+    "path": "release/tetorica_scsp_synth_dsp-routing-ui-20261118_itch.zip",
+    "bytes": 4303916,
+    "sha256": "253be0f7e9e8e39b4adae1c9325fc58164f37b5bb0dfbff0799e65136aa1d906",
+    "crcPassed": true,
+    "entries": 375,
+    "allArchiveBytesMatchStage": true,
+    "runtimeSourceFilesCompared": 94,
+    "runtimeSourceBytesMatch": true,
+    "extractedRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-routing-ui-20261118/browser-zip"
+  },
+  "screenshotsVisuallyReviewed": [
+    "build/scsp-routing-ui-20261118/browser-zip-chromium-48000-desktop.png",
+    "build/scsp-routing-ui-20261118/browser-zip-chromium-48000-mobile.png"
+  ],
+  "limitations": [
+    "Listening remains manual.",
+    "New routing and returns are DSP session settings; use Save setup to Code.",
+    "Loading a legacy voice preset restores default routing.",
+    "SSF has its own DSP."
+  ]
+}
