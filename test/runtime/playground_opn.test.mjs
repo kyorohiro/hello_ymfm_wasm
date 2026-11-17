@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import nukedFactory from '../../docs/generated/nuked_opn2_wasm.js';
@@ -24,7 +25,7 @@ const source=(await readFile(new URL('./playground_opn_worklet.js',runtimeDirect
 async function setup(name, overrides={}, engine='ymfm') {
  let Processor, ready;
  const promise=new Promise(resolve=>{ready=resolve;});
- vm.runInNewContext(source,{validateYm2612Engine,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,nukedFactory,ym2203Factory,ym2610Factory,sampleRate:48000,
+ vm.runInNewContext(source,{createYm2612TimedProcessor,observeYm2612TimedChip,validateYm2612Engine,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,nukedFactory,ym2203Factory,ym2610Factory,sampleRate:48000,
   createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:ready};}},registerProcessor:(_,cls)=>{Processor=cls;},...overrides});
  const wasmBinary=await readFile(new URL(`../../docs/generated/${engine==='nuked'?'nuked_opn2':name==='ym2610'?'ym2610b':name}_wasm.wasm`,runtimeDirectoryUrl));

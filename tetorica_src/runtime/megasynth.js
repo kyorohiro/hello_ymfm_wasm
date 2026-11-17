@@ -15,6 +15,8 @@ import {
   YM2612WorkletTransport,
 } from "./ym2612synth.js";
 import { YM2612_CLOCK } from "./ym2612.js";
+import {attachYm2612TimedClient} from './ym2612_timed_client.js';
+import {validateYm2612Engine} from './playground_soundchip_options.js';
 import { createSegaPsgApi } from "./segapsg_api.js";
 import { createRf5c164Audio } from "./playground_rf5c164_audio.js";
 import { createRf5c164Client } from "./playground_rf5c164.js";
@@ -146,6 +148,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   audioContext?: AudioContext | null,
  *   outputNode?: AudioNode | null,
  *   workletUrl?: string,
+ *   engine?: 'ymfm'|'nuked',
  *   stereoWidthWorkletUrl?: string,
  *   bitcrusherWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
@@ -306,6 +309,7 @@ export class MegaSynth {
     this.mixerReleases = [];
     this.workletUrl =
       options.workletUrl ?? "./ym2612-worklet.js";
+    this.engine=validateYm2612Engine(options.engine??(/(?:^|\/)(?:ym2612-worklet-nuked|synth_fm_worklet_nuked)\.js(?:[?#]|$)/.test(String(this.workletUrl))?'nuked':'ymfm'));
     this.stereoWidthWorkletUrl =
       options.stereoWidthWorkletUrl ??
       resolveSiblingWorkletUrl(
@@ -428,6 +432,7 @@ export class MegaSynth {
           controller.abort();
           this.releaseMixerSources();
           this.#disposePcm();
+          this.fm?.dispose?.();
           this.fm?.transport?.dispose?.();
           this.node?.disconnect();
           this.node?.port.close();
@@ -723,6 +728,7 @@ export class MegaSynth {
     this.releaseMixerSources();
     this.#disposePcm();
 
+    this.fm?.dispose?.();
     this.fm?.transport?.dispose?.();
     if (this.node) {
       this.node.disconnect();
@@ -889,11 +895,12 @@ export class MegaSynth {
       );
 
     this.fm =
-      new YM2612Synth({
+      attachYm2612TimedClient(new YM2612Synth({
         transport,
-      });
+      }),{engine:this.engine},this.node.port);
 
     Object.defineProperty(this.fm, 'id', {value: 'ym2612', enumerable: true});
+    Object.defineProperty(this.fm, 'engine', {value:this.engine,enumerable:true});
     if (psgWasmBinary) {
       const node = this.node;
       this.psg = createSegaPsgApi({

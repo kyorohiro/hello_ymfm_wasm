@@ -1,4 +1,4 @@
-// AY-only entry transactions over the existing chip capability. This module
+// Register-operation entry transactions over the existing chip capability. This module
 // owns no clock, renderer, state mirror or general asynchronous execution realm.
 const moduleId=globalThis.crypto?.randomUUID?.()??`${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
 let nextManager=0;

@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import nukedFactory from '../../docs/generated/nuked_opn2_wasm.js';
@@ -22,7 +23,7 @@ async function setup(name,rate,engine='ymfm') {
   let Processor, resolveReady, calls = 0;
   const ready = new Promise(resolve => {resolveReady = resolve;});
   const messages = [];
-  const scope = {validateYm2612Engine,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,sampleRate:rate,currentFrame:0,Ym2612,Ym2203,Ym2610B,ym2612Factory,nukedFactory,ym2203Factory,ym2610Factory,validateChipClock,
+  const scope = {createYm2612TimedProcessor,observeYm2612TimedChip,validateYm2612Engine,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,sampleRate:rate,currentFrame:0,Ym2612,Ym2203,Ym2610B,ym2612Factory,nukedFactory,ym2203Factory,ym2610Factory,validateChipClock,
     createProcessorPerformance:options => createProcessorPerformance({...options,rate,nowFrame:() => scope.currentFrame}),
     AudioWorkletProcessor:class {constructor() {this.port = {postMessage:message => {messages.push(message); resolveReady(message);}};}},
     registerProcessor(_name,Type) {Processor = Type;},

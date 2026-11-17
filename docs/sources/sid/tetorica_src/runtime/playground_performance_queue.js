@@ -53,6 +53,7 @@ export function createPerformanceQueue({
   maxPatterns = PERFORMANCE_PATTERN_LIMITS.maxPatterns,
   maxPatternEntries = PERFORMANCE_PATTERN_LIMITS.maxPatternEntries,
   maxPatternRate = PERFORMANCE_PATTERN_LIMITS.maxPatternRate,
+  patternCommandCost,
   validate,
   prepare,
   onDiscard,
@@ -63,7 +64,8 @@ export function createPerformanceQueue({
       !Number.isSafeInteger(maxCommands) || maxCommands < 1 ||
       !Number.isSafeInteger(maxPatterns) || maxPatterns < 1 ||
       !Number.isSafeInteger(maxPatternEntries) || maxPatternEntries < 1 ||
-      !Number.isFinite(maxPatternRate) || maxPatternRate <= 0) {
+      !Number.isFinite(maxPatternRate) || maxPatternRate <= 0 ||
+      (patternCommandCost !== undefined && typeof patternCommandCost !== 'function')) {
     throw new TypeError('Invalid performance queue configuration');
   }
   let heap = [], queuedCommands = 0, serial = 0;
@@ -72,6 +74,7 @@ export function createPerformanceQueue({
   const canceledPatternOwners = new Set();
   const patterns = new Map();
   let storedPatternCommands = 0, patternRate = 0;
+  let storedPatternCost = 0, patternCostRate = 0;
   let lateCommands = 0, maxLateFrames = 0, rejectedBatches = 0, discardedCommands = 0;
   const validSession = session => Number.isSafeInteger(session) && session > 0;
   const validOwner = owner => typeof owner === 'string' && owner.length > 0 && owner.length <= 256;
@@ -142,7 +145,7 @@ export function createPerformanceQueue({
       throw new RangeError('Performance pattern entry limit exceeded or empty pattern');
     }
     const budget = {remaining: 262144};
-    let previous = 0;
+    let previous = 0, cost = 0;
     const entries = Array.from(spec.entries, entry => {
       if (!entry || typeof entry !== 'object' ||
           !Number.isFinite(entry.offsetSeconds) || entry.offsetSeconds < previous) {
@@ -159,22 +162,28 @@ export function createPerformanceQueue({
         throw new TypeError('Invalid performance pattern command');
       }
       validate?.(command, performance);
+      const commandCost = patternCommandCost?.(command) ?? 1;
+      if (!Number.isSafeInteger(commandCost) || commandCost < 1 || commandCost > maxCommands) {
+        throw new RangeError('Invalid performance pattern command cost');
+      }
+      cost += commandCost;
       return {offsetSeconds: entry.offsetSeconds, command};
     });
     const repeatSeconds = spec.repeatSeconds;
     if (repeatSeconds !== undefined && (!Number.isFinite(repeatSeconds) ||
-        repeatSeconds <= previous || entries.length / repeatSeconds > maxPatternRate)) {
+        repeatSeconds <= previous || cost / repeatSeconds > maxPatternRate)) {
       throw new RangeError('Performance repeat interval is invalid or exceeds the operation rate limit');
     }
-    return {name: spec.name, entries, repeatSeconds, startFrame,
+    return {name: spec.name, entries, repeatSeconds, startFrame, cost,
       performance: {session: performance.session, owner: performance.owner, time: performance.time}};
   }
   function discardPattern(pattern) {
     if (patterns.get(pattern.name) !== pattern) return;
     patterns.delete(pattern.name);
     storedPatternCommands -= pattern.entries.length;
-    patternRate -= pattern.rate;
-    if (patterns.size === 0) patternRate = 0;
+    storedPatternCost -= pattern.cost;
+    patternRate -= pattern.rate; patternCostRate -= pattern.costRate;
+    if (patterns.size === 0) patternRate = patternCostRate = 0;
     discard({commands: pattern.entries.map(entry => entry.command),
       performance: pattern.performance, reply: pattern.reply});
   }
@@ -196,15 +205,15 @@ export function createPerformanceQueue({
       commands: [entry.command], reply: pattern.reply, pattern};
   }
   function checkPatternCapacity(prepared, removed) {
-    let count = patterns.size - removed.size, commands = storedPatternCommands, rate = patternRate;
+    let count = patterns.size - removed.size, commands = storedPatternCost, rate = patternCostRate;
     for (const pattern of removed) {
-      commands -= pattern.entries.length;
-      rate -= pattern.rate;
+      commands -= pattern.cost;
+      rate -= pattern.costRate;
     }
     for (const pattern of prepared) {
       count++;
-      commands += pattern.entries.length;
-      rate += pattern.repeatSeconds === undefined ? 0 : pattern.entries.length / pattern.repeatSeconds;
+      commands += pattern.cost;
+      rate += pattern.repeatSeconds === undefined ? 0 : pattern.cost / pattern.repeatSeconds;
     }
     if (count > maxPatterns || commands + queuedCommands > maxCommands ||
         rate > maxPatternRate + Number.EPSILON * maxPatternRate) {
@@ -217,10 +226,11 @@ export function createPerformanceQueue({
     const receipts = [];
     for (const spec of prepared) {
       const pattern = {...spec, reply, index: 0, cycle: 0, serial: serial++,
-        rate: spec.repeatSeconds === undefined ? 0 : spec.entries.length / spec.repeatSeconds};
+        rate: spec.repeatSeconds === undefined ? 0 : spec.entries.length / spec.repeatSeconds,
+        costRate: spec.repeatSeconds === undefined ? 0 : spec.cost / spec.repeatSeconds};
       patterns.set(pattern.name, pattern);
-      storedPatternCommands += pattern.entries.length;
-      patternRate += pattern.rate;
+      storedPatternCommands += pattern.entries.length; storedPatternCost += pattern.cost;
+      patternRate += pattern.rate; patternCostRate += pattern.costRate;
       push(nextPatternEvent(pattern));
       receipts.push(patternReceipt(pattern));
     }
@@ -342,7 +352,7 @@ export function createPerformanceQueue({
       if (!Number.isSafeInteger(frame)) throw new RangeError('Performance time exceeds the audio timeline');
       if (!Array.isArray(data.commands) || data.commands.length < 1 ||
           data.commands.length > maxCommands ||
-          queuedCommands + storedPatternCommands + data.commands.length > maxCommands) {
+          queuedCommands + storedPatternCost + data.commands.length > maxCommands) {
         throw new RangeError('Performance queue capacity exceeded or empty command batch');
       }
       for (const command of data.commands) {
@@ -419,7 +429,7 @@ export function createPerformanceQueue({
           if (pattern.index === pattern.entries.length) {
             if (pattern.repeatSeconds === undefined) {
               patterns.delete(pattern.name);
-              storedPatternCommands -= pattern.entries.length;
+              storedPatternCommands -= pattern.entries.length; storedPatternCost -= pattern.cost;
               continue;
             }
             pattern.index = 0;
@@ -441,7 +451,7 @@ export function createPerformanceQueue({
     clear,
     cancelOwner,
     getStats: () => ({activeSession, latestSession, queuedCommands, queuedBatches: heap.length,
-      patternCount: patterns.size, storedPatternCommands, patternRate,
+      patternCount: patterns.size, storedPatternCommands, patternRate, storedPatternCost, patternCostRate,
       lateCommands, maxLateFrames, rejectedBatches, discardedCommands}),
   };
 }
@@ -451,16 +461,19 @@ export function createPerformanceQueue({
  * writeFm goes through the audition guard, so a held manual key keeps priority.
  */
 export function createPerformanceChipOwnership({writeFm, writePsg, channelCount = 6}) {
-  const fmOwners = new Array(channelCount).fill(null), psgOwners = new Array(4).fill(null);
+  const fmOwners = new Array(channelCount).fill(null), fmActive = new Array(channelCount).fill(false), psgOwners = new Array(4).fill(null);
   let psgLatch = 0;
-  const reset = () => {fmOwners.fill(null); psgOwners.fill(null); psgLatch = 0;};
+  const reset = () => {fmOwners.fill(null); fmActive.fill(false); psgOwners.fill(null); psgLatch = 0;};
   return {
     observe(command, performance) {
       const owner = performance?.owner ?? null;
       if (command.type === 'reset') {reset(); return;}
       if (command.type === 'write' && command.register === 0x28 && (command.port ?? 0) === 0) {
         const code = command.value & 7, channel = (code & 3) + (code & 4 ? 3 : 0);
-        if ((code & 3) !== 3 && channel < channelCount) fmOwners[channel] = command.value & 0xf0 ? owner : null;
+        if ((code & 3) !== 3 && channel < channelCount) {
+          fmActive[channel] = !!(command.value & 0xf0);
+          fmOwners[channel] = fmActive[channel] ? owner : null;
+        }
       }
       if (command.type === 'psg-reset') {psgOwners.fill(null); psgLatch = 0;}
       if (command.type === 'psg-write') {
@@ -471,10 +484,20 @@ export function createPerformanceChipOwnership({writeFm, writePsg, channelCount 
         if (psgLatch & 1) psgOwners[channel] = (value & 15) === 15 ? null : owner;
       }
     },
+    // Only the new explicit timed path consults this guard. Existing immediate
+    // and legacy scheduling behavior is unchanged. A later Gate owns its Off,
+    // while parameter-only edits never acquire or discard a voice owner.
+    canApplyTimed(command, performance) {
+      if (command.type !== 'write' || command.register !== 0x28 ||
+          (command.port ?? 0) !== 0 || command.value & 0xf0) return true;
+      const code = command.value & 7, channel = (code & 3) + (code & 4 ? 3 : 0);
+      return (code & 3) === 3 || channel >= channelCount || !fmActive[channel] ||
+        fmOwners[channel] === (performance?.owner ?? null);
+    },
     cancel(owner) {
       for (let channel = 0; channel < fmOwners.length; channel++) {
         if (fmOwners[channel] !== owner) continue;
-        fmOwners[channel] = null;
+        fmOwners[channel] = null; fmActive[channel] = false;
         writeFm(0x28, channel < 3 ? channel : channel + 1, 0);
       }
       for (let channel = 0; channel < psgOwners.length; channel++) {

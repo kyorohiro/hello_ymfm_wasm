@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from './ym2612_timed_processor.js';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js';
 import {validateChipClock} from './playground_chip_clock.js';
@@ -32,9 +33,12 @@ function clampSample(value) {
   return value;
 }
 
+const timedInstanceNonce = Math.random().toString(36).slice(2);
+let timedInstanceSequence = 0;
 export class YM2612Processor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options = {}) {
     super();
+    this.instanceId = options.processorOptions?.instanceId ?? `ym2612-ymfm:${timedInstanceNonce}:${++timedInstanceSequence}`;
 
     this.ym2612 = null;
     this.auditions = null;
@@ -79,6 +83,7 @@ export class YM2612Processor extends AudioWorkletProcessor {
       channelCount: 6,
     });
     this.performanceQueue = createPerformanceQueue({
+      patternCommandCost:command=>command.method==='applyTimedOperation'?command.writeCost:1,
       apply: (command, reply, frame, performance) => this.applyCommand(command, reply, frame, performance),
       onCancelOwner: owner => {
         this.performanceOwnership.cancel(owner);
@@ -88,6 +93,12 @@ export class YM2612Processor extends AudioWorkletProcessor {
       sampleRate,
       prepare: (command, reply, performance) => this.preparePerformanceCommand(command, reply, performance),
     });
+    this.timed = createYm2612TimedProcessor({performance:{...this.performanceQueue,
+      receive:(data,port)=>this.performanceQueue.receive(data,message=>port.postMessage(message))},
+      getState:() => { if (!this.timedChip) throw new Error('YM2612 timed API is not ready'); return this.timedChip.getState(); },
+      getConfig:() => ({instanceId:this.instanceId,clock:this.clock??7670454,engine:'ymfm'}),
+      dispatch:(command,port,frame,metadata) => this.applyCommand(command,message=>port.postMessage(message),frame,metadata),
+      nowFrame:() => currentFrame,sampleRate});
     const receiveChipPort = createChipPortReceiver((command, reply) => this.applyCommand(command, reply), undefined, {performanceQueue: this.performanceQueue});
     this.port.onmessage = (event) => {
       const command = event.data;
@@ -124,6 +135,7 @@ export class YM2612Processor extends AudioWorkletProcessor {
           wasmBinary: new Uint8Array(wasmBinary),
         }
       );
+      this.timedChip = observeYm2612TimedChip(this.ym2612);
       this.auditions = createOpnAuditionGuard(this.ym2612, 6);
       this.opnInspector = new OpnKeyboardInspector(this.ym2612,{kind:'ym2612',guard:this.auditions,clock:()=>this.clock??7670454,sampleRate});
       this.ym2612.setHooks({
@@ -229,6 +241,16 @@ export class YM2612Processor extends AudioWorkletProcessor {
   }
 
   applyCommand(command, reply = message => this.port.postMessage(message), commandFrame = currentFrame, performance) {
+    if (command.method === 'ym2612Timed') {this.timed.receive(command,{postMessage:reply});return;}
+    if (command.method === 'applyTimedOperation') return this.timed.apply(command.operation,{postMessage:reply},commandFrame,performance);
+    if (performance?.timedOperation && command.type === 'write' && this.auditions) {
+      if (!this.performanceOwnership.canApplyTimed(command,performance)) return false;
+      const inspector=this.opnInspector??this.auditions;
+      if (!inspector.writeTimedRegister(command.register,command.value,command.port)) return false;
+      this.performanceOwnership.observe(command,performance);
+      this.pcmDac.observeWrite(command.port,command.register,command.value);
+      return true;
+    }
     this.performanceOwnership.observe(command, performance);
     if (command.type === 'performance-pcm-dac-start') {
       this.performanceDacOwner = performance?.owner ?? null;

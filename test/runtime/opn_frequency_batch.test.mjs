@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
@@ -77,7 +78,7 @@ function makeChip(writes){
 }
 async function processor(file){
   let Type;
-  const scope={sampleRate:48000,currentFrame:0,Float32Array,Uint8Array,Uint32Array,
+  const scope={createYm2612TimedProcessor,observeYm2612TimedChip,sampleRate:48000,currentFrame:0,Float32Array,Uint8Array,Uint32Array,
     createChipPortReceiver,createPerformanceQueue,createPerformanceChipOwnership,createOpnAuditionGuard,receiveOpnAuditionCommand,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>scope.currentFrame}),
     YM2612DacPlayer,receiveDacCommand,
@@ -94,7 +95,7 @@ async function processor(file){
     registerProcessor(_name,value){Type=value;},
   };
   const source=(await readFile(new URL(file,runtimeDirectoryUrl),'utf8')).replace(/^import .*;\n/gm,'');
-  vm.runInNewContext(source,scope);
+  vm.runInNewContext(source.replace(/^export /gm,''),scope);
   const common=file==='soundchip-output-worklet.js';
   const p=common?new Type({processorOptions:{name:'ym2612',chipOptions:{}}}):new Type();
   const writes=[],chip=makeChip(writes);

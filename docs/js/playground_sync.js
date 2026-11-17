@@ -108,7 +108,7 @@ export function handleMegaSynthEvent(
 export function createFmProxy(
   targetSynth
 ) {
-  return {
+  const api = {
     get dac() { return targetSynth.dac; },
     reset() {
       targetSynth.reset();
@@ -276,4 +276,10 @@ export function createFmProxy(
       return targetSynth.transport;
     },
   };
+  if(targetSynth._timedOperations){
+    for(const method of ['build','compile','captureState','schedule','clearSchedule'])
+      api[method]=(...args)=>targetSynth[method](...args);
+    Object.defineProperty(api,'_timedOperations',{get:()=>targetSynth._timedOperations});
+  }
+  return api;
 }

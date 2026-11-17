@@ -5,6 +5,7 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {restoreMixerCalibrationLogTableCacheRevision} from './mixer_calibration_log_table_cache_revision.mjs';
+import {restoreMixerCalibrationYm2612TimedRevision, createYm2612TimedRevisionReader} from './mixer_calibration_ym2612_timed_revision.mjs';
 
 export const AY_TIMED_REVISION_BASE_COMMIT = '6663c6d5a286f10ff08f16645953a0083dabd34b';
 export const AY_TIMED_REVISION_RECEIPT_PATH = 'docs/issues/ay_timed_operations_source_revision_01.json';
@@ -89,6 +90,8 @@ function sourceName(path) {
  */
 export function restoreMixerCalibrationAyTimedRevision(path, bytes, {readSource = read} = {}) {
   const name = sourceName(path);
+  bytes = restoreMixerCalibrationYm2612TimedRevision(name, bytes, {readSource});
+  readSource = createYm2612TimedRevisionReader(readSource);
   if (!AY_TIMED_REVISION_SOURCE_PATHS.includes(name)) return bytes;
   const receipt = evidence(readSource), entry = receipt.sources[name];
   const reviewed = restoreMixerCalibrationLogTableCacheRevision(name, bytes, {readSource});

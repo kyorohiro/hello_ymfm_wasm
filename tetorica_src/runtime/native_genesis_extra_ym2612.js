@@ -1,4 +1,5 @@
 import {YM2612Synth} from './ym2612synth.js';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js';
 import {createOpnAuditionGuard} from './playground_audition_guard.js';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js';
@@ -14,6 +15,7 @@ const GLOBAL_EDITS=new Set(['setLfo','setChannel3SpecialMode','setChannel3Specia
 const unsupported=feature=>new Error(`${feature} is unavailable for additional Native YM2612 chips`);
 
 function adoptClient(client,state){
+  state.timedState?client._adoptTimedState(state.timedState):client._invalidateTimedState();
   if(state.channels)client.channels=structuredClone(state.channels);
   if(state.modeRegister!==undefined)client._modeRegister=state.modeRegister;
   if(state.lfo)client.lfo=structuredClone(state.lfo);
@@ -137,6 +139,7 @@ export function createNativeGenesisYm2612Endpoint(synth,{engine:requestedEngine}
       return value;
     });uiSerial=result.catch(()=>{});return result;
   }
+  attachYm2612TimedClient(client,{native:true,engine});
   return {client,dispatch,read,invoke,
     // Older Native hosts ignore unknown create arguments. Confirm Nuked before
     // publishing its client rather than silently playing their ymfm default.

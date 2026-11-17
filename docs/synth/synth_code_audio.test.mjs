@@ -68,6 +68,28 @@ function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip
     setPcm:value=>{preset={...preset,settings:{...preset.settings,...value}};},getPreset:()=>structuredClone(preset)};
 }
 
+test('borrowed FM retains timed data and lifecycle capability on the same editor chip', async () => {
+  const events=[],program={chip:'ym2612',operations:[]},snapshot=Object.freeze({instanceId:'editor'});
+  const capability=Object.freeze({schedule(){},clearSchedule(){}});
+  const fm={clock:7670454,_timedOperations:capability,
+    build(callback){assert.equal(this,fm);events.push('build');return program;},
+    async compile(plan,options){assert.equal(this,fm);assert.equal(plan,program);events.push(options.initialState);return [];},
+    async captureState(){assert.equal(this,fm);return snapshot;},
+    async schedule(plan,options){assert.equal(this,fm);assert.equal(plan,program);return options.name;},
+    async clearSchedule(name){assert.equal(this,fm);return name;},keyOff(){},
+  };
+  const {audio}=fixture({fmChip:fm});
+  const client=await audio.useSoundChip('ym2612');
+  assert.equal(client.build(()=>{}),program);
+  assert.deepEqual(await client.compile(program,{initialState:'client'}),[]);
+  assert.equal(await client.captureState(),snapshot);
+  assert.equal(await client.schedule(program,{name:'motion'}),'motion');
+  assert.equal(await client.clearSchedule('motion'),'motion');
+  assert.equal(client._timedOperations,capability);
+  assert.deepEqual(events,['build','client']);
+  await audio.dispose();
+});
+
 test('borrowed FM stays shared with its editor and Code disposal never closes that chip or the context',async()=>{
   const f=fixture(),fm=f.audio.getFm();assert.equal(fm,await f.audio.useSoundChip('ym2612'));
   assert.equal(fm.clock,7670454);fm.noteOn(0,4,644);assert(f.events.some(e=>e[0]==='fm-on'&&e[3]===644));

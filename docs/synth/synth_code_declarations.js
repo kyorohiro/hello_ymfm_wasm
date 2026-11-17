@@ -38,7 +38,7 @@ function declarations(source) {
 
 const CODE_TYPES=`
 /** Borrowed Synth instruments; methods use the upper editor's current sound. */
-type SynthCodeFm = Omit<FMApi, 'setClock'> & {readonly id:string; dispose():void};
+type SynthCodeFm = Omit<YM2612FMApi, 'setClock'> & {readonly id:string; dispose():void};
 type SynthCodePsg = Omit<PSGApi, 'keyOn'|'keyOff'|'resetAll'> & {
   readonly id:string; readonly clock:number;
   /** Tone 0..2 or Noise 3, using the current Synth attenuation/envelope. */

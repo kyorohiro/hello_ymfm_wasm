@@ -419,8 +419,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
   let fallbackClock = timing.chipClock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'];
-  const fm = keyboardApi(new Proxy({}, {
+  const fm = keyboardApi(ayTimedLifecycle.wrap(new Proxy({}, {
     get(_target, property) {
+      if(property==='_timedOperations')return chip?.fm?._timedOperations;
       if (Object.hasOwn(sections, property)) return sections[property];
       if (property === 'clock') return chip?.fm.clock ?? fallbackClock;
       if (property === 'setClock' && !chip) return async hz => { await request('fm.setClock', [hz], run.currentLoop); fallbackClock = hz; };
@@ -447,7 +448,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       }
       return chip && !mainMethods.includes(property) ? chip.fm[property] : commandProxy(`fm.${String(property)}`);
     },
-  }));
+  }),chip?.fm?._timedOperations));
   const isGameboy = capabilities.chip === 'gameboy';
   const gameboy = isGameboy ? native.apis.gameboy ?? keyboardApi(chip?.gameboy ?? new Proxy({}, {
     get(_target, method) {
@@ -817,7 +818,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
       const release=immediate=>{if(disposed)return;disposed=true;try{dispose();}finally{pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId,response.instance],...(immediate?{}:{performance:performanceTransport.timestamp()})});}};
       pcm.dispose=()=>release(false);
-      pcmClients.add(pcm);const api=keyboardApi(name==='ay8910'?ayTimedLifecycle.wrap(pcm):pcm);
+      pcmClients.add(pcm);const api=keyboardApi(ayTimedLifecycle.wrap(pcm));
       if(name==='ay8910'){run.currentLoop=caller;if(run.stopped||caller?.stopped){release(true);throw new DOMException('Run stopped','AbortError');}}
       if(scoped)return resumeScopedNativeExtra(caller,token,()=>api).catch(error=>{release(true);throw error;});return api;
     },

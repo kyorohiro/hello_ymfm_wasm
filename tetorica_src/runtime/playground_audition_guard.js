@@ -46,6 +46,22 @@ export function createOpnAuditionGuard(chip, channelCount = 6) {
     }
   };
   return {
+    /** Explicit sample-timed edits follow application order. A new Key On
+     * claims the voice, invalidating the old manual key-up token. Parameter
+     * and pitch writes retain that token; an old scheduled Off cannot release
+     * a currently held manual replacement. Ordinary script writes keep their
+     * existing keyboard-priority path above. */
+    writeTimedRegister(register, value, port = 0) {
+      if (port === 0 && register === 0x28) {
+        const code = value & 7, channel = (code & 3) + (code & 4 ? 3 : 0);
+        if ((code & 3) !== 3 && channel < channelCount) {
+          if (!(value & 0xf0) && (heldMask & (1 << channel))) return false;
+          if (value & 0xf0) {tokens[channel] = 0; heldMask &= ~(1 << channel);}
+        }
+      }
+      directWrite(register,value,port);
+      return true;
+    },
     /** Return false for unrelated commands. Invalid audition data throws before
      * changing claims or chip state; the processor reports that error to host. */
     handle(command) {

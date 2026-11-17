@@ -15,6 +15,8 @@ import {
   YM2612WorkletTransport,
 } from "./ym2612synth.js?v=audio-stability-2";
 import { YM2612_CLOCK } from "./ym2612.js?v=audio-numeric-bindings-1";
+import {attachYm2612TimedClient} from './ym2612_timed_client.js';
+import {validateYm2612Engine} from './playground_soundchip_options.js';
 import { createSegaPsgApi } from "./segapsg_api.js?v=audio-numeric-bindings-1";
 import { createRf5c164Audio } from "./playground_rf5c164_audio.js?v=rf5c164-notes-1";
 import { createRf5c164Client } from "./playground_rf5c164.js?v=rf5c164-notes-1";
@@ -146,6 +148,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   audioContext?: AudioContext | null,
  *   outputNode?: AudioNode | null,
  *   workletUrl?: string,
+ *   engine?: 'ymfm'|'nuked',
  *   stereoWidthWorkletUrl?: string,
  *   bitcrusherWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
@@ -306,6 +309,7 @@ export class MegaSynth {
     this.mixerReleases = [];
     this.workletUrl =
       options.workletUrl ?? "./ym2612-worklet.js?v=rf5c164-notes-1";
+    this.engine=validateYm2612Engine(options.engine??(/(?:^|\/)(?:ym2612-worklet-nuked|synth_fm_worklet_nuked)\.js(?:[?#]|$)/.test(String(this.workletUrl))?'nuked':'ymfm'));
     this.stereoWidthWorkletUrl =
       options.stereoWidthWorkletUrl ??
       resolveSiblingWorkletUrl(
@@ -348,11 +352,11 @@ export class MegaSynth {
     this.pwm = null; this.pwmDevice = null;
     this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
       ? options.segaPsgWasmUrl
-      : this.megaCD ? resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'segapsg_wasm.wasm?v=audio-numeric-bindings-1') : null;
+      : this.megaCD ? resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'segapsg_wasm.wasm') : null;
     this.rf5c164WasmUrl = options.rf5c164WasmUrl ??
       resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'rf5c164_wasm.wasm');
     this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
-      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=rf5c164-notes-1');
+      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js');
     this.rf5c164Fetch = options.rf5c164Fetch;
     /** RF5C164 API after start() when megaCD is enabled; transport methods return promises, while setRootNote is synchronous.
      * @type {(ReturnType<typeof createRf5c164Client> & {readonly id: string}) | null} */
@@ -428,6 +432,7 @@ export class MegaSynth {
           controller.abort();
           this.releaseMixerSources();
           this.#disposePcm();
+          this.fm?.dispose?.();
           this.fm?.transport?.dispose?.();
           this.node?.disconnect();
           this.node?.port.close();
@@ -723,6 +728,7 @@ export class MegaSynth {
     this.releaseMixerSources();
     this.#disposePcm();
 
+    this.fm?.dispose?.();
     this.fm?.transport?.dispose?.();
     if (this.node) {
       this.node.disconnect();
@@ -889,11 +895,12 @@ export class MegaSynth {
       );
 
     this.fm =
-      new YM2612Synth({
+      attachYm2612TimedClient(new YM2612Synth({
         transport,
-      });
+      }),{engine:this.engine},this.node.port);
 
     Object.defineProperty(this.fm, 'id', {value: 'ym2612', enumerable: true});
+    Object.defineProperty(this.fm, 'engine', {value:this.engine,enumerable:true});
     if (psgWasmBinary) {
       const node = this.node;
       this.psg = createSegaPsgApi({

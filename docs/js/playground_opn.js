@@ -5,6 +5,7 @@ import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {YM2203Synth} from './ym2203synth.js?v=rf5c164-notes-1';
 import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=rf5c164-notes-1';
 import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js';
 
 /**
  * Create a high-level OPN synth backed by ordered Worklet port commands.
@@ -93,6 +94,7 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
       _getState:{value:()=>({...client.getState(),clock:client.clock,...(engine?{engine}:{}),...(client.ssg?{ssg:client.ssg._getState()}:{})})},
       _adoptState:{value:state=>{
         if(!state)return;
+        if(name==='ym2612')state.timedState?client._adoptTimedState(state.timedState):client._invalidateTimedState();
         if(engine&&state.engine!==undefined&&state.engine!==engine)throw new Error('Additional YM2612 engine does not match its physical instance');
         if(state.clock!==undefined)client._adoptClock(state.clock);
         if(state.channels)client.channels=structuredClone(state.channels);
@@ -115,5 +117,5 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
       for(const method of ['setSample','playFromSample','play','stop','removeSample'])client.dac[method]=()=>Promise.reject(new Error('PCM DAC sample playback is unavailable for additional Native YM2612 chips'));
     }
   }
-  return client;
+  return name==='ym2612'?attachYm2612TimedClient(client,{...options,engine},port):client;
 }

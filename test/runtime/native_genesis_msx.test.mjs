@@ -45,7 +45,7 @@ test('Native AY Main authoring exactly matches the Web client including retained
   const f=fixture();await f.start();const writes=[],api=createAy8910Client({postMessage:m=>writes.push(m),close(){}});api.initialize();writes.length=0;
   function program(a){for(let ch=0;ch<3;ch++){a.tone(ch,{note:'A4',volume:ch+5});a.keyOff(ch);a.keyOn(ch);a.setVolume(ch,0);a.keyOn(ch);a.noise(ch,{period:ch+4,volume:ch+7,envelope:ch===2});}a.setMixer(0,{tone:true,noise:true});a.setEnvelope({period:100,shape:10});a.setEnvelope({shape:10});a.setVoice(1,{envelope:true,volume:4,note:'E4'});a.allNotesOff();}
   program(api);program(f.ay8910.client);
-  assert.deepEqual(f.commands.map(c=>c.message),writes.map(m=>m.method==='writeRegister'?{chip:'ay8910',method:'write',register:m.args[0],value:m.args[1]}:{chip:'ay8910',method:'set-retained-level',channel:m.args[0],level:m.args[1]}));assert.deepEqual(f.ay8910.client._getState(),api._getState());assert.equal(f.commands.filter(c=>c.message.register===13).length,2);
+  assert.deepEqual(f.commands.map(c=>c.message),writes.flat().map(m=>m.method==='writeRegister'?{chip:'ay8910',method:'write',register:m.args[0],value:m.args[1]}:{chip:'ay8910',method:'set-retained-level',channel:m.args[0],level:m.args[1]}));assert.deepEqual(f.ay8910.client._getState(),api._getState());assert.equal(f.commands.filter(c=>c.message.register===13).length,2);
 });
 
 test('MSX scheduled writes keep chip ownership, frame timing and applied snapshots separate',async()=>{
@@ -97,7 +97,7 @@ for(const cancellation of ['generation','session','owner'])test(`MSX asynchronou
 
 test('MSX real Worker MessagePorts preserve existing clients, ordered clocks and retained-level commands',async()=>{
   const f=fixture();await f.start();const ports=[],work=[];
-  function connect(chip,create){const {port1,port2}=new MessageChannel();ports.push(port1,port2);port2.on('message',message=>{const p=f[chip].dispatch(message,{time:.5,performance:3,owner:9}).then(result=>{if(result)port2.postMessage(result);});work.push(p);});return create(port1);}
+  function connect(chip,create){const {port1,port2}=new MessageChannel();ports.push(port1,port2);port2.on('message',message=>{const p=(async()=>{for(const command of Array.isArray(message)?message:[message]){const result=await f[chip].dispatch(command,{time:.5,performance:3,owner:9});if(result)port2.postMessage(result);}})();work.push(p);});return create(port1);}
   const ay=connect('ay8910',createAy8910Client),opll=connect('ym2413',createYm2413Client);
   try{ay.noise(0,{period:12,volume:6});ay.keyOff(0);ay.setVolume(1,0);opll.setVoice(0,{instrument:4,attenuation:3});await Promise.all([ay.setClock(2000000),opll.setClock(4000000)]);await Promise.all(work);assert.equal(ay.clock,2000000);assert.equal(opll.clock,4000000);assert(f.commands.every(c=>c.type==='msx'&&c.frame===24000&&c.owner===9&&c.performance===3));assert(f.commands.some(c=>c.message.method==='set-retained-level'&&c.message.channel===1&&c.message.level===0));assert.equal(f.ay.clock,1789773);f.advance(24000);assert.equal(f.ay.clock,2000000);assert.equal(f.opll.clock,4000000);assert.equal(f.ay.levels[1],0);assert.equal(f.ay.registers[8],0);assert.equal(f.ay.registers[7]&1,1);assert.equal(f.ay.registers[7]&8,0);}finally{for(const p of ports)p.close();}
 });

@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
@@ -68,11 +69,11 @@ test('scheduled events preserve sample position and same-frame insertion order a
 
 test('offline stereo FM + native delay/reverb exactly match the AudioWorklet processors', async () => {
   let Processor;
-  const scope = {OpnKeyboardInspector,sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const scope = {createYm2612TimedProcessor,observeYm2612TimedChip,OpnKeyboardInspector,sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error,
     YM2612DacPlayer, receiveDacCommand, createChipPortReceiver, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, createYm2612, ym2612ModuleFactory: factory,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_name, Type) => {Processor = Type;}};
-  vm.runInNewContext(fs.readFileSync(new URL('./ym2612-worklet.js', runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, ''), scope);
+  vm.runInNewContext(fs.readFileSync(new URL('./ym2612-worklet.js', runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, '').replace(/^export /gm,''), scope);
   const p = new Processor();
   await p.init(fs.readFileSync(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl)));
   assert.ok(p.ym2612);

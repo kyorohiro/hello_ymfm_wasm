@@ -1163,6 +1163,49 @@ frame rate; an explicit legacy `chipSampleRate` request remains supported. An
 injected AudioContext keeps its own rate. Chip clocks and note tuning are
 independent of the output rate.
 
+### Inspect and schedule YM2612 register operations
+
+After `await synth.start()`, `synth.fm` supports the additive timed operation
+API. Existing immediate calls and `scheduleWrites()` keep their behavior.
+
+```js
+const fm = synth.fm;
+const motion = fm.build(b => {
+  b.atSample(0).setOperator(0, 0, {multi: 2});
+  b.atSeconds(0.1).setOperator(0, 0, {tl: 48});
+  b.atSeconds(0.2).keyOff(0);
+});
+console.table(await fm.compile(motion)); // port / register / value / offsetSeconds
+await fm.schedule(motion, {name: 'operator-motion', repeatSeconds: 1});
+await fm.clearSchedule('operator-motion');
+```
+
+`build()` records serializable operations once without reading or changing the
+chip. `atSample()` uses a configurable `referenceSampleRate`, default 44100 Hz;
+both time forms are absolute offsets from the reservation start. The Worklet
+resolves packed fields against the state present when each operation executes.
+For example, MULT retains the then-current DT. Repeated Key On/Off writes stay
+in the trace. This is software scheduling of hardware registers.
+
+`compile()` predicts one pass without changing live state. Its default
+`initialState: 'current'` captures coherent renderer control state asynchronously
+without stopping audio. Use `'client'` for the local write shadow with no
+renderer request, or `'reset'` for hardware reset registers. Client state may
+lag scheduled or external edits and explicitly rejects an incomplete baseline.
+For comparable traces, capture once with `await fm.captureState()` and reuse
+that detached snapshot as `{initialState: snapshot}`. Snapshots retain register
+bytes and pitch-latch metadata; they are not oscillator/envelope save states.
+
+`schedule()` resolves when accepted. Named replacement and cancellation affect
+future operations, preserving already applied values. Patterns are compact,
+bounded to 4096 operations each, with aggregate limits of 128 reservations,
+65,536 expanded writes and 48,000 expanded writes/second for repeats. These are
+admission limits, not a guarantee that every device sustains the maximum rate.
+Native timed execution and authoritative capture are unavailable; local/reset
+compilation remains available. For a custom Worklet transport, explicitly use
+`attachYm2612TimedClient` from `tetorica-fm2612/ym2612_timed_client` after creating
+the `YM2612Synth`, supplying its port and engine configuration.
+
 Version 0.2.14 also supports chip-output RMS monitoring:
 
 ```js

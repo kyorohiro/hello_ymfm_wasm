@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "scope": "ym2612-timed-operation-default-audio-and-register-parity",
+  "baseCommit": "d620c38f701d0c8906ae0c05387019a891237d3b",
+  "deviceOpened": false,
+  "reference": "Exact authenticated pre-feature Worklets and unchanged real ymfm/Nuked WASM; default immediate patch/note and legacy scheduler paths",
+  "sources": {
+    "tetorica_src/runtime/ym2612-worklet.js": {
+      "bytes": 27032,
+      "sha256": "afbb848585b4fdb514eeedd8c230a33e859a141a727f3a4e006f93d0f8df6df1"
+    },
+    "tetorica_src/runtime/ym2612-worklet-nuked.js": {
+      "bytes": 26235,
+      "sha256": "324c787c955bf597ba45498dfe854e6092cefe90891deb0bfaec5bbe030d5257"
+    },
+    "tetorica_src/runtime/playground_opn_worklet.js": {
+      "bytes": 9347,
+      "sha256": "b5eada3b1dbf0956095516d15541970874a5be834ef804262325c291268aa110"
+    },
+    "tetorica_src/runtime/soundchip-output-worklet.js": {
+      "bytes": 21269,
+      "sha256": "eed5c462dbb21e3db2e7f716626182945e1c83040f66db2585987174b466f78f"
+    },
+    "tetorica_src/runtime/ym2612_timed_processor.js": {
+      "bytes": 9376,
+      "sha256": "35f73772c6e92a200e168ff4e750ebfc6973d4e3e28e6255e183f33e9c1953af"
+    },
+    "tetorica_src/runtime/ym2612_operation_state.js": {
+      "bytes": 4556,
+      "sha256": "85c7472e8bf0300c6e00d0d11046df9a0aa88c446fd38778572c3cfb6f94379b"
+    },
+    "tetorica_src/runtime/ym2612_operations.js": {
+      "bytes": 12889,
+      "sha256": "01c93a26453d393b4ca06e20c4ca57df524299513a61766f27a3a155bbc10f20"
+    },
+    "tetorica_src/runtime/ym2612_timed_state.js": {
+      "bytes": 3613,
+      "sha256": "19a831a5bb6025b0a293c9210f300abdb0ec7fdcdfcbbec6807edc710d8de465"
+    },
+    "tetorica_src/runtime/ym2612synth.js": {
+      "bytes": 39425,
+      "sha256": "2a34a686dad5c8415535f850ac254a6026247eefd1ad99d9e4a4a87a5ab60109"
+    },
+    "tetorica_src/runtime/playground_audition_guard.js": {
+      "bytes": 7201,
+      "sha256": "2c30e381c64af5b417d0f7ea423d663dc1cedd55f02efea75c5ce3c2a3c74916"
+    },
+    "tetorica_src/runtime/playground_opn_inspector.js": {
+      "bytes": 7691,
+      "sha256": "5f63a7ee787996921db20c7314524b800fb6be44ac363e0ec12ef89cf837edc3"
+    },
+    "tetorica_src/runtime/playground_performance_queue.js": {
+      "bytes": 24020,
+      "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "bytes": 31224,
+      "sha256": "f6809ebe61cddc6a975d820711acfc15d839a37ccdf416ab5da914ccf13a73d2"
+    }
+  },
+  "binaries": {
+    "ym2612": {
+      "bytes": 40357,
+      "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+    },
+    "nuked_opn2": {
+      "bytes": 21071,
+      "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+    }
+  },
+  "predecessors": {
+    "ymfm": {
+      "path": "tetorica_src/runtime/ym2612-worklet.js",
+      "before": {
+        "bytes": 25234,
+        "sha256": "e92739edfc535029aed3a2461db485d54ca6e21f6b7f8b81bd6e267ddd85c02b"
+      },
+      "after": {
+        "bytes": 27032,
+        "sha256": "afbb848585b4fdb514eeedd8c230a33e859a141a727f3a4e006f93d0f8df6df1"
+      }
+    },
+    "nuked": {
+      "path": "tetorica_src/runtime/ym2612-worklet-nuked.js",
+      "before": {
+        "bytes": 24435,
+        "sha256": "b85313908ad739c16e3068e0316250253d2e222a3248d80ca060327704f7a147"
+      },
+      "after": {
+        "bytes": 26235,
+        "sha256": "324c787c955bf597ba45498dfe854e6092cefe90891deb0bfaec5bbe030d5257"
+      }
+    }
+  },
+  "cases": [
+    {
+      "engine": "ymfm",
+      "sampleRate": 44100,
+      "stereoFrames": 2000,
+      "exactPcmEqual": true,
+      "exactTraceEqual": true,
+      "pcmLeftSha256": "630902451d99cde07201f3f6b9c51ccf9d7eabb63504152e36d2b74f7d31c11e",
+      "pcmRightSha256": "630902451d99cde07201f3f6b9c51ccf9d7eabb63504152e36d2b74f7d31c11e",
+      "traceWrites": 31,
+      "traceSha256": "45e5e4338be41a6d497aa71eff8c254a300a940d1d15cdaa296cff25358347bc"
+    },
+    {
+      "engine": "ymfm",
+      "sampleRate": 48000,
+      "stereoFrames": 2000,
+      "exactPcmEqual": true,
+      "exactTraceEqual": true,
+      "pcmLeftSha256": "a066dcbae11d0be7a0de4e68b58fb0b7cd365807e3b3a3ed4fe61bd3c40ba8da",
+      "pcmRightSha256": "a066dcbae11d0be7a0de4e68b58fb0b7cd365807e3b3a3ed4fe61bd3c40ba8da",
+      "traceWrites": 31,
+      "traceSha256": "45e5e4338be41a6d497aa71eff8c254a300a940d1d15cdaa296cff25358347bc"
+    },
+    {
+      "engine": "nuked",
+      "sampleRate": 44100,
+      "stereoFrames": 2000,
+      "exactPcmEqual": true,
+      "exactTraceEqual": true,
+      "pcmLeftSha256": "8b0e569edd5831b8ab49611685f1564e8188c18438ed4a01581f2ecb4e1e5371",
+      "pcmRightSha256": "8b0e569edd5831b8ab49611685f1564e8188c18438ed4a01581f2ecb4e1e5371",
+      "traceWrites": 31,
+      "traceSha256": "45e5e4338be41a6d497aa71eff8c254a300a940d1d15cdaa296cff25358347bc"
+    },
+    {
+      "engine": "nuked",
+      "sampleRate": 48000,
+      "stereoFrames": 2000,
+      "exactPcmEqual": true,
+      "exactTraceEqual": true,
+      "pcmLeftSha256": "a3a624955f2966a4bfe1cc2e4bd9cf66e8965784efdc1e95cb17fb8513ceffbf",
+      "pcmRightSha256": "a3a624955f2966a4bfe1cc2e4bd9cf66e8965784efdc1e95cb17fb8513ceffbf",
+      "traceWrites": 31,
+      "traceSha256": "45e5e4338be41a6d497aa71eff8c254a300a940d1d15cdaa296cff25358347bc"
+    }
+  ],
+  "totalStereoFrames": 8000,
+  "maximumPcmDifference": 0
+}

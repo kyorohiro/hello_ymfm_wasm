@@ -138,6 +138,7 @@ const SCALE_INTERVALS = {
  *   workletUrl?: string,
  *   audioWorkletUrl?: string,
  *   ym2612WasmUrl?: string,
+ *   engine?: 'ymfm'|'nuked',
  *   segaPsgWasmUrl?: string,
  *   gameboyWasmUrl?: string,
  *   presets?: Record<string, object>,
@@ -167,6 +168,7 @@ export function createPlaygroundRuntime(
     options.megaDrive ??
     createTetoricaSynth({
       chip: options.chip,
+      engine:options.engine,
       type:options.type,
       flags:options.flags,
       stereoEnabled:options.stereoEnabled,
@@ -916,7 +918,9 @@ export function createPlaygroundRuntime(
       if (core?.adpcmA?.levels) sections.adpcmA = {levels:Array.from(core.adpcmA.levels)};
       if (core?.adpcmB?.registers) sections.adpcmB = {registers:Array.from(core.adpcmB.registers)};
     }
-    return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock, ...sections};
+    return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock,
+      ...(capabilities.chip==='ym2612'?{engine:core?.engine??megaDrive.engine??'ymfm'}:{}),
+      ...(capabilities.chip==='ym2612'&&core?._timedClientStateComplete?{timedState:core._getTimedState()}:{}), ...sections};
   }
   // UI notes share the chip and its output gain, but own their channel until
   // released. The worklet arbitrates against Main and direct Worker writes.
@@ -2399,7 +2403,7 @@ export function createPlaygroundRuntime(
       Object.defineProperty(sharedFm, 'id', {value: capabilities.chip ?? 'ym2612', enumerable: true});
       sharedFmSynth = synth;
     }
-    const fm = keyboardApi(sharedFm);
+    const fm = keyboardApi(ayTimedLifecycle.wrap(sharedFm));
     const nativeApis = Object.fromEntries(Object.entries(nativePrimaryApis()).map(([name,api])=>[name,keyboardApi(api)]));
     const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
@@ -2605,7 +2609,7 @@ export function createPlaygroundRuntime(
           decodeAudio:decodePcm,
         });
         device.client=client;
-        if(name==='ay8910'&&client._timedOperations){
+        if(client._timedOperations){
           const release=device.releaseOwner;device.releaseOwner=loop=>{ayTimedLifecycle.cancelLoop(loop,client._timedOperations);release?.(loop);};
         }
         if(name==='pokey'&&!device.native)setPokeyTimelineLifecycle(client);
@@ -2620,8 +2624,8 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):name==='ay8910'?ayTimedLifecycle.wrap(client):client);
-        if(name==='ay8910'){currentLoopContext=callerLoop;if(callerLoop?.stopped){device.dispose();throw new DOMException('Run stopped','AbortError');}}
+        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):ayTimedLifecycle.wrap(client));
+        if(client._timedOperations){currentLoopContext=callerLoop;if(callerLoop?.stopped){device.dispose();throw new DOMException('Run stopped','AbortError');}}
         if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
         return api;
       },

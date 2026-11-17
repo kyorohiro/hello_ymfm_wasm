@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from './ym2612_timed_processor.js';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {createOpnAuditionGuard} from './playground_audition_guard.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
@@ -12,6 +13,9 @@ import ym2203Factory from './generated/ym2203_wasm.js';
 import ym2610Factory from './generated/ym2610b_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 
+const timedInstanceNonce = Math.random().toString(36).slice(2);
+let timedInstanceSequence = 0;
+
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
@@ -19,7 +23,7 @@ class Processor extends AudioWorkletProcessor {
     this.chip = null; this.dead = false; this.schedule = null;
     this.remainder = 0; this.left = 0; this.right = 0;
     this.counts = new Uint32Array(128);
-    this.performance=createProcessorPerformance({chip:()=>this.name,apply:(data,port)=>this.apply(data,port),prepare:(data,port)=>{
+    this.performance=createProcessorPerformance({patternCommandCost:command=>command.method==='applyTimedOperation'?command.writeCost:1,chip:()=>this.name,apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata),prepare:(data,port)=>{
       if(data.method==='memory'){this.apply(data,port);return null;}
       // A schedule request resolves at its documented playback completion.
       if(data.id===undefined||data.method==='schedule')return data;
@@ -40,6 +44,14 @@ class Processor extends AudioWorkletProcessor {
     Chip.create({moduleFactory, moduleOptions: {wasmBinary}, variant: name === 'ym2610b'}).then(chip => {
       if (this.dead) { chip.dispose(); return; }
       this.chip = chip; this.rate = chip.sampleRate();
+      if(name==='ym2612') {
+        this.timedChip=observeYm2612TimedChip(chip);
+        this.instanceId=options.processorOptions.instanceId??`ym2612-opn:${timedInstanceNonce}:${++timedInstanceSequence}`;
+        this.timed=createYm2612TimedProcessor({performance:this.performance,getState:()=>this.timedChip.getState(),
+          getConfig:()=>({instanceId:this.instanceId,clock:this.clock??7670454,engine:this.engine}),
+          dispatch:(command,port,_frame,metadata)=>this.performance.applyImmediate(command,port,metadata),
+          nowFrame:this.performance.nowFrame,sampleRate});
+      }
       this.auditions=createOpnAuditionGuard(chip,name==='ym2203'?3:6);
       this.opnInspector=new OpnKeyboardInspector(chip,{kind:name,guard:this.auditions,clock:()=>this.clock??(name==='ym2612'?7670454:name==='ym2203'?4000000:8000000),sampleRate});
       chip.reserveStereoFrames(Math.ceil(128 * this.rate / sampleRate));
@@ -50,19 +62,30 @@ class Processor extends AudioWorkletProcessor {
     if (this.schedule) this.schedule.port.postMessage({id: this.schedule.id, error: 'Schedule cancelled'});
     this.schedule = null;
   }
-  dispose() { this.performance.clear();this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
+  dispose() { this.timed?.clear();this.performance.clear();this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }
   receive(data, port) {
+    if(data?.method==='ym2612Timed'){
+      if(!this.timed){port.postMessage({id:data.id,error:'YM2612 timed API is not ready'});return;}
+      this.timed.receive(data,port);return;
+    }
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.opnInspector?(action,method,args)=>action==='read'?this.opnInspector.read():this.opnInspector.invoke(method,args):null))return;
     if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }
-  apply(data,port) {
+  apply(data,port,frame,metadata) {
+    if(data.method==='applyTimedOperation')return this.timed.apply(data.operation,port,frame,metadata);
     try {
       if (data.method === 'dispose') { this.dispose(); return; }
       if (!this.chip) throw new Error('OPN not ready');
       const args = data.args ?? [];
-      switch (data.method) {
-        case 'write': this.chip.writeRegister(args[1],args[2],args[0]); break;
+      switch (data.method??data.type) {
+        case 'write':
+          if(data.type) {
+            if(metadata?.timedOperation&&this.auditions) {
+              if(!this.opnInspector.writeTimedRegister(data.register,data.value,data.port))return false;
+            } else this.chip.writeRegister(data.register,data.value,data.port);
+          } else this.chip.writeRegister(args[1],args[2],args[0]);
+          break;
         case 'clear-auditions': this.opnInspector?.clear(); break;
         case 'reset': this.cancelSchedule(); this.chip.reset(); this.remainder = 0; this.left = this.right = 0; break;
         case 'clock':

@@ -14,6 +14,32 @@ Code from the tab or editor. Use `beat()` for musical note lengths and rests so
 
 `context` is live memory, not Cassette data. Save source and local data files to keep a performance. Monaco loads when Code is opened; the plain-text editor and execution remain available if the editor service is unavailable.
 
+## Timed YM2612 operations
+
+Files includes **examples/timed-operators.js**. Open it in Code and Run to hear
+an independent melody and Operator TL / MULT motion. Startup adds the example
+only when its path is missing and keeps your edited source and selection.
+
+`fm.build(b => { ... })` records register-only operations with `atSeconds()` or
+`atSample()` offsets. It does not read or modify the chip. `await fm.schedule()`
+accepts a named reservation on the AudioWorklet sample clock; the returned
+Promise reports acceptance, not completion. Replacing a name restarts its
+pattern. `await fm.clearSchedule(name)` cancels future operations without
+restoring previous parameter values. Stop cancels Code-owned reservations.
+
+`await fm.compile(program)` resolves a predicted register trace from a coherent
+renderer snapshot. Use `{initialState: "client"}` for local state without a
+renderer request, or `"reset"` for reset registers. Capture once with
+`await fm.captureState()` and pass the same snapshot to multiple compilations
+to compare them. Compiling does not pause audio or change the instrument.
+Client state may lag timed or external writes; a compiled trace describes its
+chosen baseline rather than a recording of interleaved playback.
+
+Scheduling is software. YM2612 supplies the operator behavior and envelopes.
+Packed-register fields are resolved when each operation executes, so changing
+MULT retains the DT present at that moment. An explicit Key On/Off write is
+kept even when its value repeats. Native timed execution is unavailable.
+
 Selecting an FM, PSG or PCM sound in Files or the preset lists selects that
 chip's **Auto** instrument, even from a physical CH view, while Code keeps running. It preserves live loops, context,
 `livePrepare()` and software FX; explicit Stop keeps the latest editor sound.

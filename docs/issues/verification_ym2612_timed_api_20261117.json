@@ -1,0 +1,1279 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "passed": true,
+  "scope": "YM2612 timed operations in Main/Worker, Synth Code, packages and readable distribution",
+  "baselineCommit": "d620c38f701d0c8906ae0c05387019a891237d3b",
+  "sourceRevisionReceipt": {
+    "path": "docs/issues/ym2612_timed_operations_source_revision_01.json",
+    "objectSha256": "317b6cb51a007179b935b54456c47ea388770aed8aded5ea3250222777377f14"
+  },
+  "automated": {
+    "runtimeTests": {
+      "passed": 4033,
+      "failed": 0
+    },
+    "synthTests": {
+      "passed": 699,
+      "failed": 0
+    },
+    "sourceProofTests": {
+      "passed": 45,
+      "failed": 0
+    },
+    "readableRunArchiveTests": {
+      "passed": 9,
+      "failed": 0
+    },
+    "servedWorkletChecks": {
+      "passed": 56,
+      "failed": 0
+    },
+    "npm": {
+      "version": "0.2.40",
+      "modules": 371,
+      "declarations": 422,
+      "packedFiles": 1275,
+      "nodeNext": true,
+      "bundler": true,
+      "browserWithoutNodeAmbientTypes": true,
+      "installedRuntime": true,
+      "published": false
+    }
+  },
+  "physicalBrowserOutputMuted": true,
+  "synthBrowsers": {
+    "packagedYmfm": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "soundingPeak": 0.011437318287789822,
+          "audit": {
+            "contexts": 1,
+            "nodes": 2,
+            "routes": 2,
+            "muted": true,
+            "peak": 0
+          },
+          "checkpoints": {
+            "initial": [
+              {
+                "value": 50,
+                "frame": 14336
+              },
+              {
+                "value": 50,
+                "frame": 16000
+              },
+              {
+                "value": 50,
+                "frame": 17152
+              },
+              {
+                "value": 50,
+                "frame": 18560
+              }
+            ],
+            "applied": [
+              {
+                "value": 52,
+                "frame": 22016
+              },
+              {
+                "value": 52,
+                "frame": 23424
+              },
+              {
+                "value": 52,
+                "frame": 24832
+              },
+              {
+                "value": 52,
+                "frame": 25984
+              }
+            ],
+            "failedApply": [
+              {
+                "value": 52,
+                "frame": 29440
+              },
+              {
+                "value": 52,
+                "frame": 30592
+              },
+              {
+                "value": 52,
+                "frame": 32000
+              },
+              {
+                "value": 52,
+                "frame": 33152
+              }
+            ],
+            "removed": [
+              {
+                "value": 55,
+                "frame": 45440
+              },
+              {
+                "value": 55,
+                "frame": 46464
+              },
+              {
+                "value": 55,
+                "frame": 47616
+              },
+              {
+                "value": 55,
+                "frame": 49024
+              },
+              {
+                "value": 55,
+                "frame": 50176
+              },
+              {
+                "value": 55,
+                "frame": 51712
+              },
+              {
+                "value": 55,
+                "frame": 52736
+              },
+              {
+                "value": 55,
+                "frame": 53888
+              }
+            ],
+            "stopped": [
+              {
+                "value": 57,
+                "frame": 72192
+              },
+              {
+                "value": 57,
+                "frame": 73600
+              },
+              {
+                "value": 57,
+                "frame": 74752
+              },
+              {
+                "value": 57,
+                "frame": 76160
+              },
+              {
+                "value": 57,
+                "frame": 77312
+              },
+              {
+                "value": 57,
+                "frame": 78720
+              },
+              {
+                "value": 57,
+                "frame": 79872
+              },
+              {
+                "value": 57,
+                "frame": 81024
+              }
+            ]
+          },
+          "example": {
+            "path": "/examples/timed-operators.js",
+            "motionValues": [
+              1,
+              1,
+              2,
+              3,
+              4,
+              4,
+              3,
+              3,
+              2,
+              1,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "soundingPeak": 0.011437318287789822,
+          "audit": {
+            "contexts": 1,
+            "nodes": 2,
+            "routes": 2,
+            "muted": true,
+            "peak": 0
+          },
+          "checkpoints": {
+            "initial": [
+              {
+                "value": 50,
+                "frame": 20352
+              },
+              {
+                "value": 50,
+                "frame": 21632
+              },
+              {
+                "value": 50,
+                "frame": 23040
+              },
+              {
+                "value": 50,
+                "frame": 24448
+              }
+            ],
+            "applied": [
+              {
+                "value": 52,
+                "frame": 28544
+              },
+              {
+                "value": 52,
+                "frame": 29824
+              },
+              {
+                "value": 52,
+                "frame": 31104
+              },
+              {
+                "value": 52,
+                "frame": 32384
+              }
+            ],
+            "failedApply": [
+              {
+                "value": 52,
+                "frame": 35712
+              },
+              {
+                "value": 52,
+                "frame": 36992
+              },
+              {
+                "value": 52,
+                "frame": 38400
+              },
+              {
+                "value": 52,
+                "frame": 39680
+              }
+            ],
+            "removed": [
+              {
+                "value": 55,
+                "frame": 50688
+              },
+              {
+                "value": 55,
+                "frame": 51968
+              },
+              {
+                "value": 55,
+                "frame": 53376
+              },
+              {
+                "value": 55,
+                "frame": 54656
+              },
+              {
+                "value": 55,
+                "frame": 55936
+              },
+              {
+                "value": 55,
+                "frame": 57216
+              },
+              {
+                "value": 55,
+                "frame": 58624
+              },
+              {
+                "value": 55,
+                "frame": 60032
+              }
+            ],
+            "stopped": [
+              {
+                "value": 57,
+                "frame": 79104
+              },
+              {
+                "value": 57,
+                "frame": 80384
+              },
+              {
+                "value": 57,
+                "frame": 81792
+              },
+              {
+                "value": 57,
+                "frame": 82944
+              },
+              {
+                "value": 57,
+                "frame": 84352
+              },
+              {
+                "value": 57,
+                "frame": 85760
+              },
+              {
+                "value": 57,
+                "frame": 87040
+              },
+              {
+                "value": 57,
+                "frame": 88320
+              }
+            ]
+          },
+          "example": {
+            "path": "/examples/timed-operators.js",
+            "motionValues": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              2,
+              3
+            ]
+          }
+        }
+      ]
+    },
+    "nuked": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "soundingPeak": 0.049230195581912994,
+          "audit": {
+            "contexts": 1,
+            "nodes": 2,
+            "routes": 2,
+            "muted": true,
+            "peak": 0.01875435933470726
+          },
+          "checkpoints": {
+            "initial": [
+              {
+                "value": 50,
+                "frame": 15488
+              },
+              {
+                "value": 50,
+                "frame": 16896
+              },
+              {
+                "value": 50,
+                "frame": 18304
+              },
+              {
+                "value": 50,
+                "frame": 19456
+              }
+            ],
+            "applied": [
+              {
+                "value": 52,
+                "frame": 23424
+              },
+              {
+                "value": 52,
+                "frame": 24832
+              },
+              {
+                "value": 52,
+                "frame": 26240
+              },
+              {
+                "value": 52,
+                "frame": 27392
+              }
+            ],
+            "failedApply": [
+              {
+                "value": 52,
+                "frame": 31360
+              },
+              {
+                "value": 52,
+                "frame": 32896
+              },
+              {
+                "value": 52,
+                "frame": 34304
+              },
+              {
+                "value": 52,
+                "frame": 35456
+              }
+            ],
+            "removed": [
+              {
+                "value": 55,
+                "frame": 47360
+              },
+              {
+                "value": 55,
+                "frame": 48768
+              },
+              {
+                "value": 55,
+                "frame": 49920
+              },
+              {
+                "value": 55,
+                "frame": 51328
+              },
+              {
+                "value": 55,
+                "frame": 52480
+              },
+              {
+                "value": 55,
+                "frame": 53888
+              },
+              {
+                "value": 55,
+                "frame": 55040
+              },
+              {
+                "value": 55,
+                "frame": 56192
+              }
+            ],
+            "stopped": [
+              {
+                "value": 57,
+                "frame": 73600
+              },
+              {
+                "value": 57,
+                "frame": 74752
+              },
+              {
+                "value": 57,
+                "frame": 76160
+              },
+              {
+                "value": 57,
+                "frame": 77312
+              },
+              {
+                "value": 57,
+                "frame": 78464
+              },
+              {
+                "value": 57,
+                "frame": 79872
+              },
+              {
+                "value": 57,
+                "frame": 81024
+              },
+              {
+                "value": 57,
+                "frame": 82432
+              }
+            ]
+          },
+          "example": {
+            "path": "/examples/timed-operators.js",
+            "motionValues": [
+              1,
+              1,
+              1,
+              2,
+              2,
+              3,
+              3,
+              4,
+              4,
+              4,
+              4,
+              4
+            ]
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "soundingPeak": 0.049230195581912994,
+          "audit": {
+            "contexts": 1,
+            "nodes": 2,
+            "routes": 2,
+            "muted": true,
+            "peak": 0.01875435933470726
+          },
+          "checkpoints": {
+            "initial": [
+              {
+                "value": 50,
+                "frame": 27776
+              },
+              {
+                "value": 50,
+                "frame": 29184
+              },
+              {
+                "value": 50,
+                "frame": 30464
+              },
+              {
+                "value": 50,
+                "frame": 32512
+              }
+            ],
+            "applied": [
+              {
+                "value": 52,
+                "frame": 40320
+              },
+              {
+                "value": 52,
+                "frame": 41728
+              },
+              {
+                "value": 52,
+                "frame": 43008
+              },
+              {
+                "value": 52,
+                "frame": 44288
+              }
+            ],
+            "failedApply": [
+              {
+                "value": 52,
+                "frame": 50048
+              },
+              {
+                "value": 52,
+                "frame": 51456
+              },
+              {
+                "value": 52,
+                "frame": 53248
+              },
+              {
+                "value": 52,
+                "frame": 54528
+              }
+            ],
+            "removed": [
+              {
+                "value": 55,
+                "frame": 65664
+              },
+              {
+                "value": 55,
+                "frame": 67328
+              },
+              {
+                "value": 55,
+                "frame": 68736
+              },
+              {
+                "value": 55,
+                "frame": 70272
+              },
+              {
+                "value": 55,
+                "frame": 71680
+              },
+              {
+                "value": 55,
+                "frame": 72960
+              },
+              {
+                "value": 55,
+                "frame": 74240
+              },
+              {
+                "value": 55,
+                "frame": 75520
+              }
+            ],
+            "stopped": [
+              {
+                "value": 57,
+                "frame": 97280
+              },
+              {
+                "value": 57,
+                "frame": 99072
+              },
+              {
+                "value": 57,
+                "frame": 100480
+              },
+              {
+                "value": 57,
+                "frame": 101888
+              },
+              {
+                "value": 57,
+                "frame": 103424
+              },
+              {
+                "value": 57,
+                "frame": 104704
+              },
+              {
+                "value": 57,
+                "frame": 106240
+              },
+              {
+                "value": 57,
+                "frame": 107520
+              }
+            ]
+          },
+          "example": {
+            "path": "/examples/timed-operators.js",
+            "motionValues": [
+              1,
+              1,
+              1,
+              2,
+              2,
+              3,
+              3,
+              4,
+              4,
+              4,
+              4,
+              4
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "endpoints": {
+    "passed": true,
+    "elapsedMs": 5743,
+    "cases": [
+      {
+        "browser": "chromium",
+        "sampleRate": 44100,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 44100,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 44100,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 44100,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 48000,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 48000,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 48000,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "chromium",
+        "sampleRate": 48000,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 44100,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 44100,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 44100,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 44100,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 44100,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 48000,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 48000,
+        "engine": "ymfm",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "worker",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 48000,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "main",
+        "silent": true
+      },
+      {
+        "browser": "webkit",
+        "sampleRate": 48000,
+        "engine": "nuked",
+        "compiled": [
+          {
+            "port": 0,
+            "register": 48,
+            "value": 115,
+            "offsetSeconds": 0
+          },
+          {
+            "port": 0,
+            "register": 64,
+            "value": 17,
+            "offsetSeconds": 0.1
+          }
+        ],
+        "partialAfterManual": 101,
+        "snapshotReusable": true,
+        "invalidReplacementKept": true,
+        "requestedRate": 48000,
+        "execution": "worker",
+        "silent": true
+      }
+    ]
+  },
+  "playgroundBrowserZip": {
+    "passed": true,
+    "repositoryFallback": false,
+    "sourceBytesUnminified": true,
+    "zipEntryCount": 1000,
+    "cases": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "mode": "genesis",
+        "execution": "main",
+        "path": "/",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.12051837146282196,
+          "rms": 0.07791116824261927
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "mode": "genesis",
+        "execution": "worker",
+        "path": "/html/9876543/playground",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.12151291966438293,
+          "rms": 0.07790059280670085
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "mode": "gameboy",
+        "execution": "main",
+        "path": "/",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.04500000178813934,
+          "rms": 0.0389130543164835
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "mode": "gameboy",
+        "execution": "worker",
+        "path": "/html/9876543/playground",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.04500000178813934,
+          "rms": 0.03889748904654694
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "mode": "genesis",
+        "execution": "main",
+        "path": "/",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.12101564556360245,
+          "rms": 0.07792062393662673
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "mode": "genesis",
+        "execution": "worker",
+        "path": "/html/9876543/playground",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.12002109736204147,
+          "rms": 0.07787771038828917
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "mode": "gameboy",
+        "execution": "main",
+        "path": "/",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.04500000178813934,
+          "rms": 0.03891278618541958
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "mode": "gameboy",
+        "execution": "worker",
+        "path": "/html/9876543/playground",
+        "passed": true,
+        "playing": {
+          "sampleRate": 48000,
+          "peak": 0.04500000178813934,
+          "rms": 0.03891182632181886
+        },
+        "stopped": {
+          "peak": 0,
+          "rms": 0
+        },
+        "errors": [],
+        "failed": [],
+        "bad": []
+      }
+    ],
+    "fullReportSha256": "aacacf3c1233b9fda5c896df8d60b5d59dec643dab0727e3b00b23b0694d18af"
+  },
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_ym-timed-20261117_itch_synth.zip",
+      "bytes": 1161361,
+      "sha256": "df9fc354613f419ba81e317997e61c84ed89735931f5a3f87c3dd71bb97f84cd"
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ym-timed-20261117_itch_vgm_analyzer.zip",
+      "bytes": 3266703,
+      "sha256": "90b7e7a8c9191992933f7516b4bad09b91c1208a24b339602a22cfd9c379c443"
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ym-timed-20261117_itch_playground.zip",
+      "bytes": 38203869,
+      "sha256": "a0565fc6d368f0b2eecad201f397913960357652a5a94482eceb5cbdc3e97532"
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ym-timed-20261117_itch_playground_for_run.zip",
+      "bytes": 38554241,
+      "sha256": "ed0a1a968580a6121197e26a456960b773e175692936b3888721087ff34f6e95"
+    }
+  ],
+  "unchangedAudioEvidence": [
+    "docs/issues/verification_ym2612_timed_core_20261117.json",
+    "docs/issues/ym2612_timed_default_parity_01.json"
+  ],
+  "limits": [
+    "Native authoritative state capture and timed execution reject explicitly.",
+    "Admission bounds are not device throughput guarantees.",
+    "Compiled writes describe their baseline; interleaved ownership can suppress a stale Key Off."
+  ],
+  "commitCreated": false,
+  "pushed": false
+}

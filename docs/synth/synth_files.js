@@ -5,6 +5,7 @@ import {isPcmPreset} from './synth_pcm.js?v=pcm-live-draw-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=pcm-live-draw-1';
 import {openSynthDraftStore} from './synth_draft_store.js?v=draft-reconnect-1';
+import {addFmCodeExamples} from './synth_code_examples.js';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';
@@ -691,6 +692,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
           }
         }
       }catch(error){setStatus(`Could not restore the last tone edit: ${error.message}. The local Cassette draft is still available.`);}
+      addFmCodeExamples(project);
       selectedPath=activeTonePath||project.selectedPath;
       if(activeTonePath){project.readTone(activeTonePath);editorKind=kindOfPath(activeTonePath);setEditorKind(editorKind);applyPreset('vfs:'+activeTonePath);setBaseline();reveal(activeTonePath);}
       updateVisibility();

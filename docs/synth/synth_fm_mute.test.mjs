@@ -13,6 +13,7 @@ import {PsgInspectorState,receiveChipInspector} from '../js/playground_chip_insp
 import {createPerformanceQueue,createPerformanceChipOwnership} from '../js/playground_performance_queue.js';
 import {createOpnAuditionGuard,receiveOpnAuditionCommand,createPsgAuditionGuard} from '../js/playground_audition_guard.js';
 import {createChipPortReceiver} from '../js/playground_chip_port.js';
+import {createYm2612TimedProcessor,observeYm2612TimedChip} from '../js/ym2612_timed_processor.js';
 import {YM2612DacPlayer,receiveDacCommand} from '../js/ym2612_dac.js';
 import {installSynthFmChannelMute,decorateSynthFmProcessor} from './synth_fm_mute.js';
 
@@ -44,7 +45,7 @@ function fakeChip({bus=true}={}) {
 }
 async function processor(file,chip=null) {
   let Type;const messages=[];
-  const scope={sampleRate:RATE,currentFrame:0,Float32Array,Uint8Array,Error,
+  const scope={createYm2612TimedProcessor,observeYm2612TimedChip,sampleRate:RATE,currentFrame:0,Float32Array,Uint8Array,Error,
     OpnKeyboardInspector,PsgInspectorState,receiveChipInspector,YM2612DacPlayer,receiveDacCommand,
     createPerformanceQueue,createPerformanceChipOwnership,createOpnAuditionGuard,receiveOpnAuditionCommand,createPsgAuditionGuard,
     createChipPortReceiver:(apply,_now,options)=>createChipPortReceiver(apply,()=>scope.currentFrame/RATE,options),

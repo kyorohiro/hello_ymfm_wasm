@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "scope": "ym2612-timed-core-immediate-api-compatibility",
+  "date": "2026-11-17",
+  "passed": true,
+  "baseline": {
+    "commit": "d620c38f701d0c8906ae0c05387019a891237d3b",
+    "path": "tetorica_src/runtime/ym2612synth.js",
+    "bytes": 38580,
+    "sha256": "7375b502f5fb2b0bf93fca1be51868dab47d866ecd4879a744ba9bb7ad26d1cb"
+  },
+  "current": {
+    "path": "tetorica_src/runtime/ym2612synth.js",
+    "bytes": 39425,
+    "sha256": "2a34a686dad5c8415535f850ac254a6026247eefd1ad99d9e4a4a87a5ab60109"
+  },
+  "exactTrace": {
+    "events": 539,
+    "sha256": "6d6124e71aef5ebb371461ffb8da51f6c9e662f10c36f49fd19731daf8b07416",
+    "equal": true,
+    "coverage": [
+      "all six channels",
+      "full presets and partial Operator updates",
+      "operator logical/physical mapping",
+      "batch writes and hook order",
+      "note names and Hz/raw pitch",
+      "repeated/partial key masks",
+      "LFO and CH3 special mode",
+      "cross-port high-byte latch/raw writes",
+      "writeAddress/writeData",
+      "DAC register helpers",
+      "reset and public getState"
+    ]
+  },
+  "fixture": {
+    "path": "test/helpers/historical_ym2612_timed_synth.mjs",
+    "sha256": "8ec56d8c7e14aef133904b357063e5fa5ccb0feb51485c2a40470c5274dd6d84"
+  },
+  "command": "node --test test/runtime/ym2612_operations.test.mjs",
+  "tests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "timing": {
+    "referenceSampleRate": 44100,
+    "outputRates": [
+      44100,
+      48000
+    ],
+    "state": "compile quantization tested; renderer proof recorded separately"
+  },
+  "limits": [
+    "The snapshot is an operation-resolution register/control baseline, not an oscillator/envelope/audio save-state.",
+    "client compilation is optimistic; write-only transports without known reset/adoption reject incomplete shadow.",
+    "A local Node benchmark of 48000 setOperator({tl}) resolver calls took about634ms; admission limits are safety bounds, not a guaranteed real-time throughput."
+  ]
+}

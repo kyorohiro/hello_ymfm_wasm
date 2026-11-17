@@ -27,6 +27,9 @@ const sdkBuildMetadata=new Set([
  'sdk/catalog/source_inventory.json','sdk/RELEASE-MANIFEST.json','scsp-sdk/RELEASE-MANIFEST.json',
  'sdk/sdk.json','sdk/soundchip-sdk.json','scsp-sdk/sdk.json',
  'CDDA.json','MSM5205.json','POKEY-SDK.json',
+ 'native/ps1/upstream/REVISION','native/ps1/upstream/SHA256SUMS',
+ 'scsp-sdk/vendor/mame-scsp/upstream/REVISION','scsp-sdk/vendor/mame-scsp/upstream/SHA256SUMS',
+ 'third_party/libvgm-pokey/upstream/snapshot-manifest.json',
 ]);
 export const isItchRunArchivedSource=name=>codeFile(name)
  || sdkBuildMetadata.has(name) // Exact build metadata remains in corresponding-source.zip.

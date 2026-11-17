@@ -1,0 +1,1640 @@
+{
+  "schemaVersion": 1,
+  "scope": "ym2612-timed-operation-api-and-default-path-compatibility",
+  "baseCommit": "d620c38f701d0c8906ae0c05387019a891237d3b",
+  "sources": {
+    "tetorica_src/runtime/megasynth.js": {
+      "before": {
+        "bytes": 33115,
+        "sha256": "11fcc8ec243cbf7ec533e54d6a36b3d219d0402431202a77699fc95d19f310d1"
+      },
+      "after": {
+        "bytes": 33659,
+        "sha256": "d1f1334d1e63d8779f9db643f1b10631f50e99b753119148d830bad5151e998a"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 667,
+          "afterBytes": 138,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4703,
+          "afterBytes": 30,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8140,
+          "afterBytes": 174,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12947,
+          "afterBytes": 32,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 19961,
+          "afterBytes": 26,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 23953,
+          "afterBytes": 48,
+          "beforeText": "      new YM2612Synth({\n"
+        },
+        {
+          "afterOffset": 24020,
+          "afterBytes": 47,
+          "beforeText": "      });\n"
+        },
+        {
+          "afterOffset": 24147,
+          "afterBytes": 83,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/megasynth.js": {
+      "before": {
+        "bytes": 33478,
+        "sha256": "01e4b85c3c7088b24df72e651d919e26d11d8c692228c886bf6eae0df5ca1db4"
+      },
+      "after": {
+        "bytes": 33977,
+        "sha256": "18eac313d4f8bb5fe41952e6f50199599d421e12d5035db9c0a8ad0ee24d8e6d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 769,
+          "afterBytes": 138,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4947,
+          "afterBytes": 30,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8421,
+          "afterBytes": 174,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10479,
+          "afterBytes": 96,
+          "beforeText": "      : this.megaCD ? resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'segapsg_wasm.wasm?v=audio-numeric-bindings-1') : null;\n"
+        },
+        {
+          "afterOffset": 10758,
+          "afterBytes": 71,
+          "beforeText": "      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=rf5c164-notes-1');\n"
+        },
+        {
+          "afterOffset": 13246,
+          "afterBytes": 32,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 20260,
+          "afterBytes": 26,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24252,
+          "afterBytes": 48,
+          "beforeText": "      new YM2612Synth({\n"
+        },
+        {
+          "afterOffset": 24319,
+          "afterBytes": 47,
+          "beforeText": "      });\n"
+        },
+        {
+          "afterOffset": 24446,
+          "afterBytes": 83,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/native_genesis_extra_ym2612.js": {
+      "before": {
+        "bytes": 13319,
+        "sha256": "c81c006d71ba7871832f0e63fd5c1da350422fd4f95726386157d6dd268b6240"
+      },
+      "after": {
+        "bytes": 13534,
+        "sha256": "acf9584c11c6f430f10a663a8ad93b891847cd16152ae418f74f85d02cd7d67b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 46,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1360,
+          "afterBytes": 93,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12297,
+          "afterBytes": 56,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/native_genesis_extra_ym2612.js": {
+      "before": {
+        "bytes": 13449,
+        "sha256": "5d43a779e50f8a2cd86269fccf6cb5a048d8054f40d7f53d73d68c338b3f50c7"
+      },
+      "after": {
+        "bytes": 13664,
+        "sha256": "7e1f3bf1f41c9ff57c62352a55f8fe63e3bd8f66d02a4931482079eaacf0419f"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 66,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1490,
+          "afterBytes": 93,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12427,
+          "afterBytes": 56,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/native_genesis_synth.js": {
+      "before": {
+        "bytes": 81222,
+        "sha256": "2c85540dc4d6d391cfb31ff365951c1714608b27563c3e4354032f38f8ac7022"
+      },
+      "after": {
+        "bytes": 81359,
+        "sha256": "109f221c70f06db43091aba3205edb224cfc0e356e46dd802e41123203ea1d9e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1540,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 20665,
+          "afterBytes": 71,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/native_genesis_synth.js": {
+      "before": {
+        "bytes": 82208,
+        "sha256": "2fd6d0a093cf9aa41927a5ea39a923ff1acdc807222da2659e6c7aa4bbd8a5bd"
+      },
+      "after": {
+        "bytes": 82345,
+        "sha256": "e59c9fae8630820f58d477c2798c42b04a98134b0ac2f8d9ce017bb909f3051c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1877,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 21651,
+          "afterBytes": 71,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_audition_guard.js": {
+      "before": {
+        "bytes": 6373,
+        "sha256": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310"
+      },
+      "after": {
+        "bytes": 7201,
+        "sha256": "2c30e381c64af5b417d0f7ea423d663dc1cedd55f02efea75c5ce3c2a3c74916"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2168,
+          "afterBytes": 828,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_audition_guard.js": {
+      "before": {
+        "bytes": 6373,
+        "sha256": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310"
+      },
+      "after": {
+        "bytes": 7201,
+        "sha256": "2c30e381c64af5b417d0f7ea423d663dc1cedd55f02efea75c5ce3c2a3c74916"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2168,
+          "afterBytes": 828,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_ay_timed_lifecycle.js": {
+      "before": {
+        "bytes": 9032,
+        "sha256": "13ce60af09a9d9a6d733ad33abb6186cd8332664e4446dfe0bafadc8432e25ef"
+      },
+      "after": {
+        "bytes": 9043,
+        "sha256": "d208dca6228bbc0c6793c5cd5804504f286a2215e865be0af0e1103bf3a38401"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 88,
+          "beforeText": "// AY-only entry transactions over the existing chip capability. This module\n"
+        }
+      ]
+    },
+    "docs/js/playground_ay_timed_lifecycle.js": {
+      "before": {
+        "bytes": 9032,
+        "sha256": "13ce60af09a9d9a6d733ad33abb6186cd8332664e4446dfe0bafadc8432e25ef"
+      },
+      "after": {
+        "bytes": 9043,
+        "sha256": "d208dca6228bbc0c6793c5cd5804504f286a2215e865be0af0e1103bf3a38401"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 88,
+          "beforeText": "// AY-only entry transactions over the existing chip capability. This module\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_logic_worker.js": {
+      "before": {
+        "bytes": 60140,
+        "sha256": "523969c30adeca0e12eabf0dab997c32ab77e4338d3d1e9a45d65d8ae372fe8b"
+      },
+      "after": {
+        "bytes": 60244,
+        "sha256": "63601913401ec77596a58c7b97c98770d73907e28a74d3beb0f636e82988491a"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 18963,
+          "afterBytes": 63,
+          "beforeText": "  const fm = keyboardApi(new Proxy({}, {\n"
+        },
+        {
+          "afterOffset": 19055,
+          "afterBytes": 74,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 20768,
+          "afterBytes": 35,
+          "beforeText": "  }));\n"
+        },
+        {
+          "afterOffset": 45030,
+          "afterBytes": 77,
+          "beforeText": "      pcmClients.add(pcm);const api=keyboardApi(name==='ay8910'?ayTimedLifecycle.wrap(pcm):pcm);\n"
+        }
+      ]
+    },
+    "docs/js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 60592,
+        "sha256": "4c4ce76f679fee5de54d0578ae3ffe6c9dc250f00bc310b41aa56cc560dd724d"
+      },
+      "after": {
+        "bytes": 60696,
+        "sha256": "efc25210e9aaa7dc7a04c2be41cc47f714235a71d8095d6b6913165627d4b1a5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 19415,
+          "afterBytes": 63,
+          "beforeText": "  const fm = keyboardApi(new Proxy({}, {\n"
+        },
+        {
+          "afterOffset": 19507,
+          "afterBytes": 74,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 21220,
+          "afterBytes": 35,
+          "beforeText": "  }));\n"
+        },
+        {
+          "afterOffset": 45482,
+          "afterBytes": 77,
+          "beforeText": "      pcmClients.add(pcm);const api=keyboardApi(name==='ay8910'?ayTimedLifecycle.wrap(pcm):pcm);\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_opn.js": {
+      "before": {
+        "bytes": 7473,
+        "sha256": "cc4573f220030002912cb8160299078061e48009b884104c446eefd3d36d857d"
+      },
+      "after": {
+        "bytes": 7730,
+        "sha256": "7e1f884ddb2cf72a5cd66ec7e1f8746824160aee54bde72f1af1c43b0bbe6a78"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 445,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6025,
+          "afterBytes": 118,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7638,
+          "afterBytes": 90,
+          "beforeText": "  return client;\n"
+        }
+      ]
+    },
+    "docs/js/playground_opn.js": {
+      "before": {
+        "bytes": 7581,
+        "sha256": "396905edffaf4bab25b68e5dabaeab0adf90a8ea922c3e890b3d987305ba4a6d"
+      },
+      "after": {
+        "bytes": 7838,
+        "sha256": "9896a92e300180c5fdd61a7ad9cb3976e83b515b8bcd8cf8c8f1dc28585b2cee"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 553,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6133,
+          "afterBytes": 118,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7746,
+          "afterBytes": 90,
+          "beforeText": "  return client;\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_opn_inspector.js": {
+      "before": {
+        "bytes": 7071,
+        "sha256": "faa5c0c8b35196ab3be94fdebeaf95a00ec49bcc75d7f5ba35c587b1bd1c527b"
+      },
+      "after": {
+        "bytes": 7691,
+        "sha256": "5f63a7ee787996921db20c7314524b800fb6be44ac363e0ec12ef89cf837edc3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3134,
+          "afterBytes": 620,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_opn_inspector.js": {
+      "before": {
+        "bytes": 7110,
+        "sha256": "7ef455ea8ded4659e1a2bac2a087eda7562e5726940da8f82bc0a8652a71442d"
+      },
+      "after": {
+        "bytes": 7730,
+        "sha256": "1b004c3dc43544a8b308b4c6a44490907a52ebce05d3604b2ee2ac6c46b7aaf0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3173,
+          "afterBytes": 620,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_opn_worklet.js": {
+      "before": {
+        "bytes": 7807,
+        "sha256": "d26f70ee021c8f132169c0c172b4d5fdba38076b887f9e40166d4df997eb9f4f"
+      },
+      "after": {
+        "bytes": 9347,
+        "sha256": "b5eada3b1dbf0956095516d15541970874a5be834ef804262325c291268aa110"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 865,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1289,
+          "afterBytes": 249,
+          "beforeText": "    this.performance=createProcessorPerformance({chip:()=>this.name,apply:(data,port)=>this.apply(data,port),prepare:(data,port)=>{\n"
+        },
+        {
+          "afterOffset": 2787,
+          "afterBytes": 596,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4005,
+          "afterBytes": 164,
+          "beforeText": "  dispose() { this.performance.clear();this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }\n"
+        },
+        {
+          "afterOffset": 4193,
+          "afterBytes": 188,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4665,
+          "afterBytes": 140,
+          "beforeText": "  apply(data,port) {\n"
+        },
+        {
+          "afterOffset": 4972,
+          "afterBytes": 416,
+          "beforeText": "      switch (data.method) {\n        case 'write': this.chip.writeRegister(args[1],args[2],args[0]); break;\n"
+        }
+      ]
+    },
+    "docs/js/playground_opn_worklet.js": {
+      "before": {
+        "bytes": 7981,
+        "sha256": "534f7c252913b9d6edada4dd219505ac5d1190737d9841b31aeb2367c18d2c54"
+      },
+      "after": {
+        "bytes": 9521,
+        "sha256": "14cd6a10eb5da8a864a152be5d96179d18356fd0923661240cef51612233124b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1039,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1463,
+          "afterBytes": 249,
+          "beforeText": "    this.performance=createProcessorPerformance({chip:()=>this.name,apply:(data,port)=>this.apply(data,port),prepare:(data,port)=>{\n"
+        },
+        {
+          "afterOffset": 2961,
+          "afterBytes": 596,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4179,
+          "afterBytes": 164,
+          "beforeText": "  dispose() { this.performance.clear();this.cancelSchedule(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); }\n"
+        },
+        {
+          "afterOffset": 4367,
+          "afterBytes": 188,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4839,
+          "afterBytes": 140,
+          "beforeText": "  apply(data,port) {\n"
+        },
+        {
+          "afterOffset": 5146,
+          "afterBytes": 416,
+          "beforeText": "      switch (data.method) {\n        case 'write': this.chip.writeRegister(args[1],args[2],args[0]); break;\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_processor.js": {
+      "before": {
+        "bytes": 31186,
+        "sha256": "2c26b4d37ecec359174f885edfb61ff4b7e4690e2e814858042e3f08d0daac31"
+      },
+      "after": {
+        "bytes": 31224,
+        "sha256": "f6809ebe61cddc6a975d820711acfc15d839a37ccdf416ab5da914ccf13a73d2"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 15563,
+          "afterBytes": 361,
+          "beforeText": "export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,getWonderSwanRegisters,getPokeyRegisters,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {\n"
+        },
+        {
+          "afterOffset": 24972,
+          "afterBytes": 94,
+          "beforeText": "  const queue = createPerformanceQueue({sampleRate:rate,nowFrame,validate,\n"
+        }
+      ]
+    },
+    "docs/js/playground_performance_processor.js": {
+      "before": {
+        "bytes": 31186,
+        "sha256": "2c26b4d37ecec359174f885edfb61ff4b7e4690e2e814858042e3f08d0daac31"
+      },
+      "after": {
+        "bytes": 31224,
+        "sha256": "f6809ebe61cddc6a975d820711acfc15d839a37ccdf416ab5da914ccf13a73d2"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 15563,
+          "afterBytes": 361,
+          "beforeText": "export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,getWonderSwanRegisters,getPokeyRegisters,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {\n"
+        },
+        {
+          "afterOffset": 24972,
+          "afterBytes": 94,
+          "beforeText": "  const queue = createPerformanceQueue({sampleRate:rate,nowFrame,validate,\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_queue.js": {
+      "before": {
+        "bytes": 22473,
+        "sha256": "5b43b61283877970d990d5bc45c0b1565d26febeeaeaf584ce0e10cf3b1a2008"
+      },
+      "after": {
+        "bytes": 24020,
+        "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2267,
+          "afterBytes": 22,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2676,
+          "afterBytes": 153,
+          "beforeText": "      !Number.isFinite(maxPatternRate) || maxPatternRate <= 0) {\n"
+        },
+        {
+          "afterOffset": 3153,
+          "afterBytes": 50,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6269,
+          "afterBytes": 32,
+          "beforeText": "    let previous = 0;\n"
+        },
+        {
+          "afterOffset": 7295,
+          "afterBytes": 267,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7751,
+          "afterBytes": 79,
+          "beforeText": "        repeatSeconds <= previous || entries.length / repeatSeconds > maxPatternRate)) {\n"
+        },
+        {
+          "afterOffset": 7942,
+          "afterBytes": 71,
+          "beforeText": "    return {name: spec.name, entries, repeatSeconds, startFrame,\n"
+        },
+        {
+          "afterOffset": 8300,
+          "afterBytes": 173,
+          "beforeText": "    patternRate -= pattern.rate;\n    if (patterns.size === 0) patternRate = 0;\n"
+        },
+        {
+          "afterOffset": 9537,
+          "afterBytes": 100,
+          "beforeText": "    let count = patterns.size - removed.size, commands = storedPatternCommands, rate = patternRate;\n"
+        },
+        {
+          "afterOffset": 9674,
+          "afterBytes": 64,
+          "beforeText": "      commands -= pattern.entries.length;\n      rate -= pattern.rate;\n"
+        },
+        {
+          "afterOffset": 9797,
+          "afterBytes": 126,
+          "beforeText": "      commands += pattern.entries.length;\n      rate += pattern.repeatSeconds === undefined ? 0 : pattern.entries.length / pattern.repeatSeconds;\n"
+        },
+        {
+          "afterOffset": 10476,
+          "afterBytes": 185,
+          "beforeText": "        rate: spec.repeatSeconds === undefined ? 0 : spec.entries.length / spec.repeatSeconds};\n"
+        },
+        {
+          "afterOffset": 10704,
+          "afterBytes": 162,
+          "beforeText": "      storedPatternCommands += pattern.entries.length;\n      patternRate += pattern.rate;\n"
+        },
+        {
+          "afterOffset": 16991,
+          "afterBytes": 85,
+          "beforeText": "          queuedCommands + storedPatternCommands + data.commands.length > maxCommands) {\n"
+        },
+        {
+          "afterOffset": 20447,
+          "afterBytes": 98,
+          "beforeText": "              storedPatternCommands -= pattern.entries.length;\n"
+        },
+        {
+          "afterOffset": 21096,
+          "afterBytes": 107,
+          "beforeText": "      patternCount: patterns.size, storedPatternCommands, patternRate,\n"
+        },
+        {
+          "afterOffset": 21618,
+          "afterBytes": 140,
+          "beforeText": "  const fmOwners = new Array(channelCount).fill(null), psgOwners = new Array(4).fill(null);\n"
+        },
+        {
+          "afterOffset": 21778,
+          "afterBytes": 104,
+          "beforeText": "  const reset = () => {fmOwners.fill(null); psgOwners.fill(null); psgLatch = 0;};\n"
+        },
+        {
+          "afterOffset": 22211,
+          "afterBytes": 188,
+          "beforeText": "        if ((code & 3) !== 3 && channel < channelCount) fmOwners[channel] = command.value & 0xf0 ? owner : null;\n"
+        },
+        {
+          "afterOffset": 22830,
+          "afterBytes": 646,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 23615,
+          "afterBytes": 61,
+          "beforeText": "        fmOwners[channel] = null;\n"
+        }
+      ]
+    },
+    "docs/js/playground_performance_queue.js": {
+      "before": {
+        "bytes": 22473,
+        "sha256": "5b43b61283877970d990d5bc45c0b1565d26febeeaeaf584ce0e10cf3b1a2008"
+      },
+      "after": {
+        "bytes": 24020,
+        "sha256": "3f70eb200e3f97ae7ae5b688066035319c71dbe3b7f7631e25fe3d455eaa3567"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2267,
+          "afterBytes": 22,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2676,
+          "afterBytes": 153,
+          "beforeText": "      !Number.isFinite(maxPatternRate) || maxPatternRate <= 0) {\n"
+        },
+        {
+          "afterOffset": 3153,
+          "afterBytes": 50,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6269,
+          "afterBytes": 32,
+          "beforeText": "    let previous = 0;\n"
+        },
+        {
+          "afterOffset": 7295,
+          "afterBytes": 267,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7751,
+          "afterBytes": 79,
+          "beforeText": "        repeatSeconds <= previous || entries.length / repeatSeconds > maxPatternRate)) {\n"
+        },
+        {
+          "afterOffset": 7942,
+          "afterBytes": 71,
+          "beforeText": "    return {name: spec.name, entries, repeatSeconds, startFrame,\n"
+        },
+        {
+          "afterOffset": 8300,
+          "afterBytes": 173,
+          "beforeText": "    patternRate -= pattern.rate;\n    if (patterns.size === 0) patternRate = 0;\n"
+        },
+        {
+          "afterOffset": 9537,
+          "afterBytes": 100,
+          "beforeText": "    let count = patterns.size - removed.size, commands = storedPatternCommands, rate = patternRate;\n"
+        },
+        {
+          "afterOffset": 9674,
+          "afterBytes": 64,
+          "beforeText": "      commands -= pattern.entries.length;\n      rate -= pattern.rate;\n"
+        },
+        {
+          "afterOffset": 9797,
+          "afterBytes": 126,
+          "beforeText": "      commands += pattern.entries.length;\n      rate += pattern.repeatSeconds === undefined ? 0 : pattern.entries.length / pattern.repeatSeconds;\n"
+        },
+        {
+          "afterOffset": 10476,
+          "afterBytes": 185,
+          "beforeText": "        rate: spec.repeatSeconds === undefined ? 0 : spec.entries.length / spec.repeatSeconds};\n"
+        },
+        {
+          "afterOffset": 10704,
+          "afterBytes": 162,
+          "beforeText": "      storedPatternCommands += pattern.entries.length;\n      patternRate += pattern.rate;\n"
+        },
+        {
+          "afterOffset": 16991,
+          "afterBytes": 85,
+          "beforeText": "          queuedCommands + storedPatternCommands + data.commands.length > maxCommands) {\n"
+        },
+        {
+          "afterOffset": 20447,
+          "afterBytes": 98,
+          "beforeText": "              storedPatternCommands -= pattern.entries.length;\n"
+        },
+        {
+          "afterOffset": 21096,
+          "afterBytes": 107,
+          "beforeText": "      patternCount: patterns.size, storedPatternCommands, patternRate,\n"
+        },
+        {
+          "afterOffset": 21618,
+          "afterBytes": 140,
+          "beforeText": "  const fmOwners = new Array(channelCount).fill(null), psgOwners = new Array(4).fill(null);\n"
+        },
+        {
+          "afterOffset": 21778,
+          "afterBytes": 104,
+          "beforeText": "  const reset = () => {fmOwners.fill(null); psgOwners.fill(null); psgLatch = 0;};\n"
+        },
+        {
+          "afterOffset": 22211,
+          "afterBytes": 188,
+          "beforeText": "        if ((code & 3) !== 3 && channel < channelCount) fmOwners[channel] = command.value & 0xf0 ? owner : null;\n"
+        },
+        {
+          "afterOffset": 22830,
+          "afterBytes": 646,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 23615,
+          "afterBytes": 61,
+          "beforeText": "        fmOwners[channel] = null;\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9531,
+        "sha256": "bb279f65ed1e57860b7056a90ff520635143f006f9428405c0d38313ab4ec7b5"
+      },
+      "after": {
+        "bytes": 9608,
+        "sha256": "467a1a2143e3b3df65bc1bff61272203629ca534a098234d9c5336b25c1a288e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 5166,
+          "afterBytes": 214,
+          "beforeText": "    // AY RPCs own their compact timeline; retain the owner without double lead.\n    if(!Array.isArray(data)&&data?.method==='ayTimed'){\n"
+        }
+      ]
+    },
+    "docs/js/playground_performance_sender.js": {
+      "before": {
+        "bytes": 9531,
+        "sha256": "bb279f65ed1e57860b7056a90ff520635143f006f9428405c0d38313ab4ec7b5"
+      },
+      "after": {
+        "bytes": 9608,
+        "sha256": "467a1a2143e3b3df65bc1bff61272203629ca534a098234d9c5336b25c1a288e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 5166,
+          "afterBytes": 214,
+          "beforeText": "    // AY RPCs own their compact timeline; retain the owner without double lead.\n    if(!Array.isArray(data)&&data?.method==='ayTimed'){\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_runtime.js": {
+      "before": {
+        "bytes": 163649,
+        "sha256": "d28109196bfb711355c933a65fabce6d2083e7bad836efeb06cd75f93e31a733"
+      },
+      "after": {
+        "bytes": 163903,
+        "sha256": "9686d1d0769d22aceeb3118804d5c7ad32aa4d691ad7ea45af22b9bfc4bb6d40"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 7135,
+          "afterBytes": 30,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8506,
+          "afterBytes": 29,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 56157,
+          "afterBytes": 291,
+          "beforeText": "    return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock, ...sections};\n"
+        },
+        {
+          "afterOffset": 119788,
+          "afterBytes": 61,
+          "beforeText": "    const fm = keyboardApi(sharedFm);\n"
+        },
+        {
+          "afterOffset": 131192,
+          "afterBytes": 37,
+          "beforeText": "        if(name==='ay8910'&&client._timedOperations){\n"
+        },
+        {
+          "afterOffset": 132498,
+          "afterBytes": 397,
+          "beforeText": "        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):name==='ay8910'?ayTimedLifecycle.wrap(client):client);\n        if(name==='ay8910'){currentLoopContext=callerLoop;if(callerLoop?.stopped){device.dispose();throw new DOMException('Run stopped','AbortError');}}\n"
+        }
+      ]
+    },
+    "docs/js/playground_runtime.js": {
+      "before": {
+        "bytes": 164834,
+        "sha256": "622638eeb6e23a1b0fcf70b1bc669d8a8967753bd87709549d14a1c6276ba9ec"
+      },
+      "after": {
+        "bytes": 165088,
+        "sha256": "5432374c6a56db62b9e55fcc63639e09481d52458889f3b358792458112a78d2"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 8181,
+          "afterBytes": 30,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9552,
+          "afterBytes": 29,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 57342,
+          "afterBytes": 291,
+          "beforeText": "    return {...core?.getState?.(), clock:sharedFm?.clock ?? core?.clock, ...sections};\n"
+        },
+        {
+          "afterOffset": 120973,
+          "afterBytes": 61,
+          "beforeText": "    const fm = keyboardApi(sharedFm);\n"
+        },
+        {
+          "afterOffset": 132377,
+          "afterBytes": 37,
+          "beforeText": "        if(name==='ay8910'&&client._timedOperations){\n"
+        },
+        {
+          "afterOffset": 133683,
+          "afterBytes": 397,
+          "beforeText": "        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):name==='ay8910'?ayTimedLifecycle.wrap(client):client);\n        if(name==='ay8910'){currentLoopContext=callerLoop;if(callerLoop?.stopped){device.dispose();throw new DOMException('Run stopped','AbortError');}}\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_sync.js": {
+      "before": {
+        "bytes": 6543,
+        "sha256": "431e119053a9fcee38c7aad5b1383672abcfb8709f05af1bdd0b8e58fea06d6b"
+      },
+      "after": {
+        "bytes": 6838,
+        "sha256": "add1a962a23c6cbf9ecce8821b5682d36204e2584553156a2cf201a1363d1420"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3030,
+          "afterBytes": 16,
+          "beforeText": "  return {\n"
+        },
+        {
+          "afterOffset": 6546,
+          "afterBytes": 290,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/playground_sync.js": {
+      "before": {
+        "bytes": 6563,
+        "sha256": "365fbf469d59bf714a19b25ae4ad8f2e6e2867c33eef944abfb43f66235f2b29"
+      },
+      "after": {
+        "bytes": 6858,
+        "sha256": "c48d051297ef29f0c7644e7bce0802672ff1fa7169e5e724bbe388931a788c52"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3050,
+          "afterBytes": 16,
+          "beforeText": "  return {\n"
+        },
+        {
+          "afterOffset": 6566,
+          "afterBytes": 290,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/playground_worker_chip.js": {
+      "before": {
+        "bytes": 10248,
+        "sha256": "1b9ac8d57d43ece5f78622aedd70fffc550a6c2014561a05f9ecc37b0d732988"
+      },
+      "after": {
+        "bytes": 10959,
+        "sha256": "e758a3e244dcc5f789de4b13fbe9b99d4df7b1b473f5ad954c4b2be1ad48f00c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 385,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 861,
+          "afterBytes": 581,
+          "beforeText": " * @param {{port: MessagePort, capabilities: {backend?:string,chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.\n"
+        },
+        {
+          "afterOffset": 4667,
+          "afterBytes": 106,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5521,
+          "afterBytes": 214,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7997,
+          "afterBytes": 368,
+          "beforeText": " const fm=new Proxy({}, {get:(_t,method)=> method==='clock'?raw.clock:method==='dac'?raw.dac:sections[method]??((...args)=>invoke(String(method),args))});\n"
+        }
+      ]
+    },
+    "docs/js/playground_worker_chip.js": {
+      "before": {
+        "bytes": 10425,
+        "sha256": "ed2740446273b68cd324d6873abe81cf0318e8cdf3c26ae373e448fe03c422da"
+      },
+      "after": {
+        "bytes": 11136,
+        "sha256": "58b25beae8e5dd1312f20e08c62b87c5ffc9fea554fe05014a7ea35a1be3c91c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 461,
+          "afterBytes": 66,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1038,
+          "afterBytes": 581,
+          "beforeText": " * @param {{port: MessagePort, capabilities: {backend?:string,chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.\n"
+        },
+        {
+          "afterOffset": 4844,
+          "afterBytes": 106,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5698,
+          "afterBytes": 214,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8174,
+          "afterBytes": 368,
+          "beforeText": " const fm=new Proxy({}, {get:(_t,method)=> method==='clock'?raw.clock:method==='dac'?raw.dac:sections[method]??((...args)=>invoke(String(method),args))});\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/soundchip-output-worklet.js": {
+      "before": {
+        "bytes": 20060,
+        "sha256": "8c82d4155c33bd3bbb7a92116c8248436a4a3fa29e17245105dbad9b441cae44"
+      },
+      "after": {
+        "bytes": 21269,
+        "sha256": "eed5c462dbb21e3db2e7f716626182945e1c83040f66db2585987174b466f78f"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2918,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3612,
+          "afterBytes": 240,
+          "beforeText": "    this.performance=createProcessorPerformance({chip:()=>this.name,getAyRegisters:()=>this.ayRegisters,getOpllRhythm:()=>this.opllRegisters?.[0x0e]??0,\n"
+        },
+        {
+          "afterOffset": 5360,
+          "afterBytes": 597,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7358,
+          "afterBytes": 198,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8783,
+          "afterBytes": 116,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8909,
+          "afterBytes": 187,
+          "beforeText": "      if (data.method === 'dispose') {this.performance.clear();this.dead = true; this.outputEngine?this.outputEngine.dispose():this.chip?.dispose(); this.chip = null;\n"
+        }
+      ]
+    },
+    "docs/js/soundchip-output-worklet.js": {
+      "before": {
+        "bytes": 20579,
+        "sha256": "d1745016595199ef4a63557f5c1413161ce477ba815fbd6f250c218b747990df"
+      },
+      "after": {
+        "bytes": 21788,
+        "sha256": "634cfc17c1619679c6d11177f615e6462321eff8eca8263beab7508402698081"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3437,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4131,
+          "afterBytes": 240,
+          "beforeText": "    this.performance=createProcessorPerformance({chip:()=>this.name,getAyRegisters:()=>this.ayRegisters,getOpllRhythm:()=>this.opllRegisters?.[0x0e]??0,\n"
+        },
+        {
+          "afterOffset": 5879,
+          "afterBytes": 597,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7877,
+          "afterBytes": 198,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9302,
+          "afterBytes": 116,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9428,
+          "afterBytes": 187,
+          "beforeText": "      if (data.method === 'dispose') {this.performance.clear();this.dead = true; this.outputEngine?this.outputEngine.dispose():this.chip?.dispose(); this.chip = null;\n"
+        }
+      ]
+    },
+    "tetorica_src/runtime/ym2612-worklet.js": {
+      "before": {
+        "bytes": 25234,
+        "sha256": "e92739edfc535029aed3a2461db485d54ca6e21f6b7f8b81bd6e267ddd85c02b"
+      },
+      "after": {
+        "bytes": 27032,
+        "sha256": "afbb848585b4fdb514eeedd8c230a33e859a141a727f3a4e006f93d0f8df6df1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1529,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1685,
+          "afterBytes": 30,
+          "beforeText": "  constructor() {\n"
+        },
+        {
+          "afterOffset": 1728,
+          "afterBytes": 126,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3393,
+          "afterBytes": 94,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3959,
+          "afterBytes": 583,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5765,
+          "afterBytes": 60,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10135,
+          "afterBytes": 732,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/ym2612-worklet.js": {
+      "before": {
+        "bytes": 25401,
+        "sha256": "0788694f36ae5ea37d97fc29ee98f5e80a7b111e2f80ff51fbc192f42048ddcc"
+      },
+      "after": {
+        "bytes": 27199,
+        "sha256": "f2d1a8b9a2cf12781b9e7fce15fc36ef5c1224c05572419229ee5b5d2250beab"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1696,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1852,
+          "afterBytes": 30,
+          "beforeText": "  constructor() {\n"
+        },
+        {
+          "afterOffset": 1895,
+          "afterBytes": 126,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3560,
+          "afterBytes": 94,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4126,
+          "afterBytes": 583,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5932,
+          "afterBytes": 60,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10302,
+          "afterBytes": 732,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/ym2612-worklet-nuked.js": {
+      "before": {
+        "bytes": 24435,
+        "sha256": "b85313908ad739c16e3068e0316250253d2e222a3248d80ca060327704f7a147"
+      },
+      "after": {
+        "bytes": 26235,
+        "sha256": "324c787c955bf597ba45498dfe854e6092cefe90891deb0bfaec5bbe030d5257"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1539,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1695,
+          "afterBytes": 30,
+          "beforeText": "  constructor() {\n"
+        },
+        {
+          "afterOffset": 1738,
+          "afterBytes": 127,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3326,
+          "afterBytes": 94,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3892,
+          "afterBytes": 584,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5669,
+          "afterBytes": 60,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9464,
+          "afterBytes": 732,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/ym2612-worklet-nuked.js": {
+      "before": {
+        "bytes": 24602,
+        "sha256": "1866417d09e95101207671b4ef00c8fd130d60e5e46ef2ca2a12ee976ea86983"
+      },
+      "after": {
+        "bytes": 26402,
+        "sha256": "78e72518effa4f9fe6faa7c7884cc17fd6155cd8495b3135fc34b4cc7de60d84"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 96,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1706,
+          "afterBytes": 95,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1862,
+          "afterBytes": 30,
+          "beforeText": "  constructor() {\n"
+        },
+        {
+          "afterOffset": 1905,
+          "afterBytes": 127,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3493,
+          "afterBytes": 94,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4059,
+          "afterBytes": 584,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5836,
+          "afterBytes": 60,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9631,
+          "afterBytes": 732,
+          "beforeText": ""
+        }
+      ]
+    },
+    "tetorica_src/runtime/ym2612synth.js": {
+      "before": {
+        "bytes": 38580,
+        "sha256": "7375b502f5fb2b0bf93fca1be51868dab47d866ecd4879a744ba9bb7ad26d1cb"
+      },
+      "after": {
+        "bytes": 39425,
+        "sha256": "2a34a686dad5c8415535f850ac254a6026247eefd1ad99d9e4a4a87a5ab60109"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 123,
+          "afterBytes": 136,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12978,
+          "afterBytes": 139,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 33964,
+          "afterBytes": 74,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 34630,
+          "afterBytes": 130,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 35070,
+          "afterBytes": 366,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/js/ym2612synth.js": {
+      "before": {
+        "bytes": 38598,
+        "sha256": "495408c80ab002bd49fafc32f7e8fb44c1e5b0ab6bcc219eb62edd36635d1138"
+      },
+      "after": {
+        "bytes": 39443,
+        "sha256": "12c33a16454aae072ddfb1063ca54c05e9ea76027ab611662bac7bca288b4bbc"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 123,
+          "afterBytes": 136,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12996,
+          "afterBytes": 139,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 33982,
+          "afterBytes": 74,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 34648,
+          "afterBytes": 130,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 35088,
+          "afterBytes": 366,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_mode.js": {
+      "before": {
+        "bytes": 13046,
+        "sha256": "1524fb7130a2675dd6186b1882e9cd769f6298e70401641970fd611df8b870e2"
+      },
+      "after": {
+        "bytes": 13109,
+        "sha256": "5df07eb79243da20014bb37b4aced89432ef52c985a3ed31cfe71cb2ea2686af"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 12573,
+          "afterBytes": 63,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 24424,
+        "sha256": "d816c30009587ddd318c56bdc9b7250217ddb990f2d3a19c8554cd2c905284ee"
+      },
+      "after": {
+        "bytes": 25281,
+        "sha256": "dd944684861b318843033ab26312945295307cf7fcc28d5c82c74859d8ca00f9"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 7577,
+          "afterBytes": 857,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "before": {
+        "bytes": 150035,
+        "sha256": "9aea7bb89486e0a49bbd7b7fe31c60b9328c5baa16eaa3e7949ed60f18c602c0"
+      },
+      "after": {
+        "bytes": 155491,
+        "sha256": "ccdd7a4b67f756742987670a234e259cedaf28d27521dd07c468201c9649ab3a"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 19885,
+          "afterBytes": 5489,
+          "beforeText": "interface YM2612FMApi extends FMApi {}\n"
+        },
+        {
+          "afterOffset": 108344,
+          "afterBytes": 168,
+          "beforeText": "type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {readonly engine: PlaygroundYm2612Engine; dispose(): void};\n"
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/ym2612_operation_state.js": {
+      "bytes": 4556,
+      "sha256": "85c7472e8bf0300c6e00d0d11046df9a0aa88c446fd38778572c3cfb6f94379b"
+    },
+    "docs/js/ym2612_operation_state.js": {
+      "bytes": 4556,
+      "sha256": "85c7472e8bf0300c6e00d0d11046df9a0aa88c446fd38778572c3cfb6f94379b"
+    },
+    "tetorica_src/runtime/ym2612_operations.js": {
+      "bytes": 12889,
+      "sha256": "01c93a26453d393b4ca06e20c4ca57df524299513a61766f27a3a155bbc10f20"
+    },
+    "docs/js/ym2612_operations.js": {
+      "bytes": 12889,
+      "sha256": "01c93a26453d393b4ca06e20c4ca57df524299513a61766f27a3a155bbc10f20"
+    },
+    "tetorica_src/runtime/ym2612_timed_state.js": {
+      "bytes": 3613,
+      "sha256": "19a831a5bb6025b0a293c9210f300abdb0ec7fdcdfcbbec6807edc710d8de465"
+    },
+    "docs/js/ym2612_timed_state.js": {
+      "bytes": 3613,
+      "sha256": "19a831a5bb6025b0a293c9210f300abdb0ec7fdcdfcbbec6807edc710d8de465"
+    },
+    "tetorica_src/runtime/ym2612_timed_client.js": {
+      "bytes": 12059,
+      "sha256": "9d4d4279afb7b1a74795e5447a237a9f6d2eb473349a7f0f1bc7cb024ed78e20"
+    },
+    "docs/js/ym2612_timed_client.js": {
+      "bytes": 12059,
+      "sha256": "9d4d4279afb7b1a74795e5447a237a9f6d2eb473349a7f0f1bc7cb024ed78e20"
+    },
+    "tetorica_src/runtime/ym2612_timed_processor.js": {
+      "bytes": 9376,
+      "sha256": "35f73772c6e92a200e168ff4e750ebfc6973d4e3e28e6255e183f33e9c1953af"
+    },
+    "docs/js/ym2612_timed_processor.js": {
+      "bytes": 9376,
+      "sha256": "35f73772c6e92a200e168ff4e750ebfc6973d4e3e28e6255e183f33e9c1953af"
+    },
+    "tetorica_src/runtime/ym2612_dac.js": {
+      "bytes": 7251,
+      "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+    },
+    "docs/js/ym2612_dac.js": {
+      "bytes": 7251,
+      "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+    },
+    "tetorica_src/runtime/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "tetorica_src/runtime/playground_chip_clock.js": {
+      "bytes": 5244,
+      "sha256": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d"
+    },
+    "docs/js/playground_chip_clock.js": {
+      "bytes": 5244,
+      "sha256": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d"
+    },
+    "tetorica_src/runtime/playground_soundchip_options.js": {
+      "bytes": 1768,
+      "sha256": "e7a07958ee12a076ac9a15acff1f9116441f2b5144d46c062d88ebe0c18449df"
+    },
+    "docs/js/playground_soundchip_options.js": {
+      "bytes": 1768,
+      "sha256": "e7a07958ee12a076ac9a15acff1f9116441f2b5144d46c062d88ebe0c18449df"
+    },
+    "test/helpers/historical_ym2612_timed_source_fixture.mjs": {
+      "bytes": 3766,
+      "sha256": "46ab8be8ce28468e03a92ede6c8b069023a076d39cfb5746d323f762037da2f2"
+    },
+    "test/helpers/historical_ym2612_timed_synth.mjs": {
+      "bytes": 3626,
+      "sha256": "8ec56d8c7e14aef133904b357063e5fa5ccb0feb51485c2a40470c5274dd6d84"
+    },
+    "test/runtime/ym2612_operations.test.mjs": {
+      "bytes": 13707,
+      "sha256": "ba451e3a4d2bd6a73f2c5f980749d035e84290d5c4c86fdd6501a4fbb006316e"
+    },
+    "test/runtime/ym2612_timed_processor.test.mjs": {
+      "bytes": 26014,
+      "sha256": "c67a6cfc4107640a6eb79b909bec1284932ea5d2344d101fbf5a8194f304fba9"
+    }
+  },
+  "reports": {
+    "docs/issues/verification_ym2612_timed_core_20261117.json": {
+      "bytes": 1991,
+      "sha256": "93a01a70f6385da44334ccc810a43cbc09e02621348f8b5cf78cd2691b16b797"
+    },
+    "docs/issues/ym2612_timed_default_parity_01.json": {
+      "bytes": 5396,
+      "sha256": "28684a7ad4047f68b36c426f4157a8c4c0b75ad2b2ade411f5d677203a20d440"
+    },
+    "docs/issues/playground_chip_levels_01.json": {
+      "bytes": 248714,
+      "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    "docs/issues/soundchip_psg_levels_06.json": {
+      "bytes": 35484,
+      "sha256": "db07553c8756f70d530ba88c3591ad02605df06929621de3b6daa773a5ed77d8"
+    },
+    "docs/issues/ps1_ay_single_output_chip_levels_01.json": {
+      "bytes": 546877,
+      "sha256": "be6c1a7fcc9e6a6081d7d1142001eb78046fac0d2214f5543ffa5cb92272963e"
+    },
+    "docs/issues/wonderswan_ay_single_output_chip_levels_01.json": {
+      "bytes": 491288,
+      "sha256": "afacfcc1da1dc9a5fa6afb8ca4f6e43d770a0e5d8d9ca2a5910a288756fa7e6d"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_01.json": {
+      "bytes": 1030856,
+      "sha256": "057b6f7d6f94ba609c6312fa9f2d570ad55b8741cd798a30fb12a082107b8be7"
+    },
+    "docs/issues/pokey_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 1052077,
+      "sha256": "65aa112e06abcf6a7fc75bbbc718b85af66bb861636c52f79eeb86a16aee38b0"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_01.json": {
+      "bytes": 625216,
+      "sha256": "6476bd4f36264958557197d1eb2dbc04dda5909fc8af2c282ca8d0bc1ae2c0bf"
+    },
+    "docs/issues/scsp_ay_single_output_chip_levels_verify_01.json": {
+      "bytes": 636525,
+      "sha256": "3b2d997465cf29f9e8cf73b45a277f3c3d3f0ca2a6d42b043a763bade8ab9e67"
+    }
+  },
+  "verification": {
+    "passed": true,
+    "registerTraceEvents": 539,
+    "exactStereoFrames": 8000,
+    "outputSampleRates": [
+      44100,
+      48000
+    ],
+    "engines": [
+      "ymfm",
+      "nuked"
+    ],
+    "deviceOpened": false,
+    "notes": [
+      "Exact current/predecessor register, state and PCM comparisons are stored in the pinned differential evidence.",
+      "No original calibration report or gain was regenerated.",
+      "This receipt authorizes only the exact source pairs and dependency graph listed here."
+    ]
+  }
+}

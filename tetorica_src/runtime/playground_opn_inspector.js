@@ -41,6 +41,18 @@ export class OpnKeyboardInspector {
     if(port===0&&register>=8&&register<=10&&value&31)this.levels[register-8]=value&31;
     if((this.kind==='ym2608'&&port===1&&register===0||['ym2610','ym2610b'].includes(this.kind)&&port===0&&register===0x10)&&value&0x80)this.adpcmRepeat=value&0x10;
   }
+  /** Explicit timed edits bypass the manual pitch lease, then update the
+   * authored inspector shadow without issuing a second native write. A new
+   * timed Gate retires the corresponding stale manual release identity. */
+  writeTimedRegister(register,value,port=0) {
+    if(!this.guard.writeTimedRegister(register,value,port))return false;
+    this.observe(register,value,port);
+    if(port===0&&register===0x28&&(value&0xf0)){
+      const code=value&7,physical=(code&3)+(code&4?3:0),logical=this.fm.indexOf(physical);
+      if((code&3)!==3&&logical>=0)this.held.delete(`fm:${logical}`);
+    }
+    return true;
+  }
   filter(register,value,port) {
     if(!this.held.size)return value;
     if(port===0&&this.kind!=='ym2612') {

@@ -1,5 +1,6 @@
 import {noteToHz, opnPitchFromHz} from './soundchip_pitch.js';
 import {YM2612Dac, YM2612DacPlayer} from "./ym2612_dac.js";
+import {createYm2612OperationResetState, validateYm2612OperationState, observeYm2612OperationWrite} from './ym2612_operation_state.js';
 /**
  * @file ym2612synth.js
  * 実行環境: Browser / Node.js
@@ -448,6 +449,8 @@ export class YM2612Synth {
       this.transport.reset();
     }
 
+    this._timedState = createYm2612OperationResetState();
+    this._timedClientStateComplete = typeof this.transport.reset === 'function';
     this._pendingAddressPort = undefined;
     this._pendingAddressRegister = undefined;
     this._modeRegister = 0x00;
@@ -1160,6 +1163,7 @@ export class YM2612Synth {
       this.transport.write(command);
     }
 
+    observeYm2612OperationWrite(this._timedState, port, register, value);
     if (typeof this.hooks.onWrite === "function") {
       this.hooks.onWrite(command);
     }
@@ -1174,6 +1178,7 @@ export class YM2612Synth {
       if (this.transport.write.length >= 3) this.transport.write(command.port, command.register, command.value);
       else this.transport.write(command);
     }
+    for (const command of commands) observeYm2612OperationWrite(this._timedState, command.port, command.register, command.value);
     for (const command of commands) this.hooks.onWrite?.(command);
     this._syncIrq();
   }
@@ -1186,6 +1191,14 @@ export class YM2612Synth {
       channels: this.channels,
     });
   }
+
+  // Private compilation baseline. The ordinary getState() UI shape is unchanged.
+  _getTimedState() { return validateYm2612OperationState(this._timedState); }
+  _adoptTimedState(state) {
+    this._timedState = validateYm2612OperationState(state);
+    this._timedClientStateComplete = true;
+  }
+  _invalidateTimedState() { this._timedClientStateComplete = false; }
 
   /** @param {number} offset */
   _notifyRead(offset, value) {

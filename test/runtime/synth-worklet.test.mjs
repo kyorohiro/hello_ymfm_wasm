@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 const runtimeTreeFile = (tree, file) => new URL(`../../${tree === 'web' ? 'tetorica_src/runtime' : tree}/${file}`, runtimeDirectoryUrl);
@@ -15,7 +16,7 @@ import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuar
 function processor(tree, file, rate, imports = {}) {
   let Type;
   const messages = [];
-  const context = { OpnKeyboardInspector,PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
+  const context = { createYm2612TimedProcessor,observeYm2612TimedChip,OpnKeyboardInspector,PsgInspectorState, receiveChipInspector, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => context.currentFrame / rate, options), ...imports, sampleRate: rate, currentFrame: 0, Float32Array, Uint8Array, Error,
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };

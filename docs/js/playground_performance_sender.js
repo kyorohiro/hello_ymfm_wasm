@@ -82,8 +82,9 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
       if (commands.some(command => command.id !== undefined)) throw new DOMException('Run stopped', 'AbortError');
       return;
     }
-    // AY RPCs own their compact timeline; retain the owner without double lead.
-    if(!Array.isArray(data)&&data?.method==='ayTimed'){
+    // Register-operation RPCs own their compact timeline; retain the owner
+    // without adding the performance lead a second time.
+    if(!Array.isArray(data)&&['ayTimed','ym2612Timed'].includes(data?.method)){
       port.postMessage({...data,timedPerformance:timestamp()},transfer);return;
     }
     const {time} = timestamp();

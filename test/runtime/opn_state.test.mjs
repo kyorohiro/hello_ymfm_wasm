@@ -115,9 +115,18 @@ test('native OPN loaders reject truncated/oversized memory states without changi
     assert.deepEqual(e.processFrames(300),expected);
     if(kind!=='ym2203'){
      e.loadState(s);save(c.handle,ptr);
-     // Fixed known authored memories: OPNA has 8 KiB + 2 MiB; OPNB fixture has two 256-byte ROMs.
-     const prefix=size-(kind==='ym2608'?8192+0x200000:512)-8;
-     new DataView(m.HEAPF32.buffer).setUint32(ptr+prefix,0xffffffff,true);
+     // Locate the actual memory-length fields, excluding YM2608's current
+     // two-float output-gain trailer. Assert both lengths before corrupting a
+     // field: an outdated layout must fail here rather than edit sample data.
+     const memoryLengths=kind==='ym2608'?[8192,0x200000]:[256,256];
+     const gainTrailerBytes=kind==='ym2608'?2*Float32Array.BYTES_PER_ELEMENT:0;
+     const lengthBytes=Uint32Array.BYTES_PER_ELEMENT;
+     const prefix=size-gainTrailerBytes-memoryLengths.reduce((sum,length)=>sum+length+lengthBytes,0);
+     const view=new DataView(m.HEAPU8.buffer);
+     let offset=ptr+prefix;
+     for(const length of memoryLengths){assert.equal(view.getUint32(offset,true),length,'Current serialized memory layout');offset+=lengthBytes+length;}
+     assert.equal(offset,ptr+size-gainTrailerBytes);
+     view.setUint32(ptr+prefix,0xffffffff,true);
      assert.equal(load(c.handle,ptr,size),0);assert.deepEqual(e.processFrames(300),expected);
     }
    }finally{m._free(ptr);}

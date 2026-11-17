@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import {PsgInspectorState,receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
@@ -15,6 +16,7 @@ function chip(registerApi = true) {
   const writes = [], addresses = [0, 0];
   const value = {
     writes, resets: 0, reservations: [], generatedFrames: 0,
+    setOutputGains() {}, dispose() {},
     write(offset, value) {
       const port = offset >> 1;
       if (offset & 1) writes.push([addresses[port], value, port]);
@@ -125,7 +127,7 @@ test('audition validation is atomic, rejects nonfinite data, and reports errors 
 function processor(file, imports = {}) {
   let Type;
   const messages = [];
-  const scope = {OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership,
+  const scope = {createYm2612TimedProcessor,observeYm2612TimedChip,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard, YM2612DacPlayer, receiveDacCommand, createPerformanceQueue, createPerformanceChipOwnership,
     createChipPortReceiver: (apply, _now, options) => createChipPortReceiver(apply, () => 0, options),
     sampleRate: 48000, currentFrame: 0, Float32Array, Uint8Array, Error, ...imports,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: message => messages.push(message)};}},

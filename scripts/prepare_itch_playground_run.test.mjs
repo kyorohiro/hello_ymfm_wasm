@@ -18,6 +18,9 @@ test('1000 means all ZIP entries, including directory records',()=>{
 test('only the explicit SDK and reference build metadata files move into the complete source archive',()=>{
  for(const name of ['sdk/RELEASE-MANIFEST.json','scsp-sdk/RELEASE-MANIFEST.json','sdk/catalog/source_inventory.json','sdk/sdk.json','scsp-sdk/sdk.json','sdk/soundchip-sdk.json','CDDA.json','MSM5205.json','POKEY-SDK.json'])assert.equal(isItchRunArchivedSource(name),true);
  for(const name of ['PS1-SPU.json','third_party/chip/RELEASE-MANIFEST.json','js/ps1_vab.js','examples/ps1/ps1-vab-tone.js'])assert.equal(isItchRunArchivedSource(name),false,name);
+ for(const name of ['native/ps1/upstream/REVISION','native/ps1/upstream/SHA256SUMS',
+  'scsp-sdk/vendor/mame-scsp/upstream/REVISION','scsp-sdk/vendor/mame-scsp/upstream/SHA256SUMS',
+  'third_party/libvgm-pokey/upstream/snapshot-manifest.json'])assert.equal(isItchRunArchivedSource(name),true,name);
 });
 test('expanded size and path boundaries are checked without extracting',()=>{
  assert.equal(validateItchZipEntries([file('index.html',200_000_000),file('b',200_000_000),file('c',100_000_000)]).totalBytes,500_000_000);
@@ -60,6 +63,11 @@ test('browser stage keeps complete source ZIP and original runtime/licenses/rece
   'sources/CDDA.json':'{"buildRecipe":"original CDDA"}\n',
   'sources/MSM5205.json':'{"buildRecipe":"original MSM5205"}\n',
   'sources/POKEY-SDK.json':'{"buildRecipe":"original POKEY SDK"}\n',
+  'sources/native/ps1/upstream/REVISION':'original PS1 revision\n',
+  'sources/native/ps1/upstream/SHA256SUMS':'original PS1 hashes\n',
+  'sources/scsp-sdk/vendor/mame-scsp/upstream/REVISION':'original SCSP revision\n',
+  'sources/scsp-sdk/vendor/mame-scsp/upstream/SHA256SUMS':'original SCSP hashes\n',
+  'sources/third_party/libvgm-pokey/upstream/snapshot-manifest.json':'{"original":"POKEY revision"}\n',
   'js/sid.js':'export const readableSid=true;\n',
   'sources/sid/README.md':'# SID source kit\nBuild from this directory after extraction.\n',
   'sources/sid/tetorica_src/runtime/sid.js':'export const readableSid=true;\n',
@@ -69,7 +77,7 @@ test('browser stage keeps complete source ZIP and original runtime/licenses/rece
  };
  try{
   for(const[name,value]of Object.entries(payload)){await mkdir(dirname(join(full,name)),{recursive:true});await writeFile(join(full,name),value);}
-  const result=await prepareItchPlaygroundRun(full,run);assert(result.passed&&result.fullStageUnchanged);assert.equal(result.removedCompilationFiles.length,17);assert.equal(result.sourceArchive.files,24);
+  const result=await prepareItchPlaygroundRun(full,run);assert(result.passed&&result.fullStageUnchanged);assert.equal(result.removedCompilationFiles.length,22);assert.equal(result.sourceArchive.files,29);
   for(const name of ['index.html','LICENSE','js/app.js','js/sid.js','generated/audio.wasm','licenses/chip/NOTICE.md','sources/NOTICE.md','sources/native/chip/NOTICE.md','sources/native/chip/LICENSE','sources/Chip.json'])assert.deepEqual(await readFile(join(run,name)),await readFile(join(full,name)),name);
   for(const name of result.removedCompilationFiles)await assert.rejects(access(join(run,name)),{code:'ENOENT'});
   const guide=await readFile(join(run,'sources/Chip.md'),'utf8');assert(guide.endsWith(payload['sources/Chip.md']));assert.match(guide,/\]\(corresponding-source\.zip\)/);

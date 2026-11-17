@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from '../../tetorica_src/runtime/ym2612_timed_processor.js';
 // Resolve source and fixture URLs from the runtime directory.
 const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 const runtimeTreeFile = (tree, file) => new URL(`../../${tree === 'web' ? 'tetorica_src/runtime' : tree}/${file}`, runtimeDirectoryUrl);
@@ -31,14 +32,14 @@ test('served primary worklets resolve their real static module imports, includin
 function processor(tree, name, rate = 48000) {
   let Type;
   const replies = [], portReplies = [], writes = [];
-  const scope = {
+  const scope = {createYm2612TimedProcessor,observeYm2612TimedChip,
     OpnKeyboardInspector,receiveChipInspector,currentFrame: 0, sampleRate: rate, Float32Array, Uint8Array, Error,
     createPerformanceQueue, createPerformanceChipOwnership, createChipPortReceiver, createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard,
     YM2612DacPlayer, receiveDacCommand, validateChipClock,
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: data => replies.push(data)};}},
     registerProcessor(_name, value) {Type = value;},
   };
-  vm.runInNewContext(fs.readFileSync(runtimeTreeFile(tree, `${name}.js`), 'utf8').replace(/^import .*;\n/gm, ''), scope);
+  vm.runInNewContext(fs.readFileSync(runtimeTreeFile(tree, `${name}.js`), 'utf8').replace(/^import .*;\n/gm, '').replace(/^export /gm,''), scope);
   const p = new Type();
   const chip = {
     value: 0, reservations: [], generatedFrames: 0, sampleRate: () => rate, reset() {this.value = 0;},

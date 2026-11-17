@@ -174,6 +174,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const worklets = {ym2612:'./ym2612-worklet.js?v=rf5c164-notes-1',ym2203:'./ym2203-worklet.js?v=rf5c164-notes-1',ym2608:'./ym2608-worklet.js?v=rf5c164-notes-1',ym2610b:'./ym2610b-worklet.js?v=rf5c164-notes-1'};
   return {
     chip:mode.chip,
+    ...(mode.chip==='ym2612'?{engine:mode.engine??'ymfm'}:{}),
     workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=rf5c164-notes-1' : worklets[chip], base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readHistoricalYm2612TimedFileSync as readFileSync} from '../test/helpers/historical_ym2612_timed_calibration_fixture.mjs';
 import {
   restoreMixerCalibrationLogTableCacheRevision as restore,
   LOG_TABLE_CACHE_REVISION_BASE_COMMIT as baseCommit,

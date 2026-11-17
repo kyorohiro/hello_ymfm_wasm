@@ -478,6 +478,11 @@ ym2612-worklet.js
 ym2612-worklet-nuked.js
 ym2612.js
 ym2612synth.js
+ym2612_operations.js
+ym2612_operation_state.js
+ym2612_timed_state.js
+ym2612_timed_client.js
+ym2612_timed_processor.js
 ym2612_dac.js
 "
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readHistoricalYm2612TimedFileSync as readFileSync} from '../test/helpers/historical_ym2612_timed_calibration_fixture.mjs';
 import {createPerformanceQueue} from '../tetorica_src/runtime/playground_performance_queue.js';
 import {createProcessorPerformance} from '../tetorica_src/runtime/playground_performance_processor.js';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';

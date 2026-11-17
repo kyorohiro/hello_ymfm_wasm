@@ -18,6 +18,7 @@ SYNTH_FILES="
 CODE.md
 synth.js
 synth_code_controls.js
+synth_code_examples.js
 synth_code_project.js
 synth_code_audio.js
 synth_fm_mute.js
@@ -194,6 +195,12 @@ ym2608-worklet.js
 ym2612.js
 ym2612_dac.js
 ym2612synth.js
+ym2612_operations.js
+ym2612_operation_state.js
+ym2612_timed_state.js
+ym2612_timed_client.js
+playground_soundchip_options.js
+ym2612_timed_processor.js
 ym2612-worklet.js
 ym2612-worklet-nuked.js
 "

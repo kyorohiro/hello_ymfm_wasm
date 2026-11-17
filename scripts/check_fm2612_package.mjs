@@ -16,6 +16,9 @@ try {
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
   for(const file of ['rf5c164_notes.js','rf5c164_notes.d.ts'])assert(packedPaths.has(file),'RF5C164 musical helper payload missing '+file);
+  for (const name of ['ym2612_operations','ym2612_operation_state','ym2612_timed_state','ym2612_timed_client','ym2612_timed_processor']) {
+    for (const extension of ['js','d.ts']) assert(packedPaths.has(name+'.'+extension),'YM2612 timed API payload missing '+name+'.'+extension);
+  }
   assertSidPackageFiles(packedPaths);
   for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
     assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
@@ -116,6 +119,24 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await writeFile(join(consumer,'ym2612-timed-check.mjs'),`
+import assert from 'node:assert/strict';
+import {YM2612Synth} from 'tetorica-fm2612/ym2612synth';
+import {attachYm2612TimedClient} from 'tetorica-fm2612/ym2612_timed_client.js';
+const sent=[];
+const fm=attachYm2612TimedClient(new YM2612Synth({transport:{reset(){},write(command){sent.push(command);}}}),{native:true});
+fm.write(0,0x30,0x71);
+const plan=fm.build(b=>{b.atSample(0).setOperator(0,0,{multi:3});b.atSeconds(.1).keyOn(3);b.keyOn(3);});
+const before=JSON.stringify(fm._getTimedState());
+const client=await fm.compile(plan,{initialState:'client'}),reset=await fm.compile(plan,{initialState:'reset'});
+assert.deepEqual(client.map(({port,register,value})=>[port,register,value]),[[0,0x30,0x73],[0,0x28,0xf4],[0,0x28,0xf4]]);
+assert.equal(reset[0].value,3);assert.equal(JSON.stringify(fm._getTimedState()),before);assert.equal(sent.length,1);
+assert.equal(client[1].offsetSeconds,.1);
+await assert.rejects(fm.captureState(),/AudioWorklet/);await assert.rejects(fm.schedule(plan,{name:'test'}),/AudioWorklet/);
+fm.dispose();assert.equal(typeof globalThis.AudioContext,'undefined');
+console.log('Installed YM2612 timed recorder/compiler verified: packed fields, repeated keys, local/reset baselines and explicit Native limits; no audio device.');
+`);
+  execFileSync(process.execPath,[join(consumer,'ym2612-timed-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await checkInstalledSidNode(consumer);
   const vabFixture=createVabFixture();
   for(const extension of ['vab','vh','vb'])await writeFile(join(consumer,'original.'+extension),vabFixture[extension]);

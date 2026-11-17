@@ -1,3 +1,4 @@
+import {createYm2612TimedProcessor, observeYm2612TimedChip} from './ym2612_timed_processor.js';
 import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
 import {Ym2612} from './ym2612.js';
 import {Ym2608} from './ym2608.js';
@@ -44,13 +45,15 @@ const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.ent
   [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => PWM32XPlayback.create({...options,moduleFactory:pwmFactory})],
   ['sid', options => createSidSoundChip({...options, wasmBinary:options.moduleOptions.wasmBinary})]]));
 
+const timedInstanceNonce = Math.random().toString(36).slice(2);
+let timedInstanceSequence = 0;
 class SoundChipProcessor extends AudioWorkletProcessor {
   constructor({processorOptions: {name, chipOptions, wasmBinary}}) {
     super(); this.dead = false; this.running = false; this.name = name; this.queuedSpeaker=['wonderswan','pokey'].includes(name); this.remotePorts = new Set();
     this.ayRegisters=name==='ay8910'?new Uint8Array(16):null;
     this.opllRegisters=name==='ym2413'?new Uint8Array(64):null;
     this.scheduled = []; this.scheduledIndex=0; this.banks = new Map();this.oplRegisters=['ym3526','ym3812','y8950','ymf262'].includes(name)?new Uint8Array(name==='ymf262'?512:256):null;
-    this.performance=createProcessorPerformance({chip:()=>this.name,getAyRegisters:()=>this.ayRegisters,getOpllRhythm:()=>this.opllRegisters?.[0x0e]??0,
+    this.performance=createProcessorPerformance({patternCommandCost:command=>command.method==='applyTimedOperation'?command.writeCost:1,chip:()=>this.name,getAyRegisters:()=>this.ayRegisters,getOpllRhythm:()=>this.opllRegisters?.[0x0e]??0,
       getWonderSwanRegisters:()=>this.speaker?.registers,getPokeyRegisters:()=>this.pokeySpeaker?.registers,
       releaseNote:key=>['ym2612','ym2608'].includes(this.name)?{type:'write',port:0,register:0x28,value:[0,1,2,4,5,6][key]}:
         performanceNoteRelease(this.name,key),apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata),prepare:(data,port,metadata)=>{
@@ -66,6 +69,14 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       .then(chip => {
         if (this.dead) {chip.dispose(); return;}
         this.chip = chip;
+        if(name==='ym2612') {
+          this.timedChip=observeYm2612TimedChip(chip);
+          this.instanceId=`ym2612-output:${timedInstanceNonce}:${++timedInstanceSequence}`;
+          this.timed=createYm2612TimedProcessor({performance:this.performance,getState:()=>this.timedChip.getState(),
+            getConfig:()=>({instanceId:this.instanceId,clock:this.timedClock??chipOptions.clock??7670454,engine:'ymfm'}),
+            dispatch:(command,port,_frame,metadata)=>this.performance.applyImmediate(command,port,metadata),
+            nowFrame:this.performance.nowFrame,sampleRate});
+        }
         this.speaker=name==='wonderswan'?new WonderSwanAudioEngine(chip,1):null;
         this.pokeySpeaker=name==='pokey'?new PokeyAudioEngine(chip,1):null;
         this.outputEngine=this.speaker??this.pokeySpeaker;
@@ -81,6 +92,10 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {
+    if(data?.method==='ym2612Timed'){
+      if(!this.timed){replyPort.postMessage({id:data.id,error:'YM2612 timed API is not ready'});return;}
+      this.timed.receive(data,replyPort);return;
+    }
     if(Array.isArray(data)){
       if(data.length<=4096)for(const command of data)this.receive(command,replyPort);
       return;
@@ -99,8 +114,9 @@ class SoundChipProcessor extends AudioWorkletProcessor {
   }
   updateAyMute(){let mask=0;for(let channel=0;channel<3;channel++)if(!(this.ayRegisters[8+channel]&31))mask|=1<<channel;this.chip?.setMuteMask(mask);}
   apply(data, replyPort = this.port, appliedFrame = currentFrame, metadata) {
+    if(data.method==='applyTimedOperation')return this.timed.apply(data.operation,replyPort,appliedFrame,metadata);
     try {
-      if (data.method === 'dispose') {this.performance.clear();this.dead = true; this.outputEngine?this.outputEngine.dispose():this.chip?.dispose(); this.chip = null;
+      if (data.method === 'dispose') {this.timed?.clear();this.performance.clear();this.dead = true; this.outputEngine?this.outputEngine.dispose():this.chip?.dispose(); this.chip = null;
         this.renderer = this.outputEngine = this.pokeySpeaker = this.speaker = this.direct = this.pcmDac = this.opllRegisters = this.oplRegisters = this.ayRegisters = null; this.scheduled = [];this.scheduledIndex=0; this.banks.clear();
         if(this.queuedSpeaker)replyPort.postMessage({type:'disposed',error:'Worklet chip is disposed'});
         for (const port of this.remotePorts) {if(this.queuedSpeaker&&port!==replyPort)port.postMessage({type:'disposed',error:'Worklet chip is disposed'});port.close();} this.remotePorts.clear(); return;}

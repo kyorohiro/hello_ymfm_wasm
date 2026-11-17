@@ -5,6 +5,7 @@ import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-p
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
+import {attachYm2612TimedClient} from './ym2612_timed_client.js';
 import {YM2203Synth} from './ym2203synth.js?v=rf5c164-notes-1';
 import {OPNFMSynth} from './opn_fm_synth.js?v=audio-stability-2';
 import {YM2608Synth} from './ym2608synth.js?v=rf5c164-notes-1';
@@ -13,7 +14,7 @@ import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /**
  * Create Worker-side primary controls that send ordered writes to a Worklet port.
  * Stop cancels outstanding DAC requests and mutes hardware; resume permits new work.
- * @param {{port: MessagePort, capabilities: {backend?:string,chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
+ * @param {{port: MessagePort, capabilities: {backend?:string,engine?:'ymfm'|'nuked',chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number,engine?:'ymfm'|'nuked',timedState?:import('./ym2612_operations.js').YM2612OperationState, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
  * @returns Selected primary controls, raw synth state, write sender and lifecycle methods.
  */
 export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
@@ -64,6 +65,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  function retainedLevels(){return name==='ym2203'&&capabilities.backend==='native-genesis'?raw.ssg._getState().levels:null;}
  function retainLevels(before){if(!before)return;const after=raw.ssg._getState().levels;for(let channel=0;channel<3;channel++)if(before[channel]!==after[channel])send({type:'ssg-retained-level',channel,level:after[channel]});}
  function adoptState(state){if(!state)return;if(state.clock!==undefined)raw._adoptClock(state.clock);raw.channels=structuredClone(state.channels);raw.lfo=structuredClone(state.lfo);raw._modeRegister=state.modeRegister??0;if(state.dac)Object.assign(raw.dac ??= {}, structuredClone(state.dac));
+  if(name==='ym2612')state.timedState?raw._adoptTimedState(state.timedState):raw._invalidateTimedState();
   for(const section of sectionNames){
    if(section==='ssg'&&state.ssg?.registers&&raw.ssg){raw.ssg._adoptState(state.ssg);continue;}
    const values=state[section]?.registers??state[section]?.levels??(section==='adpcmB'?state.adpcm?.registers:null);
@@ -75,6 +77,10 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  attachChipClock(raw, port, state?.clock ?? CHIP_CLOCKS[name], {primary:true,batch:true,onApplied});
  onApplied(raw.clock);
  adoptState(state);
+ if(name==='ym2612'){
+  if(!state?.timedState)raw._invalidateTimedState();
+  attachYm2612TimedClient(raw,{native:capabilities.backend==='native-genesis',engine:state?.engine??capabilities.engine??'ymfm'},port);
+ }
  enabled=true;
  const channelMethods=new Set(['setPreset','setOperator','setOperators','setAlgo','setPan','setModulation','setFrequency','setNote','setBlockFnum','noteOnRaw','keyOn','keyOff','noteOn','noteOff']);
  function invoke(method,args){
@@ -110,7 +116,11 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
    }]));
  }
  if(sections.adpcmB)sections.adpcm=sections.adpcmB;
- const fm=new Proxy({}, {get:(_t,method)=> method==='clock'?raw.clock:method==='dac'?raw.dac:sections[method]??((...args)=>invoke(String(method),args))});
+ const fm=new Proxy({}, {get:(_t,method)=> {
+  if(method==='_timedOperations')return raw._timedOperations;
+  if(['build','compile','captureState','schedule','clearSchedule'].includes(method)&&raw._timedOperations)return raw[method].bind(raw);
+  return method==='clock'?raw.clock:method==='dac'?raw.dac:sections[method]??((...args)=>invoke(String(method),args));
+ }});
  const psg=capabilities.psg?createSegaPsgApi({write:value=>send({type:'psg-write',value}),
   ...(capabilities.backend==='native-genesis'?{setStereo:value=>send({type:'psg-stereo',value})}:{}),
   reset:()=>send({type:'psg-reset'}),resetAll:()=>fm.reset()}):null;

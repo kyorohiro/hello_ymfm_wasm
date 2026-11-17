@@ -82,6 +82,13 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
   if (/^(?:PlaygroundSegaPsg|PSGApi)$/.test(owner)) return {file:'segapsgsynth.js', symbol};
   if (/^Playground(?:Primary)?(?:Opll|Ym2413)/.test(owner)) return {file:'ym2413synth.js',symbol:/^Playground/.test(symbol) ? 'YM2413Synth' : symbol};
+  if (owner === 'PlaygroundYm2612OperationRecorder' || /^PlaygroundYm2612(?:BuildOptions|OperationProgram)$/.test(owner))
+    return {file:'ym2612_operations.js',symbol:'buildYm2612Operations'};
+  if (owner === 'PlaygroundYm2612StateSnapshot') return {file:'ym2612_timed_state.js',symbol:'createYm2612TimedSnapshot'};
+  if (owner === 'PlaygroundYm2612CompiledWrite') return {file:'ym2612_operations.js',symbol:'compileYm2612Operations'};
+  if (/^PlaygroundYm2612(?:TimedApi|CompileOptions|ScheduleOptions|ScheduleReceipt)$/.test(owner) ||
+      ['YM2612FMApi','PlaygroundCreatedFm','SynthCodeFm'].includes(owner) && ['build','compile','captureState','schedule','clearSchedule'].includes(symbol))
+    return symbol === 'build' ? {file:'ym2612_operations.js',symbol:'buildYm2612Operations'} : {file:'ym2612_timed_client.js',symbol:'attachYm2612TimedClient'};
   if (owner === 'PlaygroundAy8910OperationRecorder' ||
       /^PlaygroundAy8910(?:BuildOptions|RecordedMethod|OperationTime|RecordedOperation|OperationProgram)$/.test(owner)) {
     return {file:'ay8910_operations.js',symbol:'buildAyOperations'};

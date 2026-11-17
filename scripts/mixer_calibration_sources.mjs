@@ -27,6 +27,7 @@ import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_s
 import {restoreMixerCalibrationWonderSwanHostBudgetRevision} from './mixer_calibration_wonderswan_host_budget_revision.mjs';
 import {restoreMixerCalibrationAySingleOutputUiCacheRevision} from './mixer_calibration_ay_single_output_ui_cache_revision.mjs';
 import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
+import {restoreMixerCalibrationYm2612TimedRevision} from './mixer_calibration_ym2612_timed_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -376,6 +377,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const timedYm2612=restoreMixerCalibrationYm2612TimedRevision(path,bytes),timedYm2612Revision=timedYm2612!==bytes;bytes=timedYm2612;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return timedYm2612Revision?'ym2612-timed-operations-default-path-revision':'raw';
   const timedAy=restoreMixerCalibrationAyTimedRevision(path,bytes),timedAyRevision=timedAy!==bytes;bytes=timedAy;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return timedAyRevision?'ay-timed-operations-default-path-revision':'raw';
   const ayUiCache=restoreMixerCalibrationAySingleOutputUiCacheRevision(path,bytes,{report,record});

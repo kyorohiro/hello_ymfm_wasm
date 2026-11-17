@@ -257,3 +257,33 @@ test('a failing recurring command stops its pattern while other events remain ru
   assert.equal(f.queue.getStats().patternCount, 0);
   assert.match(f.replies.at(-1).error, /Resolution failed/);
 });
+
+test('optional expanded command costs bound repeated CPU work while entry counts stay compact',()=>{
+  const f=fixture({maxCommands:10,maxPatternRate:100,patternCommandCost:command=>command.cost??1});
+  const make=(name,cost,repeatSeconds)=>({name,entries:[{offsetSeconds:0,command:{method:'preset',cost}}],
+    performance:{session:1,owner:'old',time:0},repeatSeconds});
+  f.queue.schedulePattern(make('a',4,.1));
+  assert.equal(f.queue.getStats().storedPatternCommands,1);assert.equal(f.queue.getStats().storedPatternCost,4);
+  assert.equal(f.queue.getStats().patternRate,10);assert.equal(f.queue.getStats().patternCostRate,40);
+  f.queue.schedulePattern(make('b',5,.1));
+  assert.throws(()=>f.queue.schedulePattern(make('a',6,.1)),/aggregate/,'Rejected expanded-rate replacement keeps its predecessor');
+  assert.equal(f.queue.getStats().storedPatternCost,9);assert.equal(f.queue.getStats().patternCostRate,90);
+  f.queue.clearPattern('b');assert.equal(f.queue.getStats().storedPatternCost,4);
+  assert.throws(()=>f.queue.schedulePattern(make('overflow',11)),/cost/);
+  for(const cost of [0,-1,1.5,NaN,Infinity])assert.throws(()=>f.queue.schedulePattern(make('invalid',cost)),/cost|serializable/);
+  f.queue.clearPattern('a');assert.equal(f.queue.getStats().storedPatternCost,0);assert.equal(f.queue.getStats().patternCostRate,0);
+});
+
+test('weighted one-shot costs reserve capacity and release it on completion, cancellation and atomic transactions',()=>{
+  const f=fixture({maxCommands:10,patternCommandCost:command=>command.cost??1});
+  const make=(name,cost)=>({name,entries:[{offsetSeconds:0,command:{method:'preset',cost}}],performance:{session:1,owner:'old',time:0}});
+  f.queue.schedulePattern(make('once',10));
+  f.receive({performance:{session:1,owner:'batch',time:0},commands:[{method:'write'}]});
+  assert(f.replies.at(-1).error.includes('capacity'));
+  f.queue.advance(0);assert.equal(f.queue.getStats().storedPatternCost,0);
+  f.queue.schedulePattern(make('a',6));
+  assert.throws(()=>f.queue.commitPatterns([make('a',4),make('b',7)],{session:1,owner:'old'}),/capacity/);
+  assert.equal(f.queue.getStats().storedPatternCost,6);
+  f.receive({type:'performance-cancel-owner',session:1,owner:'old'});
+  assert.equal(f.queue.getStats().storedPatternCost,0);assert.equal(f.queue.getStats().storedPatternCommands,0);
+});
