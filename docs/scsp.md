@@ -102,9 +102,9 @@ choose Web Audio for these examples. Local `ScspSynth` exposes the same DSP
 operations synchronously over its owned core; the Playground facade resolves
 them after its audio owner acknowledges the change.
 
-## Managed DSP Delay (current source build)
+## Managed DSP Delay (0.2.44)
 
-The current repository adds `setDspDelay()`; **npm 0.2.43 does not include it**.
+`setDspDelay()` is available in `tetorica-fm2612@^0.2.44` and the repository build.
 In Playground, open **Files → examples → scsp → scsp-dsp-delay.js → Code → Run**.
 Its beat-based short notes leave echoes, while a separate `tween()` changes
 feedback without clearing the ring. The code also prints the applied DSP
@@ -129,8 +129,8 @@ ring history. Feedback / send / return changes keep history and held voices;
 `noteOff()` leaves the effect tail. Code Stop clears voices/history and keeps
 setup. `reset()` clears setup but retains ring space; `reset({clearRam:true})`
 releases the bank and ring. Insufficient RAM or invalid settings leave the
-previous sound intact. The source-build
-[Node / browser examples](../packages/fm2612/examples/scsp-dsp/README.md#managed-hardware-delay--unpublished-source-build)
+previous sound intact. The installed-package
+[Node / browser examples](../packages/fm2612/examples/scsp-dsp/README.md#managed-hardware-delay-0244)
 show independent use without Playground.
 
 The Delay reuses the existing bounded hardware program. It does not open
@@ -463,8 +463,8 @@ Time／Enable変更は残響をクリアし、Stop／mode／接続変更は全�
 DSP用に先頭64KiBを常時予約するため、PCMとguardには448KiBを利用できる。
 DSP ringは波形一覧に出さず、editorの再利用対象にも含めない。旧presetでも予算超過時は演奏を変える前に拒否する。
 [Playground DSP Lab](playground/scsp-dsp.html) は独立ページで短音・wet-only・bypassを試せる。
-PlaygroundのMain／Worker Web Audioでは、上記のRAM-free Gain／IIR APIを利用できる。
-NativeのDSP transport、RAMを使うDSPプログラムの共通API、Reverbは後続。
+PlaygroundのMain／Worker Web Audioでは、上記のRAM-free Gain／IIRと、管理された固定Delayの共通APIを利用できる。
+NativeのDSP transport、任意のRAM配置を使うDSPプログラム、Reverbは後続。
 
 専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。
 

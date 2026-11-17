@@ -121,13 +121,13 @@ and nonzero sends with `NotSupportedError`. See the
 coefficient and routing ranges. This RAM-free profile is separate from the
 Synth's reserved Delay-ring profile and effect controls described below.
 
-### Playground / local package: managed Delay ring
+### Playground / npm package: managed Delay ring
 
-The current source build adds **scsp-dsp-delay.js** to Playground's Files. It uses
+Playground's Files include **scsp-dsp-delay.js**. It uses
 `await saturn.setDspDelay({enabled:true,timeMs:240,feedback:0.35})` on the same
-SCSP instance as its PCM notes. **npm 0.2.43 does not include this new setter**;
-the [source-build Node / browser examples](../../packages/fm2612/examples/scsp-dsp/README.md#managed-hardware-delay--unpublished-source-build)
-describe installing the local package. Local `ScspSynth` is synchronous;
+SCSP instance as its PCM notes. The setter is also available in **npm 0.2.44+**;
+the [Node / browser examples](../../packages/fm2612/examples/scsp-dsp/README.md#managed-hardware-delay-0244)
+describe independent use of the installed package. Local `ScspSynth` is synchronous;
 Playground / Web Audio methods resolve after owner acknowledgement.
 
 The `delay-ring` profile installs the existing six-step Delay and reserves a
@@ -192,9 +192,10 @@ The example uses `livePrepare()` for setup once per Run. Apply updates named
 loops while retaining live setup; use Run after changing setup source. Code
 Stop releases its notes and retains the shared DSP program / coefficients.
 Reload restores only authored Files / draft text, never executes them, and
-starts the audio setup with the built-in Delay. These methods do not introduce
-sample-timed scheduling or a public npm DSP execution API. The npm codec above
-only encodes / decodes instruction images.
+starts the audio setup with the built-in Delay. This session-managed Synth
+facade is separate from the owned `ScspSynth` / Web Audio execution APIs in npm
+0.2.43 and the managed Delay in 0.2.44. The pure npm codec only encodes / decodes
+instruction images; these methods do not introduce sample-timed scheduling.
 
 ### Save the current setup as Code
 

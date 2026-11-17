@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "package": "tetorica-fm2612",
+  "version": "0.2.44",
+  "sourceBaseCommit": "af738181d1394eea059d0a6f6f19d0199dfcee8b",
+  "status": "published-and-examples-verified",
+  "candidate": {
+    "path": "build/npm-scsp-dsp-delay-release-20261118/candidate/tetorica-fm2612-0.2.44.tgz",
+    "bytes": 2899956,
+    "files": 1299,
+    "unpackedBytes": 11730559,
+    "sha256": "224e477c4ecd5b01b16296c296cea150992a9a93d6802060e08d3f239ecb8ffe",
+    "sha1": "bc991f0e0634d34e45d331edd92b1068a0150669",
+    "integrity": "sha512-wOua7x33rGkNmY2PcPO5oN6xNd6r6O0dc/q+HdyjcW2nwIEx9N41OsujNTE/6AXodZw4RgicPnP3b77iGNR15A=="
+  },
+  "payloadComparison": {
+    "baselineFiles": 1292,
+    "candidateFiles": 1299,
+    "added": [
+      "package/examples/scsp-dsp/delay-browser.d.ts",
+      "package/examples/scsp-dsp/delay-browser.js",
+      "package/examples/scsp-dsp/delay.d.mts",
+      "package/examples/scsp-dsp/delay.html",
+      "package/examples/scsp-dsp/delay.mjs",
+      "package/scsp_dsp_delay.d.ts",
+      "package/scsp_dsp_delay.js"
+    ],
+    "removed": [],
+    "changed": [
+      "package/README.md",
+      "package/RUNTIME.md",
+      "package/examples/scsp-dsp/README.md",
+      "package/examples/scsp-dsp/index.html",
+      "package/looper.d.ts",
+      "package/native_genesis_media.d.ts",
+      "package/native_genesis_scsp.d.ts",
+      "package/native_genesis_synth.d.ts",
+      "package/package.json",
+      "package/playground_performance_sender.js",
+      "package/playground_runtime.js",
+      "package/playground_scsp.d.ts",
+      "package/playground_scsp.js",
+      "package/playground_scsp_audio.js",
+      "package/playground_scsp_worklet.js",
+      "package/runtime-manifest.json",
+      "package/scsp_dsp.d.ts",
+      "package/scsp_dsp.js",
+      "package/scspsynth.d.ts",
+      "package/scspsynth.js",
+      "package/sources/README.md"
+    ],
+    "wasmFiles": 37,
+    "unchangedWasm": true,
+    "candidate": {
+      "path": "build/npm-scsp-dsp-delay-release-20261118/candidate/tetorica-fm2612-0.2.44.tgz",
+      "bytes": 2899956,
+      "files": 1299,
+      "unpackedBytes": 11730559,
+      "sha256": "224e477c4ecd5b01b16296c296cea150992a9a93d6802060e08d3f239ecb8ffe",
+      "sha1": "bc991f0e0634d34e45d331edd92b1068a0150669",
+      "integrity": "sha512-wOua7x33rGkNmY2PcPO5oN6xNd6r6O0dc/q+HdyjcW2nwIEx9N41OsujNTE/6AXodZw4RgicPnP3b77iGNR15A=="
+    }
+  },
+  "checks": {
+    "fullIsolatedPackage": true,
+    "wasmEnginesLoaded": 28,
+    "strictInstalledTypes": true,
+    "nodeGainIirAndDelayExamples": true,
+    "browser": {
+      "delay": {
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "rates": [
+          44100,
+          48000
+        ],
+        "physicalOutputMuted": true,
+        "path": "build/npm-scsp-dsp-delay-release-20261118/browser-delay.json",
+        "sha256": "3a1d890c9d25ccb9042bb166b4f31f42f1ae7a3095392d8e2bcd833cd1872c87"
+      },
+      "gainIir": {
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "rates": [
+          44100,
+          48000
+        ],
+        "physicalOutputMuted": true,
+        "path": "build/npm-scsp-dsp-delay-release-20261118/browser-execution.json",
+        "sha256": "e72f07bb723f95bb66126c2c7cd7fa742f450c2a88e7c2f8df0d3df560486470"
+      },
+      "pure": {
+        "passed": true,
+        "engines": [
+          "chromium",
+          "webkit"
+        ],
+        "rates": [],
+        "physicalOutputMuted": true,
+        "path": "build/npm-scsp-dsp-delay-release-20261118/browser-pure.json",
+        "sha256": "852aa41a4535a9717316c612ebab4f72111ea72506709f2c7f8553d80199dd2c"
+      }
+    },
+    "independentPayloadAudit": {
+      "passed": true,
+      "unchangedWasmFiles": 37,
+      "unchangedLicenseNoticeFiles": 56,
+      "unchangedOriginalSourceFiles": 306,
+      "sourceGuideChangedOnly": true,
+      "delayReleaseDocsAndStartupPaths": true
+    },
+    "independentRegistryConsumer": {
+      "passed": true,
+      "sourceAndDeclarationBytes": true,
+      "gainIirDelayPcmAndLifecycle": true,
+      "packagedNodeExamples": true,
+      "strictInstalledTypes": true
+    }
+  },
+  "examples": {
+    "repository": "w/tetorica-fm2612-examples",
+    "previousDependency": "0.2.41",
+    "targetDependency": "0.2.44",
+    "status": "official-0.2.44-installed-built-and-verified",
+    "prePublicationChecks": {
+      "nodeGainIirDelayWav": true,
+      "chromium44And48MainWorkerCases": 8,
+      "physicalOutputMuted": true
+    },
+    "candidateChecks": {
+      "newDspBrowserCases": 16,
+      "oldScspBrowserCases": 12,
+      "allOfflineNodeExamples": 54,
+      "newGainIirDelayNodeWav": true,
+      "rawScspPcmAndExistingNodeWav": true,
+      "physicalOutputMuted": true,
+      "finalOfficialInstallCheckPending": false,
+      "finalSourceBrowserCases": 16,
+      "editableInitialCodeReadable": true,
+      "appliedProgramAndControlReplaySync": true
+    },
+    "finalChecks": {
+      "cleanNpmCi": true,
+      "officialLockResolutionAndIntegrity": true,
+      "allOfflineNodeExamples": 54,
+      "newDspBrowserCases": 16,
+      "existingScspBrowserCases": 12,
+      "newNodeNumericChecks": true,
+      "identicalDistDocsFiles": 1622,
+      "officialVendorFilesEach": 1299,
+      "allCatalogTargetsExist": 83,
+      "allExampleSourcesUnchanged": true,
+      "physicalOutputMuted": true
+    },
+    "independentVendorAudit": {
+      "passed": true,
+      "lockVersion": "0.2.44",
+      "officialResolved": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.44.tgz",
+      "integrity": "sha512-wOua7x33rGkNmY2PcPO5oN6xNd6r6O0dc/q+HdyjcW2nwIEx9N41OsujNTE/6AXodZw4RgicPnP3b77iGNR15A==",
+      "payloads": {
+        "node_modules/tetorica-fm2612": {
+          "files": 1299,
+          "missing": 0,
+          "extra": 0,
+          "different": 0
+        },
+        "dist/vendor/tetorica-fm2612": {
+          "files": 1299,
+          "missing": 0,
+          "extra": 0,
+          "different": 0
+        },
+        "docs/vendor/tetorica-fm2612": {
+          "files": 1299,
+          "missing": 0,
+          "extra": 0,
+          "different": 0
+        }
+      }
+    }
+  },
+  "publication": {
+    "accepted": true,
+    "publishExitCode": 0,
+    "tagRequested": "latest",
+    "candidateSha256": "224e477c4ecd5b01b16296c296cea150992a9a93d6802060e08d3f239ecb8ffe",
+    "registryVerified": true,
+    "downloadBytes": 2899956,
+    "identicalCandidate": true,
+    "sha256": "224e477c4ecd5b01b16296c296cea150992a9a93d6802060e08d3f239ecb8ffe",
+    "sha1": "bc991f0e0634d34e45d331edd92b1068a0150669",
+    "integrity": "sha512-wOua7x33rGkNmY2PcPO5oN6xNd6r6O0dc/q+HdyjcW2nwIEx9N41OsujNTE/6AXodZw4RgicPnP3b77iGNR15A==",
+    "latest": "0.2.44",
+    "verifiedAt": "2026-11-17T18:04:55.486Z",
+    "metadata": {
+      "name": "tetorica-fm2612",
+      "version": "0.2.44",
+      "dist": {
+        "shasum": "bc991f0e0634d34e45d331edd92b1068a0150669",
+        "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.44.tgz",
+        "fileCount": 1299,
+        "integrity": "sha512-wOua7x33rGkNmY2PcPO5oN6xNd6r6O0dc/q+HdyjcW2nwIEx9N41OsujNTE/6AXodZw4RgicPnP3b77iGNR15A==",
+        "signatures": [
+          {
+            "sig": "MEUCIQDvJ9pGcVb8+LGJyygJVFkLmuwhPafHdeHqTH867OB6qwIgQNnR4/vZVAc5jwvWOxWZTUzTlHxoM1+1olOS5DQ+wTY=",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+            "sig": "MEQCIG0vboXmg5KwIwgs7bXnkk42hjvsE6I1adJ4NoTSJtgXAiA5tnR0xRqP+DAlBBdCcmDr5XWigON2mrZou4+1XGAidQ=="
+          }
+        ],
+        "unpackedSize": 11730559
+      },
+      "distTags": {
+        "latest": "0.2.44"
+      },
+      "publishedAt": "2026-11-17T18:04:39.326Z"
+    }
+  },
+  "physicalListeningPerformed": false,
+  "evidence": {
+    "build": {
+      "path": "build/npm-scsp-dsp-delay-release-20261118/build.log",
+      "sha256": "f3d2f7c0871f67503ead5e2172ccac0e128f7fa02f0a3c5475f479738469a32c"
+    },
+    "package-check": {
+      "path": "build/npm-scsp-dsp-delay-release-20261118/package-check.log",
+      "sha256": "b9d2ed27371f3993b25a28f55ec455c6ffd45427b717edb5590cf3324c9b143e"
+    },
+    "registryConsumer": {
+      "path": "build/npm-scsp-dsp-delay-release-20261118/registry-consumer-check.log",
+      "sha256": "720fabe24d69d81c285407fe1d4f43b3ea0d9522ed8853011742e65dd9d1817b"
+    },
+    "registryTypes": {
+      "path": "build/npm-scsp-dsp-delay-release-20261118/registry-types-check.log",
+      "sha256": "0b9a5c38ad6d981429e66217030eeebe42f40ba000d7b115cdf7b159aa24e234"
+    },
+    "examplesVerification": {
+      "path": "w/tetorica-fm2612-examples/notes/scsp-dsp-verification-20261118.json",
+      "sha256": "ad32687bbda40ce2248ba61e509e00e6e0d55b4a8c4044107a9815722f1ae631"
+    },
+    "examplesDistribution": {
+      "path": "w/tetorica-fm2612-examples/notes/scsp-dsp-distribution-20261118.json",
+      "sha256": "f947b5e5f52faeef3ed7c7c31c99312bc0a13bad6bfae6893ceb82826cb296de"
+    }
+  },
+  "gitChangesCommitted": false,
+  "examplesGitChangesPushed": false
+}

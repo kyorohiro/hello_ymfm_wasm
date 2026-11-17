@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Unpublished source-build example. A button explicitly starts audio.
+// Installed-package example (0.2.44+). A button explicitly starts audio.
 import {createScspAudio} from 'tetorica-fm2612/playground_scsp_audio.js';
 import {createScspClient} from 'tetorica-fm2612/playground_scsp.js';
 import {disassembleScspDsp} from 'tetorica-fm2612/scsp_dsp_assembler.js';

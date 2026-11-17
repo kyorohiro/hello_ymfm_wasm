@@ -95,16 +95,13 @@ them. Read program state with `getDspProgram()` and coefficient state with
 `getDspCoefficients()`. `applyDspProgram()` accepts a complete optional coefficient
 table, while `setDspCoefficients()` merges a partial patch.
 
-## Managed hardware Delay — unpublished source build
+## Managed hardware Delay (0.2.44)
 
-`delay.mjs` and `delay.html` use the newer repository's `setDspDelay()` API.
-**npm 0.2.43 does not provide it.** Build and install the current local package
-first; do not use the released 0.2.43 installation for these two examples.
-The repository's `npm run build:fm2612` produces the local `dist/fm2612` package.
-From a separate project, install that directory using its absolute path:
+`delay.mjs` and `delay.html` use `setDspDelay()` in **0.2.44 or later**.
+From a separate project, install the package and run the included module:
 
 ```sh
-npm install /path/to/hello_ymfm/dist/fm2612
+npm install tetorica-fm2612@^0.2.44
 node node_modules/tetorica-fm2612/examples/scsp-dsp/delay.mjs
 ```
 

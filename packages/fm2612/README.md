@@ -376,13 +376,13 @@ Current Native Playground transport rejects DSP methods and nonzero sends with
 core/WASM and calibrated default gains remain unchanged. The existing pure
 assembler retains its wider inspection format and side-effect-free behavior.
 
-### Managed SCSP Delay (unpublished source build)
+### Managed SCSP Delay (0.2.44)
 
-The current source build adds `saturn.setDspDelay({enabled:true, timeMs:240,
+Version 0.2.44 adds `saturn.setDspDelay({enabled:true, timeMs:240,
 feedback:0.35})` to the local `ScspSynth` and acknowledged Web Audio client.
-**This API is not included in npm 0.2.43.** The
-[Delay examples](examples/scsp-dsp/README.md#managed-hardware-delay--unpublished-source-build)
-describe building / installing the local package and rendering or playing it.
+Install `tetorica-fm2612@^0.2.44`. The
+[Delay examples](examples/scsp-dsp/README.md#managed-hardware-delay-0244)
+describe offline rendering and explicit browser playback using the installed package.
 
 The first call reserves one managed 64 KiB RAM ring without moving existing PCM.
 The fixed six-step hardware DSP program uses the same MIXS0 send and EFREG0
@@ -1794,6 +1794,16 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.44` adds the managed SCSP hardware DSP Delay through local `ScspSynth` and
+acknowledged Main / Worker Web Audio clients. `setDspDelay()` reserves one
+bounded 64 KiB ring on demand, keeps loaded PCM and held voices intact, and
+exposes Time / Q12 Feedback with explicit existing send / return controls.
+Snapshots, strict declarations and readable Node / browser Delay examples are
+included. Release tails, Stop / reset and failed-request preservation are
+verified against the existing Synth. Core/WASM, calibrated gains and the
+default PCM path remain unchanged; Native DSP transport rejects unsupported
+execution controls.
 
 `0.2.43` adds RAM-free hardware SCSP DSP execution through `ScspSynth` and its
 acknowledged Web Audio client: program Apply/readback, live coefficient updates,

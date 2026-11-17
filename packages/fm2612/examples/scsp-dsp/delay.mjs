@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Unpublished source-build example: npm 0.2.43 does not include setDspDelay().
+// Installed-package example: setDspDelay() requires tetorica-fm2612 0.2.44+.
 import {readFile, realpath} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
