@@ -38,7 +38,7 @@ export async function createAudio({volume=.6,onError=()=>{}}={}){
     const resumed=context.resume();
     const [wasmBinary]=await Promise.race([Promise.all([
       fetch(new URL('../generated/scsp_wasm.wasm',import.meta.url),{signal:controller.signal}).then(r=>{if(!r.ok)throw new Error(`SCSP WASM HTTP ${r.status}`);return r.arrayBuffer();}),
-      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-dsp-coef-1',import.meta.url)),resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-dsp-fir-1',import.meta.url)),resumed,
     ]),startupFailure]);assertOpen();
     const ready=new Promise(resolve=>{readyResolve=resolve;});
     node=new AudioWorkletNode(context,'tetorica-scsp-synth',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary}});

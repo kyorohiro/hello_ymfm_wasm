@@ -317,7 +317,7 @@ The recording formats are described in the original VGM and PSF specifications.
 [VGM specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)
 and [PSF / SSF specification](https://gist.github.com/SaxxonPike/11618bd321a45a70c01febae43ff564e).
 
-## Experimental DSP program and Delay
+## Experimental DSP programs
 
 The **DSP** tab contains an editable `.scspasm` draft, an explicit applied-program
 status, and **Check** / **Apply to Synth**. Editing or Check leaves the current
@@ -340,6 +340,43 @@ source, so keep a `.scspasm` copy. The **?** explains this workflow and the exec
 profile. The collapsed **Built-in Delay reference** retains the six-step role
 explanations; it describes the original program, independently of the current draft.
 On narrow screens its table scrolls horizontally, including with Left / Right keys.
+
+### Two-tap FIR low-pass example
+
+In **DSP → Example**, choose **2-tap FIR low-pass**.
+Use **Check → Apply program + coefficients**. Choosing the example changes only the draft and its staged
+coefficient recommendation. Apply replaces the program and all three recommended
+coefficients together, while keyboard / Code voices continue. Choose **Built-in
+Delay** and use the same workflow to return to its program / default coefficients.
+**Reset draft** still replaces only source text and retains live coefficients.
+
+The FIR runs on the SCSP DSP. It combines the current input with one preceding
+native 44.1 kHz sample. Recommended codes are `[4095,2048,2048]`:
+
+```text
+h[n] = Q12(x[n] × COEF0)
+y[n] = Q12(x[n] × COEF2) + Q12(h[n−1] × COEF1)
+     ≈ 0.5 × x[n] + 0.5 × (4095/4096) × x[n−1]
+```
+
+Q12 uses integer floor divisions and 24-bit saturation; the source comments give the
+exact steps. COEF0 captures history, COEF1 weights the previous sample, and COEF2
+weights the current sample. Its four microsteps demonstrate the previous-ACC
+pipeline and rotating TEMP addressing. It does not access the Delay RAM ring.
+The applied label and coefficient roles follow the recognized program; **Time**
+is disabled for this FIR and **Previous tap · COEF1** replaces the Feedback label.
+
+Enable **DSP return** and set the voice's direct level to 0 for a wet-only
+comparison. This short average gently reduces high frequencies: low sine notes
+change little, while high notes, Saw / Noise and Spectrum make its effect easier
+to observe. It has no variable cutoff or resonance. At a program switch the
+first processed frame can contain old TEMP history; the next frame already uses
+the current input history. Stop still resets the core and clears that history.
+
+The editable fixture is [examples/fir2-lowpass.scspasm](examples/fir2-lowpass.scspasm).
+Copy / Save keeps source comments containing the recommended codes, but does not
+embed an applied configuration. Reload restores source only, without staging or
+applying coefficients. Choose the example again to stage its complete setup.
 
 ### First execution profile
 
@@ -379,11 +416,12 @@ built-in values. The initial Feedback request remains 0.35, represented by code
 COEF0 / COEF2 last for the Synth session, including Stop, mode changes and voice
 preset loads. Page reload starts them at 4095. COEF1 follows the existing Feedback
 field in voice presets. `.scspasm` exports contain instructions only; program
-Apply and Reset draft do not reset coefficients. Portable formats are unchanged.
+Program-only Apply and Reset draft do not reset coefficients. Example Apply
+explicitly includes the three staged values. Portable formats are unchanged.
 New negative / above-0.85 Feedback values require this version of Synth; older
 versions accepted only 0–0.85.
 
-### Delay parameters
+### DSP routing / Delay parameters
 
 The collapsed experimental section keeps the existing Delay configuration.
 The tab indicates whether this effect return is enabled. The built-in program
@@ -400,7 +438,7 @@ live. DSP Lab retains its dedicated built-in dry / wet comparison.
 
 ## Implementation and distribution
 
-Slot PCM, EG, LFO, modulation and the fixed Delay execute in the SCSP core.
+Slot PCM, EG, LFO, modulation and the authored Delay / FIR execute in the SCSP core.
 Drawing, conversion, guard samples, connection presets, grouped voices and
 Code are software features. The editor core uses zero slot-write delay.
 Physical SCSP timing, low-depth modulation and address clipping still need

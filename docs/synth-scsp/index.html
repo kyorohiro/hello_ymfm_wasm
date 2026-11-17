@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-dsp-coef-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-fir-1" />
 	</head>
 	<body>
 		<main>
@@ -564,6 +564,14 @@
 									</div>
 								</div>
 								<p id="scspDspProgramApplied" class="scsp-dsp-program-applied" role="status" aria-live="polite">Applied: Built-in Delay</p>
+								<div class="scsp-dsp-example-picker">
+									<label for="scspDspProgramExample">Example</label>
+									<select id="scspDspProgramExample" aria-describedby="scspDspProgramExampleInfo scspDspProgramSetupStatus">
+										<option value="">Load example…</option>
+									</select>
+								</div>
+								<p id="scspDspProgramExampleInfo" class="scsp-dsp-example-info" hidden></p>
+								<p id="scspDspProgramSetupStatus" class="scsp-dsp-program-status" role="status" aria-live="polite" hidden></p>
 								<label class="scsp-dsp-program-editor-label" for="scspDspProgramEditor">Draft · .scspasm</label>
 								<textarea
 									id="scspDspProgramEditor"
@@ -588,6 +596,19 @@
 										the Synth DSP after validation. A changed program clears its wet
 										tail while voices continue; failed Apply keeps the previous program.
 										SSF playback owns a separate DSP program in the song engine.
+									</p>
+									<p>
+										Loading an example stages source and its recommended coefficients.
+										Check and Apply changes them together. Live coefficient edits remain
+										independent; Reset draft keeps the live coefficients. Reload restores
+										only source text, so load the example again to stage its coefficients.
+									</p>
+									<p>
+										The 2-tap FIR gently reduces high frequencies. Enable DSP return and
+										use direct level 0 for wet-only comparison. High notes, Saw or Noise
+										and Spectrum make the difference easier to see; a low sine changes
+										little. At a program switch, the first frame can contain old TEMP
+										history; the next frame uses the new input history.
 									</p>
 									<p>
 										This first profile keeps the existing packed 64 KiB ring, COEF0–2,
@@ -630,7 +651,7 @@
 										<summary aria-label="About DSP coefficients">?</summary>
 										<p>Signed 13-bit Q12. Multiplier = code / 4096. Register word = (code &amp; 0x1fff) &lt;&lt; 3.</p>
 										<p>Changes apply immediately to Synth while voices and the DSP ring continue. SSF has its own DSP.</p>
-										<p>These roles describe the built-in Delay. Edited programs may use the entries differently. COEF0 and COEF2 last for this session. COEF1 is saved as Feedback in voice presets. Save .scspasm exports instructions without these coefficient values.</p>
+										<p>Role labels follow recognized example programs. Edited programs may use the entries differently. COEF0 and COEF2 last for this session. COEF1 is stored in the existing Feedback field in voice presets. Save .scspasm exports instructions without these coefficient values.</p>
 									</details>
 								</div>
 								<div class="scsp-dsp-coefficient-grid">
@@ -656,11 +677,11 @@
 								<p id="scspDspCoefficientsStatus" class="scsp-dsp-program-status" role="status" aria-live="polite"></p>
 							</section>
 							<details id="scspDelayPanel" class="scsp-disclosure">
-								<summary>Experimental · Delay parameters</summary>
+								<summary id="scspDspParametersSummary">Experimental · DSP routing / Delay</summary>
 								<div class="scsp-fields">
 									<label class="effect-enable"
 										><input id="effectEnabled" type="checkbox" disabled />
-										Enable Delay</label
+										Enable DSP return</label
 									><label
 										>Time · ms
 										<input
@@ -671,7 +692,7 @@
 											value="240"
 											disabled /></label
 									><label
-										>Feedback
+										><span id="scspDspFeedbackLabel">Feedback</span>
 										<input
 											id="delayFeedback"
 											type="number"
@@ -700,7 +721,7 @@
 											disabled
 									/></label>
 								</div>
-								<p>
+									<p id="scspDspParametersHint">
 									The built-in program produces mono Delay. Time and Enable changes
 									clear its DSP ring. The same coefficient and ring parameters remain
 									available after Apply. DSP reserves 64 KiB, leaving 448 KiB for PCM and guards.
@@ -902,6 +923,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-coef-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-fir-1"></script>
 	</body>
 </html>

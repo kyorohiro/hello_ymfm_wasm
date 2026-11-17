@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // DSP draft authoring stays local; only explicit Apply uses the audio owner.
-import {delayProgram} from './dsp.js?v=scsp-dsp-coef-1';
+import {delayProgram} from './dsp.js?v=scsp-dsp-fir-1';
 import {disassembleScspDsp} from './dsp_assembler.js';
 import {checkScspDspDelaySource, validateScspDspDelayProgram} from './dsp_program.js?v=scsp-dsp-edit-1';
+import {createScspDspExample, identifyScspDspExample, listScspDspExamples} from './dsp_examples.js';
 
 export const SCSP_DSP_DRAFT_STORAGE_KEY = 'tetorica-scsp-dsp-draft-v1';
 
@@ -83,6 +84,9 @@ export function setupScspDspProgramView({root = globalThis.document,
   const errorDisplay = root.getElementById('scspDspProgramError');
   const preview = root.getElementById('scspDspProgramPreview');
   const previewPanel = root.getElementById('scspDspProgramPreviewPanel');
+  const examplePicker = root.getElementById('scspDspProgramExample');
+  const exampleInfo = root.getElementById('scspDspProgramExampleInfo');
+  const setupStatus = root.getElementById('scspDspProgramSetupStatus');
   const editable = Boolean(editor && check && apply && reset && appliedStatus && draftStatus && errorDisplay && preview);
   const scrollRegion = body.closest('[role="region"]');
   const listing = createScspDspDelayListing();
@@ -106,6 +110,7 @@ export function setupScspDspProgramView({root = globalThis.document,
   });
   body.replaceChildren(...rows);
   let disposed = false, copying = false, applying = false, checked = null;
+  let pendingExample = null, draftExample = null, draftFilename = listing.filename;
   let appliedWords = validateScspDspDelayProgram(getAppliedProgram());
   let appliedSource = listing.source;
   const downloads = new Map();
@@ -122,14 +127,26 @@ export function setupScspDspProgramView({root = globalThis.document,
   const sameWords = (a, b) => a.length === b.length && a.every((word, index) => word === b[index]);
   function showApplied() {
     if (!appliedStatus) return;
-    const builtIn = sameWords(appliedWords, delayProgram());
-    appliedStatus.textContent = builtIn ? 'Applied: Built-in Delay' : 'Applied: Custom program';
-    appliedStatus.dataset.custom = String(!builtIn);
+    const id = identifyScspDspExample(appliedWords);
+    appliedStatus.textContent = 'Applied: ' + (id ? createScspDspExample(id).name : 'Custom program');
+    appliedStatus.dataset.custom = String(id !== 'delay');
+  }
+  function showExample() {
+    if (exampleInfo) {
+      exampleInfo.hidden = !draftExample;
+      exampleInfo.textContent = draftExample
+        ? `Example reference · ${draftExample.name}: ${draftExample.equation}. ${draftExample.description}` : '';
+    }
+    if (setupStatus) {
+      setupStatus.hidden = !pendingExample;
+      setupStatus.textContent = pendingExample
+        ? 'On Apply · ' + pendingExample.codes.map((code, index) => `COEF${index}=${code} (×${code / 4096})`).join(' · ') : '';
+    }
   }
   function buttons() {
     if (!editable || disposed) return;
-    apply.disabled = applying || typeof applyProgram !== 'function' || checked?.source !== editor.value;
-    apply.textContent = applying ? 'Applying…' : 'Apply to Synth';
+    apply.disabled = applying || typeof applyProgram !== 'function' || checked?.source !== editor.value || checked?.setup !== pendingExample;
+    apply.textContent = applying ? 'Applying…' : pendingExample ? 'Apply program + coefficients' : 'Apply to Synth';
   }
   function saveDraft() {
     try { storage?.setItem(SCSP_DSP_DRAFT_STORAGE_KEY, draftSource()); }
@@ -151,11 +168,11 @@ export function setupScspDspProgramView({root = globalThis.document,
     const source = editor.value;
     try {
       const result = checkScspDspDelaySource(source);
-      checked = {...result, source};
+      checked = {...result, source, setup: pendingExample};
       errorDisplay.textContent = '';
       delete errorDisplay.dataset.line;
       preview.textContent = result.listing || '; All-zero program image\n';
-      draftStatus.textContent = sameWords(result.words, appliedWords)
+      draftStatus.textContent = pendingExample ? 'Checked · program and coefficients staged.' : sameWords(result.words, appliedWords)
         ? 'Checked · matches the applied program.' : 'Checked · unapplied program.';
       message('Check passed. The current sound is unchanged.');
       if (previewPanel) previewPanel.open = true;
@@ -171,28 +188,37 @@ export function setupScspDspProgramView({root = globalThis.document,
     buttons();
   }
   async function onApply() {
-    if (disposed || applying || !editable || checked?.source !== editor.value || typeof applyProgram !== 'function') return;
+    if (disposed || applying || !editable || checked?.source !== editor.value || checked?.setup !== pendingExample || typeof applyProgram !== 'function') return;
     const candidate = checked;
     const changed = !sameWords(candidate.words, appliedWords);
     applying = true;
     buttons();
     message('Applying to Synth…');
     try {
-      const result = await applyProgram(Array.from(candidate.words));
+      const options = candidate.setup ? {coefficients: Object.fromEntries(candidate.setup.codes.map((code, index) => [index, code]))} : undefined;
+      const result = await applyProgram(Array.from(candidate.words), options);
       if (disposed) return;
       const accepted = validateScspDspDelayProgram(result?.words ?? candidate.words);
       if (!sameWords(accepted, candidate.words)) throw Error('The applied program did not match the checked draft.');
       appliedWords = accepted;
       appliedSource = candidate.source;
+      if (candidate.setup && pendingExample === candidate.setup) {
+        pendingExample = null;
+        if (checked?.setup === candidate.setup) checked = {...checked, setup: null};
+      }
       showApplied();
+      showExample();
       draftStatus.textContent = checked?.source === editor.value
-        ? sameWords(checked.words, appliedWords) ? 'Checked · applied program.' : 'Checked · unapplied program.'
+        ? pendingExample ? 'Checked · program and coefficients staged.' : sameWords(checked.words, appliedWords) ? 'Checked · applied program.' : 'Checked · unapplied program.'
         : editor.value === candidate.source ? 'Applied text · Check required before another Apply.'
         : 'Earlier draft applied · newer edits need Check.';
       const enabled = root.getElementById('effectEnabled')?.checked;
-      message(!changed ? 'Program already applied. Sound kept.' : result?.active === false
+      message(candidate.setup ? result?.active === false
+        ? 'Program and coefficients applied to Synth setup. Enable audio and DSP return to hear it.'
+        : 'Program and coefficients applied. Voices kept. Enable DSP return for wet output.'
+        : !changed ? 'Program already applied. Sound kept.' : result?.active === false
         ? 'Program applied to Synth setup. Enable audio to hear it.' : !enabled
-        ? 'Program applied. Enable Delay to hear the DSP return.' : 'Program applied. DSP tail cleared; voices kept.');
+        ? 'Program applied. Enable DSP return to hear it.' : 'Program applied. DSP tail cleared; voices kept.');
     } catch (error) {
       if (!disposed) message('Apply failed: ' + error.message, true);
     } finally {
@@ -203,9 +229,27 @@ export function setupScspDspProgramView({root = globalThis.document,
   function onReset() {
     if (disposed || !editable) return;
     editor.value = listing.source;
+    pendingExample = null;
+    draftExample = null;
+    draftFilename = listing.filename;
     invalidate();
+    showExample();
     saveDraft();
     message('Built-in Delay loaded into the draft. Check and Apply to use it.');
+  }
+  function onExample() {
+    if (disposed || !editable || !examplePicker.value) return;
+    const example = createScspDspExample(examplePicker.value);
+    examplePicker.value = '';
+    pendingExample = example;
+    draftExample = example;
+    draftFilename = example.filename;
+    editor.value = example.source;
+    invalidate();
+    showExample();
+    saveDraft();
+    message(`${example.name} staged. Check and Apply to change the program and coefficients.`);
+    examplePicker.blur();
   }
   function onEditorKey(event) {
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -218,14 +262,27 @@ export function setupScspDspProgramView({root = globalThis.document,
     let restored = null;
     try { restored = storage?.getItem(SCSP_DSP_DRAFT_STORAGE_KEY); } catch { /* Keep the new draft without replacing unreadable storage. */ }
     editor.value = typeof restored === 'string' ? restored : listing.source;
+    draftExample = listScspDspExamples().map(({id}) => createScspDspExample(id)).find(example => example.source === editor.value) ?? null;
+    draftFilename = draftExample?.filename ?? (editor.value === listing.source ? listing.filename : 'tetorica-scsp-dsp.scspasm');
     invalidate();
     showApplied();
+    showExample();
     if (restored !== null && restored !== undefined) message('Draft restored. It has not been applied.');
     editor.addEventListener('input', onInput);
     editor.addEventListener('keydown', onEditorKey);
     check.addEventListener('click', onCheck);
     apply.addEventListener('click', onApply);
     reset.addEventListener('click', onReset);
+    if (examplePicker) {
+      const placeholder = root.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Load example…';
+      const options = listScspDspExamples().map(({id, name}) => {
+        const option = root.createElement('option'); option.value = id; option.textContent = name; return option;
+      });
+      examplePicker.replaceChildren(placeholder, ...options);
+      examplePicker.addEventListener('change', onExample);
+    }
   }
   async function onCopy(event) {
     if (disposed || copying) return;
@@ -263,11 +320,11 @@ export function setupScspDspProgramView({root = globalThis.document,
       url = URL.createObjectURL(new Blob([draftSource()], {type: 'text/plain;charset=utf-8'}));
       const link = root.createElement('a');
       link.href = url;
-      link.download = listing.filename;
+      link.download = draftFilename;
       root.body.append(link);
       try { link.click(); } finally { link.remove(); }
       downloads.set(url, setTimeout(() => releaseDownload(url), 1000));
-      message('Download started: ' + listing.filename + '.');
+      message('Download started: ' + draftFilename + '.');
     } catch (error) {
       if (url) releaseDownload(url);
       message('Could not save the program: ' + error.message, true);
@@ -299,6 +356,7 @@ export function setupScspDspProgramView({root = globalThis.document,
       check.removeEventListener('click', onCheck);
       apply.removeEventListener('click', onApply);
       reset.removeEventListener('click', onReset);
+      examplePicker?.removeEventListener('change', onExample);
     }
     copy.disabled = false;
     for (const url of [...downloads.keys()]) releaseDownload(url);

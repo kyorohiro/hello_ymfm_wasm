@@ -32,6 +32,32 @@ export function delayProgram(){
 }
 // The DSP consumes the signed high 13 bits as Q12 and ignores the low three.
 const coefficientWord = value => (value & 0x1fff) << 3;
+function resolveCoefficientPatch(patch, previous) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch) || ArrayBuffer.isView(patch)) {
+    throw new TypeError('DSP coefficients require an object with keys 0, 1 or 2');
+  }
+  const keys = Reflect.ownKeys(patch), next = [...previous];
+  for (const key of keys) {
+    if (!['0', '1', '2'].includes(key)) throw new TypeError('DSP coefficient keys must be 0, 1 or 2');
+    const value = patch[key];
+    if (!Number.isInteger(value) || value < DSP_COEFFICIENT_MIN || value > DSP_COEFFICIENT_MAX) {
+      throw new RangeError(`COEF${key} must be an integer from ${DSP_COEFFICIENT_MIN} to ${DSP_COEFFICIENT_MAX}`);
+    }
+    next[Number(key)] = value;
+  }
+  return {keys, next, changed: next.flatMap((value, index) => value === previous[index] ? [] : [index])};
+}
+/** Validate the optional complete example setup without reading a live core. */
+export function validateScspDspProgramOptions(options) {
+  if (options === undefined) return undefined;
+  if (!options || typeof options !== 'object' || Array.isArray(options) || ArrayBuffer.isView(options) ||
+    Reflect.ownKeys(options).length !== 1 || !Object.hasOwn(options, 'coefficients')) {
+    throw new TypeError('DSP setup Apply options require only coefficients');
+  }
+  const {keys, next} = resolveCoefficientPatch(options.coefficients, [0, 0, 0]);
+  if (keys.length !== 3) throw new TypeError('DSP setup Apply requires COEF0, COEF1 and COEF2');
+  return {coefficients: {0: next[0], 1: next[1], 2: next[2]}};
+}
 export class DspDelay{
   #program = delayProgram();
   #revision = 0;
@@ -42,21 +68,8 @@ export class DspDelay{
     return {codes: [this.#coef0, Math.floor(this.settings.feedback * 4096), this.#coef2], feedback: this.settings.feedback};
   }
   setCoefficients(patch) {
-    if (!patch || typeof patch !== 'object' || Array.isArray(patch) || ArrayBuffer.isView(patch)) {
-      throw new TypeError('DSP coefficients require an object with keys 0, 1 or 2');
-    }
-    const keys = Reflect.ownKeys(patch);
     const previous = this.readCoefficients().codes;
-    const next = [...previous];
-    for (const key of keys) {
-      if (!['0', '1', '2'].includes(key)) throw new TypeError('DSP coefficient keys must be 0, 1 or 2');
-      const value = patch[key];
-      if (!Number.isInteger(value) || value < DSP_COEFFICIENT_MIN || value > DSP_COEFFICIENT_MAX) {
-        throw new RangeError(`COEF${key} must be an integer from ${DSP_COEFFICIENT_MIN} to ${DSP_COEFFICIENT_MAX}`);
-      }
-      next[Number(key)] = value;
-    }
-    const changed = next.flatMap((value, index) => value === previous[index] ? [] : [index]);
+    const {keys, next, changed} = resolveCoefficientPatch(patch, previous);
     const oldWords = changed.map(index => typeof this.core.read === 'function'
       ? this.core.read(0x700 + index * 2) : coefficientWord(previous[index]));
     try {
@@ -98,9 +111,19 @@ export class DspDelay{
     // 0xBF0 is both word 504 and Start. Preserve the complete instruction.
     this.core.write(0xbf0, program[504]);
   }
-  applyProgram(words) {
+  applyProgram(words, options) {
     const program = validateScspDspDelayProgram(words);
-    if (program.every((word, index) => word === this.#program[index])) return this.readProgram();
+    const checkedOptions = validateScspDspProgramOptions(options);
+    const coefficients = checkedOptions && resolveCoefficientPatch(checkedOptions.coefficients, this.readCoefficients().codes);
+    const programChanged = !program.every((word, index) => word === this.#program[index]);
+    const coefficientChanges = coefficients?.changed ?? [];
+    const result = () => coefficients
+      ? {...this.readProgram(), coefficients: this.readCoefficients()} : this.readProgram();
+    if (!programChanged && !coefficientChanges.length) {
+      // Explicit codes normalize Feedback even when its quantized word is equal.
+      if (coefficients) this.settings = {...this.settings, feedback: coefficients.next[1] / 4096};
+      return result();
+    }
     const core = this.core;
     if ((core.read(0x402) & 0x1bf) !== (2 << 7)) {
       throw new Error('DSP Apply requires the existing RBP=0 / RBL=2 Delay ring');
@@ -108,15 +131,23 @@ export class DspDelay{
     const previous = this.#program;
     const ring = core.readRam(0, DSP_RAM_BYTES);
     const outputReturn = core.read(22);
+    const coefficientWords = coefficientChanges.map(index => core.read(0x700 + index * 2));
     try {
       core.write(22, 0, 0xff);
-      this.#upload(program);
+      for (const index of coefficientChanges) core.write(0x700 + index * 2, coefficientWord(coefficients.next[index]));
+      if (programChanged) this.#upload(program);
       this.clear();
       core.write(22, outputReturn, 0xff);
     } catch (error) {
       const failures = [];
       // Make every restoration attempt before allowing the owner to resume.
-      try { this.#upload(previous); } catch (failure) { failures.push(failure); }
+      if (programChanged) {
+        try { this.#upload(previous); } catch (failure) { failures.push(failure); }
+      }
+      for (let position = 0; position < coefficientChanges.length; position++) {
+        try { core.write(0x700 + coefficientChanges[position] * 2, coefficientWords[position]); }
+        catch (failure) { failures.push(failure); }
+      }
       try { core.loadRam(ring, 0); } catch (failure) { failures.push(failure); }
       try { core.write(22, outputReturn, 0xff); } catch (failure) { failures.push(failure); }
       if (failures.length) {
@@ -131,8 +162,13 @@ export class DspDelay{
       throw error;
     }
     this.#program = program;
-    this.#revision++;
-    return this.readProgram();
+    if (programChanged) this.#revision++;
+    if (coefficients) {
+      this.#coef0 = coefficients.next[0];
+      this.#coef2 = coefficients.next[2];
+      this.settings = {...this.settings, feedback: coefficients.next[1] / 4096};
+    }
+    return result();
   }
   install(){
     const core=this.core;

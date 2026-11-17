@@ -92,9 +92,9 @@ EWA other than 0. The audio owner repeats this validation before any writes.
 The lossless codec can inspect broader images; codec acceptance alone does not
 make an image executable through this profile.
 
-A changed Apply clears the wet ring tail while held keyboard / Code voices,
-PCM allocations and the existing coefficients / address tables continue.
-Applying the same words is a no-op and retains the tail. Rejected programs
+A changed program-only Apply clears the wet ring tail while held keyboard / Code
+voices, PCM allocations and the existing coefficients / address tables continue.
+Applying the same words without staged coefficients is a no-op and retains the tail. Rejected programs
 leave the running program unchanged. Transfer failures restore the previous
 image, ring and return before rendering resumes; if restoration itself fails,
 the audio owner stops and reports that audio must be restarted.
@@ -104,6 +104,43 @@ audio device. Startup transfers that acknowledged program. Stop, mode changes
 and loading voice presets retain it within the current Synth session. Reloading
 the page starts with the built-in program and restores only draft text.
 Apply targets the Synth DSP, independently of SSF playback / paused audition.
+
+### Two-tap FIR example
+
+Choose **Example → 2-tap FIR low-pass → Check → Apply program + coefficients**.
+Selecting / checking stages text and `[4095,2048,2048]`; it does not change live
+registers. Apply validates and replaces program / recommended coefficients in
+one audio-owner transaction. Failure restores program, coefficients, ring and
+return together. The same complete setup is a no-op; a coefficient-only setup
+replacement clears the ring without rewriting MPRO. Program revision counts
+word-image changes. Ordinary live coefficient controls still retain the ring.
+
+[examples/fir2-lowpass.scspasm](examples/fir2-lowpass.scspasm) contains four steps:
+
+1. Compute current history from MIXS0 with COEF0.
+2. Read the previous TEMP sample and multiply by COEF1; store the preceding ACC
+   as current history with TWT / TWA=0. TRA=1 reads the preceding frame because
+   DEC decreases after every DSP frame. Operand reads precede TWT writes.
+3. Add the current input multiplied by COEF2 to the preceding history product.
+4. EWT emits the preceding accumulator to EFREG0.
+
+With Q12 rounding / saturation, the example approximates
+`y[n] = 0.5*x[n] + 0.5*(4095/4096)*x[n-1]`. The history factor uses the largest
+positive Q12 coefficient, 4095, rather than unrepresentable +4096. It is a
+two-sample average, with gentle high-frequency reduction and no cutoff control.
+Time is irrelevant because the program uses TEMP instead of Delay RAM.
+Use DSP return with direct level 0 for comparison; a low sine changes little.
+
+Existing TEMP contents may affect the first processed FIR frame after a program
+switch. That frame writes current history, so subsequent frames use only current
+input history. No voice reset or native rendering is inserted into Apply.
+Tests check an independent fixed-point reference, adjacent impulse taps,
+frequency response, render partitioning and this one-frame initialization bound.
+
+**Built-in Delay** stages its program and default coefficient codes for return.
+Reset draft restores only source. Reload restores only text, so choose an example
+again to stage coefficients. Copy / Save includes descriptive coefficient
+comments, not an automatically applied configuration; portable formats are unchanged.
 
 ### Coefficient values
 
@@ -124,10 +161,11 @@ COEF0 / COEF2 are session state and survive Stop / mode / voice-preset loads;
 reload starts them at 4095. COEF1 is the existing saved Feedback field. Preset
 shape is unchanged, but negative / above-0.85 Feedback needs this newer reader.
 `.scspasm` Copy / Save exports instructions without coefficient values. Program
-Apply and Reset draft do not change coefficients. SSF has its own DSP; these
+Program-only Apply and Reset draft do not change coefficients. Example Apply
+includes its three staged values. SSF has its own DSP; these
 controls are disabled during SSF Live editing.
 
-To hear a minimal edit, enable Delay, change `EWT=1` to `EWT=0`, Check and Apply.
+To hear a minimal edit, enable DSP return, change `EWT=1` to `EWT=0`, Check and Apply.
 The wet output disappears while direct voice output continues. Reset draft,
 Check and Apply restores the built-in program. The existing Time / Feedback /
 Send / Return controls remain available; edited programs may use them differently.
@@ -151,5 +189,5 @@ not cycle-exact physical Saturn behavior. Odd-step memory access and pipeline
 positions remain the author's responsibility. Range-valid fields are not a
 guarantee of a meaningful runnable program (for example, the core's input
 selection has fewer implemented sources than IRA's six-bit encoding permits).
-Macros, automatic scheduling, custom coefficient / RAM-layout editing and general
+Macros, automatic scheduling, additional coefficient entries / RAM-layout editing and general
 effect compilation are later work. No public npm or Synth Code DSP API is added.

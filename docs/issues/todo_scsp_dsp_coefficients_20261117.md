@@ -52,3 +52,6 @@ See [verification](verification_scsp_dsp_coefficients_20261117.md) and
 [machine evidence](verification_scsp_dsp_coefficients_20261117.json).
 No commit, push or publication. General tables, RAM layout and additional DSP
 program examples remain separate decisions.
+
+The [two-tap FIR example](todo_scsp_dsp_fir_20261117.md) is now complete, using
+the same three coefficients and an explicit atomic program / coefficient Apply.

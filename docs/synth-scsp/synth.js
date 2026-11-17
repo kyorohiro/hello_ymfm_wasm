@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-dsp-coef-1';
-import { SynthInstrument } from './instrument.js?v=scsp-dsp-coef-1';
+import { createAudio } from './audio.js?v=scsp-dsp-fir-1';
+import { SynthInstrument } from './instrument.js?v=scsp-dsp-fir-1';
 import { readPatch, writePatch } from './patch.js?v=scsp-dsp-coef-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
@@ -9,8 +9,9 @@ import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-coef-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
-import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-coef-1';
-import { delayProgram } from './dsp.js?v=scsp-dsp-coef-1';
+import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-fir-1';
+import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-fir-1';
+import { createScspDspExample, identifyScspDspExample } from './dsp_examples.js';
 import { validateScspDspDelayProgram } from './dsp_program.js?v=scsp-dsp-edit-1';
 import { setupScspChannelView } from './channel_view.js';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-dsp-coef-1';
@@ -117,6 +118,12 @@ let appliedDspWords = delayProgram();
 // COEF1 belongs to the voice patch's Feedback. COEF0/2 belong to this DSP session.
 let sessionDspCoefficients = { 0: 4095, 2: 4095 };
 let coefficientEditSequence = 0;
+function rememberDspCoefficients(result) {
+	sessionDspCoefficients = { 0: result.codes[0], 2: result.codes[2] };
+	// Retain the complete ACKed setup before any asynchronous view refresh.
+	// Audio failure can occur while that read is pending.
+	cachedPatch = { ...cachedPatch, effect: { ...cachedPatch.effect, feedback: result.feedback } };
+}
 cachedPatch = draft.exportPatch();
 const command = (method, args = []) => {
 	if (audio) return audio.command(method, args);
@@ -219,9 +226,13 @@ function drawConnections(state) {
 }
 function renderDspCoefficients(state, readOnly = false) {
 	const codes = state.dspCoefficients;
+	const exampleId = identifyScspDspExample(appliedDspWords);
+	const fir = exampleId === 'fir2-lowpass';
+	const roles = exampleId ? createScspDspExample(exampleId).roles : ['Coefficient', 'Coefficient', 'Coefficient'];
 	for (let index = 0; index < 3; index++) {
 		const input = $(`scspDspCoef${index}`);
 		if (!input) continue;
+		text(document.querySelector(`label[for="scspDspCoef${index}"]`), `COEF${index} · ${roles[index]}`);
 		input.disabled = readOnly || !codes;
 		if (!codes) continue;
 		if (document.activeElement !== input && !input.classList.contains('is-dragging'))
@@ -230,6 +241,13 @@ function renderDspCoefficients(state, readOnly = false) {
 		const word = ((codes[index] & 0x1fff) << 3).toString(16).toUpperCase().padStart(4, '0');
 		text($(`scspDspCoef${index}Register`), `0x${(0x700 + index * 2).toString(16).toUpperCase()} = 0x${word}`);
 	}
+	$('delayTime').disabled = readOnly || fir;
+	$('delayTime').title = fir ? 'This FIR uses sample history in TEMP and does not use Delay time.' : '';
+	text($('scspDspFeedbackLabel'), fir ? 'Previous tap · COEF1' : exampleId === 'delay' ? 'Feedback' : 'COEF1 multiplier');
+	text($('scspDspParametersSummary'), fir ? 'Experimental · FIR routing' : 'Experimental · DSP routing / Delay');
+	text($('scspDspParametersHint'), fir
+		? 'The FIR averages two adjacent samples using TEMP history. Time does not affect it. Use direct level 0 for wet-only comparison; high notes, Saw or Noise and Spectrum make the gentle high-frequency reduction easier to see.'
+		: 'The built-in program produces mono Delay. Time and Enable changes clear its DSP ring. DSP reserves 64 KiB, leaving 448 KiB for PCM and guards. Edited programs may use the same parameters differently.');
 }
 function renderState() {
 	if (!latestState || disposed) return;
@@ -312,7 +330,9 @@ function renderState() {
 	$('effectEnabled').checked = state.config.effect.enabled;
 	text(
 		$('scspDspTab'),
-		state.config.effect.enabled ? 'DSP · Delay on' : 'DSP',
+		state.config.effect.enabled
+			? identifyScspDspExample(appliedDspWords) === 'fir2-lowpass' ? 'DSP · FIR on'
+				: identifyScspDspExample(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
 	);
 	const { inputs, outputs, count } = state.routing;
 	$('routingSummary').textContent = inputs
@@ -1118,7 +1138,7 @@ for (const [id, key] of [
 			try {
 				await command('setEffect', [{ [key]: value }]);
 				await refresh({ dirty: true });
-				status('Experimental DSP Delay updated.');
+				status('Experimental DSP parameters updated.');
 			} catch (error) {
 				await refresh();
 				throw error;
@@ -1139,7 +1159,7 @@ for (let index = 0; index < 3; index++) {
 			const feedback = $('scspDspCoefficientsStatus');
 			try {
 				const result = await command('setDspCoefficients', [{ [index]: code }]);
-				sessionDspCoefficients = { 0: result.codes[0], 2: result.codes[2] };
+				rememberDspCoefficients(result);
 				await refresh({ dirty: index === 1 });
 				if (request === coefficientEditSequence && feedback) {
 					feedback.textContent = `COEF${index} updated. Voices and DSP tail kept.`;
@@ -1196,23 +1216,34 @@ for (const [id, dsp] of [
 	});
 const disposeDspProgramView = setupScspDspProgramView({
 	getAppliedProgram: () => appliedDspWords,
-	applyProgram: (words) => {
+	applyProgram: (words, options) => {
 		const candidate = validateScspDspDelayProgram(words);
+		const setup = validateScspDspProgramOptions(options);
 		return enqueue(async () => {
 			if (disposed) throw new Error('SCSP Synth is closed');
 			const engine = audio;
 			if (!engine) {
+				const coefficients = setup ? draft.setDspCoefficients(setup.coefficients) : undefined;
+				if (coefficients) rememberDspCoefficients(coefficients);
 				appliedDspWords = candidate;
 				draftRevision++;
-				return { words: Array.from(candidate), active: false };
+				await refresh({ dirty: Boolean(setup) }).catch(report);
+				return { words: Array.from(candidate), active: false, ...(coefficients ? {coefficients} : {}) };
 			}
-			const result = await engine.command('applyDspProgram', [Array.from(candidate)]);
+			const result = await engine.command('applyDspProgram', setup ? [Array.from(candidate), setup] : [Array.from(candidate)]);
 			if (audio !== engine) throw new Error('SCSP audio changed during DSP Apply. Start audio again.');
 			const accepted = validateScspDspDelayProgram(result.words);
 			if (!accepted.every((word, index) => word === candidate[index]))
 				throw new Error('SCSP DSP reply did not match the requested program.');
+			if (setup) {
+				if (result.coefficients?.codes?.length !== 3 || !result.coefficients.codes.every((code, index) => code === setup.coefficients[index]))
+					throw new Error('SCSP DSP reply did not match the requested coefficients.');
+				rememberDspCoefficients(result.coefficients);
+			}
 			appliedDspWords = accepted;
-			return { ...result, active: true };
+			// A failed display read cannot undo an acknowledged audio transaction.
+			await refresh({ dirty: Boolean(setup) }).catch(report);
+			return { ...result, active: audio === engine };
 		});
 	},
 });
