@@ -62,7 +62,8 @@ YM2608_EXPORTS = [
     '_ym2608_read', '_ym2608_read_status', '_ym2608_read_status_hi',
     '_ym2608_get_irq', '_ym2608_sample_rate', '_ym2608_load_adpcm_a_rom',
     '_ym2608_load_adpcm_b_memory', '_ym2608_clear_adpcm_b_memory',
-    '_ym2608_generate', '_ym2608_set_source_mute_mask', '_ym2608_save_state',
+    '_ym2608_generate', '_ym2608_set_source_mute_mask', '_ym2608_set_output_gains',
+    '_ym2608_save_state',
     '_ym2608_load_state', '_malloc', '_free',
 ]
 YM2610B_EXPORTS = [
@@ -178,7 +179,7 @@ SPC_EXPORTS = [
     '_spc_create', '_spc_destroy', '_spc_error', '_spc_load', '_spc_restart',
     '_spc_render', '_spc_left_ptr', '_spc_right_ptr', '_spc_native_frames',
     '_spc_set_mute_mask', '_spc_snapshot_ptr', '_spc_load_ram',
-    '_spc_write_dsp', '_spc_read_dsp', '_spc_trace_begin', '_spc_trace_finish',
+    '_spc_write_dsp', '_spc_read_dsp', '_spc_write_voice', '_spc_trace_begin', '_spc_trace_finish',
     '_spc_trace_initial_ptr', '_spc_trace_events_ptr', '_spc_trace_event_count',
     '_spc_ram_read_begin', '_spc_ram_read_finish', '_spc_ram_read_mask_ptr',
     '_spc_observer_begin', '_spc_observer_stop', '_spc_observer_ptr',

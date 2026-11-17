@@ -299,7 +299,9 @@ export async function checkWasmSdk(options={}) {
     compareWasmSdkAbi(summary.referenceSnapshot,summary.candidate);
     summary.stage='comparing';await save();
     for(const [index,artifact] of inventory.artifacts.entries()){
-      const id=artifact.id,checker=join(root,`scripts/check_${id}_wasm_sdk.mjs`);
+      const id=artifact.id,checker=join(root,id==='ym2608'
+        ?'scripts/check_ym2608_current_wasm_sdk.mjs'
+        :`scripts/check_${id}_wasm_sdk.mjs`);
       summary.activeArtifact=id;
       const output=join(workDirectory,'reports',id+'.json');
       console.log(`Comparing ${index+1}/${inventory.artifacts.length}: ${id}`);

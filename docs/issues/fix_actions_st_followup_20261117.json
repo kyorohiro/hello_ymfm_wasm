@@ -1,0 +1,245 @@
+{
+  "date": "2026-11-17",
+  "parentHead": "c33bfde2e419a8fa843aa8a78dda567cac6c94a6",
+  "stDesktop": {
+    "head": "6cd1aeeeed2fd24d2957e9ef8d38926bd3fcecb4",
+    "mainRun": 43940597446,
+    "tagRun": 43940644828,
+    "jobsEach": 6,
+    "allPassed": true,
+    "installersDownloaded": 7,
+    "publicRelease": "https://github.com/kyorohiro/tetorica-st-ym2149-synth-tauri/releases/tag/v0.0.1",
+    "signatureIndependentlyVerified": false
+  },
+  "parentFailedRuns": [
+    43938848772,
+    43938848607,
+    43938848547,
+    43938848525
+  ],
+  "local": {
+    "declarations": 417,
+    "declarationRegressionTests": 2,
+    "sdkPythonRegressionTests": 8,
+    "sdkRunnerCalibrationTests": 21,
+    "mixerTests": 359,
+    "bothMixerGeneratorsPassed": true,
+    "installedNpmPackageAndBrowserPassed": true,
+    "package": {
+      "compressedBytes": 2852094,
+      "unpackedBytes": 11560552,
+      "files": 1265,
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "execution": [
+        "main",
+        "worker"
+      ],
+      "physicalAudioMuted": true
+    },
+    "sdk": {
+      "passed": true,
+      "stage": "complete",
+      "comparisons": 40474,
+      "artifacts": [
+        {
+          "id": "ay8910",
+          "passed": true,
+          "comparisons": 8208,
+          "maximumDifference": 0
+        },
+        {
+          "id": "dx7",
+          "passed": true,
+          "comparisons": 360,
+          "maximumDifference": 0
+        },
+        {
+          "id": "gameboy_apu",
+          "passed": true,
+          "comparisons": 876,
+          "maximumDifference": 0
+        },
+        {
+          "id": "huc6280",
+          "passed": true,
+          "comparisons": 828,
+          "maximumDifference": 0
+        },
+        {
+          "id": "k051649",
+          "passed": true,
+          "comparisons": 774,
+          "maximumDifference": 0
+        },
+        {
+          "id": "nesapu",
+          "passed": true,
+          "comparisons": 912,
+          "maximumDifference": 0
+        },
+        {
+          "id": "nuked_opn2",
+          "passed": true,
+          "comparisons": 462,
+          "maximumDifference": 0
+        },
+        {
+          "id": "okim6258",
+          "passed": true,
+          "comparisons": 2048,
+          "maximumDifference": 0
+        },
+        {
+          "id": "pokey",
+          "passed": true,
+          "comparisons": 114,
+          "maximumDifference": 0
+        },
+        {
+          "id": "pwm32x",
+          "passed": true,
+          "comparisons": 864,
+          "maximumDifference": 0
+        },
+        {
+          "id": "rf5c164",
+          "passed": true,
+          "comparisons": 828,
+          "maximumDifference": 0
+        },
+        {
+          "id": "segapcm",
+          "passed": true,
+          "comparisons": 612,
+          "maximumDifference": 0
+        },
+        {
+          "id": "segapsg",
+          "passed": true,
+          "comparisons": 7074,
+          "maximumDifference": 0
+        },
+        {
+          "id": "spc",
+          "passed": true,
+          "comparisons": 80,
+          "maximumDifference": 0
+        },
+        {
+          "id": "wonderswan",
+          "passed": true,
+          "comparisons": 378,
+          "maximumDifference": 0
+        },
+        {
+          "id": "y8950",
+          "passed": true,
+          "comparisons": 1794,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2151",
+          "passed": true,
+          "comparisons": 1408,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2203",
+          "passed": true,
+          "comparisons": 432,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2413",
+          "passed": true,
+          "comparisons": 1284,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2608",
+          "passed": true,
+          "comparisons": 586,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2610b",
+          "passed": true,
+          "comparisons": 1108,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2612",
+          "passed": true,
+          "comparisons": 444,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym3438",
+          "passed": true,
+          "comparisons": 450,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym3526",
+          "passed": true,
+          "comparisons": 1494,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym3812",
+          "passed": true,
+          "comparisons": 1848,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf262",
+          "passed": true,
+          "comparisons": 3456,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf276",
+          "passed": true,
+          "comparisons": 462,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf278b",
+          "passed": true,
+          "comparisons": 684,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf288",
+          "passed": true,
+          "comparisons": 606,
+          "maximumDifference": 0
+        }
+      ],
+      "applicationAudioPassed": true,
+      "instrumentsPassed": true,
+      "repositoryInputsUnchanged": true,
+      "localRebuild": false,
+      "inputOrigin": "All33 prebuilt SDK outputs from actual failed CI run43938848607; output receipts verified and complete parity pipeline replayed locally",
+      "fullReport": {
+        "path": "/private/tmp/tetorica-wasm-sdk-replay-20261117/summary.json",
+        "bytes": 1644280,
+        "sha256": "231f22cd8d0b5dac8c2dfdf1308b5c10a2fe7c537ceb9de6c7b38b24069d575b"
+      }
+    }
+  },
+  "changes": {
+    "scripts/build_fm2612_types.mjs": "7af32d50116a8f7c7003255d3bd0eef8dd4818a9ea594cfb23447d071b005acd",
+    "scripts/fm2612_type_sources.mjs": "a3c834e3ec0f84b3c9fd08141866c0dae348638b2250b3e4ff34e309dcdf5808",
+    "scripts/check_wasm_sdk.mjs": "572cef03b823a3e118a0eb4dd811f37f334f5f46e79f6a1c4e82f0e038221275",
+    "scripts/check_ym2608_current_wasm_sdk.mjs": "b637f721835b21280102c39f8f30cf531dc87cb4fd13f356445380d17f49a1a0",
+    "test/fm2612_type_sources.test.mjs": "8268f1c40841c1ccbd51a2cbe09bf26d48da65248cab622288adc0048d4dfce9",
+    "test/test_ym2612_sdk_build.py": "5fde757cd7bb824aae3b189cc952074242f7cc7da52045f1809119c66d77fb2d",
+    "test/runtime/soundchip_mixer_presets.test.mjs": "0d24df9e3748ccfcc32a49ad7838f017a84bbdeecc5628652f57e2bfc62b3ce9"
+  },
+  "remoteParentRerun": false,
+  "committedOrPushed": false
+}
