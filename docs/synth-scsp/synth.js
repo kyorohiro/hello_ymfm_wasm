@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-dsp-ui-routing-1';
-import { SynthInstrument } from './instrument.js?v=scsp-fm-multi-1';
-import { readPatch, writePatch } from './patch.js?v=scsp-fm-multi-1';
-import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-multi-1';
+import { createAudio } from './audio.js?v=scsp-fm-depth-1';
+import { SynthInstrument } from './instrument.js?v=scsp-fm-depth-1';
+import { readPatch, writePatch } from './patch.js?v=scsp-fm-depth-1';
+import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-depth-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-fm-multi-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-fm-depth-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
-import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-multi-1';
+import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-depth-1';
+import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-depth-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
 import { validateScspSynthDspProgram } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 import { setupScspChannelView } from './channel_view.js';
-import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-dsp-coef-1';
+import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-fm-depth-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
@@ -64,7 +65,8 @@ let selectedOperator = 0,
 	dspProgramView = null,
 	dspRoutingView = null,
 	dspSignalFlow = null,
-	customFmView = null;
+	customFmView = null,
+	fmDepthView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -316,6 +318,7 @@ function renderState() {
 	renderDspCoefficients(latestState, Boolean(observing));
 	dspRoutingView?.update(latestState, {selected: channelView?.getSelected() ?? null, operator: selectedOperator, readOnly: Boolean(observing)});
 	customFmView?.update(latestState, {operator: selectedOperator, readOnly: Boolean(observing)});
+	fmDepthView?.update(latestState, {operator: selectedOperator, readOnly: Boolean(observing)});
 	for (const id of ['effectSend', 'delayFeedback']) $(id).disabled = Boolean(observing);
 	if (observing && channelView?.getSelected() === null)
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
@@ -1314,6 +1317,17 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
+fmDepthView = setupScspFmDepthView({
+	onDepth(operator, value, count) {
+		return configure(state => {
+			if (state.config.mode === 'pcm' || operatorCount(state.config.mode) !== count || operator >= count) return null;
+			const depths = state.config.fm.depths ? [...state.config.fm.depths] : Array(6).fill(state.config.fm.depth);
+			depths[operator] = value;
+			return {fm: {depths}};
+		});
+	},
+	onError: report,
+});
 customFmView = setupScspCustomFmView({
 	onInput(operator, source, port, count) {
 		return configure(state => {
@@ -1526,6 +1540,7 @@ window.addEventListener('pagehide', (event) => {
 	dspRoutingView?.dispose();
 	dspSignalFlow?.dispose();
 	customFmView?.dispose();
+	fmDepthView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

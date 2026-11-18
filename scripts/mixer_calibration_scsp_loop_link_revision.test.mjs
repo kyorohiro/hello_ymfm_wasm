@@ -152,6 +152,8 @@ test('forging the receipt cannot preserve its independent pin', async (t) => {
 	await writeFile(join(directory,'docs/issues/scsp_fm_custom2_source_revision_01.json'),await read('docs/issues/scsp_fm_custom2_source_revision_01.json'));
 	await writeFile(join(directory,'scripts/mixer_calibration_scsp_fm_multi_revision.mjs'),await read('scripts/mixer_calibration_scsp_fm_multi_revision.mjs'));
 	await writeFile(join(directory,'docs/issues/scsp_fm_multi_source_revision_01.json'),await read('docs/issues/scsp_fm_multi_source_revision_01.json'));
+	await writeFile(join(directory,'scripts/mixer_calibration_scsp_fm_depth_revision.mjs'),await read('scripts/mixer_calibration_scsp_fm_depth_revision.mjs'));
+	await writeFile(join(directory,'docs/issues/scsp_fm_depth_source_revision_01.json'),await read('docs/issues/scsp_fm_depth_source_revision_01.json'));
 	const forged = structuredClone(receipt);
 	forged.sources[paths[0]].after.sha256 = '0'.repeat(64);
 	await writeFile(jsonPath, JSON.stringify(forged));

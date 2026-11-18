@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-fm-multi-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-fm-depth-1" />
 	</head>
 	<body>
 		<main>
@@ -441,6 +441,7 @@
 											disabled
 									/></label>
 								</div>
+								<p id="scspFmDepthSummary" class="scsp-custom-fm-hint" hidden></p>
 								<details class="scsp-inline-help">
 									<summary aria-label="About voice settings">?</summary>
 									<p>
@@ -448,6 +449,10 @@
 										modulator ratios sets A to 1 and B–F to the selected value.
 										PCM uses A. FM connections and voice allocation are
 										software tools over SCSP slot modulation.
+										All FM depths sets MDL for every operator. Per-OP values
+										are shown when they differ; changing the batch control replaces them.
+										Selected depth edits the receiving operator's hardware MDL.
+										Its X/Y inputs share that value; no input means no modulation.
 									</p>
 								</details>
 							</section>
@@ -467,6 +472,9 @@
 											value="1"
 											disabled
 									/></label>
+									<label>Selected depth (MDL)
+										<input id="operatorDepth" type="number" min="0" max="12" step="1" value="9" disabled />
+									</label>
 								</div>
 								<div id="scspCustomFmControls" class="scsp-custom-fm-controls" hidden>
 									<div class="scsp-fields">
@@ -1005,6 +1013,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-fm-multi-1"></script>
+		<script type="module" src="synth.js?v=scsp-fm-depth-1"></script>
 	</body>
 </html>

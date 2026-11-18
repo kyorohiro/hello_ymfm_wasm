@@ -30,9 +30,15 @@ await scsp.setConfig({mode:'fm2',fm:{algorithm:'custom',custom:{inputs:[[],[0]],
 await scsp.setConfig({fm:{custom:{inputs:[[1],[]],outputs:[0,1]}}});
 await scsp.setConfig({mode:'fm4',fm:{algorithm:'custom',custom:{inputs:[[1,2],[3],[3],[]],outputs:[0,2]}}});
 await scsp.setConfig({mode:'fm6',fm:{algorithm:'custom',custom:{inputs:[[],[],[0,1],[1],[2,3],[4]],outputs:[4,5]}}});
+await scsp.setConfig({fm:{depths:[2,4,6,8,10,12]}});
+await scsp.setConfig({fm:{depth:9}});
+await scsp.setConfig({fm:{depth:9,depths:[1,2,3,4,5,6]}});
+const calculatedDepth=Math.round(Math.random()*12);
+await scsp.setConfig({fm:{depths:[calculatedDepth,2,3,4,5,6]}});
+const operatorDepths:ScspCodeFmDepths|undefined=state.config.fm.depths;
 const customInput:ScspCodeCustomOperator|undefined=state.config.fm.custom?.inputs[1][0];
 const customOutputs:ScspCodeCustomOperator[]|undefined=state.config.fm.custom?.outputs;
-const presetVersion:4|5|6=(await scsp.exportPatch()).version;
+const presetVersion:4|5|6|7=(await scsp.exportPatch()).version;
 const exported=await scsp.exportPatch();
 if(exported.version===5){
   const customMode:'fm2'=exported.mode;
@@ -47,6 +53,14 @@ if(exported.version===6&&exported.mode==='fm6'){
   const savedGraph:ScspCodeCustomRouting6=exported.fm.custom;
   const output:ScspCodeOperator|undefined=savedGraph.outputs[0];
 }
+if(exported.version===7){
+  const depths:ScspCodeFmDepths=exported.fm.depths;
+  if(exported.mode==='fm4'&&exported.fm.algorithm==='custom'){
+    const savedGraph:ScspCodeCustomRouting4=exported.fm.custom;
+  }
+}
+const mixedFixed:ScspCodePatch={...exported,version:7,mode:'pcm',fm:{depth:9,depths:[1,2,3,4,5,6],ratio:1,ratios:[],algorithm:'chain'}};
+const mixedCustom:ScspCodePatch={...exported,version:7,mode:'fm6',fm:{depth:9,depths:[1,2,3,4,5,6],ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[],[],[],[],[]],outputs:[5]}}};
 const operatorSlots:[number,number]|[number,number,number,number]|[number,number,number,number,number,number]|undefined=state.voiceGroups[0]?.operatorSlots;
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
@@ -149,6 +163,22 @@ const wrongV5:ScspCodePatch={...exported,version:5,mode:'fm4',fm:{depth:9,ratio:
 const wrongV6:ScspCodePatch={...exported,version:6,mode:'fm4',fm:{depth:9,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[],[],[],[],[]],outputs:[0]}}};
 // @ts-expect-error fixed version 4 does not save a custom graph
 const wrongV4:ScspCodePatch={...exported,version:4,mode:'fm2',fm:{depth:9,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[]],outputs:[0]}}};
+// @ts-expect-error per-operator depths require all six authored A–F values
+scsp.setConfig({fm:{depths:[1,2,3,4]}});
+// @ts-expect-error depth entries are numeric hardware codes
+scsp.setConfig({fm:{depths:[0,1,2,3,4,'5']}});
+// @ts-expect-error depths cannot address a seventh operator
+scsp.setConfig({fm:{depths:[0,1,2,3,4,5,6]}});
+// @ts-expect-error every authored operator has a depth value
+scsp.setConfig({fm:{depths:[0,1,2,3,4,undefined]}});
+// @ts-expect-error legacy v4 presets do not carry per-OP depth arrays
+const legacyDepths:ScspCodePatch={...exported,version:4,mode:'fm4',fm:{depth:9,depths:[1,2,3,4,5,6],ratio:1,ratios:[],algorithm:'chain'}};
+// @ts-expect-error legacy v6 presets do not carry per-OP depth arrays
+const legacyCustomDepths:ScspCodePatch={...exported,version:6,mode:'fm4',fm:{depth:9,depths:[1,2,3,4,5,6],ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[],[],[]],outputs:[0]}}};
+// @ts-expect-error version 7 requires a complete depth array
+const noV7Depths:ScspCodePatch={...exported,version:7,mode:'fm4',fm:{depth:9,ratio:1,ratios:[],algorithm:'chain'}};
+// @ts-expect-error version 7 Custom still requires a count-matching graph
+const wrongV7Graph:ScspCodePatch={...exported,version:7,mode:'fm4',fm:{depth:9,depths:[1,2,3,4,5,6],ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[]],outputs:[0]}}};
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}

@@ -75,6 +75,19 @@ DSP Send and keyboard/Code controls follow that mapping. Graph changes release
 the current Auto groups after validation while the Code session continues.
 The next notes use the new graph. Physical manual owners remain separate.
 
+**Selected depth (MDL)** edits the receiving operator's hardware modulation
+depth in either fixed or Custom connections. The editor supports codes 0–12;
+this is its guarded sample range, not the full hardware field's limit.
+X and Y share that one MDL
+after their inputs are averaged; this is not a separate depth for each edge.
+The common **All FM depths** control is a software batch edit: changing it sets
+A–F to the same code. A compact summary shows when their values differ.
+Depth changes apply to held and releasing Auto / Code groups without restarting
+notes or DSP. An operator without an input keeps its value for later routing;
+changing the operator count also retains all six authored values. Physical CH
+and SSF controls continue to edit their displayed slot rather than this Auto
+operator configuration.
+
 Draw a waveform or import browser-supported audio, apply the PCM, then play
 a new note. Unapplied drawings stay with their Auto operator or physical CH
 when you switch targets; Apply makes the edited PCM available for playback.
@@ -167,7 +180,10 @@ checkbox rather than a Code setter.
 ```javascript
 // Change source A's mix while the melody continues.
 await scsp.setMix(0, { pan: 8 });
+// Batch edit: use one MDL for every receiving operator A–F.
 await scsp.setConfig({ fm: { depth: 8 } });
+// Independent receiving-operator MDL codes, always A–F (including unused OPs).
+await scsp.setConfig({ fm: { depths: [2, 4, 6, 8, 10, 12] } });
 // Hardware Attack / loop link for source A, on its next note.
 await scsp.setEnvelope(0, { loopLink: true });
 ```
@@ -183,6 +199,13 @@ await scsp.setConfig({
   },
 });
 ```
+
+`fm.depths` is optional. Without it, every operator uses the existing `fm.depth`.
+An explicit six-entry array takes precedence when supplied with `depth`.
+Updating only `depth` clears those differences and sets all six operators;
+a uniform array is normalized to the same scalar representation. Depth edits
+use each sounding group's own operator / physical-slot mapping, including a
+group retained while a running Code session loads a different instrument.
 
 Each `inputs` entry lists that target's modulation sources: A is index 0,
 B is index 1, through F at index 5. A four-OP merge, D → B/C → A, uses both
@@ -204,12 +227,18 @@ complete graph before applying it. `getState().voiceGroups` includes
 slot indices; logical Code lanes and physical CH tabs retain their existing
 meanings.
 
-Saving an active two-OP Custom sound produces a version-5 instrument preset.
-Four- and six-OP Custom sounds use version 6, preserving their graphs. Fixed
-connections still save version 4 and keep the legacy format;
+With a common depth, saving an active two-OP Custom sound produces a version-5
+instrument preset. Four- and six-OP Custom sounds use version 6, preserving
+their graphs. Fixed connections still save version 4 and keep the legacy format;
 inactive custom edits are not included in that fixed-connection file. Loading
 old versions 1–4 keeps their established behavior. A custom preset is never
 silently converted into Chain or another fixed template.
+
+Different per-operator depth values save as version 7, with all six `fm.depths`
+entries and the complete active Custom graph when applicable. This also preserves
+unused-operator values while in PCM or a smaller FM mode. Older versions 1–6
+retain their common-depth behavior and reject an added `depths` field. Version 7
+presets and Cassette projects need a Synth version that supports individual MDL.
 
 The scoped API also provides `setPreset`, `getPCM`, `loadPCM`, `setNote`,
 `setFrequency`, `keyOn`, `keyOff`, `allNotesOff`, `getState`, `setEffect`,
@@ -237,7 +266,9 @@ within the shared 16 MiB Cassette limit for project metadata and applied PCM.
 The waveform editor's direct audio import has its separate 64 MiB input limit.
 Loading a project requires Run to begin Code execution.
 
-Instrument JSON uses version 4 and includes six applied PCM sources,
+Instrument JSON uses version 4 for fixed connections with common depth,
+versions 5–6 for Custom connections, and version 7 for differing operator depths.
+It includes six applied PCM sources,
 EG / LFO / mix, mode, connection, ratios, modulation depth, transpose and
 experimental Delay settings. Direct instrument files are limited to 8 MiB.
 Versions 1–3 remain readable. Version 1 becomes PCM, version 2 receives

@@ -4,6 +4,13 @@ export const OPERATOR_NAMES=['A','B','C','D','E','F'];
 export const OPERATOR_KEYS=['carrier','modulator','c','d','e','f'];
 export const operatorCount=mode=>mode==='pcm'?1:Number(mode.slice(2));
 const denseArray=(value,length)=>Array.isArray(value)&&value.length===length&&Reflect.ownKeys(value).length===length+1&&Array.from({length},(_,index)=>Object.hasOwn(value,index)).every(Boolean);
+/** Materialize an authored A–F depth request before merging live settings. */
+export function operatorDepths(value){
+  if(!denseArray(value,SOURCE_COUNT))throw new TypeError('FM depths must be a dense list of six operator values');
+  return Array.from(value,depth=>{if(!Number.isInteger(depth)||depth<0||depth>12)throw new RangeError('Each operator FM depth must be 0..12');return depth;});
+}
+/** X and Y share the receiving operator's one hardware MDL value. */
+export const operatorDepth=(config,index)=>config.fm.depths?.[index]??config.fm.depth;
 const customCounts=[2,4,6];
 function customOrder(inputs){
   const remaining=inputs.map(sources=>sources.length),dependents=inputs.map(()=>[]),ready=[],order=[];
@@ -77,7 +84,7 @@ export function voiceCommands(synth,config,group){
     const voice=state.slots[index],slot=custom?slots[index]:group.slots[count-1-index],sources=inputs[index];
     if(sources.length&&voice.sample?.loopStartSamples!==0)throw new RangeError(`FM operator ${OPERATOR_NAMES[index]} needs a full forward loop (loop start 0)`);
     const offsets=sources.map(source=>((custom?slots[source]:group.slots[count-1-source])-slot+64)%64);
-    const modulation={depth:sources.length?config.fm.depth:0,xOffset:offsets[0]??0,yOffset:offsets[1]??offsets[0]??0,writeInhibit:false};
+    const modulation={depth:sources.length?operatorDepth(config,index):0,xOffset:offsets[0]??0,yOffset:offsets[1]??offsets[0]??0,writeInhibit:false};
     commands.push(['setPreset',[slot,{sample:voice.sample,envelope:voice.envelope,lfo:voice.lfo,totalLevel:voice.totalLevel,directLevel:outputs.includes(index)?voice.directLevel:0,pan:voice.pan,frequencyHz:frequency*(config.mode==='pcm'?1:config.fm.ratios[index]),modulation}]]);
   }
   for(const slot of group.slots)commands.push(['keyOn',[slot]]);

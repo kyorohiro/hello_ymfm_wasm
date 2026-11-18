@@ -5,12 +5,13 @@ DSPとUI整理を先行する。完了済み2／4／6-op・Chain／Pairs／Branc
 2026-11-18: [Custom 2OPの初期版](todo_scsp_fm_custom_2op_20261118.md)で、
 A/Bの非循環接続、独立Direct Output、OP IDと物理スロットの分離、v5保存を実装。
 同日、[Custom 4/6OP・Input X/Y](todo_scsp_fm_custom_multiop_20261118.md)まで拡張。
-以下の音色モデル全体には個別Depthやfeedbackも含むため、残りは後続。
+さらに[OP別Depth](todo_scsp_fm_operator_depth_20261118.md)を追加。
+非循環2/4/6OPの音色モデルは揃い、feedbackと実機の履歴世代の検証は後続。
 
-- [ ] operator別FM Depth（各slotのMDL）。共通つまみは全段変更として残す。
-- [ ] 旧presetの共通Depthを各operatorへ移行し、発音中／release中の変更と保存を検証。
+- [x] operator別FM Depth（各slotのMDL）。共通つまみは全段変更として残す。
+- [x] 旧presetの共通Depthを各operatorへ移行し、発音中／release中の変更と保存を検証。個別値はv7、共通値は従来形式を維持。
 - [x] 接続図のA〜Fボタンで編集対象を選択。波形描画は単一canvasを維持（DSP UI整理で実装）。
-- [ ] 自由配線の音色モデルを設計：operator別のInput X／Y、Depth、Output、ratio。接続presetはテンプレートとして扱う。
+- [x] 非循環の音色モデルを設計：operator別のInput X／Y、Depth、Output、ratio。接続presetはテンプレートとして扱う。
 - [x] 接続図と選択operatorのInput X／Y選択を併用。2/4/6OPでキーボード／タッチから設定できる。線のドラッグは未追加。
 - [x] 保存上のoperator IDと物理slot割当を分離し、非循環graphをtopological orderで配置する。
 - [ ] 実機のsound stack世代／slot処理順と、固定core zero-delayの差を調べる。単純なslot番号指定と混同しない。

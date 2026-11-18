@@ -63,9 +63,12 @@ interface ScspCodeCustomRouting6 {
   outputs:ScspCodeCustomOperator[];
 }
 type ScspCodeCustomRouting = ScspCodeCustomRouting2|ScspCodeCustomRouting4|ScspCodeCustomRouting6;
+/** Receiving-operator MDL code. The editor validates integer codes 0–12 at runtime. */
+type ScspCodeFmDepth = number;
+type ScspCodeFmDepths = [ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth];
 interface ScspCodeConfig {
   mode:'pcm'|'fm2'|'fm4'|'fm6';
-  fm:{depth:number;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom';ratios:number[];custom?:ScspCodeCustomRouting};
+  fm:{depth:number;depths?:ScspCodeFmDepths;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom';ratios:number[];custom?:ScspCodeCustomRouting};
   transpose:number;
   effect:ScspCodeEffect;
 }
@@ -111,11 +114,16 @@ interface ScspCodePatchBase {
   operators:{carrier:ScspCodePortableOperator;modulator:ScspCodePortableOperator;c:ScspCodePortableOperator;d:ScspCodePortableOperator;e:ScspCodePortableOperator;f:ScspCodePortableOperator};
 }
 type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'chain'|'pairs'|'branch'};
+type ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:Graph};
 type ScspCodePatch = ScspCodePatchBase & (
-  {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm} |
-  {version:5;mode:'fm2';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting2}} |
-  {version:6;mode:'fm4';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting4}} |
-  {version:6;mode:'fm6';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting6}}
+  {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths?:never}} |
+  {version:5;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomRouting2> & {depths?:never}} |
+  {version:6;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomRouting4> & {depths?:never}} |
+  {version:6;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths?:never}} |
+  {version:7;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths:ScspCodeFmDepths}} |
+  {version:7;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomRouting2> & {depths:ScspCodeFmDepths}} |
+  {version:7;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomRouting4> & {depths:ScspCodeFmDepths}} |
+  {version:7;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths:ScspCodeFmDepths}}
 );
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
@@ -151,7 +159,10 @@ interface ScspCodeClient {
   /** Custom routing supports fm2/fm4/fm6 with at most two distinct sources per OP.
    * An explicit graph must match the active operator count. Changing mode without
    * a graph preserves surviving connections and adds disconnected operators.
-   * Graph changes retire Auto notes after validation; Code continues running. */
+   * Graph changes retire Auto notes after validation; Code continues running.
+   * fm.depths supplies six receiving-OP MDL codes. Omit it to use fm.depth.
+   * A scalar-only fm.depth edit sets all six; an explicit depths array wins.
+   * Uniform arrays normalize to the scalar form. Depth edits retain notes. */
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
   /** Live physical-slot DSP routing. null restores the Synth default send.
@@ -179,8 +190,8 @@ interface ScspCodeClient {
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
-  /** Load portable SCSP presets 1–6. Custom two-OP uses version 5;
-   * custom four/six-OP uses version 6 without conversion to a fixed template. */
+  /** Load portable SCSP presets 1–7. Custom two-OP uses version 5;
+   * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;

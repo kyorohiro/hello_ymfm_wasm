@@ -1,0 +1,186 @@
+/** Exact Synth per-operator FM depth revision. Recover the complete
+ * reviewed Synth before the existing audio calibration proof chain. */
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {relative} from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+export const SCSP_FM_DEPTH_REVISION_BASE_COMMIT='688a225f1ebbb480d1ad1b134aa823ebc65b8874';
+export const SCSP_FM_DEPTH_REVISION_RECEIPT_PATH='docs/issues/scsp_fm_depth_source_revision_01.json';
+export const SCSP_FM_DEPTH_REVISION_RECEIPT_OBJECT_SHA256='bef2792b6a49510bbbb60e49a7437b0ffbfb3bfc2fec86ac481ede6a4f46d577';
+export const SCSP_FM_DEPTH_REVISION_SOURCE_PATHS=Object.freeze([
+  ...['routing.js','patch.js','instrument.js','index.html','synth.js',
+    'code_declarations.js','code_declarations.test.mjs','README.md',
+    'audio.js','processor.js','code_host.js','code_project.js','ssf_capture.js']
+    .map(name=>'docs/synth-scsp/'+name),
+  'scripts/mixer_calibration_scsp_fm_multi_revision.test.mjs',
+  'scripts/record_scsp_fm_multi_default_parity.mjs',
+]);
+export const SCSP_FM_DEPTH_REVISION_UNCHANGED_PATHS=Object.freeze([
+  ...['synth.css','dsp.js','dsp_program.js','dsp_routing_view.js','dsp_signal_flow.js',
+    'preset.js','release_guard.js','dsp_examples.js','dsp_program_view.js',
+    'dsp_setup_code.js','code_endpoint.js','controls.js',
+    'fm_custom_view.js','fm_custom_view.test.mjs','fm_custom2.test.mjs','fm_custom_multi.test.mjs'].map(name=>'docs/synth-scsp/'+name),
+  ...['scsp.js','scspsynth.js','scsp_dsp.js','scsp_dsp_program.js',
+    'scsp_dsp_coefficients.js','scsp_dsp_assembler.js','soundchip_pitch.js',
+    'pcm_44100_resampler.js','soundchip_mixer_presets.js']
+    .flatMap(name=>['tetorica_src/runtime/'+name,'docs/js/'+name]),
+  ...['scsp_wasm.js','scsp_wasm.wasm'].flatMap(name=>[
+    'tetorica_src/runtime/generated/'+name,'docs/generated/'+name]),
+  'docs/playground/playground_mixer_defaults.js',
+  'scripts/record_playground_scsp_dsp_routing_default_parity.mjs',
+]);
+export const SCSP_FM_DEPTH_REVISION_RELATED_PATHS=Object.freeze([
+  ...SCSP_FM_DEPTH_REVISION_UNCHANGED_PATHS,
+  'docs/synth-scsp/fm_operator_depth.test.mjs',
+  'docs/synth-scsp/fm_depth_view.js','docs/synth-scsp/fm_depth_view.test.mjs',
+  'scripts/mixer_calibration_scsp_fm_multi_revision.mjs',
+  'scripts/record_scsp_fm_multi_revision.mjs',
+  'scripts/mixer_calibration_scsp_fm_depth_revision.test.mjs',
+  'scripts/record_scsp_fm_depth_default_parity.mjs',
+  'scripts/scsp_fm_depth_default_parity.test.mjs',
+  'scripts/scsp_fm_multi_default_parity.test.mjs',
+  'scripts/check_scsp_synth_fm_custom_browser.cjs',
+  'scripts/check_scsp_synth_fm_multi_browser.cjs',
+  'scripts/check_scsp_synth_fm_depth_browser.cjs',
+]);
+export const SCSP_FM_DEPTH_REVISION_REPORT_PATHS=Object.freeze([
+  'docs/issues/scsp_dsp_signal_flow_source_revision_01.json',
+  'docs/issues/scsp_dsp_routing_ui_source_revision_01.json',
+  'docs/issues/scsp_dsp_routing_ui_default_parity_01.json',
+  'docs/issues/playground_scsp_dsp_routing_source_revision_01.json',
+  'docs/issues/playground_scsp_dsp_routing_default_parity_01.json',
+  'docs/issues/playground_scsp_dsp_delay_default_parity_01.json',
+  'docs/issues/playground_scsp_dsp_default_parity_01.json',
+  'docs/issues/playground_chip_levels_01.json',
+  'docs/issues/scsp_state_restore_chip_levels_01.json',
+  'docs/issues/scsp_ay_single_output_chip_levels_01.json',
+  'docs/issues/scsp_ay_single_output_chip_levels_verify_01.json',
+  'docs/issues/scsp_fm_custom2_source_revision_01.json',
+  'docs/issues/scsp_fm_custom2_default_parity_01.json',
+  'docs/issues/scsp_fm_multi_source_revision_01.json',
+  'docs/issues/scsp_fm_multi_default_parity_01.json',
+  'docs/issues/scsp_fm_depth_default_parity_01.json',
+]);
+
+const root=fileURLToPath(new URL('../',import.meta.url));
+const read=url=>readFileSync(url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const record=value=>value&&Number.isSafeInteger(value.bytes)&&value.bytes>0&&/^[0-9a-f]{64}$/.test(value.sha256);
+const matches=(bytes,expected)=>record(expected)&&Buffer.byteLength(bytes)===expected.bytes&&sha(bytes)===expected.sha256;
+const keys=(value,names)=>value&&typeof value==='object'&&!Array.isArray(value)&&
+  Object.keys(value).length===names.length&&names.every(name=>Object.hasOwn(value,name));
+const fail=message=>{throw Error('Invalid exact SCSP FM depth calibration revision: '+message);};
+const predecessorReaders=new WeakSet();
+function sourceName(path){
+  if(typeof path!=='string')return path;
+  if(path.startsWith('synth-scsp/'))return 'docs/'+path;
+  return path;
+}
+function evidence(readSource){
+  const value=JSON.parse(readSource(new URL('../'+SCSP_FM_DEPTH_REVISION_RECEIPT_PATH,import.meta.url)));
+  if(sha(JSON.stringify(value))!==SCSP_FM_DEPTH_REVISION_RECEIPT_OBJECT_SHA256)fail('independently pinned receipt changed');
+  if(value.schemaVersion!==1||value.scope!=='scsp-synth-per-operator-fm-depth'||
+    value.baseCommit!==SCSP_FM_DEPTH_REVISION_BASE_COMMIT||
+    !keys(value.sources,SCSP_FM_DEPTH_REVISION_SOURCE_PATHS)||
+    !keys(value.relatedSources,SCSP_FM_DEPTH_REVISION_RELATED_PATHS)||
+    !keys(value.reports,SCSP_FM_DEPTH_REVISION_REPORT_PATHS))fail('exact source, dependency or report inventory changed');
+  for(const path of SCSP_FM_DEPTH_REVISION_SOURCE_PATHS){
+    const entry=value.sources[path];
+    if(!record(entry?.before)||!record(entry.after)||!Array.isArray(entry.reverseHunks)||!entry.reverseHunks.length)fail('incomplete predecessor pair: '+path);
+    let cursor=0;
+    for(const hunk of entry.reverseHunks){
+      if(!keys(hunk,['afterOffset','afterBytes','beforeText'])||!Number.isSafeInteger(hunk.afterOffset)||
+        hunk.afterOffset<cursor||!Number.isSafeInteger(hunk.afterBytes)||hunk.afterBytes<0||
+        hunk.afterOffset+hunk.afterBytes>entry.after.bytes||typeof hunk.beforeText!=='string')fail('invalid reverse hunk: '+path);
+      cursor=hunk.afterOffset+hunk.afterBytes;
+    }
+  }
+  for(const path of [...SCSP_FM_DEPTH_REVISION_RELATED_PATHS,...SCSP_FM_DEPTH_REVISION_REPORT_PATHS])
+    if(!record(value.relatedSources[path]??value.reports[path]))fail('invalid dependency record: '+path);
+  return value;
+}
+function verifyDefaultParity(receipt,readSource){
+  const report=JSON.parse(readSource(new URL('../docs/issues/scsp_fm_depth_default_parity_01.json',import.meta.url)));
+  if(report.schemaVersion!==1||report.scope!=='scsp-synth-operator-depth-legacy-pcm-fixed-fm-custom2-parity'||
+    report.baseCommit!==SCSP_FM_DEPTH_REVISION_BASE_COMMIT||report.deviceOpened!==false||
+    !Array.isArray(report.cases)||report.cases.length!==66)fail('legacy PCM/fixed-FM/Custom2 parity coverage changed');
+  const seen=new Set();
+  for(const value of report.cases){
+    if(![44100,48000].includes(value.sampleRate)||!value.exactPcmEqual||!value.exactRamEqual||
+      !value.legacyStateEqual||!value.exactRegistersEqual||!value.exactEffectiveWriteTraceEqual||
+      !value.exactPresetEqual)fail('legacy PCM/fixed-FM/Custom2 parity result changed');
+    if(value.kind==='pcm'){
+      if(!['pcm8','pcm16'].includes(value.scenario)||![220,440,880].includes(value.frequencyHz)||
+        typeof value.dspEnabled!=='boolean')fail('PCM parity case changed');
+      seen.add([value.kind,value.sampleRate,value.scenario,value.frequencyHz,value.dspEnabled].join('/'));
+    }else if(value.kind==='fm'){
+      if(!['fm2','fm4','fm6'].includes(value.mode)||!['chain','pairs','branch'].includes(value.algorithm))fail('FM parity case changed');
+      seen.add([value.kind,value.sampleRate,value.mode,value.algorithm].join('/'));
+    }else if(value.kind==='custom2'){
+      if(!['parallel','b-to-a','a-to-b'].includes(value.graph)||!['','0','1','0,1'].includes(value.outputs.join(','))||value.presetVersion!==5)fail('Custom2 parity case changed');
+      seen.add([value.kind,value.sampleRate,value.graph,value.outputs.join(',')].join('/'));
+    }else fail('unknown parity scenario');
+  }
+  if(seen.size!==66)fail('duplicate or missing legacy parity case');
+  for(const [name,value]of Object.entries(report.sources??{})){
+    const expected=receipt.sources[name]?.after;
+    if(!expected||expected.bytes!==value.bytes||expected.sha256!==value.sha256)fail('parity source changed: '+name);
+  }
+  if(!keys(report.sources,['docs/synth-scsp/routing.js','docs/synth-scsp/patch.js','docs/synth-scsp/instrument.js'])||
+    !keys(report.predecessors,['docs/synth-scsp/routing.js','docs/synth-scsp/patch.js','docs/synth-scsp/instrument.js']))fail('parity source inventory changed');
+  for(const [name,value]of Object.entries(report.predecessors)){
+    const expected=receipt.sources[name]?.before;
+    if(expected.bytes!==value.bytes||expected.sha256!==value.sha256)fail('parity predecessor changed: '+name);
+  }
+  const wasm=receipt.relatedSources['docs/generated/scsp_wasm.wasm'];
+  if(report.binary?.bytes!==wasm.bytes||report.binary.sha256!==wasm.sha256)fail('parity WASM changed');
+}
+
+function createRestorer(readSource,snapshot=false){
+  let receipt,verified=false;
+  return(path,bytes)=>{
+    const name=sourceName(path);
+    if(!SCSP_FM_DEPTH_REVISION_SOURCE_PATHS.includes(name))return bytes;
+    receipt=snapshot?receipt??evidence(readSource):evidence(readSource);
+    const entry=receipt.sources[name];if(!matches(bytes,entry.after))return bytes;
+    if(!verified){
+      for(const dependency of [...SCSP_FM_DEPTH_REVISION_SOURCE_PATHS,...SCSP_FM_DEPTH_REVISION_RELATED_PATHS,...SCSP_FM_DEPTH_REVISION_REPORT_PATHS]){
+        const expected=receipt.sources[dependency]?.after??receipt.relatedSources[dependency]??receipt.reports[dependency];
+        if(!matches(readSource(new URL('../'+dependency,import.meta.url)),expected))fail('pinned source/report dependency changed: '+dependency);
+      }
+      verifyDefaultParity(receipt,readSource);verified=snapshot;
+    }
+    const current=Buffer.from(bytes),parts=[];let cursor=0;
+    for(const hunk of entry.reverseHunks){parts.push(current.subarray(cursor,hunk.afterOffset),Buffer.from(hunk.beforeText));cursor=hunk.afterOffset+hunk.afterBytes;}
+    parts.push(current.subarray(cursor));const before=Buffer.concat(parts);
+    if(!matches(before,entry.before))fail('complete predecessor reconstruction failed: '+name);
+    return before;
+  };
+}
+export function restoreMixerCalibrationScspFmDepthRevision(path,bytes,{readSource=read}={}){
+  return createRestorer(readSource)(path,bytes);
+}
+/** Fresh owned reads prevent one proof mixing before/after filesystem states. */
+export function createScspFmDepthRevisionReadContext(readSource=read){
+  const originals=new Map(),predecessors=new Map();
+  const original=url=>{const key=url instanceof URL?url.href:url;if(!originals.has(key))originals.set(key,Buffer.from(readSource(url)));return originals.get(key);};
+  const restore=createRestorer(original,true);
+  const reader=url=>{
+    const key=url instanceof URL?url.href:url;
+    if(!predecessors.has(key)){
+      const bytes=original(url),path=url instanceof URL&&url.protocol==='file:'?relative(root,fileURLToPath(url)).replaceAll('\\','/'):null;
+      predecessors.set(key,path===null?bytes:restore(path,bytes));
+    }
+    return predecessors.get(key);
+  };
+  predecessorReaders.add(reader);return {restore,readSource:reader};
+}
+export function createScspFmDepthRevisionReader(readSource=read){
+  if(predecessorReaders.has(readSource))return readSource;
+  const reader=url=>{
+    const bytes=readSource(url);
+    if(!(url instanceof URL)||url.protocol!=='file:')return bytes;
+    return restoreMixerCalibrationScspFmDepthRevision(relative(root,fileURLToPath(url)).replaceAll('\\','/'),bytes,{readSource});
+  };
+  predecessorReaders.add(reader);return reader;
+}

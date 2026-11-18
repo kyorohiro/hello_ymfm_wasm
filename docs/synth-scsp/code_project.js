@@ -10,10 +10,10 @@ import {
 } from '../playground/playground_cassette.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js?code-files-scope=2';
 import { createSynthProjectStore } from '../synth/synth_project_store.js?v=draft-reconnect-1';
-import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-fm-multi-1';
+import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-fm-depth-1';
 import { createScspValidation } from '../js/playground_scsp.js';
 import { createScspInitSample } from '../js/scspsynth.js';
-import { OPERATOR_KEYS } from './routing.js?v=scsp-fm-multi-1';
+import { OPERATOR_KEYS } from './routing.js?v=scsp-fm-depth-1';
 import { SCSP_DSP_IIR_CODE } from './code_examples.js?v=scsp-dsp-code-1';
 
 export const SCSP_PROJECT_FORMAT = 'tetorica-scsp-code-project';

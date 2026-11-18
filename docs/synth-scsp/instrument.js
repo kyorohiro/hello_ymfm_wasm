@@ -3,9 +3,9 @@
 import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
-import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-multi-1';
+import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-depth-1';
 import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-ui-routing-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting} from './routing.js?v=scsp-fm-multi-1';
+import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting,operatorDepth,operatorDepths} from './routing.js?v=scsp-fm-depth-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 import {ScspReleaseGuard} from './release_guard.js';
@@ -213,13 +213,15 @@ export class SynthInstrument {
     if(!patch||typeof patch!=='object'||Array.isArray(patch)||Reflect.ownKeys(patch).some(k=>!['mode','fm','transpose'].includes(k)))throw new TypeError('Invalid voice settings');
     patch={...patch};
     if(patch.fm!==undefined){
-      if(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Reflect.ownKeys(patch.fm).some(k=>!['depth','ratio','ratios','algorithm','custom'].includes(k)))throw new TypeError('Invalid FM settings');
+      if(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Reflect.ownKeys(patch.fm).some(k=>!['depth','depths','ratio','ratios','algorithm','custom'].includes(k)))throw new TypeError('Invalid FM settings');
       patch.fm={...patch.fm};
       // Materialize a custom request before merging with live settings. A
       // completed nested setter in a getter must not be replaced by stale data.
       if(Object.hasOwn(patch.fm,'custom'))patch.fm.custom=customRouting(patch.fm.custom);
+      if(Object.hasOwn(patch.fm,'depths'))patch.fm.depths=operatorDepths(patch.fm.depths);
     }
     const fm={...this.config.fm,...patch.fm};
+    if(Object.hasOwn(patch.fm??{},'depth')&&!Object.hasOwn(patch.fm,'depths'))delete fm.depths;
     if(patch.fm?.ratio!==undefined&&patch.fm.ratios===undefined)fm.ratios=[1,...Array(5).fill(patch.fm.ratio)];
     const mode=patch.mode??this.config.mode;
     if(fm.algorithm==='custom'&&mode!=='pcm'&&!Object.hasOwn(patch.fm??{},'custom')){
@@ -231,17 +233,19 @@ export class SynthInstrument {
         fm.custom={inputs:template.inputs,outputs:template.outputs};
       }
     }
-    const next=settings({...this.config,...patch,fm}),commands=[],routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom);
+    const next=settings({...this.config,...patch,fm}),commands=[],groupConfigs=new Map(),routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom);
     if(!routeChanged)for(const group of this.groups.values()){
-      const live={...(group.config??this.config),transpose:next.transpose,fm:{...(group.config??this.config).fm,depth:next.fm.depth,ratios:next.fm.ratios}},frequency=hz(group.midi,next.transpose+this.pitchBend),{inputs}=routing(live);
+      const live={...(group.config??this.config),transpose:next.transpose,fm:{...(group.config??this.config).fm,depth:next.fm.depth,ratios:[...next.fm.ratios]}},frequency=hz(group.midi,next.transpose+this.pitchBend);
+      delete live.fm.depths;if(next.fm.depths)live.fm.depths=[...next.fm.depths];
+      const {inputs}=routing(live);groupConfigs.set(group,live);
       for(let index=0;index<group.slots.length;index++){
         const slot=operatorSlot(group,index);
         commands.push(['setFrequency',[slot,frequency*(live.mode==='pcm'?1:next.fm.ratios[index])]]);
-        if(inputs[index].length)commands.push(['setModulation',[slot,{depth:next.fm.depth}]]);
+        if(inputs[index].length)commands.push(['setModulation',[slot,{depth:operatorDepth(live,index)}]]);
       }
     }
     this.#check(commands,next);
-    if(routeChanged){if(this.manualVoices.size){for(const group of this.groups.values())this.#silence(group,{muteStack:true});this.groups.clear();this.#routeEffect();}else this.stopVoices();}else{this.#apply(commands);for(const group of this.groups.values())group.config={...(group.config??this.config),transpose:next.transpose,fm:{...(group.config??this.config).fm,depth:next.fm.depth,ratios:[...next.fm.ratios]}};}
+    if(routeChanged){if(this.manualVoices.size){for(const group of this.groups.values())this.#silence(group,{muteStack:true});this.groups.clear();this.#routeEffect();}else this.stopVoices();}else{this.#apply(commands);for(const group of this.groups.values())group.config=groupConfigs.get(group);}
     this.config=next;this.#routeEffect();return clone(next);
   }
   invoke(method,args=[]){

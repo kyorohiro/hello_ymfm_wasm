@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-per-operator-hardware-MDL",
+  "baseCommit": "688a225f1ebbb480d1ad1b134aa823ebc65b8874",
+  "published": false,
+  "npmUpdated": false,
+  "packageVersionChanged": false,
+  "parentCommitCreated": false,
+  "physicalListeningPerformed": false,
+  "presetVersions": {
+    "mixedDepths": 7,
+    "scalarFixed": 4,
+    "scalarCustom2": 5,
+    "scalarCustom4And6": 6
+  },
+  "evidence": {
+    "synthSuite": {
+      "path": "build/scsp-fm-depth-20261118/synthSuite.log",
+      "bytes": 37775,
+      "sha256": "8a399a990de0dd28728ff924fcfeff1ecb5602cd43f3090a3954ab00303c4c69"
+    },
+    "types": {
+      "path": "build/scsp-fm-depth-20261118/types.log",
+      "bytes": 330,
+      "sha256": "6e8aeb4df4afbff020fc9ab541dfc2198e92b2786bfe65b1d1776ce52edf8bc3"
+    },
+    "declarations": {
+      "path": "build/scsp-fm-depth-20261118/declarations.log",
+      "bytes": 342,
+      "sha256": "844cd5599ae3a17ea14b01838f91aba357c67988c2ab97708f090ec2d4fc09de"
+    },
+    "proof": {
+      "path": "build/scsp-fm-depth-20261118/proof.log",
+      "bytes": 7572,
+      "sha256": "8bdbe3cfaf69541e639e3b7ce24af6871c543e4f7dd153db6ca84bed90d2387e"
+    },
+    "generators": {
+      "path": "build/scsp-fm-depth-20261118/generators.log",
+      "bytes": 447,
+      "sha256": "c9953ef64f7ccc9eb9099b85b48799671e59a34dd23eaa949df6012d4579067d"
+    },
+    "recorders": {
+      "path": "build/scsp-fm-depth-20261118/recorders.log",
+      "bytes": 1459,
+      "sha256": "d41b95e02df0ef37791a8be89be914e02b31c210294eb3e46060c208d97d4112"
+    },
+    "receipt": {
+      "path": "build/scsp-fm-depth-20261118/receipt.log",
+      "bytes": 216,
+      "sha256": "de5dc13e24b86b301790a68c25c5bb9bb1a08304092bbd5568ae56af97dc6492"
+    },
+    "scope": {
+      "path": "build/scsp-fm-depth-20261118/scope.log",
+      "bytes": 281,
+      "sha256": "12c8a829e8f81e4c3312df58fdc5c00d2f8ff23c77797f2b0fa827831f4745c5"
+    },
+    "packaging": {
+      "path": "build/scsp-fm-depth-20261118/packaging.log",
+      "bytes": 464,
+      "sha256": "1c2354d21ca58f05a7379045f1304ef02e7bde02f3115ec238a8ac9f008d6305"
+    },
+    "independentAudit": {
+      "path": "build/scsp-fm-depth-20261118/independentAudit.log",
+      "bytes": 210068,
+      "sha256": "0e212b8915fd7963192036697a11f7b65f35be09f25be955da82eea000cbe645"
+    },
+    "browser-source": {
+      "path": "build/scsp-fm-depth-20261118/browser-source.log",
+      "bytes": 80,
+      "sha256": "18a1b4c44ee1dfabf736eb568fb533a7256e3e9cafc0b74658df06f9ae05221d"
+    },
+    "browser-zip": {
+      "path": "build/scsp-fm-depth-20261118/browser-zip.log",
+      "bytes": 87,
+      "sha256": "190df0b6f2dd1aa15d4f5aa7136a49cd83cba134837a58994ddbf404afcf7577"
+    }
+  },
+  "checks": {
+    "synthAndPackagingPassed": 358,
+    "newBackendPassed": 11,
+    "newViewPassed": 3,
+    "declarationsPassed": 2,
+    "proofGuardPassed": 62,
+    "exactLegacyCases": 66,
+    "sourcePairs": 15,
+    "reverseHunks": 62,
+    "dependencies": 52,
+    "reports": 16,
+    "historicalJsonUnchanged": 884,
+    "sharedRuntimeGeneratedUnchanged": 1025,
+    "packageAndManifestsUnchanged": 54,
+    "parityRecordersChecked": 7,
+    "sourceRecordersChecked": 2,
+    "mixerGeneratorsChecked": 2,
+    "sharedWasmUnchanged": true
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_fm_depth_source_revision_01.json",
+    "bytes": 28658,
+    "sha256": "fb4e0a4aee36e012ce89566250cc2f6df8ab29ec0750a9ee304a0ce92c5e87b0"
+  },
+  "sourceReceiptObjectSha256": "bef2792b6a49510bbbb60e49a7437b0ffbfb3bfc2fec86ac481ede6a4f46d577",
+  "defaultParity": {
+    "path": "docs/issues/scsp_fm_depth_default_parity_01.json",
+    "bytes": 72977,
+    "sha256": "b0fbe17dbdc30885ba8bed82cc9ad49831db1d65fbe8064a8d2cd6187e6c14c6"
+  },
+  "sourceBrowser": {
+    "path": "build/scsp-fm-depth-20261118/browser-source.json",
+    "bytes": 22128,
+    "sha256": "03d8d5b138dbdc7d890366f83304c9d5a83a8b24ae489e6c2c27fe78362b761d",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      8,
+      8
+    ],
+    "assets": 112,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "screenshots": [
+      {
+        "four": {
+          "path": "build/scsp-fm-depth-20261118/browser-source-chromium-four.png",
+          "bytes": 43357,
+          "sha256": "944ee76950e7f735b39e634b0191558907b4e5c6f03941f33120dc311644b093"
+        },
+        "six": {
+          "path": "build/scsp-fm-depth-20261118/browser-source-chromium-six.png",
+          "bytes": 49993,
+          "sha256": "f6d2d974ecdfa5a76c7a2ae9000089ec717a211cf65c6e2c2f9a1b4821d40cde"
+        },
+        "mobile": {
+          "path": "build/scsp-fm-depth-20261118/browser-source-chromium-mobile.png",
+          "bytes": 34373,
+          "sha256": "d1e76e1200d40fb945bdea892853cd89f1ea0b3f66ca070b1f98d057802be899"
+        }
+      },
+      {
+        "four": {
+          "path": "build/scsp-fm-depth-20261118/browser-source-webkit-four.png",
+          "bytes": 55692,
+          "sha256": "0b90c1d7a3903db54d397c5a6da7c31428e8e354140e41dd35d2f24045a5b4ad"
+        },
+        "six": {
+          "path": "build/scsp-fm-depth-20261118/browser-source-webkit-six.png",
+          "bytes": 60155,
+          "sha256": "537e046b195c248e4a0d0e56d8bd0cec7672f0d8907a7d9fe65df32389d6e494"
+        },
+        "mobile": {
+          "path": "build/scsp-fm-depth-20261118/browser-source-webkit-mobile.png",
+          "bytes": 39580,
+          "sha256": "ab3f08fa6ec49a22ae6a63b3cbb959c258aad2041b276283f713f30c8875ecb1"
+        }
+      }
+    ]
+  },
+  "exactZipBrowser": {
+    "path": "build/scsp-fm-depth-20261118/browser-zip.json",
+    "bytes": 22124,
+    "sha256": "eb6597de4957e8cf1e4f7212b7e900333be9d5a4939f442f5fbdb4b261d19a4a",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      8,
+      8
+    ],
+    "assets": 112,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "screenshots": [
+      {
+        "four": {
+          "path": "build/scsp-fm-depth-20261118/browser-zip-chromium-four.png",
+          "bytes": 43357,
+          "sha256": "944ee76950e7f735b39e634b0191558907b4e5c6f03941f33120dc311644b093"
+        },
+        "six": {
+          "path": "build/scsp-fm-depth-20261118/browser-zip-chromium-six.png",
+          "bytes": 49993,
+          "sha256": "f6d2d974ecdfa5a76c7a2ae9000089ec717a211cf65c6e2c2f9a1b4821d40cde"
+        },
+        "mobile": {
+          "path": "build/scsp-fm-depth-20261118/browser-zip-chromium-mobile.png",
+          "bytes": 34373,
+          "sha256": "d1e76e1200d40fb945bdea892853cd89f1ea0b3f66ca070b1f98d057802be899"
+        }
+      },
+      {
+        "four": {
+          "path": "build/scsp-fm-depth-20261118/browser-zip-webkit-four.png",
+          "bytes": 55692,
+          "sha256": "0b90c1d7a3903db54d397c5a6da7c31428e8e354140e41dd35d2f24045a5b4ad"
+        },
+        "six": {
+          "path": "build/scsp-fm-depth-20261118/browser-zip-webkit-six.png",
+          "bytes": 60155,
+          "sha256": "537e046b195c248e4a0d0e56d8bd0cec7672f0d8907a7d9fe65df32389d6e494"
+        },
+        "mobile": {
+          "path": "build/scsp-fm-depth-20261118/browser-zip-webkit-mobile.png",
+          "bytes": 39580,
+          "sha256": "ab3f08fa6ec49a22ae6a63b3cbb959c258aad2041b276283f713f30c8875ecb1"
+        }
+      }
+    ]
+  },
+  "archiveAudit": {
+    "passed": true,
+    "path": "release/tetorica_scsp_synth_fm-depth-20261118_itch.zip",
+    "bytes": 4330907,
+    "sha256": "6f89b21d308206ff0aa93e36f5364b0e0d51661e06c219d91b2b1cbe45f9404e",
+    "entries": 378,
+    "crcPassed": true,
+    "allStageBytesMatch": true,
+    "readableSourceFilesCompared": 149,
+    "sourceBytesMatch": true,
+    "embeddedSourceInputsMatch": true,
+    "browserRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-fm-depth-20261118/browser-zip"
+  },
+  "visuallyReviewed": [
+    "build/scsp-fm-depth-20261118/browser-source-chromium-four.png",
+    "build/scsp-fm-depth-20261118/browser-source-webkit-mobile.png"
+  ],
+  "limits": [
+    "Receiving operator MDL is shared by its X/Y hardware average; no per-edge depth.",
+    "Editor range0..12 retains the previous PCM guard bound, not the entire hardware field range.",
+    "Scalar-only depth edits batch-reset all operators; uniform arrays normalize to legacy scalar format.",
+    "Mixed presets require a v7-capable Synth.",
+    "Self/cyclic feedback and real sound-stack history semantics remain follow-up work."
+  ]
+}
