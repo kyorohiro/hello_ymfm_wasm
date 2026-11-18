@@ -184,10 +184,12 @@ const connectionText = member => {
   return (same ? `${label(first)} · X+Y` : routes.map(value => `${label(value)} · ${value.input}`).join('; ')) + ` · depth ${shown(member.modulation.depth)}${member.modulation.depth === 0 ? ' · off' : ''}`;
 };
 
-/** Stable passive DOM: polling never replaces controls, steals focus, or closes help. */
-export function setupScspSlotAllocationView({ root } = {}) {
-  if (!root?.ownerDocument) return { update() {}, dispose() {} };
+/** Stable DOM: polling never replaces controls, steals focus, or closes help. */
+export function setupScspSlotAllocationView({ root, onSelectSlot, onError = () => {} } = {}) {
+  if (!root?.ownerDocument) return { update() {}, setEnabled() {}, dispose() {} };
   const doc = root.ownerDocument;
+  const events = new AbortController();
+  let disposed = false, enabled = true;
   const node = (tag, suffix, className, content) => {
     const value = doc.createElement(tag);
     if (suffix) value.id = `scspSynthAllocation${suffix}`;
@@ -206,22 +208,69 @@ export function setupScspSlotAllocationView({ root } = {}) {
   diagram.setAttribute('role', 'group');
   diagram.setAttribute('aria-label', 'Current Synth group operator to physical channel mapping and requested sends');
   const cards = OPERATOR_NAMES.map(name => {
-    const card = node('div', `Op${name}`, 'member'), title = node('h4', null, 'name'), inputs = node('p', null, 'inputs');
+    const card = node('div', `Op${name}`, 'member'), title = node('h4', null, 'name'), prefix = node('span'), button = node('button', `Edit${name}`, 'edit');
+    card.hidden = true; button.setAttribute('type', 'button'); button.disabled = true;
+    title.append(prefix, button);
+    const inputs = node('p', null, 'inputs');
     const direct = node('p', null, 'direct'), send = node('p', null, 'send');
     card.append(title, inputs, direct, send); diagram.append(card);
-    return { card, title, inputs, direct, send };
+    return { card, prefix, button, inputs, direct, send, target: null, gesture: null };
   });
   const connections = node('div', 'Connections', 'connections');
   connections.setAttribute('aria-label', 'Requested modulation connections');
   const lines = OPERATOR_NAMES.map(() => { const line = node('p', null, 'connection'); connections.append(line); return line; });
   root.replaceChildren(heading, owner, status, mapping, diagram, connections);
-  let disposed = false;
   const text = (target, value) => { if (target.textContent !== value) target.textContent = value; };
   const data = (target, key, value) => { value = String(value ?? ''); if (target.dataset[key] !== value) target.dataset[key] = value; };
+  const attribute = (target, key, value) => { if (target.getAttribute(key) !== value) target.setAttribute(key, value); };
   const hide = (target, value) => { if (target.hidden !== value) target.hidden = value; };
+  const disable = entry => { entry.button.disabled = disposed || !enabled || typeof onSelectSlot !== 'function' || !entry.target || entry.card.hidden; };
+  const invalidate = entry => { if (entry.gesture) entry.gesture.valid = false; };
+  const cancel = entry => { if (entry.gesture) { invalidate(entry); entry.gesture.held = false; } };
+  const setEnabled = value => {
+    enabled = !!value;
+    cards.forEach(entry => { if (!enabled) cancel(entry); disable(entry); });
+  };
+  const currentTarget = entry => !disposed && enabled && !entry.button.disabled && !entry.card.hidden && !entry.button.hidden
+    && !root.hidden && !root.closest?.('[hidden]') && !entry.button.closest?.('[hidden]') ? entry.target : null;
+  const keyFor = event => event.key === 'Enter' ? 'Enter' : [' ', 'Space', 'Spacebar'].includes(event.key) ? 'Space' : null;
+  const begin = (entry, kind, key = null) => {
+    const target = currentTarget(entry);
+    entry.gesture = { kind, key, held: true, identity: target?.identity, valid: !!target };
+  };
+  cards.forEach(entry => {
+    const listen = (type, callback) => entry.button.addEventListener(type, callback, { signal: events.signal });
+    listen('pointerdown', event => {
+      if (event.button !== undefined && event.button !== 0) return;
+      begin(entry, 'pointer');
+    });
+    listen('pointercancel', () => cancel(entry));
+    listen('blur', () => cancel(entry));
+    listen('keydown', event => {
+      const key = keyFor(event);
+      if (key && !(event.repeat && entry.gesture?.kind === 'keyboard')) begin(entry, 'keyboard', key);
+    });
+    listen('keyup', event => {
+      const gesture = entry.gesture;
+      if (gesture?.kind !== 'keyboard' || gesture.key !== keyFor(event)) return;
+      // Enter clicks on keydown; Space's native click follows keyup.
+      if (gesture.key === 'Enter') entry.gesture = null;
+      else gesture.held = false;
+    });
+    listen('click', event => {
+      const target = currentTarget(entry), gesture = entry.gesture;
+      const pointer = gesture?.kind === 'pointer' || !gesture && (!!event.pointerType || event.detail > 0);
+      if (gesture?.kind !== 'keyboard' || !gesture.held) entry.gesture = null;
+      if (pointer) entry.button.blur();
+      if (!target || gesture && (!gesture.valid || gesture.identity !== target.identity)) return;
+      try { Promise.resolve(onSelectSlot(target.slot)).catch(onError); }
+      catch (error) { onError(error); }
+    });
+  });
   return {
-    update(state, options) {
+    update(state, options = {}) {
       if (disposed) return;
+      if (Object.hasOwn(options, 'enabled')) setEnabled(options.enabled);
       const model = describeScspSlotAllocation(state, options), focus = model.focus;
       data(root, 'available', model.available); data(root, 'kind', focus.kind); data(root, 'groupId', focus.groupId);
       data(root, 'selected', model.selected); data(root, 'editorOperator', model.operator);
@@ -229,18 +278,27 @@ export function setupScspSlotAllocationView({ root } = {}) {
       text(owner, focus.summary);
       text(status, `${model.reason}${model.selection === 'auto' && model.operator !== null ? ` · editor Source ${OPERATOR_NAMES[model.operator]}` : ''}`);
       text(mapping, focus.kind === 'group' ? model.members.map(member => `${member.name} → ${ch(member.slot)}`).join(' · ') : focus.slot === undefined ? '' : ch(focus.slot));
-      cards.forEach(({ card, title, inputs, direct, send }, index) => {
+      cards.forEach((entry, index) => {
+        const { card, prefix, button, inputs, direct, send } = entry;
         const member = model.members[index]; hide(card, !member); hide(lines[index], !member);
+        const valid = model.available && member && member.ownership !== 'unknown' && focus.kind !== 'unavailable';
+        // Navigation addresses a physical CH, so retriggers at the same CH stay usable.
+        const identity = valid ? member.slot : null;
+        if (entry.target?.identity !== identity) invalidate(entry);
+        entry.target = valid ? { slot: member.slot, identity } : null;
+        data(button, 'allocationSlot', valid ? member.slot : null); disable(entry);
         if (!member) return;
         data(card, 'slot', member.slot); data(card, 'operator', member.operator === null ? null : OPERATOR_NAMES[member.operator]); data(card, 'recipe', member.matchesRecipe);
         data(card, 'selected', focus.selectedOperator === member.operator && member.operator !== null || model.selected === member.slot);
-        text(title, member.operator === null ? ch(member.slot) : `${member.name} → ${ch(member.slot)}`);
+        text(prefix, member.operator === null ? '' : `${member.name} → `); text(button, ch(member.slot));
+        attribute(button, 'aria-label', `Edit physical ${ch(member.slot)}${member.operator === null ? '' : ` (operator ${member.name})`}`);
         text(inputs, inputText(member));
         text(direct, `Direct · level ${shown(member.direct.level)} · pan ${shown(member.direct.pan)}`);
         text(send, `Requested MIXS${member.dsp.input === null ? '?' : member.dsp.input} · send ${shown(member.dsp.level)} · ${member.dsp.policy}`);
         text(lines[index], connectionText(member));
       });
     },
-    dispose() { disposed = true; },
+    setEnabled,
+    dispose() { disposed = true; events.abort(); cards.forEach(entry => { entry.gesture = null; entry.target = null; disable(entry); }); },
   };
 }

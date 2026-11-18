@@ -48,6 +48,13 @@ Choosing a physical CH highlights all members of that CH's group; the editor
 and keyboard continue to target the chosen CH. No second channel picker or
 automatic editor-target change is introduced. The cards map A–F to their
 actual CH numbers, including Custom's dependency-driven operator order.
+Press a card's **CH number** to open that physical CH in the existing SCSP
+editor. This also returns from the DSP tab while Code keeps playing. PCM,
+Envelope and LFO use the same physical editor and established application
+timing as selecting the CH above. Navigation does not apply PCM or retrigger
+notes. Mouse/touch activation releases button focus for musical keys; native
+Enter/Space activation keeps keyboard focus. A target changed during a press,
+a hidden/disabled view or SSF Live cannot activate an old shortcut.
 Keyboard / Code owner, note and requested Held / Released state appear beside
 the mapping. A released retained group is not a free slot or proof of audible
 release, and the Synth view does not invent native envelope meters.

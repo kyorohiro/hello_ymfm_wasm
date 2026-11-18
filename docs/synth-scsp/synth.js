@@ -17,7 +17,7 @@ import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-multiple-self
 import { setupScspCycle2View } from './fm_cycle2_view.js?v=scsp-cycle2-ui-1';
 import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfSlotRoutesView } from './ssf_slot_routes_view.js?v=scsp-ssf-slots-1';
-import { setupScspSlotAllocationView } from './slot_allocation_view.js?v=scsp-allocation-1';
+import { setupScspSlotAllocationView } from './slot_allocation_view.js?v=scsp-allocation-nav-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
@@ -338,6 +338,8 @@ function renderState() {
 	const observing = liveView?.update(songState, ssfSnapshot);
 	const showSsfDsp = songState?.kind === 'ssf' && liveView?.isEnabled()
 		&& ['starting', 'playing', 'paused', 'seeking'].includes(songState?.playback);
+	const allocationNavigationEnabled = !observing && !showSsfDsp;
+	slotAllocationView?.setEnabled(allocationNavigationEnabled);
 	$('scspSynthDspView').hidden = Boolean(showSsfDsp);
 	$('scspSsfDspView').hidden = !showSsfDsp;
 	$('scspDspTab').disabled = false;
@@ -392,7 +394,7 @@ function renderState() {
 	restoreEditorDraft();
 	setEditorSections(selected === null ? 'auto' : 'physical');
 	channelView?.update({ state, operator: selectedOperator });
-	slotAllocationView?.update(state, {selected, operator: selectedOperator});
+	slotAllocationView?.update(state, {selected, operator: selectedOperator, enabled: allocationNavigationEnabled});
 	if (
 		selected !== null &&
 		document.activeElement !== $('scspPhysicalFrequency') &&
@@ -747,7 +749,19 @@ channelView = setupScspChannelView({
 	},
 });
 ssfSlotRoutesView = setupScspSsfSlotRoutesView({root: $('scspSsfSlotRoutes')});
-slotAllocationView = setupScspSlotAllocationView({root: $('scspSynthSlotAllocation')});
+slotAllocationView = setupScspSlotAllocationView({
+	root: $('scspSynthSlotAllocation'),
+	onSelectSlot(slot) {
+		if (disposed || liveView?.isActive() || $('scspSynthSlotAllocation').hidden ||
+			(songState?.kind === 'ssf' && liveView?.isEnabled() &&
+				['starting', 'playing', 'paused', 'seeking'].includes(songState?.playback)) ||
+			!Number.isInteger(slot) || slot < 0 || slot >= 32) return;
+		chipTab(false);
+		channelView.setSelected(slot);
+		$('scspPhysicalControls').scrollIntoView({block: 'nearest', behavior: 'auto'});
+	},
+	onError: report,
+});
 liveView = setupScspSsfLiveView({
 	panel,
 	panelRoot: $('voice'),

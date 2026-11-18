@@ -167,21 +167,24 @@ test('models are detached and frozen; missing and conflicting records remain exp
   assert.match(manualSource.focus.summary, /Source A/);
 });
 
-class Node {
-  constructor(doc, tag) { this.ownerDocument = doc; this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {}; this.attributes = new Map(); this.content = ''; this.open = false; this.hidden = false; }
-  set textContent(value) { this.content = value; this.ownerDocument.writes++; }
-  get textContent() { return this.content; }
-  append(...children) { this.children.push(...children); this.ownerDocument.writes++; }
-  replaceChildren(...children) { this.children = children; this.ownerDocument.writes++; }
+class Node extends EventTarget {
+  constructor(doc, tag) { super(); this.ownerDocument = doc; this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {}; this.attributes = new Map(); this.content = ''; this.open = false; this.hidden = false; this.disabled = false; this.blurCalls = 0; }
+  set textContent(value) { this.content = value; this.children = []; this.ownerDocument.writes++; }
+  get textContent() { return this.content + this.children.map(value => value.textContent).join(''); }
+  append(...children) { children.forEach(child => { child.parentElement = this; }); this.children.push(...children); this.ownerDocument.writes++; }
+  replaceChildren(...children) { this.content = ''; this.children = []; this.append(...children); }
   setAttribute(name, value) { this.attributes.set(name, value); this.ownerDocument.writes++; }
   getAttribute(name) { return this.attributes.get(name) ?? null; }
-  focus() { throw Error('Passive view cannot change focus'); }
+  closest(selector) { assert.equal(selector, '[hidden]'); return this.hidden ? this : this.parentElement?.closest(selector) ?? null; }
+  focus() { this.ownerDocument.focusCalls++; this.ownerDocument.focused = this; }
+  blur() { this.blurCalls++; if (this.ownerDocument.focused === this) { this.ownerDocument.focused = null; this.dispatchEvent(new Event('blur')); } }
+  fire(type, properties = {}) { const event = new Event(type, { cancelable: true }); Object.assign(event, properties); this.dispatchEvent(event); return event; }
 }
-function fixture() {
-  const doc = { writes: 0, createElement: tag => new Node(doc, tag) };
+function fixture(options = {}) {
+  const doc = { writes: 0, focusCalls: 0, focused: null, createElement: tag => new Node(doc, tag) };
   Object.defineProperty(doc, 'activeElement', { get() { throw Error('Passive view cannot inspect focus'); } });
   const root = new Node(doc, 'section'), walk = node => [node, ...node.children.flatMap(walk)], all = () => walk(root);
-  return { doc, root, all, find: id => all().find(value => value.id === id), view: setupScspSlotAllocationView({ root }) };
+  return { doc, root, all, find: id => all().find(value => value.id === id), view: setupScspSlotAllocationView({ root, ...options }) };
 }
 
 test('passive DOM keeps all nodes, open help and focus while selection, release, routes and availability change', async t => {
@@ -203,9 +206,137 @@ test('passive DOM keeps all nodes, open help and focus while selection, release,
   assert.match(find('scspSynthAllocationOpA').children[1].textContent, /Requested X 9 \/ Y 1/);
   view.update(undefined); assert.equal(root.dataset.kind, 'unavailable');
   assert.deepEqual(all(), nodes); assert(help.open);
-  assert(!all().some(value => ['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA', 'METER', 'PROGRESS'].includes(value.tagName)));
+  assert(!all().some(value => ['INPUT', 'SELECT', 'TEXTAREA', 'METER', 'PROGRESS'].includes(value.tagName)));
+  const buttons = all().filter(value => value.tagName === 'BUTTON');
+  assert.equal(buttons.length, 6);
+  assert(buttons.every((button, index) => button.id === `scspSynthAllocationEdit${'ABCDEF'[index]}` && button.getAttribute('type') === 'button' && button.disabled));
+  assert.equal(buttons[0].getAttribute('aria-label'), 'Edit physical CH7 (operator A)');
   assert.match(help.children[1].textContent, /not native envelope phases.*retained slots are not free/);
   assert.match(help.children[1].textContent, /two distinct history taps.*Depth 0.*never identify.*Requested MIXS routes can be suppressed/);
   view.dispose(); const disposedWrites = doc.writes; view.update(owner.read()); assert.equal(doc.writes, disposedWrites);
   setupScspSlotAllocationView().update(owner.read());
+});
+
+const slotRegisters = owner => Array.from({ length: 32 * 16 }, (_, word) => owner.core.read(word * 2));
+const pointerDown = (button, pointerType = 'mouse') => button.fire('pointerdown', { button: 0, pointerType });
+const pointerClick = (button, pointerType = 'mouse') => button.fire('click', { detail: 1, pointerType });
+const nativeKeyDown = (button, key, repeat = false) => button.fire('keydown', { key, repeat });
+const nativeKeyUp = (button, key) => button.fire('keyup', { key });
+
+test('native member buttons synchronously select the saved physical Custom Code mapping without musical writes', async t => {
+  const owner = await create(t), donor = await create(t), calls = [];
+  owner.setConfig({ mode: 'fm6', fm: { algorithm: 'custom', custom: { inputs: [[3, 4], [0], [], [5], [2], []], outputs: [0, 1, 4] } } });
+  const { session } = owner.beginCode(); owner.code(session, 'noteOn', [4, 64]);
+  donor.setConfig({ mode: 'fm2', fm: { algorithm: 'chain' } }); owner.loadPatch(donor.exportPatch());
+  const before = owner.read(), registers = slotRegisters(owner);
+  const { view, all, doc, find } = fixture({ onSelectSlot: slot => calls.push(slot) }); t.after(() => view.dispose());
+  view.update(before, { operator: 5 });
+  const nodes = all(), expected = [10, 11, 8, 7, 9, 6];
+  for (const [index, slot] of expected.entries()) {
+    const name = 'ABCDEF'[index], button = find(`scspSynthAllocationEdit${name}`), card = find(`scspSynthAllocationOp${name}`);
+    assert.equal(button.tagName, 'BUTTON'); assert.equal(button.getAttribute('type'), 'button');
+    assert.equal(button.textContent, `CH${slot + 1}`); assert.equal(button.dataset.allocationSlot, String(slot));
+    assert.equal(button.getAttribute('aria-label'), `Edit physical CH${slot + 1} (operator ${name})`);
+    assert.equal(card.dataset.operator, name); assert.equal(card.children[0].textContent, `${name} → CH${slot + 1}`);
+    assert(!button.disabled); assert(!Object.hasOwn(button.dataset, 'operator'));
+  }
+  const a = find('scspSynthAllocationEditA'), b = find('scspSynthAllocationEditB'), c = find('scspSynthAllocationEditC');
+  a.focus(); pointerDown(a); pointerClick(a);
+  assert.deepEqual(calls, [10], 'selection callback runs in the native click turn');
+  assert.equal(doc.focused, null); assert.equal(a.blurCalls, 1);
+  b.fire('click', { detail: 0 }); // Accessibility/native click need not have pointerdown.
+  pointerClick(c); // Click-only callers also resolve the current valid target.
+  assert.deepEqual(calls, [10, 11, 8]); assert.equal(b.blurCalls, 0); assert.equal(c.blurCalls, 1);
+  view.update(owner.read(), { operator: 5 });
+  assert.deepEqual(all(), nodes); assert.deepEqual(owner.read(), before); assert.deepEqual(slotRegisters(owner), registers);
+  assert.equal(owner.read().codeActive, true); assert.equal(owner.read().codeSession, session);
+});
+
+test('Enter and Space use native click activation, preserve keyboard focus, and tolerate release and value polling', async t => {
+  const owner = await create(t), calls = [];
+  owner.setConfig({ mode: 'fm2', fm: { algorithm: 'cycle2' } }); owner.noteOn('cycle', 69);
+  const { view, doc, find, all } = fixture({ onSelectSlot: slot => calls.push(slot) }); t.after(() => view.dispose());
+  view.update(owner.read());
+  const a = find('scspSynthAllocationEditA'), b = find('scspSynthAllocationEditB'), nodes = all();
+  a.focus(); const enter = nativeKeyDown(a, 'Enter');
+  assert(!enter.defaultPrevented); assert.deepEqual(calls, [], 'keydown delegates activation to the native button');
+  owner.noteOff('cycle'); view.update(owner.read());
+  a.fire('click', { detail: 0 }); nativeKeyUp(a, 'Enter');
+  assert.deepEqual(calls, [6]); assert.equal(doc.focused, a); assert.equal(a.blurCalls, 0);
+  b.focus(); const space = nativeKeyDown(b, ' ');
+  owner.invokePhysical('setMix', [7, { directLevel: 3, pan: 11 }]); view.update(owner.read());
+  assert(!space.defaultPrevented); assert.deepEqual(calls, [6]);
+  nativeKeyUp(b, ' '); b.fire('click', { detail: 0 });
+  assert.deepEqual(calls, [6, 7]); assert.equal(doc.focused, b); assert.equal(b.blurCalls, 0);
+  const writes = doc.writes, focusCalls = doc.focusCalls; view.update(owner.read());
+  assert.equal(doc.writes, writes); assert.equal(doc.focusCalls, focusCalls); assert.equal(doc.focused, b); assert.deepEqual(all(), nodes);
+  nativeKeyDown(b, 'Enter'); view.update(owner.read(), { operator: 1 });
+  nativeKeyDown(b, 'Enter', true); b.fire('click', { detail: 0 }); nativeKeyUp(b, 'Enter');
+  assert.deepEqual(calls, [6, 7, 7], 'source-operator polling does not change the physical CH address');
+  nativeKeyDown(b, 'Enter'); b.fire('click', { detail: 0 }); nativeKeyUp(b, 'Enter');
+  assert.deepEqual(calls, [6, 7, 7, 7]); assert.equal(doc.focused, b);
+});
+
+test('held pointer and Space reject changed targets even if an earlier mapping returns before click', async t => {
+  const owner = await create(t), calls = [];
+  owner.setConfig({ mode: 'fm2', fm: { algorithm: 'chain' } }); owner.noteOn('first', 60);
+  const first = owner.read(), { view, find } = fixture({ onSelectSlot: slot => calls.push(slot) }); t.after(() => view.dispose());
+  view.update(first); const a = find('scspSynthAllocationEditA'); pointerDown(a);
+  owner.noteOn('second', 64); const second = owner.read(); view.update(second); pointerClick(a);
+  assert.deepEqual(calls, [], 'a new Auto allocation cannot redirect an in-flight click');
+  pointerDown(a); pointerClick(a); assert.deepEqual(calls, [9]);
+  pointerDown(a); view.update(first); view.update(second); pointerClick(a);
+  assert.deepEqual(calls, [9], 'a target changing back does not revive the old gesture');
+  nativeKeyDown(a, ' '); view.update(first); nativeKeyUp(a, ' '); a.fire('click', { detail: 0 });
+  assert.deepEqual(calls, [9]);
+  nativeKeyDown(a, ' '); nativeKeyUp(a, ' '); a.fire('click', { detail: 0 });
+  assert.deepEqual(calls, [9, 7]);
+  pointerDown(a); const sameSlotNewOwner = structuredClone(first); sameSlotNewOwner.voiceGroups[0].id = 'replacement';
+  view.update(sameSlotNewOwner); pointerClick(a); assert.deepEqual(calls, [9, 7, 7], 'ownership replacement preserves navigation to the unchanged physical slot');
+});
+
+test('cancellation, blur, hidden ancestors, disabled contexts and disposal guard navigation', async t => {
+  const owner = await create(t), calls = [], { view, doc, root, find } = fixture({ onSelectSlot: slot => calls.push(slot) });
+  owner.noteOn('voice', 60); view.update(owner.read()); const a = find('scspSynthAllocationEditA');
+  pointerDown(a, 'touch'); a.fire('pointercancel'); pointerClick(a, 'touch'); assert.deepEqual(calls, []);
+  a.focus(); pointerDown(a); a.blur(); pointerClick(a); assert.deepEqual(calls, []);
+  a.fire('click', { detail: 0 }); assert.deepEqual(calls, [6], 'cancelled tokens are consumed and cannot taint the next native click');
+  root.hidden = true; a.fire('click', { detail: 0 }); root.hidden = false;
+  const ancestor = new Node(doc, 'section'); ancestor.append(root); ancestor.hidden = true;
+  a.fire('click', { detail: 0 }); ancestor.hidden = false; assert.deepEqual(calls, [6]);
+  pointerDown(a); view.setEnabled(false); assert(a.disabled); view.setEnabled(true); assert(!a.disabled); pointerClick(a);
+  assert.deepEqual(calls, [6], 'switching away and back cancels a held gesture');
+  a.focus(); nativeKeyDown(a, 'Enter'); a.blur(); a.fire('click', { detail: 0 });
+  a.fire('click', { detail: 0 }); assert.deepEqual(calls, [6, 6], 'blur also clears a held Enter token after rejecting its stale click');
+  nativeKeyDown(a, 'Enter'); view.setEnabled(false); view.setEnabled(true); a.fire('click', { detail: 0 });
+  assert.deepEqual(calls, [6, 6], 'a hidden-and-restored keyboard gesture stays cancelled without keyup');
+  view.update(owner.read(), { enabled: false }); a.fire('click', { detail: 0 }); assert(a.disabled);
+  view.update(owner.read(), { enabled: true }); assert(!a.disabled); a.fire('click', { detail: 0 }); assert.deepEqual(calls, [6, 6, 6]);
+  view.update(undefined); assert(a.disabled); a.fire('click', { detail: 0 });
+  view.update(owner.read()); assert(find('scspSynthAllocationEditB').disabled); find('scspSynthAllocationEditB').fire('click', { detail: 0 });
+  const conflict = owner.read(); conflict.manualVoices.push({ slot: 6, id: 'conflict', held: true });
+  view.update(conflict, { selected: 6 }); assert(a.disabled); a.fire('click', { detail: 0 });
+  view.update(owner.read()); pointerDown(a); view.dispose(); assert(a.disabled); pointerClick(a); view.setEnabled(true); assert(a.disabled);
+  assert.deepEqual(calls, [6, 6, 6]);
+});
+
+test('source, unowned and manual members route exact slots; manual replacement and callback errors stay isolated', async t => {
+  const owner = await create(t), calls = [], errors = [];
+  let failure = null;
+  const { view, find } = fixture({ onSelectSlot: slot => { calls.push(slot); if (failure === 'sync') throw Error('sync selection'); if (failure === 'async') return Promise.reject(Error('async selection')); }, onError: error => errors.push(error.message) });
+  t.after(() => view.dispose());
+  view.update(owner.read(), { operator: 4 }); const a = find('scspSynthAllocationEditA');
+  assert.equal(a.dataset.allocationSlot, '4'); assert.equal(a.getAttribute('aria-label'), 'Edit physical CH5 (operator E)');
+  assert.equal(find('scspSynthAllocationOpA').dataset.operator, 'E'); a.fire('click', { detail: 0 });
+  view.update(owner.read(), { selected: 31 }); assert.equal(a.getAttribute('aria-label'), 'Edit physical CH32'); a.fire('click', { detail: 0 });
+  owner.physicalNoteOn('manual', 8, 72); view.update(owner.read(), { selected: 8 });
+  assert.equal(find('scspSynthAllocationOpA').children[0].textContent, 'CH9'); assert.equal(find('scspSynthAllocationOpA').dataset.operator, '');
+  pointerDown(a); owner.physicalNoteOff('manual'); view.update(owner.read(), { selected: 8 }); pointerClick(a);
+  assert.deepEqual(calls, [4, 31, 8], 'release retains the same manual target');
+  pointerDown(a); owner.physicalNoteOn('replacement', 8, 74); view.update(owner.read(), { selected: 8 }); pointerClick(a);
+  assert.deepEqual(calls, [4, 31, 8, 8], 'a new owner at the same physical slot does not cancel navigation');
+  const before = owner.read(), registers = slotRegisters(owner);
+  failure = 'sync'; a.fire('click', { detail: 0 }); assert.deepEqual(errors, ['sync selection']);
+  failure = 'async'; a.fire('click', { detail: 0 }); await Promise.resolve();
+  assert.deepEqual(errors, ['sync selection', 'async selection']); assert.deepEqual(owner.read(), before); assert.deepEqual(slotRegisters(owner), registers);
 });

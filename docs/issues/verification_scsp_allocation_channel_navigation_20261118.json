@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-allocation-diagram-physical-channel-navigation",
+  "baseCommit": "18a9bc47294d3255e977858e9d1e93beca674d27",
+  "completed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "unitTests": 467,
+  "packageTests": 2,
+  "sourceProofTests": 31,
+  "sourceReceiptPin": "0e9351b17baafe7095f97f6e6694474c0f1c5274c59675b934e221a18fbce7cf",
+  "sourceBrowser": {
+    "cases": 28,
+    "path": "build/scsp-allocation-channel-navigation-browser-20261118/source.json",
+    "bytes": 87751,
+    "sha256": "73c32877cd317b47cb5033e23e0b7b48862da0d2808333114d1e71e8619334b4"
+  },
+  "packagedBrowser": {
+    "cases": 28,
+    "path": "build/scsp-allocation-channel-navigation-browser-20261118/packaged.json",
+    "bytes": 87812,
+    "sha256": "e3f38f197a09a0ce400701b8143c1953c580f6d1887b6bf7fa03609f4e9e0ffe"
+  },
+  "allocationRegressionBrowser": {
+    "cases": 14,
+    "path": "build/scsp-allocation-channel-navigation-20261118/allocation-regression-browser.json",
+    "bytes": 211082,
+    "sha256": "f72f5e9768f87561a0f73d91efab4e5e36d0e51b50c5666c5f4ec07bf51f261b"
+  },
+  "sourcePackageComparison": {
+    "path": "build/scsp-allocation-channel-navigation-browser-20261118/comparison.json",
+    "bytes": 1587,
+    "sha256": "9701c75ed524f6f8270e255070b93973c0c447a828d54c26567aa26e74100b5b"
+  },
+  "proof": {
+    "path": "build/scsp-allocation-channel-navigation-20261118/proof-freeze.json",
+    "bytes": 5186,
+    "sha256": "133c2b89be246e64b8bb9865d4ecb6b230aaafdc93eec6b3c3b1e6e3643739ae"
+  },
+  "logs": [
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/unit-tests.log",
+      "bytes": 50068,
+      "sha256": "ad2291a64cd5760e9c6746569b35d33e981b31a606e1f2bd2d4c69c7ad0eff35"
+    },
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/package-tests.log",
+      "bytes": 310,
+      "sha256": "b65d62395e76427fb29e919e3289d20a08cfe5bc9a47ef81b6e5da8f64340532"
+    },
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/proof-tests.log",
+      "bytes": 3866,
+      "sha256": "0052b448be6fd89c93d864fa991fd02f064af8df25dabf0181f1b90d8700b11c"
+    },
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/proof-recorders.log",
+      "bytes": 1308,
+      "sha256": "7ffdf178f6e2a2cc6cae44b3ec710a8828cca76c6b8d4a2050dd13e6580e3d85"
+    },
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/proof-mixer-soundchip.log",
+      "bytes": 105,
+      "sha256": "a7c18de59cb9601bc4a6adad252599a4b13e84f3575ef9e87d8a5ad894a203ed"
+    },
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/proof-mixer-playground.log",
+      "bytes": 140,
+      "sha256": "7f8074162beb2e7294597194dfdfb5756941f137bf89b38a7f5ad9d867d4d81a"
+    },
+    {
+      "path": "build/scsp-allocation-channel-navigation-20261118/proof-historical-reports.log",
+      "bytes": 114,
+      "sha256": "eee621b37ecce665a1aa286f6ce6ff3a5b4449c88791b419e7836f6cb68a01c6"
+    }
+  ],
+  "sources": [
+    {
+      "path": "docs/issues/scsp_allocation_navigation_source_revision_01.json",
+      "bytes": 29038,
+      "sha256": "b81389bd6dcae3a2f5107c849e21fa033bc58d8e104f2645c097582a6f5af0c4"
+    },
+    {
+      "path": "docs/issues/todo_scsp_allocation_channel_navigation_20261118.md",
+      "bytes": 1647,
+      "sha256": "786cec974af509b1771a68c9fb939e474337b184e443bfb58d49e7369f48c41f"
+    },
+    {
+      "path": "docs/issues/verification_scsp_allocation_channel_navigation_20261118.md",
+      "bytes": 4142,
+      "sha256": "09d625f5d534c572f7f4e296f147f4b48706ae025660018812270d4517086bff"
+    },
+    {
+      "path": "docs/synth-scsp/README.md",
+      "bytes": 48503,
+      "sha256": "8387aeb8bf156f667deb29a666410ef1d88bea859b598d426333d6e702b29c02"
+    },
+    {
+      "path": "docs/synth-scsp/index.html",
+      "bytes": 46784,
+      "sha256": "4bd26a087a1bf1c5f6f88f53924caaa558710dfcd8fff63786f7dc13647bbf16"
+    },
+    {
+      "path": "docs/synth-scsp/slot_allocation_view.js",
+      "bytes": 22964,
+      "sha256": "f3a02e1cf3e51a972ed4dae83cbfe81e392f0fffba60a0ce0dde988bae1a600e"
+    },
+    {
+      "path": "docs/synth-scsp/slot_allocation_view.test.mjs",
+      "bytes": 26305,
+      "sha256": "2a795c3e39d5cce785ec77d1f82b409e895c65fb87e8bd5ea408c1854b064cb9"
+    },
+    {
+      "path": "docs/synth-scsp/synth.css",
+      "bytes": 34478,
+      "sha256": "10093054bc43f7e3a7a13397f41089fdbd9c7a076403ab0c10e1dbd72a0cee02"
+    },
+    {
+      "path": "docs/synth-scsp/synth.js",
+      "bytes": 62885,
+      "sha256": "54a48ad20c4c4ee12e89e1ff195f3f0b60b41a70724f24443476c7852629fb1e"
+    },
+    {
+      "path": "scripts/check_scsp_allocation_channel_navigation_browser.cjs",
+      "bytes": 40132,
+      "sha256": "348522bb0be72f6a6b238b66b349bdbbaf2f390a315f16943d676b5793bf35c3"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_allocation_navigation_revision.mjs",
+      "bytes": 10983,
+      "sha256": "626a22f3b5b68ee8a004a420d10fe3fab61b4ae598c9e6032fcd4d3e2d8eba1f"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_allocation_navigation_revision.test.mjs",
+      "bytes": 6938,
+      "sha256": "a84e68973abf7545875c7e74e14172a17b65baaf4ac9ac9b9dc4a54032594c8d"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_synth_slot_allocation_revision.mjs",
+      "bytes": 10509,
+      "sha256": "f32d38a0f39c3e4eebe9e04a5a7e87222488fc777a851904c52be93dd9320aff"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_synth_slot_allocation_revision.test.mjs",
+      "bytes": 6078,
+      "sha256": "411051619324f698b7a6f2b6662d7930dc39a0130927e7cb4186dc32a09dc2c0"
+    },
+    {
+      "path": "scripts/record_scsp_allocation_navigation_revision.mjs",
+      "bytes": 4614,
+      "sha256": "7212f5467780706223c91cf83e7390ea028ac4ab600997e48b68a3767d75112d"
+    },
+    {
+      "path": "scripts/record_scsp_synth_slot_allocation_revision.mjs",
+      "bytes": 4883,
+      "sha256": "c3205acea6a5afab80c1dcad3384672bb64db8dba8eb3f47c284b939addc0e6c"
+    }
+  ],
+  "package": {
+    "record": {
+      "path": "build/scsp-allocation-channel-navigation-20261118/package.json",
+      "bytes": 502,
+      "sha256": "d0ce05e00f936927afbd6fb5c3925d122bb0ef1f7a627a4607d1054f639647f9"
+    },
+    "archive": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_scsp_synth_allocation-navigation-check-18a9bc47_itch.zip",
+      "bytes": 4400347,
+      "sha256": "132d460274919401e4dcaec5506b2a210619244e33adcb2197ea644c7a6ac627"
+    },
+    "files": 386,
+    "bundles": 4
+  },
+  "limitations": [
+    "Navigation selects a physical address, not a reservation of the voice currently using it.",
+    "Existing PCM Apply and parameter timing remain unchanged.",
+    "No public API/audio/allocation/core/WASM/observer/gain/preset behavior changes.",
+    "No npm/version/publication/commit/push/tag or Tauri work."
+  ]
+}
