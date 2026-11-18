@@ -1,0 +1,1307 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-two-operator-cross-cycle-research-and-code-prototype",
+  "baseCommit": "553c59bbf05f601b38ee24196a8d570105c5c1db",
+  "researchOnly": true,
+  "published": false,
+  "npmUpdated": false,
+  "presetVersionAdded": false,
+  "packageVersionChanged": false,
+  "parentCommitCreated": false,
+  "physicalListeningPerformed": false,
+  "candidate": {
+    "variant": "current-forward-average12",
+    "order": [
+      "A",
+      "B"
+    ],
+    "physicalSlots": {
+      "A": 6,
+      "B": 7
+    },
+    "output": "B only",
+    "returnInput": "avg(B[n-1],B[n-2])",
+    "forwardInput": "A[n]",
+    "depth": 8,
+    "requestedWords": {
+      "A": "0x8841",
+      "B": "0x8FFF"
+    },
+    "registerPlan": {
+      "aSlot": 6,
+      "bSlot": 7,
+      "variant": "current-forward-average12",
+      "depth": 8,
+      "adapterOff": false,
+      "first": {
+        "role": "A",
+        "slot": 6,
+        "source": 7,
+        "xOffset": 33,
+        "yOffset": 1,
+        "word": 34881,
+        "ages": [
+          1,
+          2
+        ]
+      },
+      "second": {
+        "role": "B",
+        "slot": 7,
+        "source": 6,
+        "xOffset": 63,
+        "yOffset": 63,
+        "word": 36863,
+        "ages": [
+          0,
+          0
+        ]
+      }
+    },
+    "appliesTo": "pinned zero-slot-delay core; full physical SCSP pipeline fidelity not established"
+  },
+  "example": {
+    "path": "docs/playground/research/scsp-cycle2-prototype.js",
+    "bytes": 3673,
+    "sha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72"
+  },
+  "usage": {
+    "destination": "Tetorica FM2612 Playground SCSP mode, Web Audio Main/Worker",
+    "entry": "playground/index.html?mode=scsp",
+    "load": "Files + -> new JavaScript text file -> paste -> select Run file -> Run",
+    "reevaluation": "Run retains livePrepare, dedicated instance, PCM and history; live depth edits apply",
+    "fresh": "Stop -> Run creates a fresh dedicated instance",
+    "synthCode": "No raw modulation or cycle support added",
+    "setters": "ordered posts, not audio-thread acknowledgement or a sample-atomic trigger"
+  },
+  "checks": {
+    "nativeMatrix": {
+      "cases": 600,
+      "lifecycle": 40,
+      "center": 10,
+      "carrier": 10
+    },
+    "nativeMatrixTotal": 660,
+    "wrongHistoryCounterexamples": 2,
+    "nativeTestsPassed": 11,
+    "exampleTestsPassed": 3,
+    "combinedScopedTestsPassed": 14,
+    "historyPolicyProbe": true,
+    "highDepthDistinctGroups": 60,
+    "maximumMeasuredPeak": 0.27960205078125,
+    "centerNonExactIsolatedPcmCases": 10,
+    "maximumCenterDifferenceLsb": 1,
+    "browserChecksPassed": 64,
+    "browserConfigurations": 8,
+    "servedAssets": 317,
+    "protectedInputs": 251,
+    "appSourceInjected": false,
+    "uiBundleModified": false,
+    "githubExecution": "Not run; existing checks retained and new commands added"
+  },
+  "nativeModel": {
+    "coreWasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "reference": "Actual two-OP core compared with a return-edge cut into two unused ring cells, using its own logged source history. The cut-edge full64-ring comparison is after restoring those scratch cells, and actual scratch cells must remain zero. The separate-OP model combines the two dedicated cores post-frame slot samples into their actual physical cells, retaining known initial/inactive cells elsewhere; that complete64-cell image must equal the actual ring. No Synth routing/command helper is imported.",
+    "mixing": "Main cases pan A left and B right so the independent single-OP PCM has identical integer mixing. Center-output cases require cut-edge exact PCM and isolated exact raw stack; independently rounded single-OP PCM differs by at most one native 16-bit LSB when summed. Carrier cases use A directLevel0/B directLevel5 with centered output and retain exact separate-core PCM. Direct output muting does not mute the stack feedback.",
+    "history": "Raw fresh instances start with zero history. Explicit stale histories survive keyOn, live edits, release and retrigger; only core Stop/reset clears all ring cells. This prototype does not change production history semantics.",
+    "tapAgeAssumption": "Nominal ages describe source generations while that source writes continuously. Inactive sources or inhibited stack writes can retain older values; the bank selection does not manufacture a fresh zero sample.",
+    "timing": "Native taps are measured at 44100 Hz; the same native PCM is streamed through the existing resampler at44100/48000 Hz. No setTimeout schedule or physical audio device is used.",
+    "historyPolicy": {
+      "freshDedicatedResetStartsZero": true,
+      "keyOnRetainsExplicitSeeds": true,
+      "releaseEventuallyStopsStackWrites": true,
+      "inactiveMarkersRetained": true,
+      "retriggerRetainsMarkers": true,
+      "physicalSlotSampleReuseRetainsMarkers": true,
+      "globalStopClearsAll64": true,
+      "globalStopRetainsPcmRam": true,
+      "mutedOffPrimeFrames": 2,
+      "mutedOffPrimePcmExactlySilent": true,
+      "mutedOffPrimeOverwritesBothBanks": true,
+      "liveEnablePreservesPrimedHistory": true,
+      "primingLimit": "The native probe advances exactly two frames. An ordinary JavaScript wait in Playground has no sample-accurate start guarantee; use it only as a minimum muted warm-up, not as a promise of identical phase/history.",
+      "nativeCommandStats": {
+        "registerWrites": 153,
+        "ramLoads": 2,
+        "renderCalls": 4,
+        "renderedFrames": 8579,
+        "resets": 2
+      }
+    },
+    "wrongHistoryModels": [
+      {
+        "wrongReturnAges": [
+          2,
+          2
+        ],
+        "cutEdgeExactPcm": false
+      },
+      {
+        "wrongReturnAges": [
+          1,
+          2
+        ],
+        "cutEdgeExactPcm": false
+      }
+    ]
+  },
+  "preservation": {
+    "blobsChecked": 7512,
+    "unchangedBlobs": 7511,
+    "allowedChangedPaths": [
+      ".github/workflows/scsp-synth.yml"
+    ],
+    "otherChangedPaths": [],
+    "unchangedGroups": {
+      "generated": 85,
+      "historicalIssueJson": 899,
+      "calibrationOrGain": 217,
+      "browserRuntime": 443,
+      "scspSynth": 109,
+      "canonicalRuntime": 497,
+      "nativeAndVendor": 1085
+    }
+  },
+  "independentAuditMethod": "Independent Git blob rehash, independent literal ring enumeration, complete stored-result/schema/hash review and manual reference-code review. Does not rerun all 660 native cases or independently rederive PCM from report digests.",
+  "independentSelectorEnumeration": {
+    "comparisons": 8192,
+    "sourceSlots": 32,
+    "consumerSlots": 32,
+    "frameParitiesCovered": 2,
+    "framesSimulated": 4,
+    "candidate": {
+      "aSlot": 6,
+      "bSlot": 7,
+      "aOffsets": [
+        33,
+        1
+      ],
+      "aAges": [
+        1,
+        2
+      ],
+      "bOffsets": [
+        63,
+        63
+      ],
+      "bAges": [
+        0,
+        0
+      ],
+      "depth": 8,
+      "aWord": "0x8841",
+      "bWord": "0x8FFF"
+    }
+  },
+  "browser": {
+    "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+    "entry": "/playground/index.html?mode=scsp",
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "results": [
+      {
+        "browser": "chromium",
+        "rate": 44100,
+        "execution": "main",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu1zzg-4-ivmu23jb2c",
+          "sample": {
+            "bankId": "scsp-mwlu1zzg-4-ivmu23jb2c",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu20ol-6-5p62zlxx6nr",
+          "sample": {
+            "bankId": "scsp-mwlu20ol-6-5p62zlxx6nr",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.0006604314875252123,
+          "peak": 0.0020286161452531815,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.5003145472300725,
+          1.5003145472300725
+        ],
+        "repeatedCommands": [
+          "setModulation",
+          "setModulation",
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "chromium",
+        "rate": 44100,
+        "execution": "worker",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu21ih-4-74s3nyl3i",
+          "sample": {
+            "bankId": "scsp-mwlu21ih-4-74s3nyl3i",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu23fh-6-8uhqgyrlnwf",
+          "sample": {
+            "bankId": "scsp-mwlu23fh-6-8uhqgyrlnwf",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.00037051076084630534,
+          "peak": 0.0020286161452531815,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.5002892234108665,
+          1.5002892234108665
+        ],
+        "repeatedCommands": [
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "chromium",
+        "rate": 48000,
+        "execution": "main",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu24i3-4-p487p6uloa",
+          "sample": {
+            "bankId": "scsp-mwlu24i3-4-p487p6uloa",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu256g-6-tibqucq6ojn",
+          "sample": {
+            "bankId": "scsp-mwlu256g-6-tibqucq6ojn",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.0004436449925514601,
+          "peak": 0.0020272647961974144,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.5002892234108665,
+          1.5002892234108665
+        ],
+        "repeatedCommands": [
+          "setModulation",
+          "setModulation",
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "chromium",
+        "rate": 48000,
+        "execution": "worker",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu25yl-4-4ggzuficgxs",
+          "sample": {
+            "bankId": "scsp-mwlu25yl-4-4ggzuficgxs",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu27vt-6-imr7lmwks7g",
+          "sample": {
+            "bankId": "scsp-mwlu27vt-6-imr7lmwks7g",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.00043405202207772597,
+          "peak": 0.002028591698035598,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.5002892234108665,
+          1.5002892234108665,
+          1.5002892234108665,
+          1.5002892234108665,
+          1.5002892234108665,
+          1.5002892234108665,
+          1.4996877739317487,
+          1.4996877739317487
+        ],
+        "repeatedCommands": [
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "rate": 44100,
+        "execution": "main",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu29di-4-8uq6av5tgcd",
+          "sample": {
+            "bankId": "scsp-mwlu29di-4-8uq6av5tgcd",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu2a21-6-dmzvwcdgb1p",
+          "sample": {
+            "bankId": "scsp-mwlu2a21-6-dmzvwcdgb1p",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.0005824388300485975,
+          "peak": 0.0020286161452531815,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.5003145472300725,
+          1.5003145472300725,
+          1.5003145472300725,
+          1.5003145472300725,
+          1.5003145472300725,
+          1.5003145472300725,
+          1.5003145472300725,
+          1.5003145472300725
+        ],
+        "repeatedCommands": [
+          "setModulation",
+          "setModulation",
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "rate": 44100,
+        "execution": "worker",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu2azt-4-saf29nndyu",
+          "sample": {
+            "bankId": "scsp-mwlu2azt-4-saf29nndyu",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu2cxa-6-8gpv7zkjkbg",
+          "sample": {
+            "bankId": "scsp-mwlu2cxa-6-8gpv7zkjkbg",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.0006431556324475868,
+          "peak": 0.0020286161452531815,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.4996877739317487,
+          1.4996877739317487,
+          1.4996877739317487,
+          1.4996877739317487,
+          1.4996877739317487,
+          1.4996877739317487,
+          1.4996877739317487,
+          1.4996877739317487
+        ],
+        "repeatedCommands": [
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "rate": 48000,
+        "execution": "main",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu2e6c-4-y7c24ztwuba",
+          "sample": {
+            "bankId": "scsp-mwlu2e6c-4-y7c24ztwuba",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu2eup-6-uw0btg8q8id",
+          "sample": {
+            "bankId": "scsp-mwlu2eup-6-uw0btg8q8id",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.0005139157924774155,
+          "peak": 0.002024684799835086,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.5002892234108665,
+          1.5002892234108665
+        ],
+        "repeatedCommands": [
+          "setModulation",
+          "setModulation",
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      },
+      {
+        "browser": "webkit",
+        "rate": 48000,
+        "execution": "worker",
+        "passed": true,
+        "cases": [
+          "Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio",
+          "The unchanged example executes through the selected Main/Worker route on an independently owned SCSP, leaving primary gates and PCM intact",
+          "Public Worklet state matches A6/B7 current-forward63/63 and avg-return33/1, separate direct/TL levels and the visible register table",
+          "Legato melody retains both gates with the intended 1.5 ratio within pitch quantization and finite nonzero pre-mute output",
+          "Run reevaluation (Apply equivalent) retains the same dedicated node/bank/PCM and phase/history owner without another setup; Main sends no reset/load/keyOn",
+          "Depth-only Off/On reevaluation retains node and PCM, keeps the other edge at MDL8 and uses adapter Off without a new attack",
+          "Stop disposes the dedicated instance and silences output while preserving the shared primary sample/configuration",
+          "Stop -> Run creates fresh dedicated core/PCM ownership with the same recipe; all physical routes stay muted and served app assets remain unmodified"
+        ],
+        "sourceSha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72",
+        "virtualFile": "/examples/scsp-cycle2-prototype.js",
+        "first": {
+          "bankId": "scsp-mwlu2fsi-4-ne6dv59zkz",
+          "sample": {
+            "bankId": "scsp-mwlu2fsi-4-ne6dv59zkz",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "fresh": {
+          "bankId": "scsp-mwlu2ho3-6-l38i2zkvrlg",
+          "sample": {
+            "bankId": "scsp-mwlu2ho3-6-l38i2zkvrlg",
+            "id": 2,
+            "address": 4226,
+            "byteLength": 8322,
+            "length": 64,
+            "bits": 16,
+            "rootFrequencyHz": 689.0625,
+            "sourceSampleRate": 44100,
+            "loopStartSamples": 0,
+            "modulationDepth": 12,
+            "allocationAddress": 130
+          },
+          "ramUsedBytes": 8452,
+          "a": {
+            "slot": 6,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 33,
+              "yOffset": 1,
+              "writeInhibit": false
+            },
+            "directLevel": 0
+          },
+          "b": {
+            "slot": 7,
+            "modulation": {
+              "depth": 8,
+              "xOffset": 63,
+              "yOffset": 63,
+              "writeInhibit": false
+            },
+            "directLevel": 5
+          }
+        },
+        "audible": {
+          "rms": 0.0005760778736531236,
+          "peak": 0.002027928363531828,
+          "nonFinite": 0
+        },
+        "stopped": {
+          "rms": 0,
+          "peak": 0,
+          "nonFinite": 0
+        },
+        "ratios": [
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001,
+          1.499908744421001
+        ],
+        "repeatedCommands": [
+          "getState"
+        ],
+        "historyEvidence": "Browser confirms retained/fresh ownership; direct ring history ages/clears are established by the separate native experiment, not exposed by getState.",
+        "errors": [],
+        "missing": []
+      }
+    ]
+  },
+  "sources": {
+    "scripts/probe_scsp_fm_cycle2.mjs": {
+      "bytes": 24085,
+      "sha256": "bf1be6957035e24d037f915ec61eec74572c99c255ec82a4626bd573f2883cbe"
+    },
+    "scripts/scsp_fm_cycle2.test.mjs": {
+      "bytes": 7663,
+      "sha256": "adc638a8d18881d8c519a3ce4a76134001c2f3ad3e0bb11b2c945d6fcff9ff93"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "docs/js/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp": {
+      "bytes": 27097,
+      "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.h": {
+      "bytes": 2976,
+      "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed"
+    }
+  },
+  "evidence": {
+    "native-research.json": {
+      "path": "build/scsp-cycle2-20261118/native-research.json",
+      "bytes": 1796724,
+      "sha256": "ea79c575b009018c7c3c5079ad178f859f790a82ef2c02b4c3be19715c36bf13"
+    },
+    "native-research.log": {
+      "path": "build/scsp-cycle2-20261118/native-research.log",
+      "bytes": 558,
+      "sha256": "558cb4bb33393547317f863183d275d53e2513feb62f4498a78c22b32df6c59b"
+    },
+    "native-tests.log": {
+      "path": "build/scsp-cycle2-20261118/native-tests.log",
+      "bytes": 1452,
+      "sha256": "8ad7c2a408f0348b2c203d47fdd371e1dd5b55b728550ba653f4322b40a4c4ba"
+    },
+    "example-tests.log": {
+      "path": "build/scsp-cycle2-20261118/example-tests.log",
+      "bytes": 455,
+      "sha256": "b6f8f3d47d2109e3d4b4c3bdba322cbe53d9ef4ca7979397af0981b2b1c6ed05"
+    },
+    "example-bundle-check.log": {
+      "path": "build/scsp-cycle2-20261118/example-bundle-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "production-receipt-check.log": {
+      "path": "build/scsp-cycle2-20261118/production-receipt-check.log",
+      "bytes": 109,
+      "sha256": "d2e2f9812f79266d165816d2f888676a7f5a7b7cb5a5a279608576c506a2138e"
+    },
+    "browser-source.json": {
+      "path": "build/scsp-cycle2-20261118/browser-source.json",
+      "bytes": 126696,
+      "sha256": "2e2c8eb911025595d0bff714e35fae6f01cb6347471c05afb202b1ec91a5e1c2"
+    },
+    "browser-source.log": {
+      "path": "build/scsp-cycle2-20261118/browser-source.log",
+      "bytes": 133,
+      "sha256": "49f9f0881d5e2f20d4adbd9d147e0c250a1ec8e2850c274bfe62115984bcb559"
+    },
+    "independent-audit.json": {
+      "path": "build/scsp-cycle2-20261118/independent-audit.json",
+      "bytes": 10865,
+      "sha256": "b905b64b19f55380aa898e8bdb621f344b3a541e3b310447ecd1516872948cb5"
+    },
+    "independent-audit.log": {
+      "path": "build/scsp-cycle2-20261118/independent-audit.log",
+      "bytes": 898,
+      "sha256": "e43cdef1abc55ec23511ed7d552bec88c96e7c4569b252ae2482bf340e2badf5"
+    },
+    "research/source-research.json": {
+      "path": "build/scsp-cycle2-20261118/research/source-research.json",
+      "bytes": 8809,
+      "sha256": "fd69fc2ac7a21daf7e527e2fcba67e87179be533a8f799e983f1d5b5d289f706"
+    },
+    "research/research.log": {
+      "path": "build/scsp-cycle2-20261118/research/research.log",
+      "bytes": 1347,
+      "sha256": "88803672b30cc249e8aef4e86ec68a0d750d89c6be09538bf52b1392eb41811f"
+    }
+  },
+  "screenshots": [
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-chromium-44100-main-code.png",
+      "bytes": 210364,
+      "sha256": "35d1ab4af7bfeb228ac942cb768dbe7d802d9d3e97e7f3f8762b5301a685a686"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-chromium-44100-worker-code.png",
+      "bytes": 211102,
+      "sha256": "242017fbcaf075db27aa5e68d8113f9c3e6dc54ba2864571262e3d66444b088f"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-chromium-48000-main-code.png",
+      "bytes": 210364,
+      "sha256": "35d1ab4af7bfeb228ac942cb768dbe7d802d9d3e97e7f3f8762b5301a685a686"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-chromium-48000-worker-code.png",
+      "bytes": 211102,
+      "sha256": "242017fbcaf075db27aa5e68d8113f9c3e6dc54ba2864571262e3d66444b088f"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-webkit-44100-main-code.png",
+      "bytes": 269325,
+      "sha256": "87b17c9a1dee9a3471e1ada47e556277cc10176aa0eac0bffc2a3608c552d84e"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-webkit-44100-worker-code.png",
+      "bytes": 270150,
+      "sha256": "c343140d2ecb5283f4eb1cac18cc73833a50a61d04b4e57be154b1c766ceaedd"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-webkit-48000-main-code.png",
+      "bytes": 269325,
+      "sha256": "87b17c9a1dee9a3471e1ada47e556277cc10176aa0eac0bffc2a3608c552d84e"
+    },
+    {
+      "path": "build/scsp-cycle2-20261118/browser-source-webkit-48000-worker-code.png",
+      "bytes": 270150,
+      "sha256": "c343140d2ecb5283f4eb1cac18cc73833a50a61d04b4e57be154b1c766ceaedd"
+    }
+  ],
+  "primaryPdf": {
+    "path": "build/scsp-self-feedback-20261118/research/ST-077-R2-052594.pdf",
+    "bytes": 1534386,
+    "sha256": "e4e02013a901d084b2e5156ce1035a5d85cda3857235443c3b4dca41244eba9c"
+  },
+  "outOfScope": [
+    "Synth UI/Code/preset cycle unlock",
+    "generic cyclic graph engine",
+    "combined Self/cross-cycle routing",
+    "variable physical pipeline",
+    "shared runtime/core/WASM/gain changes",
+    "sample-atomic JavaScript pair trigger",
+    "release publication"
+  ]
+}
