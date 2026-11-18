@@ -50,5 +50,7 @@ See [research](scsp_fm_cycle2_research_20261118.md) and the
 Next implementation decisions (not performed here): bounded Synth cycle2
 operator order/output model; atomic validated attack and owned-history policy;
 steal/manual/Code ownership; UI and explicitly versioned persistence; listening.
+The [subsequent design/TODO](todo_scsp_synth_cycle2_design_20261118.md) records
+these decisions separately; no Synth implementation is included in that step.
 Separately investigate whether Files' binary-import path should create editable
 text for JavaScript. The bundled prototype no longer requires that import path.

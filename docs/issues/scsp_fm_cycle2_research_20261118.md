@@ -262,6 +262,10 @@ existing text-editor fallback. No listening or physical Saturn test was done.
 
 ## Future Synth integration proposal - not implemented
 
+The subsequent [bounded Synth integration design](scsp_synth_cycle2_design_20261118.md)
+records the selected connection shape, lifecycle/ownership policy and phased
+implementation TODO. It remains a design; this research does not enable it.
+
 A bounded two-operator recipe can be considered after the Code experiment and
 human listening. It must state logical-to-physical order and which operator is
 external output. The existing Synth commonly places B before A and outputs A;
