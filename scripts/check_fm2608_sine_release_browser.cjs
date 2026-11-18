@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Narrow OPNA Sine software-release checks. Physical output is muted.
+// Focused OPNA ADPCM codec and software-release checks. Physical output is muted.
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const http = require('node:http');
@@ -16,7 +16,7 @@ for (let i = 2; i < process.argv.length; i++) {
   config[option[1]] = option[2] ?? process.argv[++i];
 }
 config.root = path.resolve(config.root);
-config.out ||= path.join(repo, 'build/opna-sine-release-20261119/browser-source.json');
+config.out ||= path.join(repo, 'build/fm2608-adpcm-codec-20261119/browser-source.json');
 const engines = config.engines.split(',');
 assert(engines.length && engines.every(name => ['chromium', 'webkit'].includes(name)));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -124,6 +124,70 @@ async function chooseShape(page, shape) {
     value.includes('Software ' + shape + ' wave encoded')), 'generated ' + shape);
   assert.match(await page.locator('#sampleInfo').textContent(), /128 decoded frames · 64 ADPCM bytes/);
 }
+function sourceWave(shape) {
+  return Array.from({length:128}, (_, index) => Math.fround(.6 * (shape === 'sine'
+    ? Math.sin(index / 128 * Math.PI * 2) : shape === 'saw' ? index / 128 * 2 - 1 : index < 64 ? 1 : -1)));
+}
+function floatWave(samples, rate = 33488) {
+  const bytes = Buffer.alloc(44 + samples.length * 4);
+  bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8);
+  bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(3, 20); bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 4, 28);
+  bytes.writeUInt16LE(4, 32); bytes.writeUInt16LE(32, 34); bytes.write('data', 36);
+  bytes.writeUInt32LE(samples.length * 4, 40);
+  samples.forEach((value, index) => bytes.writeFloatLE(value, 44 + index * 4));
+  return bytes;
+}
+async function importWave(page, shape) {
+  const name = 'same-' + shape + '-float32.wav';
+  await page.locator('#audioFileInput').setInputFiles({name, mimeType:'audio/wav', buffer:floatWave(sourceWave(shape))});
+  await until(() => page.locator('#audioStatus').textContent().then(value =>
+    value.includes('Loaded ' + name + ' as ADPCM-B')), 'Float32 WAV import ' + shape);
+}
+async function codecTrial(page, shape, imported, engine, images) {
+  if (imported) await importWave(page, shape); else await chooseShape(page, shape);
+  const wave = await exportWave(page), samples = sourceWave(shape);
+  assert.equal(wave.samples.length, 128); assert(Math.abs(wave.rate - 33488) <= 1);
+  const sourceRate = imported ? 33488 : 440 * 2 ** ((60 - 69) / 12) * 128;
+  const reference = await page.evaluate(async ({samples, sourceRate}) => {
+    const entry = [...document.scripts].find(script => /\/synth\.js$/.test(new URL(script.src).pathname));
+    if (!entry) throw Error('Actual synth module entry is missing');
+    const {encodeAdpcmB} = await import(new URL('../js/adpcm_b_sample.js', entry.src));
+    const {decodeAdpcm} = await import(new URL('preset.js', entry.src));
+    const actualRate = Math.round(sourceRate * 144 * 65536 / 8000000) * 8000000 / (144 * 65536);
+    const target = samples.map((_, index) => {
+      const position = Math.min(index * sourceRate / actualRate, samples.length - 1);
+      const first = Math.floor(position), fraction = position - first;
+      return samples[first] * (1 - fraction) + samples[Math.min(first + 1, samples.length - 1)] * fraction;
+    });
+    const baseline = Array.from(decodeAdpcm(encodeAdpcmB({channels:[Float32Array.from(samples)],sampleRate:sourceRate},actualRate).bytes));
+    return {target, baseline, actualRate};
+  }, {samples, sourceRate});
+  const error = (pcm, offset = 0) => {
+    const values = pcm.slice(offset).map((value, index) => value - reference.target[index + offset]);
+    return {max:Math.max(...values.map(Math.abs)), rms:Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length)};
+  };
+  const actual = error(wave.samples), baseline = error(reference.baseline);
+  assert(actual.rms <= baseline.rms + .00002, shape + ' fresh decoded RMS must not regress from shared greedy: ' + JSON.stringify({actual,baseline}));
+  assert(actual.max < (shape === 'sine' ? .012 : .65), shape + ' explicit maximum error bound: ' + JSON.stringify(actual));
+  assert(Math.abs(wave.samples[0]) < .01, 'bounded decoder starting step');
+  const canvasError = await page.evaluate(samples => {
+    const plot = __opnaSineAudit.wavePath;
+    if (!plot || plot.points.length !== plot.width) throw Error('Decoded canvas path is missing');
+    return Math.max(...plot.points.map(([x, y]) => Math.abs(
+      1 - 2 * y / plot.height - samples[Math.floor(x * samples.length / plot.width)])));
+  }, wave.samples);
+  assert(canvasError < .00004, 'canvas represents exported decoded PCM: ' + canvasError);
+  assert.match(await page.locator('#sampleInfo').textContent(), /Root C4 · aligned range 0–64/);
+  const label = (imported ? 'wav-' : 'generated-') + shape;
+  const imagePath = path.join(path.dirname(config.out), 'images', engine + '-' + label + '.png');
+  await fs.mkdir(path.dirname(imagePath), {recursive:true});
+  await page.locator('#waveCanvas').screenshot({path:imagePath}); images[label] = {path:imagePath,sha256:sha(await fs.readFile(imagePath))};
+  return {shape,route:imported?'Float32 WAV import':'Software waveform button',rate:wave.rate,
+    exactRate:reference.actualRate,frames:128,first:wave.samples.slice(0,8),actualError:actual,
+    sharedGreedyError:baseline,afterFirst16:{actual:error(wave.samples,16),sharedGreedy:error(reference.baseline,16)},
+    rmsImprovement:1-actual.rms/baseline.rms,canvasError,wavSha256:wave.sha256};
+}
 async function noteKey(page, note = 'C4') {
   return page.locator('#keyboard .key').evaluateAll((nodes, note) => {
     const key = nodes.find(node => node.querySelector('span')?.textContent === note);
@@ -152,7 +216,7 @@ function releaseProfile(events) {
   return {batches:events.length, levels:levels.length, duration:.008,
     start, end, first:levels.slice(0, 8), last:levels.slice(-8)};
 }
-async function keyTrial(page, key, screen = false) {
+async function keyTrial(page, key, screen = false, shape = 'sine') {
   await page.evaluate(() => document.activeElement?.blur());
   const before = (await graph(page)).releases;
   if (screen) {
@@ -160,10 +224,10 @@ async function keyTrial(page, key, screen = false) {
     await node.scrollIntoViewIfNeeded(); const box = await node.boundingBox(); assert(box);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
   } else await page.keyboard.down(key);
-  await until(() => graph(page).then(value => value.audio.rms > .01), 'actual Sine keyboard PCM');
+  await until(() => graph(page).then(value => value.audio.rms > .01), 'actual ' + shape + ' keyboard PCM');
   await wait(110); const held = await graph(page);
   assert(held.physicalOutputMuted && held.audio.rms > .01 && held.audio.peak < 1);
-  assert(held.audio.maxStep < .04, JSON.stringify(held));
+  assert(held.audio.maxStep < (shape === 'sine' ? .04 : .4), JSON.stringify(held));
   if (screen) await page.mouse.up(); else await page.keyboard.up(key);
   await until(() => graph(page).then(value => value.releases - before > 64), 'dense smooth owner release batches');
   await quiet(page);
@@ -193,7 +257,8 @@ async function retriggerTrial(page, key) {
   assert.equal(await page.locator('#keyboard .key.is-active').count(), 0);
   return {held:held.audio, cancelledOwner:owner};
 }
-async function rawStopTrial(page) {
+async function codeStopTrial(page, musical = false) {
+  const method = musical ? 'noteOff' : 'keyOff';
   const before = (await graph(page)).releases;
   await page.locator('#synthInputCodeTab').click();
   await page.locator('#synthCodeEditor').waitFor({state:'visible'});
@@ -202,7 +267,7 @@ setBpm(120);
 opna.adpcm.keyOn({repeat:true});
 log("raw-sine-on");
 await beat(1);
-opna.adpcm.keyOff();
+opna.adpcm.${method}();
 log("raw-sine-off");
 liveLoop("raw-hold", async () => { await beat(1); });
 `);
@@ -211,12 +276,14 @@ liveLoop("raw-hold", async () => { await beat(1); });
   await until(() => graph(page).then(value => value.audio.rms > .01), 'raw keyOn PCM');
   await until(() => page.locator('#synthCodeLog').textContent().then(text => text.includes('raw-sine-off')), 'raw keyOff');
   await quiet(page);
-  assert.equal((await graph(page)).releases, before, 'raw keyOff does not schedule musical release');
+  const events = await page.evaluate(before => __opnaSineAudit.releases.slice(before), before);
+  if (musical) releaseProfile(events);
+  else assert.equal(events.length, 0, 'raw keyOff does not schedule musical release');
   assert.equal(await page.locator('#synthCodeError').textContent(), '');
   await page.locator('#synthCodeStopButton').click();
   await until(() => page.locator('#synthCodeState').textContent().then(text => /Stopped|Idle/.test(text)), 'Code Stop');
   await page.locator('#synthInputKeyboardTab').click();
-  return {releaseBatches:0, rawStopPreserved:true};
+  return musical ? {release:releaseProfile(events),silence:true} : {releaseBatches:0,rawStopPreserved:true};
 }
 async function run(browser, engine, origin) {
   const context = await browser.newContext({viewport:{width:1280, height:1000}, acceptDownloads:true, serviceWorkers:'block'});
@@ -239,39 +306,26 @@ async function run(browser, engine, origin) {
     assert.equal(Number(await page.locator('#masterVolume').inputValue()), .7);
     checks.push('The untouched PC98 Synth opens without an AudioContext and retains default Master70%');
 
-    stage = 'Sine decoded wave'; await chooseShape(page, 'sine');
-    const sine = await exportWave(page);
-    assert.equal(sine.samples.length, 128); assert(Math.abs(sine.rate - 33488) <= 1);
-    const errorsOfWave = sine.samples.map((value, i) => value - .6 * Math.sin(i / 128 * Math.PI * 2));
-    const maxError = Math.max(...errorsOfWave.map(Math.abs));
-    const rmsError = Math.sqrt(errorsOfWave.reduce((sum, value) => sum + value * value, 0) / 128);
-    assert(maxError < .012, JSON.stringify({first:sine.samples.slice(0, 8), maxError, rmsError}));
-    assert(sine.samples[0] > 0 && sine.samples[0] < .01, 'bounded decoded Sine starting sample');
-    const canvasError = await page.evaluate(samples => {
-      const plot = __opnaSineAudit.wavePath;
-      if (!plot || plot.points.length !== plot.width) throw Error('Decoded canvas path is missing');
-      return Math.max(...plot.points.map(([x, y]) => Math.abs(
-        1 - 2 * y / plot.height - samples[Math.floor(x * samples.length / plot.width)])));
-    }, sine.samples);
-    assert(canvasError < .00004, 'canvas represents exported decoded PCM: ' + canvasError);
-    assert.match(await page.locator('#sampleInfo').textContent(), /Root C4 · aligned range 0–64/);
-    measurements.sine = {rate:sine.rate, frames:128, first:sine.samples.slice(0, 8), maxError, rmsError,
-      canvasError, wavSha256:sine.sha256};
-    const imagePath = path.join(path.dirname(config.out), 'images', engine + '-sine.png');
-    await fs.mkdir(path.dirname(imagePath), {recursive:true});
-    await page.locator('#waveCanvas').screenshot({path:imagePath}); images.sine = {path:imagePath, sha256:sha(await fs.readFile(imagePath))};
-    checks[0] += '; generated Sine export/canvas retains128 decoded frames,64bytes and RootC4/33488Hz';
-
-    stage = 'Sine computer and screen musical release';
     const key = await noteKey(page);
-    measurements.sine.computer = await keyTrial(page, key);
-    measurements.sine.screen = await keyTrial(page, key, true);
-    checks.push('Actual computer/screen Sine PCM releases to silence through dense one-level raised-cosine writes over8ms');
+    measurements.waveforms = [];
+    for (const shape of ['sine','saw','square']) for (const imported of [false,true]) {
+      stage = (imported ? 'Float32 WAV ' : 'Software ') + shape + ' decoded codec/canvas';
+      const measured = await codecTrial(page,shape,imported,engine,images);
+      measurements.waveforms.push(measured);
+      stage += ' computer/screen musical release';
+      measured.computer = await keyTrial(page,key,false,shape);
+      measured.screen = await keyTrial(page,key,true,shape);
+    }
+    checks[0] += '; Sine/Saw/Square buttons and identical Float32 WAVs preserve decoded sample/canvas/export parity and bounded error against shared greedy';
+    stage = 'Imported Saw Code noteOff'; await importWave(page,'saw');
+    measurements.codeMusical = await codeStopTrial(page,true);
+    checks.push('Sine/Saw/Square button/WAV computer and screen keys plus imported Saw Code noteOff use dense raised-cosine release and reach silence');
 
-    stage = 'Sine rapid retrigger'; measurements.retrigger = await retriggerTrial(page, key);
+    stage = 'Sine rapid retrigger'; await chooseShape(page,'sine');
+    measurements.retrigger = await retriggerTrial(page, key);
     checks.push('A rapid second key cancels the former release owner and remains audible after its old deadline');
 
-    stage = 'raw Code keyOff'; measurements.raw = await rawStopTrial(page);
+    stage = 'raw Code keyOff'; measurements.raw = await codeStopTrial(page);
     checks.push('Raw Code keyOff remains immediate without a musical fade reservation');
     const final = await graph(page); assert.equal(final.contexts, 1); assert(final.rates.every(rate => rate === 48000));
     assert(final.physicalOutputMuted); measurements.graph = final;
@@ -305,7 +359,7 @@ async function run(browser, engine, origin) {
         const key = canonical(name); if (key.endsWith('.html') || !before.has(key)) continue;
         assert.equal(value.sha256, before.get(key).sha256, key); matched.push(key);
       }
-      for (const key of ['synth.js', 'preset.js', 'audio.js', 'adpcm_noteoff_guard.js']) assert(matched.includes(key), key);
+      for (const key of ['synth.js', 'preset.js', 'audio.js', 'adpcm_encoder.js', 'adpcm_noteoff_guard.js']) assert(matched.includes(key), key);
       comparison = {file:config.compare, matchedAssets:matched.sort(), excluded:'Rewritten standalone HTML entry'};
     }
   } catch (error) { failure = error; }

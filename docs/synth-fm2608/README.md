@@ -37,8 +37,19 @@ The generated 128-point Sine also uses an app-specific ADPCM encoding that
 considers both the fresh decoder and Repeat reset. It reduces the initial
 flat section without changing the PCM target, tuning, length or gain. The
 canvas still shows decoded ADPCM, so its 4-bit quantization remains visible.
-Imported samples, drawings and saved preset bytes keep their original codec
-and data. To regenerate an existing Sine, press **Software wave → Sine**.
+Other generated waves, drawings and newly loaded audio use a bounded lookahead
+ADPCM encoder. It checks possible future codes rather than choosing solely by
+the next decoded sample. Candidate output is checked against the ordinary
+encoder for fresh and Repeat decoding. Source PCM timing, amplitude and length
+are retained; existing preset bytes are not rewritten. To regenerate a saved
+wave, press its **Software wave** button or reload the original audio.
+
+ADPCM is lossy: a fresh decoder starts at zero with a small prediction step,
+so a Saw beginning at −0.6 cannot reach that level immediately. Abrupt waveform
+edges can remain rounded even after better encoding. The plot/export show
+actual reconstructed ADPCM, including that limitation; they do not substitute
+an ideal template. RF5C164 stores PCM amplitudes directly and has different
+reconstruction behavior.
 
 Keyboard ADPCM-B release and `opna.adpcm.noteOff()` use a **Synth software**
 8 ms volume fade, after one 128-frame scheduling lead. The audio-owner queue

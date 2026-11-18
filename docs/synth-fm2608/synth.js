@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js?v=opna-sine-release-2';
-import {createFm2608Audio} from './audio.js?v=opna-sine-release-2';
+import {createFm2608Audio} from './audio.js?v=opna-adpcm-lookahead-1';
 import {setupFm2608CodeHost} from './code_host.js?v=opna-output-menu-1';
 import {setupFm2608SongControls} from './song_controls.js?v=opna-sine-release-2';
 import {createParamControl, buildHeader, buildOperatorControls} from '../synth/synth_controls.js';

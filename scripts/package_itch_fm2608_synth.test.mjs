@@ -67,6 +67,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   }
   for (const path of [
     'synth-fm2608/synth.js', 'synth-fm2608/audio.js', 'synth-fm2608/preset.js',
+    'synth-fm2608/adpcm_encoder.js', 'synth-fm2608/adpcm_noteoff_guard.js',
     'synth-fm2608/code_host.js', 'synth-fm2608/song_compatibility.js',
     'synth-fm2608/code_files.js', 'synth-fm2608/vgm_presets.js',
     'synth-fm2608/output_mix.js',

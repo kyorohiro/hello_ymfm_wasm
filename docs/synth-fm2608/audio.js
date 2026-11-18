@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {YM2608RuntimeSynth} from '../js/ym2608synth.js';
-import {readSamplePCM,encodeAdpcmB} from '../js/adpcm_b_sample.js';
+import {readSamplePCM} from '../js/adpcm_b_sample.js';
+import {encodeFm2608Adpcm} from './adpcm_encoder.js?v=opna-adpcm-lookahead-1';
 import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
 import {createYm2612RegisterState} from '../synth/synth_song_state.js';
@@ -302,10 +303,10 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     const deltaN = Math.round(requested * 144 * 65536 / chip.clock);
     if (deltaN < 1 || deltaN > 65535) throw new RangeError('Sample rate exceeds YM2608 range');
     const actualRate = deltaN * chip.clock / (144 * 65536);
-    // Only the software Sine button opts into cycle-aware encoding. Imported
-    // audio and drawings keep the ordinary codec, even if they resemble Sine.
+    // Keep the verified generated-Sine cycle encoding. Other generated waves,
+    // drawings and imported audio share the same bounded lookahead encoder.
     const encoded = (generatedShape === 'sine' && encodeGeneratedSine(pcm,actualRate))
-      || encodeAdpcmB(pcm,actualRate,MAX_ADPCM_BYTES);
+      || encodeFm2608Adpcm(pcm,actualRate,MAX_ADPCM_BYTES);
     await queue;
     if (token !== sampleEpoch) throw cancelled();
     const next = readPreset(preset);
