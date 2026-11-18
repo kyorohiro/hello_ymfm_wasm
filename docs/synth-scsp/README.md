@@ -59,15 +59,18 @@ The hardware averages X and Y before applying modulation depth. With one externa
 the Synth assigns that source to both hardware inputs, preserving its strength;
 with two sources, it uses their average. This editor accepts at most two distinct
 external sources per target in Custom4/6. Custom2 keeps one source per target.
-Each Custom size supports one self-feedback operator, described below. Two self
-operators, self plus an external input at the same target, and multi-operator
-cycles are rejected before changing the current sound. These are software
+Custom2 supports one self-feedback operator; Custom4/6 support multiple independent
+Self operators, described below. Self plus an external input at the same target,
+multiple Self operators in Custom2, and multi-operator cycles are rejected before
+changing the current sound. These are software
 editor limits; raw physical-CH sound-stack controls remain available.
 
 In **Custom2/4/6**, select an operator and choose **Self · A–F (2 taps)** for Input X.
 Choosing Self replaces that operator's previous inputs. Input Y is disabled:
 both hardware inputs belong to its two histories. Other operators can receive
 the self-feedback operator, including as one source of a two-input merge.
+Each Self operator keeps its own pair of history taps. In Custom4/6, selecting
+another operator's Self does not remove the existing Self operators.
 For example, let B feed itself and select B as A's input. Self uses hardware
 X32/Y0: in this pinned core, they average the preceding one- and two-frame stack
 values while that slot writes continuously. This is a sound-stack feedback
@@ -90,6 +93,9 @@ the selected mode's count. Selecting a fixed template keeps the Custom graph for
 later editing. Resizing preserves a self edge when its operator survives; shrinking
 past that operator removes it and references to it. A graph left dormant under
 a fixed template is projected the same way when Custom is selected at that size.
+If shrinking to Custom2 would leave both A and B feeding themselves, the change
+is rejected and the current graph/mode stay intact. Remove one Self explicitly
+before shrinking; the Synth does not choose one to discard.
 
 Custom operator IDs stay A–F even when the allocator changes their physical
 order so the modulation source runs first. Source waveform, ratio, mix, LFO,
@@ -279,6 +285,20 @@ await scsp.setConfig({
 ```
 
 This example is also included only in fresh / New projects.
+For parallel feedback, [examples/parallel-self-feedback.js](examples/parallel-self-feedback.js)
+uses B and C Self independently and lets A average them:
+
+```javascript
+await scsp.setConfig({
+  mode: 'fm4',
+  fm: {
+    algorithm: 'custom',
+    custom: { inputs: [[1, 2], [1], [2], []], outputs: [0] },
+  },
+});
+```
+
+Fresh / New projects include this editable Code example as well.
 The [source research](../issues/scsp_fm_self_feedback_research_20261118.md)
 records the manufacturer register example, core history model and timing limits.
 
@@ -296,10 +316,12 @@ retain their common-depth behavior and reject an added `depths` field. Version 7
 presets and Cassette projects need a Synth version that supports individual MDL.
 
 A supported Custom2 self graph saves as **version 8**; Custom4/6 self graphs save
-as **version 9**. Both include the complete graph and optional individual depths,
+with one Self save as **version 9**. Multiple-Self Custom4/6 graphs save as
+**version 10**. All include the complete graph and optional individual depths,
 taking precedence over earlier Custom formats. Versions 1–7 reject self graphs;
-version 8 requires an actual Custom2 self graph and version 9 requires an actual
-Custom4/6 self graph. Non-self sounds retain their established v4–v7 formats.
+version 8 requires an actual Custom2 self graph, version 9 exactly one Custom4/6
+Self, and version 10 at least two Custom4/6 Self targets. Non-self sounds retain
+their established v4–v7 formats.
 
 The scoped API also provides `setPreset`, `getPCM`, `loadPCM`, `setNote`,
 `setFrequency`, `keyOn`, `keyOff`, `allNotesOff`, `getState`, `setEffect`,
@@ -329,8 +351,8 @@ Loading a project requires Run to begin Code execution.
 
 Instrument JSON uses version 4 for fixed connections with common depth,
 versions 5–6 for Custom connections, version 7 for differing operator depths,
-version 8 for supported Custom2 self-feedback, and version 9 for Custom4/6
-self-feedback.
+version 8 for supported Custom2 self-feedback, version 9 for one Self in
+Custom4/6, and version 10 for multiple Self targets in Custom4/6.
 It includes six applied PCM sources,
 EG / LFO / mix, mode, connection, ratios, modulation depth, transpose and
 experimental Delay settings. Direct instrument files are limited to 8 MiB.

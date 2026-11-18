@@ -138,7 +138,7 @@ test('unsupported self graphs and incompatible PCM fail before writes, history r
   for(const patch of [
     {fm:{custom:graph([[0],[1]])}},{fm:{custom:graph([[0,1],[]])}},{fm:{custom:graph([[0],[0,1]])}},
     {fm:{custom:graph([[1],[0]])}},{mode:'fm4',fm:{custom:graph([[0,1],[],[],[]])}},
-    {mode:'fm6',fm:{custom:graph([[0],[],[],[],[],[5]])}},{mode:'pcm'},
+    {mode:'fm6',fm:{custom:graph([[0],[],[],[],[],[5,4]])}},{mode:'pcm'},
     {fm:{custom:graph([[0],[]],[2])}},{fm:{depth:13}},
   ]){assert.throws(()=>owner.setConfig(patch));assert.deepEqual(owner.read(),before);assert.deepEqual(ring(owner.core),stack);}
   assert.throws(()=>owner.invoke('applyPCM',[0,new Int16Array(64),{rootNote:69}]),/full forward loop/);

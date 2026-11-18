@@ -266,10 +266,10 @@ async function exercise(name,origin){
     await page.keyboard.down('s');await waitState(page,state=>state.voiceGroups.some(value=>value.held),'held group for atomic errors');
     const rejected=[];for(const patch of [
       {fm:{custom:{inputs:[[0],[1]],outputs:[0]}}},{fm:{custom:{inputs:[[0,1],[]],outputs:[0]}}},
-      {fm:{custom:{inputs:[[1],[0]],outputs:[0]}}},{mode:'fm4',fm:{custom:{inputs:[[0],[1],[],[]],outputs:[0]}}},
+      {fm:{custom:{inputs:[[1],[0]],outputs:[0]}}},{mode:'fm4',fm:{custom:{inputs:[[0,1],[1],[],[]],outputs:[0]}}},
       {mode:'fm6',fm:{custom:{inputs:[[],[],[],[],[],[4,5]],outputs:[0]}}},{mode:'fm4',fm:{custom:self}}
     ])rejected.push(await rejectConfig(page,patch));
-    await page.keyboard.up('s');cases.push('Double Self, a second self input, multi-OP cycles and mode/count mismatches reject atomically without retiring notes');
+    await page.keyboard.up('s');cases.push('Double Self in Custom2, a second self input, multi-OP cycles and mode/count mismatches reject atomically without retiring notes');
     await page.locator('#voiceMode').selectOption('fm4');await customGraph(page,[[1],[1],[],[]],[0]);assert.equal(await page.locator('#connectionPaths path[data-self-feedback="true"]').count(),1);
     await page.locator('#voiceMode').selectOption('fm6');await customGraph(page,[[1],[1],[],[],[],[]],[0]);
     await page.locator('#voiceMode').selectOption('fm2');await customGraph(page,[[1],[1]],[0]);

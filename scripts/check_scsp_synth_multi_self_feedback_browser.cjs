@@ -276,9 +276,9 @@ async function exercise(name,origin){
     assert.equal(await page.locator('#scspCustomFmInputY option[value=""]').textContent(),'Past history · Y0');
     assert.match(await page.locator('#scspCustomFmHint').textContent(),/Self.*A.*X32.*Y0/);
     assert.equal(await page.locator('#connectionPaths path[data-self-feedback="true"]').count(),1);
-    await selectOperator(page,3);assert.equal(await page.locator('#scspCustomFmInput option[value="3"]').evaluate(value=>value.disabled),true);
+    await selectOperator(page,3);assert.equal(await page.locator('#scspCustomFmInput option[value="3"]').evaluate(value=>value.disabled),false);
     assert.deepEqual(await graph(page),coldBefore);assert.equal(await mutations(page),coldWrites);
-    cases.push('Cold Custom4 Self replaces two external inputs, occupies X/Y histories, disables a second Self and draws its loop without audio');
+    cases.push('Cold Custom4 Self replaces two external inputs, occupies X/Y histories, permits an independent second Self and draws its loop without audio');
     await page.locator('#start').click();await page.waitForFunction(()=>__scspSelfAudit.nodes.some(value=>value.name==='tetorica-scsp-synth')&&!document.getElementById('start').disabled);
     await editGraph(page,graph4.inputs,graph4.outputs);await page.keyboard.down('a');let state=await waitState(page,state=>state.voiceGroups.some(value=>value.held),'four OP keyboard');
     const four=verifyMapping(state,graph4),fourOperatorSlots=four.operatorSlots;
@@ -295,7 +295,7 @@ async function exercise(name,origin){
     await page.locator('#voiceMode').selectOption('fm6');await editGraph(page,graph6.inputs,graph6.outputs);await page.keyboard.down('s');state=await waitState(page,state=>state.voiceGroups.some(value=>value.held),'six OP keyboard');
     const six=verifyMapping(state,graph6),sixOperatorSlots=six.operatorSlots;assert(sixOperatorSlots[5]<sixOperatorSlots[0]);
     const rejected=[];for(const patch of [
-      {fm:{custom:{inputs:[[0],[],[],[],[],[5]],outputs:[0]}}},
+      {fm:{custom:{inputs:[[0,1],[],[],[],[],[5]],outputs:[0]}}},
       {fm:{custom:{inputs:[[],[],[],[],[],[4,5]],outputs:[0]}}},
       {fm:{custom:{inputs:[[1,1],[],[],[],[],[5]],outputs:[0]}}},
       {fm:{custom:{inputs:[[1],[0],[],[],[],[5]],outputs:[0]}}},
@@ -305,7 +305,7 @@ async function exercise(name,origin){
     await page.keyboard.up('s');await number(page,'fmDepth',5);await waitState(page,state=>!state.config.fm.depths&&state.config.fm.depth===5,'scalar six depth');
     const saved6=await saveInstrument(page);assert.equal(saved6.version,9);assert.equal(saved6.fm.depths,undefined);assert.deepEqual(saved6.fm.custom,graph6);
     await selectOperator(page,5);screenshots.six=imageBase+'-six.png';await page.locator('.operator-panel').screenshot({path:screenshots.six});
-    cases.push('Custom6 high-ID Self fans out through two-input merges and independent outputs; double Self, mixed Self inputs, duplicates, cycles, excess inputs and count mismatch reject atomically');
+    cases.push('Custom6 high-ID Self fans out through two-input merges and independent outputs; mixed Self inputs, duplicates, cycles, excess inputs and count mismatch reject atomically');
     await page.locator('#voiceMode').selectOption('fm4');await customGraph(page,[[1,2],[],[],[1,2]],[0]);
     assert.equal(await page.locator('#connectionPaths path[data-self-feedback="true"]').count(),0);
     await loadInstrument(page,saved4,'four-self-v9.json');await customGraph(page,graph4.inputs,graph4.outputs);

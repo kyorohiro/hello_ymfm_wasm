@@ -2,7 +2,7 @@
 import {createScspValidation} from '../js/playground_scsp.js';
 import {readPreset,writePreset} from './preset.js';
 import {effectSettings,reserveDspRam} from './dsp.js?v=scsp-dsp-coef-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,voiceCommands,operatorCount,customRouting,operatorDepths,hasSelfFeedback} from './routing.js?v=scsp-fm-multi-self-1';
+import {SOURCE_COUNT,OPERATOR_KEYS,voiceCommands,operatorCount,customRouting,operatorDepths,selfFeedbackCount} from './routing.js?v=scsp-fm-multiple-self-1';
 export const FM_MAX_DEPTH=12;
 export function settings(value) {
   if(!value||!['pcm','fm2','fm4','fm6'].includes(value.mode))throw new TypeError('Mode must be pcm, fm2, fm4 or fm6');
@@ -27,29 +27,34 @@ function single(value){return readPreset({...value,format:'tetorica-scsp-voice',
 function defaultOperator(){return {pcm:Int16Array.from({length:64},(_,i)=>Math.round(8192*Math.sin(i*Math.PI/32))),options:{baseFrequencyHz:44100/64,loopStartSamples:0},voice:{frequencyHz:440,totalLevel:0,directLevel:7,pan:0,envelope:{attackRate:31,decay1Rate:0,decay2Rate:0,decayLevel:0,releaseRate:31,keyRateScaling:15},lfo:{}}};}
 export function readPatch(value) {
   if(value?.format!=='tetorica-scsp-voice')throw new TypeError('Unsupported SCSP preset format');
-  if(value.version>=1&&value.version<7&&Object.hasOwn(value.fm??{},'depths'))throw new TypeError('Per-operator FM depths require preset version 7');
-  if(value.version>=1&&value.version<5&&(value.fm?.algorithm==='custom'||Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Custom FM routing requires preset version 5');
+  const version=value.version;
+  if(version>=1&&version<7&&Object.hasOwn(value.fm??{},'depths'))throw new TypeError('Per-operator FM depths require preset version 7');
+  if(version>=1&&version<5&&(value.fm?.algorithm==='custom'||Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Custom FM routing requires preset version 5');
   let config,operators={};
-  if(value.version===1){
+  if(version===1){
     operators.carrier=readPreset(value);config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});
-  }else if(value.version===2||value.version===3||value.version===4||value.version===5||value.version===6||value.version===7||value.version===8||value.version===9){
-    if(value.version===2&&!['pcm','fm2'].includes(value.mode))throw new TypeError('Version 2 supports PCM or 2-op');
-    if(value.version===5&&(value.mode!=='fm2'||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 5 requires complete custom 2-op FM routing');
-    if(value.version===6&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 6 requires complete custom 4-op or 6-op FM routing');
-    if(value.version===7&&(!Object.hasOwn(value.fm??{},'depths')||value.fm?.algorithm==='custom'&&!Object.hasOwn(value.fm,'custom')))throw new TypeError('Preset version 7 requires complete operator depths and explicit Custom routing');
-    if(value.version===8&&(value.mode!=='fm2'||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 8 requires complete Custom 2-op self feedback');
-    if(value.version===9&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 9 requires complete Custom 4-op or 6-op self feedback');
-    config=settings({...value,effect:value.version>=4?value.effect:undefined});
-    const self=config.fm.custom&&hasSelfFeedback(config.fm.custom);
-    if(value.version<8&&self)throw new TypeError('Self feedback requires preset version 8 for 2-op or 9 for 4/6-op');
-    if(value.version===8&&(config.mode!=='fm2'||config.fm.algorithm!=='custom'||!self))throw new TypeError('Preset version 8 requires Custom 2-op with an actual self-feedback connection');
-    if(value.version===9&&(!['fm4','fm6'].includes(config.mode)||config.fm.algorithm!=='custom'||!self))throw new TypeError('Preset version 9 requires Custom 4-op or 6-op with an actual self-feedback connection');
-    for(const key of OPERATOR_KEYS.slice(0,value.version===2?2:SOURCE_COUNT)){
+  }else if(version===2||version===3||version===4||version===5||version===6||version===7||version===8||version===9||version===10){
+    if(version===2&&!['pcm','fm2'].includes(value.mode))throw new TypeError('Version 2 supports PCM or 2-op');
+    if(version===5&&(value.mode!=='fm2'||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 5 requires complete custom 2-op FM routing');
+    if(version===6&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 6 requires complete custom 4-op or 6-op FM routing');
+    if(version===7&&(!Object.hasOwn(value.fm??{},'depths')||value.fm?.algorithm==='custom'&&!Object.hasOwn(value.fm,'custom')))throw new TypeError('Preset version 7 requires complete operator depths and explicit Custom routing');
+    if(version===8&&(value.mode!=='fm2'||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 8 requires complete Custom 2-op self feedback');
+    if(version===9&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 9 requires complete Custom 4-op or 6-op self feedback');
+    if(version===10&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 10 requires complete Custom 4-op or 6-op multiple self feedback');
+    // Capture the declared version once; unrelated property getters must not
+    // switch the format after its normalized graph has been validated.
+    config=settings({mode:value.mode,fm:value.fm,transpose:value.transpose,effect:version>=4?value.effect:undefined});
+    const self=config.fm.custom?selfFeedbackCount(config.fm.custom):0;
+    if(version<8&&self)throw new TypeError('Self feedback needs preset version 8 for 2-op, 9 for one Self in 4/6-op, or 10 for multiple Self operators');
+    if(version===8&&(config.mode!=='fm2'||config.fm.algorithm!=='custom'||self!==1))throw new TypeError('Preset version 8 requires Custom 2-op with an actual self-feedback connection');
+    if(version===9&&(!['fm4','fm6'].includes(config.mode)||config.fm.algorithm!=='custom'||self!==1))throw new TypeError('Preset version 9 requires Custom 4-op or 6-op with exactly one self-feedback connection');
+    if(version===10&&(!['fm4','fm6'].includes(config.mode)||config.fm.algorithm!=='custom'||self<2))throw new TypeError('Preset version 10 requires Custom 4-op or 6-op with multiple self-feedback connections');
+    for(const key of OPERATOR_KEYS.slice(0,version===2?2:SOURCE_COUNT)){
       if(!value.operators?.[key])throw new TypeError('Preset needs all operators');operators[key]=single(value.operators[key]);
     }
     // In v2 the modulator's direct level was forcibly zero. In v3 output is
     // determined by the connection, and its source mix is available for Pairs.
-    if(value.version===2)operators.modulator.voice.directLevel=7;
+    if(version===2)operators.modulator.voice.directLevel=7;
   }else throw new TypeError('Unsupported SCSP preset version');
   for(const key of OPERATOR_KEYS)operators[key]??=defaultOperator();
   const check=createScspValidation();
@@ -64,7 +69,8 @@ export function readPatch(value) {
 export function writePatch(config,operators) {
   const validated=settings(config),custom=validated.fm.algorithm==='custom';
   if(!custom)delete validated.fm.custom;
-  const value={format:'tetorica-scsp-voice',version:custom&&hasSelfFeedback(validated.fm.custom)?(validated.mode==='fm2'?8:9):validated.fm.depths?7:custom?(validated.mode==='fm2'?5:6):4,...validated,operators:Object.fromEntries(Object.entries(operators).map(([kind,operator])=>{
+  const self=custom?selfFeedbackCount(validated.fm.custom):0;
+  const value={format:'tetorica-scsp-voice',version:self?(validated.mode==='fm2'?8:self===1?9:10):validated.fm.depths?7:custom?(validated.mode==='fm2'?5:6):4,...validated,operators:Object.fromEntries(Object.entries(operators).map(([kind,operator])=>{
     const {format,version,...saved}=writePreset(operator);return [kind,saved];
   }))};
   readPatch(value);return value;

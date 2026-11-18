@@ -78,8 +78,17 @@ type ScspCodeCustomSelfRouting4 = {
 type ScspCodeCustomSelfRouting6 = {
   [Self in ScspCodeCustomOperator]: {inputs:ScspCodeCustomSelfInputs<ScspCodeCustomNoSelfRouting6['inputs'],Self>;outputs:ScspCodeCustomOperator[]}
 }[ScspCodeCustomOperator];
-type ScspCodeCustomRouting4 = ScspCodeCustomNoSelfRouting4|ScspCodeCustomSelfRouting4;
-type ScspCodeCustomRouting6 = ScspCodeCustomNoSelfRouting6|ScspCodeCustomSelfRouting6;
+/** At least two targets use only [self]. Other rows retain external-only inputs.
+ * Register cycles and duplicate external sources still validate at runtime. */
+type ScspCodeCustomMultipleSelfInputs<Inputs extends unknown[],Index extends unknown[]=[],SelfCount extends unknown[]=[]> =
+  Inputs extends [infer Input,...infer Rest]
+    ? [Input,...ScspCodeCustomMultipleSelfInputs<Rest,[...Index,unknown],SelfCount>] |
+      [[Index['length']],...ScspCodeCustomMultipleSelfInputs<Rest,[...Index,unknown],[...SelfCount,unknown]>]
+    : SelfCount extends []|[unknown] ? never : [];
+type ScspCodeCustomMultipleSelfRouting4 = {inputs:ScspCodeCustomMultipleSelfInputs<ScspCodeCustomNoSelfRouting4['inputs']>;outputs:ScspCodeCustomOperator4[]};
+type ScspCodeCustomMultipleSelfRouting6 = {inputs:ScspCodeCustomMultipleSelfInputs<ScspCodeCustomNoSelfRouting6['inputs']>;outputs:ScspCodeCustomOperator[]};
+type ScspCodeCustomRouting4 = ScspCodeCustomNoSelfRouting4|ScspCodeCustomSelfRouting4|ScspCodeCustomMultipleSelfRouting4;
+type ScspCodeCustomRouting6 = ScspCodeCustomNoSelfRouting6|ScspCodeCustomSelfRouting6|ScspCodeCustomMultipleSelfRouting6;
 type ScspCodeCustomRouting = ScspCodeCustomRouting2|ScspCodeCustomRouting4|ScspCodeCustomRouting6;
 /** Receiving-operator MDL code. The editor validates integer codes 0–12 at runtime. */
 type ScspCodeFmDepth = number;
@@ -144,7 +153,9 @@ type ScspCodePatch = ScspCodePatchBase & (
   {version:7;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting6> & {depths:ScspCodeFmDepths}} |
   {version:8;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting2>} |
   {version:9;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting4>} |
-  {version:9;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting6>}
+  {version:9;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting6>} |
+  {version:10;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomMultipleSelfRouting4>} |
+  {version:10;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomMultipleSelfRouting6>}
 );
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
@@ -178,13 +189,15 @@ interface ScspCodeClient {
   setMix(operator:ScspCodeOperator,patch:Partial<ScspCodeMix>):Promise<boolean>;
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
   /** Custom routing supports fm2/fm4/fm6 with at most two distinct sources per OP.
-   * Every Custom FM size allows at most one self OP with only [self] as its input.
+   * Custom2 allows one self OP; Custom4/6 allow independent Self OPs, each
+   * with only [self] as its input, reserving both histories.
    * Custom2 keeps one source per target; other Custom4/6 targets allow two. Its hardware
    * X32/Y0 inputs average two stored generations; the existing adapter depth 0
    * disables modulation. New Auto/Code self attacks clear only their owned
    * self-slot history cells. Depth edits retain those histories and notes.
    * An explicit graph must match the active operator count. Changing mode without
    * a graph preserves surviving connections / Self and adds disconnected operators.
+   * Shrinking to Custom2 rejects atomically if both surviving OPs use Self.
    * Graph changes retire Auto notes after validation; Code continues running.
    * fm.depths supplies six receiving-OP MDL codes. Omit it to use fm.depth.
    * A scalar-only fm.depth edit sets all six; an explicit depths array wins.
@@ -216,10 +229,11 @@ interface ScspCodeClient {
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
-  /** Load portable SCSP presets 1–9. Custom two-OP uses version 5;
+  /** Load portable SCSP presets 1–10. Custom two-OP uses version 5;
    * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7.
-   * A Custom2 self-feedback graph uses v8; Custom4/6 Self uses v9.
-   * Both Self formats require a complete graph and have optional depths. */
+   * A Custom2 self-feedback graph uses v8; single Custom4/6 Self uses v9.
+   * Multiple Self OPs in Custom4/6 require v10; v9 remains single-Self only.
+   * All Self formats require a complete graph and have optional depths. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;

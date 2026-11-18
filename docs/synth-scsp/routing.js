@@ -12,6 +12,7 @@ export function operatorDepths(value){
 /** X and Y share the receiving operator's one hardware MDL value. */
 export const operatorDepth=(config,index)=>config.fm.depths?.[index]??config.fm.depth;
 export const hasSelfFeedback=graph=>graph.inputs.some((sources,target)=>sources.includes(target));
+export const selfFeedbackCount=graph=>graph.inputs.reduce((count,sources,target)=>count+Number(sources.includes(target)),0);
 const customCounts=[2,4,6];
 function customOrder(inputs){
   const remaining=inputs.map((sources,target)=>sources.filter(source=>source!==target).length),dependents=inputs.map(()=>[]),ready=[],order=[];
@@ -26,7 +27,7 @@ function customOrder(inputs){
   if(order.length!==inputs.length)throw new RangeError('Feedback loops are outside this acyclic Synth editor');
   return order;
 }
-/** Custom Synth routing: acyclic, or one self-feedback OP with no other input.
+/** Custom Synth routing: acyclic external routes and exclusive self inputs.
  * This editor constraint does not describe every SCSP hardware connection. */
 export function customRouting(value,count){
   if(arguments.length===0)value={inputs:[[1],[]],outputs:[0]};
@@ -45,8 +46,8 @@ export function customRouting(value,count){
     return sources;
   });
   const self=inputs.flatMap((sources,target)=>sources.includes(target)?[target]:[]);
-  if(self.length&&(self.length!==1||inputs[self[0]].length!==1))
-    throw new RangeError('Self feedback requires one self operator with only itself as its source');
+  if((length===2&&self.length>1)||self.some(target=>inputs[target].length!==1))
+    throw new RangeError('Self feedback needs an exclusive self input; Custom 2-op supports only one self operator');
   customOrder(inputs);
   if(!Array.isArray(rawOutputs)||rawOutputs.length>length||!denseArray(rawOutputs,rawOutputs.length))throw new TypeError('Custom outputs must be a dense operator list');
   const outputs=Array.from(rawOutputs,output=>{if(!Number.isInteger(output)||output<0||output>=length)throw new RangeError('Custom output must name an operator in this graph');return output;});
@@ -57,7 +58,7 @@ export function customRouting(value,count){
 export function resizeCustomRouting(value,count){
   if(!customCounts.includes(count))throw new RangeError('Custom FM needs 2, 4 or 6 operators');
   const graph=customRouting(value);
-  return {inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count)),outputs:graph.outputs.filter(output=>output<count)};
+  return customRouting({inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count)),outputs:graph.outputs.filter(output=>output<count)},count);
 }
 export function routing(config){
   const count=operatorCount(config.mode),inputs=Array.from({length:count},()=>[]);

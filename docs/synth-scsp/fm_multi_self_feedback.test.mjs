@@ -93,11 +93,11 @@ test('retrigger and steal initialize one new owned Self while raw physical histo
   const result=owner.noteOn('replacement',69);assert.equal(result.stolenId,'old1');assert.deepEqual(result.slots,[12,13,14,15,16,17]);assert.equal(stack(owner.core)[slot],0);assert.equal(stack(owner.core)[slot+32],0);assert.equal(owner.noteOff('old1'),false);
 });
 
-test('invalid mixed/double Self, cycles, malformed graphs and incompatible PCM reject before all mutation',async t=>{
+test('invalid mixed Self, cycles, malformed graphs and incompatible PCM reject before all mutation',async t=>{
   const owner=await create(t);setup(owner,fixture(6,5,true));owner.noteOn('held',69);owner.synth.generateStereo(137);const before=owner.read(),ring=stack(owner.core),ram=owner.core.readRam(),write=owner.core.write.bind(owner.core);let writes=0;owner.core.write=(...args)=>{writes++;return write(...args);};
   const sparse=Array(6);sparse[0]=[];
   for(const custom of [
-    graph([[0],[],[],[],[],[5]]),graph([[],[],[],[],[],[5,0]]),graph([[],[],[],[],[],[0,5]]),graph([[1],[0],[],[],[],[5]]),
+    graph([[0],[1],[3],[2],[],[]]),graph([[],[],[],[],[],[5,0]]),graph([[],[],[],[],[],[0,5]]),graph([[1],[0],[],[],[],[5]]),
     graph([[1,2],[2],[0],[],[],[5]]),graph([[],[],[],[],[],[5,5]]),graph([[],[],[],[],[],[6]]),graph(sparse),
     graph([[],[],[],[],[],[5]],[6]),{...graph([[],[],[],[],[],[5]]),unknown:true},
   ])assert.throws(()=>owner.setConfig({fm:{custom}}));
@@ -155,5 +155,5 @@ test('nonself export versions remain4–7,2OP Self remainsv8, and only4/6 Self e
   const owner=await create(t);assert.equal(owner.exportPatch().version,4);owner.setConfig({mode:'fm2',fm:{algorithm:'custom',custom:graph([[1],[]])}});assert.equal(owner.exportPatch().version,5);
   owner.setConfig({mode:'fm4'});assert.equal(owner.exportPatch().version,6);owner.setConfig({fm:{depths:[2,4,6,8,10,12]}});assert.equal(owner.exportPatch().version,7);
   owner.setConfig({mode:'fm2',fm:{custom:graph([[0],[0]])}});assert.equal(owner.exportPatch().version,8);owner.setConfig({mode:'fm4'});assert.equal(owner.exportPatch().version,9);owner.setConfig({mode:'fm6'});assert.equal(owner.exportPatch().version,9);
-  assert.throws(()=>customRouting(graph([[0,1],[],[],[]])));assert.throws(()=>customRouting(graph([[0],[1],[],[]])));
+  assert.throws(()=>customRouting(graph([[0,1],[],[],[]])));assert.doesNotThrow(()=>customRouting(graph([[0],[1],[],[]])));
 });

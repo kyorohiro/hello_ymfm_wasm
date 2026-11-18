@@ -11,6 +11,8 @@ A/Bの非循環接続、独立Direct Output、OP IDと物理スロットの分�
 X32/Y0の2世代平均を固定coreで検証し、Code・UI・v8保存へ反映。
 続けて[Custom4/6の単一Self](todo_scsp_fm_multi_self_feedback_20261118.md)へ拡張し、
 他OPの2入力合流／分岐、残存Selfを保つリサイズ、v9保存に対応。
+さらに[Custom4/6の複数Self](todo_scsp_fm_multiple_self_20261118.md)を追加。
+各Selfの2世代履歴を独立に保持し、複数の帰還信号を合流できる。複数Selfはv10保存。
 一般的な循環graphと実機pipeline全体の一致は後続。
 
 - [x] operator別FM Depth（各slotのMDL）。共通つまみは全段変更として残す。
@@ -22,7 +24,8 @@ X32/Y0の2世代平均を固定coreで検証し、Code・UI・v8保存へ反映�
 - [x] 実機資料のsound stack世代／slot処理順と、固定core zero-delayの差を調査。実機の6slot tickと6音声sampleを区別し、固定coreの自己X32/Y0は前1／2native sample平均と実測。実機全体の同一性は保証しない。
 - [x] Custom2の単一OP自己feedbackを、2世代履歴・新規発音／再発音／steal・live Depth・所有権を検証して解放。新規Auto／Code発音だけ自己slotの2セルを初期化するソフトウェア動作を明記。
 - [x] Custom4/6でも1つのOPにSelfを設定。Selfは自身だけを入力にして2tapを専有し、他OPでは2入力を維持。Code・型・UI・v9保存、旧2OP Selfのv8互換を検証。
-- [ ] 他operator間loopと複数自己feedback。現在は変更前に拒否し、一般循環graphへは広げない。
+- [x] Custom4/6の複数自己feedback。各Selfは自身だけを入力にし、他OPとの合流／分岐は維持。2OPは単一Selfのまま、2つ残る縮小は変更前に拒否する。
+- [ ] 他operator間loop。現在は変更前に拒否し、一般循環graphへは広げない。
 - [x] modulatorsを複数出力へ分岐するfan-out、2入力の平均化、独立OutputとDSP Sendを表現する。
 - [x] 非循環2/4/6OPの無効接続・loop PCM不足・RAM不足を変更前に拒否し、現在の演奏を維持する。
 - [x] Custom2はv5、Custom4/6はv6として保存。旧v1〜v4互換、group割当／離鍵／steal／PCM保護を検証する。

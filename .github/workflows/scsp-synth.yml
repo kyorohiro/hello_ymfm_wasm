@@ -93,6 +93,8 @@ jobs:
           node scripts/record_scsp_fm_self_feedback_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_multi_self_feedback_revision.test.mjs scripts/scsp_fm_multi_self_feedback_default_parity.test.mjs
           node scripts/record_scsp_fm_multi_self_feedback_revision.mjs --check
+          node --test scripts/mixer_calibration_scsp_fm_multiple_self_revision.test.mjs scripts/scsp_fm_multiple_self_default_parity.test.mjs
+          node scripts/record_scsp_fm_multiple_self_revision.mjs --check
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci
           python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
@@ -113,6 +115,7 @@ jobs:
           node scripts/check_scsp_synth_ssf_dsp_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-ssf-dsp-browser.json
           node scripts/check_scsp_synth_self_feedback_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-self-feedback-browser.json
           node scripts/check_scsp_synth_multi_self_feedback_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-multi-self-feedback-browser.json
+          node scripts/check_scsp_synth_multiple_self_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-multiple-self-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -150,4 +153,6 @@ jobs:
             release/scsp-synth-self-feedback-browser-*.png
             release/scsp-synth-multi-self-feedback-browser.json
             release/scsp-synth-multi-self-feedback-browser-*.png
+            release/scsp-synth-multiple-self-browser.json
+            release/scsp-synth-multiple-self-browser-*.png
           if-no-files-found: ignore

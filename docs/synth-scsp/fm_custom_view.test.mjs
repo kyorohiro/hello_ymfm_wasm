@@ -73,7 +73,7 @@ test('two-input editing tracks X/Y, active count and distinct sources',async()=>
   view.dispose();
 });
 
-test('every 4/6OP Self target uses X, reserves both taps and excludes a second Self',async()=>{
+test('every 4/6OP Self target reserves both taps and permits other independent Self operators',async()=>{
   const {nodes,calls,view,state}=fixture();
   for(const count of [4,6])for(let target=0;target<count;target++){
     state.config.mode=`fm${count}`;state.config.fm.depth=7;
@@ -88,10 +88,28 @@ test('every 4/6OP Self target uses X, reserves both taps and excludes a second S
     assert.match(nodes.scspCustomFmHint.textContent,new RegExp(`Self ${'ABCDEF'[target]}.*X32/Y0`));
     nodes.scspCustomFmInputY.value='0';nodes.scspCustomFmInputY.dispatchEvent(new Event('change'));
     const other=(target+1)%count;view.update(state,{operator:other});
-    assert(nodes.scspCustomFmInput.options[other+1].disabled,'Only one Self per voice');
+    assert(!nodes.scspCustomFmInput.options[other+1].disabled,'Other 4/6OP targets can also choose Self');
     assert.equal(nodes.scspCustomFmInputY.options[0].textContent,'Same as X');
   }
   await tick();assert.deepEqual(calls,[]);view.dispose();
+});
+
+test('multiple Self hints list every target and distinguish one Off depth from all Off',()=>{
+  const {nodes,view,state}=fixture();
+  state.config.mode='fm6';state.config.fm.custom={inputs:[[1,2],[1],[2],[3],[4],[5]],outputs:[0]};
+  state.config.fm.depth=7;state.config.fm.depths=[7,0,5,6,0,8];
+  const before=structuredClone(state);
+  for(const operator of [1,2,3,4,5]){
+    view.update(state,{operator});
+    assert(!nodes.scspCustomFmInput.options[operator+1].disabled);
+    assert(nodes.scspCustomFmInputY.disabled);assert.equal(nodes.scspCustomFmInputY.options[0].textContent,'Past history · Y0');
+    assert.match(nodes.scspCustomFmHint.textContent,/Self B \+ C \+ D \+ E \+ F.*2 histories each.*Off \(Depth 0\): B \+ E/);
+  }
+  assert.deepEqual(state,before);
+  state.config.fm.depths=Array(6).fill(0);view.update(state,{operator:5});
+  assert.match(nodes.scspCustomFmHint.textContent,/Self B \+ C \+ D \+ E \+ F · Off \(Depth 0\)$/);
+  assert(!nodes.scspCustomFmHint.textContent.includes('X32/Y0'));
+  view.dispose();
 });
 
 test('2OP stays compact and PCM cannot choose Custom',()=>{

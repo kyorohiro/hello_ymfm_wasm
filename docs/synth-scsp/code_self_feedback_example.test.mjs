@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {createScspCodeProject} from './code_project.js';
 
 test('fresh projects include readable Self code while existing project files remain user-owned',async()=>{
-  const paths=['/examples/self-feedback.js','/examples/self-feedback-6op.js'];
+  const paths=['/examples/self-feedback.js','/examples/self-feedback-6op.js','/examples/parallel-self-feedback.js'];
   const fresh=createScspCodeProject({getStarterCode:()=> '// unchanged melody'});
   for(const path of paths){
     const source=await readFile(new URL('.'+path,import.meta.url),'utf8');
