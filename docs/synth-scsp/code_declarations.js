@@ -145,6 +145,7 @@ interface ScspCodePatchBase {
 }
 type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'|'cycle2'> & {algorithm:'chain'|'pairs'|'branch';cycle2?:never};
 type ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'|'cycle2'> & {algorithm:'custom';custom:Graph;cycle2?:never};
+type ScspCodeCycle2Fm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'|'cycle2'> & {algorithm:'cycle2';cycle2:ScspCodeCycle2;custom?:never};
 type ScspCodePatch = ScspCodePatchBase & (
   {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths?:never}} |
   {version:5;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting2> & {depths?:never}} |
@@ -158,7 +159,8 @@ type ScspCodePatch = ScspCodePatchBase & (
   {version:9;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting4>} |
   {version:9;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting6>} |
   {version:10;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomMultipleSelfRouting4>} |
-  {version:10;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomMultipleSelfRouting6>}
+  {version:10;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomMultipleSelfRouting6>} |
+  {version:11;mode:'fm2';fm:ScspCodeCycle2Fm}
 );
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
@@ -211,7 +213,7 @@ interface ScspCodeClient {
    * in Synth software. Live pitch/Depth edits retain history. Custom keeps
    * rejecting cross-operator cycles. Set mode and a non-Cycle algorithm
    * together to leave Cycle for PCM/FM4/FM6; mode-only mismatches reject.
-   * Portable Cycle presets are not available in this first Code-only stage. */
+   * Active Cycle saves as portable preset v11 with explicit output metadata. */
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
   /** Live physical-slot DSP routing. null restores the Synth default send.
@@ -238,14 +240,15 @@ interface ScspCodeClient {
   /** Atomically update only supplied signed COEF0..2 codes (-4096..4095).
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
-  /** Portable v4–10 sound. Rejects active Cycle2 until v11 support is added;
-   * save the JavaScript to retain the Cycle setup for now. */
+  /** Portable v4–11 sound including all authored PCM and voice settings.
+   * Cycle2 uses v11; live gates, phase and history are not serialized. */
   exportPatch():Promise<ScspCodePatch>;
-  /** Load portable SCSP presets 1–10. Custom two-OP uses version 5;
+  /** Load portable SCSP presets 1–11. Custom two-OP uses version 5;
    * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7.
    * A Custom2 self-feedback graph uses v8; single Custom4/6 Self uses v9.
    * Multiple Self OPs in Custom4/6 require v10; v9 remains single-Self only.
-   * All Self formats require a complete graph and have optional depths. */
+   * All Self formats require a complete graph and have optional depths.
+   * Cycle v11 requires fm2, algorithm cycle2 and explicit cycle2.outputs. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;

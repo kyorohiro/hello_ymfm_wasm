@@ -10,7 +10,7 @@ import {
 } from '../playground/playground_cassette.js';
 import { createSynthCodeProject } from '../synth/synth_code_project.js?code-files-scope=2';
 import { createSynthProjectStore } from '../synth/synth_project_store.js?v=draft-reconnect-1';
-import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-cycle2-code-1';
+import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-cycle2-presets-1';
 import { createScspValidation } from '../js/playground_scsp.js';
 import { createScspInitSample } from '../js/scspsynth.js';
 import { OPERATOR_KEYS } from './routing.js?v=scsp-cycle2-code-1';

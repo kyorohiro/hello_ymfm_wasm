@@ -100,6 +100,9 @@ jobs:
           node --test scripts/mixer_calibration_scsp_synth_cycle2_revision.test.mjs scripts/scsp_synth_cycle2_default_parity.test.mjs
           node scripts/record_scsp_synth_cycle2_revision.mjs --check
           node scripts/record_scsp_synth_cycle2_default_parity.mjs --check
+          node --test scripts/mixer_calibration_scsp_cycle2_presets_revision.test.mjs scripts/scsp_cycle2_presets_parity.test.mjs
+          node scripts/record_scsp_cycle2_presets_revision.mjs --check
+          node scripts/record_scsp_cycle2_presets_parity.mjs --check
           node scripts/build_playground_examples.mjs --check
           node --test docs/playground/playground_examples.test.mjs docs/playground/playground_mode_starters.test.mjs
           node --test scripts/scsp_fm_cycle2.test.mjs docs/playground/playground_scsp_cycle2_example.test.mjs

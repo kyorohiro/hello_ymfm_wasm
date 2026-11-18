@@ -9,6 +9,7 @@ import factory from '../docs/generated/scsp_wasm.js';
 import {Scsp} from '../docs/js/scsp.js';
 import {Pcm44100Resampler} from '../docs/js/pcm_44100_resampler.js';
 import {SynthInstrument} from '../docs/synth-scsp/instrument.js';
+import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
 
 export const SCSP_SYNTH_CYCLE2_PARITY_BASE_COMMIT='b92ee48e146a011d10e383dcbc2954626cccec1c';
 export const SCSP_SYNTH_CYCLE2_PARITY_RECEIPT='docs/issues/scsp_synth_cycle2_source_revision_01.json';
@@ -102,9 +103,10 @@ function normalize(value){
   return value;
 }
 export async function measureScspSynthCycle2DefaultParity({predecessorSources=null}={}){
+  const reviewed=createScspCycle2PresetsRevisionReadContext();
   const receipt=predecessorSources?null:JSON.parse(await readFile(path(SCSP_SYNTH_CYCLE2_PARITY_RECEIPT),'utf8')),originals={},sources={};
   for(const name of Object.keys(predecessors)){
-    const current=await readFile(path(name));sources[name]=record(current);
+    const current=reviewed.readSource(path(name));sources[name]=record(current);
     if(predecessorSources){
       const bytes=Buffer.from(predecessorSources[name]);assert.equal(sha(bytes),predecessors[name],'Independent baseb92 source');originals[name]=bytes.toString();
     }else originals[name]=reconstructScspSynthCycle2ParityPredecessor(name,current,receipt);

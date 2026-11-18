@@ -323,6 +323,28 @@ version 8 requires an actual Custom2 self graph, version 9 exactly one Custom4/6
 Self, and version 10 at least two Custom4/6 Self targets. Non-self sounds retain
 their established v4–v7 formats.
 
+Cycle 2OP uses a dedicated fixed recipe, separate from Custom's DAG/Self rules:
+
+```js
+await scsp.setConfig({mode: 'fm2', fm: {
+  algorithm: 'cycle2', cycle2: {outputs: [1]},
+}});
+const preset = await scsp.exportPatch(); // version 11
+await scsp.loadPatch(preset);
+```
+
+A precedes B in its allocated pair. B receives current A; A receives B's
+two-history average in the current zero-slot-delay core. New grouped attacks
+initialize four owned history cells in Synth software; live Depth/Ratio edits
+retain history. `outputs` can select A, B, both or neither. The connection is
+currently entered through Code or a preset; selectable Cycle controls follow.
+
+Active Cycle sounds save as **version 11**, including all six source PCM/voice
+settings and explicit Cycle outputs. Manual edits also survive Files presets,
+JSON, Cassette, local draft and audio recovery. V11 does not save live voices or
+stack history and does not contain a dormant Custom graph. Versions 1–10 still
+reject Cycle data. Non-Cycle sounds retain their existing export formats.
+
 The scoped API also provides `setPreset`, `getPCM`, `loadPCM`, `setNote`,
 `setFrequency`, `keyOn`, `keyOff`, `allNotesOff`, `getState`, `setEffect`,
 `exportPatch` and `loadPatch`. Await mutations to preserve their execution
@@ -352,7 +374,8 @@ Loading a project requires Run to begin Code execution.
 Instrument JSON uses version 4 for fixed connections with common depth,
 versions 5–6 for Custom connections, version 7 for differing operator depths,
 version 8 for supported Custom2 self-feedback, version 9 for one Self in
-Custom4/6, and version 10 for multiple Self targets in Custom4/6.
+Custom4/6, version 10 for multiple Self targets in Custom4/6, and version 11
+for FM2 Cycle with explicit output selection.
 It includes six applied PCM sources,
 EG / LFO / mix, mode, connection, ratios, modulation depth, transpose and
 experimental Delay settings. Direct instrument files are limited to 8 MiB.

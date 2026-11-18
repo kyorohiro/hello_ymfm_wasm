@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
 import {measureScspSynthCycle2DefaultParity,reconstructScspSynthCycle2ParityPredecessor,
   SCSP_SYNTH_CYCLE2_PARITY_BASE_COMMIT as base,SCSP_SYNTH_CYCLE2_PARITY_RECEIPT as receiptPath,
   SCSP_SYNTH_CYCLE2_PARITY_REPORT as reportPath} from './record_scsp_synth_cycle2_default_parity.mjs';
@@ -14,7 +15,7 @@ test('real prior default/DAG/Self/multiple-Self PCM and complete state match the
   assert.deepEqual(report,JSON.parse(await readFile(url(reportPath),'utf8')));
 });
 test('independently pinned pre-Cycle2 reconstruction rejects future or forged bodies and unreviewed paths',async()=>{
-  const receipt=JSON.parse(await readFile(url(receiptPath),'utf8')),name='docs/synth-scsp/instrument.js',current=await readFile(url(name));
+  const receipt=JSON.parse(await readFile(url(receiptPath),'utf8')),name='docs/synth-scsp/instrument.js',current=createScspCycle2PresetsRevisionReadContext().readSource(url(name));
   assert(reconstructScspSynthCycle2ParityPredecessor(name,current,receipt).includes('class SynthInstrument'));
   assert.throws(()=>reconstructScspSynthCycle2ParityPredecessor(name,Buffer.concat([current,Buffer.from('\n')]),receipt));
   const forged=structuredClone(receipt);forged.sources[name].reverseHunks[0].beforeText+='// forged predecessor\n';

@@ -203,12 +203,12 @@ test('invalidCycle requests and incompatiblePCM reject before writes, history or
   assert.throws(()=>setup(shot,{depth:0}),/full forward loop/);assert.deepEqual(shot.read(),saved);
 });
 
-test('Cycle snapshots/dormantCustom retain their own data and Phase1 explicitly refuses portableCycle export',async t=>{
+test('Cycle snapshots/dormantCustom retain their own data and portableCycle uses explicit v11',async t=>{
   const owner=await create(t),copy=await create(t);waves(owner);
   const custom={inputs:[[],[0]],outputs:[0,1]};owner.setConfig({mode:'fm2',fm:{algorithm:'custom',custom}});
   setup(owner);const idle=owner.exportIdleState();copy.loadIdleState(idle);assert.deepEqual(copy.read().config,owner.read().config);
   for(const value of [owner,copy])value.noteOn('held',67);assert.deepEqual(owner.synth.generateStereo(2048),copy.synth.generateStereo(2048));
-  assert.throws(()=>owner.exportPatch(),/Cycle|cycle|version 11|v11/);
+  const cycle=owner.exportPatch();assert.equal(cycle.version,11);assert.deepEqual(cycle.fm.cycle2,{outputs:[1]});assert(!Object.hasOwn(cycle.fm,'custom'));
   owner.setConfig({fm:{algorithm:'chain'}});const legacy=owner.exportPatch();assert(!Object.hasOwn(legacy.fm,'cycle2'));
   owner.setConfig({fm:{algorithm:'custom'}});assert.deepEqual(owner.read().config.fm.custom,custom);
   owner.setConfig({mode:'fm4',fm:{algorithm:'custom'}});assert.deepEqual(owner.read().config.fm.custom.inputs,[[],[0],[],[]]);

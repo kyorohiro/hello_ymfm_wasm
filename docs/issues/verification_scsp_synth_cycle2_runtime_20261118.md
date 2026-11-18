@@ -3,6 +3,11 @@
 Base `b92ee48e146a011d10e383dcbc2954626cccec1c`; initially clean worktree.
 Phase 1 of [the bounded integration design](scsp_synth_cycle2_design_20261118.md).
 
+Historical Phase-1 record. The subsequent
+[v11 persistence update](verification_scsp_cycle2_presets_20261118.md) removes
+the save/cache restrictions described below and preserves edited Cycle sounds.
+The original machine evidence remains unchanged.
+
 The Synth's borrowed Code client now accepts FM2 `algorithm: 'cycle2'`.
 One group owns two ascending physical slots: A is first, B second. A reads
 B's two-history average (X33/Y1); B reads current A (X63/Y63). The 13 existing

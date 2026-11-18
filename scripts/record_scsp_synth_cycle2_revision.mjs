@@ -6,6 +6,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {diffLines} from 'diff';
+import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
 import {measureScspSynthCycle2DefaultParity,SCSP_SYNTH_CYCLE2_PARITY_REPORT} from './record_scsp_synth_cycle2_default_parity.mjs';
 import {SCSP_SYNTH_CYCLE2_BASE as baseCommit,
   SCSP_SYNTH_CYCLE2_RECEIPT as destination,
@@ -30,7 +31,9 @@ function reverseHunks(before,after){
   for(const h of hunks){parts.push(after.subarray(cursor,h.afterOffset),Buffer.from(h.beforeText));cursor=h.afterOffset+h.afterBytes;}
   parts.push(after.subarray(cursor));assert.deepEqual(Buffer.concat(parts),before);return hunks;
 }
-export async function createScspSynthCycle2RevisionReceipt({readSource=name=>readFile(resolve(root,name))}={}){
+export async function createScspSynthCycle2RevisionReceipt({readSource}={}){
+  const reviewed=createScspCycle2PresetsRevisionReadContext();
+  readSource??=name=>Promise.resolve(reviewed.readSource(new URL('../'+name,import.meta.url)));
   const sources={},relatedSources={},reportRecords={};
   for(const name of paths){
     const before=historical(name),after=await readSource(name);

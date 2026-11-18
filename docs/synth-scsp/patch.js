@@ -30,13 +30,18 @@ function defaultOperator(){return {pcm:Int16Array.from({length:64},(_,i)=>Math.r
 export function readPatch(value) {
   if(value?.format!=='tetorica-scsp-voice')throw new TypeError('Unsupported SCSP preset format');
   const version=value.version;
-  if(value.fm?.algorithm==='cycle2'||Object.hasOwn(value.fm??{},'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');
+  // V11 names one fixed Cycle recipe. Unlike setConfig(), portable input must
+  // carry complete explicit metadata rather than inventing default outputs.
+  const cycleFm=version===11?value.fm:undefined;
+  if(version===11){
+    if(value.mode!=='fm2'||cycleFm?.algorithm!=='cycle2'||!Object.hasOwn(cycleFm,'cycle2')||Object.hasOwn(cycleFm,'custom'))throw new TypeError('Preset version 11 requires FM2 Cycle 2OP with explicit outputs and no Custom graph');
+  }else if(value.fm?.algorithm==='cycle2'||Object.hasOwn(value.fm??{},'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11');
   if(version>=1&&version<7&&Object.hasOwn(value.fm??{},'depths'))throw new TypeError('Per-operator FM depths require preset version 7');
   if(version>=1&&version<5&&(value.fm?.algorithm==='custom'||Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Custom FM routing requires preset version 5');
   let config,operators={};
   if(version===1){
     operators.carrier=readPreset(value);config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});
-  }else if(version===2||version===3||version===4||version===5||version===6||version===7||version===8||version===9||version===10){
+  }else if(version===2||version===3||version===4||version===5||version===6||version===7||version===8||version===9||version===10||version===11){
     if(version===2&&!['pcm','fm2'].includes(value.mode))throw new TypeError('Version 2 supports PCM or 2-op');
     if(version===5&&(value.mode!=='fm2'||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 5 requires complete custom 2-op FM routing');
     if(version===6&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 6 requires complete custom 4-op or 6-op FM routing');
@@ -46,10 +51,12 @@ export function readPatch(value) {
     if(version===10&&(!['fm4','fm6'].includes(value.mode)||value.fm?.algorithm!=='custom'||!Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Preset version 10 requires complete Custom 4-op or 6-op multiple self feedback');
     // Capture the declared version once; unrelated property getters must not
     // switch the format after its normalized graph has been validated.
-    config=settings({mode:value.mode,fm:value.fm,transpose:value.transpose,effect:version>=4?value.effect:undefined});
+    config=settings({mode:value.mode,fm:version===11?cycleFm:value.fm,transpose:value.transpose,effect:version>=4?value.effect:undefined});
     // A getter can change fm between the early format gates and normalized
-    // validation. Phase 1 never lets a legacy preset carry active/dormant Cycle.
-    if(config.fm.algorithm==='cycle2'||Object.hasOwn(config.fm,'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');
+    // validation. Legacy formats never acquire active/dormant Cycle semantics.
+    if(version===11){
+      if(config.mode!=='fm2'||config.fm.algorithm!=='cycle2'||!Object.hasOwn(config.fm,'cycle2')||Object.hasOwn(config.fm,'custom'))throw new TypeError('Preset version 11 requires FM2 Cycle 2OP with explicit outputs and no Custom graph');
+    }else if(config.fm.algorithm==='cycle2'||Object.hasOwn(config.fm,'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11');
     const self=config.fm.custom?selfFeedbackCount(config.fm.custom):0;
     if(version<8&&self)throw new TypeError('Self feedback needs preset version 8 for 2-op, 9 for one Self in 4/6-op, or 10 for multiple Self operators');
     if(version===8&&(config.mode!=='fm2'||config.fm.algorithm!=='custom'||self!==1))throw new TypeError('Preset version 8 requires Custom 2-op with an actual self-feedback connection');
@@ -73,12 +80,11 @@ export function readPatch(value) {
   return {...config,operators};
 }
 export function writePatch(config,operators) {
-  const validated=settings(config),custom=validated.fm.algorithm==='custom';
-  if(validated.fm.algorithm==='cycle2')throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');
-  delete validated.fm.cycle2;
+  const validated=settings(config),custom=validated.fm.algorithm==='custom',cycle=validated.fm.algorithm==='cycle2';
+  if(!cycle)delete validated.fm.cycle2;
   if(!custom)delete validated.fm.custom;
   const self=custom?selfFeedbackCount(validated.fm.custom):0;
-  const value={format:'tetorica-scsp-voice',version:self?(validated.mode==='fm2'?8:self===1?9:10):validated.fm.depths?7:custom?(validated.mode==='fm2'?5:6):4,...validated,operators:Object.fromEntries(Object.entries(operators).map(([kind,operator])=>{
+  const value={format:'tetorica-scsp-voice',version:cycle?11:self?(validated.mode==='fm2'?8:self===1?9:10):validated.fm.depths?7:custom?(validated.mode==='fm2'?5:6):4,...validated,operators:Object.fromEntries(Object.entries(operators).map(([kind,operator])=>{
     const {format,version,...saved}=writePreset(operator);return [kind,saved];
   }))};
   readPatch(value);return value;

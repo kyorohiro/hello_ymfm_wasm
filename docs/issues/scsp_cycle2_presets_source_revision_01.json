@@ -1,0 +1,846 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-cycle2-v11-portable-presets",
+  "baseCommit": "6ca7c946bba5c8a84610dd4b3b7542e71562f89f",
+  "review": "Portable version 11 explicitly serializes the bounded FM2 Cycle connection and six PCM/voice/effect sources; old formats retain their meaning and reject Cycle aliases. Saved authoring, Files/JSON/Cassette/draft/recovery paths retain edits. Fixed physical mapping, attack/history behavior, shared runtime/core/WASM/gains and prior evidence remain unchanged. Whole reviewed source predecessors are reconstructed before older calibration proof layers. Exact pre-v11/current sound parity covers 166 legacy cases plus 40 already-supported Cycle cases at 44.1/48 kHz; Cycle portable export is deliberately new rather than falsely compared to the old export rejection.",
+  "sources": {
+    "docs/synth-scsp/patch.js": {
+      "before": {
+        "bytes": 8543,
+        "sha256": "5f2c03db982c558cabd35ae50487642f540278d951e502d158123f86d27fb110"
+      },
+      "after": {
+        "bytes": 9147,
+        "sha256": "6e9f08c51c12eb47e07d4164fe742d3601925f5eac3ecee502c14e79e95161e5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3119,
+          "afterBytes": 606,
+          "beforeText": "  if(value.fm?.algorithm==='cycle2'||Object.hasOwn(value.fm??{},'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');\n"
+        },
+        {
+          "afterOffset": 4179,
+          "afterBytes": 144,
+          "beforeText": "  }else if(version===2||version===3||version===4||version===5||version===6||version===7||version===8||version===9||version===10){\n"
+        },
+        {
+          "afterOffset": 5879,
+          "afterBytes": 140,
+          "beforeText": "    config=settings({mode:value.mode,fm:value.fm,transpose:value.transpose,effect:version>=4?value.effect:undefined});\n"
+        },
+        {
+          "afterOffset": 6095,
+          "afterBytes": 490,
+          "beforeText": "    // validation. Phase 1 never lets a legacy preset carry active/dormant Cycle.\n    if(config.fm.algorithm==='cycle2'||Object.hasOwn(config.fm,'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');\n"
+        },
+        {
+          "afterOffset": 8505,
+          "afterBytes": 157,
+          "beforeText": "  const validated=settings(config),custom=validated.fm.algorithm==='custom';\n  if(validated.fm.algorithm==='cycle2')throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');\n  delete validated.fm.cycle2;\n"
+        },
+        {
+          "afterOffset": 8765,
+          "afterBytes": 260,
+          "beforeText": "  const value={format:'tetorica-scsp-voice',version:self?(validated.mode==='fm2'?8:self===1?9:10):validated.fm.depths?7:custom?(validated.mode==='fm2'?5:6):4,...validated,operators:Object.fromEntries(Object.entries(operators).map(([kind,operator])=>{\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/synth.js": {
+      "before": {
+        "bytes": 60656,
+        "sha256": "ea259bedc761c95be7d06cc45a862153457c247aee4dd974425bff927c34e757"
+      },
+      "after": {
+        "bytes": 60009,
+        "sha256": "dab08719bbd89c259a6c424cafd6a2aecabe9e5b8e3a71a4afca0b3282ae1376"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 136,
+          "afterBytes": 217,
+          "beforeText": "import { createAudio } from './audio.js?v=scsp-cycle2-code-1';\nimport { SynthInstrument } from './instrument.js?v=scsp-cycle2-code-1';\nimport { readPatch, writePatch } from './patch.js?v=scsp-cycle2-code-1';\n"
+        },
+        {
+          "afterOffset": 528,
+          "afterBytes": 76,
+          "beforeText": "import { setupScspCodeHost } from './code_host.js?v=scsp-cycle2-code-1';\n"
+        },
+        {
+          "afterOffset": 1809,
+          "afterBytes": 112,
+          "beforeText": "import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-cycle2-code-1';\n"
+        },
+        {
+          "afterOffset": 3317,
+          "afterBytes": 0,
+          "beforeText": "let cycle2Active = false;\nconst cycle2SaveMessage = 'Cycle 2OP is Code-only for now. Save the JavaScript; portable Cycle presets need the next update.';\nfunction portableSound() {\n\tif (cycle2Active) throw new Error(cycle2SaveMessage);\n\treturn clone(cachedPatch);\n}\n"
+        },
+        {
+          "afterOffset": 8663,
+          "afterBytes": 129,
+          "beforeText": "\tcycle2Active = state.config.fm.algorithm === 'cycle2';\n\t// Code is saved normally; until v11, retain the last portable base sound for\n\t// workspace/restart recovery. Sound-save actions must reject instead of\n\t// exporting this base as though it represented the running Cycle.\n\tif (!cycle2Active) {\n\t\tcachedPatch = writePatch({ ...state.config, transpose: baseTranspose }, sources);\n\t\tif (soundName) cachedPatch.name = soundName;\n\t}\n"
+        },
+        {
+          "afterOffset": 16970,
+          "afterBytes": 41,
+          "beforeText": "\t\tcycleOption.textContent = 'Cycle 2OP · Code';\n"
+        },
+        {
+          "afterOffset": 22259,
+          "afterBytes": 22,
+          "beforeText": "\t\t\tonConfigChange({method, value}) {\n"
+        },
+        {
+          "afterOffset": 22327,
+          "afterBytes": 47,
+          "beforeText": "\t\t\t\tcycle2Active = method === 'setConfig' && value.fm.algorithm === 'cycle2';\n\t\t\t\tif (cycle2Active) status('Cycle 2OP · Code-only setup. Save the JavaScript; preset support follows.');\n"
+        },
+        {
+          "afterOffset": 55917,
+          "afterBytes": 36,
+          "beforeText": "\t\tconst sound = portableSound();\n"
+        },
+        {
+          "afterOffset": 56484,
+          "afterBytes": 100,
+          "beforeText": "\tgetSoundSettings: portableSound,\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/code_declarations.js": {
+      "before": {
+        "bytes": 17019,
+        "sha256": "7b4389a88eef9b29b009d0917e81b7101ef5927b781119dce610ec78f7db32ce"
+      },
+      "after": {
+        "bytes": 17292,
+        "sha256": "533741cbd50af9ed1e4a556563d1dcc77fe277cc5315f704131d41aa482aea4b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 7685,
+          "afterBytes": 141,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8950,
+          "afterBytes": 130,
+          "beforeText": "  {version:10;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomMultipleSelfRouting6>}\n"
+        },
+        {
+          "afterOffset": 13093,
+          "afterBytes": 81,
+          "beforeText": "   * Portable Cycle presets are not available in this first Code-only stage. */\n"
+        },
+        {
+          "afterOffset": 15169,
+          "afterBytes": 151,
+          "beforeText": "  /** Portable v4–10 sound. Rejects active Cycle2 until v11 support is added;\n   * save the JavaScript to retain the Cycle setup for now. */\n"
+        },
+        {
+          "afterOffset": 15360,
+          "afterBytes": 71,
+          "beforeText": "  /** Load portable SCSP presets 1–10. Custom two-OP uses version 5;\n"
+        },
+        {
+          "afterOffset": 15659,
+          "afterBytes": 151,
+          "beforeText": "   * All Self formats require a complete graph and have optional depths. */\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/code_declarations.test.mjs": {
+      "before": {
+        "bytes": 18631,
+        "sha256": "8870854ce05348c53d2c8308427e1434bb0581679e43d82e91f840e09e75d086"
+      },
+      "after": {
+        "bytes": 19577,
+        "sha256": "cf67abf36490c85a71e6be8c3d437e424ad198f80018d7d647039bc39e04b02e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3473,
+          "afterBytes": 74,
+          "beforeText": "const presetVersion:4|5|6|7|8|9|10=(await scsp.exportPatch()).version;\n"
+        },
+        {
+          "afterOffset": 6360,
+          "afterBytes": 506,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 11520,
+          "afterBytes": 67,
+          "beforeText": "// @ts-expect-error Phase1 portable presets do not allow the runtime-only Cycle\n"
+        },
+        {
+          "afterOffset": 11727,
+          "afterBytes": 450,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_files.js": {
+      "before": {
+        "bytes": 36670,
+        "sha256": "36df2f7d75f33cef7223e9a561ca82d63f0a9f2262f9b4b324fadec885285dc7"
+      },
+      "after": {
+        "bytes": 37274,
+        "sha256": "165816ae4e87571756eeb217cb40fedd5b329b5bcef1df58d4b4e34e7b2ebfa1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 634,
+          "afterBytes": 52,
+          "beforeText": "} from './code_project.js?v=scsp-dsp-code-1';\n"
+        },
+        {
+          "afterOffset": 19567,
+          "afterBytes": 299,
+          "beforeText": "\t\tproject.setSettings(getSettings());\n"
+        },
+        {
+          "afterOffset": 24773,
+          "afterBytes": 81,
+          "beforeText": "\t\t\tlet sound = readScspProjectSound(requestedSound ?? getSoundSettings());\n"
+        },
+        {
+          "afterOffset": 28917,
+          "afterBytes": 75,
+          "beforeText": "\tfunction ask(action, path = project.selectedPath) {\n"
+        },
+        {
+          "afterOffset": 29070,
+          "afterBytes": 86,
+          "beforeText": "\t\tdialogSound = action === 'save-sound' ? readScspProjectSound(getSoundSettings()) : null;\n"
+        },
+        {
+          "afterOffset": 30298,
+          "afterBytes": 33,
+          "beforeText": "\tfunction askSaveSound() {\n"
+        },
+        {
+          "afterOffset": 30369,
+          "afterBytes": 309,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 30698,
+          "afterBytes": 50,
+          "beforeText": "\t\task('save-sound');\n"
+        },
+        {
+          "afterOffset": 32745,
+          "afterBytes": 39,
+          "beforeText": "\t\ttry {\n\t\t\taskSaveSound();\n\t\t} catch (error) {\n\t\t\treport(error);\n\t\t}\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/code_files.test.mjs": {
+      "before": {
+        "bytes": 24842,
+        "sha256": "d151c50ebb377439764e1cc8e850690c1d603567b72d8ef3e927c2172cc0189b"
+      },
+      "after": {
+        "bytes": 26491,
+        "sha256": "d1d6d8eefd47884d104395ba8015508df138fe9c52fef4c478879abda430c247"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2138,
+          "afterBytes": 35,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2880,
+          "afterBytes": 321,
+          "beforeText": "  const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});\n"
+        },
+        {
+          "afterOffset": 4003,
+          "afterBytes": 131,
+          "beforeText": "  t.after(()=>files.dispose());return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};\n"
+        },
+        {
+          "afterOffset": 5115,
+          "afterBytes": 229,
+          "beforeText": "test('Code-only sounds reject preset saves while JavaScript and workspace persistence remain available',async t=>{\n  const f=fixture(t,{getSoundSettings:()=>{throw Error('Cycle 2OP needs portable preset support. Save JavaScript.');}});\n"
+        },
+        {
+          "afterOffset": 5401,
+          "afterBytes": 64,
+          "beforeText": "  await assert.rejects(f.files.saveSound(),/Cycle 2OP/);\n"
+        },
+        {
+          "afterOffset": 5620,
+          "afterBytes": 54,
+          "beforeText": "  assert.match(f.statuses.at(-1),/Cycle 2OP/);\n"
+        },
+        {
+          "afterOffset": 6186,
+          "afterBytes": 55,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6246,
+          "afterBytes": 1342,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_project.js": {
+      "before": {
+        "bytes": 12650,
+        "sha256": "d49e4302ccac0abe1dbc8c290133a6244ec27e6e7152143a7fa41e29ad308b07"
+      },
+      "after": {
+        "bytes": 12653,
+        "sha256": "a73045e714a5a7ea0934ce463a183bdeae76300936307afb74a772266d8d520c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 559,
+          "afterBytes": 90,
+          "beforeText": "import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-cycle2-code-1';\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/code_host.js": {
+      "before": {
+        "bytes": 4969,
+        "sha256": "0621ba8baa6c63d49003d9b3f2ac2eff5dd194e0abe1274c1784a20d31936823"
+      },
+      "after": {
+        "bytes": 4978,
+        "sha256": "8989375f98a78ac8e213b3ed47be07b6d6f1c86b7fb57888e324fdc459c20e27"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 285,
+          "afterBytes": 93,
+          "beforeText": "import { selectScspCodeDeclarations } from './code_declarations.js?v=scsp-cycle2-code-1';\n"
+        },
+        {
+          "afterOffset": 492,
+          "afterBytes": 130,
+          "beforeText": "} from './code_project.js?v=scsp-cycle2-code-1';\nimport { setupScspCodeFiles } from './code_files.js?v=scsp-cycle2-code-1';\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/audio.js": {
+      "before": {
+        "bytes": 8724,
+        "sha256": "dda16f2624edba0cb0911591ab46dc13d17c71efd9579f36101cda6fc0c1ce35"
+      },
+      "after": {
+        "bytes": 8727,
+        "sha256": "946fda41668f7ee0dc3edf4172726be2af055634ae4e08d77e1f4a08f3d5b744"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3326,
+          "afterBytes": 113,
+          "beforeText": "      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-cycle2-code-1',import.meta.url)),resumed,\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/instrument.js": {
+      "before": {
+        "bytes": 40925,
+        "sha256": "374f0ae8989ac10bf14303c0b30873685d87462d73272e6898a262082f5ac9f8"
+      },
+      "after": {
+        "bytes": 40928,
+        "sha256": "97ac3ca01bbe23a22d51efd1293ee0b44a93af436b974f168495f8b63bf8868b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 460,
+          "afterBytes": 106,
+          "beforeText": "import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-cycle2-code-1';\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/processor.js": {
+      "before": {
+        "bytes": 9952,
+        "sha256": "6504d3036c1de4262c0c54a80595694c99c6247b4d960dd1a3419f2b37b44a45"
+      },
+      "after": {
+        "bytes": 9955,
+        "sha256": "0e8c425549ab8e5f17c8e1286ada3236d110b8d051b0a6f02cd9cdd6b85933d5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 194,
+          "afterBytes": 75,
+          "beforeText": "import { SynthInstrument } from './instrument.js?v=scsp-cycle2-code-1';\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/ssf_capture.js": {
+      "before": {
+        "bytes": 9686,
+        "sha256": "11f5b22459804a22dbc833b1eacb2be82330c7c8e1325b6aaab3511119368bf2"
+      },
+      "after": {
+        "bytes": 9689,
+        "sha256": "7a980c7b6470067020eca6da197dfa2b5ff5a57fb0f5b3216618a36c279b526c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 158,
+          "afterBytes": 64,
+          "beforeText": "import { readPatch } from './patch.js?v=scsp-cycle2-code-1';\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/index.html": {
+      "before": {
+        "bytes": 44101,
+        "sha256": "9de2892ac083ef89905924fa452fe80ce73c47b9ecd29a93104cd639139011bb"
+      },
+      "after": {
+        "bytes": 44104,
+        "sha256": "214f8b81d80e7fa5b1aaf5b79b28c0ddae4e0276842d773a95d0372d1946122d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 44014,
+          "afterBytes": 73,
+          "beforeText": "\t\t<script type=\"module\" src=\"synth.js?v=scsp-cycle2-code-1\"></script>\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/fm_cycle2_config.test.mjs": {
+      "before": {
+        "bytes": 4057,
+        "sha256": "7e869323870310e4a59fa7b0e3300d978533809d3b4762b91fbf0241feb31b25"
+      },
+      "after": {
+        "bytes": 4030,
+        "sha256": "4f70f660a1f5c821548cebfbc0d24fb1c306d30bf81b9ff59615a6ffb6d063a0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3379,
+          "afterBytes": 121,
+          "beforeText": "test('Phase1 never aliases Cycle into an old portable preset; inactive metadata exports no new format',async t=>{\n"
+        },
+        {
+          "afterOffset": 3560,
+          "afterBytes": 71,
+          "beforeText": "  owner.setConfig(cycle);assert.throws(()=>owner.exportPatch(),/version 11 support.*not available yet/);\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/fm_cycle2.test.mjs": {
+      "before": {
+        "bytes": 17649,
+        "sha256": "1a61d7847a741175122986078736979f398df3cb0a4fab19fb52e18eb9db0d4e"
+      },
+      "after": {
+        "bytes": 17719,
+        "sha256": "68b707f2b3ddaf8e737231cc1e3e5bbca5c1be2487289fc4940b966c509df5bd"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 13708,
+          "afterBytes": 106,
+          "beforeText": "test('Cycle snapshots/dormantCustom retain their own data and Phase1 explicitly refuses portableCycle export',async t=>{\n"
+        },
+        {
+          "afterOffset": 14263,
+          "afterBytes": 156,
+          "beforeText": "  assert.throws(()=>owner.exportPatch(),/Cycle|cycle|version 11|v11/);\n"
+        }
+      ]
+    },
+    "scripts/check_scsp_synth_cycle2_browser.cjs": {
+      "before": {
+        "bytes": 21409,
+        "sha256": "371021d259de2911778f4b702aff542686156ccab3384d138dd169194126c2ec"
+      },
+      "after": {
+        "bytes": 29799,
+        "sha256": "37044751e34a745baa41ac99a2ae9301ff02ef04fd86c8b39db609be9558048a"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 41,
+          "afterBytes": 86,
+          "beforeText": "// Verify Phase-1 Cycle2 through actual Synth Files/Code with permanently muted physical output.\n"
+        },
+        {
+          "afterOffset": 7226,
+          "afterBytes": 1533,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12365,
+          "afterBytes": 51,
+          "beforeText": "  const errors=[],missing=[],external=[],cases=[],downloads=[];\n"
+        },
+        {
+          "afterOffset": 12934,
+          "afterBytes": 0,
+          "beforeText": "  page.on('download',download=>downloads.push(download.suggestedFilename()));\n"
+        },
+        {
+          "afterOffset": 13732,
+          "afterBytes": 153,
+          "beforeText": "    cases.push('Actual Files index.js and Code Run borrow the Synth, initialize a fixed A-before-B pair with the measured taps and produce finite nonzero muted output');\n"
+        },
+        {
+          "afterOffset": 14178,
+          "afterBytes": 0,
+          "beforeText": "    // getState reports retained requested taps; native serialization of the\n    // existing adapter's depth0 is verified independently in real-WASM tests.\n"
+        },
+        {
+          "afterOffset": 14709,
+          "afterBytes": 240,
+          "beforeText": "    const checks=`\\ntry { await scsp.setConfig({mode:'fm4'}); log('ERROR invalid mode accepted'); } catch(error) { log('cycle2 invalid mode rejected',error.message); }\\ntry { await scsp.exportPatch(); log('ERROR export accepted'); } catch(error) { log('cycle2 export rejected',error.message); }\\n`;\n"
+        },
+        {
+          "afterOffset": 15011,
+          "afterBytes": 125,
+          "beforeText": "    await page.waitForFunction(()=>document.getElementById('synthCodeLog').textContent.includes('cycle2 export rejected'));\n"
+        },
+        {
+          "afterOffset": 15304,
+          "afterBytes": 6499,
+          "beforeText": "    cases.push('Actual borrowed Code rejects an incompatible mode and premature portable export while the current Cycle keeps running');\n    const savedDownloads=downloads.length,filesBefore=await page.locator('#scspFilesTree button[data-file-path]').evaluateAll(nodes=>nodes.map(node=>node.dataset.filePath));\n    if(!await page.locator('#synthMenu').evaluate(menu=>menu.open))await page.locator('#synthMenuButton').click();\n    await page.locator('#save').click();await page.waitForFunction(()=>document.getElementById('status').dataset.error==='true'&&/Cycle.*(?:Code-only|version 11)/i.test(document.getElementById('status').textContent));\n    await page.locator('#scspFileSaveSoundButton').click();\n    await page.waitForFunction(()=>/Cycle.*(?:Code-only|version 11)/i.test(document.getElementById('scspFilesStatus').textContent));\n    await page.locator('#scspSaveSoundAs').click();\n    assert.equal(await page.locator('dialog[open]').count(),0,'Save-to-presets must not stage a stale portable sound in a naming dialog');\n    assert.equal(downloads.length,savedDownloads);assert.deepEqual(await page.locator('#scspFilesTree button[data-file-path]').evaluateAll(nodes=>nodes.map(node=>node.dataset.filePath)),filesBefore);\n    assert.equal((await inspect(page)).codeActive,true);\n    cases.push('Menu Instrument JSON, Files Save sound and Save-to-presets dialog entry explicitly reject Cycle saving, producing neither a stale download, staged naming dialog nor misleading preset file');\n"
+        },
+        {
+          "afterOffset": 22669,
+          "afterBytes": 486,
+          "beforeText": "    const finalSource=cycleSource+checks+`\\nawait livePrepare('cycle2-second',()=>scsp.noteOn(CH2,'C4'));\\nawait scsp.setDspSourceSend(1,{input:1,level:5});\\n`;\n    await evaluateCode(page,finalSource,{apply:true});\n"
+        },
+        {
+          "afterOffset": 23282,
+          "afterBytes": 176,
+          "beforeText": "    const manual=state.manualVoices.find(value=>value.slot===31&&value.held),program=await request(page,{method:'readDspProgram',args:[]});\n    const overrides=state.dspRoutingOverrides;\n"
+        },
+        {
+          "afterOffset": 23989,
+          "afterBytes": 461,
+          "beforeText": "    cases.push('Physical takeover retires the entire former pair; stale Code release cannot erase it, and later Code Stop preserves an independent physical owner and DSP setup');\n    await page.keyboard.up('s');await page.locator('#stop').click();\n    const archive=await exportProject(page),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')).href),cassette=await loadPlaygroundCassette(new Uint8Array(archive));\n"
+        },
+        {
+          "afterOffset": 24554,
+          "afterBytes": 133,
+          "beforeText": "    assert.deepEqual(manifest.settings,base);assert.equal(new TextDecoder().decode(cassette.files.get('index.js')),finalSource);\n"
+        },
+        {
+          "afterOffset": 25211,
+          "afterBytes": 2625,
+          "beforeText": "    state=await inspect(page);assert.equal(state.codeActive,false);assert.equal(state.config.fm.algorithm,'chain');assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),base);\n    cases.push('Workspace export and local autosave preserve Cycle JavaScript with the last portable base sound; reload never executes Code or starts audio');\n    await evaluateCode(page,cycleSource);await waitState(page,state=>state.config.fm.algorithm==='cycle2','Cycle before normal preset');\n    await loadInstrument(page,base,'normal-base.json');state=await waitState(page,state=>state.config.fm.algorithm==='chain','normal preset exits Cycle');\n    assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),base);\n"
+        },
+        {
+          "afterOffset": 28198,
+          "afterBytes": 356,
+          "beforeText": "    cases.push('A normal preset exits Cycle through the existing sound-loading path; global Stop is silent and every physical output remains muted at 48 kHz');\n    return {browser:name,rate:48000,passed:true,cases,first,audible,stopped,graph:audited,errors,missing,screenshot:image,externalRequestsBlocked:external.length};\n"
+        }
+      ]
+    },
+    "scripts/mixer_calibration_scsp_synth_cycle2_revision.mjs": {
+      "before": {
+        "bytes": 9444,
+        "sha256": "75a75e086b556993f799c7c56068f97aa56a2ea32d8d168713f8bbac1e3a663f"
+      },
+      "after": {
+        "bytes": 9808,
+        "sha256": "b421b666524ec451888b545ced011ca8e802f196c6802cb3569172174e4364c5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 309,
+          "afterBytes": 113,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8717,
+          "afterBytes": 240,
+          "beforeText": "export function restoreMixerCalibrationScspSynthCycle2Revision(path,bytes,{readSource=read}={}){return createRestorer(readSource)(path,bytes);}\n"
+        },
+        {
+          "afterOffset": 9032,
+          "afterBytes": 100,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9713,
+          "afterBytes": 93,
+          "beforeText": "  return {restore,readSource:reader};\n"
+        }
+      ]
+    },
+    "scripts/mixer_calibration_scsp_synth_cycle2_revision.test.mjs": {
+      "before": {
+        "bytes": 4520,
+        "sha256": "211e4d71de3cd67aa52c1c97d9b6270f49969340d3ca7c0fe0c950011cf0c617"
+      },
+      "after": {
+        "bytes": 4701,
+        "sha256": "9a155a83470e3f1eba3b77445cf2345b1004814a88c49fd3dc512610f4590e7c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 710,
+          "afterBytes": 269,
+          "beforeText": "const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));\n"
+        }
+      ]
+    },
+    "scripts/record_scsp_synth_cycle2_revision.mjs": {
+      "before": {
+        "bytes": 4812,
+        "sha256": "c84253beca55964ca8b0ed0a91714dcc4d3f10f72f5c089dea1eeed06a20e1af"
+      },
+      "after": {
+        "bytes": 5049,
+        "sha256": "6f4a3a72cd900f658c5529d4c4ce19d35595014570215f8b640931e49ce69bf3"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 372,
+          "afterBytes": 113,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2068,
+          "afterBytes": 236,
+          "beforeText": "export async function createScspSynthCycle2RevisionReceipt({readSource=name=>readFile(resolve(root,name))}={}){\n"
+        }
+      ]
+    },
+    "scripts/record_scsp_synth_cycle2_default_parity.mjs": {
+      "before": {
+        "bytes": 16304,
+        "sha256": "79c02616b8f78c5538f59857e460aca41399593c6076c634484e735ec3b597c8"
+      },
+      "after": {
+        "bytes": 16485,
+        "sha256": "0cc2b05cc780de468baddd9d42154f1c000c4e7fd22482786d68198ec0e3deea"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 574,
+          "afterBytes": 113,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7357,
+          "afterBytes": 63,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7607,
+          "afterBytes": 81,
+          "beforeText": "    const current=await readFile(path(name));sources[name]=record(current);\n"
+        }
+      ]
+    },
+    "scripts/scsp_synth_cycle2_default_parity.test.mjs": {
+      "before": {
+        "bytes": 2192,
+        "sha256": "c17c5c85d19827f35208495bb7811e219062adc7dbd7bdb46971bc740f92bf75"
+      },
+      "after": {
+        "bytes": 2346,
+        "sha256": "42fb00df0a42a27853773baf047911cea101035fa27663e2eba5bf6a59257196"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 114,
+          "afterBytes": 113,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1595,
+          "afterBytes": 181,
+          "beforeText": "  const receipt=JSON.parse(await readFile(url(receiptPath),'utf8')),name='docs/synth-scsp/instrument.js',current=await readFile(url(name));\n"
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/scsp.js": {
+      "bytes": 10554,
+      "sha256": "50dcc4f4df918163e04fe67be99e6acb2720e19d5f4ee160b2cf3cbd4b08b407"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "tetorica_src/runtime/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "tetorica_src/runtime/scsp_dsp.js": {
+      "bytes": 14304,
+      "sha256": "403279239f049e1239130bbf12f71e2775e27eb8c04c50e97ffb9e815211944e"
+    },
+    "docs/js/scsp_dsp.js": {
+      "bytes": 14304,
+      "sha256": "403279239f049e1239130bbf12f71e2775e27eb8c04c50e97ffb9e815211944e"
+    },
+    "tetorica_src/runtime/scsp_dsp_program.js": {
+      "bytes": 5069,
+      "sha256": "894bd32c4083cc3efd6cdd98f29b5269891c6bf8235daf52689eac61b5671275"
+    },
+    "docs/js/scsp_dsp_program.js": {
+      "bytes": 5069,
+      "sha256": "894bd32c4083cc3efd6cdd98f29b5269891c6bf8235daf52689eac61b5671275"
+    },
+    "tetorica_src/runtime/scsp_dsp_coefficients.js": {
+      "bytes": 1857,
+      "sha256": "89970ded43fc3f857ad49978d3eb82971148872f02e3ddca51cc0a953e691496"
+    },
+    "docs/js/scsp_dsp_coefficients.js": {
+      "bytes": 1857,
+      "sha256": "89970ded43fc3f857ad49978d3eb82971148872f02e3ddca51cc0a953e691496"
+    },
+    "tetorica_src/runtime/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/js/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "tetorica_src/runtime/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "tetorica_src/runtime/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "docs/js/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "e974b019c7ff3bb48fef644ea9ef1fbf4308e7f60ed8fa45da51f14ee6721568"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "6bdb304a4c74efba44ba76d5414c40d47dbf1bbf92b2fc66fcf4e2122d04fc20"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp": {
+      "bytes": 27097,
+      "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.h": {
+      "bytes": 2976,
+      "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13458,
+      "sha256": "3de5081f55347d96c663a36cd472340a0a5f5c877fadd03c0778cf53c037d57a"
+    },
+    "docs/playground/playground_examples.js": {
+      "bytes": 234984,
+      "sha256": "4fd7c3048eab2331de1ca5a8e92e3f45722f539ecf8d22c7f3ac9ad6b089890d"
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "bytes": 5852,
+      "sha256": "2932faf251c17ab780c8e15bee6b5ce8ec58102a1c4813054d002fe9f4c611ec"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124913,
+      "sha256": "6aa6a784e6de23a95d37f4a292039c075dbd361a41a6b93c40a38bd384014737"
+    },
+    "docs/synth-scsp/synth.css": {
+      "bytes": 27694,
+      "sha256": "43f332f7f11abc3b72ba59d894f462dbec34d801a5c013dac4214e2ed5554a6a"
+    },
+    "docs/synth-scsp/preset.js": {
+      "bytes": 1968,
+      "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+    },
+    "docs/synth-scsp/release_guard.js": {
+      "bytes": 2410,
+      "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+    },
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 11928,
+      "sha256": "2efcacdbbce5370a5929a6003e14cef5f6e898af08beade0a5e997f2ae7889d0"
+    },
+    "docs/synth-scsp/code_endpoint.js": {
+      "bytes": 5276,
+      "sha256": "cd8d694ae9ebdccf17cb0acb2044491934bc06f7507c75fd0b441b2ad822ebf7"
+    },
+    "docs/synth-scsp/fm_custom_view.js": {
+      "bytes": 3979,
+      "sha256": "4c5e1ca2cf18f0a1a62a5820ee3ec90b50b3ec36b052c7149bc776c0a90e8716"
+    },
+    "docs/synth-scsp/routing.js": {
+      "bytes": 8824,
+      "sha256": "84bbedd7d8557f85b338e6be3ac4e80565456623f8df8565f0a025b75fb8d3f0"
+    },
+    "scripts/record_scsp_cycle2_presets_parity.mjs": {
+      "bytes": 18144,
+      "sha256": "8c7f43340ba60b4c3a803f83cb04f1cb24e9849963b7a3aed0ed916843a47566"
+    },
+    "scripts/scsp_cycle2_presets_parity.test.mjs": {
+      "bytes": 2283,
+      "sha256": "14fb17003e98f284897cec16719835f54f5bb0e71481ff91801f821c948fd3c5"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_presets_revision.test.mjs": {
+      "bytes": 4602,
+      "sha256": "1fa3f7eae00a722648facf342f9c8a4533ec8991b2d6fd5314f24ea6aa2695ca"
+    },
+    "docs/synth-scsp/fm_cycle2_presets.test.mjs": {
+      "bytes": 12388,
+      "sha256": "8bd340e0c1cdf20ed05b94bd12871267d35bdf6dfe904c713945b2e10b4af2af"
+    }
+  },
+  "reports": {
+    "docs/issues/playground_scsp_cycle2_examples_source_revision_01.json": {
+      "bytes": 5843,
+      "sha256": "e0c1446c80571a8543e13208011ecb706b96d77a3cc3c54bb697b19cfc8fd2c8"
+    },
+    "docs/issues/scsp_synth_cycle2_source_revision_01.json": {
+      "bytes": 28047,
+      "sha256": "294b05939aa3d88083f917a226c001ea29ee1289d94b105d67164f35d8c6dfcb"
+    },
+    "docs/issues/scsp_synth_cycle2_default_parity_01.json": {
+      "bytes": 264858,
+      "sha256": "c7f93c66d2923bcdcf8f774d3ea268d60c9496dc71851608953223ac5b599a90"
+    },
+    "docs/issues/scsp_cycle2_presets_parity_01.json": {
+      "bytes": 327563,
+      "sha256": "a820850c43473891a3785e4b7ba701591014e5de6010c9b946d580204f779c33"
+    }
+  }
+}

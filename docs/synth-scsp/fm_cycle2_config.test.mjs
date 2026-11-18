@@ -56,9 +56,9 @@ test('Cycle and Custom retain separate dormant settings and combined target-size
   }
 });
 
-test('Phase1 never aliases Cycle into an old portable preset; inactive metadata exports no new format',async t=>{
+test('Cycle exports explicit v11 rather than aliasing an old format; inactive metadata exports no new format',async t=>{
   const owner=await create(t),original=owner.exportPatch();
-  owner.setConfig(cycle);assert.throws(()=>owner.exportPatch(),/version 11 support.*not available yet/);
+  owner.setConfig(cycle);assert.equal(owner.exportPatch().version,11);
   for(let version=1;version<=10;version++){
     assert.throws(()=>readPatch({...original,version,fm:{...original.fm,algorithm:'cycle2',cycle2:{outputs:[1]}}}),/version 11/);
     assert.throws(()=>readPatch({...original,version,fm:{...original.fm,cycle2:{outputs:[1]}}}),/version 11/);

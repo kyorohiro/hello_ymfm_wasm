@@ -12,7 +12,7 @@ import {
 	SCSP_PROJECT_MANIFEST,
 	SCSP_PROJECT_CODE_LENGTH,
 	SCSP_PROJECT_FILE_BYTES,
-} from './code_project.js?v=scsp-dsp-code-1';
+} from './code_project.js?v=scsp-cycle2-presets-1';
 
 const inside = (path, directory) => path === directory || path?.startsWith(directory + '/');
 const basename = (path) => path.split('/').pop(),
@@ -566,7 +566,13 @@ export function setupScspCodeFiles({
 	async function exportProject() {
 		await api.ready;
 		await code?.flush?.();
-		project.setSettings(getSettings());
+		try {
+			project.setSettings(await getSoundSettings());
+		} catch (error) {
+			// Files/Code remain exportable if a renderer read is unavailable.
+			project.setSettings(getSettings());
+			say(`Could not refresh the sound: ${error.message}. Exporting the project with its last cached sound.`);
+		}
 		return project.exportProject();
 	}
 	async function move(source, destination, copy = false) {
@@ -711,7 +717,7 @@ export function setupScspCodeFiles({
 					throw Error('Use a .scsp.json instrument file name.');
 				if (occupied(project, requestedPath)) throw Error('That path already exists.');
 			}
-			let sound = readScspProjectSound(requestedSound ?? getSoundSettings());
+			let sound = readScspProjectSound(requestedSound ?? await getSoundSettings());
 			if (!sound) throw Error('Expected a SCSP instrument.');
 			if (requestedName !== undefined) {
 				if (requestedPath !== undefined)
@@ -820,11 +826,11 @@ export function setupScspCodeFiles({
 		link.click();
 		setTimeout(() => URL.revokeObjectURL(url), 1000);
 	}
-	function ask(action, path = project.selectedPath) {
+	function ask(action, path = project.selectedPath, capturedSound = null) {
 		if (disposed || busy) return;
 		dialogAction = action;
 		dialogPath = path;
-		dialogSound = action === 'save-sound' ? readScspProjectSound(getSoundSettings()) : null;
+		dialogSound = action === 'save-sound' ? readScspProjectSound(capturedSound) : null;
 		const directory =
 			path && project.fs.stat(path).type === 'directory' ? path : path ? dirname(path) : '/';
 		label.textContent = {
@@ -860,10 +866,20 @@ export function setupScspCodeFiles({
 		nameInput.focus();
 		nameInput.select?.();
 	}
-	function askSaveSound() {
+	async function askSaveSound() {
 		if (disposed || busy) return false;
+		const token = ++operation;
+		let sound;
+		setBusy(true, {lockMain: false});
+		try {
+			sound = readScspProjectSound(await getSoundSettings());
+			if (!sound) throw Error('Expected a SCSP instrument.');
+		} finally {
+			if (!disposed) setBusy(false);
+		}
+		if (disposed || token !== operation) return false;
 		setVisible(true);
-		ask('save-sound');
+		ask('save-sound', project.selectedPath, sound);
 		return true;
 	}
 	const contextMenu = installScspFileContextMenu({
@@ -927,11 +943,7 @@ export function setupScspCodeFiles({
 	});
 	listen(saveSoundAs, 'click', () => {
 		saveSoundAs.blur();
-		try {
-			askSaveSound();
-		} catch (error) {
-			report(error);
-		}
+		return askSaveSound().catch(report);
 	});
 	listen(presetSelect, 'change', () => {
 		const choice = presetOptions.get(presetSelect.value);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Verify Phase-1 Cycle2 through actual Synth Files/Code with permanently muted physical output.
+// Verify Cycle2 v11 authoring/save/restore through the real Synth with muted output.
 const assert = require('node:assert/strict');
 const {createHash} = require('node:crypto');
 const fs = require('node:fs/promises');
@@ -118,6 +118,31 @@ async function selectChannel(page,slot){
 async function number(page,id,value){
   await page.locator('#'+id).evaluate((input,value)=>{input.value=String(value);input.dispatchEvent(new Event('change',{bubbles:true}));},value);
 }
+async function voiceNumber(page,key,value){
+  await page.locator(`[data-chip-control="scsp-${key}"]`).evaluate((input,value)=>{
+    input.value=String(value);input.dispatchEvent(new Event('change',{bubbles:true}));
+  },value);
+}
+async function portable(page){return request(page,{method:'exportPatch',args:[]});}
+const withoutName=value=>{const {name,...sound}=value;return sound;};
+async function samePortable(page,expected,label){
+  return until(async()=>{const actual=await portable(page);return same(withoutName(actual),withoutName(expected))?actual:false;},label);
+}
+async function saveFileSound(page,name){
+  const previous=await page.locator('#scspFilesSelected').textContent();
+  if(name){
+    await page.locator('#scspSaveSoundAs').click();
+    await page.locator('#scspFileNameDialog').waitFor({state:'visible'});
+    await page.locator('#scspFileNameInput').fill(name);
+    await page.locator('#scspFileNameConfirm').click();
+  }else await page.locator('#scspFileSaveSoundButton').click();
+  return until(async()=>{const selected=await page.locator('#scspFilesSelected').textContent();
+    return selected!==previous&&/\/presets\/.+\.scsp\.json$/.test(selected)&&await page.locator('#scspFilesPanel').getAttribute('aria-busy')==='false'?selected:false;
+  },'Cycle preset saved in Files');
+}
+async function presetOption(page,filePath){
+  return until(()=>page.locator('#scspPresetSelect option').evaluateAll((options,target)=>options.find(option=>option.title===target)?.value??null,filePath),'preset option '+filePath);
+}
 async function saveInstrument(page){
   if(!await page.locator('#synthMenu').evaluate(menu=>menu.open))await page.locator('#synthMenuButton').click();
   const download=page.waitForEvent('download');await page.locator('#save').click();
@@ -175,12 +200,11 @@ function verifyPair(state){
 async function exercise(name,origin){
   const browser=await({chromium,webkit}[name]).launch({headless:true});
   const context=await browser.newContext({viewport:{width:1400,height:1000}}),page=await context.newPage();
-  const errors=[],missing=[],external=[],cases=[],downloads=[];
+  const errors=[],missing=[],external=[],cases=[];
   const image=path.join(path.dirname(path.resolve(config.out)),path.basename(config.out,'.json')+'-'+name+'-code.png');
   await context.addInitScript(installSilentAudit);
   await context.route('**/*',route=>{if(!route.request().url().startsWith(origin)){external.push(route.request().url());return route.abort();}return route.continue();});
   page.on('pageerror',error=>errors.push(error.message));page.on('response',response=>{if(response.status()>=400)missing.push({url:response.url(),status:response.status()});});
-  page.on('download',download=>downloads.push(download.suggestedFilename()));
   try{
     await page.goto(origin+config.entry);
     await page.waitForFunction(()=>!document.getElementById('start').disabled&&document.querySelectorAll('[data-scsp-channel]').length===33);
@@ -190,31 +214,92 @@ async function exercise(name,origin){
     let state=await waitState(page,state=>state.codeActive&&state.voiceGroups.some(value=>value.held&&value.owner?.kind==='code'),'Code Cycle attack');
     const first=verifyPair(state),before=identity(state),sampleIds=state.slots.slice(6,8).map(voice=>voice.sample.id);
     const audible=await until(async()=>{const value=await level(page);return value.peak>1e-5?value:false;},'finite nonzero Cycle output');
-    cases.push('Actual Files index.js and Code Run borrow the Synth, initialize a fixed A-before-B pair with the measured taps and produce finite nonzero muted output');
+    cases.push('Actual Files index.js and Code Run borrow the Synth, initialize A-before-B with measured taps and produce finite nonzero muted output');
     await evaluateCode(page,cycleSource.replace('depth:8','depth:0'),{apply:true});
     state=await waitState(page,state=>state.config.fm.depth===0,'Apply Depth Off');assert.deepEqual(identity(state),before);
     assert.deepEqual(state.slots.slice(6,8).map(voice=>voice.sample.id),sampleIds);
-    // getState reports retained requested taps; native serialization of the
-    // existing adapter's depth0 is verified independently in real-WASM tests.
     assert.deepEqual(state.slots[first.slots[0]].modulation,{depth:0,xOffset:33,yOffset:1,writeInhibit:false});
     assert.deepEqual(state.slots[first.slots[1]].modulation,{depth:0,xOffset:63,yOffset:63,writeInhibit:false});
     await evaluateCode(page,cycleSource,{apply:true});state=await waitState(page,state=>state.config.fm.depth===8,'Apply Depth On');assert.deepEqual(identity(state),before);verifyPair(state);
     cases.push('Apply Depth Off/On retains session, pair identity, order and prepared PCM without a new attack');
-    const checks=`\ntry { await scsp.setConfig({mode:'fm4'}); log('ERROR invalid mode accepted'); } catch(error) { log('cycle2 invalid mode rejected',error.message); }\ntry { await scsp.exportPatch(); log('ERROR export accepted'); } catch(error) { log('cycle2 export rejected',error.message); }\n`;
+    const checks=`\ntry { await scsp.setConfig({mode:'fm4'}); log('ERROR invalid mode accepted'); } catch(error) { log('cycle2 invalid mode rejected',error.message); }\nlog('cycle2 portable version',(await scsp.exportPatch()).version);\n`;
     await evaluateCode(page,cycleSource+checks,{apply:true});
-    await page.waitForFunction(()=>document.getElementById('synthCodeLog').textContent.includes('cycle2 export rejected'));
+    await page.waitForFunction(()=>document.getElementById('synthCodeLog').textContent.includes('cycle2 portable version'));
     state=await inspect(page);assert.deepEqual(identity(state),before);assert(!await page.locator('#synthCodeLog').textContent().then(value=>value.includes('ERROR')));
-    cases.push('Actual borrowed Code rejects an incompatible mode and premature portable export while the current Cycle keeps running');
-    const savedDownloads=downloads.length,filesBefore=await page.locator('#scspFilesTree button[data-file-path]').evaluateAll(nodes=>nodes.map(node=>node.dataset.filePath));
-    if(!await page.locator('#synthMenu').evaluate(menu=>menu.open))await page.locator('#synthMenuButton').click();
-    await page.locator('#save').click();await page.waitForFunction(()=>document.getElementById('status').dataset.error==='true'&&/Cycle.*(?:Code-only|version 11)/i.test(document.getElementById('status').textContent));
-    await page.locator('#scspFileSaveSoundButton').click();
-    await page.waitForFunction(()=>/Cycle.*(?:Code-only|version 11)/i.test(document.getElementById('scspFilesStatus').textContent));
-    await page.locator('#scspSaveSoundAs').click();
-    assert.equal(await page.locator('dialog[open]').count(),0,'Save-to-presets must not stage a stale portable sound in a naming dialog');
-    assert.equal(downloads.length,savedDownloads);assert.deepEqual(await page.locator('#scspFilesTree button[data-file-path]').evaluateAll(nodes=>nodes.map(node=>node.dataset.filePath)),filesBefore);
-    assert.equal((await inspect(page)).codeActive,true);
-    cases.push('Menu Instrument JSON, Files Save sound and Save-to-presets dialog entry explicitly reject Cycle saving, producing neither a stale download, staged naming dialog nor misleading preset file');
+    assert.equal((await portable(page)).version,11);
+    cases.push('Actual borrowed Code rejects incompatible mode changes atomically and exports a complete Cycle v11 while the current pair keeps running');
+
+    // Only use actual authoring controls; these values were not part of Run's
+    // source. They must survive save/restore rather than reverting to the base.
+    await selectChannel(page,null);await selectOperator(page,0);
+    const oldA=(await inspect(page)).slots[0].sample.id;
+    await page.locator('[data-chip-action="scsp-triangle"]').click();
+    await page.locator('[data-chip-action="scsp-apply"]').click();
+    await waitState(page,state=>state.slots[0].sample.id!==oldA,'manually applied A Triangle');
+    await voiceNumber(page,'attackRate',28);await voiceNumber(page,'releaseRate',13);
+    await voiceNumber(page,'totalLevel',24);await voiceNumber(page,'pan',31);
+    await number(page,'operatorDepth',4);
+    await selectOperator(page,1);
+    const oldB=(await inspect(page)).slots[1].sample.id;
+    await page.locator('[data-chip-control="scsp-bits"]').selectOption('8');
+    await page.locator('[data-chip-action="scsp-apply"]').click();
+    await waitState(page,state=>state.slots[1].sample.id!==oldB&&state.slots[1].sample.bits===8,'manually applied B PCM8');
+    await voiceNumber(page,'decay1Rate',9);await voiceNumber(page,'decayLevel',12);
+    await voiceNumber(page,'totalLevel',22);await voiceNumber(page,'pan',7);
+    await number(page,'operatorRatio',1.625);await number(page,'operatorDepth',6);
+    await page.locator('[data-chip-control="scsp-lfo-frequencyCode"]').selectOption('3');
+    await page.locator('[data-chip-control="scsp-lfo-amplitudeDepth"]').selectOption('2');
+    state=await waitState(page,state=>state.slots[0].envelope.attackRate===28&&state.slots[0].envelope.releaseRate===13&&state.slots[1].envelope.decay1Rate===9&&state.slots[1].lfo.amplitudeDepth===2&&state.config.fm.ratios[1]===1.625&&(state.config.fm.depths??[])[1]===6,'manual authoring edits');
+    assert.deepEqual(identity(state),before,'manual source editing preserves the current Code pair');
+    assert.deepEqual(state.playingSampleIds.slice(6,8),sampleIds,'held pair keeps its PCM while authoring samples change');
+    const saved=await saveInstrument(page);
+    assert.equal(saved.version,11);assert.equal(saved.mode,'fm2');assert.equal(saved.fm.algorithm,'cycle2');
+    assert.deepEqual(saved.fm.cycle2,{outputs:[1]});assert.equal(saved.operators.carrier.bits,16);assert.equal(saved.operators.modulator.bits,8);
+    assert.equal(saved.operators.carrier.voice.envelope.attackRate,28);assert.equal(saved.operators.carrier.voice.envelope.releaseRate,13);
+    assert.equal(saved.operators.modulator.voice.envelope.decay1Rate,9);assert.equal(saved.operators.modulator.voice.totalLevel,22);
+    assert.equal(saved.operators.modulator.voice.pan,7);assert.equal(saved.operators.modulator.voice.lfo.amplitudeDepth,2);
+    assert.equal(saved.fm.ratios[1],1.625);assert.deepEqual(saved.fm.depths.slice(0,2),[4,6]);
+    assert.notDeepEqual(saved.operators.carrier.pcm,base.operators.carrier.pcm);
+    assert.deepEqual(withoutName(saved),withoutName(await portable(page)));
+    cases.push('Manual Triangle/PCM8, ADSR, mix/pan, LFO, ratio and mixed Depth edits made during Code are present in actual downloaded v11 JSON without stopping the held pair');
+
+    const firstFile=await saveFileSound(page),namedFile=await saveFileSound(page,'Cycle edited v11');
+    assert.notEqual(firstFile,namedFile);
+    const choice=await presetOption(page,namedFile);
+    await page.locator('#scspPresetSelect').selectOption(choice);
+    await samePortable(page,saved,'named v11 preset selected from the real preset toolbar');
+    state=await inspect(page);assert.deepEqual(identity(state),before,'loading a preset retains running Code and held PCM');
+    const edited=await portable(page);
+    const archiveAtSave=await exportProject(page),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')).href),atSave=await loadPlaygroundCassette(new Uint8Array(archiveAtSave));
+    for(const filePath of [firstFile,namedFile]){
+      const value=JSON.parse(new TextDecoder().decode(atSave.files.get(filePath.slice(1))));
+      assert.equal(value.version,11);assert.deepEqual(withoutName(value),withoutName(saved));
+      if(filePath===namedFile)assert.equal(value.name,'Cycle edited v11');
+    }
+    const savedManifest=JSON.parse(new TextDecoder().decode(atSave.files.get('scsp-synth.project.json')));
+    assert.deepEqual(withoutName(savedManifest.settings),withoutName(edited));
+    assert.equal(savedManifest.settings.name,'Cycle edited v11');
+    cases.push('Files Save sound and the Save-to-presets naming dialog create actual v11 JSON; the preset toolbar reloads it while Code keeps its session and held sample references');
+
+    const stable=await inspect(page),stableSound=await portable(page),stableDsp=await request(page,{method:'readDspSetup',args:[]});
+    const rejected=[];
+    for(const invalid of [
+      {...edited,version:10}, {...edited,mode:'fm4'},
+      {...edited,fm:{...edited.fm,algorithm:'chain'}},
+      {...edited,fm:{...edited.fm,cycle2:undefined}},
+      {...edited,fm:{...edited.fm,cycle2:{outputs:[0,0]}}},
+      {...edited,operators:{...edited.operators,modulator:undefined}}
+    ]){
+      const message=await page.evaluate(async value=>{try{await __scspCycleAudit.request({method:'loadPatch',args:[value]});return null;}catch(error){return error.message;}},invalid);
+      assert(message);rejected.push(message);
+      const after=await inspect(page);assert.deepEqual(identity(after),identity(stable));assert.deepEqual(after.config,stable.config);assert.equal(after.ramUsedBytes,stable.ramUsedBytes);
+      assert.deepEqual(await portable(page),stableSound);assert.deepEqual(await request(page,{method:'readDspSetup',args:[]}),stableDsp);
+    }
+    await number(page,'operatorDepth',5);await waitState(page,state=>(state.config.fm.depths??[])[1]===5,'temporary B depth edit');
+    await loadInstrument(page,saved,'downloaded-cycle-v11.json');await samePortable(page,saved,'downloaded v11 JSON reload');
+    state=await inspect(page);assert.deepEqual(identity(state),before,'same-Cycle JSON load keeps the original Code group');
+    cases.push('Incomplete, mismatched and legacy-tagged Cycle presets reject before changing owners, PCM budget or DSP; real JSON reload restores saved authoring without stopping Code');
+
     await selectChannel(page,first.slots[0]);await page.keyboard.down('a');
     state=await waitState(page,state=>state.manualVoices.some(value=>value.slot===first.slots[0]&&value.held)&&!state.voiceGroups.some(group=>group.id===first.id),'physical takeover');
     const physical=state.manualVoices.find(value=>value.slot===first.slots[0]&&value.held);
@@ -223,32 +308,52 @@ async function exercise(name,origin){
     await page.keyboard.up('a');await selectChannel(page,31);await page.keyboard.down('s');
     await waitState(page,state=>state.manualVoices.some(value=>value.slot===31&&value.held),'independent physical owner');
     await request(page,{method:'invokePhysical',args:['setMix',[31,{directLevel:5,totalLevel:16}]]});
-    const finalSource=cycleSource+checks+`\nawait livePrepare('cycle2-second',()=>scsp.noteOn(CH2,'C4'));\nawait scsp.setDspSourceSend(1,{input:1,level:5});\n`;
-    await evaluateCode(page,finalSource,{apply:true});
+    // This saved performance uses the preset's edited PCM/settings. A fresh
+    // Run after restoration must not recreate the original setup waveform.
+    const finalSource=`const scsp=await useSoundChip('scsp');\nsetBpm(120);\n`+checks+`\nawait livePrepare('cycle2-second',()=>scsp.noteOn(CH2,'C4'));\nliveLoop('cycle2-hold',async()=>{await beat(4096);});\nawait scsp.setDspSourceSend(1,{input:1,level:5});\n`;
+    await file(page);await evaluateCode(page,finalSource,{apply:true});
     state=await waitState(page,state=>state.voiceGroups.some(group=>group.owner?.channel===1&&group.held),'second Code lane');
-    const manual=state.manualVoices.find(value=>value.slot===31&&value.held),program=await request(page,{method:'readDspProgram',args:[]});
-    const overrides=state.dspRoutingOverrides;
+    const manual=state.manualVoices.find(value=>value.slot===31&&value.held),program=await request(page,{method:'readDspProgram',args:[]}),overrides=state.dspRoutingOverrides;
     await page.screenshot({path:image,fullPage:true});
     await page.locator('#synthCodeStopButton').click();state=await waitState(page,state=>!state.codeActive,'Code Stop');
     assert(state.manualVoices.some(value=>value.id===manual.id&&value.held));assert.deepEqual(await request(page,{method:'readDspProgram',args:[]}),program);assert.deepEqual(state.dspRoutingOverrides,overrides);
     await until(async()=>{const value=await level(page);return value.peak>1e-5?value:false;},'independent physical sound survives Code Stop');
-    cases.push('Physical takeover retires the entire former pair; stale Code release cannot erase it, and later Code Stop preserves an independent physical owner and DSP setup');
-    await page.keyboard.up('s');await page.locator('#stop').click();
-    const archive=await exportProject(page),{loadPlaygroundCassette}=await import(pathToFileURL(path.join(repository,'docs/playground/playground_cassette.js')).href),cassette=await loadPlaygroundCassette(new Uint8Array(archive));
+    cases.push('Physical takeover retires the complete pair; stale Code release cannot erase it, and Code Stop preserves independent physical sound and DSP');
+    await page.keyboard.up('s');await selectChannel(page,null);await page.locator('#stop').click();
+    const expected=await portable(page),archive=await exportProject(page),cassette=await loadPlaygroundCassette(new Uint8Array(archive));
+    assert.deepEqual(withoutName(expected),withoutName(saved));
     const manifest=JSON.parse(new TextDecoder().decode(cassette.files.get('scsp-synth.project.json')));
-    assert.deepEqual(manifest.settings,base);assert.equal(new TextDecoder().decode(cassette.files.get('index.js')),finalSource);
+    assert.deepEqual(manifest.settings,expected);assert.equal(new TextDecoder().decode(cassette.files.get('index.js')),finalSource);
     await page.reload();await page.waitForFunction(()=>!document.querySelector('.scsp-main').inert&&!document.getElementById('start').disabled);
     assert.equal((await graph(page)).contexts,0);await file(page);assert.equal(await page.locator('#synthCodeEditor').inputValue(),finalSource);assert.equal((await graph(page)).contexts,0);
     await page.locator('#start').click();await page.waitForFunction(()=>__scspCycleAudit.nodes.some(value=>value.name==='tetorica-scsp-synth')&&!document.getElementById('start').disabled);
-    state=await inspect(page);assert.equal(state.codeActive,false);assert.equal(state.config.fm.algorithm,'chain');assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),base);
-    cases.push('Workspace export and local autosave preserve Cycle JavaScript with the last portable base sound; reload never executes Code or starts audio');
-    await evaluateCode(page,cycleSource);await waitState(page,state=>state.config.fm.algorithm==='cycle2','Cycle before normal preset');
-    await loadInstrument(page,base,'normal-base.json');state=await waitState(page,state=>state.config.fm.algorithm==='chain','normal preset exits Cycle');
-    assert.deepEqual(await request(page,{method:'exportPatch',args:[]}),base);
+    state=await inspect(page);assert.equal(state.codeActive,false);assert.equal(state.config.fm.algorithm,'cycle2');assert.deepEqual(await portable(page),expected);
+    await evaluateCode(page,finalSource);await waitState(page,state=>state.codeActive&&state.voiceGroups.some(value=>value.held&&value.owner.kind==='code'),'explicit Code Run uses restored Cycle');
+    assert.deepEqual(await portable(page),expected);
+    await page.locator('#synthCodeStopButton').click();await waitState(page,state=>!state.codeActive,'restored Code stopped');
+    await selectOperator(page,1);await page.keyboard.down('a');await waitState(page,state=>state.voiceGroups.some(value=>value.held&&value.owner.kind==='keyboard'),'restored Cycle keyboard attack');await page.keyboard.up('a');
+    cases.push('Cassette and local draft retain edited v11 PCM/settings and performance Code; reload is silent, and explicit Code Run or keyboard playback uses the restored sound');
+
+    // Legitimate context closure exercises the actual recovery route; no app
+    // state or implementation module is injected or replaced.
+    const priorWorklets=await page.evaluate(()=>__scspCycleAudit.nodes.length);
+    await page.evaluate(async()=>{for(const context of __scspCycleAudit.contexts)if(context.state!=='closed')await context.close();});
+    await page.waitForFunction(()=>document.getElementById('start').textContent==='Enable audio'&&!document.getElementById('start').disabled);
+    await page.locator('#start').click();
+    await page.waitForFunction(count=>__scspCycleAudit.nodes.length>count&&!document.getElementById('start').disabled,priorWorklets);
+    await waitState(page,state=>state.config.fm.algorithm==='cycle2'&&!state.codeActive,'Cycle audio reconnection');
+    assert.deepEqual(await portable(page),expected);
+    cases.push('Unexpected real AudioContext closure recovers the current v11 Cycle authoring instead of falling back to the pre-Cycle base; reconnect does not autoplay');
+    await loadInstrument(page,base,'normal-base.json');await samePortable(page,base,'normal preset exits Cycle');
+    await page.locator('#scspProjectFileInput').setInputFiles({name:'edited-cycle.cassette.zip',mimeType:'application/zip',buffer:archive});
+    await page.waitForFunction(()=>/project imported/i.test(document.getElementById('scspFilesStatus').textContent));
+    await samePortable(page,expected,'Cassette import restores v11 Cycle');
+    assert.equal((await inspect(page)).codeActive,false);
+    await loadInstrument(page,base,'normal-base-again.json');await samePortable(page,base,'legacy preset remains compatible after Cycle Cassette');
     await page.locator('#stop').click();const stopped=await until(async()=>{const value=await level(page);return value.peak===0?value:false;},'global Stop silence');
     const audited=await graph(page);assert(audited.physicalOutputMuted&&audited.routes>0);assert(audited.rates.every(rate=>rate===48000));assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);
-    cases.push('A normal preset exits Cycle through the existing sound-loading path; global Stop is silent and every physical output remains muted at 48 kHz');
-    return {browser:name,rate:48000,passed:true,cases,first,audible,stopped,graph:audited,errors,missing,screenshot:image,externalRequestsBlocked:external.length};
+    cases.push('Actual Cassette import restores Cycle after loading a normal preset; normal presets remain interoperable and global Stop is silent with every physical output muted');
+    return {browser:name,rate:48000,passed:true,cases,first,audible,stopped,graph:audited,rejected,errors,missing,screenshot:image,externalRequestsBlocked:external.length};
   }catch(error){console.error(JSON.stringify({name,errors,missing,status:await page.locator('#status').textContent(),codeError:await page.locator('#synthCodeError').textContent(),body:(await page.locator('body').innerText()).slice(0,6500)},null,2));throw error;}
   finally{await context.close();await browser.close();}
 }

@@ -37,6 +37,8 @@ only on a new grouped attack. Custom's existing DAG/Self rules remain intact.
   and a readable Synth example. Handle resampler cache reset when an
   outputs-only structural change actually resets the core. Preserve all prior
   default/preset behaviors, including group-only retirement with manual owners.
+  Persistence is [implemented separately](todo_scsp_cycle2_presets_20261118.md);
+  selectable Cycle controls, return-path display and Synth Examples remain.
 - [ ] Phase 3: actual Synth Code/UI muted-browser and package/default-parity
   checks at 44.1/48 kHz. Review only affected source receipts after final code.
 - [ ] Human listening: startup, sustained feedback, release and initial audition

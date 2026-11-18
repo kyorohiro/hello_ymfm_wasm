@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-18",
+  "baseCommit": "6ca7c946bba5c8a84610dd4b3b7542e71562f89f",
+  "passed": true,
+  "scope": "Cycle 2OP v11 presets and current edited authoring persistence; selectable Cycle UI remains deferred",
+  "tests": {
+    "scspAndPackage": 437,
+    "sharedRuntimeTypes": true,
+    "newPresetTests": 7,
+    "exactFreshAttackRoundtrips": 16,
+    "oldAndCycleParityCases": 206,
+    "browserChecks": 20
+  },
+  "browser": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "rate": 48000,
+    "servedAssets": 112,
+    "errors": [],
+    "missing": []
+  },
+  "sourceProof": {
+    "receipt": "docs/issues/scsp_cycle2_presets_source_revision_01.json",
+    "objectSha256": "f221eecece92dc69b6e5a41d5ffa3155d310325538807369ca66f1afd479d823",
+    "sourcePairs": 21,
+    "relatedSources": 39
+  },
+  "checks": [
+    "SCSP/package suite",
+    "Shared runtime types",
+    "New/prior exact source guards and recorders",
+    "206 current/prior parity cases and old 166/150 parity reports",
+    "Both Mixer generators --check",
+    "Playground runtime artifact profile --check",
+    "Documentation links and git diff --check"
+  ],
+  "behavior": {
+    "formatVersion": 11,
+    "manualCycleEditsPersist": true,
+    "explicitSavesReadFreshAuthoring": true,
+    "localDraftAndCassettePreserveEditedCycle": true,
+    "restoreDoesNotAutoplay": true,
+    "codeSessionAndPinnedPlayingPcmRetainedOnLoad": true,
+    "legacyPresetFormatsUnchanged": true,
+    "sharedRuntimeCoreWasmGainsAndHistoricalJsonUnchanged": true
+  },
+  "remaining": [
+    "Selectable Cycle connection and return-path UI",
+    "Synth Cycle Examples",
+    "Human listening and hardware fidelity assessment"
+  ],
+  "sources": {
+    ".github/workflows/scsp-synth.yml": {
+      "bytes": 11295,
+      "sha256": "a3aa81a4c525effd077d7fdd1a23caa02b84ff36e042b7628880b226cdad2ea3"
+    },
+    "docs/issues/scsp_cycle2_presets_parity_01.json": {
+      "bytes": 327563,
+      "sha256": "a820850c43473891a3785e4b7ba701591014e5de6010c9b946d580204f779c33"
+    },
+    "docs/issues/scsp_cycle2_presets_source_revision_01.json": {
+      "bytes": 34658,
+      "sha256": "301527c19b217e6cb52948e499a6b8fa4883bbd754815d5bc9f3b3467c950211"
+    },
+    "docs/issues/todo_scsp_cycle2_presets_20261118.md": {
+      "bytes": 1426,
+      "sha256": "36fb75a3a0e427bc2df80f2112c65a122dcb0fac1e3aed82dc1cb0ecf7728d1b"
+    },
+    "docs/issues/todo_scsp_synth_cycle2_design_20261118.md": {
+      "bytes": 3387,
+      "sha256": "10ce5d68056a7882fb06ef8a0d54c6d8b0616e52fd8a3d6280ed34534a1a003f"
+    },
+    "docs/issues/verification_scsp_cycle2_presets_20261118.md": {
+      "bytes": 5096,
+      "sha256": "746df5146d4b816182bc6beb93409f96721e204f9fdb980f68ee348fdeeb5fde"
+    },
+    "docs/issues/verification_scsp_synth_cycle2_runtime_20261118.md": {
+      "bytes": 5264,
+      "sha256": "ca9c0c8634484412a6799f326078152c6cd3dd674c43590bffa376fb6bf5621b"
+    },
+    "docs/synth-scsp/README.md": {
+      "bytes": 43595,
+      "sha256": "d6861e490c7913d7c4cf8cf98e645967b8994d323763f018ccb7ae395687d45e"
+    },
+    "docs/synth-scsp/audio.js": {
+      "bytes": 8727,
+      "sha256": "946fda41668f7ee0dc3edf4172726be2af055634ae4e08d77e1f4a08f3d5b744"
+    },
+    "docs/synth-scsp/code_declarations.js": {
+      "bytes": 17292,
+      "sha256": "533741cbd50af9ed1e4a556563d1dcc77fe277cc5315f704131d41aa482aea4b"
+    },
+    "docs/synth-scsp/code_declarations.test.mjs": {
+      "bytes": 19577,
+      "sha256": "cf67abf36490c85a71e6be8c3d437e424ad198f80018d7d647039bc39e04b02e"
+    },
+    "docs/synth-scsp/code_files.js": {
+      "bytes": 37274,
+      "sha256": "165816ae4e87571756eeb217cb40fedd5b329b5bcef1df58d4b4e34e7b2ebfa1"
+    },
+    "docs/synth-scsp/code_files.test.mjs": {
+      "bytes": 26491,
+      "sha256": "d1d6d8eefd47884d104395ba8015508df138fe9c52fef4c478879abda430c247"
+    },
+    "docs/synth-scsp/code_host.js": {
+      "bytes": 4978,
+      "sha256": "8989375f98a78ac8e213b3ed47be07b6d6f1c86b7fb57888e324fdc459c20e27"
+    },
+    "docs/synth-scsp/code_project.js": {
+      "bytes": 12653,
+      "sha256": "a73045e714a5a7ea0934ce463a183bdeae76300936307afb74a772266d8d520c"
+    },
+    "docs/synth-scsp/fm_cycle2.test.mjs": {
+      "bytes": 17719,
+      "sha256": "68b707f2b3ddaf8e737231cc1e3e5bbca5c1be2487289fc4940b966c509df5bd"
+    },
+    "docs/synth-scsp/fm_cycle2_config.test.mjs": {
+      "bytes": 4030,
+      "sha256": "4f70f660a1f5c821548cebfbc0d24fb1c306d30bf81b9ff59615a6ffb6d063a0"
+    },
+    "docs/synth-scsp/fm_cycle2_presets.test.mjs": {
+      "bytes": 12388,
+      "sha256": "8bd340e0c1cdf20ed05b94bd12871267d35bdf6dfe904c713945b2e10b4af2af"
+    },
+    "docs/synth-scsp/index.html": {
+      "bytes": 44104,
+      "sha256": "214f8b81d80e7fa5b1aaf5b79b28c0ddae4e0276842d773a95d0372d1946122d"
+    },
+    "docs/synth-scsp/instrument.js": {
+      "bytes": 40928,
+      "sha256": "97ac3ca01bbe23a22d51efd1293ee0b44a93af436b974f168495f8b63bf8868b"
+    },
+    "docs/synth-scsp/patch.js": {
+      "bytes": 9147,
+      "sha256": "6e9f08c51c12eb47e07d4164fe742d3601925f5eac3ecee502c14e79e95161e5"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 9955,
+      "sha256": "0e8c425549ab8e5f17c8e1286ada3236d110b8d051b0a6f02cd9cdd6b85933d5"
+    },
+    "docs/synth-scsp/ssf_capture.js": {
+      "bytes": 9689,
+      "sha256": "7a980c7b6470067020eca6da197dfa2b5ff5a57fb0f5b3216618a36c279b526c"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 60009,
+      "sha256": "dab08719bbd89c259a6c424cafd6a2aecabe9e5b8e3a71a4afca0b3282ae1376"
+    },
+    "scripts/check_scsp_synth_cycle2_browser.cjs": {
+      "bytes": 29799,
+      "sha256": "37044751e34a745baa41ac99a2ae9301ff02ef04fd86c8b39db609be9558048a"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_presets_revision.mjs": {
+      "bytes": 9802,
+      "sha256": "fe00e792c484a0fc2fdfe326f6b93d4a6301e0e3134bb0def6425e7c3a68c8a3"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_presets_revision.test.mjs": {
+      "bytes": 4602,
+      "sha256": "1fa3f7eae00a722648facf342f9c8a4533ec8991b2d6fd5314f24ea6aa2695ca"
+    },
+    "scripts/mixer_calibration_scsp_synth_cycle2_revision.mjs": {
+      "bytes": 9808,
+      "sha256": "b421b666524ec451888b545ced011ca8e802f196c6802cb3569172174e4364c5"
+    },
+    "scripts/mixer_calibration_scsp_synth_cycle2_revision.test.mjs": {
+      "bytes": 4701,
+      "sha256": "9a155a83470e3f1eba3b77445cf2345b1004814a88c49fd3dc512610f4590e7c"
+    },
+    "scripts/record_scsp_cycle2_presets_parity.mjs": {
+      "bytes": 18144,
+      "sha256": "8c7f43340ba60b4c3a803f83cb04f1cb24e9849963b7a3aed0ed916843a47566"
+    },
+    "scripts/record_scsp_cycle2_presets_revision.mjs": {
+      "bytes": 4906,
+      "sha256": "528132cff48ba9d93cb0a63febcab4a3180e3209d0614df331c30080c3ac6dd9"
+    },
+    "scripts/record_scsp_synth_cycle2_default_parity.mjs": {
+      "bytes": 16485,
+      "sha256": "0cc2b05cc780de468baddd9d42154f1c000c4e7fd22482786d68198ec0e3deea"
+    },
+    "scripts/record_scsp_synth_cycle2_revision.mjs": {
+      "bytes": 5049,
+      "sha256": "6f4a3a72cd900f658c5529d4c4ce19d35595014570215f8b640931e49ce69bf3"
+    },
+    "scripts/scsp_cycle2_presets_parity.test.mjs": {
+      "bytes": 2283,
+      "sha256": "14fb17003e98f284897cec16719835f54f5bb0e71481ff91801f821c948fd3c5"
+    },
+    "scripts/scsp_synth_cycle2_default_parity.test.mjs": {
+      "bytes": 2346,
+      "sha256": "42fb00df0a42a27853773baf047911cea101035fa27663e2eba5bf6a59257196"
+    }
+  },
+  "artifacts": {
+    "build/scsp-cycle2-presets-20261118/browser-source-chromium-code.png": {
+      "bytes": 1304207,
+      "sha256": "1bae0d8eed2871fa5af86b1270d3a5b356cfb1e9ac297fdc7b59e0f56bc5a628"
+    },
+    "build/scsp-cycle2-presets-20261118/browser-source-webkit-code.png": {
+      "bytes": 3288198,
+      "sha256": "55567587df91e94a34faead4a2a841af94ab656688760cdf42e32c01eac0983e"
+    },
+    "build/scsp-cycle2-presets-20261118/browser-source.json": {
+      "bytes": 24067,
+      "sha256": "56c38a7c397da8a5b520ee6da7f80a9b76418f7ecc288c6af3cfe94351c45315"
+    },
+    "build/scsp-cycle2-presets-20261118/browser-source.log": {
+      "bytes": 81,
+      "sha256": "2b62ca96478b55335dd69631520210a18a03b58455fc85c9375164583d1925be"
+    },
+    "build/scsp-cycle2-presets-20261118/playground-mixer-check.log": {
+      "bytes": 140,
+      "sha256": "7f8074162beb2e7294597194dfdfb5756941f137bf89b38a7f5ad9d867d4d81a"
+    },
+    "build/scsp-cycle2-presets-20261118/prior-cycle2-recorder.log": {
+      "bytes": 105,
+      "sha256": "98e05e3903f3d1fa450598c3583e7a568114ba58e0bd2f57595cc4a0f55d65ff"
+    },
+    "build/scsp-cycle2-presets-20261118/prior-examples-recorder.log": {
+      "bytes": 108,
+      "sha256": "18a4f58810dc9eb908b71b71181955c8f667158d0507a1430cd4d4031baca7ef"
+    },
+    "build/scsp-cycle2-presets-20261118/prior-multiple-self-recorder.log": {
+      "bytes": 109,
+      "sha256": "d2e2f9812f79266d165816d2f888676a7f5a7b7cb5a5a279608576c506a2138e"
+    },
+    "build/scsp-cycle2-presets-20261118/proof-independent-audit.json": {
+      "bytes": 329,
+      "sha256": "140ef5c98067cd441507553a52560dca94846a76431856e31aa7ae96d5e96603"
+    },
+    "build/scsp-cycle2-presets-20261118/proof-summary.json": {
+      "bytes": 638,
+      "sha256": "cd25b847ee47781cf4a826ab57f94267f9f258cbdeee7e6a30e109c218d969fc"
+    },
+    "build/scsp-cycle2-presets-20261118/proof-tests.log": {
+      "bytes": 2993,
+      "sha256": "773145b4f800aedf3ba966a9a5cd6552d02d5edf1ba4c1ca68f33985f6755895"
+    },
+    "build/scsp-cycle2-presets-20261118/runtime-types.log": {
+      "bytes": 330,
+      "sha256": "6e8aeb4df4afbff020fc9ab541dfc2198e92b2786bfe65b1d1776ce52edf8bc3"
+    },
+    "build/scsp-cycle2-presets-20261118/scsp-tests.log": {
+      "bytes": 46890,
+      "sha256": "e0829d272eb0042070a58767732ff0e8758ffdadfa4b8a830e17082d16dc1e23"
+    },
+    "build/scsp-cycle2-presets-20261118/soundchip-mixer-check.log": {
+      "bytes": 105,
+      "sha256": "a7c18de59cb9601bc4a6adad252599a4b13e84f3575ef9e87d8a5ad894a203ed"
+    }
+  }
+}

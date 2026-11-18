@@ -15,18 +15,24 @@ class Element{
   async fire(type,extra={}){const event={target:this,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(type)??[])await fn(event);}
 }
 const walk=node=>[node,...node.children.flatMap(walk)],deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
+const fixtureOwners=new WeakMap();
 function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.scsp-main'?main:null;
   for(const id of ['scspFilesPanel','scspFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='scspFilesPanel';doc.append(node);}
   const saveAs=new Element(doc,'button');saveAs.id='scspSaveSoundAs';doc.append(saveAs);
   const select=new Element(doc,'select');select.id='scspPresetSelect';doc.append(select);
-  const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
+  let owners=fixtureOwners.get(t);
+  if(!owners){
+    const previous=globalThis.document;owners=[];fixtureOwners.set(t,owners);
+    t.after(async()=>{try{for(const item of owners.reverse()){globalThis.document=item.doc;await item.files.dispose();}}finally{globalThis.document=previous;}});
+  }
+  globalThis.document=doc;
   let settings=readPreset(options.settings??createDefaultPreset());const project=options.project??createScspCodeProject({settings,starterCode:'// kept'}),writes=[],calls=[],opened=[],statuses=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
   const files=setupScspCodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
   files.setCodeControls({flush:async()=>true,openFile:async(path,options)=>{opened.push({path,options});return true;},setBusy(){}});
-  t.after(()=>files.dispose());return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
+  owners.push({files,doc});return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
 }
 
 test('SCSP saves named presets without applying, acquiring audio or changing Code mode',async t=>{
@@ -38,13 +44,13 @@ test('SCSP saves named presets without applying, acquiring audio or changing Cod
   assert.equal(f.doc.getElementById('scspPresetSelect').value,'');
 });
 
-test('Code-only sounds reject preset saves while JavaScript and workspace persistence remain available',async t=>{
-  const f=fixture(t,{getSoundSettings:()=>{throw Error('Cycle 2OP needs portable preset support. Save JavaScript.');}});
+test('an unavailable fresh sound read rejects sound saves while JavaScript and cached workspace export remain available',async t=>{
+  const f=fixture(t,{getSoundSettings:async()=>{throw Error('Fresh sound read unavailable');}});
   await f.files.ready;const before=f.project.snapshot();
-  await assert.rejects(f.files.saveSound(),/Cycle 2OP/);
+  await assert.rejects(f.files.saveSound(),/Fresh sound read/);
   assert.deepEqual(f.project.snapshot(),before,'no stale base sound is saved as a preset');
   await f.doc.getElementById('scspSaveSoundAs').fire('click');
-  assert.match(f.statuses.at(-1),/Cycle 2OP/);
+  assert.match(f.statuses.at(-1),/Fresh sound read/);
   assert.deepEqual(f.project.snapshot(),before);
   const path=await f.files.saveCode({source:'// retained cycle setup',name:'cycle.js'});
   assert.equal(f.project.fs.get(path).data,'// retained cycle setup');
@@ -52,6 +58,28 @@ test('Code-only sounds reject preset saves while JavaScript and workspace persis
   restored.restore(await restored.prepareImport(await f.files.exportProject()));
   assert.equal(restored.fs.get(path).data,'// retained cycle setup');
   assert.deepEqual(restored.settings,createDefaultPreset(),'workspace retains its portable base instrument');
+  assert.match(f.statuses.at(-1),/last cached sound/);
+});
+
+test('async sound saves and project export capture current edited v11 Cycle instead of a stale portable cache',async t=>{
+  const base=createDefaultPreset(),edited={...base,name:'Edited Cycle',version:11,mode:'fm2',fm:{...base.fm,algorithm:'cycle2',cycle2:{outputs:[0,1]},depths:[3,8,1,2,3,4]}};
+  edited.operators=structuredClone(base.operators);
+  edited.operators.carrier.pcm[3]=321;
+  edited.operators.modulator.voice.totalLevel=31;
+  let reads=0;
+  const f=fixture(t,{getSoundSettings:async()=>{reads++;await Promise.resolve();return structuredClone(edited);}});
+  await f.files.ready;
+  const saved=await f.files.saveSound();
+  assert.deepEqual(JSON.parse(f.project.fs.get(saved).data),edited);
+  const restored=createScspCodeProject();
+  restored.restore(await restored.prepareImport(await f.files.exportProject()));
+  assert.deepEqual(restored.settings,edited);assert.equal(reads,2);
+  await f.doc.getElementById('scspSaveSoundAs').fire('click');
+  const dialog=f.doc.getElementById('scspFileNameDialog');assert.equal(dialog.open,true);
+  f.doc.getElementById('scspFileNameInput').value='Snapshot at dialog';
+  edited.transpose=12;
+  await dialog.children[0].fire('submit');await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(JSON.parse(f.project.fs.get('/presets/Snapshot at dialog.scsp.json').data).transpose,0);
 });
 
 test('SCSP saves generated DSP Code to unique Files without changing the sound, mode or running Code', async t => {

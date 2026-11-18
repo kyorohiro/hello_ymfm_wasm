@@ -48,7 +48,7 @@ await scsp.setConfig({fm:{depths:[calculatedDepth,2,3,4,5,6]}});
 const operatorDepths:ScspCodeFmDepths|undefined=state.config.fm.depths;
 const customInput:ScspCodeCustomOperator|undefined=state.config.fm.custom?.inputs[1][0];
 const customOutputs:ScspCodeCustomOperator[]|undefined=state.config.fm.custom?.outputs;
-const presetVersion:4|5|6|7|8|9|10=(await scsp.exportPatch()).version;
+const presetVersion:4|5|6|7|8|9|10|11=(await scsp.exportPatch()).version;
 const exported=await scsp.exportPatch();
 if(exported.version===5){
   const customMode:'fm2'=exported.mode;
@@ -95,6 +95,14 @@ if(exported.version===10&&exported.mode==='fm6'){
 }
 const parallel4op10:ScspCodePatch={...exported,version:10,mode:'fm4',fm:{depth:7,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[1,2],[1],[2],[]],outputs:[0]}}};
 const parallel6op10:ScspCodePatch={...exported,version:10,mode:'fm6',fm:{depth:7,depths:[3,5,7,9,11,12],ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[0],[1],[2],[3],[4],[5]],outputs:[0,5]}}};
+if(exported.version===11){
+  const cycleMode:'fm2'=exported.mode;
+  const cycleAlgorithm:'cycle2'=exported.fm.algorithm;
+  const cycleMetadata:ScspCodeCycle2=exported.fm.cycle2;
+  const cycleDepths:ScspCodeFmDepths|undefined=exported.fm.depths;
+}
+const cycle11:ScspCodePatch={...exported,version:11,mode:'fm2',fm:{depth:8,ratio:1,ratios:[1,1.5,1,1,1,1],algorithm:'cycle2',cycle2:{outputs:[1]}}};
+const mixedCycle11:ScspCodePatch={...cycle11,fm:{...cycle11.fm,depths:[4,8,1,2,3,4],cycle2:{outputs:[0,1]}}};
 const operatorSlots:[number,number]|[number,number,number,number]|[number,number,number,number,number,number]|undefined=state.voiceGroups[0]?.operatorSlots;
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
@@ -181,8 +189,14 @@ scsp.setConfig({fm:{cycle2:{outputs:[2]}}});
 scsp.setConfig({fm:{cycle2:{outputs:[1],delay:1}}});
 // @ts-expect-error complete output metadata is required when explicitly supplied
 scsp.setConfig({fm:{cycle2:{}}});
-// @ts-expect-error Phase1 portable presets do not allow the runtime-only Cycle
+// @ts-expect-error Cycle requires v11 rather than old portable v4
 const wrongCycleV4:ScspCodePatch={...exported,version:4,mode:'fm2',fm:{depth:8,ratio:1,ratios:[],algorithm:'cycle2',cycle2:{outputs:[1]}}};
+// @ts-expect-error v11 only saves the bounded two-operator Cycle
+const wrongCycleMode:ScspCodePatch={...cycle11,mode:'fm4'};
+// @ts-expect-error v11 requires explicit output metadata
+const incompleteCycle:ScspCodePatch={...cycle11,fm:{depth:8,ratio:1,ratios:[],algorithm:'cycle2'}};
+// @ts-expect-error v11 does not save a dormant Custom graph
+const dormantCustom11:ScspCodePatch={...cycle11,fm:{...cycle11.fm,custom:{inputs:[[],[]],outputs:[0]}}};
 // @ts-expect-error old portable versions cannot carry dormant Cycle metadata
 const dormantCycleV4:ScspCodePatch={...exported,version:4,mode:'fm2',fm:{depth:8,ratio:1,ratios:[],algorithm:'chain',cycle2:{outputs:[1]}}};
 // @ts-expect-error custom outputs name only A or B
