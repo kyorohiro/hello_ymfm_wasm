@@ -7,11 +7,10 @@ unlock cyclic graphs in SCSP Synth or change its API, UI, presets or core.
 ## Try it
 
 Open **Tetorica FM2612 Playground in SCSP mode**
-(`playground/index.html?mode=scsp`, Web Audio Main or Worker). In Files, use
-`+` to create a JavaScript text file such as
-`/examples/scsp-cycle2-prototype.js`, paste the source from
-[the research example](../playground/research/scsp-cycle2-prototype.js), select
-it as Run file, and Run. The Console displays the requested slot/register table.
+(`playground/index.html?mode=scsp`, Web Audio Main or Worker). Open
+**Files -> examples -> scsp -> scsp-cycle2-prototype.js**, select it as Run file,
+and Run. The [editable example](../playground/examples/scsp/scsp-cycle2-prototype.js)
+is bundled with Playground. The Console displays the requested slot/register table.
 
 Edit `feedbackDepth` or `forwardDepth` (0..12) and Run again for live depth
 changes. Playground Run reevaluates with the same `livePrepare` value and
@@ -19,9 +18,11 @@ retains the dedicated chip/PCM/history. **Stop -> Run** creates a fresh instance
 use this for setup/sample edits or a fresh-history comparison. This is different
 from the current Synth Code facade; the example belongs in Playground.
 
-The file is a research attachment, outside the generated example catalog and
-default project seeds. New text file + paste is the verified loading path;
-binary file import is not the verified way to edit/run this JavaScript.
+The original verification below used a new text file plus pasted source before
+the example was registered. The subsequent
+[Examples integration](verification_scsp_cycle2_examples_20261118.md) verifies
+loading the bundled file directly. Its body is unchanged; historical measurement
+JSON retains the original paths and hashes.
 
 ## Candidate and evidence
 

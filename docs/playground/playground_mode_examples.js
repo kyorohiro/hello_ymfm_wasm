@@ -29,7 +29,7 @@ const definitions = {
   c64: ['/examples/c64/sid-melody.js','/examples/c64/sid-triad.js','/examples/c64/sid-filter-sweep.js'],
   gameboy: ['/examples/gameboy/gameboy-mode-pulse.js', '/examples/gameboy/gameboy-mode-wave.js', '/examples/gameboy/gameboy-sampler.js'],
   nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],
-  scsp: ['/examples/scsp/scsp-stereo-pcm.js','/examples/scsp/scsp-two-slot-fm.js','/examples/scsp/scsp-dsp-roundtrip.js',
+  scsp: ['/examples/scsp/scsp-stereo-pcm.js','/examples/scsp/scsp-two-slot-fm.js','/examples/scsp/scsp-cycle2-prototype.js','/examples/scsp/scsp-dsp-roundtrip.js',
     '/examples/scsp/scsp-dsp-gain.js','/examples/scsp/scsp-dsp-iir-motion.js','/examples/scsp/scsp-dsp-delay.js',
     '/examples/scsp/scsp-dsp-routing.js'],
   ps1: ['/examples/ps1/ps1-stereo-voices.js','/examples/ps1/ps1-adpcm-wave.js',

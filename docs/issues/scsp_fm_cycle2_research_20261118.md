@@ -181,7 +181,7 @@ claim of clearing history on each note.
 
 ## Prototype destination and limits
 
-The runnable [Code prototype](../playground/research/scsp-cycle2-prototype.js)
+The runnable [Code prototype](../playground/examples/scsp/scsp-cycle2-prototype.js)
 is for **Tetorica FM2612 Playground, SCSP mode**. Its
 existing low-level SCSP client exposes physical `setModulation()` and slot
 operations. Current **SCSP Synth Code** uses a logical performance facade and
@@ -214,10 +214,12 @@ melody notes. Key Off and All Notes Off do not themselves clear native history.
 There is no public raw stack-write operation in this client; do not describe
 the example as clearing four individual cells on every note.
 
-The example is a research file, not a registered default/catalog entry. In
-Files use `+` to create a JavaScript text file, paste its source, confirm the
-Run file selection, and Run. Binary file import is not the verified path for
-adding this JavaScript example.
+The example is now included in the SCSP example catalog. In Playground SCSP
+mode, open **Files -> examples -> scsp -> scsp-cycle2-prototype.js**, select
+it as Run file, and Run. Merely opening it does not execute the code. Restoring
+an older project adds a missing bundled example while preserving an edited
+file at the same path and the existing active/Run file selection. The default
+`index.js` is unchanged.
 
 The prototype owns exactly two physical slots, uses an explicit history
 initialization policy and routes direct output intentionally. Setting a slot's
@@ -232,12 +234,16 @@ shared-slot ownership and mixed Self/cross-cycle graphs need separate policy.
 
 ## Muted browser verification
 
-`scripts/check_scsp_cycle2_prototype_browser.cjs` passed all eight checks in
+During the original research, `scripts/check_scsp_cycle2_prototype_browser.cjs` passed all eight checks in
 each Chromium/WebKit, Main/Worker and 44.1/48 kHz combination: 64 checks total.
 `build/scsp-cycle2-20261118/browser-source.json` and `.log` retain the results
 and desktop screenshots. The source file was pasted unchanged into a new
 JavaScript text file and run through the actual Playground paths. No served
 application source or transport implementation was injected or replaced.
+
+The subsequent [Examples integration](verification_scsp_cycle2_examples_20261118.md)
+uses the bundled file directly from the Files tree instead of pasting it. The
+original measurement JSON remains a historical record of the earlier run.
 
 Public Worklet state confirmed the two physical slots, taps, source sample,
 direct/TL levels and retained instance/PCM during source reevaluation and live

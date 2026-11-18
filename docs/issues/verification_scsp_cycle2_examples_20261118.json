@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-18",
+  "baseCommit": "d0372196c843629f9b206bcff5aeb1f09628d408",
+  "passed": true,
+  "scope": "SCSP Playground Examples registration; unchanged prototype source",
+  "entry": "/playground/index.html?mode=scsp",
+  "virtualFile": "/examples/scsp/scsp-cycle2-prototype.js",
+  "prototypeByteIdentical": true,
+  "exampleAndRestorationTests": 36,
+  "sourceGuardTests": 5,
+  "browser": {
+    "passed": true,
+    "configurations": 4,
+    "checks": 32,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "execution": [
+      "main",
+      "worker"
+    ],
+    "sampleRate": 48000,
+    "physicalOutputMuted": true
+  },
+  "checks": [
+    "generated bundle --check",
+    "both Mixer generators --check",
+    "Playground runtime artifact profile --check",
+    "Playground shipped module graph test",
+    "prior routing and multiple-self source guards",
+    "prior source receipt --check",
+    "git diff --check"
+  ],
+  "preservation": {
+    "startersUnchanged": true,
+    "existingExamplesUnchanged": true,
+    "otherModesUnchanged": true,
+    "projectEditsAndRunSelectionPreserved": true,
+    "runtimeCoreWasmAndGainsUnchanged": true,
+    "historicalMeasurement": {
+      "path": "docs/issues/verification_scsp_fm_cycle2_research_20261118.json",
+      "bytes": 47370,
+      "sha256": "a65944b1e595b13b3cd5fae9c0978482383d64c0cceca1da17f3c82fce0ff51d"
+    }
+  },
+  "files": {
+    ".github/workflows/scsp-synth.yml": {
+      "bytes": 10528,
+      "sha256": "274b70307bf98fc592086db36be29c7bbcfa72f48cce2d39402893af57a90964"
+    },
+    "docs/playground/examples/scsp/scsp-cycle2-prototype.js": {
+      "bytes": 3673,
+      "sha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124913,
+      "sha256": "6aa6a784e6de23a95d37f4a292039c075dbd361a41a6b93c40a38bd384014737"
+    },
+    "docs/playground/playground_examples.js": {
+      "bytes": 234984,
+      "sha256": "4fd7c3048eab2331de1ca5a8e92e3f45722f539ecf8d22c7f3ac9ad6b089890d"
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "bytes": 5852,
+      "sha256": "2932faf251c17ab780c8e15bee6b5ce8ec58102a1c4813054d002fe9f4c611ec"
+    },
+    "docs/playground/playground_examples.test.mjs": {
+      "bytes": 19613,
+      "sha256": "99fc8188d4418f84edca6c30be7dc2d4289423b1569853521537a4cfa8e8839c"
+    },
+    "docs/playground/playground_scsp_cycle2_example.test.mjs": {
+      "bytes": 8427,
+      "sha256": "b5ded0dd3ea785d43e449b3ee5889d7ce875645db20b9c875d94dc6ab1da1f73"
+    },
+    "scripts/check_scsp_cycle2_prototype_browser.cjs": {
+      "bytes": 18914,
+      "sha256": "8265960e863eec6cea6acb8400d1d3c2d8916325baa5df3e9aee33bc698dbd9a"
+    },
+    "scripts/mixer_calibration_playground_scsp_cycle2_examples_revision.mjs": {
+      "bytes": 9767,
+      "sha256": "c6297afd10b7838b2423b3c2436fa4a67343080e22311245fe6634d15a429ee2"
+    },
+    "scripts/mixer_calibration_playground_scsp_cycle2_examples_revision.test.mjs": {
+      "bytes": 5803,
+      "sha256": "fa2be05c96cf0ced364e927a4670abc01b4432f90d787d95ef65b336b8f0798a"
+    },
+    "scripts/record_playground_scsp_cycle2_examples_revision.mjs": {
+      "bytes": 4055,
+      "sha256": "824c518c08710dd8dec1c53dd101ae8df66c427cda0cc97e44353243151288a3"
+    },
+    "scripts/mixer_calibration_scsp_fm_multiple_self_revision.mjs": {
+      "bytes": 14848,
+      "sha256": "dbc2ed28216d8d0e900fb9defc3fbe510d05bf0bea0084d920edb58a4445b4b7"
+    },
+    "docs/issues/playground_scsp_cycle2_examples_source_revision_01.json": {
+      "bytes": 5843,
+      "sha256": "e0c1446c80571a8543e13208011ecb706b96d77a3cc3c54bb697b19cfc8fd2c8"
+    },
+    "docs/issues/todo_scsp_cycle2_examples_20261118.md": {
+      "bytes": 1356,
+      "sha256": "168837b28cbaa5d6678359484c0631b1fa87a24477eeffea7e6420c66c1f8a11"
+    },
+    "docs/issues/verification_scsp_cycle2_examples_20261118.md": {
+      "bytes": 2583,
+      "sha256": "1010cb5fd2f1724f1f331f235f54580e2a9e2f8d683ffd9be8187f5bce7d0b98"
+    },
+    "docs/issues/scsp_fm_cycle2_research_20261118.md": {
+      "bytes": 17141,
+      "sha256": "02c6dc4684edba457d22f2e23a72e1fa0ad067bf8ad20283a3303ac133709179"
+    },
+    "docs/issues/todo_scsp_fm_cycle2_research_20261118.md": {
+      "bytes": 3526,
+      "sha256": "85c94c24ba1ff0239f07c4a249422202dbad00914b13978b8d3e9d6e8e4f0934"
+    },
+    "docs/issues/verification_scsp_fm_cycle2_research_20261118.md": {
+      "bytes": 6234,
+      "sha256": "72bb5dc484c7019f1f4691558cb2d95c3c71b1380e3eb5f4349253d453833fd3"
+    }
+  },
+  "artifacts": {
+    "build/scsp-cycle2-examples-20261118/browser-source-chromium-48000-main-code.png": {
+      "bytes": 225438,
+      "sha256": "82d3b1a6bb20232ab41aa103338f77281407eb3e78da314ac175713437f1aa44"
+    },
+    "build/scsp-cycle2-examples-20261118/browser-source-chromium-48000-worker-code.png": {
+      "bytes": 226244,
+      "sha256": "05ca5b1ca8150ae47e22913284210f52af3a64d057bc263ed9e71431c852ed42"
+    },
+    "build/scsp-cycle2-examples-20261118/browser-source-webkit-48000-main-code.png": {
+      "bytes": 286440,
+      "sha256": "ee837877d767a38a378d988c9a56971003d4fc29a9b2b26c6a0bd98613a5c99e"
+    },
+    "build/scsp-cycle2-examples-20261118/browser-source-webkit-48000-worker-code.png": {
+      "bytes": 287046,
+      "sha256": "36dfbc3c82248666d279f67208fdef56c863944dbee4645f95b0268a3bca3c8b"
+    },
+    "build/scsp-cycle2-examples-20261118/browser-source.json": {
+      "bytes": 106857,
+      "sha256": "095815fdf16a27b882fa9d5c5d6a471cdfb263e8f2305a6a57dcad0d560352e9"
+    },
+    "build/scsp-cycle2-examples-20261118/browser-source.log": {
+      "bytes": 142,
+      "sha256": "5cbc119af3cbbe321f1a892c2226aa0c5058e761995e246226efc3bbb5943632"
+    },
+    "build/scsp-cycle2-examples-20261118/bundle-check.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/scsp-cycle2-examples-20261118/prior-guards.log": {
+      "bytes": 1173,
+      "sha256": "8bba422ef1ca0c6ef557907cda721e080de65ae2e897e74092fde3768b96b0d3"
+    },
+    "build/scsp-cycle2-examples-20261118/prior-source-check.log": {
+      "bytes": 109,
+      "sha256": "d2e2f9812f79266d165816d2f888676a7f5a7b7cb5a5a279608576c506a2138e"
+    },
+    "build/scsp-cycle2-examples-20261118/proof.log": {
+      "bytes": 717,
+      "sha256": "ca2f4bff75b21d24099e3674888b4fd042f5b72f6ebba91acaa2e6b52b98c10e"
+    },
+    "build/scsp-cycle2-examples-20261118/source-check.log": {
+      "bytes": 108,
+      "sha256": "18a4f58810dc9eb908b71b71181955c8f667158d0507a1430cd4d4031baca7ef"
+    }
+  }
+}

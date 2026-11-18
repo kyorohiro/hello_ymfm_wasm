@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "scope": "playground-scsp-cycle2-data-only-examples-registration",
+  "baseCommit": "d0372196c843629f9b206bcff5aeb1f09628d408",
+  "review": "Only one existing research source is registered as SCSP example data. Every prior example path/name/data/order, default and history, all other mode catalogs, and executable generated scaffold are identical. The page has one catalog-cache query edit. No example is executed by catalog parsing and no audio/runtime/core/gain change is authorized.",
+  "dataOnly": {
+    "existingExamples": 135,
+    "modes": 30,
+    "addedPath": "/examples/scsp/scsp-cycle2-prototype.js",
+    "oldDefaultsExact": true,
+    "oldExamplesExact": true,
+    "otherModesExact": true,
+    "executableScaffoldExact": true,
+    "exampleExecuted": false
+  },
+  "sources": {
+    "docs/playground/playground_examples.js": {
+      "before": {
+        "bytes": 231070,
+        "sha256": "34ea39edfa5d3c9bea2adfb7ef45591ee83dd7b880571edd1f73419e1b6574e4"
+      },
+      "after": {
+        "bytes": 234984,
+        "sha256": "4fd7c3048eab2331de1ca5a8e92e3f45722f539ecf8d22c7f3ac9ad6b089890d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 189497,
+          "afterBytes": 3867,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 229475,
+          "afterBytes": 47,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "before": {
+        "bytes": 5810,
+        "sha256": "d4003901dc3faceceb7e33d88a10b274b25c43b732e8e96c689d4135e75ee4d4"
+      },
+      "after": {
+        "bytes": 5852,
+        "sha256": "2932faf251c17ab780c8e15bee6b5ce8ec58102a1c4813054d002fe9f4c611ec"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1849,
+          "afterBytes": 164,
+          "beforeText": "  scsp: ['/examples/scsp/scsp-stereo-pcm.js','/examples/scsp/scsp-two-slot-fm.js','/examples/scsp/scsp-dsp-roundtrip.js',\n"
+        }
+      ]
+    },
+    "docs/playground/playground.js": {
+      "before": {
+        "bytes": 124909,
+        "sha256": "e7155ab42eb6b730e4b694f2cf7b2bd555812414bc26953b68cfc5112f913097"
+      },
+      "after": {
+        "bytes": 124913,
+        "sha256": "6aa6a784e6de23a95d37f4a292039c075dbd361a41a6b93c40a38bd384014737"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4181,
+          "afterBytes": 169,
+          "beforeText": "import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from \"./playground_examples.js?v=scsp-dsp-routing-1\";\n"
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "docs/playground/examples/scsp/scsp-cycle2-prototype.js": {
+      "bytes": 3673,
+      "sha256": "b5875535d6c2c8f05841641188112cc448b01f2c76685e35d15e92a76f593a72"
+    },
+    "docs/playground/playground_scsp_cycle2_example.test.mjs": {
+      "bytes": 8427,
+      "sha256": "b5ded0dd3ea785d43e449b3ee5889d7ce875645db20b9c875d94dc6ab1da1f73"
+    },
+    "docs/playground/playground_examples.test.mjs": {
+      "bytes": 19613,
+      "sha256": "99fc8188d4418f84edca6c30be7dc2d4289423b1569853521537a4cfa8e8839c"
+    },
+    "docs/playground/playground_mode_starters.js": {
+      "bytes": 5053,
+      "sha256": "2cdce7eee00ba61c17a8e6a88ae10ce470f539d207e18afd48ffecea118127bd"
+    },
+    "docs/playground/playground_mode_starters.test.mjs": {
+      "bytes": 19112,
+      "sha256": "e3856ff3de83ab23a5702b259ef4d1275a5f0722912e93f25c9a4faaf5b760be"
+    },
+    "scripts/build_playground_examples.mjs": {
+      "bytes": 3852,
+      "sha256": "30d86c87ddd8cd42b4da76cf62c6c299bf4e6d1e17318ccd958b900d251409ad"
+    },
+    "scripts/check_scsp_cycle2_prototype_browser.cjs": {
+      "bytes": 18914,
+      "sha256": "8265960e863eec6cea6acb8400d1d3c2d8916325baa5df3e9aee33bc698dbd9a"
+    },
+    "scripts/mixer_calibration_scsp_fm_multiple_self_revision.mjs": {
+      "bytes": 14848,
+      "sha256": "dbc2ed28216d8d0e900fb9defc3fbe510d05bf0bea0084d920edb58a4445b4b7"
+    },
+    "scripts/mixer_calibration_scsp_dsp_routing_revision.mjs": {
+      "bytes": 12818,
+      "sha256": "962d8d0487bdcff9380dfa4cd52c3d7d47f02406839bc39d6d2a9d32669c8c45"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13458,
+      "sha256": "3de5081f55347d96c663a36cd472340a0a5f5c877fadd03c0778cf53c037d57a"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "6bdb304a4c74efba44ba76d5414c40d47dbf1bbf92b2fc66fcf4e2122d04fc20"
+    },
+    "tetorica_src/runtime/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp": {
+      "bytes": 27097,
+      "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.h": {
+      "bytes": 2976,
+      "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed"
+    }
+  },
+  "reports": {
+    "docs/issues/playground_scsp_dsp_routing_source_revision_01.json": {
+      "bytes": 42424,
+      "sha256": "7a39b8a3c2853fa28dc73cadbc489347f89bd85c465631416de8bc9051619d19"
+    },
+    "docs/issues/scsp_fm_multiple_self_source_revision_01.json": {
+      "bytes": 41246,
+      "sha256": "febd629d77a4a48505916a28f0e2b4d633c17238a9a2ea519a155ffe42e0931a"
+    }
+  }
+}

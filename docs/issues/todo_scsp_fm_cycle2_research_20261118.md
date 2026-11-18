@@ -32,9 +32,11 @@ Evidence: `build/scsp-cycle2-20261118/`.
 Completed: candidate `current-forward-average12`, physical A6 before B7.
 A reads B's previous one/two stored generations (X33/Y1), B reads current A
 (X63/Y63). At MDL8 the requested words are 0x8841 / 0x8FFF. The new example is
-`docs/playground/research/scsp-cycle2-prototype.js`, outside the generated
-example catalog. Create a JavaScript text file in Playground SCSP mode and
-paste it; Run reevaluation preserves preparation, Stop -> Run starts fresh.
+now [included in the SCSP Examples catalog](../playground/examples/scsp/scsp-cycle2-prototype.js).
+In Playground SCSP mode open Files -> examples -> scsp -> scsp-cycle2-prototype.js
+and select it as Run file. Run reevaluation preserves preparation, Stop -> Run
+starts fresh. The original research used a pasted text file; its measurements
+are preserved separately from the later catalog integration.
 
 Native evidence: 600 steady +40 lifecycle +10 center +10 carrier cases, two
 wrong-history counterexamples, and a dedicated history-policy probe. Tests:
@@ -49,4 +51,4 @@ Next implementation decisions (not performed here): bounded Synth cycle2
 operator order/output model; atomic validated attack and owned-history policy;
 steal/manual/Code ownership; UI and explicitly versioned persistence; listening.
 Separately investigate whether Files' binary-import path should create editable
-text for JavaScript. The verified prototype path is new text file + paste.
+text for JavaScript. The bundled prototype no longer requires that import path.

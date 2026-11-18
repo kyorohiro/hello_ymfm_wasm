@@ -27,8 +27,8 @@ const server=http.createServer(async(req,res)=>{
  }catch(error){res.writeHead(404).end(String(error.message));}
 });
 const repository=path.resolve(__dirname,'..');
-const exampleRelative='playground/research/scsp-cycle2-prototype.js';
-const virtualFile='/examples/scsp-cycle2-prototype.js';
+const exampleRelative='playground/examples/scsp/scsp-cycle2-prototype.js';
+const virtualFile='/examples/scsp/scsp-cycle2-prototype.js';
 async function protectedInputs(){
  const files=[];
  const walk=async relative=>{for(const entry of await fs.readdir(path.join(repository,relative),{withFileTypes:true})){
@@ -113,10 +113,20 @@ async function exercise(browserName,rate,execution,origin,authored){
  try{
   await page.goto(origin+config.entry);await page.waitForFunction(()=>!document.getElementById('editor').readOnly&&document.getElementById('fileExplorerList').getAttribute('aria-busy')==='false');await page.locator('#startupNotice').waitFor({state:'hidden'});
   assert.equal((await graph(page)).rates.length,0);
-  await page.locator('#codeTab').evaluate(button=>button.click());page.once('dialog',dialog=>dialog.accept(virtualFile));await page.locator('#newFileButton').click();
-  await source(page,authored);await page.locator('#runFileSelect').selectOption(virtualFile);await page.locator('#workerExecution').setChecked(execution==='worker');
-  assert.equal(await page.locator('#runFileSelect').inputValue(),virtualFile);assert.equal((await graph(page)).rates.length,0);
-  cases.push('Cold SCSP Playground creates an editable JavaScript text file and selects its Run path without starting audio');
+  await page.locator('#codeTab').evaluate(button=>button.click());
+  for(const folder of ['/examples','/examples/scsp']){
+   const summary=page.locator(`#fileExplorerList summary[data-file-path="${folder}"]`);
+   assert.equal(await summary.count(),1,'Bundled Examples folder exists: '+folder);
+   if(!await summary.evaluate(node=>node.parentElement.open))await summary.click();
+  }
+  const bundled=page.locator(`#fileExplorerList button[data-file-path="${virtualFile}"]`);
+  assert.equal(await bundled.count(),1,'Fresh project exposes the bundled cycle2 example');
+  await bundled.click();await until(async()=>await page.locator('#editor').inputValue()===authored,'exact bundled cycle2 source opens');
+  assert.equal(await page.locator('#editor').inputValue(),authored,'Files exposes the exact authored source without pasting or import');
+  assert.equal(await page.locator('#editor').isEditable(),true);
+  await page.locator('#runFileSelect').selectOption(virtualFile);await page.locator('#workerExecution').setChecked(execution==='worker');
+  assert.equal(await page.locator('#runFileSelect').inputValue(),virtualFile);assert.equal((await graph(page)).rates.length,0);assert.equal((await graph(page)).nodes.length,0);
+  cases.push('Fresh SCSP Playground opens its bundled Examples/scsp cycle2 file with exact editable source and Run path, without starting audio or executing code');
   let log=await run(page),g=await graph(page),scsp=g.nodes.filter(value=>value.name==='tetorica-playground-scsp');assert.equal(scsp.length,2,'Shared primary plus one dedicated chip');
   const primary=scsp[0].index,extra=scsp[1].index,primaryInitial=await read(page,primary);
   let state=await activePair(page,extra);const first=checkPair(state),firstSignature=signatures(state),audible=await sound(page);

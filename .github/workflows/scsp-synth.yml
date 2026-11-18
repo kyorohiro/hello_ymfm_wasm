@@ -95,6 +95,10 @@ jobs:
           node scripts/record_scsp_fm_multi_self_feedback_revision.mjs --check
           node --test scripts/mixer_calibration_scsp_fm_multiple_self_revision.test.mjs scripts/scsp_fm_multiple_self_default_parity.test.mjs
           node scripts/record_scsp_fm_multiple_self_revision.mjs --check
+          node --test scripts/mixer_calibration_playground_scsp_cycle2_examples_revision.test.mjs
+          node scripts/record_playground_scsp_cycle2_examples_revision.mjs --check
+          node scripts/build_playground_examples.mjs --check
+          node --test docs/playground/playground_examples.test.mjs docs/playground/playground_mode_starters.test.mjs
           node --test scripts/scsp_fm_cycle2.test.mjs docs/playground/playground_scsp_cycle2_example.test.mjs
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci

@@ -6,9 +6,28 @@ import factory from '../generated/scsp_wasm.js';
 import {Scsp} from '../../tetorica_src/runtime/scsp.js';
 import {ScspSynth} from '../../tetorica_src/runtime/scspsynth.js';
 import {createScspValidation} from '../js/playground_scsp.js';
+import {EXAMPLE_FILES, MODE_EXAMPLE_FILES, MODE_DEFAULT_CODES} from './playground_examples.js';
+import {reconcileModeProject} from './playground_mode_starters.js';
 
-const source = await readFile(new URL('./research/scsp-cycle2-prototype.js', import.meta.url), 'utf8');
+const examplePath = '/examples/scsp/scsp-cycle2-prototype.js';
+const source = await readFile(new URL('.'+examplePath, import.meta.url), 'utf8');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+test('cycle2 is an exact editable SCSP example and restoration preserves user code and run selection',()=>{
+  assert.equal(EXAMPLE_FILES.filter(file=>file.path===examplePath).length,1);
+  assert.equal(MODE_EXAMPLE_FILES.scsp.find(file=>file.path===examplePath)?.data,source);
+  for(const [mode,files]of Object.entries(MODE_EXAMPLE_FILES))if(mode!=='scsp')assert(!files.some(file=>file.path===examplePath),mode);
+  const original={version:1,modeId:'scsp',activePath:'/index.js',runPath:'/index.js',directories:[],files:[{path:'/index.js',data:'// my running code'}]};
+  const options={targetModeId:'scsp',codeChoice:'keep',defaults:MODE_DEFAULT_CODES,allExampleFiles:EXAMPLE_FILES,targetExampleFiles:MODE_EXAMPLE_FILES.scsp};
+  const restored=reconcileModeProject(original,options);
+  assert.equal(restored.files.find(file=>file.path===examplePath).data,source);
+  assert.equal(restored.files.find(file=>file.path==='/index.js').data,'// my running code');
+  assert.equal(restored.activePath,'/index.js');assert.equal(restored.runPath,'/index.js');assert.equal(original.files.length,1);
+  const edited={...original,activePath:examplePath,runPath:examplePath,files:[...original.files,{path:examplePath,data:'// my cycle edit'}]};
+  const retained=reconcileModeProject(edited,options);
+  assert.equal(retained.files.find(file=>file.path===examplePath).data,'// my cycle edit');
+  assert.equal(retained.activePath,examplePath);assert.equal(retained.runPath,examplePath);
+});
 
 function harness(create) {
   const events = [], prepared = new Map(), loops = new Map(), cleanups = new Map();

@@ -65,7 +65,7 @@ import {
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=ps1-mode-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=scsp-dsp-routing-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=scsp-cycle2-examples-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=scsp-dsp-routing-1";
 import {
   decodeBase64Bytes,
