@@ -7,8 +7,8 @@ import { createScspCodeAudio } from './code_audio.js';
 import {
 	createScspCodeProject,
 	SCSP_PROJECT_FILE_BYTES,
-} from './code_project.js?v=scsp-cycle2-presets-1';
-import { setupScspCodeFiles } from './code_files.js?v=scsp-cycle2-presets-1';
+} from './code_project.js?v=scsp-cycle2-ui-1';
+import { setupScspCodeFiles } from './code_files.js?v=scsp-cycle2-ui-1';
 
 export const SCSP_STARTER_CODE = `const scsp = await useSoundChip('scsp');
 setBpm(120);

@@ -9,7 +9,9 @@ import {SCSP_CYCLE2_PRESETS_BASE as base,SCSP_CYCLE2_PRESETS_RECEIPT as receiptP
  restoreMixerCalibrationScspCycle2PresetsRevision as restore,
  createScspCycle2PresetsRevisionReadContext as context} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
 import {createScspFmMultipleSelfRevisionReadContext} from './mixer_calibration_scsp_fm_multiple_self_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
+const ui=createScspCycle2UiRevisionReadContext();
+const url=name=>new URL('../'+name,import.meta.url),read=name=>ui.readSource(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const historical=name=>execFileSync('git',['show',base+':'+name],{maxBuffer:4*1024*1024});
 const receipt=JSON.parse(read(receiptPath));

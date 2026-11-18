@@ -4,6 +4,10 @@ Base `6ca7c946bba5c8a84610dd4b3b7542e71562f89f`; initially clean worktree.
 This adds the persistence part of Phase 2 of the
 [bounded integration design](scsp_synth_cycle2_design_20261118.md).
 
+Historical persistence-step record. The subsequent
+[Cycle UI update](verification_scsp_cycle2_ui_20261118.md) adds selectable
+controls, distinct forward/return display and a Synth example.
+
 Cycle 2OP now saves and loads as **voice preset version 11**. It stores the
 explicit two-OP Cycle/output selection, six source PCM buffers and their
 options, ADSR/LFO/mix, ratios/depths, transpose and existing shared effect

@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-18",
+  "baseCommit": "ce9ffdf6206c12c176054b0c95d0cdf863e974e8",
+  "passed": true,
+  "scope": "FM2 Cycle selection, fixed forward/return visualization and per-OP output controls; readable Synth example",
+  "tests": {
+    "scspAndPackage": 444,
+    "viewTests": 5,
+    "actualExampleTests": 2,
+    "browserChecks": 32,
+    "nativeParityReportUnchanged": true
+  },
+  "browsers": [
+    {
+      "name": "browser-source",
+      "passed": true,
+      "checks": 16,
+      "physicalOutputMuted": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "rate": 48000,
+      "servedAssets": 114,
+      "errors": [],
+      "missing": []
+    },
+    {
+      "name": "browser-packaged",
+      "passed": true,
+      "checks": 16,
+      "physicalOutputMuted": true,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "rate": 48000,
+      "servedAssets": 114,
+      "errors": [],
+      "missing": []
+    }
+  ],
+  "sourceProof": {
+    "receipt": "docs/issues/scsp_cycle2_ui_source_revision_01.json",
+    "objectSha256": "191cf181551d6f75b2e1a7a03a31c7c2e84de36b934abfdb6012e37285e82a44",
+    "sourcePairs": 13,
+    "relatedSources": 50,
+    "inheritedReadmePredecessor": "6ca7c946bba5c8a84610dd4b3b7542e71562f89f"
+  },
+  "checks": [
+    "SCSP/package suite",
+    "Both Mixer generators --check",
+    "New UI and prior exact-source guards/recorders",
+    "Unchanged prior206 native parity --check",
+    "Actual packaging CLI and extracted-ZIP UI browser",
+    "Documentation links and git diff --check"
+  ],
+  "behavior": {
+    "cycleSelectionFm2Only": true,
+    "modeTransitionsExplicitChain": true,
+    "depthRatioLiveHistoryRetained": true,
+    "outputsStructuralGroupRetirement": true,
+    "customSelfAndDormantGraphsPreserved": true,
+    "physicalAndSsfCycleControlsReadOnly": true,
+    "v11PersistencePreserved": true,
+    "exampleCurrentPcmAndBeatBased": true,
+    "exampleFreshProjectsOnly": true,
+    "oldStarterAndExampleTextExact": true
+  },
+  "preservation": {
+    "nativeCriticalAndSharedRuntimeCoreWasmGainsUnchanged": true,
+    "historicalJsonUnchanged": true,
+    "npmVersionUnchanged": true
+  },
+  "verificationArchive": {
+    "path": "release/tetorica_scsp_synth_cycle2-ui-check-ce9ffdf_itch.zip",
+    "bytes": 4371889,
+    "sha256": "f30219d8958f9dc75bc1024b19955e7533cfe8129830aab9abe7f8bf6faa9c8b",
+    "published": false
+  },
+  "remaining": [
+    "Human listening",
+    "Physical Saturn fidelity assessment"
+  ],
+  "sources": {
+    ".github/workflows/scsp-synth.yml": {
+      "bytes": 11715,
+      "sha256": "2154c0f126fccf44ad5633644fddf842e3a83c2ccc31c0f612aa8caa64f553ae"
+    },
+    "docs/issues/scsp_cycle2_ui_source_revision_01.json": {
+      "bytes": 22145,
+      "sha256": "0db2d354cdfbe63c32fc2fd57d3a4f8fbf2955b7492f1fcdce58e070e6466f23"
+    },
+    "docs/issues/todo_scsp_cycle2_ui_20261118.md": {
+      "bytes": 1688,
+      "sha256": "2f3d9a7124f7a63eb4c454bf25aa3fe211132ed154bdf815cf68d82fb71e8ff6"
+    },
+    "docs/issues/todo_scsp_synth_cycle2_design_20261118.md": {
+      "bytes": 3591,
+      "sha256": "b8442cae6f0cdf3eaecc291113599a70e20ebb5ede254c55710efb64b8391ca7"
+    },
+    "docs/issues/verification_scsp_cycle2_presets_20261118.md": {
+      "bytes": 5286,
+      "sha256": "29abf6b42b7ae17468ade823fc87f06ea99e2c9f40031f273f0c2e1b1646f653"
+    },
+    "docs/issues/verification_scsp_cycle2_ui_20261118.md": {
+      "bytes": 4578,
+      "sha256": "7724a4c3e9d3e4ed90def82acf0488441f99165e63320018a0985c8c068da1c4"
+    },
+    "docs/synth-scsp/README.md": {
+      "bytes": 44798,
+      "sha256": "45127d468dcd6754c0a3f2415f3533da03872501f99d1c315c74b06f888fc012"
+    },
+    "docs/synth-scsp/code_cycle2_example.test.mjs": {
+      "bytes": 4126,
+      "sha256": "c0d1271d7501d1c63180fab1c5695b437ea2de4a9d79e924057f325a98282e12"
+    },
+    "docs/synth-scsp/code_examples.js": {
+      "bytes": 6557,
+      "sha256": "f2fcfbbee8d8261e6448e06430b22e525c0ad7d9453d7260f4f524e9a7a2f9cb"
+    },
+    "docs/synth-scsp/code_files.js": {
+      "bytes": 37269,
+      "sha256": "48d6bc29caac944a90d8d347a2c7b24cf27885547b993c43cb34ed7f5310fbfc"
+    },
+    "docs/synth-scsp/code_host.js": {
+      "bytes": 4968,
+      "sha256": "715636a58b6d65c7d24781a9dac38f30b2e0774ff854235a360851b3ff3fe8d5"
+    },
+    "docs/synth-scsp/code_project.js": {
+      "bytes": 12721,
+      "sha256": "cb196801bac021536ed59bc2c3b88a35b2d30c2745b1a58f1681a22b47c18e5b"
+    },
+    "docs/synth-scsp/examples/cycle2.js": {
+      "bytes": 1314,
+      "sha256": "20b83199f44e6ef89ebf0af9457a16bd3170579a93ef340f2c8e4047e92eb6f9"
+    },
+    "docs/synth-scsp/fm_cycle2_view.js": {
+      "bytes": 2627,
+      "sha256": "49e66b4ac068da643f09e2b347d708fa1fe7d9b107a39d163349516d3a0a7649"
+    },
+    "docs/synth-scsp/fm_cycle2_view.test.mjs": {
+      "bytes": 5879,
+      "sha256": "205ca2dc845026049057f0ef311a4ffbea58c030bcaf14aeabe72a6c5796a57a"
+    },
+    "docs/synth-scsp/index.html": {
+      "bytes": 45814,
+      "sha256": "93182c11bee852e899149de33f7ef6e8f6ba8e49fdade2cc5ec7fce4625dc473"
+    },
+    "docs/synth-scsp/synth.css": {
+      "bytes": 27944,
+      "sha256": "b01d449a585954b4844a5bbf31ab3664955a5d6ee8e3e82ae25bb6573264b2b1"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 61255,
+      "sha256": "378b6aaa2ec14202369541859fdca18a6bf8512898189393b902f812e8eb1cfe"
+    },
+    "scripts/check_scsp_synth_cycle2_ui_browser.cjs": {
+      "bytes": 31324,
+      "sha256": "f16d78fdb795a964dde46b3c5f9349769fdd1c01153961ad496f25f04b416b63"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_presets_revision.mjs": {
+      "bytes": 10146,
+      "sha256": "34b8bc9521b67d12c311b4ec3f7da5f8722ec625fdfc11becbdbb63518c88631"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_presets_revision.test.mjs": {
+      "bytes": 4756,
+      "sha256": "d1d61a225562f04979fc2378fbe110f81a173934a91121a9d4616a9dc55f3ef1"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_ui_revision.mjs": {
+      "bytes": 10662,
+      "sha256": "7793cd97161be9630463ed6c46351c75cd7b4db99d5f78109a6012ea52437a6b"
+    },
+    "scripts/mixer_calibration_scsp_cycle2_ui_revision.test.mjs": {
+      "bytes": 5870,
+      "sha256": "e8a4f0afbcd47952f5918783496da1682ba282c89ba76e0e227af49c69f54bd4"
+    },
+    "scripts/package_itch_scsp_synth.mjs": {
+      "bytes": 13657,
+      "sha256": "cd067036733bc182d114566170dc8ab831337689dd67d2c9396d88e92ab68d82"
+    },
+    "scripts/package_itch_scsp_synth.test.mjs": {
+      "bytes": 9210,
+      "sha256": "e1a87a719601deb5b72464f13791e3b450f20544eff5512b6c68ebaf61891e47"
+    },
+    "scripts/record_scsp_cycle2_presets_revision.mjs": {
+      "bytes": 5128,
+      "sha256": "f32f9bd000bed6c02f2db0f687115a8ad93b920a04cc6ce318fcfe767ee06007"
+    },
+    "scripts/record_scsp_cycle2_ui_revision.mjs": {
+      "bytes": 4567,
+      "sha256": "aea095c7cf93a6ae7c9a19ea01de9d48ddc06a1b59737b31ec4363e82825086c"
+    }
+  },
+  "artifacts": {
+    "build/scsp-cycle2-ui-20261118/browser-packaged-chromium-desktop.png": {
+      "bytes": 39589,
+      "sha256": "4c0d817e20f252f48e1b130ad3376b475d5b4408c19bf17df360217505277b8b"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-packaged-chromium-mobile.png": {
+      "bytes": 35498,
+      "sha256": "d431d69173054f5bbcf87b3cc9532c5c5a6d730cf5dc50028e758230c79d5d47"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-packaged-webkit-desktop.png": {
+      "bytes": 49240,
+      "sha256": "fad925de747bd7c667efc64300adbcae628072ad9675a7b0b2ed6264fff2f214"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-packaged-webkit-mobile.png": {
+      "bytes": 41005,
+      "sha256": "cdef5df4c9c5593a5f68317f73537be308951a1d68d8d785af3035d3819fb38a"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-packaged.json": {
+      "bytes": 23930,
+      "sha256": "2088648805cc1346769e97fb53e3fd02e894bdafb8e10f128073c09f34e7cefe"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-packaged.log": {
+      "bytes": 81,
+      "sha256": "ec13c6cb46c7834906b74b379116bd878e28e4bd7722953253a69f8b276998fb"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-source-chromium-desktop.png": {
+      "bytes": 39589,
+      "sha256": "4c0d817e20f252f48e1b130ad3376b475d5b4408c19bf17df360217505277b8b"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-source-chromium-mobile.png": {
+      "bytes": 35498,
+      "sha256": "d431d69173054f5bbcf87b3cc9532c5c5a6d730cf5dc50028e758230c79d5d47"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-source-webkit-desktop.png": {
+      "bytes": 49240,
+      "sha256": "fad925de747bd7c667efc64300adbcae628072ad9675a7b0b2ed6264fff2f214"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-source-webkit-mobile.png": {
+      "bytes": 41005,
+      "sha256": "cdef5df4c9c5593a5f68317f73537be308951a1d68d8d785af3035d3819fb38a"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-source.json": {
+      "bytes": 23910,
+      "sha256": "627a32288d964b2798a4bcc6d39411b0da61eafd992e00abbd3979cf8c21c537"
+    },
+    "build/scsp-cycle2-ui-20261118/browser-source.log": {
+      "bytes": 79,
+      "sha256": "c1016a0f99c2c2bef0e2d33ec71ef2238c3452f0c54dff58ec191ead10cccb90"
+    },
+    "build/scsp-cycle2-ui-20261118/package.log": {
+      "bytes": 476,
+      "sha256": "3755cf941fbf644e0b0ee2c371ac0d5c7c99000aebbea0f52b894447072ea139"
+    },
+    "build/scsp-cycle2-ui-20261118/playground-mixer-check.log": {
+      "bytes": 140,
+      "sha256": "7f8074162beb2e7294597194dfdfb5756941f137bf89b38a7f5ad9d867d4d81a"
+    },
+    "build/scsp-cycle2-ui-20261118/prior-examples-recorder.log": {
+      "bytes": 108,
+      "sha256": "18a4f58810dc9eb908b71b71181955c8f667158d0507a1430cd4d4031baca7ef"
+    },
+    "build/scsp-cycle2-ui-20261118/prior-multiple-self-recorder.log": {
+      "bytes": 109,
+      "sha256": "d2e2f9812f79266d165816d2f888676a7f5a7b7cb5a5a279608576c506a2138e"
+    },
+    "build/scsp-cycle2-ui-20261118/prior-runtime-recorder.log": {
+      "bytes": 105,
+      "sha256": "98e05e3903f3d1fa450598c3583e7a568114ba58e0bd2f57595cc4a0f55d65ff"
+    },
+    "build/scsp-cycle2-ui-20261118/prior-v11-recorder.log": {
+      "bytes": 110,
+      "sha256": "905e0003dff8205f5b50759862f9c90801594db1f39fef660f584b1814a6e909"
+    },
+    "build/scsp-cycle2-ui-20261118/proof-final-tests.log": {
+      "bytes": 2356,
+      "sha256": "8b63d2cd77e94378e87557a434d0c0098e91f3ece55fce50ebba3b651271a706"
+    },
+    "build/scsp-cycle2-ui-20261118/proof-summary.json": {
+      "bytes": 595,
+      "sha256": "89cca8d95152698988cae155224b13c8878e290a461884bfcfde4ad8f3e1b89c"
+    },
+    "build/scsp-cycle2-ui-20261118/proof-tests.log": {
+      "bytes": 1462,
+      "sha256": "d621b29811f6c8fb7347e56136e552a81a66564e843359e015c8747e4e3dcefc"
+    },
+    "build/scsp-cycle2-ui-20261118/scsp-tests.log": {
+      "bytes": 47643,
+      "sha256": "6190e86d079f17c25c052e4c385631fde99ebb6aab98b683e24a82f81bfa3c9d"
+    },
+    "build/scsp-cycle2-ui-20261118/soundchip-mixer-check.log": {
+      "bytes": 105,
+      "sha256": "a7c18de59cb9601bc4a6adad252599a4b13e84f3575ef9e87d8a5ad894a203ed"
+    },
+    "release/tetorica_scsp_synth_cycle2-ui-check-ce9ffdf_itch.zip": {
+      "bytes": 4371889,
+      "sha256": "f30219d8958f9dc75bc1024b19955e7533cfe8129830aab9abe7f8bf6faa9c8b"
+    }
+  }
+}

@@ -172,6 +172,18 @@ select {
 #connectionPaths path.selected {
 	color: #7ce1f3;
 }
+#connectionPaths path[data-cycle-edge='return'] {
+	color: #e5bd83;
+	stroke-dasharray: 5 3;
+}
+#connectionPaths path[data-modulation-off='true'] {
+	opacity: 0.35;
+}
+#scspCycle2Input {
+	font-size: 0.8rem;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
 .operator-switch {
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));

@@ -101,7 +101,7 @@ export async function packageScspSynth({
 	}
 	// Keep the format guide, declaration and authored example beside the copied
 	// assembler modules, so the exported program remains easy to study / reuse.
-	for (const name of ['dsp_assembler.d.ts', 'DSP_ASSEMBLER.md', 'examples/delay.scspasm', 'examples/fir2-lowpass.scspasm', 'examples/fir2-highpass.scspasm', 'examples/iir1-lowpass.scspasm', 'examples/routing-gain-iir.scspasm', 'examples/dsp-iir-motion.js', 'examples/self-feedback.js', 'examples/self-feedback-6op.js', 'examples/parallel-self-feedback.js']) {
+	for (const name of ['dsp_assembler.d.ts', 'DSP_ASSEMBLER.md', 'examples/delay.scspasm', 'examples/fir2-lowpass.scspasm', 'examples/fir2-highpass.scspasm', 'examples/iir1-lowpass.scspasm', 'examples/routing-gain-iir.scspasm', 'examples/dsp-iir-motion.js', 'examples/self-feedback.js', 'examples/self-feedback-6op.js', 'examples/parallel-self-feedback.js', 'examples/cycle2.js']) {
 		const source = 'docs/synth-scsp/' + name;
 		const destination = join(stage, 'synth-scsp', name);
 		await mkdir(join(destination, '..'), { recursive: true });

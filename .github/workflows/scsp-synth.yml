@@ -103,6 +103,8 @@ jobs:
           node --test scripts/mixer_calibration_scsp_cycle2_presets_revision.test.mjs scripts/scsp_cycle2_presets_parity.test.mjs
           node scripts/record_scsp_cycle2_presets_revision.mjs --check
           node scripts/record_scsp_cycle2_presets_parity.mjs --check
+          node --test scripts/mixer_calibration_scsp_cycle2_ui_revision.test.mjs
+          node scripts/record_scsp_cycle2_ui_revision.mjs --check
           node scripts/build_playground_examples.mjs --check
           node --test docs/playground/playground_examples.test.mjs docs/playground/playground_mode_starters.test.mjs
           node --test scripts/scsp_fm_cycle2.test.mjs docs/playground/playground_scsp_cycle2_example.test.mjs
@@ -129,6 +131,7 @@ jobs:
           node scripts/check_scsp_synth_multiple_self_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-multiple-self-browser.json
           node scripts/check_scsp_cycle2_prototype_browser.cjs --root=docs --out=release/scsp-cycle2-prototype-browser.json
           node scripts/check_scsp_synth_cycle2_browser.cjs --root=docs --out=release/scsp-synth-cycle2-browser.json
+          node scripts/check_scsp_synth_cycle2_ui_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-cycle2-ui-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -172,4 +175,6 @@ jobs:
             release/scsp-cycle2-prototype-browser-*.png
             release/scsp-synth-cycle2-browser.json
             release/scsp-synth-cycle2-browser-*.png
+            release/scsp-synth-cycle2-ui-browser.json
+            release/scsp-synth-cycle2-ui-browser-*.png
           if-no-files-found: ignore

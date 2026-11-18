@@ -14,7 +14,7 @@ import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-cycle2-pr
 import { createScspValidation } from '../js/playground_scsp.js';
 import { createScspInitSample } from '../js/scspsynth.js';
 import { OPERATOR_KEYS } from './routing.js?v=scsp-cycle2-code-1';
-import { SCSP_DSP_IIR_CODE, SCSP_SELF_FEEDBACK_CODE, SCSP_SELF_FEEDBACK_6OP_CODE, SCSP_PARALLEL_SELF_FEEDBACK_CODE } from './code_examples.js?v=scsp-fm-multiple-self-1';
+import { SCSP_DSP_IIR_CODE, SCSP_SELF_FEEDBACK_CODE, SCSP_SELF_FEEDBACK_6OP_CODE, SCSP_PARALLEL_SELF_FEEDBACK_CODE, SCSP_CYCLE2_CODE } from './code_examples.js?v=scsp-cycle2-ui-1';
 
 export const SCSP_PROJECT_FORMAT = 'tetorica-scsp-code-project';
 export const SCSP_PROJECT_MANIFEST = '/scsp-synth.project.json';
@@ -335,6 +335,7 @@ export function createScspCodeProject({
 		fs.writeText('/examples/self-feedback.js', SCSP_SELF_FEEDBACK_CODE);
 		fs.writeText('/examples/self-feedback-6op.js', SCSP_SELF_FEEDBACK_6OP_CODE);
 		fs.writeText('/examples/parallel-self-feedback.js', SCSP_PARALLEL_SELF_FEEDBACK_CODE);
+		fs.writeText('/examples/cycle2.js', SCSP_CYCLE2_CODE);
 	}
 	if (snapshot) project.restore(snapshot);
 	return project;

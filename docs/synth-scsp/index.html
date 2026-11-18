@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-fm-multiple-self-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-cycle2-ui-1" />
 	</head>
 	<body>
 		<main>
@@ -410,6 +410,7 @@
 											<option value="pairs">Pairs · parallel 2-op</option>
 											<option value="branch">Branch · two-input tree</option>
 											<option id="scspCustomFmOption" value="custom" disabled>Custom</option>
+											<option id="scspCycle2Option" value="cycle2" disabled>Cycle 2OP</option>
 										</select></label
 									><label
 										>All FM depths (MDL)
@@ -472,9 +473,23 @@
 											value="1"
 											disabled
 									/></label>
-									<label>Selected depth (MDL)
+									<label><span id="scspOperatorDepthLabel">Selected depth (MDL)</span>
 										<input id="operatorDepth" type="number" min="0" max="12" step="1" value="9" disabled />
 									</label>
+								</div>
+								<div id="scspCycle2Controls" class="scsp-custom-fm-controls" hidden>
+									<div class="scsp-fields">
+										<strong id="scspCycle2Target">Cycle 2OP · operator A</strong>
+										<label>Fixed input <output id="scspCycle2Input"></output></label>
+										<label class="scsp-custom-fm-output"><input id="scspCycle2Output" type="checkbox" /> Direct output</label>
+										<details class="scsp-inline-help">
+											<summary aria-label="About Cycle 2OP">?</summary>
+											<p>A is processed before B. The solid A → B route uses current A; the dashed B → A return averages B's two stored histories in this core. Selected Depth controls the receiving OP. Depth 0 disconnects that route; live Depth and Ratio changes keep history. Both PCM sources need a full forward loop from 0.</p>
+											<p>This uses SCSP slot modulation. Pair allocation and the four-cell history initialization on a new Auto/Code attack are Synth software. It describes the current zero-slot-delay core, not full physical Saturn pipeline timing. Physical CH tabs keep their single-slot behavior.</p>
+											<p>Output and Connection changes retire grouped notes; Code keeps running and uses the new settings on its next attack. Independent physical keyboard owners are preserved. Switching from Cycle to PCM/4OP/6OP explicitly selects Chain. Cycle sounds save as v11 presets. The batch Ratio control sets A to 1 and B–F to its value; selected Ratio changes only that OP.</p>
+										</details>
+									</div>
+									<p id="scspCycle2Hint" class="scsp-custom-fm-hint"></p>
 								</div>
 								<div id="scspCustomFmControls" class="scsp-custom-fm-controls" hidden>
 									<div class="scsp-fields">
@@ -1019,6 +1034,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-cycle2-presets-1"></script>
+		<script type="module" src="synth.js?v=scsp-cycle2-ui-1"></script>
 	</body>
 </html>

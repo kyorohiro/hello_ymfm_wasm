@@ -32,15 +32,18 @@ only on a new grouped attack. Custom's existing DAG/Self rules remain intact.
   classification for an unexpected write failure after the Cycle commit starts.
   Implemented separately in [the runtime/Code task](todo_scsp_synth_cycle2_runtime_20261118.md);
   portable v11 and the selectable Cycle UI remain Phase 2.
-- [ ] Phase 2: version 11 portable presets, legacy rejection, dormant Custom
+- [x] Phase 2: version 11 portable presets, legacy rejection, dormant Custom
   and Cycle transitions, idle migration, fixed Cycle UI arrows/labels/outputs
   and a readable Synth example. Handle resampler cache reset when an
   outputs-only structural change actually resets the core. Preserve all prior
   default/preset behaviors, including group-only retirement with manual owners.
   Persistence is [implemented separately](todo_scsp_cycle2_presets_20261118.md);
-  selectable Cycle controls, return-path display and Synth Examples remain.
-- [ ] Phase 3: actual Synth Code/UI muted-browser and package/default-parity
+  [Cycle UI, return-path display and Synth Example](todo_scsp_cycle2_ui_20261118.md)
+  complete the remaining interface work.
+- [x] Phase 3: actual Synth Code/UI muted-browser and package/default-parity
   checks at 44.1/48 kHz. Review only affected source receipts after final code.
+  Prior native 44.1/48 kHz parity remains unchanged; new UI/browser checks pass
+  at 48 kHz for both source and the actual ZIP. No hardware timing claim.
 - [ ] Human listening: startup, sustained feedback, release and initial audition
   level. Real-hardware fidelity is a separate question; do not claim it from
   an emulator/reference match.

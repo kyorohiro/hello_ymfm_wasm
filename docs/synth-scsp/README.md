@@ -336,8 +336,27 @@ await scsp.loadPatch(preset);
 A precedes B in its allocated pair. B receives current A; A receives B's
 two-history average in the current zero-slot-delay core. New grouped attacks
 initialize four owned history cells in Synth software; live Depth/Ratio edits
-retain history. `outputs` can select A, B, both or neither. The connection is
-currently entered through Code or a preset; selectable Cycle controls follow.
+retain history. `outputs` can select A, B, both or neither.
+
+In Auto, choose 2-operator FM then **Connection -> Cycle 2OP**. Its solid A -> B
+path uses current A; the dashed B -> A path is the history-average return.
+Select A or B to see the fixed input and edit its receiving Depth, Ratio and
+Direct output. The B/A readout is a requested ratio; selecting A never forces
+its ratio to 1. Depth 0 dims that input path and disconnects it without
+discarding history. Both source PCM buffers require full forward loops from 0.
+Longer timing/initialization explanations are behind `?`.
+
+Output changes retire the current grouped notes; Code continues and its next
+attack uses the new outputs. Switching Cycle to PCM/FM4/FM6 explicitly chooses
+Chain in the same UI command. Returning to FM2 keeps Chain until Cycle is
+selected again. Dormant Custom graphs and raw physical CH controls retain their
+existing behavior; Cycle controls are locked outside editable Auto context.
+
+Fresh Files projects include [examples/cycle2.js](examples/cycle2.js), using the
+borrowed public Code API, current PCM/envelopes and beat-based notes. Apply
+keeps live knob edits; Run prepares its modest starting levels again. Existing
+saved workspaces are not reseeded or overwritten; add the readable example
+file through Files if it is missing. The packaged source includes it verbatim.
 
 Active Cycle sounds save as **version 11**, including all six source PCM/voice
 settings and explicit Cycle outputs. Manual edits also survive Files presets,

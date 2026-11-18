@@ -5,7 +5,7 @@ import { SynthInstrument } from './instrument.js?v=scsp-cycle2-presets-1';
 import { readPatch, writePatch } from './patch.js?v=scsp-cycle2-presets-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-cycle2-code-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-cycle2-presets-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-cycle2-ui-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfLiveView } from './ssf_live_view.js?v=scsp-ssf-dsp-1';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
@@ -14,6 +14,7 @@ import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-rou
 import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
 import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-multiple-self-1';
 import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-multiple-self-1';
+import { setupScspCycle2View } from './fm_cycle2_view.js?v=scsp-cycle2-ui-1';
 import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
@@ -67,6 +68,7 @@ let selectedOperator = 0,
 	dspRoutingView = null,
 	dspSignalFlow = null,
 	customFmView = null,
+	cycle2View = null,
 	fmDepthView = null,
 	ssfDspView = null;
 let editorViewKey = 'auto:0';
@@ -249,15 +251,26 @@ const observer = createStateObserver({
 });
 function drawConnections(state) {
 	$('connectionPaths').replaceChildren();
+	const cycle = state.config.fm.algorithm === 'cycle2';
 	state.routing.inputs.forEach((sources, target) =>
 		sources.forEach((source) => {
 			const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 			const x = 50 + source * 100,
 				y = 50 + target * 100,
 				top = 15 + Math.abs(source - target) * 5;
-			path.setAttribute('d', source === target
+			path.setAttribute('d', cycle
+				? target === 1 ? 'M 58 104 C 58 77, 142 77, 142 100' : 'M 158 104 C 158 14, 42 14, 42 100'
+				: source === target
 				? `M ${x + 14} 105 C ${x + 60} 28, ${x - 60} 28, ${x - 14} 100`
 				: `M ${x} 105 C ${x} ${top}, ${y} ${top}, ${y} 100`);
+			if (cycle) {
+				const off = (state.config.fm.depths?.[target] ?? state.config.fm.depth) === 0;
+				path.dataset.cycleEdge = target === 1 ? 'forward' : 'return';
+				path.dataset.modulationOff = String(off);
+				const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+				title.textContent = `${target === 1 ? 'A → B · current' : 'B → A · history average'}${off ? ' · Off (Depth 0)' : ''}`;
+				path.append(title);
+			}
 			path.dataset.selfFeedback = String(source === target);
 			path.classList.toggle(
 				'selected',
@@ -331,6 +344,8 @@ function renderState() {
 	renderDspCoefficients(latestState, Boolean(observing));
 	dspRoutingView?.update(latestState, {selected: channelView?.getSelected() ?? null, operator: selectedOperator, readOnly: Boolean(observing)});
 	customFmView?.update(latestState, {operator: selectedOperator, readOnly: Boolean(observing)});
+	cycle2View?.update(latestState, {operator: selectedOperator,
+		readOnly: Boolean(observing) || channelView?.getSelected() != null});
 	fmDepthView?.update(latestState, {operator: selectedOperator, readOnly: Boolean(observing)});
 	for (const id of ['effectSend', 'delayFeedback']) $(id).disabled = Boolean(observing);
 	if (observing && channelView?.getSelected() === null)
@@ -378,14 +393,6 @@ function renderState() {
 			'Sample RAM',
 			'SCSP RAM (64 KiB reserved for DSP)',
 		);
-	let cycleOption = $('algorithm').querySelector('option[value="cycle2"]');
-	if (state.config.fm.algorithm === 'cycle2' && !cycleOption) {
-		cycleOption = document.createElement('option');
-		cycleOption.value = 'cycle2';
-		cycleOption.textContent = 'Cycle 2OP';
-		cycleOption.disabled = true;
-		$('algorithm').append(cycleOption);
-	} else if (state.config.fm.algorithm !== 'cycle2') cycleOption?.remove();
 	for (const [id, value] of [
 		['voiceMode', state.config.mode],
 		['fmDepth', state.config.fm.depth],
@@ -420,11 +427,13 @@ function renderState() {
 					: identifyScspDspProgram(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
 	);
 	const { inputs, outputs, count } = state.routing;
-	text($('fmRatioLabel'), state.config.fm.algorithm === 'custom' ? 'Ratios B–F' : 'All modulator ratios');
-	$('routingSummary').textContent = inputs
+	const cycle = state.config.fm.algorithm === 'cycle2';
+	text($('fmRatioLabel'), ['custom', 'cycle2'].includes(state.config.fm.algorithm) ? 'Ratios B–F' : 'All modulator ratios');
+	const routes = cycle ? ['A → B · current', 'B → A · history average'] : inputs
 		.flatMap((sources, target) =>
 			sources.map((source) => `${OPERATOR_NAMES[source]} → ${OPERATOR_NAMES[target]}`),
-		)
+		);
+	$('routingSummary').textContent = routes
 		.concat([`Output · ${outputs.length ? outputs.map((index) => OPERATOR_NAMES[index]).join(' + ') : 'Off'}`])
 		.join(' · ');
 	drawConnections(state);
@@ -1108,7 +1117,7 @@ async function configure(patch, { routeChanged = false } = {}) {
 			if (!next) {await refresh(); return;}
 			const accepted = await command('setConfig', [next]);
 			const graphKey = config => JSON.stringify([config.mode, config.fm.algorithm,
-				config.fm.algorithm === 'custom' ? config.fm.custom : null]);
+				config.fm.algorithm === 'custom' ? config.fm.custom : config.fm.algorithm === 'cycle2' ? config.fm.cycle2 : null]);
 			if (routeChanged && graphKey(before) !== graphKey(accepted)) {
 				for (const [source, note] of held) if (note.kind === 'authored') held.delete(source);
 			}
@@ -1202,7 +1211,8 @@ $('voiceMode').addEventListener('change', () => {
 	const mode = $('voiceMode').value;
 	$('voiceMode').blur();
 	void configure(state => ({mode,
-		...(mode === 'pcm' && state.config.fm.algorithm === 'custom' ? {fm: {algorithm: 'chain'}} : {}),
+		...((mode === 'pcm' && state.config.fm.algorithm === 'custom') ||
+			(mode !== 'fm2' && state.config.fm.algorithm === 'cycle2') ? {fm: {algorithm: 'chain'}} : {}),
 	}), { routeChanged: true }).catch(report);
 });
 $('algorithm').addEventListener('change', () => {
@@ -1372,6 +1382,17 @@ customFmView = setupScspCustomFmView({
 			const graph = clone(state.config.fm.custom);
 			graph.outputs = enabled ? [...new Set([...graph.outputs, operator])].sort() : graph.outputs.filter(index => index !== operator);
 			return {fm: {custom: graph}};
+		}, {routeChanged: true});
+	},
+	onError: report,
+});
+cycle2View = setupScspCycle2View({
+	onOutput(operator, enabled) {
+		return configure(state => {
+			if (channelView?.getSelected() != null || state.config.mode !== 'fm2' ||
+				state.config.fm.algorithm !== 'cycle2' || operator < 0 || operator > 1) return null;
+			const outputs = state.config.fm.cycle2.outputs;
+			return {fm: {cycle2: {outputs: enabled ? [...new Set([...outputs, operator])].sort() : outputs.filter(index => index !== operator)}}};
 		}, {routeChanged: true});
 	},
 	onError: report,
@@ -1570,6 +1591,7 @@ window.addEventListener('pagehide', (event) => {
 	dspRoutingView?.dispose();
 	dspSignalFlow?.dispose();
 	customFmView?.dispose();
+	cycle2View?.dispose();
 	fmDepthView?.dispose();
 	ssfDspView?.dispose();
 	epoch++;
