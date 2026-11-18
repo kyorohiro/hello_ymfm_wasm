@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-cycle2-ui-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-ssf-slots-1" />
 	</head>
 	<body>
 		<main>
@@ -362,15 +362,24 @@
 								DSP
 							</button>
 						</div>
+						<div class="scsp-channel-overview">
 							<div
 								id="scspChannelTabs"
 								class="scsp-channel-tabs"
 								role="tablist"
 								aria-label="SCSP editing and keyboard channel"
 							></div>
+							<div id="scspSsfSlotLegend" class="scsp-ssf-slot-legend" aria-label="SSF slot states" hidden>
+								<span data-state="active">Active</span>
+								<span data-state="release">Release</span>
+								<span data-state="inactive">Inactive</span>
+								<span>Bar: ENV</span>
+							</div>
 							<p id="scspChannelSummary" class="scsp-channel-summary" role="status">
 								Auto · grouped keyboard / Code voices.
 							</p>
+							<section id="scspSsfSlotRoutes" class="scsp-ssf-slot-routes" aria-label="Selected SSF slot routes" hidden></section>
+						</div>
 						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
 							<div id="scspPhysicalControls" class="scsp-fields" hidden>
 								<label for="scspPhysicalFrequency">Frequency · Hz
@@ -1034,6 +1043,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-cycle2-ui-1"></script>
+		<script type="module" src="synth.js?v=scsp-ssf-slots-1"></script>
 	</body>
 </html>

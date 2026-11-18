@@ -1352,6 +1352,11 @@ footer {
 	container-type: inline-size;
 	container-name: scsp-channels;
 }
+.scsp-channel-overview {
+	container-type: inline-size;
+	container-name: scsp-slots;
+	min-width: 0;
+}
 .scsp-channel-tabs {
 	display: grid;
 	grid-template-columns: repeat(16, minmax(0, 1fr));
@@ -1381,12 +1386,21 @@ footer {
 	width: calc(100% * var(--scsp-env, 0));
 	background: #7dd9e9;
 }
+.scsp-channel-tabs[data-source='ssf'] {
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.scsp-channel-tabs[data-source='ssf'] button {
+	min-height: 44px;
+}
 .scsp-channel-tabs button[data-active='true'] {
 	background: #315c78;
 	color: #e8f7ff;
 }
-.scsp-channel-tabs button[data-active='true'][data-gate='false']::after {
+.scsp-channel-tabs button[data-phase='release']::after {
 	background: #e6b664;
+}
+.scsp-channel-tabs button[data-phase='release'] {
+	background: #504633;
 }
 .scsp-channel-tabs button[aria-selected='true'] {
 	outline: 2px solid #9bdcff;
@@ -1398,6 +1412,133 @@ footer {
 	line-height: 1.6;
 	color: var(--muted);
 	overflow-wrap: anywhere;
+}
+.scsp-ssf-slot-legend {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 16px;
+	margin-top: 8px;
+	color: var(--muted);
+	font-size: 0.7rem;
+}
+.scsp-ssf-slot-legend [data-state] {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.scsp-ssf-slot-legend [data-state]::before {
+	content: '';
+	width: 10px;
+	height: 10px;
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	background: #2b3543;
+}
+.scsp-ssf-slot-legend [data-state='active']::before {
+	background: #315c78;
+}
+.scsp-ssf-slot-legend [data-state='release']::before {
+	background: #e6b664;
+}
+.scsp-ssf-slot-routes {
+	margin: 12px 0;
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: #1b2836;
+	font-size: 0.73rem;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.scsp-ssf-route-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 12px;
+}
+.scsp-ssf-route-heading h3 {
+	font-size: 0.86rem;
+	margin: 0;
+}
+.scsp-ssf-route-badge,
+.scsp-ssf-route-frame,
+.scsp-ssf-route-status {
+	color: var(--muted);
+}
+.scsp-ssf-route-status {
+	margin: 8px 0;
+}
+.scsp-ssf-route-diagram {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	margin-top: 12px;
+}
+.scsp-ssf-route-stage {
+	display: grid;
+	gap: 6px;
+	min-width: 0;
+}
+.scsp-ssf-route-references > .scsp-ssf-route-name {
+	grid-column: 1 / -1;
+}
+.scsp-ssf-route-reference,
+.scsp-ssf-route-selected,
+.scsp-ssf-route-branch {
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #162332;
+	padding: 10px;
+	min-width: 0;
+}
+.scsp-ssf-route-selected {
+	border-color: #6eb7d6;
+	background: #244459;
+}
+.scsp-ssf-route-name,
+.scsp-ssf-route-value {
+	display: block;
+	margin: 0;
+}
+.scsp-ssf-route-name {
+	font-size: inherit;
+}
+.scsp-ssf-route-reference,
+.scsp-ssf-route-activity {
+	margin: 0;
+}
+.scsp-ssf-route-value {
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
+}
+.scsp-ssf-route-arrow {
+	color: #7dd9e9;
+}
+.scsp-ssf-route-help {
+	margin-left: auto;
+}
+.scsp-ssf-route-help > summary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	cursor: pointer;
+	list-style: none;
+}
+.scsp-ssf-route-help > summary::-webkit-details-marker {
+	display: none;
+}
+.scsp-ssf-route-help[open] {
+	flex-basis: 100%;
+}
+.scsp-ssf-route-help p {
+	font-size: 0.73rem;
+	line-height: 1.6;
 }
 .scsp-ssf-live-status {
 	margin: 8px 0 0;
@@ -1430,14 +1571,26 @@ footer {
 	color: var(--ink);
 	font-weight: 700;
 }
-@container scsp-channels (max-width: 680px) {
+@container scsp-slots (max-width: 680px) {
 	.scsp-channel-tabs {
 		grid-template-columns: repeat(8, minmax(0, 1fr));
 	}
 }
-@container scsp-channels (max-width: 340px) {
-	.scsp-channel-tabs {
-		grid-template-columns: repeat(6, minmax(0, 1fr));
+@container scsp-slots (max-width: 400px) {
+	.scsp-channel-tabs,
+	.scsp-channel-tabs[data-source='ssf'] {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+	.scsp-ssf-route-diagram {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.scsp-ssf-route-references,
+	.scsp-ssf-route-outputs {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.scsp-ssf-route-arrow {
+		text-align: center;
+		transform: rotate(90deg);
 	}
 }
 .scsp-dsp-example-picker {

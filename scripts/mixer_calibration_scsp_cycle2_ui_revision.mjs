@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
 
 export const SCSP_CYCLE2_UI_BASE='ce9ffdf6206c12c176054b0c95d0cdf863e974e8';
 // V11 documentation landed after its receipt was frozen. Recover only its
@@ -123,11 +124,12 @@ function createRestorer(readSource,snapshot=false){
     return restoreBody(Buffer.from(bytes),entry);
   };
 }
-export function restoreMixerCalibrationScspCycle2UiRevision(path,bytes,{readSource=read}={}){return createRestorer(readSource)(path,bytes);}
+export function restoreMixerCalibrationScspCycle2UiRevision(path,bytes,{readSource=read}={}){const latest=createScspSsfSlotMapRevisionReadContext(readSource);return createRestorer(latest.readSource)(path,latest.restore(path,bytes));}
 export function createScspCycle2UiRevisionReadContext(readSource=read){
+  const latest=createScspSsfSlotMapRevisionReadContext(readSource);readSource=latest.readSource;
   const originals=new Map(),predecessors=new Map();
   const original=url=>{const key=url instanceof URL?url.href:url;if(!originals.has(key))originals.set(key,Buffer.from(readSource(url)));return originals.get(key);};
   const restore=createRestorer(original,true);
   const reader=url=>{const key=url instanceof URL?url.href:url;if(!predecessors.has(key)){const bytes=original(url),name=url instanceof URL&&url.protocol==='file:'?relative(root,fileURLToPath(url)).replaceAll('\\','/'):null;predecessors.set(key,name===null?bytes:restore(name,bytes));}return predecessors.get(key);};
-  return {restore,readSource:reader};
+  return {restore:(path,bytes)=>restore(path,latest.restore(path,bytes)),readSource:reader};
 }

@@ -460,6 +460,25 @@ physical sample playback rate in samples per second. A recording's original
 root note is unknown. The loop mode and programmed boundaries appear beside
 the slot status. Noise and zero sources have their own source labels.
 
+The **32-slot overview** uses that same CH selector; no second picker is needed.
+Its ENV strips show sampled envelope levels. Amber identifies an active slot in
+the native Release phase, independently of its requested Gate bit. Inactive
+does not mean a slot is unassigned or free, and ENV / Active are not measured
+audio meters. Pause freezes the whole map at one audible-position frame.
+
+Below it, **Selected SSF route** shows the selected CH's configured Sound Stack
+X/Y offsets, receiving MDL, stack-write inhibition (`STWINH`), Direct level / pan
+and `MIXS` input / `IMXL` send. X/Y remain separate raw 0–63 offsets, including
+equal references. These are not immediate producer CH numbers: Sound Stack
+history and delayed writes matter. No A/B pairs or editing-source reservation
+is inferred for a game recording. The pinned SSF renderer applies modulation
+only when MDL is greater than 4; this renderer-specific behavior is labelled
+separately from the stored hardware code. An inhibited stack write does not
+mute Direct or DSP Send. The game DSP determines subsequent return paths.
+The `?` contains timing and observation caveats. Selection and inspection never
+write the song registers; existing manual parameter edits still target the
+selected song CH. Live Off / Stop returns to the authored view.
+
 During SSF Live, the **DSP** tab shows the song machine's **read-only DSP**,
 separate from the Synth's program and draft. Its frame badge matches the selected
 CH's audible-position snapshot. Pause freezes that frame across CH choices;

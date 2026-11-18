@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-ssf-slot-activity-and-configured-route-ui",
+  "baseCommit": "e585c87940abc257842f3e0faa37c24902fda9eb",
+  "completed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "unitPackageTests": 454,
+  "sourceProofTests": 13,
+  "sourceReceiptPin": "25144c7b141e9983a750c3c7a0349c20167ce368734d4f3145377a4d42802571",
+  "sourceBrowser": {
+    "cases": 16,
+    "path": "build/scsp-ssf-slot-map-browser-20261118/source.json",
+    "bytes": 60196,
+    "sha256": "8d2017fd5e5d40eabc2d8a4ceda151668c43480ff43492fd315c9df935b5f257"
+  },
+  "packagedBrowser": {
+    "cases": 16,
+    "path": "build/scsp-ssf-slot-map-browser-20261118/packaged.json",
+    "bytes": 60239,
+    "sha256": "7b58207f416f0d8f5e616e9ce2c0bba7df2fd9ba87c8f763bb1457d8609aa2e4"
+  },
+  "channelRegressionBrowser": {
+    "cases": 16,
+    "path": "build/scsp-ssf-slot-map-20261118/channels-browser.json",
+    "bytes": 5501,
+    "sha256": "47162833a2014a1064cccd54df9a287c7cf28a5f88ee283b5295b9daf837f6eb"
+  },
+  "sourcePackageComparison": {
+    "path": "build/scsp-ssf-slot-map-browser-20261118/source-package-comparison.json",
+    "bytes": 409,
+    "sha256": "1f48df31f27fc8c1e3f168da5b246f52c916199872c521a9f6413d3380f61841"
+  },
+  "logs": [
+    {
+      "path": "build/scsp-ssf-slot-map-20261118/unit-package-tests.log",
+      "bytes": 48502,
+      "sha256": "897fa3947f2eb9529a93506b3b352480cd8076c90566c8ff0a7b5e7191006d88"
+    },
+    {
+      "path": "build/scsp-ssf-slot-map-20261118/source-proof.log",
+      "bytes": 1945,
+      "sha256": "4076c57e3d01e6add908cd57ad6216ee055d344e9b0c3d3426cec94c152ab8bd"
+    },
+    {
+      "path": "build/scsp-ssf-slot-map-20261118/source-recorders.log",
+      "bytes": 606,
+      "sha256": "526157d521bc378791e66b1507cc98719fb5898dee36742bbaec6074218f5751"
+    },
+    {
+      "path": "build/scsp-ssf-slot-map-20261118/mixer-soundchip.log",
+      "bytes": 233,
+      "sha256": "479f8681c342f18328f5e7de9a3255450047f8997e929242b48f7396f4bf3da9"
+    },
+    {
+      "path": "build/scsp-ssf-slot-map-20261118/mixer-playground.log",
+      "bytes": 322,
+      "sha256": "25679cc21024aa908ed32ae73c5a8d20507b0a8a21774607d9165eb368cedcc1"
+    }
+  ],
+  "sources": [
+    {
+      "path": "docs/issues/scsp_ssf_slot_map_source_revision_01.json",
+      "bytes": 23878,
+      "sha256": "1add2a351f462039b2acdc90c6c5c53f54b3c0c8c6dba5c2ba6f22a8c132208f"
+    },
+    {
+      "path": "docs/issues/todo_scsp_ssf_slot_map_20261118.md",
+      "bytes": 2027,
+      "sha256": "d85c6164b885581ffae12bde4f12014ab0a000fb646c41dd082fad86d49c17ae"
+    },
+    {
+      "path": "docs/issues/verification_scsp_ssf_slot_map_20261118.md",
+      "bytes": 3968,
+      "sha256": "74d8cbb3d42a5b0f81178fb2c0e54f2859d228479db6d93d820f74dc91366d7d"
+    },
+    {
+      "path": "docs/synth-scsp/README.md",
+      "bytes": 46108,
+      "sha256": "441751c53cbc15c29d0c8eddbde458b207b27935f2b8526dc88ea2f23fc67b06"
+    },
+    {
+      "path": "docs/synth-scsp/channel_view.js",
+      "bytes": 6200,
+      "sha256": "cb1c4550aa2079364ad9fcb22510715148a15fb1896658167c5d5d2a9867c02f"
+    },
+    {
+      "path": "docs/synth-scsp/channel_view.test.mjs",
+      "bytes": 7315,
+      "sha256": "36a9e4472c31515ba572445e9859eb5b6af6e5009fa6834476b1100607b6e0a9"
+    },
+    {
+      "path": "docs/synth-scsp/index.html",
+      "bytes": 46288,
+      "sha256": "472a03437c5318cbe6f7a650a73aeba85ff7cfb3599a8d2ad8c1a278a1b96811"
+    },
+    {
+      "path": "docs/synth-scsp/ssf_slot_routes_view.js",
+      "bytes": 9491,
+      "sha256": "5657eba0fa61547a66bf3724ff8f95f49df984c3823b3394950030c19bf51be9"
+    },
+    {
+      "path": "docs/synth-scsp/ssf_slot_routes_view.test.mjs",
+      "bytes": 13974,
+      "sha256": "c2ce751e7e2956fea03b2a79779b29534b171998553be34e816af48c2ad3b1f1"
+    },
+    {
+      "path": "docs/synth-scsp/synth.css",
+      "bytes": 30993,
+      "sha256": "4a200bd863941391b13a38e5d9cf434ee99cf81179c0d7ae592f6a8537b18a59"
+    },
+    {
+      "path": "docs/synth-scsp/synth.js",
+      "bytes": 61847,
+      "sha256": "d0c579dced1d19ca9b0897f23b623affe64992adeffabc569551f094ba4be330"
+    },
+    {
+      "path": "scripts/check_scsp_synth_ssf_slot_map_browser.cjs",
+      "bytes": 29590,
+      "sha256": "2953a4f5fdbbda5baffcfb5fa90f93e6e89968ef120f7e922b8a9762fd6b26e0"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_cycle2_ui_revision.mjs",
+      "bytes": 11015,
+      "sha256": "aec793fd8b4e935ded3063c9e5350f418d9d4932c566318c12ebde11d9de6266"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_cycle2_ui_revision.test.mjs",
+      "bytes": 6039,
+      "sha256": "7bb21946a640605bbf357f8ebb21b46a149456e91f3e3be9ed48a339595e16b4"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_ssf_slot_map_revision.mjs",
+      "bytes": 9178,
+      "sha256": "44831c43153b26ec3936d4507ecacbb30365698860da7e0b2608f36d3c5f3235"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_ssf_slot_map_revision.test.mjs",
+      "bytes": 5203,
+      "sha256": "74f392370f3e2f7b56d8e6bbe0b4ce6c95a1b3a67775c5e2a4fc23d271902cc9"
+    },
+    {
+      "path": "scripts/record_scsp_cycle2_ui_revision.mjs",
+      "bytes": 4792,
+      "sha256": "5761974b689fa5f75cc164e99ae21cd37705c5dca4236d0eec40ce6a78663b06"
+    },
+    {
+      "path": "scripts/record_scsp_ssf_slot_map_revision.mjs",
+      "bytes": 4214,
+      "sha256": "e3d42cb30ae7e20c48c210bf12395b4ba28c02c6afde212756a63959638770fb"
+    }
+  ],
+  "package": {
+    "record": {
+      "path": "build/scsp-ssf-slot-map-20261118/package.json",
+      "bytes": 484,
+      "sha256": "61bb8bc80fa829e220aa156390e0f3b419f06625b6635a331c1545d1290bc8f0"
+    },
+    "archive": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_scsp_synth_ssf-slot-map-check-e585c879_itch.zip",
+      "bytes": 4381632,
+      "sha256": "cb620f90a8a92a3acf3f306e1bad3bc51c7745c6a69466f80a08fbcdd6c422a1"
+    },
+    "files": 385,
+    "bundles": 4
+  },
+  "limits": [
+    "Configured references and levels are not measured audio or causal topology.",
+    "No Sound Stack producer attribution or arbitrary DSP return path inference.",
+    "No core/WASM/observer/audio/gain/preset changes.",
+    "No npm/version/publication/commit/push/tag or Tauri work."
+  ]
+}

@@ -16,11 +16,12 @@ import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-multiple-se
 import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-multiple-self-1';
 import { setupScspCycle2View } from './fm_cycle2_view.js?v=scsp-cycle2-ui-1';
 import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
+import { setupScspSsfSlotRoutesView } from './ssf_slot_routes_view.js?v=scsp-ssf-slots-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
 import { validateScspSynthDspProgram } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
-import { setupScspChannelView } from './channel_view.js';
+import { setupScspChannelView } from './channel_view.js?v=scsp-ssf-slots-1';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-cycle2-presets-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
@@ -70,7 +71,8 @@ let selectedOperator = 0,
 	customFmView = null,
 	cycle2View = null,
 	fmDepthView = null,
-	ssfDspView = null;
+	ssfDspView = null,
+	ssfSlotRoutesView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -351,6 +353,14 @@ function renderState() {
 	if (observing && channelView?.getSelected() === null)
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
 	if (observing && channelView) liveView.selectSlot(channelView.getSelected());
+	$('scspSsfSlotRoutes').hidden = !observing;
+	if (observing) {
+		const target = liveView.getEditableTarget() ?? liveView.getAuditionTarget();
+		ssfSlotRoutesView?.update(target ? ssfVoiceEdits.projectSnapshot(target) : ssfSnapshot, {
+			slot: channelView?.getSelected() ?? liveView.getSelectedSlot(),
+			playback: songState?.playback,
+		});
+	}
 	syncAuditionSelection();
 	if (observing) {
 		channelView?.update({ state: latestState, ssfSnapshot, ssfActive: true });
@@ -732,6 +742,7 @@ channelView = setupScspChannelView({
 		syncActivity();
 	},
 });
+ssfSlotRoutesView = setupScspSsfSlotRoutesView({root: $('scspSsfSlotRoutes')});
 liveView = setupScspSsfLiveView({
 	panel,
 	panelRoot: $('voice'),
@@ -1594,6 +1605,7 @@ window.addEventListener('pagehide', (event) => {
 	cycle2View?.dispose();
 	fmDepthView?.dispose();
 	ssfDspView?.dispose();
+	ssfSlotRoutesView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

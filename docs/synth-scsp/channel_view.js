@@ -6,6 +6,8 @@ export function setupScspChannelView({
 } = {}) {
 	const tabs = doc.getElementById('scspChannelTabs');
 	const summary = doc.getElementById('scspChannelSummary');
+	const legend = doc.getElementById('scspSsfSlotLegend');
+	const phases = ['Attack', 'Decay 1', 'Decay 2', 'Release'];
 	let selected = null,
 		state = null,
 		ssfSnapshot = null,
@@ -79,6 +81,7 @@ export function setupScspChannelView({
 		const live = ssfActive && ssfSnapshot?.slots?.length === 32;
 		tabs.dataset.source = live ? 'ssf' : 'authored';
 		tabs.dataset.selected = selected === null ? 'auto' : String(selected);
+		if (legend) legend.hidden = !live;
 		const code = lanes();
 		for (const { value, button } of buttons) {
 			const slot =
@@ -92,21 +95,27 @@ export function setupScspChannelView({
 			button.tabIndex = value === selected ? 0 : -1;
 			button.dataset.active = String(active);
 			button.dataset.gate = String(gate);
+			const phase = live && value !== null
+				? !active ? 'inactive' : ['attack', 'decay1', 'decay2', 'release'][slot.envelopePhase] ?? 'unknown'
+				: '';
+			button.dataset.phase = phase;
 			button.style.setProperty(
 				'--scsp-env',
 				String(live && value !== null ? (slot?.envelopeLevel ?? 0) : 0),
 			);
 			const owners = value === null ? [] : code.filter((lane) => lane.slots.includes(value));
-			button.title =
+			const description =
 				value === null
 					? 'Auto · grouped keyboard and logical Code lanes'
-					: `${label(value)} · ${live ? `${active ? 'Active' : 'Inactive'} · Gate` : 'Requested gate'} ${gate ? 'On' : 'Off'}${owners.length && !live ? ' · ' + owners.map(mapping).join(' · ') : ''}`;
+					: `${label(value)} · ${live ? `${active ? 'Active' : 'Inactive'} · Gate` : 'Requested gate'} ${gate ? 'On' : 'Off'}${live ? ` · ${phases[slot.envelopePhase] ?? 'Phase unknown'} · ENV ${Math.round((slot.envelopeLevel ?? 0) * 100)}%` : ''}${owners.length && !live ? ' · ' + owners.map(mapping).join(' · ') : ''}`;
+			if (button.title !== description) button.title = description;
+			attr(button, 'aria-label', description);
 		}
 		let message;
 		if (live) {
 			const slot = selected === null ? null : ssfSnapshot.slots[selected];
 			message = slot
-				? `SSF Live · ${label(selected)} · ${slot.active ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round((slot.envelopeLevel ?? 0) * 100)}%`
+				? `SSF Live · ${label(selected)} · ${slot.active ? 'Active' : 'Inactive'} · Gate ${slot.gate ? 'On' : 'Off'} · ENV ${Math.round((slot.envelopeLevel ?? 0) * 100)}%${phases[slot.envelopePhase] ? ` · ${phases[slot.envelopePhase]}` : ''}`
 				: 'SSF Live · choose a physical CH to inspect.';
 		} else if (selected === null) {
 			const shown = code.slice(0, 4).map(mapping);

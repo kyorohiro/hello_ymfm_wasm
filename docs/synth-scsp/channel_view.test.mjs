@@ -57,13 +57,14 @@ class Node {
 function rig() {
 	const tabs = new Node(),
 		summary = new Node(),
+		legend = new Node(),
 		changes = [];
 	const doc = {
-		getElementById: (id) => ({ scspChannelTabs: tabs, scspChannelSummary: summary })[id],
+		getElementById: (id) => ({ scspChannelTabs: tabs, scspChannelSummary: summary, scspSsfSlotLegend: legend })[id],
 		createElement: () => new Node(),
 	};
 	const ui = setupScspChannelView({ document: doc, onChange: (value) => changes.push(value) });
-	return { ui, tabs, summary, changes };
+	return { ui, tabs, summary, legend, changes };
 }
 function state() {
 	const slots = Array.from({ length: 32 }, (_, index) => ({
@@ -186,4 +187,34 @@ test('keyboard navigation selects a channel without sending musical arrow keys t
 	} finally {
 		r.ui.dispose();
 	}
+});
+
+test('SSF overview labels Release by observed phase, not merely a low Gate, and never marks slots free', () => {
+	const r = rig(), value = state();
+	const snapshot = {
+		slots: Array.from({ length: 32 }, () => ({active: false, gate: false, envelopeLevel: 0, envelopePhase: 3})),
+	};
+	// A key bit can change before the envelope follows it. Only native phase
+	// identifies Release; ENV is an observed envelope value, not output volume.
+	snapshot.slots[0] = {active: true, gate: false, envelopeLevel: 0.75, envelopePhase: 0};
+	snapshot.slots[1] = {active: true, gate: true, envelopeLevel: 0.25, envelopePhase: 3};
+	const before = structuredClone(snapshot);
+	try {
+		r.ui.update({state: value, ssfSnapshot: snapshot, ssfActive: true});
+		assert.equal(r.legend.hidden, false);
+		assert.equal(r.tabs.children[1].dataset.phase, 'attack');
+		assert.equal(r.tabs.children[2].dataset.phase, 'release');
+		assert.equal(r.tabs.children[3].dataset.phase, 'inactive');
+		assert.equal(r.tabs.children[0].dataset.phase, '');
+		assert.match(r.tabs.children[1].getAttribute('aria-label'), /CH1 · Active · Gate Off · Attack · ENV 75%/);
+		r.ui.setSelected(1);
+		assert.match(r.summary.textContent, /ENV 25% · Release/);
+		assert.doesNotMatch(r.summary.textContent, /free|empty|A\/B|pair/i);
+		assert.equal(r.tabs.children.length, 33);
+		assert.deepEqual(snapshot, before);
+		r.ui.update({state: value});
+		assert.equal(r.legend.hidden, true);
+		assert(r.tabs.children.every(button => button.dataset.phase === ''));
+		assert.doesNotMatch(r.tabs.children[2].getAttribute('aria-label'), /Release|ENV/);
+	} finally { r.ui.dispose(); }
 });
