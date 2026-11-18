@@ -36,6 +36,20 @@ void SS_SCSP::TetoricaReadSnapshot(uint32* words, uint8* ram) const {
     ram[address] = ne16_rbo_be<uint8>(RAM, address);
 }
 
+void SS_SCSP::TetoricaReadDspSnapshot(uint32* words) const {
+  // Logical register order, four high-to-low words per 64-bit instruction.
+  // Direct member access preserves opaque instruction bits without a bus read.
+  for (unsigned step = 0; step < 128; ++step)
+    for (unsigned part = 0; part < 4; ++part)
+      words[8 + step * 4 + part] = (DSP.MPROG[step] >> (48 - part * 16)) & 0xFFFF;
+  for (unsigned index = 0; index < 64; ++index)
+    words[520 + index] = DSP.COEF[index] & 0x1FFF;
+  for (unsigned index = 0; index < 32; ++index)
+    words[584 + index] = DSP.MADRS[index];
+  for (unsigned index = 0; index < 16; ++index)
+    words[616 + index] = DSP.EFREG[index];
+}
+
 bool SS_SCSP::TetoricaEditVoice(uint32 slot, const uint32* edits, uint32 count) {
   if (slot >= 32 || count > 3 || (!edits && count)) return false;
   uint32 seen = 0;
@@ -87,5 +101,18 @@ int ssfplay_tetorica_edit_voice(const ssfplay_decoder* decoder, uint32_t slot,
                               const uint32_t* edits, uint32_t count) {
   if (!decoder || !active_decoder) return 0;
   return MDFN_IEN_SSFPLAY::SCSP.TetoricaEditVoice(slot, edits, count);
+}
+int ssfplay_tetorica_dsp_snapshot(const ssfplay_decoder* decoder, uint32_t* words,
+                                uint32_t word_count) {
+  if (!decoder || !active_decoder || !words || word_count != 632) return 0;
+  std::fill(words, words + word_count, 0);
+  const uint64_t frame = MDFN_IEN_SSFPLAY::ssfplay_native_samples;
+  words[0] = 0x53445031; // SDP1.
+  words[1] = 1;
+  words[2] = static_cast<uint32_t>(frame);
+  words[3] = static_cast<uint32_t>(frame >> 32);
+  words[4] = 512; words[5] = 64; words[6] = 32; words[7] = 16;
+  MDFN_IEN_SSFPLAY::SCSP.TetoricaReadDspSnapshot(words);
+  return 1;
 }
 }

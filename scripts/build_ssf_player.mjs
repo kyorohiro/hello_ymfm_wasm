@@ -61,7 +61,7 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 		path.join(observer, 'scsp.h'),
 		header.replace(
 			accessAnchor,
-			' // Build-only observation and bounded host parameter edit members.\n void TetoricaReadSnapshot(uint32* words, uint8* ram) const;\n bool TetoricaEditVoice(uint32 slot, const uint32* edits, uint32 count);\n\n' +
+			' // Build-only observation and bounded host parameter edit members.\n void TetoricaReadSnapshot(uint32* words, uint8* ram) const;\n void TetoricaReadDspSnapshot(uint32* words) const;\n bool TetoricaEditVoice(uint32 slot, const uint32* edits, uint32 count);\n\n' +
 				accessAnchor,
 		),
 	);
@@ -95,6 +95,7 @@ export async function buildSsfPlayer({ outDir, buildDir, cacheDir } = {}) {
 			'_ssf_last_error',
 			'_ssf_native_frame',
 			'_ssf_read_snapshot',
+			'_ssf_read_dsp_snapshot',
 			'_ssf_edit_voice',
 		];
 		run(

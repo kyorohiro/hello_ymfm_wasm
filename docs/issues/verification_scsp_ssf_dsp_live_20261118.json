@@ -1,0 +1,336 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-read-only-SSF-DSP-Live",
+  "baseCommit": "3ec3405625ad6007e87e1163c97b6b995dfb07b5",
+  "published": false,
+  "npmUpdated": false,
+  "packageVersionChanged": false,
+  "parentCommitCreated": false,
+  "physicalListeningPerformed": false,
+  "ssfRendererAbi": {
+    "current": 4,
+    "legacySupported": 3,
+    "slotWordsUnchanged": 1040,
+    "dspWords": 632
+  },
+  "evidence": {
+    "synthSuite": {
+      "path": "build/scsp-ssf-dsp-20261118/synthSuite.log",
+      "bytes": 39645,
+      "sha256": "bacc3c8bae23cb9a7cc7fd34cc8f11f640b4c4a0c824b8a9f67c29d51a859481"
+    },
+    "proof": {
+      "path": "build/scsp-ssf-dsp-20261118/proof.log",
+      "bytes": 8166,
+      "sha256": "d88f3422a2b8f4c13436cf0611f0d22b7adc0ededf8c7ef4eeebf427e91c11a2"
+    },
+    "generators": {
+      "path": "build/scsp-ssf-dsp-20261118/generators.log",
+      "bytes": 447,
+      "sha256": "c9953ef64f7ccc9eb9099b85b48799671e59a34dd23eaa949df6012d4579067d"
+    },
+    "recorders": {
+      "path": "build/scsp-ssf-dsp-20261118/recorders.log",
+      "bytes": 1860,
+      "sha256": "9aa5b9acdb7cfc77ed1a43ce97b99cbd759be82eecc2501b6fc3cb3d31286a0f"
+    },
+    "receipt": {
+      "path": "build/scsp-ssf-dsp-20261118/receipt.log",
+      "bytes": 169,
+      "sha256": "d14a7edd2a2c37f26756b7a724a3ce6ea4873d95a8e5f06a97c0167dd7ddf841"
+    },
+    "scope": {
+      "path": "build/scsp-ssf-dsp-20261118/scope.log",
+      "bytes": 546,
+      "sha256": "53cfe6abec5ec9d53ab38710902f7e6b168ed680a712248a8c3b5dccfd969878"
+    },
+    "fingerprint-audit": {
+      "path": "build/scsp-ssf-dsp-20261118/fingerprint-audit.log",
+      "bytes": 579,
+      "sha256": "d7dd3cafde81cd97f5ec852400e7b72b448ee5b284bfde55d6ec1bf593b32784"
+    },
+    "packaging": {
+      "path": "build/scsp-ssf-dsp-20261118/packaging.log",
+      "bytes": 462,
+      "sha256": "3755aaeb5043d9801c2dedb2a37faa321b19026d52c9aa45e0f8370291405e0e"
+    },
+    "nativeBuild": {
+      "path": "build/scsp-ssf-dsp-20261118/nativeBuild.log",
+      "bytes": 2178,
+      "sha256": "2b1a6c343ff9a9a8f6f6b4747a4b53884a69191416766a5dbc316ca40cd9ff32"
+    },
+    "nativeBackend": {
+      "path": "build/scsp-ssf-dsp-20261118/nativeBackend.log",
+      "bytes": 2832,
+      "sha256": "3a838b903f83db112e31f0aedf041950503ef283ec9a93a98a7197573dd3e034"
+    },
+    "nativeParity": {
+      "path": "build/scsp-ssf-dsp-20261118/nativeParity.log",
+      "bytes": 155,
+      "sha256": "23080bf3b057edeaf9221851c334057f30d99cc8e4f93d9d3e5f7b1c23bed52a"
+    },
+    "independentAudit": {
+      "path": "build/scsp-ssf-dsp-20261118/independentAudit.log",
+      "bytes": 286334,
+      "sha256": "1ce8d95766cfd7aea209e1b481d8b2a78ccc3c2354ad69e62702f4a3dd00a09e"
+    },
+    "legacyDspFlow": {
+      "path": "build/scsp-ssf-dsp-20261118/legacyDspFlow.log",
+      "bytes": 85,
+      "sha256": "21aac670cf8d6c32f4bddbc3d568bd6338961a634254057dc88e32ea543b47ae"
+    },
+    "browser-source": {
+      "path": "build/scsp-ssf-dsp-20261118/browser-source.log",
+      "bytes": 85,
+      "sha256": "d441af2344ba003fc83d5075bf1c90501ab818f6812e2b2073bc48c21903d573"
+    },
+    "browser-zip": {
+      "path": "build/scsp-ssf-dsp-20261118/browser-zip.log",
+      "bytes": 82,
+      "sha256": "ad65f81bbbd5c5c8e8da4245eadad2c246310479046ba0143d2736d07dc62451"
+    },
+    "receipt-checker-final": {
+      "path": "build/scsp-ssf-dsp-20261118/receipt-checker-final.log",
+      "bytes": 899,
+      "sha256": "7e218de5c87a299e44f17aaf2bb272b878ad19f926add48dd44289383d5bd5ef"
+    },
+    "proof-checker-final": {
+      "path": "build/scsp-ssf-dsp-20261118/proof-checker-final.log",
+      "bytes": 730,
+      "sha256": "e3be10f81f6ab48b0daffd86d7dbf044d50ce8b041cc8d84ce6cc6eaa70cd2be"
+    },
+    "source-checker-final": {
+      "path": "build/scsp-ssf-dsp-20261118/source-checker-final.log",
+      "bytes": 169,
+      "sha256": "fc2219b70587fb08bb5aa5022cdfef380febec86b95dd465595d8768bcf92ee2"
+    }
+  },
+  "checks": {
+    "synthAndPackagingPassed": 375,
+    "nativeBackendPassed": 25,
+    "newNativePassed": 7,
+    "newViewPassed": 8,
+    "newHistoryPassed": 2,
+    "proofGuardPassedBeforeCheckerOnlyRepin": 67,
+    "checkerOnlyFinalGuardPassed": 5,
+    "nativeActualParityCases": 8,
+    "unchangedSynthCalibrationCases": 66,
+    "sourcePairs": 5,
+    "reverseHunks": 18,
+    "nativeAssetDescriptors": 2,
+    "dependencies": 86,
+    "reports": 18,
+    "historicalJsonUnchanged": 887,
+    "sharedRuntimeCoreFilesUnchanged": 1022,
+    "vendorFilesUnchanged": 1085,
+    "packageAndManifestsUnchanged": 54,
+    "authorizedGeneratedSsfChanges": 3,
+    "recorderChecks": 11,
+    "mixerGeneratorsChecked": 2,
+    "commonScspWasmUnchanged": true,
+    "cpuRegistersDirectlyObserved": false
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_ssf_dsp_source_revision_01.json",
+    "bytes": 22302,
+    "sha256": "420812f27bd72ea2f501ccc11e9ca50e3dd4314055ea571e6282a5d6e9b47b07"
+  },
+  "sourceReceiptObjectSha256": "325b1c52489ec484368344f7da71134cbd569ea417f94f457ab3a7217dbe12a3",
+  "nativePassiveParity": {
+    "path": "docs/issues/scsp_ssf_dsp_passive_parity_01.json",
+    "bytes": 9629,
+    "sha256": "9fd8b57b614ff6620ff509201681c0cc8af22acbbf9964b5e3caf18751059f66"
+  },
+  "nativeAssets": {
+    "abi": 4,
+    "factory": {
+      "bytes": 133183,
+      "sha256": "959b77471a957104ec4ae0c4955fda447266b2234e388b6e9464e9d272eb8bd5"
+    },
+    "wasm": {
+      "bytes": 753816,
+      "sha256": "ae72e535afc7f5cf860c9b30abe0e41d7a34b032d0ffdec11c8f55c8d53b6354"
+    }
+  },
+  "sourceBrowser": {
+    "path": "build/scsp-ssf-dsp-20261118/browser-source.json",
+    "bytes": 19901,
+    "sha256": "8d5ce3a784fca8e57cda2329275c43f5037ff66c13f1ccfdea19e412b864ac0f",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      7,
+      7
+    ],
+    "assets": 106,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "authoringWriteBaseline": [
+      2,
+      2
+    ],
+    "viewPreservesAuthoringBaseline": true,
+    "screenshots": [
+      {
+        "desktop": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-source-chromium-desktop.png",
+          "bytes": 142658,
+          "sha256": "175b164d50826b9809e71398c63488f5ffa1cbb428360f62644d1f623afc1a25"
+        },
+        "mobile": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-source-chromium-mobile.png",
+          "bytes": 104393,
+          "sha256": "17c9b5e5a4d11ed18ff658f94836b496cfad5f802e1393b6e6a1812f97def45d"
+        }
+      },
+      {
+        "desktop": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-source-webkit-desktop.png",
+          "bytes": 183676,
+          "sha256": "1e454b8d1e99e2e9cd9df938c800f2c2d595aa3f38f52e436495287b32da1ca5"
+        },
+        "mobile": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-source-webkit-mobile.png",
+          "bytes": 128516,
+          "sha256": "3a03aeebe022783377ca560faf29ff8c694cbf8545993d2e8280ea87541683de"
+        }
+      }
+    ]
+  },
+  "exactZipBrowser": {
+    "path": "build/scsp-ssf-dsp-20261118/browser-zip.json",
+    "bytes": 19902,
+    "sha256": "d98dc40b4c96976e797b60750a846a20a76aa724bf6147ae215198d2f46a9594",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      7,
+      7
+    ],
+    "assets": 106,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "authoringWriteBaseline": [
+      2,
+      2
+    ],
+    "viewPreservesAuthoringBaseline": true,
+    "screenshots": [
+      {
+        "desktop": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-zip-chromium-desktop.png",
+          "bytes": 142661,
+          "sha256": "d47bb948ce0b091ca74e7356facee0e69a6e6afc491dfb99fc6a9537014a598e"
+        },
+        "mobile": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-zip-chromium-mobile.png",
+          "bytes": 104380,
+          "sha256": "d514d5f9d601edb8c128e12dd1ddc86255c62258c58129c5a3cf179acacbc905"
+        }
+      },
+      {
+        "desktop": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-zip-webkit-desktop.png",
+          "bytes": 183676,
+          "sha256": "1e454b8d1e99e2e9cd9df938c800f2c2d595aa3f38f52e436495287b32da1ca5"
+        },
+        "mobile": {
+          "path": "build/scsp-ssf-dsp-20261118/browser-zip-webkit-mobile.png",
+          "bytes": 128516,
+          "sha256": "3a03aeebe022783377ca560faf29ff8c694cbf8545993d2e8280ea87541683de"
+        }
+      }
+    ]
+  },
+  "legacyDspFlowBrowser": {
+    "path": "build/scsp-ssf-dsp-20261118/legacy-dsp-flow-browser.json",
+    "bytes": 54324,
+    "sha256": "b3fa05d2091caca5f2ab27e5efa961c5ebde14f8fe3fc959542b5025a55a53a0",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      7,
+      7
+    ],
+    "assets": 113,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "authoringWriteBaseline": [
+      null,
+      null
+    ],
+    "viewPreservesAuthoringBaseline": false,
+    "screenshots": [
+      {
+        "desktop": {
+          "path": "build/scsp-ssf-dsp-20261118/legacy-dsp-flow-browser-chromium-desktop.png",
+          "bytes": 33895,
+          "sha256": "51c8827a6a85618a5b9ea72baf03cc1121db1273e353dc4a02afdd9b33039a27"
+        },
+        "mobile": {
+          "path": "build/scsp-ssf-dsp-20261118/legacy-dsp-flow-browser-chromium-mobile.png",
+          "bytes": 34115,
+          "sha256": "700d90e4aff6b475b6b44731e1dba701190d4fc5b712642df87649d18bbcbd51"
+        }
+      },
+      {
+        "desktop": {
+          "path": "build/scsp-ssf-dsp-20261118/legacy-dsp-flow-browser-webkit-desktop.png",
+          "bytes": 44695,
+          "sha256": "ba15a00a8d6a7566ab4d43e17d6a36fd8b741e01da056c96cb5c9f039ffab4a3"
+        },
+        "mobile": {
+          "path": "build/scsp-ssf-dsp-20261118/legacy-dsp-flow-browser-webkit-mobile.png",
+          "bytes": 41034,
+          "sha256": "0d2449e31446ad147cbc52b99a30ee92ddc37ba04369c0e268f272b0a07c4ff8"
+        }
+      }
+    ]
+  },
+  "archiveAudit": {
+    "passed": true,
+    "path": "release/tetorica_scsp_synth_ssf-dsp-20261118_itch.zip",
+    "bytes": 4345419,
+    "sha256": "8c16889d0aedfb3ae961d9f69bf2ab790846368b09e5dad02b07166611b2bbf7",
+    "entries": 379,
+    "crcPassed": true,
+    "allStageBytesMatch": true,
+    "readableSourceFilesCompared": 150,
+    "sourceBytesMatch": true,
+    "embeddedSourceInputsMatch": true,
+    "browserRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-ssf-dsp-20261118/browser-zip"
+  },
+  "visuallyReviewed": [
+    "build/scsp-ssf-dsp-20261118/browser-source-chromium-desktop.png",
+    "build/scsp-ssf-dsp-20261118/browser-source-webkit-mobile.png"
+  ],
+  "limits": [
+    "Read-only observation; no automatic game-program copy or Apply to Synth.",
+    "Mednafen NOFL bit8 differs from Synth/MAME bit15; raw words retained and private display decoding adapted.",
+    "Selectors do not prove arbitrary program connectivity; sampled EFREG values are not audio meters.",
+    "TEMP/MEMS and CPU register state are not exported.",
+    "8MiB counts retained typed buffers; JavaScript object overhead is separate.",
+    "Real-game listening, history transfer and feedback remain later work."
+  ]
+}

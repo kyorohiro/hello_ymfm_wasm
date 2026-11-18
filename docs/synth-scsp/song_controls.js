@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { createScspSongPlayer } from './song_player.js';
+import { createScspSongPlayer } from './song_player.js?v=scsp-ssf-dsp-1';
 import { buildScspSongDemo } from './song_source.js';
 
 const vgmPath = (path) => typeof path === 'string' && /^\/vgm\/.*\.(?:vgm|vgz)$/i.test(path);

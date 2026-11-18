@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-fm-depth-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-ssf-dsp-1" />
 	</head>
 	<body>
 		<main>
@@ -581,6 +581,8 @@
 							hidden
 						>
 							<h2>SCSP DSP</h2>
+                            <section id="scspSsfDspView" aria-label="Read-only SSF DSP observation" hidden></section>
+                            <div id="scspSynthDspView">
                             <section id="scspDspRouting" class="scsp-dsp-routing" aria-labelledby="scspDspRoutingHeading">
                                 <div class="scsp-dsp-routing-heading">
                                     <h3 id="scspDspRoutingHeading">Routing · live</h3>
@@ -818,6 +820,7 @@
 								</p>
 								<a href="../playground/scsp-dsp.html">Open DSP Lab</a>
 							</details>
+                            </div>
 						</section>
 						<section
 							id="synthInputSection"
@@ -1013,6 +1016,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-fm-depth-1"></script>
+		<script type="module" src="synth.js?v=scsp-ssf-dsp-1"></script>
 	</body>
 </html>

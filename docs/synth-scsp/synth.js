@@ -6,14 +6,15 @@ import { readPatch, writePatch } from './patch.js?v=scsp-fm-depth-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-depth-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
 import { setupScspCodeHost } from './code_host.js?v=scsp-fm-depth-1';
-import { setupScspSongControls, isScspSongPath } from './song_controls.js';
-import { setupScspSsfLiveView } from './ssf_live_view.js';
+import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-ssf-dsp-1';
+import { setupScspSsfLiveView } from './ssf_live_view.js?v=scsp-ssf-dsp-1';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
 import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-depth-1';
 import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-depth-1';
+import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
@@ -66,7 +67,8 @@ let selectedOperator = 0,
 	dspRoutingView = null,
 	dspSignalFlow = null,
 	customFmView = null,
-	fmDepthView = null;
+	fmDepthView = null,
+	ssfDspView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -311,10 +313,18 @@ function renderDspCoefficients(state, readOnly = false) {
 }
 function renderState() {
 	if (!latestState || disposed) return;
-	const wasLive = liveView?.isActive();
 	const ssfSnapshot = songControls?.player.getLiveSnapshot();
 	ssfVoiceEdits.sync(songControls?.player.getEditSession() ?? null, songState?.playback, ssfSnapshot);
 	const observing = liveView?.update(songState, ssfSnapshot);
+	const showSsfDsp = songState?.kind === 'ssf' && liveView?.isEnabled()
+		&& ['starting', 'playing', 'paused', 'seeking'].includes(songState?.playback);
+	$('scspSynthDspView').hidden = Boolean(showSsfDsp);
+	$('scspSsfDspView').hidden = !showSsfDsp;
+	$('scspDspTab').disabled = false;
+	$('scspDspPanel').dataset.source = showSsfDsp ? 'ssf' : 'synth';
+	if (showSsfDsp && !$('scspDspPanel').hidden) ssfDspView?.update(ssfSnapshot, {
+		slot: channelView?.getSelected() ?? liveView.getSelectedSlot(), playback: songState?.playback,
+	});
 	renderDspCoefficients(latestState, Boolean(observing));
 	dspRoutingView?.update(latestState, {selected: channelView?.getSelected() ?? null, operator: selectedOperator, readOnly: Boolean(observing)});
 	customFmView?.update(latestState, {operator: selectedOperator, readOnly: Boolean(observing)});
@@ -328,7 +338,6 @@ function renderState() {
 		channelView?.update({ state: latestState, ssfSnapshot, ssfActive: true });
 		setEditorSections('ssf');
 		envelopeControls.update({ voice: liveView.getPCM().voice, readOnly: !liveView.isEditable() });
-		if (!wasLive) chipTab(false);
 		numberControls?.update();
 		return;
 	}
@@ -717,7 +726,6 @@ liveView = setupScspSsfLiveView({
 		if (liveView?.isEnabled() && channelView?.getSelected() === null)
 			channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
 		if (channelView?.getSelected() !== null) liveView?.selectSlot(channelView.getSelected());
-		if (liveView?.isActive()) chipTab(false);
 		songControls?.player.setLiveEnabled(liveView?.isEnabled() ?? true);
 		renderState();
 	},
@@ -1308,6 +1316,7 @@ function chipTab(dsp) {
 		$(id).tabIndex = selected ? 0 : -1;
 	}
 	panel.setVisible(!dsp);
+	if (dsp && latestState) renderState();
 }
 for (const [id, dsp] of [
 	['scspChipTab', false],
@@ -1352,6 +1361,7 @@ customFmView = setupScspCustomFmView({
 	},
 	onError: report,
 });
+ssfDspView = setupScspSsfDspView({root: $('scspSsfDspView')});
 dspSignalFlow = setupScspDspSignalFlow();
 dspRoutingView = setupScspDspRoutingView({
 	onSource(operator) {
@@ -1541,6 +1551,7 @@ window.addEventListener('pagehide', (event) => {
 	dspSignalFlow?.dispose();
 	customFmView?.dispose();
 	fmDepthView?.dispose();
+	ssfDspView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

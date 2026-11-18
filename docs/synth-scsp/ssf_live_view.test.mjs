@@ -305,7 +305,7 @@ test('Live shows native activity and frozen slot selection in the existing read-
 		assert.equal(r.inputs.get('root').value, '44100');
 		assert.equal(r.pixels, 2);
 		assert.equal(r.draftStatus.textContent, '');
-		assert(r.nodes.get('scspDspTab').disabled);
+		assert.equal(r.nodes.get('scspDspTab').disabled, false, 'DSP remains available for the read-only SSF view');
 		assert.deepEqual(r.connections, [false]);
 		assert.equal(r.states.length, 0, 'Live projection never replaces the panel private draft');
 		assert(r.authorSections.every((node) => node.hidden));

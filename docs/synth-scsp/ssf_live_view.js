@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import { readScspSsfPcmPreview } from './ssf_snapshot.js';
+import { readScspSsfPcmPreview } from './ssf_snapshot.js?v=scsp-ssf-dsp-1';
 
 const phases = ['Attack', 'Decay 1', 'Decay 2', 'Release'];
 const loops = ['One-shot', 'Forward', 'Reverse', 'Alternating'];
@@ -318,7 +318,6 @@ export function setupScspSsfLiveView({
 				),
 			};
 			for (const id of [
-				'scspDspTab',
 				'effectEnabled',
 				'delayTime',
 				'delayFeedback',

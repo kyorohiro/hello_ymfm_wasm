@@ -525,6 +525,16 @@ select {
 	outline: 2px solid var(--accent);
 	outline-offset: 3px;
 }
+#scspSsfDspView > details {
+	margin: 12px 0;
+}
+#scspSsfDspView .scsp-dsp-program-scroll {
+	max-height: 28rem;
+	margin-top: 12px;
+}
+#scspSsfDspView .scsp-dsp-program-table td:nth-child(2) {
+	width: auto;
+}
 .scsp-dsp-program-table {
 	width: 100%;
 	min-width: 680px;

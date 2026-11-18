@@ -6,6 +6,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {diffLines} from 'diff';
+import {createScspSsfDspRevisionReadContext} from './mixer_calibration_scsp_ssf_dsp_revision.mjs';
 import {measureScspFmDepthDefaultParity,SCSP_FM_DEPTH_PARITY_REPORT} from './record_scsp_fm_depth_default_parity.mjs';
 import {SCSP_FM_DEPTH_REVISION_BASE_COMMIT as baseCommit,
   SCSP_FM_DEPTH_REVISION_RECEIPT_PATH as destination,
@@ -30,22 +31,22 @@ function reverseHunks(before,after){
   for(const h of hunks){parts.push(after.subarray(cursor,h.afterOffset),Buffer.from(h.beforeText));cursor=h.afterOffset+h.afterBytes;}
   parts.push(after.subarray(cursor));assert.deepEqual(Buffer.concat(parts),before);return hunks;
 }
-export async function createScspFmDepthRevisionReceipt(){
+export async function createScspFmDepthRevisionReceipt({readSource=name=>readFile(resolve(root,name))}={}){
   const sources={},relatedSources={},reportRecords={};
   for(const name of paths){
-    const before=historical(name),after=await readFile(resolve(root,name));
+    const before=historical(name),after=await readSource(name);
     assert(!before.equals(after),'Expected a reviewed Synth source change: '+name);
     assert(Buffer.from(after.toString('utf8')).equals(after));
     sources[name]={before:record(before),after:record(after),reverseHunks:reverseHunks(before,after)};
   }
   for(const name of related){
-    const bytes=await readFile(resolve(root,name));
+    const bytes=await readSource(name);
     if(unchanged.includes(name))
       assert.deepEqual(bytes,historical(name),'Measured audio/gain bytes unchanged: '+name);
     relatedSources[name]=record(bytes);
   }
   for(const name of reports){
-    const bytes=await readFile(resolve(root,name));
+    const bytes=await readSource(name);
     if(name!=='docs/issues/scsp_fm_depth_default_parity_01.json')assert.deepEqual(bytes,historical(name),'Historical evidence unchanged: '+name);
     reportRecords[name]=record(bytes);
   }
@@ -62,7 +63,8 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
     await writeFile(resolve(root,SCSP_FM_DEPTH_PARITY_REPORT),JSON.stringify(parity,null,2)+'\n');
     console.log('Exact legacy baseline parity: '+parity.cases.length+' cases PASS.');
   }
-  const value=await createScspFmDepthRevisionReceipt(),text=JSON.stringify(value,null,2)+'\n';
+  const reviewed=args[0]==='--check'?createScspSsfDspRevisionReadContext():null;
+  const value=await createScspFmDepthRevisionReceipt(reviewed?{readSource:name=>reviewed.readSource(new URL('../'+name,import.meta.url))}:{}),text=JSON.stringify(value,null,2)+'\n';
   if(args[0]==='--write')await writeFile(resolve(root,destination),text);
   else assert.equal(await readFile(resolve(root,destination),'utf8'),text,'Synth per-operator depth receipt changed');
   console.log('SCSP FM depth receipt object SHA256 '+sha(JSON.stringify(value)));

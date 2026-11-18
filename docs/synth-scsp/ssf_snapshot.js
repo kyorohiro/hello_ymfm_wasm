@@ -1,8 +1,26 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Passive SSF observer schema. Frequency is hardware sample playback rate.
 export const SCSP_SSF_SNAPSHOT_WORDS = 1040;
+export const SCSP_SSF_DSP_SNAPSHOT_WORDS = 632;
 export const SCSP_SSF_RAM_BYTES = 512 * 1024;
 const RATE = 44100;
+
+/** Detached raw DSP observation. This does not restrict instructions to the
+ * Synth assembler execution profile or claim sampled outputs are audio meters. */
+export function decodeScspSsfDspSnapshot(words,frame){
+	if(!(words instanceof Uint32Array)||words.length!==SCSP_SSF_DSP_SNAPSHOT_WORDS||
+		words[0]!==0x53445031||words[1]!==1||words[4]!==512||words[5]!==64||words[6]!==32||words[7]!==16)
+		throw new TypeError('Invalid SSF DSP observation words');
+	const observed=words[2]+words[3]*4294967296;
+	if(!Number.isSafeInteger(observed)||(frame!==undefined&&observed!==frame))
+		throw new RangeError('SSF DSP observation frame differs from the slot snapshot');
+	for(let index=8;index<words.length;index++)if(words[index]>(index>=520&&index<584?0x1fff:0xffff))
+		throw new RangeError('Invalid SSF DSP observation register value');
+	return {frame:observed,program:Uint16Array.from(words.subarray(8,520)),
+		coefficients:Int16Array.from(words.subarray(520,584),value=>value&0x1000?value-0x2000:value),
+		addresses:Uint16Array.from(words.subarray(584,616)),
+		outputs:Int16Array.from(words.subarray(616,632),value=>value&0x8000?value-0x10000:value)};
+}
 
 export function decodeScspSsfSnapshot(words, ram) {
 	if (

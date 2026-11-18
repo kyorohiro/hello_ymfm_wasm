@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import createSsfPlayerModule from '../generated/ssf-player/ssf_player.js';
+import createSsfPlayerModule from '../generated/ssf-player/ssf_player.js?v=scsp-ssf-dsp-1';
 import { zlibSync } from '../playground/vendor/fflate.js';
 import { scspSsfCrc32 } from './ssf_source.js';
-import { decodeScspSsfSnapshot, SCSP_SSF_SNAPSHOT_WORDS } from './ssf_snapshot.js';
+import { decodeScspSsfSnapshot, decodeScspSsfDspSnapshot, SCSP_SSF_SNAPSHOT_WORDS, SCSP_SSF_DSP_SNAPSHOT_WORDS } from './ssf_snapshot.js?v=scsp-ssf-dsp-1';
 import { encodeScspSsfVoiceEdit } from './ssf_voice_parameters.js';
 
 const RATE = 44100;
@@ -16,7 +16,7 @@ function check(signal) {
 }
 
 async function getBinary() {
-	binaryPromise ??= fetch(new URL('../generated/ssf-player/ssf_player.wasm', import.meta.url))
+	binaryPromise ??= fetch(new URL('../generated/ssf-player/ssf_player.wasm?v=scsp-ssf-dsp-1', import.meta.url))
 		.then((response) => {
 			if (!response.ok) throw new Error(`SSF player WASM HTTP ${response.status}`);
 			return response.arrayBuffer();
@@ -72,13 +72,15 @@ export async function createScspSsfRenderer(
 	check(signal);
 	const module = await moduleFactory({ wasmBinary: binary });
 	check(signal);
-	if (module._ssf_abi_version() !== 3) throw new Error('Unsupported SSF renderer ABI');
+	const abi=module._ssf_abi_version();
+	if (![3,4].includes(abi)||abi===4&&typeof module._ssf_read_dsp_snapshot!=='function') throw new Error('Unsupported SSF renderer ABI');
 	let input = 0,
 		leftPointer = 0,
 		rightPointer = 0,
 		renderer = 0,
 		snapshotWords = 0,
 		snapshotRam = 0,
+		dspWords = 0,
 		editWords = 0,
 		cachedSnapshot = null;
 	let framesRendered = 0,
@@ -94,9 +96,10 @@ export async function createScspSsfRenderer(
 		if (rightPointer) module._free(rightPointer);
 		if (snapshotWords) module._free(snapshotWords);
 		if (snapshotRam) module._free(snapshotRam);
+		if (dspWords) module._free(dspWords);
 		if (editWords) module._free(editWords);
 		cachedSnapshot = null;
-		snapshotWords = snapshotRam = editWords = 0;
+		snapshotWords = snapshotRam = dspWords = editWords = 0;
 		renderer = leftPointer = rightPointer = 0;
 	}
 	try {
@@ -180,7 +183,14 @@ export async function createScspSsfRenderer(
 			SCSP_SSF_SNAPSHOT_WORDS,
 		).slice();
 		const ram = module.HEAPU8.slice(snapshotRam, snapshotRam + RAM_BYTES);
-		cachedSnapshot = decodeScspSsfSnapshot(words, ram);
+		const snapshot=decodeScspSsfSnapshot(words,ram);
+		if(abi===4){
+			if(!dspWords)dspWords=module._malloc(SCSP_SSF_DSP_SNAPSHOT_WORDS*4);
+			if(!dspWords)throw new Error('SSF DSP observation allocation failed');
+			if(!module._ssf_read_dsp_snapshot(renderer,dspWords,SCSP_SSF_DSP_SNAPSHOT_WORDS))throw new Error('SSF DSP observation is unavailable');
+			snapshot.dsp=decodeScspSsfDspSnapshot(new Uint32Array(module.HEAPU8.buffer,dspWords,SCSP_SSF_DSP_SNAPSHOT_WORDS),snapshot.frame);
+		}
+		cachedSnapshot = snapshot;
 		return cachedSnapshot;
 	}
 	function editVoice(slot, method, patch) {

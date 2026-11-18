@@ -237,7 +237,10 @@ async function exercise(name,origin,fixture){
     await page.locator('#scspSongPause').click();
     await page.waitForFunction(()=>document.getElementById('scspSongPause').textContent.includes('Resume'));
     const separate=await waitFlow(page,value=>value.notice?.text.includes('SSF has a separate DSP'),'SSF separation notice');
-    assert(await page.locator('#scspDspTab').isDisabled(),'The existing SSF policy keeps the Synth DSP tab unavailable');
+    assert(await page.locator('#scspDspTab').isEnabled(),'DSP remains available for the read-only SSF view');
+    await page.locator('#scspDspTab').click();
+    assert(await page.locator('#scspSsfDspView').isVisible());
+    assert(await page.locator('#scspSynthDspView').isHidden());
     assert(await page.locator('#scspDspInput').isDisabled());
     assert.deepEqual(await request(page,{method:'readDspSetup',args:[]}),primaryBefore,'SSF view must not change Synth DSP');
     await page.locator('#scspSongStop').click();

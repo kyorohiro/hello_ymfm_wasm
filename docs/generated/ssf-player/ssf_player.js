@@ -3800,7 +3800,7 @@ Module["UTF8ToString"] = UTF8ToString;
 // End JS library exports
 // end include: postlibrary.js
 // Imports from the Wasm binary.
-var _ssf_abi_version, _ssf_create, _ssf_render, _ssf_ended, _ssf_native_frame, _ssf_read_snapshot, _ssf_edit_voice, _ssf_destroy, _ssf_last_error, _free, _malloc, _setThrew, __emscripten_tempret_set, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, ___cxa_decrement_exception_refcount, ___cxa_increment_exception_refcount, ___cxa_can_catch, ___cxa_get_exception_ptr, memory, __indirect_function_table, wasmMemory, wasmTable;
+var _ssf_abi_version, _ssf_create, _ssf_render, _ssf_ended, _ssf_native_frame, _ssf_read_snapshot, _ssf_edit_voice, _ssf_read_dsp_snapshot, _ssf_destroy, _ssf_last_error, _free, _malloc, _setThrew, __emscripten_tempret_set, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, ___cxa_decrement_exception_refcount, ___cxa_increment_exception_refcount, ___cxa_can_catch, ___cxa_get_exception_ptr, memory, __indirect_function_table, wasmMemory, wasmTable;
 
 function assignWasmExports(wasmExports) {
   _ssf_abi_version = Module["_ssf_abi_version"] = wasmExports["ssf_abi_version"];
@@ -3810,6 +3810,7 @@ function assignWasmExports(wasmExports) {
   _ssf_native_frame = Module["_ssf_native_frame"] = wasmExports["ssf_native_frame"];
   _ssf_read_snapshot = Module["_ssf_read_snapshot"] = wasmExports["ssf_read_snapshot"];
   _ssf_edit_voice = Module["_ssf_edit_voice"] = wasmExports["ssf_edit_voice"];
+  _ssf_read_dsp_snapshot = Module["_ssf_read_dsp_snapshot"] = wasmExports["ssf_read_dsp_snapshot"];
   _ssf_destroy = Module["_ssf_destroy"] = wasmExports["ssf_destroy"];
   _ssf_last_error = Module["_ssf_last_error"] = wasmExports["ssf_last_error"];
   _free = Module["_free"] = wasmExports["free"];

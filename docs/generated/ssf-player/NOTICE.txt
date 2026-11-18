@@ -7,7 +7,10 @@ Upstream revision a28e0d7e14a3dc04a486ea26f30bc52edad3dc4d.
 The Tetorica C ABI wrapper is also GPL-2.0-or-later.
 Its source is tetorica_src/wasm/ssf_player/ssf_player.cpp.
 Rebuild with node scripts/build_ssf_player.mjs using Emscripten and CMake.
-ABI 3 includes a passive slot/RAM observer and bounded, masked host edits
+ABI 4 adds a passive, same-frame read-only DSP observer: all 128 raw
+instructions, 64 signed coefficients, 32 memory addresses and 16 raw effect
+outputs. TEMP/MEMS and DSP editing are not exposed. The original slot/RAM
+snapshot ABI is unchanged. ABI 3 includes a passive slot/RAM observer and bounded, masked host edits
 for individual voices' Envelope, LFO and Mix registers. Host edits do not
 advance the CPU, restart voices or change RAM; the song driver can overwrite
 them later. The build creates temporary

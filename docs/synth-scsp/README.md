@@ -333,6 +333,34 @@ physical sample playback rate in samples per second. A recording's original
 root note is unknown. The loop mode and programmed boundaries appear beside
 the slot status. Noise and zero sources have their own source labels.
 
+During SSF Live, the **DSP** tab shows the song machine's **read-only DSP**,
+separate from the Synth's program and draft. Its frame badge matches the selected
+CH's audible-position snapshot. Pause freezes that frame across CH choices;
+seek replaces it with the new position. The bounded observation history keeps
+up to 16 snapshots, with retained typed-array buffers limited to 8 MiB. This
+includes RAM, slot registers and DSP arrays; JavaScript object overhead is separate.
+
+Expand Program to inspect all 128 instructions and their four raw words.
+The whole-instruction decoder displays game programs without applying the
+Synth editor's execution-profile restrictions. The listing follows the Mednafen
+renderer dialect: `NOFL` is word3 bit 8, while word3 bit 15 is opaque. It is not
+a promise of compatibility with Synth/MAME assembly. Opaque bits remain explicit
+`RAW` fields or Opaque labels; an undecodable instruction retains its raw words. Separate
+disclosures contain all 64 signed COEF codes, 32 MADRS addresses and 16 shared
+returns. COEF codes divide by 4096 to give their multiplier.
+
+The selected CH's direct level / pan and `ISEL` / `IMXL` send are configured
+routes. Instruction selector references and `EWT` selectors describe the program,
+and the observed signed `EFREG` values are sampled hardware state. They are
+not audio meters or proof that one CH reaches a particular return: arbitrary
+DSP connectivity is **program-defined**. Return 0–15 use the `EFSDL` / `EFPAN`
+fields in CH1–CH16's register sets. The `?` disclosure explains these distinctions.
+
+Viewing, expanding tables or switching CH never applies or copies the song's
+DSP to Synth. Live Off and Stop reveal the existing Synth draft again. A player
+without DSP observation data displays **Unavailable**, rather than an invented
+zero program or zero outputs.
+
 Pause freezes one native snapshot for all CH choices. Live Off keeps the
 selected CH and shows its editable Synth slot, not the SSF slot. Stop and
 natural end also return to that selected editor target. Choose Auto explicitly
@@ -556,7 +584,8 @@ The **?** contains the encoding and persistence details.
 Coefficient changes apply immediately, retaining the DSP ring tail, held voices
 and Code session. They do not require program Check / Apply. Invalid edits leave
 the old coefficients in place. These controls address the Synth's DSP, separately
-from SSF playback / audition. They are disabled while the SSF Live editor is active.
+from SSF playback / audition. While SSF Live is active, its read-only observation
+replaces these Synth controls in the DSP tab; Live Off restores the Synth view.
 
 COEF1 and **Feedback** are two views of the same coefficient. Feedback displays
 the quantized hardware multiplier, including after Code calls

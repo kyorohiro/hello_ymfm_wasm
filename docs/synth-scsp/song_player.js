@@ -3,8 +3,8 @@ import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { prepareScspSongSource } from './song_source.js';
 import { prepareScspSsfSource } from './ssf_source.js';
-import { createScspSsfRenderer } from './ssf_renderer.js';
-import { createScspSsfLiveHistory } from './ssf_live_history.js';
+import { createScspSsfRenderer } from './ssf_renderer.js?v=scsp-ssf-dsp-1';
+import { createScspSsfLiveHistory } from './ssf_live_history.js?v=scsp-ssf-dsp-1';
 
 const RATE = 44100,
 	CHUNK = 256,

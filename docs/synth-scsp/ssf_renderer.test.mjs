@@ -391,7 +391,7 @@ test('native host edit ABI validates every masked word before any register write
 		words = 0,
 		ram = 0;
 	try {
-		assert.equal(module._ssf_abi_version(), 3);
+		assert.equal(module._ssf_abi_version(), 4);
 		output(renderer, 2048);
 		edits = module._malloc(9 * 4);
 		words = module._malloc(1040 * 4);
