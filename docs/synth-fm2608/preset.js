@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {FM_PRESETS} from '../js/megasynth-fm-presets.js';
-import {encodeAdpcmB} from '../js/adpcm_b_sample.js';
 
 export {FM_PRESETS};
 export const PRESET_FORMAT = 'tetorica-fm2608-synth';
@@ -86,13 +85,56 @@ export function waveShape(shape, length = 128) {
   integer(length,64,MAX_ADPCM_BYTES * 2,'Wave length');
   return Array.from({length},(_,index) => {
     const phase = index / length;
-    return .6 * (shape === 'sine' ? Math.sin(phase * Math.PI * 2) : shape === 'triangle' ? 1 - 4 * Math.abs(phase - .5) : shape === 'saw' ? phase * 2 - 1 : phase < .5 ? 1 : -1);
+    // ADPCM-B resets its predictor and step on Key On and each Repeat. Start
+    // this continuous cycle at zero, rather than asking the fresh decoder to
+    // jump immediately to -0.6. This is only a phase rotation of generated PCM.
+    const trianglePhase = (phase + .25) % 1;
+    return .6 * (shape === 'sine' ? Math.sin(phase * Math.PI * 2) : shape === 'triangle' ? 1 - 4 * Math.abs(trianglePhase - .5) : shape === 'saw' ? phase * 2 - 1 : phase < .5 ? 1 : -1);
   });
+}
+
+/** Encode only this app's generated 128-point, amplitude-0.6 Sine cycle.
+ * The caller must opt in for generated Sine; imported/drawn PCM keeps the
+ * shared encoder. Return null when resampling would change the cycle length.
+ * Float32 conversion and interpolation match encodeAdpcmB, so quantized chip
+ * rates do not introduce a separate pitch, amplitude or display correction.
+ */
+export function encodeGeneratedSine({channels,sampleRate},outputRate) {
+  if (!Number.isFinite(sampleRate) || sampleRate <= 0 || !Number.isFinite(outputRate) || outputRate <= 0 ||
+      !Array.isArray(channels) || channels.length !== 1 || channels[0]?.length !== 128 ||
+      Math.round(128 * outputRate / sampleRate) !== 128) return null;
+  const sine = Float32Array.from(waveShape('sine'));
+  if (!sine.every((value,index) => value === Math.fround(channels[0][index]))) return null;
+  const bytes = new Uint8Array(64), scales = [57,57,57,57,77,102,128,153];
+  let predictor = 0, step = 127;
+  for (let index = 0; index < 128; index++) {
+    const position = Math.min(index * sampleRate / outputRate,127);
+    const first = Math.floor(position), fraction = position - first;
+    const value = sine[first] * (1 - fraction) + sine[Math.min(first + 1,127)] * fraction;
+    const target = Math.round(value * (value < 0 ? 32768 : 32767));
+    // Greedy encoding at zero chooses code0 and cannot follow the first rise.
+    // Code6 grows step127 to254 with a small206/32768 initial offset. A bounded
+    // first-code/Repeat-tail comparison gave the smallest maximum cycle error.
+    // Repeat resets the decoder before decoding its final nibble. End with
+    // code3: the largest rising code that leaves that reset step at127. A
+    // freshly decoded preview alone would prefer code4 and distort Repeat.
+    const forced = index === 0 ? 6 : index === 127 ? 3 : null;
+    let best = 0, bestValue = 0, error = Infinity;
+    for (let code = forced ?? 0; code <= (forced ?? 15); code++) {
+      const delta = Math.floor((2 * (code & 7) + 1) * step / 8) * (code & 8 ? -1 : 1);
+      const decoded = Math.max(-32768,Math.min(32767,predictor + delta));
+      if (Math.abs(decoded - target) < error) { best = code; bestValue = decoded; error = Math.abs(decoded - target); }
+    }
+    bytes[index >> 1] |= best << (index & 1 ? 0 : 4);
+    predictor = bestValue;
+    step = Math.max(127,Math.min(24576,Math.floor(step * scales[best & 7] / 64)));
+  }
+  return {bytes,frames:128,paddedFrames:128,sampleRate:outputRate};
 }
 
 export function createDefaultPreset() {
   const rootNote = 60, sampleRate = 440 * 2 ** ((rootNote - 69) / 12) * 128;
-  const encoded = encodeAdpcmB({channels:[Float32Array.from(waveShape('sine'))],sampleRate},sampleRate);
+  const encoded = encodeGeneratedSine({channels:[Float32Array.from(waveShape('sine'))],sampleRate},sampleRate);
   const voice = readFmPreset(FM_PRESETS['two-op-bell']);
   return {
     format:PRESET_FORMAT,version:1,name:'OPNA Bell',

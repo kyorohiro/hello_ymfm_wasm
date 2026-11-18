@@ -154,7 +154,7 @@
           </section>
 
           <section id="panel-adpcm" class="opna-panel" role="tabpanel" aria-labelledby="tab-adpcm" hidden>
-            <div class="section-heading"><h2>ADPCM-B · 1 sample voice</h2><details class="inline-help"><summary aria-label="About ADPCM-B">?</summary><p>Audio is downmixed to mono and encoded as YM2608 ADPCM-B. Root note is a software tuning reference. Base rate sets the playback speed at Root note. Keyboard notes transpose this rate, and Playback shows the current hardware rate. Repeat loops the complete selected sample. The memory range is aligned to 32 encoded bytes. Drawing re-encodes the sample on release.</p></details></div>
+            <div class="section-heading"><h2>ADPCM-B · 1 sample voice</h2><details class="inline-help"><summary aria-label="About ADPCM-B">?</summary><p>Audio is downmixed to mono and encoded as YM2608 ADPCM-B. Root note is a software tuning reference. Base rate sets the playback speed at Root note. Keyboard notes transpose this rate, and Playback shows the current hardware rate. Repeat loops the complete selected sample. The memory range is aligned to 32 encoded bytes. Drawing re-encodes the sample on release.</p><p>The canvas shows decoded ADPCM, including its quantization. The software Triangle starts at a zero crossing to match decoder startup. Sharp Saw / Square edges still have ADPCM reconstruction limits. Keyboard release uses a short software fade; raw keyOff remains immediate.</p></details></div>
             <div class="sample-actions"><button id="loadAudioButton" type="button">Load audio…</button><button id="saveWaveButton" type="button">Export WAV</button><label class="check-control"><input id="drawWave" type="checkbox">Draw waveform</label></div>
             <div id="adpcmControls" class="opna-control-grid"></div>
             <canvas id="waveCanvas" width="900" height="210" role="img" aria-label="ADPCM decoded sample waveform"></canvas>
@@ -210,6 +210,6 @@
   <input id="soundFileInput" type="file" accept=".json,.tfi,.vgi" hidden>
   <input id="audioFileInput" type="file" accept="audio/*,.wav,.ogg,.mp3,.m4a,.flac" hidden>
   <input id="songFileInput" type="file" accept=".vgm,.vgz,.s98" multiple hidden>
-  <script type="module" src="./synth.js?v=opna-output-menu-1"></script>
+  <script type="module" src="./synth.js?v=opna-sine-release-2"></script>
 </body>
 </html>

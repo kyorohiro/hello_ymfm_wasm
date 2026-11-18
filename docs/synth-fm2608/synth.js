@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js';
-import {createFm2608Audio} from './audio.js?v=opna-pcm-release-1';
+import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js?v=opna-sine-release-2';
+import {createFm2608Audio} from './audio.js?v=opna-sine-release-2';
 import {setupFm2608CodeHost} from './code_host.js?v=opna-output-menu-1';
-import {setupFm2608SongControls} from './song_controls.js?v=opna-pcm-release-1';
+import {setupFm2608SongControls} from './song_controls.js?v=opna-sine-release-2';
 import {createParamControl, buildHeader, buildOperatorControls} from '../synth/synth_controls.js';
 import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
@@ -1002,7 +1002,7 @@ async function generateWave(shape) {
     songs?.setView('synth');
     const engine = await ensureAudio();
     await editQueue;
-    settings = await engine.setWave(waveShape(shape,128),{rootNote:settings.adpcm.rootNote});
+    settings = await engine.setWave(waveShape(shape,128),{rootNote:settings.adpcm.rootNote,generatedShape:shape});
     host.markSoundDirty();
     updateControls();
     renderSample();

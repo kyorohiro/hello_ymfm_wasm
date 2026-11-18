@@ -7,7 +7,7 @@ import {createFm2608SongTimeline,createFm2608RegisterState} from './song_state.j
 import {createFm2608SongEngine,installFm2608SongMix,FM2608_SONG_CHANNELS} from './song_engine.js';
 import {readFm2608OutputMix,resolveFm2608OutputMix} from './output_mix.js';
 import {createPerformanceQueue} from '../js/playground_performance_queue.js';
-import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-pcm-release-1';
+import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-sine-release-2';
 
 const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01;
 const nativeSchedule = globalThis.setTimeout.bind(globalThis);

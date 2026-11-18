@@ -4,9 +4,9 @@ import {readSamplePCM,encodeAdpcmB} from '../js/adpcm_b_sample.js';
 import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
 import {createYm2612RegisterState} from '../synth/synth_song_state.js';
-import {createDefaultPreset,readPreset,encodeBase64,decodeBase64,MAX_ADPCM_BYTES} from './preset.js';
+import {createDefaultPreset,readPreset,encodeBase64,decodeBase64,encodeGeneratedSine,MAX_ADPCM_BYTES} from './preset.js?v=opna-sine-release-2';
 import {installChannel3Controls,observeAdpcmMemory} from './sound_state.js';
-import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-pcm-release-1';
+import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-sine-release-2';
 
 const nativeSetTimeout = globalThis.setTimeout.bind(globalThis);
 const nativeClearTimeout = globalThis.clearTimeout.bind(globalThis);
@@ -293,7 +293,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     stopping = result;
     return result;
   }
-  async function loadAudio(source,{rootNote = preset.adpcm.rootNote,sampleRate,signal} = {}) {
+  async function loadAudio(source,{rootNote = preset.adpcm.rootNote,sampleRate,signal,generatedShape} = {}) {
     const token = ++sampleEpoch;
     const pcm = await readSamplePCM(source,{signal,decodeAudio:bytes => context.decodeAudioData(bytes.slice(0))});
     signal?.throwIfAborted(); if (token !== sampleEpoch) throw cancelled(); assertOpen();
@@ -302,17 +302,20 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     const deltaN = Math.round(requested * 144 * 65536 / chip.clock);
     if (deltaN < 1 || deltaN > 65535) throw new RangeError('Sample rate exceeds YM2608 range');
     const actualRate = deltaN * chip.clock / (144 * 65536);
-    const encoded = encodeAdpcmB(pcm,actualRate,MAX_ADPCM_BYTES);
+    // Only the software Sine button opts into cycle-aware encoding. Imported
+    // audio and drawings keep the ordinary codec, even if they resemble Sine.
+    const encoded = (generatedShape === 'sine' && encodeGeneratedSine(pcm,actualRate))
+      || encodeAdpcmB(pcm,actualRate,MAX_ADPCM_BYTES);
     await queue;
     if (token !== sampleEpoch) throw cancelled();
     const next = readPreset(preset);
     next.adpcm = {...next.adpcm,data:encodeBase64(encoded.bytes),address:0,start:0,end:encoded.bytes.length,sampleRate:actualRate,rootNote};
     return applyPreset(next);
   }
-  function setWave(samples,{rootNote = preset.adpcm.rootNote,sampleRate} = {}) {
+  function setWave(samples,{rootNote = preset.adpcm.rootNote,sampleRate,generatedShape} = {}) {
     if (!samples || !Number.isSafeInteger(samples.length) || !samples.length) throw new TypeError('Wave requires normalized PCM samples');
     const rate = sampleRate ?? noteToHz(rootNote) * samples.length;
-    return loadAudio({channels:[Float32Array.from(samples)],sampleRate:rate},{rootNote,sampleRate:Math.min(rate,Math.floor(chip.clock / 144))});
+    return loadAudio({channels:[Float32Array.from(samples)],sampleRate:rate},{rootNote,sampleRate:Math.min(rate,Math.floor(chip.clock / 144)),generatedShape});
   }
   function capturePreset(base = preset) {
     assertOpen();

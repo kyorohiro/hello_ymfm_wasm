@@ -27,10 +27,24 @@ sample with adjustable tuning, playback level and whole-sample Repeat.
 Base rate sets the playback speed at the Root note. The Playback readout follows
 the hardware rate while keyboard notes transpose that base rate.
 
+The software Triangle starts at a zero crossing. ADPCM-B resets its predictor
+at sample start / Repeat, so starting at the negative peak caused an avoidable
+left-edge transient every cycle. The phase change retains its length, pitch
+and level. The canvas continues to show actual decoded ADPCM; imported data
+and the inherent reconstruction limits of abrupt Saw / Square edges are retained.
+
+The generated 128-point Sine also uses an app-specific ADPCM encoding that
+considers both the fresh decoder and Repeat reset. It reduces the initial
+flat section without changing the PCM target, tuning, length or gain. The
+canvas still shows decoded ADPCM, so its 4-bit quantization remains visible.
+Imported samples, drawings and saved preset bytes keep their original codec
+and data. To regenerate an existing Sine, press **Software wave → Sine**.
+
 Keyboard ADPCM-B release and `opna.adpcm.noteOff()` use a **Synth software**
 8 ms volume fade, after one 128-frame scheduling lead. The audio-owner queue
-applies 64 volume steps at sample boundaries; JavaScript timers do not render
-the fade. `opna.adpcm.keyOff()` retains the immediate hardware operation.
+samples a raised-cosine envelope at output-frame boundaries, sending only
+changed integer volume levels (at most 256 batches); JavaScript timers do not
+render the fade. `opna.adpcm.keyOff()` retains the immediate hardware operation.
 Authored volume and captured sample data remain unchanged. Retriggers, raw
 gate/sample changes, presets, transport changes and later song writes retire
 old release tails. Paused and playing reference-channel audition use the same

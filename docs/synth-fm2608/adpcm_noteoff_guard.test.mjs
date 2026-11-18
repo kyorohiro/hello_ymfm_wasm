@@ -15,17 +15,31 @@ function fixture(rate = 48000) {
   const advance = next => { for (;frame <= next;frame++) queue.advance(frame); frame = next; };
   return {state,physical,messages,queue,guard,advance,get frame() { return frame; }};
 }
-for (const rate of [44100,48000]) test(`ADPCM release is 64 bounded audio-frame steps at ${rate} Hz and preserves authored level`,() => {
+for (const rate of [44100,48000]) test(`ADPCM release uses bounded smooth audio-frame level changes at ${rate} Hz and preserves authored level`,() => {
   const f = fixture(rate); assert(f.guard.noteOff()); assert.equal(f.state.gate,false); assert.equal(f.state.volume,192);
   const state = f.guard.getState(); assert(Math.abs(state.end-state.start-FM2608_ADPCM_RELEASE_SECONDS)<1e-12);
   const events = f.messages.filter(value => value.performance);
-  assert.equal(events.length,FM2608_ADPCM_RELEASE_STEPS);
+  assert.equal(events.length,193,'192 single-level changes plus the final Stop/restore');
+  assert(events.length<=FM2608_ADPCM_RELEASE_STEPS);
+  const levels=[192,...events.map(event=>event.commands[0].value)];
+  for(let i=1;i<levels.length;i++)assert(levels[i]<=levels[i-1]&&levels[i-1]-levels[i]<=1,'single-LSB downward changes');
+  const firstZero=events.find(event=>event.commands[0].value===0);
+  assert(Math.round(firstZero.performance.time*rate)<Math.round(state.end*rate)-4,'rounded cosine reaches zero before decoder Stop');
   assert.equal(Math.round(state.start*rate),128);
   assert.equal(Math.round(state.end*rate),128+Math.round(.008*rate));
   f.advance(Math.round(state.end*rate));
   assert.equal(f.physical.filter(value => value.register === 0 && value.value === 1).length,1);
   assert.deepEqual(f.physical.slice(-3).map(({register,value}) => [register,value]),[[11,0],[0,1],[11,192]]);
   assert.equal(f.state.volume,192); assert.equal(f.queue.nextFrame(),Infinity);
+});
+test('smooth release bounds queued work for every authored byte-level volume',() => {
+  for(const volume of [1,2,24,99,192,255]){
+    const f=fixture();f.state.volume=volume;f.guard.noteOff();
+    const events=f.messages.filter(value=>value.performance);
+    assert(events.length<=Math.min(256,volume+1));
+    assert.equal(events.at(-1).commands.at(-1).value,volume);
+    f.advance(1200);assert.equal(f.physical.at(-1).value,volume);
+  }
 });
 test('a repeated high-level release never restarts or extends its pending tail',() => {
   const f = fixture(); f.guard.noteOff(); const before = f.messages.length, end = f.guard.getState().end;
@@ -46,8 +60,21 @@ test('concurrent volume edits scale the remaining tail without changing canonica
   const f = fixture(); f.guard.noteOff(); const end = f.guard.getState().end;
   f.advance(300); const remaining = f.guard.getState().fraction; f.state.volume = 99; f.guard.volumeChanged();
   assert.equal(f.guard.getState().end,end); assert.equal(f.guard.filterVolume(99),Math.round(99*remaining));
+  const before=f.physical.length;
   f.advance(1000); assert.equal(f.physical.at(-1).value,99); assert.equal(f.state.volume,99);
+  assert(f.physical.slice(before,-1).every(write=>write.register!==11||write.value<=Math.round(99*remaining)),
+    'the old owner cannot leak its larger levels or restore after retargeting');
   assert.equal(f.physical.filter(value => value.register === 0 && value.value === 1).length,1);
+});
+test('cancel after repeated volume retargets retires every old smooth release owner',() => {
+  const f=fixture();f.guard.noteOff();const end=f.guard.getState().end;
+  for(const [at,volume] of [[200,99],[300,87],[400,123]]){
+    f.advance(at);f.state.volume=volume;f.guard.volumeChanged();assert.equal(f.guard.getState().end,end);
+  }
+  f.guard.cancel({restore:true});f.state.gate=true;
+  const before=f.physical.length;f.advance(2000);
+  assert.equal(f.physical.length,before,'no old ramp, Stop or restore reaches the new voice');
+  assert.equal(f.physical.at(-1).value,123);assert.equal(f.state.volume,123);
 });
 test('mute/unmute during release keeps physical writes muted and retains the requested level',() => {
   const f = fixture(); f.guard.noteOff(); f.advance(200); f.state.muted = true; f.guard.volumeChanged();

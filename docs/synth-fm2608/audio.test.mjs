@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {YM2608Synth} from '../js/ym2608synth.js';
 import {createFm2608Audio,installMonitorMutes} from './audio.js';
-import {createDefaultPreset,readFmPreset,FM_PRESETS,decodeBase64} from './preset.js';
+import {createDefaultPreset,readFmPreset,FM_PRESETS,decodeBase64,waveShape,encodeGeneratedSine} from './preset.js';
+import {encodeAdpcmB} from '../js/adpcm_b_sample.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {createPerformanceQueue} from '../js/playground_performance_queue.js';
 
@@ -96,6 +97,26 @@ test('keyboard SSG, pitch, sample replacement and Stop share one chip', async ()
   assert.equal(chip.channels[0].algorithm,6);
   assert.equal(chip.channels[0].feedback,5);
   await audio.dispose();
+});
+
+test('only explicitly generated Sine uses cycle-aware encoding; imports and drawings retain the shared codec', async () => {
+  const {audio} = await audioFixture();
+  try {
+    const samples = Float32Array.from(waveShape('sine'));
+    const source = {channels:[samples],sampleRate:noteToHz(60) * 128};
+    const generated = await audio.setWave(samples,{rootNote:60,generatedShape:'sine'});
+    assert.deepEqual(decodeBase64(generated.adpcm.data),encodeGeneratedSine(source,generated.adpcm.sampleRate).bytes);
+    const drawn = await audio.setWave(samples,{rootNote:60});
+    assert.deepEqual(decodeBase64(drawn.adpcm.data),encodeAdpcmB(source,drawn.adpcm.sampleRate).bytes);
+    const imported = await audio.loadAudio(source,{rootNote:60,sampleRate:source.sampleRate});
+    assert.equal(imported.adpcm.data,drawn.adpcm.data);
+    assert.notEqual(generated.adpcm.data,drawn.adpcm.data);
+    for (const key of ['rootNote','sampleRate','start','end','volume','left','right','repeat'])
+      assert.equal(generated.adpcm[key],drawn.adpcm[key],key + ' is not compensated');
+    const high = await audio.setWave(samples,{rootNote:72,generatedShape:'sine'});
+    const highSource = {channels:[samples],sampleRate:noteToHz(72) * 128};
+    assert.deepEqual(decodeBase64(high.adpcm.data),encodeAdpcmB(highSource,high.adpcm.sampleRate).bytes);
+  } finally {await audio.dispose();}
 });
 
 test('keyboard SSG notes retrigger the current shared envelope without replacing its period', async () => {

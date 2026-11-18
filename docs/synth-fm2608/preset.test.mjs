@@ -1,6 +1,60 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createDefaultPreset,readPreset,readFmPreset,FM_PRESETS,decodeBase64,decodeAdpcm,waveShape} from './preset.js';
+import {createDefaultPreset,readPreset,readFmPreset,FM_PRESETS,decodeBase64,decodeAdpcm,waveShape,encodeGeneratedSine} from './preset.js';
+import {encodeAdpcmB} from '../js/adpcm_b_sample.js';
+
+test('generated Triangle starts at zero with unchanged cycle length and amplitude', () => {
+  const triangle = waveShape('triangle');
+  assert.equal(triangle.length,128);
+  assert.deepEqual([triangle[0],triangle[32],triangle[64],triangle[96]],[0,.6,0,-.6]);
+  const decoded = decodeAdpcm(encodeAdpcmB({channels:[Float32Array.from(triangle)],sampleRate:33488},33488).bytes);
+  assert(Math.max(...decoded.map((value,index) => Math.abs(value-triangle[index]))) < .014,
+    'the decoded cycle no longer has the initial full-scale chase');
+  assert(decoded.slice(0,8).every(value => value >= 0),'initial rise has no left-edge negative plunge');
+});
+
+test('software Triangle phase fix leaves other shape definitions and imported sample bytes intact', () => {
+  for (const shape of ['sine','saw','square']) {
+    const expected=Array.from({length:128},(_,index) => {
+      const phase=index/128;
+      return .6*(shape==='sine'?Math.sin(phase*Math.PI*2):shape==='saw'?phase*2-1:phase<.5?1:-1);
+    });
+    assert.deepEqual(waveShape(shape),expected);
+  }
+  const preset=createDefaultPreset(),raw=Uint8Array.from({length:64},(_,i) => i*17&255);
+  preset.adpcm.data=Buffer.from(raw).toString('base64');
+  assert.deepEqual(decodeBase64(readPreset(preset).adpcm.data),raw);
+});
+
+test('generated Sine encoding reduces the decoded startup chase without changing its source cycle', () => {
+  const samples = Float32Array.from(waveShape('sine')), sampleRate = 33488;
+  const pcm = {channels:[samples],sampleRate}, before = Float32Array.from(samples);
+  const legacy = decodeAdpcm(encodeAdpcmB(pcm,sampleRate).bytes);
+  const encoded = encodeGeneratedSine(pcm,sampleRate), decoded = decodeAdpcm(encoded.bytes);
+  const maxError = values => Math.max(...values.map((value,index) => Math.abs(value-samples[index])));
+  const onsetError = values => Math.sqrt(values.slice(0,8).reduce((sum,value,index) => sum+(value-samples[index])**2,0)/8);
+  assert.equal(encoded.frames,128);
+  assert.equal(encoded.paddedFrames,128);
+  assert.equal(encoded.bytes.length,64);
+  assert(maxError(decoded)<.009&&maxError(decoded)<maxError(legacy)*.3);
+  assert(onsetError(decoded)<.005&&onsetError(decoded)<onsetError(legacy)*.3);
+  assert.deepEqual(samples,before,'encoding never edits the ideal source PCM');
+});
+
+test('generated Sine helper follows chip-rate quantization and declines other PCM', () => {
+  for (const root of [36,60,68]) {
+    const sampleRate = 440*2**((root-69)/12)*128;
+    const actualRate = Math.round(sampleRate*144*65536/8000000)*8000000/(144*65536);
+    const encoded = encodeGeneratedSine({channels:[waveShape('sine')],sampleRate},actualRate);
+    assert.equal(encoded.sampleRate,actualRate);
+    assert.equal(encoded.bytes.length,64);
+  }
+  const sine = waveShape('sine'), changed = [...sine]; changed[7]+=.001;
+  for (const channels of [[changed],[sine.map(value => value*.5)],[waveShape('sine',256)],[sine,sine],[waveShape('triangle')]])
+    assert.equal(encodeGeneratedSine({channels,sampleRate:33488},33488),null);
+  assert.equal(encodeGeneratedSine({channels:[sine],sampleRate:33488},22050),null);
+  assert.equal(encodeGeneratedSine({channels:[sine],sampleRate:33488},NaN),null);
+});
 
 test('OPNA defaults validate and embed an audible aligned ADPCM cycle', () => {
   const source = createDefaultPreset(), copy = readPreset(JSON.stringify(source));
