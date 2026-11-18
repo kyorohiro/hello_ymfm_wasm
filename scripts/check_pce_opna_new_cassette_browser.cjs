@@ -96,17 +96,17 @@ async function mediaCold(page,measurements,checks){
   for(const media of mediaDefinitions){
     await page.locator(media.tab).click();await page.locator(media.mount+' [data-test-shape="sine"]').click();await mediaLoaded(page,media);
     const {entry}=await mediaFile(page,media),initial=waveStats(fileBytes(entry));assert.equal(initial.frames,44100);assert(Math.abs(initial.peak-.5)<.001);assert(Math.abs(initial.cycles-440)<=2);assert.equal((await graph(page)).contexts,0);
-    await page.locator(pcmControl(media,'Auto')).uncheck();const sourceRevision=await page.locator(media.source).getAttribute('data-revision'),box=await page.locator(pcmControl(media,'Cycle')).boundingBox();assert(box);
+    assert.equal(await page.locator(pcmControl(media,'Auto')).count(),0);assert.equal(await page.locator(pcmControl(media,'Load')).count(),0);
+    const box=await page.locator(pcmControl(media,'Cycle')).boundingBox();assert(box);
     await page.mouse.move(box.x+15,box.y+box.height*.75);await page.mouse.down();await page.mouse.move(box.x+box.width*.8,box.y+box.height*.15,{steps:7});
     assert.equal(await page.locator(pcmControl(media,'Cycle')).getAttribute('data-shape'),'drawn');assert.equal(sha(fileBytes((await mediaFile(page,media)).entry)),initial.sha256,'Pointer movement must not write WAV data');
-    await page.mouse.up();await range(page,media,'Frequency',880);await range(page,media,'Level',.25);await range(page,media,'Duration',.5);assert(await page.locator(pcmControl(media,'Load')).evaluate(node=>node.classList.contains('is-pcm-pending')));assert.equal(await page.locator(media.source).getAttribute('data-revision'),sourceRevision);
-    assert.equal(sha(fileBytes((await mediaFile(page,media)).entry)),initial.sha256,'Auto Off stages the gesture and parameter changes');
-    await page.locator(pcmControl(media,'Load')).click();await mediaLoaded(page,media);const drawn=await until(async()=>{const data=(await mediaFile(page,media)).entry;return sha(fileBytes(data))!==initial.sha256?waveStats(fileBytes(data)):false;},'manual drawn WAV commit');
-    assert(drawn.peak<=.251);assert.equal(drawn.frames,22050);assert.equal((await graph(page)).contexts,0);assert.notEqual(await page.locator(media.source).getAttribute('data-revision'),sourceRevision);
-    await page.locator(pcmControl(media,'Auto')).check();const autoBox=await page.locator(pcmControl(media,'Cycle')).boundingBox();
+    await page.mouse.up();await range(page,media,'Frequency',880);await range(page,media,'Level',.25);await range(page,media,'Duration',.5);
+    await mediaLoaded(page,media);const drawn=await until(async()=>{const stats=waveStats(fileBytes((await mediaFile(page,media)).entry));return stats.peak<=.251&&stats.frames===22050?stats:false;},'automatic drawn WAV commit');
+    assert.equal((await graph(page)).contexts,0);
+    const autoBox=await page.locator(pcmControl(media,'Cycle')).boundingBox();
     await page.mouse.move(autoBox.x+autoBox.width*.4,autoBox.y+autoBox.height*.9);await page.mouse.down();await page.mouse.move(autoBox.x+autoBox.width*.65,autoBox.y+autoBox.height*.9,{steps:4});
-    assert.equal(sha(fileBytes((await mediaFile(page,media)).entry)),drawn.sha256,'Auto On still defers WAV generation until pointerup');await page.mouse.up();await mediaLoaded(page,media);
-    await until(async()=>sha(fileBytes((await mediaFile(page,media)).entry))!==drawn.sha256,'Auto On commits the final gesture');
+    assert.equal(sha(fileBytes((await mediaFile(page,media)).entry)),drawn.sha256,'WAV persistence stays deferred until pointerup');await page.mouse.up();await mediaLoaded(page,media);
+    await until(async()=>sha(fileBytes((await mediaFile(page,media)).entry))!==drawn.sha256,'automatic final gesture save');
     await range(page,media,'Frequency',440);await range(page,media,'Level',.5);await range(page,media,'Duration',1);await page.locator(media.mount+' [data-test-shape="sine"]').click();await mediaLoaded(page,media);
     await until(async()=>waveStats(fileBytes((await mediaFile(page,media)).entry)).sha256===initial.sha256,'restored Sine without extra files');
     await page.locator(pcmControl(media,'Smooth')).uncheck();await mediaLoaded(page,media);const unsmoothed=await until(async()=>{const bytes=fileBytes((await mediaFile(page,media)).entry);return sha(bytes)!==initial.sha256?bytes:false;},'edge smoothing disabled');assert.notEqual(unsmoothed.readInt16LE(unsmoothed.length-4),0);
@@ -114,7 +114,7 @@ async function mediaCold(page,measurements,checks){
     measurements.media[media.key]={path:entry.path,initial,drawn};
   }
   checks.push('Both software helpers generate cold 44.1 kHz stereo PCM16 WAVs at 440 Hz/50% with no AudioContext or autoplay');
-  checks.push('Canvas drags defer WAV writes until pointerup; Auto Off keeps pending drafts for manual Load; length/level/frequency and Smooth edges produce the expected PCM data');
+  checks.push('All edits apply automatically without Load controls; canvas drags defer WAV saves until pointerup; length/level/frequency and Smooth edges produce the expected PCM data');
 }
 async function mediaPlay(page,measurements,checks){
   for(const media of mediaDefinitions){
@@ -135,9 +135,9 @@ const mediaPlaying=(page,media)=>until(()=>mediaState(page,media).then(value=>va
 const mediaStopped=(page,media)=>until(()=>mediaState(page,media).then(value=>value.sourceState!=='playing'&&value.playPending!=='true'),'keyboard '+media.key+' stopped');
 const keyNode=(page,key)=>page.locator('#keyboard .key[data-key="'+key+'"]');
 async function blurInput(page){await page.locator('#synthTitle').click();await page.evaluate(()=>document.activeElement?.blur());}
-async function mediaEmptyKeys(page,checks){
-  for(const media of mediaDefinitions){await page.locator(media.tab).click();await page.locator('#synthInputKeyboardTab').click();assert(await page.locator('#keyboard').isVisible());assert(await page.locator('#pitchBend').isDisabled());assert(await page.locator('#keyboardPitchBend').isDisabled());assert(await keyNode(page,'a').isDisabled());await blurInput(page);await page.keyboard.press('a');assert.equal((await graph(page)).contexts,0);assert.equal(await page.locator('#keyboard .key.is-active').count(),0);}
-  checks.push('Empty media tabs show unavailable keyboard keys, disable Pitch and consume no audio context or playback');
+async function mediaDefaultKeys(page,checks){
+  for(const media of mediaDefinitions){await page.locator(media.tab).click();await page.locator('#synthInputKeyboardTab').click();await until(()=>mediaState(page,media).then(value=>value.sourceState==='ready'&&Number(value.assetFrames??value.trackFrames)>0),'default '+media.key+' ready');assert(await page.locator('#keyboard').isVisible());assert(await page.locator('#pitchBend').isDisabled());assert(await page.locator('#keyboardPitchBend').isDisabled());assert(await keyNode(page,'a').isEnabled());assert.equal((await graph(page)).contexts,0);assert.equal(await page.locator('#keyboard .key.is-active').count(),0);}
+  checks.push('Default Sines are ready for keyboard input with Pitch disabled, without an AudioContext or autoplay');
 }
 async function mediaPendingKey(page,network,measurements,checks){
   const media=mediaDefinitions[0];await page.locator(media.tab).click();await page.locator('#synthInputKeyboardTab').click();await blurInput(page);
@@ -183,7 +183,7 @@ async function run(browser,engine,origin,{defaultSound,starter,loadCassette}){
   await context.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin===origin||['data:','blob:'].includes(url.protocol))return route.continue();(/monaco|jsdelivr/.test(url.href)?blockedMonaco:external).push(url.href);return route.abort();});
   page.on('pageerror',error=>errors.push(error.message));page.on('response',response=>{if(response.status()>=400)missing.push({url:response.url(),status:response.status()});});
   const step=label=>{stage=label;console.log('CHECK '+config.app+'/'+engine+': '+label);};
-  async function fresh(previous){const value=await until(async()=>{const saved=await snapshot(page);return saved?.workspaceId&&saved.workspaceId!==previous?saved:false;},'fresh persisted identity');assert.deepEqual(value.settings,defaultSound);assert.equal(fileIn(value,'/index.js').data,starter);assert.deepEqual(value.codeState,{mode:'keyboard',path:'/index.js'});assert.equal(value.selectedPath,'/index.js');assert(!fileIn(value,'/preserved-notes.txt'));assert(!/Running|Playing/i.test(await page.locator('#synthCodeState').textContent()));const paths=value.filesystem.files.map(file=>file.path).sort();assert.deepEqual(paths,pce?['/examples/cdda.js','/examples/huc6280.js','/examples/msm5205.js','/index.js']:['/index.js']);if(pce)for(const media of mediaDefinitions){assert.equal(await page.locator(pcmControl(media,'Frequency')).inputValue(),'440');assert.equal(Number(await page.locator(pcmControl(media,'Level')).inputValue()),.5);assert.equal(await page.locator(pcmControl(media,'Duration')).inputValue(),'1');assert(await page.locator(pcmControl(media,'Auto')).isChecked());assert.equal(await page.locator(pcmControl(media,'Cycle')).getAttribute('data-shape'),'sine');assert.equal(await page.locator(media.mount).getAttribute('data-loading'),'false');}return value;}
+  async function fresh(previous){const value=await until(async()=>{const saved=await snapshot(page);return saved?.workspaceId&&saved.workspaceId!==previous?saved:false;},'fresh persisted identity');assert.deepEqual(value.settings,defaultSound);assert.equal(fileIn(value,'/index.js').data,starter);assert.deepEqual(value.codeState,{mode:'keyboard',path:'/index.js'});assert.equal(value.selectedPath,'/index.js');assert(!fileIn(value,'/preserved-notes.txt'));assert(!/Running|Playing/i.test(await page.locator('#synthCodeState').textContent()));const paths=value.filesystem.files.map(file=>file.path).sort();assert.deepEqual(paths,pce?['/examples/cdda.js','/examples/huc6280.js','/examples/msm5205.js','/index.js']:['/index.js']);if(pce)for(const media of mediaDefinitions){assert.equal(await page.locator(pcmControl(media,'Frequency')).inputValue(),'440');assert.equal(Number(await page.locator(pcmControl(media,'Level')).inputValue()),.5);assert.equal(await page.locator(pcmControl(media,'Duration')).inputValue(),'1');assert.equal(await page.locator(pcmControl(media,'Auto')).count(),0);assert.equal(await page.locator(pcmControl(media,'Load')).count(),0);assert.equal(await page.locator(pcmControl(media,'Cycle')).getAttribute('data-shape'),'sine');assert.equal(await page.locator(media.mount).getAttribute('data-loading'),'false');}return value;}
   try{
     await page.goto(origin+config.entry);await ready(page);assert.equal((await graph(page)).contexts,0);
     step('cold New, menu ordering and Cancel');
@@ -191,7 +191,7 @@ async function run(browser,engine,origin,{defaultSound,starter,loadCassette}){
     await page.locator('#synthMenu summary').first().click();const headings=await page.locator('#synthMenu h2').allTextContents();assert(headings.indexOf('New')>=0&&headings.indexOf('New')<headings.indexOf('Import'));
     assert.equal(await page.locator(id('ProjectNewButton')).textContent(),'Cassette…');assert.equal(await page.locator(id('ProjectExportButton')).textContent(),'Cassette · ZIP');assert.equal(await page.locator(id('ProjectImportButton')).textContent(),pce?'Cassette · ZIP…':'Cassette…');assert(!/Project\s*(?:·\s*)?ZIP/.test(await page.locator('#synthMenu').innerText()));await page.locator('#synthMenu summary').first().click();
     checks.push('New precedes Import; separate Cassette actions and Cassette · ZIP labels; cold Cancel creates no AudioContext');
-    if(pce){step('empty media keyboard stays silent');await mediaEmptyKeys(page,checks);}
+    if(pce){step('default media keyboard is ready and silent');await mediaDefaultKeys(page,checks);}
     if(pce){step('cold software test WAV generation and deferred drawing');await mediaCold(page,measurements,checks);}
     if(pce){step('external CD-DA session omission');await page.locator('#cddaChipTab').click();await page.locator('#cddaSessionInput').setInputFiles({name:'temporary.wav',mimeType:'audio/wav',buffer:sessionWav()});await until(()=>page.locator('#cddaControls').getAttribute('data-session-count').then(value=>value==='1'),'external CD-DA session');await openNew(page);assert.match(await page.locator(id('NewCassetteDialog')).innerText(),/Session WAVs are not included/);await page.locator(id('NewCassetteCancel')).click();assert.equal(await page.locator('#cddaControls').getAttribute('data-session-count'),'1');assert.equal((await graph(page)).contexts,0);await page.locator('#huc6280ChipTab').click();checks.push('External CD-DA session omission is explicit before confirmation; Cancel preserves its source without creating audio');}
     if(pce){step('media keyup during first asynchronous readiness');await mediaPendingKey(page,network,measurements,checks);}

@@ -2,6 +2,7 @@
 // Monophonic software triggers over the existing authored media source.
 const isAbort=error=>error?.name==='AbortError';
 const identity=id=>{if(typeof id!=='string'||!id.length||id.length>128)throw TypeError('Media key identity must contain 1..128 characters');};
+export const MEDIA_KEYBOARD_RELEASE_SECONDS=.008;
 
 export function createPceMediaKeyboard({kind,source,onUpdate=()=>{}}={}){
   if(!['msm5205','cdda'].includes(kind)||!source||['read','play','stopIfPlaybackGeneration'].some(name=>typeof source[name]!=='function')||typeof onUpdate!=='function')
@@ -17,10 +18,10 @@ export function createPceMediaKeyboard({kind,source,onUpdate=()=>{}}={}){
   }
   const emit=()=>{if(!disposed)try{onUpdate(read());}catch{}};
   const unsubscribe=typeof source.subscribe==='function'?source.subscribe(()=>{refresh();emit();}):()=>{};
-  function retire(){
+  function retire(options){
     const previous=note;note=null;emit();
     if(!previous||!matches(previous))return Promise.resolve(false);
-    try{return Promise.resolve(source.stopIfPlaybackGeneration(previous.generation)).catch(reason=>{if(isAbort(reason))return false;throw reason;});}
+    try{return Promise.resolve(source.stopIfPlaybackGeneration(previous.generation,options)).catch(reason=>{if(isAbort(reason))return false;throw reason;});}
     catch(reason){return isAbort(reason)?Promise.resolve(false):Promise.reject(reason);}
   }
   function press(id,midi=60){
@@ -47,7 +48,7 @@ export function createPceMediaKeyboard({kind,source,onUpdate=()=>{}}={}){
     // that await it still receive current request failures.
     void item.promise.catch(()=>{});emit();return item.promise;
   }
-  function release(id){identity(id);if(note?.id!==id)return Promise.resolve(false);return retire();}
+  function release(id){identity(id);if(note?.id!==id)return Promise.resolve(false);return retire({releaseSeconds:MEDIA_KEYBOARD_RELEASE_SECONDS});}
   function cancel(){error='';return retire();}
   async function dispose(){if(disposed)return;const pending=retire();disposed=true;unsubscribe();await pending;}
   // UI handoff retires only the keyboard's latest playback, including a start

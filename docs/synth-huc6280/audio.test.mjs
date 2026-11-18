@@ -123,7 +123,7 @@ test('all three sources share calibrated mixer, Code FX/fade and final Master wi
   await audio.dispose();assert(adpcm.disconnected);assert(cdda.disconnected);assert(sum.disconnected);assert(audition.disconnected);
 });
 
-test('HuC-only output rises once before Code FX while media and the already-mixed song bus keep their levels',async()=>{
+test('HuC-only output rises once before Code FX while media use their app faders and the pre-mixed song bus stays unity',async()=>{
   const f=fixture(),audio=await f.create({sourceMix:PC_ENGINE_SOURCE_DEFAULTS});
   const signal=(node,value)=>node===f.context.destination?value:node.connections.reduce((sum,next)=>sum+signal(next,
     node.transform?node.transform(value):value*(node.gain?.value??1)),0);
@@ -133,19 +133,20 @@ test('HuC-only output rises once before Code FX while media and the already-mixe
     for(const master of [0,.7,1,3.8]){
       audio.setVolume(master);
       for(const node of [author,trialNode])assert(Math.abs(signal(node,raw)-raw*.44*4*master)<1e-12,'HuC keyboard/Code/audition gets exactly one factor');
-      for(const node of [adpcm,cdda,audio.songInputNode])assert(Math.abs(signal(node,raw)-raw*master)<1e-12,'media and pre-mixed VGM PCM get no extra factor');
+      for(const [node,id] of [[adpcm,'msm5205'],[cdda,'cdda']])assert(Math.abs(signal(node,raw)-raw*PC_ENGINE_SOURCE_DEFAULTS[id].volume*master)<1e-12,'media get their fader without an extra output factor');
+      assert(Math.abs(signal(audio.songInputNode,raw)-raw*master)<1e-12,'pre-mixed VGM PCM gets no extra factor');
     }
     audio.setVolume(1);
     const fx=f.context.createGain();fx.gain.value=1;fx.transform=value=>Math.tanh(value*3);
     audio.codeInputNode.disconnect(audio.codeOutputNode);audio.codeInputNode.connect(fx);fx.connect(audio.codeOutputNode);
     assert(Math.abs(signal(author,raw)-Math.tanh(raw*.44*4*3))<1e-12,'the shared effect receives louder HuC input');
-    for(const node of [adpcm,cdda])assert(Math.abs(signal(node,raw)-Math.tanh(raw*3))<1e-12,'media effect input drive is unchanged');
+    for(const [node,id] of [[adpcm,'msm5205'],[cdda,'cdda']])assert(Math.abs(signal(node,raw)-Math.tanh(raw*PC_ENGINE_SOURCE_DEFAULTS[id].volume*3))<1e-12,'media effect input uses its authored fader');
     assert(Math.abs(signal(trialNode,raw)-raw*.44*4)<1e-12,'private audition keeps its existing route outside Code FX');
     audio.setSourceMix(readPcEngineSourceMix({...PC_ENGINE_SOURCE_DEFAULTS,huc6280:{volume:.25,muted:false}}));
     assert(Math.abs(signal(author,raw)-Math.tanh(raw*3))<1e-12,'authored source fader remains an absolute multiplier');
     audio.setSourceMix(readPcEngineSourceMix({...PC_ENGINE_SOURCE_DEFAULTS,huc6280:{volume:.25,muted:true}}));
     assert.equal(signal(author,raw),0);assert.equal(signal(trialNode,raw),0);
-    assert(Math.abs(signal(cdda,raw)-Math.tanh(raw*3))<1e-12,'HuC mute never mutes media');
+    assert(Math.abs(signal(cdda,raw)-Math.tanh(raw*PC_ENGINE_SOURCE_DEFAULTS.cdda.volume*3))<1e-12,'HuC mute never mutes media');
     audio.codeFadeNode.gain.value=0;assert.equal(signal(cdda,raw),0);assert.equal(signal(author,raw),0);
     assert.equal(signal(audio.songInputNode,raw),raw,'Code fade never captures the reference-song bus');
   }finally{await audio.dispose();}

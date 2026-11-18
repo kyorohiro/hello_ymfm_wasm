@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?v=pce-output-level-1';
-import {createMsm5205Source} from './msm5205_source.js?v=huc-media-keyboard-1';
+import {createAudio} from './audio.js?v=huc-media-live-1';
+import {createMsm5205Source} from './msm5205_source.js?v=huc-media-live-1';
 import {setupMsm5205Controls} from './msm5205_controls.js';
-import {createCddaSource} from './cdda_source.js?v=huc-media-keyboard-1';
-import {createPceMediaKeyboard} from './media_keyboard.js?v=huc-media-keyboard-1';
+import {createCddaSource} from './cdda_source.js?v=huc-media-live-1';
+import {createPceMediaKeyboard} from './media_keyboard.js?v=huc-media-live-1';
 import {createCddaSessionFiles} from './cdda_session_files.js';
 import {createCddaInputReader} from './cdda_inputs.js';
 import {setupCddaControls} from './cdda_controls.js';
-import {createPcEngineSourceMix,setupPcEngineSourceMix} from './source_mix.js?v=pce-output-level-1';
+import {createPcEngineSourceMix,setupPcEngineSourceMix} from './source_mix.js?v=huc-media-live-1';
 import {createTestWaveFiles} from './test_pcm.js?v=huc-media-tools-1';
-import {setupTestPcmControls} from './test_pcm_controls.js?v=huc-media-tools-1';
+import {setupTestPcmControls} from './test_pcm_controls.js?v=huc-test-default-1';
 import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 import {createEditor} from './editor.js?v=huc-vgm-manual-2';
 import {setupHuc6280CodeHost} from './code_host.js?v=huc-output-menu-1';
@@ -17,7 +17,7 @@ import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-li
 import {createHuc6280CodeEdit} from './code_parameter_edit.js?v=huc-code-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
 import {createVgmLibrary} from './vgm_library.js?v=huc-capture-1';
-import {setupHuc6280SongControls} from './song_controls.js?v=pce-output-level-1';
+import {setupHuc6280SongControls} from './song_controls.js?v=huc-media-live-1';
 import {huc6280SongLiveView} from './song_live.js?v=huc-live-1';
 import {createHuc6280SongAudition} from './song_audition.js?v=huc-capture-1';
 import {createDefaultPreset, readPreset, presetToCode, isWaveOnlyEdit} from './preset.js?v=wave-held-1';
@@ -658,10 +658,27 @@ mediaKeyboards=Object.fromEntries([['msm5205',msmSource],['cdda',cddaSource]].ma
 for(const [id,title,controls,source,mount]of [
   ['msm5205','MSM5205',msmControls,msmSource,'msmTestPcm'],
   ['cdda','CD-DA',cddaControls,cddaSource,'cddaTestPcm'],
-])testPcmControls.push(setupTestPcmControls({root:$(mount),id,title,onStatus:status,
+]){
+const widget=setupTestPcmControls({root:$(mount),id,title,onStatus:status,
   saveWave:async(bytes,{signal})=>{await codeHost.files.ready;if(disposed||signal.aborted)throw new DOMException('Test waveform cancelled','AbortError');const path=testWaveFiles.save(id,bytes);codeHost.project.select(path);return path;},
   loadWave:(bytes,options)=>{controls.cancelPlay();return id==='msm5205'?source.loadSample(bytes,{...options,rate:source.read().defaults.rate}):source.load(bytes,options);},
-}));
+  previewWave:(bytes,options)=>{controls.cancelPlay();return id==='msm5205'?source.previewSample(bytes,{...options,rate:source.read().defaults.rate}):source.preview(bytes,options);},
+});
+let generation=source.read().playbackGeneration;
+// A delayed slider preview must not borrow a newer key/UI/Code performance.
+// Successful previews retain their generation and do not cancel themselves.
+const unsubscribe=source.subscribe(value=>{
+  if(value.playbackGeneration!==generation||value.busy){generation=value.playbackGeneration;widget.cancel();}
+});
+testPcmControls.push({...widget,dispose(){unsubscribe();widget.dispose();}});
+// Restore the project first: its lifecycle hook resets the widgets. Default
+// media is passive and in-memory; a newer import or Code owner has priority.
+void codeHost.files.ready.then(()=>{
+  const value=source.read(),phase=codeHost.getState();
+  if(disposed||value.asset||value.busy||phase.running||phase.busy||phase.stopping)return false;
+  return widget.initialize();
+}).catch(error=>{if(!disposed&&error?.name!=='AbortError')report(error);});
+}
 codeLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>channelContext()==='code'&&channelTarget!=='synth',onUpdate:()=>renderCodeLive()});
 editorLive=createHuc6280CodeLive({getAudio:()=>audio,isRunning:()=>Boolean(audio)&&channelContext()==='synth'&&channelTarget!=='synth',method:'observeEditor',onUpdate:()=>renderCodeLive()});
 audition=createHuc6280SongAudition({ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,getSelection:pausedSelection,

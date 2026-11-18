@@ -20,7 +20,8 @@ const manifest={tracks:[{number:3,file:'one.wav',title:'First',startFrame:100,en
 function fixture(options={}){
   let engine,ensures=0;const engines=[],adapters=[],events=[],errors=[],states=[],reads=[];
   const files=new Map([['/album/set.json',new TextEncoder().encode(JSON.stringify(manifest))],['/album/one.wav',wav()],['/album/two.wav',wav(4410,660)]]);
-  function makeEngine(){const context={state:'running',sampleRate:48000,currentTime:0},input=node(context),value={context,input,getChipInputNode:name=>{assert.equal(name,'cdda');return input;},getChipMix:()=>({volume:.8,pan:0,muted:false,effectiveMuted:false})};engines.push(value);return value;}
+  function makeEngine(){const started=performance.now(),context={state:'running',sampleRate:48000,get currentTime(){return(performance.now()-started)/1000;},gains:[]};context.createGain=()=>{const gain=node(context),events=[];
+    gain.gain={value:1,events,cancelScheduledValues(at){events.push(['cancel',at]);},setValueAtTime(value,at){this.value=value;events.push(['set',value,at]);},linearRampToValueAtTime(value,at){this.value=value;events.push(['ramp',value,at]);}};context.gains.push(gain);return gain;};const input=node(context),value={context,input,getChipInputNode:name=>{assert.equal(name,'cdda');return input;},getChipMix:()=>({volume:.8,pan:0,muted:false,effectiveMuted:false})};engines.push(value);return value;}
   engine=makeEngine();
   const source=createCddaSource({ensureAudio:async()=>{ensures++;await options.ensureAudio?.();},getAudio:()=>engine,
     readFile:async(path,settings)=>{reads.push(path);if(options.readFile)return options.readFile(path,settings);if(!files.has(path))throw Error('Missing '+path);return files.get(path);},
@@ -39,6 +40,71 @@ function fixture(options={}){
     }});
   return{source,files,engines,adapters,events,errors,states,reads,get ensures(){return ensures;},get engine(){return engine;},replaceEngine(){engine=makeEngine();return engine;}};
 }
+
+test('CD-DA test previews load silently, update live without losing generation and leave paused audio silent',async()=>{
+  const f=fixture();try{
+    await f.source.preview(wav(),{name:'Test',path:'/samples/test.wav'});assert.equal(f.ensures,0);
+    await f.source.play();const generation=f.source.read().playbackGeneration;
+    await f.source.preview(wav(12000,880));assert.equal((await f.source.getState()).state,'playing');assert.equal(f.source.read().playbackGeneration,generation);assert.equal(f.source.read().track.frames,12000);assert.equal(f.source.read().asset.path,'/samples/test.wav');assert.equal(f.adapters.length,1);
+    assert(peak(f.adapters[0].render().left)>.01);await f.source.pause();const plays=f.events.filter(event=>event[0]==='play').length;
+    await f.source.preview(wav(5000));assert.notEqual((await f.source.getState()).state,'playing');assert.equal(f.events.filter(event=>event[0]==='play').length,plays);
+    assert.equal((await f.source.useCodeClient()).preview,undefined);
+  }finally{await f.source.dispose();}
+});
+
+test('CD-DA endpoint release ramps only its output and a newer transport cannot receive the old Stop',async()=>{
+  const f=fixture();try{
+    await f.source.load(wav());await f.source.play();const releasing=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});
+    assert.equal(f.adapters[0].core.status().state,'playing');assert.equal(f.engine.context.gains[0].gain.events.at(-1)[1],0);
+    await f.source.play();assert.equal(await releasing,false);await new Promise(resolve=>setTimeout(resolve,12));assert.equal((await f.source.getState()).state,'playing');assert.equal(f.adapters.length,1);
+    assert(await f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008}));assert.notEqual((await f.source.getState()).state,'playing');
+  }finally{await f.source.dispose();}
+});
+
+test('CD-DA preview beginning during a release waits for silence and cannot revive the released track',async()=>{
+  const f=fixture();try{
+    await f.source.load(wav());await f.source.play();const releasing=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008}),next=f.source.preview(wav(13000,880));
+    await releasing;await next;assert.equal(f.source.read().track.frames,13000);assert.notEqual((await f.source.getState()).state,'playing');assert.equal(f.events.filter(event=>event[0]==='play').length,1);
+  }finally{await f.source.dispose();}
+});
+
+test('future CD-DA Code Play does not reopen the released track before its scheduled start',async()=>{
+  const f=fixture({scheduleFuture:true});try{
+    await f.source.load(wav());await f.source.play();const old=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008}),client=await f.source.useCodeClient();
+    await client.play(undefined,{at:f.engine.context.currentTime+1});assert.equal(await old,false);assert.notEqual(f.adapters[0].core.status().state,'playing');assert.equal(f.adapters.length,1);
+  }finally{await f.source.dispose();}
+});
+
+test('CD-DA keyup still fades while an ordinary state poll is in flight',async()=>{
+  const gate=deferred();let block=false,entered=false;const f=fixture({beforeCommand:(_adapter,action)=>{if(block&&action.type==='state'){entered=true;return gate.promise;}}});try{
+    await f.source.load(wav());await f.source.play();block=true;const poll=f.source.getState();while(!entered)await turn();
+    const releasing=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});assert.equal(f.engine.context.gains[0].gain.events.at(-1)[0],'ramp');assert.equal(f.engine.context.gains[0].gain.events.at(-1)[1],0);
+    gate.resolve();await poll;assert(await releasing);assert.notEqual((await f.source.getState()).state,'playing');
+  }finally{gate.resolve();await f.source.dispose();}
+});
+
+test('CD-DA cancellation during fade keeps prior audio; keyup, new Play and new load fence preview mutation',async t=>{
+  for(const action of ['abort','keyup','play','load'])await t.test(action,async()=>{
+    const f=fixture();try{
+      await f.source.load(wav(),{name:'Previous'});await f.source.play();Object.defineProperty(f.engine.context,'currentTime',{value:0,writable:true});const controller=new AbortController(),next=f.source.preview(wav(12000,880),{name:'Late',signal:controller.signal}),rejected=assert.rejects(next,{name:'AbortError'});
+      while(!f.engine.context.gains[0].gain.events.some(event=>event[0]==='ramp'&&event[1]===0))await turn();
+      if(action==='abort')controller.abort();else if(action==='keyup'){const releasing=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});f.engine.context.currentTime=.02;await releasing;}
+      else if(action==='play')await f.source.play();else await f.source.load(wav(6000),{name:'New'});
+      await rejected;assert.equal(f.source.read().asset.name,action==='load'?'New':'Previous');assert.equal(f.adapters[0].prepares,1);
+      assert.equal((await f.source.getState()).state,['abort','play'].includes(action)?'playing':'ready');
+      if(action==='abort')assert.equal(f.engine.context.gains[0].gain.events.at(-1)[1],1);
+    }finally{await f.source.dispose();}
+  });
+});
+
+test('CD-DA Stop/new Play during transferred preview cannot be retired by old preview cleanup',async()=>{
+  const gate=deferred();let block=false;const f=fixture({beforePrepare:adapter=>block&&adapter.index===0?gate.promise:undefined});try{
+    await f.source.load(wav(),{name:'Previous'});await f.source.play();block=true;
+    const next=f.source.preview(wav(12000,880)),rejected=assert.rejects(next,{name:'AbortError'});while(f.adapters[0].prepares<2)await turn();
+    await f.source.stop();await f.source.play();assert.equal(f.adapters.length,2);gate.resolve();await rejected;
+    assert.equal(f.adapters[1].disposals,0);assert.equal((await f.source.getState()).state,'playing');assert.equal(f.source.read().asset.name,'Previous');
+  }finally{gate.resolve();await f.source.dispose();}
+});
 
 test('WAV and lazy-manifest loading validate/select passively, own selected bytes and never read every track',async()=>{
   const f=fixture();try{
@@ -60,7 +126,7 @@ test('the selected WAV owns one detached PCM buffer rather than borrowing mutabl
 test('CD-DA generations capture accepted selected-track Play synchronously and rejected requests preserve ownership',async()=>{
   const f=fixture();try{
     await f.source.load(wav());const loaded=f.source.read().playbackGeneration;
-    const playing=f.source.play(),owned=f.source.read().playbackGeneration;assert(owned>loaded);await playing;
+    const playing=f.source.play(),owned=f.source.read().playbackGeneration;assert(owned>loaded);assert.equal(f.states.at(-1).playbackGeneration,owned);await playing;
     await f.source.getState();const client=await f.source.useCodeClient();await client.getState();assert.equal(f.source.read().playbackGeneration,owned);
     await assert.rejects(f.source.play(99),/track/);await assert.rejects(f.source.play(undefined,{offset:99}),/outside/);
     await assert.rejects(f.source.load(Uint8Array.of(1,2)),/truncated/);assert.equal(f.source.read().playbackGeneration,owned);
@@ -114,7 +180,7 @@ test('UI-ready seek is passive; shared UI/Code pause, resume and seek preserve o
     await f.source.resume();assert.equal((await client.getState()).state,'playing');await client.seek(.02);assert.equal(f.source.read().position,.02);
     await f.source.stop();assert.equal(f.source.read().position,0);await f.source.seek(.04);assert.equal((await client.getState()).positionSeconds,.04);
     await client.play();assert.equal((await client.getState()).positionFrames,0,'Code play defaults to offset zero');
-    assert.equal(f.adapters.length,1);assert.equal(f.adapters[0].node.context,f.engine.context);assert.deepEqual([...f.adapters[0].node.edges],[f.engine.input]);
+    assert.equal(f.adapters.length,1);assert.equal(f.adapters[0].node.context,f.engine.context);assert.deepEqual([...f.adapters[0].node.edges],[f.engine.context.gains[0]]);assert.deepEqual([...f.engine.context.gains[0].edges],[f.engine.input]);
   }finally{await f.source.dispose();}
 });
 

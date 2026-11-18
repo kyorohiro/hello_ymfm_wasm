@@ -4,10 +4,14 @@ import assert from 'node:assert/strict';
 import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 import {createPcEngineSourceMix,readPcEngineSourceMix} from './source_mix.js';
 
-test('PC Engine mixer reuses calibrated source units and retains independent settings without audio',()=>{
+test('PC Engine mixer keeps HuC calibrated and starts media at 30% without changing common defaults or explicit settings',()=>{
   const mix=createPcEngineSourceMix(),defaults=mix.read();
   assert.equal(defaults.huc6280.volume,SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(x=>x.name==='huc6280').volume);
-  assert.equal(defaults.msm5205.volume,1);assert.equal(defaults.cdda.volume,1);
+  assert.equal(defaults.msm5205.volume,.3);assert.equal(defaults.cdda.volume,.3);
+  for(const name of ['msm5205','cdda'])assert.equal(SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(x=>x.name===name)?.volume??1,1,'shared Mixer defaults stay unchanged');
+  const explicit=readPcEngineSourceMix({...defaults,msm5205:{volume:.8,muted:false},cdda:{volume:1.5,muted:true}});
+  assert.equal(explicit.msm5205.volume,.8);assert.equal(explicit.cdda.volume,1.5);assert.equal(explicit.cdda.muted,true);
+  assert.equal(mix.read(),defaults,'reading explicit settings does not change current state');
   let changes=0;const off=mix.onChange(()=>changes++);
   mix.set('msm5205',{volume:.25});mix.set('cdda',{muted:true});
   assert.deepEqual(mix.read().huc6280,defaults.huc6280,'untouched source settings keep their value');

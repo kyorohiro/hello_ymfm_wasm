@@ -3,7 +3,7 @@
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset} from './preset.js';
 import {readHuc6280CodeEdit} from './code_parameter_edit.js';
-import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=pce-output-level-1';
+import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=huc-media-live-1';
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;

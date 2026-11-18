@@ -16,12 +16,13 @@ const pcm=(frames=801)=>({sampleRate:8000,channels:[Float32Array.from({length:fr
 const node=context=>({context,edges:new Set(),connect(input){this.edges.add(input);},disconnect(){this.edges.clear();}});
 function fixture(options={}){
   let engine,ensures=0;const engines=[],adapters=[],events=[],errors=[],states=[];
-  function makeEngine(){const context={state:'running',sampleRate:48000,currentTime:0},input=node(context);
+  function makeEngine(){const started=performance.now(),context={state:'running',sampleRate:48000,get currentTime(){return(performance.now()-started)/1000;},gains:[]};context.createGain=()=>{const gain=node(context),events=[];
+    gain.gain={value:1,events,cancelScheduledValues(at){events.push(['cancel',at]);},setValueAtTime(value,at){this.value=value;events.push(['set',value,at]);},linearRampToValueAtTime(value,at){this.value=value;events.push(['ramp',value,at]);}};context.gains.push(gain);return gain;};const input=node(context);
     const value={context,input,getChipInputNode:name=>{assert.equal(name,'msm5205');return input;},
       getChipMix:()=>({volume:.75,pan:0,muted:false,effectiveMuted:false})};engines.push(value);return value;}
   engine=makeEngine();
   const source=createMsm5205Source({ensureAudio:async()=>{ensures++;await options.ensureAudio?.();},getAudio:()=>engine,
-    prepareAsset:(value,settings)=>prepareMsm5205Asset(value,{...settings,wasmBinary}),
+    prepareAsset:async(value,settings)=>{await options.beforeAsset?.();return prepareMsm5205Asset(value,{...settings,wasmBinary});},
     readFile:options.readFile??(async()=>new Uint8Array([0x77,0x11,0xff,0x22])),
     onState:state=>states.push(state),onError:error=>errors.push(error),
     createAudio:async(context,{signal})=>{
@@ -39,6 +40,78 @@ function fixture(options={}){
     }});
   return{source,adapters,events,errors,states,engines,get ensures(){return ensures;},get engine(){return engine;},replaceEngine(){engine=makeEngine();return engine;}};
 }
+
+test('MSM test preview loads silently and preserves a playing generation with its actual Rate/Loop',async()=>{
+  const f=fixture();try{
+    await f.source.previewSample(pcm(),{name:'Test',path:'/samples/test.wav'});assert.equal(f.ensures,0);assert.equal(f.source.read().asset.path,'/samples/test.wav');
+    await f.source.play({rate:10,loop:true});const generation=f.source.read().playbackGeneration;
+    f.source.setDefaults({rate:5,loop:false});await f.source.previewSample(pcm(1201),{rate:5});
+    const state=await f.source.getState();assert.equal(state.state,'playing');assert.equal(state.rate,10);assert.equal(state.loop,true);assert.equal(state.playbackGeneration,generation);
+    assert.equal(state.sample.rate,10);assert.equal(state.sample.path,'/samples/test.wav');assert.equal(f.source.read().defaults.rate,5);assert.equal(f.adapters.length,1);
+    assert(f.engine.context.gains[0].gain.events.some(item=>item[0]==='ramp'&&item[1]===0));assert(peak(f.adapters[0].render())>.01);
+    assert.equal((await f.source.useCodeClient()).previewSample,undefined);
+  }finally{await f.source.dispose();}
+});
+
+test('MSM keyup uses an endpoint-local audio ramp, while a new Play cancels its obsolete physical Stop',async()=>{
+  const f=fixture();try{
+    await f.source.loadSample(pcm());await f.source.play({loop:true});
+    const first=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});
+    assert.equal(f.adapters[0].core.readState().state,'playing');assert.equal(f.engine.context.gains[0].gain.events.at(-1)[1],0);
+    await f.source.play({loop:true});assert.equal(await first,false);await new Promise(resolve=>setTimeout(resolve,12));assert.equal((await f.source.getState()).state,'playing');assert.equal(f.adapters.length,1);
+    assert(await f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008}));assert.notEqual((await f.source.getState()).state,'playing');
+    await assert.rejects(async()=>f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.1}),/0\.\.0.05/);
+  }finally{await f.source.dispose();}
+});
+
+test('MSM preview started during key release waits and never resurrects the released note',async()=>{
+  const f=fixture();try{
+    await f.source.loadSample(pcm());await f.source.play({loop:true});const releasing=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});
+    const next=f.source.previewSample(pcm(1301),{name:'After release'});await releasing;await next;
+    assert.equal(f.source.read().asset.name,'After release');assert.notEqual((await f.source.getState()).state,'playing');assert.equal(f.events.filter(event=>event[0]==='play').length,1);
+  }finally{await f.source.dispose();}
+});
+
+test('future MSM Code Play does not reopen the released decoder before its scheduled start',async()=>{
+  const f=fixture({scheduleFuture:true});try{
+    await f.source.loadSample(pcm());await f.source.play({loop:true});const old=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008}),client=await f.source.useCodeClient();
+    await client.play({at:f.engine.context.currentTime+1,loop:true});assert.equal(await old,false);assert.notEqual(f.adapters[0].core.readState().state,'playing');assert.equal(f.adapters.length,1);
+  }finally{await f.source.dispose();}
+});
+
+test('MSM keyup still fades while an ordinary state poll is in flight',async()=>{
+  const gate=deferred();let block=false,entered=false;const f=fixture({beforeCommand:(_adapter,action)=>{if(block&&action.type==='state'){entered=true;return gate.promise;}}});try{
+    await f.source.loadSample(pcm());await f.source.play({loop:true});block=true;const poll=f.source.getState();while(!entered)await turn();
+    const releasing=f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});assert.equal(f.engine.context.gains[0].gain.events.at(-1)[0],'ramp');assert.equal(f.engine.context.gains[0].gain.events.at(-1)[1],0);
+    gate.resolve();await poll;assert(await releasing);assert.notEqual((await f.source.getState()).state,'playing');
+  }finally{gate.resolve();await f.source.dispose();}
+});
+
+test('MSM late preparation cannot replace or replay after keyup, new Play or a replacement sample',async t=>{
+  for(const action of ['keyup','play','load'])await t.test(action,async()=>{
+    const gate=deferred();let block=false;const f=fixture({beforeAsset:()=>block?gate.promise:undefined});
+    try{await f.source.loadSample(pcm(),{name:'Previous'});await f.source.play({loop:true});block=true;
+      const next=f.source.previewSample(pcm(1001),{name:'Late'}),rejected=assert.rejects(next,{name:'AbortError'});await turn();block=false;
+      if(action==='keyup')await f.source.stopIfPlaybackGeneration(f.source.read().playbackGeneration,{releaseSeconds:.008});
+      else if(action==='play')await f.source.play({loop:true});else await f.source.loadSample(pcm(600),{name:'New'});
+      gate.resolve();await rejected;assert.equal(f.source.read().asset.name,action==='load'?'New':'Previous');assert.equal(f.adapters[0].disposals,0);
+      assert.equal((await f.source.getState()).state,action==='play'?'playing':'ready');
+    }finally{gate.resolve();await f.source.dispose();}
+  });
+});
+
+test('MSM aborted pre-install fade restores current audio; Stop/new Play during upload cannot be killed by stale cleanup',async()=>{
+  const gate=deferred();let block=false;const f=fixture({beforePrepare:adapter=>block&&adapter.index===0?gate.promise:undefined});try{
+    await f.source.loadSample(pcm(),{name:'Previous'});await f.source.play({loop:true});
+    const clock=Object.getOwnPropertyDescriptor(f.engine.context,'currentTime');Object.defineProperty(f.engine.context,'currentTime',{value:0,writable:true});
+    const controller=new AbortController(),next=f.source.previewSample(pcm(1001),{signal:controller.signal}),rejected=assert.rejects(next,{name:'AbortError'});
+    while(!f.engine.context.gains[0].gain.events.some(event=>event[0]==='ramp'&&event[1]===0))await turn();controller.abort();await rejected;
+    assert.equal(f.adapters[0].prepares,1);assert.equal(f.adapters[0].disposals,0);assert.equal((await f.source.getState()).state,'playing');assert.equal(f.engine.context.gains[0].gain.events.at(-1)[1],1);
+    Object.defineProperty(f.engine.context,'currentTime',clock);block=true;const uploading=f.source.previewSample(pcm(1401)),stale=assert.rejects(uploading,{name:'AbortError'});while(f.adapters[0].prepares<2)await turn();
+    await f.source.stop();await f.source.play({loop:true});assert.equal(f.adapters.length,2);gate.resolve();await stale;
+    assert.equal(f.adapters[1].disposals,0);assert.equal((await f.source.getState()).state,'playing');assert.equal(f.source.read().asset.name,'Previous');
+  }finally{gate.resolve();await f.source.dispose();}
+});
 
 test('UI sample loading and state observation stay passive, detach bytes and preserve the previous asset on invalid input',async()=>{
   const f=fixture();try{
@@ -59,7 +132,7 @@ test('UI and Code share one RAM and source identity; rate and loop are next-Play
   const f=fixture();try{
     await f.source.loadSample(pcm(),{rate:12});f.source.setDefaults({loop:true});
     const played=await f.source.play();assert.equal(played.rate,12);assert.equal(played.loop,true);assert.equal(played.length,801,'the final encoder padding nibble is not played by default');
-    assert(peak(f.adapters[0].render())>.01);assert.deepEqual([...f.adapters[0].node.edges],[f.engine.input]);
+    assert(peak(f.adapters[0].render())>.01);assert.deepEqual([...f.adapters[0].node.edges],[f.engine.context.gains[0]]);assert.deepEqual([...f.engine.context.gains[0].edges],[f.engine.input]);
     const client=await f.source.useCodeClient();assert.equal((await client.getState()).sourceId,f.source.read().sourceId);assert.equal(f.adapters.length,1);
     f.source.setDefaults({rate:6,loop:false});assert.equal((await client.getState()).rate,12);assert.equal(f.source.read().defaults.rate,6);
     await client.play({rate:15,loop:true,length:200});const explicit=await f.source.getState();assert.equal(explicit.rate,15);assert.equal(explicit.loop,true);assert.equal(explicit.length,200);
@@ -72,7 +145,7 @@ test('playback generations identify accepted MSM triggers without stealing on re
   const f=fixture();try{
     await f.source.loadMemory(Uint8Array.of(0x77,0x11));const loaded=f.source.read().playbackGeneration;
     const playing=f.source.play({loop:true}),owned=f.source.read().playbackGeneration;
-    assert(owned>loaded,'accepted Play advances synchronously before readiness');await playing;
+    assert(owned>loaded,'accepted Play advances synchronously before readiness');assert.equal(f.states.at(-1).playbackGeneration,owned,'generation takeover is published before awaiting readiness');await playing;
     await f.source.getState();f.source.setDefaults({rate:8,loop:false});const client=await f.source.useCodeClient();await client.getState();
     assert.equal(f.source.read().playbackGeneration,owned);
     await assert.rejects(f.source.play({rate:99}),/rate/);await assert.rejects(f.source.loadMemory(new Uint8Array(65537)),/65536/);

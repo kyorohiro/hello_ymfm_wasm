@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPceMediaKeyboard} from './media_keyboard.js';
+import {createPceMediaKeyboard,MEDIA_KEYBOARD_RELEASE_SECONDS} from './media_keyboard.js';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 function fixture(kind='msm5205',{pending=false,empty=false}={}){
-  const listeners=new Set(),plays=[],stops=[],updates=[];
+  const listeners=new Set(),plays=[],stops=[],stopOptions=[],updates=[];
   const value={sourceId:'shared:'+kind,playbackGeneration:0,asset:empty?null:{name:'Authored'},
     defaults:{rate:11,loop:true},selectedTrack:7,track:{number:7,sampleRate:44100},position:.4,state:'ready'};
   const emit=()=>{for(const listener of listeners)listener();};
@@ -14,15 +14,24 @@ function fixture(kind='msm5205',{pending=false,empty=false}={}){
       const done=()=>{if(value.playbackGeneration===item.generation){value.state='playing';emit();}return{state:'playing'};};
       return item.gate?item.gate.promise.then(done):Promise.resolve(done());
     },
-    stopIfPlaybackGeneration(expected){
+    stopIfPlaybackGeneration(expected,options){
       if(expected!==value.playbackGeneration)return Promise.resolve(false);
       const item=plays.find(item=>item.generation===expected);if(item)item.cancelled=true;
-      stops.push(expected);value.playbackGeneration++;value.state='ready';emit();return Promise.resolve(true);
+      stops.push(expected);stopOptions.push(options);value.playbackGeneration++;value.state='ready';emit();return Promise.resolve(true);
     },
   };
   const keyboard=createPceMediaKeyboard({kind,source,onUpdate:state=>updates.push(state)});
-  return{keyboard,source,value,plays,stops,updates,listeners,emit};
+  return{keyboard,source,value,plays,stops,stopOptions,updates,listeners,emit};
 }
+
+for(const kind of ['msm5205','cdda'])test(`${kind} only key release requests a short software tail; cancel and takeover remain immediate`,async()=>{
+  const f=fixture(kind);await f.keyboard.press('release',60);await f.keyboard.release('release');
+  assert.deepEqual(f.stopOptions,[{releaseSeconds:MEDIA_KEYBOARD_RELEASE_SECONDS}]);
+  assert.equal(MEDIA_KEYBOARD_RELEASE_SECONDS,.008);
+  await f.keyboard.press('cancel',60);await f.keyboard.cancel();assert.equal(f.stopOptions.at(-1),undefined);
+  await f.keyboard.press('old',60);await f.keyboard.press('new',64);assert.equal(f.stopOptions.at(-1),undefined);
+  await f.keyboard.dispose();assert.equal(f.stopOptions.at(-1),undefined);
+});
 
 test('constructing/loading a shared media keyboard remains silent and unavailable material never starts playback',async()=>{
   const f=fixture('msm5205',{empty:true});assert.equal(f.plays.length,0);assert.deepEqual(f.keyboard.read().heldNotes,[]);

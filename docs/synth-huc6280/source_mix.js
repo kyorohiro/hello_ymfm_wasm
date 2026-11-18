@@ -5,8 +5,10 @@ export const PC_ENGINE_SOURCES=Object.freeze(['huc6280','msm5205','cdda']);
 // Standalone HuC listening level only; calibrated source faders stay absolute.
 export const HUC6280_APPLICATION_OUTPUT_GAIN=4;
 const measured=new Map(SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.map(({name,volume})=>[name,volume]));
+// App listening defaults: keep HuC's calibrated level, start the two media
+// players at 30%. This does not change the shared Mixer or explicit settings.
 export const PC_ENGINE_SOURCE_DEFAULTS=Object.freeze(Object.fromEntries(PC_ENGINE_SOURCES.map(id=>[id,
-  Object.freeze({volume:measured.get(id)??1,pan:0,muted:false,effectiveMuted:false})])));
+  Object.freeze({volume:id==='huc6280'?(measured.get(id)??1):.3,pan:0,muted:false,effectiveMuted:false})])));
 
 export function readPcEngineSourceMix(value=PC_ENGINE_SOURCE_DEFAULTS){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(id=>!PC_ENGINE_SOURCES.includes(id)))throw TypeError('Expected PC Engine source mixer settings');
