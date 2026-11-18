@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-custom-acyclic-two-operator-FM",
+  "baseCommit": "62da69d00511f66e2db7aca69b258f96b6726438",
+  "published": false,
+  "npmUpdated": false,
+  "packageVersionChanged": false,
+  "newCustomPresetVersion": 5,
+  "legacyExportPresetVersion": 4,
+  "physicalListeningPerformed": false,
+  "parentCommitCreated": false,
+  "evidence": {
+    "synthSuite": {
+      "path": "build/scsp-custom2-20261118/synthSuite.log",
+      "bytes": 34792,
+      "sha256": "92d91ded3c1cd441dc18fb162bb776fab5a85f3f428488daa7fed4400953dabc"
+    },
+    "backend": {
+      "path": "build/scsp-custom2-20261118/backend.log",
+      "bytes": 1120,
+      "sha256": "378b4af3a1db4abfba4f4ddd2c3768ad738ad2d75c347da09148c12aed08efd1"
+    },
+    "view": {
+      "path": "build/scsp-custom2-20261118/view.log",
+      "bytes": 391,
+      "sha256": "19e67ebd20797ec65367e2d2aedc71322c47f3ffc31a21f9c36574e74e5a74f5"
+    },
+    "types": {
+      "path": "build/scsp-custom2-20261118/types.log",
+      "bytes": 342,
+      "sha256": "fbb949d85ce34a4c7b8bf6e9d55275e92ad1ecda2ac06579a8422ed71681b09d"
+    },
+    "proofInitial": {
+      "path": "build/scsp-custom2-20261118/proofInitial.log",
+      "bytes": 2049,
+      "sha256": "ccf5da8329a9c6286e1a17fd1f512699724f82996a2633bd7cdd5449713322af"
+    },
+    "priorProof": {
+      "path": "build/scsp-custom2-20261118/priorProof.log",
+      "bytes": 1424,
+      "sha256": "b5f99cc549b48362925c8f68d099c45767bd99ba616a3eb16817b3df2b117b59"
+    },
+    "generators": {
+      "path": "build/scsp-custom2-20261118/generators.log",
+      "bytes": 703,
+      "sha256": "1b7f1580d0611be8fd86c4ecf42859a2f45311458d70e774c20edbe01ec48119"
+    },
+    "independentAudit": {
+      "path": "build/scsp-custom2-20261118/independentAudit.log",
+      "bytes": 2213,
+      "sha256": "7ee95afde1b1e7e6773a9406ca59bed8181fcbe68677fb31749710512f6d9ef4"
+    },
+    "ciProof": {
+      "path": "build/scsp-custom2-20261118/ciProof.log",
+      "bytes": 847,
+      "sha256": "7e3b7c8158a07ba1699131547b6e5b13567b654a3766e46bde101555fadd18c3"
+    },
+    "packaging": {
+      "path": "build/scsp-custom2-20261118/packaging.log",
+      "bytes": 474,
+      "sha256": "8e5c17190b22bf8b7bf9fb22c9dfb6fda16add9926ec6189c46a54f6b054ce01"
+    },
+    "browserSource": {
+      "path": "build/scsp-custom2-20261118/browserSource.log",
+      "bytes": 77,
+      "sha256": "79560d300f021dfa173107208141aec30bf3ae0e849b8769f728428c047a9f72"
+    },
+    "browserZip": {
+      "path": "build/scsp-custom2-20261118/browserZip.log",
+      "bytes": 74,
+      "sha256": "c00e0d1f6e8db18537034849e5ba38905c0b1fe0815a6be17b0d0a67c41ab82f"
+    }
+  },
+  "checks": {
+    "synthAndPackagingPassed": 330,
+    "newBackendPassed": 9,
+    "customGraphAndOutputCombinations": 12,
+    "newViewPassed": 3,
+    "codeTypesPassed": 2,
+    "legacyPcmFmCases": 42,
+    "guardParityPassed": 31,
+    "exactCiProofPassed": 7,
+    "historicalJsonUnchanged": 878,
+    "mixerGeneratorsUnchanged": true,
+    "sharedWasmUnchanged": true
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_fm_custom2_source_revision_01.json",
+    "bytes": 26353,
+    "sha256": "54239228cdb062d244ecc54c3a56f3f9e7b3d582da68f05a0f83750c53b72e2f"
+  },
+  "defaultParity": {
+    "path": "docs/issues/scsp_fm_custom2_default_parity_01.json",
+    "bytes": 40775,
+    "sha256": "fd358591ced5121be9a8b012e3d0b73656272b30a02168bea5624bd97edf6c28"
+  },
+  "sourceBrowser": {
+    "path": "build/scsp-custom2-20261118/browser-source.json",
+    "bytes": 20163,
+    "sha256": "4556dc73d21fd08d087ffd13a47285d74cc064a74bab3272929c5e62c38da951",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": 7,
+    "assets": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    }
+  },
+  "exactZipBrowser": {
+    "path": "build/scsp-custom2-20261118/browser-zip.json",
+    "bytes": 20164,
+    "sha256": "6fb97237fabe371547ca9454384c2415669d831fdfa038b40170c5eb2640e360",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": 7,
+    "assets": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    }
+  },
+  "archiveAudit": {
+    "passed": true,
+    "path": "release/tetorica_scsp_synth_custom2-final-20261118_itch.zip",
+    "bytes": 4322095,
+    "sha256": "66b837def526aca93152c25d5de1a4e13c80159912b1fdde15bc39d640448fc5",
+    "entries": 377,
+    "crcPassed": true,
+    "allStageBytesMatch": true,
+    "readableSourceFilesCompared": 96,
+    "sourceBytesMatch": true,
+    "browserRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-custom2-20261118/browser-zip"
+  },
+  "supplementalWiringScreenshots": [
+    {
+      "path": "build/scsp-custom2-20261118/browser-zip-wiring-screenshots.json",
+      "bytes": 533,
+      "sha256": "67f32c54547e9a6e3236b8e6cd73034e49dc6ba479e9f74f650e506862e8351e"
+    },
+    {
+      "path": "build/scsp-custom2-20261118/browser-zip-wiring-reverse-screenshot.json",
+      "bytes": 236,
+      "sha256": "bab3d3ac8c4fe5863a89681a680833904b0251a0ac778fda9c1aea68b9598a1f"
+    }
+  ],
+  "visuallyReviewed": [
+    "build/scsp-custom2-20261118/browser-zip-chromium-desktop.png",
+    "build/scsp-custom2-20261118/browser-zip-chromium-mobile.png",
+    "build/scsp-custom2-20261118/browser-zip-chromium-wiring-desktop.png",
+    "build/scsp-custom2-20261118/browser-zip-chromium-wiring-reverse-mobile.png"
+  ],
+  "limits": [
+    "Only acyclic custom 2OP is enabled in this initial editor.",
+    "Graph changes retire Auto voices after validation while Code continues.",
+    "Self/cyclic graphs, Custom 4/6OP and individual depth/dual inputs are follow-ups."
+  ]
+}

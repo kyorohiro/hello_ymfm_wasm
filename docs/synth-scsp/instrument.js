@@ -3,9 +3,9 @@
 import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
-import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-dsp-coef-1';
+import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-custom2-1';
 import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-ui-routing-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
+import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting} from './routing.js?v=scsp-fm-custom2-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 import {ScspReleaseGuard} from './release_guard.js';
@@ -191,6 +191,7 @@ export class SynthInstrument {
     let slots=free();while(!slots&&candidates.length){victims.push(candidates.shift());slots=free();}
     if(!slots)throw new RangeError('No SCSP voice group is available');
     const group={id,midi,slots:[...slots],held:true,order:this.sequence+1,mode:this.config.mode,config:clone(this.config),owner};
+    if(this.config.fm.algorithm==='custom')group.operatorSlots=customOperatorSlots(this.config,group.slots);
     const commands=voiceCommands(this.synth,this.#voiceConfig(),group);this.#check(commands);
     for(const victim of victims){this.#silence(victim);this.groups.delete(victim.id);}
     for(const [key,manual]of this.manualVoices)if(slots.includes(manual.slot))this.manualVoices.delete(key);
@@ -209,11 +210,18 @@ export class SynthInstrument {
     this.effect.install();this.#routeEffect();return true;
   }
   setConfig(patch){
-    if(!patch||typeof patch!=='object'||Array.isArray(patch)||Object.keys(patch).some(k=>!['mode','fm','transpose'].includes(k)))throw new TypeError('Invalid voice settings');
-    if(patch.fm!==undefined&&(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Object.keys(patch.fm).some(k=>!['depth','ratio','ratios','algorithm'].includes(k))))throw new TypeError('Invalid FM settings');
+    if(!patch||typeof patch!=='object'||Array.isArray(patch)||Reflect.ownKeys(patch).some(k=>!['mode','fm','transpose'].includes(k)))throw new TypeError('Invalid voice settings');
+    patch={...patch};
+    if(patch.fm!==undefined){
+      if(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Reflect.ownKeys(patch.fm).some(k=>!['depth','ratio','ratios','algorithm','custom'].includes(k)))throw new TypeError('Invalid FM settings');
+      patch.fm={...patch.fm};
+      // Materialize a custom request before merging with live settings. A
+      // completed nested setter in a getter must not be replaced by stale data.
+      if(Object.hasOwn(patch.fm,'custom'))patch.fm.custom=customRouting(patch.fm.custom);
+    }
     const fm={...this.config.fm,...patch.fm};
     if(patch.fm?.ratio!==undefined&&patch.fm.ratios===undefined)fm.ratios=[1,...Array(5).fill(patch.fm.ratio)];
-    const next=settings({...this.config,...patch,fm}),commands=[],routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm;
+    const next=settings({...this.config,...patch,fm}),commands=[],routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom);
     if(!routeChanged)for(const group of this.groups.values()){
       const live={...(group.config??this.config),transpose:next.transpose,fm:{...(group.config??this.config).fm,depth:next.fm.depth,ratios:next.fm.ratios}},frequency=hz(group.midi,next.transpose+this.pitchBend),{inputs}=routing(live);
       for(let index=0;index<group.slots.length;index++){

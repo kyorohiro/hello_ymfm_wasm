@@ -2,6 +2,10 @@
 
 DSPとUI整理を先行する。完了済み2／4／6-op・Chain／Pairs／Branchは維持する。
 
+2026-11-18: [Custom 2OPの初期版](todo_scsp_fm_custom_2op_20261118.md)で、
+A/Bの非循環接続、独立Direct Output、OP IDと物理スロットの分離、v5保存を実装。
+以下の自由配線全体の項目は4/6OP・Input X/Y・個別Depthまで含むため、引き続き後続。
+
 - [ ] operator別FM Depth（各slotのMDL）。共通つまみは全段変更として残す。
 - [ ] 旧presetの共通Depthを各operatorへ移行し、発音中／release中の変更と保存を検証。
 - [x] 接続図のA〜Fボタンで編集対象を選択。波形描画は単一canvasを維持（DSP UI整理で実装）。

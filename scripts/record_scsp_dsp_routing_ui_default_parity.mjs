@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/scsp_wasm.js';
 import {Scsp} from '../docs/js/scsp.js';
 import {Pcm44100Resampler} from '../docs/js/pcm_44100_resampler.js';
-import {SynthInstrument} from '../docs/synth-scsp/instrument.js';
+import {createScspFmCustom2RevisionReadContext} from './mixer_calibration_scsp_fm_custom_revision.mjs';
 
 export const SCSP_DSP_UI_PARITY_BASE_COMMIT='176eb363ef9533f9d226b4e0eed6800ac1b03d6c';
 export const SCSP_DSP_UI_PARITY_RECEIPT='docs/issues/scsp_dsp_routing_ui_source_revision_01.json';
@@ -24,6 +24,7 @@ const record=bytes=>({bytes:Buffer.byteLength(bytes),sha256:sha(bytes)});
 const floats=values=>Buffer.from(values.buffer,values.byteOffset,values.byteLength);
 export function reconstructScspDspUiParityPredecessor(name,current,receipt){
   const pin=predecessors[name],entry=receipt.sources[name];
+  current=createScspFmCustom2RevisionReadContext().restore(name,current);
   assert(pin,'Only independently pinned Synth predecessors may be loaded');
   assert.equal(receipt.baseCommit,SCSP_DSP_UI_PARITY_BASE_COMMIT);
   assert.deepEqual(record(current),entry.after,'Current complete Synth source');
@@ -43,11 +44,16 @@ function absoluteImports(source,filename,replacements={}){
     return 'from '+quote+(replacements[clean]??target.href)+quote;
   });
 }
-async function beforeInstrument(originals){
+async function beforeInstrument(originals,readReviewed){
+  const routingPath='docs/synth-scsp/routing.js',patchPath='docs/synth-scsp/patch.js';
+  const routing=dataUrl(absoluteImports(readReviewed(routingPath).toString(),routingPath));
+  const patch=dataUrl(absoluteImports(readReviewed(patchPath).toString(),patchPath,{[path(routingPath).href]:routing}));
   const programPath='docs/synth-scsp/dsp_program.js',dspPath='docs/synth-scsp/dsp.js',instrumentPath='docs/synth-scsp/instrument.js';
   const program=dataUrl(absoluteImports(originals[programPath],programPath));
   const dsp=dataUrl(absoluteImports(originals[dspPath],dspPath,{[path(programPath).href]:program}));
-  return (await import(dataUrl(absoluteImports(originals[instrumentPath],instrumentPath,{[path(dspPath).href]:dsp})))).SynthInstrument;
+  return (await import(dataUrl(absoluteImports(originals[instrumentPath],instrumentPath,{
+    [path(dspPath).href]:dsp,[path(patchPath).href]:patch,[path(routingPath).href]:routing,
+  })))).SynthInstrument;
 }
 function metadata(instrument){
   const state=structuredClone(instrument.read());
@@ -88,15 +94,16 @@ function legacyTrace(trace){
     .map(({mask,...item})=>item);
 }
 export async function measureScspDspUiDefaultParity(){
-  const receipt=JSON.parse(await readFile(path(SCSP_DSP_UI_PARITY_RECEIPT),'utf8')),originals={},sources={};
+  const context=createScspFmCustom2RevisionReadContext(),readReviewed=name=>context.readSource(path(name));
+  const receipt=JSON.parse(await readFile(path(SCSP_DSP_UI_PARITY_RECEIPT),'utf8')),originals={},sources={},currentSources={};
   for(const name of Object.keys(predecessors)){
-    const current=await readFile(path(name));sources[name]=record(current);
+    const current=readReviewed(name);sources[name]=record(current);currentSources[name]=current.toString();
     originals[name]=reconstructScspDspUiParityPredecessor(name,current,receipt);
   }
-  const Before=await beforeInstrument(originals),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));
+  const Before=await beforeInstrument(originals,readReviewed),After=await beforeInstrument(currentSources,readReviewed),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));
   const cases=[];
   for(const sampleRate of [44100,48000])for(const scenario of ['pcm8','pcm16'])for(const frequencyHz of [220,440,880])for(const dspEnabled of [false,true]){
-    const before=await owner(Before,sampleRate,wasmBinary),after=await owner(SynthInstrument,sampleRate,wasmBinary);
+    const before=await owner(Before,sampleRate,wasmBinary),after=await owner(After,sampleRate,wasmBinary);
     try{
       const a=exercise(before,scenario,frequencyHz,dspEnabled),b=exercise(after,scenario,frequencyHz,dspEnabled),label=[sampleRate,scenario,frequencyHz,dspEnabled].join('/');
       assert.deepEqual(b.left,a.left,label+' left PCM');assert.deepEqual(b.right,a.right,label+' right PCM');

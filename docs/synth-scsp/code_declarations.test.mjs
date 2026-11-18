@@ -26,6 +26,18 @@ const physicalSlot:number|undefined=state.manualVoices[0]?.slot;
 const logicalSlots:number[]=state.codeLanes[0].slots;
 const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopStartSamples:0});
 await scsp.setPreset(0,{sample});await scsp.setConfig({mode:'fm6',fm:{algorithm:'pairs'}});
+await scsp.setConfig({mode:'fm2',fm:{algorithm:'custom',custom:{inputs:[[],[0]],outputs:[1]}}});
+await scsp.setConfig({fm:{custom:{inputs:[[1],[]],outputs:[0,1]}}});
+const customInput:ScspCodeCustomOperator|undefined=state.config.fm.custom?.inputs[1][0];
+const customOutputs:ScspCodeCustomOperator[]|undefined=state.config.fm.custom?.outputs;
+const presetVersion:4|5=(await scsp.exportPatch()).version;
+const exported=await scsp.exportPatch();
+if(exported.version===5){
+  const customMode:'fm2'=exported.mode;
+  const customAlgorithm:'custom'=exported.fm.algorithm;
+  const savedGraph:ScspCodeCustomRouting=exported.fm.custom;
+}
+const operatorSlots:[number,number]|undefined=state.voiceGroups[0]?.operatorSlots;
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
 const physicalSend:ScspCodeDspSend=await scsp.setDspSend(31,{input:1,level:7});
@@ -103,6 +115,16 @@ scsp.setDspReturn(1,null);
 scsp.setMix(0,{dspSend:7});
 // @ts-expect-error raw common Synth routing cannot replace the application DSP owner
 scsp.setPreset(0,{dspInput:1});
+// @ts-expect-error custom inputs name only A or B
+scsp.setConfig({fm:{custom:{inputs:[[],[2]],outputs:[1]}}});
+// @ts-expect-error custom outputs name only A or B
+scsp.setConfig({fm:{custom:{inputs:[[],[0]],outputs:[2]}}});
+// @ts-expect-error the initial custom graph has exactly two operators
+scsp.setConfig({fm:{custom:{inputs:[[],[0],[]],outputs:[1]}}});
+// @ts-expect-error no duplicate / second custom source in the two-operator editor
+scsp.setConfig({fm:{custom:{inputs:[[],[0,0]],outputs:[1]}}});
+// @ts-expect-error a custom graph update supplies both inputs and outputs
+scsp.setConfig({fm:{custom:{outputs:[1]}}});
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}

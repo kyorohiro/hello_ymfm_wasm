@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
 import { createAudio } from './audio.js?v=scsp-dsp-ui-routing-1';
-import { SynthInstrument } from './instrument.js?v=scsp-dsp-ui-routing-1';
-import { readPatch, writePatch } from './patch.js?v=scsp-dsp-coef-1';
-import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js';
+import { SynthInstrument } from './instrument.js?v=scsp-fm-custom2-1';
+import { readPatch, writePatch } from './patch.js?v=scsp-fm-custom2-1';
+import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-custom2-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-dsp-ui-routing-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-fm-custom2-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
+import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-custom2-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
@@ -62,7 +63,8 @@ let selectedOperator = 0,
 	channelView = null,
 	dspProgramView = null,
 	dspRoutingView = null,
-	dspSignalFlow = null;
+	dspSignalFlow = null,
+	customFmView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -313,6 +315,7 @@ function renderState() {
 	const observing = liveView?.update(songState, ssfSnapshot);
 	renderDspCoefficients(latestState, Boolean(observing));
 	dspRoutingView?.update(latestState, {selected: channelView?.getSelected() ?? null, operator: selectedOperator, readOnly: Boolean(observing)});
+	customFmView?.update(latestState, {operator: selectedOperator, readOnly: Boolean(observing)});
 	for (const id of ['effectSend', 'delayFeedback']) $(id).disabled = Boolean(observing);
 	if (observing && channelView?.getSelected() === null)
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
@@ -394,19 +397,23 @@ function renderState() {
 					: identifyScspDspProgram(appliedDspWords) === 'delay' ? 'DSP · Delay on' : 'DSP · On' : 'DSP',
 	);
 	const { inputs, outputs, count } = state.routing;
+	text($('fmRatioLabel'), state.config.fm.algorithm === 'custom' ? 'Ratios B–F' : 'All modulator ratios');
 	$('routingSummary').textContent = inputs
 		.flatMap((sources, target) =>
 			sources.map((source) => `${OPERATOR_NAMES[source]} → ${OPERATOR_NAMES[target]}`),
 		)
-		.concat([`Output · ${outputs.map((index) => OPERATOR_NAMES[index]).join(' + ')}`])
+		.concat([`Output · ${outputs.length ? outputs.map((index) => OPERATOR_NAMES[index]).join(' + ') : 'Off'}`])
 		.join(' · ');
 	drawConnections(state);
 	for (const button of operatorButtons) {
 		const index = Number(button.dataset.operator);
+		const modulator = inputs.some(sources => sources.includes(index));
 		button.setAttribute('aria-pressed', String(index === selectedOperator));
+		button.dataset.output = String(outputs.includes(index));
+		button.dataset.modulator = String(modulator);
 		text(
 			button,
-			`${OPERATOR_NAMES[index]} · ${index >= count ? 'Unused' : outputs.includes(index) ? 'Output' : 'Modulator'}`,
+			`${OPERATOR_NAMES[index]} · ${index >= count ? 'Unused' : outputs.includes(index) ? modulator ? 'Output + mod' : 'Output' : modulator ? 'Modulator' : 'No direct'}`,
 		);
 	}
 	numberControls?.update();
@@ -1070,10 +1077,14 @@ async function configure(patch, { routeChanged = false } = {}) {
 			return;
 		}
 		try {
-			await command('setConfig', [patch]);
-			if (routeChanged) {
-				epoch++;
-				held.clear();
+			const before = typeof patch === 'function' || routeChanged ? (await readAuthoring()).state.config : null;
+			const next = typeof patch === 'function' ? patch({config: before}) : patch;
+			if (!next) {await refresh(); return;}
+			const accepted = await command('setConfig', [next]);
+			const graphKey = config => JSON.stringify([config.mode, config.fm.algorithm,
+				config.fm.algorithm === 'custom' ? config.fm.custom : null]);
+			if (routeChanged && graphKey(before) !== graphKey(accepted)) {
+				for (const [source, note] of held) if (note.kind === 'authored') held.delete(source);
 			}
 			await refresh({ dirty: true });
 			status('Sound updated.');
@@ -1162,8 +1173,11 @@ function setVolume() {
 $('volume').addEventListener('input', setVolume);
 $('volume').addEventListener('change', () => $('volume').blur());
 $('voiceMode').addEventListener('change', () => {
+	const mode = $('voiceMode').value;
 	$('voiceMode').blur();
-	void configure({ mode: $('voiceMode').value }, { routeChanged: true }).catch(report);
+	void configure(state => ({mode,
+		...(mode !== 'fm2' && state.config.fm.algorithm === 'custom' ? {fm: {algorithm: 'chain'}} : {}),
+	}), { routeChanged: true }).catch(report);
 });
 $('algorithm').addEventListener('change', () => {
 	$('algorithm').blur();
@@ -1300,6 +1314,25 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
+customFmView = setupScspCustomFmView({
+	onInput(operator, source) {
+		return configure(state => {
+			if (state.config.mode !== 'fm2' || state.config.fm.algorithm !== 'custom') return null;
+			const graph = clone(state.config.fm.custom);
+			graph.inputs[operator] = source === null ? [] : [source];
+			return {fm: {custom: graph}};
+		}, {routeChanged: true});
+	},
+	onOutput(operator, enabled) {
+		return configure(state => {
+			if (state.config.mode !== 'fm2' || state.config.fm.algorithm !== 'custom') return null;
+			const graph = clone(state.config.fm.custom);
+			graph.outputs = enabled ? [...new Set([...graph.outputs, operator])].sort() : graph.outputs.filter(index => index !== operator);
+			return {fm: {custom: graph}};
+		}, {routeChanged: true});
+	},
+	onError: report,
+});
 dspSignalFlow = setupScspDspSignalFlow();
 dspRoutingView = setupScspDspRoutingView({
 	onSource(operator) {
@@ -1487,6 +1520,7 @@ window.addEventListener('pagehide', (event) => {
 	dspProgramView?.dispose();
 	dspRoutingView?.dispose();
 	dspSignalFlow?.dispose();
+	customFmView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

@@ -41,9 +41,18 @@ const globals = [
 const types = `
 type ScspCodeLane = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31;
 type ScspCodeOperator = 0|1|2|3|4|5;
+type ScspCodeCustomOperator = 0|1;
+/** Initial custom editor: A/B only, with at most the other OP as an input.
+ * Self/cyclic connections are rejected by the Synth before applying a change. */
+type ScspCodeCustomInput = []|[ScspCodeCustomOperator];
+interface ScspCodeCustomRouting {
+  inputs:[ScspCodeCustomInput,ScspCodeCustomInput];
+  /** Direct outputs are independent of which operators modulate another. */
+  outputs:ScspCodeCustomOperator[];
+}
 interface ScspCodeConfig {
   mode:'pcm'|'fm2'|'fm4'|'fm6';
-  fm:{depth:number;ratio:number;algorithm:'chain'|'pairs'|'branch';ratios:number[]};
+  fm:{depth:number;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom';ratios:number[];custom?:ScspCodeCustomRouting};
   transpose:number;
   effect:ScspCodeEffect;
 }
@@ -83,11 +92,16 @@ interface ScspCodePortableOperator {
   bits:8|16;pcm:number[];options:PlaygroundScspPCMOptions;
   voice:Omit<PlaygroundScspPreset,'sample'|'modulation'|'dspInput'|'dspSend'>;
 }
-interface ScspCodePatch {
-  format:'tetorica-scsp-voice';version:4;name?:string;
-  mode:ScspCodeConfig['mode'];fm:ScspCodeConfig['fm'];transpose:number;effect:ScspCodeEffect;
+interface ScspCodePatchBase {
+  format:'tetorica-scsp-voice';name?:string;
+  transpose:number;effect:ScspCodeEffect;
   operators:{carrier:ScspCodePortableOperator;modulator:ScspCodePortableOperator;c:ScspCodePortableOperator;d:ScspCodePortableOperator;e:ScspCodePortableOperator;f:ScspCodePortableOperator};
 }
+type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'chain'|'pairs'|'branch'};
+type ScspCodePatch = ScspCodePatchBase & (
+  {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm} |
+  {version:5;mode:'fm2';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting}}
+);
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
   /** Current Synth COEF0..2 signed 13-bit codes; multiplier = code / 4096. */
@@ -96,7 +110,8 @@ interface ScspCodeState extends PlaygroundScspState {
   dspReturns:[ScspCodeDspReturn,ScspCodeDspReturn];
   /** App-only software release preference; excluded from portable presets. */
   clickGuard:boolean;
-  voiceGroups:{id:string;midi:number;slots:number[];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
+  /** Custom groups expose A/B-to-physical-slot mapping separately from allocation order. */
+  voiceGroups:{id:string;midi:number;slots:number[];operatorSlots?:[number,number];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
   /** Keyboard owners of physical CH tabs, separate from Auto / Code groups. */
   manualVoices:{id:string;slot:number;midi:number;baseFrequencyHz:number;held:boolean;order:number}[];
   codeLanes:{channel:number;midi:number;groupId:string|null;slots:number[]}[];
@@ -118,6 +133,8 @@ interface ScspCodeClient {
   /** Source level / direct Pan. DSP routing uses setDspSourceSend(). */
   setMix(operator:ScspCodeOperator,patch:Partial<ScspCodeMix>):Promise<boolean>;
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
+  /** Custom routing initially requires mode fm2. Graph changes retire its Auto
+   * notes after complete validation; the Code session continues running. */
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
   /** Live physical-slot DSP routing. null restores the Synth default send.
@@ -145,7 +162,8 @@ interface ScspCodeClient {
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
-  /** Load an existing portable SCSP preset, version 1 through 4. */
+  /** Load a portable SCSP preset, version 1 through 5. Version 5 retains
+   * the custom two-operator graph without downgrading it to a fixed template. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;
