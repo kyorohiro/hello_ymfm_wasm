@@ -1,0 +1,908 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-single-self-custom4-and6",
+  "baseCommit": "d76285ad9b0eb786ce77cdd77272d5398047d185",
+  "published": false,
+  "npmUpdated": false,
+  "packageVersionChanged": false,
+  "parentCommitCreated": false,
+  "physicalListeningPerformed": false,
+  "supported": {
+    "operatorCounts": [
+      2,
+      4,
+      6
+    ],
+    "maxSelfOperators": 1,
+    "selfTargetInputs": "[self] only; both history taps reserved",
+    "maxExternalSourcesPerOtherTarget": 2,
+    "selfOffsets": [
+      32,
+      0
+    ],
+    "continuousNativeHistorySamples": [
+      1,
+      2
+    ],
+    "depthZero": "existing adapter bypass",
+    "presetVersions": {
+      "self2": 8,
+      "self4and6": 9,
+      "nonSelf": "unchanged4\u20137"
+    },
+    "resize": "preserve surviving Self and edges; drop removed OPs and references",
+    "softwareInitialization": "Only a new owned Auto/Code Self slot and slot+32 history cells are cleared; unchanged from Custom2."
+  },
+  "outOfScope": [
+    "general multi-operator cycles",
+    "multiple Self operators",
+    "arbitrary feedback delay/gain",
+    "shared runtime or core changes",
+    "full physical SCSP pipeline fidelity"
+  ],
+  "checks": {
+    "synthPassed": 398,
+    "packagingPassed": 2,
+    "totalSynthAndPackagingPassed": 400,
+    "postVisualViewAndExamplePassed": 8,
+    "backendFocusedPassed": 105,
+    "newBackendTests": 10,
+    "independentNewNativeFixtureComparisons": 120,
+    "declarationsPassed": 2,
+    "proofTestsPassed": 81,
+    "recordersChecked": 15,
+    "mixerGeneratorsChecked": 2,
+    "exactLegacyCases": 110,
+    "legacyCaseDistribution": {
+      "pcm": 24,
+      "fm": 18,
+      "custom2": 24,
+      "self2": 32,
+      "custom-multi": 12
+    },
+    "independentAudit": {
+      "sourcePairs": 24,
+      "dependencies": 55,
+      "reports": 22,
+      "reverseHunks": 78,
+      "historicalJson": 893,
+      "immutableSharedFiles": 1025,
+      "immutableNativeFiles": 86,
+      "immutableVendorFiles": 1085,
+      "immutablePackageFiles": 54,
+      "changedProductionPinned": 14,
+      "legacyParityCases": 110,
+      "independentActualGitRerenderCases": 110
+    },
+    "sourcePairs": 24,
+    "reverseHunks": 78,
+    "dependencies": 55,
+    "reports": 22,
+    "githubExecution": "Not run; relevant commands verified locally and existing checks retained",
+    "browserGroupedCasesPassed": 72
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_fm_multi_self_feedback_source_revision_01.json",
+    "bytes": 40205,
+    "sha256": "98aac1e951c80061f182241934cf73419179905753ccf9b6c33f5799890a66b3",
+    "objectPin": "cda0b7cb5530bf18ade132858323c44a344802e4ec5ec39191af3b4748ef835c"
+  },
+  "legacyParity": {
+    "path": "docs/issues/scsp_fm_multi_self_feedback_default_parity_01.json",
+    "bytes": 165517,
+    "sha256": "325cfa3234e4f5623329141e56e3b63a6fe5e05bac736132b47329fb274a613b"
+  },
+  "binary": {
+    "bytes": 17722,
+    "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+  },
+  "browser": {
+    "newSource": {
+      "evidence": {
+        "path": "build/scsp-multi-self-feedback-20261118/browser-source.json",
+        "bytes": 25130,
+        "sha256": "0a3036f1059a0e17a0c80cab00756e992b83b26e8c6f05d30dd743d4becc84e1"
+      },
+      "entry": "/synth-scsp/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold Custom4 Self replaces two external inputs, occupies X/Y histories, disables a second Self and draws its loop without audio",
+            "Custom4 Self fan-out/merge/direct/DSP routes follow physical allocation; live Off/On preserves owners/setup, native WASM verifies X32/Y0, external average words and only owned history initialization",
+            "Custom6 high-ID Self fans out through two-input merges and independent outputs; double Self, mixed Self inputs, duplicates, cycles, excess inputs and count mismatch reject atomically",
+            "Resize preserves surviving/dormant Self and removes high-ID Self/references; scalar/mixed v9 round-trip, legacy v8 stays two-OP and invalid old/new formats preserve current sound",
+            "Fresh six-OP Code example runs; live Self depth and retrigger preserve Code session, independent physical owner/key-up and DSP setup",
+            "SSF Live play/pause retains read-only scope and keeps the authored Custom4 v9 graph, PCM, depths and DSP intact",
+            "V9 Custom4 graph/depths/PCM survive Cassette and local draft restore without starting audio or Code",
+            "Narrow layout keeps Self controls/diagram readable; all destination routes remain permanently muted at 48 kHz with no page or asset errors"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "nativeProbe": [
+            {
+              "operators": 4,
+              "selfOperator": 3,
+              "operatorSlots": [
+                9,
+                8,
+                7,
+                6
+              ],
+              "modulationWords": [
+                20478,
+                20414,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 10,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            },
+            {
+              "operators": 6,
+              "selfOperator": 5,
+              "operatorSlots": [
+                11,
+                8,
+                7,
+                9,
+                10,
+                6
+              ],
+              "modulationWords": [
+                20348,
+                20414,
+                20479,
+                20478,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 12,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold Custom4 Self replaces two external inputs, occupies X/Y histories, disables a second Self and draws its loop without audio",
+            "Custom4 Self fan-out/merge/direct/DSP routes follow physical allocation; live Off/On preserves owners/setup, native WASM verifies X32/Y0, external average words and only owned history initialization",
+            "Custom6 high-ID Self fans out through two-input merges and independent outputs; double Self, mixed Self inputs, duplicates, cycles, excess inputs and count mismatch reject atomically",
+            "Resize preserves surviving/dormant Self and removes high-ID Self/references; scalar/mixed v9 round-trip, legacy v8 stays two-OP and invalid old/new formats preserve current sound",
+            "Fresh six-OP Code example runs; live Self depth and retrigger preserve Code session, independent physical owner/key-up and DSP setup",
+            "SSF Live play/pause retains read-only scope and keeps the authored Custom4 v9 graph, PCM, depths and DSP intact",
+            "V9 Custom4 graph/depths/PCM survive Cassette and local draft restore without starting audio or Code",
+            "Narrow layout keeps Self controls/diagram readable; all destination routes remain permanently muted at 48 kHz with no page or asset errors"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "nativeProbe": [
+            {
+              "operators": 4,
+              "selfOperator": 3,
+              "operatorSlots": [
+                9,
+                8,
+                7,
+                6
+              ],
+              "modulationWords": [
+                20478,
+                20414,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 10,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            },
+            {
+              "operators": 6,
+              "selfOperator": 5,
+              "operatorSlots": [
+                11,
+                8,
+                7,
+                9,
+                10,
+                6
+              ],
+              "modulationWords": [
+                20348,
+                20414,
+                20479,
+                20478,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 12,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            }
+          ]
+        }
+      ]
+    },
+    "oldSelf2Source": {
+      "evidence": {
+        "path": "build/scsp-multi-self-feedback-20261118/browser-two-source.json",
+        "bytes": 23082,
+        "sha256": "5027b8ea4639e649e998f96b943090f5a989470e474a1711a34275ead0962ef2"
+      },
+      "entry": "/synth-scsp/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold Custom2 offers one Self operator, its two-tap hint/loop and existing external edge without starting audio",
+            "Real keyboard self feedback stays finite; live Depth Off/On preserves owners and DSP, while a device-free browser WASM probe verifies raw X32/Y0 bits and exactly two owned history-cell clears",
+            "Double Self, a second self input, multi-OP cycles and mode/count mismatches reject atomically without retiring notes",
+            "Mode growth and dormant projection preserve surviving Self; explicitly removing it retains nonself v4/v5/v6/v7 export formats",
+            "Scalar and mixed Self presets round-trip as v8; v1\u2013v7 reject Self and v8 rejects absent or nonself graphs while preserving the current sound",
+            "Fresh-project Self example runs through Code; live edits and Code retrigger preserve its session, independent physical owners/key-up and DSP",
+            "SSF Live play/pause keeps its independent read-only Self scope and preserves the authored v8 instrument",
+            "V8 Self graph/PCM/depths survive Cassette and silent local draft restoration; narrow layout and Stop remain sound"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "nativeProbe": {
+            "nativeRate": 44100,
+            "onWord": 18432,
+            "offWord": 0,
+            "restoredWord": 18432,
+            "selfSlot": 6,
+            "clearAddresses": [
+              1548,
+              1612
+            ],
+            "secondSelfSlot": 8,
+            "secondClearAddresses": [
+              1552,
+              1616
+            ],
+            "otherHistoryPreserved": true,
+            "manualHistoryPreserved": true,
+            "deviceOpened": false
+          }
+        },
+        {
+          "browser": "webkit",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold Custom2 offers one Self operator, its two-tap hint/loop and existing external edge without starting audio",
+            "Real keyboard self feedback stays finite; live Depth Off/On preserves owners and DSP, while a device-free browser WASM probe verifies raw X32/Y0 bits and exactly two owned history-cell clears",
+            "Double Self, a second self input, multi-OP cycles and mode/count mismatches reject atomically without retiring notes",
+            "Mode growth and dormant projection preserve surviving Self; explicitly removing it retains nonself v4/v5/v6/v7 export formats",
+            "Scalar and mixed Self presets round-trip as v8; v1\u2013v7 reject Self and v8 rejects absent or nonself graphs while preserving the current sound",
+            "Fresh-project Self example runs through Code; live edits and Code retrigger preserve its session, independent physical owners/key-up and DSP",
+            "SSF Live play/pause keeps its independent read-only Self scope and preserves the authored v8 instrument",
+            "V8 Self graph/PCM/depths survive Cassette and silent local draft restoration; narrow layout and Stop remain sound"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "nativeProbe": {
+            "nativeRate": 44100,
+            "onWord": 18432,
+            "offWord": 0,
+            "restoredWord": 18432,
+            "selfSlot": 6,
+            "clearAddresses": [
+              1548,
+              1612
+            ],
+            "secondSelfSlot": 8,
+            "secondClearAddresses": [
+              1552,
+              1616
+            ],
+            "otherHistoryPreserved": true,
+            "manualHistoryPreserved": true,
+            "deviceOpened": false
+          }
+        }
+      ]
+    },
+    "oldNonSelfMultiSource": {
+      "evidence": {
+        "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source.json",
+        "bytes": 21754,
+        "sha256": "5b30b4690b29242fc4c52d8d28120877abb5247a271720741b5f0c69db12ad68"
+      },
+      "entry": "/synth-scsp/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold 4OP Custom seeds the existing Branch template without audio or transport writes",
+            "4OP merge and branch map both native average inputs, preserve direct outputs and live C ratio; cycles/count/range/third-input errors preserve notes",
+            "6OP reverse-ID graph and multiple outputs use native slots; v6 four/six presets round-trip; mode resizing keeps surviving routes and leaves new operators disconnected",
+            "Original 2OP B to A slot order and v5 preset shape are unchanged; fixed connections still save/load v4",
+            "Custom graph edits retain running Code and independent physical owners; physical key-up and Code Stop release their notes",
+            "Version-6 Custom graph survives Cassette and local draft restoration without starting audio or Code"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold 4OP Custom seeds the existing Branch template without audio or transport writes",
+            "4OP merge and branch map both native average inputs, preserve direct outputs and live C ratio; cycles/count/range/third-input errors preserve notes",
+            "6OP reverse-ID graph and multiple outputs use native slots; v6 four/six presets round-trip; mode resizing keeps surviving routes and leaves new operators disconnected",
+            "Original 2OP B to A slot order and v5 preset shape are unchanged; fixed connections still save/load v4",
+            "Custom graph edits retain running Code and independent physical owners; physical key-up and Code Stop release their notes",
+            "Version-6 Custom graph survives Cassette and local draft restoration without starting audio or Code"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": []
+        }
+      ]
+    },
+    "newZip": {
+      "evidence": {
+        "path": "build/scsp-multi-self-feedback-20261118/browser-zip.json",
+        "bytes": 25136,
+        "sha256": "cc72f9ef438435dc947673c3dea0dbc7fe6221a4784731b5984b8f979aa99b0a"
+      },
+      "entry": "/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold Custom4 Self replaces two external inputs, occupies X/Y histories, disables a second Self and draws its loop without audio",
+            "Custom4 Self fan-out/merge/direct/DSP routes follow physical allocation; live Off/On preserves owners/setup, native WASM verifies X32/Y0, external average words and only owned history initialization",
+            "Custom6 high-ID Self fans out through two-input merges and independent outputs; double Self, mixed Self inputs, duplicates, cycles, excess inputs and count mismatch reject atomically",
+            "Resize preserves surviving/dormant Self and removes high-ID Self/references; scalar/mixed v9 round-trip, legacy v8 stays two-OP and invalid old/new formats preserve current sound",
+            "Fresh six-OP Code example runs; live Self depth and retrigger preserve Code session, independent physical owner/key-up and DSP setup",
+            "SSF Live play/pause retains read-only scope and keeps the authored Custom4 v9 graph, PCM, depths and DSP intact",
+            "V9 Custom4 graph/depths/PCM survive Cassette and local draft restore without starting audio or Code",
+            "Narrow layout keeps Self controls/diagram readable; all destination routes remain permanently muted at 48 kHz with no page or asset errors"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "nativeProbe": [
+            {
+              "operators": 4,
+              "selfOperator": 3,
+              "operatorSlots": [
+                9,
+                8,
+                7,
+                6
+              ],
+              "modulationWords": [
+                20478,
+                20414,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 10,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            },
+            {
+              "operators": 6,
+              "selfOperator": 5,
+              "operatorSlots": [
+                11,
+                8,
+                7,
+                9,
+                10,
+                6
+              ],
+              "modulationWords": [
+                20348,
+                20414,
+                20479,
+                20478,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 12,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold Custom4 Self replaces two external inputs, occupies X/Y histories, disables a second Self and draws its loop without audio",
+            "Custom4 Self fan-out/merge/direct/DSP routes follow physical allocation; live Off/On preserves owners/setup, native WASM verifies X32/Y0, external average words and only owned history initialization",
+            "Custom6 high-ID Self fans out through two-input merges and independent outputs; double Self, mixed Self inputs, duplicates, cycles, excess inputs and count mismatch reject atomically",
+            "Resize preserves surviving/dormant Self and removes high-ID Self/references; scalar/mixed v9 round-trip, legacy v8 stays two-OP and invalid old/new formats preserve current sound",
+            "Fresh six-OP Code example runs; live Self depth and retrigger preserve Code session, independent physical owner/key-up and DSP setup",
+            "SSF Live play/pause retains read-only scope and keeps the authored Custom4 v9 graph, PCM, depths and DSP intact",
+            "V9 Custom4 graph/depths/PCM survive Cassette and local draft restore without starting audio or Code",
+            "Narrow layout keeps Self controls/diagram readable; all destination routes remain permanently muted at 48 kHz with no page or asset errors"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": [],
+          "nativeProbe": [
+            {
+              "operators": 4,
+              "selfOperator": 3,
+              "operatorSlots": [
+                9,
+                8,
+                7,
+                6
+              ],
+              "modulationWords": [
+                20478,
+                20414,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 10,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            },
+            {
+              "operators": 6,
+              "selfOperator": 5,
+              "operatorSlots": [
+                11,
+                8,
+                7,
+                9,
+                10,
+                6
+              ],
+              "modulationWords": [
+                20348,
+                20414,
+                20479,
+                20478,
+                20479,
+                18432
+              ],
+              "clearAddresses": [
+                1548,
+                1612
+              ],
+              "nextSelfSlot": 12,
+              "nativeRate": 44100,
+              "historyPreservedDuringLiveEdits": true,
+              "deviceOpened": false
+            }
+          ]
+        }
+      ]
+    },
+    "oldNonSelfMultiZip": {
+      "evidence": {
+        "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip.json",
+        "bytes": 21755,
+        "sha256": "2f28e29780a3886100b56db860e1118a2f9dbebd3b69c615009de7002c0062bc"
+      },
+      "entry": "/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold 4OP Custom seeds the existing Branch template without audio or transport writes",
+            "4OP merge and branch map both native average inputs, preserve direct outputs and live C ratio; cycles/count/range/third-input errors preserve notes",
+            "6OP reverse-ID graph and multiple outputs use native slots; v6 four/six presets round-trip; mode resizing keeps surviving routes and leaves new operators disconnected",
+            "Original 2OP B to A slot order and v5 preset shape are unchanged; fixed connections still save/load v4",
+            "Custom graph edits retain running Code and independent physical owners; physical key-up and Code Stop release their notes",
+            "Version-6 Custom graph survives Cassette and local draft restoration without starting audio or Code"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": []
+        },
+        {
+          "browser": "webkit",
+          "rate": 48000,
+          "passed": true,
+          "cases": [
+            "Cold 4OP Custom seeds the existing Branch template without audio or transport writes",
+            "4OP merge and branch map both native average inputs, preserve direct outputs and live C ratio; cycles/count/range/third-input errors preserve notes",
+            "6OP reverse-ID graph and multiple outputs use native slots; v6 four/six presets round-trip; mode resizing keeps surviving routes and leaves new operators disconnected",
+            "Original 2OP B to A slot order and v5 preset shape are unchanged; fixed connections still save/load v4",
+            "Custom graph edits retain running Code and independent physical owners; physical key-up and Code Stop release their notes",
+            "Version-6 Custom graph survives Cassette and local draft restoration without starting audio or Code"
+          ],
+          "stopped": {
+            "peak": 0
+          },
+          "mobileOverflow": 0,
+          "errors": [],
+          "missing": []
+        }
+      ]
+    }
+  },
+  "archiveAudit": {
+    "passed": true,
+    "archive": {
+      "path": "release/tetorica_scsp_synth_multi-self-feedback-20261118_itch.zip",
+      "bytes": 4355346,
+      "sha256": "a5ad9c96830c99603234b2a62966e531218e3f6e4543494694de6de64571e715"
+    },
+    "stage": "release/itch_scsp_synth_multi-self-feedback-20261118-zR766U",
+    "extracted": "build/scsp-multi-self-feedback-20261118/browser-zip",
+    "entries": 381,
+    "crcPassed": true,
+    "safeUniquePaths": true,
+    "allStageBytesMatch": true,
+    "comparableServedFiles": 152,
+    "originalInputs": 353,
+    "allOriginalBytesMatch": true,
+    "bothSelfExamplesIncluded": true,
+    "readableBuilder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    }
+  },
+  "evidence": {
+    "synthSuite.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/synthSuite.log",
+      "bytes": 42047,
+      "sha256": "c7598c34a271ddc3e45d912dd9a2aff18ea40db79a95e361d82610b7d0b25a85"
+    },
+    "package-tests.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/package-tests.log",
+      "bytes": 310,
+      "sha256": "6b1331c67f71fd3ffc998187e7c3ab8a8c27977340014eaaec91d6ba247ecb26"
+    },
+    "backend-tests.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/backend-tests.log",
+      "bytes": 11819,
+      "sha256": "32abe475662a6a3c6afde4e853d46d05590511895510f20c253a157c8352dd65"
+    },
+    "view-example-tests.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/view-example-tests.log",
+      "bytes": 837,
+      "sha256": "c65b186f4f697aa204c77d8b0be660f9f0d2b9bf33595777d092d38ec1427102"
+    },
+    "declarations.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/declarations.log",
+      "bytes": 341,
+      "sha256": "47bc9ba0317ffe0c686187c84a53cf397b9b6abe4130c25a76142c79efc63c42"
+    },
+    "receipt.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/receipt.log",
+      "bytes": 245,
+      "sha256": "09ffcd860121239e07a4c44fedfdb1bd381927a9156c75c90897f0c62f35821d"
+    },
+    "proof.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/proof.log",
+      "bytes": 9956,
+      "sha256": "50fede4318d740b918470396b58fdc0b605115fb2eb2587b2b6e7402ba5d4702"
+    },
+    "recorders.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/recorders.log",
+      "bytes": 2615,
+      "sha256": "b00ecc83ba17bc8d5b5f812e9c4c23a5b1027efdb7dd09f2dfe9b2225568cc30"
+    },
+    "generators.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/generators.log",
+      "bytes": 447,
+      "sha256": "c9953ef64f7ccc9eb9099b85b48799671e59a34dd23eaa949df6012d4579067d"
+    },
+    "scope.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/scope.log",
+      "bytes": 439,
+      "sha256": "2871bfe8398aa1899214bcc2805ad2a298c8dd7aa580d6cb72c3eddbfd781f23"
+    },
+    "packaging.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/packaging.log",
+      "bytes": 486,
+      "sha256": "72d92e3f3a22c0c2405d32deade0d56053f86b0d0fc945bacf0786f21f243a39"
+    },
+    "zip-audit.json": {
+      "path": "build/scsp-multi-self-feedback-20261118/zip-audit.json",
+      "bytes": 6411,
+      "sha256": "b32aa551f281cb7c9a0a153a7213c2d3eb146875c9b1c969c4addb30b286c9da"
+    },
+    "independent-audit.json": {
+      "path": "build/scsp-multi-self-feedback-20261118/independent-audit.json",
+      "bytes": 43973,
+      "sha256": "69e3fe8a7ff6bb8cdf2277ec67c0a078c11dcde3162e6b3ec57e0d639de5102c"
+    },
+    "independent-audit.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/independent-audit.log",
+      "bytes": 19721,
+      "sha256": "a3ae4ef42b6cafeb82c90c5c916f1ac5b5782368437530a4d24feb08f68287fd"
+    },
+    "independent-audit.py": {
+      "path": "build/scsp-multi-self-feedback-20261118/independent-audit.py",
+      "bytes": 13035,
+      "sha256": "3d67adbdc8cafddc5b30fe04ee973fff552c41a21e2617d30bb6152dd5c6b265"
+    },
+    "browser-source.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source.log",
+      "bytes": 99,
+      "sha256": "8d29ba87317aac639516ceeb5a0d95775d4221cf4915daec28a68069a8075a01"
+    },
+    "browser-two-source.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-two-source.log",
+      "bytes": 105,
+      "sha256": "46f8a2516f5121e8094c1dfddbaff67cd323f8972630cfeb2eea1fac89478c1e"
+    },
+    "browser-multi-source.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source.log",
+      "bytes": 110,
+      "sha256": "c497a3a501a24db52b3cb773192e5b5f7d9466684fb4abbeb99073fbd0f8c7dd"
+    },
+    "browser-zip.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip.log",
+      "bytes": 96,
+      "sha256": "79b7e1c790fad4fb5fe3efef2196a4bc4895bf721bcb2044db67ea89fc5109a6"
+    },
+    "browser-multi-zip.log": {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip.log",
+      "bytes": 107,
+      "sha256": "40cf597babe51652c287287b0311880eaa335c733c99f10b35ae9abf51ef6007"
+    }
+  },
+  "screenshots": [
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-chromium-code.png",
+      "bytes": 53191,
+      "sha256": "d513a7da66a64187dbe41c093d2ac12a1b1afe32cbad4efd9d0e8b87c6f4524e"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-chromium-four.png",
+      "bytes": 45171,
+      "sha256": "0aee36a32d9a9da47ab8bbcb9f6515ca702f2a197eddf42caa7fd62155ae7217"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-chromium-mobile.png",
+      "bytes": 37543,
+      "sha256": "8efb9809197ae949711ad95a3ec5ccd6f22de1c152e44bbcb934f47f7f7a19aa"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-chromium-six.png",
+      "bytes": 53568,
+      "sha256": "e85f80c82a29581f648527c44fcb19509a46c00bdd731e1483ff0ad3d26e7630"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-webkit-code.png",
+      "bytes": 65125,
+      "sha256": "4532958ca2bdf1b4b2a7efb455505d94b250b69f0cece605de5ace60eaa65c06"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-webkit-four.png",
+      "bytes": 57351,
+      "sha256": "335af8e7a21955f12ce4266b61aa75e71be2276ce3cbcc360fd8745885873df0"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-webkit-mobile.png",
+      "bytes": 43788,
+      "sha256": "471f9ff469caade6054ae9214b37fe452699e1ac79956589fbc0eb82db15b5b3"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-source-webkit-six.png",
+      "bytes": 64704,
+      "sha256": "6e9e50128c43187da905bec5088548c411a58aaf3473cfb0e38c6ef625e85762"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-chromium-code.png",
+      "bytes": 53191,
+      "sha256": "d513a7da66a64187dbe41c093d2ac12a1b1afe32cbad4efd9d0e8b87c6f4524e"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-chromium-four.png",
+      "bytes": 45171,
+      "sha256": "0aee36a32d9a9da47ab8bbcb9f6515ca702f2a197eddf42caa7fd62155ae7217"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-chromium-mobile.png",
+      "bytes": 37543,
+      "sha256": "8efb9809197ae949711ad95a3ec5ccd6f22de1c152e44bbcb934f47f7f7a19aa"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-chromium-six.png",
+      "bytes": 53568,
+      "sha256": "e85f80c82a29581f648527c44fcb19509a46c00bdd731e1483ff0ad3d26e7630"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-webkit-code.png",
+      "bytes": 65125,
+      "sha256": "4532958ca2bdf1b4b2a7efb455505d94b250b69f0cece605de5ace60eaa65c06"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-webkit-four.png",
+      "bytes": 57351,
+      "sha256": "335af8e7a21955f12ce4266b61aa75e71be2276ce3cbcc360fd8745885873df0"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-webkit-mobile.png",
+      "bytes": 43788,
+      "sha256": "471f9ff469caade6054ae9214b37fe452699e1ac79956589fbc0eb82db15b5b3"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-multi-zip-webkit-six.png",
+      "bytes": 64704,
+      "sha256": "6e9e50128c43187da905bec5088548c411a58aaf3473cfb0e38c6ef625e85762"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source-chromium-four.png",
+      "bytes": 49788,
+      "sha256": "d5d9319c62ac2941b7db7a18f9218e3b5831814e9ed7ef21d32d803501304490"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source-chromium-mobile.png",
+      "bytes": 39545,
+      "sha256": "cff7c3e38a41f6645066f8d728fb592af4267b7955e325db8c0fc2f66cd66b22"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source-chromium-six.png",
+      "bytes": 59510,
+      "sha256": "897f5eb842ba15cb08b9ecaa750379b126bde5d4134d839a6126ff6ff3819fb4"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source-webkit-four.png",
+      "bytes": 63091,
+      "sha256": "c4a5a06cf6d2aa5b3a02207c3c6556be7ad63508f5fedbb3934ba2b63f7f5a00"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source-webkit-mobile.png",
+      "bytes": 45669,
+      "sha256": "3f4dd21dd275756a0963e5a15bdad3429374766824ef0a349022009057d3565d"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-source-webkit-six.png",
+      "bytes": 72715,
+      "sha256": "0115a16ba1e1ff96f784c2519893fdad3dabdd061b0dc6a35f6b6eb3c6de0a85"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-two-source-chromium-desktop.png",
+      "bytes": 37193,
+      "sha256": "c951e69ee03b6e790d1a17c58c901b5577556c80f0e6f717755dd7fdbeb5481f"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-two-source-chromium-mobile.png",
+      "bytes": 31980,
+      "sha256": "8cbd8cc8044cf52668dd57f5e1af4b49ad88ffb9791c28dbfd9f348562a7a525"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-two-source-webkit-desktop.png",
+      "bytes": 49353,
+      "sha256": "68344e2d336a6f25dc5b07be18682897f7144d756848d6dac7db87621a18b256"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-two-source-webkit-mobile.png",
+      "bytes": 37046,
+      "sha256": "63698976f397d54f742350b67aeab489056de85d4298edde44896b3d216c2072"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip-chromium-four.png",
+      "bytes": 49788,
+      "sha256": "d5d9319c62ac2941b7db7a18f9218e3b5831814e9ed7ef21d32d803501304490"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip-chromium-mobile.png",
+      "bytes": 39545,
+      "sha256": "cff7c3e38a41f6645066f8d728fb592af4267b7955e325db8c0fc2f66cd66b22"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip-chromium-six.png",
+      "bytes": 59510,
+      "sha256": "897f5eb842ba15cb08b9ecaa750379b126bde5d4134d839a6126ff6ff3819fb4"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip-webkit-four.png",
+      "bytes": 63091,
+      "sha256": "c4a5a06cf6d2aa5b3a02207c3c6556be7ad63508f5fedbb3934ba2b63f7f5a00"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip-webkit-mobile.png",
+      "bytes": 45669,
+      "sha256": "3f4dd21dd275756a0963e5a15bdad3429374766824ef0a349022009057d3565d"
+    },
+    {
+      "path": "build/scsp-multi-self-feedback-20261118/browser-zip-webkit-six.png",
+      "bytes": 72715,
+      "sha256": "0115a16ba1e1ff96f784c2519893fdad3dabdd061b0dc6a35f6b6eb3c6de0a85"
+    }
+  ]
+}

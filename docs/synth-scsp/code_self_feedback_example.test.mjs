@@ -5,14 +5,16 @@ import {readFile} from 'node:fs/promises';
 import {createScspCodeProject} from './code_project.js';
 
 test('fresh projects include readable Self code while existing project files remain user-owned',async()=>{
-  const path='/examples/self-feedback.js';
-  const source=await readFile(new URL('./examples/self-feedback.js',import.meta.url),'utf8');
+  const paths=['/examples/self-feedback.js','/examples/self-feedback-6op.js'];
   const fresh=createScspCodeProject({getStarterCode:()=> '// unchanged melody'});
-  assert.equal(fresh.fs.get(path).data,source);assert.equal(fresh.fs.get('/index.js').data,'// unchanged melody');
-  fresh.fs.writeText(path,'// user edit');
+  for(const path of paths){
+    const source=await readFile(new URL('.'+path,import.meta.url),'utf8');
+    assert.equal(fresh.fs.get(path).data,source);fresh.fs.writeText(path,'// user edit '+path);
+  }
+  assert.equal(fresh.fs.get('/index.js').data,'// unchanged melody');
   const copy=createScspCodeProject({snapshot:fresh.snapshot(),getStarterCode:()=>assert.fail('No reseeding')});
-  assert.equal(copy.fs.get(path).data,'// user edit');
+  for(const path of paths)assert.equal(copy.fs.get(path).data,'// user edit '+path);
   const empty=createScspCodeProject();
   const old=createScspCodeProject({snapshot:empty.snapshot(),getStarterCode:()=>assert.fail('No reseeding')});
-  assert(!old.fs.has(path));
+  for(const path of paths)assert(!old.fs.has(path));
 });

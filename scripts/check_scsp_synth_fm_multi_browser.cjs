@@ -208,7 +208,8 @@ async function exercise(name,origin){
     await page.locator('#start').click();await page.waitForFunction(()=>__scspMultiAudit.nodes.some(value=>value.name==='tetorica-scsp-synth')&&!document.getElementById('start').disabled);
     await customGraph(page,[[1,2],[3],[],[]],[0]);
     const graph4={inputs:[[1,2],[3],[3],[]],outputs:[0,2]};await editGraph(page,graph4.inputs,graph4.outputs);await selectOperator(page,0);
-    assert.equal(await page.locator('#scspCustomFmInput option[value="0"]').evaluate(option=>option.disabled),true);
+    assert.equal(await page.locator('#scspCustomFmInput option[value="0"]').evaluate(option=>option.disabled),false);
+    assert.match(await page.locator('#scspCustomFmInput option[value="0"]').textContent(),/Self.*A.*2 taps/);
     assert.equal(await page.locator('#scspCustomFmInputY option[value="1"]').evaluate(option=>option.disabled),true);
     assert.equal(await page.locator('#scspCustomFmInput option[value="4"]').evaluate(option=>option.disabled),true);
     await page.keyboard.down('a');const four=await waitState(page,state=>state.voiceGroups.some(value=>value.held),'four OP keyboard');

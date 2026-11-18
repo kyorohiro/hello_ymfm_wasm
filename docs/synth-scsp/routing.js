@@ -26,7 +26,7 @@ function customOrder(inputs){
   if(order.length!==inputs.length)throw new RangeError('Feedback loops are outside this acyclic Synth editor');
   return order;
 }
-/** Custom Synth routing: acyclic, or one bounded Custom2 self-feedback OP.
+/** Custom Synth routing: acyclic, or one self-feedback OP with no other input.
  * This editor constraint does not describe every SCSP hardware connection. */
 export function customRouting(value,count){
   if(arguments.length===0)value={inputs:[[1],[]],outputs:[0]};
@@ -45,8 +45,8 @@ export function customRouting(value,count){
     return sources;
   });
   const self=inputs.flatMap((sources,target)=>sources.includes(target)?[target]:[]);
-  if(self.length&&(length!==2||self.length!==1||inputs.some(sources=>sources.length>1)))
-    throw new RangeError('Self feedback requires Custom 2-op, one self operator and at most one source per operator');
+  if(self.length&&(self.length!==1||inputs[self[0]].length!==1))
+    throw new RangeError('Self feedback requires one self operator with only itself as its source');
   customOrder(inputs);
   if(!Array.isArray(rawOutputs)||rawOutputs.length>length||!denseArray(rawOutputs,rawOutputs.length))throw new TypeError('Custom outputs must be a dense operator list');
   const outputs=Array.from(rawOutputs,output=>{if(!Number.isInteger(output)||output<0||output>=length)throw new RangeError('Custom output must name an operator in this graph');return output;});
@@ -57,7 +57,7 @@ export function customRouting(value,count){
 export function resizeCustomRouting(value,count){
   if(!customCounts.includes(count))throw new RangeError('Custom FM needs 2, 4 or 6 operators');
   const graph=customRouting(value);
-  return {inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count&&(count===2||source!==index))),outputs:graph.outputs.filter(output=>output<count)};
+  return {inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count)),outputs:graph.outputs.filter(output=>output<count)};
 }
 export function routing(config){
   const count=operatorCount(config.mode),inputs=Array.from({length:count},()=>[]);

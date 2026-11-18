@@ -35,15 +35,17 @@ export function setupScspCustomFmView({root=globalThis.document,onInput,onOutput
       const graph=state.config.fm.custom;
       input.value=graph.inputs[operator].length?String(graph.inputs[operator][0]):'';
       inputY.value=graph.inputs[operator].length>1?String(graph.inputs[operator][1]):'';
-      inputY.disabled=locked||count===2||input.value==='';
+      inputY.disabled=locked||count===2||input.value===''||input.value===String(operator);
       const selfOperator=graph.inputs.findIndex((sources,index)=>sources.includes(index));
       [input,inputY].forEach((control,port)=>{
         const other=port===0?inputY.value:input.value;
         for(const option of control.options){
           option.hidden=option.value!==''&&Number(option.value)>=count;
           const self=option.value===String(operator);
-          if(option.value!=='')option.textContent=self&&count===2?`Self · ${'ABCDEF'[operator]} (2 taps)`:'ABCDEF'[Number(option.value)];
-          option.disabled=option.hidden||(self&&(count!==2||port!==0||(selfOperator>=0&&selfOperator!==operator)))||(option.value!==''&&option.value===other);
+          if(option.value===''){
+            if(port===1)option.textContent=input.value===String(operator)?'Past history · Y0':'Same as X';
+          }else option.textContent=self&&port===0?`Self · ${'ABCDEF'[operator]} (2 taps)`:'ABCDEF'[Number(option.value)];
+          option.disabled=option.hidden||(self&&(port!==0||(selfOperator>=0&&selfOperator!==operator)))||(option.value!==''&&option.value===other);
         }
       });
       output.checked=graph.outputs.includes(operator);
@@ -51,7 +53,7 @@ export function setupScspCustomFmView({root=globalThis.document,onInput,onOutput
         ? `Direct output · ${graph.outputs.map(index=>'ABCDEF'[index]).join(' + ')}${inputY.value!==''?' · X/Y are averaged':''}`
         : 'Direct outputs Off · use an Output checkbox or an explicit DSP Send.';
       const selfDepth=state.config.fm.depths?.[selfOperator]??state.config.fm.depth;
-      $('scspCustomFmHint').textContent=direct+(selfOperator>=0?` · Self ${'AB'[selfOperator]} · ${selfDepth===0?'Off (Depth 0)':'X32/Y0 · 2 histories'}`:'');
+      $('scspCustomFmHint').textContent=direct+(selfOperator>=0?` · Self ${'ABCDEF'[selfOperator]} · ${selfDepth===0?'Off (Depth 0)':'X32/Y0 · 2 histories'}`:'');
     },
     dispose(){disposed=true;events.abort();},
   };

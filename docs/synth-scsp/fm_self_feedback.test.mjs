@@ -137,20 +137,20 @@ test('unsupported self graphs and incompatible PCM fail before writes, history r
   const before=owner.read(),stack=ring(owner.core),ram=owner.core.readRam(),write=owner.core.write.bind(owner.core);let writes=0;owner.core.write=(...args)=>{writes++;return write(...args);};
   for(const patch of [
     {fm:{custom:graph([[0],[1]])}},{fm:{custom:graph([[0,1],[]])}},{fm:{custom:graph([[0],[0,1]])}},
-    {fm:{custom:graph([[1],[0]])}},{mode:'fm4',fm:{custom:graph([[0],[],[],[]])}},
-    {mode:'fm6',fm:{custom:graph([[],[],[],[],[],[5]])}},{mode:'pcm'},
+    {fm:{custom:graph([[1],[0]])}},{mode:'fm4',fm:{custom:graph([[0,1],[],[],[]])}},
+    {mode:'fm6',fm:{custom:graph([[0],[],[],[],[],[5]])}},{mode:'pcm'},
     {fm:{custom:graph([[0],[]],[2])}},{fm:{depth:13}},
   ]){assert.throws(()=>owner.setConfig(patch));assert.deepEqual(owner.read(),before);assert.deepEqual(ring(owner.core),stack);}
   assert.throws(()=>owner.invoke('applyPCM',[0,new Int16Array(64),{rootNote:69}]),/full forward loop/);
   assert.equal(writes,0);owner.core.write=write;assert.deepEqual(owner.core.readRam(),ram);
 });
 
-test('implicit resize removes only unsupported self edges; dormant fixed graph survives until Custom projection',async t=>{
+test('implicit resize preserves surviving self edges; dormant fixed graph survives until Custom resize',async t=>{
   const owner=await create(t),source=graph([[0],[0]],[0,1]);setup(owner,source);
-  owner.setConfig({mode:'fm4'});assert.deepEqual(owner.read().config.fm.custom,graph([[],[0],[],[]],[0,1]));
-  assert.deepEqual(resizeCustomRouting(source,6),graph([[],[0],[],[],[],[]],[0,1]));assert.deepEqual(source,graph([[0],[0]],[0,1]));
+  owner.setConfig({mode:'fm4'});assert.deepEqual(owner.read().config.fm.custom,graph([[0],[0],[],[]],[0,1]));
+  assert.deepEqual(resizeCustomRouting(source,6),graph([[0],[0],[],[],[],[]],[0,1]));assert.deepEqual(source,graph([[0],[0]],[0,1]));
   setup(owner,source);owner.setConfig({mode:'fm6',fm:{algorithm:'chain'}});assert.deepEqual(owner.read().config.fm.custom,source);
-  owner.setConfig({fm:{algorithm:'custom'}});assert.deepEqual(owner.read().config.fm.custom,graph([[],[0],[],[],[],[]],[0,1]));
+  owner.setConfig({fm:{algorithm:'custom'}});assert.deepEqual(owner.read().config.fm.custom,graph([[0],[0],[],[],[],[]],[0,1]));
   assert.throws(()=>owner.setConfig({mode:'fm4',fm:{custom:source}}),/input count/);
 });
 

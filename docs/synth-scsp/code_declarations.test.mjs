@@ -32,6 +32,8 @@ await scsp.setConfig({mode:'fm2',fm:{algorithm:'custom',custom:{inputs:[[1],[1]]
 await scsp.setConfig({fm:{custom:{inputs:[[0],[0]],outputs:[0,1]}}});
 await scsp.setConfig({mode:'fm4',fm:{algorithm:'custom',custom:{inputs:[[1,2],[3],[3],[]],outputs:[0,2]}}});
 await scsp.setConfig({mode:'fm6',fm:{algorithm:'custom',custom:{inputs:[[],[],[0,1],[1],[2,3],[4]],outputs:[4,5]}}});
+await scsp.setConfig({mode:'fm4',fm:{algorithm:'custom',custom:{inputs:[[1,2],[3],[3],[3]],outputs:[0,2]}}});
+await scsp.setConfig({mode:'fm6',fm:{algorithm:'custom',custom:{inputs:[[1,2],[5],[5],[1,2],[3],[5]],outputs:[0,4]}}});
 await scsp.setConfig({fm:{depths:[2,4,6,8,10,12]}});
 await scsp.setConfig({fm:{depth:9}});
 await scsp.setConfig({fm:{depth:9,depths:[1,2,3,4,5,6]}});
@@ -40,7 +42,7 @@ await scsp.setConfig({fm:{depths:[calculatedDepth,2,3,4,5,6]}});
 const operatorDepths:ScspCodeFmDepths|undefined=state.config.fm.depths;
 const customInput:ScspCodeCustomOperator|undefined=state.config.fm.custom?.inputs[1][0];
 const customOutputs:ScspCodeCustomOperator[]|undefined=state.config.fm.custom?.outputs;
-const presetVersion:4|5|6|7|8=(await scsp.exportPatch()).version;
+const presetVersion:4|5|6|7|8|9=(await scsp.exportPatch()).version;
 const exported=await scsp.exportPatch();
 if(exported.version===5){
   const customMode:'fm2'=exported.mode;
@@ -70,6 +72,15 @@ if(exported.version===8){
 }
 const self8:ScspCodePatch={...exported,version:8,mode:'fm2',fm:{depth:7,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[1],[1]],outputs:[0]}}};
 const mixedSelf8:ScspCodePatch={...self8,fm:{...self8.fm,depths:[3,5,7,9,11,12]}};
+if(exported.version===9&&exported.mode==='fm4'){
+  const self:ScspCodeCustomSelfRouting4=exported.fm.custom;
+  const depths:ScspCodeFmDepths|undefined=exported.fm.depths;
+}
+if(exported.version===9&&exported.mode==='fm6'){
+  const self:ScspCodeCustomSelfRouting6=exported.fm.custom;
+}
+const self4op9:ScspCodePatch={...exported,version:9,mode:'fm4',fm:{depth:7,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[1,2],[3],[3],[3]],outputs:[0,2]}}};
+const self6op9:ScspCodePatch={...exported,version:9,mode:'fm6',fm:{depth:7,depths:[3,5,7,9,11,12],ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[1,2],[5],[5],[1,2],[3],[5]],outputs:[0,4]}}};
 const operatorSlots:[number,number]|[number,number,number,number]|[number,number,number,number,number,number]|undefined=state.voiceGroups[0]?.operatorSlots;
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
@@ -192,10 +203,10 @@ const wrongV7Graph:ScspCodePatch={...exported,version:7,mode:'fm4',fm:{depth:9,d
 scsp.setConfig({fm:{custom:{inputs:[[0],[1]],outputs:[0]}}});
 // @ts-expect-error Custom2 does not combine self plus another source at one target
 scsp.setConfig({fm:{custom:{inputs:[[0,1],[]],outputs:[0]}}});
-// @ts-expect-error Custom4 does not support self feedback
-scsp.setConfig({fm:{custom:{inputs:[[0],[],[],[]],outputs:[0]}}});
-// @ts-expect-error Custom6 does not support self feedback
-scsp.setConfig({fm:{custom:{inputs:[[],[],[],[],[],[5]],outputs:[0]}}});
+// @ts-expect-error Custom4 cannot contain two self targets
+scsp.setConfig({fm:{custom:{inputs:[[0],[1],[],[]],outputs:[0]}}});
+// @ts-expect-error Custom6 self cannot share its input with an external source
+scsp.setConfig({fm:{custom:{inputs:[[],[],[],[],[],[4,5]],outputs:[0]}}});
 // @ts-expect-error self graphs require version 8 rather than legacy Custom2 v5
 const self5:ScspCodePatch={...self8,version:5};
 // @ts-expect-error mixed self graphs still require version 8 rather than v7
@@ -204,6 +215,16 @@ const self7:ScspCodePatch={...mixedSelf8,version:7};
 const noSelf8:ScspCodePatch={...self8,fm:{...self8.fm,custom:{inputs:[[1],[]],outputs:[0]}}};
 // @ts-expect-error v8 is not a four-operator self format
 const self4op8:ScspCodePatch={...self8,mode:'fm4'};
+// @ts-expect-error legacy v6 does not support a four-OP self graph
+const self4op6:ScspCodePatch={...self4op9,version:6};
+// @ts-expect-error legacy v7 does not support a six-OP self graph
+const self6op7:ScspCodePatch={...self6op9,version:7};
+// @ts-expect-error v9 requires an actual four/six-OP Self graph
+const noSelf9:ScspCodePatch={...self4op9,fm:{...self4op9.fm,custom:{inputs:[[1,2],[3],[3],[]],outputs:[0]}}};
+// @ts-expect-error v9 is not the Custom2 Self format
+const self2op9:ScspCodePatch={...self8,version:9};
+// @ts-expect-error v9 four-OP mode cannot carry a six-OP graph
+const wrongSize9:ScspCodePatch={...self6op9,mode:'fm4'};
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}

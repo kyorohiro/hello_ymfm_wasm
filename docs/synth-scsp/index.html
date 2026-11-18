@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-fm-self-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-fm-multi-self-1" />
 	</head>
 	<body>
 		<main>
@@ -489,10 +489,10 @@
 										<details class="scsp-inline-help">
 											<summary aria-label="About custom operator connections">?</summary>
 											<p>Choose an operator above, then its inputs and direct output. An operator can both modulate another and produce sound. An ordinary single source feeds both hardware inputs; with two sources, SCSP averages X and Y. Clear an existing input before reversing a connection.</p>
-											<p>In 2OP, Self uses X32/Y0 to average two sound-stack histories. Only one OP can feed itself, and the other OP may receive it. Depth 0 is Off in this Synth adapter. Auto and Code clear that OP's two history cells at a new note; live Depth edits keep history. This initialization is Synth software.</p>
-											<p>This graph editor and its voice allocation are Synth software over SCSP slot modulation. Custom accepts acyclic 2 / 4 / 6OP connections plus this bounded 2OP Self prototype. Two-OP cycles and 4/6OP feedback remain future work; raw physical CH controls keep their existing behavior.</p>
+											<p>In Custom 2 / 4 / 6OP, one OP can feed itself using X32/Y0, averaging two sound-stack histories. Selecting Self for Input X replaces that OP's external inputs and reserves both taps; Input Y is disabled. Other OPs can receive its output. Depth 0 is Off in this Synth adapter. Auto and Code clear only that OP's two history cells at a new note; live Depth edits keep history. This initialization is Synth software.</p>
+											<p>This graph editor and its voice allocation are Synth software over SCSP slot modulation. Custom accepts acyclic 2 / 4 / 6OP connections plus one Self OP. Multiple Self OPs and multi-OP cycles remain outside this editor; raw physical CH controls keep their existing behavior.</p>
 											<p>Changing the operator count keeps routes between remaining operators. Added operators start disconnected with direct output off; removed operators and their routes are dropped. Entering Custom for the first time starts from the selected Chain / Pairs / Branch template.</p>
-											<p>Switching to 4/6OP removes unsupported Self connections while keeping the other routes and outputs. The zero-delay editor core's steady Self histories are one and two native 44.1 kHz samples old; full physical SCSP pipeline accuracy is not implied.</p>
+											<p>Changing OP count keeps surviving Self connections; shrinking removes routes and outputs for removed OPs. The zero-delay editor core's steady Self histories are one and two native 44.1 kHz samples old; full physical SCSP pipeline accuracy is not implied.</p>
 											<p>A graph change releases the current Auto notes; Code keeps running and its next notes use the new graph. Independent physical keyboard voices retain their owners. The graph is saved in custom instrument presets.</p>
 										</details>
 									</div>
@@ -1004,7 +1004,7 @@
 						PCM, envelopes, LFO and sound-stack modulation run in the SCSP core. Wave
 						drawing, grouped voice allocation and Code are software tools. Chain /
 						Pairs / Branch and Custom support 2 / 4 / 6 operators. Custom accepts up to
-						two inputs per operator, with one Self-feedback OP in 2OP. General cyclic
+						two external inputs per operator, with one Self-feedback OP in Custom 2 / 4 / 6OP. General cyclic
 						feedback is future work. The editor core uses zero slot-write delay. SSF
 						playback uses Mednafen.
 					</p>
@@ -1019,6 +1019,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-fm-self-1"></script>
+		<script type="module" src="synth.js?v=scsp-fm-multi-self-1"></script>
 	</body>
 </html>

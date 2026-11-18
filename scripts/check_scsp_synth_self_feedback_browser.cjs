@@ -266,22 +266,23 @@ async function exercise(name,origin){
     await page.keyboard.down('s');await waitState(page,state=>state.voiceGroups.some(value=>value.held),'held group for atomic errors');
     const rejected=[];for(const patch of [
       {fm:{custom:{inputs:[[0],[1]],outputs:[0]}}},{fm:{custom:{inputs:[[0,1],[]],outputs:[0]}}},
-      {fm:{custom:{inputs:[[1],[0]],outputs:[0]}}},{mode:'fm4',fm:{custom:{inputs:[[0],[],[],[]],outputs:[0]}}},
-      {mode:'fm6',fm:{custom:{inputs:[[],[],[],[],[],[5]],outputs:[0]}}},{mode:'fm4',fm:{custom:self}}
+      {fm:{custom:{inputs:[[1],[0]],outputs:[0]}}},{mode:'fm4',fm:{custom:{inputs:[[0],[1],[],[]],outputs:[0]}}},
+      {mode:'fm6',fm:{custom:{inputs:[[],[],[],[],[],[4,5]],outputs:[0]}}},{mode:'fm4',fm:{custom:self}}
     ])rejected.push(await rejectConfig(page,patch));
-    await page.keyboard.up('s');cases.push('Double Self, a second self input, multi-OP cycles, higher-OP Self and mode/count mismatches reject atomically without retiring notes');
-    await page.locator('#voiceMode').selectOption('fm4');await customGraph(page,[[1],[],[],[]],[0]);assert.equal(await page.locator('#connectionPaths path[data-self-feedback="true"]').count(),0);
-    await page.locator('#voiceMode').selectOption('fm6');await customGraph(page,[[1],[],[],[],[],[]],[0]);
-    await page.locator('#voiceMode').selectOption('fm2');await customGraph(page,[[1],[]],[0]);
+    await page.keyboard.up('s');cases.push('Double Self, a second self input, multi-OP cycles and mode/count mismatches reject atomically without retiring notes');
+    await page.locator('#voiceMode').selectOption('fm4');await customGraph(page,[[1],[1],[],[]],[0]);assert.equal(await page.locator('#connectionPaths path[data-self-feedback="true"]').count(),1);
+    await page.locator('#voiceMode').selectOption('fm6');await customGraph(page,[[1],[1],[],[],[],[]],[0]);
+    await page.locator('#voiceMode').selectOption('fm2');await customGraph(page,[[1],[1]],[0]);
     await loadInstrument(page,savedMixed8,'self-mixed-v8.json');await customGraph(page,self.inputs,self.outputs);
     await page.locator('#algorithm').selectOption('chain');await waitState(page,state=>state.config.fm.algorithm==='chain','fixed dormant Self');
     await page.locator('#voiceMode').selectOption('fm4');await waitState(page,state=>state.config.mode==='fm4','fixed mode with dormant Self');
-    await page.locator('#algorithm').selectOption('custom');await customGraph(page,[[1],[],[],[]],[0]);
+    await page.locator('#algorithm').selectOption('custom');await customGraph(page,[[1],[1],[],[]],[0]);
+    await selectOperator(page,1);await page.locator('#scspCustomFmInput').selectOption('');await customGraph(page,[[1],[],[],[]],[0]);
     await number(page,'fmDepth',7);await waitState(page,state=>!state.config.fm.depths&&state.config.fm.depth===7,'uniform legacy depth');const custom6=await saveInstrument(page);assert.equal(custom6.version,6);
     await page.locator('#voiceMode').selectOption('fm2');await customGraph(page,[[1],[]],[0]);const custom5=await saveInstrument(page);assert.equal(custom5.version,5);
     await page.locator('#algorithm').selectOption('chain');await waitState(page,state=>state.config.fm.algorithm==='chain','legacy fixed mode');const fixed4=await saveInstrument(page);assert.equal(fixed4.version,4);
     await number(page,'operatorDepth',5);await waitState(page,state=>Boolean(state.config.fm.depths),'mixed nonself legacy');const nonself7=await saveInstrument(page);assert.equal(nonself7.version,7);
-    cases.push('Mode growth removes only Self, dormant projection keeps supported edges/outputs, and nonself v4/v5/v6/v7 export formats stay unchanged');
+    cases.push('Mode growth and dormant projection preserve surviving Self; explicitly removing it retains nonself v4/v5/v6/v7 export formats');
     await loadInstrument(page,savedMixed8,'self-v8-to-scalar.json');await customGraph(page,self.inputs,self.outputs);await number(page,'fmDepth',6);await waitState(page,state=>!state.config.fm.depths&&state.config.fm.depth===6,'uniform Self depth');
     const savedScalar8=await saveInstrument(page);assert.equal(savedScalar8.version,8);assert.equal(savedScalar8.fm.depths,undefined);
     await loadInstrument(page,savedMixed8,'self-v8-roundtrip.json');await customGraph(page,self.inputs,self.outputs);assert.deepEqual(depths(await inspect(page)),savedMixed8.fm.depths);

@@ -59,14 +59,27 @@ type ScspCodeCustomSelfRouting2 =
   {inputs:[[]|[1],[1]];outputs:ScspCodeCustomOperator2[]};
 type ScspCodeCustomRouting2 = ScspCodeCustomNoSelfRouting2|ScspCodeCustomSelfRouting2;
 /** Duplicate sources and unsupported feedback / cycles reject atomically. */
-interface ScspCodeCustomRouting4 {
+interface ScspCodeCustomNoSelfRouting4 {
   inputs:[ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,0>>,ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,1>>,ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,2>>,ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,3>>];
   outputs:ScspCodeCustomOperator4[];
 }
-interface ScspCodeCustomRouting6 {
+interface ScspCodeCustomNoSelfRouting6 {
   inputs:[ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,0>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,1>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,2>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,3>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,4>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,5>>];
   outputs:ScspCodeCustomOperator[];
 }
+/** Replace exactly one target with its exclusive self input. Other targets
+ * retain their external-only inputs; cross-operator cycles validate at runtime. */
+type ScspCodeCustomSelfInputs<Inputs extends unknown[],Self extends number> = {
+  [Index in keyof Inputs]: Index extends \`\${Self}\` ? [Self] : Inputs[Index];
+};
+type ScspCodeCustomSelfRouting4 = {
+  [Self in ScspCodeCustomOperator4]: {inputs:ScspCodeCustomSelfInputs<ScspCodeCustomNoSelfRouting4['inputs'],Self>;outputs:ScspCodeCustomOperator4[]}
+}[ScspCodeCustomOperator4];
+type ScspCodeCustomSelfRouting6 = {
+  [Self in ScspCodeCustomOperator]: {inputs:ScspCodeCustomSelfInputs<ScspCodeCustomNoSelfRouting6['inputs'],Self>;outputs:ScspCodeCustomOperator[]}
+}[ScspCodeCustomOperator];
+type ScspCodeCustomRouting4 = ScspCodeCustomNoSelfRouting4|ScspCodeCustomSelfRouting4;
+type ScspCodeCustomRouting6 = ScspCodeCustomNoSelfRouting6|ScspCodeCustomSelfRouting6;
 type ScspCodeCustomRouting = ScspCodeCustomRouting2|ScspCodeCustomRouting4|ScspCodeCustomRouting6;
 /** Receiving-operator MDL code. The editor validates integer codes 0–12 at runtime. */
 type ScspCodeFmDepth = number;
@@ -123,13 +136,15 @@ type ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig
 type ScspCodePatch = ScspCodePatchBase & (
   {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths?:never}} |
   {version:5;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting2> & {depths?:never}} |
-  {version:6;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomRouting4> & {depths?:never}} |
-  {version:6;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths?:never}} |
+  {version:6;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting4> & {depths?:never}} |
+  {version:6;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting6> & {depths?:never}} |
   {version:7;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths:ScspCodeFmDepths}} |
   {version:7;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting2> & {depths:ScspCodeFmDepths}} |
-  {version:7;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomRouting4> & {depths:ScspCodeFmDepths}} |
-  {version:7;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths:ScspCodeFmDepths}} |
-  {version:8;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting2>}
+  {version:7;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting4> & {depths:ScspCodeFmDepths}} |
+  {version:7;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting6> & {depths:ScspCodeFmDepths}} |
+  {version:8;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting2>} |
+  {version:9;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting4>} |
+  {version:9;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting6>}
 );
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
@@ -163,12 +178,13 @@ interface ScspCodeClient {
   setMix(operator:ScspCodeOperator,patch:Partial<ScspCodeMix>):Promise<boolean>;
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
   /** Custom routing supports fm2/fm4/fm6 with at most two distinct sources per OP.
-   * Custom2 alone allows one self OP, with one source per target. Its hardware
+   * Every Custom FM size allows at most one self OP with only [self] as its input.
+   * Custom2 keeps one source per target; other Custom4/6 targets allow two. Its hardware
    * X32/Y0 inputs average two stored generations; the existing adapter depth 0
    * disables modulation. New Auto/Code self attacks clear only their owned
    * self-slot history cells. Depth edits retain those histories and notes.
    * An explicit graph must match the active operator count. Changing mode without
-   * a graph preserves surviving connections and adds disconnected operators.
+   * a graph preserves surviving connections / Self and adds disconnected operators.
    * Graph changes retire Auto notes after validation; Code continues running.
    * fm.depths supplies six receiving-OP MDL codes. Omit it to use fm.depth.
    * A scalar-only fm.depth edit sets all six; an explicit depths array wins.
@@ -200,9 +216,10 @@ interface ScspCodeClient {
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
-  /** Load portable SCSP presets 1–8. Custom two-OP uses version 5;
+  /** Load portable SCSP presets 1–9. Custom two-OP uses version 5;
    * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7.
-   * A supported Custom2 self-feedback graph uses version 8, with optional depths. */
+   * A Custom2 self-feedback graph uses v8; Custom4/6 Self uses v9.
+   * Both Self formats require a complete graph and have optional depths. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;

@@ -69,8 +69,29 @@ test('two-input editing tracks X/Y, active count and distinct sources',async()=>
   await tick();assert.deepEqual(calls,[{operator:0,source:3,port:1,count:4}]);
   state.config.mode='fm6';state.config.fm.custom={inputs:[[],[],[],[],[],[0,3]],outputs:[5]};view.update(state,{operator:5});
   assert(!nodes.scspCustomFmInputY.disabled);assert.equal(nodes.scspCustomFmInputY.value,'3');
-  assert(nodes.scspCustomFmInput.options[6].disabled,'F cannot modulate itself');
+  assert(!nodes.scspCustomFmInput.options[6].disabled,'F can choose Self, replacing its external inputs');
   view.dispose();
+});
+
+test('every 4/6OP Self target uses X, reserves both taps and excludes a second Self',async()=>{
+  const {nodes,calls,view,state}=fixture();
+  for(const count of [4,6])for(let target=0;target<count;target++){
+    state.config.mode=`fm${count}`;state.config.fm.depth=7;
+    const inputs=Array.from({length:count},()=>[]);inputs[target]=[target];
+    state.config.fm.custom={inputs,outputs:[0]};
+    view.update(state,{operator:target});
+    assert(!nodes.scspCustomFmInput.options[target+1].disabled);
+    assert.match(nodes.scspCustomFmInput.options[target+1].textContent,new RegExp(`Self · ${'ABCDEF'[target]}`));
+    assert(nodes.scspCustomFmInputY.disabled,'Self consumes both native taps');
+    assert.equal(nodes.scspCustomFmInputY.options[0].textContent,'Past history · Y0');
+    assert(nodes.scspCustomFmInputY.options[target+1].disabled,'Self is not selectable on Y');
+    assert.match(nodes.scspCustomFmHint.textContent,new RegExp(`Self ${'ABCDEF'[target]}.*X32/Y0`));
+    nodes.scspCustomFmInputY.value='0';nodes.scspCustomFmInputY.dispatchEvent(new Event('change'));
+    const other=(target+1)%count;view.update(state,{operator:other});
+    assert(nodes.scspCustomFmInput.options[other+1].disabled,'Only one Self per voice');
+    assert.equal(nodes.scspCustomFmInputY.options[0].textContent,'Same as X');
+  }
+  await tick();assert.deepEqual(calls,[]);view.dispose();
 });
 
 test('2OP stays compact and PCM cannot choose Custom',()=>{

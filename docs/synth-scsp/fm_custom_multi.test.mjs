@@ -126,7 +126,7 @@ test('invalid, cyclic, sparse, duplicate, unknown and count-mismatched requests 
   const sparse=Array(4);sparse[0]=[];sparse[1]=[];sparse[3]=[];
   const badInner=Array(1);
   for(const custom of [
-    graph([[1],[2],[0],[]]),graph([[1],[2],[3],[0]]),graph([[0],[],[],[]]),
+    graph([[1],[2],[0],[]]),graph([[1],[2],[3],[0]]),graph([[0,1],[],[],[]]),
     graph([[1,1],[],[],[]]),graph([[1,2,3],[],[],[]]),graph([[4],[],[],[]]),
     graph(sparse),graph([badInner,[],[],[]]),graph([[],[],[],[]],[0,0]),graph([[],[],[],[]],Array(1)),
     {...valid,unknown:true},{...valid,[Symbol('unknown')]:true},graph([[],[]]),graph([[],[],[],[],[],[]]),
