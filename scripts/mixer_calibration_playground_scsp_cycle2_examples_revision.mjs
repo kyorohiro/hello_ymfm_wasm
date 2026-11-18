@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createScspSynthCycle2RevisionReadContext} from './mixer_calibration_scsp_synth_cycle2_revision.mjs';
 
 export const SCSP_CYCLE2_EXAMPLES_BASE='d0372196c843629f9b206bcff5aeb1f09628d408';
 export const SCSP_CYCLE2_EXAMPLES_RECEIPT='docs/issues/playground_scsp_cycle2_examples_source_revision_01.json';
@@ -115,11 +116,12 @@ function createRestorer(readSource,snapshot=false){
     return restoreBody(Buffer.from(bytes),entry);
   };
 }
-export function restoreMixerCalibrationPlaygroundScspCycle2ExamplesRevision(path,bytes,{readSource=read}={}){return createRestorer(readSource)(path,bytes);}
+export function restoreMixerCalibrationPlaygroundScspCycle2ExamplesRevision(path,bytes,{readSource=read}={}){const latest=createScspSynthCycle2RevisionReadContext(readSource);return createRestorer(latest.readSource)(path,latest.restore(path,bytes));}
 export function createPlaygroundScspCycle2ExamplesRevisionReadContext(readSource=read){
+  const latest=createScspSynthCycle2RevisionReadContext(readSource);readSource=latest.readSource;
   const originals=new Map(),predecessors=new Map();
   const original=url=>{const key=url instanceof URL?url.href:url;if(!originals.has(key))originals.set(key,Buffer.from(readSource(url)));return originals.get(key);};
   const restore=createRestorer(original,true);
   const reader=url=>{const key=url instanceof URL?url.href:url;if(!predecessors.has(key)){const bytes=original(url),path=url instanceof URL&&url.protocol==='file:'?relative(root,fileURLToPath(url)).replaceAll('\\','/'):null;predecessors.set(key,path===null?bytes:restore(path,bytes));}return predecessors.get(key);};
-  return {restore,readSource:reader};
+  return {restore:(path,bytes)=>restore(path,latest.restore(path,bytes)),readSource:reader};
 }

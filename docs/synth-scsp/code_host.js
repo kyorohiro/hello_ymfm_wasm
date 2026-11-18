@@ -2,13 +2,13 @@
 // Shared Code runtime/editor over the upper editor's existing SCSP.
 import { createPlaygroundCodeRuntime } from '../js/playground_code_runtime.js';
 import { setupSynthCodeControls } from '../synth/synth_code_controls.js?v=sdsp-code-review-1';
-import { selectScspCodeDeclarations } from './code_declarations.js?v=scsp-fm-multiple-self-1';
+import { selectScspCodeDeclarations } from './code_declarations.js?v=scsp-cycle2-code-1';
 import { createScspCodeAudio } from './code_audio.js';
 import {
 	createScspCodeProject,
 	SCSP_PROJECT_FILE_BYTES,
-} from './code_project.js?v=scsp-fm-multiple-self-1';
-import { setupScspCodeFiles } from './code_files.js?v=scsp-dsp-save-1';
+} from './code_project.js?v=scsp-cycle2-code-1';
+import { setupScspCodeFiles } from './code_files.js?v=scsp-cycle2-code-1';
 
 export const SCSP_STARTER_CODE = `const scsp = await useSoundChip('scsp');
 setBpm(120);
@@ -26,6 +26,7 @@ export function setupScspCodeHost({
 	ensureAudio,
 	getAudio,
 	getSettings,
+	getSoundSettings = getSettings,
 	applySettings,
 	stopKeyboard,
 	onBeforeRun = async () => {},
@@ -70,6 +71,7 @@ export function setupScspCodeHost({
 	files = setupScspCodeFiles({
 		project,
 		getSettings,
+		getSoundSettings,
 		applySettings,
 		setStatus,
 		onOpenSource,

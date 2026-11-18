@@ -23,13 +23,15 @@ Chosen shape: dedicated `fm.algorithm: 'cycle2'` for FM2, explicit outputs,
 A-before-B mapping, fixed measured taps, four owned history cells initialized
 only on a new grouped attack. Custom's existing DAG/Self rules remain intact.
 
-## Future implementation - not performed by this design task
+## Implementation follow-up
 
-- [ ] Phase 1: config/planner/operator mapping plus group attack history policy,
+- [x] Phase 1: config/planner/operator mapping plus group attack history policy,
   exposed through existing `setConfig()` and Code types. Test all 13 pairs,
   independent raw-register PCM, invalid-request preservation, live Off/On,
   release/reattack/steal, physical takeover and session Stop. Fault-test fatal
   classification for an unexpected write failure after the Cycle commit starts.
+  Implemented separately in [the runtime/Code task](todo_scsp_synth_cycle2_runtime_20261118.md);
+  portable v11 and the selectable Cycle UI remain Phase 2.
 - [ ] Phase 2: version 11 portable presets, legacy rejection, dormant Custom
   and Cycle transitions, idle migration, fixed Cycle UI arrows/labels/outputs
   and a readable Synth example. Handle resampler cache reset when an

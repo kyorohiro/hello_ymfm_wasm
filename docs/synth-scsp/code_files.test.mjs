@@ -38,6 +38,22 @@ test('SCSP saves named presets without applying, acquiring audio or changing Cod
   assert.equal(f.doc.getElementById('scspPresetSelect').value,'');
 });
 
+test('Code-only sounds reject preset saves while JavaScript and workspace persistence remain available',async t=>{
+  const f=fixture(t,{getSoundSettings:()=>{throw Error('Cycle 2OP needs portable preset support. Save JavaScript.');}});
+  await f.files.ready;const before=f.project.snapshot();
+  await assert.rejects(f.files.saveSound(),/Cycle 2OP/);
+  assert.deepEqual(f.project.snapshot(),before,'no stale base sound is saved as a preset');
+  await f.doc.getElementById('scspSaveSoundAs').fire('click');
+  assert.match(f.statuses.at(-1),/Cycle 2OP/);
+  assert.deepEqual(f.project.snapshot(),before);
+  const path=await f.files.saveCode({source:'// retained cycle setup',name:'cycle.js'});
+  assert.equal(f.project.fs.get(path).data,'// retained cycle setup');
+  const restored=createScspCodeProject();
+  restored.restore(await restored.prepareImport(await f.files.exportProject()));
+  assert.equal(restored.fs.get(path).data,'// retained cycle setup');
+  assert.deepEqual(restored.settings,createDefaultPreset(),'workspace retains its portable base instrument');
+});
+
 test('SCSP saves generated DSP Code to unique Files without changing the sound, mode or running Code', async t => {
   const f = fixture(t);
   await f.files.ready;

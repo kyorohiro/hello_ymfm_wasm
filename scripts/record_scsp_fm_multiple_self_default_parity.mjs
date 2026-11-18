@@ -9,6 +9,7 @@ import factory from '../docs/generated/scsp_wasm.js';
 import {Scsp} from '../docs/js/scsp.js';
 import {Pcm44100Resampler} from '../docs/js/pcm_44100_resampler.js';
 import {SynthInstrument} from '../docs/synth-scsp/instrument.js';
+import {createScspSynthCycle2RevisionReadContext} from './mixer_calibration_scsp_synth_cycle2_revision.mjs';
 
 export const SCSP_FM_MULTIPLE_SELF_PARITY_BASE_COMMIT='47d9a51e61db9deb27e18f6987e9b7d699bcfbee';
 export const SCSP_FM_MULTIPLE_SELF_PARITY_RECEIPT='docs/issues/scsp_fm_multiple_self_source_revision_01.json';
@@ -23,6 +24,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record=bytes=>({bytes:Buffer.byteLength(bytes),sha256:sha(bytes)});
 const floats=values=>Buffer.from(values.buffer,values.byteOffset,values.byteLength);
 export function reconstructScspFmMultipleSelfParityPredecessor(name,current,receipt){
+  current=createScspSynthCycle2RevisionReadContext().restore(name,current);
   const pin=predecessors[name],entry=receipt.sources[name];
   assert(pin,'Only independently pinned Synth predecessors may be loaded');
   assert.equal(receipt.baseCommit,SCSP_FM_MULTIPLE_SELF_PARITY_BASE_COMMIT);
@@ -103,8 +105,9 @@ function normalize(value){
 }
 export async function measureScspFmMultipleSelfDefaultParity({predecessorSources=null}={}){
   const receipt=predecessorSources?null:JSON.parse(await readFile(path(SCSP_FM_MULTIPLE_SELF_PARITY_RECEIPT),'utf8')),originals={},sources={};
+  const reviewed=createScspSynthCycle2RevisionReadContext();
   for(const name of Object.keys(predecessors)){
-    const current=await readFile(path(name));sources[name]=record(current);
+    const current=reviewed.readSource(path(name));sources[name]=record(current);
     if(predecessorSources){
       const bytes=Buffer.from(predecessorSources[name]);assert.equal(sha(bytes),predecessors[name],'Independent base47d9 source');originals[name]=bytes.toString();
     }else originals[name]=reconstructScspFmMultipleSelfParityPredecessor(name,current,receipt);

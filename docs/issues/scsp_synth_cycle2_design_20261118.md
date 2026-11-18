@@ -2,6 +2,9 @@
 
 Status: **design only; not implemented**. Base
 `29d1dc14deaf3f5a41086263dc0f58aff7dfa443`, initially clean worktree.
+This describes the original planning step. Subsequent
+[Phase-1 instrument/Code implementation](verification_scsp_synth_cycle2_runtime_20261118.md)
+adds the bounded connection; UI selection and portable v11 presets still follow.
 This proposal follows the [measured two-OP research](scsp_fm_cycle2_research_20261118.md)
 and its [bundled Playground example](../playground/examples/scsp/scsp-cycle2-prototype.js).
 The current Synth still rejects cross-operator cycles. Its existing defaults,

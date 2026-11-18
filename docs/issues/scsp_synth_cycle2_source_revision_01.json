@@ -1,0 +1,791 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-cycle2-instrument-and-code",
+  "baseCommit": "b92ee48e146a011d10e383dcbc2954626cccec1c",
+  "review": "Bounded FM2 Cycle instrument and Code support, with fixed A-before-B current-forward/history-average taps and four-cell initialization only for newly owned Auto/Code groups. UI connection selection and portable cycle v11 export remain unavailable. Complete predecessor bodies are reconstructed before prior calibration proofs. Existing default PCM, fixed FM, DAG, Self and multiple-Self PCM/registers/ring/writes/state/presets match the actual Git predecessor in 166 real-WASM cases at44.1/48kHz. Shared runtime/core/WASM/gains and historical evidence remain unchanged.",
+  "sources": {
+    "docs/synth-scsp/routing.js": {
+      "before": {
+        "bytes": 7657,
+        "sha256": "97be2c9cf9bd17436860455aba134f88d906aa866f2bf7add1437fbf344e46ce"
+      },
+      "after": {
+        "bytes": 8824,
+        "sha256": "84bbedd7d8557f85b338e6be3ac4e80565456623f8df8565f0a025b75fb8d3f0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1236,
+          "afterBytes": 817,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5706,
+          "afterBytes": 193,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7040,
+          "afterBytes": 289,
+          "beforeText": "  const {count,inputs,outputs}=routing(config),state=synth.getState(),frequency=440*2**((group.midi-69+config.transpose)/12),commands=[],custom=config.fm.algorithm==='custom',slots=custom?customOperatorSlots(config,group.slots):null;\n"
+        },
+        {
+          "afterOffset": 7372,
+          "afterBytes": 109,
+          "beforeText": "    const voice=state.slots[index],slot=custom?slots[index]:group.slots[count-1-index],sources=inputs[index];\n"
+        },
+        {
+          "afterOffset": 7642,
+          "afterBytes": 103,
+          "beforeText": "    const offsets=sources.map(source=>((custom?slots[source]:group.slots[count-1-source])-slot+64)%64);\n"
+        },
+        {
+          "afterOffset": 7939,
+          "afterBytes": 212,
+          "beforeText": "    const modulation={depth:sources.length?operatorDepth(config,index):0,xOffset:self?32:offsets[0]??0,yOffset:self?0:offsets[1]??offsets[0]??0,writeInhibit:false};\n"
+        },
+        {
+          "afterOffset": 8521,
+          "afterBytes": 303,
+          "beforeText": "export function operatorSlot(group,index){return index<group.slots.length?(group.operatorSlots?.[index]??(group.config?.fm.algorithm==='custom'?customOperatorSlots(group.config,group.slots)[index]:group.slots[group.slots.length-1-index])):null;}\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/patch.js": {
+      "before": {
+        "bytes": 7596,
+        "sha256": "2f928349308d5086d54c2636a5f1380b3a20c66a8f6c582fbe1ac7b9502f261b"
+      },
+      "after": {
+        "bytes": 8543,
+        "sha256": "5f2c03db982c558cabd35ae50487642f540278d951e502d158123f86d27fb110"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 229,
+          "afterBytes": 167,
+          "beforeText": "import {SOURCE_COUNT,OPERATOR_KEYS,voiceCommands,operatorCount,customRouting,operatorDepths,selfFeedbackCount} from './routing.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 1055,
+          "afterBytes": 117,
+          "beforeText": "  if(!['chain','pairs','branch','custom'].includes(algorithm))throw new TypeError('Unknown FM connection');\n"
+        },
+        {
+          "afterOffset": 1280,
+          "afterBytes": 213,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2071,
+          "afterBytes": 254,
+          "beforeText": "  return {mode:value.mode,fm:{depth:uniform?depths[0]:fm.depth,ratio:fm.ratio,algorithm,ratios:[...ratios],...(custom?{custom}:{}),...(depths&&!uniform?{depths}:{})},transpose:value.transpose,effect:effectSettings(value.effect)};\n"
+        },
+        {
+          "afterOffset": 3119,
+          "afterBytes": 180,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5558,
+          "afterBytes": 337,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7892,
+          "afterBytes": 175,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/instrument.js": {
+      "before": {
+        "bytes": 40050,
+        "sha256": "af0a93d83c11313e570bd19ad9038f3a37b4fd93a9f81d0130ee21ffd405687f"
+      },
+      "after": {
+        "bytes": 40925,
+        "sha256": "374f0ae8989ac10bf14303c0b30873685d87462d73272e6898a262082f5ac9f8"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 460,
+          "afterBytes": 103,
+          "beforeText": "import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 650,
+          "afterBytes": 224,
+          "beforeText": "import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting,operatorDepth,operatorDepths} from './routing.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 8440,
+          "afterBytes": 107,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 17577,
+          "afterBytes": 104,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 17775,
+          "afterBytes": 9,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 18260,
+          "afterBytes": 248,
+          "beforeText": "    // Only a new owned self voice starts from silence; live edits preserve its\n    // feedback and non-self/manual voices never clear sound-stack history.\n    routing(group.config).inputs.forEach((sources,index)=>{if(sources.includes(index)){\n"
+        },
+        {
+          "afterOffset": 18799,
+          "afterBytes": 406,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 19606,
+          "afterBytes": 122,
+          "beforeText": "    this.synth.stopVoices();this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();\n"
+        },
+        {
+          "afterOffset": 20160,
+          "afterBytes": 231,
+          "beforeText": "      if(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Reflect.ownKeys(patch.fm).some(k=>!['depth','depths','ratio','ratios','algorithm','custom'].includes(k)))throw new TypeError('Invalid FM settings');\n"
+        },
+        {
+          "afterOffset": 20667,
+          "afterBytes": 90,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 21487,
+          "afterBytes": 143,
+          "beforeText": "        const template=routing({mode,fm:{algorithm:this.config.fm.algorithm==='custom'?'chain':this.config.fm.algorithm}});\n"
+        },
+        {
+          "afterOffset": 21713,
+          "afterBytes": 382,
+          "beforeText": "    const next=settings({...this.config,...patch,fm}),commands=[],groupConfigs=new Map(),routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom);\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/processor.js": {
+      "before": {
+        "bytes": 9611,
+        "sha256": "a6bc17043c4deb2814f9c356af9a1679fdc01bfc7cc935e37695cacf637b8430"
+      },
+      "after": {
+        "bytes": 9952,
+        "sha256": "6504d3036c1de4262c0c54a80595694c99c6247b4d960dd1a3419f2b37b44a45"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 194,
+          "afterBytes": 72,
+          "beforeText": "import { SynthInstrument } from './instrument.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 2941,
+          "afterBytes": 58,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7266,
+          "afterBytes": 288,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_declarations.js": {
+      "before": {
+        "bytes": 16078,
+        "sha256": "9329798af5133c10af1963ed984d00a0d8239e96e8cd72332dc3fde449c49730"
+      },
+      "after": {
+        "bytes": 17019,
+        "sha256": "7b4389a88eef9b29b009d0917e81b7101ef5927b781119dce610ec78f7db32ce"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4812,
+          "afterBytes": 182,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 5053,
+          "afterBytes": 181,
+          "beforeText": "  fm:{depth:number;depths?:ScspCodeFmDepths;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom';ratios:number[];custom?:ScspCodeCustomRouting};\n"
+        },
+        {
+          "afterOffset": 7382,
+          "afterBytes": 303,
+          "beforeText": "type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'chain'|'pairs'|'branch'};\ntype ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:Graph};\n"
+        },
+        {
+          "afterOffset": 9370,
+          "afterBytes": 105,
+          "beforeText": "  /** Custom groups map authored A–F to physical slots, separately from allocation order. */\n"
+        },
+        {
+          "afterOffset": 12377,
+          "afterBytes": 607,
+          "beforeText": "   * Uniform arrays normalize to the scalar form. Depth edits retain notes. */\n"
+        },
+        {
+          "afterOffset": 14979,
+          "afterBytes": 143,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_declarations.test.mjs": {
+      "before": {
+        "bytes": 17593,
+        "sha256": "f02458dabf28e7927a9c007776c6f6153669f8aaf68b978860220676246c54ee"
+      },
+      "after": {
+        "bytes": 18631,
+        "sha256": "8870854ce05348c53d2c8308427e1434bb0581679e43d82e91f840e09e75d086"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2832,
+          "afterBytes": 275,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10687,
+          "afterBytes": 763,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/synth.js": {
+      "before": {
+        "bytes": 59368,
+        "sha256": "8e80ee381da01d2e98063d1bfb95dcd7477c8ab82d1d19a485ac171598c5d7bc"
+      },
+      "after": {
+        "bytes": 60656,
+        "sha256": "ea259bedc761c95be7d06cc45a862153457c247aee4dd974425bff927c34e757"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 136,
+          "afterBytes": 306,
+          "beforeText": "import { createAudio } from './audio.js?v=scsp-fm-multiple-self-1';\nimport { SynthInstrument } from './instrument.js?v=scsp-fm-multiple-self-1';\nimport { readPatch, writePatch } from './patch.js?v=scsp-fm-multiple-self-1';\nimport { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 519,
+          "afterBytes": 73,
+          "beforeText": "import { setupScspCodeHost } from './code_host.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 1797,
+          "afterBytes": 109,
+          "beforeText": "import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 3302,
+          "afterBytes": 265,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8913,
+          "afterBytes": 433,
+          "beforeText": "\tcachedPatch = writePatch({ ...state.config, transpose: baseTranspose }, sources);\n\tif (soundName) cachedPatch.name = soundName;\n"
+        },
+        {
+          "afterOffset": 17304,
+          "afterBytes": 413,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 22821,
+          "afterBytes": 275,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 56633,
+          "afterBytes": 33,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 56701,
+          "afterBytes": 55,
+          "beforeText": "\t\t\tnew Blob([JSON.stringify(cachedPatch, null, 2) + '\\n'], {\n"
+        },
+        {
+          "afterOffset": 57197,
+          "afterBytes": 34,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/audio.js": {
+      "before": {
+        "bytes": 8309,
+        "sha256": "f185851d2dad8c8bfadd3d1d912e163a034cb22d623ae5c3281207be4289f90f"
+      },
+      "after": {
+        "bytes": 8724,
+        "sha256": "dda16f2624edba0cb0911591ab46dc13d17c71efd9579f36101cda6fc0c1ce35"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 641,
+          "afterBytes": 107,
+          "beforeText": "export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{}}={}){\n"
+        },
+        {
+          "afterOffset": 872,
+          "afterBytes": 111,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3326,
+          "afterBytes": 110,
+          "beforeText": "      context.audioWorklet.addModule(new URL('./processor.js?v=scsp-fm-multiple-self-1',import.meta.url)),resumed,\n"
+        },
+        {
+          "afterOffset": 6212,
+          "afterBytes": 287,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/audio.test.mjs": {
+      "before": {
+        "bytes": 8811,
+        "sha256": "34e49ed9ad28dab1b17bf80beb8d6fe35246a968aa9de12a2e3fd1b9c657dfba"
+      },
+      "after": {
+        "bytes": 9836,
+        "sha256": "19985f4393e1c65153e783f1329792304df8ddec1bc79844b98d93f4129ce1d5"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 7315,
+          "afterBytes": 1025,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_host.js": {
+      "before": {
+        "bytes": 4923,
+        "sha256": "b1f3c9e9b3d7d41fd299482047f996b11271880b86f8d4fbb863ec2d694ef179"
+      },
+      "after": {
+        "bytes": 4969,
+        "sha256": "0621ba8baa6c63d49003d9b3f2ac2eff5dd194e0abe1274c1784a20d31936823"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 285,
+          "afterBytes": 90,
+          "beforeText": "import { selectScspCodeDeclarations } from './code_declarations.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 489,
+          "afterBytes": 124,
+          "beforeText": "} from './code_project.js?v=scsp-fm-multiple-self-1';\nimport { setupScspCodeFiles } from './code_files.js?v=scsp-dsp-save-1';\n"
+        },
+        {
+          "afterOffset": 1080,
+          "afterBytes": 33,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2264,
+          "afterBytes": 20,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_files.js": {
+      "before": {
+        "bytes": 36627,
+        "sha256": "a5004af0f1c2ecdeb3a3274463c193ca90a162557d0d1c4e743045a5fede5546"
+      },
+      "after": {
+        "bytes": 36670,
+        "sha256": "36df2f7d75f33cef7223e9a561ca82d63f0a9f2262f9b4b324fadec885285dc7"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3890,
+          "afterBytes": 33,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24506,
+          "afterBytes": 75,
+          "beforeText": "\t\t\tlet sound = readScspProjectSound(requestedSound ?? getSettings());\n"
+        },
+        {
+          "afterOffset": 28775,
+          "afterBytes": 91,
+          "beforeText": "\t\tdialogSound = action === 'save-sound' ? readScspProjectSound(getSettings()) : null;\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/code_files.test.mjs": {
+      "before": {
+        "bytes": 23773,
+        "sha256": "7852b93a5d63dcc85c451b06a92b39535d22c0ae4726189c8a83a42fa8ccdb30"
+      },
+      "after": {
+        "bytes": 24842,
+        "sha256": "d151c50ebb377439764e1cc8e850690c1d603567b72d8ef3e927c2172cc0189b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4870,
+          "afterBytes": 1069,
+          "beforeText": ""
+        }
+      ]
+    },
+    "docs/synth-scsp/code_project.js": {
+      "before": {
+        "bytes": 12660,
+        "sha256": "9faf830c6774100f01b32a924158cf57d98e096af7cf55b1056107dbaa27bf0e"
+      },
+      "after": {
+        "bytes": 12650,
+        "sha256": "d49e4302ccac0abe1dbc8c290133a6244ec27e6e7152143a7fa41e29ad308b07"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 559,
+          "afterBytes": 87,
+          "beforeText": "import { readPatch, writePatch, FM_MAX_DEPTH } from './patch.js?v=scsp-fm-multiple-self-1';\n"
+        },
+        {
+          "afterOffset": 770,
+          "afterBytes": 67,
+          "beforeText": "import { OPERATOR_KEYS } from './routing.js?v=scsp-fm-multiple-self-1';\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/index.html": {
+      "before": {
+        "bytes": 44106,
+        "sha256": "20fa933b41fd2bac5108b715a5f7b1151221b25262fbe30f6be7e35f87721e68"
+      },
+      "after": {
+        "bytes": 44101,
+        "sha256": "9de2892ac083ef89905924fa452fe80ce73c47b9ecd29a93104cd639139011bb"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 44014,
+          "afterBytes": 70,
+          "beforeText": "\t\t<script type=\"module\" src=\"synth.js?v=scsp-fm-multiple-self-1\"></script>\n"
+        }
+      ]
+    },
+    "docs/synth-scsp/ssf_capture.js": {
+      "before": {
+        "bytes": 9691,
+        "sha256": "fd21f8d9d4a8b693c2c17586ccf7824c98ce019fb682ad4ba186d6713819df67"
+      },
+      "after": {
+        "bytes": 9686,
+        "sha256": "11f5b22459804a22dbc833b1eacb2be82330c7c8e1325b6aaab3511119368bf2"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 158,
+          "afterBytes": 61,
+          "beforeText": "import { readPatch } from './patch.js?v=scsp-fm-multiple-self-1';\n"
+        }
+      ]
+    },
+    "scripts/mixer_calibration_playground_scsp_cycle2_examples_revision.mjs": {
+      "before": {
+        "bytes": 9767,
+        "sha256": "c6297afd10b7838b2423b3c2436fa4a67343080e22311245fe6634d15a429ee2"
+      },
+      "after": {
+        "bytes": 10123,
+        "sha256": "28b72ff5abe75777d92e831dea9ff9b81941f194ae29c9e9b1b3ce1e27fd37e0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 317,
+          "afterBytes": 109,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9010,
+          "afterBytes": 251,
+          "beforeText": "export function restoreMixerCalibrationPlaygroundScspCycle2ExamplesRevision(path,bytes,{readSource=read}={}){return createRestorer(readSource)(path,bytes);}\n"
+        },
+        {
+          "afterOffset": 9349,
+          "afterBytes": 98,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 10028,
+          "afterBytes": 93,
+          "beforeText": "  return {restore,readSource:reader};\n"
+        }
+      ]
+    },
+    "scripts/mixer_calibration_scsp_fm_multiple_self_revision.test.mjs": {
+      "before": {
+        "bytes": 5129,
+        "sha256": "6ac2d61de527d9459fd82d835f68387584c7e3f9cc1d655a6a09cdeb16d0892d"
+      },
+      "after": {
+        "bytes": 5304,
+        "sha256": "cf00e782ff473537519a4b25b738a7f89825f3388139984090ab868c940458db"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 853,
+          "afterBytes": 263,
+          "beforeText": "const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));\n"
+        }
+      ]
+    },
+    "scripts/record_scsp_fm_multiple_self_default_parity.mjs": {
+      "before": {
+        "bytes": 15284,
+        "sha256": "a1f82679a281bb85d929b9bcf79872b7d28817cee2a9a467953dbcb632b3dd75"
+      },
+      "after": {
+        "bytes": 15535,
+        "sha256": "2938a54b9a6f9e390a91a4e7f2c815dc5d50df389492be61022d226e12a44e98"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 574,
+          "afterBytes": 109,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1724,
+          "afterBytes": 76,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7598,
+          "afterBytes": 61,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7707,
+          "afterBytes": 81,
+          "beforeText": "    const current=await readFile(path(name));sources[name]=record(current);\n"
+        }
+      ]
+    },
+    "scripts/record_scsp_fm_multiple_self_revision.mjs": {
+      "before": {
+        "bytes": 4996,
+        "sha256": "0a17e76a99d9a567a89d6d0cafc54431fc233cc66ae813c11df5a1e45788f258"
+      },
+      "after": {
+        "bytes": 5278,
+        "sha256": "63facad343fce37f397f761139333b1bd414e2905a345add22cf372aaffe4e55"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 514,
+          "afterBytes": 109,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4729,
+          "afterBytes": 275,
+          "beforeText": "  const value=await createScspFmMultipleSelfRevisionReceipt(),text=JSON.stringify(value,null,2)+'\\n';\n"
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "tetorica_src/runtime/scsp.js": {
+      "bytes": 10554,
+      "sha256": "50dcc4f4df918163e04fe67be99e6acb2720e19d5f4ee160b2cf3cbd4b08b407"
+    },
+    "docs/js/scsp.js": {
+      "bytes": 10590,
+      "sha256": "f86442040594ffdc50fde8c0740afec315e735c144973e5f281ac996ebb2bf05"
+    },
+    "tetorica_src/runtime/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 26445,
+      "sha256": "6c3f663ce8395c8c70672d4a7f8f23ba33fee32c10db4b77ef68cb673af914de"
+    },
+    "tetorica_src/runtime/scsp_dsp.js": {
+      "bytes": 14304,
+      "sha256": "403279239f049e1239130bbf12f71e2775e27eb8c04c50e97ffb9e815211944e"
+    },
+    "docs/js/scsp_dsp.js": {
+      "bytes": 14304,
+      "sha256": "403279239f049e1239130bbf12f71e2775e27eb8c04c50e97ffb9e815211944e"
+    },
+    "tetorica_src/runtime/scsp_dsp_program.js": {
+      "bytes": 5069,
+      "sha256": "894bd32c4083cc3efd6cdd98f29b5269891c6bf8235daf52689eac61b5671275"
+    },
+    "docs/js/scsp_dsp_program.js": {
+      "bytes": 5069,
+      "sha256": "894bd32c4083cc3efd6cdd98f29b5269891c6bf8235daf52689eac61b5671275"
+    },
+    "tetorica_src/runtime/scsp_dsp_coefficients.js": {
+      "bytes": 1857,
+      "sha256": "89970ded43fc3f857ad49978d3eb82971148872f02e3ddca51cc0a953e691496"
+    },
+    "docs/js/scsp_dsp_coefficients.js": {
+      "bytes": 1857,
+      "sha256": "89970ded43fc3f857ad49978d3eb82971148872f02e3ddca51cc0a953e691496"
+    },
+    "tetorica_src/runtime/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "docs/js/scsp_dsp_assembler.js": {
+      "bytes": 8081,
+      "sha256": "1392ea532fc4c674b97f200e6dc1d8223288b4d3e167084e26dc78152b3ddf43"
+    },
+    "tetorica_src/runtime/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "docs/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "tetorica_src/runtime/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "docs/js/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "e974b019c7ff3bb48fef644ea9ef1fbf4308e7f60ed8fa45da51f14ee6721568"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "6bdb304a4c74efba44ba76d5414c40d47dbf1bbf92b2fc66fcf4e2122d04fc20"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "tetorica_src/runtime/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp": {
+      "bytes": 27097,
+      "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639"
+    },
+    "third_party/tetorica-soundchip-native/vendor/mame-scsp/scsp.h": {
+      "bytes": 2976,
+      "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13458,
+      "sha256": "3de5081f55347d96c663a36cd472340a0a5f5c877fadd03c0778cf53c037d57a"
+    },
+    "docs/playground/playground_examples.js": {
+      "bytes": 234984,
+      "sha256": "4fd7c3048eab2331de1ca5a8e92e3f45722f539ecf8d22c7f3ac9ad6b089890d"
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "bytes": 5852,
+      "sha256": "2932faf251c17ab780c8e15bee6b5ce8ec58102a1c4813054d002fe9f4c611ec"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124913,
+      "sha256": "6aa6a784e6de23a95d37f4a292039c075dbd361a41a6b93c40a38bd384014737"
+    },
+    "docs/synth-scsp/synth.css": {
+      "bytes": 27694,
+      "sha256": "43f332f7f11abc3b72ba59d894f462dbec34d801a5c013dac4214e2ed5554a6a"
+    },
+    "docs/synth-scsp/preset.js": {
+      "bytes": 1968,
+      "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+    },
+    "docs/synth-scsp/release_guard.js": {
+      "bytes": 2410,
+      "sha256": "891cee58d31bab8f72609054e7e58eae863b6d0dbe7bbf6fa29808fdc984d3b7"
+    },
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 11928,
+      "sha256": "2efcacdbbce5370a5929a6003e14cef5f6e898af08beade0a5e997f2ae7889d0"
+    },
+    "docs/synth-scsp/code_endpoint.js": {
+      "bytes": 5276,
+      "sha256": "cd8d694ae9ebdccf17cb0acb2044491934bc06f7507c75fd0b441b2ad822ebf7"
+    },
+    "docs/synth-scsp/fm_custom_view.js": {
+      "bytes": 3979,
+      "sha256": "4c5e1ca2cf18f0a1a62a5820ee3ec90b50b3ec36b052c7149bc776c0a90e8716"
+    },
+    "scripts/record_scsp_synth_cycle2_default_parity.mjs": {
+      "bytes": 16304,
+      "sha256": "79c02616b8f78c5538f59857e460aca41399593c6076c634484e735ec3b597c8"
+    },
+    "scripts/scsp_synth_cycle2_default_parity.test.mjs": {
+      "bytes": 2192,
+      "sha256": "c17c5c85d19827f35208495bb7811e219062adc7dbd7bdb46971bc740f92bf75"
+    },
+    "scripts/mixer_calibration_scsp_synth_cycle2_revision.test.mjs": {
+      "bytes": 4520,
+      "sha256": "211e4d71de3cd67aa52c1c97d9b6270f49969340d3ca7c0fe0c950011cf0c617"
+    },
+    "scripts/check_scsp_synth_cycle2_browser.cjs": {
+      "bytes": 21409,
+      "sha256": "371021d259de2911778f4b702aff542686156ccab3384d138dd169194126c2ec"
+    },
+    "docs/synth-scsp/fm_cycle2.test.mjs": {
+      "bytes": 17649,
+      "sha256": "1a61d7847a741175122986078736979f398df3cb0a4fab19fb52e18eb9db0d4e"
+    },
+    "docs/synth-scsp/fm_cycle2_config.test.mjs": {
+      "bytes": 4057,
+      "sha256": "7e869323870310e4a59fa7b0e3300d978533809d3b4762b91fbf0241feb31b25"
+    }
+  },
+  "reports": {
+    "docs/issues/playground_scsp_cycle2_examples_source_revision_01.json": {
+      "bytes": 5843,
+      "sha256": "e0c1446c80571a8543e13208011ecb706b96d77a3cc3c54bb697b19cfc8fd2c8"
+    },
+    "docs/issues/scsp_fm_multiple_self_source_revision_01.json": {
+      "bytes": 41246,
+      "sha256": "febd629d77a4a48505916a28f0e2b4d633c17238a9a2ea519a155ffe42e0931a"
+    },
+    "docs/issues/scsp_fm_multiple_self_default_parity_01.json": {
+      "bytes": 235878,
+      "sha256": "337e1997d82d27be8c8394f52ad48615949a8e2a9f7fb612d8e336f4cbcde09d"
+    },
+    "docs/issues/scsp_synth_cycle2_default_parity_01.json": {
+      "bytes": 264858,
+      "sha256": "c7f93c66d2923bcdcf8f774d3ea268d60c9496dc71851608953223ac5b599a90"
+    }
+  }
+}

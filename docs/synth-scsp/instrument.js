@@ -3,9 +3,9 @@
 import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
-import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-multiple-self-1';
+import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-cycle2-code-1';
 import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-ui-routing-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting,operatorDepth,operatorDepths} from './routing.js?v=scsp-fm-multiple-self-1';
+import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,cycle2Routing,resizeCustomRouting,operatorDepth,operatorDepths} from './routing.js?v=scsp-cycle2-code-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 import {ScspReleaseGuard} from './release_guard.js';
@@ -82,6 +82,8 @@ export class SynthInstrument {
   constructor(core){
     this.core=core;this.synth=new ScspSynth(core);this.releaseGuard=new ScspReleaseGuard(core);this.config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});this.groups=new Map();this.manualVoices=new Map();this.sequence=0;this.pitchBend=0;
     this.codeSession=0;this.codeActive=false;this.codeLanes=Array.from({length:32},()=>({midi:69,id:null}));
+    // Internal transport revision; not authoring state or portable preset data.
+    this.resetRevision=0;
     this.dspSourceSends=Array(SOURCE_COUNT).fill(null);this.dspSlotSends=Array(32).fill(null);this.dspRoutingActive=false;
     this.reserved=reserveDspRam(this.synth);this.effect=new DspDelay(core,this.config.effect);
     const {pcm,options}=createScspInitSample();
@@ -192,26 +194,36 @@ export class SynthInstrument {
     if(!slots)throw new RangeError('No SCSP voice group is available');
     const group={id,midi,slots:[...slots],held:true,order:this.sequence+1,mode:this.config.mode,config:clone(this.config),owner};
     if(this.config.fm.algorithm==='custom')group.operatorSlots=customOperatorSlots(this.config,group.slots);
+    const cycle=this.config.fm.algorithm==='cycle2';
+    if(cycle)group.operatorSlots=[...group.slots];
     const commands=voiceCommands(this.synth,this.#voiceConfig(),group);this.#check(commands);
+    try{
     for(const victim of victims){this.#silence(victim);this.groups.delete(victim.id);}
     for(const [key,manual]of this.manualVoices)if(slots.includes(manual.slot))this.manualVoices.delete(key);
     // An actual Auto allocation owns these slots and replaces prior physical
     // routing choices with its source template / global default.
     for(const slot of slots)this.dspSlotSends[slot]=null;
     // Software voice initialization, not a change to SCSP history semantics.
-    // Only a new owned self voice starts from silence; live edits preserve its
-    // feedback and non-self/manual voices never clear sound-stack history.
-    routing(group.config).inputs.forEach((sources,index)=>{if(sources.includes(index)){
+    // New Cycle pairs own four cells; Self owns two per self OP. Live edits
+    // and raw physical keys preserve history. No shared core reset occurs.
+    routing(group.config).inputs.forEach((sources,index)=>{if(cycle||sources.includes(index)){
       const slot=operatorSlot(group,index);this.core.write(0x600+slot*2,0);this.core.write(0x600+(slot+32)*2,0);
     }});
     this.#apply(commands);this.sequence++;this.groups.set(id,group);this.#routeEffect();
     return {slots:[...slots],stolenId:victims.find(v=>v!==previous)?.id??null};
+    }catch(error){
+      if(!cycle)throw error;
+      // Validation has finished and native mutation may have started. There
+      // is no whole-core rollback; prevent a half-initialized pair continuing.
+      const fatal=new Error('Cycle 2OP attack failed after commit started. Restart audio before continuing.',{cause:error});
+      fatal.name='ScspCycleAttackError';fatal.fatal=true;throw fatal;
+    }
   }
   #releaseGroup(id,raw=false){const group=this.groups.get(id);if(!group||!group.held)return false;for(const slot of group.slots)this.releaseGuard.release(slot,{raw});this.#apply(group.slots.map(slot=>['keyOff',[slot]]));group.held=false;return true;}
   noteOff(id){return this.#releaseGroup(id);}
   stopVoices(){
     const autoSlots=new Set([...this.groups.values()].flatMap(group=>group.slots));
-    this.synth.stopVoices();this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();
+    this.synth.stopVoices();this.resetRevision++;this.groups.clear();this.manualVoices.clear();this.releaseGuard.clear();
     for(const slot of autoSlots)if(slot>=SOURCE_COUNT)this.synth.setPreset(slot,{sample:null,modulation:{depth:0}});
     this.effect.install();this.#routeEffect();return true;
   }
@@ -219,11 +231,12 @@ export class SynthInstrument {
     if(!patch||typeof patch!=='object'||Array.isArray(patch)||Reflect.ownKeys(patch).some(k=>!['mode','fm','transpose'].includes(k)))throw new TypeError('Invalid voice settings');
     patch={...patch};
     if(patch.fm!==undefined){
-      if(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Reflect.ownKeys(patch.fm).some(k=>!['depth','depths','ratio','ratios','algorithm','custom'].includes(k)))throw new TypeError('Invalid FM settings');
+      if(!patch.fm||typeof patch.fm!=='object'||Array.isArray(patch.fm)||Reflect.ownKeys(patch.fm).some(k=>!['depth','depths','ratio','ratios','algorithm','custom','cycle2'].includes(k)))throw new TypeError('Invalid FM settings');
       patch.fm={...patch.fm};
       // Materialize a custom request before merging with live settings. A
       // completed nested setter in a getter must not be replaced by stale data.
       if(Object.hasOwn(patch.fm,'custom'))patch.fm.custom=customRouting(patch.fm.custom);
+      if(Object.hasOwn(patch.fm,'cycle2'))patch.fm.cycle2=cycle2Routing(patch.fm.cycle2);
       if(Object.hasOwn(patch.fm,'depths'))patch.fm.depths=operatorDepths(patch.fm.depths);
     }
     const fm={...this.config.fm,...patch.fm};
@@ -235,11 +248,11 @@ export class SynthInstrument {
       else{
         // Enter Custom from the selected fixed template at the desired size.
         // A dormant Custom graph instead keeps its own routes when resized.
-        const template=routing({mode,fm:{algorithm:this.config.fm.algorithm==='custom'?'chain':this.config.fm.algorithm}});
+        const template=routing({mode,fm:{algorithm:['custom','cycle2'].includes(this.config.fm.algorithm)?'chain':this.config.fm.algorithm}});
         fm.custom={inputs:template.inputs,outputs:template.outputs};
       }
     }
-    const next=settings({...this.config,...patch,fm}),commands=[],groupConfigs=new Map(),routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom);
+    const next=settings({...this.config,...patch,fm}),commands=[],groupConfigs=new Map(),routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom)||next.fm.algorithm==='cycle2'&&JSON.stringify(next.fm.cycle2)!==JSON.stringify(this.config.fm.cycle2);
     if(!routeChanged)for(const group of this.groups.values()){
       const live={...(group.config??this.config),transpose:next.transpose,fm:{...(group.config??this.config).fm,depth:next.fm.depth,ratios:[...next.fm.ratios]}},frequency=hz(group.midi,next.transpose+this.pitchBend);
       delete live.fm.depths;if(next.fm.depths)live.fm.depths=[...next.fm.depths];

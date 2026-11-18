@@ -93,9 +93,12 @@ type ScspCodeCustomRouting = ScspCodeCustomRouting2|ScspCodeCustomRouting4|ScspC
 /** Receiving-operator MDL code. The editor validates integer codes 0–12 at runtime. */
 type ScspCodeFmDepth = number;
 type ScspCodeFmDepths = [ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth,ScspCodeFmDepth];
+/** FM2-only fixed A-before-B cycle. B returns its history average to A.
+ * Dense unique outputs select A (0), B (1), both or neither. */
+interface ScspCodeCycle2 {outputs:(0|1)[];}
 interface ScspCodeConfig {
   mode:'pcm'|'fm2'|'fm4'|'fm6';
-  fm:{depth:number;depths?:ScspCodeFmDepths;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom';ratios:number[];custom?:ScspCodeCustomRouting};
+  fm:{depth:number;depths?:ScspCodeFmDepths;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom'|'cycle2';ratios:number[];custom?:ScspCodeCustomRouting;cycle2?:ScspCodeCycle2};
   transpose:number;
   effect:ScspCodeEffect;
 }
@@ -140,8 +143,8 @@ interface ScspCodePatchBase {
   transpose:number;effect:ScspCodeEffect;
   operators:{carrier:ScspCodePortableOperator;modulator:ScspCodePortableOperator;c:ScspCodePortableOperator;d:ScspCodePortableOperator;e:ScspCodePortableOperator;f:ScspCodePortableOperator};
 }
-type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'chain'|'pairs'|'branch'};
-type ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:Graph};
+type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'|'cycle2'> & {algorithm:'chain'|'pairs'|'branch';cycle2?:never};
+type ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'|'cycle2'> & {algorithm:'custom';custom:Graph;cycle2?:never};
 type ScspCodePatch = ScspCodePatchBase & (
   {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths?:never}} |
   {version:5;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting2> & {depths?:never}} |
@@ -165,7 +168,7 @@ interface ScspCodeState extends PlaygroundScspState {
   dspReturns:[ScspCodeDspReturn,ScspCodeDspReturn];
   /** App-only software release preference; excluded from portable presets. */
   clickGuard:boolean;
-  /** Custom groups map authored A–F to physical slots, separately from allocation order. */
+  /** Custom/Cycle groups map authored operators to physical slots, separately from allocation order. */
   voiceGroups:{id:string;midi:number;slots:number[];operatorSlots?:[number,number]|[number,number,number,number]|[number,number,number,number,number,number];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
   /** Keyboard owners of physical CH tabs, separate from Auto / Code groups. */
   manualVoices:{id:string;slot:number;midi:number;baseFrequencyHz:number;held:boolean;order:number}[];
@@ -201,7 +204,14 @@ interface ScspCodeClient {
    * Graph changes retire Auto notes after validation; Code continues running.
    * fm.depths supplies six receiving-OP MDL codes. Omit it to use fm.depth.
    * A scalar-only fm.depth edit sets all six; an explicit depths array wins.
-   * Uniform arrays normalize to the scalar form. Depth edits retain notes. */
+   * Uniform arrays normalize to the scalar form. Depth edits retain notes.
+   * Cycle2 requires mode fm2: A precedes B; A receives B's two-history
+   * average, B receives current A. cycle2.outputs defaults to [1] on entry.
+   * New grouped Cycle attacks initialize only their four owned history cells
+   * in Synth software. Live pitch/Depth edits retain history. Custom keeps
+   * rejecting cross-operator cycles. Set mode and a non-Cycle algorithm
+   * together to leave Cycle for PCM/FM4/FM6; mode-only mismatches reject.
+   * Portable Cycle presets are not available in this first Code-only stage. */
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
   /** Live physical-slot DSP routing. null restores the Synth default send.
@@ -228,6 +238,8 @@ interface ScspCodeClient {
   /** Atomically update only supplied signed COEF0..2 codes (-4096..4095).
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
+  /** Portable v4–10 sound. Rejects active Cycle2 until v11 support is added;
+   * save the JavaScript to retain the Cycle setup for now. */
   exportPatch():Promise<ScspCodePatch>;
   /** Load portable SCSP presets 1–10. Custom two-OP uses version 5;
    * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7.

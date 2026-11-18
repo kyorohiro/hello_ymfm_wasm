@@ -39,6 +39,10 @@ await scsp.setConfig({mode:'fm6',fm:{algorithm:'custom',custom:{inputs:[[0],[1],
 await scsp.setConfig({fm:{depths:[2,4,6,8,10,12]}});
 await scsp.setConfig({fm:{depth:9}});
 await scsp.setConfig({fm:{depth:9,depths:[1,2,3,4,5,6]}});
+await scsp.setConfig({mode:'fm2',fm:{algorithm:'cycle2',cycle2:{outputs:[1]}}});
+await scsp.setConfig({fm:{cycle2:{outputs:[0,1]},depths:[4,8,0,0,0,0]}});
+await scsp.setConfig({fm:{cycle2:{outputs:[]}}});
+const cycleOutputs:(0|1)[]|undefined=state.config.fm.cycle2?.outputs;
 const calculatedDepth=Math.round(Math.random()*12);
 await scsp.setConfig({fm:{depths:[calculatedDepth,2,3,4,5,6]}});
 const operatorDepths:ScspCodeFmDepths|undefined=state.config.fm.depths;
@@ -171,6 +175,16 @@ scsp.setMix(0,{dspSend:7});
 scsp.setPreset(0,{dspInput:1});
 // @ts-expect-error custom inputs name only A or B
 scsp.setConfig({fm:{custom:{inputs:[[],[2]],outputs:[1]}}});
+// @ts-expect-error Cycle outputs name only A or B
+scsp.setConfig({fm:{cycle2:{outputs:[2]}}});
+// @ts-expect-error the Cycle recipe fixes order and delay
+scsp.setConfig({fm:{cycle2:{outputs:[1],delay:1}}});
+// @ts-expect-error complete output metadata is required when explicitly supplied
+scsp.setConfig({fm:{cycle2:{}}});
+// @ts-expect-error Phase1 portable presets do not allow the runtime-only Cycle
+const wrongCycleV4:ScspCodePatch={...exported,version:4,mode:'fm2',fm:{depth:8,ratio:1,ratios:[],algorithm:'cycle2',cycle2:{outputs:[1]}}};
+// @ts-expect-error old portable versions cannot carry dormant Cycle metadata
+const dormantCycleV4:ScspCodePatch={...exported,version:4,mode:'fm2',fm:{depth:8,ratio:1,ratios:[],algorithm:'chain',cycle2:{outputs:[1]}}};
 // @ts-expect-error custom outputs name only A or B
 scsp.setConfig({fm:{custom:{inputs:[[],[0]],outputs:[2]}}});
 // @ts-expect-error custom graphs have exactly two, four or six operators

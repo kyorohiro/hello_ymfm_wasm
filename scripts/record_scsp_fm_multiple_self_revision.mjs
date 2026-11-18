@@ -7,6 +7,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {diffLines} from 'diff';
 import {measureScspFmMultipleSelfDefaultParity,SCSP_FM_MULTIPLE_SELF_PARITY_REPORT} from './record_scsp_fm_multiple_self_default_parity.mjs';
+import {createScspSynthCycle2RevisionReadContext} from './mixer_calibration_scsp_synth_cycle2_revision.mjs';
 import {SCSP_FM_MULTIPLE_SELF_REVISION_BASE_COMMIT as baseCommit,
   SCSP_FM_MULTIPLE_SELF_REVISION_RECEIPT_PATH as destination,
   SCSP_FM_MULTIPLE_SELF_REVISION_SOURCE_PATHS as paths,
@@ -62,7 +63,8 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
     await writeFile(resolve(root,SCSP_FM_MULTIPLE_SELF_PARITY_REPORT),JSON.stringify(parity,null,2)+'\n');
     console.log('Exact legacy baseline parity: '+parity.cases.length+' cases PASS.');
   }
-  const value=await createScspFmMultipleSelfRevisionReceipt(),text=JSON.stringify(value,null,2)+'\n';
+  const reviewed=args[0]==='--check'?createScspSynthCycle2RevisionReadContext():null;
+  const value=await createScspFmMultipleSelfRevisionReceipt(reviewed?{readSource:name=>reviewed.readSource(new URL('../'+name,import.meta.url))}:{}),text=JSON.stringify(value,null,2)+'\n';
   if(args[0]==='--write')await writeFile(resolve(root,destination),text);
   else assert.equal(await readFile(resolve(root,destination),'utf8'),text,'Multiple-Self receipt changed');
   console.log('SCSP FM multiple-Self receipt object SHA256 '+sha(JSON.stringify(value)));

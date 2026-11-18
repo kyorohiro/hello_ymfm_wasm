@@ -2,7 +2,7 @@
 import {createScspValidation} from '../js/playground_scsp.js';
 import {readPreset,writePreset} from './preset.js';
 import {effectSettings,reserveDspRam} from './dsp.js?v=scsp-dsp-coef-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,voiceCommands,operatorCount,customRouting,operatorDepths,selfFeedbackCount} from './routing.js?v=scsp-fm-multiple-self-1';
+import {SOURCE_COUNT,OPERATOR_KEYS,voiceCommands,operatorCount,customRouting,cycle2Routing,operatorDepths,selfFeedbackCount} from './routing.js?v=scsp-cycle2-code-1';
 export const FM_MAX_DEPTH=12;
 export function settings(value) {
   if(!value||!['pcm','fm2','fm4','fm6'].includes(value.mode))throw new TypeError('Mode must be pcm, fm2, fm4 or fm6');
@@ -11,12 +11,14 @@ export function settings(value) {
   const depths=Object.hasOwn(fm,'depths')?operatorDepths(fm.depths):undefined,uniform=depths?.every(depth=>depth===depths[0]);
   if(!Number.isFinite(fm.ratio)||fm.ratio<.125||fm.ratio>8)throw new RangeError('Modulator ratio must be 0.125..8');
   const algorithm=fm.algorithm??'chain',ratios=fm.ratios??[1,...Array(5).fill(fm.ratio)];
-  if(!['chain','pairs','branch','custom'].includes(algorithm))throw new TypeError('Unknown FM connection');
+  if(!['chain','pairs','branch','custom','cycle2'].includes(algorithm))throw new TypeError('Unknown FM connection');
   if(algorithm==='custom'&&value.mode==='pcm')throw new TypeError('Custom connections require an FM mode');
+  if(algorithm==='cycle2'&&value.mode!=='fm2')throw new TypeError('Cycle 2OP requires FM2 mode');
+  const cycle2=Object.hasOwn(fm,'cycle2')?cycle2Routing(fm.cycle2):algorithm==='cycle2'?cycle2Routing():undefined;
   const count=operatorCount(value.mode),custom=Object.hasOwn(fm,'custom')?customRouting(fm.custom,algorithm==='custom'?count:undefined):algorithm==='custom'?customRouting({inputs:Array.from({length:count},(_,index)=>index+1<count?[index+1]:[]),outputs:[0]}):undefined;
   if(!Array.isArray(ratios)||ratios.length!==SOURCE_COUNT||ratios.some(v=>!Number.isFinite(v)||v<.125||v>8))throw new RangeError('Each operator ratio must be 0.125..8');
   if(!Number.isInteger(value.transpose)||value.transpose< -24||value.transpose>24)throw new RangeError('Pitch must be -24..24 semitones');
-  return {mode:value.mode,fm:{depth:uniform?depths[0]:fm.depth,ratio:fm.ratio,algorithm,ratios:[...ratios],...(custom?{custom}:{}),...(depths&&!uniform?{depths}:{})},transpose:value.transpose,effect:effectSettings(value.effect)};
+  return {mode:value.mode,fm:{depth:uniform?depths[0]:fm.depth,ratio:fm.ratio,algorithm,ratios:[...ratios],...(custom?{custom}:{}),...(cycle2?{cycle2}:{}),...(depths&&!uniform?{depths}:{})},transpose:value.transpose,effect:effectSettings(value.effect)};
 }
 export function pcmOptions(operator) {
   const options={...operator.options};delete options.modulationDepth;
@@ -28,6 +30,7 @@ function defaultOperator(){return {pcm:Int16Array.from({length:64},(_,i)=>Math.r
 export function readPatch(value) {
   if(value?.format!=='tetorica-scsp-voice')throw new TypeError('Unsupported SCSP preset format');
   const version=value.version;
+  if(value.fm?.algorithm==='cycle2'||Object.hasOwn(value.fm??{},'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');
   if(version>=1&&version<7&&Object.hasOwn(value.fm??{},'depths'))throw new TypeError('Per-operator FM depths require preset version 7');
   if(version>=1&&version<5&&(value.fm?.algorithm==='custom'||Object.hasOwn(value.fm??{},'custom')))throw new TypeError('Custom FM routing requires preset version 5');
   let config,operators={};
@@ -44,6 +47,9 @@ export function readPatch(value) {
     // Capture the declared version once; unrelated property getters must not
     // switch the format after its normalized graph has been validated.
     config=settings({mode:value.mode,fm:value.fm,transpose:value.transpose,effect:version>=4?value.effect:undefined});
+    // A getter can change fm between the early format gates and normalized
+    // validation. Phase 1 never lets a legacy preset carry active/dormant Cycle.
+    if(config.fm.algorithm==='cycle2'||Object.hasOwn(config.fm,'cycle2'))throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');
     const self=config.fm.custom?selfFeedbackCount(config.fm.custom):0;
     if(version<8&&self)throw new TypeError('Self feedback needs preset version 8 for 2-op, 9 for one Self in 4/6-op, or 10 for multiple Self operators');
     if(version===8&&(config.mode!=='fm2'||config.fm.algorithm!=='custom'||self!==1))throw new TypeError('Preset version 8 requires Custom 2-op with an actual self-feedback connection');
@@ -68,6 +74,8 @@ export function readPatch(value) {
 }
 export function writePatch(config,operators) {
   const validated=settings(config),custom=validated.fm.algorithm==='custom';
+  if(validated.fm.algorithm==='cycle2')throw new TypeError('Cycle 2OP portable presets require version 11 support, which is not available yet');
+  delete validated.fm.cycle2;
   if(!custom)delete validated.fm.custom;
   const self=custom?selfFeedbackCount(validated.fm.custom):0;
   const value={format:'tetorica-scsp-voice',version:self?(validated.mode==='fm2'?8:self===1?9:10):validated.fm.depths?7:custom?(validated.mode==='fm2'?5:6):4,...validated,operators:Object.fromEntries(Object.entries(operators).map(([kind,operator])=>{

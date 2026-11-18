@@ -2,7 +2,7 @@
 import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { Pcm44100Resampler } from '../js/pcm_44100_resampler.js';
-import { SynthInstrument } from './instrument.js?v=scsp-fm-multiple-self-1';
+import { SynthInstrument } from './instrument.js?v=scsp-cycle2-code-1';
 
 function auditionToken(value) {
 	if (typeof value !== 'string' || !value.length || value.length > 256)
@@ -92,6 +92,7 @@ class SynthProcessor extends AudioWorkletProcessor {
 				try {
 					let value, primaryResponse = false;
 					const hadRouting = this.instrument.dspRoutingActive;
+					const resetRevision = this.instrument.resetRevision;
 					if (data.type === 'chip-inspector') {
 						primaryResponse = true;
 						value =
@@ -207,6 +208,10 @@ class SynthProcessor extends AudioWorkletProcessor {
 							codeActive = this.instrument.codeActive;
 						value = this.instrument[data.method](...(data.args ?? []));
 						if (
+							// Outputs-only Cycle edits can reset native state without
+							// changing mode/algorithm, including nested Code calls.
+							(this.instrument.resetRevision !== resetRevision &&
+								(config.fm.algorithm === 'cycle2' || this.instrument.config.fm.algorithm === 'cycle2')) ||
 							data.method === 'stopVoices' ||
 							data.method === 'loadIdleState' ||
 							(data.method === 'loadPatch' && !codeActive) ||

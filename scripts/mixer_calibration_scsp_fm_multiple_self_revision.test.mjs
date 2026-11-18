@@ -12,7 +12,9 @@ import {restoreMixerCalibrationScspFmMultipleSelfRevision as restore,
   SCSP_FM_MULTIPLE_SELF_REVISION_REPORT_PATHS as reports,
 } from './mixer_calibration_scsp_fm_multiple_self_revision.mjs';
 import {createScspFmMultiSelfFeedbackRevisionReader} from './mixer_calibration_scsp_fm_multi_self_feedback_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+import {createScspSynthCycle2RevisionReadContext} from './mixer_calibration_scsp_synth_cycle2_revision.mjs';
+const reviewed=createScspSynthCycle2RevisionReadContext();
+const url=name=>new URL('../'+name,import.meta.url),read=name=>reviewed.readSource(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const match=(bytes,expected)=>{assert.equal(bytes.length,expected.bytes);assert.equal(sha(bytes),expected.sha256);};

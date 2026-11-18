@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-fm-multiple-self-1';
-import { SynthInstrument } from './instrument.js?v=scsp-fm-multiple-self-1';
-import { readPatch, writePatch } from './patch.js?v=scsp-fm-multiple-self-1';
-import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-multiple-self-1';
+import { createAudio } from './audio.js?v=scsp-cycle2-code-1';
+import { SynthInstrument } from './instrument.js?v=scsp-cycle2-code-1';
+import { readPatch, writePatch } from './patch.js?v=scsp-cycle2-code-1';
+import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-cycle2-code-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-fm-multiple-self-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-cycle2-code-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfLiveView } from './ssf_live_view.js?v=scsp-ssf-dsp-1';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
@@ -20,7 +20,7 @@ import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
 import { validateScspSynthDspProgram } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 import { setupScspChannelView } from './channel_view.js';
-import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-fm-multiple-self-1';
+import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-cycle2-code-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
@@ -70,6 +70,12 @@ let selectedOperator = 0,
 	fmDepthView = null,
 	ssfDspView = null;
 let editorViewKey = 'auto:0';
+let cycle2Active = false;
+const cycle2SaveMessage = 'Cycle 2OP is Code-only for now. Save the JavaScript; portable Cycle presets need the next update.';
+function portableSound() {
+	if (cycle2Active) throw new Error(cycle2SaveMessage);
+	return clone(cachedPatch);
+}
 let renderedSampleKey = '';
 let committedPcmContext = null;
 let clickGuardIntent = 0,
@@ -219,8 +225,14 @@ function cacheAuthoring({ state, operators }) {
 		]),
 	);
 	baseTranspose = state.config.transpose;
-	cachedPatch = writePatch({ ...state.config, transpose: baseTranspose }, sources);
-	if (soundName) cachedPatch.name = soundName;
+	cycle2Active = state.config.fm.algorithm === 'cycle2';
+	// Code is saved normally; until v11, retain the last portable base sound for
+	// workspace/restart recovery. Sound-save actions must reject instead of
+	// exporting this base as though it represented the running Cycle.
+	if (!cycle2Active) {
+		cachedPatch = writePatch({ ...state.config, transpose: baseTranspose }, sources);
+		if (soundName) cachedPatch.name = soundName;
+	}
 	latestState = state;
 	rememberDspRouting(state);
 	const ids = new Set(state.voiceGroups.map((group) => group.id));
@@ -378,6 +390,14 @@ function renderState() {
 			'Sample RAM',
 			'SCSP RAM (64 KiB reserved for DSP)',
 		);
+	let cycleOption = $('algorithm').querySelector('option[value="cycle2"]');
+	if (state.config.fm.algorithm === 'cycle2' && !cycleOption) {
+		cycleOption = document.createElement('option');
+		cycleOption.value = 'cycle2';
+		cycleOption.textContent = 'Cycle 2OP · Code';
+		cycleOption.disabled = true;
+		$('algorithm').append(cycleOption);
+	} else if (state.config.fm.algorithm !== 'cycle2') cycleOption?.remove();
 	for (const [id, value] of [
 		['voiceMode', state.config.mode],
 		['fmDepth', state.config.fm.depth],
@@ -516,6 +536,11 @@ async function ensureAudio() {
 			const engine = await createAudio({
 				volume: Number($('volume').value),
 				onError: audioFailed,
+			onConfigChange({method, value}) {
+				if (disposed || audio !== engine) return;
+				cycle2Active = method === 'setConfig' && value.fm.algorithm === 'cycle2';
+				if (cycle2Active) status('Cycle 2OP · Code-only setup. Save the JavaScript; preset support follows.');
+			},
 				onDspChange({ method, args = [], value }) {
 					if (disposed || audio !== engine) return;
 					if (method === 'routingState') {
@@ -1454,8 +1479,9 @@ $('open').addEventListener('change', async () => {
 $('save').addEventListener('click', async () => {
 	try {
 		await refresh();
+		const sound = portableSound();
 		const url = URL.createObjectURL(
-			new Blob([JSON.stringify(cachedPatch, null, 2) + '\n'], {
+			new Blob([JSON.stringify(sound, null, 2) + '\n'], {
 				type: 'application/json',
 			}),
 		);
@@ -1473,6 +1499,7 @@ codeHost = setupScspCodeHost({
 	ensureAudio,
 	getAudio: () => audio,
 	getSettings: () => clone(cachedPatch),
+	getSoundSettings: portableSound,
 	applySettings,
 	stopKeyboard,
 	onBeforeRun: async () => {

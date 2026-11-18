@@ -13,6 +13,16 @@ export function operatorDepths(value){
 export const operatorDepth=(config,index)=>config.fm.depths?.[index]??config.fm.depth;
 export const hasSelfFeedback=graph=>graph.inputs.some((sources,target)=>sources.includes(target));
 export const selfFeedbackCount=graph=>graph.inputs.reduce((count,sources,target)=>count+Number(sources.includes(target)),0);
+/** Fixed two-OP cycle metadata. Timing/order are defined by the algorithm. */
+export function cycle2Routing(value){
+  if(arguments.length===0)value={outputs:[1]};
+  if(!value||typeof value!=='object'||Array.isArray(value)||Reflect.ownKeys(value).length!==1||!Object.hasOwn(value,'outputs'))throw new TypeError('Cycle 2OP requires outputs only');
+  const raw=value.outputs;
+  if(!Array.isArray(raw)||raw.length>2||!denseArray(raw,raw.length))throw new TypeError('Cycle 2OP outputs must be a dense operator list');
+  const outputs=Array.from(raw,output=>{if(output!==0&&output!==1)throw new RangeError('Cycle 2OP output must name A or B');return output;});
+  if(new Set(outputs).size!==outputs.length)throw new TypeError('Cycle 2OP outputs must not contain duplicates');
+  return {outputs:outputs.sort((a,b)=>a-b)};
+}
 const customCounts=[2,4,6];
 function customOrder(inputs){
   const remaining=inputs.map((sources,target)=>sources.filter(source=>source!==target).length),dependents=inputs.map(()=>[]),ready=[],order=[];
@@ -62,6 +72,10 @@ export function resizeCustomRouting(value,count){
 }
 export function routing(config){
   const count=operatorCount(config.mode),inputs=Array.from({length:count},()=>[]);
+  if(config.fm.algorithm==='cycle2'){
+    if(config.mode!=='fm2')throw new TypeError('Cycle 2OP requires FM2 mode');
+    return {count,inputs:[[1],[0]],...cycle2Routing(config.fm.cycle2)};
+  }
   if(config.fm.algorithm==='custom'){
     if(config.mode==='pcm')throw new TypeError('Custom connections require an FM mode');
     return {count,...customRouting(config.fm.custom,count)};
@@ -83,18 +97,18 @@ export function customOperatorSlots(config,slots){
 // Legacy graphs use reverse operator order. Custom dependency order likewise
 // places each source earlier in the zero-delay core's physical sound stack.
 export function voiceCommands(synth,config,group){
-  const {count,inputs,outputs}=routing(config),state=synth.getState(),frequency=440*2**((group.midi-69+config.transpose)/12),commands=[],custom=config.fm.algorithm==='custom',slots=custom?customOperatorSlots(config,group.slots):null;
+  const {count,inputs,outputs}=routing(config),state=synth.getState(),frequency=440*2**((group.midi-69+config.transpose)/12),commands=[],custom=config.fm.algorithm==='custom',cycle=config.fm.algorithm==='cycle2',slots=custom?customOperatorSlots(config,group.slots):cycle?group.slots:null;
   for(let index=count-1;index>=0;index--){
-    const voice=state.slots[index],slot=custom?slots[index]:group.slots[count-1-index],sources=inputs[index];
+    const voice=state.slots[index],slot=slots?slots[index]:group.slots[count-1-index],sources=inputs[index];
     if(sources.length&&voice.sample?.loopStartSamples!==0)throw new RangeError(`FM operator ${OPERATOR_NAMES[index]} needs a full forward loop (loop start 0)`);
-    const offsets=sources.map(source=>((custom?slots[source]:group.slots[count-1-source])-slot+64)%64);
+    const offsets=sources.map(source=>((slots?slots[source]:group.slots[count-1-source])-slot+64)%64);
     // Self uses the latest/past pair recommended by the SCSP manual. In this
     // zero slot-delay core these are the preceding one/two native samples.
     const self=sources.includes(index);
-    const modulation={depth:sources.length?operatorDepth(config,index):0,xOffset:self?32:offsets[0]??0,yOffset:self?0:offsets[1]??offsets[0]??0,writeInhibit:false};
+    const modulation={depth:sources.length?operatorDepth(config,index):0,xOffset:cycle?(index===0?33:63):self?32:offsets[0]??0,yOffset:cycle?(index===0?1:63):self?0:offsets[1]??offsets[0]??0,writeInhibit:false};
     commands.push(['setPreset',[slot,{sample:voice.sample,envelope:voice.envelope,lfo:voice.lfo,totalLevel:voice.totalLevel,directLevel:outputs.includes(index)?voice.directLevel:0,pan:voice.pan,frequencyHz:frequency*(config.mode==='pcm'?1:config.fm.ratios[index]),modulation}]]);
   }
   for(const slot of group.slots)commands.push(['keyOn',[slot]]);
   return commands;
 }
-export function operatorSlot(group,index){return index<group.slots.length?(group.operatorSlots?.[index]??(group.config?.fm.algorithm==='custom'?customOperatorSlots(group.config,group.slots)[index]:group.slots[group.slots.length-1-index])):null;}
+export function operatorSlot(group,index){return index<group.slots.length?(group.operatorSlots?.[index]??(group.config?.fm.algorithm==='custom'?customOperatorSlots(group.config,group.slots)[index]:group.config?.fm.algorithm==='cycle2'?group.slots[index]:group.slots[group.slots.length-1-index])):null;}

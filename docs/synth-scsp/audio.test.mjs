@@ -78,6 +78,19 @@ test('a committed DSP ACK updates its same-engine memo even when Stop has retire
   const fresh=await engine.getScspClient();await fresh.setDspCoefficients({1:1});assert.equal(changes.length,2);
 });
 
+test('acknowledged Code config reaches the portable-save gate before resolving without renderer polling',async t=>{
+  const f=setup(t),events=[],config={mode:'fm2',fm:{algorithm:'cycle2',cycle2:{outputs:[1]}}};
+  const engine=await createAudio({onConfigChange:change=>{events.push(change);if(change.method==='setConfig')change.value.fm.cycle2.outputs[0]=0;}});
+  t.after(()=>engine.dispose());const client=await engine.getScspClient();
+  f.codeReply=method=>method==='setConfig'?config:true;
+  const before=f.messages.length;
+  const returned=await client.setConfig(config).then(value=>{assert.equal(events.length,1);return value;});
+  assert.deepEqual(returned,config);assert.deepEqual(returned.fm.cycle2.outputs,[1],'observer owns its copy');
+  assert.equal(f.messages.length,before+1,'configuration does not trigger a renderer poll');
+  await client.loadPatch({});assert.deepEqual(events[1],{method:'loadPatch',value:true});
+  await client.getState();assert.equal(events.length,2,'reads do not alter the save gate');
+});
+
 test('a display callback failure does not reject an acknowledged DSP mutation or stop audio',async t=>{
   const f=setup(t),saved=console.error,logs=[];console.error=(...args)=>logs.push(args);t.after(()=>{console.error=saved;});
   const engine=await createAudio({onError:error=>f.errors.push(error),onDspChange:()=>{throw Error('display failed');}});

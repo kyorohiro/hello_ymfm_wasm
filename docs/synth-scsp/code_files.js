@@ -102,6 +102,7 @@ function copyPath(project, path) {
 export function setupScspCodeFiles({
 	project = createScspCodeProject(),
 	getSettings = () => project.settings,
+	getSoundSettings = getSettings,
 	applySettings = async () => {},
 	onBeforeWorkspaceReplace = async () => {},
 	onBeforeSoundApply = async () => {},
@@ -710,7 +711,7 @@ export function setupScspCodeFiles({
 					throw Error('Use a .scsp.json instrument file name.');
 				if (occupied(project, requestedPath)) throw Error('That path already exists.');
 			}
-			let sound = readScspProjectSound(requestedSound ?? getSettings());
+			let sound = readScspProjectSound(requestedSound ?? getSoundSettings());
 			if (!sound) throw Error('Expected a SCSP instrument.');
 			if (requestedName !== undefined) {
 				if (requestedPath !== undefined)
@@ -823,7 +824,7 @@ export function setupScspCodeFiles({
 		if (disposed || busy) return;
 		dialogAction = action;
 		dialogPath = path;
-		dialogSound = action === 'save-sound' ? readScspProjectSound(getSettings()) : null;
+		dialogSound = action === 'save-sound' ? readScspProjectSound(getSoundSettings()) : null;
 		const directory =
 			path && project.fs.stat(path).type === 'directory' ? path : path ? dirname(path) : '/';
 		label.textContent = {
