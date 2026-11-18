@@ -1,5 +1,7 @@
 # Sega Saturn SCSP対応 — 2026-10-30
 
+2026-11-18：現在の追加候補は[SCSP Synth後続TODO](todo_scsp_synth_followup_20261118.md)へ集約。複数スロットCapture（2OPに限定しない）→DSP Reverbを優先候補とし、DSP編集UI拡充・SSF DSP取り込み／編集は別段階とする。以下の初期計画・過去記録には、後続作業で完了済みの項目が含まれる。
+
 2026-10-31：追加開発はいったん区切る。[再開用TODO](todo_scsp_resume_20261031.md)を入口にする。先にGitHub Actionsを確認・修正し、他機能のリリース準備へ進む。
 
 2026-11-15：専用SynthのCode／SSF Live／Captureに続き、[Auto／物理CH別の表示・編集・鍵盤操作](todo_scsp_synth_channels_20261115.md)を追加。Codeの割当先を表示し、Auto再利用時の上書きと保存対象を明示する。DSPアセンブラ・自由配線は引き続き後続。

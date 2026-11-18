@@ -2,6 +2,11 @@
 
 Requested 2026-11-15 after read-only SSF Live inspection.
 
+2026-11-18 follow-up: [multi-slot Capture roadmap](todo_scsp_synth_followup_20261118.md).
+The next investigation is not limited to a two-operator pair; it must establish
+the selected CH's required slot group, Sound Stack dependencies and current
+Synth representation limits before defining supported conversions.
+
 Follow-up: [Attack / loop link](todo_scsp_synth_loop_link_20261115.md) adds
 linked forward-loop capture after the initial v0.0.1 scope recorded below.
 
