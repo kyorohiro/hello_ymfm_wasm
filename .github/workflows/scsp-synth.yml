@@ -82,6 +82,8 @@ jobs:
           node --test scripts/mixer_calibration_scsp_dsp_ui_revision.test.mjs scripts/scsp_dsp_routing_ui_default_parity.test.mjs
           node --test scripts/mixer_calibration_scsp_dsp_flow_revision.test.mjs
           node --test scripts/mixer_calibration_scsp_fm_custom_revision.test.mjs scripts/scsp_fm_custom2_default_parity.test.mjs
+          node --test scripts/mixer_calibration_scsp_fm_multi_revision.test.mjs scripts/scsp_fm_multi_default_parity.test.mjs
+          node scripts/record_scsp_fm_multi_revision.mjs --check
           node scripts/record_scsp_shared_client_navigation_ui_revision.mjs --check
           sh scripts/package_itch_scsp_synth.sh ci
           python3 -m zipfile -e release/tetorica_scsp_synth_ci_itch.zip release/scsp-synth-browser
@@ -97,6 +99,7 @@ jobs:
           node scripts/check_scsp_synth_dsp_routing_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-dsp-routing-browser.json
           node scripts/check_scsp_synth_dsp_flow_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-dsp-flow-browser.json
           node scripts/check_scsp_synth_fm_custom_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-fm-custom-browser.json
+          node scripts/check_scsp_synth_fm_multi_browser.cjs --root=release/scsp-synth-browser --entry=/index.html --out=release/scsp-synth-fm-multi-browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -124,4 +127,6 @@ jobs:
             release/scsp-synth-dsp-flow-browser-*.png
             release/scsp-synth-fm-custom-browser.json
             release/scsp-synth-fm-custom-browser-*.png
+            release/scsp-synth-fm-multi-browser.json
+            release/scsp-synth-fm-multi-browser-*.png
           if-no-files-found: ignore

@@ -28,16 +28,26 @@ const sample=await scsp.loadPCM(new Int16Array([0,1,0,-1]),{rootNote:'C4',loopSt
 await scsp.setPreset(0,{sample});await scsp.setConfig({mode:'fm6',fm:{algorithm:'pairs'}});
 await scsp.setConfig({mode:'fm2',fm:{algorithm:'custom',custom:{inputs:[[],[0]],outputs:[1]}}});
 await scsp.setConfig({fm:{custom:{inputs:[[1],[]],outputs:[0,1]}}});
+await scsp.setConfig({mode:'fm4',fm:{algorithm:'custom',custom:{inputs:[[1,2],[3],[3],[]],outputs:[0,2]}}});
+await scsp.setConfig({mode:'fm6',fm:{algorithm:'custom',custom:{inputs:[[],[],[0,1],[1],[2,3],[4]],outputs:[4,5]}}});
 const customInput:ScspCodeCustomOperator|undefined=state.config.fm.custom?.inputs[1][0];
 const customOutputs:ScspCodeCustomOperator[]|undefined=state.config.fm.custom?.outputs;
-const presetVersion:4|5=(await scsp.exportPatch()).version;
+const presetVersion:4|5|6=(await scsp.exportPatch()).version;
 const exported=await scsp.exportPatch();
 if(exported.version===5){
   const customMode:'fm2'=exported.mode;
   const customAlgorithm:'custom'=exported.fm.algorithm;
-  const savedGraph:ScspCodeCustomRouting=exported.fm.custom;
+  const savedGraph:ScspCodeCustomRouting2=exported.fm.custom;
 }
-const operatorSlots:[number,number]|undefined=state.voiceGroups[0]?.operatorSlots;
+if(exported.version===6&&exported.mode==='fm4'){
+  const savedGraph:ScspCodeCustomRouting4=exported.fm.custom;
+  const secondSource:ScspCodeCustomOperator4|undefined=savedGraph.inputs[0][1];
+}
+if(exported.version===6&&exported.mode==='fm6'){
+  const savedGraph:ScspCodeCustomRouting6=exported.fm.custom;
+  const output:ScspCodeOperator|undefined=savedGraph.outputs[0];
+}
+const operatorSlots:[number,number]|[number,number,number,number]|[number,number,number,number,number,number]|undefined=state.voiceGroups[0]?.operatorSlots;
 await scsp.setEffect({enabled:true});await scsp.setEnvelope(5,{attackRate:31});
 await scsp.setEffect({feedback:-0.5});
 const physicalSend:ScspCodeDspSend=await scsp.setDspSend(31,{input:1,level:7});
@@ -119,12 +129,26 @@ scsp.setPreset(0,{dspInput:1});
 scsp.setConfig({fm:{custom:{inputs:[[],[2]],outputs:[1]}}});
 // @ts-expect-error custom outputs name only A or B
 scsp.setConfig({fm:{custom:{inputs:[[],[0]],outputs:[2]}}});
-// @ts-expect-error the initial custom graph has exactly two operators
+// @ts-expect-error custom graphs have exactly two, four or six operators
 scsp.setConfig({fm:{custom:{inputs:[[],[0],[]],outputs:[1]}}});
 // @ts-expect-error no duplicate / second custom source in the two-operator editor
 scsp.setConfig({fm:{custom:{inputs:[[],[0,0]],outputs:[1]}}});
 // @ts-expect-error a custom graph update supplies both inputs and outputs
 scsp.setConfig({fm:{custom:{outputs:[1]}}});
+// @ts-expect-error four-OP sources end at D
+scsp.setConfig({fm:{custom:{inputs:[[4],[],[],[]],outputs:[0]}}});
+// @ts-expect-error four-OP outputs end at D
+scsp.setConfig({fm:{custom:{inputs:[[],[],[],[]],outputs:[4]}}});
+// @ts-expect-error six-OP sources end at F
+scsp.setConfig({fm:{custom:{inputs:[[6],[],[],[],[],[]],outputs:[0]}}});
+// @ts-expect-error each target accepts at most two sources
+scsp.setConfig({fm:{custom:{inputs:[[1,2,3],[],[],[]],outputs:[0]}}});
+// @ts-expect-error version 5 retains only the original two-OP format
+const wrongV5:ScspCodePatch={...exported,version:5,mode:'fm4',fm:{depth:9,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[],[],[]],outputs:[0]}}};
+// @ts-expect-error version 6 four-OP presets cannot contain a six-OP graph
+const wrongV6:ScspCodePatch={...exported,version:6,mode:'fm4',fm:{depth:9,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[],[],[],[],[]],outputs:[0]}}};
+// @ts-expect-error fixed version 4 does not save a custom graph
+const wrongV4:ScspCodePatch={...exported,version:4,mode:'fm2',fm:{depth:9,ratio:1,ratios:[],algorithm:'custom',custom:{inputs:[[],[]],outputs:[0]}}};
 `);
     const compiler=fileURLToPath(new URL('../../node_modules/typescript/bin/tsc',import.meta.url));
     try{execFileSync(process.execPath,[compiler,'--strict','--noEmit','--skipLibCheck','false','--target','ES2022','--module','ESNext','--moduleResolution','Bundler','--lib','ES2022',join(work,'globals.d.ts'),join(work,'entry.ts')],{stdio:'pipe'});}catch(e){throw Error(e.stdout?.toString()||e.message);}

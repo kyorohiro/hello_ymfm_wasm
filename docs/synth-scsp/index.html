@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-fm-custom2-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-fm-multi-1" />
 	</head>
 	<body>
 		<main>
@@ -409,7 +409,7 @@
 											<option value="chain">Chain · serial</option>
 											<option value="pairs">Pairs · parallel 2-op</option>
 											<option value="branch">Branch · two-input tree</option>
-											<option id="scspCustomFmOption" value="custom" disabled>Custom · 2OP</option>
+											<option id="scspCustomFmOption" value="custom" disabled>Custom</option>
 										</select></label
 									><label
 										>All FM depths (MDL)
@@ -471,14 +471,18 @@
 								<div id="scspCustomFmControls" class="scsp-custom-fm-controls" hidden>
 									<div class="scsp-fields">
 										<strong id="scspCustomFmTarget">Custom · operator A</strong>
-										<label>Modulation from
-											<select id="scspCustomFmInput"><option value="">None</option><option value="0">A</option><option value="1">B</option></select>
+										<label>Input X
+											<select id="scspCustomFmInput"><option value="">None</option><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option><option value="4">E</option><option value="5">F</option></select>
+										</label>
+										<label id="scspCustomFmInputYLabel" hidden>Input Y
+											<select id="scspCustomFmInputY"><option value="">Same as X</option><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option><option value="4">E</option><option value="5">F</option></select>
 										</label>
 										<label class="scsp-custom-fm-output"><input id="scspCustomFmOutput" type="checkbox" /> Direct output</label>
 										<details class="scsp-inline-help">
-											<summary aria-label="About custom two-operator connections">?</summary>
-											<p>Choose A or B above, then its modulation source and direct output. An operator can both modulate another and produce sound. Clear the existing input before reversing a connection.</p>
-											<p>This graph editor and its voice allocation are Synth software over SCSP slot modulation. The initial Custom editor accepts acyclic 2OP connections. Self modulation, loops and Custom 4/6OP are follow-up work; raw physical CH controls keep their existing behavior.</p>
+											<summary aria-label="About custom operator connections">?</summary>
+											<p>Choose an operator above, then its inputs and direct output. An operator can both modulate another and produce sound. One source feeds both hardware inputs; with two sources, SCSP averages X and Y. Clear an existing input before reversing a connection.</p>
+											<p>This graph editor and its voice allocation are Synth software over SCSP slot modulation. Custom accepts acyclic 2 / 4 / 6OP connections. Self modulation and feedback loops are future work; raw physical CH controls keep their existing behavior.</p>
+											<p>Changing the operator count keeps routes between remaining operators. Added operators start disconnected with direct output off; removed operators and their routes are dropped. Entering Custom for the first time starts from the selected Chain / Pairs / Branch template.</p>
 											<p>A graph change releases the current Auto notes; Code keeps running and its next notes use the new graph. Independent physical keyboard voices retain their owners. The graph is saved in custom instrument presets.</p>
 										</details>
 									</div>
@@ -986,8 +990,8 @@
 					<p>
 						PCM, envelopes, LFO and sound-stack modulation run in the SCSP core. Wave
 						drawing, grouped voice allocation and Code are software tools. Chain /
-						Pairs / Branch support 2 / 4 / 6 operators; Custom starts with acyclic 2OP.
-						Custom 4/6OP and FM feedback are future work. The editor core uses zero slot-write delay. SSF
+						Pairs / Branch and Custom support 2 / 4 / 6 operators. Custom accepts up to
+						two inputs per operator; FM feedback is future work. The editor core uses zero slot-write delay. SSF
 						playback uses Mednafen.
 					</p>
 					<div>
@@ -1001,6 +1005,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-fm-custom2-1"></script>
+		<script type="module" src="synth.js?v=scsp-fm-multi-1"></script>
 	</body>
 </html>

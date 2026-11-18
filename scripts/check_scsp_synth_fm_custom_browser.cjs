@@ -246,14 +246,15 @@ async function exercise(name,origin){
     const savedV4=await saveInstrument(page);assert.equal(savedV4.version,4);assert.equal(savedV4.fm.custom,undefined);
     await loadInstrument(page,savedV5,'custom-v5.json');await customGraph(page,[[1],[]],[0,1]);
     await page.locator('#voiceMode').selectOption('fm4');
-    await waitState(page,state=>state.config.mode==='fm4'&&state.config.fm.algorithm==='chain','custom to four-op fallback');
-    await page.waitForFunction(()=>document.querySelector('#algorithm option[value="custom"]').disabled&&document.getElementById('scspCustomFmControls').hidden);
-    assert.equal(await page.locator('#algorithm option[value="custom"]').evaluate(option=>option.disabled),true);
-    assert(await page.locator('#scspCustomFmControls').isHidden());
+    await waitState(page,state=>state.config.mode==='fm4'&&state.config.fm.algorithm==='custom','custom four-op mode');
+    await customGraph(page,[[1],[],[],[]],[0,1]);
+    await page.waitForFunction(()=>!document.querySelector('#algorithm option[value="custom"]').disabled&&!document.getElementById('scspCustomFmControls').hidden);
+    assert.equal(await page.locator('#algorithm option[value="custom"]').evaluate(option=>option.disabled),false);
+    assert(await page.locator('#scspCustomFmControls').isVisible());
     await loadInstrument(page,savedV4,'fixed-v4.json');
     await waitState(page,state=>state.config.mode==='fm2'&&state.config.fm.algorithm==='chain','legacy fixed preset restore');
     await loadInstrument(page,savedV5,'custom-again.json');await customGraph(page,[[1],[]],[0,1]);
-    cases.push('Version-5 custom presets round-trip while fixed v4 files stay unchanged and higher-OP mode falls back explicitly');
+    cases.push('Version-5 custom presets round-trip while fixed v4 files stay unchanged and higher-OP mode also offers Custom');
 
     await page.locator('#synthInputCodeTab').click();
     await page.locator('#synthCodeEditor').evaluate(input=>{

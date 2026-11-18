@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-custom-acyclic-multi-operator-FM",
+  "baseCommit": "81f5e7e591e4fdbf6f375ea97061eb6c514f3e97",
+  "published": false,
+  "npmUpdated": false,
+  "packageVersionChanged": false,
+  "parentCommitCreated": false,
+  "physicalListeningPerformed": false,
+  "presetVersions": {
+    "custom2": 5,
+    "custom4And6": 6,
+    "fixed": 4
+  },
+  "evidence": {
+    "synthSuite": {
+      "path": "build/scsp-custom-multi-20261118/synthSuite.log",
+      "bytes": 36282,
+      "sha256": "8a9ec8bc58f3ef9966e86e989a50ef420c645b9d3601e6d5a430a2ec92f2c596"
+    },
+    "types": {
+      "path": "build/scsp-custom-multi-20261118/types.log",
+      "bytes": 330,
+      "sha256": "6e8aeb4df4afbff020fc9ab541dfc2198e92b2786bfe65b1d1776ce52edf8bc3"
+    },
+    "proof": {
+      "path": "build/scsp-custom-multi-20261118/proof.log",
+      "bytes": 6686,
+      "sha256": "83a2230456e5c929c41e073e6cf367018280db1d6c51ddc0b3b3fd3a3c1c0496"
+    },
+    "generators": {
+      "path": "build/scsp-custom-multi-20261118/generators.log",
+      "bytes": 447,
+      "sha256": "c9953ef64f7ccc9eb9099b85b48799671e59a34dd23eaa949df6012d4579067d"
+    },
+    "recorders": {
+      "path": "build/scsp-custom-multi-20261118/recorders.log",
+      "bytes": 1115,
+      "sha256": "4765d5795d27b8880e73009bdcc21c41e8fb8caeb26c9184f38baa8c13d6cc38"
+    },
+    "packaging": {
+      "path": "build/scsp-custom-multi-20261118/packaging.log",
+      "bytes": 472,
+      "sha256": "1c7ee2e1c4eb0baeeb93edac5e23117ae21ee1663c7eaf559a6a95f8a8c041b7"
+    },
+    "legacyBrowser": {
+      "path": "build/scsp-custom-multi-20261118/legacyBrowser.log",
+      "bytes": 89,
+      "sha256": "a4c9fab119b31cbaeb5af330541c46c4e439a69d825cd2d9f8fc6853d88782c9"
+    },
+    "independentAudit": {
+      "path": "build/scsp-custom-multi-20261118/independentAudit.log",
+      "bytes": 99169,
+      "sha256": "9c2d78f08d8f5066399a48c922542916f41cd22baec8a1380ef63fbecff1e2f5"
+    }
+  },
+  "checks": {
+    "synthAndPackagingPassed": 344,
+    "newBackendPassed": 12,
+    "viewPassed": 5,
+    "proofGuardPassed": 55,
+    "exactLegacyCases": 66,
+    "sourcePairs": 17,
+    "reverseHunks": 74,
+    "dependencies": 45,
+    "reports": 14,
+    "historicalJsonUnchanged": 881,
+    "parityRecordersChecked": 6,
+    "mixerGeneratorsChecked": 2,
+    "sharedWasmUnchanged": true
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_fm_multi_source_revision_01.json",
+    "bytes": 32357,
+    "sha256": "bd7c05efb09d48a672e482911ff5d0008c8716992fb8f201e82d912099ea3e6a"
+  },
+  "sourceReceiptObjectSha256": "b3da5826658c53f6b503aa6f03002b8bbab51f4a07cbeded78f2ff58c0d12450",
+  "defaultParity": {
+    "path": "docs/issues/scsp_fm_multi_default_parity_01.json",
+    "bytes": 72967,
+    "sha256": "0fe1b49716c04108d3b44080f86a4f4dc2802d501fe708a320cb5e6da633a104"
+  },
+  "sourceBrowser": {
+    "path": "build/scsp-custom-multi-20261118/browser-source.json",
+    "bytes": 21353,
+    "sha256": "2384a34229b85517b3077edc65f20f02b30c757b49c5c958b29799e8bb663d8c",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      6,
+      6
+    ],
+    "assets": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "screenshots": [
+      {
+        "four": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-chromium-four.png",
+          "bytes": 42949,
+          "sha256": "7078b48b3d6cdb4a5ef8e13a3b2a5dc955e36647d56edeef666d22a80ef1f575"
+        },
+        "six": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-chromium-six.png",
+          "bytes": 51253,
+          "sha256": "0d4a924bb9393ee1bfd34c23e11770c614b22782518b2ce6f5282f9f1a8b9cea"
+        },
+        "code": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-chromium-code.png",
+          "bytes": 50963,
+          "sha256": "839ae8a1be88f6dc5b466f88b6bba0a29eac96191b2a558466e1cfb5d774ac51"
+        },
+        "mobile": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-chromium-mobile.png",
+          "bytes": 34315,
+          "sha256": "69ba9cb46ba2fcf9fcce0cc3c8ab7b44f4ad4f11be39f7fd98ebf9d8ffdc6558"
+        }
+      },
+      {
+        "four": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-webkit-four.png",
+          "bytes": 55298,
+          "sha256": "6ed1e34fc28f9ce31b79bba0d0d97b2556543de72d5e51a7734d44f8488df57e"
+        },
+        "six": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-webkit-six.png",
+          "bytes": 62723,
+          "sha256": "3c3f1a03c356dc1f5933d83aaaa8ca5a8dd17a0786c27843212766ce3af2d58d"
+        },
+        "code": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-webkit-code.png",
+          "bytes": 63207,
+          "sha256": "1cfe683d92528fb8cf6c01743d2f9eb7c4d5ee8428a85d9986513303a361511e"
+        },
+        "mobile": {
+          "path": "build/scsp-custom-multi-20261118/browser-source-webkit-mobile.png",
+          "bytes": 39363,
+          "sha256": "0e89696d996a2ec34da3107ddc8dc48f229a5faccfb04fa0540451eae18dc675"
+        }
+      }
+    ]
+  },
+  "exactZipBrowser": {
+    "path": "build/scsp-custom-multi-20261118/browser-zip.json",
+    "bytes": 21347,
+    "sha256": "665a775e2c12aa51df9586bd562522b7c91cfd73d5a70474b089cc40c310763b",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      6,
+      6
+    ],
+    "assets": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "screenshots": [
+      {
+        "four": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-chromium-four.png",
+          "bytes": 42949,
+          "sha256": "7078b48b3d6cdb4a5ef8e13a3b2a5dc955e36647d56edeef666d22a80ef1f575"
+        },
+        "six": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-chromium-six.png",
+          "bytes": 51253,
+          "sha256": "0d4a924bb9393ee1bfd34c23e11770c614b22782518b2ce6f5282f9f1a8b9cea"
+        },
+        "code": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-chromium-code.png",
+          "bytes": 50963,
+          "sha256": "839ae8a1be88f6dc5b466f88b6bba0a29eac96191b2a558466e1cfb5d774ac51"
+        },
+        "mobile": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-chromium-mobile.png",
+          "bytes": 34315,
+          "sha256": "69ba9cb46ba2fcf9fcce0cc3c8ab7b44f4ad4f11be39f7fd98ebf9d8ffdc6558"
+        }
+      },
+      {
+        "four": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-webkit-four.png",
+          "bytes": 55298,
+          "sha256": "6ed1e34fc28f9ce31b79bba0d0d97b2556543de72d5e51a7734d44f8488df57e"
+        },
+        "six": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-webkit-six.png",
+          "bytes": 62723,
+          "sha256": "3c3f1a03c356dc1f5933d83aaaa8ca5a8dd17a0786c27843212766ce3af2d58d"
+        },
+        "code": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-webkit-code.png",
+          "bytes": 63207,
+          "sha256": "1cfe683d92528fb8cf6c01743d2f9eb7c4d5ee8428a85d9986513303a361511e"
+        },
+        "mobile": {
+          "path": "build/scsp-custom-multi-20261118/browser-zip-webkit-mobile.png",
+          "bytes": 39363,
+          "sha256": "0e89696d996a2ec34da3107ddc8dc48f229a5faccfb04fa0540451eae18dc675"
+        }
+      }
+    ]
+  },
+  "legacyCustom2Browser": {
+    "path": "build/scsp-custom-multi-20261118/legacy-custom-browser.json",
+    "bytes": 20205,
+    "sha256": "0e204fa246f7ee2baa4ef3e965adc6106bdbfe2989ef00eaad210b3750f51cf2",
+    "passed": true,
+    "rate": 48000,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "groupedCasesPerEngine": [
+      7,
+      7
+    ],
+    "assets": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    },
+    "screenshots": [
+      {
+        "desktop": {
+          "path": "build/scsp-custom-multi-20261118/legacy-custom-browser-chromium-desktop.png",
+          "bytes": 26571,
+          "sha256": "8ab2aea7fee655ff7f2992bcbb0e30bac315999f1a85c2f1278434e633e50e6c"
+        },
+        "mobile": {
+          "path": "build/scsp-custom-multi-20261118/legacy-custom-browser-chromium-mobile.png",
+          "bytes": 23323,
+          "sha256": "9cbf7b3a445d2ad11036bb047b7c48736c80a0f9a18b93a2af8784f19f6dec3e"
+        }
+      },
+      {
+        "desktop": {
+          "path": "build/scsp-custom-multi-20261118/legacy-custom-browser-webkit-desktop.png",
+          "bytes": 37045,
+          "sha256": "d1ca1fe21c773df20d90765763ad5eac1c4ad10ae59a528f8ba65caedd919250"
+        },
+        "mobile": {
+          "path": "build/scsp-custom-multi-20261118/legacy-custom-browser-webkit-mobile.png",
+          "bytes": 28725,
+          "sha256": "200fc1c220555f767dfb9aa40482f412edc11dbb61f2c7bd9d693c01da632e4d"
+        }
+      }
+    ]
+  },
+  "archiveAudit": {
+    "passed": true,
+    "path": "release/tetorica_scsp_synth_custom-multi-20261118_itch.zip",
+    "bytes": 4325643,
+    "sha256": "a66e0fce83937f62ed75c1bc968f15093acf9035b787234a47cc65dbdb55a523",
+    "entries": 377,
+    "crcPassed": true,
+    "allStageBytesMatch": true,
+    "readableSourceFilesCompared": 148,
+    "sourceBytesMatch": true,
+    "embeddedSourceInputsMatch": true,
+    "browserRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-custom-multi-20261118/browser-zip"
+  },
+  "visuallyReviewed": [
+    "build/scsp-custom-multi-20261118/browser-source-chromium-four.png",
+    "build/scsp-custom-multi-20261118/browser-source-webkit-mobile.png"
+  ],
+  "limits": [
+    "Self modulation and cyclic feedback are not enabled in this acyclic Synth editor.",
+    "SCSP core uses zero slot-write delay; allocation is Synth software.",
+    "Global MDL remains shared; per-operator MDL is follow-up work.",
+    "Valid graph changes retire Auto groups; Code continues and independent physical owners keep their release."
+  ]
+}

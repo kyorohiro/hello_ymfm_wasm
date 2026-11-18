@@ -47,20 +47,29 @@ every connection and output, and its A–F buttons select the editing operator
 on the same waveform canvas. These fixed connections and grouped allocation
 are software tools over the SCSP slot modulation hardware.
 
-In **2-operator FM**, choose **Connection → Custom** to set A and B's input
-and direct output independently. Select A or B in the diagram, choose **None**
-or the other operator as its modulation input, and choose whether that operator
-also reaches the direct output. For A → B, clear A's input, choose A as B's
-input and enable B's output. A can also be an output while it modulates B.
-Neither output is required when an explicit DSP Send is the intended route.
+In **2-, 4- or 6-operator FM**, choose **Connection → Custom** to set each
+operator's inputs and direct output independently. Select A–F in the diagram,
+choose its first modulation input **X**, then optionally a second input **Y**
+in 4/6OP mode. Choose **None** for X to remove both inputs. The direct output
+checkbox is independent: an operator can reach the output while it modulates
+another. No direct output is required when an explicit DSP Send is the intended
+route. The current Chain, Pairs or Branch connections seed the first Custom graph.
 
-The first custom editor accepts acyclic A/B connections. Self modulation and
-A ↔ B cycles are rejected before changing the current sound; this is a Synth
-editor limit, not a statement that the SCSP lacks feedback. Custom 4/6OP and
-feedback tools remain follow-up work. The existing raw physical-CH sound-stack
+The hardware averages X and Y before applying modulation depth. With one source,
+the Synth assigns that source to both hardware inputs, preserving its strength;
+with two sources, it uses their average. This editor accepts at most two distinct
+sources per target. Self modulation and cycles are rejected before changing the
+current sound. This is a software editor limit, not a statement that the SCSP
+lacks feedback; feedback tools remain follow-up work. Raw physical-CH sound-stack
 controls remain available.
 
-Custom operator IDs stay A/B even when the allocator changes their physical
+Changing the operator count preserves surviving connections. New operators start
+disconnected with no direct output; shrinking removes inputs and outputs that
+refer to removed operators. A graph supplied explicitly through Code must match
+the selected mode's count. Selecting a fixed template keeps the Custom graph for
+later editing.
+
+Custom operator IDs stay A–F even when the allocator changes their physical
 order so the modulation source runs first. Source waveform, ratio, mix, LFO,
 DSP Send and keyboard/Code controls follow that mapping. Graph changes release
 the current Auto groups after validation while the Code session continues.
@@ -175,15 +184,29 @@ await scsp.setConfig({
 });
 ```
 
-The two `inputs` entries name each target's modulation source: A is index 0,
-B is index 1. `outputs` independently lists direct-output operators. The Synth
-validates the complete graph before applying it. `getState().voiceGroups`
-includes `operatorSlots` for custom groups, mapping A/B to actual physical
+Each `inputs` entry lists that target's modulation sources: A is index 0,
+B is index 1, through F at index 5. A four-OP merge, D → B/C → A, uses both
+hardware inputs of A:
+
+```javascript
+await scsp.setConfig({
+  mode: 'fm4',
+  fm: {
+    algorithm: 'custom',
+    custom: { inputs: [[1, 2], [3], [3], []], outputs: [0] },
+  },
+});
+```
+
+`outputs` independently lists direct-output operators. The Synth validates the
+complete graph before applying it. `getState().voiceGroups` includes
+`operatorSlots` for custom groups, mapping authored A–F to actual physical
 slot indices; logical Code lanes and physical CH tabs retain their existing
 meanings.
 
-Saving an active custom sound produces a version-5 instrument preset, preserving
-its graph. Fixed connections still save version 4 and keep the legacy format;
+Saving an active two-OP Custom sound produces a version-5 instrument preset.
+Four- and six-OP Custom sounds use version 6, preserving their graphs. Fixed
+connections still save version 4 and keep the legacy format;
 inactive custom edits are not included in that fixed-connection file. Loading
 old versions 1–4 keeps their established behavior. A custom preset is never
 silently converted into Chain or another fixed template.

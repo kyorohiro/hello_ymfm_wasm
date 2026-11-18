@@ -3,9 +3,9 @@
 import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
-import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-custom2-1';
+import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-multi-1';
 import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-ui-routing-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting} from './routing.js?v=scsp-fm-custom2-1';
+import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting} from './routing.js?v=scsp-fm-multi-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 import {ScspReleaseGuard} from './release_guard.js';
@@ -221,6 +221,16 @@ export class SynthInstrument {
     }
     const fm={...this.config.fm,...patch.fm};
     if(patch.fm?.ratio!==undefined&&patch.fm.ratios===undefined)fm.ratios=[1,...Array(5).fill(patch.fm.ratio)];
+    const mode=patch.mode??this.config.mode;
+    if(fm.algorithm==='custom'&&mode!=='pcm'&&!Object.hasOwn(patch.fm??{},'custom')){
+      if(fm.custom)fm.custom=resizeCustomRouting(fm.custom,operatorCount(mode));
+      else{
+        // Enter Custom from the selected fixed template at the desired size.
+        // A dormant Custom graph instead keeps its own routes when resized.
+        const template=routing({mode,fm:{algorithm:this.config.fm.algorithm==='custom'?'chain':this.config.fm.algorithm}});
+        fm.custom={inputs:template.inputs,outputs:template.outputs};
+      }
+    }
     const next=settings({...this.config,...patch,fm}),commands=[],routeChanged=next.mode!==this.config.mode||next.fm.algorithm!==this.config.fm.algorithm||next.fm.algorithm==='custom'&&JSON.stringify(next.fm.custom)!==JSON.stringify(this.config.fm.custom);
     if(!routeChanged)for(const group of this.groups.values()){
       const live={...(group.config??this.config),transpose:next.transpose,fm:{...(group.config??this.config).fm,depth:next.fm.depth,ratios:next.fm.ratios}},frequency=hz(group.midi,next.transpose+this.pitchBend),{inputs}=routing(live);

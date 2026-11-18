@@ -12,7 +12,8 @@ import {restoreMixerCalibrationScspFmCustom2Revision as restore,
   SCSP_FM_CUSTOM2_REVISION_REPORT_PATHS as reports,
 } from './mixer_calibration_scsp_fm_custom_revision.mjs';
 import {createScspDspFlowRevisionReader} from './mixer_calibration_scsp_dsp_flow_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+import {createScspFmMultiRevisionReader} from './mixer_calibration_scsp_fm_multi_revision.mjs';
+const url=name=>new URL('../'+name,import.meta.url),read=name=>createScspFmMultiRevisionReader()(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const match=(bytes,expected)=>{assert.equal(bytes.length,expected.bytes);assert.equal(sha(bytes),expected.sha256);};

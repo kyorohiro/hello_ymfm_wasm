@@ -4,32 +4,56 @@ export const OPERATOR_NAMES=['A','B','C','D','E','F'];
 export const OPERATOR_KEYS=['carrier','modulator','c','d','e','f'];
 export const operatorCount=mode=>mode==='pcm'?1:Number(mode.slice(2));
 const denseArray=(value,length)=>Array.isArray(value)&&value.length===length&&Reflect.ownKeys(value).length===length+1&&Array.from({length},(_,index)=>Object.hasOwn(value,index)).every(Boolean);
-/** Initial custom editor: independent A/B inputs and outputs, without feedback.
- * This is a Synth graph constraint, not a hardware limitation. */
-export function customRouting(value){
+const customCounts=[2,4,6];
+function customOrder(inputs){
+  const remaining=inputs.map(sources=>sources.length),dependents=inputs.map(()=>[]),ready=[],order=[];
+  inputs.forEach((sources,target)=>sources.forEach(source=>dependents[source].push(target)));
+  remaining.forEach((count,index)=>{if(!count)ready.push(index);});
+  while(ready.length){
+    // Legacy templates use descending operator IDs. Prefer that same placement
+    // whenever more than one dependency-ready operator is available.
+    ready.sort((a,b)=>b-a);const source=ready.shift();order.push(source);
+    for(const target of dependents[source])if(--remaining[target]===0)ready.push(target);
+  }
+  if(order.length!==inputs.length)throw new RangeError('Feedback loops are outside this acyclic Synth editor');
+  return order;
+}
+/** Acyclic Synth routing, with up to two distinct sound-stack inputs per OP.
+ * This editor constraint does not describe every SCSP hardware connection. */
+export function customRouting(value,count){
   if(arguments.length===0)value={inputs:[[1],[]],outputs:[0]};
   if(!value||typeof value!=='object'||Array.isArray(value)||Reflect.ownKeys(value).length!==2||!Object.hasOwn(value,'inputs')||!Object.hasOwn(value,'outputs'))throw new TypeError('Custom FM requires inputs and outputs');
   const {inputs:rawInputs,outputs:rawOutputs}=value;
-  if(!denseArray(rawInputs,2))throw new TypeError('Custom 2-op FM requires inputs for A and B');
+  const length=rawInputs?.length;
+  if(!customCounts.includes(length)||!denseArray(rawInputs,length))throw new TypeError('Custom FM requires a dense input list for 2, 4 or 6 operators');
+  if(count!==undefined&&length!==count)throw new RangeError('Custom FM input count must match the active FM mode');
   const inputs=Array.from(rawInputs,(entry,target)=>{
-    if(!Array.isArray(entry)||entry.length>1||!denseArray(entry,entry.length))throw new TypeError('Each custom 2-op input must be empty or one operator');
-    return Array.from(entry,source=>{
-      if(!Number.isInteger(source)||source<0||source>1)throw new RangeError('Custom 2-op source must be A or B');
+    if(!Array.isArray(entry)||entry.length>2||!denseArray(entry,entry.length))throw new TypeError('Each custom input needs zero, one or two distinct operators');
+    const sources=Array.from(entry,source=>{
+      if(!Number.isInteger(source)||source<0||source>=length)throw new RangeError('Custom source must name an operator in this graph');
       if(source===target)throw new RangeError('Self modulation is outside this acyclic Synth editor');
       return source;
     });
+    if(new Set(sources).size!==sources.length)throw new TypeError('Custom inputs must not contain duplicates');
+    return sources;
   });
-  if(inputs[0].length&&inputs[1].length)throw new RangeError('Feedback loops are outside this acyclic Synth editor');
-  if(!Array.isArray(rawOutputs)||rawOutputs.length>2||!denseArray(rawOutputs,rawOutputs.length))throw new TypeError('Custom outputs must be a dense A/B list');
-  const outputs=Array.from(rawOutputs,output=>{if(!Number.isInteger(output)||output<0||output>1)throw new RangeError('Custom output must be A or B');return output;});
+  customOrder(inputs);
+  if(!Array.isArray(rawOutputs)||rawOutputs.length>length||!denseArray(rawOutputs,rawOutputs.length))throw new TypeError('Custom outputs must be a dense operator list');
+  const outputs=Array.from(rawOutputs,output=>{if(!Number.isInteger(output)||output<0||output>=length)throw new RangeError('Custom output must name an operator in this graph');return output;});
   if(new Set(outputs).size!==outputs.length)throw new TypeError('Custom outputs must not contain duplicates');
   return {inputs,outputs:outputs.sort((a,b)=>a-b)};
+}
+/** Resize a stored graph without inventing routes or direct outputs. */
+export function resizeCustomRouting(value,count){
+  if(!customCounts.includes(count))throw new RangeError('Custom FM needs 2, 4 or 6 operators');
+  const graph=customRouting(value);
+  return {inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count)),outputs:graph.outputs.filter(output=>output<count)};
 }
 export function routing(config){
   const count=operatorCount(config.mode),inputs=Array.from({length:count},()=>[]);
   if(config.fm.algorithm==='custom'){
-    if(config.mode!=='fm2')throw new TypeError('Custom connections currently require 2-op FM');
-    return {count,...customRouting(config.fm.custom)};
+    if(config.mode==='pcm')throw new TypeError('Custom connections require an FM mode');
+    return {count,...customRouting(config.fm.custom,count)};
   }
   if(config.mode!=='pcm'){
     if(config.fm.algorithm==='chain')for(let i=0;i<count-1;i++)inputs[i]=[i+1];
@@ -42,8 +66,8 @@ export function routing(config){
 /** Map operator identities to ascending physical slots in dependency order.
  * Reverse operator order for independent nodes matches the legacy placement. */
 export function customOperatorSlots(config,slots){
-  const graph=routing(config),order=graph.inputs[1].includes(0)?[0,1]:[1,0];
-  return [slots[order.indexOf(0)],slots[order.indexOf(1)]];
+  const graph=routing(config),order=customOrder(graph.inputs);
+  return graph.inputs.map((_,index)=>slots[order.indexOf(index)]);
 }
 // Legacy graphs use reverse operator order. Custom dependency order likewise
 // places each source earlier in the zero-delay core's physical sound stack.

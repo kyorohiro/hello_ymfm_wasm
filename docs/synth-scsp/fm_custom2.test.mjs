@@ -86,7 +86,7 @@ test('invalid graphs and loop-incompatible PCM leave metadata, owners, RAM and e
   for(const custom of [null,undefined,{},graph([[0],[]],[0]),graph([[1],[0]],[0]),graph([[1,1],[]],[0]),graph([[],[2]],[1]),graph([[],[]],[0,0]),graph(sparse,[0]),graph([[],[]],Array(1)),{...graph(),unknown:true},{...graph(),[Symbol('hidden')]:0}]){
     assert.throws(()=>owner.setConfig({fm:{custom}}));assert.deepEqual(owner.read(),before);
   }
-  assert.throws(()=>owner.setConfig({mode:'fm4'}),/2-op/);assert.equal(writes,0);owner.core.write=write;
+  assert.throws(()=>owner.setConfig({mode:'fm4',fm:{custom:graph()}}),/input count/);assert.equal(writes,0);owner.core.write=write;
   assert.deepEqual(owner.core.readRam(),ram);assert.deepEqual(owner.synth.generateStereo(4096),reference.synth.generateStereo(4096));
   const shot=await create(t);shot.invoke('applyPCM',[1,new Int16Array(64).fill(1000),{rootNote:69}]);shot.noteOn('pcm',69);
   const saved=shot.read();assert.throws(()=>setup(shot,graph([[],[0]],[1])),/full forward loop/);assert.deepEqual(shot.read(),saved);

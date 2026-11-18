@@ -2,7 +2,7 @@
 import factory from '../generated/scsp_wasm.js';
 import { Scsp } from '../js/scsp.js';
 import { Pcm44100Resampler } from '../js/pcm_44100_resampler.js';
-import { SynthInstrument } from './instrument.js?v=scsp-fm-custom2-1';
+import { SynthInstrument } from './instrument.js?v=scsp-fm-multi-1';
 
 function auditionToken(value) {
 	if (typeof value !== 'string' || !value.length || value.length > 256)

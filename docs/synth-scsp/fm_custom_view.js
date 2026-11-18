@@ -2,39 +2,50 @@
 // Logical operators stay distinct from their allocated physical SCSP slots.
 export function setupScspCustomFmView({root=globalThis.document,onInput,onOutput,onError=()=>{}}) {
   const $=id=>root.getElementById(id),events=new AbortController();
-  let selected=0,locked=false,disposed=false;
-  const input=$('scspCustomFmInput'),output=$('scspCustomFmOutput');
+  let selected=0,count=0,locked=false,disposed=false;
+  const input=$('scspCustomFmInput'),inputY=$('scspCustomFmInputY'),output=$('scspCustomFmOutput');
   const edit=callback=>{
-    if(disposed||locked||selected>1)return;
-    const operator=selected;
-    Promise.resolve().then(()=>{if(!disposed&&!locked)return callback(operator);}).catch(onError);
+    if(disposed||locked||selected>=count)return;
+    const operator=selected,operatorCount=count;
+    Promise.resolve().then(()=>{if(!disposed&&!locked)return callback(operator,operatorCount);}).catch(onError);
   };
-  input.addEventListener('change',()=>{
-    const source=input.value===''?null:Number(input.value);input.blur();
-    edit(operator=>onInput(operator,source));
-  },{signal:events.signal});
+  [input,inputY].forEach((control,port)=>control.addEventListener('change',()=>{
+    const source=control.value===''?null:Number(control.value);control.blur();
+    if(!control.disabled)edit((operator,count)=>onInput(operator,source,port,count));
+  },{signal:events.signal}));
   output.addEventListener('change',()=>{
     const enabled=output.checked;output.blur();
-    edit(operator=>onOutput(operator,enabled));
+    edit((operator,count)=>onOutput(operator,enabled,count));
   },{signal:events.signal});
   return {
     update(state,{operator=0,readOnly=false}={}) {
       if(disposed)return;
       selected=operator;
-      const active=state.config.mode==='fm2'&&state.config.fm.algorithm==='custom';
+      count=Number(state.config.mode.slice(2));
+      const fm=[2,4,6].includes(count);
+      const active=fm&&state.config.fm.algorithm==='custom';
       locked=readOnly||!active;
       $('scspCustomFmControls').hidden=!active;
-      $('scspCustomFmOption').disabled=readOnly||state.config.mode!=='fm2';
-      const unused=operator>1;
-      $('scspCustomFmTarget').textContent=unused?'Custom 2OP · choose A or B':`Custom · operator ${'ABCDEF'[operator]}`;
-      input.disabled=output.disabled=locked||unused;
-      for(const option of input.options)option.disabled=option.value===String(operator);
+      $('scspCustomFmOption').disabled=readOnly||!fm;
+      $('scspCustomFmInputYLabel').hidden=count===2;
+      const unused=operator>=count;
+      $('scspCustomFmTarget').textContent=unused?`Custom ${count}OP · choose A–${'ABCDEF'[count-1]}`:`Custom · operator ${'ABCDEF'[operator]}`;
+      input.disabled=inputY.disabled=output.disabled=locked||unused;
       if(!active||unused)return;
       const graph=state.config.fm.custom;
       input.value=graph.inputs[operator].length?String(graph.inputs[operator][0]):'';
+      inputY.value=graph.inputs[operator].length>1?String(graph.inputs[operator][1]):'';
+      inputY.disabled=locked||count===2||input.value==='';
+      [input,inputY].forEach((control,port)=>{
+        const other=port===0?inputY.value:input.value;
+        for(const option of control.options){
+          option.hidden=option.value!==''&&Number(option.value)>=count;
+          option.disabled=option.hidden||option.value===String(operator)||(option.value!==''&&option.value===other);
+        }
+      });
       output.checked=graph.outputs.includes(operator);
       $('scspCustomFmHint').textContent=graph.outputs.length
-        ? `Direct output · ${graph.outputs.map(index=>'AB'[index]).join(' + ')}`
+        ? `Direct output · ${graph.outputs.map(index=>'ABCDEF'[index]).join(' + ')}${inputY.value!==''?' · X/Y are averaged':''}`
         : 'Direct outputs Off · use an Output checkbox or an explicit DSP Send.';
     },
     dispose(){disposed=true;events.abort();},

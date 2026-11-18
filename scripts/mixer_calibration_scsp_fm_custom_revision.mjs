@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createScspFmMultiRevisionReadContext} from './mixer_calibration_scsp_fm_multi_revision.mjs';
 
 export const SCSP_FM_CUSTOM2_REVISION_BASE_COMMIT='62da69d00511f66e2db7aca69b258f96b6726438';
 export const SCSP_FM_CUSTOM2_REVISION_RECEIPT_PATH='docs/issues/scsp_fm_custom2_source_revision_01.json';
@@ -144,10 +145,12 @@ function createRestorer(readSource,snapshot=false){
   };
 }
 export function restoreMixerCalibrationScspFmCustom2Revision(path,bytes,{readSource=read}={}){
-  return createRestorer(readSource)(path,bytes);
+  const latest=createScspFmMultiRevisionReadContext(readSource);
+  return createRestorer(latest.readSource)(path,latest.restore(path,bytes));
 }
 /** Fresh owned reads prevent one proof mixing before/after filesystem states. */
 export function createScspFmCustom2RevisionReadContext(readSource=read){
+  const latest=createScspFmMultiRevisionReadContext(readSource);readSource=latest.readSource;
   const originals=new Map(),predecessors=new Map();
   const original=url=>{const key=url instanceof URL?url.href:url;if(!originals.has(key))originals.set(key,Buffer.from(readSource(url)));return originals.get(key);};
   const restore=createRestorer(original,true);
@@ -159,7 +162,7 @@ export function createScspFmCustom2RevisionReadContext(readSource=read){
     }
     return predecessors.get(key);
   };
-  predecessorReaders.add(reader);return {restore,readSource:reader};
+  predecessorReaders.add(reader);return {restore:(path,bytes)=>restore(path,latest.restore(path,bytes)),readSource:reader};
 }
 export function createScspFmCustom2RevisionReader(readSource=read){
   if(predecessorReaders.has(readSource))return readSource;

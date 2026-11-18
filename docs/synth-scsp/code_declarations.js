@@ -41,15 +41,28 @@ const globals = [
 const types = `
 type ScspCodeLane = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31;
 type ScspCodeOperator = 0|1|2|3|4|5;
-type ScspCodeCustomOperator = 0|1;
-/** Initial custom editor: A/B only, with at most the other OP as an input.
- * Self/cyclic connections are rejected by the Synth before applying a change. */
-type ScspCodeCustomInput = []|[ScspCodeCustomOperator];
-interface ScspCodeCustomRouting {
+type ScspCodeCustomOperator = ScspCodeOperator;
+type ScspCodeCustomOperator2 = 0|1;
+type ScspCodeCustomOperator4 = 0|1|2|3;
+/** The two-OP graph can only use the other OP as a source. */
+type ScspCodeCustomInput = []|[ScspCodeCustomOperator2];
+type ScspCodeCustomInput4 = []|[ScspCodeCustomOperator4]|[ScspCodeCustomOperator4,ScspCodeCustomOperator4];
+type ScspCodeCustomInput6 = []|[ScspCodeCustomOperator]|[ScspCodeCustomOperator,ScspCodeCustomOperator];
+/** Duplicate sources, self modulation and cycles are rejected before applying. */
+interface ScspCodeCustomRouting2 {
   inputs:[ScspCodeCustomInput,ScspCodeCustomInput];
   /** Direct outputs are independent of which operators modulate another. */
+  outputs:ScspCodeCustomOperator2[];
+}
+interface ScspCodeCustomRouting4 {
+  inputs:[ScspCodeCustomInput4,ScspCodeCustomInput4,ScspCodeCustomInput4,ScspCodeCustomInput4];
+  outputs:ScspCodeCustomOperator4[];
+}
+interface ScspCodeCustomRouting6 {
+  inputs:[ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6];
   outputs:ScspCodeCustomOperator[];
 }
+type ScspCodeCustomRouting = ScspCodeCustomRouting2|ScspCodeCustomRouting4|ScspCodeCustomRouting6;
 interface ScspCodeConfig {
   mode:'pcm'|'fm2'|'fm4'|'fm6';
   fm:{depth:number;ratio:number;algorithm:'chain'|'pairs'|'branch'|'custom';ratios:number[];custom?:ScspCodeCustomRouting};
@@ -100,7 +113,9 @@ interface ScspCodePatchBase {
 type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'chain'|'pairs'|'branch'};
 type ScspCodePatch = ScspCodePatchBase & (
   {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm} |
-  {version:5;mode:'fm2';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting}}
+  {version:5;mode:'fm2';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting2}} |
+  {version:6;mode:'fm4';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting4}} |
+  {version:6;mode:'fm6';fm:Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:ScspCodeCustomRouting6}}
 );
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
@@ -110,8 +125,8 @@ interface ScspCodeState extends PlaygroundScspState {
   dspReturns:[ScspCodeDspReturn,ScspCodeDspReturn];
   /** App-only software release preference; excluded from portable presets. */
   clickGuard:boolean;
-  /** Custom groups expose A/B-to-physical-slot mapping separately from allocation order. */
-  voiceGroups:{id:string;midi:number;slots:number[];operatorSlots?:[number,number];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
+  /** Custom groups map authored A–F to physical slots, separately from allocation order. */
+  voiceGroups:{id:string;midi:number;slots:number[];operatorSlots?:[number,number]|[number,number,number,number]|[number,number,number,number,number,number];held:boolean;order:number;mode:ScspCodeConfig['mode'];owner:{kind:'keyboard'|'code';session?:number;channel?:number}}[];
   /** Keyboard owners of physical CH tabs, separate from Auto / Code groups. */
   manualVoices:{id:string;slot:number;midi:number;baseFrequencyHz:number;held:boolean;order:number}[];
   codeLanes:{channel:number;midi:number;groupId:string|null;slots:number[]}[];
@@ -133,8 +148,10 @@ interface ScspCodeClient {
   /** Source level / direct Pan. DSP routing uses setDspSourceSend(). */
   setMix(operator:ScspCodeOperator,patch:Partial<ScspCodeMix>):Promise<boolean>;
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
-  /** Custom routing initially requires mode fm2. Graph changes retire its Auto
-   * notes after complete validation; the Code session continues running. */
+  /** Custom routing supports fm2/fm4/fm6 with at most two distinct sources per OP.
+   * An explicit graph must match the active operator count. Changing mode without
+   * a graph preserves surviving connections and adds disconnected operators.
+   * Graph changes retire Auto notes after validation; Code continues running. */
   setConfig(patch:ScspCodeConfigPatch):Promise<ScspCodeConfig>;
   setEffect(patch:Partial<ScspCodeEffect>):Promise<ScspCodeEffect>;
   /** Live physical-slot DSP routing. null restores the Synth default send.
@@ -162,8 +179,8 @@ interface ScspCodeClient {
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
-  /** Load a portable SCSP preset, version 1 through 5. Version 5 retains
-   * the custom two-operator graph without downgrading it to a fixed template. */
+  /** Load portable SCSP presets 1–6. Custom two-OP uses version 5;
+   * custom four/six-OP uses version 6 without conversion to a fixed template. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;

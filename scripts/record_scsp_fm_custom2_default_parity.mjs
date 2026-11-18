@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/scsp_wasm.js';
 import {Scsp} from '../docs/js/scsp.js';
 import {Pcm44100Resampler} from '../docs/js/pcm_44100_resampler.js';
-import {SynthInstrument} from '../docs/synth-scsp/instrument.js';
+import {createScspFmMultiRevisionReadContext} from './mixer_calibration_scsp_fm_multi_revision.mjs';
 
 export const SCSP_FM_CUSTOM2_PARITY_BASE_COMMIT='62da69d00511f66e2db7aca69b258f96b6726438';
 export const SCSP_FM_CUSTOM2_PARITY_RECEIPT='docs/issues/scsp_fm_custom2_source_revision_01.json';
@@ -24,6 +24,7 @@ const record=bytes=>({bytes:Buffer.byteLength(bytes),sha256:sha(bytes)});
 const floats=values=>Buffer.from(values.buffer,values.byteOffset,values.byteLength);
 export function reconstructScspFmCustom2ParityPredecessor(name,current,receipt){
   const pin=predecessors[name],entry=receipt.sources[name];
+  current=createScspFmMultiRevisionReadContext().restore(name,current);
   assert(pin,'Only independently pinned Synth predecessors may be loaded');
   assert.equal(receipt.baseCommit,SCSP_FM_CUSTOM2_PARITY_BASE_COMMIT);
   assert.deepEqual(record(current),entry.after,'Current complete Synth source');
@@ -93,12 +94,13 @@ function normalize(value){
   return value;
 }
 export async function measureScspFmCustom2DefaultParity(){
+  const reviewed=createScspFmMultiRevisionReadContext(),currentSources={};
   const receipt=JSON.parse(await readFile(path(SCSP_FM_CUSTOM2_PARITY_RECEIPT),'utf8')),originals={},sources={};
   for(const name of Object.keys(predecessors)){
-    const current=await readFile(path(name));sources[name]=record(current);
+    const current=reviewed.readSource(path(name));sources[name]=record(current);currentSources[name]=current.toString();
     originals[name]=reconstructScspFmCustom2ParityPredecessor(name,current,receipt);
   }
-  const Before=await beforeInstrument(originals),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));
+  const Before=await beforeInstrument(originals),After=await beforeInstrument(currentSources),wasmBinary=await readFile(path('docs/generated/scsp_wasm.wasm'));
   const cases=[],scenarios=[];
   for(const sampleRate of [44100,48000])for(const scenario of ['pcm8','pcm16'])for(const frequencyHz of [220,440,880])for(const dspEnabled of [false,true])
     scenarios.push({kind:'pcm',sampleRate,scenario,frequencyHz,dspEnabled});
@@ -106,7 +108,7 @@ export async function measureScspFmCustom2DefaultParity(){
     scenarios.push({kind:'fm',sampleRate,scenario:'pcm16',frequencyHz:440,dspEnabled:true,mode,algorithm});
   for(const item of scenarios){
     const {sampleRate,scenario,frequencyHz,dspEnabled}=item;
-    const before=await owner(Before,sampleRate,wasmBinary),after=await owner(SynthInstrument,sampleRate,wasmBinary);
+    const before=await owner(Before,sampleRate,wasmBinary),after=await owner(After,sampleRate,wasmBinary);
     try{
       const config=item.kind==='fm'?{mode:item.mode,fm:{algorithm:item.algorithm}}:null;
       const a=exercise(before,scenario,frequencyHz,dspEnabled,config),b=exercise(after,scenario,frequencyHz,dspEnabled,config),label=JSON.stringify(item);

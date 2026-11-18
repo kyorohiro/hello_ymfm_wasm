@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
 import { createAudio } from './audio.js?v=scsp-dsp-ui-routing-1';
-import { SynthInstrument } from './instrument.js?v=scsp-fm-custom2-1';
-import { readPatch, writePatch } from './patch.js?v=scsp-fm-custom2-1';
-import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-custom2-1';
+import { SynthInstrument } from './instrument.js?v=scsp-fm-multi-1';
+import { readPatch, writePatch } from './patch.js?v=scsp-fm-multi-1';
+import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-multi-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-fm-custom2-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-fm-multi-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js';
 import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
-import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-custom2-1';
+import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-multi-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
@@ -1176,7 +1176,7 @@ $('voiceMode').addEventListener('change', () => {
 	const mode = $('voiceMode').value;
 	$('voiceMode').blur();
 	void configure(state => ({mode,
-		...(mode !== 'fm2' && state.config.fm.algorithm === 'custom' ? {fm: {algorithm: 'chain'}} : {}),
+		...(mode === 'pcm' && state.config.fm.algorithm === 'custom' ? {fm: {algorithm: 'chain'}} : {}),
 	}), { routeChanged: true }).catch(report);
 });
 $('algorithm').addEventListener('change', () => {
@@ -1315,17 +1315,22 @@ for (const [id, dsp] of [
 		chipTab(dsp);
 	});
 customFmView = setupScspCustomFmView({
-	onInput(operator, source) {
+	onInput(operator, source, port, count) {
 		return configure(state => {
-			if (state.config.mode !== 'fm2' || state.config.fm.algorithm !== 'custom') return null;
+			if (operatorCount(state.config.mode) !== count || state.config.fm.algorithm !== 'custom' || operator >= count) return null;
 			const graph = clone(state.config.fm.custom);
-			graph.inputs[operator] = source === null ? [] : [source];
+			const inputs = graph.inputs[operator];
+			if (port === 0) graph.inputs[operator] = source === null ? [] : [source, ...inputs.slice(1)];
+			else {
+				if (!inputs.length) return null;
+				graph.inputs[operator] = source === null ? inputs.slice(0, 1) : [inputs[0], source];
+			}
 			return {fm: {custom: graph}};
 		}, {routeChanged: true});
 	},
-	onOutput(operator, enabled) {
+	onOutput(operator, enabled, count) {
 		return configure(state => {
-			if (state.config.mode !== 'fm2' || state.config.fm.algorithm !== 'custom') return null;
+			if (operatorCount(state.config.mode) !== count || state.config.fm.algorithm !== 'custom' || operator >= count) return null;
 			const graph = clone(state.config.fm.custom);
 			graph.outputs = enabled ? [...new Set([...graph.outputs, operator])].sort() : graph.outputs.filter(index => index !== operator);
 			return {fm: {custom: graph}};
