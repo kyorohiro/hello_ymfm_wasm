@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-dsp-ui-routing-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-dsp-flow-1" />
 	</head>
 	<body>
 		<main>
@@ -592,6 +592,15 @@
                                         <p id="scspDspReturn1Status" class="scsp-dsp-route-status">Muted</p>
                                     </div>
                                 </div>
+                                <details id="scspDspSignalFlow" class="scsp-disclosure scsp-dsp-signal-flow">
+                                    <summary id="scspDspSignalFlowSummary">Signal flow</summary>
+                                    <div id="scspDspSignalFlowBody" aria-label="Configured Synth DSP signal flow"></div>
+                                    <details class="scsp-inline-help scsp-dsp-flow-help">
+                                        <summary aria-label="About the signal-flow diagram">?</summary>
+                                        <p>This shows configured paths, not measured audio levels. The Returns are shared by all voices and may contain DSP history. A zero Send only removes this voice's contribution.</p>
+                                        <p>Direct output bypasses the DSP. Known examples show their input/output connections; an edited program defines its own connections. SSF uses a separate DSP.</p>
+                                    </details>
+                                </details>
                             </section>
 							<section id="scspDspProgramView" aria-labelledby="scspDspProgramHeading">
 								<div class="scsp-dsp-program-heading">
@@ -975,6 +984,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-dsp-ui-routing-1"></script>
+		<script type="module" src="synth.js?v=scsp-dsp-flow-1"></script>
 	</body>
 </html>

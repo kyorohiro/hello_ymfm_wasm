@@ -11,8 +11,9 @@ import {restoreMixerCalibrationScspDspUiRevision as restore,
   SCSP_DSP_UI_REVISION_RELATED_PATHS as related,
   SCSP_DSP_UI_REVISION_REPORT_PATHS as reports,
 } from './mixer_calibration_scsp_dsp_ui_revision.mjs';
+import {createScspDspFlowRevisionReadContext} from './mixer_calibration_scsp_dsp_flow_revision.mjs';
 import {createScspDspRoutingRevisionReader} from './mixer_calibration_scsp_dsp_routing_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+const url=name=>new URL('../'+name,import.meta.url),read=name=>createScspDspFlowRevisionReadContext().readSource(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const match=(bytes,expected)=>{assert.equal(bytes.length,expected.bytes);assert.equal(sha(bytes),expected.sha256);};

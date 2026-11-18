@@ -276,6 +276,19 @@ keyOn. Enable gates both Returns without discarding their requested settings.
 These settings belong to the DSP session. Ordinary voice presets retain their
 existing format; use **Save setup to Code** to keep the new routing and Returns.
 SSF playback owns its separate DSP and is not changed by this Synth routing.
+
+### Signal-flow view
+
+Open **Routing → Signal flow** to follow the selected Auto source or physical
+CH into its MIXS input, the applied DSP program and both shared Returns. The
+view follows Send, Enable, Return level and Pan without applying any settings.
+It starts collapsed, and opening it does not start audio.
+
+This is configured routing, not an audio-level meter. A zero Send blocks the
+selected contribution; another voice or DSP history can still reach a shared
+Return. Direct output takes its own path around the DSP. Known examples show
+their input/output connections; arbitrary edited programs keep that connection
+labelled as program-defined rather than guessing a path.
 No preset selection or saved project executes the generated Code automatically.
 
 The borrowed Synth Code facade exposes:

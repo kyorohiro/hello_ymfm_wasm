@@ -11,6 +11,7 @@ import { setupScspSsfLiveView } from './ssf_live_view.js';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
+import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
@@ -60,7 +61,8 @@ let selectedOperator = 0,
 	liveView = null,
 	channelView = null,
 	dspProgramView = null,
-	dspRoutingView = null;
+	dspRoutingView = null,
+	dspSignalFlow = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -269,6 +271,10 @@ function renderDspCoefficients(state, readOnly = false) {
 		: iir ? createScspDspExample('iir1-lowpass').roles
 			: family === 'delay' ? createScspDspExample('delay').roles : ['Coefficient', 'Coefficient', 'Coefficient'];
 	dspProgramView?.update({ words: appliedDspWords, codes });
+	if (latestState) dspSignalFlow?.update(latestState, {
+		selected: channelView?.getSelected() ?? null, operator: selectedOperator,
+		program: family, readOnly,
+	});
 	for (let index = 0; index < 3; index++) {
 		const input = $(`scspDspCoef${index}`);
 		if (!input) continue;
@@ -1294,6 +1300,7 @@ for (const [id, dsp] of [
 		$(id).blur();
 		chipTab(dsp);
 	});
+dspSignalFlow = setupScspDspSignalFlow();
 dspRoutingView = setupScspDspRoutingView({
 	onSource(operator) {
 		selectedOperator = operator;
@@ -1479,6 +1486,7 @@ window.addEventListener('pagehide', (event) => {
 	disposed = true;
 	dspProgramView?.dispose();
 	dspRoutingView?.dispose();
+	dspSignalFlow?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

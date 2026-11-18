@@ -628,6 +628,105 @@ select {
 	font-size: 0.68rem;
 	color: var(--muted);
 }
+.scsp-dsp-signal-flow {
+	margin-top: 12px;
+}
+#scspDspSignalFlowBody {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px 18px;
+	margin-top: 12px;
+	font-size: 0.72rem;
+}
+.scsp-dsp-flow-source,
+.scsp-dsp-flow-send,
+.scsp-dsp-flow-program,
+.scsp-dsp-flow-return,
+.scsp-dsp-flow-direct {
+	position: relative;
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #162332;
+	overflow-wrap: anywhere;
+}
+.scsp-dsp-flow-source::after,
+.scsp-dsp-flow-send::after {
+	content: '→';
+	position: absolute;
+	right: -15px;
+	top: 50%;
+	color: var(--muted);
+	font-size: 1rem;
+	transform: translateY(-50%);
+}
+#scspDspSignalFlowBody h4 {
+	margin: 0 0 6px;
+	font-size: 0.74rem;
+}
+.scsp-dsp-flow-detail,
+.scsp-dsp-flow-setting {
+	display: block;
+	margin-top: 6px;
+	line-height: 1.5;
+	color: var(--muted);
+}
+#scspDspSignalFlowBody p {
+	margin: 6px 0 0;
+	color: var(--muted);
+}
+.scsp-dsp-flow-returns {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+.scsp-dsp-flow-return[data-route='selected'] {
+	border-color: #87b9d5;
+}
+#scspDspSignalFlowBody [data-state='muted'],
+#scspDspSignalFlowBody [data-state='disabled'] {
+	border-style: dashed;
+	color: var(--muted);
+}
+#scspDspSignalFlowBody [data-side] {
+	display: inline-block;
+	margin: 8px 6px 0 0;
+	padding: 2px 8px;
+	border: 1px solid var(--line);
+	border-radius: 5px;
+	font-variant-numeric: tabular-nums;
+}
+#scspDspSignalFlowBody [data-side][data-state='enabled'] {
+	border-color: #87b9d5;
+	color: #d8edf9;
+	background: #223c50;
+}
+.scsp-dsp-flow-direct,
+.scsp-dsp-flow-note {
+	grid-column: 1 / -1;
+}
+.scsp-dsp-flow-note {
+	font-size: 0.68rem;
+}
+.scsp-dsp-flow-help {
+	margin-top: 10px;
+}
+@media (max-width: 600px) {
+	#scspDspSignalFlowBody {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 18px;
+	}
+	.scsp-dsp-flow-source::after,
+	.scsp-dsp-flow-send::after {
+		content: '↓';
+		right: 50%;
+		top: auto;
+		bottom: -18px;
+		transform: translateX(50%);
+	}
+}
 .scsp-dsp-coefficients-heading h3 {
 	margin: 0;
 	color: #c9e5f8;

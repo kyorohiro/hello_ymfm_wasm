@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-passive-configured-dsp-signal-flow-view",
+  "baseCommit": "ac5024067fb9404151bf66623e0c050cdae93b6d",
+  "published": false,
+  "npmUpdated": false,
+  "versionChanged": false,
+  "audioCodeChanged": false,
+  "runtimeApiChanged": false,
+  "physicalListeningPerformed": false,
+  "evidence": {
+    "synthSuite": {
+      "path": "build/scsp-dsp-flow-20261118/synthSuite.log",
+      "bytes": 33535,
+      "sha256": "aa862e3c02bb58c1c11a921d779de701ab5b276db86358091c0f38def143d150"
+    },
+    "flowView": {
+      "path": "build/scsp-dsp-flow-20261118/flowView.log",
+      "bytes": 954,
+      "sha256": "f6b4394b99799ec36aa98659d8a30c538ece9c4f6b44faf58d9c23248297768c"
+    },
+    "proofInitial": {
+      "path": "build/scsp-dsp-flow-20261118/proofInitial.log",
+      "bytes": 1321,
+      "sha256": "62e559985b72fddaf3b3f1805436733d55120a6cb8793a0141ddb0955c254d56"
+    },
+    "priorProof": {
+      "path": "build/scsp-dsp-flow-20261118/priorProof.log",
+      "bytes": 1427,
+      "sha256": "17bef5f132c3d2cf9ee658a805c3e6a507a3546e27b0c5fd7fa5f538e99fae5e"
+    },
+    "generators": {
+      "path": "build/scsp-dsp-flow-20261118/generators.log",
+      "bytes": 627,
+      "sha256": "441baab83575fb08bda8980ce63112cf6db297b80b5c3bb67ad213b63bb170bf"
+    },
+    "independentAudit": {
+      "path": "build/scsp-dsp-flow-20261118/independentAudit.log",
+      "bytes": 928,
+      "sha256": "2f6c9cb8fecb395fb63c17053b410fcfdd083d7f3ae1e0c9a94dbc91a8744aa1"
+    },
+    "ciProof": {
+      "path": "build/scsp-dsp-flow-20261118/ciProof.log",
+      "bytes": 612,
+      "sha256": "243d634015511a9520d9b060d4cb946e55e33f8cf34bf10d85bb3e719cfae941"
+    },
+    "packaging": {
+      "path": "build/scsp-dsp-flow-20261118/packaging.log",
+      "bytes": 464,
+      "sha256": "ce658527240d0c168e197949cae78e0e7b2969a345b059592bf51406ab33f1de"
+    }
+  },
+  "checks": {
+    "synthAndPackagingPassed": 318,
+    "newPureViewPassed": 8,
+    "newAndPriorProofPassed": 24,
+    "exactCiProofPassed": 5,
+    "historicalJsonFilesUnchanged": 876,
+    "unchangedPriorSynthPcmCases": 24,
+    "unchangedPriorRuntimePcmCases": 36,
+    "unchangedPriorWorkerPacketCases": 15,
+    "mixerGeneratorsUnchanged": true
+  },
+  "sourceReceipt": {
+    "path": "docs/issues/scsp_dsp_signal_flow_source_revision_01.json",
+    "bytes": 11464,
+    "sha256": "1baa1fed9c7e72c8d178119c5ac7fd101d0bbbc937f99261b87325a2429ab1d8"
+  },
+  "sourceBrowser": {
+    "path": "build/scsp-dsp-flow-20261118/browser-source.json",
+    "bytes": 53832,
+    "sha256": "b4efdf5d2930bd63d67be11d937046b0d1a8ef8504907764cdf50fd751962c3d",
+    "passed": true,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "rate": 48000,
+    "groupedCasesPerEngine": 7,
+    "assetCount": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    }
+  },
+  "exactZipBrowser": {
+    "path": "build/scsp-dsp-flow-20261118/browser-zip.json",
+    "bytes": 53834,
+    "sha256": "3ae9b7908d3854f5f84f079b275766d18db3c178d8f5d7aaf00674f606fa9495",
+    "passed": true,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "rate": 48000,
+    "groupedCasesPerEngine": 7,
+    "assetCount": 110,
+    "physicalOutputMuted": true,
+    "mobileOverflow": {
+      "chromium": 0,
+      "webkit": 0
+    }
+  },
+  "archiveAudit": {
+    "passed": true,
+    "path": "release/tetorica_scsp_synth_dsp-flow-20261118_itch.zip",
+    "bytes": 4312349,
+    "sha256": "f431d56d2fca5b8a2cbc5f36789f404b37c42b5498be55b16f7db58a6d1afc67",
+    "entries": 376,
+    "crcPassed": true,
+    "allStageBytesMatch": true,
+    "readableSourceFilesCompared": 95,
+    "sourceBytesMatch": true,
+    "browserRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/scsp-dsp-flow-20261118/browser-zip"
+  },
+  "screenshotsVisuallyReviewed": [
+    "build/scsp-dsp-flow-20261118/browser-source-smoke-chromium-desktop.png",
+    "build/scsp-dsp-flow-20261118/browser-source-chromium-mobile.png"
+  ],
+  "limitations": [
+    "Configured paths are not measured audio levels.",
+    "Other voices and DSP history can feed shared Returns.",
+    "Custom program connectivity remains program-defined.",
+    "SSF owns a separate DSP."
+  ]
+}
