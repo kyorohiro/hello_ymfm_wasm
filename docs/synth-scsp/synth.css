@@ -1359,14 +1359,14 @@ footer {
 }
 .scsp-channel-tabs {
 	display: grid;
-	grid-template-columns: repeat(16, minmax(0, 1fr));
+	grid-template-columns: repeat(8, minmax(0, 1fr));
 	gap: 4px;
 	margin-top: 12px;
 }
 .scsp-channel-tabs button {
 	position: relative;
 	min-width: 0;
-	min-height: 30px;
+	min-height: 44px;
 	padding: 3px 0 5px;
 	font-size: 0.72rem;
 	overflow: hidden;
@@ -1402,6 +1402,16 @@ footer {
 .scsp-channel-tabs button[data-phase='release'] {
 	background: #504633;
 }
+.scsp-channel-tabs[data-source='authored'] button[data-ownership='source'] {
+	background: #374251;
+}
+.scsp-channel-tabs[data-source='authored'] button[data-allocation='released'] {
+	background: #504633;
+}
+.scsp-channel-tabs[data-source='authored'] button[data-related='true'] {
+	border-color: #7dd9e9;
+	box-shadow: inset 0 -3px #7dd9e9;
+}
 .scsp-channel-tabs button[aria-selected='true'] {
 	outline: 2px solid #9bdcff;
 	outline-offset: 1px;
@@ -1413,7 +1423,8 @@ footer {
 	color: var(--muted);
 	overflow-wrap: anywhere;
 }
-.scsp-ssf-slot-legend {
+.scsp-ssf-slot-legend,
+.scsp-synth-slot-legend {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -1422,12 +1433,14 @@ footer {
 	color: var(--muted);
 	font-size: 0.7rem;
 }
-.scsp-ssf-slot-legend [data-state] {
+.scsp-ssf-slot-legend [data-state],
+.scsp-synth-slot-legend [data-state] {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
 }
-.scsp-ssf-slot-legend [data-state]::before {
+.scsp-ssf-slot-legend [data-state]::before,
+.scsp-synth-slot-legend [data-state]::before {
 	content: '';
 	width: 10px;
 	height: 10px;
@@ -1440,6 +1453,111 @@ footer {
 }
 .scsp-ssf-slot-legend [data-state='release']::before {
 	background: #e6b664;
+}
+.scsp-synth-slot-legend [data-state='source']::before {
+	background: #374251;
+}
+.scsp-synth-slot-legend [data-state='held']::before {
+	background: #315c78;
+}
+.scsp-synth-slot-legend [data-state='released']::before {
+	background: #e6b664;
+}
+.scsp-synth-slot-legend [data-state='related']::before {
+	border-color: #7dd9e9;
+}
+.scsp-synth-slot-allocation {
+	margin: 12px 0;
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: #1b2836;
+	font-size: 0.73rem;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.scsp-synth-allocation-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 12px;
+}
+.scsp-synth-allocation-title {
+	font-size: 0.86rem;
+	margin: 0;
+}
+.scsp-synth-allocation-badge,
+.scsp-synth-allocation-status {
+	color: var(--muted);
+}
+.scsp-synth-allocation-owner,
+.scsp-synth-allocation-status,
+.scsp-synth-allocation-mapping {
+	margin: 6px 0 0;
+}
+.scsp-synth-allocation-mapping {
+	color: #9bdcff;
+}
+.scsp-synth-allocation-diagram {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 10px;
+}
+.scsp-synth-allocation-member {
+	min-width: 0;
+	padding: 10px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #162332;
+}
+.scsp-synth-allocation-member[data-selected='true'] {
+	border-color: #6eb7d6;
+	background: #244459;
+}
+.scsp-synth-allocation-name {
+	font-size: inherit;
+	margin: 0;
+}
+.scsp-synth-allocation-inputs,
+.scsp-synth-allocation-direct,
+.scsp-synth-allocation-send {
+	margin: 6px 0 0;
+}
+.scsp-synth-allocation-inputs,
+.scsp-synth-allocation-send {
+	color: var(--muted);
+}
+.scsp-synth-allocation-connections {
+	margin-top: 10px;
+	color: #9bdcff;
+	font-size: 0.71rem;
+}
+.scsp-synth-allocation-connection {
+	margin: 4px 0 0;
+}
+.scsp-synth-allocation-help {
+	margin-left: auto;
+}
+.scsp-synth-allocation-help > summary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	cursor: pointer;
+	list-style: none;
+}
+.scsp-synth-allocation-help > summary::-webkit-details-marker {
+	display: none;
+}
+.scsp-synth-allocation-help[open] {
+	flex-basis: 100%;
+}
+.scsp-synth-allocation-help-text {
+	line-height: 1.6;
 }
 .scsp-ssf-slot-routes {
 	margin: 12px 0;
@@ -1575,6 +1693,9 @@ footer {
 	.scsp-channel-tabs {
 		grid-template-columns: repeat(8, minmax(0, 1fr));
 	}
+	.scsp-synth-allocation-diagram {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 @container scsp-slots (max-width: 400px) {
 	.scsp-channel-tabs,
@@ -1582,6 +1703,9 @@ footer {
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 	.scsp-ssf-route-diagram {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.scsp-synth-allocation-diagram {
 		grid-template-columns: minmax(0, 1fr);
 	}
 	.scsp-ssf-route-references,

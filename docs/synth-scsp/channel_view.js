@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import { describeScspSlotAllocation } from './slot_allocation_view.js?v=scsp-allocation-1';
 /** One inspect / edit target. Selecting a tab never writes to the sound chip. */
 export function setupScspChannelView({
 	onChange = () => {},
@@ -7,11 +8,13 @@ export function setupScspChannelView({
 	const tabs = doc.getElementById('scspChannelTabs');
 	const summary = doc.getElementById('scspChannelSummary');
 	const legend = doc.getElementById('scspSsfSlotLegend');
+	const synthLegend = doc.getElementById('scspSynthSlotLegend');
 	const phases = ['Attack', 'Decay 1', 'Decay 2', 'Release'];
 	let selected = null,
 		state = null,
 		ssfSnapshot = null,
 		ssfActive = false,
+		operator = 0,
 		disposed = false;
 	const listeners = [];
 	const label = (slot) => `CH${slot + 1}`;
@@ -82,6 +85,8 @@ export function setupScspChannelView({
 		tabs.dataset.source = live ? 'ssf' : 'authored';
 		tabs.dataset.selected = selected === null ? 'auto' : String(selected);
 		if (legend) legend.hidden = !live;
+		if (synthLegend) synthLegend.hidden = live || !state;
+		const allocation = live ? null : describeScspSlotAllocation(state, {selected, operator});
 		const code = lanes();
 		for (const { value, button } of buttons) {
 			const slot =
@@ -99,6 +104,16 @@ export function setupScspChannelView({
 				? !active ? 'inactive' : ['attack', 'decay1', 'decay2', 'release'][slot.envelopePhase] ?? 'unknown'
 				: '';
 			button.dataset.phase = phase;
+			const member = value === null ? null : allocation?.slots[value];
+			button.dataset.related = String(Boolean(member?.related));
+			button.dataset.ownership = member?.ownership ?? '';
+			button.dataset.allocation = member
+				? ['group', 'manual'].includes(member.ownership)
+					? member.held === true ? 'held' : member.held === false ? 'released' : 'unknown'
+					: member.ownership
+				: '';
+			button.dataset.operator = Number.isInteger(member?.operator) ? 'ABCDEF'[member.operator] ?? '' : '';
+			button.dataset.group = member?.groupId ?? '';
 			button.style.setProperty(
 				'--scsp-env',
 				String(live && value !== null ? (slot?.envelopeLevel ?? 0) : 0),
@@ -107,7 +122,7 @@ export function setupScspChannelView({
 			const description =
 				value === null
 					? 'Auto · grouped keyboard and logical Code lanes'
-					: `${label(value)} · ${live ? `${active ? 'Active' : 'Inactive'} · Gate` : 'Requested gate'} ${gate ? 'On' : 'Off'}${live ? ` · ${phases[slot.envelopePhase] ?? 'Phase unknown'} · ENV ${Math.round((slot.envelopeLevel ?? 0) * 100)}%` : ''}${owners.length && !live ? ' · ' + owners.map(mapping).join(' · ') : ''}`;
+					: `${label(value)} · ${live ? `${active ? 'Active' : 'Inactive'} · Gate` : 'Requested gate'} ${gate ? 'On' : 'Off'}${live ? ` · ${phases[slot.envelopePhase] ?? 'Phase unknown'} · ENV ${Math.round((slot.envelopeLevel ?? 0) * 100)}%` : ''}${owners.length && !live ? ' · ' + owners.map(mapping).join(' · ') : ''}${!live && member?.description ? ' · ' + member.description : ''}`;
 			if (button.title !== description) button.title = description;
 			attr(button, 'aria-label', description);
 		}
@@ -144,6 +159,7 @@ export function setupScspChannelView({
 			state = next.state ?? null;
 			ssfSnapshot = next.ssfSnapshot ?? null;
 			ssfActive = Boolean(next.ssfActive);
+			operator = next.operator ?? 0;
 			render();
 		},
 		dispose() {

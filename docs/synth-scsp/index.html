@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-ssf-slots-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-allocation-1" />
 	</head>
 	<body>
 		<main>
@@ -375,10 +375,17 @@
 								<span data-state="inactive">Inactive</span>
 								<span>Bar: ENV</span>
 							</div>
+							<div id="scspSynthSlotLegend" class="scsp-synth-slot-legend" aria-label="Synth slot allocation" hidden>
+								<span data-state="source">Source A–F</span>
+								<span data-state="held">Held</span>
+								<span data-state="released">Released · retained</span>
+								<span data-state="related">Selected group</span>
+							</div>
 							<p id="scspChannelSummary" class="scsp-channel-summary" role="status">
 								Auto · grouped keyboard / Code voices.
 							</p>
 							<section id="scspSsfSlotRoutes" class="scsp-ssf-slot-routes" aria-label="Selected SSF slot routes" hidden></section>
+							<section id="scspSynthSlotAllocation" class="scsp-synth-slot-allocation" aria-label="Synth physical slot allocation" hidden></section>
 						</div>
 						<section id="scspChipPanel" role="tabpanel" aria-labelledby="scspChipTab">
 							<div id="scspPhysicalControls" class="scsp-fields" hidden>
@@ -1043,6 +1050,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-ssf-slots-1"></script>
+		<script type="module" src="synth.js?v=scsp-allocation-1"></script>
 	</body>
 </html>

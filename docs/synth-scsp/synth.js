@@ -17,11 +17,12 @@ import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-multiple-self
 import { setupScspCycle2View } from './fm_cycle2_view.js?v=scsp-cycle2-ui-1';
 import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfSlotRoutesView } from './ssf_slot_routes_view.js?v=scsp-ssf-slots-1';
+import { setupScspSlotAllocationView } from './slot_allocation_view.js?v=scsp-allocation-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
 import { validateScspSynthDspProgram } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
-import { setupScspChannelView } from './channel_view.js?v=scsp-ssf-slots-1';
+import { setupScspChannelView } from './channel_view.js?v=scsp-allocation-1';
 import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-cycle2-presets-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
@@ -72,7 +73,8 @@ let selectedOperator = 0,
 	cycle2View = null,
 	fmDepthView = null,
 	ssfDspView = null,
-	ssfSlotRoutesView = null;
+	ssfSlotRoutesView = null,
+	slotAllocationView = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -354,6 +356,7 @@ function renderState() {
 		channelView.setSelected(liveView.getSelectedSlot(), { notify: false });
 	if (observing && channelView) liveView.selectSlot(channelView.getSelected());
 	$('scspSsfSlotRoutes').hidden = !observing;
+	$('scspSynthSlotAllocation').hidden = Boolean(observing);
 	if (observing) {
 		const target = liveView.getEditableTarget() ?? liveView.getAuditionTarget();
 		ssfSlotRoutesView?.update(target ? ssfVoiceEdits.projectSnapshot(target) : ssfSnapshot, {
@@ -388,7 +391,8 @@ function renderState() {
 	renderedSampleKey = nextSampleKey;
 	restoreEditorDraft();
 	setEditorSections(selected === null ? 'auto' : 'physical');
-	channelView?.update({ state });
+	channelView?.update({ state, operator: selectedOperator });
+	slotAllocationView?.update(state, {selected, operator: selectedOperator});
 	if (
 		selected !== null &&
 		document.activeElement !== $('scspPhysicalFrequency') &&
@@ -743,6 +747,7 @@ channelView = setupScspChannelView({
 	},
 });
 ssfSlotRoutesView = setupScspSsfSlotRoutesView({root: $('scspSsfSlotRoutes')});
+slotAllocationView = setupScspSlotAllocationView({root: $('scspSynthSlotAllocation')});
 liveView = setupScspSsfLiveView({
 	panel,
 	panelRoot: $('voice'),
@@ -1606,6 +1611,7 @@ window.addEventListener('pagehide', (event) => {
 	fmDepthView?.dispose();
 	ssfDspView?.dispose();
 	ssfSlotRoutesView?.dispose();
+	slotAllocationView?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

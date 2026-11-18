@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-synth-code-physical-slot-allocation-view",
+  "baseCommit": "e74d3a23435a6505fb9907c8211ddbd222754d7e",
+  "completed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "unitTests": 462,
+  "packageTests": 2,
+  "sourceProofTests": 26,
+  "sourceReceiptPin": "8cd2319158007783eb21c4588f92604c80a56ce7ebe13aec9da3c55a7a7ce083",
+  "sourceBrowser": {
+    "cases": 14,
+    "path": "build/scsp-synth-slot-allocation-browser-20261118/source.json",
+    "bytes": 210902,
+    "sha256": "22a5778a3c3659976642a5c3d1dc1f17ca955a423e0005c41825c5ccb062d69c"
+  },
+  "packagedBrowser": {
+    "cases": 14,
+    "path": "build/scsp-synth-slot-allocation-browser-20261118/packaged.json",
+    "bytes": 210952,
+    "sha256": "b4333b3e8b6da769bc4659e3e70fe46817928ad76ebea50b54d96189caf45ea6"
+  },
+  "ssfRegressionBrowser": {
+    "cases": 16,
+    "path": "build/scsp-synth-slot-allocation-20261118/ssf-regression-browser.json",
+    "bytes": 60406,
+    "sha256": "01ae1764166e35c17f7d23fb1f483170d36065f9d3d8321a7c090389c0f2e8f6"
+  },
+  "sourcePackageComparison": {
+    "path": "build/scsp-synth-slot-allocation-browser-20261118/source-package-comparison.json",
+    "bytes": 885,
+    "sha256": "7fd291fe178c7463776a7fd93a84d01289b0f1147237167f6afad46ca8b05b50"
+  },
+  "proof": {
+    "path": "build/scsp-synth-slot-allocation-20261118/proof-freeze.json",
+    "bytes": 2414,
+    "sha256": "0c1ac201f6ab717cb2c064aa7dc2ca3eb96b3559e8a0050ae0779776f57f4c61"
+  },
+  "logs": [
+    {
+      "path": "build/scsp-synth-slot-allocation-20261118/unit-tests.log",
+      "bytes": 49455,
+      "sha256": "c4c3391e0c742ced7a22f5280c936a01072739ec9afec24207f548e0e6d62e92"
+    },
+    {
+      "path": "build/scsp-synth-slot-allocation-20261118/package-tests.log",
+      "bytes": 307,
+      "sha256": "227c8417f58bdf3d648d9a200a8474261ef55ffb0e89da36ed5faee3fe08b428"
+    },
+    {
+      "path": "build/scsp-synth-slot-allocation-20261118/proof-tests.log",
+      "bytes": 3263,
+      "sha256": "858786e1a90499e9dd532d5171739d69a35d1aaf8ea37a0096448f4504efddd4"
+    },
+    {
+      "path": "build/scsp-synth-slot-allocation-20261118/proof-recorders.log",
+      "bytes": 1079,
+      "sha256": "c45b46e4b21db08f09140830e5526f261995b2aab0492b4d5bc16e447d5bad73"
+    },
+    {
+      "path": "build/scsp-synth-slot-allocation-20261118/proof-mixer-soundchip.log",
+      "bytes": 105,
+      "sha256": "a7c18de59cb9601bc4a6adad252599a4b13e84f3575ef9e87d8a5ad894a203ed"
+    },
+    {
+      "path": "build/scsp-synth-slot-allocation-20261118/proof-mixer-playground.log",
+      "bytes": 140,
+      "sha256": "7f8074162beb2e7294597194dfdfb5756941f137bf89b38a7f5ad9d867d4d81a"
+    }
+  ],
+  "sources": [
+    {
+      "path": "docs/issues/scsp_synth_slot_allocation_source_revision_01.json",
+      "bytes": 27677,
+      "sha256": "6a489062d73d7e5ee395dd5563cedcf5cb4837216d8c2c3e76661cfcd7634849"
+    },
+    {
+      "path": "docs/issues/todo_scsp_synth_slot_allocation_20261118.md",
+      "bytes": 2149,
+      "sha256": "aa2157043a462806900fcc8dd599695121842fe6fb7c6ac314a59990da5d9773"
+    },
+    {
+      "path": "docs/issues/verification_scsp_synth_slot_allocation_20261118.md",
+      "bytes": 4951,
+      "sha256": "1e593a90d92ff2c631e4ca0d124f8a3f918812f1bd4adeceaf91365b454ae38a"
+    },
+    {
+      "path": "docs/synth-scsp/README.md",
+      "bytes": 47980,
+      "sha256": "9046ca51a803670f83bd152d4797a9ebd290a85fb3840bd34bf3d1b261751527"
+    },
+    {
+      "path": "docs/synth-scsp/channel_view.js",
+      "bytes": 7169,
+      "sha256": "860a1152dc985e08c2f16c4041224dd7aeea989e3632938584469d09f57f1017"
+    },
+    {
+      "path": "docs/synth-scsp/channel_view.test.mjs",
+      "bytes": 11481,
+      "sha256": "a3afb0a1cde15aa93402ff2fc770d01d5d467281e72cb069ba1063d1654d0598"
+    },
+    {
+      "path": "docs/synth-scsp/index.html",
+      "bytes": 46776,
+      "sha256": "81fa60c3d1993ab55b12c1e09e1f3f46171a536eb146a3ca11d6b5a7738834bf"
+    },
+    {
+      "path": "docs/synth-scsp/slot_allocation_view.js",
+      "bytes": 19200,
+      "sha256": "e5a0d23aec68b7a59fe35d55d58f5b337e9071fa540f6358c36dffa8786635ed"
+    },
+    {
+      "path": "docs/synth-scsp/slot_allocation_view.test.mjs",
+      "bytes": 14636,
+      "sha256": "27315341dccdf30820b598760342a1cd0f38badd4f17eed664d742da149860c7"
+    },
+    {
+      "path": "docs/synth-scsp/synth.css",
+      "bytes": 33825,
+      "sha256": "cc8f34d8f65296ac2e8028a33cdf09a1e4cc49dafca65069f3c8501bb947ff9b"
+    },
+    {
+      "path": "docs/synth-scsp/synth.js",
+      "bytes": 62252,
+      "sha256": "6c98ca9a5a9efc3aa10fc0bea05711b5effbaaaf7e228c3092167ab895d7d864"
+    },
+    {
+      "path": "scripts/check_scsp_synth_slot_allocation_browser.cjs",
+      "bytes": 29619,
+      "sha256": "902916871343f085e3d195559fde5e376a89f9391f347cc7e60fa84cd7901269"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_ssf_slot_map_revision.mjs",
+      "bytes": 9567,
+      "sha256": "a9fa142a0efb2d3dbe2c676fc51f06a5d406ca9057dec51da387608beff03e8e"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_ssf_slot_map_revision.test.mjs",
+      "bytes": 5399,
+      "sha256": "480c057f5cd863eb92d75ed72621efb53cab3b48de015659ee365027c6ce1991"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_synth_slot_allocation_revision.mjs",
+      "bytes": 10117,
+      "sha256": "7e40ead0a7fd79f8e1dda4eb88f265ed5d22c4292ccbfcbd9c4d45fe42750151"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_synth_slot_allocation_revision.test.mjs",
+      "bytes": 5880,
+      "sha256": "fa85c1a3e34114bd4af920b862054304206edbc42c408b6438e04053c8d102b7"
+    },
+    {
+      "path": "scripts/record_scsp_ssf_slot_map_revision.mjs",
+      "bytes": 4497,
+      "sha256": "345f1626f35f5034ddb9d77da8c22dd7721a82fd03c2a56cddc50b0cfe1a2abb"
+    },
+    {
+      "path": "scripts/record_scsp_synth_slot_allocation_revision.mjs",
+      "bytes": 4598,
+      "sha256": "08b647d0c417e84adf43fa6ed97fbed0d108452558e1396863873d23340664b9"
+    }
+  ],
+  "package": {
+    "record": {
+      "path": "build/scsp-synth-slot-allocation-20261118/package.json",
+      "bytes": 490,
+      "sha256": "d5fc8780ae14992182cab1f3348ea513da0aa165c5dba1db53da2eacabcebb70"
+    },
+    "archive": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_scsp_synth_slot-allocation-check-e74d3a23_itch.zip",
+      "bytes": 4397207,
+      "sha256": "70c9bec9f0a8e329ec961125682093daea23f96f0e7e1f9071b9b049eb23c93e"
+    },
+    "files": 386,
+    "bundles": 4
+  },
+  "limitations": [
+    "Requested ownership and settings are not native envelope phases or measured output.",
+    "Recipe arrows fall back after modulation overrides; arbitrary raw producer/DSP return paths are not inferred.",
+    "No audio/owner/allocation/core/WASM/observer/gain/preset/public API changes.",
+    "No npm/version/publication/commit/push/tag or Tauri work."
+  ]
+}

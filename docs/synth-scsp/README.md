@@ -41,6 +41,34 @@ The last attack owns the slot, so releasing an older key cannot stop its
 replacement. Runtime CH7–CH32 edits are not a saved bank and may be cleared
 by Auto reuse or instrument replacement.
 
+**Synth slot allocation** below the same CH selector shows which physical
+slots one keyboard or logical Code note owns. In Auto it follows the most
+recent allocation, including a released group retained for later reuse.
+Choosing a physical CH highlights all members of that CH's group; the editor
+and keyboard continue to target the chosen CH. No second channel picker or
+automatic editor-target change is introduced. The cards map A–F to their
+actual CH numbers, including Custom's dependency-driven operator order.
+Keyboard / Code owner, note and requested Held / Released state appear beside
+the mapping. A released retained group is not a free slot or proof of audible
+release, and the Synth view does not invent native envelope meters.
+
+Group cards show the requested modulation inputs, receiving Depth, physical
+Direct level/pan and requested MIXS send. Connections use the same allocation
+recipe and operator mapping as playback. Self names its two history taps;
+Cycle distinguishes current A into B from B's history average into A. If a
+physical edit changes the requested modulation settings, the view retains the
+group identity but falls back to X/Y settings without claiming a producer.
+Direct and DSP requests can be muted or suppressed by output/ownership/effect
+policy; they are not level meters or a traced DSP return path.
+
+Source A–F in CH1–CH6 remain editing templates. With no allocated group,
+Auto shows the selected editor source. A physical key can also own a source
+slot. Slot reuse, group retirement and Code Stop replace or remove the old
+allocation display using current owner records, rather than stale Code lanes.
+Polling and selection only inspect these existing records. SSF Live keeps its
+separate native snapshot view; its Off / Stop restores the Synth allocation
+view. The `?` contains the longer ownership and routing explanation.
+
 Chain connects operators in series. Pairs uses parallel two-op groups.
 Branch provides a tree with up to two inputs per slot. The diagram shows
 every connection and output, and its A–F buttons select the editing operator

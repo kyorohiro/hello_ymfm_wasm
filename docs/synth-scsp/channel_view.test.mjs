@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import factory from '../generated/scsp_wasm.js';
+import { Scsp } from '../js/scsp.js';
+import { SynthInstrument } from './instrument.js';
 import { setupScspChannelView } from './channel_view.js';
 
 class Node {
@@ -58,13 +62,14 @@ function rig() {
 	const tabs = new Node(),
 		summary = new Node(),
 		legend = new Node(),
+		synthLegend = new Node(),
 		changes = [];
 	const doc = {
-		getElementById: (id) => ({ scspChannelTabs: tabs, scspChannelSummary: summary, scspSsfSlotLegend: legend })[id],
+		getElementById: (id) => ({ scspChannelTabs: tabs, scspChannelSummary: summary, scspSsfSlotLegend: legend, scspSynthSlotLegend: synthLegend })[id],
 		createElement: () => new Node(),
 	};
 	const ui = setupScspChannelView({ document: doc, onChange: (value) => changes.push(value) });
-	return { ui, tabs, summary, legend, changes };
+	return { ui, tabs, summary, legend, synthLegend, changes };
 }
 function state() {
 	const slots = Array.from({ length: 32 }, (_, index) => ({
@@ -217,4 +222,81 @@ test('SSF overview labels Release by observed phase, not merely a low Gate, and 
 		assert(r.tabs.children.every(button => button.dataset.phase === ''));
 		assert.doesNotMatch(r.tabs.children[2].getAttribute('aria-label'), /Release|ENV/);
 	} finally { r.ui.dispose(); }
+});
+
+let nativeModule;
+async function owner(t) {
+	nativeModule ??= factory({wasmBinary: await readFile(new URL('../generated/scsp_wasm.wasm', import.meta.url))});
+	const instrument = new SynthInstrument(await Scsp.create({moduleFactory: () => nativeModule}));
+	t.after(() => instrument.dispose());
+	return instrument;
+}
+
+test('actual Auto allocations highlight their physical group without changing the selected keyboard target', async t => {
+	const instrument = await owner(t), r = rig();
+	t.after(() => r.ui.dispose());
+	instrument.setConfig({mode: 'fm2', fm: {algorithm: 'cycle2'}});
+	instrument.noteOn('first', 60);
+	r.ui.update({state: instrument.read()});
+	assert.equal(r.synthLegend.hidden, false);
+	assert.equal(r.tabs.children[7].dataset.related, 'true');
+	assert.equal(r.tabs.children[8].dataset.related, 'true');
+	assert.equal(r.tabs.children[7].dataset.operator, 'A');
+	assert.equal(r.tabs.children[8].dataset.operator, 'B');
+	assert.equal(r.tabs.children[7].dataset.allocation, 'held');
+	instrument.noteOn('second', 64);
+	r.ui.update({state: instrument.read()});
+	assert.equal(r.ui.getSelected(), null);
+	assert.equal(r.tabs.children[7].dataset.related, 'false');
+	assert.equal(r.tabs.children[9].dataset.related, 'true');
+	assert.equal(r.tabs.children[10].dataset.related, 'true');
+	const before = instrument.read();
+	r.ui.setSelected(6);
+	assert.deepEqual(instrument.read(), before, 'observation and selection send no musical writes');
+	assert.equal(r.tabs.children[7].dataset.related, 'true');
+	assert.equal(r.tabs.children[8].dataset.related, 'true');
+	instrument.noteOff('first');
+	r.ui.update({state: instrument.read()});
+	assert.equal(r.tabs.children[7].dataset.allocation, 'released');
+	assert.equal(r.tabs.children[7].dataset.phase, '', 'retained ownership is not an observed envelope phase');
+	assert.match(r.tabs.children[7].getAttribute('aria-label'), /released|retained/i);
+	instrument.physicalNoteOn('manual', 6, 67);
+	r.ui.update({state: instrument.read()});
+	assert.equal(r.ui.getSelected(), 6);
+	assert.equal(r.tabs.children[7].dataset.ownership, 'manual');
+	assert.equal(r.tabs.children[7].dataset.related, 'true');
+	assert.equal(r.tabs.children[8].dataset.related, 'false');
+	assert.equal(r.tabs.children[8].dataset.group, '');
+	assert.equal(instrument.noteOff('first'), false, 'the retired keyboard identity cannot own the replacement');
+});
+
+test('real Custom Code mappings are physical operator mappings and SSF clears all authored highlights', async t => {
+	const instrument = await owner(t), r = rig();
+	t.after(() => r.ui.dispose());
+	instrument.setConfig({mode: 'fm6', fm: {algorithm: 'custom', custom: {
+		inputs: [[3, 4], [0], [], [5], [2], []], outputs: [0, 1, 4],
+	}}});
+	const session = instrument.beginCode().session;
+	instrument.code(session, 'noteOn', [3, 'C4']);
+	const actual = instrument.read(), expected = [10, 11, 8, 7, 9, 6];
+	r.ui.update({state: actual});
+	for (const [op, slot] of expected.entries()) {
+		assert.equal(r.tabs.children[slot + 1].dataset.operator, 'ABCDEF'[op]);
+		assert.equal(r.tabs.children[slot + 1].dataset.related, 'true');
+	}
+	assert.match(r.tabs.children[11].getAttribute('aria-label'), /Code.*CH4/i);
+	r.ui.setSelected(10);
+	r.ui.update({state: actual, ssfSnapshot: {slots: actual.slots}, ssfActive: true});
+	assert.equal(r.synthLegend.hidden, true);
+	assert.equal(r.legend.hidden, false);
+	assert(r.tabs.children.every(button => button.dataset.related === 'false'));
+	assert(r.tabs.children.every(button => button.dataset.operator === '' && button.dataset.group === ''));
+	r.ui.update({state: actual});
+	assert.equal(r.synthLegend.hidden, false);
+	assert.equal(r.legend.hidden, true);
+	assert.equal(r.tabs.children[11].dataset.operator, 'A');
+	instrument.endCode(session);
+	r.ui.update({state: instrument.read()});
+	assert(r.tabs.children.every(button => button.dataset.group === ''));
+	assert.equal(r.tabs.children.length, 33);
 });
