@@ -6,6 +6,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {diffLines} from 'diff';
+import {createScspFmSelfFeedbackRevisionReadContext} from './mixer_calibration_scsp_fm_self_feedback_revision.mjs';
 import {SCSP_SSF_DSP_REVISION_BASE_COMMIT as baseCommit,
   SCSP_SSF_DSP_REVISION_RECEIPT_PATH as destination,
   SCSP_SSF_DSP_REVISION_SOURCE_PATHS as paths,
@@ -60,7 +61,8 @@ export async function createScspSsfDspRevisionReceipt({readSource=name=>readFile
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const args=process.argv.slice(2);assert(args.length===1&&['--write','--check'].includes(args[0]),'Usage: node scripts/record_scsp_ssf_dsp_revision.mjs --write | --check');
-  const value=await createScspSsfDspRevisionReceipt(),text=JSON.stringify(value,null,2)+'\n';
+  const reviewed=args[0]==='--check'?createScspFmSelfFeedbackRevisionReadContext():null;
+  const value=await createScspSsfDspRevisionReceipt(reviewed?{readSource:name=>reviewed.readSource(new URL('../'+name,import.meta.url))}:{}),text=JSON.stringify(value,null,2)+'\n';
   if(args[0]==='--write')await writeFile(resolve(root,destination),text);
   else assert.equal(await readFile(resolve(root,destination),'utf8'),text,'Read-only SSF DSP receipt changed');
   console.log('SCSP SSF DSP receipt object SHA256 '+sha(JSON.stringify(value)));

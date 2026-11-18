@@ -21,12 +21,23 @@ test('selected operator input and output events capture IDs without copying a st
   const {nodes,calls,view,state}=fixture(),before=structuredClone(state);
   view.update(state,{operator:0});
   assert.equal(nodes.scspCustomFmInput.value,'1');assert(nodes.scspCustomFmOutput.checked);
-  assert(nodes.scspCustomFmInput.options[1].disabled,'self source is unavailable in this editor');
+  assert(!nodes.scspCustomFmInput.options[1].disabled,'2OP can choose one self-feedback operator');
+  assert.match(nodes.scspCustomFmInput.options[1].textContent,/Self/);
   nodes.scspCustomFmInput.value='';nodes.scspCustomFmInput.dispatchEvent(new Event('change'));
   view.update(state,{operator:1});
   nodes.scspCustomFmOutput.checked=true;nodes.scspCustomFmOutput.dispatchEvent(new Event('change'));
   await tick();assert.deepEqual(calls,[{operator:0,source:null,port:0,count:2},{operator:1,enabled:true,count:2}]);
   assert.deepEqual(state,before);assert(nodes.scspCustomFmInput.blurred);view.dispose();
+});
+
+test('one 2OP Self choice shows its two histories and blocks a second self operator',()=>{
+  const {nodes,view,state}=fixture();state.config.fm.depth=7;state.config.fm.custom={inputs:[[1],[1]],outputs:[0]};
+  view.update(state,{operator:1});
+  assert.equal(nodes.scspCustomFmInput.value,'1');assert(!nodes.scspCustomFmInput.options[2].disabled);
+  assert.match(nodes.scspCustomFmHint.textContent,/Self B.*X32\/Y0.*2 histories/);
+  state.config.fm.depths=[7,0,9,9,9,9];view.update(state,{operator:1});assert.match(nodes.scspCustomFmHint.textContent,/Off \(Depth 0\)/);
+  view.update(state,{operator:0});assert(nodes.scspCustomFmInput.options[1].disabled,'clear B feedback before choosing A feedback');
+  view.dispose();
 });
 
 test('inactive modes, unused operators and SSF context cannot send custom edits',async()=>{

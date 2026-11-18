@@ -3,9 +3,9 @@
 import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
-import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-depth-1';
+import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js?v=scsp-fm-self-1';
 import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js?v=scsp-dsp-ui-routing-1';
-import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting,operatorDepth,operatorDepths} from './routing.js?v=scsp-fm-depth-1';
+import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot,customOperatorSlots,customRouting,resizeCustomRouting,operatorDepth,operatorDepths} from './routing.js?v=scsp-fm-self-1';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {validateScspCodeCall,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 import {ScspReleaseGuard} from './release_guard.js';
@@ -198,6 +198,12 @@ export class SynthInstrument {
     // An actual Auto allocation owns these slots and replaces prior physical
     // routing choices with its source template / global default.
     for(const slot of slots)this.dspSlotSends[slot]=null;
+    // Software voice initialization, not a change to SCSP history semantics.
+    // Only a new owned self voice starts from silence; live edits preserve its
+    // feedback and non-self/manual voices never clear sound-stack history.
+    routing(group.config).inputs.forEach((sources,index)=>{if(sources.includes(index)){
+      const slot=operatorSlot(group,index);this.core.write(0x600+slot*2,0);this.core.write(0x600+(slot+32)*2,0);
+    }});
     this.#apply(commands);this.sequence++;this.groups.set(id,group);this.#routeEffect();
     return {slots:[...slots],stolenId:victims.find(v=>v!==previous)?.id??null};
   }

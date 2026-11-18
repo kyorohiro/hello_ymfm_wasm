@@ -44,22 +44,27 @@ type ScspCodeOperator = 0|1|2|3|4|5;
 type ScspCodeCustomOperator = ScspCodeOperator;
 type ScspCodeCustomOperator2 = 0|1;
 type ScspCodeCustomOperator4 = 0|1|2|3;
-/** The two-OP graph can only use the other OP as a source. */
-type ScspCodeCustomInput = []|[ScspCodeCustomOperator2];
-type ScspCodeCustomInput4 = []|[ScspCodeCustomOperator4]|[ScspCodeCustomOperator4,ScspCodeCustomOperator4];
-type ScspCodeCustomInput6 = []|[ScspCodeCustomOperator]|[ScspCodeCustomOperator,ScspCodeCustomOperator];
-/** Duplicate sources, self modulation and cycles are rejected before applying. */
-interface ScspCodeCustomRouting2 {
-  inputs:[ScspCodeCustomInput,ScspCodeCustomInput];
+/** Custom2 keeps one source per receiving operator. */
+type ScspCodeCustomInput<Source extends ScspCodeCustomOperator2=ScspCodeCustomOperator2> = []|[Source];
+type ScspCodeCustomInput4<Source extends ScspCodeCustomOperator4=ScspCodeCustomOperator4> = []|[Source]|[Source,Source];
+type ScspCodeCustomInput6<Source extends ScspCodeCustomOperator=ScspCodeCustomOperator> = []|[Source]|[Source,Source];
+interface ScspCodeCustomNoSelfRouting2 {
+  inputs:[ScspCodeCustomInput<1>,ScspCodeCustomInput<0>];
   /** Direct outputs are independent of which operators modulate another. */
   outputs:ScspCodeCustomOperator2[];
 }
+/** One self OP, optionally feeding the other OP. Self uses X32/Y0 histories. */
+type ScspCodeCustomSelfRouting2 =
+  {inputs:[[0],[]|[0]];outputs:ScspCodeCustomOperator2[]} |
+  {inputs:[[]|[1],[1]];outputs:ScspCodeCustomOperator2[]};
+type ScspCodeCustomRouting2 = ScspCodeCustomNoSelfRouting2|ScspCodeCustomSelfRouting2;
+/** Duplicate sources and unsupported feedback / cycles reject atomically. */
 interface ScspCodeCustomRouting4 {
-  inputs:[ScspCodeCustomInput4,ScspCodeCustomInput4,ScspCodeCustomInput4,ScspCodeCustomInput4];
+  inputs:[ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,0>>,ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,1>>,ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,2>>,ScspCodeCustomInput4<Exclude<ScspCodeCustomOperator4,3>>];
   outputs:ScspCodeCustomOperator4[];
 }
 interface ScspCodeCustomRouting6 {
-  inputs:[ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6,ScspCodeCustomInput6];
+  inputs:[ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,0>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,1>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,2>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,3>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,4>>,ScspCodeCustomInput6<Exclude<ScspCodeCustomOperator,5>>];
   outputs:ScspCodeCustomOperator[];
 }
 type ScspCodeCustomRouting = ScspCodeCustomRouting2|ScspCodeCustomRouting4|ScspCodeCustomRouting6;
@@ -117,13 +122,14 @@ type ScspCodeFixedFm = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algori
 type ScspCodeCustomFm<Graph extends ScspCodeCustomRouting> = Omit<ScspCodeConfig['fm'],'algorithm'|'custom'> & {algorithm:'custom';custom:Graph};
 type ScspCodePatch = ScspCodePatchBase & (
   {version:4;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths?:never}} |
-  {version:5;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomRouting2> & {depths?:never}} |
+  {version:5;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting2> & {depths?:never}} |
   {version:6;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomRouting4> & {depths?:never}} |
   {version:6;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths?:never}} |
   {version:7;mode:ScspCodeConfig['mode'];fm:ScspCodeFixedFm & {depths:ScspCodeFmDepths}} |
-  {version:7;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomRouting2> & {depths:ScspCodeFmDepths}} |
+  {version:7;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomNoSelfRouting2> & {depths:ScspCodeFmDepths}} |
   {version:7;mode:'fm4';fm:ScspCodeCustomFm<ScspCodeCustomRouting4> & {depths:ScspCodeFmDepths}} |
-  {version:7;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths:ScspCodeFmDepths}}
+  {version:7;mode:'fm6';fm:ScspCodeCustomFm<ScspCodeCustomRouting6> & {depths:ScspCodeFmDepths}} |
+  {version:8;mode:'fm2';fm:ScspCodeCustomFm<ScspCodeCustomSelfRouting2>}
 );
 interface ScspCodeState extends PlaygroundScspState {
   config:ScspCodeConfig;pitchBend:number;voiceCapacity:number;sourceCount:6;codeActive:boolean;codeSession:number;
@@ -157,6 +163,10 @@ interface ScspCodeClient {
   setMix(operator:ScspCodeOperator,patch:Partial<ScspCodeMix>):Promise<boolean>;
   setLfo(operator:ScspCodeOperator,patch:Partial<PlaygroundScspLfo>):Promise<boolean>;
   /** Custom routing supports fm2/fm4/fm6 with at most two distinct sources per OP.
+   * Custom2 alone allows one self OP, with one source per target. Its hardware
+   * X32/Y0 inputs average two stored generations; the existing adapter depth 0
+   * disables modulation. New Auto/Code self attacks clear only their owned
+   * self-slot history cells. Depth edits retain those histories and notes.
    * An explicit graph must match the active operator count. Changing mode without
    * a graph preserves surviving connections and adds disconnected operators.
    * Graph changes retire Auto notes after validation; Code continues running.
@@ -190,8 +200,9 @@ interface ScspCodeClient {
    * Live edits retain the DSP ring and voices. COEF1 also updates Feedback. */
   setDspCoefficients(patch:ScspCodeDspCoefficientPatch):Promise<ScspCodeDspCoefficients>;
   exportPatch():Promise<ScspCodePatch>;
-  /** Load portable SCSP presets 1–7. Custom two-OP uses version 5;
-   * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7. */
+  /** Load portable SCSP presets 1–8. Custom two-OP uses version 5;
+   * custom four/six-OP uses version 6. Mixed per-OP depth uses version 7.
+   * A supported Custom2 self-feedback graph uses version 8, with optional depths. */
   loadPatch(patch:unknown):Promise<boolean>;
   setFrequency(lane:ScspCodeLane,hz:number):Promise<number>;
   setNote(lane:ScspCodeLane,note:string|number):Promise<number>;

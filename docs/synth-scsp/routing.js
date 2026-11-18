@@ -11,10 +11,11 @@ export function operatorDepths(value){
 }
 /** X and Y share the receiving operator's one hardware MDL value. */
 export const operatorDepth=(config,index)=>config.fm.depths?.[index]??config.fm.depth;
+export const hasSelfFeedback=graph=>graph.inputs.some((sources,target)=>sources.includes(target));
 const customCounts=[2,4,6];
 function customOrder(inputs){
-  const remaining=inputs.map(sources=>sources.length),dependents=inputs.map(()=>[]),ready=[],order=[];
-  inputs.forEach((sources,target)=>sources.forEach(source=>dependents[source].push(target)));
+  const remaining=inputs.map((sources,target)=>sources.filter(source=>source!==target).length),dependents=inputs.map(()=>[]),ready=[],order=[];
+  inputs.forEach((sources,target)=>sources.forEach(source=>{if(source!==target)dependents[source].push(target);}));
   remaining.forEach((count,index)=>{if(!count)ready.push(index);});
   while(ready.length){
     // Legacy templates use descending operator IDs. Prefer that same placement
@@ -25,7 +26,7 @@ function customOrder(inputs){
   if(order.length!==inputs.length)throw new RangeError('Feedback loops are outside this acyclic Synth editor');
   return order;
 }
-/** Acyclic Synth routing, with up to two distinct sound-stack inputs per OP.
+/** Custom Synth routing: acyclic, or one bounded Custom2 self-feedback OP.
  * This editor constraint does not describe every SCSP hardware connection. */
 export function customRouting(value,count){
   if(arguments.length===0)value={inputs:[[1],[]],outputs:[0]};
@@ -38,12 +39,14 @@ export function customRouting(value,count){
     if(!Array.isArray(entry)||entry.length>2||!denseArray(entry,entry.length))throw new TypeError('Each custom input needs zero, one or two distinct operators');
     const sources=Array.from(entry,source=>{
       if(!Number.isInteger(source)||source<0||source>=length)throw new RangeError('Custom source must name an operator in this graph');
-      if(source===target)throw new RangeError('Self modulation is outside this acyclic Synth editor');
       return source;
     });
     if(new Set(sources).size!==sources.length)throw new TypeError('Custom inputs must not contain duplicates');
     return sources;
   });
+  const self=inputs.flatMap((sources,target)=>sources.includes(target)?[target]:[]);
+  if(self.length&&(length!==2||self.length!==1||inputs.some(sources=>sources.length>1)))
+    throw new RangeError('Self feedback requires Custom 2-op, one self operator and at most one source per operator');
   customOrder(inputs);
   if(!Array.isArray(rawOutputs)||rawOutputs.length>length||!denseArray(rawOutputs,rawOutputs.length))throw new TypeError('Custom outputs must be a dense operator list');
   const outputs=Array.from(rawOutputs,output=>{if(!Number.isInteger(output)||output<0||output>=length)throw new RangeError('Custom output must name an operator in this graph');return output;});
@@ -54,7 +57,7 @@ export function customRouting(value,count){
 export function resizeCustomRouting(value,count){
   if(!customCounts.includes(count))throw new RangeError('Custom FM needs 2, 4 or 6 operators');
   const graph=customRouting(value);
-  return {inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count)),outputs:graph.outputs.filter(output=>output<count)};
+  return {inputs:Array.from({length:count},(_,index)=>(graph.inputs[index]??[]).filter(source=>source<count&&(count===2||source!==index))),outputs:graph.outputs.filter(output=>output<count)};
 }
 export function routing(config){
   const count=operatorCount(config.mode),inputs=Array.from({length:count},()=>[]);
@@ -84,7 +87,10 @@ export function voiceCommands(synth,config,group){
     const voice=state.slots[index],slot=custom?slots[index]:group.slots[count-1-index],sources=inputs[index];
     if(sources.length&&voice.sample?.loopStartSamples!==0)throw new RangeError(`FM operator ${OPERATOR_NAMES[index]} needs a full forward loop (loop start 0)`);
     const offsets=sources.map(source=>((custom?slots[source]:group.slots[count-1-source])-slot+64)%64);
-    const modulation={depth:sources.length?operatorDepth(config,index):0,xOffset:offsets[0]??0,yOffset:offsets[1]??offsets[0]??0,writeInhibit:false};
+    // Self uses the latest/past pair recommended by the SCSP manual. In this
+    // zero slot-delay core these are the preceding one/two native samples.
+    const self=sources.includes(index);
+    const modulation={depth:sources.length?operatorDepth(config,index):0,xOffset:self?32:offsets[0]??0,yOffset:self?0:offsets[1]??offsets[0]??0,writeInhibit:false};
     commands.push(['setPreset',[slot,{sample:voice.sample,envelope:voice.envelope,lfo:voice.lfo,totalLevel:voice.totalLevel,directLevel:outputs.includes(index)?voice.directLevel:0,pan:voice.pan,frequencyHz:frequency*(config.mode==='pcm'?1:config.fm.ratios[index]),modulation}]]);
   }
   for(const slot of group.slots)commands.push(['keyOn',[slot]]);

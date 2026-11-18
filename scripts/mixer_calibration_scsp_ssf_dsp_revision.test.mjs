@@ -13,7 +13,8 @@ import {restoreMixerCalibrationScspSsfDspRevision as restore,
   SCSP_SSF_DSP_REVISION_REPORT_PATHS as reports,
 } from './mixer_calibration_scsp_ssf_dsp_revision.mjs';
 import {createScspFmDepthRevisionReader} from './mixer_calibration_scsp_fm_depth_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+import {createScspFmSelfFeedbackRevisionReader} from './mixer_calibration_scsp_fm_self_feedback_revision.mjs';
+const url=name=>new URL('../'+name,import.meta.url),read=name=>createScspFmSelfFeedbackRevisionReader()(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const match=(bytes,expected)=>{assert.equal(bytes.length,expected.bytes);assert.equal(sha(bytes),expected.sha256);};

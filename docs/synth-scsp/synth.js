@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-fm-depth-1';
-import { SynthInstrument } from './instrument.js?v=scsp-fm-depth-1';
-import { readPatch, writePatch } from './patch.js?v=scsp-fm-depth-1';
-import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-depth-1';
+import { createAudio } from './audio.js?v=scsp-fm-self-1';
+import { SynthInstrument } from './instrument.js?v=scsp-fm-self-1';
+import { readPatch, writePatch } from './patch.js?v=scsp-fm-self-1';
+import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-fm-self-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-fm-depth-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-fm-self-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfLiveView } from './ssf_live_view.js?v=scsp-ssf-dsp-1';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
 import { setupScspDspProgramView } from './dsp_program_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspRoutingView } from './dsp_routing_view.js?v=scsp-dsp-ui-routing-1';
 import { setupScspDspSignalFlow } from './dsp_signal_flow.js?v=scsp-dsp-flow-1';
-import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-depth-1';
-import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-depth-1';
+import { setupScspCustomFmView } from './fm_custom_view.js?v=scsp-fm-self-1';
+import { setupScspFmDepthView } from './fm_depth_view.js?v=scsp-fm-self-1';
 import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
 import { validateScspSynthDspProgram } from './dsp_program.js?v=scsp-dsp-ui-routing-1';
 import { setupScspChannelView } from './channel_view.js';
-import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-fm-depth-1';
+import { createScspSsfCapture, getScspSsfCaptureAvailability } from './ssf_capture.js?v=scsp-fm-self-1';
 import { ScspSsfVoiceEdits } from './ssf_voice_edits.js';
 import { setupSynthMenu } from '../synth/synth_menu.js';
 import { createSpuOutputVisualizer } from '../synth-spu/spu_synth_visualizer.js';
@@ -255,7 +255,10 @@ function drawConnections(state) {
 			const x = 50 + source * 100,
 				y = 50 + target * 100,
 				top = 15 + Math.abs(source - target) * 5;
-			path.setAttribute('d', `M ${x} 105 C ${x} ${top}, ${y} ${top}, ${y} 100`);
+			path.setAttribute('d', source === target
+				? `M ${x + 14} 105 C ${x + 60} 28, ${x - 60} 28, ${x - 14} 100`
+				: `M ${x} 105 C ${x} ${top}, ${y} ${top}, ${y} 100`);
+			path.dataset.selfFeedback = String(source === target);
 			path.classList.toggle(
 				'selected',
 				source === selectedOperator || target === selectedOperator,

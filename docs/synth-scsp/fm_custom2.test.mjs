@@ -83,7 +83,7 @@ test('invalid graphs and loop-incompatible PCM leave metadata, owners, RAM and e
   const before=owner.read(),ram=owner.core.readRam();let writes=0;const write=owner.core.write.bind(owner.core);
   owner.core.write=(...args)=>{writes++;return write(...args);};
   const sparse=Array(2);sparse[0]=[];
-  for(const custom of [null,undefined,{},graph([[0],[]],[0]),graph([[1],[0]],[0]),graph([[1,1],[]],[0]),graph([[],[2]],[1]),graph([[],[]],[0,0]),graph(sparse,[0]),graph([[],[]],Array(1)),{...graph(),unknown:true},{...graph(),[Symbol('hidden')]:0}]){
+  for(const custom of [null,undefined,{},graph([[0],[1]],[0]),graph([[1],[0]],[0]),graph([[1,1],[]],[0]),graph([[],[2]],[1]),graph([[],[]],[0,0]),graph(sparse,[0]),graph([[],[]],Array(1)),{...graph(),unknown:true},{...graph(),[Symbol('hidden')]:0}]){
     assert.throws(()=>owner.setConfig({fm:{custom}}));assert.deepEqual(owner.read(),before);
   }
   assert.throws(()=>owner.setConfig({mode:'fm4',fm:{custom:graph()}}),/input count/);assert.equal(writes,0);owner.core.write=write;
