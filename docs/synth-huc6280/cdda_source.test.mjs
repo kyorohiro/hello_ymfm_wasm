@@ -57,6 +57,43 @@ test('the selected WAV owns one detached PCM buffer rather than borrowing mutabl
   const f=fixture();try{const input=wav();await f.source.load(input);input.fill(0);await f.source.play();const stereo=f.adapters[0].render();assert(peak(stereo.left)>.01&&peak(stereo.right)>.01);}finally{await f.source.dispose();}
 });
 
+test('CD-DA generations capture accepted selected-track Play synchronously and rejected requests preserve ownership',async()=>{
+  const f=fixture();try{
+    await f.source.load(wav());const loaded=f.source.read().playbackGeneration;
+    const playing=f.source.play(),owned=f.source.read().playbackGeneration;assert(owned>loaded);await playing;
+    await f.source.getState();const client=await f.source.useCodeClient();await client.getState();assert.equal(f.source.read().playbackGeneration,owned);
+    await assert.rejects(f.source.play(99),/track/);await assert.rejects(f.source.play(undefined,{offset:99}),/outside/);
+    await assert.rejects(f.source.load(Uint8Array.of(1,2)),/truncated/);assert.equal(f.source.read().playbackGeneration,owned);
+    const takeover=client.play(),newOwner=f.source.read().playbackGeneration;assert(newOwner>owned);await takeover;
+    assert.equal(await f.source.stopIfPlaybackGeneration(owned),false);assert.equal((await client.getState()).state,'playing');
+    assert(await f.source.stopIfPlaybackGeneration(newOwner));assert.notEqual((await client.getState()).state,'playing');
+    assert.equal(client.stopIfPlaybackGeneration,undefined);
+  }finally{await f.source.dispose();}
+});
+
+test('conditional CD-DA key release preserves a separately preparing UI track and its pending Play',async()=>{
+  const file=deferred(),f=fixture({readFile:async path=>path==='/album/set.json'?new TextEncoder().encode(JSON.stringify(manifest)):
+    path==='/album/one.wav'?wav():file.promise});
+  try{
+    await f.source.load('/album/set.json');await f.source.play(3);const owned=f.source.read().playbackGeneration;
+    const next=f.source.play(7);await turn();assert(f.source.read().busy);assert.equal(f.source.read().playbackGeneration,owned);
+    assert(await f.source.stopIfPlaybackGeneration(owned));assert(f.source.read().busy);
+    file.resolve(wav(4410,660));await next;
+    assert.equal(f.source.read().selectedTrack,7);assert.equal((await f.source.getState()).state,'playing');
+    assert(f.source.read().playbackGeneration>owned);assert.equal(await f.source.stopIfPlaybackGeneration(owned),false);
+  }finally{file.resolve(wav(4410));await f.source.dispose();}
+});
+
+test('conditional CD-DA release cancels pending audio readiness without starting a late track',async()=>{
+  const ready=deferred(),f=fixture({ensureAudio:()=>ready.promise});try{
+    await f.source.load(wav());const pending=f.source.play(),rejected=assert.rejects(pending,{name:'AbortError'});
+    const owned=f.source.read().playbackGeneration;await turn();assert.equal(f.ensures,1);
+    f.source.readySeek(.03);assert.equal(f.source.read().playbackGeneration,owned,'a passive cursor edit does not take an unheard pending trigger');
+    assert(await f.source.stopIfPlaybackGeneration(owned));ready.resolve();await rejected;
+    assert.equal(f.adapters.length,0);assert(!f.events.some(event=>event[0]==='play'));
+  }finally{ready.resolve();await f.source.dispose();}
+});
+
 test('malformed replacement, unknown/malformed track and invalid cross-track offsets keep the previous selected source playing',async()=>{
   const f=fixture();try{
     await f.source.load('/album/set.json');await f.source.play();const previous=f.source.read(),prepares=f.adapters[0].prepares;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createHuc6280SongPreview} from './song_preview.js?v=huc-channel-ui-1';
+import {createHuc6280SongPreview} from './song_preview.js?v=pce-output-level-1';
 import {isHuc6280SongPath} from './code_project.js?v=huc-song-1';
 import {prepareHuc6280SongVoice} from './song_voice.js';
 

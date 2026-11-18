@@ -29,12 +29,49 @@ Changing tabs alone neither opens audio nor stops a performance.
 **Mixer** gives each of the three sources an independent volume and **Mute**.
 Its absolute gains match the shared Playground policy: **HuC6280 44%**, with
 **MSM5205 and CD-DA 100%** until separate measured presets exist. Reset mixer
-restores those values. HuC6280's previous standalone unit gain is therefore
-quieter at this default. The source gains sit before the final **Master**;
+restores those values. This Synth applies an additional **HuC software output
+×4** (+12.04 dB) to keyboard, Code, audition and the HuC component of VGM
+playback. The 44% source setting keeps its calibrated meaning; MSM5205 and
+CD-DA keep their existing output levels. The HuC factor precedes the shared
+Code FX, so effects receive a louder HuC signal. It does not change native
+rendering or normalize individual instruments; loud patches, polyphony and
+boosted faders can exceed full scale. The source gains sit before the final **Master**;
 Waveform / Spectrum observe the completed mix after Master. The sources share
 one AudioContext and one speaker connection. A mixer change does not stop the
 chip or restart a track; already rendered VGM PCM keeps its prior mix until it
 has passed through the output.
+
+## Software test waveforms for MSM5205 and CD-DA
+
+Both tabs include **Test waveform · Software PCM**. Choose Sine, Triangle,
+Saw or Square, or draw one cycle on its canvas. Change Frequency, PCM level
+and Length; the generator repeats that cycle into a standard stereo PCM16 /
+44.1 kHz WAV. These are software test sources, not additional chip oscillators.
+
+**Auto load** starts On. Shape buttons load immediately; drawing and sliders
+load after release / change, with no PCM transfer during pointer movement.
+Loading never starts playback: use the existing **Play** below. With Auto load
+Off, the highlighted **Load test wave** button applies the draft explicitly.
+**Smooth edges** fades the first and last 5 ms; disable it for continuous
+periodic loops. Each editor retains its own cycle and parameters.
+
+MSM5205 resamples / encodes the WAV at its selected hardware Rate and displays
+the actual decoded ADPCM below. CD-DA plays PCM directly, with its existing
+transport and seek. The generator does not change either source's Mixer gain.
+Generated WAVs live under `samples/` and are portable in Cassette exports.
+Repeated loads reuse an editor-owned file while it remains unchanged; edits to
+that file or name conflicts cause a new path to be allocated. Existing Files
+budgets still apply. New Cassette resets these test drafts and cancels pending
+loads; source replacement stops only the corresponding sample player.
+
+The keyboard is also available in **MSM5205** and **CD-DA**. First choose a test
+waveform or load a source. Any displayed or computer key then acts as a
+monophonic **software trigger**: MSM plays the current sample with its selected
+Rate / Loop, and CD-DA restarts the selected track at its original 44.1 kHz.
+Keys do not transpose these sources; Pitch is disabled in their tabs. Releasing
+the latest owned key stops it. An older key-up cannot stop a newer key, UI Play
+or Code Play. Switching tabs, losing focus, Stop and New retire keyboard-owned
+triggers. Loading a waveform itself remains silent.
 
 ## MSM5205 sample playback
 

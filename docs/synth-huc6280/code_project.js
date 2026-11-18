@@ -4,6 +4,7 @@ import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createSynthCodeProject} from '../synth/synth_code_project.js?code-files-scope=2';
 import {createSynthProjectStore} from '../synth/synth_project_store.js?v=draft-reconnect-1';
+import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
 import {readPreset,createDefaultPreset} from './preset.js';
 
 export const HUC6280_PROJECT_FORMAT='tetorica-huc6280-code-project';
@@ -69,6 +70,13 @@ export function createHuc6280CodeProject({settings=createDefaultPreset(),snapsho
       fs.writeText(path,source);
     },
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
+    prepareNew(){
+      // Prepare defaults separately, using the original starter rather than edited Code.
+      const fresh=createHuc6280CodeProject({starterCode:getStarterCode?getStarterCode():starterCode??''});
+      addPcEngineCodeExamples(fresh);
+      fresh.select('/index.js');fresh.setCodeState({mode:'keyboard',path:'/index.js'});
+      return fresh.snapshot();
+    },
     snapshot(){return{format:HUC6280_PROJECT_FORMAT,version:1,name:projectName,settings:project.settings,selectedPath:selected,codeState:clone(state),filesystem:fs.snapshot()};},
     restore(value){
       if(value?.format!==HUC6280_PROJECT_FORMAT||value.version!==1)throw Error('Unsupported HuC6280 project format/version.');

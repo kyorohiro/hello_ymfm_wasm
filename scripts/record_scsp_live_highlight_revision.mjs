@@ -6,6 +6,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {diffLines} from 'diff';
+import {createScspOutputLevelNewCassetteRevisionReadContext} from './mixer_calibration_scsp_output_level_new_cassette_revision.mjs';
 import {SCSP_LIVE_HIGHLIGHT_BASE as base,SCSP_LIVE_HIGHLIGHT_RECEIPT as destination,
  SCSP_LIVE_HIGHLIGHT_SOURCES as paths,SCSP_LIVE_HIGHLIGHT_UNCHANGED as unchanged,
  SCSP_LIVE_HIGHLIGHT_RELATED as related,SCSP_LIVE_HIGHLIGHT_REPORTS as reports,
@@ -37,7 +38,8 @@ export async function createScspLiveHighlightRevisionReceipt({readSource=name=>r
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const args=process.argv.slice(2);assert(args.length===1&&['--write','--check'].includes(args[0]),'Usage: node scripts/record_scsp_live_highlight_revision.mjs --write | --check');
- const value=await createScspLiveHighlightRevisionReceipt(),text=JSON.stringify(value,null,2)+'\n';
+ const reviewed=createScspOutputLevelNewCassetteRevisionReadContext();
+ const value=await createScspLiveHighlightRevisionReceipt({readSource:name=>reviewed.readSource(new URL('../'+name,import.meta.url))}),text=JSON.stringify(value,null,2)+'\n';
  if(args[0]==='--write')await writeFile(resolve(root,destination),text);else assert.equal(await readFile(resolve(root,destination),'utf8'),text,'Live parameter highlight receipt changed');
  console.log('SCSP live parameter highlight receipt object SHA256 '+sha(JSON.stringify(value)));
 }

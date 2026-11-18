@@ -2,7 +2,7 @@
 // Code effects and Stop fade borrow the upper editor's single OPNA output.
 import {createNativeFXRack} from '../js/native_fx_rack.js?v=prepared-fx-rerun-2';
 import {createSynthCodeOutput} from '../synth/synth_code_output.js';
-import {createFm2608CodeClient} from './code_client.js';
+import {createFm2608CodeClient} from './code_client.js?v=opna-pcm-release-1';
 
 const cancelled = () => new DOMException('FM2608 Code audio stopped', 'AbortError');
 

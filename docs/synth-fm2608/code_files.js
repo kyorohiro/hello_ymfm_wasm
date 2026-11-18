@@ -3,7 +3,7 @@ import {renderFileTree} from '../playground/playground_file_tree.js';
 import {transferVirtualFiles,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {installSpuFileContextMenu as installFm2608FileContextMenu} from '../synth-spu/file_context_menu.js?v=spu-files-menu-1';
-import {createFm2608CodeProject,createFm2608ProjectStore,readFm2608ProjectSound,isFm2608CodePath,isFm2608TextPath,FM2608_PROJECT_MANIFEST,FM2608_PROJECT_CODE_LENGTH,FM2608_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
+import {createFm2608CodeProject,createFm2608ProjectStore,readFm2608ProjectSound,isFm2608CodePath,isFm2608TextPath,FM2608_PROJECT_MANIFEST,FM2608_PROJECT_CODE_LENGTH,FM2608_PROJECT_FILE_BYTES} from './code_project.js?v=opna-output-menu-1';
 import {extractFm2608VgmPresets} from './vgm_presets.js';
 
 const inside=(path,directory)=>path===directory||path?.startsWith(directory+'/');
@@ -51,12 +51,12 @@ function copyPath(project,path){
   return result;
 }
 export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSettings=()=>project.settings,applySettings=async()=>{},
-  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},onSelectSong=async()=>{},setStatus=()=>{},store=createFm2608ProjectStore(),document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onBeforeSoundApply=async()=>{},onSelectSong=async()=>{},setStatus=()=>{},store=createFm2608ProjectStore(),document:doc=globalThis.document,downloadFile}={}){
   const panel=doc.getElementById('opnaFilesPanel'),toggle=doc.getElementById('opnaFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const saveSoundAs=doc.getElementById('opnaSaveSoundAs'),presetSelect=doc.getElementById('opnaPresetSelect'),presetCache=new Map();let presetSignature='',appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('OPNA Files mount is missing.');
   const win=doc.defaultView??globalThis,main=doc.querySelector?.('.opna-main'),listeners=[],expanded=new Map([['/presets',true],['/vgm',true],['/lib',true],['/data',true]]);
-  let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
+  let code=null,busy=true,disposed=false,disposing=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false,pendingNewCassette=null;
   const make=(tag,id,text)=>{const node=doc.createElement(tag);if(id)node.id=id;if(text!==undefined)node.textContent=text;return node;};
   const listen=(node,type,fn,options)=>{node?.addEventListener(type,fn,options);listeners.push(()=>node?.removeEventListener(type,fn,options));};
   const heading=make('div');heading.className='opna-files-heading';
@@ -65,11 +65,11 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   heading.append(title,toolbar);
   const actions=make('div');actions.className='opna-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
-  for(const[id,label]of [['opnaFileNewButton','New JS'],['opnaFileSaveSoundButton','Save sound'],['opnaFileRenameButton','Rename…'],['opnaFileDeleteButton','Delete…'],['opnaFileImportButton','Add files…'],['opnaFileExportButton','Export file'],['opnaProjectExportButton','Export project'],['opnaProjectImportButton','Import project…']]){
+  for(const[id,label]of [['opnaProjectNewButton','New Cassette…'],['opnaFileNewButton','New JS'],['opnaFileSaveSoundButton','Save sound'],['opnaFileRenameButton','Rename…'],['opnaFileDeleteButton','Delete…'],['opnaFileImportButton','Add files…'],['opnaFileExportButton','Export file'],['opnaProjectExportButton','Export project'],['opnaProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
     (id==='opnaFileNewButton'||id==='opnaFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='opnaFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
-    const destination={opnaProjectImportButton:['opnaMenuProjectImport','Cassette…'],opnaProjectExportButton:['opnaMenuProjectExport','Cassette · ZIP'],opnaFileImportButton:['opnaMenuFilesImport','Files…'],opnaFileExportButton:['opnaMenuFileExport','Selected file']}[id];
+    const destination={opnaProjectNewButton:['opnaMenuProjectNew','Cassette…'],opnaProjectImportButton:['opnaMenuProjectImport','Cassette…'],opnaProjectExportButton:['opnaMenuProjectExport','Cassette · ZIP'],opnaFileImportButton:['opnaMenuFilesImport','Files…'],opnaFileExportButton:['opnaMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();if(id!=='opnaFileSaveSoundButton'||!code?.isCodeMode?.())doc.activeElement?.blur?.();}});
@@ -85,6 +85,20 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   const dialog=make('dialog','opnaFileNameDialog'),form=make('form'),label=make('label','opnaFileNameLabel','File path'),nameInput=make('input','opnaFileNameInput');
   label.htmlFor=nameInput.id;const confirm=make('button','opnaFileNameConfirm','Create'),cancel=make('button','opnaFileNameCancel','Cancel');confirm.type='submit';cancel.type='button';form.append(label,nameInput,confirm,cancel);dialog.append(form);
   panel.append(heading,tree,actions,selected,info,importDetails,fileInput,projectInput,dialog);
+	const newCassetteDialog = make('dialog', 'opnaNewCassetteDialog'),
+		newCassetteTitle = make('h2', 'opnaNewCassetteTitle', 'Create a new Cassette?'),
+		newCassetteDescription = make('p', null,
+			'This replaces the current browser project and stops its performance. The new Cassette contains the default sound, starter Code. Code will not run automatically.'),
+		newCassetteActions = make('div'),
+		newCassetteCancel = make('button', 'opnaNewCassetteCancel', 'Cancel'),
+		newCassetteExport = make('button', 'opnaNewCassetteExport', 'Export current & create'),
+		newCassetteCreate = make('button', 'opnaNewCassetteCreate', 'Create without export');
+	newCassetteDialog.setAttribute('aria-labelledby', newCassetteTitle.id);
+	newCassetteActions.className = 'opna-new-cassette-actions';
+	for (const button of [newCassetteCancel, newCassetteExport, newCassetteCreate]) button.type = 'button';
+	newCassetteActions.append(newCassetteCancel, newCassetteExport, newCassetteCreate);
+	newCassetteDialog.append(newCassetteTitle, newCassetteDescription, newCassetteActions);
+	doc.body.append(newCassetteDialog);
   let dialogAction=null,dialogPath=null,dialogSound=null;
   const say=message=>{if(!disposed){info.textContent=message;setStatus(message);}};
   const report=error=>{if(error?.name!=='AbortError')say(`Files: ${error?.message??error}`);};
@@ -124,6 +138,7 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
       onImport:files=>void importFiles(files).catch(report),onTransfer:(source,destination,copy)=>void move(source,destination,copy).catch(report)});
     for(const[id,button]of buttons)button.disabled=busy||(['opnaFileExportButton','opnaFileRenameButton','opnaFileDeleteButton'].includes(id)&&!project.selectedPath);
     code?.setBusy?.(busy);
+    newCassetteExport.disabled=newCassetteCreate.disabled=busy;
     for(const button of tree.querySelectorAll('button'))button.disabled=busy;
   }
   function setBusy(value,{lockMain=true}={}){busy=value;if(main)main.inert=Boolean(value&&lockMain);render();}
@@ -261,6 +276,108 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
     }finally{if(!disposed)setBusy(false);}
   }
   async function exportProject(){await api.ready;await code?.flush?.();project.setSettings(getSettings());return project.exportProject();}
+	function cancelNewCassette() {
+		if (pendingNewCassette !== null) operation++;
+		newCassetteDialog.close();
+	}
+	function askNewCassette() {
+		if (disposed || disposing || busy) return;
+		newCassetteDialog.showModal();
+		newCassetteCancel.focus();
+	}
+	async function newProject({ exportCurrent = false } = {}) {
+		if (typeof exportCurrent !== 'boolean') throw TypeError('exportCurrent must be a boolean.');
+		await api.ready;
+		if (disposed || disposing || busy) return false;
+		const token = ++operation,
+			current = () => !disposed && !disposing && token === operation;
+		const previousIdentity = identity, previousPersistence = persistenceReady;
+		let previous = null, retired = false, applyAttempted = false, committed = false, failure = null;
+		pendingNewCassette = token;
+		clearTimeout(saveTimer);
+		setBusy(true);
+		try {
+			// Build/validate defaults before retiring Code or the song owner.
+			const fresh = createFm2608CodeProject({ snapshot: project.prepareNew() });
+			if ((await code?.flush?.()) === false || !current()) return false;
+			restoring = true;
+			// One event-scoped read supplies both an optional backup and rollback.
+			// Live Code edits may not yet be present in the portable sound cache.
+			let previousSettings;
+			try {
+				previousSettings = readFm2608ProjectSound(await getSettings());
+				if (!previousSettings) throw Error('Expected a PC-98 instrument.');
+			} catch (error) {
+				if (!current()) return false;
+				previousSettings = project.settings;
+				say(`Could not refresh the sound: ${error.message}. Using the last cached sound for this operation.`);
+			}
+			if (!current()) return false;
+			previous = createFm2608CodeProject({ snapshot: {
+				...project.snapshot(), settings: previousSettings,
+				codeState: code?.captureState?.() ?? project.getCodeState(),
+			} }).snapshot();
+			if (exportCurrent) {
+				const oldProject = createFm2608CodeProject({ snapshot: previous });
+				const exported = await (downloadFile ?? download)(oldProject.exportProject(),
+					oldProject.cassetteName + '.cassette.zip', 'application/zip');
+				if (exported === false || !current()) return false;
+			}
+			if (!current()) return false;
+			// Defer saves until both replacement and editor restoration commit.
+			persistenceReady = false;
+			retired = true;
+			if ((await code?.workspaceReplaced?.()) === false || !current()) return false;
+			if ((await onBeforeWorkspaceReplace({ isCurrent: current })) === false || !current()) return false;
+			applyAttempted = true;
+			if ((await applySettings(fresh.settings, { isCurrent: current })) === false || !current()) return false;
+			project.restore(fresh.snapshot());
+			identity = workspaceId();
+			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
+			committed = true;
+			persistenceReady = true;
+			restoring = false;
+			appliedPreset = null;
+			presetCache.clear();
+			importDetails.hidden=true;importDetails.open=false;importNotes.replaceChildren();
+			newCassetteDialog.close();
+			const persisted = await persistCode();
+			say('New PC-98 Cassette created. Code was not run.' +
+				(persisted === false ? ' Local save unavailable; export the project to keep it.' : ' Saved locally.'));
+			return true;
+		} catch (error) {
+			failure = error;
+			throw error;
+		} finally {
+			if (!committed) {
+				persistenceReady = previousPersistence;
+				if (previous && retired) {
+					project.restore(previous);
+					identity = previousIdentity;
+					if (!disposed && !disposing) {
+						if (applyAttempted) {
+							try {
+								if ((await applySettings(previous.settings, {
+									isCurrent: () => !disposed && !disposing && pendingNewCassette === token,
+								})) === false) throw Error('Sound restoration was cancelled.');
+							} catch (error) { report(Error('Previous sound could not be restored: ' + error.message)); }
+						}
+						try { await code?.restoreState?.(previous.codeState); }
+						catch (error) { report(Error('Previous Code display could not be restored: ' + error.message)); }
+					}
+				}
+			}
+			restoring = false;
+			if (!committed && !failure && current()) say('New Cassette was not created; previous project kept.');
+			if (pendingNewCassette === token) {
+				pendingNewCassette = null;
+				if (!disposed && !disposing) {
+					setBusy(false);
+					if (!committed && persistenceReady) schedule();
+				}
+			}
+		}
+	}
   async function move(source,destination,copy=false){
     if(disposed||busy)return false;const token=++operation;await code?.flush?.();if(disposed||token!==operation)return false;source=allowed(source);destination=allowed(destination);setBusy(true,{lockMain:!copy});
     try{
@@ -354,17 +471,21 @@ export function setupFm2608CodeFiles({project=createFm2608CodeProject(),getSetti
   }).catch(report);});
   listen(cancel,'click',()=>dialog.close());listen(dialog,'close',()=>{dialogSound=null;});
   listen(saveSoundAs,'click',()=>{saveSoundAs.blur();try{askSaveSound();}catch(error){report(error);}});
+  listen(newCassetteCancel,'click',cancelNewCassette);
+  listen(newCassetteDialog,'cancel',event=>{event.preventDefault();cancelNewCassette();});
+  listen(newCassetteExport,'click',()=>void newProject({exportCurrent:true}).catch(report));
+  listen(newCassetteCreate,'click',()=>void newProject().catch(report));
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(selectFile(choice.path)).catch(report);});
-  for(const[id,fn]of [['opnaFileNewButton',()=>ask('new')],['opnaFileRenameButton',()=>ask('rename')],['opnaFileDeleteButton',()=>ask('delete')],['opnaFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['opnaProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['opnaFileSaveSoundButton',()=>void saveSound().catch(report)],['opnaProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['opnaFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['opnaProjectNewButton',askNewCassette],['opnaFileNewButton',()=>ask('new')],['opnaFileRenameButton',()=>ask('rename')],['opnaFileDeleteButton',()=>ask('delete')],['opnaFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['opnaProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['opnaFileSaveSoundButton',()=>void saveSound().catch(report)],['opnaProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['opnaFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(doc,'keydown',event=>{if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='s'){event.preventDefault();event.stopPropagation();void(code?.flush?.()??persistCode()).catch(report);}},true);
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,importFiles,importProject,newProject,exportProject,createFile,move,duplicate,remove,saveSound,askSaveSound,
     markSoundDirty(){editRevision++;appliedPreset=null;if(presetSelect)presetSelect.value='';if(disposed||busy||restoring)return;project.setSettings(getSettings());schedule();},
-    async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
+    async dispose(){if(disposed||disposing)return;disposing=true;operation++;newCassetteDialog.close();newCassetteDialog.remove();contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };
   const initialEditRevision=editRevision;
   api.ready=Promise.resolve().then(async()=>{

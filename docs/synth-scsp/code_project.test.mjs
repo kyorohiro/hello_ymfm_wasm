@@ -16,6 +16,29 @@ test('fresh Files include the byte-exact editable DSP example, while saved proje
   assert.equal(copy.fs.has(path),false);
 });
 
+test('new Cassette preparation resets sound and Files using the original starter without mutating the current project',()=>{
+  let reads=0;
+  const project=createScspCodeProject({getStarterCode:()=>{reads++;return '// original starter';}});
+  project.writeEditorText('/index.js','globalThis.scspNewCassetteMustNotRun=true;');
+  project.importFiles([{path:'/old.txt',data:'keep until confirmed'}]);
+  const settings=project.settings;settings.transpose=12;project.setSettings(settings);
+  project.select('/old.txt');project.setCodeState({mode:'code',path:'/index.js'});
+  const before=project.snapshot(),prepared=project.prepareNew();
+  assert.deepEqual(project.snapshot(),before);assert.equal(reads,2);
+  const fresh=createScspCodeProject({snapshot:prepared});
+  assert.equal(fresh.fs.get('/index.js').data,'// original starter');assert(!fresh.fs.has('/old.txt'));
+  assert.deepEqual(fresh.settings,createDefaultScspProjectSound());
+  assert.deepEqual(fresh.getCodeState(),{mode:'keyboard',path:'/index.js'});assert.equal(fresh.selectedPath,'/index.js');
+  for(const path of ['/examples/dsp-iir-motion.js','/examples/self-feedback.js','/examples/self-feedback-6op.js','/examples/parallel-self-feedback.js','/examples/cycle2.js'])assert(fresh.fs.has(path),path);
+  assert.equal(globalThis.scspNewCassetteMustNotRun,undefined);
+});
+
+test('failed new Cassette preparation preserves the existing project',()=>{
+  let fail=false;
+  const project=createScspCodeProject({getStarterCode:()=>{if(fail)throw Error('Starter unavailable');return '// kept';}}),before=project.snapshot();
+  fail=true;assert.throws(()=>project.prepareNew(),/Starter unavailable/);assert.deepEqual(project.snapshot(),before);
+});
+
 test('SCSP project preserves the six-operator v4 patch, source text, binary audio/VGM and editor mode',async()=>{
   const settings=createDefaultScspProjectSound();settings.mode='fm6';settings.fm.algorithm='pairs';settings.effect.enabled=true;
   settings.operators.f.pcm[4]=129;

@@ -67,3 +67,21 @@ test('OPNA local drafts use an isolated namespace and retain typed binary files'
   assert.equal(values.get('tetorica-snes-synth-project-v1'), 'kept');
   await store.close();
 });
+
+
+test('PC-98 New Cassette preparation uses original starter and defaults without mutating the existing project',()=>{
+  let reads=0;const project=createFm2608CodeProject({getStarterCode:()=>{reads++;return '// Original starter';}});
+  project.writeEditorText('/index.js','globalThis.newCassetteMustNotRun=true;');project.importFiles([{path:'/keep.txt',data:'Keep until confirmation'}]);
+  const edited=project.settings;edited.ssg.noisePeriod=7;project.setSettings(edited);project.select('/keep.txt');project.setCodeState({mode:'code',path:'/index.js'});
+  const before=project.snapshot(),fresh=createFm2608CodeProject({snapshot:project.prepareNew()});
+  assert.deepEqual(project.snapshot(),before);assert.equal(reads,2);assert.deepEqual(fresh.settings,createDefaultPreset());
+  assert.equal(fresh.fs.get('/index.js').data,'// Original starter');assert(!fresh.fs.has('/keep.txt'));
+  assert.deepEqual(fresh.getCodeState(),{mode:'keyboard',path:'/index.js'});assert.equal(fresh.selectedPath,'/index.js');
+  assert.deepEqual(fresh.fs.list().map(file=>file.path),['/index.js']);
+  assert.equal(globalThis.newCassetteMustNotRun,undefined);
+});
+
+test('PC-98 failed default preparation keeps all previous Files intact',()=>{
+  let fail=false;const project=createFm2608CodeProject({getStarterCode:()=>{if(fail)throw Error('Starter unavailable');return '// Kept';}});
+  const before=project.snapshot();fail=true;assert.throws(()=>project.prepareNew(),/Starter unavailable/);assert.deepEqual(project.snapshot(),before);
+});

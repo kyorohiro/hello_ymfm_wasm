@@ -96,3 +96,22 @@ liveLoop('timer',async()=>{opna.keyOn(CH3);await beat(64);});`);
     assert(!writes.some(write => write.reset));
   } finally { await runtime.stop(); }
 });
+
+
+test('Code ADPCM noteOff selects the app release while raw keyOff remains immediate',() => {
+  const {chip,writes} = fixture(); let releases = 0;
+  chip.adpcm.noteOff = () => { releases++; return true; };
+  const {client} = createFm2608CodeClient(chip);
+  client.adpcm.keyOn({repeat:true}); writes.length = 0;
+  assert.equal(client.adpcm.noteOff(),true); assert.equal(releases,1); assert.deepEqual(writes,[]);
+  client.adpcm.keyOff(); assert.deepEqual(writes.at(-1),{port:1,register:0,value:1});
+});
+
+test('standalone Code ADPCM noteOff fallback is raw, and retired clients cannot release a newer session',() => {
+  const {chip,writes} = fixture(); let current = true;
+  const {client} = createFm2608CodeClient(chip,{isCurrent:() => current});
+  client.adpcm.keyOn(); writes.length = 0; client.adpcm.noteOff();
+  assert.deepEqual(writes.at(-1),{port:1,register:0,value:1});
+  current = false; const count = writes.length;
+  assert.throws(() => client.adpcm.noteOff(),{name:'AbortError'}); assert.equal(writes.length,count);
+});

@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createScspOutputLevelNewCassetteRevisionReadContext} from './mixer_calibration_scsp_output_level_new_cassette_revision.mjs';
 
 export const SCSP_LIVE_HIGHLIGHT_BASE='8f25b37f01dca0745b3b7416ee72f55ce35757e1';
 export const SCSP_LIVE_HIGHLIGHT_RECEIPT='docs/issues/scsp_live_highlight_source_revision_01.json';
@@ -127,11 +128,12 @@ function createRestorer(readSource,snapshot=false){
     return restoreBody(Buffer.from(bytes),entry);
   };
 }
-export function restoreMixerCalibrationScspLiveHighlightRevision(path,bytes,{readSource=read}={}){return createRestorer(readSource)(path,bytes);}
+export function restoreMixerCalibrationScspLiveHighlightRevision(path,bytes,{readSource=read}={}){const latest=createScspOutputLevelNewCassetteRevisionReadContext(readSource);return createRestorer(latest.readSource)(path,latest.restore(path,bytes));}
 export function createScspLiveHighlightRevisionReadContext(readSource=read){
+  const latest=createScspOutputLevelNewCassetteRevisionReadContext(readSource);readSource=latest.readSource;
   const originals=new Map(),predecessors=new Map();
   const original=url=>{const key=url instanceof URL?url.href:url;if(!originals.has(key))originals.set(key,Buffer.from(readSource(url)));return originals.get(key);};
   const restore=createRestorer(original,true);
   const reader=url=>{const key=url instanceof URL?url.href:url;if(!predecessors.has(key)){const bytes=original(url),name=url instanceof URL&&url.protocol==='file:'?relative(root,fileURLToPath(url)).replaceAll('\\','/'):null;predecessors.set(key,name===null?bytes:restore(name,bytes));}return predecessors.get(key);};
-  return {restore,readSource:reader};
+  return {restore:(path,bytes)=>restore(path,latest.restore(path,bytes)),readSource:reader};
 }

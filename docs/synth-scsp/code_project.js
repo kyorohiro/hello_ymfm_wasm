@@ -223,6 +223,16 @@ export function createScspCodeProject({
 			}
 		},
 		getCodeState: () => clone(state),
+		prepareNew() {
+			// Keep the original starter factory/text, never the edited index.js.
+			// Preparation is detached: cancellation leaves this project untouched.
+			const fresh = createScspCodeProject({
+				starterCode: getStarterCode ? getStarterCode() : starterCode ?? '',
+			});
+			fresh.select('/index.js');
+			fresh.setCodeState({ mode: 'keyboard', path: '/index.js' });
+			return fresh.snapshot();
+		},
 		snapshot() {
 			return {
 				format: SCSP_PROJECT_FORMAT,

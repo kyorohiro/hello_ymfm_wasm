@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createScspCodeClient,scspCodeCancelled} from './code_endpoint.js?v=scsp-dsp-code-1';
 const nativeSetTimer=globalThis.setTimeout.bind(globalThis),nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
-const BALANCE=.125,DEADLINE=15000;
+// Preserve the existing Code-FX input level, then undo its legacy attenuation
+// once after FX for all application sources. The common Mixer is independent.
+const BALANCE=.125,OUTPUT_COMPENSATION=8,DEADLINE=15000;
 const validateVolume=value=>{if(!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('SCSP Master must be 0..3.8');};
 
 /** One SCSP / AudioContext for editor and Code. Every source traverses one
- * optional Code FX route, Stop fade and Master. outputNode is post-Master and
+ * optional Code FX route, Stop fade, output compensation and Master. outputNode is post-Master and
  * may be monitored without making another speaker connection.
  */
 export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{},onConfigChange=()=>{}}={}){
@@ -15,7 +17,7 @@ export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{},o
   const Context=globalThis.AudioContext??globalThis.webkitAudioContext;
   if(!Context)throw new Error('Web Audio is unavailable');
   const context=new Context({latencyHint:'interactive'}),controller=new AbortController(),pending=new Map();
-  let node,balance,master,codeFade,songInput,closed=false,closing=null,sequence=0,startupTimer,readyResolve,rejectStartup,fatal=null;
+  let node,balance,master,codeFade,songInput,outputCompensation,closed=false,closing=null,sequence=0,startupTimer,readyResolve,rejectStartup,fatal=null;
   let codeOwner=null,codeGeneration=0,codeStopping=null;
   const startupFailure=new Promise((_,reject)=>{rejectStartup=reject;});void startupFailure.catch(()=>{});
   const assertOpen=()=>{if(fatal)throw fatal;if(closed||context.state==='closed')throw new Error('Start SCSP audio again');};
@@ -25,7 +27,7 @@ export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{},o
     closed=true;codeGeneration++;codeOwner=null;controller.abort();nativeClearTimer(startupTimer);
     rejectPending(fatal??new Error('SCSP audio closed'));context.removeEventListener('statechange',contextClosed);
     if(node){node.onprocessorerror=null;node.port.onmessage=null;node.port.onmessageerror=null;try{node.port.postMessage({method:'dispose'});}catch{}try{node.disconnect();}catch{}node.port.close();}
-    balance?.disconnect();codeFade?.disconnect();songInput?.disconnect();master?.disconnect();
+    balance?.disconnect();codeFade?.disconnect();songInput?.disconnect();outputCompensation?.disconnect();master?.disconnect();
     return closing=(async()=>{if(context.state!=='closed')await context.close();})();
   }
   function fail(error){
@@ -61,7 +63,8 @@ export async function createAudio({volume=.6,onError=()=>{},onDspChange=()=>{},o
     codeFade=context.createGain();codeFade.gain.value=1;
     master=context.createGain();master.gain.value=volume;
     songInput=context.createGain();songInput.gain.value=BALANCE;
-    node.connect(balance);balance.connect(codeFade);codeFade.connect(master);songInput.connect(master);master.connect(context.destination);
+    outputCompensation=context.createGain();outputCompensation.gain.value=OUTPUT_COMPENSATION;
+    node.connect(balance);balance.connect(codeFade);codeFade.connect(outputCompensation);songInput.connect(outputCompensation);outputCompensation.connect(master);master.connect(context.destination);
     function request(message){
       assertOpen();const id=++sequence;
       return new Promise((resolve,reject)=>{

@@ -10,6 +10,7 @@ import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {createHuc6280SongEngine,readHuc6280SongMix} from './song_engine.js';
 import {prepareHuc6280SongSource} from './song_source.js';
 import {createHuc6280SongPreview} from './song_preview.js';
+import {HUC6280_APPLICATION_OUTPUT_GAIN,PC_ENGINE_SOURCE_DEFAULTS} from './source_mix.js';
 import {fakeAudio,vgm,init,voice,wait} from './song_test_helpers.mjs';
 
 const wasmBinary=await readFile(new URL('../../tetorica_src/runtime/generated/huc6280_wasm.wasm',import.meta.url));
@@ -66,6 +67,62 @@ test('mixed VGM renders exact independent HuC and MSM contributions with per-sou
       }finally{engine.dispose();engine.dispose();}
     }
   }finally{huc.dispose();msm.dispose();}
+});
+
+test('application reference gain multiplies only HuC before independent MSM summation and keeps source faders absolute',async()=>{
+  const bytes=mixed(),source=await prepareHuc6280SongSource(bytes);
+  const huc=await Huc6280AudioEngine.create({moduleFactory,clock:3579545,outputSampleRate:44100,masterVolume:1});
+  const msm=new Msm5205AudioEngine({clock:384000,flags:4,outputSampleRate:44100});
+  try{
+    const h=playback(huc,bytes),m=playback(msm,bytes);
+    for(const mixer of [{huc6280:{volume:.44},msm5205:{volume:1}},{huc6280:{muted:true}},{msm5205:{muted:true}}]){
+      const engine=await createHuc6280SongEngine(source.header,{moduleFactory,hucOutputGain:HUC6280_APPLICATION_OUTPUT_GAIN});
+      try{
+        engine.setSourceMix(mixer);const pcm=playback(engine,bytes),settings=readHuc6280SongMix(mixer);
+        assert.deepEqual(engine.getSourceMix(),settings,'application output never rewrites Mixer settings');
+        for(const side of ['left','right'])assert.deepEqual(pcm[side],Float32Array.from(h[side],(value,i)=>
+          value*(settings.huc6280.muted?0:settings.huc6280.volume*4)+m[side][i]*(settings.msm5205.muted?0:settings.msm5205.volume)));
+      }finally{engine.dispose();}
+    }
+    const msmBytes=mixed({huc:false}),header=(await prepareHuc6280SongSource(msmBytes)).header;
+    const raw=await create(header),app=await createHuc6280SongEngine(header,{moduleFactory,hucOutputGain:4});
+    try{assert.deepEqual(playback(app,msmBytes),playback(raw,msmBytes),'an MSM-only song remains bit-identical');}
+    finally{raw.dispose();app.dispose();}
+  }finally{huc.dispose();msm.dispose();}
+});
+
+test('application gain participates in checkpoint compatibility while raw song engines retain unit output',async()=>{
+  const bytes=vgm([...init,...voice(),...wait(10000)]),header=(await prepareHuc6280SongSource(bytes)).header;
+  const raw=await create(header),app=await createHuc6280SongEngine(header,{moduleFactory,hucOutputGain:4});
+  const restored=await createHuc6280SongEngine(header,{moduleFactory,hucOutputGain:4});
+  try{
+    const original=playback(raw,bytes),louder=playback(app,bytes);
+    for(const side of ['left','right'])assert.deepEqual(louder[side],Float32Array.from(original[side],value=>value*4));
+    assert.notEqual(raw.stateSettingsKey(),app.stateSettingsKey());
+    assert.throws(()=>app.loadState(raw.saveState()),/setting|incompatible|match/i);
+    const checkpoint=app.saveState(),expected=app.processFrames(777);
+    restored.loadState(checkpoint);assert.deepEqual(restored.processFrames(777),expected);
+  }finally{raw.dispose();app.dispose();restored.dispose();}
+  let allocated=false;
+  for(const hucOutputGain of [-1,NaN,Infinity,4.01])await assert.rejects(
+    createHuc6280SongEngine(header,{hucOutputGain,moduleFactory:()=>{allocated=true;throw Error('Unexpected allocation');}}),/application output gain/);
+  assert.equal(allocated,false);
+});
+
+test('the production preview factory opts into HuC application output once',async()=>{
+  const bytes=vgm([...init,...voice(),...wait(4096)]),header=(await prepareHuc6280SongSource(bytes)).header;
+  const raw=await create(header),graph=fakeAudio();
+  const preview=createHuc6280SongPreview({getAudio:()=>graph.audio,schedule:graph.schedule,cancel:graph.cancel,nowMs:()=>0});
+  try{
+    const expected=playback(raw,bytes,4096);preview.setSourceMix(PC_ENGINE_SOURCE_DEFAULTS);
+    await preview.load(bytes);assert(await preview.play());
+    for(let i=0;i<100&&preview.read().playing;i++)graph.tick(.008);
+    assert.equal(preview.read().playback,'ended');assert.equal(preview.read().sourceMix.huc6280.volume,.44);
+    for(const [side,index]of[['left',0],['right',1]]){
+      const actual=Float32Array.from(graph.buffers.flatMap(buffer=>Array.from(buffer.data[index])));
+      assert.deepEqual(actual,Float32Array.from(expected[side],value=>value*.44*4));
+    }
+  }finally{raw.dispose();preview.dispose();await preview.whenIdle();}
 });
 
 test('pure HuC keeps exact old PCM and opaque state while its source gain participates in compatibility',async()=>{

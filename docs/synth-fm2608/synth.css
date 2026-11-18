@@ -171,7 +171,8 @@ footer p { margin:0; max-width:80ch; } footer div { display:flex; gap:12px; flex
 .opna-code-workspace.has-files.is-code-expanded .opna-expanded-code { grid-column:2; }
 .is-code-expanded .opna-code-editor,.is-code-expanded .opna-code-editor-host { height:65vh; }
 .opna-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-#opnaFileNameDialog { width:min(420px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--panel); color:inherit; padding:18px; }
+#opnaFileNameDialog,#opnaNewCassetteDialog { width:min(420px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--panel); color:inherit; padding:18px; }
+.opna-new-cassette-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
 #opnaFileNameDialog input { width:100%; margin:8px 0 14px; padding:8px; }
 .spu-file-context-menu { background:var(--panel); }
 @media(max-width:600px) {

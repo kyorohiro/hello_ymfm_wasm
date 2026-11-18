@@ -14,7 +14,9 @@ import {createScspSynthSlotAllocationRevisionReadContext} from './mixer_calibrat
 import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
 import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
 import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+import {createScspOutputLevelNewCassetteRevisionReadContext} from './mixer_calibration_scsp_output_level_new_cassette_revision.mjs';
+const latest=createScspOutputLevelNewCassetteRevisionReadContext();
+const url=name=>new URL('../'+name,import.meta.url),read=name=>latest.readSource(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const historical=name=>execFileSync('git',['show',base+':'+name],{maxBuffer:4*1024*1024});
 const receipt=JSON.parse(read(receiptPath));

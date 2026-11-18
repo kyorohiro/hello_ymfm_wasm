@@ -32,6 +32,7 @@ opna.ssg.noteOn(0,'C4');opna.ssg.keyOff(0);
 opna.rhythm.keyOn(['bassDrum','snare']);
 opna.adpcm.setSample({start:0,end:32});
 opna.adpcm.setPlaybackRate(16000);opna.adpcm.keyOn({repeat:true});
+opna.adpcm.noteOff();opna.adpcm.keyOff();
 await opna.adpcm.loadSample({channels:[new Float32Array(64)],sampleRate:16000});
 await opna.adpcm.loadMemory(new Uint8Array(64),256);
 await livePrepare('opna',async api => api.useSoundChip('ym2608'));
@@ -62,4 +63,11 @@ createSoundChip('ym2608');
   } finally {
     await rm(work, {recursive:true, force:true});
   }
+});
+
+
+test('ADPCM musical noteOff is declared separately from raw keyOff',() => {
+  const declarations = selectFm2608CodeDeclarations('');
+  assert.match(declarations,/noteOff\(\):boolean/);
+  assert.match(declarations,/Raw keyOff remains immediate/);
 });

@@ -4,6 +4,7 @@ import {YM2608Synth} from '../js/ym2608synth.js';
 import {createFm2608Audio,installMonitorMutes} from './audio.js';
 import {createDefaultPreset,readFmPreset,FM_PRESETS,decodeBase64} from './preset.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
+import {createPerformanceQueue} from '../js/playground_performance_queue.js';
 
 function fixture({failUpload = false,waitForUpload} = {}) {
   const writes = [], uploads = [];
@@ -27,7 +28,7 @@ function fakeContext() {
 async function audioFixture(options) {
   const result = fixture(options), context = fakeContext();
   const audio = await createFm2608Audio({createContext:() => context,
-    createRuntime:() => ({fm:result.chip,async start() {},async close() {}})});
+    createRuntime:() => ({fm:result.chip,node:options?.node,async start() {},async close() {}})});
   result.writes.length = 0;
   return {...result,audio,context};
 }
@@ -431,4 +432,38 @@ test('an upload begun before a CPU write cannot clear its dirty memory state', a
   await chip.adpcm.loadMemory(new Uint8Array(64).fill(44),0);
   assert(decodeBase64(audio.capturePreset().adpcm.data).every(byte => byte === 44));
   await audio.dispose();
+});
+
+
+test('keyboard release preserves canonical ADPCM volume and requested Gate Off while its owner queue fades',async() => {
+  let frame = 0, f;
+  const queue = createPerformanceQueue({sampleRate:44100,nowFrame:() => frame,apply:command => f.writes.push({port:command.port,register:command.register,value:command.value,frame})});
+  f = await audioFixture({node:{port:{postMessage:message => queue.receive(message)}}});
+  await f.audio.noteOn('adpcm',0,60); f.writes.length = 0;
+  f.audio.noteOff('adpcm',0);
+  assert.equal(f.chip.adpcm.registers[0],1); assert.equal(f.chip.adpcm.registers[11],192);
+  assert.equal(f.audio.capturePreset().adpcm.volume,192); assert(!f.writes.some(write => write.register === 0));
+  frame = 250; f.context.currentTime = frame/44100; queue.advance(frame);
+  assert(f.writes.some(write => write.register === 11 && write.value < 192));
+  assert.equal(f.audio.capturePreset().adpcm.volume,192); assert.equal(f.chip.adpcm.registers[11],192);
+  f.chip.adpcm.setVolume(99); assert.equal(f.audio.capturePreset().adpcm.volume,99);
+  frame = 1000; f.context.currentTime = frame/44100; queue.advance(frame);
+  assert.deepEqual(f.writes.at(-1),{port:1,register:11,value:99,frame});
+  await f.audio.dispose();
+});
+
+test('raw ADPCM keyOff stays immediate and an old release cannot overwrite a new preset or retrigger',async() => {
+  let frame = 0, f;
+  const queue = createPerformanceQueue({sampleRate:44100,nowFrame:() => frame,apply:command => f.writes.push({port:command.port,register:command.register,value:command.value})});
+  f = await audioFixture({node:{port:{postMessage:message => queue.receive(message)}}});
+  await f.audio.noteOn('adpcm',0,60); f.audio.noteOff('adpcm',0);
+  frame=200;f.context.currentTime=frame/44100;queue.advance(frame);f.writes.length=0;
+  f.chip.adpcm.keyOff();assert.deepEqual(f.writes[0],{port:1,register:0,value:1});
+  assert.equal(f.writes.at(-1).value,192);const count=f.writes.length;
+  frame=1000;f.context.currentTime=frame/44100;queue.advance(frame);assert.equal(f.writes.length,count);
+  await f.audio.noteOn('adpcm',0,60);f.audio.noteOff('adpcm',0);
+  const next=f.audio.getPreset();next.adpcm.volume=87;await f.audio.applyPreset(next);await f.audio.noteOn('adpcm',0,67);
+  f.writes.length=0;frame=3000;f.context.currentTime=frame/44100;queue.advance(frame);assert.deepEqual(f.writes,[]);
+  assert.equal(f.audio.capturePreset().adpcm.volume,87);assert(f.chip.adpcm.registers[0]&128);
+  await f.audio.dispose();
 });

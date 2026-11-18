@@ -2,7 +2,8 @@
 // Copyright (c) 2026 kyorohiro.
 import {VgmPlayer} from '../js/vgmplayer.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
-import {createHuc6280SongEngine,readHuc6280SongMix,huc6280SongMixKey,HUC6280_MSM5205_STATE_REASON} from './song_engine.js';
+import {createHuc6280SongEngine,readHuc6280SongMix,huc6280SongMixKey,HUC6280_MSM5205_STATE_REASON} from './song_engine.js?v=pce-output-level-1';
+import {HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=pce-output-level-1';
 import {prepareHuc6280SongSource} from './song_source.js?v=huc-cdrom2-1';
 import {createHuc6280SongTimeline} from './song_state.js?v=huc-vgm-manual-1';
 import {createHuc6280SongCache} from './song_cache.js';
@@ -14,7 +15,7 @@ const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01, INTERVAL = 8;
 const scheduleTask = globalThis.setTimeout.bind(globalThis);
 const cancelTask = globalThis.clearTimeout.bind(globalThis);
 const aborted = () => new DOMException('HuC6280 song operation cancelled', 'AbortError');
-const defaultEngine = header => createHuc6280SongEngine(header);
+const defaultEngine = header => createHuc6280SongEngine(header,{hucOutputGain:HUC6280_APPLICATION_OUTPUT_GAIN});
 
 /** One-pass reference transport, independent of the authored instrument. It
  * borrows only the Synth's context/songInputNode, and owns all other nodes and

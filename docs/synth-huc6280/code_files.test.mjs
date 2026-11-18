@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {setupHuc6280CodeFiles} from './code_files.js';
 import {createHuc6280CodeProject,HUC6280_PROJECT_FILE_BYTES,isHuc6280SongPath} from './code_project.js';
 import {createDefaultPreset,readPreset} from './preset.js';
@@ -17,17 +18,21 @@ class Element{
 const walk=node=>[node,...node.children.flatMap(walk)],deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const extractedVoice=(kind,name,volume=31,changes={})=>({kind,id:name,channel:1,occurrences:1,firstTime:0,
   preset:{...createDefaultPreset(),source:kind==='pcm'?'dda':kind==='noise'?'noise':'wave',name,volume,...changes}});
+const fixtureOwners=new WeakMap();
 function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.huc-main'?main:null;
-  for(const id of ['hucFilesPanel','hucFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='hucFilesPanel';doc.append(node);}
+  for(const id of ['hucFilesPanel','hucFilesToggle','synthWorkspace','hucMenuProjectNew','hucMenuProjectImport','hucMenuProjectExport']){const node=new Element(doc);node.id=id;node.hidden=id==='hucFilesPanel';doc.append(node);}
   const select=new Element(doc,'select');select.id='hucPresetSelect';doc.append(select);
-  const previous=globalThis.document;globalThis.document=doc;t.after(()=>{globalThis.document=previous;});
+  let owners=fixtureOwners.get(t);
+  if(!owners){const previous=globalThis.document;owners=[];fixtureOwners.set(t,owners);
+    t.after(async()=>{try{for(const item of owners.reverse()){globalThis.document=item.doc;await item.files.dispose();}}finally{globalThis.document=previous;}});}
+  globalThis.document=doc;
   let settings=readPreset(options.settings??createDefaultPreset());const project=options.project??createHuc6280CodeProject({settings,starterCode:'// kept'}),writes=[],calls=[],opened=[],statuses=[];
   const store=options.store??{read:async()=>null,write:async value=>{writes.push(structuredClone(value));return true;},close:async()=>{}};
   const files=setupHuc6280CodeFiles({project,document:doc,store,getSettings:()=>settings,applySettings:async value=>{calls.push(['apply',value]);settings=readPreset(value);},onBeforeSoundApply:async()=>calls.push(['sound']),onBeforeWorkspaceReplace:async()=>calls.push(['before']),setStatus:message=>statuses.push(message),...options});
   files.setCodeControls({flush:async()=>true,openFile:async(path,options)=>{opened.push({path,options});return true;},setBusy(){}});
-  t.after(()=>files.dispose());return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
+  owners.push({files,doc});return{files,project,doc,writes,calls,opened,statuses,setSettings(value){settings=readPreset(value);}};
 }
 
 test('HuC6280 saves named presets without acquiring audio, applying or changing Code mode/focus',async t=>{
@@ -407,3 +412,115 @@ test('song copy cancellation and cassette limits keep prior source bytes and ins
   assert.equal(await pending,null);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
 });
 
+
+
+test('PC Engine Menu New Cassette precedes Import; Cancel and Escape preserve files and running Code',async t=>{
+  const html=await readFile(new URL('./index.html',import.meta.url),'utf8');assert(html.indexOf('<h2>New</h2>')<html.indexOf('<h2>Import</h2>'));
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:()=>assert.fail('Cancel does not flush'),workspaceReplaced:()=>assert.fail('Cancel does not retire Code')});
+  const button=f.doc.getElementById('hucProjectNewButton'),dialog=f.doc.getElementById('hucNewCassetteDialog');
+  assert.equal(button.parentNode.id,'hucMenuProjectNew');assert.equal(button.textContent,'Cassette…');
+  assert.equal(f.doc.getElementById('hucProjectImportButton').parentNode.id,'hucMenuProjectImport');
+  assert.equal(f.doc.getElementById('hucProjectImportButton').textContent,'Cassette · ZIP…');assert.equal(f.doc.getElementById('hucProjectExportButton').textContent,'Cassette · ZIP');
+  await button.fire('click');assert.equal(dialog.open,true);assert.equal(f.doc.activeElement.id,'hucNewCassetteCancel');
+  await f.doc.getElementById('hucNewCassetteCancel').fire('click');assert.equal(dialog.open,false);
+  await button.fire('click');await dialog.fire('cancel');assert.equal(dialog.open,false);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);
+  f.files.setCodeControls({setBusy(){},flush:async()=>true});
+});
+
+test('PC Engine New Cassette resets sound, files and Code mode with a fresh identity and never runs Code',async t=>{
+  const f=fixture(t);await f.files.ready;const edited=createDefaultPreset();edited.volume=7;f.setSettings(edited);
+  f.project.writeEditorText('/index.js','globalThis.newCassetteMustNotRun=true;');f.project.importFiles([{path:'/keep.bin',type:'binary',data:Uint8Array.of(0,255)}]);
+  f.project.select('/keep.bin');f.project.setCodeState({mode:'code',path:'/index.js'});
+  const identity=f.files.workspaceId,restored=[];let retired=0;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,captureState:()=>({mode:'code',path:'/index.js'}),workspaceReplaced:async()=>{retired++;},
+    restoreState:async state=>restored.push(state),run:()=>assert.fail('New never runs Code')});
+  assert.equal(await f.files.newProject(),true);assert.equal(retired,1);assert.notEqual(f.files.workspaceId,identity);
+  assert.equal(f.project.fs.get('/index.js').data,'// kept');assert(!f.project.fs.has('/keep.bin'));assert.deepEqual(f.project.settings,createDefaultPreset());
+  assert.deepEqual(restored,[{mode:'keyboard',path:'/index.js'}]);assert.equal(f.project.selectedPath,'/index.js');
+  assert.deepEqual(f.project.fs.list().map(file=>file.path).sort(),['/examples/cdda.js','/examples/huc6280.js','/examples/msm5205.js','/index.js']);
+  assert.equal(f.writes.at(-1).workspaceId,f.files.workspaceId);assert.match(f.statuses.at(-1),/created.*not run.*Saved locally/);
+  assert.equal(globalThis.newCassetteMustNotRun,undefined);
+});
+
+test('PC Engine New Cassette backs up the current sound and files before creation; failed/cancelled backup keeps owners',async t=>{
+  for(const outcome of ['success','cancel','throw'])await t.test(outcome,async t=>{
+    let live=createDefaultPreset(),reads=0,retired=0;live.volume=7;const edited=structuredClone(live),downloads=[];
+    const f=fixture(t,{getSettings:()=>{reads++;return structuredClone(live);},applySettings:async value=>{live=readPreset(value);},
+      downloadFile:async(bytes,name,type)=>{downloads.push({bytes,name,type});if(outcome==='throw')throw Error('Backup unavailable');return outcome!=='cancel';}});
+    await f.files.ready;f.project.writeEditorText('/index.js','// Current user Code');f.project.importFiles([{path:'/keep.txt',data:'Current file'}]);
+    const before=f.project.snapshot(),identity=f.files.workspaceId;
+    f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>{retired++;},restoreState:async()=>{}});
+    if(outcome==='throw')await assert.rejects(f.files.newProject({exportCurrent:true}),/Backup unavailable/);
+    else assert.equal(await f.files.newProject({exportCurrent:true}),outcome==='success');
+    assert.equal(reads,1);assert.equal(downloads.length,1);assert.match(downloads[0].name,/\.cassette\.zip$/);assert.equal(downloads[0].type,'application/zip');
+    const backup=createHuc6280CodeProject();backup.restore(await backup.prepareImport(downloads[0].bytes));
+    assert.deepEqual(backup.settings,edited);assert.equal(backup.fs.get('/index.js').data,'// Current user Code');assert.equal(backup.fs.get('/keep.txt').data,'Current file');
+    if(outcome!=='success'){assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(retired,0);assert.equal(f.calls.length,0);}
+  });
+});
+
+test('PC Engine cancelled fresh sound read and failed preparation cannot retire Code or download stale backups',async t=>{
+  const started=deferred(),release=deferred();let delayed=true;
+  const f=fixture(t,{getSettings:()=>delayed?(started.resolve(),release.promise):createDefaultPreset(),downloadFile:()=>assert.fail('No cancelled backup')});
+  await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:()=>assert.fail('No cancelled retirement')});
+  const prepare=f.project.prepareNew;f.project.prepareNew=()=>{throw Error('Preparation failed');};
+  await assert.rejects(f.files.newProject(),/Preparation failed/);assert.deepEqual(f.project.snapshot(),before);f.project.prepareNew=prepare;
+  const pending=f.files.newProject({exportCurrent:true});await started.promise;
+  await f.doc.getElementById('hucNewCassetteCancel').fire('click');delayed=false;release.resolve(createDefaultPreset());
+  assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(f.calls.length,0);
+});
+
+test('PC Engine New Cassette sound-read failure uses a reported cached backup without stopping owners when export cancels',async t=>{
+  let failing=true;const downloads=[];
+  const f=fixture(t,{getSettings:()=>{if(failing)throw Error('Current sound unavailable');return createDefaultPreset();},downloadFile:async bytes=>{downloads.push(bytes);return false;}});
+  await f.files.ready;const before=f.project.snapshot();f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:()=>assert.fail('Backup cancellation keeps Code')});
+  assert.equal(await f.files.newProject({exportCurrent:true}),false);failing=false;
+  const backup=createHuc6280CodeProject();backup.restore(await backup.prepareImport(downloads[0]));assert.deepEqual(backup.settings,before.settings);
+  assert.deepEqual(f.project.snapshot(),before);assert(f.statuses.some(message=>/Current sound unavailable.*last cached sound/.test(message)));
+});
+
+test('PC Engine failed New Cassette application or editor restoration rolls back files, live sound and workspace identity',async t=>{
+  for(const phase of ['apply-false','apply-throw','editor-false','editor-throw'])await t.test(phase,async t=>{
+    const applied=[],states=[];let restores=0;
+    const f=fixture(t,{applySettings:async value=>{applied.push(structuredClone(value));f.setSettings(value);if(applied.length===1){if(phase==='apply-false')return false;if(phase==='apply-throw')throw Error('Apply failed');}}});
+    await f.files.ready;const edited=createDefaultPreset();edited.volume=7;f.setSettings(edited);
+    f.project.importFiles([{path:'/keep.txt',data:'Kept'}]);f.project.select('/keep.txt');f.project.setCodeState({mode:'code',path:'/index.js'});
+    const before={...f.project.snapshot(),settings:edited},identity=f.files.workspaceId;
+    f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async state=>{states.push(state);if(++restores===1){if(phase==='editor-false')return false;if(phase==='editor-throw')throw Error('Editor failed');}}});
+    if(phase.endsWith('throw'))await assert.rejects(f.files.newProject(),/failed/);else assert.equal(await f.files.newProject(),false);
+    assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(applied.at(-1),edited);assert.equal(applied.length,2);
+    assert.deepEqual(states.at(-1),before.codeState);assert.equal(f.doc.querySelector('.huc-main').inert,false);
+  });
+});
+
+test('PC Engine cancellation during Apply restores the old project; successful creation remains exportable if storage fails',async t=>{
+  const started=deferred(),release=deferred();let applied=0;
+  const f=fixture(t,{applySettings:async()=>{if(++applied===1){started.resolve();await release.promise;}}});
+  await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>{}});
+  const pending=f.files.newProject();await started.promise;await f.doc.getElementById('hucNewCassetteCancel').fire('click');release.resolve();
+  assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(applied,2);
+});
+
+test('PC Engine New Cassette storage failure keeps the fresh files exportable and removes its dialog on disposal',async t=>{
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>{throw Error('Storage unavailable');},close:async()=>{}}});
+  await f.files.ready;f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>{}});
+  assert.equal(await f.files.newProject(),true);assert.match(f.statuses.at(-1),/Local save unavailable/);
+  const copy=createHuc6280CodeProject();copy.restore(await copy.prepareImport(f.project.exportProject()));assert.equal(copy.fs.get('/index.js').data,'// kept');
+  await f.files.dispose();assert.equal(f.doc.getElementById('hucNewCassetteDialog'),undefined);assert.equal(await f.files.newProject(),false);
+});
+
+test('PC Engine New Cassette explains external CD-DA WAV omissions before confirmation and retains the backup notice after replacement',async t=>{
+  let hasSession=true;
+  const notice='Session WAVs are not included; keep the original WAVs and reopen them after restoring the Cassette.';
+  const f=fixture(t,{getExportNotice:()=>hasSession?notice:'',onBeforeWorkspaceReplace:async()=>{hasSession=false;},downloadFile:async()=>true});
+  await f.files.ready;await f.doc.getElementById('hucProjectNewButton').fire('click');
+  assert.match(f.doc.getElementById('hucNewCassetteDialog').children[1].textContent,/Session WAVs are not included/);
+  await f.doc.getElementById('hucNewCassetteCancel').fire('click');assert.equal(hasSession,true);
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>{}});
+  assert.equal(await f.files.newProject({exportCurrent:true}),true);assert.equal(hasSession,false);
+  assert.match(f.statuses.at(-1),/created.*Session WAVs are not included/);
+});

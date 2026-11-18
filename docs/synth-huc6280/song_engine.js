@@ -19,7 +19,10 @@ export const huc6280SongMixKey=value=>JSON.stringify(readHuc6280SongMix(value));
 
 /** No audio nodes or device. Mixer gains are separate from the native master,
  * preserving the opaque native state ABI and the old unit-gain PCM path. */
-export async function createHuc6280SongEngine(header,{mixer,moduleFactory=factory,wasmBinary}={}){
+export async function createHuc6280SongEngine(header,{mixer,moduleFactory=factory,wasmBinary,hucOutputGain=1}={}){
+  // The app preview opts in; standalone/raw renderers retain unit gain and
+  // their existing opaque-state settings key by default.
+  if(!Number.isFinite(hucOutputGain)||hucOutputGain<0||hucOutputGain>4)throw RangeError('HuC6280 application output gain must be 0..4');
   const mix=readHuc6280SongMix(mixer);
   const engine=await Huc6280AudioEngine.create({moduleFactory:wasmBinary?()=>moduleFactory({wasmBinary}):moduleFactory,
     clock:header.huc6280Clock||HUC6280_CLOCK,outputSampleRate:44100,masterVolume:1});
@@ -29,10 +32,10 @@ export async function createHuc6280SongEngine(header,{mixer,moduleFactory=factor
     let settings=mix,closed=false;
     engine.setSourceMix=value=>{const next=readHuc6280SongMix(value);settings=next;return readHuc6280SongMix(settings);};
     engine.getSourceMix=()=>readHuc6280SongMix(settings);
-    engine.stateSettingsKey=()=>JSON.stringify([key(),settings.huc6280]);
+    engine.stateSettingsKey=()=>JSON.stringify([key(),settings.huc6280,...(hucOutputGain===1?[]:[{hucOutputGain}])]);
     engine.processFrames=frames=>{
       const pcm=process(frames),adpcm=msm?.processFrames(frames),h=settings.huc6280,a=settings.msm5205;
-      const hg=h.muted?0:h.volume,ag=a.muted?0:a.volume;
+      const hg=(h.muted?0:h.volume)*hucOutputGain,ag=a.muted?0:a.volume;
       if(!adpcm&&hg===1)return pcm;
       for(let i=0;i<frames;i++){
         pcm.left[i]=pcm.left[i]*hg+(adpcm?adpcm.left[i]*ag:0);

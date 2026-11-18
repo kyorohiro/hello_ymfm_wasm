@@ -82,6 +82,8 @@ interface Fm2608CodeClient extends Fm2608CodeFm {
     setPlaybackRate(rate:number):number;
     setDeltaN(value:number):void;
     keyOn(options?:{repeat?:boolean}):void;
+    /** Synth-only 8ms hardware-volume release. Raw keyOff remains immediate. */
+    noteOff():boolean;
     keyOff():void;
     reset():void;
   };

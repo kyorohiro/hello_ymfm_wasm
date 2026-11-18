@@ -27,6 +27,22 @@ sample with adjustable tuning, playback level and whole-sample Repeat.
 Base rate sets the playback speed at the Root note. The Playback readout follows
 the hardware rate while keyboard notes transpose that base rate.
 
+Keyboard ADPCM-B release and `opna.adpcm.noteOff()` use a **Synth software**
+8 ms volume fade, after one 128-frame scheduling lead. The audio-owner queue
+applies 64 volume steps at sample boundaries; JavaScript timers do not render
+the fade. `opna.adpcm.keyOff()` retains the immediate hardware operation.
+Authored volume and captured sample data remain unchanged. Retriggers, raw
+gate/sample changes, presets, transport changes and later song writes retire
+old release tails. Paused and playing reference-channel audition use the same
+bounded release policy; original VGM note commands remain raw.
+
+**Menu → New → Cassette…** creates a fresh default sound and original starter
+Code. Choose Cancel, export the current Cassette and create, or create without
+exporting. New Code does not run automatically. Cancelled/failed replacement
+retains portable Files/settings/identity; already-retired performance state is
+not resumed automatically. Import / Export → Cassette · ZIP retain the existing
+project format.
+
 Import and export FM patches as TFI or VGI from the top-left menu. A complete
 OPNA sound, including its ADPCM sample, can be saved as a JSON preset in Files.
 The Mixer provides software channel mutes shared by Keyboard and Code.

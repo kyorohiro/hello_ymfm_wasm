@@ -32,10 +32,11 @@ export function createCddaSource({ensureAudio,getAudio,readFile,onState=()=>{},o
   const sourceId=`huc6280-synth:cdda-source:${++sourceSerial}`,listeners=new Set(),leases=new Set(),transport=new Set();
   let dead=false,closing=false,authority=0,revision=0,asset=null,selected=null,positionFrame=0,actual=null,error=null,pending=null,operation=0,codeEpoch=0,leaseSerial=0;
   let endpoint=null,starting=null,tail=Promise.resolve(),stopping=null;
+  let playbackGeneration=0,lastPlayback=null;
   const checkLease=lease=>{if(dead||closing||lease&&(lease.closed||lease.epoch!==codeEpoch||!lease.isCurrent()))throw abort();};
   const check=(token,lease)=>{checkLease(lease);if(token!==operation)throw abort();};
   function list(){checkLease();return copyTracks(asset?.tracks??[]);}
-  function read(){return{sourceId,revision,asset:asset?{name:asset.name,path:asset.path,format:asset.format,dependsSession:asset.path?.startsWith('/session-cdda/')||asset.tracks.some(track=>track.file?.startsWith('/session-cdda/')),tracks:copyTracks(asset.tracks)}:null,
+  function read(){return{sourceId,revision,playbackGeneration,asset:asset?{name:asset.name,path:asset.path,format:asset.format,dependsSession:asset.path?.startsWith('/session-cdda/')||asset.tracks.some(track=>track.file?.startsWith('/session-cdda/')),tracks:copyTracks(asset.tracks)}:null,
     selectedTrack:selected?.info.number??null,track:selected?{...selected.info}:null,position:positionFrame/44100,
     actual:actual?{...actual,tracks:copyTracks(asset?.tracks??[])}:null,state:actual?.state??(asset?'ready':'empty'),busy:!!pending,transportPending:transport.size>0||!!starting||!!stopping,error};}
   function emit(){const state=read();onState(state);for(const listener of listeners)listener(state);return state;}
@@ -79,11 +80,11 @@ export function createCddaSource({ensureAudio,getAudio,readFile,onState=()=>{},o
   }
   function snapshot(){const mix=getAudio()?.getChipMix?.('cdda');return{state:asset?'ready':'empty',positionFrames:positionFrame,positionSeconds:positionFrame/44100,frame:positionFrame,durationFrames:selected?.info.frames??0,durationSeconds:(selected?.info.frames??0)/44100,outputFrame:0,
     sampleRate:getAudio()?.context?.sampleRate??0,sourceRate:44100,volume:mix?.volume??1,pan:0,mute:mix?.effectiveMuted??mix?.muted??false,...actual,
-    sourceId,revision,track:selected?.info.number??null,title:selected?.info.title??'',tracks:copyTracks(asset?.tracks??[])};}
+    sourceId,revision,playbackGeneration,track:selected?.info.number??null,title:selected?.info.title??'',tracks:copyTracks(asset?.tracks??[])};}
   async function observe(item,token,lease){const state=await rpc(item,token,()=>item.player.getState());check(token,lease);if(endpoint!==item||item.closed||item.engine!==getAudio())throw abort();
     positionFrame=state.positionFrames??state.frame??0;actual={...state,track:selected?.info.number??null,title:selected?.info.title??'',tracks:copyTracks(asset?.tracks??[])};emit();return snapshot();}
   async function commit(item,nextAsset,nextSelected){
-    const run=async token=>{checkLoad(item);const physical=existing();if(physical){
+    const run=async token=>{checkLoad(item);playbackGeneration++;const physical=existing();if(physical){
       physical.loadOwner=item;
       try{await rpc(physical,token,()=>physical.player.stop());check(token,item.lease);checkLoad(item);retire(physical);}
       finally{physical.loadOwner=null;}
@@ -127,17 +128,19 @@ export function createCddaSource({ensureAudio,getAudio,readFile,onState=()=>{},o
   }
   function transportTask(run,lease,token=operation){const ticket={};transport.add(ticket);emit();return serial(run,lease,token).finally(()=>{transport.delete(ticket);emit();});}
   async function play(number,options={},lease){
-    checkLease(lease);const token=operation;authority++;const schedule=timing(options),offset=frame(options.offset??0);if(!asset)throw Error('Load CD-DA tracks before playback');
+    checkLease(lease);const token=operation;const schedule=timing(options),offset=frame(options.offset??0);if(!asset)throw Error('Load CD-DA tracks before playback');
     const chosen=number??selected?.info.number??asset.tracks[0].number;
     if(!Number.isInteger(chosen)||!asset.tracks.some(track=>track.number===chosen))throw RangeError('Unknown CD-DA track number');
     // Select/validate a different track before touching the current transport.
     if(chosen!==selected?.info.number)await selectTrack(chosen,{},lease,offset);check(token,lease);
     if(offset>selected.info.frames)throw RangeError('CD-DA position is outside the track');
-    return transportTask(async token=>{const item=await ensureEndpoint(token,lease);check(token,lease);timing(schedule);
-      await rpc(item,token,()=>item.player.play(1,{...schedule,offset:offset/44100}));check(token,lease);error=null;return observe(item,token,lease);},lease,token);
+    authority++;const playback=lastPlayback={generation:++playbackGeneration,cancelled:false};
+    const checkPlayback=()=>{if(playback.cancelled)throw abort();};
+    return transportTask(async token=>{checkPlayback();const item=await ensureEndpoint(token,lease);check(token,lease);checkPlayback();timing(schedule);
+      await rpc(item,token,()=>item.player.play(1,{...schedule,offset:offset/44100}));check(token,lease);checkPlayback();error=null;return observe(item,token,lease);},lease,token);
   }
-  function stopPhysical(options={}){
-    options=timing(options);operation++;const token=operation;tail=Promise.resolve();transport.clear();retire(starting);const old=existing();
+  function stopPhysical(options={},preserveOperation=false){
+    options=timing(options);playbackGeneration++;if(!preserveOperation)operation++;const token=operation;tail=Promise.resolve();transport.clear();retire(starting);const old=existing();
     const immediate=options.at===undefined||options.at<=(getAudio()?.context?.currentTime??0);
     // An old adapter timeout disposes its whole node. Disconnect it now when
     // cancelling an immediate in-flight RPC, so that timer cannot later close
@@ -149,17 +152,25 @@ export function createCddaSource({ensureAudio,getAudio,readFile,onState=()=>{},o
     const settled=task.finally(()=>{if(stopping===settled){stopping=null;emit();}});stopping=settled;emit();return settled;
   }
   function stop(options={}){checkLease();timing(options);cancelLoad();return stopPhysical(options);}
+  function stopIfPlaybackGeneration(expected){
+    checkLease();if(!Number.isSafeInteger(expected)||expected<0)throw RangeError('Expected a playback generation');
+    if(expected!==playbackGeneration)return Promise.resolve(false);
+    if(lastPlayback?.generation===expected)lastPlayback.cancelled=true;
+    return stopPhysical({},true).then(()=>true);
+  }
   function revokeCode(){if(dead)return;codeEpoch++;for(const lease of leases)lease.closed=true;leases.clear();if(pending?.lease)cancelLoad({retireUpload:false});}
   function stopCode(){if(dead)return Promise.resolve();revokeCode();return stopPhysical();}
-  async function pause(options={},lease){checkLease(lease);const schedule=timing(options),physical=existing();if(!physical||!['playing','paused'].includes(actual?.state))return snapshot();return transportTask(async token=>{
+  async function pause(options={},lease){checkLease(lease);const schedule=timing(options),physical=existing();if(!physical||!['playing','paused'].includes(actual?.state))return snapshot();playbackGeneration++;return transportTask(async token=>{
     if(endpoint!==physical||!['playing','paused'].includes(actual?.state))return snapshot();
     await rpc(physical,token,()=>physical.player.pause(schedule));return observe(physical,token,lease);},lease);}
   async function resume(options={},lease){checkLease(lease);const schedule=timing(options),physical=existing();if(!physical||actual?.state!=='paused')return play(selected?.info.number,{...schedule,offset:positionFrame/44100},lease);
+    playbackGeneration++;
     return transportTask(async token=>{await rpc(physical,token,()=>physical.player.resume(schedule));return observe(physical,token,lease);},lease);}
   function readySeek(seconds){checkLease();const next=frame(seconds);if(!selected)throw Error('Select a CD-DA track before seeking');if(next>selected.info.frames)throw RangeError('CD-DA position is outside the track');
     positionFrame=next;if(actual&&actual.state!=='playing'&&actual.state!=='paused')actual={...actual,positionFrames:next,positionSeconds:next/44100,frame:next};emit();return snapshot();}
   async function seek(seconds,options={},lease){checkLease(lease);const next=frame(seconds),schedule=timing(options);if(!selected)throw Error('Select a CD-DA track before seeking');if(next>selected.info.frames)throw RangeError('CD-DA position is outside the track');
     const physical=existing();if(!physical||!['playing','paused','ended'].includes(actual?.state))return readySeek(next/44100);
+    playbackGeneration++;
     return transportTask(async token=>{if(endpoint!==physical||!['playing','paused','ended'].includes(actual?.state))return readySeek(next/44100);
       await rpc(physical,token,()=>physical.player.seek(next/44100,schedule));return observe(physical,token,lease);},lease);}
   async function getState(lease){checkLease(lease);const physical=existing();return physical&&['playing','paused','ended'].includes(actual?.state)?serial(token=>observe(physical,token,lease),lease):snapshot();}
@@ -172,7 +183,7 @@ export function createCddaSource({ensureAudio,getAudio,readFile,onState=()=>{},o
       async dispose(){checkLease(lease);lease.closed=true;leases.delete(lease);if(pending?.lease===lease)cancelLoad();await stopPhysical();onDispose();}};
     for(const key of ['id','sourceId','chip'])Object.defineProperty(client,key,{writable:false});return Object.seal(client);
   }
-  return{read,list,load,selectTrack,readySeek,play,pause,resume,stop,seek,getState,useCodeClient,revokeCode,stopCode,cancelLoad,
+  return{read,list,load,selectTrack,readySeek,play,pause,resume,stop,stopIfPlaybackGeneration,seek,getState,useCodeClient,revokeCode,stopCode,cancelLoad,
     subscribe(listener){if(typeof listener!=='function')throw TypeError('Expected a CD-DA source listener');listeners.add(listener);return()=>listeners.delete(listener);},
     async clear(){checkLease();const ticket=++authority;cancelLoad();try{await stopCode();}finally{if(authority===ticket){retire(starting);retire(endpoint);asset=null;selected=null;positionFrame=0;actual=null;revision++;error=null;emit();}}return authority===ticket;},
     async dispose(){if(dead||closing)return;closing=true;cancelLoad();try{await stopCode();}finally{dead=true;closing=false;retire(starting);retire(endpoint);transport.clear();listeners.clear();}},

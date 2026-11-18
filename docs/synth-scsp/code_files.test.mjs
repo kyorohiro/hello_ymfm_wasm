@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {setupScspCodeFiles,isScspSsfFile} from './code_files.js';
 import {createScspCodeProject,SCSP_PROJECT_FILE_BYTES} from './code_project.js';
 import {createDefaultScspProjectSound,readScspProjectSound as readPreset} from './code_project.js';
@@ -19,7 +20,7 @@ const fixtureOwners=new WeakMap();
 function fixture(t,options={}){
   const doc=new Element(null,'document');doc.ownerDocument=doc;doc.body=doc;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>walk(doc).find(node=>node.id===id);doc.defaultView=new Element(doc,'window');
   const main=new Element(doc);doc.append(main);doc.querySelector=selector=>selector==='.scsp-main'?main:null;
-  for(const id of ['scspFilesPanel','scspFilesToggle','synthWorkspace']){const node=new Element(doc);node.id=id;node.hidden=id==='scspFilesPanel';doc.append(node);}
+  for(const id of ['scspFilesPanel','scspFilesToggle','synthWorkspace','scspMenuProjectNew','scspMenuProjectImport']){const node=new Element(doc);node.id=id;node.hidden=id==='scspFilesPanel';doc.append(node);}
   const saveAs=new Element(doc,'button');saveAs.id='scspSaveSoundAs';doc.append(saveAs);
   const select=new Element(doc,'select');select.id='scspPresetSelect';doc.append(select);
   let owners=fixtureOwners.get(t);
@@ -378,5 +379,153 @@ test('SCSP Save sound as captures its source at dialog open and Cancel leaves Fi
   await f.doc.getElementById('scspFileNameCancel').fire('click');assert.deepEqual(f.project.fs.snapshot(),before);
   await button.fire('click');const changed=createDefaultPreset();changed.transpose=12;f.setSettings(changed);f.files.markSoundDirty();input.value='Captured before edit';await dialog.children[0].fire('submit');await new Promise(r=>setImmediate(r));
   assert.equal(JSON.parse(f.project.fs.get('/presets/Captured before edit.scsp.json').data).transpose,0);assert.deepEqual(f.project.settings,changed);assert.deepEqual(f.calls,[]);
+});
+
+test('SCSP Menu places New Cassette before Import and cancellation keeps the current project and performance',async t=>{
+  const source=await readFile(new URL('./index.html',import.meta.url),'utf8');
+  assert(source.indexOf('<h2>New</h2>')<source.indexOf('<h2>Import</h2>'));
+  assert.match(source,/id="scspMenuProjectNew"/);assert.match(source,/id="scspMenuProjectImport"/);
+  const f=fixture(t);await f.files.ready;
+  f.files.setCodeControls({setBusy(){},flush:()=>assert.fail('Cancel must not flush'),workspaceReplaced:()=>assert.fail('Cancel must not stop Code')});
+  const before=f.project.snapshot(),identity=f.files.workspaceId;
+  const button=f.doc.getElementById('scspProjectNewButton'),dialog=f.doc.getElementById('scspNewCassetteDialog');
+  assert.equal(button.parentNode.id,'scspMenuProjectNew');assert.equal(button.textContent,'Cassette…');
+  assert.equal(f.doc.getElementById('scspProjectImportButton').parentNode.id,'scspMenuProjectImport');
+  await button.fire('click');assert.equal(dialog.open,true);assert.equal(f.doc.activeElement.id,'scspNewCassetteCancel');
+  await f.doc.getElementById('scspNewCassetteCancel').fire('click');assert.equal(dialog.open,false);
+  await button.fire('click');await dialog.fire('cancel');assert.equal(dialog.open,false);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(f.calls,[]);assert.equal(f.writes.length,0);
+  f.files.setCodeControls({setBusy(){},flush:async()=>true});
+});
+
+test('SCSP New Cassette creates default sound, original starter/examples and fresh identity without running Code',async t=>{
+  const settings=createDefaultPreset();settings.transpose=12;
+  const f=fixture(t,{settings});await f.files.ready;
+  f.project.writeEditorText('/index.js','globalThis.scspNewCassetteMustNotRun=true;');
+  f.project.importFiles([{path:'/old.txt',data:'old project'},{path:'/ssf/song.ssf',type:'binary',data:Uint8Array.of(1,2,3)}]);
+  f.project.select('/old.txt');f.project.setCodeState({mode:'code',path:'/index.js'});
+  const identity=f.files.workspaceId,restored=[];
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,captureState:()=>({mode:'code',path:'/index.js'}),
+    workspaceReplaced:async()=>f.calls.push(['retire']),restoreState:async state=>restored.push(state),run:()=>assert.fail('New never runs')});
+  assert.equal(await f.files.newProject(),true);
+  assert.equal(f.project.fs.get('/index.js').data,'// kept');assert(!f.project.fs.has('/old.txt'));assert(!f.project.fs.has('/ssf/song.ssf'));
+  assert(f.project.fs.has('/examples/cycle2.js'));assert.deepEqual(f.project.settings,createDefaultScspProjectSound());
+  assert.equal(f.project.selectedPath,'/index.js');assert.deepEqual(restored,[{mode:'keyboard',path:'/index.js'}]);
+  assert.notEqual(f.files.workspaceId,identity);assert.equal(f.writes.at(-1).workspaceId,f.files.workspaceId);
+  assert.deepEqual(f.writes.at(-1).settings,createDefaultScspProjectSound());
+  assert.deepEqual(f.calls.map(call=>call[0]),['retire','before','apply']);assert.match(f.statuses.at(-1),/created.*not run.*Saved locally/);
+  assert.equal(globalThis.scspNewCassetteMustNotRun,undefined);
+});
+
+test('SCSP New Cassette exports the old workspace before creation and export cancellation/failure preserves it',async t=>{
+  for(const outcome of ['success','cancel','throw'])await t.test(outcome,async t=>{
+    const downloads=[];
+    const f=fixture(t,{downloadFile:async(bytes,name,type)=>{downloads.push({bytes,name,type});if(outcome==='throw')throw Error('Download unavailable');return outcome!=='cancel';}});
+    await f.files.ready;f.project.importFiles([{path:'/keep.txt',data:'exported old file'}]);
+    const before=f.project.snapshot(),identity=f.files.workspaceId;
+    if(outcome==='throw')await assert.rejects(f.files.newProject({exportCurrent:true}),/Download unavailable/);
+    else assert.equal(await f.files.newProject({exportCurrent:true}),outcome==='success');
+    assert.equal(downloads.length,1);assert.equal(downloads[0].name,'Tetorica SCSP.cassette.zip');assert.equal(downloads[0].type,'application/zip');
+    const exported=createScspCodeProject();exported.restore(await exported.prepareImport(downloads[0].bytes));assert.equal(exported.fs.get('/keep.txt').data,'exported old file');
+    if(outcome!=='success'){assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(f.calls,[]);assert.equal(f.writes.length,0);}
+  });
+});
+
+test('SCSP New Cassette backup reads current async v11 Code edits once, including when download cancels or fails',async t=>{
+  for(const outcome of ['success','cancel','throw'])await t.test(outcome,async t=>{
+    const cached=createDefaultPreset(),edited={...cached,name:'Live edited Cycle',version:11,mode:'fm2',
+      fm:{...cached.fm,algorithm:'cycle2',cycle2:{outputs:[0,1]},depths:[3,8,1,2,3,4]},operators:structuredClone(cached.operators)};
+    edited.operators.carrier.pcm[3]=321;edited.operators.modulator.voice.totalLevel=31;
+    let reads=0;const downloads=[];
+    const f=fixture(t,{settings:cached,getSoundSettings:async()=>{reads++;await Promise.resolve();return structuredClone(edited);},
+      downloadFile:async bytes=>{downloads.push(bytes);if(outcome==='throw')throw Error('Backup failed');return outcome!=='cancel';}});
+    await f.files.ready;f.project.writeEditorText('/index.js','// Current user Code');f.project.importFiles([{path:'/keep.txt',data:'keep in backup'}]);
+    const before=f.project.snapshot(),identity=f.files.workspaceId;
+    if(outcome==='throw')await assert.rejects(f.files.newProject({exportCurrent:true}),/Backup failed/);
+    else assert.equal(await f.files.newProject({exportCurrent:true}),outcome==='success');
+    assert.equal(reads,1);assert.equal(downloads.length,1);
+    const backup=createScspCodeProject();backup.restore(await backup.prepareImport(downloads[0]));
+    assert.deepEqual(backup.settings,edited);assert.equal(backup.fs.get('/index.js').data,'// Current user Code');assert.equal(backup.fs.get('/keep.txt').data,'keep in backup');
+    if(outcome!=='success'){assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(f.calls,[]);}
+  });
+});
+
+test('SCSP cancelling during the fresh sound read prevents backup and owner retirement',async t=>{
+  const started=deferred(),release=deferred();let reads=0;
+  const f=fixture(t,{getSoundSettings:async()=>{reads++;started.resolve();await release.promise;return createDefaultPreset();},downloadFile:()=>assert.fail('Cancelled read must not download')});
+  await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:()=>assert.fail('Cancelled read must not stop Code')});
+  await f.doc.getElementById('scspProjectNewButton').fire('click');
+  const pending=f.files.newProject({exportCurrent:true});await started.promise;
+  await f.doc.getElementById('scspNewCassetteCancel').fire('click');release.resolve();
+  assert.equal(await pending,false);assert.equal(reads,1);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(f.calls,[]);
+});
+
+test('SCSP New Cassette backup retains cached-sound fallback when a fresh read is unavailable',async t=>{
+  let reads=0;const downloads=[];
+  const f=fixture(t,{getSoundSettings:async()=>{reads++;throw Error('Fresh read unavailable');},downloadFile:async bytes=>{downloads.push(bytes);return false;}});
+  await f.files.ready;f.project.importFiles([{path:'/keep.txt',data:'keep'}]);const before=f.project.snapshot();
+  assert.equal(await f.files.newProject({exportCurrent:true}),false);assert.equal(reads,1);assert.equal(downloads.length,1);
+  const backup=createScspCodeProject();backup.restore(await backup.prepareImport(downloads[0]));
+  assert.deepEqual(backup.settings,createDefaultPreset());assert.equal(backup.fs.get('/keep.txt').data,'keep');
+  assert(f.statuses.some(message=>/Fresh read unavailable.*last cached sound/.test(message)));
+  assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
+});
+
+test('SCSP failed New Cassette without a backup restores fresh Code-edited sound using the same single read',async t=>{
+  const cached=createDefaultPreset(),edited={...cached,name:'Live rollback Cycle',version:11,mode:'fm2',
+    fm:{...cached.fm,algorithm:'cycle2',cycle2:{outputs:[0,1]},depths:[2,7,3,4,5,6]}};
+  let reads=0;const applied=[];
+  const f=fixture(t,{settings:cached,getSoundSettings:async()=>{reads++;await Promise.resolve();return structuredClone(edited);},
+    applySettings:async value=>{applied.push(structuredClone(value));f.setSettings(value);return applied.length!==1;}});
+  await f.files.ready;f.project.importFiles([{path:'/keep.txt',data:'keep'}]);f.project.select('/keep.txt');const identity=f.files.workspaceId,beforeFiles=f.project.fs.snapshot();
+  assert.equal(await f.files.newProject(),false);assert.equal(reads,1);assert.equal(applied.length,2);
+  assert.deepEqual(applied.at(-1),edited);assert.deepEqual(f.project.settings,edited);assert.deepEqual(f.project.fs.snapshot(),beforeFiles);
+  assert.equal(f.project.selectedPath,'/keep.txt');assert.equal(f.files.workspaceId,identity);
+});
+
+test('SCSP New Cassette rejects failed preparation and cancelled flush before retiring any owner',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot();
+  const prepare=f.project.prepareNew;f.project.prepareNew=()=>{throw Error('Fresh project unavailable');};
+  await assert.rejects(f.files.newProject(),/Fresh project unavailable/);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
+  f.project.prepareNew=prepare;
+  f.files.setCodeControls({setBusy(){},flush:async()=>false,workspaceReplaced:()=>assert.fail('Cancelled flush must not retire Code')});
+  assert.equal(await f.files.newProject(),false);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
+  f.files.setCodeControls({setBusy(){},flush:async()=>true});
+  await assert.rejects(f.files.newProject({exportCurrent:'yes'}),TypeError);
+});
+
+test('SCSP failed or cancelled New Cassette application restores the old project, sound, editor and identity',async t=>{
+  for(const phase of ['apply-false','apply-throw','editor-false','editor-throw'])await t.test(phase,async t=>{
+    let applications=0,restores=0;const applied=[];
+    const f=fixture(t,{applySettings:async value=>{applications++;applied.push(value);if(applications===1){if(phase==='apply-false')return false;if(phase==='apply-throw')throw Error('Apply failed');}}});
+    await f.files.ready;f.project.importFiles([{path:'/keep.txt',data:'keep'}]);f.project.select('/keep.txt');f.project.setCodeState({mode:'code',path:'/index.js'});
+    const before=f.project.snapshot(),identity=f.files.workspaceId,states=[];
+    f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,
+      restoreState:async state=>{states.push(state);restores++;if(restores===1){if(phase==='editor-false')return false;if(phase==='editor-throw')throw Error('Editor failed');}}});
+    if(phase.endsWith('throw'))await assert.rejects(f.files.newProject(),/failed/);else assert.equal(await f.files.newProject(),false);
+    assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);
+    assert.deepEqual(applied.at(-1),before.settings);assert.equal(applications,2);
+    assert.deepEqual(states.at(-1),before.codeState);assert(!f.writes.some(value=>!value.filesystem.files.some(file=>file.path==='/keep.txt')));
+    assert.equal(f.doc.querySelector('.scsp-main').inert,false);
+  });
+});
+
+test('SCSP cancelling New Cassette while Apply is pending restores the old project after the stale Apply resolves',async t=>{
+  const started=deferred(),release=deferred();let applications=0;
+  const f=fixture(t,{applySettings:async()=>{if(++applications===1){started.resolve();await release.promise;}}});
+  await f.files.ready;f.project.importFiles([{path:'/keep.txt',data:'keep'}]);const before=f.project.snapshot(),identity=f.files.workspaceId;
+  await f.doc.getElementById('scspProjectNewButton').fire('click');
+  const pending=f.files.newProject();await started.promise;
+  await f.doc.getElementById('scspNewCassetteCancel').fire('click');release.resolve();
+  assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(applications,2);
+  assert.equal(f.doc.getElementById('scspNewCassetteDialog').open,false);assert.equal(f.doc.querySelector('.scsp-main').inert,false);
+});
+
+test('SCSP successful New Cassette remains exportable when local persistence fails and dialog cleans up on disposal',async t=>{
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>{throw Error('Storage unavailable');},close:async()=>{}}});
+  await f.files.ready;assert.equal(await f.files.newProject(),true);assert.match(f.statuses.at(-1),/Local save unavailable/);
+  const copy=createScspCodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));assert.equal(copy.fs.get('/index.js').data,'// kept');assert(copy.fs.has('/examples/cycle2.js'));
+  await f.files.dispose();assert.equal(f.doc.getElementById('scspNewCassetteDialog'),undefined);assert.equal(await f.files.newProject(),false);
 });
 

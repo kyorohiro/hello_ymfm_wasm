@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "scope": "scsp-output-level-and-new-cassette",
+  "baseCommit": "db1e739d5bf8dac68bf93aa3aea34ef098153b25",
+  "verifiedHead": "db1e739d5bf8dac68bf93aa3aea34ef098153b25",
+  "completed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "applicationOutputGain": {
+    "beforeSourceBalance": 0.125,
+    "afterSourceBalance": 0.125,
+    "beforeSongInputBalance": 0.125,
+    "afterSongInputBalance": 0.125,
+    "beforeOutputCompensation": 1,
+    "afterOutputCompensation": 8,
+    "gainRatio": 8,
+    "changeDb": 18.06179973983887,
+    "placement": "shared post-Code-FX/post-fade, pre-Master",
+    "masterRange": [
+      0,
+      3.8
+    ],
+    "commonMixerGainChanged": false,
+    "corePcmChanged": false,
+    "universalClippingGuarantee": false
+  },
+  "unitTests": 501,
+  "packageTests": 2,
+  "sourceProofTests": 13,
+  "sourceReceiptPin": "c4bb5bb488a3aad7da5be5723a8dfa0d5ca486c17228570c457813525ff756e6",
+  "sourceBrowser": {
+    "cases": 14,
+    "path": "build/scsp-output-level-20261118/browser-source.json",
+    "bytes": 338274,
+    "sha256": "1a7f7c0b87ab7eb165bbe5dbb263865f2c0b7a0828b9e7383fcbc658b565c1c1"
+  },
+  "packagedBrowser": {
+    "cases": 14,
+    "path": "build/scsp-output-level-20261118/browser-packaged.json",
+    "bytes": 330823,
+    "sha256": "4d94210b543b42e11c333a58e74b34348af553e8fe00018ecebc075f5edf159c"
+  },
+  "codeRegressionBrowser": {
+    "cases": 22,
+    "path": "build/scsp-output-level-20261118/code-regression-browser.json",
+    "bytes": 6524,
+    "sha256": "9cad871594bc239daa427d6a4b98306747cb1b54661215caa1ace3144cebd73d"
+  },
+  "sourcePackageComparison": {
+    "path": "build/scsp-output-level-20261118/asset-parity.json",
+    "bytes": 27663,
+    "sha256": "f3e5d421c36d83861528cc311d146f716b259de3146e2e1d7856e3ca46f9e4a7"
+  },
+  "offlineCases": 24,
+  "offlineMeasurements": {
+    "path": "build/scsp-output-level-20261118/measurement.json",
+    "bytes": 164342,
+    "sha256": "48df89a8b1c937080d3de8cf1e06f37c7ec6134fb3aea263779efa8f160fc4f6"
+  },
+  "offlineFindings": {
+    "path": "build/scsp-output-level-20261118/findings.txt",
+    "bytes": 4818,
+    "sha256": "9e075f1606067d38bcf0d6547a05fcfb54821b3914331c2af41c127776b44423"
+  },
+  "offlineScript": {
+    "path": "build/scsp-output-level-20261118/measure.mjs",
+    "bytes": 10710,
+    "sha256": "2d9fb5070722574ce06cdfd8e36960cd4cdd921bf82184582c4a86e0e31fbb0a"
+  },
+  "offlineBaselineSource": {
+    "path": "build/scsp-output-level-20261118/audio.baseline-db1e739d.js",
+    "bytes": 8727,
+    "sha256": "946fda41668f7ee0dc3edf4172726be2af055634ae4e08d77e1f4a08f3d5b744"
+  },
+  "proof": {
+    "path": "build/scsp-output-level-20261118/proof-freeze.json",
+    "bytes": 7894,
+    "sha256": "06eb65daefdb9b07ea14a9d38bd4fd867439fe2a3598e863b1505048a2f0a3de"
+  },
+  "logs": [
+    {
+      "path": "build/scsp-output-level-20261118/audio-tests.log",
+      "bytes": 1494,
+      "sha256": "bab8a5fb3ffa5aecbce984deae28b743cb218fa8dbec6e21a54e08d2482c9741"
+    },
+    {
+      "path": "build/scsp-output-level-20261118/unit-tests.log",
+      "bytes": 53326,
+      "sha256": "ae4c4ea398df60e67d7c240d6efdb6dd2943b5dcb39ee3cf3243f7079f8e0201"
+    },
+    {
+      "path": "build/scsp-output-level-20261118/package-tests.log",
+      "bytes": 309,
+      "sha256": "c54a9d05098c4f6d48796975e994a4c6948a9e1961438d0e1b3fa0cc87571748"
+    },
+    {
+      "path": "build/scsp-output-level-20261118/proof-tests.log",
+      "bytes": 1842,
+      "sha256": "9f46cb8099b71d3d4e86cafb226bc07166f7adc72c3b1a08ae03288fa04d35bb"
+    },
+    {
+      "path": "build/scsp-output-level-20261118/proof-recorders.log",
+      "bytes": 388,
+      "sha256": "e138f7c3d5c8f7f1f2ec4d045267d255754a283d42a7792292dfbb07a569c343"
+    },
+    {
+      "path": "build/scsp-output-level-20261118/proof-mixer-generators.log",
+      "bytes": 433,
+      "sha256": "f0cd734af171dd799cf8bcacf538ee6f74fc97ce15cc65b11de648af8f326fdf"
+    },
+    {
+      "path": "build/scsp-output-level-20261118/proof-final-summary.log",
+      "bytes": 789,
+      "sha256": "c6c14589a1e015c7fbf0666bfd0920fb85e7fb1a7d32dd3e5c3d1eda645a2fe5"
+    }
+  ],
+  "sources": [
+    {
+      "path": "docs/issues/scsp_output_level_new_cassette_source_revision_01.json",
+      "bytes": 33849,
+      "sha256": "3ec5543ef6d6b10ff977706dbb53636f401addc6ce0c368ca440deaa577f5404"
+    },
+    {
+      "path": "docs/issues/todo_scsp_new_cassette_20261118.md",
+      "bytes": 1837,
+      "sha256": "e70bd75437764cdb00b30c0818f8285a24a6d6805e717406554cb1a2382db4cc"
+    },
+    {
+      "path": "docs/issues/todo_scsp_output_level_20261118.md",
+      "bytes": 1784,
+      "sha256": "57357a641665ecd454702645b7199df2d83024291b8713af5ca50fdb88051844"
+    },
+    {
+      "path": "docs/issues/verification_scsp_output_level_new_cassette_20261118.md",
+      "bytes": 5521,
+      "sha256": "247a4faa9eae71f38cd31a2a248161ab5d530c8764aa722c49421509a057faed"
+    },
+    {
+      "path": "docs/synth-scsp/README.md",
+      "bytes": 50688,
+      "sha256": "9243f74c07b9903acb37833652167902141faa08169184c93107f31a0c7b71ee"
+    },
+    {
+      "path": "docs/synth-scsp/audio.js",
+      "bytes": 9134,
+      "sha256": "877789f5eefabf27c68585b820b86208a757778b9e2ae3f14441d0cb6f47326c"
+    },
+    {
+      "path": "docs/synth-scsp/audio.test.mjs",
+      "bytes": 11780,
+      "sha256": "69e7f644809fc1227b3cb4f8943785664404fdf89fa38dbd90739724327dfab5"
+    },
+    {
+      "path": "docs/synth-scsp/code_files.js",
+      "bytes": 43326,
+      "sha256": "8cfcbd735dd4cb6daff4359b0dcc925a1c045f4f9b180c953a615967c9d0186b"
+    },
+    {
+      "path": "docs/synth-scsp/code_files.test.mjs",
+      "bytes": 39937,
+      "sha256": "a08fc5731156ac1e35e04571f5a282c132f8940a917799e1304316c6cfe4a04e"
+    },
+    {
+      "path": "docs/synth-scsp/code_host.js",
+      "bytes": 4972,
+      "sha256": "bd726a26c9f543b8fcf5912da66ea9e05c58e87cdb5cb76ea942f9b97807f874"
+    },
+    {
+      "path": "docs/synth-scsp/code_project.js",
+      "bytes": 13133,
+      "sha256": "b92cf1d269b44d8786ca56c4de6d85fd43f157935ca4ad3be3f35e16dd7353e8"
+    },
+    {
+      "path": "docs/synth-scsp/code_project.test.mjs",
+      "bytes": 9487,
+      "sha256": "ba90adc85a9eb51c1ae5109de765055b6de7f0a50493bb35810b24942adbda0b"
+    },
+    {
+      "path": "docs/synth-scsp/index.html",
+      "bytes": 47569,
+      "sha256": "17bf0c3013ed8172aa5e1858f0d9e1585a68b2b31015980657bfbb93cc7afecb"
+    },
+    {
+      "path": "docs/synth-scsp/synth.css",
+      "bytes": 35673,
+      "sha256": "b2902df8b11f76b3518414809c6a51af5008153de2d014b3ef8106faef8ec945"
+    },
+    {
+      "path": "docs/synth-scsp/synth.js",
+      "bytes": 64907,
+      "sha256": "794e33bbaa5fdc9a43dd874422f05bb8b0f5fe189749ead3cf95687745a63dd4"
+    },
+    {
+      "path": "scripts/check_scsp_output_level_new_cassette_browser.cjs",
+      "bytes": 30195,
+      "sha256": "2d3266af89436d0f6d1a467e6dd5a19f529737429a53c40fbc094632ef46703d"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_live_highlight_revision.mjs",
+      "bytes": 11277,
+      "sha256": "5919ea2db4376ef887d847a2bbbf5af4e7f70167821804a3dc4e5ab6ead66c07"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_live_highlight_revision.test.mjs",
+      "bytes": 9913,
+      "sha256": "8263769db1f23a6b55713d5384a5a559feb8b2067de36ce90330734bad66c3b4"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_output_level_new_cassette_revision.mjs",
+      "bytes": 12178,
+      "sha256": "dda806b089be42c771b0c84b573b84271e476062c5d875904c2def3f0aa9f3f3"
+    },
+    {
+      "path": "scripts/mixer_calibration_scsp_output_level_new_cassette_revision.test.mjs",
+      "bytes": 12316,
+      "sha256": "ae05c20448cc50f884c30329105b6028fc74b4886a2721a8f5856981dd54f28a"
+    },
+    {
+      "path": "scripts/record_scsp_live_highlight_revision.mjs",
+      "bytes": 4715,
+      "sha256": "0412156f7f4b817828a2652c737c0816097fe3dfadb9a40b44f4540101d31236"
+    },
+    {
+      "path": "scripts/record_scsp_output_level_new_cassette_revision.mjs",
+      "bytes": 4987,
+      "sha256": "61144eb3d8d70592b3adebbaa57cd091f843f9c702461b149a479608a9f6f599"
+    }
+  ],
+  "package": {
+    "record": {
+      "path": "build/scsp-output-level-20261118/package.json",
+      "bytes": 498,
+      "sha256": "9a8c53ea002aafc7718a9bb364eb8509024d9f59e79cac9f57184ee6fccc194a"
+    },
+    "archive": {
+      "path": "release/tetorica_scsp_synth_output-level-new-cassette-db1e739d_itch.zip",
+      "bytes": 4414874,
+      "sha256": "788a151c5b2512bd62ca42a275c00839e5f9da212c9fb8cd36558bd0798bfc6e"
+    },
+    "files": 388,
+    "bundles": 4
+  },
+  "limitations": [
+    "App output increases by8 (+18.06dB); arbitrary polyphony, full-scale imports and boosts can exceed full scale. No limiter or per-instrument normalization was added.",
+    "Common calibrated Mixer gains, native renderers, raw samples and sound-chip parameters remain unchanged.",
+    "A cancelled/failed New Cassette restores project data; an already-retired performance is not automatically restarted.",
+    "Physical listening was not performed. No Capture/DSP feature addition, npm/version/publication/commit/push/tag or Tauri work."
+  ]
+}

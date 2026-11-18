@@ -3,7 +3,7 @@
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset} from './preset.js';
 import {readHuc6280CodeEdit} from './code_parameter_edit.js';
-import {PC_ENGINE_SOURCES,readPcEngineSourceMix} from './source_mix.js';
+import {PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js?v=pce-output-level-1';
 
 export const HUC6280_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
@@ -139,7 +139,10 @@ export async function createAudio({volume = .7, sourceMix, onError = () => {}} =
     node.connect(balance); balance.connect(codeInput);codeInput.connect(codeFade);codeFade.connect(master); master.connect(context.destination);
     function applyMix(){
       const gain=id=>mix[id].muted?0:mix[id].volume;
-      balance.gain.value=HUC6280_SYNTH_BALANCE*gain('huc6280');auditionInput.gain.value=HUC6280_SYNTH_BALANCE*gain('huc6280');
+      // Apply once while HuC is still separate from MSM5205/CD-DA. Code FX
+      // therefore receive the louder HuC signal; media input drive is retained.
+      balance.gain.value=HUC6280_SYNTH_BALANCE*HUC6280_APPLICATION_OUTPUT_GAIN*gain('huc6280');
+      auditionInput.gain.value=HUC6280_SYNTH_BALANCE*HUC6280_APPLICATION_OUTPUT_GAIN*gain('huc6280');
       for(const[id,input]of mediaInputs)input.gain.value=gain(id);
     }
     function setSourceMix(value){assertOpen();const next=readPcEngineSourceMix(value);mix=next;applyMix();return mix;}

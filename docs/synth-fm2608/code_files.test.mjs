@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {gzipSync} from 'node:zlib';
 import {setupFm2608CodeFiles} from './code_files.js';
 import {createFm2608CodeProject,FM2608_PROJECT_FILE_BYTES,readFm2608ProjectSound} from './code_project.js';
@@ -28,12 +29,14 @@ class Element {
   select() {}
   showModal() {this.open=true;}
   close() {this.open=false;}
+  async fire(type,extra={}) {const event={target:this,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(type)??[])await fn(event);}
 }
 const walk=node=>[node,...node.children.flatMap(walk)];
 const deferred=()=>{let resolve;const promise=new Promise(value=>resolve=value);return {promise,resolve};};
 const file=(name,bytes)=>({name,size:bytes.byteLength,arrayBuffer:async()=>bytes.slice().buffer});
+const fixtureOwners=new WeakMap();
 
-function fixture(t,{store,apply=(value)=>value}={}) {
+function fixture(t,{store,apply=(value)=>value,...options}={}) {
   const document=new Element(null,'document');
   document.ownerDocument=document;document.body=document;
   document.createElement=tag=>new Element(document,tag);
@@ -41,24 +44,26 @@ function fixture(t,{store,apply=(value)=>value}={}) {
   document.defaultView=new Element(document,'window');
   const main=new Element(document);document.append(main);
   document.querySelector=selector=>selector==='.opna-main'?main:null;
-  for(const id of ['opnaFilesPanel','opnaFilesToggle','synthWorkspace','opnaPresetSelect']) {
+  for(const id of ['opnaFilesPanel','opnaFilesToggle','synthWorkspace','opnaPresetSelect','opnaMenuProjectNew','opnaMenuProjectImport','opnaMenuProjectExport']) {
     const node=new Element(document,id==='opnaPresetSelect'?'select':'div');
     node.id=id;node.hidden=id==='opnaFilesPanel';document.append(node);
   }
-  const previous=globalThis.document;globalThis.document=document;
-  t.after(()=>{globalThis.document=previous;});
+  let owners=fixtureOwners.get(t);
+  if(!owners){const previous=globalThis.document;owners=[];fixtureOwners.set(t,owners);
+    t.after(async()=>{try{for(const item of owners.reverse()){globalThis.document=item.doc;await item.files.dispose();}}finally{globalThis.document=previous;}});}
+  globalThis.document=document;
   let settings=createDefaultPreset();
   const project=createFm2608CodeProject({settings,starterCode:'// kept'});
   const calls=[],opened=[],writes=[],statuses=[];
   const files=setupFm2608CodeFiles({project,document,getSettings:()=>settings,
     applySettings:async(value,options)=>{calls.push({value,options});settings=readPreset(await apply(value,options,settings));},
     onBeforeSoundApply:async()=>{},setStatus:value=>statuses.push(value),
-    store:store??{read:async()=>null,write:async(value)=>{writes.push(value);return true;},close:async()=>{}}});
+    store:store??{read:async()=>null,write:async(value)=>{writes.push(value);return true;},close:async()=>{}},...options});
   files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',isCodeMode:()=>true,
     flush:async()=>true,openFile:async(path,options)=>opened.push({path,options}),setBusy(){},
     stop:()=>assert.fail('Import must preserve running Code'),workspaceReplaced:()=>assert.fail('Import must preserve the active Code file')});
-  t.after(()=>files.dispose());
-  return {files,project,document,calls,opened,writes,statuses,setSettings(value){settings=readPreset(value);}};
+  owners.push({files,doc:document});
+  return {files,project,document,doc:document,calls,opened,writes,statuses,setSettings(value){settings=readPreset(value);}};
 }
 
 function song() {
@@ -182,4 +187,104 @@ test('durable storage failure retains import files for project export and report
   assert(paths.length>1);assert.match(f.statuses.at(-1),/Local save unavailable.*export/);
   const restored=createFm2608CodeProject();restored.restore(await restored.prepareImport(await f.files.exportProject()));
   for(const path of paths)assert(restored.fs.has(path));
+});
+
+
+test('PC-98 Menu New Cassette precedes Import; Cancel and Escape preserve files and running Code',async t=>{
+  const html=await readFile(new URL('./index.html',import.meta.url),'utf8');assert(html.indexOf('<h2>New</h2>')<html.indexOf('<h2>Import</h2>'));
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:()=>assert.fail('Cancel does not flush'),workspaceReplaced:()=>assert.fail('Cancel does not retire Code')});
+  const button=f.doc.getElementById('opnaProjectNewButton'),dialog=f.doc.getElementById('opnaNewCassetteDialog');
+  assert.equal(button.parentNode.id,'opnaMenuProjectNew');assert.equal(button.textContent,'Cassette…');
+  assert.equal(f.doc.getElementById('opnaProjectImportButton').parentNode.id,'opnaMenuProjectImport');
+  assert.equal(f.doc.getElementById('opnaProjectExportButton').textContent,'Cassette · ZIP');
+  await button.fire('click');assert.equal(dialog.open,true);assert.equal(f.doc.activeElement.id,'opnaNewCassetteCancel');
+  await f.doc.getElementById('opnaNewCassetteCancel').fire('click');assert.equal(dialog.open,false);
+  await button.fire('click');await dialog.fire('cancel');assert.equal(dialog.open,false);
+  assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);
+  f.files.setCodeControls({setBusy(){},flush:async()=>true});
+});
+
+test('PC-98 New Cassette resets sound, files and Code mode with a fresh identity and never runs Code',async t=>{
+  const f=fixture(t);await f.files.ready;const edited=createDefaultPreset();edited.ssg.noisePeriod=7;f.setSettings(edited);
+  f.project.writeEditorText('/index.js','globalThis.newCassetteMustNotRun=true;');f.project.importFiles([{path:'/keep.bin',type:'binary',data:Uint8Array.of(0,255)}]);
+  f.project.select('/keep.bin');f.project.setCodeState({mode:'code',path:'/index.js'});
+  const identity=f.files.workspaceId,restored=[];let retired=0;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,captureState:()=>({mode:'code',path:'/index.js'}),workspaceReplaced:async()=>{retired++;},
+    restoreState:async state=>restored.push(state),run:()=>assert.fail('New never runs Code')});
+  assert.equal(await f.files.newProject(),true);assert.equal(retired,1);assert.notEqual(f.files.workspaceId,identity);
+  assert.equal(f.project.fs.get('/index.js').data,'// kept');assert(!f.project.fs.has('/keep.bin'));assert.deepEqual(f.project.settings,createDefaultPreset());
+  assert.deepEqual(restored,[{mode:'keyboard',path:'/index.js'}]);assert.equal(f.project.selectedPath,'/index.js');
+  assert.deepEqual(f.project.fs.list().map(file=>file.path),['/index.js']);
+  assert.equal(f.writes.at(-1).workspaceId,f.files.workspaceId);assert.match(f.statuses.at(-1),/created.*not run.*Saved locally/);
+  assert.equal(globalThis.newCassetteMustNotRun,undefined);
+});
+
+test('PC-98 New Cassette backs up the current sound and files before creation; failed/cancelled backup keeps owners',async t=>{
+  for(const outcome of ['success','cancel','throw'])await t.test(outcome,async t=>{
+    let live=createDefaultPreset(),reads=0,retired=0;live.ssg.noisePeriod=7;const edited=structuredClone(live),downloads=[];
+    const f=fixture(t,{getSettings:()=>{reads++;return structuredClone(live);},applySettings:async value=>{live=readPreset(value);},
+      downloadFile:async(bytes,name,type)=>{downloads.push({bytes,name,type});if(outcome==='throw')throw Error('Backup unavailable');return outcome!=='cancel';}});
+    await f.files.ready;f.project.writeEditorText('/index.js','// Current user Code');f.project.importFiles([{path:'/keep.txt',data:'Current file'}]);
+    const before=f.project.snapshot(),identity=f.files.workspaceId;
+    f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>{retired++;},restoreState:async()=>{}});
+    if(outcome==='throw')await assert.rejects(f.files.newProject({exportCurrent:true}),/Backup unavailable/);
+    else assert.equal(await f.files.newProject({exportCurrent:true}),outcome==='success');
+    assert.equal(reads,1);assert.equal(downloads.length,1);assert.match(downloads[0].name,/\.cassette\.zip$/);assert.equal(downloads[0].type,'application/zip');
+    const backup=createFm2608CodeProject();backup.restore(await backup.prepareImport(downloads[0].bytes));
+    assert.deepEqual(backup.settings,edited);assert.equal(backup.fs.get('/index.js').data,'// Current user Code');assert.equal(backup.fs.get('/keep.txt').data,'Current file');
+    if(outcome!=='success'){assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(retired,0);assert.equal(f.calls.length,0);}
+  });
+});
+
+test('PC-98 cancelled fresh sound read and failed preparation cannot retire Code or download stale backups',async t=>{
+  const started=deferred(),release=deferred();let delayed=true;
+  const f=fixture(t,{getSettings:()=>delayed?(started.resolve(),release.promise):createDefaultPreset(),downloadFile:()=>assert.fail('No cancelled backup')});
+  await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:()=>assert.fail('No cancelled retirement')});
+  const prepare=f.project.prepareNew;f.project.prepareNew=()=>{throw Error('Preparation failed');};
+  await assert.rejects(f.files.newProject(),/Preparation failed/);assert.deepEqual(f.project.snapshot(),before);f.project.prepareNew=prepare;
+  const pending=f.files.newProject({exportCurrent:true});await started.promise;
+  await f.doc.getElementById('opnaNewCassetteCancel').fire('click');delayed=false;release.resolve(createDefaultPreset());
+  assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(f.calls.length,0);
+});
+
+test('PC-98 New Cassette sound-read failure uses a reported cached backup without stopping owners when export cancels',async t=>{
+  let failing=true;const downloads=[];
+  const f=fixture(t,{getSettings:()=>{if(failing)throw Error('Current sound unavailable');return createDefaultPreset();},downloadFile:async bytes=>{downloads.push(bytes);return false;}});
+  await f.files.ready;const before=f.project.snapshot();f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:()=>assert.fail('Backup cancellation keeps Code')});
+  assert.equal(await f.files.newProject({exportCurrent:true}),false);failing=false;
+  const backup=createFm2608CodeProject();backup.restore(await backup.prepareImport(downloads[0]));assert.deepEqual(backup.settings,before.settings);
+  assert.deepEqual(f.project.snapshot(),before);assert(f.statuses.some(message=>/Current sound unavailable.*last cached sound/.test(message)));
+});
+
+test('PC-98 failed New Cassette application or editor restoration rolls back files, live sound and workspace identity',async t=>{
+  for(const phase of ['apply-false','apply-throw','editor-false','editor-throw'])await t.test(phase,async t=>{
+    const applied=[],states=[];let restores=0;
+    const f=fixture(t,{applySettings:async value=>{applied.push(structuredClone(value));f.setSettings(value);if(applied.length===1){if(phase==='apply-false')return false;if(phase==='apply-throw')throw Error('Apply failed');}}});
+    await f.files.ready;const edited=createDefaultPreset();edited.ssg.noisePeriod=7;f.setSettings(edited);
+    f.project.importFiles([{path:'/keep.txt',data:'Kept'}]);f.project.select('/keep.txt');f.project.setCodeState({mode:'code',path:'/index.js'});
+    const before={...f.project.snapshot(),settings:edited},identity=f.files.workspaceId;
+    f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async state=>{states.push(state);if(++restores===1){if(phase==='editor-false')return false;if(phase==='editor-throw')throw Error('Editor failed');}}});
+    if(phase.endsWith('throw'))await assert.rejects(f.files.newProject(),/failed/);else assert.equal(await f.files.newProject(),false);
+    assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(applied.at(-1),edited);assert.equal(applied.length,2);
+    assert.deepEqual(states.at(-1),before.codeState);assert.equal(f.doc.querySelector('.opna-main').inert,false);
+  });
+});
+
+test('PC-98 cancellation during Apply restores the old project; successful creation remains exportable if storage fails',async t=>{
+  const started=deferred(),release=deferred();let applied=0;
+  const f=fixture(t,{applySettings:async()=>{if(++applied===1){started.resolve();await release.promise;}}});
+  await f.files.ready;const before=f.project.snapshot(),identity=f.files.workspaceId;
+  f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>{}});
+  const pending=f.files.newProject();await started.promise;await f.doc.getElementById('opnaNewCassetteCancel').fire('click');release.resolve();
+  assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(applied,2);
+});
+
+test('PC-98 New Cassette storage failure keeps the fresh files exportable and removes its dialog on disposal',async t=>{
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>{throw Error('Storage unavailable');},close:async()=>{}}});
+  await f.files.ready;f.files.setCodeControls({setBusy(){},flush:async()=>true,workspaceReplaced:async()=>true,restoreState:async()=>{}});
+  assert.equal(await f.files.newProject(),true);assert.match(f.statuses.at(-1),/Local save unavailable/);
+  const copy=createFm2608CodeProject();copy.restore(await copy.prepareImport(f.project.exportProject()));assert.equal(copy.fs.get('/index.js').data,'// kept');
+  await f.files.dispose();assert.equal(f.doc.getElementById('opnaNewCassetteDialog'),undefined);assert.equal(await f.files.newProject(),false);
 });

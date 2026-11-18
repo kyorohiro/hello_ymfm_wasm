@@ -215,3 +215,60 @@ test('output mix changes retain transport, note registers and paused position th
   assert.deepEqual(r.player.getState().outputMix,current);
   r.player.dispose();
 });
+
+function guardedAdpcmFixture({laterProgram=false} = {}) {
+  const bytes=Uint8Array.from({length:64},(_,index)=>index*3&255),block=new Uint8Array(15+bytes.length),view=new DataView(block.buffer);
+  block.set([0x67,0x66,0x81]);view.setUint32(3,8+bytes.length,true);view.setUint32(7,0x200000,true);view.setUint32(11,0x100,true);block.set(bytes,15);
+  return fixture([...block,0x57,1,0xc2,0x57,2,8,0x57,4,9,0x57,9,255,0x57,10,127,0x57,11,192,0x57,0,0xb0,
+    ...(laterProgram ? [0x61,0x28,0x0a,0x57,11,87,0x57,0,0xb0] : []),0x61,0x44,0xac,0x66]);
+}
+test('paused manual ADPCM noteOff slices native frames without moving the song or fading its captured volume',async()=>{
+  const r=rig();await r.player.load(guardedAdpcmFixture(),'guard');await r.player.play();r.advance(.08);await r.player.pause();
+  const chip=r.player.getChip(),position=r.player.getState().positionFrames,mainFrames=r.engines[0].frames;
+  chip.adpcm.keyOn({repeat:true});r.advance(.02);const count=r.engines[1].writes.length;
+  assert.equal(chip.adpcm.noteOff(),true);assert.equal(r.player.getState().liveState.adpcm.playing,false);
+  assert.equal(captureFm2608SongPreset(r.player.getState().liveState,{section:'adpcm'}).adpcm.volume,192);
+  assert(!r.engines[1].writes.slice(count).some(([port,register,value])=>port===1&&register===0&&value===1),'no immediate decoder reset');
+  r.advance(.08);const tail=r.engines[1].writes.slice(count);
+  assert(tail.some(([port,register,value])=>port===1&&register===11&&value>0&&value<192));
+  assert.deepEqual(tail.slice(-3),[[1,11,0],[1,0,1],[1,11,192]]);
+  assert.equal(r.engines[0].frames,mainFrames);assert.equal(r.player.getState().positionFrames,position);
+  assert.equal(captureFm2608SongPreset(r.player.getState().liveState,{section:'adpcm'}).adpcm.volume,192);
+  await r.player.resume();assert.throws(()=>chip.adpcm.noteOff(),{name:'AbortError'});r.player.dispose();
+});
+test('manual reference raw keyOff remains immediate and retrigger/mute edits cancel only the old tail',async()=>{
+  const r=rig();await r.player.load(guardedAdpcmFixture(),'guard');await r.player.play();r.advance(.08);await r.player.pause();
+  const chip=r.player.getChip();chip.adpcm.keyOn({repeat:true});chip.adpcm.noteOff();
+  const before=r.engines[1].writes.length;chip.adpcm.keyOff();
+  assert.deepEqual(r.engines[1].writes.slice(before,before+2),[[1,0,1],[1,11,192]]);
+  const count=r.engines[1].writes.length;r.advance(.08);assert.equal(r.engines[1].writes.length,count,'canceled release has no late stop');
+  chip.adpcm.keyOn({repeat:true});chip.adpcm.noteOff();chip.adpcm.keyOn({repeat:true});const start=r.engines[1].writes.length;
+  r.advance(.08);assert(!r.engines[1].writes.slice(start).some(([p,a,v])=>p===1&&a===0&&v===1));
+  chip.adpcm.noteOff();r.player.setChannelEnabled('adpcm',0,false);const muteStart=r.engines[1].writes.length;r.advance(.08);
+  assert(r.engines[1].writes.slice(muteStart).every(([p,a,v])=>p!==1||a!==11||v===0),'a scheduled fade cannot unmute the reference');
+  assert.equal(captureFm2608SongPreset(r.player.getState().liveState,{section:'adpcm'}).adpcm.volume,192);r.player.dispose();
+});
+test('playing manual ADPCM release changes only its requested gate, retaining original VGM state and raw level edits',async()=>{
+  const r=rig();await r.player.load(guardedAdpcmFixture(),'guard');await r.player.play();r.advance(.08);
+  const chip=r.player.getChip();chip.adpcm.keyOn({repeat:true});assert.equal(chip.adpcm.noteOff(),true);
+  let state=r.player.getState();assert.equal(state.liveState.adpcm.playing,false);assert.equal(state.songLiveState.adpcm.playing,true);
+  r.advance(.08);state=r.player.getState();assert.equal(state.liveState.adpcm.volume,192);assert.equal(state.songLiveState.adpcm.volume,192);
+  assert.equal(r.player.getChip().adpcm.registers[0]&128,0);
+  r.player.write(1,11,87);r.advance(.08);assert.equal(r.player.getState().liveState.adpcm.volume,87);assert.equal(r.player.getState().songLiveState.adpcm.volume,192);
+  r.player.write(1,0,0xb0);r.advance(.08);assert.equal(r.player.getState().liveState.adpcm.playing,true);
+  r.player.dispose();
+});
+
+
+test('later VGM program volume/retrigger cancels the human release before its old deadline',async()=>{
+  const r=rig();await r.player.load(guardedAdpcmFixture({laterProgram:true}),'program-race');await r.player.play();
+  // The ordinary lookahead has rendered2304 frames; the program's next
+  // volume87/keyOn at2600 lands inside this manual release's8ms tail.
+  const chip=r.player.getChip();chip.adpcm.keyOn({repeat:true});assert.equal(chip.adpcm.noteOff(),true);
+  r.advance(.1);
+  const writes=r.engines[0].writes,lastStart=writes.findLastIndex(([port,register,value])=>port===1&&register===0&&value===0xb0);
+  assert(lastStart>=0);assert(!writes.slice(lastStart+1).some(([port,register,value])=>port===1&&register===0&&value===1),'human tail cannot stop the later program note');
+  assert.equal(writes.filter(([port,register])=>port===1&&register===11).at(-1)[2],87);
+  const state=r.player.getState();assert.equal(state.songLiveState.adpcm.volume,87);assert.equal(state.songLiveState.adpcm.playing,true);
+  assert.equal(r.player.getChip().adpcm.registers[11],87);assert.equal(state.liveState.adpcm.playing,true);r.player.dispose();
+});

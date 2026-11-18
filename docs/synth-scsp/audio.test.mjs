@@ -28,17 +28,45 @@ function setup(t){
   return f;
 }
 
-test('engine exposes one calibrated SCSP route, final Master and session-fenced borrowed clients',async t=>{
+test('engine exposes one compensated SCSP route, final Master and session-fenced borrowed clients',async t=>{
   const f=setup(t),engine=await createAudio({onError:error=>f.errors.push(error)});t.after(()=>engine.dispose());
   assert.equal(f.contexts.length,1);assert.equal(f.worklets.length,1);assert.equal(f.contexts[0].modules.length,1);
   assert.equal(engine.outputNode.gain.value,.6);assert.equal(engine.codeInputNode.gain.value,.125);assert.equal(engine.songInputNode.gain.value,.125);
-  assert(f.worklets[0].edges.has(engine.codeInputNode));assert(engine.codeInputNode.edges.has(engine.codeOutputNode));assert(engine.codeOutputNode.edges.has(engine.outputNode));assert(engine.outputNode.edges.has(engine.context.destination));assert(engine.songInputNode.edges.has(engine.outputNode));
+  const [compensation]=engine.codeOutputNode.edges;
+  assert.equal(compensation.gain.value,8);assert.equal(engine.codeOutputNode.edges.size,1);assert.equal(engine.songInputNode.edges.size,1);
+  assert(f.worklets[0].edges.has(engine.codeInputNode));assert(engine.codeInputNode.edges.has(engine.codeOutputNode));assert(compensation.edges.has(engine.outputNode));assert(engine.outputNode.edges.has(engine.context.destination));assert(engine.songInputNode.edges.has(compensation));
   const client=await engine.getScspClient();assert.equal(await engine.getScspClient(),client);assert.equal(f.messages.filter(m=>m.method==='beginCode').length,1);
   await client.noteOn(0,'C4');engine.setVolume(1.1);assert.equal(engine.outputNode.gain.value,1.1);assert.equal(engine.codeInputNode.gain.value,.125);
   await engine.setPitchBend(.5);assert(f.messages.some(message=>message.method==='setPitchBend'&&message.args[0]===.5));
   await engine.stopCode(client);assert.throws(()=>client.noteOff(0),{name:'AbortError'});
   const fresh=await engine.getScspClient();assert.notEqual(fresh,client);assert.equal(await engine.stopCode(client),false);assert(fresh.isCurrent());
   await fresh.dispose();assert(!fresh.isCurrent());assert.equal(engine.context.state,'running');assert.equal(f.errors.length,0);
+});
+
+test('application output restores native level once for Code, keyboard/audition and songs without changing FX drive',async t=>{
+  const f=setup(t),engine=await createAudio();
+  t.after(()=>engine.dispose());
+  const signal=(node,value)=>node===engine.context.destination?value:
+    [...node.edges].reduce((sum,next)=>sum+signal(next,node.transform?node.transform(value):value*node.gain.value),0);
+  const raw=.15;
+  for(const master of [0,.6,1,3.8]){
+    engine.setVolume(master);
+    assert(Math.abs(signal(f.worklets[0],raw)-raw*master)<1e-12,'one native-output gain for worklet, including its audition mix');
+    assert(Math.abs(signal(engine.songInputNode,raw)-raw*master)<1e-12,'same native-output gain for songs');
+    assert.equal(engine.codeInputNode.gain.value,.125,'Master never changes the existing FX input');
+    assert.equal(engine.songInputNode.gain.value,.125);
+  }
+  engine.setVolume(.6);
+  const fx=engine.context.createGain();fx.transform=value=>Math.tanh(value*4);
+  engine.codeInputNode.disconnect(engine.codeOutputNode);engine.codeInputNode.connect(fx);fx.connect(engine.codeOutputNode);
+  const expected=Math.tanh(raw*.125*4)*8*.6;
+  assert(Math.abs(signal(f.worklets[0],raw)-expected)<1e-12,'compensation follows nonlinear Code FX');
+  assert(Math.abs(signal(f.worklets[0],raw)-Math.tanh(raw*4)*.6)>.01,'raising input drive is observably different');
+  engine.codeFadeNode.gain.value=0;
+  assert.equal(signal(f.worklets[0],raw),0,'Code Stop fade still reaches silence');
+  assert(Math.abs(signal(engine.songInputNode,raw)-raw*.6)<1e-12,'Code fade does not silence songs');
+  const [compensation]=engine.codeOutputNode.edges;
+  await engine.dispose();assert.equal(compensation.edges.size,0);assert.equal(engine.outputNode.edges.size,0);
 });
 
 test('a stopped pending begin cannot escape its session or overtake a new Run',async t=>{

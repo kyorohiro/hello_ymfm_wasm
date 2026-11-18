@@ -13,6 +13,15 @@ Octave controls and Pitch bend. Computer keys also work in Code view while
 focus is outside the text editor. The two Pitch wheels spring back to zero.
 Master ranges from 0 to 380 percent, with an orange bar above 100 percent.
 
+At Master 100%, dry Synth / audition and song playback use the native
+normalized output level. A shared post-FX gain removes the previous 1/8
+application attenuation, making the output eight times louder (+18.06 dB).
+Code software FX retain their existing input level and processing behavior;
+the compensation precedes the final Master and its output visualizer.
+The raw core, sample levels and common calibrated Mixer defaults are unchanged.
+Master still starts at 60%. It does not normalize individual instruments:
+polyphony and settings above 100% can exceed full scale.
+
 Numeric fields have minus / plus buttons and horizontal dragging. Their
 original number inputs also accept typed values. Selecting a choice releases
 focus so computer keys can continue playing.
@@ -440,6 +449,14 @@ project. Files uses a 12 MiB aggregate budget, reserving the remaining space
 within the shared 16 MiB Cassette limit for project metadata and applied PCM.
 The waveform editor's direct audio import has its separate 64 MiB input limit.
 Loading a project requires Run to begin Code execution.
+
+**Menu → New → Cassette…**, above Import, creates a fresh project with the
+default instrument, original starter `index.js` and bundled Examples. Choose
+Cancel, export the current Cassette and create, or create without exporting.
+Creation stops Code / song playback and never runs the new Code automatically.
+Cancelled or failed replacement keeps the previous project data; a performance
+already stopped during replacement is not automatically restarted. The separate
+Import → Cassette action continues to open an existing project.
 
 Instrument JSON uses version 4 for fixed connections with common depth,
 versions 5–6 for Custom connections, version 7 for differing operator depths,

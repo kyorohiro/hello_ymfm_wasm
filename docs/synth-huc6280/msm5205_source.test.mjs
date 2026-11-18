@@ -68,6 +68,42 @@ test('UI and Code share one RAM and source identity; rate and loop are next-Play
   }finally{await f.source.dispose();}
 });
 
+test('playback generations identify accepted MSM triggers without stealing on reads, defaults or rejected requests',async()=>{
+  const f=fixture();try{
+    await f.source.loadMemory(Uint8Array.of(0x77,0x11));const loaded=f.source.read().playbackGeneration;
+    const playing=f.source.play({loop:true}),owned=f.source.read().playbackGeneration;
+    assert(owned>loaded,'accepted Play advances synchronously before readiness');await playing;
+    await f.source.getState();f.source.setDefaults({rate:8,loop:false});const client=await f.source.useCodeClient();await client.getState();
+    assert.equal(f.source.read().playbackGeneration,owned);
+    await assert.rejects(f.source.play({rate:99}),/rate/);await assert.rejects(f.source.loadMemory(new Uint8Array(65537)),/65536/);
+    await assert.rejects(client.writeRegister(9,0),/register/);assert.equal(f.source.read().playbackGeneration,owned);
+    const takeover=client.play({rate:6,loop:true}),newOwner=f.source.read().playbackGeneration;assert(newOwner>owned);await takeover;
+    assert.equal(await f.source.stopIfPlaybackGeneration(owned),false);assert.equal((await client.getState()).state,'playing');
+    assert.equal(await f.source.stopIfPlaybackGeneration(newOwner),true);assert.notEqual((await client.getState()).state,'playing');
+    assert.equal(client.stopIfPlaybackGeneration,undefined,'keyboard ownership stays outside the Code API');
+  }finally{await f.source.dispose();}
+});
+
+test('conditional MSM key release keeps a separately preparing UI sample load alive',async()=>{
+  const file=deferred(),f=fixture({readFile:()=>file.promise});try{
+    await f.source.loadMemory(Uint8Array.of(0x77,0x11));await f.source.play({loop:true});const owned=f.source.read().playbackGeneration;
+    const loading=f.source.loadMemory('/next.adpcm',{name:'Next'});await turn();assert(f.source.read().busy);
+    assert.equal(f.source.read().playbackGeneration,owned,'preparation has not taken the old playback');
+    assert(await f.source.stopIfPlaybackGeneration(owned));assert(f.source.read().busy,'key release does not cancel the UI load');
+    file.resolve(Uint8Array.of(0x11,0x22,0x33));await loading;
+    assert.equal(f.source.read().asset.name,'Next');assert(f.source.read().playbackGeneration>owned);
+  }finally{await f.source.dispose();}
+});
+
+test('conditional MSM release cancels its own pending readiness without a late native Play',async()=>{
+  const ready=deferred(),f=fixture({ensureAudio:()=>ready.promise});try{
+    await f.source.loadMemory(Uint8Array.of(0x77,0x11));const pending=f.source.play(),rejected=assert.rejects(pending,{name:'AbortError'});
+    const owned=f.source.read().playbackGeneration;await turn();assert.equal(f.ensures,1);
+    assert(await f.source.stopIfPlaybackGeneration(owned));ready.resolve();await rejected;
+    assert.equal(f.adapters.length,0);assert(!f.events.some(event=>event[0]==='play'));
+  }finally{ready.resolve();await f.source.dispose();}
+});
+
 test('Code Stop invalidates only old leases and stops MSM without destroying authored RAM or the Synth clock',async()=>{
   const f=fixture();try{
     await f.source.loadMemory(new Uint8Array([0x77,0xff]));const old=await f.source.useCodeClient();await old.play({loop:true});

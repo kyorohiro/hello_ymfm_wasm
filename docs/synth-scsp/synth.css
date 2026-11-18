@@ -1256,7 +1256,8 @@ footer {
 	white-space: nowrap;
 	border: 0;
 }
-#scspFileNameDialog {
+#scspFileNameDialog,
+#scspNewCassetteDialog {
 	width: min(420px, 90vw);
 	border: 1px solid var(--line);
 	border-radius: 10px;
@@ -1269,6 +1270,12 @@ footer {
 	width: 100%;
 	margin: 8px 0 14px;
 	padding: 8px;
+}
+.scsp-new-cassette-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
 }
 .scsp-file-context-menu {
 	position: fixed;

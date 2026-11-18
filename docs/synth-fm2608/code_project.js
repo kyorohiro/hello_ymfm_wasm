@@ -67,6 +67,12 @@ export function createFm2608CodeProject({settings=createDefaultPreset(),snapshot
       fs.writeText(path,source);
     },
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
+    prepareNew(){
+      // Prepare defaults separately, using the original starter rather than edited Code.
+      const fresh=createFm2608CodeProject({starterCode:getStarterCode?getStarterCode():starterCode??''});
+      fresh.select('/index.js');fresh.setCodeState({mode:'keyboard',path:'/index.js'});
+      return fresh.snapshot();
+    },
     snapshot(){return{format:FM2608_PROJECT_FORMAT,version:1,name:projectName,settings:project.settings,selectedPath:selected,codeState:clone(state),filesystem:fs.snapshot()};},
     restore(value){
       if(value?.format!==FM2608_PROJECT_FORMAT||value.version!==1)throw Error('Unsupported OPNA project format/version.');

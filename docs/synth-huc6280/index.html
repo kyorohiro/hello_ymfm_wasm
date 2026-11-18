@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-channel-ui-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-media-tools-1">
 </head>
 <body>
   <main>
@@ -40,6 +40,7 @@
             <details id="synthMenu" class="synth-menu">
               <summary id="synthMenuButton" class="synth-icon-button" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="synthMenuPanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></summary>
               <div id="synthMenuPanel" class="synth-menu-panel">
+                <section class="synth-menu-section"><h2>New</h2><div id="hucMenuProjectNew" class="synth-menu-actions"></div></section>
                 <section class="synth-menu-section"><h2>Import</h2><div class="synth-menu-actions"><button id="loadVgm" type="button" data-close-synth-menu>VGM / VGZ…</button><input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with HuC6280 sound"><div id="hucMenuProjectImport"></div><div id="hucMenuFilesImport"></div></div></section>
                 <section class="synth-menu-section"><h2>Export</h2><div class="synth-menu-actions"><div id="hucMenuProjectExport"></div><div id="hucMenuFileExport"></div></div></section>
               </div>
@@ -185,6 +186,7 @@
         <div id="msm5205Controls" role="tabpanel" aria-labelledby="msm5205ChannelTab">
           <div class="section-heading"><h2>MSM5205 ADPCM</h2><output id="msmSourceState" role="status">Empty</output></div>
           <p class="huc-help">PC Engine-style sample player · software transport controls</p>
+          <div id="msmTestPcm"></div>
           <div class="huc-msm-files">
             <label for="msmSampleSelect">Sample in Files <select id="msmSampleSelect"><option value="">No WAV / ADPCM files</option></select></label>
             <label for="msmSampleFormat">Load as <select id="msmSampleFormat"><option value="wav">WAV → ADPCM</option><option value="adpcm">Packed ADPCM</option></select></label>
@@ -218,6 +220,7 @@
         <div id="cddaControls" role="tabpanel" aria-labelledby="cddaChannelTab">
           <div class="section-heading"><h2>CD-DA</h2><output id="cddaSourceState" role="status">Empty</output></div>
           <p class="huc-help">Audio tracks · software transport · 44.1 kHz stereo PCM16 WAV</p>
+          <div id="cddaTestPcm"></div>
           <div class="huc-cdda-files">
             <label for="cddaSourceSelect">Source in Files or session <select id="cddaSourceSelect"><option value="">No CD audio sources</option></select></label>
             <button id="cddaLoadSource" type="button" disabled>Load selected source</button>
@@ -236,7 +239,7 @@
           <div class="huc-cdda-seek"><input id="cddaSeek" type="range" min="0" max="0" step="0.01" value="0" aria-label="CD-DA playback position in seconds" disabled><output id="cddaPosition" for="cddaSeek">0:00.00 / 0:00.00</output></div>
           <p id="cddaSourceInfo" class="huc-help">Choose a 44.1 kHz stereo PCM16 WAV or a track manifest, then Load.</p>
           <p id="cddaSourceStatus" class="huc-help" role="status"></p>
-          <details class="spu-code-help"><summary aria-label="About CD audio tracks and storage">?</summary><p>This authored CD-DA source is shared with <code>await useSoundChip("cdda")</code>. UI and Code use the same track and cursor. Code Stop keeps the source and rewinds it. Project Files and Cassette exports retain their 16 MiB total budget. Open session WAVs keeps local File references outside Project storage: they are not saved, exported or recovered on reload. Reopen the original WAVs to use them again. Up to 99 session files / 512 MiB total; one track contains at most 256 MiB of PCM. Only the selected track is read. Track manifests use <code>{"tracks":[{"number":3,"file":"song.wav","title":"Song"}]}</code>; file paths are relative to the manifest. CD-DA is separate from VGM and this does not open a game disc, ISO or CUE. Compressed audio, rate conversion and pitched keyboard playback are outside this player.</p></details>
+          <details class="spu-code-help"><summary aria-label="About CD audio tracks and storage">?</summary><p>This authored CD-DA source is shared with <code>await useSoundChip("cdda")</code>. UI and Code use the same track and cursor. Code Stop keeps the source and rewinds it. Project Files and Cassette exports retain their 16 MiB total budget. Open session WAVs keeps local File references outside Project storage: they are not saved, exported or recovered on reload. Reopen the original WAVs to use them again. Up to 99 session files / 512 MiB total; one track contains at most 256 MiB of PCM. Only the selected track is read. Track manifests use <code>{"tracks":[{"number":3,"file":"song.wav","title":"Song"}]}</code>; file paths are relative to the manifest. CD-DA is separate from VGM and this does not open a game disc, ISO or CUE. Keyboard keys can trigger the selected track at its original rate. Compressed audio and pitch shifting remain outside this player.</p></details>
           <button type="button" data-add-cdrom2-examples>Add Code examples to Files</button>
         </div>
       </section>
@@ -305,6 +308,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-channel-ui-1"></script>
+  <script type="module" src="./synth.js?v=huc-media-tools-1"></script>
 </body>
 </html>

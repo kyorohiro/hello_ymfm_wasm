@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js';
 import {setupSynthCodeControls} from '../synth/synth_code_controls.js?v=sdsp-code-review-1';
-import {selectFm2608CodeDeclarations} from './code_declarations.js';
-import {createFm2608CodeAudio} from './code_audio.js';
-import {createFm2608CodeProject, FM2608_PROJECT_FILE_BYTES} from './code_project.js';
-import {setupFm2608CodeFiles} from './code_files.js';
-import {resolveFm2608CodeNoteTarget} from './code_client.js';
+import {selectFm2608CodeDeclarations} from './code_declarations.js?v=opna-pcm-release-1';
+import {createFm2608CodeAudio} from './code_audio.js?v=opna-pcm-release-1';
+import {createFm2608CodeProject, FM2608_PROJECT_FILE_BYTES} from './code_project.js?v=opna-output-menu-1';
+import {setupFm2608CodeFiles} from './code_files.js?v=opna-output-menu-1';
+import {resolveFm2608CodeNoteTarget} from './code_client.js?v=opna-pcm-release-1';
 
 export const FM2608_STARTER_CODE = `const opna = await useSoundChip("ym2608");
 setBpm(120);

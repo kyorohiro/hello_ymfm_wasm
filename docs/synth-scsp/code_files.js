@@ -12,7 +12,7 @@ import {
 	SCSP_PROJECT_MANIFEST,
 	SCSP_PROJECT_CODE_LENGTH,
 	SCSP_PROJECT_FILE_BYTES,
-} from './code_project.js?v=scsp-cycle2-ui-1';
+} from './code_project.js?v=scsp-output-menu-1';
 
 const inside = (path, directory) => path === directory || path?.startsWith(directory + '/');
 const basename = (path) => path.split('/').pop(),
@@ -110,6 +110,7 @@ export function setupScspCodeFiles({
 	setStatus = () => {},
 	store = createScspProjectStore(),
 	document: doc = globalThis.document,
+	downloadFile,
 } = {}) {
 	const panel = doc.getElementById('scspFilesPanel'),
 		toggle = doc.getElementById('scspFilesToggle'),
@@ -142,7 +143,8 @@ export function setupScspCodeFiles({
 		editRevision = 0,
 		saveTimer = null,
 		identity = workspaceId(),
-		visibilityTouched = false;
+		visibilityTouched = false,
+		pendingNewCassette = null;
 	const make = (tag, id, text) => {
 		const node = doc.createElement(tag);
 		if (id) node.id = id;
@@ -167,6 +169,7 @@ export function setupScspCodeFiles({
 	actions.setAttribute('aria-label', 'Selected file actions');
 	const buttons = new Map();
 	for (const [id, label] of [
+		['scspProjectNewButton', 'New Cassette…'],
 		['scspFileNewButton', 'New JS'],
 		['scspFileSaveSoundButton', 'Save sound'],
 		['scspFileRenameButton', 'Rename…'],
@@ -185,6 +188,7 @@ export function setupScspCodeFiles({
 		if (id === 'scspFileNewButton')
 			button.title = 'New JavaScript file; end the path with / to create a folder';
 		const destination = {
+			scspProjectNewButton: ['scspMenuProjectNew', 'Cassette…'],
 			scspProjectImportButton: ['scspMenuProjectImport', 'Cassette…'],
 			scspProjectExportButton: ['scspMenuProjectExport', 'Cassette · ZIP'],
 			scspFileImportButton: ['scspMenuFilesImport', 'Files…'],
@@ -236,6 +240,20 @@ export function setupScspCodeFiles({
 	form.append(label, nameInput, confirm, cancel);
 	dialog.append(form);
 	panel.append(heading, tree, actions, selected, info, fileInput, projectInput, dialog);
+	const newCassetteDialog = make('dialog', 'scspNewCassetteDialog'),
+		newCassetteTitle = make('h2', 'scspNewCassetteTitle', 'Create a new Cassette?'),
+		newCassetteDescription = make('p', null,
+			'This replaces the current browser project and stops its performance. The new Cassette contains the default sound, starter Code and examples. Code will not run automatically.'),
+		newCassetteActions = make('div'),
+		newCassetteCancel = make('button', 'scspNewCassetteCancel', 'Cancel'),
+		newCassetteExport = make('button', 'scspNewCassetteExport', 'Export current & create'),
+		newCassetteCreate = make('button', 'scspNewCassetteCreate', 'Create without export');
+	newCassetteDialog.setAttribute('aria-labelledby', newCassetteTitle.id);
+	newCassetteActions.className = 'scsp-new-cassette-actions';
+	for (const button of [newCassetteCancel, newCassetteExport, newCassetteCreate]) button.type = 'button';
+	newCassetteActions.append(newCassetteCancel, newCassetteExport, newCassetteCreate);
+	newCassetteDialog.append(newCassetteTitle, newCassetteDescription, newCassetteActions);
+	doc.body.append(newCassetteDialog);
 	let dialogAction = null,
 		dialogPath = null,
 		dialogSound = null;
@@ -353,6 +371,7 @@ export function setupScspCodeFiles({
 				) &&
 					!project.selectedPath);
 		code?.setBusy?.(busy);
+		newCassetteExport.disabled = newCassetteCreate.disabled = busy;
 		for (const button of tree.querySelectorAll('button')) button.disabled = busy;
 	}
 	function setBusy(value, { lockMain = true } = {}) {
@@ -574,6 +593,107 @@ export function setupScspCodeFiles({
 			say(`Could not refresh the sound: ${error.message}. Exporting the project with its last cached sound.`);
 		}
 		return project.exportProject();
+	}
+	function cancelNewCassette() {
+		if (pendingNewCassette !== null) operation++;
+		newCassetteDialog.close();
+	}
+	function askNewCassette() {
+		if (disposed || disposing || busy) return;
+		newCassetteDialog.showModal();
+		newCassetteCancel.focus();
+	}
+	async function newProject({ exportCurrent = false } = {}) {
+		if (typeof exportCurrent !== 'boolean') throw TypeError('exportCurrent must be a boolean.');
+		await api.ready;
+		if (disposed || disposing || busy) return false;
+		const token = ++operation,
+			current = () => !disposed && !disposing && token === operation;
+		const previousIdentity = identity, previousPersistence = persistenceReady;
+		let previous = null, retired = false, applyAttempted = false, committed = false, failure = null;
+		pendingNewCassette = token;
+		clearTimeout(saveTimer);
+		setBusy(true);
+		try {
+			// Build/validate defaults before retiring Code or the song owner.
+			const fresh = createScspCodeProject({ snapshot: project.prepareNew() });
+			if ((await code?.flush?.()) === false || !current()) return false;
+			restoring = true;
+			// One event-scoped read supplies both an optional backup and rollback.
+			// Live Code edits may not yet be present in the portable sound cache.
+			let previousSettings;
+			try {
+				previousSettings = readScspProjectSound(await getSoundSettings());
+				if (!previousSettings) throw Error('Expected a SCSP instrument.');
+			} catch (error) {
+				if (!current()) return false;
+				previousSettings = getSettings();
+				say(`Could not refresh the sound: ${error.message}. Using the last cached sound for this operation.`);
+			}
+			if (!current()) return false;
+			previous = createScspCodeProject({ snapshot: {
+				...project.snapshot(), settings: previousSettings,
+				codeState: code?.captureState?.() ?? project.getCodeState(),
+			} }).snapshot();
+			if (exportCurrent) {
+				const oldProject = createScspCodeProject({ snapshot: previous });
+				const exported = await (downloadFile ?? download)(oldProject.exportProject(),
+					oldProject.cassetteName + '.cassette.zip', 'application/zip');
+				if (exported === false || !current()) return false;
+			}
+			if (!current()) return false;
+			// Defer saves until both replacement and editor restoration commit.
+			persistenceReady = false;
+			retired = true;
+			if ((await code?.workspaceReplaced?.()) === false || !current()) return false;
+			if ((await onBeforeWorkspaceReplace({ isCurrent: current })) === false || !current()) return false;
+			applyAttempted = true;
+			if ((await applySettings(fresh.settings, { isCurrent: current })) === false || !current()) return false;
+			project.restore(fresh.snapshot());
+			identity = workspaceId();
+			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
+			committed = true;
+			persistenceReady = true;
+			restoring = false;
+			appliedPreset = null;
+			presetCache.clear();
+			newCassetteDialog.close();
+			const persisted = await persistCode();
+			say('New SCSP Cassette created. Code was not run.' +
+				(persisted === false ? ' Local save unavailable; export the project to keep it.' : ' Saved locally.'));
+			return true;
+		} catch (error) {
+			failure = error;
+			throw error;
+		} finally {
+			if (!committed) {
+				persistenceReady = previousPersistence;
+				if (previous && retired) {
+					project.restore(previous);
+					identity = previousIdentity;
+					if (!disposed && !disposing) {
+						if (applyAttempted) {
+							try {
+								if ((await applySettings(previous.settings, {
+									isCurrent: () => !disposed && !disposing && pendingNewCassette === token,
+								})) === false) throw Error('Sound restoration was cancelled.');
+							} catch (error) { report(Error('Previous sound could not be restored: ' + error.message)); }
+						}
+						try { await code?.restoreState?.(previous.codeState); }
+						catch (error) { report(Error('Previous Code display could not be restored: ' + error.message)); }
+					}
+				}
+			}
+			restoring = false;
+			if (!committed && !failure && current()) say('New Cassette was not created; previous project kept.');
+			if (pendingNewCassette === token) {
+				pendingNewCassette = null;
+				if (!disposed && !disposing) {
+					setBusy(false);
+					if (!committed && persistenceReady) schedule();
+				}
+			}
+		}
 	}
 	async function move(source, destination, copy = false) {
 		if (disposed || busy) return false;
@@ -938,6 +1058,13 @@ export function setupScspCodeFiles({
 			.catch(report);
 	});
 	listen(cancel, 'click', () => dialog.close());
+	listen(newCassetteCancel, 'click', cancelNewCassette);
+	listen(newCassetteDialog, 'cancel', event => {
+		event.preventDefault();
+		cancelNewCassette();
+	});
+	listen(newCassetteExport, 'click', () => void newProject({ exportCurrent: true }).catch(report));
+	listen(newCassetteCreate, 'click', () => void newProject().catch(report));
 	listen(dialog, 'close', () => {
 		dialogSound = null;
 	});
@@ -951,6 +1078,7 @@ export function setupScspCodeFiles({
 		if (choice) void selectFile(choice.path).catch(report);
 	});
 	for (const [id, fn] of [
+		['scspProjectNewButton', askNewCassette],
 		['scspFileNewButton', () => ask('new')],
 		['scspFileRenameButton', () => ask('rename')],
 		['scspFileDeleteButton', () => ask('delete')],
@@ -1046,6 +1174,7 @@ export function setupScspCodeFiles({
 		selectFile,
 		importFiles,
 		importProject,
+		newProject,
 		exportProject,
 		createFile,
 		move,
@@ -1066,6 +1195,8 @@ export function setupScspCodeFiles({
 			if (disposed || disposing) return;
 			disposing = true;
 			operation++;
+			newCassetteDialog.close();
+			newCassetteDialog.remove();
 			contextMenu.dispose();
 			await code?.flush?.();
 			await persistCode();

@@ -54,7 +54,7 @@ export function createFm2608CodeClient(chip, {isCurrent = () => true} = {}) {
     }
     if (section === 'adpcm') {
       if (method === 'keyOn') notes.adpcm = true;
-      if (method === 'keyOff') notes.adpcm = false;
+      if (method === 'keyOff' || method === 'noteOff') notes.adpcm = false;
       return;
     }
     if (section === 'rhythm') {
@@ -87,7 +87,8 @@ export function createFm2608CodeClient(chip, {isCurrent = () => true} = {}) {
           if (key === 'dispose') return dispose;
           if (key === 'allNotesOff') return allNotesOff;
         }
-        const value = Reflect.get(object, key, object);
+        const value = section === 'adpcm' && key === 'noteOff'
+          ? object.noteOff ?? object.keyOff : Reflect.get(object, key, object);
         if (typeof value !== 'function') return value;
         if (!methods.has(key)) methods.set(key, (...args) => {
           assertCurrent();

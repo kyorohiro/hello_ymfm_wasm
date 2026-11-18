@@ -8,7 +8,7 @@
   <title>Tetorica FM2608 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_fm2608_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_fm2608_synth.webp">
-  <link rel="stylesheet" href="./synth.css">
+  <link rel="stylesheet" href="./synth.css?v=opna-output-menu-1">
 </head>
 <body>
   <main>
@@ -26,6 +26,7 @@
           <details id="synthMenu" class="synth-menu">
             <summary class="synth-icon-button" aria-label="Menu" title="Menu">☰</summary>
             <div class="synth-menu-panel">
+              <section class="synth-menu-section synth-menu-actions"><h2>New</h2><div id="opnaMenuProjectNew"></div></section>
               <section class="synth-menu-section synth-menu-actions"><h2>Import</h2>
                 <div id="opnaMenuProjectImport"></div>
                 <button id="importSoundButton" type="button">OPNA preset / TFI / VGI…</button>
@@ -209,6 +210,6 @@
   <input id="soundFileInput" type="file" accept=".json,.tfi,.vgi" hidden>
   <input id="audioFileInput" type="file" accept="audio/*,.wav,.ogg,.mp3,.m4a,.flac" hidden>
   <input id="songFileInput" type="file" accept=".vgm,.vgz,.s98" multiple hidden>
-  <script type="module" src="./synth.js"></script>
+  <script type="module" src="./synth.js?v=opna-output-menu-1"></script>
 </body>
 </html>

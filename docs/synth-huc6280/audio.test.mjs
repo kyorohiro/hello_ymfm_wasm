@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {createHuc6280CodeClient,huc6280CodeCancelled} from './code_endpoint.js';
 import {readPreset,createDefaultPreset} from './preset.js';
 import {readHuc6280CodeEdit} from './code_parameter_edit.js';
-import {PC_ENGINE_SOURCES,readPcEngineSourceMix,PC_ENGINE_SOURCE_DEFAULTS} from './source_mix.js';
+import {PC_ENGINE_SOURCES,readPcEngineSourceMix,PC_ENGINE_SOURCE_DEFAULTS,HUC6280_APPLICATION_OUTPUT_GAIN} from './source_mix.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
@@ -65,7 +65,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
   }
   const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
-    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,DOMException,structuredClone,createHuc6280CodeClient,huc6280CodeCancelled,readPreset,readHuc6280CodeEdit,PC_ENGINE_SOURCES,readPcEngineSourceMix,
+    AudioContext:Context, AudioWorkletNode:Node, URL, AbortController,DOMException,structuredClone,createHuc6280CodeClient,huc6280CodeCancelled,readPreset,readHuc6280CodeEdit,PC_ENGINE_SOURCES,readPcEngineSourceMix,HUC6280_APPLICATION_OUTPUT_GAIN,
     fetch:async () => { events.push('fetch'); if (stalledFetch) return new Promise(() => {}); if (fetchFailure) return {ok:false,status:503}; return {ok:true,arrayBuffer:async () => new ArrayBuffer(0)}; },
     setTimeout(fn, ms) { const id = ++timerId; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
@@ -75,17 +75,17 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     mode(value){mode = value;}, expire(){const [id, timer] = timers.entries().next().value; assert.equal(timer.ms,15000);timers.delete(id);timer.fn();}};
 }
 
-test('HuC6280 audio is lazy and routes one fixed balance before the user Master and final monitor node', async () => {
+test('HuC6280 audio is lazy and routes its software output gain before the user Master and final monitor node', async () => {
   const f = fixture(); assert.equal(f.context,undefined);
   const audio = await f.create({volume:.7});
   assert.equal(f.events[0],'resume'); assert.equal(f.timers.size,0);
   const [balance, fade, master, song, sum] = f.context.gains;
-  assert.equal(balance.gain.value,1);assert.equal(fade.gain.value,1); assert.equal(master.gain.value,.7);
+  assert.equal(balance.gain.value,4);assert.equal(fade.gain.value,1); assert.equal(master.gain.value,.7);
   assert.equal(audio.outputNode,master);
   assert.equal(audio.songInputNode,song);assert.equal(song.gain.value,1);
   assert.deepEqual(song.connections,[master],'reference audio shares final Master without the Code fade');
   assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[sum]);assert.equal(audio.codeInputNode,sum);assert.deepEqual(sum.connections,[fade]);assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections,[f.context.destination]);
-  audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,1);
+  audio.setVolume(3.8); assert.equal(master.gain.value,3.8); assert.equal(balance.gain.value,4);
   audio.setVolume(0); assert.equal(master.gain.value,0);
   assert.throws(() => audio.setVolume(3.81),/Master/);
   assert.deepEqual(await audio.read(),{voices:[]});
@@ -113,7 +113,7 @@ test('PCM is sent once, metadata edits refer to acknowledged data, and replies r
 test('all three sources share calibrated mixer, Code FX/fade and final Master without another speaker route',async()=>{
   const f=fixture(),audio=await f.create({sourceMix:PC_ENGINE_SOURCE_DEFAULTS});
   const [huc,fade,master,song,sum,audition]=f.context.gains;
-  assert.equal(huc.gain.value,PC_ENGINE_SOURCE_DEFAULTS.huc6280.volume);assert.equal(audition.gain.value,huc.gain.value);
+  assert.equal(huc.gain.value,4*PC_ENGINE_SOURCE_DEFAULTS.huc6280.volume);assert.equal(audition.gain.value,huc.gain.value);
   const adpcm=audio.getChipInputNode('msm5205'),cdda=audio.getChipInputNode('cdda');
   assert.equal(audio.getChipInputNode('msm5205'),adpcm);assert.deepEqual(adpcm.connections,[sum]);assert.deepEqual(cdda.connections,[sum]);
   const mixed=readPcEngineSourceMix({...PC_ENGINE_SOURCE_DEFAULTS,huc6280:{volume:.2,muted:true},msm5205:{volume:.3,muted:false},cdda:{volume:1.5,muted:false}});
@@ -121,6 +121,34 @@ test('all three sources share calibrated mixer, Code FX/fade and final Master wi
   assert.equal(audio.getChipMix('cdda').volume,1.5);assert.equal(song.gain.value,1,'reference applies its own source gains before this common bus');
   assert.deepEqual(sum.connections,[fade]);assert.deepEqual(fade.connections,[master]);assert.deepEqual(master.connections,[f.context.destination]);
   await audio.dispose();assert(adpcm.disconnected);assert(cdda.disconnected);assert(sum.disconnected);assert(audition.disconnected);
+});
+
+test('HuC-only output rises once before Code FX while media and the already-mixed song bus keep their levels',async()=>{
+  const f=fixture(),audio=await f.create({sourceMix:PC_ENGINE_SOURCE_DEFAULTS});
+  const signal=(node,value)=>node===f.context.destination?value:node.connections.reduce((sum,next)=>sum+signal(next,
+    node.transform?node.transform(value):value*(node.gain?.value??1)),0);
+  try{
+    const author=f.node,adpcm=audio.getChipInputNode('msm5205'),cdda=audio.getChipInputNode('cdda'),raw=.05;
+    const trial=await audio.createAuditionVoice(createDefaultPreset()),trialNode=f.node;trial.outputGain.gain.value=1;
+    for(const master of [0,.7,1,3.8]){
+      audio.setVolume(master);
+      for(const node of [author,trialNode])assert(Math.abs(signal(node,raw)-raw*.44*4*master)<1e-12,'HuC keyboard/Code/audition gets exactly one factor');
+      for(const node of [adpcm,cdda,audio.songInputNode])assert(Math.abs(signal(node,raw)-raw*master)<1e-12,'media and pre-mixed VGM PCM get no extra factor');
+    }
+    audio.setVolume(1);
+    const fx=f.context.createGain();fx.gain.value=1;fx.transform=value=>Math.tanh(value*3);
+    audio.codeInputNode.disconnect(audio.codeOutputNode);audio.codeInputNode.connect(fx);fx.connect(audio.codeOutputNode);
+    assert(Math.abs(signal(author,raw)-Math.tanh(raw*.44*4*3))<1e-12,'the shared effect receives louder HuC input');
+    for(const node of [adpcm,cdda])assert(Math.abs(signal(node,raw)-Math.tanh(raw*3))<1e-12,'media effect input drive is unchanged');
+    assert(Math.abs(signal(trialNode,raw)-raw*.44*4)<1e-12,'private audition keeps its existing route outside Code FX');
+    audio.setSourceMix(readPcEngineSourceMix({...PC_ENGINE_SOURCE_DEFAULTS,huc6280:{volume:.25,muted:false}}));
+    assert(Math.abs(signal(author,raw)-Math.tanh(raw*3))<1e-12,'authored source fader remains an absolute multiplier');
+    audio.setSourceMix(readPcEngineSourceMix({...PC_ENGINE_SOURCE_DEFAULTS,huc6280:{volume:.25,muted:true}}));
+    assert.equal(signal(author,raw),0);assert.equal(signal(trialNode,raw),0);
+    assert(Math.abs(signal(cdda,raw)-Math.tanh(raw*3))<1e-12,'HuC mute never mutes media');
+    audio.codeFadeNode.gain.value=0;assert.equal(signal(cdda,raw),0);assert.equal(signal(author,raw),0);
+    assert.equal(signal(audio.songInputNode,raw),raw,'Code fade never captures the reference-song bus');
+  }finally{await audio.dispose();}
 });
 
 test('concurrent preset mutations carry full PCM so a changed remote reference cannot retarget an edit',async()=>{

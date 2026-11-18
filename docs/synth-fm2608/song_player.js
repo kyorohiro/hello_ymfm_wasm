@@ -6,6 +6,8 @@ import {prepareFm2608SongSource} from './song_source.js';
 import {createFm2608SongTimeline,createFm2608RegisterState} from './song_state.js';
 import {createFm2608SongEngine,installFm2608SongMix,FM2608_SONG_CHANNELS} from './song_engine.js';
 import {readFm2608OutputMix,resolveFm2608OutputMix} from './output_mix.js';
+import {createPerformanceQueue} from '../js/playground_performance_queue.js';
+import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-pcm-release-1';
 
 const CHUNK = 256, LOOKAHEAD = .05, START_DELAY = .01;
 const nativeSchedule = globalThis.setTimeout.bind(globalThis);
@@ -117,6 +119,10 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       next.adpcm.repeat = Boolean(audition.adpcmMode.value & 0x10);
       next.adpcm.playing = Boolean(next.adpcm.control & 128) && !(next.adpcm.control & 1);
     }
+    if (playback === 'playing' && active.manualAdpcmReleased) {
+      next.adpcm.control = (next.adpcm.control & 0x70) | 1; next.adpcm.playing = false;
+      next.registers[1][0] = next.adpcm.control;
+    }
     songLiveState = active.timeline.readSong(frame);
     if (force || liveEnabled || !liveState) liveState = next;
   }
@@ -155,7 +161,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   }
   function release(run) {
     if (!run || run.released) return;
-    run.released = true; cancelNodes(run); run.gain?.disconnect();
+    run.released = true; cancelNodes(run); run.gain?.disconnect(); run.adpcmRelease?.dispose();
     run.timeline?.dispose(); run.mix?.dispose(); run.engine.fm2608Disposed = true; run.engine.dispose(); run.segments.length = 0;
   }
   function releaseAudition() {release(audition); audition = null; preparingAudition = false;}
@@ -244,12 +250,71 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
     if (!current(ticket)) throw aborted();
     return {context,output};
   }
+  function installManualAdpcmRelease(run,physicalWrite,onRequestedOff = () => {}) {
+    const engine = run.engine, chip = run.chip, rate = run.sampleRate;
+    const originals = {write:engine.writeYm2608,process:engine.processFrames,reset:engine.reset,load:engine.loadAdpcmBMemory};
+    let frame = 0, retired = false;
+    const apply = command => physicalWrite(command.port,command.register,command.value);
+    const queue = createPerformanceQueue({sampleRate:rate,nowFrame:() => frame,apply});
+    const guard = createFm2608AdpcmNoteOffGuard({
+      postMessage:message => queue.receive(message),writePhysical:writes => writes.forEach(apply),
+      now:() => frame / rate,sampleRate:rate,getVolume:() => run.mix.snapshot().registers[1][11],
+      getMuted:() => !enabled.adpcm[0],getGate:() => Boolean(chip.adpcm.registers[0] & 128),
+      requestedOff() {
+        run.manualAdpcmReleased = true;
+        chip.adpcm.observeWrite(0,(chip.adpcm.registers[0] & 0x70) | 1);
+        onRequestedOff(chip.adpcm.registers[0]);
+      },
+    });
+    function write(port,register,value) {
+      let restore = false;
+      if (port === 1 && register === 0) {
+        if (value & 128) { guard.cancel({restore:true}); run.manualAdpcmReleased = false; }
+        else if (value & 1) restore = guard.cancel();
+        else guard.cancel({stop:true,restore:true});
+      } else if (port === 1 && [2,3,4,5,11,12,13].includes(register)) guard.cancel({stop:true,restore:true});
+      const result = originals.write.call(this,port,register,value);
+      if (restore) guard.restore();
+      return result;
+    }
+    function process(frames) {
+      queue.advance(frame);
+      if (queue.nextFrame() >= frame + frames) {
+        const result = originals.process.call(this,frames); frame += frames; return result;
+      }
+      const left = new Float32Array(frames), right = new Float32Array(frames);
+      for (let offset = 0; offset < frames;) {
+        queue.advance(frame);
+        const count = Math.min(frames - offset,queue.nextFrame() - frame);
+        const pcm = originals.process.call(this,count);
+        left.set(pcm.left,offset); right.set(pcm.right,offset); frame += count; offset += count;
+      }
+      return {left,right};
+    }
+    function reset(...args) { guard.cancel(); run.manualAdpcmReleased = false; const result = originals.reset.apply(this,args); frame = 0; return result; }
+    function load(...args) { guard.cancel({stop:true,restore:true}); return originals.load.apply(this,args); }
+    engine.writeYm2608 = write; engine.processFrames = process; engine.reset = reset; engine.loadAdpcmBMemory = load;
+    chip.adpcm.noteOff = () => {
+      if (retired || engine.fm2608Disposed) throw aborted();
+      return guard.noteOff();
+    };
+    return {volumeChanged() {
+      guard.volumeChanged();
+      if (guard.getState().pending) physicalWrite(1,11,guard.filterVolume(enabled.adpcm[0] ? run.mix.snapshot().registers[1][11] : 0));
+    },dispose() {
+      if (retired) return; retired = true; guard.dispose();
+      for (const [key,original,installed] of [['writeYm2608',originals.write,write],['processFrames',originals.process,process],['reset',originals.reset,reset],['loadAdpcmBMemory',originals.load,load]]) {
+        if (engine[key] === installed) engine[key] = original;
+      }
+    }};
+  }
   async function createRun(ticket,selected,outputHost) {
     const engine = await createEngine(selected.header);
     if (!current(ticket)) {engine.dispose(); throw aborted();}
     let mix, timeline, gain;
     try {
       engine.fm2608Clock = selected.header.ym2608Clock;
+      const physicalWrite = engine.writeYm2608.bind(engine);
       mix = installFm2608SongMix(engine,engine.fm2608Clock);
       timeline = createFm2608SongTimeline(engine,engine.fm2608Clock);
       const chip = createClient(engine);
@@ -260,6 +325,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       gain = outputHost.context.createGain(); gain.connect(outputHost.output);
       const run = {engine,mix,timeline,chip,player,...outputHost,gain,sampleRate:rate,source:selected,
         basePosition:0,renderedFrames:0,segments:[],nextTime:null,timer:null,eof:false,released:false,lastEmitTime:null};
+      run.adpcmRelease = installManualAdpcmRelease(run,physicalWrite);
       applyMix(run); return run;
     } catch (error) {gain?.disconnect(); timeline?.dispose(); mix?.dispose(); engine.dispose(); throw error;}
   }
@@ -296,6 +362,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
     let next = null;
     try {
       engine.fm2608Clock = run.source.header.ym2608Clock;
+      const physicalWrite = engine.writeYm2608.bind(engine);
       const mix = installFm2608SongMix(engine,engine.fm2608Clock), shadow = createFm2608RegisterState(engine.fm2608Clock);
       const adpcmMode = {value:snapshot.adpcm.control & 0x70};
       const chip = createClient(engine,(port,register,value) => {
@@ -334,6 +401,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       const gain = run.context.createGain(); gain.connect(run.output);
       next = {engine,mix,chip,shadow,adpcmMode,source:run.source,context:run.context,output:run.output,gain,sampleRate:run.sampleRate,
         basePosition:0,renderedFrames:0,segments:[],nextTime:null,timer:null,released:false,lastEmitTime:null};
+      next.adpcmRelease = installManualAdpcmRelease(next,physicalWrite,value => shadow.write(1,0,value));
       applyMix(next); audition = next; preparingAudition = false; auditionPump(next); emit();
     } catch (error) {if (next) release(next); else engine.dispose(); preparingAudition = false; throw error;}
   }
@@ -407,7 +475,9 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   function setChannelEnabled(section,channel,value) {
     open(); if (!Object.hasOwn(enabled,section) || !Number.isInteger(channel) || channel<0 || channel>=enabled[section].length) throw new RangeError('Invalid OPNA mixer channel');
     if (typeof value !== 'boolean') throw new TypeError('Channel enabled must be boolean');
-    enabled[section][channel]=value; active?.mix.setChannelEnabled(section,channel,value); audition?.mix.setChannelEnabled(section,channel,value); emit(); return getState();
+    enabled[section][channel]=value; active?.mix.setChannelEnabled(section,channel,value); audition?.mix.setChannelEnabled(section,channel,value);
+    if (section === 'adpcm') { active?.adpcmRelease?.volumeChanged(); audition?.adpcmRelease?.volumeChanged(); }
+    emit(); return getState();
   }
   function setVolume(value) {open(); if(!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('Song volume must be 0–3.8');volume=value;if(active)active.gain.gain.value=value;if(audition)audition.gain.gain.value=value;emit();}
   function setOutputMix(value) {
@@ -428,7 +498,11 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
       audition.chip.adpcm.registers[0] = (audition.chip.adpcm.registers[0] & ~0x70) | audition.adpcmMode.value;
       return audition.chip;
     }
-    if (playback === 'playing' && active) return syncClient(active.chip,active.mix.snapshot());
+    if (playback === 'playing' && active) {
+      const chip = syncClient(active.chip,active.mix.snapshot());
+      if (active.manualAdpcmReleased) chip.adpcm.observeWrite(0,(chip.adpcm.registers[0] & 0x70) | 1);
+      return chip;
+    }
     return null;
   }
   function write(port,register,value) {const chip=getChip();if(!chip)throw new Error('Play or pause a song before editing its channels');chip.write(port,register,value);publish(true);emit();}

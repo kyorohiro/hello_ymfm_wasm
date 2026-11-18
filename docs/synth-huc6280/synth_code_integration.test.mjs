@@ -42,6 +42,7 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
     audio:engine,preset:createDefaultPreset(),displayedPreset:createDefaultPreset(),revision:1,epoch:1,sequence:0,importSequence:0,pitch:1,octave:0,
     window:{addEventListener(type,listener){listeners.set(type,listener);}},layout:{entries:[{key:'a',midi:60}]},
     chipView:'huc6280',codeHost:host,songControls:null,songState:null,channelTarget:channel,channelSelection:0,autoUpdate:true,liveSignature:'old',disposed:false,switchingAudioOutput:false,notes,auditionNotes,audition,auditionSelectionKey:null,
+    mediaPressedKeys:new Map(),mediaKeyboards:null,msmSource:{read:()=>({asset:null})},cddaSource:{read:()=>({asset:null})},msmControls:null,cddaControls:null,
     readPreset,isWaveOnlyEdit,createHuc6280CodeEdit,
     enqueue(action){const task=pending.then(action);pending=task.catch(error=>errors.push(error));return task;},
     ensureAudio:async()=>{await ready;return engine;},
@@ -59,12 +60,43 @@ function harness({ready=Promise.resolve(),channel=2,running=true,session=1}={}){
   return{scope,engine,host,audition,calls,errors,notes,auditionNotes,listeners,idle:()=>pending};
 }
 
-test('construction tabs leave Code running and reject new HuC keyboard/pitch writes',async()=>{
+test('empty media tabs leave Code running and reject new HuC keyboard/pitch writes',async()=>{
   const h=harness();h.scope.chipView='cdda';
   h.scope.press('key:KeyA',{key:'a',midi:60});h.scope.setPitch(1);
   const event={key:'a',code:'KeyA',target:{},preventDefault(){throw Error('Construction tab must not consume a playing key');}};
   h.listeners.get('keydown')(event);await h.idle();
   assert.equal(h.notes.size,0);assert.equal(h.host.running,true);assert.deepEqual(h.calls,[]);
+});
+
+test('loaded media keyboard input routes only to the software trigger while Code keeps running',async()=>{
+  for(const kind of ['msm5205','cdda']){
+    const h=harness();h.scope.chipView=kind;
+    h.scope[kind==='msm5205'?'msmSource':'cddaSource']={read:()=>({asset:{},track:{},busy:false})};
+    const held=new Set(),controller={read:()=>({heldNotes:[...held]}),async press(id,midi){held.add(id);h.calls.push(['mediaOn',kind,id,midi]);return true;},async release(id){held.delete(id);h.calls.push(['mediaOff',kind,id]);return true;},async cancel(){held.clear();return true;}};
+    h.scope.mediaKeyboards={[kind]:controller};
+    h.scope[kind==='msm5205'?'msmControls':'cddaControls']={cancelPlay(){h.calls.push(['uiPlayCancelled',kind]);}};
+    h.listeners.get('keydown')({key:'a',code:'KeyA',target:{},preventDefault(){}});await turn();
+    assert(h.calls.some(call=>call[0]==='mediaOn'&&call[1]===kind&&call[3]===60));
+    assert(h.calls.some(call=>call[0]==='uiPlayCancelled'));
+    assert.equal(h.host.running,true);assert.equal(h.notes.size,0);
+    h.scope.release('key:KeyA');await turn();
+    assert(h.calls.some(call=>call[0]==='mediaOff'&&call[1]===kind));assert.equal(held.size,0);
+    assert(!h.calls.some(call=>['command','preset','pitchUi'].includes(call[0])),'media does not program the HuC6280');
+  }
+});
+
+test('a late media start cannot reopen output after key release or disposal',async()=>{
+  for(const action of ['release','dispose']){
+    const h=harness({running:false}),gate=deferred();h.scope.chipView='cdda';
+    h.scope.cddaSource={read:()=>({asset:{},track:{},busy:false})};
+    h.host.openOutput=()=>h.calls.push(['openMediaOutput']);
+    let active=null;
+    h.scope.mediaKeyboards={cdda:{read:()=>({heldNotes:active?[active]:[],activeId:active}),press(id){active=id;return gate.promise;},async release(){active=null;},async cancel(){active=null;}}};
+    h.scope.press('late-key',{key:'a',midi:60});
+    if(action==='release')h.scope.release('late-key');else h.scope.disposed=true;
+    gate.resolve(true);await turn();
+    assert(!h.calls.some(call=>call[0]==='openMediaOutput'));
+  }
 });
 
 test('author preset/source loads keep Code running and route through its current session',async()=>{

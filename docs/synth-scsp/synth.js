@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import { createPlaygroundScspVoicePanel } from '../playground/playground_scsp_voice_panel.js';
-import { createAudio } from './audio.js?v=scsp-cycle2-presets-1';
+import { createAudio } from './audio.js?v=scsp-output-level-1';
 import { SynthInstrument } from './instrument.js?v=scsp-cycle2-presets-1';
 import { readPatch, writePatch } from './patch.js?v=scsp-cycle2-presets-1';
 import { OPERATOR_NAMES, OPERATOR_KEYS, operatorCount } from './routing.js?v=scsp-cycle2-code-1';
 import { enhanceScspNumberControls } from './controls.js?v=scsp-dsp-coef-1';
-import { setupScspCodeHost } from './code_host.js?v=scsp-cycle2-ui-1';
+import { setupScspCodeHost } from './code_host.js?v=scsp-output-menu-1';
 import { setupScspSongControls, isScspSongPath } from './song_controls.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfLiveView } from './ssf_live_view.js?v=scsp-ssf-dsp-1';
 import { setupScspEnvelopeControls } from './scsp_envelope_controls.js';
