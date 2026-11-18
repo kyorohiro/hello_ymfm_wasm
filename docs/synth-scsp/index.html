@@ -11,7 +11,7 @@
 		<title>Tetorica SCSP Synth</title>
 		<link rel="icon" type="image/webp" href="../tetorica-scsp-synth.webp" />
 		<link rel="apple-touch-icon" href="../tetorica-scsp-synth.webp" />
-		<link rel="stylesheet" href="synth.css?v=scsp-allocation-nav-1" />
+		<link rel="stylesheet" href="synth.css?v=scsp-highlight-1" />
 	</head>
 	<body>
 		<main>
@@ -369,6 +369,7 @@
 								role="tablist"
 								aria-label="SCSP editing and keyboard channel"
 							></div>
+							<div class="scsp-overview-annotations">
 							<div id="scspSsfSlotLegend" class="scsp-ssf-slot-legend" aria-label="SSF slot states" hidden>
 								<span data-state="active">Active</span>
 								<span data-state="release">Release</span>
@@ -380,6 +381,14 @@
 								<span data-state="held">Held</span>
 								<span data-state="released">Released · retained</span>
 								<span data-state="related">Selected group</span>
+							</div>
+							<div class="scsp-display-options">
+								<label><input id="scspLiveHighlightToggle" type="checkbox" checked /> Highlight changes</label>
+								<details class="scsp-inline-help">
+									<summary aria-label="About parameter change highlighting">?</summary>
+									<p>Briefly marks displayed values that change during Code or live SSF playback. Switching CH or source, Pause and Resume start a new baseline. This display preference is saved on this device; it does not change the sound or preset. Off stops change comparisons.</p>
+								</details>
+							</div>
 							</div>
 							<p id="scspChannelSummary" class="scsp-channel-summary" role="status">
 								Auto · grouped keyboard / Code voices.
@@ -1050,6 +1059,6 @@
 				</footer>
 			</article>
 		</main>
-		<script type="module" src="synth.js?v=scsp-allocation-nav-1"></script>
+		<script type="module" src="synth.js?v=scsp-highlight-1"></script>
 	</body>
 </html>

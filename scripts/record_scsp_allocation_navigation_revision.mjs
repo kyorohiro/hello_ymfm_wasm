@@ -6,6 +6,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {diffLines} from 'diff';
+import {createScspLiveHighlightRevisionReadContext} from './mixer_calibration_scsp_live_highlight_revision.mjs';
 import {SCSP_ALLOCATION_NAVIGATION_BASE as base,SCSP_ALLOCATION_NAVIGATION_RECEIPT as destination,
  SCSP_ALLOCATION_NAVIGATION_SOURCES as paths,SCSP_ALLOCATION_NAVIGATION_UNCHANGED as unchanged,
  SCSP_ALLOCATION_NAVIGATION_RELATED as related,SCSP_ALLOCATION_NAVIGATION_REPORTS as reports,
@@ -37,7 +38,8 @@ export async function createScspAllocationNavigationRevisionReceipt({readSource=
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const args=process.argv.slice(2);assert(args.length===1&&['--write','--check'].includes(args[0]),'Usage: node scripts/record_scsp_allocation_navigation_revision.mjs --write | --check');
- const value=await createScspAllocationNavigationRevisionReceipt(),text=JSON.stringify(value,null,2)+'\n';
+ const reviewed=createScspLiveHighlightRevisionReadContext();
+ const value=await createScspAllocationNavigationRevisionReceipt({readSource:name=>reviewed.readSource(new URL('../'+name,import.meta.url))}),text=JSON.stringify(value,null,2)+'\n';
  if(args[0]==='--write')await writeFile(resolve(root,destination),text);else assert.equal(await readFile(resolve(root,destination),'utf8'),text,'Allocation channel navigation receipt changed');
  console.log('SCSP Allocation channel navigation receipt object SHA256 '+sha(JSON.stringify(value)));
 }

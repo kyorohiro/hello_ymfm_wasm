@@ -1423,6 +1423,55 @@ footer {
 	color: var(--muted);
 	overflow-wrap: anywhere;
 }
+.scsp-overview-annotations {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+	margin-top: 8px;
+}
+.scsp-display-options {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px 10px;
+	margin-left: auto;
+	min-width: 0;
+	max-width: 100%;
+	color: var(--muted);
+	font-size: 0.72rem;
+}
+.scsp-display-options > label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 28px;
+}
+.scsp-display-options input {
+	accent-color: #7dd9e9;
+}
+.scsp-display-options:has(details[open]) {
+	flex-basis: 100%;
+	justify-content: flex-start;
+	margin-left: 0;
+}
+.scsp-overview-annotations > .scsp-ssf-slot-legend,
+.scsp-overview-annotations > .scsp-synth-slot-legend {
+	margin-top: 0;
+}
+@keyframes synth-live-change {
+	from { background-color: #705b36; box-shadow: inset 0 0 0 2px #f0c575; }
+}
+.scsp-main .is-live-changed {
+	animation: synth-live-change 420ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+	.scsp-main .is-live-changed {
+		animation-duration: 1ms;
+	}
+}
 .scsp-ssf-slot-legend,
 .scsp-synth-slot-legend {
 	display: flex;

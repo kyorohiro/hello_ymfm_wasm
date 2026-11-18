@@ -18,6 +18,7 @@ import { setupScspCycle2View } from './fm_cycle2_view.js?v=scsp-cycle2-ui-1';
 import { setupScspSsfDspView } from './ssf_dsp_view.js?v=scsp-ssf-dsp-1';
 import { setupScspSsfSlotRoutesView } from './ssf_slot_routes_view.js?v=scsp-ssf-slots-1';
 import { setupScspSlotAllocationView } from './slot_allocation_view.js?v=scsp-allocation-nav-1';
+import { setupScspLiveHighlighter } from './live_highlight.js?v=scsp-highlight-1';
 import { createScspDspSetupCode } from './dsp_setup_code.js?v=scsp-dsp-ui-routing-1';
 import { delayProgram, validateScspDspProgramOptions } from './dsp.js?v=scsp-dsp-ui-routing-1';
 import { createScspDspExample, identifyScspDspExample, identifyScspDspProgram } from './dsp_examples.js?v=scsp-dsp-ui-routing-1';
@@ -40,6 +41,11 @@ import {
 } from '../synth/synth_keyboard.js';
 
 const $ = (id) => document.getElementById(id);
+const liveHighlightToggle = $('scspLiveHighlightToggle');
+const highlightDspPanel = $('scspDspPanel');
+const highlightWorkspace = $('synthWorkspace');
+const LIVE_HIGHLIGHT_PREFERENCE = 'tetorica-scsp-synth-live-highlight';
+try { liveHighlightToggle.checked = localStorage.getItem(LIVE_HIGHLIGHT_PREFERENCE) !== 'off'; } catch {}
 const text = (node, value) => {
 	if (node && node.textContent.trim() !== value) node.textContent = value;
 };
@@ -74,7 +80,9 @@ let selectedOperator = 0,
 	fmDepthView = null,
 	ssfDspView = null,
 	ssfSlotRoutesView = null,
-	slotAllocationView = null;
+	slotAllocationView = null,
+	parameterHighlighter = null,
+	highlightSnapshot = null;
 let editorViewKey = 'auto:0';
 let renderedSampleKey = '';
 let committedPcmContext = null;
@@ -200,6 +208,7 @@ const visualizer = createSpuOutputVisualizer({ canvas: $('outputCanvas') });
 visualizer.setMode('waveform');
 function syncActivity() {
 	const code = Boolean(codeHost?.isRunning());
+	if (disposed || document.hidden || (!code && !songState?.playing)) parameterHighlighter?.clear();
 	visualizer.setRunning(Boolean(!disposed && (code || held.size || songState?.playing)));
 	observer.update({
 		engine: audio,
@@ -210,6 +219,26 @@ function syncActivity() {
 				(code || (channelView?.getSelected() != null && !liveView?.isActive())) &&
 				!switchingAudioOutput,
 		),
+	});
+}
+function renderParameterHighlights() {
+	// Off does not build a highlight context or read any displayed control value.
+	if (!parameterHighlighter || !liveHighlightToggle.checked) return;
+	const observing = Boolean(liveView?.isActive());
+	parameterHighlighter.update({
+		state: latestState,
+		selected: channelView?.getSelected() ?? null,
+		operator: selectedOperator,
+		engine: audio,
+		codeRunning: Boolean(codeHost?.isRunning()),
+		ssfSnapshot: observing ? highlightSnapshot : null,
+		ssfVoice: observing ? liveView.getPCM().voice : null,
+		ssfSlot: observing ? liveView.getSelectedSlot() : null,
+		ssfSession: observing ? songControls?.player.getEditSession() : null,
+		playback: observing ? songState?.playback : null,
+		following: observing ? liveView.isEnabled() : true,
+		view: document.hidden || highlightWorkspace.classList.contains('is-code-expanded')
+			? 'hidden' : highlightDspPanel.hidden ? 'scsp' : 'dsp',
 	});
 }
 function cacheAuthoring({ state, operators }) {
@@ -334,6 +363,7 @@ function renderDspCoefficients(state, readOnly = false) {
 function renderState() {
 	if (!latestState || disposed) return;
 	const ssfSnapshot = songControls?.player.getLiveSnapshot();
+	highlightSnapshot = ssfSnapshot;
 	ssfVoiceEdits.sync(songControls?.player.getEditSession() ?? null, songState?.playback, ssfSnapshot);
 	const observing = liveView?.update(songState, ssfSnapshot);
 	const showSsfDsp = songState?.kind === 'ssf' && liveView?.isEnabled()
@@ -372,6 +402,7 @@ function renderState() {
 		setEditorSections('ssf');
 		envelopeControls.update({ voice: liveView.getPCM().voice, readOnly: !liveView.isEditable() });
 		numberControls?.update();
+		renderParameterHighlights();
 		return;
 	}
 	const state = latestState;
@@ -465,6 +496,7 @@ function renderState() {
 		);
 	}
 	numberControls?.update();
+	renderParameterHighlights();
 }
 function rememberEditorDraft() {
 	const checkpoint = panel.captureDraft?.();
@@ -783,6 +815,14 @@ liveView = setupScspSsfLiveView({
 		songControls?.player.setLiveEnabled(liveView?.isEnabled() ?? true);
 		renderState();
 	},
+});
+parameterHighlighter = setupScspLiveHighlighter({document, enabled: liveHighlightToggle.checked});
+liveHighlightToggle.addEventListener('change', () => {
+	const enabled = liveHighlightToggle.checked;
+	try { localStorage.setItem(LIVE_HIGHLIGHT_PREFERENCE, enabled ? 'on' : 'off'); } catch {}
+	parameterHighlighter.setEnabled(enabled);
+	renderParameterHighlights();
+	liveHighlightToggle.blur();
 });
 $('scspPhysicalFrequency').addEventListener('change', () => {
 	const slot = channelView.getSelected(),
@@ -1626,6 +1666,7 @@ window.addEventListener('pagehide', (event) => {
 	ssfDspView?.dispose();
 	ssfSlotRoutesView?.dispose();
 	slotAllocationView?.dispose();
+	parameterHighlighter?.dispose();
 	epoch++;
 	held.clear();
 	observer.dispose();

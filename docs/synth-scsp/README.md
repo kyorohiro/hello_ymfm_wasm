@@ -76,6 +76,22 @@ Polling and selection only inspect these existing records. SSF Live keeps its
 separate native snapshot view; its Off / Stop restores the Synth allocation
 view. The `?` contains the longer ownership and routing explanation.
 
+**Highlight changes** beside the slot legend starts On. During Code or live
+SSF playback, displayed Frequency, Depth, Ratio, Envelope, LFO and mix values
+briefly glow when they change. It reuses FM2612's bounded 420 ms scalar pulse,
+without extra sound-engine reads, timers, frame loops or forced layout.
+Rapid changes do not restart an active pulse. Dragged/focused fields that the
+renderer defers are compared only after their displayed values change.
+
+The first display and changes of CH, Auto source, engine/session, PCM source or
+visible chip panel start a silent baseline. Pause, seek, Live Off and Stop
+clear pulses; Resume does not flash a newly selected frame as edits. Native
+ENV/activity indicators are not highlighted, and this is not a measurement of
+audio output or proof that Code rather than a manual edit caused a change.
+The preference is saved separately on this device, outside presets/Cassettes.
+Off clears pulses and skips value reads/comparisons; On begins from a clean
+baseline. Reduced-motion mode uses a 1 ms pulse. Longer help is behind `?`.
+
 Chain connects operators in series. Pairs uses parallel two-op groups.
 Branch provides a tree with up to two inputs per slot. The diagram shows
 every connection and output, and its A–F buttons select the editing operator
