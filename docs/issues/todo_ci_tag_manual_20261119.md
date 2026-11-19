@@ -1,5 +1,9 @@
 # CI: tag pushes and manual runs
 
+Current policy is the later [lightweight release plan](todo_ci_lightweight_release_20261119.md):
+only release ZIPs, VGM and SBI run on tags; detailed workflows are manual-only.
+The checklist below records the preceding trigger-only change.
+
 Routine verification runs locally. GitHub test/build workflows run on tag pushes
 or explicit workflow_dispatch, rather than branch pushes or pull requests.
 
@@ -39,3 +43,9 @@ gh run view RUN_ID --log-failed
 Validation: Ruby YAML parsed all 20 workflows; each has only tag push and manual
 triggers. Everything from `permissions:` onward matches HEAD byte-for-byte.
 `git diff --check` passes. No remote execution, commit, push or tag was performed.
+
+## Subsequent lightweight release policy
+
+See [lightweight release CI](todo_ci_lightweight_release_20261119.md).
+The all-workflows-on-tags policy above is superseded: only itch ZIP release,
+VGM and SBI retain tag triggers; detailed workflows remain manual-only.

@@ -1,10 +1,7 @@
 name: HuC6280 Synth
 
-# Run routine tests locally; use a tag push or an explicit manual CI run.
+# Detailed verification is manual; routine tests run locally.
 on:
-  push:
-    tags:
-      - '**'
   workflow_dispatch:
 
 permissions:

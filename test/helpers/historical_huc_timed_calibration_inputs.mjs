@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {relative,resolve} from 'node:path';
 import {createHistoricalFm2612ApplicationReader} from './historical_fm2612_application_source_fixture.mjs';
 import {createHistoricalYm2608SourceMixReader} from './historical_ym2608_source_mix_fixture.mjs';
-export const HUC_HISTORY_PIN='3cf30284e71c4fc86b181e98d0e192700ec14e1e0884b1bb46ee033ce1ce0845';
+export const HUC_HISTORY_PIN='eca918095d1373f4008d1aa164cffda2be921f36f63106563ffa94e8e71d1f85';
 export const HUC_HISTORY_PATH='test/fixtures/pre-huc-timed-calibration-inputs.json';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const snapshot=JSON.parse(readLive(new URL('../../'+HUC_HISTORY_PATH,import.meta.url))),sha=b=>createHash('sha256').update(b).digest('hex');

@@ -117,6 +117,16 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.setViewportSize({width:390,height:844});
    // Let the canvas ResizeObserver and responsive grid settle after resize.
    await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo(0,window.scrollY);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+   // Exercise the native select with a filename much wider than its box.
+   // The wrapper, rather than native select overflow behavior, bounds it.
+   const songOption=page.locator('#scspSongSelect option').first(),songLabel=await songOption.textContent();
+   await songOption.evaluate(option=>{option.textContent='A very long SSF folder / '+('long-song-name-'.repeat(30))+'.minissf';});
+   assert.equal(await page.locator('.scsp-song-select').evaluate(node=>getComputedStyle(node).overflowX),'hidden');
+   assert(await page.locator('#scspSongSelect').evaluate(node=>node.getBoundingClientRect().width<=node.parentElement.clientWidth+1),'song select fits its clipping wrapper');
+   const songHelp=page.locator('.scsp-song-transport .scsp-inline-help');
+   await songHelp.locator('summary').click();assert(await songHelp.locator('p').isVisible());
+   assert(await songHelp.evaluate(node=>node.getBoundingClientRect().right+scrollX<=innerWidth+1),'open song help stays inside viewport');
+   await songHelp.locator('summary').click();assert(await songHelp.locator('p').isHidden());
    // The help body must remain usable when open, and disappear from layout
    // when closed. Linux WebKit used its collapsed 26px inline box as a text
    // overflow source even though no element border crossed the viewport.
@@ -136,7 +146,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
     const base=path.join(path.dirname(config.out),`scsp-synth-layout-${name}`);await fs.mkdir(path.dirname(base),{recursive:true});
     await fs.writeFile(base+'.json',JSON.stringify(mobileLayout,null,2)+'\n');await page.screenshot({path:base+'.png',fullPage:true});
    }
-   assert(mobileLayout.overflow<=1,JSON.stringify(mobileLayout));await page.locator('.voice-routing').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(tmpdir(),`scsp-synth-multiop-${name}.png`),fullPage:true});await page.setViewportSize({width:1100,height:900});
+   assert(mobileLayout.overflow<=1,JSON.stringify(mobileLayout));await songOption.evaluate((option,label)=>{option.textContent=label;},songLabel);await page.locator('.voice-routing').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(tmpdir(),`scsp-synth-multiop-${name}.png`),fullPage:true});await page.setViewportSize({width:1100,height:900});
    await page.setInputFiles('#open',{name:'six-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...sixPatch,version:3}))});await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('SCSP instrument loaded'));await waitState(s=>s.config.mode==='fm6'&&!s.config.effect.enabled);
    const legacyTwo={format:fmPatch.format,version:2,mode:'fm2',transpose:fmPatch.transpose,fm:{depth:fmPatch.fm.depth,ratio:fmPatch.fm.ratio},operators:{carrier:fmPatch.operators.carrier,modulator:fmPatch.operators.modulator}};
    await page.setInputFiles('#open',{name:'two-op-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyTwo))});await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('SCSP instrument loaded'));await waitState(s=>s.config.mode==='fm2');

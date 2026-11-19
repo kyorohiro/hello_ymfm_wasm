@@ -23,7 +23,7 @@ jobs:
   itch-web:
     name: Package and verify the three web applications
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -35,203 +35,47 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22'
+          cache: npm
       - name: Prepare diagnostic output
         run: mkdir -p "$RUNNER_TEMP/itch-web/logs"
-      - name: Install locked build and browser dependencies
-        run: |
-          npm ci 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/npm-ci.log"
-          npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
-      - name: Test FM2612 and PSG Synth behavior with actual WASM cores
-        run: node --test docs/synth/*.test.mjs scripts/synth_pcm_reference_timing.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-core-tests.log"
-      - name: Verify current source-mix measurements and immutable calibration history
-        run: node --test scripts/mixer_calibration_virtual_files_workspace_revision.test.mjs scripts/ym2608_source_mix_mixer_calibration.test.mjs scripts/mixer_calibration_ym2608_source_mix_history.test.mjs scripts/mixer_calibration_ym2608_source_mix_policy_revision.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/source-mix-calibration-tests.log"
-      - name: Test batch packaging, Run ZIP preparation, UI bundling, archives and Game Boy conversion
-        run: node --test scripts/package_itch_all.test.mjs scripts/build_spu_import_demos.test.mjs scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
-      - name: Test PCM to BRR with the native and WASM S-DSP
-        run: node --test test/runtime/snes_brr.test.mjs test/runtime/snes_brr_encoder.test.mjs test/runtime/snessynth.test.mjs test/runtime/snes_echo.test.mjs test/runtime/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
-      - name: Test passive ASWAN source navigation calibration evidence
-        run: node --test scripts/mixer_calibration_aswan_navigation_revision.test.mjs
-      - name: Test Analyzer SPC module dependencies
-        run: node --test scripts/package_itch_vgm_analyzer.test.mjs
-      - name: Test PCM to ADPCM-A with native and WASM YM2610 variants
-        run: node --test test/runtime/adpcm_a_sample.test.mjs test/runtime/ym2610bsynth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-core-tests.log"
-      - name: Test experimental PS1 SPU with actual native and WASM cores
-        run: |
-          node --test test/runtime/ps1_spu.test.mjs test/runtime/ps1synth.test.mjs test/runtime/ps1_resampler.test.mjs test/runtime/playground_ps1.test.mjs test/runtime/playground_ps1_worklet.test.mjs test/runtime/native_genesis_ps1.test.mjs test/runtime/ps1_audition_continuity.test.mjs test/runtime/ps1_live_envelope.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
-          node scripts/check_ps1_live_controls_offline.mjs --out "$RUNNER_TEMP/itch-web/ps1-live-controls-offline.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-live-controls-offline.log"
-          node scripts/check_ps1_starter_levels.mjs --out "$RUNNER_TEMP/itch-web/ps1-starter-levels.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-starter-levels.log"
-          node tetorica_examples/nodejs/main_ps1_spu.js "$RUNNER_TEMP/itch-web/ps1-spu" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-example.log"
-      - name: Test PCM to SPU ADPCM with the actual native and WASM decoders
-        run: |
-          node --test test/runtime/ps1_adpcm_encoder.test.mjs test/runtime/ps1_adpcm_encoder_core.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-core-tests.log"
-          node tetorica_examples/nodejs/main_ps1_adpcm.js "$RUNNER_TEMP/itch-web/ps1-adpcm" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-example.log"
-      - name: Test PS1 Sample Editor conversion, isolated preview and instruments
-        run: node --test test/runtime/playground_sample_ps1.test.mjs test/runtime/playground_sample_ps1_preview.test.mjs test/runtime/playground_sample_ps1_worker.test.mjs test/runtime/playground_sample_instrument.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-sample-editor-tests.log"
-      - name: Test PS1 ADSR, reverb and per-voice PCM drawing
-        run: node --test test/runtime/ps1_parameters.test.mjs test/runtime/ps1_waveform.test.mjs test/runtime/playground_chip_inspector.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs test/audio_clock_audit.test.cjs test/ps1_capture_reports.test.cjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-tests.log"
-      - name: Verify PS1 and WonderSwan Mixer references, generated defaults and saved absolute settings
-        run: |
-          node --test scripts/soundchip_calibration_ps1.test.mjs scripts/ps1_mixer_calibration.test.mjs scripts/soundchip_calibration_wonderswan.test.mjs scripts/wonderswan_mixer_calibration.test.mjs scripts/mixer_calibration_sources.test.mjs scripts/mixer_calibration_synth_source_navigation_revision.test.mjs scripts/mixer_calibration_fm2608_navigation_revision.test.mjs scripts/mixer_calibration_measured_policy_revision.test.mjs scripts/mixer_calibration_synth_controls_revision.test.mjs scripts/itch_web_calibration_baselines.test.mjs scripts/mixer_calibration_ps1_starter.test.mjs scripts/live_controls_mixer_calibration.test.mjs scripts/live_api_mixer_calibration.test.mjs scripts/live_release_mixer_calibration.test.mjs scripts/deferred_release_mixer_calibration.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs test/runtime/soundchip_mixer.test.mjs test/runtime/soundchip_mixer_presets.test.mjs docs/playground/playground_mixer_state.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer-tests.log"
-          node scripts/calibrate_ps1_levels.cjs --verify --baseline docs/issues/ps1_huc_timed_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/ps1-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer.log"
-          node scripts/calibrate_wonderswan_levels.cjs --verify --baseline docs/issues/wonderswan_huc_timed_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/wonderswan-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/wonderswan-mixer.log"
-      - name: Verify POKEY square-family reference, dual chips and generated Mixer defaults
-        run: |
-          node --test scripts/soundchip_calibration_pokey.test.mjs scripts/pokey_mixer_calibration.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-tests.log"
-          node scripts/check_pokey_calibration_offline.mjs --out "$RUNNER_TEMP/itch-web/pokey-mixer-offline.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-offline.log"
-          node scripts/calibrate_pokey_levels.cjs --verify --baseline docs/issues/pokey_huc_timed_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/pokey-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer.log"
-      - name: Test SCSP two-bus DSP routing and unchanged default output
-        run: |
-          node --test test/runtime/scsp_dsp_routing.test.mjs test/runtime/scspsynth_routing.test.mjs test/runtime/playground_scsp_worklet.test.mjs docs/playground/playground_scsp_dsp_routing_example.test.mjs docs/playground/playground_scsp_dsp_execution_declarations.test.mjs scripts/mixer_calibration_scsp_dsp_routing_revision.test.mjs scripts/playground_scsp_dsp_routing_default_parity.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-routing-tests.log"
-      - name: Verify SCSP current source provenance, state restoration and generated Mixer defaults
-        run: |
-          node --test scripts/scsp_mixer_calibration.test.mjs scripts/vab_mixer_calibration.test.mjs scripts/mixer_calibration_virtual_files_revision.test.mjs test/runtime/native_runtime_synth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-mixer-tests.log"
-          node scripts/calibrate_scsp_levels.cjs --verify --baseline docs/issues/scsp_huc_timed_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/scsp-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-mixer.log"
-      - name: Distinguish renderer clock observations from captured PCM loss
-        run: node scripts/check_audio_clock_browser.cjs --out "$RUNNER_TEMP/itch-web/audio-clock.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/audio-clock.log"
-      - name: Test standalone PS1 SPU in browser and worker
-        run: node scripts/check_ps1_spu_browser.cjs --out "$RUNNER_TEMP/itch-web/ps1-spu-browser.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-browser.log"
+      - name: Install locked build dependencies
+        timeout-minutes: 3
+        run: npm ci 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/npm-ci.log"
+      - name: Install Chromium headless shell only
+        timeout-minutes: 4
+        run: npx playwright install --with-deps --only-shell chromium 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
       # Keep the same default commands and ZIP names used for manual releases.
       - name: Package Synth
+        timeout-minutes: 3
         run: sh scripts/package_itch_synth.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-synth.log"
       - name: Package VGM Analyzer
+        timeout-minutes: 3
         run: sh scripts/package_itch_vgm_analyzer.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-vgm-analyzer.log"
       - name: Package Playground download and browser Run ZIPs
+        timeout-minutes: 3
         run: sh scripts/package_itch_playground.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-playground.log"
       - name: Validate actual release ZIPs and write checksums
+        timeout-minutes: 3
         run: node scripts/check_itch_release_archives.mjs --release=release --out=release/itch-web-release.json --checksums=release/SHA256SUMS 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/release-archives.log"
-      - name: Test the packaged VGM Analyzer in Chromium and WebKit
-        run: node scripts/check_analyzer_mixer_browser.cjs --root=release/itch_vgm_analyzer_dev 2>&1 | tee "$RUNNER_TEMP/itch-web/analyzer-browser.log"
-      - name: Test the packaged Synth in Chromium and WebKit
+      - name: Check packaged Analyzer in Chromium
+        timeout-minutes: 3
+        run: node scripts/check_analyzer_mixer_browser.cjs --root=release/itch_vgm_analyzer_dev --chromium-only 2>&1 | tee "$RUNNER_TEMP/itch-web/analyzer-browser.log"
+      - name: Check packaged Synth import and keyboard PCM in Chromium
+        timeout-minutes: 3
         run: |
-          node scripts/check_itch_synth_browser.cjs \
+          node scripts/check_itch_synth_browser.cjs --chromium \
             --zip=release/hello_ymfm_wasm_dev_itch_synth.zip \
             --out="$RUNNER_TEMP/itch-web/synth-browser.json" \
             --images="$RUNNER_TEMP/itch-web/synth-images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-browser.log"
-      - name: Keep Code running through FM, PSG and PCM preset selection
+      - name: Check packaged Playground Genesis Main and Worker in Chromium
+        timeout-minutes: 3
         run: |
-          python3 -m zipfile -e release/hello_ymfm_wasm_dev_itch_synth.zip "$RUNNER_TEMP/itch-web/synth-live-presets"
-          node scripts/check_synth_code_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html --checks=live-presets \
-            --out="$RUNNER_TEMP/itch-web/synth-live-presets.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-live-presets.log"
-          node scripts/check_synth_code_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html --checks=keyboard \
-            --out="$RUNNER_TEMP/itch-web/synth-code-keyboard.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-code-keyboard.log"
-      - name: Recover Synth draft saves after an IndexedDB connection closes
-        run: |
-          node scripts/check_synth_draft_reconnect_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-draft-reconnect.json" \
-            --screenshots="$RUNNER_TEMP/itch-web/synth-draft-reconnect-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-draft-reconnect.log"
-      - name: Play VGM and edit the same FM channels manually
-        run: |
-          node scripts/check_synth_song_manual_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-song-manual.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-song-manual.log"
-      - name: Play VGM and edit the same PSG channels manually
-        run: |
-          node scripts/check_synth_psg_song_manual_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-psg-song-manual.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-psg-song-manual.log"
-      - name: Play VGM and edit the same RF5C164 channels manually
-        run: |
-          node scripts/check_synth_pcm_song_manual_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-pcm-song-manual.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-pcm-song-manual.log"
-      - name: Use persistent Auto and chip channel tabs during Keyboard, Code and VGM
-        run: |
-          node scripts/check_synth_channel_view_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-channel-view.json" \
-            --screenshots="$RUNNER_TEMP/itch-web/synth-channel-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-channel-view.log"
-      - name: Save channel presets without interrupting Code and apply PCM presets
-        run: |
-          node scripts/check_synth_channel_presets_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-channel-presets.json" \
-            --screenshots="$RUNNER_TEMP/itch-web/synth-channel-preset-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-channel-presets.log"
-      - name: Load variable-length PCM presets and drag frame controls
-        run: |
-          node scripts/check_synth_pcm_frames_browser.cjs \
-            --root="$RUNNER_TEMP/itch-web/synth-live-presets" --entry=/index.html \
-            --out="$RUNNER_TEMP/itch-web/synth-pcm-frames.json" \
-            --screenshots="$RUNNER_TEMP/itch-web/synth-pcm-frame-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-pcm-frames.log"
-      - name: Test the packaged Playground in Chromium and WebKit
-        run: |
-          node scripts/check_itch_playground_bundle_browser.cjs \
+          node scripts/check_itch_playground_bundle_browser.cjs --chromium --modes=genesis \
             --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
             --out="$RUNNER_TEMP/itch-web/playground-browser.json" \
             --images="$RUNNER_TEMP/itch-web/images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playground-browser.log"
-      - name: Test packaged POKEY System gains, dual chips, Worker and Stop in Chromium and WebKit
-        run: |
-          node scripts/check_itch_playground_bundle_browser.cjs \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --modes=pokey,pokey-dual \
-            --out="$RUNNER_TEMP/itch-web/pokey-packaged-browser.json" \
-            --images="$RUNNER_TEMP/itch-web/pokey-packaged-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-packaged-browser.log"
-      - name: Test Game Boy sample editing and converted preview in Chromium and WebKit
-        run: |
-          node scripts/check_gameboy_sample_editor_browser.cjs --webkit --host \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/gameboy-sample-browser.json" \
-            --images="$RUNNER_TEMP/itch-web/gameboy-sample-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/gameboy-sample-browser.log"
-      - name: Test encoded SNES BRR in packaged Main and Worker playback
-        run: |
-          node scripts/check_snes_brr_encoder_browser.cjs --webkit \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/snes-brr-browser.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/snes-brr-browser.log"
-      - name: Test PS1 mode, Keyboard and SPU edits in the packaged Playground
-        run: |
-          node scripts/check_playground_ps1_browser.cjs \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/ps1-mode-browser.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mode-browser.log"
-      - name: Test PCM to SPU ADPCM in the packaged Playground
-        run: |
-          node scripts/check_ps1_adpcm_encoder_browser.cjs \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/ps1-adpcm-browser.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-browser.log"
-      - name: Test PS1 live voice, PCM and reverb editing in the packaged Playground
-        run: |
-          node scripts/check_ps1_voice_editor_browser.cjs \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/ps1-voice-editor-browser.json" \
-            --screenshots="$RUNNER_TEMP/itch-web/ps1-voice-editor-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-browser.log"
-      - name: Test PS1 Sample Editor and saved Keyboard instruments in the packaged Playground
-        run: |
-          node scripts/check_ps1_sample_editor_browser.cjs \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/ps1-sample-editor-browser.json" \
-            --screenshots="$RUNNER_TEMP/itch-web/ps1-sample-editor-images" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-sample-editor-browser.log"
-      - name: Verify all packaged PS1 PCM capture reports against the exact Run ZIP
-        run: |
-          node scripts/check_ps1_capture_reports.cjs \
-            --reports-dir="$RUNNER_TEMP/itch-web" \
-            --archive=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/ps1-capture-reports.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-capture-reports.log"
-      - name: Test encoded ADPCM-A in both packaged Neo Geo modes
-        run: |
-          node scripts/check_adpcm_a_encoder_browser.cjs --webkit \
-            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
-            --out="$RUNNER_TEMP/itch-web/adpcm-a-browser.json" \
-            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-browser.log"
       # Download and extract this artifact container to obtain the unchanged
       # individual ZIPs for manual GitHub Release attachments / itch uploads.
       - name: Retain verified release ZIPs for manual publication

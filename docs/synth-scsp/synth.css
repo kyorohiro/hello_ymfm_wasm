@@ -916,12 +916,24 @@ footer {
 	align-items: center;
 	gap: 8px;
 }
-.scsp-song-transport select {
+.scsp-song-select {
 	flex: 1 1 220px;
 	min-width: 0;
 	max-width: 100%;
-	/* WebKit can propagate native option text beyond the select's measured box. */
+	/* Linux WebKit can propagate native option overflow past the select itself.
+	   Clip only that control's wrapper, leaving transport buttons/help visible. */
 	overflow: hidden;
+}
+.scsp-song-select select {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+}
+.scsp-song-select select:focus-visible {
+	/* Keep the keyboard focus ring inside the native-control clipping box. */
+	outline-offset: -2px;
 }
 .scsp-song-transport button,
 .scsp-live-controls button {

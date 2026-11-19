@@ -60,9 +60,35 @@ sh scripts/package_itch_vgm_analyzer.sh
 sh scripts/package_itch_playground.sh
 ```
 
-It runs on pushes, pull requests, and manual **Run workflow** requests. No tag or
-publishing credentials are required. GitHub Release attachments and itch.io
-uploads remain manual.
+It runs on tag pushes and manual **Run workflow** requests, not ordinary branch
+pushes or pull requests. It packages the four ZIPs, verifies their contents and
+runs bounded Chromium checks. It does not remeasure all chip levels or run the
+complete browser/SDK suite. GitHub Release attachments and itch.io uploads
+remain manual; no publishing credentials are required.
+
+Tag pushes also run the short VGM and SBI checks. Detailed per-Synth, npm
+package, SDK and research workflows are manual-only, so a release tag does not
+start all of them together.
+
+After pushing your changes, start just the check you need:
+
+```sh
+# Bounded release packaging and Chromium checks (10-minute job limit)
+gh workflow run itch-web.yml --ref main
+
+# Existing complete calibration and browser regression suite (expensive)
+gh workflow run itch-web-full.yml --ref main
+
+# Detailed checks for one Synth or the SDK
+gh workflow run scsp-synth.yml --ref main
+gh workflow run wasm-sdk.yml --ref main
+```
+
+The same choices are available from **Actions → workflow → Run workflow**.
+`gh run rerun RUN_ID --failed` retries the old run's original commit; it does
+not test a newly pushed fix. Use `gh workflow run ... --ref main` for that.
+Detailed verification can also be run locally using the commands in each
+workflow; no CI run is required during routine editing.
 
 ## Download the verified artifacts
 
@@ -96,27 +122,39 @@ shasum -a 256 -c SHA256SUMS
 sha256sum -c SHA256SUMS
 ```
 
-## What CI checks
+## What release CI checks
 
-The workflow tests Run ZIP preparation and bundling, then runs the three package
-scripts. It checks every archive's CRC, paths, root `index.html`, and exact
-agreement with its staging directory. The three browser-playable ZIPs must meet
-the hosting limits, including the 1,000-entry limit. The full Playground download
-is checked separately without imposing browser hosting limits.
+The release workflow runs the three unchanged package scripts. Their existing
+source-freshness, module graph and generated Mixer/default guards still apply.
+Stale evidence is rejected; skipping remeasurement is not a freshness waiver.
 
-For the Playground Run ZIP, it also verifies the bundle receipt, cache URL,
-preserved runtime assets, licenses, and byte-exact source archives against the
-full distribution. Packaging uses the checked-in audio/WASM artifacts.
+It checks every archive's CRC, paths, root `index.html`, and exact agreement with
+its staging directory. The three browser-playable ZIPs must meet the hosting
+limits. The full Playground download is checked separately without imposing
+browser hosting limits. The Run ZIP retains its bundle/source/license checks.
 
-Chromium and WebKit checks cover the packaged Analyzer, Synth TFI import and
-keyboard playback, and Playground Main/Worker playback in five modes. Audio is
-captured for validation while physical output is muted. The Playground check
-serves only the extracted Run ZIP; the Synth check serves only its extracted ZIP.
-The Analyzer check serves the stage whose bytes were matched to its ZIP.
-Game Boy Sample Editor checks also cover converted wave comparisons, actual chip
-preview, editing and cancellation, saved Keyboard instruments, and the minified
-Run ZIP's public editor UI.
+Only Chromium headless shell is installed in the release path. Existing browser
+checks cover Analyzer parsing/Mixer, Synth TFI import/keyboard PCM/release, and
+Playground Genesis Main/Worker playback, Monaco, Shell and Stop. Physical audio
+output is muted. Additional chips and WebKit remain in manual validation.
 
-If a check fails, open its failed step and download **itch-web-validation** for
-logs, browser reports, and screenshots. Diagnostics are retained for seven days.
-The verified release artifact is uploaded only after all checks pass.
+Dependency installation, packaging and browser checks have individual timeouts;
+the release job has a 10-minute limit. This bounds runtime rather than promising
+an exact completion time on shared runners. npm's download cache is enabled.
+
+If a check fails, download **itch-web-validation** for diagnostics. The verified
+**itch-web-release-zips** artifact is uploaded only after the checks pass.
+
+## Full validation
+
+**itch web full validation** (`itch-web-full.yml`) is manual-only and retains all
+of the previous release workflow's test commands and assertions: core tests,
+historical calibration evidence, PS1/WonderSwan/POKEY/SCSP remeasurement,
+Chromium/WebKit coverage, all configured Playground modes, sample editors and
+conversion checks. It may take tens of minutes; invoke it deliberately for
+changes that need that coverage. Its job limit remains 60 minutes.
+
+It retains **itch-web-full-release-zips** after success and
+**itch-web-full-validation** diagnostics, with the same retention periods.
+The full validation is not a prerequisite secretly started by lightweight
+packaging. Per-Synth and SDK workflows can be selected separately.
