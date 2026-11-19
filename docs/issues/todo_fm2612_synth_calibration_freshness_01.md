@@ -62,7 +62,11 @@ No audio device, browser, publish, commit or push was used for this repair.
 
 ### Separate remaining calibration-generation check
 
-- [ ] Review/remeasure the public Virtual Files source dependency after the
+Authorized follow-up: audit changed Virtual Files modules and their use during
+measurement; add only an exact reviewed non-audio source transition if justified,
+otherwise remeasure. Validate both generators and rejection of future edits.
+
+- [x] Review/remeasure the public Virtual Files source dependency after the
   working/saved changes. Both current mixer generators' `--check`, using the
   latest YM2608 source-mix reports, reject
   `docs/js/tetorica_virtual_files/filesystem.js`. Its 20639-byte body has SHA-256
@@ -72,3 +76,30 @@ No audio device, browser, publish, commit or push was used for this repair.
   The current file is byte-identical to HEAD before this repair. This separate
   freshness rejection was retained, and no measurement or gain was rewritten
   to suppress it.
+
+### Virtual Files follow-up completed
+
+Reviewed commit `41ee0e1bdbdd069a5cd359c5f5dcd006da0d70d9`: the filesystem
+adds a private WeakMap store registration and retains the existing publish
+notification default; the index adds the optional working/saved workspace
+export. The imported internal/workspace modules contain file-management code,
+without audio processing, scheduling, gain or chip changes. Existing filesystem
+operations match the actual predecessor's snapshots, revisions and notifications
+through 160 sequential write operations with checkpoints both enabled and disabled.
+
+The separately pinned
+[source receipt](virtual_files_workspace_calibration_revision_20261119.json)
+allows only the two exact measured/current source pairs. It authenticates all
+served Virtual Files JavaScript dependencies and all four existing measurement
+reports, including the newly imported modules. Future source edits, changed
+companion modules, forged records and DSP/WASM paths receive no exemption.
+Historical Git/Shell negative tests also recognize an earlier strict dependency
+rejection while continuing to require rejection of their unsupported SCSP graph.
+
+[Verification](verification_virtual_files_workspace_calibration_20261119.json):
+153 file/source-guard tests and 29 historical regression tests pass. Both mixer
+generators pass `--check` with the YM2608 source-mix reports, and Playground's
+artifact profile passes. All existing measurement reports and generated gains
+remain byte-identical to HEAD; this audit did not require new audio measurements.
+CI runs the new guard tests with the history needed for predecessor comparison.
+No Synth/runtime source, audio device, browser, commit, push or release was used.

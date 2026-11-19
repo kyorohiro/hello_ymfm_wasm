@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "scope": "virtual-files-working-saved-non-audio-revision",
+  "reviewedCommit": "41ee0e1bdbdd069a5cd359c5f5dcd006da0d70d9",
+  "sources": {
+    "js/tetorica_virtual_files/filesystem.js": {
+      "before": {
+        "bytes": 20206,
+        "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+      },
+      "after": {
+        "bytes": 20639,
+        "sha256": "c74e0072c09884917896bd7af4b487799e34f83ffb5cda40896b22acf510434b"
+      }
+    },
+    "js/tetorica_virtual_files/index.js": {
+      "before": {
+        "bytes": 403,
+        "sha256": "e9b836b112402d3639d11e848e499b7cbbe28bff8e60e5d41ffc27878c1c5900"
+      },
+      "after": {
+        "bytes": 462,
+        "sha256": "557a4972a58a8a9f9f2b8902cd2851f7c29111052521e1b36e83b3aa506266aa"
+      }
+    }
+  },
+  "dependencies": {
+    "docs/js/tetorica_virtual_files/agent_commands.js": {
+      "bytes": 11601,
+      "sha256": "4bcedf16ddffa21bf8ea0ee96bf6f979a2f70e7ba9ed602c32ea88eec55fd9bd"
+    },
+    "docs/js/tetorica_virtual_files/filesystem.js": {
+      "bytes": 20639,
+      "sha256": "c74e0072c09884917896bd7af4b487799e34f83ffb5cda40896b22acf510434b"
+    },
+    "docs/js/tetorica_virtual_files/filesystem_internal.js": {
+      "bytes": 997,
+      "sha256": "e95dcc6999942de8ef81c8f2578c346f87a655fb353d8840ae5b975104e7416b"
+    },
+    "docs/js/tetorica_virtual_files/git.bundle.js": {
+      "bytes": 302649,
+      "sha256": "73d534801173e5a9afb2f6e88b4e2149d87c682823a1c1cff25ea989aa5e468f"
+    },
+    "docs/js/tetorica_virtual_files/git.js": {
+      "bytes": 25551,
+      "sha256": "31e096044b65a6eba0f3a31efd22e1e5b6f058716cdd9237cf0f40fe90277713"
+    },
+    "docs/js/tetorica_virtual_files/index.js": {
+      "bytes": 462,
+      "sha256": "557a4972a58a8a9f9f2b8902cd2851f7c29111052521e1b36e83b3aa506266aa"
+    },
+    "docs/js/tetorica_virtual_files/patch.js": {
+      "bytes": 9693,
+      "sha256": "3a98170854a87d55c507b29d8df11489bdeffb7bb3c21b5fcc6c4533790364f5"
+    },
+    "docs/js/tetorica_virtual_files/path.js": {
+      "bytes": 1112,
+      "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+    },
+    "docs/js/tetorica_virtual_files/pipeline.js": {
+      "bytes": 2566,
+      "sha256": "8bc5455b2f0668dfd24a0d217bc5b4fa52633164e3bdc54f1f443660b69d43a6"
+    },
+    "docs/js/tetorica_virtual_files/reader.js": {
+      "bytes": 1404,
+      "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+    },
+    "docs/js/tetorica_virtual_files/shell.js": {
+      "bytes": 12584,
+      "sha256": "e0e9947bd4b83a8765ee4e6e763469b41fe0df077301b61ef4ccba09671cb2ab"
+    },
+    "docs/js/tetorica_virtual_files/sync.js": {
+      "bytes": 5701,
+      "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+    },
+    "docs/js/tetorica_virtual_files/workspace.js": {
+      "bytes": 8447,
+      "sha256": "80a28574c7f151effd933ddd323a3cb797a6df6c886d700db882a978a25560f7"
+    }
+  },
+  "reports": {
+    "docs/issues/ps1_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 548901,
+      "sha256": "70d4ce6bb7d3d3d0fa62d82cb4853c9434336307489b14f8974da95de998fb42"
+    },
+    "docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 493362,
+      "sha256": "c1cba6344c7522d9af7c5251bb719c99ce87c12441549981822a45565d1b0b7b"
+    },
+    "docs/issues/pokey_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 1032969,
+      "sha256": "eba013734be55ebc292e8c635e5b5ec246a007b1e77d4be2585bb178a51ed742"
+    },
+    "docs/issues/scsp_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 627225,
+      "sha256": "5599cd9aa87c463011f4625e4229acdda38386df56bbe883ef753fd07452c07b"
+    }
+  }
+}

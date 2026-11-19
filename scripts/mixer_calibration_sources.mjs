@@ -28,6 +28,7 @@ import {restoreMixerCalibrationWonderSwanHostBudgetRevision} from './mixer_calib
 import {restoreMixerCalibrationAySingleOutputUiCacheRevision} from './mixer_calibration_ay_single_output_ui_cache_revision.mjs';
 import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
 import {restoreMixerCalibrationYm2612TimedRevision} from './mixer_calibration_ym2612_timed_revision.mjs';
+import {isMixerCalibrationVirtualFilesWorkspaceRevision} from './mixer_calibration_virtual_files_workspace_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -425,6 +426,7 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return viewerRevision?'ui-synth-definition-viewer':sidRevision?'sid-playground-routing':'raw';
   const controls=restoreMixerCalibrationSynthControlsRevision(path,bytes);
   if(controls!==bytes&&controls.length===record?.bytes&&sha(controls)===record.sha256)return 'ui-synth-controls';
+  if(isMixerCalibrationVirtualFilesWorkspaceRevision(path,bytes,record))return 'ui-virtual-files-workspace';
   if(isMixerCalibrationVirtualFilesRevision(path,bytes,record))return 'ui-virtual-files';
   const keyboard=restoreMixerCalibrationKeyboardOctaveRevision(path,bytes);
   if(keyboard!==bytes&&keyboard.length===record?.bytes&&sha(keyboard)===record.sha256)return 'ui-keyboard-octave';

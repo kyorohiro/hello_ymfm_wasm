@@ -26,6 +26,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
@@ -41,7 +42,7 @@ jobs:
       - name: Test FM2612 and PSG Synth behavior with actual WASM cores
         run: node --test docs/synth/*.test.mjs scripts/synth_pcm_reference_timing.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-core-tests.log"
       - name: Verify current source-mix measurements and immutable calibration history
-        run: node --test scripts/ym2608_source_mix_mixer_calibration.test.mjs scripts/mixer_calibration_ym2608_source_mix_history.test.mjs scripts/mixer_calibration_ym2608_source_mix_policy_revision.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/source-mix-calibration-tests.log"
+        run: node --test scripts/mixer_calibration_virtual_files_workspace_revision.test.mjs scripts/ym2608_source_mix_mixer_calibration.test.mjs scripts/mixer_calibration_ym2608_source_mix_history.test.mjs scripts/mixer_calibration_ym2608_source_mix_policy_revision.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/source-mix-calibration-tests.log"
       - name: Test batch packaging, Run ZIP preparation, UI bundling, archives and Game Boy conversion
         run: node --test scripts/package_itch_all.test.mjs scripts/build_spu_import_demos.test.mjs scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
       - name: Test PCM to BRR with the native and WASM S-DSP

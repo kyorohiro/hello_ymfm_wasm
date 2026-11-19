@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-19",
+  "scope": "Exact non-audio Virtual Files working/saved source transition for existing mixer calibration",
+  "passed": true,
+  "baseCommit": "79f353c3afec24d38c3051078c978c78a11aa741",
+  "reviewedCommit": "41ee0e1bdbdd069a5cd359c5f5dcd006da0d70d9",
+  "receipt": {
+    "path": "docs/issues/virtual_files_workspace_calibration_revision_20261119.json",
+    "bytes": 3691,
+    "sha256": "05cb1134c9514c7da7856349670f6909629b745909289f0a4d89806653e6bd35"
+  },
+  "reviewedChange": [
+    "filesystem publish default retains notifications; private store WeakMap registration added",
+    "index exports optional workspace module; its imports contain file management only"
+  ],
+  "tests": {
+    "fileAndSourceGuards": {
+      "pass": 153,
+      "fail": 0,
+      "log": "/private/tmp/virtual-files-calibration-20261119.log",
+      "logSha256": "b208360cbbc5d2ffcd7ddb79de1e1702f66fa1ef935056a7dcc1c55f37d82f1a"
+    },
+    "historicalRegression": {
+      "pass": 29,
+      "fail": 0,
+      "log": "/private/tmp/virtual-files-calibration-history-regression-20261119.log",
+      "logSha256": "a478cd0853258f618edb61463bf1f6f478ed73bd73079e3d6c4aba71fc45aa85"
+    },
+    "oldFilesystemBehavior": {
+      "actualGitPredecessor": true,
+      "writes": 160,
+      "autoCheckpoint": [
+        false,
+        true
+      ],
+      "snapshotRevisionAndNotificationsMatch": true
+    },
+    "rejectionChecks": [
+      "future full source body",
+      "wrong before record",
+      "unknown/DSP/WASM path",
+      "changed imported dependency",
+      "changed historical measurement report",
+      "forged receipt"
+    ]
+  },
+  "generatorChecks": {
+    "soundchipMixerPresets": true,
+    "playgroundMixerDefaults": true,
+    "report": "docs/issues/playground_chip_levels_01.json",
+    "extensionReports": [
+      "docs/issues/ps1_ym2608_source_mix_chip_levels_01.json",
+      "docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json",
+      "docs/issues/pokey_ym2608_source_mix_chip_levels_01.json",
+      "docs/issues/scsp_ym2608_source_mix_chip_levels_01.json"
+    ],
+    "flags": "--check; explicit --ps1-report, --wonderswan-report, --pokey-report, --scsp-report"
+  },
+  "artifactProfileCheck": {
+    "command": "node scripts/runtime_artifact_profiles.mjs playground --check",
+    "passed": true
+  },
+  "unchangedMeasurementsAndGains": {
+    "docs/issues/ps1_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 548901,
+      "sha256": "70d4ce6bb7d3d3d0fa62d82cb4853c9434336307489b14f8974da95de998fb42"
+    },
+    "docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 493362,
+      "sha256": "c1cba6344c7522d9af7c5251bb719c99ce87c12441549981822a45565d1b0b7b"
+    },
+    "docs/issues/pokey_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 1032969,
+      "sha256": "eba013734be55ebc292e8c635e5b5ec246a007b1e77d4be2585bb178a51ed742"
+    },
+    "docs/issues/scsp_ym2608_source_mix_chip_levels_01.json": {
+      "bytes": 627225,
+      "sha256": "5599cd9aa87c463011f4625e4229acdda38386df56bbe883ef753fd07452c07b"
+    },
+    "tetorica_src/runtime/soundchip_mixer_presets.js": {
+      "bytes": 3277,
+      "sha256": "38887acc235d3c26a88c1d84ef1190e97038715e818786d68f4ccf7a930741da"
+    },
+    "docs/js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "7d254801a2856cd0ce5262e45496efdc85c756e7b7d74e00b56f4ff13dbf7d6d"
+    },
+    "docs/playground/playground_mixer_defaults.js": {
+      "bytes": 13459,
+      "sha256": "64ac4a653c6b1adc1b80b5cc6fba2f1c1fdf52392a34b578a99028ad99cd168b"
+    }
+  },
+  "newMeasurementsPerformed": false,
+  "audioDeviceOpened": false,
+  "browserRun": false,
+  "commit": false,
+  "push": false,
+  "release": false
+}
