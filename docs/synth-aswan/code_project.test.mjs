@@ -232,3 +232,171 @@ test('ASWAN multi-song capacity failure is atomic and metadata listing does not 
 	first[0].path = 'mutated';
 	assert.notEqual(project.listEntries()[0].path, 'mutated');
 });
+
+test('ASWAN v1 drafts migrate with Wave/Noise/Sweep/Voice PCM, Files and selection intact', async () => {
+	const settings = createDefaultPreset();
+	settings.source = 'wave';
+	settings.noise.type = 5;
+	settings.wave[3] = 12;
+	settings.sweep.enabled = true;
+	const old = createAswanCodeProject({settings, starterCode: '// original'});
+	old.importSongSources([{name: 'original.vgz', bytes: Uint8Array.of(0, 128, 255)}]);
+	old.fs.mkdir('/empty', {recursive: true});
+	old.select('/index.js');
+	old.setCodeState({mode: 'code', path: '/index.js'});
+	const {workspace, ...legacy} = old.snapshot();
+	legacy.version = 1;
+	const migrated = createAswanCodeProject({snapshot: legacy});
+	assert.equal(migrated.snapshot().version, 2);
+	assert.equal(migrated.autoApply, true);
+	assert.deepEqual(migrated.settings, settings);
+	assert.deepEqual(migrated.fs.snapshot(), migrated.savedFs.snapshot());
+	assert.equal(migrated.selectedPath, '/index.js');
+	assert.deepEqual(migrated.getCodeState(), legacy.codeState);
+	assert.deepEqual(migrated.getDirtyPaths(), []);
+	// Also cover a legacy ZIP, not just the local-draft representation.
+	const {filesystem, ...manifest} = legacy;
+	const zip = createPlaygroundCassetteZip([
+		...old.fs.list(),
+		{path: ASWAN_PROJECT_MANIFEST, type: 'text', data: JSON.stringify(manifest)},
+	], {directories: old.fs.listDirectories(), preserveMetadataFiles: true});
+	migrated.restore(await migrated.prepareImport(zip));
+	assert.deepEqual(migrated.settings, settings);
+	assert.deepEqual(migrated.fs.get('/vgm/original.vgz').data, Uint8Array.of(0, 128, 255));
+	assert(migrated.savedFs.stat('/empty'));
+});
+
+test('ASWAN Save/Discard keeps independent accepted files and exact binary bytes', () => {
+	const p = createAswanCodeProject({starterCode: 'accepted'});
+	p.importFiles([{path: '/data/raw.bin', type: 'binary', data: Uint8Array.of(0, 255)}]);
+	assert.equal(p.autoApply, true);
+	p.setAutoApply(false);
+	p.writeEditorText('/index.js', 'draft');
+	p.fs.writeBinary('/data/raw.bin', Uint8Array.of(1, 254));
+	assert.equal(p.savedFs.get('/index.js').data, 'accepted');
+	assert.equal(p.isFileModified('/index.js'), true);
+	p.saveFiles(['/index.js']);
+	assert.equal(p.savedFs.get('/index.js').data, 'draft');
+	assert.equal(p.isFileModified('/index.js'), false);
+	assert.equal(p.isFileModified('/data/raw.bin'), true);
+	p.discardFiles(['/data/raw.bin']);
+	assert.deepEqual(p.fs.get('/data/raw.bin').data, Uint8Array.of(0, 255));
+	p.writeEditorText('/index.js', 'all saved');
+	p.saveAll();
+	assert.equal(p.savedFs.get('/index.js').data, 'all saved');
+	p.writeEditorText('/index.js', 'auto accepted');
+	p.setAutoApply(true);
+	assert.equal(p.savedFs.get('/index.js').data, 'auto accepted');
+	assert.deepEqual(p.getDirtyPaths(), []);
+});
+
+test('ASWAN v2 Cassette uses ordinary saved files plus recoverable working differences', async () => {
+	const p = createAswanCodeProject({starterCode: '// accepted'});
+	p.importFiles([
+		{path: '/data/raw.bin', type: 'binary', data: Uint8Array.of(2, 128)},
+		{path: '/vgm/reference.vgz', type: 'binary', data: Uint8Array.of(0, 255, 5)},
+		{path: '/remove.txt', type: 'text', data: 'old'},
+		{path: '/metadata.json', type: 'text', data: '{"user":"kept"}'},
+	]);
+	p.fs.mkdir('/old-empty', {recursive: true});
+	p.setAutoApply(false);
+	p.writeEditorText('/index.js', '// working');
+	p.fs.writeBinary('/data/raw.bin', Uint8Array.of(3, 129));
+	p.fs.remove('/remove.txt');
+	p.fs.remove('/old-empty');
+	p.fs.mkdir('/new-empty', {recursive: true});
+	p.fs.writeText('/unfinished.json', '{unfinished');
+	p.select('/unfinished.json');
+	p.setCodeState({mode: 'keyboard', path: '/unfinished.json'});
+	const zip = p.exportProject(), cassette = await loadPlaygroundCassette(zip);
+	assert.equal(new TextDecoder().decode(cassette.files.get('index.js')), '// accepted');
+	assert.deepEqual(cassette.files.get('data/raw.bin'), Uint8Array.of(2, 128));
+	const manifest = JSON.parse(new TextDecoder().decode(cassette.files.get(ASWAN_PROJECT_MANIFEST.slice(1))));
+	assert.equal(manifest.filesystem, undefined);
+	assert.equal(manifest.workspace, undefined);
+	assert(!manifest.workingDelta.files.some(file => file.path === '/vgm/reference.vgz'), 'unchanged source is not duplicated');
+	const copy = createAswanCodeProject();
+	copy.restore(await copy.prepareImport(zip));
+	assert.equal(copy.autoApply, false);
+	assert.equal(copy.fs.get('/index.js').data, '// working');
+	assert.equal(copy.savedFs.get('/index.js').data, '// accepted');
+	assert.deepEqual(copy.fs.get('/data/raw.bin').data, Uint8Array.of(3, 129));
+	assert.deepEqual(copy.savedFs.get('/data/raw.bin').data, Uint8Array.of(2, 128));
+	assert.equal(copy.fs.get('/remove.txt'), null);
+	assert.equal(copy.savedFs.get('/remove.txt').data, 'old');
+	assert(copy.fs.stat('/new-empty'));
+	assert(copy.savedFs.stat('/old-empty'));
+	assert.equal(copy.fs.get('/metadata.json').data, '{"user":"kept"}');
+	assert.equal(copy.fs.get('/unfinished.json').data, '{unfinished');
+	assert.equal(copy.selectedPath, '/unfinished.json');
+	assert.deepEqual(copy.getCodeState(), p.getCodeState());
+	assert.deepEqual(copy.getDirtyPaths(), p.getDirtyPaths());
+});
+
+test('ASWAN saved Code compiles an accepted entry, modules and data without running drafts', async () => {
+	const p = createAswanCodeProject({starterCode: 'context.value=(await import("./lib.js")).value;'});
+	p.importFiles([
+		{path: '/lib.js', data: 'export const value=(await file("./data.json",{type:"json"})).value;'},
+		{path: '/data.json', data: '{"value":"accepted"}'},
+	]);
+	p.setAutoApply(false);
+	p.writeEditorText('/index.js', 'throw Error("draft executed");');
+	p.writeEditorText('/lib.js', 'throw Error("draft module executed");');
+	p.writeEditorText('/data.json', '{"value":"draft"}');
+	const context = {}, AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+	try {
+		await new AsyncFunction('context', p.prepareSavedSource(p.fs.get('/index.js').data))(context);
+		assert.equal(context.value, 'accepted');
+		assert.equal((await p.readSavedFile('/data.json', {type: 'json'})).value, 'accepted');
+		assert.equal((await p.readFile('/data.json', {type: 'json'})).value, 'draft');
+	} finally { delete globalThis.__tetoricaVirtualFiles; }
+	p.fs.writeText('/new.js', '// not saved');
+	assert.throws(() => p.prepareSavedSource('// not saved', {path: '/new.js'}), /Save/);
+});
+
+test('ASWAN invalid two-version snapshots and recoveries reject before changing the project', async () => {
+	const p = createAswanCodeProject({starterCode: '// kept'});
+	p.setAutoApply(false);
+	p.writeEditorText('/index.js', '// working');
+	const before = p.snapshot();
+	const inconsistent = structuredClone(before);
+	inconsistent.filesystem.files.find(file => file.path === '/index.js').data = 'inconsistent';
+	assert.throws(() => p.restore(inconsistent), /Inconsistent/);
+	assert.deepEqual(p.snapshot(), before);
+	const invalidSaved = structuredClone(before);
+	invalidSaved.workspace.saved.files.push({path: ASWAN_PROJECT_MANIFEST, type: 'text', data: 'reserved'});
+	assert.throws(() => p.restore(invalidSaved), /reserved/);
+	assert.deepEqual(p.snapshot(), before);
+	const cassette = await loadPlaygroundCassette(p.exportProject());
+	const manifest = JSON.parse(new TextDecoder().decode(cassette.files.get(ASWAN_PROJECT_MANIFEST.slice(1))));
+	manifest.workingDelta.files.push({path: '/index.js', type: 'text', data: 'duplicate'});
+	const zip = createPlaygroundCassetteZip([
+		{path: '/index.js', type: 'text', data: '// kept'},
+		{path: ASWAN_PROJECT_MANIFEST, type: 'text', data: JSON.stringify(manifest)},
+	]);
+	await assert.rejects(p.prepareImport(zip), /Duplicate/);
+	assert.deepEqual(p.snapshot(), before);
+	const small = createAswanCodeProject({starterCode: '// valid'});
+	small.setAutoApply(false);
+	small.fs.writeBinary('/too-large.bin', new Uint8Array(ASWAN_PROJECT_FILE_BYTES));
+	assert.throws(() => small.saveAll(), /16 MiB/);
+	assert.equal(small.savedFs.has('/too-large.bin'), false);
+	assert.throws(() => small.setAutoApply(true), /16 MiB/);
+	assert.equal(small.autoApply, false);
+});
+
+test('ASWAN pending Code recovery retains both versions without accepting or executing a draft', () => {
+	const p = createAswanCodeProject({starterCode: '// original'});
+	p.recoverCode('/index.js', {source: '// pending', savedSource: '// accepted', autoSave: false});
+	assert.equal(p.autoApply, false);
+	assert.equal(p.fs.get('/index.js').data, '// pending');
+	assert.equal(p.savedFs.get('/index.js').data, '// accepted');
+	assert.equal(p.isFileModified('/index.js'), true);
+	p.recoverCode('/new.js', {source: '// unsaved new file', savedSource: null, autoSave: false});
+	assert.equal(p.savedFs.has('/new.js'), false);
+	const before = p.snapshot();
+	assert.throws(() => p.recoverCode('/index.js', {source: 'x'.repeat(2*1024*1024+1), savedSource: '// kept', autoSave: false}), /2 MiB/);
+	assert.deepEqual(p.snapshot(), before);
+	assert.throws(() => p.recoverCode(ASWAN_PROJECT_MANIFEST, {source: '{}', savedSource: null, autoSave: false}), /recovery path/);
+	assert.deepEqual(p.snapshot(), before);
+});

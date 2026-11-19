@@ -3,12 +3,13 @@ import {
 	createVirtualFileSystem,
 	isCheckpointPath,
 } from '../js/tetorica_virtual_files/filesystem.js';
+import { createVirtualFileWorkspace } from '../js/tetorica_virtual_files/workspace.js';
 import { normalizeVirtualPath } from '../js/tetorica_virtual_files/path.js';
 import {
 	createPlaygroundCassetteZip,
 	loadPlaygroundCassette,
 } from '../playground/playground_cassette.js';
-import { createSynthCodeProject } from '../synth/synth_code_project.js?code-files-scope=2';
+import { createSynthCodeProject } from '../synth/synth_code_project.js?v=huc-working-saved-1';
 import { createSynthProjectStore } from '../synth/synth_project_store.js?v=draft-reconnect-1';
 import { readPreset, createDefaultPreset } from './preset.js';
 
@@ -133,13 +134,117 @@ function validateFiles(fs) {
 			'Code project files exceed the 16 MiB cassette limit. Use Save preset for a larger audio instrument.',
 		);
 }
+// ZIPs expose saved files as ordinary entries. Only changed working files are
+// encoded in the manifest; unchanged VGM and PCM payloads are not copied again.
+const METADATA_PATHS = new Set(['/metadata.json', '/cassette.metadata.js']);
+const sameFile = (a, b) => Boolean(a && b && a.type === b.type && (
+	typeof a.data === 'string' ? a.data === b.data :
+		a.data.length === b.data.length && a.data.every((value, index) => value === b.data[index])
+));
+const sameSnapshot = (a, b) => a.files.length === b.files.length &&
+	JSON.stringify([...a.directories].sort()) === JSON.stringify([...b.directories].sort()) &&
+	a.files.every(file => sameFile(file, b.files.find(other => other.path === file.path)));
+function canonicalDataPath(value) {
+	if (typeof value !== 'string' || normalizeVirtualPath(value) !== value ||
+		value === '/' || value === ASWAN_PROJECT_MANIFEST)
+		throw Error('Invalid ASWAN recovery path.');
+	return value;
+}
+function encodeFile(file) {
+	if (file.type === 'text') return {path: file.path, type: 'text', data: file.data};
+	let source = '';
+	for (let offset = 0; offset < file.data.length; offset += 32768)
+		source += String.fromCharCode(...file.data.subarray(offset, offset + 32768));
+	return {path: file.path, type: 'binary', data: btoa(source)};
+}
+function decodeFile(file) {
+	if (!file || !['text', 'binary'].includes(file.type) || typeof file.data !== 'string')
+		throw Error('Invalid ASWAN working file.');
+	const path = canonicalDataPath(file.path);
+	if (file.type === 'text') return {path, type: 'text', data: file.data};
+	if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.data))
+		throw Error('Invalid ASWAN working binary encoding.');
+	return {path, type: 'binary', data: Uint8Array.from(atob(file.data), character => character.charCodeAt(0))};
+}
+function workingDelta(workspace) {
+	const state = workspace.snapshot(),
+		saved = new Map(state.saved.files.map(file => [file.path, file])),
+		working = new Set(state.working.files.map(file => file.path));
+	return {
+		version: 1,
+		autoSave: state.autoSave,
+		files: state.working.files.filter(file => !sameFile(file, saved.get(file.path))).map(encodeFile),
+		deleted: state.saved.files.filter(file => !working.has(file.path)).map(file => file.path),
+		directories: {
+			created: state.working.directories.filter(path => !state.saved.directories.includes(path)),
+			deleted: state.saved.directories.filter(path => !state.working.directories.includes(path)),
+		},
+		savedTextPaths: state.saved.files.filter(file => file.type === 'text').map(file => file.path),
+		metadataPaths: state.saved.files.filter(file => METADATA_PATHS.has(file.path)).map(file => file.path),
+	};
+}
+function restoreDelta(entries, directories, delta) {
+	if (!delta || delta.version !== 1 || typeof delta.autoSave !== 'boolean' ||
+		!Array.isArray(delta.files) || !Array.isArray(delta.deleted) ||
+		!Array.isArray(delta.savedTextPaths) || !Array.isArray(delta.metadataPaths) ||
+		!delta.directories || !Array.isArray(delta.directories.created) || !Array.isArray(delta.directories.deleted))
+		throw Error('Invalid ASWAN working recovery state.');
+	const metadataPaths = new Set(delta.metadataPaths);
+	if (metadataPaths.size !== delta.metadataPaths.length || [...metadataPaths].some(path => !METADATA_PATHS.has(path)))
+		throw Error('Invalid ASWAN metadata recovery paths.');
+	const savedFiles = entries.filter(file => !METADATA_PATHS.has(file.path) || metadataPaths.has(file.path));
+	for (const path of metadataPaths)
+		if (!savedFiles.some(file => file.path === path)) throw Error('Missing ASWAN original metadata file.');
+	const textPaths = new Set(delta.savedTextPaths);
+	if (textPaths.size !== delta.savedTextPaths.length) throw Error('Duplicate ASWAN saved text path.');
+	for (const path of textPaths) {
+		canonicalDataPath(path);
+		const file = savedFiles.find(file => file.path === path);
+		if (!file) throw Error('Missing ASWAN saved text file.');
+		file.type = 'text';
+		file.data = text(file.data);
+	}
+	const saved = createVirtualFileSystem();
+	saved.replace(savedFiles, directories);
+	const files = new Map(saved.list().map(file => [file.path, file])), seen = new Set();
+	for (const path of delta.deleted) {
+		canonicalDataPath(path);
+		if (seen.has(path) || !files.has(path)) throw Error('Invalid ASWAN working deletion.');
+		seen.add(path);
+		files.delete(path);
+	}
+	for (const file of delta.files.map(decodeFile)) {
+		if (seen.has(file.path)) throw Error('Duplicate ASWAN working path.');
+		seen.add(file.path);
+		files.set(file.path, file);
+	}
+	const dirs = new Set(saved.listDirectories()), seenDirs = new Set();
+	for (const path of delta.directories.deleted) {
+		canonicalDataPath(path);
+		if (seenDirs.has(path) || !dirs.has(path)) throw Error('Invalid ASWAN working folder deletion.');
+		seenDirs.add(path);
+		dirs.delete(path);
+	}
+	for (const path of delta.directories.created) {
+		canonicalDataPath(path);
+		if (seenDirs.has(path) || dirs.has(path)) throw Error('Invalid ASWAN working folder creation.');
+		seenDirs.add(path);
+		dirs.add(path);
+	}
+	const working = createVirtualFileSystem();
+	working.replace([...files.values()], [...dirs]);
+	return {version: 1, working: working.snapshot(), saved: saved.snapshot(), autoSave: delta.autoSave};
+}
+
 export function createAswanCodeProject({
 	settings = createDefaultPreset(),
 	snapshot,
 	starterCode,
 	getStarterCode,
 } = {}) {
-	const fs = createVirtualFileSystem(),
+	const workspace = createVirtualFileWorkspace(),
+		fs = workspace.working,
+		savedFs = workspace.saved,
 		listeners = new Set();
 	let current = readPreset(settings),
 		selected = null,
@@ -150,12 +255,37 @@ export function createAswanCodeProject({
 	const notify = () => {
 		if (!restoring) for (const listener of listeners) listener();
 	};
-	fs.onDidChange(() => {
+	workspace.onDidChange(() => {
 		entryCache = null;
 		notify();
 	});
 	const project = {
 		fs,
+		savedFs,
+		workspace,
+		get autoApply() { return workspace.autoSave; },
+		setAutoApply(enabled) {
+			if (enabled) validateFiles(fs);
+			workspace.setAutoSave(enabled);
+			return workspace.autoSave;
+		},
+		getDirtyPaths: () => workspace.getDirtyPaths(),
+		isFileModified: (path) => workspace.isDirty(path),
+		saveFiles(paths) {
+			validateFiles(fs);
+			workspace.saveMany(paths);
+			return [...paths];
+		},
+		discardFiles(paths) {
+			workspace.discardMany(paths);
+			return [...paths];
+		},
+		saveAll() {
+			validateFiles(fs);
+			const paths = workspace.getDirtyPaths();
+			workspace.saveAll();
+			return paths;
+		},
 		onDidChange(listener) {
 			listeners.add(listener);
 			return () => listeners.delete(listener);
@@ -232,27 +362,41 @@ export function createAswanCodeProject({
 		snapshot() {
 			return {
 				format: ASWAN_PROJECT_FORMAT,
-				version: 1,
+				version: 2,
 				name: projectName,
 				settings: project.settings,
 				selectedPath: selected,
 				codeState: clone(state),
 				filesystem: fs.snapshot(),
+				workspace: workspace.snapshot(),
 			};
 		},
 		restore(value) {
-			if (value?.format !== ASWAN_PROJECT_FORMAT || value.version !== 1)
+			if (value?.format !== ASWAN_PROJECT_FORMAT || ![1, 2].includes(value.version))
 				throw Error('Unsupported ASWAN project format/version.');
-			const candidate = createVirtualFileSystem();
-			candidate.restore(value.filesystem);
-			validateFiles(candidate);
+			const candidate = createVirtualFileWorkspace();
+			if (value.version === 1) {
+				const legacy = createVirtualFileSystem();
+				legacy.restore(value.filesystem);
+				candidate.restore({version: 1, working: legacy.snapshot(), saved: legacy.snapshot(), autoSave: true});
+			} else {
+				candidate.restore(value.workspace);
+				if (value.filesystem !== undefined) {
+					const compatible = createVirtualFileSystem();
+					compatible.restore(value.filesystem);
+					if (!sameSnapshot(compatible.snapshot(), candidate.working.snapshot()))
+						throw Error('Inconsistent ASWAN working filesystem snapshot.');
+				}
+			}
+			validateFiles(candidate.working);
+			validateFiles(candidate.saved);
 			const nextSettings = readPreset(value.settings),
-				nextSelected = selectedPath(value.selectedPath, candidate),
-				nextState = codeState(value.codeState, candidate),
+				nextSelected = selectedPath(value.selectedPath, candidate.working),
+				nextState = codeState(value.codeState, candidate.working),
 				nextName = name(value.name);
 			restoring = true;
 			try {
-				fs.restore(candidate.snapshot());
+				workspace.restore(candidate.snapshot());
 				current = nextSettings;
 				selected = nextSelected;
 				state = nextState;
@@ -294,6 +438,16 @@ export function createAswanCodeProject({
 					throw Error('Invalid ASWAN project manifest JSON.');
 				}
 			}
+			if (metadata && (metadata.format !== ASWAN_PROJECT_FORMAT || ![1, 2].includes(metadata.version)))
+				throw Error('Unsupported ASWAN project format/version.');
+			if (metadata?.version === 2) {
+				for (const [path, data] of cassette.files)
+					if ('/' + path !== ASWAN_PROJECT_MANIFEST) files.push({path: '/' + path, type: 'binary', data});
+				const layers = restoreDelta(files, cassette.directories, metadata.workingDelta);
+				const candidate = createAswanCodeProject({settings: current});
+				candidate.restore({...metadata, workspace: layers, filesystem: layers.working});
+				return candidate.snapshot();
+			}
 			for (const [path, data] of cassette.files) {
 				if ('/' + path === ASWAN_PROJECT_MANIFEST) continue;
 				files.push({
@@ -319,21 +473,42 @@ export function createAswanCodeProject({
 		},
 		exportProject() {
 			validateFiles(fs);
-			const { filesystem, ...manifest } = project.snapshot();
+			validateFiles(savedFs);
+			const {filesystem, workspace: layers, ...manifest} = project.snapshot();
+			const metadata = JSON.stringify({...manifest, workingDelta: workingDelta(workspace)}, null, 2) + '\n';
+			const total = new TextEncoder().encode(metadata).byteLength + savedFs.list().reduce(
+				(bytes, file) => bytes + (file.type === 'text' ? new TextEncoder().encode(file.data).byteLength : file.data.byteLength), 0);
+			if (total > 16 * 1024 * 1024) throw Error('Code project exceeds the 16 MiB expanded cassette limit.');
 			return createPlaygroundCassetteZip(
-				[
-					...fs.list(),
-					{
-						path: ASWAN_PROJECT_MANIFEST,
-						type: 'text',
-						data: JSON.stringify(manifest, null, 2) + '\n',
-					},
-				],
-				{ directories: fs.listDirectories(), preserveMetadataFiles: true },
+				[...savedFs.list(), {path: ASWAN_PROJECT_MANIFEST, type: 'text', data: metadata}],
+				{directories: savedFs.listDirectories(), preserveMetadataFiles: true},
 			);
+		},
+		recoverCode(path, {source, savedSource, autoSave}) {
+			path = pathForUser(canonicalDataPath(path));
+			if (!isAswanTextPath(path) || typeof source !== 'string' ||
+				(savedSource !== null && typeof savedSource !== 'string') || typeof autoSave !== 'boolean')
+				throw Error('Invalid ASWAN Code recovery versions.');
+			const working = createVirtualFileSystem(), saved = createVirtualFileSystem();
+			working.restore(fs.snapshot());
+			saved.restore(savedFs.snapshot());
+			working.writeText(path, source);
+			if (savedSource === null) {
+				if (saved.has(path)) saved.remove(path);
+			} else saved.writeText(path, savedSource);
+			const candidate = createVirtualFileWorkspace();
+			candidate.restore({version: 1, working: working.snapshot(), saved: saved.snapshot(), autoSave});
+			validateFiles(candidate.working);
+			validateFiles(candidate.saved);
+			workspace.restore(candidate.snapshot());
 		},
 	};
 	Object.assign(project, createSynthCodeProject(project));
+	// Prepared for the Files acceptance UI. The current host still uses working
+	// readers until Save/Discard and active sound acceptance ship together.
+	const savedCode = createSynthCodeProject(project, {version: 'saved'});
+	project.readSavedFile = savedCode.readFile;
+	project.prepareSavedSource = savedCode.prepareSource;
 	if (starterCode === undefined && !snapshot && getStarterCode) starterCode = getStarterCode();
 	if (starterCode !== undefined) {
 		if (typeof starterCode !== 'string') throw TypeError('Starter code must be text.');

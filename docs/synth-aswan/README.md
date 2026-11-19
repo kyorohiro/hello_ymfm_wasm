@@ -88,6 +88,14 @@ and Code selection. Local drafts use this app's own storage; export a Cassette
 for a portable backup. Master, octave and transient playback state are host
 preferences, separate from instrument data.
 
+The project data layer now uses a version 2 working/saved workspace. Existing
+version 1 local drafts and Cassettes migrate with their files and settings
+intact. New Cassettes contain ordinary saved files plus recoverable working
+differences, avoiding duplicate unchanged VGM/PCM files. The current Files UI
+still uses immediate acceptance; Auto apply, Save/Discard and active-sound
+document controls are the next integration step. Restoring either format
+never starts Code or audio.
+
 ## VGM reference songs and sounds
 
 Import a local WonderSwan **VGM / VGZ** through the menu or Files. The original
