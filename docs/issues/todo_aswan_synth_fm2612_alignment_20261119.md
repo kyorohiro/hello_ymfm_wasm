@@ -72,3 +72,13 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
       real Monaco, with desktop/390px resize, persistent layout and shortcuts.
 - [ ] Update ASWAN documentation and record automated checks separately from
       human listening. Commit/push/npm/tag/Tauri/release are separate tasks.
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Resolve per-channel Wave/volume/frequency and shared Sweep/Noise/routing controls with hardware event ordering.
+- [ ] Scope Wave RAM transfer and software Voice PCM feeding explicitly; keep reservation execution independent from JS timers.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

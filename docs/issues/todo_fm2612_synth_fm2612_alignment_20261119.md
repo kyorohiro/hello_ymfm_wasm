@@ -40,3 +40,14 @@ receipts are in the completed saving record linked above.
 - [ ] Consider broader recording or media editors only in a separately scoped request.
 
 No source change, npm publish, Tauri import or release is part of this inventory.
+
+## Timed register API follow-up
+
+YM2612 already provides the reference API; do not list it as missing.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [x] Existing timed API recorded as supported; this is not a new verification run.
+- [ ] Preserve YM2612 build/schedule/compile/captureState and scheduleWrites compatibility during Synth changes.
+- [ ] Scope Sega PSG, RF5C164, 32X PWM and CD-DA separately; their presence in useSoundChip does not imply timed-operation support.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

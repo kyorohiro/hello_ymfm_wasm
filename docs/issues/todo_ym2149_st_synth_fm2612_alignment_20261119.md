@@ -66,3 +66,14 @@ are listed for consideration, not treated as approved requirements.
 References: [ST Synth and completed timed examples](todo_ym2149_st_synth_20261116.md),
 [FM2612 saving baseline](todo_fm2612_working_saved_20261119.md).
 No publication, Tauri import, commit, push or tag is part of this checklist.
+
+## Timed register API follow-up
+
+YM2149 ST already provides the reference API; do not reimplement it.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [x] Existing timed API recorded as supported; this is not a new verification run.
+- [ ] Preserve build/schedule/compile/captureState/clearSchedule and current/client/reset/reused snapshot behavior.
+- [ ] Keep R7 Tone/Noise partial updates and repeated R13 envelope triggers correct; retain buzzer and volume-sample examples through Files/UI changes.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

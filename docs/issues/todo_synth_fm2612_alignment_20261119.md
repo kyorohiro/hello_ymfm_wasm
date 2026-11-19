@@ -87,3 +87,11 @@ failure atomicity and recovery, then verify readable ZIPs and real Monaco /
 fallback editors in Chromium/WebKit, including settled desktop/mobile resize
 and keyboard focus. Keep physical speaker output muted for AI checks; do not
 describe numeric measurements as human listening or long-duration testing.
+
+## Timed API track recorded separately
+
+The [per-Synth timed register API rollout](todo_synth_timed_register_api_20261119.md)
+now makes build/schedule/compile and reusable snapshots explicit in every
+individual checklist. YM2612 and YM2149 ST remain supported references; HuC6280
+is the next planned candidate. This records follow-up work without authorizing
+runtime implementation or changing the separate Files/UI rollout order.

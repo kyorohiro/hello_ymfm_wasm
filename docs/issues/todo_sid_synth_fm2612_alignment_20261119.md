@@ -72,3 +72,13 @@ SID is fourth. Reference: [FM2612 working/saved implementation](todo_fm2612_work
 Related history: [Code/Files and deferral](todo_sid_synth_code_files_01.md),
 [Code Live](todo_sid_synth_code_live_01.md),
 [manual song interaction](todo_sid_synth_song_manual_01.md).
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Resolve packed waveform/Gate/Sync/Ring/Test fields and shared filter/volume/routing state using the selected 6581/8580 configuration.
+- [ ] Preserve repeated control writes and ordering; capture resolver state without claiming a full C64 song/emulator snapshot.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

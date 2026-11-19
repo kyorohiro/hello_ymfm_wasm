@@ -74,3 +74,13 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
       Monaco, normal/expanded desktop/390px layouts and keyboard shortcuts.
 - [ ] Update S-DSP documentation and distinguish automated measurements from
       human listening. Commit/push/npm/tag/Tauri/release are separate tasks.
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Resolve voice/global DSP registers, KON/KOFF event masks, ADSR/GAIN, PMON, Noise and shared Echo/FIR settings with their original side effects.
+- [ ] Scope BRR/sample RAM transfers and Echo memory separately; reusable resolver snapshots are not full SPC emulator save states.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

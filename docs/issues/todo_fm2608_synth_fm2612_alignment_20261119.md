@@ -66,3 +66,13 @@ Existing context: [initial Synth TODO](todo_fm2608_synth_01.md),
 [ADPCM edges](todo_fm2608_adpcm_edges_20261119.md), and
 [FM2612 completed saving work](todo_fm2612_working_saved_20261119.md).
 No publication, Tauri import, commit, push or tag is authorized by this checklist.
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Preserve FM operator packed fields and key events, shared SSG Tone/Noise/envelope state, Rhythm triggers and ADPCM-B register/port semantics.
+- [ ] Scope ADPCM memory transfer separately and keep YM2203-compatible playback/mixer modes distinct from the timed API.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

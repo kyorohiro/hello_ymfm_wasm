@@ -70,3 +70,13 @@ Related work: [Code UI](todo_scsp_synth_code_ui_20261115.md),
 [DSP Save Code](todo_scsp_dsp_save_code_20261117.md),
 [FM2612 saving reference](todo_fm2612_working_saved_20261119.md).
 No publication, Tauri import, commit, push or tag is part of this checklist.
+
+## Timed register API follow-up
+
+Not implemented; separate from the existing DSP assembler and its compile method.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Resolve slot register widths/addresses, packed fields, key execution, envelope, loop, LFO and slot-modulation routing operations.
+- [ ] Define a bounded register-only surface; PCM transfers, ring-buffer contents and DSP assembly/program execution remain separate concerns.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

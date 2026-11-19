@@ -83,3 +83,14 @@ and [verified](verification_huc6280_live_highlight_20261119.json).
 Shared channel monitoring is implemented in the
 [shared mixer slice](todo_huc6280_shared_channel_mixer_20261119.md).
 Additional loaded PCM editing remains pending above.
+
+## Timed register API follow-up
+
+Not implemented; next planned timed-API candidate before moving on to the SPU UI port.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Map existing Tone/Wave gate, volume/balance, Noise and shared CH2 → CH1 LFO operations to their chip-specific resolver.
+- [ ] Handle channel selection and packed control updates at execution time; retain meaningful writes and LFO reset events.
+- [ ] Define supported Wave RAM/DDA operations first. Keep software DDA feed/sample transfer and MSM5205/CD-DA transport outside the first register-only scope.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

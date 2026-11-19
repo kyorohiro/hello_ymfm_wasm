@@ -75,3 +75,13 @@ Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261
       formats and chip limits intact; do not change calibration to match FM.
 - [ ] Update existing 2A03 documentation and record automated results separately
       from human listening. Commit/push/npm/tag/Tauri/release need their own task.
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Preserve pulse/triangle/noise, shared enables, length/envelope/retrigger writes and NES register side effects.
+- [ ] Scope DMC sample memory and FDS Wave/modulation RAM separately; hardware frame sequencing is not a substitute for sample-clock reservations.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

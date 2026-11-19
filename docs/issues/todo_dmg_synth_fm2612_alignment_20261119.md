@@ -69,3 +69,13 @@ Related history: [Code/Files](todo_dmg_synth_code_files_live_01.md),
 [unified CH controls](todo_dmg_synth_unified_channel_01.md),
 [manual VGM interaction](todo_dmg_synth_vgm_manual_01.md),
 [song output switches](todo_dmg_synth_song_channels_01.md).
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Resolve packed Tone/Sweep/Envelope/Noise/routing fields and preserve repeated trigger writes, channel power and shared APU state.
+- [ ] Define Wave RAM access restrictions and state needed for resolution; distinguish the hardware frame sequencer from host reservations.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.

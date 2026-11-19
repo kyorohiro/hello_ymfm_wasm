@@ -74,3 +74,13 @@ functionality. Chip-specific behavior and file formats must remain independent.
 Related history: [Files/Capture](todo_spu_files_capture_resume_01.md),
 [Code/Files](todo_spu_synth_code_files_live_01.md),
 [loaded sample editor](todo_spu_loaded_tone_pcm_morph_01.md).
+
+## Timed register API follow-up
+
+Not implemented; separate chip-level API work from Files/UI alignment.
+Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
+
+- [ ] Resolve voice/global 16-bit register updates, key-on/key-off event masks, ADSR, PMON, Noise clock and shared reverb operations without losing neighboring fields.
+- [ ] Retain raw keyOff versus software noteOff semantics and ordered retriggers; scope sample RAM transfer and long software audio separately.
+- [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
+  and 44.1/48 kHz verification checklist to this chip when the work is authorized.
