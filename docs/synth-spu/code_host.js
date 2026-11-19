@@ -25,7 +25,7 @@ liveLoop("melody", async () => {
 `;
 const aborted=()=>new DOMException('SPU Code stopped','AbortError');
 export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstrument,applyVabTone,stopKeyboard,onWorkspaceRestored,
-  beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
+  beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE});
   const audio=createSpuCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
@@ -67,7 +67,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     return runtime;
   }
   controls=setupSynthCodeControls({project,files,getRuntime,
-    keepRunningOnKeyboard:true,
+    keepRunningOnKeyboard:true,persistentExpanded:true,
     allowTextFiles:true,maxTextLength:SPU_PROJECT_FILE_BYTES,writeText:(path,source)=>project.writeEditorText(path,source),
     editorChip:'ps1',transformDeclarations:selectSpuCodeDeclarations,
     journalKey:'tetorica-spu-synth-pending-code',getStarterCode:()=>SPU_STARTER_CODE,
@@ -77,7 +77,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     async onModeChange(){
       modeEpoch++;openOutput();
       onActivity();
-    },setStatus,
+    },onViewChange,onExpandedChange,setStatus,
   });
   return{project,files,controls,ready:controls.ready,
     isCodeMode:()=>controls.isCodeMode(),isRunning:()=>Boolean(runtime?.getState().running),

@@ -14,7 +14,10 @@ Auto apply defaults On; Save/Save all/Discard/Discard all, Files dots and
 Ctrl/Cmd+S are mounted. Controls/PCM/JSON share an editable document, native
 sources remain binary, and explicit Run/Apply reads saved files. v1 projects
 migrate and Cassette retains both versions. Files history/New Cassette,
-expanded navigation, highlighting, output policy and timed API remain separate.
+highlighting, output policy and timed API remain separate.
+The [expanded Code navigation slice](todo_spu_expanded_navigation_20261120.md)
+is also implemented: header Code/Synth, persistent expanded view switching and
+Master/transport access, reusing the existing controls and shared tab adapter.
 
 ## Original audited status
 
@@ -53,7 +56,7 @@ functionality. Chip-specific behavior and file formats must remain independent.
       differences, without duplicating unchanged sample/bank bytes.
 - [ ] Add Files operation history and a reviewable New Cassette workflow;
       preserve Code/song retirement and failed-import rollback.
-- [ ] Add persistent expanded navigation, header Code/Synth and visible Master.
+- [x] Add persistent expanded navigation, header Code/Synth and visible Master.
       Use SPU's PCM/ADSR/FX/PSF views; do not invent FM chip tabs or a Mixer
       panel merely to copy the reference layout.
 - [ ] Add optional Live value-change highlighting, default On, with an Off

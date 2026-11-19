@@ -437,3 +437,18 @@ footer a { color: #4a5e74; }
 .spu-files-save-controls label { display:flex; align-items:center; gap:5px; font-size:.75rem; }
 .spu-files-save-controls button { min-height:28px; padding:4px 7px; font-size:.7rem; }
 .spu-file-unsaved { color:var(--accent, #d9a441); }
+
+/* Opt-in expanded navigation; other Synths importing this CSS keep their layout. */
+.spu-workspace-switch { display:inline-flex; }
+.spu-workspace-switch > button { border-radius:0; }
+.spu-workspace-switch > button:first-child { border-radius:999px 0 0 999px; }
+.spu-workspace-switch > button:last-child { border-radius:0 999px 999px 0; margin-left:-1px; }
+.spu-code-workspace.is-code-expanded .spu-navigation-main { display:block; }
+.spu-navigation-main #synthExpandedCodeSlot { grid-column:auto; }
+.spu-navigation-main .synth-expanded-heading { display:flex; align-items:flex-start; gap:8px; margin-bottom:12px; min-width:0; }
+.spu-navigation-main .synth-expanded-heading .instrument-tabs { flex:1; min-width:0; flex-wrap:wrap; margin:0; overflow:visible; }
+.spu-navigation-main .synth-expanded-heading .instrument-tabs > button { min-height:34px; padding:7px 11px; font-size:.77rem; }
+.spu-navigation-main .synth-expanded-heading .spu-code-expand { flex:none; padding:5px 9px; }
+.spu-navigation-main #synthExpandedTabsSlot > .spu-code-toolbar { margin-bottom:12px; }
+.is-code-expanded .spu-navigation-main .spu-input-section { margin-top:0; padding-top:0; border-top:0; }
+.spu-navigation-main .synth-expanded-heading .instrument-tabs > [role="tab"] { flex:0 0 auto; min-width:max-content; }

@@ -118,8 +118,42 @@ async function check(browser,name,origin){
   const liveAfter=await rpc('observeCode');assert.equal(liveAfter.channels[0].pitch,liveBefore.channels[0].pitch);assert.equal(liveAfter.channels[0].gate,true);
   const ticks=await page.evaluate(()=>__workingMemo.ticks);await until(()=>page.evaluate(t=>__workingMemo.ticks>t,ticks),'same loop continues');
   assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/);
+  // Layout is independent from input mode and the sound owner.
+  const codeText=await page.locator('#synthCodeEditor').inputValue();
+  await page.locator('#synthWorkspaceCodeButton').click();
+  await until(()=>page.locator('#synthWorkspace').evaluate(el=>el.classList.contains('is-code-expanded')),'expanded workspace');
+  const tabs=page.locator('#synthExpandedTabsSlot [role=tab]');
+  assert.deepEqual(await tabs.allTextContents(),['Code','PCM','ADSR','FX','Audio','PSF / VAB','Keyboard']);
+  const graph=await page.evaluate(()=>__spuCodeAudit.graph());
+  for(const name of ['pcm','adsr','fx','audio','bank']){
+    await page.locator('#instrumentTab-'+name).click();
+    assert.equal(await page.locator('#synthExpandedTabsSlot').getAttribute('data-view'),name);
+    assert(await page.locator('#spuSynthEditor').isVisible());assert(await page.locator('#synthCodePanel').isHidden());
+    assert.equal(await page.locator('#synthWorkspaceCodeButton').getAttribute('aria-pressed'),'true');
+    assert.equal((await rpc('observeCode')).channels[0].gate,true);
+    assert(await page.locator('#synthCodeStopButton').isVisible());assert(await page.locator('#masterVolume').isVisible());
+  }
+  // Arrow navigation crosses Code / chip / Keyboard boundaries.
+  await page.locator('#instrumentTab-bank').press('End');
+  await until(()=>page.locator('#synthExpandedTabsSlot').getAttribute('data-view').then(v=>v==='keyboard'),'expanded Keyboard');
+  assert(await page.locator('#synthKeyboardPanel').isVisible());
+  await page.locator('#synthInputKeyboardTab').press('Home');
+  await until(()=>page.locator('#synthCodePanel').isVisible(),'return Code');
+  assert.equal(await page.locator('#synthCodeEditor').inputValue(),codeText);
+  await page.locator('#masterVolume').fill('0.42');assert.equal(await page.locator('#masterVolumeValue').textContent(),'42%');
+  await page.locator('#masterVolume').fill('0.7');
+  assert.deepEqual(await page.evaluate(()=>__spuCodeAudit.graph()),graph,'navigation does not replace the audio graph');
+  const navTicks=await page.evaluate(()=>__workingMemo.ticks);await until(()=>page.evaluate(t=>__workingMemo.ticks>t,navTicks),'loop continues through views');
+  for(const width of [1240,390]){
+    await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'expanded width '+width);
+    assert(await tabs.evaluateAll(nodes=>nodes.every(node=>node.scrollWidth<=node.clientWidth+1)),'all expanded tab names fit '+width);
+    await page.screenshot({path:'/private/tmp/spu-navigation-'+name+'-'+width+'.png',fullPage:true});
+  }
+  await page.locator('#synthWorkspaceSynthButton').click();assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'false');
+  assert.equal(await page.locator('#synthCodeEditor').inputValue(),codeText);
+  await page.setViewportSize({width:1240,height:1000});
   // Both file layers survive a real IndexedDB save and reload; no automatic Run.
-  await edit(22);await pause(350);await page.reload();await page.locator('#spuAutoApplyToggle').waitFor({state:'attached'});
+  await page.locator('[data-spu-editor-tab=adsr]').click();await edit(22);await pause(350);await page.reload();await page.locator('#spuAutoApplyToggle').waitFor({state:'attached'});
   await until(()=>page.locator('#spuAutoApplyToggle').isEnabled(),'project restored');
   assert.equal(await page.locator('#spuAutoApplyToggle').isChecked(),false);assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
   await page.locator('#startAudio').click();await until(()=>page.evaluate(()=>__spuCodeAudit.graph().editorWorklets===1),'restored worklet');await until(()=>state().then(s=>(s.preset.adsr2&31)===17),'reload accepted sound');

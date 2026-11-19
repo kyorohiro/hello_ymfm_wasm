@@ -18,6 +18,7 @@ import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {createPs1InitSample} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
 import {setupSynthMenu} from '../synth/synth_menu.js';
+import {setupSynthExpandedTabs} from '../synth/synth_expanded_tabs.js';
 import {createPsfSongPreview} from './psf_song_preview.js?v=psf-manual-1';
 import {setupPsfSeekControls} from './psf_seek_controls.js?v=spu-psf-seek-1';
 import {preparePsfSongSource} from './psf_song_source.js?v=spu-psf-playback-1';
@@ -48,7 +49,7 @@ function showInstrumentDocument(value){
 function authorDisplay(value=state){return displayInstrument?displaySpuInstrumentDocument(value,displayInstrument,`draft-${documentRevision}`):value;}
 
 let noteSequence = 0, topologyPending = 0, switchingAudioOutput = false;
-let codeHost = null, codeLive = null, disposed = false, liveReadOnly = false;
+let codeHost = null, codeLive = null, expandedTabs = null, disposed = false, liveReadOnly = false;
 let clickGuardIntent = 0, clickGuardApplied = true;
 let psfSong=null;
 let psfSeekControls=null;
@@ -429,8 +430,7 @@ $('synthMenuPanel').addEventListener('click',event=>{
   if(!action)return;
   // Restore the existing editor without changing Code ownership or sound.
   // A cancelled picker must not stop a running performance.
-  void codeHost?.controls.setExpanded(false);
-  if(action.dataset.spuOpenPanel)selectEditorTab(action.dataset.spuOpenPanel);
+  selectEditorTab(action.dataset.spuOpenPanel||'pcm');
 }, {capture:true});
 codeLive=createSpuCodeLive({getAudio:()=>audio,isRunning:()=>Boolean(codeHost?.isRunning()&&!document.hidden),onUpdate:updateCodeDisplay});
 for(let ch=0;ch<24;ch++)$('spuLiveChannel').append(new Option(`CH ${ch+1}`,String(ch)));
@@ -475,6 +475,7 @@ function selectEditorTab(name, focus = false) {
     button.setAttribute('aria-selected', String(active));
     button.tabIndex = active ? 0 : -1;
   }
+  expandedTabs?.showChip(selected);
   if (focus) selected.focus();
 }
 for (const [index, button] of editorTabs.entries()) {
@@ -1252,7 +1253,7 @@ $('resetPreset').addEventListener('click', async () => {
   } catch (error) {report(error);}
 });
 window.addEventListener('pagehide', event => {
-  if(!event.persisted){disposed=true;codeLive.dispose();psfChannelActivity.dispose();psfSeekControls?.dispose();}
+  if(!event.persisted){disposed=true;expandedTabs?.dispose();codeLive.dispose();psfChannelActivity.dispose();psfSeekControls?.dispose();}
   epoch++; beginAssetOperation(); preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
   if (event.persisted) visualizer.stop(); else visualizer.dispose();
   void (async()=>{
@@ -1283,7 +1284,14 @@ codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getNativ
     if(audio){await audio.command('instrumentAllNotesOff');await audio.command('setInstrumentPitchBend',[0]);}
   },
   async beforeRun(){await stopPausedKeyboard({releaseEdited:true});await psfSong?.stop();beginAssetOperation();preparation?.cancel();},
-  onActivity:codeActivity,setStatus:message=>status(message),
+  onActivity:codeActivity,
+  onViewChange:mode=>expandedTabs?.showInput(mode),
+  onExpandedChange:value=>expandedTabs?.setExpanded(value),
+  setStatus:message=>status(message),
+});
+expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,
+  selectChip:tab=>selectEditorTab(tab.dataset.spuEditorTab),
+  elements:{editor:$('spuSynthEditor'),chipTabs:editorTabs},getChipView:tab=>tab.dataset.spuEditorTab,
 });
 void codeHost.ready.then(()=>{const value=codeHost.project.settings;if(value)showInstrumentDocument(value);}).catch(report);
 

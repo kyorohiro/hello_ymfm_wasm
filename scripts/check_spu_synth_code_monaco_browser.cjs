@@ -360,6 +360,14 @@ async function run(browser, name, origin) {
       await page.locator('#synthCodeExpandButton').click();
       assert(await page.locator('#synthExpandedCodeSlot #synthCodeEditorHost').isVisible());
       assert(await page.locator('#spuFilesPanel').isVisible());
+      for(const view of ['pcm','adsr','fx','audio','bank']) {
+        await page.locator('#instrumentTab-'+view).click();
+        assert.equal(await page.locator('#synthExpandedTabsSlot').getAttribute('data-view'),view);
+        assert(await page.locator('#spuSynthEditor').isVisible());assert(await page.locator('#masterVolume').isVisible());
+        assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'true');
+      }
+      await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthKeyboardPanel').waitFor({state:'visible'});
+      await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditorHost').waitFor({state:'visible'});
       result.layouts.push({width,expanded:true,...await assertVisibleEditor(page,'Expanded '+width)});
       assert(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth+1),'Expanded Monaco fits '+width);
       await page.locator('#synthCodeExpandButton').click();
@@ -451,6 +459,10 @@ async function run(browser, name, origin) {
     result.passed = true;
     return result;
   } catch (error) {
+    result.layoutFailure=await page.evaluate(()=>{
+      const parents=[];for(let node=document.getElementById('synthCodeEditorHost');node;node=node.parentElement)parents.push({id:node.id,className:node.className,hidden:node.hidden,display:getComputedStyle(node).display});
+      return {parents,mode:document.getElementById('synthInputSection')?.dataset.inputMode,view:document.getElementById('synthExpandedTabsSlot')?.dataset.view,expanded:document.getElementById('synthCodeExpandButton')?.getAttribute('aria-pressed')};
+    }).catch(()=>null);
     result.passed = false;
     result.status = error instanceof CdnUnavailableError ? 'cdn-unavailable' : 'failed';
     result.error = error.stack ?? error.message;

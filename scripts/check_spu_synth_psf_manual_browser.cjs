@@ -168,6 +168,15 @@ async function check(browser,name,origin,fixture){
     await setNumber(page,'ps1-attack-rate',authorAttack);await until(()=>authored(page).then(value=>value.preset.adsr1===original.preset.adsr1),'authored ADSR restored');
     await key(page,c4,true);await key(page,c4,false);assert.equal((await native(page)).id,identity);authorBaseline=await authored(page);assert.deepEqual({...authorBaseline,preset:{...authorBaseline.preset,pitch:original.preset.pitch}},original,'authored keys retain instrument data while updating their actual last-note pitch');
 
+    step('Expanded Code / editor / Keyboard navigation keeps the same running PSF and authored bank');
+    const navigationStart=await native(page);
+    await page.locator('#synthWorkspaceCodeButton').click();await until(()=>page.locator('#synthExpandedTabsSlot').getAttribute('data-view').then(v=>v==='code'),'PSF Code view');
+    for(const name of ['pcm','adsr','fx','audio','bank']){await page.locator('#instrumentTab-'+name).click();assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'true');assert.equal((await native(page)).id,identity);}
+    await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthKeyboardPanel').waitFor({state:'visible'});
+    assert.equal((await native(page)).id,identity);assert((await native(page)).frame>navigationStart.frame);
+    assert.deepEqual(await authored(page),authorBaseline);assert(await page.locator('#masterVolume').isVisible());
+    await page.locator('#synthWorkspaceSynthButton').click();await page.locator('[data-spu-editor-tab="adsr"]').click();
+
     step('Pause retains exact frozen source state and independent audition, then Resume continues the same core');
     await page.locator('#spuLiveChannel').selectOption('0');await page.locator('#psfPauseSong').click();await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Resume'),'paused');
     const paused=await view(page),pausedNative=await native(page);await key(page,c4,true);await wait(100);assert.equal((await view(page)).position,paused.position);assert.deepEqual(await native(page),pausedNative,'paused independent audition never advances or edits the source');await key(page,c4,false);

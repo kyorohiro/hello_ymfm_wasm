@@ -249,6 +249,20 @@ accepted instrument when audio is already active. ZIPs and their expanded
 contents are limited to 16 MiB;
 use **Menu → Export → Instrument · SPU JSON** for larger Software audio instruments.
 
+## Code workspace layout
+
+The **Code / Synth** buttons beside **Files** select the layout. **Code** opens
+the existing editor beside Files. Its expanded tab row contains **Code, PCM,
+ADSR, FX, Audio, PSF / VAB, Keyboard**. Choosing an instrument panel or Keyboard
+keeps this expanded layout; return to Code without replacing its editor,
+source, cursor or running performance. Arrow keys, Home and End move through
+this combined tab row. Narrow windows wrap tabs without clipping their names.
+
+**Run / Apply / Stop** remain above the expanded views, and **Master** remains
+in the header. **Synth**, or the restore icon, returns to the compact layout.
+Layout changes do not start or stop Code, change the sound, or retire PSF
+playback/Pause. The import menu opens its existing panel in the current layout.
+
 ## Instrument display
 
 **Envelope** shows the measured output RMS history on a dBFS scale. It is a
