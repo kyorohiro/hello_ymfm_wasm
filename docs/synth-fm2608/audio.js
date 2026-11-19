@@ -7,7 +7,7 @@ import {createSynthCodeOutput} from '../synth/synth_code_output.js';
 import {createYm2612RegisterState} from '../synth/synth_song_state.js';
 import {createDefaultPreset,readPreset,encodeBase64,decodeBase64,encodeGeneratedSine,MAX_ADPCM_BYTES} from './preset.js?v=opna-sine-release-2';
 import {installChannel3Controls,observeAdpcmMemory} from './sound_state.js';
-import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-sine-release-2';
+import {createFm2608AudioOwnedRelease} from './adpcm_audio_release.js?v=audio-owned-release-1';
 
 const nativeSetTimeout = globalThis.setTimeout.bind(globalThis);
 const nativeClearTimeout = globalThis.clearTimeout.bind(globalThis);
@@ -100,6 +100,7 @@ export function installMonitorMutes(chip,{onWrite = () => {},onAfterWrite = () =
 
 /** One OPNA feeds the Code FX insertion point, Stop fade and final Master. */
 export async function createFm2608Audio({volume = .7,onError = () => {},
+  createAdpcmRelease = createFm2608AudioOwnedRelease,
   createRuntime = options => new YM2608RuntimeSynth(options),
   createContext = () => new (globalThis.AudioContext ?? globalThis.webkitAudioContext)({latencyHint:'interactive'})} = {}) {
   checkVolume(volume);
@@ -108,7 +109,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
   codeInputNode.connect(codeFadeNode); codeFadeNode.connect(outputNode); outputNode.connect(context.destination);
   outputNode.gain.value = volume;
   const runtime = createRuntime({audioContext:context,outputNode:codeInputNode,masterVolume:1,
-    workletUrl:new URL('../js/ym2608-worklet.js',import.meta.url).href,
+    workletUrl:new URL('./audio_worklet.js?v=audio-owned-release-1',import.meta.url).href,
     wasmUrl:new URL('../generated/ym2608_wasm.wasm',import.meta.url).href});
   const fade = createSynthCodeOutput({getContext:() => context,getGain:() => codeFadeNode});
   let chip, monitor, channel3, memory, adpcmGuard, restoreAdpcmAfterStop = false, disposed = false, closing = null, stopping = null, queue = Promise.resolve();
@@ -229,7 +230,9 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
 
   function applyPreset(value) {
     const next = readPreset(value);
-    adpcmGuard?.cancel({stop:true,restore:true});
+    // Parameter-only UI edits must not hard-stop a musical release. Actual
+    // memory/range replacement below performs raw gate/memory operations,
+    // which retire the previous release through the existing observers.
     sampleEpoch++;
     const task = queue.then(() => installPreset(next));
     queue = task.catch(() => {});
@@ -387,7 +390,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
         restoreAdpcmAfterStop = false; adpcmGuard.restore();
       }
     },onReset:() => adpcmGuard?.cancel(),filterAdpcmVolume:value => adpcmGuard?.filterVolume(value) ?? value});
-    adpcmGuard = createFm2608AdpcmNoteOffGuard({
+    adpcmGuard = createAdpcmRelease({
       postMessage:runtime.node?.port?.postMessage ? message => runtime.node.port.postMessage(message) : null,
       writePhysical:writes => { if (physicalBatch) physicalBatch(writes); else for (const {port,register,value} of writes) physicalWrite(port,register,value); },
       now:() => context.currentTime,sampleRate:context.sampleRate,

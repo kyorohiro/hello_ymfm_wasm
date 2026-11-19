@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js?v=opna-sine-release-2';
-import {createFm2608Audio} from './audio.js?v=opna-adpcm-lookahead-1';
+import {createFm2608Audio} from './audio.js?v=audio-owned-release-1';
 import {setupFm2608CodeHost} from './code_host.js?v=opna-output-menu-1';
 import {setupFm2608SongControls} from './song_controls.js?v=opna-sine-release-2';
 import {createParamControl, buildHeader, buildOperatorControls} from '../synth/synth_controls.js';
@@ -962,6 +962,7 @@ function renderSample() {
   byId('sampleInfo').textContent = samples.length.toLocaleString() + ' decoded frames · ' + bytes.toLocaleString() +
     ' ADPCM bytes · ' + (current.sampleRate > 0 ? (samples.length / current.sampleRate).toFixed(3) : '0.000') + ' s · Root ' +
     midiToNoteName(reference ? Number(byId('songReferenceKey').value) : current.rootNote) + ' · aligned range ' + current.start + '–' + current.end +
+    ' · first-pass decode' +
     (reference && !reference.available ? ' · ' + (reference.error || 'No uploaded sample in this range.') : '');
 }
 function wavePoint(event) {

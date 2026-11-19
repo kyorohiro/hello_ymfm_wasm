@@ -52,14 +52,20 @@ an ideal template. RF5C164 stores PCM amplitudes directly and has different
 reconstruction behavior.
 
 Keyboard ADPCM-B release and `opna.adpcm.noteOff()` use a **Synth software**
-8 ms volume fade, after one 128-frame scheduling lead. The audio-owner queue
-samples a raised-cosine envelope at output-frame boundaries, sending only
-changed integer volume levels (at most 256 batches); JavaScript timers do not
-render the fade. `opna.adpcm.keyOff()` retains the immediate hardware operation.
+8 ms volume fade. One request reaches the dedicated Synth AudioWorklet, which
+starts the fade on its own audio clock. Delayed message delivery delays its
+start without compressing the fade into an abrupt cut. The renderer updates
+changed integer volume levels at output-frame boundaries and leaves physical
+volume zero after completion until a later gate or volume command restores it.
+No stream of Main-thread timestamps or JavaScript timers renders this fade.
+`opna.adpcm.keyOff()` retains the immediate hardware operation. An 8-bit volume
+control can still leave small quantization steps; numerical silence at the
+final Stop alone does not establish that the whole release is inaudible.
 Authored volume and captured sample data remain unchanged. Retriggers, raw
 gate/sample changes, presets, transport changes and later song writes retire
 old release tails. Paused and playing reference-channel audition use the same
-bounded release policy; original VGM note commands remain raw.
+bounded release policy through their synchronous reference-render queue;
+original VGM note commands remain raw.
 
 **Menu → New → Cassette…** creates a fresh default sound and original starter
 Code. Choose Cancel, export the current Cassette and create, or create without

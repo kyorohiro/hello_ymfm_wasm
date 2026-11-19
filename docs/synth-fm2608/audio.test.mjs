@@ -6,6 +6,7 @@ import {createDefaultPreset,readFmPreset,FM_PRESETS,decodeBase64,waveShape,encod
 import {encodeFm2608Adpcm} from './adpcm_encoder.js';
 import {noteToHz} from '../js/soundchip_pitch.js';
 import {createPerformanceQueue} from '../js/playground_performance_queue.js';
+import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js';
 
 function fixture({failUpload = false,waitForUpload} = {}) {
   const writes = [], uploads = [];
@@ -29,6 +30,7 @@ function fakeContext() {
 async function audioFixture(options) {
   const result = fixture(options), context = fakeContext();
   const audio = await createFm2608Audio({createContext:() => context,
+    ...(options?.node ? {createAdpcmRelease:createFm2608AdpcmNoteOffGuard} : {}),
     createRuntime:() => ({fm:result.chip,node:options?.node,async start() {},async close() {}})});
   result.writes.length = 0;
   return {...result,audio,context};

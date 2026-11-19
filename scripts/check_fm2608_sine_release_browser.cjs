@@ -16,7 +16,7 @@ for (let i = 2; i < process.argv.length; i++) {
   config[option[1]] = option[2] ?? process.argv[++i];
 }
 config.root = path.resolve(config.root);
-config.out ||= path.join(repo, 'build/fm2608-adpcm-codec-20261119/browser-source.json');
+config.out ||= path.join(repo, 'build/fm2608-audio-release-20261119/browser-source.json');
 const engines = config.engines.split(',');
 assert(engines.length && engines.every(name => ['chromium', 'webkit'].includes(name)));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -74,9 +74,9 @@ function installAudit() {
     audit.meters.push(meter); audit.gates.push(mute); return destination;
   };
   MessagePort.prototype.postMessage = function (message, ...args) {
-    if (message?.performance?.owner?.startsWith('fm2608-adpcm-release:'))
+    if (message?.type === 'synth-adpcm-release' && message.action === 'release')
       audit.releases.push(JSON.parse(JSON.stringify(message)));
-    if (message?.type === 'performance-cancel-owner') audit.cancels.push(JSON.parse(JSON.stringify(message)));
+    if (message?.type === 'synth-adpcm-release' && message.action === 'cancel') audit.cancels.push(JSON.parse(JSON.stringify(message)));
     if (message?.type === 'write') audit.writes.push(JSON.parse(JSON.stringify(message)));
     return post.call(this, message, ...args);
   };
@@ -195,26 +195,14 @@ async function noteKey(page, note = 'C4') {
   }, note);
 }
 function releaseProfile(events) {
-  assert(events.length > 64 && events.length <= 256, 'dense but bounded release: ' + events.length);
-  assert.equal(new Set(events.map(item => item.performance.owner)).size, 1);
-  const end = events.at(-1).performance.time, start = end - .008;
-  const levels = events.map(item => item.commands[0].value);
-  let previousTime = -Infinity, previous = 192;
-  for (const item of events) {
-    const at = item.performance.time, value = item.commands[0].value;
-    assert(at > previousTime && at > start && at <= end);
-    assert.equal(item.commands[0].port, 1); assert.equal(item.commands[0].register, 11);
-    const progress = Math.max(0, Math.min(1, (at - start) / .008));
-    const expected = Math.round(192 * (1 + Math.cos(progress * Math.PI)) / 2);
-    assert.equal(value, expected, 'raised-cosine level at audio time');
-    assert(value <= previous && previous - value <= 1, 'no former three-level staircase');
-    previous = value; previousTime = at;
-  }
-  assert.equal(levels.at(-1), 0);
-  assert.deepEqual(events.at(-1).commands.map(({port, register, value}) => [port, register, value]),
-    [[1, 11, 0], [1, 0, 1], [1, 11, 192]]);
-  return {batches:events.length, levels:levels.length, duration:.008,
-    start, end, first:levels.slice(0, 8), last:levels.slice(-8)};
+  assert.equal(events.length, 1, 'one receiver-relative musical release request');
+  const [request] = events;
+  assert.equal(request.type, 'synth-adpcm-release');
+  assert.equal(request.action, 'release');
+  assert.match(request.owner, /^fm2608-adpcm-release:\d+$/);
+  assert.equal(request.durationSeconds, .008);
+  assert(!('performance' in request) && !('commands' in request), 'no sender-clock deadlines or register burst');
+  return {requests:1,durationSeconds:.008,receiverRelative:true,owner:request.owner};
 }
 async function keyTrial(page, key, screen = false, shape = 'sine') {
   await page.evaluate(() => document.activeElement?.blur());
@@ -229,7 +217,7 @@ async function keyTrial(page, key, screen = false, shape = 'sine') {
   assert(held.physicalOutputMuted && held.audio.rms > .01 && held.audio.peak < 1);
   assert(held.audio.maxStep < (shape === 'sine' ? .04 : .4), JSON.stringify(held));
   if (screen) await page.mouse.up(); else await page.keyboard.up(key);
-  await until(() => graph(page).then(value => value.releases - before > 64), 'dense smooth owner release batches');
+  await until(() => graph(page).then(value => value.releases - before === 1), 'single audio-owned release request');
   await quiet(page);
   const events = await page.evaluate(before => __opnaSineAudit.releases.slice(before), before);
   assert.equal(await page.locator('#keyboard .key.is-active').count(), 0);
@@ -249,7 +237,7 @@ async function retriggerTrial(page, key) {
   await wait(100);
   const held = await graph(page);
   assert(held.audio.rms > .01 && held.physicalOutputMuted, 'old tail cannot stop retrigger');
-  const owner = await page.evaluate(before => __opnaSineAudit.releases[before]?.performance.owner, before);
+  const owner = await page.evaluate(before => __opnaSineAudit.releases[before]?.owner, before);
   assert(owner, 'old release was queued');
   assert(await page.evaluate(owner => __opnaSineAudit.cancels.some(item => item.owner === owner), owner));
   await page.evaluate(key => document.body.dispatchEvent(new KeyboardEvent('keyup', {key, bubbles:true})), next);
@@ -319,7 +307,7 @@ async function run(browser, engine, origin) {
     checks[0] += '; Sine/Saw/Square buttons and identical Float32 WAVs preserve decoded sample/canvas/export parity and bounded error against shared greedy';
     stage = 'Imported Saw Code noteOff'; await importWave(page,'saw');
     measurements.codeMusical = await codeStopTrial(page,true);
-    checks.push('Sine/Saw/Square button/WAV computer and screen keys plus imported Saw Code noteOff use dense raised-cosine release and reach silence');
+    checks.push('Sine/Saw/Square button/WAV computer and screen keys plus imported Saw Code noteOff send one receiver-relative release request and reach silence');
 
     stage = 'Sine rapid retrigger'; await chooseShape(page,'sine');
     measurements.retrigger = await retriggerTrial(page, key);
@@ -359,7 +347,8 @@ async function run(browser, engine, origin) {
         const key = canonical(name); if (key.endsWith('.html') || !before.has(key)) continue;
         assert.equal(value.sha256, before.get(key).sha256, key); matched.push(key);
       }
-      for (const key of ['synth.js', 'preset.js', 'audio.js', 'adpcm_encoder.js', 'adpcm_noteoff_guard.js']) assert(matched.includes(key), key);
+      for (const key of ['synth.js', 'preset.js', 'audio.js', 'adpcm_encoder.js', 'adpcm_noteoff_guard.js',
+        'adpcm_audio_release.js', 'adpcm_audio_receiver.js', 'audio_worklet.js']) assert(matched.includes(key), key);
       comparison = {file:config.compare, matchedAssets:matched.sort(), excluded:'Rewritten standalone HTML entry'};
     }
   } catch (error) { failure = error; }

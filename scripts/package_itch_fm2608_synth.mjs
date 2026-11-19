@@ -201,7 +201,7 @@ export async function packageFm2608Synth({version = 'dev', releaseDir = join(roo
   const stage = await mkdtemp(join(releaseDir, `itch_fm2608_synth_${version}-`));
   const browser = await copyReadableModules({root, stage,
     entries:['docs/synth-fm2608/synth.js', 'docs/synth-fm2608/synth.css',
-      'docs/js/ym2608-worklet.js', 'docs/js/native-fx-worklet.js'],
+      'docs/synth-fm2608/audio_worklet.js', 'docs/js/native-fx-worklet.js'],
     factories:['docs/generated/ym2608_wasm.js'],
   });
   const inputs = new Set(browser.inputs);

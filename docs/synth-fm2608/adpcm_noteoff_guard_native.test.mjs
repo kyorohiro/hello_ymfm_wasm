@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createFm2608GuardAudio} from '../../test/helpers/fm2608_adpcm_guard_audio.mjs';
+import {createFm2608GuardAudio as createAudio} from '../../test/helpers/fm2608_adpcm_guard_audio.mjs';
+import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js';
+// The reference-song renderer still uses this synchronous queue adapter.
+// Primary browser releases are tested through the audio-owned receiver.
+const createFm2608GuardAudio = rate => createAudio(rate,{createAdpcmRelease:createFm2608AdpcmNoteOffGuard});
 import {createFm2608CodeClient} from './code_client.js';
 import {FM2608_ADPCM_RELEASE_SECONDS} from './adpcm_noteoff_guard.js';
 import {waveShape,encodeBase64} from './preset.js';

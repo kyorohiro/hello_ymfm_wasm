@@ -68,10 +68,12 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for (const path of [
     'synth-fm2608/synth.js', 'synth-fm2608/audio.js', 'synth-fm2608/preset.js',
     'synth-fm2608/adpcm_encoder.js', 'synth-fm2608/adpcm_noteoff_guard.js',
+    'synth-fm2608/adpcm_audio_release.js', 'synth-fm2608/adpcm_audio_receiver.js',
+    'synth-fm2608/audio_worklet.js',
     'synth-fm2608/code_host.js', 'synth-fm2608/song_compatibility.js',
     'synth-fm2608/code_files.js', 'synth-fm2608/vgm_presets.js',
     'synth-fm2608/output_mix.js',
-    'synth/synth_code_controls.js', 'js/ym2608-worklet.js',
+    'synth/synth_code_controls.js',
     'js/native-fx-worklet.js', 'js/native_audio_effect.wasm', 'js/tetorica_ym2608_adpcm_rom.bin',
     'playground/tetorica-playground-globals.d.ts', 'playground/tetorica-playground-ym2608.d.ts',
     'assets/opna-rhythm/LICENSE', 'assets/opna-rhythm/generate.mjs', 'assets/opna-rhythm/synthesis.mjs',
