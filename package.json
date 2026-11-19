@@ -90,6 +90,7 @@
     "test:scsp-synth:ssf-edit-browser": "node scripts/check_scsp_synth_paused_edit_browser.cjs",
     "build:ssf-player": "node scripts/build_ssf_player.mjs",
     "test:spu-synth": "node --test docs/synth-spu/*.test.mjs scripts/package_itch_spu_synth.test.mjs",
+    "test:spu-synth:working-saved-browser": "node scripts/check_spu_working_saved_browser.cjs",
     "test:spu-synth:browser": "node scripts/check_spu_synth_browser.cjs",
     "test:spu-synth:live-presets-browser": "node scripts/check_spu_synth_live_presets_browser.cjs",
     "test:spu-synth:parameters-keyboard-browser": "node scripts/check_spu_synth_parameters_keyboard_browser.cjs",

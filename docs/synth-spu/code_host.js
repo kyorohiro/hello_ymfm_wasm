@@ -24,7 +24,7 @@ liveLoop("melody", async () => {
 });
 `;
 const aborted=()=>new DOMException('SPU Code stopped','AbortError');
-export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstrument,applyVabTone,stopKeyboard,
+export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstrument,applyVabTone,stopKeyboard,onWorkspaceRestored,
   beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
   const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE});
@@ -41,7 +41,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
     if(!disposed&&request===modeEpoch&&!runtime?.getState().running)audio.open();
     onActivity();
   }
-  files=setupSpuCodeFiles({project,getInstrument,applyInstrument,applyVabTone,setStatus,
+  files=setupSpuCodeFiles({project,getInstrument,applyInstrument,applyVabTone,onWorkspaceRestored,setStatus,
     async onBeforeWorkspaceReplace(){await stop();await stopKeyboard();}});
   function getRuntime(){
     if(runtime)return runtime;
@@ -55,7 +55,7 @@ export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,applyInstru
       },
       now:()=>getAudio()?.context.currentTime??0,
       useSoundChip:name=>audio.useSoundChip(name),fx:audio.fx,
-      readFile:(...args)=>project.readFile(...args),prepareSource:(...args)=>project.prepareSource(...args),
+      readFile:(...args)=>project.readSavedFile(...args),prepareSource:(...args)=>project.prepareSavedSource(...args),
       onLog:line=>controls?.appendLog(line),onState:state=>{controls?.setRuntimeState(state);onActivity();},
       beforeStopSoundChips(){epoch++;return audio.beforeStop();},
       async stopSoundChips(){

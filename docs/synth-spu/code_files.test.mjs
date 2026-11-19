@@ -344,7 +344,7 @@ test('preset picker lists valid recursive JSON and VAB Tones, applies only expli
   await f.files.remove('/presets/sub/Moved.vab');assert.equal(select.value,'');assert(!pickerOptions(f).some(option=>option.value===value));
   select.value=jsonPath;await select.fire('change');await until(()=>f.calls.some(call=>call[0]==='instrument')&&select.value===jsonPath);
   f.project.writeEditorText(jsonPath,JSON.stringify({...soundFixture(),name:'Edited but not applied'}));assert.equal(select.value,'');
-  await f.files.selectFile(jsonPath);assert.equal(select.value,jsonPath);f.files.markSoundDirty();assert.equal(select.value,'');
+  await f.files.selectFile(jsonPath);assert.equal(select.value,jsonPath);await f.files.markSoundDirty();assert.equal(select.value,'/presets/Json.spu.json');
 });
 
 test('picker validity is cached for unchanged JSON and reacts to invalid edits, replacement and project restoration without auto loading',async t=>{
@@ -372,4 +372,40 @@ test('VAB revisions and same-path file replacement refresh Tone options and fail
   // ordinary FS write, whose changed revision must invalidate the VAB cache.
   f.project.fs.writeFile(path,changed);assert.equal(pickerOptions(f).filter(option=>option.value.startsWith('vab:'+encodeURIComponent(path)+'#')).length,2);
   assert.equal(f.doc.getElementById('spuPresetSelect').value,'');
+});
+
+test('manual control/JSON drafts, Save, Discard and invalid JSON keep separate accepted sound',async t=>{
+  const applied=[],f=fixture(t,{applyInstrument:async(value,options)=>applied.push({value,options})});await f.files.ready;
+  f.files.adoptExternalSound(soundFixture());await f.files.setAutoApply(false);applied.length=0;
+  const draft={...soundFixture(),name:'Draft',preset:{...soundFixture().preset,volumeLeft:.2}};
+  const path=f.files.recordSoundEdit(draft);
+  assert.equal(f.project.savedFs.has(path),false);assert.equal(f.project.savedSettings.preset.volumeLeft,.75);
+  assert(f.project.isFileModified(path));assert.equal(applied.length,0);
+  await f.files.saveCurrent();assert.equal(applied.at(-1).options.applyAudio,true);assert.equal(applied.at(-1).value.preset.volumeLeft,.2);
+  f.files.recordSoundEdit({...draft,name:'Unheard'});await f.files.discardCurrent();
+  assert.equal(f.project.settings.name,'Draft');assert.equal(applied.at(-1).options.applyAudio,false);
+  f.project.writeEditorText(path,'{"bad":');f.files.codeEdited(path);await f.files.saveCurrent();
+  assert.equal(f.project.savedFs.get(path).data,'{"bad":');assert.equal(f.project.savedSettings.name,'Draft');
+  assert.match(f.statuses.at(-1),/JSON not applied/);
+});
+test('manual file move and discard preserve accepted native binary sources and Code execution',async t=>{
+  const f=fixture(t);await f.files.ready;const changes=[];
+  f.files.setCodeControls({activePath:'/index.js',executionPath:'/index.js',flush:async()=>true,setBusy(){},
+    pathChanged:(...args)=>changes.push(args),reloadFile:async()=>{},stop:()=>assert.fail('manual move must not stop Code')});
+  f.project.importFiles([{path:'/banks/x.vab',type:'binary',data:Uint8Array.from([1,2,3])}]);
+  await f.files.setAutoApply(false);await f.files.move('/index.js','/draft.js');
+  assert.equal(f.project.savedFs.get('/index.js').data,'kept');assert.equal(f.project.fs.get('/draft.js').data,'kept');
+  assert.deepEqual(changes[0],['/index.js','/draft.js',{preserveExecution:true}]);
+  f.project.select('/draft.js');await f.files.discardCurrent();assert.equal(f.project.fs.get('/index.js').data,'kept');
+  assert.equal(f.project.fs.has('/draft.js'),false);assert.deepEqual(f.project.fs.get('/banks/x.vab').data,Uint8Array.from([1,2,3]));
+});
+test('Save accepts in memory after local persistence failure and retains both versions for Cassette export',async t=>{
+  const applied=[],f=fixture(t,{store:{read:async()=>null,write:async()=>false,close:async()=>{}},applyInstrument:async value=>applied.push(value)});
+  await f.files.ready;f.files.adoptExternalSound(soundFixture());await f.files.setAutoApply(false);
+  const path=f.files.recordSoundEdit({...soundFixture(),name:'Accepted without disk'});
+  assert.equal(await f.files.saveCurrent(),true);assert.equal(f.project.savedSettings.name,'Accepted without disk');
+  assert.equal(f.project.isFileModified(path),false);assert.equal(applied.at(-1).name,'Accepted without disk');assert.match(f.statuses.at(-1),/Export Cassette/);
+  f.files.recordSoundEdit({...soundFixture(),name:'Still working'});
+  const copy=createSpuCodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));
+  assert.equal(copy.settings.name,'Still working');assert.equal(copy.savedSettings.name,'Accepted without disk');
 });

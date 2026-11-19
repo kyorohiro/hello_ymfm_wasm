@@ -192,17 +192,32 @@ created. PSF playback has its own CPU-write ownership for selected-channel
 manual controls, described below.
 
 **Files** stores `/index.js`, local modules, text/JSON and binary data separately
-from other Synths. Code and text edits save locally. Use relative `await import()`
-and `await file()` for project resources. **Save to presets** beside Instrument
-name, or **Save sound** in Files, writes the current edited sound and its sample
-to `/presets/<instrument name>.spu.json`. Change **Instrument name** before saving
+from other Synths. **Auto apply** is On by default: file edits are accepted
+immediately and valid edits to the selected SPU JSON update the sound. Controls
+and PCM edits update that same JSON; the first control edit after loading a
+native bank creates a separate editable JSON document. Original VAB/VH/VB and
+PSF source bytes remain unchanged.
+
+Turn **Auto apply** Off to keep working edits separate from saved files. A **●**
+marks unsaved changes. **Save** (Ctrl/Cmd+S) accepts the selected file; **Save all**
+accepts every file. **Discard / Discard all** restore saved content. Controls,
+PCM drawing and valid JSON drafts remain visible, while the saved instrument
+continues sounding until Save. Invalid JSON stays editable and never replaces
+the last playable instrument. Physical Live CH controls remain direct edits to
+Code/PSF, independently of this common instrument's draft policy.
+
+**Run / Apply** explicitly uses saved JavaScript, modules and project data;
+saving does not execute Code. Relative `await import()` and `await file()` use
+that saved project. Sound acceptance keeps Code's loops, context and software
+FX running. Changing Keyboard / Code mode is independent of file selection.
+Choose **Code** to see or edit text; selecting a preset does not force that mode.
+
+**Save to presets** beside Instrument name, or **＋ Instrument** in Files, saves
+the current edited sound and its sample to a new
+`/presets/<instrument name>.spu.json`. Change **Instrument name** before saving
 to choose a name. Existing files are kept; repeated names get `(2)`, `(3)`, etc.
-Saving opens Files and selects the new preset without changing Keyboard / Code
-mode, editor focus or the current performance. Selecting a file also keeps the
-current mode: choose **Code** when you want to see or edit its text. Selecting a
-saved sound JSON applies it, and its text is prepared in the shared editor. JSON
-and other text edits save locally; **Run / Apply** are available only for
-JavaScript. Select a sound JSON again to apply its updated settings.
+This named copy is distinct from **Save**, which accepts changes to an existing
+file. New instruments are saved even when Auto apply is Off.
 
 The **Preset** selector beside Instrument name lists standard VAB Program / Tone
 choices and supplemental SPU JSON under `/presets`, including nested folders.
@@ -222,11 +237,16 @@ chosen `.spu.json` path. Opening the menu itself does not load or play anything.
 Escape or an outside click closes it.
 Recalling an identical loaded ADPCM sample reuses it, including its tuning and
 loop settings, so switching saved sounds does not keep consuming SPU RAM.
-Only explicitly saved sounds become preset files; opening a bank does not
-expand every Tone into a separate file. **Export project / Import project** retains Files and the selected Code
-file. The project import / export commands are in Menu, with project files
-and selected-file export. Restoring files never runs Code, creates audio or automatically loads an
-instrument. Project ZIPs and their expanded contents are limited to 16 MiB;
+Opening a bank does not expand every Tone into a separate file.
+**Menu → Import / Export → Cassette · ZIP** retains saved files, working recovery
+differences, the selected document and Auto apply. Ordinary ZIP entries contain
+saved content; Tetorica's manifest restores unsaved edits as well. Unchanged
+native banks and other binary files are not duplicated. Older SPU projects
+migrate with Auto apply On. Local project recovery never starts Code or creates
+audio; enabling audio restores the accepted instrument and keeps its draft
+visible. Importing a Cassette retires the previous performance and restores its
+accepted instrument when audio is already active. ZIPs and their expanded
+contents are limited to 16 MiB;
 use **Menu → Export → Instrument · SPU JSON** for larger Software audio instruments.
 
 ## Instrument display

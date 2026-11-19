@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import {SPU_DOCUMENT_METHODS} from './instrument_document_edit.js';
 import {readFile} from 'node:fs/promises';
 
 const source=await readFile(new URL('./synth.js',import.meta.url),'utf8');
@@ -22,7 +23,7 @@ function harness({view='channel',ready=Promise.resolve(),codeMode=false,running=
     noteOff(id){calls.push(['off',id]);return true;},releaseManual(){calls.push(['release']);return true;},
     editVoice(ch,patch){calls.push(['edit',ch,structuredClone(patch)]);return true;},
     setPitchBend(value){calls.push(['bend',value]);return true;},stop(){throw Error('manual controls must not stop PSF');}};
-  const scope=vm.createContext({DOMException,Promise,Map,Set,Number,Array,Boolean,
+  const scope=vm.createContext({DOMException,Promise,Map,Set,Number,Array,Boolean,SPU_DOCUMENT_METHODS,displayInstrument:null,
     $:id=>inputs[id],notes,epoch:1,assetEpoch:1,psfActionEpoch:1,psfViewEpoch:1,psfView:view,psfSong:transport,
     noteSequence:0,bend:1.5,topologyPending:0,switchingAudioOutput:false,capturePending:null,disposed:false,
     codeHost:{isCodeMode:()=>code.mode,isRunning:()=>code.running,getState:()=>({busy:code.busy}),openOutput(){code.opens++;return code.openAllowed;},markSoundDirty(){calls.push(['dirty']);}},

@@ -432,3 +432,8 @@ footer a { color: #4a5e74; }
 .spu-psf-effect-guard { border:0; padding:0; margin:0; min-width:0; }
 .spu-psf-voice input[type=range] { width:100%; }
 .spu-psf-voice output { font-variant-numeric:tabular-nums; }
+
+.spu-files-save-controls { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:10px; }
+.spu-files-save-controls label { display:flex; align-items:center; gap:5px; font-size:.75rem; }
+.spu-files-save-controls button { min-height:28px; padding:4px 7px; font-size:.7rem; }
+.spu-file-unsaved { color:var(--accent, #d9a441); }

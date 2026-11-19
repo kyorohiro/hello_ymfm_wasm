@@ -3,9 +3,20 @@
 Audit date: 2026-11-19. Documentation and planning only; this file does not
 authorize runtime changes, publication, or every optional feature below.
 User order: **HuC6280 → SPU → DMG → SID**. SPU is second.
+The user authorized the [working/saved slice](todo_spu_working_saved_20261120.md)
+on 2026-11-20; later optional features remain separate.
 Reference: [FM2612 working/saved implementation](todo_fm2612_working_saved_20261119.md).
 
-## Audited status
+## Implemented slice (2026-11-20)
+
+The working/saved Files slice is complete; see its linked TODO for validation.
+Auto apply defaults On; Save/Save all/Discard/Discard all, Files dots and
+Ctrl/Cmd+S are mounted. Controls/PCM/JSON share an editable document, native
+sources remain binary, and explicit Run/Apply reads saved files. v1 projects
+migrate and Cassette retains both versions. Files history/New Cassette,
+expanded navigation, highlighting, output policy and timed API remain separate.
+
+## Original audited status
 
 “Missing” means missing the stated FM2612 interaction, not missing all related
 functionality. Chip-specific behavior and file formats must remain independent.
@@ -24,18 +35,18 @@ functionality. Chip-specific behavior and file formats must remain independent.
 
 ## Proposed implementation phases
 
-- [ ] Adopt the reusable two-version Virtual Files workspace; migrate existing
+- [x] Adopt the reusable two-version Virtual Files workspace; migrate existing
       SPU projects without rewriting VAB/VH/VB, PSF sets or unrelated files.
-- [ ] Add Auto apply (default On), Files **●**, Save / Save all / Discard and
+- [x] Add Auto apply (default On), Files **●**, Save / Save all / Discard and
       Ctrl/Cmd+S. Save accepts content in memory; storage durability remains a
       separate result and failures retain exportable data.
-- [ ] Link the active editable instrument to knobs, PCM drawing and JSON edits.
+- [x] Link the active editable instrument to knobs, PCM drawing and JSON edits.
       Keep native VAB sources and bank identity intact; explicitly determine
       the editable JSON target instead of silently overwriting an original bank.
-- [ ] With Auto apply Off, keep drafts out of playback until Save. Validated
+- [x] With Auto apply Off, keep drafts out of playback until Save. Validated
       instrument changes apply while Code continues; incomplete JSON stays
       editable and does not replace a valid sound. Save never executes Code.
-- [ ] Make explicit Run/Apply read the saved entry, dynamic modules and data.
+- [x] Make explicit Run/Apply read the saved entry, dynamic modules and data.
       Preserve physical-CH direct edits, raw KON/KOFF, ownership and click guard.
 - [ ] Retain working and saved across selection, rename/delete, Undo, New,
       import and reload. Export ordinary saved files plus working recovery

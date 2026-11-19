@@ -81,3 +81,26 @@ test('SPU editor writes accept large presets while preserving JavaScript and tot
   assert.equal(project.fs.get('/presets/large.json').data,large+'\n','UTF-8 growth exceeding the shared budget is rejected before writing');
   assert.throws(()=>project.writeEditorText('/padding.bin','do not replace binary'),/text file/);
 });
+
+test('working/saved migration and saved Code/module reads are independent from drafts',async()=>{
+  const project=createSpuCodeProject({starterCode:'saved'});
+  const old={...project.snapshot(),version:1};delete old.workspace;
+  const migrated=createSpuCodeProject({snapshot:old});assert.equal(migrated.autoApply,true);
+  migrated.importFiles([{path:'/lib/data.txt',type:'text',data:'old'}]);migrated.setAutoApply(false);
+  migrated.writeEditorText('/index.js','working');migrated.writeEditorText('/lib/data.txt','new');
+  assert.equal(await migrated.readSavedFile('/index.js'),'saved');assert.equal(await migrated.readFile('/index.js'),'working');
+  assert.equal(await migrated.readSavedFile('/lib/data.txt'),'old');
+  migrated.saveFiles(['/index.js']);assert.equal(await migrated.readSavedFile('/index.js'),'working');
+  assert.equal(await migrated.readSavedFile('/lib/data.txt'),'old');
+});
+test('Cassette ordinary files are saved versions and recovery retains binary differences without changing sources',async()=>{
+  const project=createSpuCodeProject({starterCode:'saved'}),bank=Uint8Array.from([1,2,3,4]);
+  project.importFiles([{path:'/banks/a.vh',type:'binary',data:bank},{path:'/banks/a.vb',type:'binary',data:bank}]);
+  project.setAutoApply(false);project.writeEditorText('/index.js','working');
+  project.fs.writeBinary('/banks/a.vb',Uint8Array.from([4,3,2,1]));
+  const restored=createSpuCodeProject();restored.restore(await restored.prepareImport(project.exportProject()));
+  assert.equal(restored.autoApply,false);assert.equal(await restored.readSavedFile('/index.js'),'saved');assert.equal(await restored.readFile('/index.js'),'working');
+  assert.deepEqual(restored.savedFs.get('/banks/a.vb').data,bank);assert.deepEqual(restored.fs.get('/banks/a.vb').data,Uint8Array.from([4,3,2,1]));
+  assert.deepEqual(restored.fs.get('/banks/a.vh').data,bank);assert.deepEqual(bank,Uint8Array.from([1,2,3,4]));
+  assert.throws(()=>project.importFiles([{path:'/banks/b.vab',type:'text',data:'bad'}]),/binary/);
+});
