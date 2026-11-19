@@ -610,6 +610,13 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
     if(source?.set===set&&source.entry===entry)return read();
     void stop().catch(()=>{});source=next;say(`PSF ready · ${next.title}. Play to hear the song.`);return read();
   }
+  async function clearSource(){
+    if(disposed)return false;
+    // Clear synchronously, then retire the old generation. A later setSource
+    // must never be overwritten by this cleanup's eventual acknowledgement.
+    const stopped=stop();source=null;say('Open a PSF set and choose an entry to play.');
+    await stopped;return true;
+  }
   function setLiveEnabled(value) {
     if(typeof value!=='boolean')throw new TypeError('PSF Live enabled must be boolean');
     if(disposed||liveEnabled===value)return read();
@@ -648,6 +655,6 @@ export function createPsfSongPreview({getAudio,beforePlay=()=>{},beforeSeek=befo
     if(disposed)return;
     disposed=true;await stop();source=null;
   }
-  return {read,setSource,play,pause,resume,stop,dispose,seek,cancelSeek,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused,
+  return {read,setSource,clearSource,play,pause,resume,stop,dispose,seek,cancelSeek,setLiveEnabled,setLiveVoice,setMonitorEnabled,capturePaused,
     editVoice,noteOn,noteOff,setPitchBend,releaseManual,describeVoice};
 }

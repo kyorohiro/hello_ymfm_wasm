@@ -1,6 +1,7 @@
 // Silent real-WASM SPU working/saved regression. No speaker output.
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {chromium,webkit}=require('playwright');
+const {pathToFileURL}=require('node:url');
 const root=path.resolve(process.env.SPU_TEST_ROOT||path.resolve(__dirname,'../docs')),entry=process.env.SPU_TEST_ENTRY||'/synth-spu/index.html',engines=(process.env.SPU_TEST_ENGINES||'chromium,webkit').split(',');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn,label){const end=Date.now()+15000;while(Date.now()<end){if(await fn())return;await pause(30);}throw Error('Timeout: '+label);}
@@ -101,6 +102,15 @@ async function check(browser,name,origin){
  try{
   await page.goto(origin+entry);await page.locator('#spuFilesToggle').click();
   await page.locator('#spuAutoApplyToggle').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
+  // Cold New is deliberate but must not create an AudioContext or run Code.
+  await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();
+  await page.locator('#spuNewCassetteDialog').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>document.activeElement.id),'spuNewCassetteCancel');
+  await page.keyboard.press('a');assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0,'dialog keys do not play the Synth');
+  await page.setViewportSize({width:390,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await page.locator('#spuNewCassetteDialog').screenshot({path:'/private/tmp/spu-new-dialog-'+name+'-390.png'});await page.setViewportSize({width:1240,height:1000});
+  await page.locator('#spuNewCassetteCancel').click();assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
+  await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();await page.locator('#spuNewCassetteCreate').click();
+  await page.locator('#spuNewCassetteDialog').waitFor({state:'hidden'});assert(!/failed/i.test(await page.locator('#audioStatus').textContent()));assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
   await page.locator('#startAudio').click();await until(()=>page.evaluate(()=>__spuCodeAudit.graph().editorWorklets===1),'worklet');await until(()=>state().then(s=>Boolean(s.sample)),'audio');
   const before=await state(),original=before.preset.adsr2&31;
   await page.locator('#spuAutoApplyToggle').uncheck();await page.locator('[data-spu-editor-tab=adsr]').click();await edit(9);
@@ -178,6 +188,34 @@ async function check(browser,name,origin){
   assert.deepEqual(Array.from((await state()).sample.adpcm),originalBytes,'drawing does not rewrite sounding ADPCM');
   await page.locator('#spuFileSaveButton').click();await until(async()=>JSON.stringify(Array.from((await state()).sample.adpcm))!==JSON.stringify(originalBytes),'PCM accepted');
   assert.equal((await state()).sample.baseFrequencyHz,portable.sample.baseFrequencyHz);
+  // Explicit backup contains both versions and original binary data before
+  // New retires Code. Cancelling the dialog never stops the current loop.
+  await page.locator('#synthInputCodeTab').click();await page.locator('#spuFilesTree [data-file-path="/index.js"]').click();
+  await page.locator('#synthCodeEditor').fill(SONG);await page.locator('#spuFileSaveButton').click();await page.locator('#synthCodeRunButton').click();
+  await until(()=>page.evaluate(()=>Boolean(globalThis.__workingMemo?.ticks)),'Code before New');
+  if(await page.locator('#spuLiveEnabled').isChecked())await page.locator('#spuLiveEnabled').uncheck();
+  await page.locator('[data-spu-editor-tab=adsr]').click();const savedRelease=(await state()).preset.adsr2&31;await edit(21);
+  await page.locator('#spuFilesInput').setInputFiles({name:'original.vb',mimeType:'application/octet-stream',buffer:Buffer.from([4,3,2,1])});
+  await until(()=>page.locator('#spuFilesStatus').textContent().then(s=>s.startsWith('Added 1')),'binary imported');
+  const openNew=async()=>{await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();await page.locator('#spuNewCassetteDialog').waitFor({state:'visible'});};
+  await openNew();assert.match(await page.locator('#spuNewCassetteDescription').textContent(),/unsaved/);await page.locator('#spuNewCassetteCancel').click();
+  const beforeCancel=await page.evaluate(()=>__workingMemo.ticks);await until(()=>page.evaluate(t=>__workingMemo.ticks>t,beforeCancel),'Cancel keeps Code');
+  await openNew();const downloadPromise=page.waitForEvent('download');await page.locator('#spuNewCassetteExport').click();
+  const download=await downloadPromise,zip=await fs.readFile(await download.path());assert.match(download.suggestedFilename(),/cassette.zip$/);
+  await page.locator('#spuNewCassetteDialog').waitFor({state:'hidden'});
+  assert(!/failed/i.test(await page.locator('#audioStatus').textContent()));
+  const {createSpuCodeProject}=await import(pathToFileURL(path.resolve(__dirname,'../docs/synth-spu/code_project.js')).href);
+  const backup=createSpuCodeProject();backup.restore(await backup.prepareImport(zip));
+  assert.equal(backup.settings.preset.adsr2&31,21);assert.equal(backup.savedSettings.preset.adsr2&31,savedRelease);
+  assert.deepEqual(Array.from(backup.fs.get('/original.vb').data),[4,3,2,1]);assert.match(backup.fs.get('/index.js').data,/__workingMemo/);
+  await until(()=>state().then(s=>s.morph.enabled&&s.reverb.preset==='off'),'default Sine restored');
+  assert.equal((await state()).preset.adsr2&31,0);assert.equal(await page.locator('#spuAutoApplyToggle').isChecked(),false);
+  await page.locator('#synthInputCodeTab').click();assert.match(await page.locator('#synthCodeEditor').inputValue(),/const ps1 = await useSoundChip/);
+  assert(!/workingMemo/.test(await page.locator('#synthCodeEditor').inputValue()));assert.match(await page.locator('#synthCodeState').textContent(),/Stopped|Idle/);
+  assert.equal(await page.locator('#spuFilesTree [data-file-path="/original.vb"]').count(),0);
+  const stoppedTicks=await page.evaluate(()=>__workingMemo.ticks);await pause(150);assert.equal(await page.evaluate(()=>__workingMemo.ticks),stoppedTicks,'New never runs Code');
+  await page.locator('#synthInputKeyboardTab').click();await page.locator('#synthKeyboardPanel').waitFor({state:'visible'});await page.locator('h1').click();
+  await page.keyboard.down('y');await until(()=>page.evaluate(()=>{const output=__spuCodeAudit.output();return output.muted&&output.finite&&output.rms>0.00005;}),'new Sine plays internally');await page.keyboard.up('y');
   assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().muted),true);assert.deepEqual(errors,[]);
   for(const width of[1240,390]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'layout '+width);}
   console.log('PASS '+name+': drafts, Save/Discard, Code continuity, reload and muted output');

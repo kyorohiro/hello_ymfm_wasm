@@ -409,3 +409,60 @@ test('Save accepts in memory after local persistence failure and retains both ve
   const copy=createSpuCodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));
   assert.equal(copy.settings.name,'Still working');assert.equal(copy.savedSettings.name,'Accepted without disk');
 });
+
+test('New Cassette dialog is passive, explains drafts/external sources and Cancel preserves owners',async t=>{
+  const f=fixture(t,{getExportNotice:()=> 'External PSF sources are not included unless in Files.'});await f.files.ready;
+  await f.files.setAutoApply(false);f.project.writeEditorText('/index.js','working');const before=f.project.snapshot();f.calls.length=0;
+  await f.doc.getElementById('spuProjectNewButton').fire('click');
+  assert.equal(f.doc.getElementById('spuNewCassetteDialog').open,true);assert.equal(f.doc.activeElement.id,'spuNewCassetteCancel');
+  assert.match(f.doc.getElementById('spuNewCassetteDescription').textContent,/unsaved.*External PSF/);
+  await f.doc.getElementById('spuNewCassetteCancel').fire('click');assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
+});
+test('New Cassette exports both versions and binary bytes before retiring owners; failed backups keep everything',async t=>{
+  for(const outcome of ['success','cancel','throw'])await t.test(outcome,async t=>{
+    const downloads=[],events=[],f=fixture(t,{downloadFile:async(bytes,name,type)=>{events.push('backup');downloads.push({bytes,name,type});if(outcome==='throw')throw Error('Backup failed');return outcome!=='cancel';},onBeforeWorkspaceReplace:async()=>events.push('retire'),onNewProjectCommitted:()=>events.push('committed')});
+    await f.files.ready;f.files.adoptExternalSound(soundFixture());f.project.importFiles([{path:'/keep.vb',type:'binary',data:Uint8Array.from([4,3,2,1])}]);
+    await f.files.setAutoApply(false);f.project.writeEditorText('/index.js','// working');f.files.recordSoundEdit({...soundFixture(),name:'Unheard'});
+    const before=f.project.snapshot(),identity=f.files.workspaceId;f.calls.length=0;
+    if(outcome==='throw')await assert.rejects(f.files.newProject({exportCurrent:true}),/Backup failed/);else assert.equal(await f.files.newProject({exportCurrent:true}),outcome==='success');
+    assert.equal(downloads.length,1);const copy=createSpuCodeProject();copy.restore(await copy.prepareImport(downloads[0].bytes));
+    assert.equal(copy.fs.get('/index.js').data,'// working');assert.equal(copy.savedFs.get('/index.js').data,'kept');
+    assert.equal(copy.settings.name,'Unheard');assert.equal(copy.savedSettings.name,'Saved PCM');assert.deepEqual(copy.fs.get('/keep.vb').data,Uint8Array.from([4,3,2,1]));
+    assert.equal(downloads[0].type,'application/zip');assert.match(downloads[0].name,/\.cassette\.zip$/);
+    assert(!f.calls.some(call=>call[0]==='capture'),'New must not create audio to capture a backup');
+    if(outcome!=='success'){assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.deepEqual(events,['backup']);assert.deepEqual(f.calls,[]);}
+    else{assert.deepEqual(events,['backup','retire','committed']);assert.equal(f.project.settings.name,'Sine');assert.equal(f.project.fs.get('/index.js').data,'kept');assert.equal(f.project.fs.has('/keep.vb'),false);}
+  });
+});
+test('failed preparation cannot retire owners or change files',async t=>{
+  const f=fixture(t);await f.files.ready;const before=f.project.snapshot();f.project.prepareNew=()=>{throw Error('Cannot prepare');};
+  await assert.rejects(f.files.newProject(),/Cannot prepare/);assert.deepEqual(f.project.snapshot(),before);assert.deepEqual(f.calls,[]);
+});
+test('New sound/editor failure rolls back both layers and identity without rerunning Code',async t=>{
+  for(const failure of ['apply-false','apply-throw','editor-false','editor-throw'])await t.test(failure,async t=>{
+    let attempts=0,restores=0;const applied=[],f=fixture(t,{applyInstrument:async value=>{applied.push(value);if(++attempts===1&&failure.startsWith('apply')){if(failure==='apply-false')return false;throw Error('Apply failed');}}});
+    await f.files.ready;f.files.adoptExternalSound(soundFixture());f.project.setCodeState({mode:'code',path:'/index.js'});f.project.setAutoApply(false);
+    f.files.recordSoundEdit({...soundFixture(),name:'Working'});const before=f.project.snapshot(),identity=f.files.workspaceId;attempts=0;applied.length=0;
+    f.files.setCodeControls({flush:async()=>true,setBusy(){},workspaceReplaced:async()=>true,restoreState:async()=>{if(++restores===1&&failure.startsWith('editor')){if(failure==='editor-false')return false;throw Error('Editor failed');}}});
+    if(failure.endsWith('throw'))await assert.rejects(f.files.newProject(),/failed/);else assert.equal(await f.files.newProject(),false);
+    assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);assert.equal(applied.at(-1).name,'Saved PCM');
+  });
+});
+test('Cancel during New application restores prior files and late replies do not commit',async t=>{
+  const started=deferred(),release=deferred();let first=true;
+  const f=fixture(t,{applyInstrument:async()=>{if(first){first=false;started.resolve();return release.promise;}}});await f.files.ready;f.files.adoptExternalSound(soundFixture());
+  const before=f.project.snapshot(),identity=f.files.workspaceId,pending=f.files.newProject();await started.promise;
+  await f.doc.getElementById('spuNewCassetteCancel').fire('click');release.resolve(true);
+  assert.equal(await pending,false);assert.deepEqual(f.project.snapshot(),before);assert.equal(f.files.workspaceId,identity);
+});
+test('New storage failure retains the fresh Cassette in memory and disposal removes the dialog',async t=>{
+  const f=fixture(t,{store:{read:async()=>null,write:async()=>false,close:async()=>{}}});await f.files.ready;
+  assert.equal(await f.files.newProject(),true);assert.match(f.statuses.at(-1),/Local save unavailable/);
+  const copy=createSpuCodeProject();copy.restore(await copy.prepareImport(await f.files.exportProject()));assert.equal(copy.settings.name,'Sine');
+  await f.files.dispose();assert.equal(f.doc.getElementById('spuNewCassetteDialog'),undefined);assert.equal(await f.files.newProject(),false);
+});
+test('post-commit source cleanup errors are reported without hiding or undoing the new files',async t=>{
+  const f=fixture(t,{onNewProjectCommitted:async()=>{throw Error('Source cleanup unavailable');}});await f.files.ready;
+  assert.equal(await f.files.newProject(),true);assert.equal(f.project.settings.name,'Sine');
+  assert.match(f.statuses.at(-1),/Source cleanup failed: Source cleanup unavailable/);
+});

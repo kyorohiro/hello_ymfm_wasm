@@ -459,3 +459,6 @@ footer a { color: #4a5e74; }
   100% { background-color:transparent; box-shadow:0 0 0 2px transparent; }
 }
 @media(prefers-reduced-motion:reduce) { .spu-live-value.is-live-changed { animation-duration:1ms; } }
+
+#spuNewCassetteDialog { width:min(440px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--panel); color:inherit; padding:18px; }
+.spu-new-cassette-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }

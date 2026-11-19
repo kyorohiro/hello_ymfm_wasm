@@ -104,3 +104,16 @@ test('Cassette ordinary files are saved versions and recovery retains binary dif
   assert.deepEqual(restored.fs.get('/banks/a.vh').data,bank);assert.deepEqual(bank,Uint8Array.from([1,2,3,4]));
   assert.throws(()=>project.importFiles([{path:'/banks/b.vab',type:'text',data:'bad'}]),/binary/);
 });
+
+test('New Cassette prepares the original starter and valid Sine without changing either current layer',()=>{
+  const starter='const ps1 = await useSoundChip("ps1");\n',project=createSpuCodeProject({getStarterCode:()=>starter});
+  project.importFiles([{path:'/original.vab',type:'binary',data:Uint8Array.from([1,2,3])}]);
+  project.setAutoApply(false);project.writeEditorText('/index.js','// unsaved edit');const before=project.snapshot();
+  const fresh=createSpuCodeProject({snapshot:project.prepareNew()});assert.deepEqual(project.snapshot(),before);
+  assert.equal(fresh.fs.get('/index.js').data,starter);assert.equal(fresh.savedFs.get('/index.js').data,starter);
+  assert.equal(fresh.autoApply,false);assert.equal(fresh.settings.name,'Sine');assert.equal(fresh.savedSettings.name,'Sine');
+  assert.equal(fresh.settings.morph.enabled,true);assert.equal(fresh.settings.pmon.enabled,false);assert.equal(fresh.settings.noise.enabled,false);
+  assert.equal(fresh.settings.reverb.preset,'off');assert.doesNotThrow(()=>readSpuProjectSound(fresh.settings));
+  assert.equal(fresh.activeSoundPath,null);assert.equal(fresh.fs.has('/original.vab'),false);assert.deepEqual(fresh.getDirtyPaths(),[]);
+  assert.deepEqual(fresh.getCodeState(),{mode:'keyboard',path:'/index.js'});
+});

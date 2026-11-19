@@ -202,7 +202,17 @@ async function check(browser,name,origin,fixture){
     step('Manual controls remain compact at desktop/phone widths and physical output stays muted');
     await page.locator('#synthInputKeyboardTab').click();await page.locator('[data-spu-editor-tab="pcm"]').click();await page.locator('#spuLiveChannel').selectOption('0');
     for(const width of[1240,390]){await page.setViewportSize({width,height:1000});await page.locator('#spuCodeLiveTools').scrollIntoViewIfNeeded();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-${width}.png`)});}
-    const final=await graph(page);assert(final.muted&&final.finite);assert.equal(final.contexts,1);assert.equal(final.editorWorklets,1);assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);await page.locator('#psfStopSong').click();
+    const final=await graph(page);assert(final.muted&&final.finite);assert.equal(final.contexts,1);assert.equal(final.editorWorklets,1);assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);
+    step('New Cassette Cancel keeps PSF; confirmed New retires the source and restores Sine without auto-playing');
+    const sourceBeforeNew=await native(page);
+    await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();
+    assert.match(await page.locator('#spuNewCassetteDescription').textContent(),/External PSF/);await page.locator('#spuNewCassetteCancel').click();
+    assert.equal((await native(page)).id,sourceBeforeNew.id);
+    await page.locator('#synthMenuButton').click();await page.locator('#spuProjectNewButton').click();await page.locator('#spuNewCassetteCreate').click();
+    await page.locator('#spuNewCassetteDialog').waitFor({state:'hidden'});assert.equal((await graph(page)).openCores.length,0);
+    assert(await page.locator('#psfSongPlayer').isHidden());assert.equal(await page.locator('#psfPlaySong').isDisabled(),true);
+    assert.equal(await page.locator('#psfEntry').inputValue(),'');assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
+
     return{browser:name,passed:true,checks,measurements,graph:final,errors,consoleErrors};
   }catch(error){await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-failure.png`)}).catch(()=>{});error.receipt={browser:name,passed:false,stage,error:error.stack,checks,view:await view(page).catch(()=>null),native:await native(page).catch(()=>null),manual:(await manual(page).catch(()=>[])).slice(-15),graph:await graph(page).catch(()=>null),errors,consoleErrors};throw error;}
   finally{await page.close();}

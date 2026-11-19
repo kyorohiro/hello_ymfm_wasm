@@ -5,7 +5,14 @@ import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../playground/playground_cassette.js';
 import {createSynthCodeProject} from '../synth/synth_code_project.js?v=huc-working-saved-1';
 import {createSynthProjectStore} from '../synth/synth_project_store.js?v=draft-reconnect-1';
-import {readSpuInstrument,INSTRUMENT_SCHEMA} from './spu_synth_instrument.js?v=spu-split-vab-1';
+import {createPs1InitSample} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
+import {morphPcm} from './spu_synth_morph.js';
+import {readSpuInstrument,writeSpuInstrument,INSTRUMENT_SCHEMA} from './spu_synth_instrument.js?v=spu-split-vab-1';
+export const createSpuDefaultInstrument=()=>writeSpuInstrument('Sine',{
+  sample:createPs1InitSample(),waveform:morphPcm({enabled:true}),morph:{enabled:true},
+  preset:{volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:0,pitch:4096,reverb:false},
+  reverb:{preset:'off',volumeLeft:.25,volumeRight:.25},noise:{enabled:false},pmon:{enabled:false},
+});
 const readPreset=value=>{if(value==null)return null;const sound=readSpuProjectSound(value);if(!sound)throw Error('Expected an SPU instrument.');return sound;};
 
 export const SPU_PROJECT_FORMAT='tetorica-spu-code-project';
@@ -165,7 +172,7 @@ export function createSpuCodeProject({settings=null,snapshot,starterCode,getStar
     setCodeState(value){const next=codeState(value,fs);if(next.mode!==state.mode||next.path!==state.path){state=next;notify();}},getCodeState:()=>clone(state),
     prepareNew(){
       // Prepare defaults separately, using the original starter rather than edited Code.
-      const fresh=createSpuCodeProject({starterCode:getStarterCode?getStarterCode():starterCode??''});
+      const fresh=createSpuCodeProject({settings:createSpuDefaultInstrument(),starterCode:getStarterCode?getStarterCode():starterCode??''});
       fresh.select('/index.js');fresh.setCodeState({mode:'keyboard',path:'/index.js'});
       fresh.setAutoApply(project.autoApply);
       return fresh.snapshot();

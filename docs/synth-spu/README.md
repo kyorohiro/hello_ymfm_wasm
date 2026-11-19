@@ -258,6 +258,28 @@ focused controls are left alone. It follows the existing Live snapshots, so
 intermediate writes between snapshots can be missed. PCM/sample arrays and
 waveform previews are not diffed. Highlighting adds no polling or sound changes.
 
+## New Cassette
+
+**Menu → New → Cassette…** opens a confirmation dialog. **Cancel** keeps the
+current performance and files. **Export current & create** downloads the current
+Cassette, including saved files and working recovery data, before replacing it.
+A failed or cancelled export keeps the current project and performance.
+**Create without export** replaces it directly.
+
+The new Cassette contains the original starter `/index.js` and default Sine
+sound with Software morph enabled, Noise/PMON disabled and Reverb Off. It stops
+Code, PSF and held notes, clears the old PSF/VAB inspector sources, and returns
+to the compact PCM/Keyboard view. It does not run Code or create audio when
+started cold. Master, Auto apply and Highlight preferences are retained.
+
+Cassette export includes Files and the authored instrument, not external
+PSF/VAB inspector sources that have not been saved in Files. The dialog flags
+this when such a source is loaded; keep the original source files separately.
+Preparation and export happen before stopping the current performance. If a
+later sound/editor restoration fails, previous files and instrument data are
+restored; a retired performance is not automatically restarted. Local storage
+failure leaves the new Cassette usable in memory and available for Export.
+
 ## Code workspace layout
 
 The **Code / Synth** buttons beside **Files** select the layout. **Code** opens

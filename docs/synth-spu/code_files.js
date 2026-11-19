@@ -47,12 +47,12 @@ function copyPath(project,path){
 }
 export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=async()=>{throw Error("Enable audio before saving a sound.");},applyInstrument=async()=>{},
   applyVabTone=async()=>{throw Error('VAB preset loading is unavailable.');},
-  onBeforeWorkspaceReplace=async()=>{},onWorkspaceRestored=async()=>{},setStatus=()=>{},store=createSpuProjectStore(),storage=globalThis.localStorage,document:doc=globalThis.document}={}){
+  onBeforeWorkspaceReplace=async()=>{},onWorkspaceRestored=async()=>{},onNewProjectCommitted=async()=>{},getExportNotice=()=>'',downloadFile,setStatus=()=>{},store=createSpuProjectStore(),storage=globalThis.localStorage,document:doc=globalThis.document}={}){
   const panel=doc.getElementById('spuFilesPanel'),toggle=doc.getElementById('spuFilesToggle'),workspace=doc.getElementById('synthWorkspace');
   const presetSelect=doc.getElementById('spuPresetSelect'),presetCache=new Map();let presetSignature='',deferPersistence=0,appliedPreset=null,presetOptions=new Map();
   if(!panel||!toggle||!workspace)throw Error('SPU Files mount is missing.');
   const win=doc.defaultView??globalThis,main=doc.querySelector?.('.spu-main'),listeners=[],expanded=new Map([['/presets',true],['/lib',true],['/data',true]]);
-  let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false;
+  let code=null,busy=true,disposed=false,restoring=false,persistenceReady=false,operation=0,editRevision=0,saveTimer=null,identity=workspaceId(),visibilityTouched=false,pendingNewCassette=null,disposing=false;
   let soundEditOperation=0,pendingSoundEdit=Promise.resolve(),soundApplicationPending=false,soundGeneration=0,pendingSoundJournal=null,recoveryWarning=null;
   const getSettings=()=>project.settings;
   const onBeforeSoundApply=async()=>{};
@@ -73,11 +73,11 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   const actions=make('div');actions.className='spu-files-actions';actions.setAttribute('role','group');actions.setAttribute('aria-label','Selected file actions');
   const buttons=new Map();
   for(const button of saving.querySelectorAll('button'))buttons.set(button.id,button);
-  for(const[id,label]of [['spuFileNewButton','＋ JS'],['spuFileSaveSoundButton','＋ Instrument'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
+  for(const[id,label]of [['spuProjectNewButton','Cassette…'],['spuFileNewButton','＋ JS'],['spuFileSaveSoundButton','＋ Instrument'],['spuFileRenameButton','Rename…'],['spuFileDeleteButton','Delete…'],['spuFileImportButton','Add files…'],['spuFileExportButton','Export file'],['spuProjectExportButton','Export project'],['spuProjectImportButton','Import project…']]){
     const button=make('button',id,label);button.type='button';
     (id==='spuFileNewButton'||id==='spuFileSaveSoundButton'?toolbar:actions).append(button);buttons.set(id,button);
     if(id==='spuFileNewButton')button.title='New JavaScript file; end the path with / to create a folder';
-    const destination={spuProjectImportButton:['spuMenuProjectImport','Cassette · ZIP…'],spuProjectExportButton:['spuMenuProjectExport','Cassette · ZIP'],spuFileImportButton:['spuMenuFilesImport','Project files…'],spuFileExportButton:['spuMenuFileExport','Selected file']}[id];
+    const destination={spuProjectNewButton:['spuMenuProjectNew','Cassette…'],spuProjectImportButton:['spuMenuProjectImport','Cassette · ZIP…'],spuProjectExportButton:['spuMenuProjectExport','Cassette · ZIP'],spuFileImportButton:['spuMenuFilesImport','Project files…'],spuFileExportButton:['spuMenuFileExport','Selected file']}[id];
     const mount=destination&&doc.getElementById(destination[0]);
     if(mount){button.textContent=destination[1];button.setAttribute('data-close-synth-menu','');mount.append(button);}
     listen(button,'pointerdown',event=>{if(event.button===0){event.preventDefault();if(id!=='spuFileSaveSoundButton'||!code?.isCodeMode?.())doc.activeElement?.blur?.();}});
@@ -90,6 +90,13 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   const dialog=make('dialog','spuFileNameDialog'),form=make('form'),label=make('label','spuFileNameLabel','File path'),nameInput=make('input','spuFileNameInput');
   label.htmlFor=nameInput.id;const confirm=make('button','spuFileNameConfirm','Create'),cancel=make('button','spuFileNameCancel','Cancel');confirm.type='submit';cancel.type='button';form.append(label,nameInput,confirm,cancel);dialog.append(form);
   panel.append(heading,saving,tree,actions,selected,info,fileInput,projectInput,dialog);
+  const newCassetteDialog=make('dialog','spuNewCassetteDialog'),newCassetteTitle=make('h2','spuNewCassetteTitle','Create a new Cassette?'),
+    newCassetteDescription=make('p','spuNewCassetteDescription'),newCassetteActions=make('div'),
+    newCassetteCancel=make('button','spuNewCassetteCancel','Cancel'),newCassetteExport=make('button','spuNewCassetteExport','Export current & create'),
+    newCassetteCreate=make('button','spuNewCassetteCreate','Create without export');
+  newCassetteDialog.setAttribute('aria-labelledby',newCassetteTitle.id);newCassetteActions.className='spu-new-cassette-actions';
+  for(const button of [newCassetteCancel,newCassetteExport,newCassetteCreate])button.type='button';
+  newCassetteActions.append(newCassetteCancel,newCassetteExport,newCassetteCreate);newCassetteDialog.append(newCassetteTitle,newCassetteDescription,newCassetteActions);doc.body.append(newCassetteDialog);
   let dialogAction=null,dialogPath=null;
   const say=message=>{if(!disposed){info.textContent=message;setStatus(message);}};
   const report=error=>{if(error?.name!=='AbortError')say(`Files: ${error?.message??error}`);};
@@ -307,6 +314,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     buttons.get('spuFileDiscardButton').disabled=busy||!project.selectedPath||!project.isFileModified(project.selectedPath);
     buttons.get('spuFileDiscardAllButton').disabled=busy||!project.getDirtyPaths().length;
     autoToggle.checked=project.autoApply;autoToggle.disabled=busy;
+    newCassetteExport.disabled=newCassetteCreate.disabled=busy;
 
     code?.setBusy?.(busy);
     for(const button of tree.querySelectorAll('button'))button.disabled=busy;
@@ -401,6 +409,104 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     }finally{if(!disposed)setBusy(false);}
   }
   async function exportProject(){await api.ready;await code?.flush?.();await pendingSoundEdit;return project.exportProject();}
+	function cancelNewCassette() {
+		if (pendingNewCassette !== null) operation++;
+		newCassetteDialog.close();
+	}
+	function askNewCassette() {
+		if (disposed || disposing || busy) return;
+		const notice=getExportNotice(),dirty=project.getDirtyPaths().length;
+        newCassetteDescription.dataset.unsaved=String(dirty);
+		newCassetteDescription.textContent='This replaces the current browser project and stops its performance. The new Cassette contains the default Sine sound, starter Code. Code will not run automatically.'+(dirty?` ${dirty} unsaved path(s); Export keeps saved and working versions.`:'')+(notice?' '+notice:'');
+		newCassetteDialog.showModal();
+		newCassetteCancel.focus();
+	}
+	async function newProject({ exportCurrent = false } = {}) {
+		if (typeof exportCurrent !== 'boolean') throw TypeError('exportCurrent must be a boolean.');
+		await api.ready;
+		if (disposed || disposing || busy || pendingNewCassette !== null) return false;
+		const token = ++operation,
+			current = () => !disposed && !disposing && token === operation;
+		const previousIdentity = identity, previousPersistence = persistenceReady;
+		const backupNotice=exportCurrent?getExportNotice():'';
+		let previous = null, retired = false, applyAttempted = false, committed = false, failure = null, locked=false, cleanupError=null;
+		pendingNewCassette = token;
+		clearTimeout(saveTimer);
+		try {
+			// Build/validate defaults before retiring Code or the song owner.
+			const fresh = createSpuCodeProject({ snapshot: project.prepareNew() });
+			if ((await code?.flush?.()) === false || !current()) return false;
+            // Cache + pending edit flush captures both author versions without
+            // starting audio or sampling temporary Code/PSF performance data.
+            let pending;
+            do{pending=pendingSoundEdit;await pending;}while(current()&&pending!==pendingSoundEdit);
+            if(!current())return false;setBusy(true);locked=true;restoring=true;
+            previous=createSpuCodeProject({snapshot:{...project.snapshot(),codeState:code?.captureState?.()??project.getCodeState()}}).snapshot();
+			if (exportCurrent) {
+				const oldProject = createSpuCodeProject({ snapshot: previous });
+				const exported = await (downloadFile ?? download)(oldProject.exportProject(),
+					oldProject.cassetteName + '.cassette.zip', 'application/zip');
+				if (exported === false || !current()) return false;
+			}
+			if (!current()) return false;
+			// Defer saves until both replacement and editor restoration commit.
+			persistenceReady = false;
+			retired = true;
+			if ((await code?.workspaceReplaced?.()) === false || !current()) return false;
+			if ((await onBeforeWorkspaceReplace({ reason:'new',isCurrent:current })) === false || !current()) return false;
+			applyAttempted = true;
+			if ((await applySettings(fresh.savedSettings, { record:false,source:'restore',load:false,applyAudio:true,displayPreset:fresh.settings,isCurrent:current })) === false || !current()) return false;
+			project.restore(fresh.snapshot());
+			identity = workspaceId();
+			if ((await code?.restoreState?.(project.getCodeState())) === false || !current()) return false;
+			committed = true;
+            try{await onNewProjectCommitted({isCurrent:current});}catch(error){cleanupError=error;report(error);}
+            soundGeneration=0;pendingSoundJournal=null;recoveryWarning=null;
+            try{storage?.removeItem(SPU_SOUND_JOURNAL_KEY);}catch{}
+			soundEditOperation++;
+			persistenceReady = true;
+			restoring = false;
+			appliedPreset = null;
+			presetCache.clear();
+			newCassetteDialog.close();
+			const persisted = await persistCode();
+			say('New SPU Cassette created. Code was not run.' +
+				(persisted === false ? ' Local save unavailable; export the project to keep it.' : ' Saved locally.')+(cleanupError?' Source cleanup failed: '+cleanupError.message:'')+(backupNotice?' '+backupNotice:''));
+			return true;
+		} catch (error) {
+			failure = error;
+			throw error;
+		} finally {
+			if (!committed) {
+				persistenceReady = previousPersistence;
+				if (previous && retired) {
+					project.restore(previous);
+					identity = previousIdentity;
+					if (!disposed && !disposing) {
+						if (applyAttempted) {
+							try {
+							if ((await applySettings(previous.savedSettings??previous.settings, {
+								record:false,source:'restore',load:false,applyAudio:true,displayPreset:previous.settings,
+									isCurrent: () => !disposed && !disposing && pendingNewCassette === token,
+								})) === false) throw Error('Sound restoration was cancelled.');
+							} catch (error) { report(Error('Previous sound could not be restored: ' + error.message)); }
+						}
+						try { await code?.restoreState?.(previous.codeState); }
+						catch (error) { report(Error('Previous Code display could not be restored: ' + error.message)); }
+					}
+				}
+			}
+			restoring = false;
+			if (!committed && !failure && current()) say('New Cassette was not created; previous project kept.'+(retired?' Performance remains stopped.':''));
+			if (pendingNewCassette === token) {
+				pendingNewCassette = null;
+				if (!disposed && !disposing) {
+					if(locked)setBusy(false);
+					if (!committed && persistenceReady) schedule();
+				}
+			}
+		}
+	}
   async function move(source,destination,copy=false){
     if(disposed||busy)return false;const token=++operation;await code?.flush?.();if(disposed||token!==operation)return false;source=allowed(source);destination=allowed(destination);setBusy(true,{lockMain:!copy});
     try{
@@ -540,8 +646,12 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
     return action==='rename'?move(path,value):remove(path);
   }).catch(report);});
   listen(cancel,'click',()=>dialog.close());
+  listen(newCassetteCancel,'click',cancelNewCassette);
+  listen(newCassetteDialog,'cancel',event=>{event.preventDefault();cancelNewCassette();});
+  listen(newCassetteExport,'click',()=>void newProject({exportCurrent:true}).catch(report));
+  listen(newCassetteCreate,'click',()=>void newProject().catch(report));
   listen(presetSelect,'change',()=>{const choice=presetOptions.get(presetSelect.value);presetSelect.blur();if(choice)void(choice.kind==='vab'?selectVabTone(choice.path,choice.toneNumber):selectFile(choice.path)).catch(report);});
-  for(const[id,fn]of [['spuFileNewButton',()=>ask('new')],['spuFileRenameButton',()=>ask('rename')],['spuFileDeleteButton',()=>ask('delete')],['spuFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['spuProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['spuFileSaveSoundButton',()=>void saveSound().catch(report)],['spuProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['spuFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
+  for(const[id,fn]of [['spuProjectNewButton',askNewCassette],['spuFileNewButton',()=>ask('new')],['spuFileRenameButton',()=>ask('rename')],['spuFileDeleteButton',()=>ask('delete')],['spuFileImportButton',()=>{setVisible(true);fileInput.value='';fileInput.click();}],['spuProjectImportButton',()=>{setVisible(true);projectInput.value='';projectInput.click();}],['spuFileSaveSoundButton',()=>void saveSound().catch(report)],['spuProjectExportButton',()=>void exportProject().then(bytes=>download(bytes,project.cassetteName+'.cassette.zip','application/zip')).catch(report)],['spuFileExportButton',()=>{const file=project.fs.get(project.selectedPath);if(file)download(file.data,basename(file.path),file.type==='text'?'text/plain;charset=utf-8':undefined);} ]])listen(buttons.get(id),'click',fn);
   listen(fileInput,'change',()=>{const files=[...fileInput.files];fileInput.value='';void importFiles(files).catch(report);});
   listen(projectInput,'change',()=>{const[file]=projectInput.files;projectInput.value='';if(file)void file.arrayBuffer().then(importProject).catch(report);});
   listen(autoToggle,'change',()=>{void setAutoApply(autoToggle.checked).catch(report);autoToggle.blur();});
@@ -550,7 +660,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
   listen(win,'pagehide',()=>{void code?.flush?.();void persistCode();});
   const unwatch=project.onDidChange(()=>{render();schedule();});
   const api={project,get workspaceId(){return identity;},setVisible,setCodeControls(value){code=value;render();},
-    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,selectVabTone,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveInstruments,
+    rememberCodeState(value){if(!disposed)project.setCodeState(value);},getCodeState:()=>project.getCodeState(),persistCode,selectFile,selectVabTone,importFiles,importProject,exportProject,createFile,move,duplicate,remove,saveSound,saveInstruments,newProject,
     recordSoundEdit,adoptExternalSound,canEditSound,codeEdited,recoverCodeState,isAutoApply:()=>project.autoApply,getSavedEditorPreset:()=>project.savedSettings,
     saveCurrent,saveAll:()=>saveCurrent(true),discardCurrent,discardAll:()=>discardCurrent(true),setAutoApply,
     getWorkingInstrument:()=>project.settings,
@@ -562,7 +672,7 @@ export function setupSpuCodeFiles({project=createSpuCodeProject(),getInstrument=
         return recordSoundEdit(value);
       }).catch(report);return pendingSoundEdit;
     },
-    async dispose(){if(disposed)return;operation++;contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
+    async dispose(){if(disposed)return;disposing=true;operation++;newCassetteDialog.close();newCassetteDialog.remove();contextMenu.dispose();await code?.flush?.();await persistCode();disposed=true;if(main)main.inert=false;clearTimeout(saveTimer);unwatch();for(const cleanup of listeners)cleanup();await store.close?.();},
   };
   function recoverSound(saved){
     const raw=storage?.getItem(SPU_SOUND_JOURNAL_KEY);if(!raw)return false;

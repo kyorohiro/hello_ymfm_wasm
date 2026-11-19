@@ -686,3 +686,11 @@ test('Pause before a selected source onset then Resume reanchors an already-open
   assert.deepEqual(events.at(-2),['set',0,fresh.at]);assert.deepEqual(events.at(-1),['ramp',1,fresh.at+.004]);
   assert.equal(h.outputs[0].gain.events.length,0);await h.controller.dispose();
 });
+
+test('New Cassette can clear an external PSF source without acquiring audio or overwriting a later source',async()=>{
+  const cold=harness();cold.controller.setSource(source(),'song.psf');await cold.controller.clearSource();
+  assert.equal(cold.audioReads,0);assert.equal(cold.controller.read().selection,null);assert.equal(cold.controller.read().canPlay,false);await cold.controller.dispose();
+  const h=harness();h.controller.setSource(source(),'song.psf');await h.controller.play();
+  const clearing=h.controller.clearSource();h.controller.setSource(source('new.psf','New song'),'new.psf');await clearing;
+  assert.equal(h.controller.read().selection.title,'New song');assert.equal(h.controller.read().playing,false);assert.equal(h.machine.disposals,1);await h.controller.dispose();
+});

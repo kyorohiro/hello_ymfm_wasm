@@ -662,7 +662,7 @@ document.addEventListener('change', event => {
   }
 }, {capture:true});
 document.addEventListener('keydown', event => {
-  if(event.defaultPrevented||$('spuFileNameDialog')?.open||$('spuFileContextMenu')?.hidden===false)return;
+  if(event.defaultPrevented||$('spuFileNameDialog')?.open||$('spuNewCassetteDialog')?.open||$('spuFileContextMenu')?.hidden===false)return;
   if(event.key==='Escape'&&psfSong?.read().seeking){event.preventDefault();event.stopPropagation();void cancelPsfSeek().catch(report);return;}
   if(event.key==='Escape'&&event.target?.id==='psfSongSeek')return;
   if (event.target?.closest?.('select') && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End',' ','Enter','Escape','Tab'].includes(event.key)) pointerSelect = null;
@@ -1279,6 +1279,22 @@ window.addEventListener('pagehide', event => {
 renderKeyboard();
 
 codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getNativeInstrumentDocument,
+  getExportNotice:()=>psfSet||vabBank?'External PSF/VAB inspector sources are not included unless saved in Files. Keep their original files separately.':'',
+  async beforeNewProject({isCurrent}){
+    beginAssetOperation();preparation?.cancel();
+    await stop();return isCurrent();
+  },
+  async onNewProjectCommitted(){
+    psfSet=null;psfHasSongs=false;vabBank=null;vabName='';bankChoices=[];bankSaveRequest=null;
+    psfView='channel';psfViewEpoch++;
+    $('psfEntry').replaceChildren(new Option('No PSF songs',''));$('psfSongFolder').textContent='';$('psfSongFolder').hidden=true;
+    $('vabBank').replaceChildren(new Option('No sound banks',''));$('vabTone').replaceChildren(new Option('No Tone',''));
+    $('vabAvailability').textContent='';$('vabAvailability').hidden=true;$('vabUnavailableReasons').replaceChildren();$('vabUnavailableDetails').hidden=true;$('vabUnavailableDetails').open=false;
+    await psfSong.clearSource();psfSong.setLiveVoice(0);psfSong.setLiveEnabled(true);codeLive.setVoice(0);codeLive.setEnabled(true);updateBankControls();vabStatus('Load a VAB bank or PSF set.');
+    $('sampleLoadStatus').textContent='Choose a file, then play the keyboard.';
+    $('sampleRootNote').value='60';$('sampleLoop').checked=false;
+    liveHighlighter?.clear();await codeHost.controls.setExpanded(false);selectEditorTab('pcm');
+  },
   async onWorkspaceRestored({settings,savedSettings}){
     if(savedSettings)await applyAcceptedInstrument(savedSettings,{displayPreset:settings??savedSettings});
     else {displayInstrument=null;acceptedInstrument=null;if(state)applyState(state);}

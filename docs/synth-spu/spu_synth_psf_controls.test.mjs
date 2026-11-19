@@ -163,3 +163,9 @@ test('PSF Synth-view keys keep the song playing and use the authored bank instea
   assert.equal(h.calls[0][0],'author');assert.equal(h.calls[0][1],'instrumentNoteOn');
   assert(h.song.playing);h.scope.release('key:KeyA');assert.equal(h.calls.at(-1)[1],'instrumentNoteOff');
 });
+
+test('New Cassette modal protects its keyboard input without stopping the running Code',async()=>{
+  const h=harness({codeMode:true,running:true});Object.assign(h.song,{playing:false,canStop:false});
+  h.inputs.spuNewCassetteDialog={open:true};h.listeners.get('keydown')(h.event());await h.idle();
+  assert.equal(h.notes.size,0);assert.deepEqual(h.calls,[]);assert.equal(h.code.running,true);
+});
