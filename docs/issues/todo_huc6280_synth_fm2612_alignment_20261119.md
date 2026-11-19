@@ -94,3 +94,7 @@ Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md
 - [ ] Define supported Wave RAM/DDA operations first. Keep software DDA feed/sample transfer and MSM5205/CD-DA transport outside the first register-only scope.
 - [ ] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this chip when the work is authorized.
+
+Implementation tracking: [HuC6280 timed API](todo_huc6280_timed_register_api_20261119.md).
+The internal recorder/compiler foundation is implemented; public scheduling,
+coherent snapshots and Code lifecycle integration are still pending there.
