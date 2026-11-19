@@ -14,7 +14,7 @@ function configuration(value, keys) {
 
 /** Borrow a synchronous HuC6280 rendering engine; disposing the synth does not destroy it. */
 export class Huc6280DirectTransport {
-  /** @param {import('./huc6280audioengine.js?v=audio-stability-2').Huc6280AudioEngine} chip */
+  /** @param {import('./huc6280audioengine.js').Huc6280AudioEngine} chip */
   constructor(chip) {
     if (!chip || typeof chip.writeHuc6280 !== 'function' || typeof chip.reset !== 'function') throw new TypeError('Expected Huc6280AudioEngine');
     this.chip = chip;
@@ -142,6 +142,9 @@ export class Huc6280Synth {
   }
   /** @param {number} channel @param {string|number} note */
   noteOn(channel, note) { this.setNote(channel, note); this.keyOn(channel); }
+  /** Alias for the raw hardware gate; HuC6280 has no hardware release envelope.
+   * @param {number} channel */
+  noteOff(channel) { this.keyOff(channel); }
   /** Silence every channel while retaining volume, waveform and DDA settings. */
   allNotesOff() {
     this.#alive();

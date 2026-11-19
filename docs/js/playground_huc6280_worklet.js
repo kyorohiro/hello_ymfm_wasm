@@ -1,17 +1,27 @@
 import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {Huc6280AudioEngine} from './huc6280audioengine.js?v=audio-stability-2';
-import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
+import {Huc6280Synth,HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import factory from '../generated/huc6280_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
+import {createHuc6280TimedProcessor,huc6280TimedCommandCost} from './huc6280_timed_processor.js';
+import {validateHuc6280RegisterOnlyPlan} from './huc6280_operations.js';
+
+let instanceSequence=0;
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.selectedChannel = 0; this.controls = new Uint8Array(8);
     this.baseClock = options.processorOptions.clock ?? HUC6280_CLOCK;
+    this.clock=this.baseClock;this.instanceId=options.processorOptions.instanceId??`huc6280-worklet:${++instanceSequence}`;
+    // Full sent-register/control state. Playback phase is deliberately excluded;
+    // timed R6 writes require DDA, so they never depend on a Wave RAM cursor.
+    this.applied=new Huc6280Synth({clock:this.baseClock,transport:{writeRegister(){},reset(){}}});
+    this.applied.adoptRegisterState();
     this.performance = createProcessorPerformance({chip:'huc6280',
       getHucChannel:()=>this.selectedChannel,
+      patternCommandCost:huc6280TimedCommandCost,
       releaseNote:key => ({method:'keyOff', args:[key]}),
       prepare:(data, port) => {
         if(data.method==='stopVoices'){this.apply(data,port);return null;}
@@ -29,7 +39,7 @@ class Processor extends AudioWorkletProcessor {
         }
         if (data.id === undefined) return data;
         const {id, ...command} = data; port.postMessage({id, value:true}); return command;
-      }, apply:(data, port) => this.apply(data, port)});
+      }, apply:(data, port, frame, metadata) => this.apply(data, port, frame, metadata)});
     this.renderSegment = this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if(data.primaryWorker) {
@@ -60,22 +70,32 @@ class Processor extends AudioWorkletProcessor {
         this.inspector=new Huc6280VoiceInspector({clock:()=>this.baseClock*(this.clockResampler?.ratio??1),sampleRate,
           dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{owner,...metadata}),
           beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)});
+        this.timed=createHuc6280TimedProcessor({performance:this.performance,
+          getState:()=>({...this.applied._getState(),clock:this.clock}),
+          getConfig:()=>({instanceId:this.instanceId,clock:this.clock}),
+          dispatch:(command,port,_frame,metadata)=>this.performance.applyImmediate(command,port,metadata),
+          nowFrame:this.performance.nowFrame,sampleRate,validatePlan:validateHuc6280RegisterOnlyPlan});
         chip.generateStereo=frames=>{const pcm=chip.processFrames(frames);if(frames)this.inspector.observeRendered();return pcm;};
         this.port.postMessage({ready:true});
       }).catch(error => { this.dispose(); this.port.postMessage({error:error.message}); });
   }
   retireRemote() {
+    this.timed?.clear();
     this.remote?.close(); this.remote = null;
     const session = this.performance.getStats().activeSession;
     if (session) this.receive({type:'performance-stop', session}, this.port);
     else {this.inspector?.invoke('auditionAllOff');this.performance.clear(); this.apply({method:'allNotesOff'}, this.port); }
   }
-  dispose() {this.inspector?.resetAuditions();this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close();this.workerRemote?.close(); }
+  dispose() {this.inspector?.resetAuditions();this.timed?.clear();this.performance.clear(); this.dead = true; this.chip?.dispose();this.applied.dispose(); this.chip = null; this.remote?.close();this.workerRemote?.close(); }
   receive(data, port = this.port) {
     if (Array.isArray(data)) { for (const command of data) this.receive(command, port); return; }
+    if(data?.method==='huc6280Timed'){
+      if(!this.timed){port.postMessage({id:data.id,error:'HuC6280 timed API is not ready'});return;}
+      this.timed.receive(data,port);return;
+    }
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector?(action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args):null))return;
     const stop = data.type === 'performance-stop' && Number.isSafeInteger(data.session) && data.session > 0 && data.session >= this.performance.getStats().latestSession;
-    if(stop||data.method==='stopVoices')this.inspector?.invoke('auditionAllOff');
+    if(stop||data.method==='stopVoices'){this.timed?.clear();this.inspector?.invoke('auditionAllOff');}
     if((data.method==='clock'||data.type==='chip-clock')&&this.inspector?.auditions.size){if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,error:'HuC6280 is held by a manual audition'});return;}
     if (this.performance.receive(data, port)) {
       if (stop) { this.apply({method:'allNotesOff'}, port); this.performance.clear(); }
@@ -87,14 +107,17 @@ class Processor extends AudioWorkletProcessor {
     if (register === 0) this.selectedChannel = value & 7;
     if (register === 4) this.controls[this.selectedChannel] = value;
     this.chip.writeHuc6280(register, value);
+    this.applied.writeRegister(register,value);
     this.inspector?.observeWrite(register,value);
   }
-  apply(data, port) {
+  apply(data, port, frame, metadata) {
+    if(data.method==='applyHuc6280TimedOperation')return this.timed.apply(data.operation,port,frame,metadata);
     if (data.method === 'dispose') { this.dispose(); return; }
     if (data.method === 'clock' || data.type === 'chip-clock') {
       try {
         if (!this.chip) throw new Error('HuC6280 not ready');
         (this.clockResampler ??= new ChipClockResampler()).setClock(data.clock ?? data.args[0], this.baseClock);
+        this.clock=data.clock??data.args[0];
         if (!data.performanceAcknowledged && data.id !== undefined) port.postMessage(data.type === 'chip-clock' ? {type:'chip-clock-result', id:data.id} : {id:data.id});
       } catch (error) {
         if (!data.performanceAcknowledged && data.id !== undefined) port.postMessage({type:data.type === 'chip-clock' ? 'chip-clock-result' : undefined, id:data.id, error:error.message});
@@ -104,14 +127,14 @@ class Processor extends AudioWorkletProcessor {
     if(data.method==='stopVoices'){
       try{
         if(!this.chip)throw new Error('HuC6280 not ready');
-        this.inspector?.invoke('auditionAllOff');this.performance.clear();this.apply({method:'allNotesOff'},port);
+        this.timed?.clear();this.inspector?.invoke('auditionAllOff');this.performance.clear();this.apply({method:'allNotesOff'},port);
         if(data.id!==undefined)port.postMessage({id:data.id,value:true});
       }catch(error){if(data.id!==undefined)port.postMessage({id:data.id,error:error.message});}
       return;
     }
     if (!this.chip) return;
-    if (data.type === 'clear-scheduled-writes') { this.performance.clear(); return; }
-    if (data.method === 'reset') { this.chip.reset();this.inspector?.reset();this.clockResampler?.resetPhase(); this.selectedChannel = 0; this.controls.fill(0); }
+    if (data.type === 'clear-scheduled-writes') { this.timed?.clear();this.performance.clear(); return; }
+    if (data.method === 'reset') { this.chip.reset();this.applied.reset();this.applied.adoptRegisterState();this.inspector?.reset();this.clockResampler?.resetPhase(); this.selectedChannel = 0; this.controls.fill(0); }
     if (data.method === 'writeRegister') {
       const [register,value]=data.args,target=data.channel,previous=this.selectedChannel;
       if(register>=2&&register<=7&&Number.isInteger(target)&&target>=0&&target<=7&&target!==previous){this.write(0,target);this.write(register,value);this.write(0,previous);}

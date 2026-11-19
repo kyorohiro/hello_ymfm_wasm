@@ -1,0 +1,1133 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "engine": "chromium",
+  "verify": false,
+  "gainUnits": "source",
+  "method": "half peak-to-peak; RMS/DC/AC-RMS recorded separately",
+  "frequencies": [
+    220,
+    440,
+    880
+  ],
+  "rows": [
+    {
+      "kind": "ym2612",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "ymfm",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1788330078125,
+          0.1788330078125
+        ],
+        "minimum": [
+          -0.1531982421875,
+          -0.1531982421875
+        ],
+        "maximum": [
+          0.1788330078125,
+          0.1788330078125
+        ],
+        "rms": [
+          0.11840433960897455,
+          0.11840433960897455
+        ],
+        "dc": [
+          0.012858038743336995,
+          0.012858038743336995
+        ],
+        "acRms": [
+          0.11770411410784341,
+          0.11770411410784341
+        ],
+        "nonzero": [
+          19161,
+          19161
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.166015625,
+      "amplitude": 0.166015625
+    },
+    {
+      "kind": "ym2612",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "ymfm",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1788330078125,
+          0.1788330078125
+        ],
+        "minimum": [
+          -0.1531982421875,
+          -0.1531982421875
+        ],
+        "maximum": [
+          0.1788330078125,
+          0.1788330078125
+        ],
+        "rms": [
+          0.11841585328508465,
+          0.11841585328508465
+        ],
+        "dc": [
+          0.012881538073221843,
+          0.012881538073221843
+        ],
+        "acRms": [
+          0.11771312707639207,
+          0.11771312707639207
+        ],
+        "nonzero": [
+          19167,
+          19167
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.166015625,
+      "amplitude": 0.166015625
+    },
+    {
+      "kind": "ym2612",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "ymfm",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1788330078125,
+          0.1788330078125
+        ],
+        "minimum": [
+          -0.1531982421875,
+          -0.1531982421875
+        ],
+        "maximum": [
+          0.1788330078125,
+          0.1788330078125
+        ],
+        "rms": [
+          0.11841193616051379,
+          0.11841193616051379
+        ],
+        "dc": [
+          0.012805360953013102,
+          0.012805360953013102
+        ],
+        "acRms": [
+          0.1177174980881969,
+          0.1177174980881969
+        ],
+        "nonzero": [
+          19166,
+          19166
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.166015625,
+      "amplitude": 0.166015625
+    },
+    {
+      "kind": "huc6280",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "One32-sample5-bit sine spanning0..31; channel volume31, both per-channel/global balance15, LFO/noise/DDA disabled.",
+      "limitations": [
+        "One wavetable channel of the six-channel output; hardware DAC centering, quantization and resampling are retained."
+      ],
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.16650390625,
+          0.16650390625
+        ],
+        "minimum": [
+          -0.16650390625,
+          -0.16650390625
+        ],
+        "maximum": [
+          0.156097412109375,
+          0.156097412109375
+        ],
+        "rms": [
+          0.11353322711416639,
+          0.11353322711416639
+        ],
+        "dc": [
+          -0.004823198413100726,
+          -0.004823198413100726
+        ],
+        "acRms": [
+          0.11343072959310783,
+          0.11343072959310783
+        ],
+        "nonzero": [
+          18185,
+          18185
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1613006591796875,
+      "amplitude": 0.1613006591796875
+    },
+    {
+      "kind": "huc6280",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "One32-sample5-bit sine spanning0..31; channel volume31, both per-channel/global balance15, LFO/noise/DDA disabled.",
+      "limitations": [
+        "One wavetable channel of the six-channel output; hardware DAC centering, quantization and resampling are retained."
+      ],
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.16650390625,
+          0.16650390625
+        ],
+        "minimum": [
+          -0.16650390625,
+          -0.16650390625
+        ],
+        "maximum": [
+          0.156097412109375,
+          0.156097412109375
+        ],
+        "rms": [
+          0.1134711168901829,
+          0.1134711168901829
+        ],
+        "dc": [
+          -0.00487043330936558,
+          -0.00487043330936558
+        ],
+        "acRms": [
+          0.11336654377586261,
+          0.11336654377586261
+        ],
+        "nonzero": [
+          18345,
+          18345
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1613006591796875,
+      "amplitude": 0.1613006591796875
+    },
+    {
+      "kind": "huc6280",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "One32-sample5-bit sine spanning0..31; channel volume31, both per-channel/global balance15, LFO/noise/DDA disabled.",
+      "limitations": [
+        "One wavetable channel of the six-channel output; hardware DAC centering, quantization and resampling are retained."
+      ],
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.16650390625,
+          0.16650390625
+        ],
+        "minimum": [
+          -0.16650390625,
+          -0.16650390625
+        ],
+        "maximum": [
+          0.156097412109375,
+          0.156097412109375
+        ],
+        "rms": [
+          0.1133764498058249,
+          0.1133764498058249
+        ],
+        "dc": [
+          -0.004878364165945944,
+          -0.004878364165945944
+        ],
+        "acRms": [
+          0.11327144800715291,
+          0.11327144800715291
+        ],
+        "nonzero": [
+          18693,
+          18693
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1613006591796875,
+      "amplitude": 0.1613006591796875
+    },
+    {
+      "kind": "ym2612",
+      "chipEngine": "nuked",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "nuked",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.18603328252602266,
+          0.18603328252602266
+        ],
+        "dc": [
+          0.02019665002822876,
+          0.02019665002822876
+        ],
+        "acRms": [
+          0.1849337111914543,
+          0.1849337111914543
+        ],
+        "nonzero": [
+          19163,
+          19163
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "chipEngine": "nuked",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "nuked",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.1860336057630501,
+          0.1860336057630501
+        ],
+        "dc": [
+          0.020206799507141115,
+          0.020206799507141115
+        ],
+        "acRms": [
+          0.1849329276437275,
+          0.1849329276437275
+        ],
+        "nonzero": [
+          19170,
+          19170
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "chipEngine": "nuked",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "nuked",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.1860520959240038,
+          0.1860520959240038
+        ],
+        "dc": [
+          0.02011744737625122,
+          0.02011744737625122
+        ],
+        "acRms": [
+          0.18496126813140765,
+          0.18496126813140765
+        ],
+        "nonzero": [
+          19166,
+          19166
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "role": "primary",
+      "mode": "genesis",
+      "accessKind": "ym2612",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "ym2612",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1685791015625,
+          0.1685791015625
+        ],
+        "minimum": [
+          -0.1685791015625,
+          -0.1685791015625
+        ],
+        "maximum": [
+          0.1634521484375,
+          0.1634521484375
+        ],
+        "rms": [
+          0.11775955054657482,
+          0.11775955054657482
+        ],
+        "dc": [
+          -0.002485710779825846,
+          -0.002485710779825846
+        ],
+        "acRms": [
+          0.11773331298681086,
+          0.11773331298681086
+        ],
+        "nonzero": [
+          19164,
+          19164
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.166015625,
+      "amplitude": 0.166015625
+    },
+    {
+      "kind": "ym2612",
+      "role": "primary",
+      "mode": "genesis",
+      "accessKind": "ym2612",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "ym2612",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1685791015625,
+          0.1685791015625
+        ],
+        "minimum": [
+          -0.1685791015625,
+          -0.1685791015625
+        ],
+        "maximum": [
+          0.1634521484375,
+          0.1634521484375
+        ],
+        "rms": [
+          0.11773965726581825,
+          0.11773965726581825
+        ],
+        "dc": [
+          -0.0024993213017781577,
+          -0.0024993213017781577
+        ],
+        "acRms": [
+          0.11771312707639207,
+          0.11771312707639207
+        ],
+        "nonzero": [
+          19163,
+          19163
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.166015625,
+      "amplitude": 0.166015625
+    },
+    {
+      "kind": "ym2612",
+      "role": "primary",
+      "mode": "genesis",
+      "accessKind": "ym2612",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "ym2612",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1685791015625,
+          0.1685791015625
+        ],
+        "minimum": [
+          -0.1685791015625,
+          -0.1685791015625
+        ],
+        "maximum": [
+          0.1634521484375,
+          0.1634521484375
+        ],
+        "rms": [
+          0.11774566891510828,
+          0.11774566891510828
+        ],
+        "dc": [
+          -0.002575498421986898,
+          -0.002575498421986898
+        ],
+        "acRms": [
+          0.1177174980881969,
+          0.1177174980881969
+        ],
+        "nonzero": [
+          19167,
+          19167
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.166015625,
+      "amplitude": 0.166015625
+    },
+    {
+      "kind": "ym2612",
+      "role": "primary",
+      "mode": "genesis-full-nuked",
+      "accessKind": "ym2612",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "ym2612",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.18608406903408448,
+          0.18608406903408448
+        ],
+        "dc": [
+          0.02025843858718872,
+          0.02025843858718872
+        ],
+        "acRms": [
+          0.18497804305995624,
+          0.18497804305995624
+        ],
+        "nonzero": [
+          19163,
+          19163
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "role": "primary",
+      "mode": "genesis-full-nuked",
+      "accessKind": "ym2612",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "ym2612",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.186062860487859,
+          0.186062860487859
+        ],
+        "dc": [
+          0.020246794223785402,
+          0.020246794223785402
+        ],
+        "acRms": [
+          0.18495798273279304,
+          0.18495798273279304
+        ],
+        "nonzero": [
+          19170,
+          19170
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "role": "primary",
+      "mode": "genesis-full-nuked",
+      "accessKind": "ym2612",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "ym2612",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.1860520959240038,
+          0.1860520959240038
+        ],
+        "dc": [
+          0.02011744737625122,
+          0.02011744737625122
+        ],
+        "acRms": [
+          0.18496126813140765,
+          0.18496126813140765
+        ],
+        "nonzero": [
+          19166,
+          19166
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "huc6280",
+      "role": "primary",
+      "mode": "pc-engine",
+      "accessKind": "huc6280",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "One32-sample5-bit sine spanning0..31; channel volume31, both per-channel/global balance15, LFO/noise/DDA disabled.",
+      "limitations": [
+        "One wavetable channel of the six-channel output; hardware DAC centering, quantization and resampling are retained."
+      ],
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "huc6280",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.16650390625,
+          0.16650390625
+        ],
+        "minimum": [
+          -0.16650390625,
+          -0.16650390625
+        ],
+        "maximum": [
+          0.156097412109375,
+          0.156097412109375
+        ],
+        "rms": [
+          0.1136151828082379,
+          0.1136151828082379
+        ],
+        "dc": [
+          -0.004733559004836631,
+          -0.004733559004836631
+        ],
+        "acRms": [
+          0.11351653264479605,
+          0.11351653264479605
+        ],
+        "nonzero": [
+          18187,
+          18187
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1613006591796875,
+      "amplitude": 0.1613006591796875
+    },
+    {
+      "kind": "huc6280",
+      "role": "primary",
+      "mode": "pc-engine",
+      "accessKind": "huc6280",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "One32-sample5-bit sine spanning0..31; channel volume31, both per-channel/global balance15, LFO/noise/DDA disabled.",
+      "limitations": [
+        "One wavetable channel of the six-channel output; hardware DAC centering, quantization and resampling are retained."
+      ],
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "huc6280",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.16650390625,
+          0.16650390625
+        ],
+        "minimum": [
+          -0.16650390625,
+          -0.16650390625
+        ],
+        "maximum": [
+          0.156097412109375,
+          0.156097412109375
+        ],
+        "rms": [
+          0.1134711168901829,
+          0.1134711168901829
+        ],
+        "dc": [
+          -0.00487043330936558,
+          -0.00487043330936558
+        ],
+        "acRms": [
+          0.11336654377586261,
+          0.11336654377586261
+        ],
+        "nonzero": [
+          18345,
+          18345
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1613006591796875,
+      "amplitude": 0.1613006591796875
+    },
+    {
+      "kind": "huc6280",
+      "role": "primary",
+      "mode": "pc-engine",
+      "accessKind": "huc6280",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "One32-sample5-bit sine spanning0..31; channel volume31, both per-channel/global balance15, LFO/noise/DDA disabled.",
+      "limitations": [
+        "One wavetable channel of the six-channel output; hardware DAC centering, quantization and resampling are retained."
+      ],
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "huc6280",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.16650390625,
+          0.16650390625
+        ],
+        "minimum": [
+          -0.16650390625,
+          -0.16650390625
+        ],
+        "maximum": [
+          0.156097412109375,
+          0.156097412109375
+        ],
+        "rms": [
+          0.1133764498058249,
+          0.1133764498058249
+        ],
+        "dc": [
+          -0.004878364165945944,
+          -0.004878364165945944
+        ],
+        "acRms": [
+          0.11327144800715291,
+          0.11327144800715291
+        ],
+        "nonzero": [
+          18693,
+          18693
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1613006591796875,
+      "amplitude": 0.1613006591796875
+    }
+  ],
+  "limits": [
+    "Known single-voice waveforms; not perceived loudness or polyphony normalization.",
+    "SPC uses an original synthetic single-voice file to measure output units; authored file contents are not normalized.",
+    "Measurements use actual Web Worklets/WASM; this runner does not open a Native audio device."
+  ],
+  "calibration": {
+    "referenceAmplitude": 0.166015625,
+    "targetAmplitude": 0.166015625,
+    "maxGain": 2,
+    "targetReduced": false,
+    "routes": [
+      {
+        "kind": "ym2612",
+        "role": "extra",
+        "mode": "genesis",
+        "name": "calibration-source",
+        "amplitude": 0.166015625,
+        "volume": 1
+      },
+      {
+        "kind": "huc6280",
+        "role": "extra",
+        "mode": "genesis",
+        "name": "calibration-source",
+        "amplitude": 0.1613006591796875,
+        "volume": 1.029231
+      },
+      {
+        "kind": "ym2612",
+        "chipEngine": "nuked",
+        "role": "extra",
+        "mode": "genesis",
+        "name": "calibration-source",
+        "amplitude": 0.260833740234375,
+        "volume": 0.636481
+      },
+      {
+        "kind": "ym2612",
+        "role": "primary",
+        "mode": "genesis",
+        "name": "ym2612",
+        "amplitude": 0.166015625,
+        "volume": 1
+      },
+      {
+        "kind": "ym2612",
+        "role": "primary",
+        "mode": "genesis-full-nuked",
+        "name": "ym2612",
+        "amplitude": 0.260833740234375,
+        "volume": 0.636481
+      },
+      {
+        "kind": "huc6280",
+        "role": "primary",
+        "mode": "pc-engine",
+        "name": "huc6280",
+        "amplitude": 0.1613006591796875,
+        "volume": 1.029231
+      }
+    ]
+  }
+}

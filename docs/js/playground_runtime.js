@@ -856,7 +856,7 @@ export function createPlaygroundRuntime(
         return result.then(value=>resumeNativeExtraCaller(loop,()=>value,token),error=>resumeNativeExtraCaller(loop,()=>{throw error;},token));
       }:undefined));
       const api=nativeApiCache.get(raw);
-      return [name,endpoint.name==='ay8910'?ayTimedLifecycle.wrap(api,raw._timedOperations):api];
+      return [name,raw._timedOperations?ayTimedLifecycle.wrap(api,raw._timedOperations):api];
     }));
   }
   let sectionLoads = new AbortController();

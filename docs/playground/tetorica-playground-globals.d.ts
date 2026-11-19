@@ -2757,8 +2757,62 @@ type PlaygroundPrimarySnes = Omit<PlaygroundSnes, 'dispose'> & {readonly id:stri
 type PlaygroundPrimaryOpm = Omit<PlaygroundYm2151, 'dispose'> & PlaygroundChipClock & {readonly id:string};
 
 type PlaygroundHuc6280Channel = 0|1|2|3|4|5;
+/** Register-only operations. No live callbacks, initialization or Wave RAM upload. */
+type PlaygroundHuc6280RecordedMethod='writeRegister'|'setVolume'|'setPan'|'setMasterVolume'|'setFrequency'|'setNote'|'keyOn'|'keyOff'|'noteOn'|'noteOff'|'allNotesOff'|'setNoise'|'setDda'|'writeDda'|'setLfo';
+interface PlaygroundHuc6280OperationTime {readonly unit:'sample'|'seconds';readonly value:number;}
+type PlaygroundHuc6280RecordedOperation={
+  [Method in PlaygroundHuc6280RecordedMethod]:{readonly time:PlaygroundHuc6280OperationTime;readonly order:number;readonly method:Method;readonly args:Readonly<Parameters<PlaygroundHuc6280[Method]>>}
+}[PlaygroundHuc6280RecordedMethod];
+interface PlaygroundHuc6280OperationProgram {
+  readonly version:1;readonly chip:'huc6280';readonly referenceSampleRate:number;readonly operations:readonly PlaygroundHuc6280RecordedOperation[];
+}
+/** Synchronous receiver: absolute offsets, reference sample rate defaults to 44100 Hz. */
+interface PlaygroundHuc6280OperationRecorder {
+  atSeconds(seconds:number):PlaygroundHuc6280OperationRecorder;
+  atSample(sample:number):PlaygroundHuc6280OperationRecorder;
+  writeRegister(register:number,value:number):PlaygroundHuc6280OperationRecorder;
+  setVolume(channel:PlaygroundHuc6280Channel,volume:number):PlaygroundHuc6280OperationRecorder;
+  setPan(channel:PlaygroundHuc6280Channel,left:number,right?:number):PlaygroundHuc6280OperationRecorder;
+  setMasterVolume(left:number,right?:number):PlaygroundHuc6280OperationRecorder;
+  setFrequency(channel:PlaygroundHuc6280Channel,hz:number):PlaygroundHuc6280OperationRecorder;
+  setNote(channel:PlaygroundHuc6280Channel,note:string|number):PlaygroundHuc6280OperationRecorder;
+  keyOn(channel:PlaygroundHuc6280Channel):PlaygroundHuc6280OperationRecorder;
+  keyOff(channel:PlaygroundHuc6280Channel):PlaygroundHuc6280OperationRecorder;
+  noteOn(channel:PlaygroundHuc6280Channel,note:string|number):PlaygroundHuc6280OperationRecorder;
+  noteOff(channel:PlaygroundHuc6280Channel):PlaygroundHuc6280OperationRecorder;
+  allNotesOff():PlaygroundHuc6280OperationRecorder;
+  setNoise(channel:4|5,options:{enabled:boolean;frequency?:number}):PlaygroundHuc6280OperationRecorder;
+  setDda(channel:PlaygroundHuc6280Channel,enabled:boolean):PlaygroundHuc6280OperationRecorder;
+  writeDda(channel:PlaygroundHuc6280Channel,sample:number):PlaygroundHuc6280OperationRecorder;
+  setLfo(options:{frequency:number;depth:0|1|2|3;reset?:boolean}):PlaygroundHuc6280OperationRecorder;
+}
+/** Sent-register/control state, not native oscillator/playback phase. */
+interface PlaygroundHuc6280OperationState {
+  readonly clock:number;readonly initialized:boolean;readonly selectedChannel:number;
+  readonly globals:readonly number[];readonly registers:readonly (readonly number[])[];
+  readonly waveforms:readonly (readonly number[])[];readonly indices:readonly number[];
+}
+interface PlaygroundHuc6280StateSnapshot {
+  readonly format:'tetorica-huc6280-state';readonly version:1;readonly instanceId:string|number;
+  readonly frame:number;readonly sampleRate:number;readonly state:PlaygroundHuc6280OperationState;
+}
+interface PlaygroundHuc6280CompileOptions {
+  /** current reads applied Worklet state; client uses the complete local authoring shadow without RPC and may be stale. reset/snapshot never mutate live state. */
+  initialState?:'current'|'client'|'reset'|PlaygroundHuc6280StateSnapshot;
+}
+interface PlaygroundHuc6280CompiledWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
+interface PlaygroundHuc6280ScheduleOptions {name:string;repeatSeconds?:number;}
+interface PlaygroundHuc6280ScheduleReceipt {name:string;startFrame?:number;sampleRate:number;entries:number;repeatSeconds?:number;staged?:boolean;}
 /** HuC6280: six 32-sample, five-bit wavetable voices; noise on channels 4 and 5. */
 interface PlaygroundHuc6280 {
+  /** Record once without copying or changing the live chip. */
+  build<Result>(callback:(builder:PlaygroundHuc6280OperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundHuc6280OperationProgram;
+  /** AudioWorklet-only authoritative capture. Native reports unsupported explicitly. */
+  captureState():Promise<PlaygroundHuc6280StateSnapshot>;
+  compile(operations:PlaygroundHuc6280OperationProgram,options?:PlaygroundHuc6280CompileOptions):Promise<PlaygroundHuc6280CompiledWrite[]>;
+  /** Execute compact, named hardware operations at output sample boundaries. Native scheduling is unsupported. */
+  schedule(operations:PlaygroundHuc6280OperationProgram,options:PlaygroundHuc6280ScheduleOptions):Promise<PlaygroundHuc6280ScheduleReceipt>;
+  clearSchedule(name:string):Promise<boolean>;
   initialize():void;
   reset():void;
   writeRegister(register:number, value:number):void;
@@ -2771,6 +2825,7 @@ interface PlaygroundHuc6280 {
   keyOn(channel:PlaygroundHuc6280Channel):void;
   keyOff(channel:PlaygroundHuc6280Channel):void;
   noteOn(channel:PlaygroundHuc6280Channel, note:string|number):void;
+  noteOff(channel:PlaygroundHuc6280Channel):void;
   allNotesOff():void;
   setNoise(channel:4|5, options:{enabled:boolean;frequency?:number}):void;
   setDda(channel:PlaygroundHuc6280Channel, enabled:boolean):void;

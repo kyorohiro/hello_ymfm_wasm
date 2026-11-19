@@ -227,3 +227,16 @@ export function compileHuc6280Operations(plan, state, {clock = HUC6280_CLOCK} = 
   }
   return rows;
 }
+
+/** Live register reservations do not transfer Wave RAM: the rendering cursor
+ * may have advanced independently of the sent-register mirror. DDA R6 is safe. */
+export function validateHuc6280RegisterOnlyPlan(plan, state) {
+  const resolver=createHuc6280OperationResolver({clock:state.clock});
+  let work=state;
+  for(const operation of plan.operations){
+    if(operation.method==='writeRegister'&&operation.args[0]===6&&!(work.registers[work.selectedChannel][4]&64)){
+      throw Error('Scheduled Wave RAM transfer is not supported; use setWaveform immediately, or enable DDA before writing R6.');
+    }
+    work=resolver.resolve(operation,work).state;
+  }
+}

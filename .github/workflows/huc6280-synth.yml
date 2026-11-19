@@ -34,6 +34,9 @@ on:
       - 'test/runtime/huc6280_state.test.mjs'
       - 'test/runtime/huc6280_operations.test.mjs'
       - 'test/runtime/huc6280_timed_processor.test.mjs'
+      - 'test/runtime/playground_huc6280*.test.mjs'
+      - 'scripts/check_huc6280_timed_endpoints_browser.cjs'
+      - 'docs/playground/playground_huc6280_timed_declarations.test.mjs'
       - 'tetorica_src/runtime/ym2612vgm.js'
       - 'tetorica_src/runtime/opn_fm_vgm.js'
       - 'tetorica_src/runtime/vgm_file.js'
@@ -75,6 +78,9 @@ on:
       - 'test/runtime/huc6280_state.test.mjs'
       - 'test/runtime/huc6280_operations.test.mjs'
       - 'test/runtime/huc6280_timed_processor.test.mjs'
+      - 'test/runtime/playground_huc6280*.test.mjs'
+      - 'scripts/check_huc6280_timed_endpoints_browser.cjs'
+      - 'docs/playground/playground_huc6280_timed_declarations.test.mjs'
       - 'scripts/**'
       - 'test/helpers/historical_*'
       - 'test/fixtures/*predecessors.json'
@@ -103,6 +109,9 @@ jobs:
       - name: Test and package the standalone HuC6280 Synth
         run: |
           npm run test:huc6280-synth
+          npm run test:huc6280-timed
+          mkdir -p release
+          node scripts/check_huc6280_timed_endpoints_browser.cjs --out=release/huc6280-timed-endpoints-browser.json
           node --test scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/mixer_calibration_fm2612_application_history.test.mjs
           sh scripts/package_itch_huc6280_synth.sh ci
           python3 -m zipfile -e release/tetorica_huc6280_synth_ci_itch.zip release/huc6280-synth-browser

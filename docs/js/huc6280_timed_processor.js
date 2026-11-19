@@ -137,7 +137,9 @@ export function createHuc6280TimedProcessor({performance: timeline, getState, ge
     apply(operation, port, frame, metadata) {
       const clock = getConfig().clock;
       if (clock !== resolverClock) { resolver = createHuc6280OperationResolver({clock}); resolverClock = clock; }
-      const result = resolver.resolve(operation, getState());
+      const state=getState();
+      validatePlan?.({operations:[operation]},state);
+      const result = resolver.resolve(operation, state);
       let applied = true;
       for (const {register,value} of result.writes) {
         if (dispatch({method:'writeRegister',args:[register,value]}, port, frame,

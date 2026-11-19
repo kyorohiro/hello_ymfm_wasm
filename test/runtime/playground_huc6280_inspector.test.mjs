@@ -6,7 +6,9 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {Huc6280VoiceInspector} from '../../tetorica_src/runtime/playground_huc6280_inspector.js';
 import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
-import {HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
+import {createHuc6280TimedProcessor,huc6280TimedCommandCost} from '../../tetorica_src/runtime/huc6280_timed_processor.js';
+import {validateHuc6280RegisterOnlyPlan} from '../../tetorica_src/runtime/huc6280_operations.js';
+import {Huc6280Synth,HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
 import {createHuc6280Client} from '../../tetorica_src/runtime/playground_huc6280.js';
 import {ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
@@ -19,7 +21,7 @@ const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
 async function setup(){
   let Processor,frame=0,resolveReady;const messages=[],ready=new Promise(resolve=>resolveReady=resolve),port={postMessage:data=>{messages.push(data);if(data.ready||data.error)resolveReady(data);}};
   const source=(await readFile(new URL('./playground_huc6280_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
-  vm.runInNewContext(source,{Huc6280VoiceInspector,Huc6280AudioEngine,HUC6280_CLOCK,ChipClockResampler,validateChipClock,receiveChipInspector,factory,sampleRate:RATE,
+  vm.runInNewContext(source,{Huc6280Synth,createHuc6280TimedProcessor,huc6280TimedCommandCost,validateHuc6280RegisterOnlyPlan,Huc6280VoiceInspector,Huc6280AudioEngine,HUC6280_CLOCK,ChipClockResampler,validateChipClock,receiveChipInspector,factory,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
   const processor=new Processor({processorOptions:{clock:HUC6280_CLOCK,wasmBinary:await readFile(new URL('../../docs/generated/huc6280_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await ready).ready,true,JSON.stringify(messages));

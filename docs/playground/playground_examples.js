@@ -675,6 +675,11 @@ export const EXAMPLE_FILES = [
     "data": "// Select Mode: PC Engine. Six 32-entry, five-bit wavetable voices.\nsetBpm(120);\npce.setWaveform(0, Array.from({length:32}, (_, index) =>\n  Math.round(15.5 + 15.5 * Math.sin(index * Math.PI / 16))));\npce.setVolume(0, 26); // Hardware volume 0..31.\npce.setPan(0, 15, 15); // Independent left/right balances 0..15.\n\nliveLoop('pce-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    // Keep the waveform running between notes; hard key cuts can click.\n    pce.noteOn(0, note);\n    await beat(0.5);\n  }\n});\n\n// Uploading a waveform stops its channel. Channels 4/5 can also generate noise.\n"
   },
   {
+    "path": "/examples/pc-engine/pce-timed-registers.js",
+    "name": "pce-timed-registers",
+    "data": "// Select Mode: PC Engine or PC Engine CD-ROM². Main and Worker share this API.\n// Register reservations run in AudioWorklet, independently of beat()/BPM.\nconst chip = await useSoundChip('huc6280');\nconst pulse = chip.build(b => {\n  b.atSample(0).noteOn(CH1, 'E3').setVolume(CH1, 24);\n  b.atSeconds(0.05).setVolume(CH1, 12);\n  b.atSeconds(0.1).setVolume(CH1, 6);\n  b.atSeconds(0.15).setVolume(CH1, 12);\n}, {referenceSampleRate:44100});\n\n// Inspect exact register writes without changing or stopping the sound.\nconst snapshot = await chip.captureState();\nconsole.table(await chip.compile(pulse, {initialState:snapshot}));\n// initialState:'client' uses the local, possibly stale authoring shadow (no RPC).\n// initialState:'reset' starts from hardware reset bytes without resetting audio.\nawait chip.schedule(pulse, {name:'volume-pulse', repeatSeconds:0.2});\n// Apply atomically replaces this name. Stop cancels the pattern and its gates.\n// await chip.clearSchedule('volume-pulse');\n// Raw Wave RAM transfer is immediate-only; timed R6 requires DDA mode.\n// Native output supports offline build/compile, not live scheduling/capture yet.\n"
+  },
+  {
     "path": "/examples/opl/opl-live-operators.js",
     "name": "opl-live-operators",
     "data": "// Adjust OP1's total level while a note is held. No retrigger is needed.\n// TL: 0 = loudest, 63 = quietest. Operator indices are 0-based.\nsetBpm(100);\nopl.setPreset(0, OPL_PRESETS.organ);\nopl.setAlgo(0, 0, 2); // OP1 modulates OP2; feedback belongs to OP1.\n\nliveLoop('opl-timbre', async () => {\n  opl.noteOn(0, 'C4');\n  await tween({beats: 2}, progress => opl.setOperator(0, 0, {\n    tl: Math.round(50 - 34 * progress),\n  }));\n  await tween({beats: 2}, progress => opl.setOperator(0, 0, {\n    tl: Math.round(16 + 34 * progress),\n  }));\n  opl.keyOff(0);\n  await beat(1);\n});\n"
@@ -905,12 +910,14 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/x68000/x68000-mode-adpcm.js"
   ],
   "pc-engine": [
+    "/examples/pc-engine/pce-timed-registers.js",
     "/examples/pc-engine/pce-mode-wave.js",
     "/examples/pc-engine/pce-mode-stereo.js",
     "/examples/pc-engine/pce-mode-noise.js",
     "/examples/pc-engine/pce-cdda.js"
   ],
   "pc-engine-cd": [
+    "/examples/pc-engine/pce-timed-registers.js",
     "/examples/pc-engine/pce-cd-three-sources.js",
     "/examples/pc-engine/pce-cdda.js",
     "/examples/pc-engine/pce-mode-stereo.js"

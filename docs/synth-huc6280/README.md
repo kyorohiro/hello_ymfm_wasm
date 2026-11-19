@@ -994,6 +994,6 @@ R6 is accepted only when the virtual applied state enables DDA.
 and a previously captured snapshot need no state RPC and never alter live sound.
 Snapshots contain detached sent-register/control state, not native playback
 phase or transport state. `initialState: "client"` explicitly rejects because
-this Synth has no complete local register mirror. These APIs currently belong
-to this Synth Code host; Playground Main/Worker, npm and Native integration are
-separate pending tasks.
+this Synth has no complete local register mirror. Playground Main/Worker also expose the register APIs; their hardware noteOn/off
+are raw gates, unlike the Synth software-envelope wrapper. npm exposure and
+Native timed execution remain pending; Native offline build/compile is available.

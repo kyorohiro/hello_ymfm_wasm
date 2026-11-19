@@ -403,7 +403,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   });
   const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>{
     const raw=nativeBase.raw.get(name);
-    return [name,keyboardApi(raw?.chip==='ay8910'?ayTimedLifecycle.wrap(api,raw._timedOperations):api)];
+    return [name,keyboardApi(raw?._timedOperations?ayTimedLifecycle.wrap(api,raw._timedOperations):api)];
   }))};
   const primaryPcmClient = primaryPcmConnection ? createRf5c164Client(
     performanceTransport.port(primaryPcmConnection.port, 'independent'), source => request('pcm.decode',[source],run.currentLoop)) : null;

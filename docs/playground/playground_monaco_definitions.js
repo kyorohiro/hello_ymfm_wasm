@@ -73,6 +73,13 @@ export function definitionSource(text, position, chip = 'ym2612', options = {}) 
   if (/^PlaygroundNes$/.test(owner)) return {file:'nesapusynth.js', symbol};
   if (/^PlaygroundGameboy$/.test(owner)) return {file:'gameboysynth.js', symbol};
   if (/^Playground(?:Primary)?WonderSwan(?:TimelineBuilder)?$/.test(owner)) return {file:'wonderswansynth.js',symbol:/^Playground/.test(symbol)?'WonderSwanSynth':symbol};
+  if(/^PlaygroundHuc6280(?:OperationRecorder|RecordedMethod|OperationTime|RecordedOperation|OperationProgram)$/.test(owner))
+    return {file:'huc6280_operations.js',symbol:'buildHuc6280Operations'};
+  if(owner==='PlaygroundHuc6280StateSnapshot'||owner==='PlaygroundHuc6280OperationState')return {file:'huc6280_timed_state.js',symbol:'createHuc6280TimedSnapshot'};
+  if(owner==='PlaygroundHuc6280CompiledWrite')return {file:'huc6280_operations.js',symbol:'compileHuc6280Operations'};
+  if(/^PlaygroundHuc6280(?:CompileOptions|ScheduleOptions|ScheduleReceipt)$/.test(owner)||
+      ['PlaygroundHuc6280','PlaygroundPrimaryHuc6280','Huc6280CodeClient'].includes(owner)&&['build','compile','captureState','schedule','clearSchedule'].includes(symbol))
+    return symbol==='build'?{file:'huc6280_operations.js',symbol:'buildHuc6280Operations'}:{file:'huc6280_timed_client.js',symbol:'attachHuc6280TimedClient'};
   if(owner==='Huc6280CodeClient'&&['getState','noteOn','noteOff','dispose'].includes(symbol))
     return {file:'synth-huc6280/instrument.js',symbol:{getState:'observeCode',noteOn:'_liveNoteOn',noteOff:'noteOff',dispose:'stop'}[symbol]};
   if(/^Playground(?:Primary)?Huc6280/.test(owner)||owner==='Huc6280CodeClient')

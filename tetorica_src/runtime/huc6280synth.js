@@ -142,6 +142,9 @@ export class Huc6280Synth {
   }
   /** @param {number} channel @param {string|number} note */
   noteOn(channel, note) { this.setNote(channel, note); this.keyOn(channel); }
+  /** Alias for the raw hardware gate; HuC6280 has no hardware release envelope.
+   * @param {number} channel */
+  noteOff(channel) { this.keyOff(channel); }
   /** Silence every channel while retaining volume, waveform and DDA settings. */
   allNotesOff() {
     this.#alive();

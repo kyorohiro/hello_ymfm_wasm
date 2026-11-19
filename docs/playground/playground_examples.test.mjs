@@ -94,7 +94,8 @@ test('mode catalogs stay compact while Genesis retains its library and shares th
     for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
     if (definition.examples) {
       if (['neogeo','neogeo-b'].includes(id)) assert.equal(files.length,4,'Neo Geo retains its existing examples alongside original PCM percussion');
-      else if (id === 'pc-engine') assert.equal(files.length,4,'PC Engine retains its three PSG examples and the shared CD-DA example');
+      else if (id === 'pc-engine') assert.equal(files.length,5,'PC Engine retains its PSG/CD-DA examples and adds timed registers');
+      else if (id === 'pc-engine-cd') assert.equal(files.length,4,'PC Engine CD retains its three media examples and adds timed registers');
       else if (id === 'ps1') assert.equal(files.length,5,'PS1 retains its voice, PCM conversion, saved sampler and VAB tone examples');
       else if (id === 'scsp') assert.equal(files.length,8,'SCSP includes PCM/FM, cycle2, DSP instruction inspection, Gain, IIR, Delay and Routing examples');
       else if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');

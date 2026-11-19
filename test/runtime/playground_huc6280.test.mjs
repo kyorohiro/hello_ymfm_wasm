@@ -6,7 +6,9 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import factory from '../../docs/generated/huc6280_wasm.js';
 import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
-import {HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
+import {createHuc6280TimedProcessor,huc6280TimedCommandCost} from '../../tetorica_src/runtime/huc6280_timed_processor.js';
+import {validateHuc6280RegisterOnlyPlan} from '../../tetorica_src/runtime/huc6280_operations.js';
+import {Huc6280Synth,HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
 import {createHuc6280Client, createPrimaryHuc6280Api} from '../../tetorica_src/runtime/playground_huc6280.js';
 import {createHuc6280Audio} from '../../tetorica_src/runtime/playground_huc6280_audio.js';
 import {ChipClockResampler, validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
@@ -20,7 +22,7 @@ async function createWorklet(clock = HUC6280_CLOCK) {
   let Processor, resolveReady, rejectReady, frame = 0; const replies = [];
   const ready = new Promise((resolve,reject) => { resolveReady = resolve; rejectReady = reject; });
   const source = (await readFile(new URL('./playground_huc6280_worklet.js', runtimeDirectoryUrl), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {Huc6280VoiceInspector,receiveChipInspector,Huc6280AudioEngine, HUC6280_CLOCK, factory, sampleRate, ChipClockResampler, validateChipClock,
+  vm.runInNewContext(source, {Huc6280Synth,createHuc6280TimedProcessor,huc6280TimedCommandCost,validateHuc6280RegisterOnlyPlan,Huc6280VoiceInspector,receiveChipInspector,Huc6280AudioEngine, HUC6280_CLOCK, factory, sampleRate, ChipClockResampler, validateChipClock,
     createProcessorPerformance:options => createProcessorPerformance({...options, rate:sampleRate, nowFrame:() => frame}),
     AudioWorkletProcessor:class { constructor() { this.port = {postMessage:data => { replies.push(data); if (data.ready) resolveReady(); if (data.error) rejectReady(new Error(data.error)); }}; } },
     registerProcessor:(_, value) => { Processor = value; },

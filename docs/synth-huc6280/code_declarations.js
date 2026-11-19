@@ -28,7 +28,7 @@ type Huc6280TimedWrite={offsetSeconds:number;register:number;value:number;operat
 type Huc6280Reservation={name:string;startFrame:number;entries:number;repeatSeconds?:number};
 /** The editor's one physical HuC6280. Await commands. CH5/CH6 support Noise;
  * shared hardware LFO uses CH2 to modulate CH1. Scheduling/FX are software. */
-type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'> & {
+type Huc6280CodeClient=Omit<PlaygroundHuc6280,'dispose'|'noteOn'|'noteOff'|'build'|'compile'|'schedule'|'clearSchedule'|'captureState'> & {
   readonly id:string;readonly chip:'huc6280';readonly channels:6;readonly clock:number;
   /** Record raw hardware calls once without changing the chip. Times are absolute offsets; sample reference defaults to 44100 Hz. Use setNote + keyOn/keyOff instead of software-envelope noteOn/off. */
   build(callback:(builder:Huc6280TimedRecorder)=>void,options?:{referenceSampleRate?:number}):Huc6280Operations;
