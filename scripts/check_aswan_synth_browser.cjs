@@ -1426,6 +1426,9 @@ async function check(browser, engine, origin, fixture) {
 					.then((value) => value === 'playing'),
 			'queued-key reference starts',
 		);
+		// Freeze the renderer while selecting/pressing the key. UI round trips
+		// must not race the fixture's driver write on a slower Linux runner.
+		await page.evaluate(async()=>{await __aswanAudit.contexts[0].suspend();});
 		await page.evaluate(() => {
 			__aswanAudit.holdNextMethod = 'setPitch';
 			const input = document.getElementById('pitchBend');
@@ -1449,6 +1452,7 @@ async function check(browser, engine, origin, fixture) {
 			() => pendingKey.evaluate((node) => node.classList.contains('is-active')),
 			'pending key lights before the mode transition',
 		);
+		await page.evaluate(async()=>{await __aswanAudit.contexts[0].resume();});
 		await until(
 			() =>
 				page
@@ -1703,7 +1707,7 @@ const server = http.createServer(async (request, response) => {
 		noise: createWonderSwanVgm({ mode: 'noise', seconds: 3, loop: false }),
 		voice: createWonderSwanVgm({ mode: 'voice', seconds: 3, loop: false }),
 		manual: createWonderSwanManualVgm(),
-		pcmTransition: createWonderSwanPcmTransitionVgm(),
+		pcmTransition: createWonderSwanPcmTransitionVgm({transitionSeconds:2}),
 		manualNoise: createWonderSwanManualVgm({ mode: 'noise' }),
 		manualSweep: createWonderSwanManualVgm({ mode: 'sweep' }),
 		highlight: createWonderSwanHighlightVgm(),

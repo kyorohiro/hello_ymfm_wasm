@@ -143,6 +143,8 @@ jobs:
           path: |
             release/tetorica_scsp_synth_ci_itch.zip
             release/scsp-synth-browser.json
+            release/scsp-synth-layout-*.json
+            release/scsp-synth-layout-*.png
             release/scsp-synth-code-browser.json
             release/scsp-synth-code-images/
             release/scsp-synth-song-browser.json

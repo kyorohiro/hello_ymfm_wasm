@@ -68,7 +68,8 @@ export function createWonderSwanManualVgm({ mode = 'wave' } = {}) {
 
 /** Selected CH2 starts as complete Wave RAM, then the driver changes it into
  * a transient DAC at0.35s. CH1 keeps sounding so playback remains observable. */
-export function createWonderSwanPcmTransitionVgm() {
+export function createWonderSwanPcmTransitionVgm({transitionSeconds=0.35}={}) {
+	if(!Number.isFinite(transitionSeconds)||transitionSeconds<=0||transitionSeconds>=4)throw RangeError('Expected a PCM transition inside the four-second fixture');
 	const original = createWonderSwanManualVgm();
 	let end = 0x100;
 	while (original[end] !== 0x61)
@@ -88,9 +89,9 @@ export function createWonderSwanPcmTransitionVgm() {
 			frames -= count;
 		}
 	};
-	wait(Math.round(0.35 * 44100));
+	wait(Math.round(transitionSeconds * 44100));
 	data.push(0xbc, 0x14, 15, 0xbc, 0x10, 0x23, 0xbc, 9, 128);
-	wait(4 * 44100 - Math.round(0.35 * 44100));
+	wait(4 * 44100 - Math.round(transitionSeconds * 44100));
 	data.push(0x66);
 	const bytes = new Uint8Array(0x100 + data.length),
 		view = new DataView(bytes.buffer);

@@ -63,7 +63,18 @@ async function seekPaused(page,seconds){if((await state(page)).phase==='playing'
   await until(()=>state(page).then(x=>x.phase==='paused'&&x.frame===Math.round(seconds*44100)&&x.seeking==='false'&&x.seekPreparing==='false'),'paused Seek '+seconds);
 }
 async function heardManual(page,predicate,label){await until(async()=>{const song=await state(page),shown=await view(page);return Number(shown.editor.positionFrames)>=Number(song.manualLastFrame)&&predicate(shown);},label);}
-async function number(page,id,value){const node=page.locator('#'+id);await node.scrollIntoViewIfNeeded();const before=Number(await node.textContent()),box=await node.boundingBox();assert(box);const x=box.x+box.width/2,y=box.y+box.height/2;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+(value-before)*8,y,{steps:2});await page.mouse.up();await heardManual(page,shown=>Number(shown[id==='noiseFrequency'?'noise':'volume'])===value,'heard '+id+' '+value);}
+async function number(page,id,value){
+  // Exercise the actual spinbutton key handler in one browser task. Separate
+  // drag round trips can race driver writes while the heard UI is updating.
+  await page.locator('#'+id).evaluate((node,value)=>{
+    const min=Number(node.getAttribute('aria-valuemin'));node.focus();
+    const press=key=>node.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}));
+    press('Home');let remaining=value-min;
+    while(remaining>=10){press('PageUp');remaining-=10;}
+    while(remaining-->0)press('ArrowUp');
+  },value);
+  await heardManual(page,shown=>Number(shown[id==='noiseFrequency'?'noise':'volume'])===value,'heard '+id+' '+value);
+}
 async function pausedVolume(page,value){
   assert.equal((await state(page)).phase,'paused');const node=page.locator('#volume');await node.scrollIntoViewIfNeeded();const before=Number(await node.textContent()),box=await node.boundingBox();assert(box);
   const x=box.x+box.width/2,y=box.y+box.height/2;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+(value-before)*8,y,{steps:2});await page.mouse.up();
@@ -107,7 +118,10 @@ async function check(browser,name,origin,fixture){
     assert.deepEqual((await read(page)).preset,author);assert.deepEqual(await cache(page),clean,'manual writes do not create contaminated clean checkpoints');
 
     step('Later recorded gates and frequencies win over old hand releases, Pitch reset and blur');
-    await seekPaused(page,1.2);await play(page);await number(page,'volume',0);await output(page,false);await number(page,'volume',23);await output(page);
+    await seekPaused(page,.25);await play(page);await number(page,'volume',0);await output(page,false);await number(page,'volume',23);await output(page);
+    // Start the independent gate/pitch ownership scenario from its own clock
+    // position, rather than spending its 1.8 s window on volume UI setup.
+    await seekPaused(page,1.2);await play(page);
     await down(page);await until(()=>state(page).then(x=>Number(x.manualHeldCount)>0),'same-song hand owner');await heardManual(page,shown=>shown.editor.period!=='500','heard hand-key period');await bend(page,1);await heardManual(page,shown=>shown.editor.period!=='500','heard hand Pitch');
     await waitFrame(page,3.12);await until(()=>view(page).then(x=>x.editor.period==='240'&&x.volume===21),'later VGM gate/frequency');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('a');await bend(page,0);await wait(120);assert.equal((await view(page)).editor.gate,'true');assert.equal((await view(page)).editor.period,'240');
     await seekPaused(page,3.25);await play(page);await down(page);await bend(page,1);await waitFrame(page,4.1);await until(()=>view(page).then(x=>x.editor.period==='333'),'later frequency only');await bend(page,0);await wait(100);assert.equal((await view(page)).editor.period,'333');await page.keyboard.up('a');assert.equal((await state(page)).phase,'playing');

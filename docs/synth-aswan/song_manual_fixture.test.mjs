@@ -46,15 +46,17 @@ test('manual fixtures initialize complete Wave RAM and keep Noise/Sweep on the a
 });
 
 test('queued-key fixture changes complete CH2 Wave into transient Voice PCM at a known boundary', async () => {
-	const { trace } = await readAswanVgm(createWonderSwanPcmTransitionVgm());
-	assert.equal(trace.time, 4 * 44100);
-	assert(
-		trace.events.some(
-			(event) =>
-				event.time === Math.round(0.35 * 44100) &&
-				event.type === 'register' &&
-				event.address === 0x90 &&
-				event.value === 0x23,
-		),
-	);
+	for (const transitionSeconds of [0.35, 2]) {
+		const { trace } = await readAswanVgm(createWonderSwanPcmTransitionVgm({transitionSeconds}));
+		assert.equal(trace.time, 4 * 44100);
+		assert(
+			trace.events.some(
+				(event) =>
+					event.time === Math.round(transitionSeconds * 44100) &&
+					event.type === 'register' &&
+					event.address === 0x90 &&
+					event.value === 0x23,
+			),
+		);
+	}
 });

@@ -116,8 +116,20 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.keyboard.down('a');await waitState(s=>s.voiceGroups.some(g=>g.held));await page.selectOption('#algorithm','chain');await waitState(s=>s.config.fm.algorithm==='chain');assert.equal((await inspect()).voiceGroups.length,0);await page.keyboard.up('a');
    await page.setViewportSize({width:390,height:844});
    // Let the canvas ResizeObserver and responsive grid settle after resize.
-   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-   const mobileLayout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-innerWidth,wide:[...document.querySelectorAll('body *')].filter(node=>node.getBoundingClientRect().right>innerWidth+1).map(node=>({tag:node.tagName,id:node.id,className:typeof node.className==='string'?node.className:'',right:node.getBoundingClientRect().right})).slice(0,12)}));
+   await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo(0,window.scrollY);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+   // Native control focus/scrollbars can finish resizing after the second
+   // frame on Linux. Keep the same strict bound, waiting for actual layout.
+   await page.waitForFunction(()=>document.documentElement.scrollWidth-innerWidth<=1).catch(()=>{});
+   const mobileLayout=await page.evaluate(()=>({
+    overflow:document.documentElement.scrollWidth-innerWidth,innerWidth,clientWidth:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,scrollX,
+    visualWidth:visualViewport?.width,bodyWidth:document.body.getBoundingClientRect().width,
+    wide:[...document.querySelectorAll('body *')].filter(node=>{const r=node.getBoundingClientRect();return r.right+scrollX>innerWidth+1||r.left+scrollX< -1;}).map(node=>({tag:node.tagName,id:node.id,className:typeof node.className==='string'?node.className:'',left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right})).slice(0,12),
+    visibleOverflow:[...document.querySelectorAll('body *')].filter(node=>node.scrollWidth>node.clientWidth+1&&getComputedStyle(node).overflowX==='visible').map(node=>({tag:node.tagName,id:node.id,className:typeof node.className==='string'?node.className:'',client:node.clientWidth,scroll:node.scrollWidth})).slice(0,12),
+   }));
+   if(mobileLayout.overflow>1){
+    const base=path.join(path.dirname(config.out),`scsp-synth-layout-${name}`);await fs.mkdir(path.dirname(base),{recursive:true});
+    await fs.writeFile(base+'.json',JSON.stringify(mobileLayout,null,2)+'\n');await page.screenshot({path:base+'.png',fullPage:true});
+   }
    assert(mobileLayout.overflow<=1,JSON.stringify(mobileLayout));await page.locator('.voice-routing').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(tmpdir(),`scsp-synth-multiop-${name}.png`),fullPage:true});await page.setViewportSize({width:1100,height:900});
    await page.setInputFiles('#open',{name:'six-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...sixPatch,version:3}))});await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('SCSP instrument loaded'));await waitState(s=>s.config.mode==='fm6'&&!s.config.effect.enabled);
    const legacyTwo={format:fmPatch.format,version:2,mode:'fm2',transpose:fmPatch.transpose,fm:{depth:fmPatch.fm.depth,ratio:fmPatch.fm.ratio},operators:{carrier:fmPatch.operators.carrier,modulator:fmPatch.operators.modulator}};
@@ -150,7 +162,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.click('[data-chip-action="scsp-use-selection"]');await page.click('[data-chip-action="scsp-apply"]');await page.waitForFunction(()=>document.querySelector('[data-chip-action="scsp-apply"]').disabled);
    await page.keyboard.down('s');await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===1);await page.keyboard.up('s');await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));
    await page.screenshot({path:path.join(tmpdir(),`scsp-synth-${name}-desktop.png`),fullPage:true});
-   await page.setViewportSize({width:390,height:844});const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1,`mobile overflow ${overflow}`);assert.equal(await page.locator('#voice canvas').count(),1);assert.equal(await page.locator('#outputCanvas').count(),1);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);assert.deepEqual(external,[]);
+   await page.setViewportSize({width:390,height:844});await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo(0,window.scrollY);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});await page.waitForFunction(()=>document.documentElement.scrollWidth-innerWidth<=1).catch(()=>{});const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1,`mobile overflow ${overflow}`);assert.equal(await page.locator('#voice canvas').count(),1);assert.equal(await page.locator('#outputCanvas').count(),1);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);assert.deepEqual(external,[]);
    await page.screenshot({path:path.join(tmpdir(),`scsp-synth-${name}.png`),fullPage:true});
    await page.evaluate(()=>window.audit.contexts[0].close());await page.waitForFunction(()=>!document.querySelector('#start').disabled&&document.querySelector('#status').textContent.includes('AudioContext was closed'));
    await page.click('#start');await waitAudio();await page.keyboard.down('a');await page.waitForFunction(()=>{const a=window.audit.analysers.at(-1),v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>.0001);});await page.keyboard.up('a');await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));

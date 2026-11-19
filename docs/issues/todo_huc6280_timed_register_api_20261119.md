@@ -341,3 +341,54 @@ the shared chip class (matching the recorder's already listed operation).
   bounded 20-second timeout and replay past the retired RPC deadline. Receipt:
   `/private/tmp/actions-a390-huc-cdda.json` (2 runs, 14 checks).
 - Final `git diff --check` passed. Repairs remain uncommitted/unpushed.
+
+## Follow-up: Actions push 875fc41e (2026-11-19)
+
+- [x] itch: update the remaining runtime Mixer preset comparison to current
+  SCSP evidence while preserving the older historical test inputs.
+- [x] ASWAN: remove the 350 ms wall-clock race from the pending-key/PCM-mode
+  transition check using a suspended audio clock during manual key setup.
+- [ ] SCSP: confirm the resize-settling repair on Linux CI for 390 px horizontal overflow (15 px reported,
+  no out-of-bounds element rects). Retain strict responsive-layout assertions.
+- npm, VGM and WASM SDK jobs succeeded. Failing runs: itch `44534956862`,
+  ASWAN `44534956530`, SCSP `44534956552`; HuC6280 was still running.
+
+### 875fc41e local repairs and validation
+
+- Remaining Mixer runtime assertion now reads the same current SCSP report as
+  the generated policy (0.128826), preserving exact comparisons. The whole
+  itch workflow PS1/WonderSwan/default-policy test command passed: 360 tests.
+- ASWAN's PCM fixture accepts a configurable transition (default 0.35 s is
+  unchanged). Browser tests use 2 s, suspend the existing audio context while
+  selecting and pressing the queued key, assert its pending highlight, then
+  resume the same context before the driver switches Wave to PCM. No test
+  skips or additional output contexts. Both browsers passed. Fixture tests
+  verify the exact native register transition at both offsets.
+- HuC6280 subsequently failed in `44534956537`: VGM test UI volume setup
+  shared the next driver's short timing window. Control setup now exercises
+  the actual spinbutton key handlers in one page task, retaining strict
+  heard-frame/value assertions. Gate/Pitch ownership starts from its own
+  seek position after volume/silence checks. Both browser runs passed all
+  manual/driver-priority checks without changing Synth runtime behavior.
+- SCSP's Linux 15 px overflow is not reproduced locally, including an
+  additional temporary checker that installs 15 px classic scrollbars on
+  Chromium/WebKit. Production checker now waits for fonts and viewport
+  reflow, resets leftover horizontal scroll after resize, and retains the
+  strict <=1 px bound. It saves JSON dimensions, overflowing elements and
+  a screenshot on failure; the workflow uploads them. A new Linux CI run
+  is still required before claiming that platform-specific failure resolved.
+- No Synth runtime, CSS, native core, WASM, calibration report or generated
+  coefficient was changed in this repair. Only test inputs/checks and
+  failure diagnostics changed.
+- Logs/receipts: `/private/tmp/actions-875-itch-mixer-full.log`,
+  `/private/tmp/actions-875-aswan-browser.json`,
+  `/private/tmp/actions-875-huc-vgm-manual.json`,
+  `/private/tmp/actions-875-scsp-browser.json`,
+  `/private/tmp/actions-875-scsp-classic.json`.
+- Changes are local and uncommitted/unpushed; remote run results still
+  describe commit 875fc41e.
+
+- Final updated SCSP checker passed Chromium/WebKit again:
+  `/private/tmp/actions-875-scsp-final.json`. Narrow layouts report 0 px
+  overflow. Strict layout assertions remain; Linux CI confirmation stays open.
+- `git diff --check` and both generated mixer-policy checks passed.
