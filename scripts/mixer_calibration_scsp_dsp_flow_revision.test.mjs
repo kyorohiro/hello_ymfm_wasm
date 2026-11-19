@@ -1,18 +1,19 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {restoreMixerCalibrationScspDspFlowRevision as restore,
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+const {restoreMixerCalibrationScspDspFlowRevision:restore,
   createScspDspFlowRevisionReader,createScspDspFlowRevisionReadContext,
-  SCSP_DSP_FLOW_REVISION_BASE_COMMIT as base,
-  SCSP_DSP_FLOW_REVISION_RECEIPT_PATH as receiptPath,
-  SCSP_DSP_FLOW_REVISION_RECEIPT_OBJECT_SHA256 as receiptPin,
-  SCSP_DSP_FLOW_REVISION_SOURCE_PATHS as sources,
-  SCSP_DSP_FLOW_REVISION_RELATED_PATHS as related,
-  SCSP_DSP_FLOW_REVISION_REPORT_PATHS as reports,
-} from './mixer_calibration_scsp_dsp_flow_revision.mjs';
-import {createScspDspUiRevisionReader} from './mixer_calibration_scsp_dsp_ui_revision.mjs';
-import {createScspFmCustom2RevisionReader} from './mixer_calibration_scsp_fm_custom_revision.mjs';
+  SCSP_DSP_FLOW_REVISION_BASE_COMMIT:base,
+  SCSP_DSP_FLOW_REVISION_RECEIPT_PATH:receiptPath,
+  SCSP_DSP_FLOW_REVISION_RECEIPT_OBJECT_SHA256:receiptPin,
+  SCSP_DSP_FLOW_REVISION_SOURCE_PATHS:sources,
+  SCSP_DSP_FLOW_REVISION_RELATED_PATHS:related,
+  SCSP_DSP_FLOW_REVISION_REPORT_PATHS:reports,
+}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_flow_revision.mjs');
+const {createScspDspUiRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_ui_revision.mjs');
+const {createScspFmCustom2RevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_fm_custom_revision.mjs');
 const url=name=>new URL('../'+name,import.meta.url),read=name=>createScspFmCustom2RevisionReader()(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));

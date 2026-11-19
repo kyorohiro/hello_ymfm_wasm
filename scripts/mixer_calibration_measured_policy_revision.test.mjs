@@ -1,15 +1,16 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {restoreMixerCalibrationAySingleOutputPolicyRevision as restoreLatest} from './mixer_calibration_ay_single_output_policy_revision.mjs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+const {restoreMixerCalibrationAySingleOutputPolicyRevision:restoreLatest}=await historicalCalibrationModule('mixer_calibration_ay_single_output_policy_revision.mjs');
 import {renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
-import {createYm2608SourceMixPolicyReader} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
-import {MEASURED_POLICY_REVISION_RECEIPT_PATH as receiptPath,
-  MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  MEASURED_POLICY_REVISION_SOURCE_PATH as path,
-  MEASURED_POLICY_REVISION_REPORT_PATHS as reports,
-  restoreMixerCalibrationMeasuredPolicyRevision as restore} from './mixer_calibration_measured_policy_revision.mjs';
+const {createYm2608SourceMixPolicyReader}=await historicalCalibrationModule('mixer_calibration_ym2608_source_mix_policy_revision.mjs');
+const {MEASURED_POLICY_REVISION_RECEIPT_PATH:receiptPath,
+  MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  MEASURED_POLICY_REVISION_SOURCE_PATH:path,
+  MEASURED_POLICY_REVISION_REPORT_PATHS:reports,
+  restoreMixerCalibrationMeasuredPolicyRevision:restore}=await historicalCalibrationModule('mixer_calibration_measured_policy_revision.mjs');
 
 const policyHistory=createYm2608SourceMixPolicyReader();
 const read = path => policyHistory(new URL('../' + path,import.meta.url));

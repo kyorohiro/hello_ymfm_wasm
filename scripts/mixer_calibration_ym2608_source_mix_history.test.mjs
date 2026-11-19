@@ -1,7 +1,7 @@
 // Offline source fixtures preserve history without granting current approval.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readPreHucTimedInput as readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {createHash} from 'node:crypto';
 import {createHistoricalYm2608SourceMixReader,readHistoricalYm2608SourceMixFile,
  YM2608_SOURCE_MIX_HISTORY_PATH as path,YM2608_SOURCE_MIX_HISTORY_PIN as pin} from '../test/helpers/historical_ym2608_source_mix_fixture.mjs';

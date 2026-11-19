@@ -1,19 +1,20 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {createHash} from 'node:crypto';
-import {
-  restoreMixerCalibrationYm2612TimedRevision as restore,
+const {
+  restoreMixerCalibrationYm2612TimedRevision:restore,
   createYm2612TimedRevisionReader,
-  YM2612_TIMED_REVISION_RECEIPT_PATH as receiptPath,
-  YM2612_TIMED_REVISION_RECEIPT_OBJECT_SHA256 as receiptSha,
-  YM2612_TIMED_REVISION_SOURCE_PATHS as paths,
-  YM2612_TIMED_REVISION_RELATED_PATHS as related,
-  YM2612_TIMED_REVISION_REPORT_PATHS as reports,
-} from './mixer_calibration_ym2612_timed_revision.mjs';
-import {restoreMixerCalibrationAyTimedRevision} from './mixer_calibration_ay_timed_revision.mjs';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
-import {createScspDspHelpersRevisionReader} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
+  YM2612_TIMED_REVISION_RECEIPT_PATH:receiptPath,
+  YM2612_TIMED_REVISION_RECEIPT_OBJECT_SHA256:receiptSha,
+  YM2612_TIMED_REVISION_SOURCE_PATHS:paths,
+  YM2612_TIMED_REVISION_RELATED_PATHS:related,
+  YM2612_TIMED_REVISION_REPORT_PATHS:reports,
+}=await historicalCalibrationModule('mixer_calibration_ym2612_timed_revision.mjs');
+const {restoreMixerCalibrationAyTimedRevision}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs');
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {createScspDspHelpersRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_helpers_revision.mjs');
 
 const readPredecessor = createScspDspHelpersRevisionReader();
 const read = path => readPredecessor(new URL('../' + path, import.meta.url));

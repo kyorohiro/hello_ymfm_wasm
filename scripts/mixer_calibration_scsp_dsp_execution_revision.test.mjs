@@ -1,18 +1,19 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationScspDspExecutionRevision as restore,
+const {restoreMixerCalibrationScspDspExecutionRevision:restore,
   createScspDspExecutionRevisionReader,createScspDspExecutionRevisionReadContext,
-  SCSP_DSP_EXECUTION_REVISION_BASE_COMMIT as baseCommit,
-  SCSP_DSP_EXECUTION_REVISION_RECEIPT_PATH as receiptPath,
-  SCSP_DSP_EXECUTION_REVISION_RECEIPT_OBJECT_SHA256 as receiptSha,
-  SCSP_DSP_EXECUTION_REVISION_SOURCE_PATHS as paths,
-  SCSP_DSP_EXECUTION_REVISION_RELATED_PATHS as related,
-  SCSP_DSP_EXECUTION_REVISION_REPORT_PATHS as reports} from './mixer_calibration_scsp_dsp_execution_revision.mjs';
-import {createScspDspHelpersRevisionReader} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
-import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
-import {createScspDspDelayRevisionReadContext} from './mixer_calibration_scsp_dsp_delay_revision.mjs';
+  SCSP_DSP_EXECUTION_REVISION_BASE_COMMIT:baseCommit,
+  SCSP_DSP_EXECUTION_REVISION_RECEIPT_PATH:receiptPath,
+  SCSP_DSP_EXECUTION_REVISION_RECEIPT_OBJECT_SHA256:receiptSha,
+  SCSP_DSP_EXECUTION_REVISION_SOURCE_PATHS:paths,
+  SCSP_DSP_EXECUTION_REVISION_RELATED_PATHS:related,
+  SCSP_DSP_EXECUTION_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_execution_revision.mjs');
+const {createScspDspHelpersRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_helpers_revision.mjs');
+const {restoreMixerCalibrationVabApiRevision}=await historicalCalibrationModule('mixer_calibration_vab_api_revision.mjs');
+const {createScspDspDelayRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_delay_revision.mjs');
 
 const url=path=>new URL('../'+path,import.meta.url),read=path=>createScspDspDelayRevisionReadContext().readSource(url(path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

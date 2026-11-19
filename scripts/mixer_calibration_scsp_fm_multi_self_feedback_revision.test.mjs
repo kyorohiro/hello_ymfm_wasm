@@ -1,18 +1,19 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {restoreMixerCalibrationScspFmMultiSelfFeedbackRevision as restore,
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+const {restoreMixerCalibrationScspFmMultiSelfFeedbackRevision:restore,
   createScspFmMultiSelfFeedbackRevisionReader,createScspFmMultiSelfFeedbackRevisionReadContext,
-  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_BASE_COMMIT as base,
-  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_RECEIPT_PATH as receiptPath,
-  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_RECEIPT_OBJECT_SHA256 as receiptPin,
-  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_SOURCE_PATHS as sources,
-  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_RELATED_PATHS as related,
-  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_REPORT_PATHS as reports,
-} from './mixer_calibration_scsp_fm_multi_self_feedback_revision.mjs';
-import {createScspFmSelfFeedbackRevisionReader} from './mixer_calibration_scsp_fm_self_feedback_revision.mjs';
-import {createScspFmMultipleSelfRevisionReader} from './mixer_calibration_scsp_fm_multiple_self_revision.mjs';
+  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_BASE_COMMIT:base,
+  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_RECEIPT_PATH:receiptPath,
+  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_RECEIPT_OBJECT_SHA256:receiptPin,
+  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_SOURCE_PATHS:sources,
+  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_RELATED_PATHS:related,
+  SCSP_FM_MULTI_SELF_FEEDBACK_REVISION_REPORT_PATHS:reports,
+}=await historicalCalibrationModule('mixer_calibration_scsp_fm_multi_self_feedback_revision.mjs');
+const {createScspFmSelfFeedbackRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_fm_self_feedback_revision.mjs');
+const {createScspFmMultipleSelfRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_fm_multiple_self_revision.mjs');
 const url=name=>new URL('../'+name,import.meta.url),read=name=>createScspFmMultipleSelfRevisionReader()(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));

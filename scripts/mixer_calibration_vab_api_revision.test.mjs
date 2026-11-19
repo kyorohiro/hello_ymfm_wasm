@@ -1,15 +1,16 @@
-import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
-import {
+const {
   VAB_API_REVISION_BASE_COMMIT,VAB_API_REVISION_RECEIPT_PATH,VAB_API_REVISION_RECEIPT_OBJECT_SHA256,
   VAB_API_REVISION_SOURCE_PATHS,VAB_API_REVISION_RELATED_PATHS,VAB_API_REVISION_REPORT_PATHS,
   VAB_API_PRIOR_EXPORT_PATHS,restoreMixerCalibrationVabApiRevision,
-} from './mixer_calibration_vab_api_revision.mjs';
+}=await historicalCalibrationModule('mixer_calibration_vab_api_revision.mjs');
 import {isSoundChipPsgSourceLayoutRevision} from './generate_soundchip_mixer_presets.mjs';
-import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 
 const url=path=>new URL('../'+path,import.meta.url);
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

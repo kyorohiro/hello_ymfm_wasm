@@ -1,13 +1,14 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {createHash} from 'node:crypto';
 import {renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
-import {createYm2608SourceMixPolicyReader} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
-import {AY_SINGLE_OUTPUT_POLICY_RECEIPT_PATH as receiptPath,AY_SINGLE_OUTPUT_POLICY_RECEIPT_OBJECT_SHA256 as pin,
- AY_SINGLE_OUTPUT_POLICY_SOURCE_PATH as path,AY_SINGLE_OUTPUT_POLICY_REPORT_PATHS as paths,
- restoreMixerCalibrationAySingleOutputPolicyRevision as restore} from './mixer_calibration_ay_single_output_policy_revision.mjs';
+const {createYm2608SourceMixPolicyReader}=await historicalCalibrationModule('mixer_calibration_ym2608_source_mix_policy_revision.mjs');
+const {AY_SINGLE_OUTPUT_POLICY_RECEIPT_PATH:receiptPath,AY_SINGLE_OUTPUT_POLICY_RECEIPT_OBJECT_SHA256:pin,
+ AY_SINGLE_OUTPUT_POLICY_SOURCE_PATH:path,AY_SINGLE_OUTPUT_POLICY_REPORT_PATHS:paths,
+ restoreMixerCalibrationAySingleOutputPolicyRevision:restore}=await historicalCalibrationModule('mixer_calibration_ay_single_output_policy_revision.mjs');
 const policyHistory=createYm2608SourceMixPolicyReader();
 const read=path=>policyHistory(new URL('../'+path,import.meta.url)),json=path=>JSON.parse(read(path)),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 test('new exact gain-policy transition is pinned to fresh raw captures and affected applied-gain verification',()=>{

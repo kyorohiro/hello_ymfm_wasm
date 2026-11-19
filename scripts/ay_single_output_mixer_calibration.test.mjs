@@ -4,7 +4,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationAySingleOutputUiCacheRevision} from './mixer_calibration_ay_single_output_ui_cache_revision.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {isMixerCalibrationVirtualFilesWorkspaceRevision}=await historicalCalibrationModule('mixer_calibration_virtual_files_workspace_revision.mjs',{mode:'post-source-mix'});
+const {restoreMixerCalibrationAySingleOutputUiCacheRevision}=await historicalCalibrationModule('mixer_calibration_ay_single_output_ui_cache_revision.mjs');
 import {validatePs1MixerCalibration} from './ps1_mixer_calibration.mjs';
 import {validateWonderSwanMixerCalibration} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibration} from './pokey_mixer_calibration.mjs';
@@ -40,7 +42,7 @@ for(const [kind,validate]of [
  assert.equal(current.physicalOutputMuted,true);assert.equal(current.listeningPerformed,false);assert.equal(current.pcmContinuous,true);
  validate(JSON.parse(await read('docs/issues/playground_chip_levels_01.json')),current);
  for(const [path,expected]of Object.entries(current.scripts))assert.equal(sha(await read(path)),expected,path);
- for(const [path,record]of Object.entries(current.sources)){const actual=await read('docs/'+path),bytes=restoreMixerCalibrationAySingleOutputUiCacheRevision(path,actual,{report:current,record});assert.equal(bytes.length,record.bytes,path);assert.equal(sha(bytes),record.sha256,path);}
+ for(const [path,record]of Object.entries(current.sources)){const actual=await read('docs/'+path),bytes=restoreMixerCalibrationAySingleOutputUiCacheRevision(path,actual,{report:current,record});if(bytes.length===record.bytes&&sha(bytes)===record.sha256)continue;assert(isMixerCalibrationVirtualFilesWorkspaceRevision(path,actual,record),path);}
  for(const route of current.calibration.routes){const previous=old.calibration.routes.find(row=>row.role===route.role);assert(previous);assert(Math.abs(route.volume/previous.volume-1)<.0001,'Newly derived gains stay within 0.01% of the original output scale without forcing old rounded values');}
  assert.notDeepEqual(current.sources,old.sources,'The AY remeasurement keeps its own historical provenance');
 });

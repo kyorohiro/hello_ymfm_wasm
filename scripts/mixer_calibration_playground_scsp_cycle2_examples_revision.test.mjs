@@ -1,15 +1,16 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {execFileSync} from 'node:child_process';
-import {SCSP_CYCLE2_EXAMPLES_BASE as base,SCSP_CYCLE2_EXAMPLES_RECEIPT as receiptPath,
- SCSP_CYCLE2_EXAMPLES_PIN as pin,SCSP_CYCLE2_EXAMPLES_SOURCES as paths,
- SCSP_CYCLE2_EXAMPLES_RELATED as related,SCSP_CYCLE2_EXAMPLES_REPORTS as reports,
- restoreMixerCalibrationPlaygroundScspCycle2ExamplesRevision as restore,
- createPlaygroundScspCycle2ExamplesRevisionReadContext as context,
- parseScspCycle2ExampleCatalog,verifyScspCycle2ExamplesDataOnly} from './mixer_calibration_playground_scsp_cycle2_examples_revision.mjs';
-import {createScspDspRoutingRevisionReadContext} from './mixer_calibration_scsp_dsp_routing_revision.mjs';
+const {SCSP_CYCLE2_EXAMPLES_BASE:base,SCSP_CYCLE2_EXAMPLES_RECEIPT:receiptPath,
+ SCSP_CYCLE2_EXAMPLES_PIN:pin,SCSP_CYCLE2_EXAMPLES_SOURCES:paths,
+ SCSP_CYCLE2_EXAMPLES_RELATED:related,SCSP_CYCLE2_EXAMPLES_REPORTS:reports,
+ restoreMixerCalibrationPlaygroundScspCycle2ExamplesRevision:restore,
+ createPlaygroundScspCycle2ExamplesRevisionReadContext:context,
+ parseScspCycle2ExampleCatalog,verifyScspCycle2ExamplesDataOnly}=await historicalCalibrationModule('mixer_calibration_playground_scsp_cycle2_examples_revision.mjs');
+const {createScspDspRoutingRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_routing_revision.mjs');
 const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const historical=name=>execFileSync('git',['show',base+':'+name],{maxBuffer:4*1024*1024});

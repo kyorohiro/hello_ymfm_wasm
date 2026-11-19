@@ -1,18 +1,19 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {restoreMixerCalibrationScspFmMultiRevision as restore,
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+const {restoreMixerCalibrationScspFmMultiRevision:restore,
   createScspFmMultiRevisionReader,createScspFmMultiRevisionReadContext,
-  SCSP_FM_MULTI_REVISION_BASE_COMMIT as base,
-  SCSP_FM_MULTI_REVISION_RECEIPT_PATH as receiptPath,
-  SCSP_FM_MULTI_REVISION_RECEIPT_OBJECT_SHA256 as receiptPin,
-  SCSP_FM_MULTI_REVISION_SOURCE_PATHS as sources,
-  SCSP_FM_MULTI_REVISION_RELATED_PATHS as related,
-  SCSP_FM_MULTI_REVISION_REPORT_PATHS as reports,
-} from './mixer_calibration_scsp_fm_multi_revision.mjs';
-import {createScspFmCustom2RevisionReader} from './mixer_calibration_scsp_fm_custom_revision.mjs';
-import {createScspFmDepthRevisionReader} from './mixer_calibration_scsp_fm_depth_revision.mjs';
+  SCSP_FM_MULTI_REVISION_BASE_COMMIT:base,
+  SCSP_FM_MULTI_REVISION_RECEIPT_PATH:receiptPath,
+  SCSP_FM_MULTI_REVISION_RECEIPT_OBJECT_SHA256:receiptPin,
+  SCSP_FM_MULTI_REVISION_SOURCE_PATHS:sources,
+  SCSP_FM_MULTI_REVISION_RELATED_PATHS:related,
+  SCSP_FM_MULTI_REVISION_REPORT_PATHS:reports,
+}=await historicalCalibrationModule('mixer_calibration_scsp_fm_multi_revision.mjs');
+const {createScspFmCustom2RevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_fm_custom_revision.mjs');
+const {createScspFmDepthRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_fm_depth_revision.mjs');
 const url=name=>new URL('../'+name,import.meta.url),read=name=>createScspFmDepthRevisionReader()(url(name));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const receipt=JSON.parse(read(receiptPath));

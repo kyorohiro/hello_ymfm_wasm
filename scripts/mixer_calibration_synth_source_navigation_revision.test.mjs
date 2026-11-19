@@ -1,19 +1,20 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // Passive source provenance. All audio measurements are immutable inputs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
-import {
-  SYNTH_SOURCE_NAVIGATION_RECEIPT_PATH as receiptPath,
-  SYNTH_SOURCE_NAVIGATION_RECEIPT_OBJECT_SHA256 as pin,
-  SYNTH_SOURCE_NAVIGATION_SOURCE_PATHS as paths,
-  SYNTH_SOURCE_NAVIGATION_REPORT_PATHS as reports,
-  restoreMixerCalibrationSynthSourceNavigationRevision as restore,
-} from './mixer_calibration_synth_source_navigation_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-import {HUC6280_UI_REVISION_RECEIPT_PATH} from './mixer_calibration_huc6280_ui_revision.mjs';
-import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
-import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+const {
+  SYNTH_SOURCE_NAVIGATION_RECEIPT_PATH:receiptPath,
+  SYNTH_SOURCE_NAVIGATION_RECEIPT_OBJECT_SHA256:pin,
+  SYNTH_SOURCE_NAVIGATION_SOURCE_PATHS:paths,
+  SYNTH_SOURCE_NAVIGATION_REPORT_PATHS:reports,
+  restoreMixerCalibrationSynthSourceNavigationRevision:restore,
+}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {HUC6280_UI_REVISION_RECEIPT_PATH}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
+const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
+const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 import {historicalVabSourceFixture} from '../test/helpers/historical_vab_source_fixture.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url));

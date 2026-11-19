@@ -1,16 +1,17 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // Passive source provenance and navigation only: no AudioContext or output.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
-import {
-  HUC6280_UI_REVISION_RECEIPT_PATH as receiptPath,HUC6280_UI_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  HUC6280_UI_REVISION_SOURCE_PATHS as paths,HUC6280_UI_REVISION_REPORT_PATHS as reports,
-  restoreMixerCalibrationHuc6280UiRevision as restore,
-} from './mixer_calibration_huc6280_ui_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+const {
+  HUC6280_UI_REVISION_RECEIPT_PATH:receiptPath,HUC6280_UI_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  HUC6280_UI_REVISION_SOURCE_PATHS:paths,HUC6280_UI_REVISION_REPORT_PATHS:reports,
+  restoreMixerCalibrationHuc6280UiRevision:restore,
+}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {definitionSource,runtimeSourceUrl} from '../docs/playground/playground_monaco_definitions.js';
-import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
+const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
 import {historicalVabSourceFixture} from '../test/helpers/historical_vab_source_fixture.mjs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

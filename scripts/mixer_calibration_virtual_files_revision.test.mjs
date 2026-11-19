@@ -1,8 +1,9 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {assertMixerCalibrationSourceFreshness,isMixerCalibrationVirtualFilesRevision} from './mixer_calibration_sources.mjs';
+const {assertMixerCalibrationSourceFreshness,isMixerCalibrationVirtualFilesRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
 import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';

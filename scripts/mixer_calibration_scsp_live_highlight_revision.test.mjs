@@ -1,23 +1,25 @@
+import {readPreHucTimedInput} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createHistoricalFm2612ApplicationReader} from '../test/helpers/historical_fm2612_application_source_fixture.mjs';
 import {execFileSync} from 'node:child_process';
-import {SCSP_LIVE_HIGHLIGHT_BASE as base,SCSP_LIVE_HIGHLIGHT_RECEIPT as receiptPath,
- SCSP_LIVE_HIGHLIGHT_PIN as pin,SCSP_LIVE_HIGHLIGHT_SOURCES as paths,
- SCSP_LIVE_HIGHLIGHT_UNCHANGED as unchanged,
- SCSP_LIVE_HIGHLIGHT_RELATED as related,SCSP_LIVE_HIGHLIGHT_REPORTS as reports,
- restoreMixerCalibrationScspLiveHighlightRevision as productionRestore,
- createScspLiveHighlightRevisionReadContext as productionContext} from './mixer_calibration_scsp_live_highlight_revision.mjs';
-import {createScspAllocationNavigationRevisionReadContext} from './mixer_calibration_scsp_allocation_navigation_revision.mjs';
-import {createScspSynthSlotAllocationRevisionReadContext} from './mixer_calibration_scsp_synth_slot_allocation_revision.mjs';
-import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
-import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
-import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-import {createScspOutputLevelNewCassetteRevisionReadContext} from './mixer_calibration_scsp_output_level_new_cassette_revision.mjs';
+const {SCSP_LIVE_HIGHLIGHT_BASE:base,SCSP_LIVE_HIGHLIGHT_RECEIPT:receiptPath,
+ SCSP_LIVE_HIGHLIGHT_PIN:pin,SCSP_LIVE_HIGHLIGHT_SOURCES:paths,
+ SCSP_LIVE_HIGHLIGHT_UNCHANGED:unchanged,
+ SCSP_LIVE_HIGHLIGHT_RELATED:related,SCSP_LIVE_HIGHLIGHT_REPORTS:reports,
+ restoreMixerCalibrationScspLiveHighlightRevision:productionRestore,
+ createScspLiveHighlightRevisionReadContext:productionContext}=await historicalCalibrationModule('mixer_calibration_scsp_live_highlight_revision.mjs');
+const {createScspAllocationNavigationRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_allocation_navigation_revision.mjs');
+const {createScspSynthSlotAllocationRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_synth_slot_allocation_revision.mjs');
+const {createScspSsfSlotMapRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_ssf_slot_map_revision.mjs');
+const {createScspCycle2UiRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_ui_revision.mjs');
+const {createScspCycle2PresetsRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_presets_revision.mjs');
+const {createScspOutputLevelNewCassetteRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_output_level_new_cassette_revision.mjs');
 // Exercise immutable historical evidence with its exact dependency bodies.
 // Raw production readers still reject the newer, unapproved application graph.
-const readFileSync=createHistoricalFm2612ApplicationReader();
+const readFileSync=createHistoricalFm2612ApplicationReader(readPreHucTimedInput);
 const restore=(path,bytes,options={})=>productionRestore(path,bytes,{readSource:readFileSync,...options});
 const context=(reader=readFileSync)=>productionContext(reader);
 const latest=createScspOutputLevelNewCassetteRevisionReadContext(readFileSync);
@@ -95,7 +97,7 @@ test('every complete source predecessor in the established SCSP proof chain stil
   ['scsp_dsp_helpers','createScspDspHelpersRevisionReadContext','playground_scsp_dsp_helpers'],
  ];
  for(const [moduleName,createName,receiptName] of chain){
-  const module=await import('./mixer_calibration_'+moduleName+'_revision.mjs'),proof=module[createName](readFileSync);
+  const module=await historicalCalibrationModule('mixer_calibration_'+moduleName+'_revision.mjs'),proof=module[createName](readFileSync);
   const previous=JSON.parse(read('docs/issues/'+receiptName+'_source_revision_01.json'));
   for(const [name,entry] of Object.entries(previous.sources))match(proof.readSource(url(name)),entry.before);
  }

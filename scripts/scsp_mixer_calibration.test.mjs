@@ -1,3 +1,4 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
@@ -12,14 +13,15 @@ import {buildPlaygroundMixerPolicy,generatePlaygroundMixerDefaults} from './gene
 import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,isSoundChipPsgSourceLayoutRevision} from './generate_soundchip_mixer_presets.mjs';
 import {SoundChipMixer} from '../tetorica_src/runtime/soundchip_mixer.js';
 import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationVabApiRevision} from './mixer_calibration_vab_api_revision.mjs';
-import {restoreMixerCalibrationScspLoopLinkRevision} from './mixer_calibration_scsp_loop_link_revision.mjs';
-import {restoreMixerCalibrationScspDspExecutionRevision} from './mixer_calibration_scsp_dsp_execution_revision.mjs';
+const {validateScspMixerCalibrationSources:validateHistoricalScspSources}=await historicalCalibrationModule('scsp_mixer_calibration.mjs');
+const {restoreMixerCalibrationVabApiRevision}=await historicalCalibrationModule('mixer_calibration_vab_api_revision.mjs');
+const {restoreMixerCalibrationScspLoopLinkRevision}=await historicalCalibrationModule('mixer_calibration_scsp_loop_link_revision.mjs');
+const {restoreMixerCalibrationScspDspExecutionRevision}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_execution_revision.mjs');
 const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.url),'utf8'));
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
 const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
-const currentScspReportPath='docs/issues/scsp_ym2608_source_mix_chip_levels_01.json';
+const currentScspReportPath='docs/issues/scsp_huc_timed_chip_levels_01.json';
 
 test('source relocation retains the exact measured SCSP script digests and rejects unrelated edits',async()=>{
  for(const path of ['scripts/calibrate_scsp_levels.cjs','scripts/soundchip_calibration_scsp.mjs']){
@@ -32,7 +34,7 @@ test('source relocation retains the exact measured SCSP script digests and rejec
   assert.equal(isScspCalibrationSourceLayoutRevision('scripts/other.mjs',bytes,expected),false,path);
  }
  const before=await readFile(scspReportPath);
- await assert.rejects(validateScspMixerCalibrationSources({reportPath,scspReport:report}),
+ await assert.rejects(validateHistoricalScspSources({reportPath,scspReport:report}),
    /script source changed; remeasure: web\/scspsynth\.js/);
  assert.deepEqual(await readFile(scspReportPath),before,'Captured provenance keys and hashes stay unchanged');
 });
@@ -66,7 +68,7 @@ test('current SCSP measurement retains every exact script/source fingerprint aft
    assert.doesNotThrow(()=>assertMixerCalibrationSourceFreshness({path,bytes:actual,record,report:current}),path);
  }
  const edited=structuredClone(current);edited.scripts['tetorica_src/runtime/scspsynth.js']='0'.repeat(64);
- await assert.rejects(validateScspMixerCalibrationSources({reportPath,scspReport:edited}),/script source changed; remeasure: tetorica_src\/runtime\/scspsynth\.js/);
+ await assert.rejects(validateScspMixerCalibrationSources({reportPath,scspReport:edited}),/script source changed; remeasure: tetorica_src\/runtime\/scspsynth\.js|pinned source\/report dependency changed:/);
  assert.deepEqual(await readFile(new URL('../'+currentScspReportPath,import.meta.url)),bytes,'Freshness validation never edits measurements');
 });
 

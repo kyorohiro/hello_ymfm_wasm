@@ -34,9 +34,21 @@ const sdkBuildMetadata=new Set([
  'third_party/snes-spc/changes.txt',
 ]);
 // Source-kit copies retain their original paths in corresponding-source.zip.
-// Their identical attribution guides stay individually readable under licenses/.
+// Their identical attribution documents stay individually readable under licenses/.
 export const ITCH_RUN_DUPLICATE_SOURCE_GUIDES=Object.freeze({
  'native/cdda/NOTICE.md':'licenses/tetorica-cdda/NOTICE.md',
+ 'sid/third_party/chips-m6581/LICENSE':'licenses/chips-m6581/LICENSE',
+ 'third_party/tetorica-nes/LICENSE-FDS':'licenses/tetorica-nes/LICENSE-FDS',
+ 'third_party/tetorica-nes/LICENSE-JSNES':'licenses/tetorica-nes/LICENSE-JSNES',
+ 'third_party/nuked-opn2/LICENSE':'licenses/nuked-opn2/LICENSE',
+ 'third_party/mame-32x-pwm/LICENSE':'licenses/mame-32x-pwm/LICENSE',
+ 'third_party/libvgm-pokey/LICENSE':'licenses/libvgm-pokey/LICENSE',
+ 'third_party/snes-spc/LICENSE':'licenses/snes-spc/LICENSE',
+ 'third_party/tetorica_sega_psg/LICENSE':'licenses/tetorica_sega_psg/LICENSE',
+ 'scsp-sdk/vendor/mame-scsp/LICENSE':'licenses/mame-scsp/LICENSE',
+ 'native/cdda/LICENSE':'licenses/tetorica-cdda/LICENSE',
+ 'native/msm5205/LICENSE':'licenses/tetorica-msm5205/LICENSE',
+ 'native/ps1/LICENSE':'licenses/mame-ps1-spu/LICENSE',
  'third_party/tetorica-nes/README.md':'licenses/tetorica-nes/README.md',
  'third_party/tetorica-nes/AUTHORS-JSNES.md':'licenses/tetorica-nes/AUTHORS-JSNES.md',
  'third_party/tetorica-nes/UPSTREAM-FDS.md':'licenses/tetorica-nes/UPSTREAM-FDS.md',
@@ -154,7 +166,7 @@ with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compressle
    const links=duplicateGuides.map(({retained})=>`- [${basename(dirname(retained))}/${basename(retained)}](../${retained})`).join('\n');
    const guidePath=join(temporary,'sources/README-for-run.md');
    await writeFile(guidePath,await readFile(guidePath,'utf8')+
-    `\n## Component documentation\n\nDuplicate source documentation is preserved at its original paths inside the complete source ZIP. Each document has an identical copy readable under \`licenses/\`, including the marked patch history. Packaging verifies every pair before archiving the source copy.\n\n${links}\n`);
+    `\n## Component documentation\n\nDuplicate source documentation and licenses are preserved at its original paths inside the complete source ZIP. Each document has an identical copy readable under \`licenses/\`, including the marked patch history. Packaging verifies every pair before archiving the source copy.\n\n${links}\n`);
   }
   const guidePaths=new Set(guides.map(name=>'sources/'+name)),removedPaths=new Set(removed.map(name=>'sources/'+name));
   let unchanged=0;

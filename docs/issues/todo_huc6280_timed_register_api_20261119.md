@@ -140,10 +140,10 @@ the shared chip class (matching the recorder's already listed operation).
 
 ## Required follow-up before packaging Playground
 
-- [ ] Refresh calibration evidence and fix the existing historical dependency
+- [x] Refresh calibration evidence and fix the existing historical dependency
   chain before recommending a new Playground distribution ZIP. This is separate
   from the now-working API connection; do not weaken the freshness guard.
-- Current generator rejects changed `docs/js/huc6280synth.js`; current historical
+- Prior failure (resolved by the new evidence below): the generator rejected changed `docs/js/huc6280synth.js`; current historical
   calibration tests also reject updated runtime dependencies such as
   playground_performance_sender.js. API/source tests do not grant calibration
   freshness approval. The three calibration regression files used by the HuC6280
@@ -156,3 +156,75 @@ the shared chip class (matching the recorder's already listed operation).
   historical fixtures; do not promote their FM application substitutions into
   production freshness approval. A proposed normalization was discarded.
 - No release, tag, push or npm publication was performed.
+
+## Calibration / CI repair
+
+- [x] Produce new complete current-source PS1/WonderSwan/POKEY/SCSP baseline and
+  verification reports, preserving all old reports and strict source checks.
+- [x] Switch production generators to the new reports; verify rounded gains and
+  listening policy, and keep their intended values unchanged.
+- [x] Isolate old calibration regression tests using pinned test-only source
+  snapshots; never use those substitutes to approve current production sources.
+- [x] Run historical guard tests, generators and packaging checks. Record any
+  remaining limitation explicitly; do not skip failing CI steps.
+
+### Current-source evidence and local packaging (2026-11-19)
+
+- New baseline / verification pairs: `ps1_huc_timed_chip_levels_01.json`,
+  `wonderswan_huc_timed_chip_levels_01.json`,
+  `pokey_huc_timed_chip_levels_01.json`, `scsp_huc_timed_chip_levels_01.json`
+  and each matching `_verify_01.json`. All eight reports passed. Original
+  historical reports and production freshness guards are unchanged.
+- Complete Chromium/WebKit × Main/Worker × 44.1/48 kHz coverage, three
+  pitches and primary/extra routes. Each non-POKEY report has 48 chip captures
+  and eight FM anchors; POKEY has 96 captures, eight FM anchors, eight PSG
+  anchors and eight dual-chip checks. Every physical destination stays muted;
+  no listening was performed. PS1/WonderSwan verification was rerun completely
+  after page-initialization timeouts under parallel browser load.
+- Both mixer generators now use the new reports and pass `--check`. Target
+  amplitude and listening factors remain unchanged; the independently measured
+  rounded POKEY gain is 0.413033 (previously 0.413034), SCSP is 0.128826
+  (previously 0.128825). The POKEY reference RMS has the corresponding small
+  measurement variation. No native core or WASM change.
+- Historical regression inputs are explicitly pinned in
+  `test/fixtures/pre-huc-timed-calibration-inputs.json`, validated against their
+  actual Git commits. Test-only detached module graphs exercise the real guard
+  implementations with archived inputs. Raw post-source-mix and older reviewed
+  inputs are distinct. This does not install global hooks, change live reads,
+  or authorize current production sources with old reports.
+- Playground packaging now includes all four HuC6280 timed-operation modules.
+  Synced the SID source-kit processor copy with its canonical source.
+- Browser packaging verifies 12 additional exact license duplicates and keeps
+  their readable copies in `licenses/`; every original source-kit path and
+  byte remains in `sources/corresponding-source.zip` and in the full download.
+  The strict 1,000-entry limit is unchanged. The browser ZIP has 998 entries;
+  the expanded-source download has 1,530. Both local ZIPs were generated.
+- Local package version used only for verification:
+  `huc-timed-calibration-verified-final2-20261119`; artifacts are in `release/`.
+- HuC6280 Synth unit tests: 746 passed. Timed API tests: 89 passed.
+  Archive integrity + browser packaging tests: 12 passed. Muted endpoint
+  checks: all eight routes passed; receipt
+  `huc6280_timed_calibration_endpoints_20261119.json`.
+- Complete calibration regression run: 601 tests, 600 passed and one SID
+  historical-reader failure. After isolating that remaining historical read,
+  all seven SID tests passed on rerun. No production guard or assertion was
+  relaxed for that fix. Logs:
+  `/private/tmp/huc-calibration-all-regressions-complete.log`,
+  `/private/tmp/huc-calibration-sid-final.log`. No other failing case remains.
+- CI now checks archive integrity, new current-source reports and both
+  generated policies in addition to the existing HuC6280 checks.
+- No commit, push, release/tag or npm publication was performed.
+
+- Both the canonical endpoint and actual packaged browser-stage JS passed all
+  eight muted endpoint cases. Packaged receipt:
+  `huc6280_timed_packaged_endpoints_20261119.json`. The temporary checker only
+  substituted the import prefix `/tetorica_src/runtime/` → `/js/` and set the
+  browser stage as the HTTP root; assertions, WASM and mute behavior were
+  unchanged.
+- HuC6280 Synth ZIP also generated successfully:
+  `release/tetorica_huc6280_synth_calibration-verified-20261119_itch.zip`.
+- Generator + archive-integrity tests: 36 passed.
+
+- Final `git diff --check`, both generator `--check` commands and the actual
+  browser ZIP entry/size validator passed. No remote Actions result is claimed;
+  the workflow changes still need commit/push to run on GitHub.

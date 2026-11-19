@@ -1,12 +1,13 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {
+const {
   assertMixerCalibrationSourceFreshness,createMixerCalibrationUiReceipt,
   assertMixerCalibrationPs1AdsrUiFreshness,
   mixerCalibrationReceiptObjectSha256,mixerCalibrationUiCanonicalSha256,
-} from './mixer_calibration_sources.mjs';
+}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {PS1_CALIBRATION_UI_RECEIPT_OBJECT_SHA256} from './ps1_mixer_calibration.mjs';
 import {WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256} from './wonderswan_mixer_calibration.mjs';
 import {POKEY_CALIBRATION_UI_RECEIPT_OBJECT_SHA256} from './pokey_mixer_calibration.mjs';

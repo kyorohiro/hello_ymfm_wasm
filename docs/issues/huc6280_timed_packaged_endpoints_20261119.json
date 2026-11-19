@@ -1,0 +1,94 @@
+{
+  "passed": true,
+  "elapsedMs": 3089,
+  "cases": [
+    {
+      "browser": "chromium",
+      "sampleRate": 44100,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 44100,
+      "execution": "main",
+      "silent": true
+    },
+    {
+      "browser": "chromium",
+      "sampleRate": 44100,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 44100,
+      "execution": "worker",
+      "silent": true
+    },
+    {
+      "browser": "chromium",
+      "sampleRate": 48000,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 48000,
+      "execution": "main",
+      "silent": true
+    },
+    {
+      "browser": "chromium",
+      "sampleRate": 48000,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 48000,
+      "execution": "worker",
+      "silent": true
+    },
+    {
+      "browser": "webkit",
+      "sampleRate": 44100,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 44100,
+      "execution": "main",
+      "silent": true
+    },
+    {
+      "browser": "webkit",
+      "sampleRate": 44100,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 44100,
+      "execution": "worker",
+      "silent": true
+    },
+    {
+      "browser": "webkit",
+      "sampleRate": 48000,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 48000,
+      "execution": "main",
+      "silent": true
+    },
+    {
+      "browser": "webkit",
+      "sampleRate": 48000,
+      "snapshotReusable": true,
+      "partialAfterManual": 201,
+      "invalidReplacementKept": true,
+      "compiledWrites": 3,
+      "requestedRate": 48000,
+      "execution": "worker",
+      "silent": true
+    }
+  ]
+}

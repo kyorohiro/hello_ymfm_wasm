@@ -1,13 +1,14 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalAyTimedFile, readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
-import {NES_NAVIGATION_REVISION_PATH as path,NES_NAVIGATION_REVISION_RECEIPT_PATH as receiptPath,
-  NES_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  restoreMixerCalibrationNesNavigationRevision as restore} from './mixer_calibration_nes_navigation_revision.mjs';
+const {NES_NAVIGATION_REVISION_PATH:path,NES_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
+  NES_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  restoreMixerCalibrationNesNavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_nes_navigation_revision.mjs');
 import {createNesSharedClientNavigationUiReceipt} from './record_nes_shared_client_navigation_ui_revision.mjs';
-import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 
 const read=name=>readFileSync(new URL('../'+name,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

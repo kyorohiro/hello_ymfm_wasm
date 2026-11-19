@@ -1,11 +1,12 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationSynthControlsRevision,SYNTH_CONTROLS_REVISION_SOURCE_PATH as path,
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationSynthControlsRevision,SYNTH_CONTROLS_REVISION_SOURCE_PATH:path,
   SYNTH_CONTROLS_REVISION_RECEIPT_PATH,SYNTH_CONTROLS_REVISION_RECEIPT_OBJECT_SHA256,
-  SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_PATH,SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_OBJECT_SHA256} from './mixer_calibration_synth_controls_revision.mjs';
+  SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_PATH,SYNTH_CONTROLS_RANGE_REVISION_RECEIPT_OBJECT_SHA256}=await historicalCalibrationModule('mixer_calibration_synth_controls_revision.mjs');
 import * as current from '../docs/synth/synth_controls.js';
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');

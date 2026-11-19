@@ -1,15 +1,16 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
-import {ASWAN_NAVIGATION_REVISION_PATH as path,ASWAN_NAVIGATION_REVISION_RECEIPT_PATH as receiptPath,
-  ASWAN_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256 as pin,ASWAN_NAVIGATION_REVISION_INSERTIONS as insertions,
-  ASWAN_NAVIGATION_PREDECESSOR_RECEIPT_PATH as predecessorPath,
-  restoreMixerCalibrationAswanNavigationRevision as restore} from './mixer_calibration_aswan_navigation_revision.mjs';
-import {MEASURED_POLICY_REVISION_RECEIPT_PATH} from './mixer_calibration_measured_policy_revision.mjs';
-import {restoreMixerCalibrationScspNavigationRevision} from './mixer_calibration_scsp_navigation_revision.mjs';
-import {restoreMixerCalibrationFm2608NavigationRevision} from './mixer_calibration_fm2608_navigation_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+const {ASWAN_NAVIGATION_REVISION_PATH:path,ASWAN_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
+  ASWAN_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,ASWAN_NAVIGATION_REVISION_INSERTIONS:insertions,
+  ASWAN_NAVIGATION_PREDECESSOR_RECEIPT_PATH:predecessorPath,
+  restoreMixerCalibrationAswanNavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_aswan_navigation_revision.mjs');
+const {MEASURED_POLICY_REVISION_RECEIPT_PATH}=await historicalCalibrationModule('mixer_calibration_measured_policy_revision.mjs');
+const {restoreMixerCalibrationScspNavigationRevision}=await historicalCalibrationModule('mixer_calibration_scsp_navigation_revision.mjs');
+const {restoreMixerCalibrationFm2608NavigationRevision}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {definitionSource,runtimeSourceUrl} from '../docs/playground/playground_monaco_definitions.js';
 
 const read=name=>readFileSync(new URL('../'+name,import.meta.url));

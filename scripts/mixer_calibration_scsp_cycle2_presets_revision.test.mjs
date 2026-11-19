@@ -1,15 +1,16 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {execFileSync} from 'node:child_process';
-import {SCSP_CYCLE2_PRESETS_BASE as base,SCSP_CYCLE2_PRESETS_RECEIPT as receiptPath,
- SCSP_CYCLE2_PRESETS_PIN as pin,SCSP_CYCLE2_PRESETS_SOURCES as paths,
- SCSP_CYCLE2_PRESETS_RELATED as related,SCSP_CYCLE2_PRESETS_REPORTS as reports,
- restoreMixerCalibrationScspCycle2PresetsRevision as restore,
- createScspCycle2PresetsRevisionReadContext as context} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-import {createScspFmMultipleSelfRevisionReadContext} from './mixer_calibration_scsp_fm_multiple_self_revision.mjs';
-import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
+const {SCSP_CYCLE2_PRESETS_BASE:base,SCSP_CYCLE2_PRESETS_RECEIPT:receiptPath,
+ SCSP_CYCLE2_PRESETS_PIN:pin,SCSP_CYCLE2_PRESETS_SOURCES:paths,
+ SCSP_CYCLE2_PRESETS_RELATED:related,SCSP_CYCLE2_PRESETS_REPORTS:reports,
+ restoreMixerCalibrationScspCycle2PresetsRevision:restore,
+ createScspCycle2PresetsRevisionReadContext:context}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_presets_revision.mjs');
+const {createScspFmMultipleSelfRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_fm_multiple_self_revision.mjs');
+const {createScspCycle2UiRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_ui_revision.mjs');
 const ui=createScspCycle2UiRevisionReadContext();
 const url=name=>new URL('../'+name,import.meta.url),read=name=>ui.readSource(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

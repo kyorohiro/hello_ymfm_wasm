@@ -306,6 +306,10 @@ playground_huc6280.js
 playground_huc6280_audio.js
 playground_huc6280_worklet.js
 huc6280synth.js
+huc6280_operations.js
+huc6280_timed_state.js
+huc6280_timed_client.js
+huc6280_timed_processor.js
 huc6280audioengine.js
 pokey.js
 sid.js

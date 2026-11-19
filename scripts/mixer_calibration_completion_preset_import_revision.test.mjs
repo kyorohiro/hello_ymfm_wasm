@@ -1,11 +1,12 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // Exact provenance and module identity only. No AudioContext/audio device.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationCompletionPresetImportRevision as restore,
-  assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationRf5c164NoteRevision} from './mixer_calibration_rf5c164_note_revision.mjs';
+const {restoreMixerCalibrationCompletionPresetImportRevision:restore,
+  assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationRf5c164NoteRevision}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
 
 const path='playground/playground_monaco_completion.js';
 const read=name=>readFile(new URL('../'+name,import.meta.url));

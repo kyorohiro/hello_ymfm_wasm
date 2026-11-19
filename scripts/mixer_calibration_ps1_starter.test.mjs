@@ -1,15 +1,16 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {
+const {
   MIXER_CALIBRATION_PS1_STARTER_PATH,
   mixerCalibrationPs1StarterOutsideSha256,
   mixerCalibrationReceiptObjectSha256,
   restoreMixerCalibrationPs1StarterRevision,
   readMixerCalibrationPs1StarterReceipt,
-} from './mixer_calibration_sources.mjs';
+}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const record=bytes=>({bytes:Buffer.byteLength(bytes),sha256:sha(bytes)});

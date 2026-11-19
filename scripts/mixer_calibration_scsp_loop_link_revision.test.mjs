@@ -1,3 +1,4 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // Calibration source evidence and offline PCM only; no audio device.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,16 +14,16 @@ import { Scsp } from '../tetorica_src/runtime/scsp.js';
 import { noteToHz } from '../tetorica_src/runtime/soundchip_pitch.js';
 import factory from '../docs/generated/scsp_wasm.js';
 import { buildScspCalibrationReference } from './soundchip_calibration_scsp.mjs';
-import { assertMixerCalibrationSourceFreshness } from './mixer_calibration_sources.mjs';
-import {
-	restoreMixerCalibrationScspLoopLinkRevision as restore,
-	SCSP_LOOP_LINK_REVISION_RECEIPT_PATH as receiptPath,
-	SCSP_LOOP_LINK_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-	SCSP_LOOP_LINK_REVISION_BASE_COMMIT as baseCommit,
-	SCSP_LOOP_LINK_REVISION_SOURCE_PATHS as paths,
-	SCSP_LOOP_LINK_REVISION_REPORT_PATHS as reports,
-	SCSP_LOOP_LINK_REVISION_RELATED_PATHS as related,
-} from './mixer_calibration_scsp_loop_link_revision.mjs';
+const { assertMixerCalibrationSourceFreshness }=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {
+	restoreMixerCalibrationScspLoopLinkRevision:restore,
+	SCSP_LOOP_LINK_REVISION_RECEIPT_PATH:receiptPath,
+	SCSP_LOOP_LINK_REVISION_RECEIPT_OBJECT_SHA256:pin,
+	SCSP_LOOP_LINK_REVISION_BASE_COMMIT:baseCommit,
+	SCSP_LOOP_LINK_REVISION_SOURCE_PATHS:paths,
+	SCSP_LOOP_LINK_REVISION_REPORT_PATHS:reports,
+	SCSP_LOOP_LINK_REVISION_RELATED_PATHS:related,
+}=await historicalCalibrationModule('mixer_calibration_scsp_loop_link_revision.mjs');
 const read = (path) => readFile(new URL('../' + path, import.meta.url));
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(await read(receiptPath));

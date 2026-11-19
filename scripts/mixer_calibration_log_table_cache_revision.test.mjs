@@ -1,19 +1,20 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalYm2612TimedFileSync as readFileSync} from '../test/helpers/historical_ym2612_timed_calibration_fixture.mjs';
-import {
-  restoreMixerCalibrationLogTableCacheRevision as restore,
-  LOG_TABLE_CACHE_REVISION_BASE_COMMIT as baseCommit,
-  LOG_TABLE_CACHE_REVISION_RECEIPT_PATH as receiptPath,
-  LOG_TABLE_CACHE_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  LOG_TABLE_CACHE_REVISION_SOURCE_PATHS as paths,
-  LOG_TABLE_CACHE_REVISION_LOGGER_PATHS as loggers,
-} from './mixer_calibration_log_table_cache_revision.mjs';
-import {
-  restoreMixerCalibrationAyTimedRevision as restoreAy,
-  AY_TIMED_REVISION_RECEIPT_PATH as ayReceiptPath,
-} from './mixer_calibration_ay_timed_revision.mjs';
+const {
+  restoreMixerCalibrationLogTableCacheRevision:restore,
+  LOG_TABLE_CACHE_REVISION_BASE_COMMIT:baseCommit,
+  LOG_TABLE_CACHE_REVISION_RECEIPT_PATH:receiptPath,
+  LOG_TABLE_CACHE_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  LOG_TABLE_CACHE_REVISION_SOURCE_PATHS:paths,
+  LOG_TABLE_CACHE_REVISION_LOGGER_PATHS:loggers,
+}=await historicalCalibrationModule('mixer_calibration_log_table_cache_revision.mjs');
+const {
+  restoreMixerCalibrationAyTimedRevision:restoreAy,
+  AY_TIMED_REVISION_RECEIPT_PATH:ayReceiptPath,
+}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs');
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');

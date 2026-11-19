@@ -1,17 +1,18 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
-import {createScspDspHelpersRevisionReader} from './mixer_calibration_scsp_dsp_helpers_revision.mjs';
-import {
-  AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_PATH as receiptPath,
-  AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_OBJECT_SHA256 as pin,
-  AY_SINGLE_OUTPUT_UI_CACHE_SOURCE_PATHS as paths,
-  AY_SINGLE_OUTPUT_UI_CACHE_REPORT_PATHS as reports,
-  restoreMixerCalibrationAySingleOutputUiCacheRevision as restore,
-} from './mixer_calibration_ay_single_output_ui_cache_revision.mjs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {createScspDspHelpersRevisionReader}=await historicalCalibrationModule('mixer_calibration_scsp_dsp_helpers_revision.mjs');
+const {
+  AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_PATH:receiptPath,
+  AY_SINGLE_OUTPUT_UI_CACHE_RECEIPT_OBJECT_SHA256:pin,
+  AY_SINGLE_OUTPUT_UI_CACHE_SOURCE_PATHS:paths,
+  AY_SINGLE_OUTPUT_UI_CACHE_REPORT_PATHS:reports,
+  restoreMixerCalibrationAySingleOutputUiCacheRevision:restore,
+}=await historicalCalibrationModule('mixer_calibration_ay_single_output_ui_cache_revision.mjs');
 
 const readPredecessor=createScspDspHelpersRevisionReader();
 const read=path=>readPredecessor(new URL('../'+path,import.meta.url));

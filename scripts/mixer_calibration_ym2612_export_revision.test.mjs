@@ -1,15 +1,16 @@
-import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
-import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
+const {restoreMixerCalibrationPs1ImportRevision}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
 // Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
 import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
 import test from 'node:test';
-import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 import assert from 'node:assert/strict';
 import {readHistoricalAyTimedFile as readFile} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
 import {createHash} from 'node:crypto';
-import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationYm2612ExportRevision,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationSynthCodeUiRevision} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
-import {restoreMixerCalibrationRf5c164NoteRevision} from './mixer_calibration_rf5c164_note_revision.mjs';
+const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationYm2612ExportRevision,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationSynthCodeUiRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationSidRevision}=await historicalCalibrationModule('mixer_calibration_sid_revision.mjs');
+const {restoreMixerCalibrationRf5c164NoteRevision}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const records={

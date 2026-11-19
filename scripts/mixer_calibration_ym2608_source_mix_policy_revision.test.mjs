@@ -1,3 +1,5 @@
+import {readPreHucTimedInput} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHistoricalFm2612ApplicationReader} from '../test/helpers/historical_fm2612_application_source_fixture.mjs';
@@ -5,12 +7,12 @@ import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 import {renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
 import {renderPlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
-import {restoreMixerCalibrationYm2608SourceMixPolicyRevision as productionRestore,createYm2608SourceMixPolicyReadContext as productionContext,
- YM2608_SOURCE_MIX_POLICY_RECEIPT as receiptPath,YM2608_SOURCE_MIX_POLICY_PIN as pin,
- YM2608_SOURCE_MIX_POLICY_SOURCES as sources,YM2608_SOURCE_MIX_POLICY_REPORTS as reports} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
+const {restoreMixerCalibrationYm2608SourceMixPolicyRevision:productionRestore,createYm2608SourceMixPolicyReadContext:productionContext,
+ YM2608_SOURCE_MIX_POLICY_RECEIPT:receiptPath,YM2608_SOURCE_MIX_POLICY_PIN:pin,
+ YM2608_SOURCE_MIX_POLICY_SOURCES:sources,YM2608_SOURCE_MIX_POLICY_REPORTS:reports}=await historicalCalibrationModule('mixer_calibration_ym2608_source_mix_policy_revision.mjs');
 
 // Historical policy tests retain their original dependency graph.
-const readFileSync=createHistoricalFm2612ApplicationReader();
+const readFileSync=createHistoricalFm2612ApplicationReader(readPreHucTimedInput);
 const restore=(path,bytes,options={})=>productionRestore(path,bytes,{readSource:readFileSync,...options});
 const createYm2608SourceMixPolicyReadContext=()=>productionContext(readFileSync);
 

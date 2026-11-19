@@ -1,17 +1,18 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {execFileSync} from 'node:child_process';
-import {SCSP_CYCLE2_UI_BASE as base,SCSP_CYCLE2_UI_RECEIPT as receiptPath,
- SCSP_CYCLE2_UI_PREDECESSORS as predecessors,
- SCSP_CYCLE2_UI_PIN as pin,SCSP_CYCLE2_UI_SOURCES as paths,
- SCSP_CYCLE2_UI_RELATED as related,SCSP_CYCLE2_UI_REPORTS as reports,
- verifyScspCycle2UiExampleData as verifyData,
- restoreMixerCalibrationScspCycle2UiRevision as restore,
- createScspCycle2UiRevisionReadContext as context} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
-import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
+const {SCSP_CYCLE2_UI_BASE:base,SCSP_CYCLE2_UI_RECEIPT:receiptPath,
+ SCSP_CYCLE2_UI_PREDECESSORS:predecessors,
+ SCSP_CYCLE2_UI_PIN:pin,SCSP_CYCLE2_UI_SOURCES:paths,
+ SCSP_CYCLE2_UI_RELATED:related,SCSP_CYCLE2_UI_REPORTS:reports,
+ verifyScspCycle2UiExampleData:verifyData,
+ restoreMixerCalibrationScspCycle2UiRevision:restore,
+ createScspCycle2UiRevisionReadContext:context}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_ui_revision.mjs');
+const {createScspCycle2PresetsRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_presets_revision.mjs');
+const {createScspSsfSlotMapRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_ssf_slot_map_revision.mjs');
 const latest=createScspSsfSlotMapRevisionReadContext();
 const url=name=>new URL('../'+name,import.meta.url),read=name=>latest.readSource(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

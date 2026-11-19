@@ -1,20 +1,21 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalYm2612TimedFileSync as readFileSync} from '../test/helpers/historical_ym2612_timed_calibration_fixture.mjs';
 import {createPerformanceQueue} from '../tetorica_src/runtime/playground_performance_queue.js';
 import {createProcessorPerformance} from '../tetorica_src/runtime/playground_performance_processor.js';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationLogTableCacheRevision} from './mixer_calibration_log_table_cache_revision.mjs';
-import {
-  restoreMixerCalibrationAyTimedRevision as restore,
-  AY_TIMED_REVISION_BASE_COMMIT as baseCommit,
-  AY_TIMED_REVISION_RECEIPT_PATH as receiptPath,
-  AY_TIMED_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  AY_TIMED_REVISION_SOURCE_PATHS as paths,
-  AY_TIMED_REVISION_RELATED_PATHS as related,
-  AY_TIMED_REVISION_REPORT_PATHS as reports,
-} from './mixer_calibration_ay_timed_revision.mjs';
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationLogTableCacheRevision}=await historicalCalibrationModule('mixer_calibration_log_table_cache_revision.mjs');
+const {
+  restoreMixerCalibrationAyTimedRevision:restore,
+  AY_TIMED_REVISION_BASE_COMMIT:baseCommit,
+  AY_TIMED_REVISION_RECEIPT_PATH:receiptPath,
+  AY_TIMED_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  AY_TIMED_REVISION_SOURCE_PATHS:paths,
+  AY_TIMED_REVISION_RELATED_PATHS:related,
+  AY_TIMED_REVISION_REPORT_PATHS:reports,
+}=await historicalCalibrationModule('mixer_calibration_ay_timed_revision.mjs');
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');

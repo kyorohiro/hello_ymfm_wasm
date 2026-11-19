@@ -30,8 +30,8 @@ for(const [kind,key,validate]of [
  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources],
  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources],
  ['scsp','scspReport',validateScspMixerCalibrationSources],
-])test(`${kind} source-mix calibration and verification cover every route with exact current provenance`,async()=>{
- const base=`docs/issues/${kind}_ym2608_source_mix_chip_levels_`;
+])test(`${kind} current HuC timed calibration and verification cover every route with exact current provenance`,async()=>{
+ const base=`docs/issues/${kind}_huc_timed_chip_levels_`;
  const raw=await json(base+'01.json'),verified=await json(base+'verify_01.json');
  const previous=await json(`docs/issues/${kind}_ay_single_output_chip_levels_01.json`);
  const expectedRows=kind==='pokey'?96:48;
@@ -53,5 +53,5 @@ for(const [kind,key,validate]of [
   assert(Math.abs(route.volume/old.volume-1)<.0001,'Independent measurement retains the established source scale within 0.01%');
  }
  await assert.rejects(validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[key]:previous}),
-  /source changed; remeasure:/,'Prior source hashes cannot authorize the new runtime');
+  /source changed; remeasure:|pinned source\/report dependency changed:/,'Prior source hashes cannot authorize the new runtime');
 });

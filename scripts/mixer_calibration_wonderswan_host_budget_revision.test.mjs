@@ -1,3 +1,4 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -6,16 +7,16 @@ import { readFileSync } from 'node:fs';
 import { readFile, mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-  restoreMixerCalibrationWonderSwanHostBudgetRevision as restore,
-  WONDERSWAN_HOST_BUDGET_REVISION_BASE_COMMIT as commit,
-  WONDERSWAN_HOST_BUDGET_REVISION_RECEIPT_PATH as receiptPath,
-  WONDERSWAN_HOST_BUDGET_REVISION_RECEIPT_OBJECT_SHA256 as receiptPin,
-  WONDERSWAN_HOST_BUDGET_REVISION_SOURCE_PATHS as sources,
-  WONDERSWAN_HOST_BUDGET_REVISION_REPORT_PATHS as reports,
-  WONDERSWAN_HOST_BUDGET_REVISION_RELATED_PATHS as related,
-} from './mixer_calibration_wonderswan_host_budget_revision.mjs';
-import { assertMixerCalibrationSourceFreshness as freshness } from './mixer_calibration_sources.mjs';
+const {
+  restoreMixerCalibrationWonderSwanHostBudgetRevision:restore,
+  WONDERSWAN_HOST_BUDGET_REVISION_BASE_COMMIT:commit,
+  WONDERSWAN_HOST_BUDGET_REVISION_RECEIPT_PATH:receiptPath,
+  WONDERSWAN_HOST_BUDGET_REVISION_RECEIPT_OBJECT_SHA256:receiptPin,
+  WONDERSWAN_HOST_BUDGET_REVISION_SOURCE_PATHS:sources,
+  WONDERSWAN_HOST_BUDGET_REVISION_REPORT_PATHS:reports,
+  WONDERSWAN_HOST_BUDGET_REVISION_RELATED_PATHS:related,
+}=await historicalCalibrationModule('mixer_calibration_wonderswan_host_budget_revision.mjs');
+const { assertMixerCalibrationSourceFreshness:freshness }=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import * as currentTimeline from '../tetorica_src/runtime/wonderswan_timeline.js';
 import * as currentConverter from '../docs/playground/wonderswan_vgm_import.js';
 import { createWonderSwanVgm } from '../test/helpers/wonderswan_vgm_fixture.mjs';

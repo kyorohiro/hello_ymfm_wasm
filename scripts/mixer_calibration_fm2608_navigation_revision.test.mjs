@@ -1,12 +1,13 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readHistoricalAyTimedFileSync as readFileSync} from '../test/helpers/historical_ay_timed_source_fixture.mjs';
-import {FM2608_NAVIGATION_REVISION_PATH as path,
-  FM2608_NAVIGATION_REVISION_RECEIPT_PATH as receiptPath,
-  FM2608_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  restoreMixerCalibrationFm2608NavigationRevision as restore} from './mixer_calibration_fm2608_navigation_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
+const {FM2608_NAVIGATION_REVISION_PATH:path,
+  FM2608_NAVIGATION_REVISION_RECEIPT_PATH:receiptPath,
+  FM2608_NAVIGATION_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  restoreMixerCalibrationFm2608NavigationRevision:restore}=await historicalCalibrationModule('mixer_calibration_fm2608_navigation_revision.mjs');
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 const read = path => readFileSync(new URL('../' + path,import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));

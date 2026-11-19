@@ -139,10 +139,10 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
 async function main(args) {
   const options = {
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_ym2608_source_mix_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json',import.meta.url)),
-    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_ym2608_source_mix_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_ym2608_source_mix_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_huc_timed_chip_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_huc_timed_chip_levels_01.json',import.meta.url)),
+    scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_huc_timed_chip_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_huc_timed_chip_levels_01.json',import.meta.url)),
     outPath:fileURLToPath(new URL('../tetorica_src/runtime/soundchip_mixer_presets.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false,noScsp=false,explicitScsp=false;

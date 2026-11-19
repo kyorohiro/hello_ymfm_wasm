@@ -1,4 +1,5 @@
-import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
 // SPDX-License-Identifier: BSD-3-Clause
 // Exact review fingerprints and offline PCM only; no AudioContext or output.
 import test from 'node:test';
@@ -9,14 +10,14 @@ import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
-import {restoreMixerCalibrationPs1ImportRevision as restore,PS1_IMPORT_REVISION_BASE_COMMIT as commit,
-  PS1_IMPORT_REVISION_RECEIPT_PATH as receiptPath,PS1_IMPORT_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  PS1_IMPORT_REVISION_SOURCE_PATHS as paths,PS1_IMPORT_REVISION_REPORT_PATHS as reports} from './mixer_calibration_ps1_import_revision.mjs';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+const {restoreMixerCalibrationPs1ImportRevision:restore,PS1_IMPORT_REVISION_BASE_COMMIT:commit,
+  PS1_IMPORT_REVISION_RECEIPT_PATH:receiptPath,PS1_IMPORT_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  PS1_IMPORT_REVISION_SOURCE_PATHS:paths,PS1_IMPORT_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
+const {assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {measurePs1ImportRevisionPcm} from './check_ps1_import_revision_pcm.mjs';
 // Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
 import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
-import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 
 const read=path=>readFile(new URL('../'+path,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

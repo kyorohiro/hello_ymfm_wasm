@@ -1,9 +1,10 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import {renderPlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
-import {restoreMixerCalibrationSynthSourceNavigationRevision as restoreNavigation} from './mixer_calibration_synth_source_navigation_revision.mjs';
-import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
+const {restoreMixerCalibrationSynthSourceNavigationRevision:restoreNavigation}=await historicalCalibrationModule('mixer_calibration_synth_source_navigation_revision.mjs');
+const {restoreMixerCalibrationPs1ImportRevision}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
 // Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
 import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
-import {restoreMixerCalibrationHuc6280UiRevision} from './mixer_calibration_huc6280_ui_revision.mjs';
+const {restoreMixerCalibrationHuc6280UiRevision}=await historicalCalibrationModule('mixer_calibration_huc6280_ui_revision.mjs');
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -13,13 +14,13 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import vm from 'node:vm';
-import {restoreMixerCalibrationSidRevision,SID_PLAYGROUND_REVISION_BASE_COMMIT as commit,SID_PLAYGROUND_REVISION_RECEIPT_PATH as receiptPath,SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256 as pin,SID_PLAYGROUND_REVISION_SOURCE_PATHS as paths,SID_PLAYGROUND_REVISION_REPORT_PATHS as reports} from './mixer_calibration_sid_revision.mjs';
-import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationCompletionPresetImportRevision} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationRf5c164NoteRevision} from './mixer_calibration_rf5c164_note_revision.mjs';
-import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
-import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
-import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
-import {validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
+const {restoreMixerCalibrationSidRevision,SID_PLAYGROUND_REVISION_BASE_COMMIT:commit,SID_PLAYGROUND_REVISION_RECEIPT_PATH:receiptPath,SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256:pin,SID_PLAYGROUND_REVISION_SOURCE_PATHS:paths,SID_PLAYGROUND_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_sid_revision.mjs');
+const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationSynthDefinitionViewerRevision,restoreMixerCalibrationCompletionPresetImportRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationRf5c164NoteRevision}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
+const {validatePs1MixerCalibrationSources}=await historicalCalibrationModule('ps1_mixer_calibration.mjs');
+const {validateWonderSwanMixerCalibrationSources}=await historicalCalibrationModule('wonderswan_mixer_calibration.mjs');
+const {validatePokeyMixerCalibrationSources}=await historicalCalibrationModule('pokey_mixer_calibration.mjs');
+const {validateScspMixerCalibrationSources}=await historicalCalibrationModule('scsp_mixer_calibration.mjs');
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const read=path=>readFile(join(root,path));

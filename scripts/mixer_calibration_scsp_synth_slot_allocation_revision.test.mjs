@@ -1,18 +1,19 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
 import {execFileSync} from 'node:child_process';
-import {SCSP_SYNTH_SLOT_ALLOCATION_BASE as base,SCSP_SYNTH_SLOT_ALLOCATION_RECEIPT as receiptPath,
- SCSP_SYNTH_SLOT_ALLOCATION_PIN as pin,SCSP_SYNTH_SLOT_ALLOCATION_SOURCES as paths,
- SCSP_SYNTH_SLOT_ALLOCATION_UNCHANGED as unchanged,
- SCSP_SYNTH_SLOT_ALLOCATION_RELATED as related,SCSP_SYNTH_SLOT_ALLOCATION_REPORTS as reports,
- restoreMixerCalibrationScspSynthSlotAllocationRevision as restore,
- createScspSynthSlotAllocationRevisionReadContext as context} from './mixer_calibration_scsp_synth_slot_allocation_revision.mjs';
-import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
-import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
-import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-import {createScspAllocationNavigationRevisionReadContext} from './mixer_calibration_scsp_allocation_navigation_revision.mjs';
+const {SCSP_SYNTH_SLOT_ALLOCATION_BASE:base,SCSP_SYNTH_SLOT_ALLOCATION_RECEIPT:receiptPath,
+ SCSP_SYNTH_SLOT_ALLOCATION_PIN:pin,SCSP_SYNTH_SLOT_ALLOCATION_SOURCES:paths,
+ SCSP_SYNTH_SLOT_ALLOCATION_UNCHANGED:unchanged,
+ SCSP_SYNTH_SLOT_ALLOCATION_RELATED:related,SCSP_SYNTH_SLOT_ALLOCATION_REPORTS:reports,
+ restoreMixerCalibrationScspSynthSlotAllocationRevision:restore,
+ createScspSynthSlotAllocationRevisionReadContext:context}=await historicalCalibrationModule('mixer_calibration_scsp_synth_slot_allocation_revision.mjs');
+const {createScspSsfSlotMapRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_ssf_slot_map_revision.mjs');
+const {createScspCycle2UiRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_ui_revision.mjs');
+const {createScspCycle2PresetsRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_cycle2_presets_revision.mjs');
+const {createScspAllocationNavigationRevisionReadContext}=await historicalCalibrationModule('mixer_calibration_scsp_allocation_navigation_revision.mjs');
 const latest=createScspAllocationNavigationRevisionReadContext();
 const url=name=>new URL('../'+name,import.meta.url),read=name=>latest.readSource(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

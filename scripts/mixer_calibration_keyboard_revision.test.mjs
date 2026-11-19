@@ -1,8 +1,9 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationKeyboardOctaveRevision,assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+const {restoreMixerCalibrationKeyboardOctaveRevision,assertMixerCalibrationSourceFreshness}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
 import {createFretboardState,createFretboardLayout} from '../docs/synth/synth_keyboard.js';
 
 const path='synth/synth_keyboard.js';

@@ -1,12 +1,13 @@
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {SCSP_DRAFT_REVISION_PATH as path,SCSP_DRAFT_REVISION_RECEIPT_PATH as receiptPath,
-  SCSP_DRAFT_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  restoreMixerCalibrationScspDraftRevision as restore} from './mixer_calibration_scsp_draft_revision.mjs';
-import {assertMixerCalibrationSourceFreshness as fresh} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationScspEmptyDraftRevision} from './mixer_calibration_scsp_empty_draft_revision.mjs';
+import {readFileSync} from '../test/helpers/historical_huc_timed_calibration_inputs.mjs';
+const {SCSP_DRAFT_REVISION_PATH:path,SCSP_DRAFT_REVISION_RECEIPT_PATH:receiptPath,
+  SCSP_DRAFT_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  restoreMixerCalibrationScspDraftRevision:restore}=await historicalCalibrationModule('mixer_calibration_scsp_draft_revision.mjs');
+const {assertMixerCalibrationSourceFreshness:fresh}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationScspEmptyDraftRevision}=await historicalCalibrationModule('mixer_calibration_scsp_empty_draft_revision.mjs');
 
 const read=name=>readFileSync(new URL('../'+name,import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

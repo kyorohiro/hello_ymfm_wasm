@@ -1,4 +1,5 @@
-import {restoreMixerCalibrationPs1ImportRevision} from './mixer_calibration_ps1_import_revision.mjs';
+import {historicalCalibrationModule} from '../test/helpers/historical_calibration_modules.mjs';
+const {restoreMixerCalibrationPs1ImportRevision}=await historicalCalibrationModule('mixer_calibration_ps1_import_revision.mjs');
 // Archived source-pair fixture; production VAB freshness stays stale after the AY WASM change.
 import {historicalVabSourceFixture as restoreMixerCalibrationVabApiRevision} from '../test/helpers/historical_vab_source_fixture.mjs';
 // Calibration provenance and PCM arrays only. No AudioContext/audio device.
@@ -11,11 +12,11 @@ import {join,dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import vm from 'node:vm';
-import {restoreMixerCalibrationRf5c164NoteRevision as restore,RF5C164_NOTE_REVISION_BASE_COMMIT as commit,
-  RF5C164_NOTE_REVISION_RECEIPT_PATH as receiptPath,RF5C164_NOTE_REVISION_RECEIPT_OBJECT_SHA256 as pin,
-  RF5C164_NOTE_REVISION_SOURCE_PATHS as paths,RF5C164_NOTE_REVISION_REPORT_PATHS as reports} from './mixer_calibration_rf5c164_note_revision.mjs';
-import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationCompletionPresetImportRevision} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationYm2608OutputGainRevision as restoreYm2608} from './mixer_calibration_ym2608_output_gain_revision.mjs';
+const {restoreMixerCalibrationRf5c164NoteRevision:restore,RF5C164_NOTE_REVISION_BASE_COMMIT:commit,
+  RF5C164_NOTE_REVISION_RECEIPT_PATH:receiptPath,RF5C164_NOTE_REVISION_RECEIPT_OBJECT_SHA256:pin,
+  RF5C164_NOTE_REVISION_SOURCE_PATHS:paths,RF5C164_NOTE_REVISION_REPORT_PATHS:reports}=await historicalCalibrationModule('mixer_calibration_rf5c164_note_revision.mjs');
+const {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationCompletionPresetImportRevision}=await historicalCalibrationModule('mixer_calibration_sources.mjs');
+const {restoreMixerCalibrationYm2608OutputGainRevision:restoreYm2608}=await historicalCalibrationModule('mixer_calibration_ym2608_output_gain_revision.mjs');
 import {createHistoricalYm2608SourceMixReader} from '../test/helpers/historical_ym2608_source_mix_fixture.mjs';
 import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
 import {sampleBytes} from '../tetorica_src/runtime/rf5c164_pcm.js';

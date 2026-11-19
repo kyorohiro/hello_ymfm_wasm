@@ -50,6 +50,9 @@ on:
       - 'scripts/mixer_calibration_huc6280_ui_revision*'
       - 'scripts/mixer_calibration_code_note_revision*'
       - 'scripts/mixer_calibration_fm2612_application_history.test.mjs'
+      - 'test/fixtures/pre-huc-timed-calibration-inputs.json'
+      - 'test/historical_huc_timed_calibration_inputs.test.mjs'
+      - 'docs/issues/*_huc_timed_chip_levels*.json'
       - 'test/helpers/historical_*'
       - 'test/fixtures/*predecessors.json'
       - 'docs/issues/huc6280_cdrom2_definition_ui_revision_01.json'
@@ -113,6 +116,9 @@ jobs:
           mkdir -p release
           node scripts/check_huc6280_timed_endpoints_browser.cjs --out=release/huc6280-timed-endpoints-browser.json
           node --test scripts/mixer_calibration_huc6280_ui_revision.test.mjs scripts/mixer_calibration_code_note_revision.test.mjs scripts/mixer_calibration_fm2612_application_history.test.mjs
+          node --test test/historical_huc_timed_calibration_inputs.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs scripts/ym2608_source_mix_mixer_calibration.test.mjs
+          node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check
+          node scripts/generate_soundchip_mixer_presets.mjs --check
           sh scripts/package_itch_huc6280_synth.sh ci
           python3 -m zipfile -e release/tetorica_huc6280_synth_ci_itch.zip release/huc6280-synth-browser
           node scripts/check_huc6280_synth_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-browser.json --screenshots release/huc6280-synth-images
