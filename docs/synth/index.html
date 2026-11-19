@@ -146,6 +146,10 @@
       .synth-files-heading, .synth-file-editor-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
       .synth-files-heading h2 { margin: 0; letter-spacing: .15em; font-size: .8rem; }
       .synth-files-actions { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 10px; }
+      .synth-files-save-controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 0; border-bottom:1px solid #35504b; margin-bottom:8px; }
+      .synth-files-save-controls label { display:flex; align-items:center; gap:5px; font-size:.74rem; flex-basis:100%; }
+      .synth-files-save-controls input { margin:0; }
+      .synth-file-unsaved { margin-left:6px; color:#ffd19b; font-size:.8em; }
       .synth-files-panel .toolbar-button { font-size: .7rem; padding: 5px 7px; }
       .synth-files-caption, #synthFileSelectionInfo { margin: 8px 0 0; color: #a8bfba; font-size: .72rem; overflow-wrap: anywhere; }
       #synthCassetteName { font-size: .72rem; color: #a8bfba; overflow-wrap: anywhere; margin: 0 0 8px; }
@@ -160,6 +164,7 @@
       #synthFilesTree .file-drop-target { background: #345750; outline: 1px solid #7be0d6; }
       #synthActiveFilePath { font-size: .76rem; overflow-wrap: anywhere; min-width: 0; flex: 1; }
       #synthFileDirty { font-size: .72rem; color: #ffd19b; }
+      #presetImportNotice[hidden] { display: none; }
       .synth-file-sync-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
       .synth-file-sync-actions [hidden] { display:none; }
       #synthFileSaveButton { width: 80px; flex: none; }
@@ -1031,6 +1036,7 @@
       }
 
       .performance-keyboard { display: flex; gap: 10px; align-items: stretch; }
+      #synthInputSection { min-width: 0; }
       #synthKeyboardPanel[hidden], #synthCodePanel[hidden] { display:none; }
       .synth-input-heading { display:flex; align-items:center; gap:8px; margin-bottom:10px; min-width:0; }
       .synth-input-tabs { flex:1; min-width:0; }
@@ -1496,6 +1502,13 @@
         <div id="synthWorkspace" class="synth-workspace">
           <aside id="synthFilesPanel" class="synth-files-panel" aria-label="Cassette files" hidden>
             <div class="synth-files-heading"><h2>FILES</h2><button id="synthFileNewButton" class="toolbar-button" type="button">＋ Instrument</button><button id="synthFileNewCodeButton" class="toolbar-button" type="button">＋ JS</button></div>
+            <div class="synth-files-save-controls" role="group" aria-label="File saving">
+              <label title="Save file edits and apply instrument changes automatically. JavaScript still uses Run / Apply."><input id="synthAutoApplyToggle" type="checkbox" checked>Auto apply</label>
+              <button id="synthFileSaveButton" class="toolbar-button" type="button" title="Save the current file (Ctrl/Cmd+S)" aria-keyshortcuts="Control+S Meta+S" disabled>Save</button>
+              <button id="synthFileSaveAllButton" class="toolbar-button" type="button" title="Save all unsaved files" disabled>Save all</button>
+              <button id="synthFileRevertButton" class="toolbar-button" type="button" title="Discard the current file's unsaved changes" disabled>Discard</button>
+              <span id="synthSyncAnnouncement" class="synth-sync-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
+            </div>
             <p id="synthCassetteName">cassette.cassette.zip</p>
             <div id="synthFilesTree"></div>
             <div class="synth-files-actions">
@@ -1514,12 +1527,7 @@
             <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
             <p id="presetImportNotice" class="tfi-summary" role="status" hidden></p>
             <div class="synth-file-editor-heading">
-              <span id="synthActiveFilePath">Built-in instrument</span><span id="synthFileDirty"></span>
-              <div class="synth-file-sync-actions" role="toolbar" aria-label="Instrument file controls">
-                <button id="synthFileSaveButton" class="toolbar-button" type="button" title="Sync this instrument (Ctrl/Cmd+S)" aria-keyshortcuts="Control+S Meta+S" disabled>Sync</button>
-                <button id="synthFileRevertButton" class="toolbar-button" type="button" title="Restore this instrument from its last synced copy" disabled>Revert</button>
-                <span id="synthSyncAnnouncement" class="synth-sync-announcement" role="status" aria-live="polite" aria-atomic="true"></span>
-              </div>
+              <span id="synthActiveFilePath">Built-in instrument</span><span id="synthFileDirty" hidden></span>
             </div>
             <div class="synth-file-format-row">
               <p class="synth-file-format-note" title="TFI stores FM operators, algorithm and feedback. VGI also stores pan, AMS and PMS. Extra Synth settings are stored beside the tone as &lt;tone&gt;.synth.json and included in Cassette export. Copied OP masks and CH3 pitch ratios require this sidecar; DAC remains a session control.">TFI / VGI + Synth settings · Format info ⓘ</p>
@@ -1880,7 +1888,7 @@
                   <textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
                   <div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
                 </div>
-                <p id="synthCodeEditorNote" class="synth-code-note">Run starts a new session. Apply keeps context. Stop clears the live session. Code is saved with the Cassette.</p>
+                <p id="synthCodeEditorNote" class="synth-code-note">Run starts a new session. Apply keeps context. Auto apply off: Save files before Run / Apply. Saving Code never runs it.</p>
                 <pre id="synthCodeError" class="synth-code-log" role="alert"></pre>
                 <pre id="synthCodeLog" class="synth-code-log" aria-label="Code output"></pre>
               </div>
@@ -1910,7 +1918,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=megacd-cdda-1";
+      import "./synth.js?v=working-saved-3";
     </script>
   </body>
 </html>

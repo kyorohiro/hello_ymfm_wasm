@@ -10,7 +10,7 @@ const selectors=source.slice(source.indexOf('function getPlayableSynth()'),sourc
 test('cold Code initialization can apply author tuning before its keyboard adapter exists, for all three editor chips',()=>{
   const fm={},psg={},pcm={},wrapped=[];
   const scope=vm.createContext({codeActive:true,codeAudio:null,synth:{},editorChip:'ym2612',editorPerformanceTarget:fm,
-    pcmAudio:{getPcm:()=>({})},psgAudio:{getPsg:()=>({})},pcmVoice:pcm,psgVoice:psg,looper:null,
+    pcmAudio:{getPcm:()=>({})},psgAudio:{getPsg:()=>({})},pcmPlaybackVoice:pcm,psgPlaybackVoice:psg,looper:null,
     isLocalChannelTarget:()=>false,localChannelKeyboard:()=>null,
     isSongChannelTarget:()=>false,isFmSongPlaying:()=>false,isPsgSongPlaying:()=>false,isPcmReferenceKeyboard:()=>false,songAuditionVoice:null});
   vm.runInContext(selectors,scope);
@@ -71,7 +71,7 @@ test('local child-tab transitions never describe the previous chip channel throu
       const ch=Number(String(scope.songTargetState.target).split(':').at(-1)),max={ym2612:5,psg:3,pcm:7}[scope.editorChip];
       assert(ch<=max,'a transient old PCM CH8 must not be sent to a new FM/PSG description');described.push([scope.editorChip,ch]);return {playable:true};
     },
-    codeActive:false,codeAudio:null,synth:{},editorPerformanceTarget:author.ym2612,pcmVoice:author.pcm,psgVoice:author.psg,
+    codeActive:false,codeAudio:null,synth:{},editorPerformanceTarget:author.ym2612,pcmPlaybackVoice:author.pcm,psgPlaybackVoice:author.psg,
     pcmAudio:{getPcm:()=>({})},psgAudio:{getPsg:()=>({})},looper:null,
     isReferenceKeyboard:()=>false,isSongChannelTarget:()=>false,isFmSongPlaying:()=>false,isPsgSongPlaying:()=>false,isPcmReferenceKeyboard:()=>false,
     codeRuntime:null,codeControls:{isCodeMode:()=>false},editorSwitchPending:false,switchingAudioOutput:false,referenceRecordingStop:null,songAuditionVoice:null});

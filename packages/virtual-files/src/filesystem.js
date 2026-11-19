@@ -1,6 +1,7 @@
 import {resolvePath, dirname} from './path.js';
 import {createVirtualFileReader} from './reader.js';
 import {planVirtualFileSync,resolveSyncPath} from './sync.js';
+import {fileStores,sameStoreState} from './filesystem_internal.js';
 export const CHECKPOINT_ROOT = '/.tet.ss';
 /** True only for the reserved root checkpoint tree. @param {string} path */
 export function isCheckpointPath(path) {path=resolvePath(path);return path===CHECKPOINT_ROOT||path.startsWith(CHECKPOINT_ROOT+'/');}
@@ -102,7 +103,7 @@ export function createVirtualFileSystem(entries = [], {autoCheckpoint = false} =
     ensureCheckpointIgnore(next);
     for(const before of captures)addFile(next,checkpointPath(before.path),before.path==='/.gitignore'?ignoredData(before.data):before.data);
   }
-  function publish(next) {updateRevisions(next.files,next.directories);files=next.files;directories=next.directories;notify();}
+  function publish(next,emit=true) {updateRevisions(next.files,next.directories);files=next.files;directories=next.directories;if(emit)notify();}
   // Internal snapshots share immutable store bytes. They never leave this
   // closure; the planner copies destinations, while public reads still copy.
   const storedSnapshot=()=>({version:/** @type {const} */(1),files:[...files.values()],directories:[...directories]});
@@ -269,6 +270,12 @@ export function createVirtualFileSystem(entries = [], {autoCheckpoint = false} =
     /** @param {string} [currentPath] */
     createFileReader(currentPath = '/index.js') {return createVirtualFileReader(fs,currentPath);},
   };
+  // The workspace can mirror immutable internal records without materializing
+  // public snapshots or copying unrelated audio buffers on each editor write.
+  fileStores.set(fs,{read:()=>({files,directories}),notify,publish(next,emit=true){
+    if(sameStoreState({files,directories},next))return false;
+    publish(next,emit);return true;
+  }});
   return fs;
 }
 

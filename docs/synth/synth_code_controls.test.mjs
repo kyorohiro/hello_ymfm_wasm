@@ -646,10 +646,59 @@ test('mixed JS/text Monaco disables occurrences once before attachment while def
     assert.equal(events.filter(event=>event[0]==='option').length,1);assert.equal(events.filter(event=>event[0]==='read').length,0);assert.equal(f.calls.factories,0);
   }finally{f.cleanup();}
   const untouched=[];
-  const defaults=fixture({source:'// default host',monaco:true,hostOptions:{loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
+  const legacy=createSynthProject(),legacyProject={fs:legacy.fs,onDidChange:listener=>legacy.onDidChange(listener)};
+  const defaults=fixture({project:legacyProject,source:'// default host',monaco:true,hostOptions:{loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
     options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4},editor:{EditorOption:{occurrencesHighlight:78}}},
       monacoEditor:{layout(){},dispose(){},onDidChangeModelContent(){},addCommand(){},getOption(){untouched.push('read');},updateOptions(){untouched.push('write');}}});
   }})}});
   try{await defaults.controls.ready;await defaults.controls.setMode('code');await until(()=>defaults.byId('synthCodeEditorNote').textContent!==undefined);for(let i=0;i<10;i++)await turn();assert.deepEqual(untouched,[]);}
   finally{defaults.cleanup();}
+});
+
+test('working/saved FM JavaScript disables Monaco occurrences once before model attachment without opting into text files',async()=>{
+  const events=[];let model={path:'',source:''},occurrences='multiFile';
+  const editor={getModel:()=>model,updateOptions(value){occurrences=value.occurrencesHighlight;events.push(['option',occurrences]);},
+    layout(){},dispose(){},onDidChangeModelContent(){},addCommand(){}};
+  const project=createSynthProject();project.fs.writeText('/index.js','// first JS');project.fs.writeText('/next.js','// second JS');
+  const f=fixture({project,hostOptions:{loadEditor:async()=>({initializePlaygroundMonaco:async options=>{
+    options.setEditorAdapter({getValue:()=>model.source,setValue:source=>{model.source=source;},setReadOnly(){},focus(){},
+      openVirtualFile(path,source){events.push(['attach',path,occurrences]);model={path,source};}});
+    options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4}},monacoEditor:editor});
+  }})}});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');await until(()=>model.path==='/index.js');
+    assert.deepEqual(events.slice(0,2),[['option','off'],['attach','/index.js','off']]);
+    await f.controls.openFile('/next.js');await f.controls.openFile('/index.js');
+    assert.deepEqual(events.slice(-2),[['attach','/next.js','off'],['attach','/index.js','off']]);
+    assert.equal(events.filter(event=>event[0]==='option').length,1);assert.equal(f.calls.factories,0);
+    await assert.rejects(f.controls.openFile('/notes.txt'),/JavaScript/,'the mitigation does not enable non-JavaScript editing');
+  }finally{f.cleanup();}
+});
+
+test('manual Code recovery retains separate saved source and Auto apply mode even when IndexedDB predates the toggle',async()=>{
+  const project=createSynthProject();project.fs.writeText('/index.js','// saved baseline');const durable=project.snapshot(),journal=new Map();
+  const f=fixture({project,journal,save:false});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');project.setAutoApply(false);
+    f.byId('synthCodeEditor').value='// working draft';f.byId('synthCodeEditor').fire('input');
+    const entry=JSON.parse([...journal.values()][0]);assert.equal(entry.savedSource,'// saved baseline');assert.equal(entry.autoSave,false);
+  }finally{f.cleanup();}
+  const restored=createSynthProject({snapshot:durable}),next=fixture({project:restored,journal,save:false,storedState:{mode:'code',path:'/index.js'}});
+  try {
+    await next.controls.ready;assert.equal(restored.autoApply,false);assert.equal(restored.fs.get('/index.js').data,'// working draft');
+    assert.equal(restored.savedFs.get('/index.js').data,'// saved baseline');assert.equal(next.byId('synthCodeEditor').value,'// working draft');
+  }finally{next.cleanup();}
+});
+
+test('Discard reloads the working editor without flushing its old text back and replaces stale recovery',async()=>{
+  const f=fixture({source:'// saved baseline'});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');f.project.setAutoApply(false);
+    f.byId('synthCodeEditor').value='// unsaved draft';f.byId('synthCodeEditor').fire('input');
+    f.project.discardFiles(['/index.js']);assert.equal(f.controls.reloadFile('/index.js'),true);
+    assert.equal(f.byId('synthCodeEditor').value,'// saved baseline');assert.equal(f.project.fs.get('/index.js').data,'// saved baseline');
+    assert.equal(JSON.parse([...f.journal.values()][0]).source,'// saved baseline');assert.equal(f.calls.runs.length,0);assert.equal(f.calls.stops,0);
+    f.project.fs.writeText('/new.js','// new draft');await f.controls.openFile('/new.js');f.project.discardFiles(['/new.js']);f.controls.reloadFile('/new.js');
+    assert.equal(f.controls.activePath,null);assert.equal(f.journal.size,0,'discarding a newly created Code file cannot resurrect it from recovery');
+  }finally{f.cleanup();}
 });

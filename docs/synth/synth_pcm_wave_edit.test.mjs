@@ -87,9 +87,10 @@ test('full-RAM edited samples retain exact length, marker guards and existing pr
   assert.equal(bytes.length,PCM_MAX_FRAMES);assert(!bytes.includes(255));assert.equal(bytes[0],126);assert.equal(bytes.at(-1),254);
   assert.deepEqual(parsePcmPreset(serializePcmPreset(edited)),edited);
   const memory=buildPcmMemory(edited);assert(memory.subarray(PCM_MAX_FRAMES).every(value=>value===255));
-  const project=createSynthProject(),path=project.createTone(preset,'Drawn').path;project.syncTone(path);
+  const project=createSynthProject(),path=project.createTone(preset,'Drawn').path;project.setAutoApply(false);
   project.writeTone(path,edited);assert(project.isToneModified(path));assert.deepEqual(project.readTone(path).preset,edited);
-  assert.deepEqual(project.revertTone(path).preset,preset);
+  assert.deepEqual(project.readTone(path,{version:'saved'}).preset,preset);
+  assert.deepEqual(project.discardTone(path).preset,preset);
 });
 
 test('a committed stroke reaches the real RF core without stopping the held note and produces finite PCM',async()=>{

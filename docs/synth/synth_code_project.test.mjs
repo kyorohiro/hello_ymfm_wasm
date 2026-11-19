@@ -4,6 +4,23 @@ import {createSynthProject} from './synth_project.js';
 import {createSynthCodeProject} from './synth_code_project.js';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 
+test('saved Code executes accepted entry, modules and files while preserving working drafts',async()=>{
+  const project=createSynthProject(),context={};
+  project.fs.writeText('/index.js','context.entry="saved";context.module=(await import("./lib.js")).value;context.data=await file("./data.txt");');
+  project.fs.writeText('/lib.js','export const value="saved module";');project.fs.writeText('/data.txt','saved data');
+  project.setAutoApply(false);
+  project.fs.writeText('/index.js','throw Error("working entry ran");');
+  project.fs.writeText('/lib.js','throw Error("working module ran");');project.fs.writeText('/data.txt','working data');
+  const before=project.snapshot(),bridge=createSynthCodeProject(project,{version:'saved'});
+  await new AsyncFunction('context',bridge.prepareSource('ignored working source'))(context);
+  assert.deepEqual(context,{entry:'saved',module:'saved module',data:'saved data'});
+  assert.equal(await bridge.readFile('/data.txt'),'saved data');assert.deepEqual(project.snapshot(),before);
+  project.fs.writeText('/new.js','context.new=true;');
+  assert.throws(()=>bridge.prepareSource('',{path:'/new.js'}),/Save.*before running/);
+  project.saveFiles(['/new.js']);await new AsyncFunction('context',bridge.prepareSource('',{path:'/new.js'}))(context);
+  assert.equal(context.new,true);delete globalThis.__tetoricaVirtualFiles;
+});
+
 test('Code reads current Files relatively as text, JSON and detached binary without changing instruments',async()=>{
   const project=createSynthProject(),bridge=createSynthCodeProject(project);
   project.fs.writeText('/code/data.json','{"note":"C4"}');project.fs.writeFile('/code/sample.bin',Uint8Array.of(3,7,255));

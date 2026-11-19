@@ -272,7 +272,7 @@ cp "${ROOT_DIR}/docs/playground/playground_file_tree.js" "${ROOT_DIR}/docs/playg
 cp "${ROOT_DIR}/docs/playground/vendor/fflate.js" "${ROOT_DIR}/docs/playground/vendor/fflate-LICENSE" "${STAGE_DIR}/playground/vendor/"
 # Synth uses the memory filesystem only; Git and its optional dependencies are
 # deliberately excluded from this standalone sound editor.
-for file in filesystem.js path.js reader.js sync.js; do
+for file in filesystem.js filesystem_internal.js workspace.js path.js reader.js sync.js; do
   cp "${ROOT_DIR}/docs/js/tetorica_virtual_files/${file}" "${STAGE_DIR}/js/tetorica_virtual_files/"
 done
 mkdir -p "${STAGE_DIR}/licenses/tetorica-virtual-files"
@@ -360,7 +360,7 @@ This package includes two YM2612 engine options:
 EOF
 
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
-perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
+perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g; s#\.\./synth-huc6280/#./synth-huc6280/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' \
   "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_interaction.js" "${STAGE_DIR}/synth_song_psg_interaction.js" "${STAGE_DIR}/synth_song_pcm_interaction.js" "${STAGE_DIR}/synth_song_state.js" \
   "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js" \

@@ -19,6 +19,8 @@ test('PCM instruments are complete single text files, detached from their author
   assert.equal(project.fs.get(tone.path).type,'text');assert.deepEqual(tone.preset,preset);
   assert.deepEqual(tone.bytes,new TextEncoder().encode(serializePcmPreset(preset)));
   assert.equal(project.fs.has(synthStatePath(tone.path)),false);
+  assert.equal(project.autoApply,true);assert.equal(project.isToneModified(tone.path),false);
+  assert.deepEqual(project.readTone(tone.path,{version:'saved'}).preset,preset);
   assert(isPcmTonePath(tone.path));assert.equal(synthToneExtension(tone.path),'.pcm.json');
   for(const path of ['/.git/refs/heads/Piano.pcm.json','/.tet.ss/presets/Piano.pcm.json','/opaque.json'])assert(!isSynthTonePath(path));
   tone.preset.settings.volume=0;tone.bytes.fill(0);assert.deepEqual(project.readTone(tone.path).preset,preset);
@@ -36,21 +38,29 @@ test('PCM instruments are complete single text files, detached from their author
   assert.deepEqual(project.snapshot(),before);
 });
 
-test('PCM checkpoints and compound CRUD retain the full sample and do not touch unrelated synth metadata',()=>{
+test('manual PCM Save/discard and compound CRUD retain a full sample without touching unrelated metadata',()=>{
   const project=createSynthProject(),preset=fullSample(),tone=project.createTone(preset,'Full'),path=tone.path;
-  project.syncTone(path);const edited=structuredClone(preset);edited.settings.volume=73;edited.settings.panLeft=4;
+  project.setAutoApply(false);const edited=structuredClone(preset);edited.settings.volume=73;edited.settings.panLeft=4;
   project.writeTone(path,edited);assert(project.isToneModified(path));
+  assert.deepEqual(project.readTone(path,{version:'saved'}).preset,preset);
+  const recovered=createSynthProject({snapshot:project.snapshot()});
+  assert.equal(recovered.autoApply,false);assert.deepEqual(recovered.readTone(path).preset,edited);
+  assert.deepEqual(recovered.readTone(path,{version:'saved'}).preset,preset);
   const copy=project.duplicate(path);assert.equal(copy,'/presets/Full copy.pcm.json');
   assert.equal(project.duplicate(path),'/presets/Full copy-2.pcm.json');
   const renamed=project.rename(copy,'Kit');assert.equal(renamed,'/presets/Kit.pcm.json');
   project.mkdir('/presets/Bank');project.move(renamed,'/presets/Bank/Kit.pcm.json');
   assert.deepEqual(project.readTone('/presets/Bank/Kit.pcm.json').preset,edited);
-  assert.deepEqual(project.revertTone('/presets/Bank/Kit.pcm.json').preset,preset);
+  assert.equal(project.savedFs.has('/presets/Bank/Kit.pcm.json'),false,'new unsaved copies have no accepted version');
+  project.saveTone('/presets/Bank/Kit.pcm.json');
+  const next=structuredClone(edited);next.settings.volume=12;project.writeTone('/presets/Bank/Kit.pcm.json',next);
+  assert.deepEqual(project.discardTone('/presets/Bank/Kit.pcm.json').preset,edited);
   project.fs.writeText(synthStatePath(path),'opaque neighboring file');
   const before=project.snapshot();assert.throws(()=>project.move(path,'/presets/Wrong.psg.json'));assert.deepEqual(project.snapshot(),before);
-  project.delete(path);assert(!project.fs.has(path));assert(!project.fs.checkpoints.has(path));
+  project.delete(path);assert(!project.fs.has(path));assert(project.savedFs.has(path),'manual deletion remains pending until Save');
+  project.saveFiles([path]);assert.equal(project.savedFs.has(path),false);
   assert.equal(project.fs.get(synthStatePath(path)).data,'opaque neighboring file');
-  project.syncTone('/presets/Bank/Kit.pcm.json');assert(!project.isToneModified('/presets/Bank/Kit.pcm.json'));
+  assert(!project.isToneModified('/presets/Bank/Kit.pcm.json'));
 });
 
 test('standalone PCM import and mixed FM/PSG/PCM Cassette preserve exact bytes, opaque files and empty folders',async()=>{
@@ -71,16 +81,22 @@ test('standalone PCM import and mixed FM/PSG/PCM Cassette preserve exact bytes, 
   assert.deepEqual(project.snapshot(),before);
 });
 
-test('malformed PCM current or checkpoint rejects snapshot and Cassette replacement before changing any existing sound',async()=>{
+test('malformed PCM in either version rejects snapshot and recovery Cassette replacement atomically',async()=>{
   const project=createSynthProject(),preset=sample(),path=project.createTone(preset,'Saved').path;project.syncTone(path);
+  project.setAutoApply(false);project.writeTone(path,{...preset,settings:{...preset.settings,volume:33}});
   const snapshot=project.snapshot();
-  for(const target of [path,'/.tet.ss'+path])for(const invalid of [
+  for(const version of ['working','saved'])for(const invalid of [
     {...preset,version:2},{...preset,settings:{...preset.settings,panRight:16}},
     {...preset,sample:{...preset.sample,data:Buffer.alloc(PCM_MAX_FRAMES+1,128).toString('base64')}},
   ]) {
-    const candidate=structuredClone(snapshot);candidate.files.find(entry=>entry.path===target).data=JSON.stringify(invalid);
+    const data=JSON.stringify(invalid),candidate=structuredClone(snapshot);
+    candidate.workspace[version].files.find(entry=>entry.path===path).data=data;
+    if(version==='working')candidate.files.find(entry=>entry.path===path).data=data;
     assert.throws(()=>project.restore(candidate));assert.deepEqual(project.snapshot(),snapshot);
-    await assert.rejects(project.importCassette(createPlaygroundCassetteZip(candidate.files,{directories:candidate.directories})));
+    const cassette=await loadPlaygroundCassette(project.exportCassette({includeWorkingState:true})),metadata=structuredClone(cassette.metadata),files=project.savedFs.list();
+    if(version==='saved')files.find(entry=>entry.path===path).data=data;
+    else {const delta=metadata.tetoricaWorkingState;delta.files=delta.files.filter(entry=>entry.path!==path);delta.files.push({path,type:'text',data});}
+    await assert.rejects(project.importCassette(createPlaygroundCassetteZip(files,{directories:project.savedFs.listDirectories(),metadata})));
     assert.deepEqual(project.snapshot(),snapshot);
   }
 });

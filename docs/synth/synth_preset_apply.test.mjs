@@ -13,12 +13,14 @@ const builtinMap=source.match(/const PCM_BUILTIN_SHAPES=Object.freeze\([\s\S]*?\
 const routes=source.slice(source.indexOf('function applyPresetState('),source.indexOf('function buildCurrentPresetState()'));
 const prepare=source.slice(source.indexOf('async function ensureAudioReady('),source.indexOf('function buildKeyboard()'));
 const localGuard=source.slice(source.indexOf('function isLocalChannelTarget()'),source.indexOf('function localChannel()'));
+const applyPcm=source.slice(source.indexOf('function applyPcmAuthorPreset('),source.indexOf('function applySavedAuthors('));
 async function until(check){for(let i=0;i<100;i++){if(check())return;await new Promise(resolve=>setImmediate(resolve));}assert.fail('PCM did not finish installing');}
 
 function harness({code=false,playback='stopped',chip='pcm',target='pcm:7',source:origin='local',preset}={}) {
   const loads=[],selections=[],notifications=[],transport={playback},identity={context:{boots:1},loop:{ticks:23},fx:{name:'unchanged'}};
   const device={keyOff(){},loadMemory(memory,address){loads.push({memory:Uint8Array.from(memory),address});return Promise.resolve();}};
   const voice=createSynthPcmVoice({getPcm:()=>device});
+  const author=createSynthPcmVoice({getPcm:()=>null});
   const named=preset??createPcmBuiltinPreset('triangle');
   if(!preset){named.sample.name='Chosen triangle';named.settings.volume=37;}
   const project=createSynthProject();project.writeTone('/presets/Triangle.pcm.json',named);
@@ -26,7 +28,7 @@ function harness({code=false,playback='stopped',chip='pcm',target='pcm:7',source
     isPcmPreset,normalizePcmPreset,isPsgPreset,normalizePsgPreset,createPcmBuiltinPreset,
     createPsgPreset(){throw Error('unexpected PSG default');},FM_PRESETS:{},
     synthProject:project,
-    codeActive:code,codeAudio:{pcmSourceChanged(){notifications.push('PCM source');}},
+    codeActive:code,codeAudio:{pcmSourceChanged(){notifications.push('PCM source');},syncPcmSettings(){}},
     activeInstrumentKind:'pcm',editorChip:chip,songTargetState:{source:origin,chip,target,playback},
     songControls:{
       selectChip(next){assert.equal(scope.activeInstrumentKind,'pcm','author kind precedes target callback');selections.push(['chip',next]);scope.songTargetState={...scope.songTargetState,chip:next};},
@@ -34,14 +36,15 @@ function harness({code=false,playback='stopped',chip='pcm',target='pcm:7',source
     },
     selectEditorChip(button){scope.editorChip=button;},editorButtonForKind:kind=>kind==='fm'?'ym2612':kind,
     stopAllNotes(){throw Error('same-chip preset must not stop the automatic performance');},
-    pcmVoice:voice,pcmLoadGeneration:0,currentPcmPresetName:'pcm-sine',pcmPresetSelect:{value:'pcm-sine'},pcmControls:{update(){}},
+    pcmVoice:author,pcmPlaybackVoice:voice,isDeferredAuthorEdit:()=>false,
+    pcmLoadGeneration:0,currentPcmPresetName:'pcm-sine',pcmPresetSelect:{value:'pcm-sine'},pcmControls:{update(){}},
     audioContext:{state:'running'},audioReadyPromise:Promise.resolve(),
     pcmAudio:{prepare:async()=>device,getPcm:()=>device},performanceOutputBus:{},
     isSongChannelTarget:()=>scope.songTargetState.source!=='local'&&scope.songTargetState.target!=='synth'&&['loading','playing','paused','seeking'].includes(scope.songTargetState.playback),
     updateKeyboardAvailability(){},refreshLocalChannels(){},setStatus(message){throw Error(message);},
     identity,transport,
   });
-  vm.runInContext(builtinMap+'\n'+localGuard+'\n'+routes+'\n'+prepare,scope);
+  vm.runInContext(builtinMap+'\n'+localGuard+'\n'+applyPcm+'\n'+routes+'\n'+prepare,scope);
   return {scope,voice,device,named,loads,selections,notifications,identity,transport,project};
 }
 

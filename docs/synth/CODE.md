@@ -14,6 +14,29 @@ Code from the tab or editor. Use `beat()` for musical note lengths and rests so
 
 `context` is live memory, not Cassette data. Save source and local data files to keep a performance. Monaco loads when Code is opened; the plain-text editor and execution remain available if the editor service is unavailable.
 
+## Saving files
+
+Files keeps an editable **working** version and an accepted **saved** version.
+**Auto apply** is on by default: edits save immediately, and instrument edits
+reach the sound as before. Turn it off to prepare changes without applying them.
+A **●** beside a filename marks an unsaved working version.
+
+**Save** or Ctrl/Cmd+S saves the selected or last-edited file. **Save all** saves
+every pending file, and **Discard** restores the selected file from saved.
+An FM instrument's native TFI/VGI and Synth settings sidecar save together.
+Saving instrument settings applies their changes while existing Code loops
+continue. Physical CH controls still edit the actual channel directly.
+
+Saving JavaScript never executes it. With Auto apply off, **Run / Apply** uses
+the saved entry, imported modules and local data files. Save those files first
+to include their edits. Keyboard / Code is a view switch and keeps playing.
+
+The local draft preserves both versions and the Auto apply choice across reloads.
+Export Cassette puts saved files in their ordinary paths and includes working
+differences as recovery metadata. Import restores both; unchanged audio is not
+duplicated. A Save updates the in-memory accepted version even when browser
+storage is unavailable: use Export Cassette if the local-draft warning appears.
+
 ## Timed YM2612 operations
 
 Files includes **examples/timed-operators.js**. Open it in Code and Run to hear
@@ -94,8 +117,8 @@ PCM presets retain their source length, sample rate, Root and loop settings;
 the built-in single-cycle shapes contain 256 frames. Choosing Sine, Triangle,
 Saw or Square selects a separate built-in preset instead of overwriting the
 currently selected file. Choose that file again to return to its sample.
-Range, drawing and parameter edits still update the selected document's draft;
-**Revert** restores its last checkpoint, and **Sync** updates that checkpoint.
+Range, drawing and parameter edits update the selected document's working
+version. With Auto apply off, **Save** applies it and **Discard** restores saved.
 Loop Start and exclusive
 Loop End use the loaded sample's actual frame range for dragging and one-frame
 buttons. Changing the sample or its valid interval cancels an older drag,
@@ -182,8 +205,6 @@ original VGM and discards temporary hand edits and their checkpoints.
 Use **Code / Synth** beside Files to switch between the expanded Code workspace and the ordinary Synth layout. The maximize button at the right of the Keyboard / Code tabs also puts the same editor beside Files. The expanded workspace has one tab row: Code, YM2612, PSG, RF5C164, CD-DA, 32X PWM, Mixer and Keyboard. Switching tabs keeps the expanded layout and running Code. Master volume stays available above the expanded tabs. Synth or Restore returns the controls to their ordinary placement without losing the editor, source or live context. Maximized layout is temporary and is not restored after a reload.
 
 Menu → New → Cassette · ZIP creates a fresh project with default sounds, starter Code and examples. Choose whether to export the current Cassette first, or cancel to keep it. Creating a Cassette stops the current performance; Files Undo can restore the previous project without running its Code.
-
-The small **Code** label identifies the document being edited. Code edits save automatically to the Cassette and local draft; **Save code** explicitly saves the current file and confirms success. **Revert** belongs to instrument checkpoints and is hidden while editing Code.
 
 Open the **Mixer** tab after 32X PWM for shared YM2612, Sega PSG, Mega CD PCM, CD-DA and 32X PWM volumes and channel **On / Off**. All 21 switches are available before loading a VGM and apply to live Keyboard, Code and VGM output; CD-DA is its own stereo source, loaded separately. These are software output controls, applied once before Master; they stay in this session rather than the Cassette. The four chip gains keep their measured Playground defaults. CD-DA uses unity (100%) passthrough by default, without normalization. Live highlight and Seek cache remain VGM options. Mixer also stays available in the expanded workspace without stopping Code.
 

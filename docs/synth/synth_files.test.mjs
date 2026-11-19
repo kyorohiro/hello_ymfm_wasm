@@ -103,6 +103,7 @@ function harness(store={saved:null,journal:new Map()},options={},indexedDBAvaila
   let kind='fm';
   function applySnapshot(preset,id){applied.push(id);kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
   const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='pcm'?'pcm-sine':value==='psg'?'psg-default':'one-op-basic',
+    getDefaultPreset:value=>value==='pcm'?createPcmBuiltinPreset('sine'):value==='psg'?createPsgPreset({}):fm(),
     getPresetKind:id=>/^pcm-(sine|triangle|saw|square)$/.test(id)?'pcm':null,
     getPreset:()=>structuredClone(patches[kind]),getPresetId:()=>ids[kind],applySnapshot,
     applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(/^pcm-(sine|triangle|saw|square)$/.test(id)?createPcmBuiltinPreset(id.slice(4)):id==='psg-default'?createPsgPreset({}):fm(),id),
@@ -134,7 +135,7 @@ test('a playing FM observation can load author presets without enabling author S
     const count=h.applied.length,stopCount=stops;
     observing=playing=true;h.files.refresh();
     assert.equal(h.byId('commonControls').inert,false);assert.equal(h.byId('operatorControls').inert,false);
-    assert.equal(h.byId('channel3SpecialControls').inert,true);assert.equal(h.byId('synthFileSaveButton').disabled,true);
+    assert.equal(h.byId('channel3SpecialControls').inert,true);assert.equal(h.byId('synthFileSaveButton').disabled,false);
     assert.equal(h.byId('presetSelect').disabled,false);
     assert(await h.files.selectFile(tone.path),'an already selected preset is still applied to a song');
     assert.equal(h.applied.length,count+1);assert.equal(stops,stopCount,'host keeps automatic playback running');
@@ -200,9 +201,9 @@ test('selecting each PCM builtin detaches the long active file before applying a
         settings:{rootNote:60,volume:56,loopStart:8960,loopEnd:frames}});
       assert(await h.files.createFromPreset(long,'Captured PCM'));
       const path=h.files.activeTonePath;
-      h.patches.pcm.settings.volume=43;h.files.markDirty();
+      h.patches.pcm.settings.volume=43;h.project.setAutoApply(false);h.files.markDirty();
       assert.equal(h.project.isToneModified(path),true,'the original saved baseline has a separate draft edit');
-      const current=h.project.fs.get(path).data,checkpoint=h.project.fs.get('/.tet.ss'+path).data;
+      const current=h.project.fs.get(path).data,checkpoint=h.project.savedFs.get(path).data;
       const count=h.project.listTones().length;
       let code;
       if(running){h.project.fs.writeText('/index.js','context.keep = 17;\n');code=attachCode(h);await h.files.selectFile('/index.js');}
@@ -211,15 +212,15 @@ test('selecting each PCM builtin detaches the long active file before applying a
       assert.equal(h.kind,'pcm');assert.equal(h.files.activeTonePath,null,'a builtin must not remain attached to the imported file');
       assert.equal(h.ids.pcm,id);assert.deepEqual(h.patches.pcm,createPcmBuiltinPreset(shape));
       assert.equal(h.project.listTones().length,count,'selection alone creates no file');
-      assert.deepEqual(h.project.fs.get(path).data,current);assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      assert.deepEqual(h.project.fs.get(path).data,current);assert.deepEqual(h.project.savedFs.get(path).data,checkpoint);
       if(running){assert.equal(stops,stopCount);assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);}
-      h.patches.pcm.settings.volume=29;h.files.markDirty();
+      h.patches.pcm.settings.volume=29;h.project.setAutoApply(false);h.files.markDirty();
       assert.notEqual(h.files.activeTonePath,path,'editing the builtin uses a separate author draft');
-      assert.deepEqual(h.project.fs.get(path).data,current);assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      assert.deepEqual(h.project.fs.get(path).data,current);assert.deepEqual(h.project.savedFs.get(path).data,checkpoint);
       assert(await h.files.selectFile(path));
       assert.equal(h.patches.pcm.sample.data,long.sample.data);assert.equal(h.patches.pcm.settings.loopEnd,frames);
       assert.equal(h.patches.pcm.settings.loopStart,8960);assert.equal(h.patches.pcm.settings.volume,43,'reselection retrieves the prior parameter draft');
-      assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      assert.deepEqual(h.project.savedFs.get(path).data,checkpoint);
     }finally{h.cleanup();}
   }
 });
@@ -253,7 +254,7 @@ test('saving a physical CH appends a unique detached preset without loading it o
   const h=harness(undefined,{isObserving:()=>observing,stopAllNotes(){stops++;}});
   try {
     await h.files.ready;await h.files.createFromPreset(fm(),'Author');
-    h.patches.fm.feedback=5;h.files.markDirty();
+    h.patches.fm.feedback=5;h.project.setAutoApply(false);h.files.markDirty();
     const authorPath=h.files.activeTonePath;
     h.project.fs.writeText('/index.js','context.keep = 23;\n');
     const code=attachCode(h);await h.files.selectFile('/index.js');observing=true;
@@ -415,7 +416,7 @@ test('Export current & create backs up the latest Code and opaque project files 
     code.controls.flush=async()=>{h.project.fs.writeText('/index.js','// latest backup source\n');return true;};
     assert.equal(await h.files.newCassette({exportCurrent:true}),true);assert(backup instanceof Blob);
     const restored=createSynthProject();await restored.importCassette(new Uint8Array(await backup.arrayBuffer()),{name:'backup.cassette.zip'});
-    assert.equal(new TextDecoder().decode(restored.fs.get('/index.js').data),'// latest backup source\n');
+    assert.equal((typeof restored.fs.get('/index.js').data==='string'?restored.fs.get('/index.js').data:new TextDecoder().decode(restored.fs.get('/index.js').data)),'// latest backup source\n');
     assert.deepEqual(restored.fs.get('/samples/opaque.bin').data,new Uint8Array([0,128,255]));
     assert.equal(restored.listTones().length,1);assert.equal(restored.readTone(restored.listTones()[0].path).preset.feedback,2);
     assert.equal(h.project.fs.get('/index.js').data,'// Fresh starter Code\n');assert.equal(h.project.fs.has('/samples/opaque.bin'),false);
@@ -428,7 +429,7 @@ test('Cassette export keeps the latest Code and modified instrument when Indexed
     URL.createObjectURL=blob=>{exported=blob;return 'blob:cassette-recovery';};URL.revokeObjectURL=()=>{};
     try {
       await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Recovery instrument');
-      const path=h.files.activeTonePath;h.patches.fm.feedback=7;h.files.markDirty();
+      const path=h.files.activeTonePath;h.patches.fm.feedback=7;h.project.setAutoApply(false);h.files.markDirty();
       h.project.fs.writeText('/index.js','// previously stored source\n');const code=attachCode(h);await code.controls.openFile('/index.js');
       const flushOptions=[];code.controls.flush=async options=>{
         flushOptions.push(options);h.project.fs.writeText('/index.js','// latest unsaved editor source\n');
@@ -443,7 +444,7 @@ test('Cassette export keeps the latest Code and modified instrument when Indexed
       assert.equal(h.files.workspaceId,identity);assert.equal(h.files.activeTonePath,path);assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
       const restored=createSynthProject();await restored.importCassette(new Uint8Array(await exported.arrayBuffer()),{name:'recovery.cassette.zip'});
       assert.equal(restored.readTone(path).preset.feedback,7);
-      assert.equal(new TextDecoder().decode(restored.fs.get('/index.js').data),'// latest unsaved editor source\n');
+      assert.equal(restored.fs.get('/index.js').data,'// latest unsaved editor source\n');
       assert.match(h.messages.at(-1),/^Exported cassette\.cassette\.zip\./);
     }finally{URL.createObjectURL=createUrl;URL.revokeObjectURL=revokeUrl;h.cleanup();}
   }
@@ -543,7 +544,7 @@ test('JavaScript selection and Save retain the active instrument and preserve ex
     await h.files.ready;await h.files.createFromPreset(fm(),'Keep FM');const tone=h.files.activeTonePath,bytes=h.project.fs.get(tone).data.slice();
     const code=attachCode(h);h.project.fs.writeText('/index.js','// Existing author source\n');
     await h.files.selectFile('/index.js');assert.equal(h.files.activeTonePath,tone);
-    assert.deepEqual(code.opened,['/index.js']);assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');
+    assert.deepEqual(code.opened,['/index.js']);assert.equal(h.byId('synthFileSaveButton').textContent,'Save');
     await h.action('sync');assert.equal(code.flushes.at(-1),'/index.js');
     assert.deepEqual(h.project.fs.get(tone).data,bytes);assert.equal(h.project.fs.get('/index.js').data,'// Existing author source\n');
     await h.files.importInstruments([{name:'index.js',data:'// Imported second script\n'}]);
@@ -554,26 +555,26 @@ test('JavaScript selection and Save retain the active instrument and preserve ex
   }finally{h.cleanup();}
 });
 
-test('Code Save shows transient feedback for the saved file while the instrument Revert is hidden, then restores normal controls',async()=>{
+test('Save shows transient feedback for the selected file with one Discard control and no mode-status label',async()=>{
   const h=harness();
   try {
     await h.files.ready;await h.files.createFromPreset(fm(),'Keep author instrument');
     h.project.fs.writeText('/index.js','// authored Code\n');const code=attachCode(h);await h.files.selectFile('/index.js');
-    assert.equal(h.byId('synthFileDirty').textContent,'Code');assert.match(h.byId('synthFileDirty').title,/changes save automatically/);
-    assert.equal(h.byId('synthFileRevertButton').hidden,true);assert.equal(h.byId('synthFileRevertButton').disabled,true);
+    assert.equal(h.byId('synthFileDirty').textContent,'');assert.equal(h.byId('synthFileDirty').title,'');
+    assert.equal(h.byId('synthFileRevertButton').hidden,false);assert.equal(h.byId('synthFileRevertButton').disabled,true);
     await h.action('sync');
     assert.equal(code.flushes.at(-1),'/index.js');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');
     assert.equal(h.byId('synthFileSaveButton').dataset.feedback,'success');assert.equal(h.byId('synthSyncAnnouncement').textContent,'Saved /index.js.');
-    h.runTimers(1800);assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    h.runTimers(1800);assert.equal(h.byId('synthFileSaveButton').textContent,'Save');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
     await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');
     h.project.fs.writeText('/index.js','// newer Code after Save\n');
-    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
     await h.action('sync');h.project.fs.writeText('/next.js','// another file\n');await h.files.selectFile('/next.js');
-    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code','a different file cannot inherit the previous save feedback');
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save','a different file cannot inherit the previous save feedback');
     code.controls.restoreState({mode:'keyboard',path:'/next.js'});h.files.refresh();
-    assert.equal(h.byId('synthFileRevertButton').hidden,false);assert.equal(h.byId('synthFileSaveButton').textContent,'Sync');assert.equal(h.byId('synthFileDirty').title,'');
-    h.patches.fm.feedback=4;h.files.markDirty();assert.equal(h.byId('synthFileRevertButton').disabled,false);
-    await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Synced');assert.equal(h.byId('synthFileRevertButton').disabled,true);
+    assert.equal(h.byId('synthFileRevertButton').hidden,false);assert.equal(h.byId('synthFileSaveButton').textContent,'Save');assert.equal(h.byId('synthFileDirty').title,'');
+    h.patches.fm.feedback=4;h.project.setAutoApply(false);h.files.markDirty();assert.equal(h.byId('synthFileRevertButton').disabled,false);
+    await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');assert.equal(h.byId('synthFileRevertButton').disabled,true);
   }finally{h.cleanup();}
 });
 
@@ -583,10 +584,10 @@ test('Code Save never reports success when the editor flush returns false or rej
     await h.files.ready;h.project.fs.writeText('/index.js','// retained source\n');const code=attachCode(h);await h.files.selectFile('/index.js');
     await h.action('sync');assert.equal(h.byId('synthFileSaveButton').textContent,'✓ Saved');
     code.controls.flush=async()=>false;await h.action('sync');
-    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
-    assert.equal(h.messages.at(-1),'Code was not saved locally. Export Cassette to keep your work.');
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    assert.equal(h.messages.at(-1),'File save was not completed.');
     code.controls.flush=async()=>{throw Error('Draft save rejected');};await h.action('sync');
-    assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
+    assert.equal(h.byId('synthFileSaveButton').textContent,'Save');assert.equal(h.byId('synthFileSaveButton').dataset.feedback,undefined);
     assert.match(h.messages.at(-1),/Draft save rejected/);assert.equal(h.project.fs.get('/index.js').data,'// retained source\n');
   }finally{h.cleanup();}
 });
@@ -617,14 +618,14 @@ test('FM and PSG editor contexts keep independent files, patches and shared Sync
   try {
     await h.files.ready;assert.equal(await h.files.createFromPreset(fm(),'Keep FM'),true);const fmPath=h.files.activeTonePath;
     const original=h.project.fs.get(fmPath).data.slice();
-    assert.equal(await h.files.switchEditor('psg'),true);h.patches.psg.settings.attenuation=9;h.files.markDirty();
+    assert.equal(await h.files.switchEditor('psg'),true);h.patches.psg.settings.attenuation=9;h.project.setAutoApply(false);h.files.markDirty();
     const psgPath=h.files.activeTonePath;assert.match(psgPath,/\.psg\.json$/);assert.deepEqual(h.project.fs.get(fmPath).data,original);
     assert.equal(await h.files.switchEditor('fm'),true);assert.equal(h.files.activeTonePath,fmPath);
-    h.patches.fm.feedback=4;h.files.markDirty();
+    h.patches.fm.feedback=4;h.project.setAutoApply(false);h.files.markDirty();
     assert.equal(h.project.readTone(psgPath).preset.settings.attenuation,9);
     assert.equal(await h.files.switchEditor('psg'),true);assert.equal(h.files.activeTonePath,psgPath);assert.equal(h.patches.psg.settings.attenuation,9);
     await h.action('sync');assert.equal(h.project.isToneModified(psgPath),false);
-    h.patches.psg.settings.attenuation=2;h.files.markDirty();assert.equal(h.project.isToneModified(psgPath),true);
+    h.patches.psg.settings.attenuation=2;h.project.setAutoApply(false);h.files.markDirty();assert.equal(h.project.isToneModified(psgPath),true);
     await h.action('revert');assert.equal(h.patches.psg.settings.attenuation,9);assert.equal(h.project.readTone(fmPath).preset.feedback,4);
     assert.equal(h.project.fs.has(psgPath+'.synth.json'),false,'PSG stays one typed document');
     assert.equal(h.byId('synthPsgSettings').inert,false);assert.equal(h.byId('synthPsgPresetSelect').disabled,false);
@@ -674,7 +675,7 @@ test('bad PSG documents and stale cross-kind callbacks never replace or overwrit
     const bad='/presets/Bad.psg.json';h.project.fs.writeFiles([{path:bad,type:'text',data:JSON.stringify({version:1,kind:'tetorica-sega-psg',settings:{source:'tone',attenuation:16,noiseType:'white',noiseRate:'medium'}})}]);
     assert.equal(await h.files.selectFile(bad),false);assert.equal(h.kind,'fm');assert.equal(h.files.activeTonePath,path);
     assert.deepEqual(h.project.fs.get(path).data,bytes);
-    h.forceKind('psg');h.patches.psg.settings.attenuation=1;h.files.markDirty();
+    h.forceKind('psg');h.patches.psg.settings.attenuation=1;h.project.setAutoApply(false);h.files.markDirty();
     assert.deepEqual(h.project.fs.get(path).data,bytes,'a delayed edit cannot write a PSG document into an FM file');
     assert(h.messages.some(message=>message.includes('editor and active file differ')));
   } finally {h.cleanup();}
@@ -685,7 +686,7 @@ test('the immediate PSG recovery journal restores the latest edit and keeps the 
   try {
     await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Crash FM');fmPath=h.files.activeTonePath;
     await h.files.createFromPreset(createPsgPreset({attenuation:8}),'Crash PSG');psgPath=h.files.activeTonePath;
-    h.patches.psg.settings.attenuation=12;h.files.markDirty();
+    h.patches.psg.settings.attenuation=12;h.project.setAutoApply(false);h.files.markDirty();
     assert.equal(store.saved.editorContexts.psg.preset.settings.attenuation,8,'the debounced IndexedDB draft is still the earlier sound');
     assert(store.journal.has('tetorica-fm2612-synth-pending-tone'),'the latest single-file PSG edit has a synchronous journal');
   } finally {h.cleanup();}
@@ -725,12 +726,12 @@ test('software envelope edits retain Sync/Revert and immediate recovery independ
   try {
     await h.files.ready;await h.files.createFromPreset({...fm(),feedback:3},'Envelope FM');fmPath=h.files.activeTonePath;
     await h.files.createFromPreset(createPsgPreset({envelope:savedEnvelope}),'Envelope PSG');psgPath=h.files.activeTonePath;
-    await h.action('sync');h.patches.psg.settings.envelope.releaseMs=1500;h.files.markDirty();
+    await h.action('sync');h.patches.psg.settings.envelope.releaseMs=1500;h.project.setAutoApply(false);h.files.markDirty();
     assert.deepEqual(h.project.readTone(psgPath).preset.settings.envelope,{...savedEnvelope,releaseMs:1500});
     await h.files.switchEditor('fm');assert.equal(h.patches.fm.feedback,3);await h.files.switchEditor('psg');
     assert.equal(h.patches.psg.settings.envelope.releaseMs,1500);await h.action('revert');
     assert.deepEqual(h.patches.psg.settings.envelope,savedEnvelope);
-    h.patches.psg.settings.envelope.sustain=12;h.files.markDirty();
+    h.patches.psg.settings.envelope.sustain=12;h.project.setAutoApply(false);h.files.markDirty();
   } finally {h.cleanup();}
   h=harness(store);
   try {
@@ -748,7 +749,7 @@ test('a legacy saved PSG editor context migrates to Envelope Off without rewriti
     await h.files.ready;await h.files.createFromPreset(fm(),'Legacy context FM');
     await h.files.createFromPreset(createPsgPreset(legacy.settings),'Legacy context PSG');psgPath=h.files.activeTonePath;
     await h.files.switchEditor('fm');
-    const saved=store.saved;
+    const saved=store.saved;saved.project={...saved.project,version:1};delete saved.project.workspace;delete saved.project.pendingMoves;
     for(const file of saved.project.files)if(file.path===psgPath||file.path==='/.tet.ss'+psgPath)file.data=JSON.stringify(legacy)+'\n';
     saved.editorContexts.psg.preset=structuredClone(legacy);saved.editorContexts.psg.basePreset=structuredClone(legacy);
   } finally {h.cleanup();}
@@ -767,13 +768,13 @@ test('FM, PSG and PCM file contexts retain independent sounds, paths and inactiv
     await h.files.ready;await h.files.createFromPreset({...fm(),feedback:5},'Three FM');fmPath=h.files.activeTonePath;
     await h.files.createFromPreset(createPsgPreset({source:'noise',attenuation:9}),'Three PSG');psgPath=h.files.activeTonePath;
     await h.files.switchEditor('pcm');assert.equal(h.kind,'pcm');assert.equal(h.ids.pcm,'pcm-sine');
-    h.patches.pcm.settings.volume=91;h.files.markDirty();pcmPath=h.files.activeTonePath;
+    h.patches.pcm.settings.volume=91;h.project.setAutoApply(false);h.files.markDirty();pcmPath=h.files.activeTonePath;
     assert.match(pcmPath,/\.pcm\.json$/);await h.action('sync');
-    h.patches.pcm.settings.panRight=3;h.files.markDirty();
+    h.patches.pcm.settings.panRight=3;h.project.setAutoApply(false);h.files.markDirty();
     await h.files.switchEditor('fm');assert.equal(h.files.activeTonePath,fmPath);assert.equal(h.patches.fm.feedback,5);
     await h.rename(pcmPath,'Sample Bank.pcm.json');pcmPath='/presets/Sample Bank.pcm.json';
     await h.files.switchEditor('pcm');assert.equal(h.files.activeTonePath,pcmPath);assert.equal(h.ids.pcm,'vfs:'+pcmPath);
-    assert.equal(h.patches.pcm.settings.panRight,3);await h.action('revert');assert.equal(h.patches.pcm.settings.panRight,15);
+    assert.equal(h.patches.pcm.settings.panRight,3);await h.action('revert');pcmPath='/presets/pcm-sine.pcm.json';assert.equal(h.files.activeTonePath,pcmPath);assert.equal(h.patches.pcm.settings.panRight,15);
     await h.files.switchEditor('psg');assert.equal(h.files.activeTonePath,psgPath);assert.equal(h.patches.psg.settings.attenuation,9);
   } finally {h.cleanup();}
   h=harness(store);
@@ -793,7 +794,7 @@ test('a full PCM sample and checkpoint recover the last edit without overwriting
     await h.files.createFromPreset(createPsgPreset({attenuation:8}),'Recovery PSG');psgPath=h.files.activeTonePath;
     const full=createPcmBuiltinPreset('sine');full.sample.data=Buffer.alloc(PCM_MAX_FRAMES,128).toString('base64');full.settings.loopEnd=PCM_MAX_FRAMES;
     await h.files.createFromPreset(normalizePcmPreset(full),'Recovery PCM');pcmPath=h.files.activeTonePath;await h.action('sync');
-    h.patches.pcm.settings.volume=115;h.files.markDirty();
+    h.patches.pcm.settings.volume=115;h.project.setAutoApply(false);h.files.markDirty();
     const journal=store.journal.get('tetorica-fm2612-synth-pending-tone');assert(Buffer.byteLength(journal)>128*1024);
     assert(Buffer.byteLength(journal)<384*1024);assert.equal(h.project.readTone(pcmPath).preset.settings.volume,115);
     assert.equal(store.saved.editorContexts.pcm.preset.settings.volume,originalVolume,'the saved context still predates the immediate journal');
@@ -815,11 +816,11 @@ test('a closing or invalidated draft connection reopens without restoring old Fi
     const h=harness();
     try {
       await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Keep my current edit');await h.action('sync');
-      const path=h.files.activeTonePath,checkpoint=h.project.fs.get('/.tet.ss'+path).data.slice();
+      const path=h.files.activeTonePath,checkpoint=h.project.savedFs.get(path).data.slice();
       h.project.fs.writeBinary('/samples/keep.bin',new Uint8Array([0,255,128,17]));
       h.project.fs.writeText('/index.js','context.latest = 37;\n');
       const code=attachCode(h);await h.files.selectFile('/index.js');
-      h.patches.fm.feedback=6;h.files.markDirty();
+      h.patches.fm.feedback=6;h.project.setAutoApply(false);h.files.markDirty();
       const before=h.project.snapshot(),workspace=h.files.workspaceId,applied=h.applied.length,reads=h.database.readCount;
       assert(h.store.journal.has('tetorica-fm2612-synth-pending-tone'));
       if(mode==='silent-closing')h.database.closeSilently();
@@ -834,7 +835,7 @@ test('a closing or invalidated draft connection reopens without restoring old Fi
       assert.deepEqual(h.store.saved.project,before);assert.equal(h.store.saved.editorContexts.fm.preset.feedback,6);
       assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index.js'});
       assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
-      assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+      assert.deepEqual(h.project.savedFs.get(path).data,checkpoint);
       assert.equal(h.store.journal.has('tetorica-fm2612-synth-pending-tone'),false,'the committed latest edit can retire its recovery journal');
       assert(!h.messages.some(message=>/Could not save|File operation failed|Local draft unavailable/.test(message)));
     } finally {h.cleanup();}
@@ -845,14 +846,14 @@ test('a forced connection close retries an older transaction before a newer draf
   const h=harness();let older,newer;
   try {
     await h.files.ready;await h.files.createFromPreset({...fm(),feedback:1},'Pending writes');await h.action('sync');
-    const path=h.files.activeTonePath,checkpoint=h.project.fs.get('/.tet.ss'+path).data.slice();
+    const path=h.files.activeTonePath,checkpoint=h.project.savedFs.get(path).data.slice();
     h.project.fs.writeText('/index.js','context.version = 1;\n');
     h.database.holdWrites=1;
     older=h.files.persistCode();older.catch(()=>{});await until(()=>h.database.pending.length===1);
     const oldConnection=h.database.connections.at(-1),oldSnapshot=structuredClone(h.database.pending[0].value),applied=h.applied.length;
     h.project.fs.writeText('/index.js','context.version = 2;\n');
     h.project.fs.writeBinary('/samples/latest.bin',new Uint8Array([4,0,255,128]));
-    h.patches.fm.feedback=7;h.files.markDirty();
+    h.patches.fm.feedback=7;h.project.setAutoApply(false);h.files.markDirty();
     const journal=h.store.journal.get('tetorica-fm2612-synth-pending-tone');assert(journal);
     const current=h.project.snapshot();newer=h.files.persistCode();newer.catch(()=>{});
     h.database.holdWrites=2;h.database.forceClose(oldConnection);
@@ -868,7 +869,7 @@ test('a forced connection close retries an older transaction before a newer draf
     h.database.releaseWrite();assert.equal(await newer,true);
     assert.deepEqual(h.store.saved.project,current);assert.equal(h.store.saved.editorContexts.fm.preset.feedback,7);
     assert.equal(h.store.journal.has('tetorica-fm2612-synth-pending-tone'),false);
-    assert.deepEqual(h.project.fs.get('/.tet.ss'+path).data,checkpoint);
+    assert.deepEqual(h.project.savedFs.get(path).data,checkpoint);
     assert.equal(h.database.openCount,2);assert.equal(h.database.readCount,1,'only startup reads the saved project');
   } finally {
     h.database.holdWrites=0;while(h.database.pending.length)h.database.releaseWrite();
@@ -880,7 +881,7 @@ test('repeated connection failure leaves the in-memory project and last tone rec
   const h=harness();
   try {
     await h.files.ready;await h.files.createFromPreset({...fm(),feedback:1},'Unsaved sound');
-    h.patches.fm.feedback=5;h.files.markDirty();h.project.fs.writeText('/index.js','// keep unsaved source\n');
+    h.patches.fm.feedback=5;h.project.setAutoApply(false);h.files.markDirty();h.project.fs.writeText('/index.js','// keep unsaved source\n');
     const journal=h.store.journal.get('tetorica-fm2612-synth-pending-tone'),before=h.project.snapshot(),saved=structuredClone(h.store.saved);
     h.database.failStarts=2;
     await assert.rejects(h.files.persistCode(),error=>error.name==='InvalidStateError');
@@ -905,9 +906,63 @@ test('an unreadable startup draft is never replaced by default project data or l
     assert(h.messages.some(message=>message.includes('Local draft unavailable')));
     assert.deepEqual(store.saved,saved,'startup failure must not write the empty default project over unread data');
     assert.equal(h.database.writeCount,0);assert.equal(h.database.openCount,1,'unknown storage failures are not retried as closing connections');
-    h.project.fs.writeText('/new-work.js','// still editable and exportable\n');h.patches.fm.feedback=3;h.files.markDirty();
+    h.project.fs.writeText('/new-work.js','// still editable and exportable\n');h.patches.fm.feedback=3;h.project.setAutoApply(false);h.files.markDirty();
     assert.equal(await h.files.persistCode(),false,'unsafe autosave remains disabled for this session');
     assert.equal(h.project.fs.get('/new-work.js').data,'// still editable and exportable\n');
     assert.deepEqual(store.saved,saved);assert.equal(h.database.writeCount,0);
+  }finally{h.cleanup();}
+});
+
+test('manual Files edits keep saved sounds through selection and reload; selected-tone Save during Code leaves unrelated drafts pending',async()=>{
+  const store={saved:null,journal:new Map()},applied=[];let h=harness(store,{onApplySaved:info=>applied.push(info)}),fmPath,psgPath;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:1},'Manual FM');fmPath=h.files.activeTonePath;
+    await h.files.createFromPreset(createPsgPreset({attenuation:6}),'Manual PSG');psgPath=h.files.activeTonePath;
+    h.project.fs.writeText('/index.js','// saved Code');const code=attachCode(h);await h.files.selectFile('/index.js');
+    await h.files.setAutoApply(false);await h.files.selectFile(fmPath);const before=applied.length;
+    h.patches.fm.feedback=7;h.files.markDirty();assert.equal(applied.length,before,'working edits never publish a saved sound');
+    assert.equal(h.project.readTone(fmPath).preset.feedback,7);assert.equal(h.files.getSavedEditorPreset('fm').feedback,1);
+    let row=h.byId('synthFilesTree').querySelectorAll('button[data-file-path]').find(node=>node.dataset.filePath===fmPath);
+    assert.equal(row.dataset.unsaved,'true');assert(row.querySelector('.synth-file-unsaved'));assert.equal(h.byId('synthFileDirty').textContent,'');
+    await h.files.selectFile(psgPath);h.patches.psg.settings.attenuation=3;h.files.markDirty();
+    await h.files.selectFile(fmPath);assert.equal(h.patches.fm.feedback,7);assert.equal(h.files.getSavedEditorPreset('fm').feedback,1);
+    await h.action('save');assert.equal(code.controls.isCodeMode(),true);assert.equal(code.controls.activePath,'/index.js');
+    assert.equal(h.project.readTone(fmPath,{version:'saved'}).preset.feedback,7);assert.equal(h.project.readTone(psgPath,{version:'saved'}).preset.settings.attenuation,6);
+    assert(h.project.isToneModified(psgPath));assert.equal(h.project.isToneModified(fmPath),false);
+    assert.deepEqual(applied.at(-1).paths,[fmPath,fmPath+'.synth.json']);assert.equal(applied.at(-1).all,false);
+    row=h.byId('synthFilesTree').querySelectorAll('button[data-file-path]').find(node=>node.dataset.filePath===fmPath);assert.equal(row.querySelector('.synth-file-unsaved'),null);
+  }finally{h.cleanup();}
+  h=harness(store,{onApplySaved:info=>applied.push(info)});
+  try {
+    await h.files.ready;assert.equal(h.files.isAutoApply(),false);assert.equal(h.project.readTone(psgPath).preset.settings.attenuation,3);
+    assert.equal(h.files.getSavedEditorPreset('psg').settings.attenuation,6);
+    await h.action('saveAll');assert.equal(applied.at(-1).all,true);assert.equal(h.project.readTone(psgPath,{version:'saved'}).preset.settings.attenuation,3);assert.deepEqual(h.project.getDirtyPaths(),[]);
+  }finally{h.cleanup();}
+});
+
+test('Auto apply starts on, manual built-in edits retain the initialized saved preset, and enabling applies pending files once',async()=>{
+  const applied=[],modes=[],h=harness(undefined,{onApplySaved:info=>applied.push(info),onAutoApplyChanged:value=>modes.push(value)});
+  try {
+    await h.files.ready;assert.equal(h.files.isAutoApply(),true);assert.equal(h.byId('synthAutoApplyToggle').checked,true);
+    h.patches.fm.feedback=2;h.files.markDirty();assert.equal(h.project.readTone(h.files.activeTonePath,{version:'saved'}).preset.feedback,2);assert.equal(h.project.isToneModified(h.files.activeTonePath),false);
+    await h.files.selectPreset('one-op-basic');await h.files.setAutoApply(false);h.patches.fm.feedback=6;h.files.markDirty();
+    assert.equal(h.files.getSavedEditorPreset('fm').feedback,0,'first edit of an unsaved built-in never advances its playback baseline');
+    assert.equal(h.byId('synthFileSaveAllButton').disabled,false);await h.files.setAutoApply(true);
+    assert.equal(h.files.getSavedEditorPreset('fm').feedback,6);assert.equal(h.project.isToneModified(h.files.activeTonePath),false);
+    assert.deepEqual(modes,[false,true]);assert.equal(applied.at(-1).auto,true);assert.equal(applied.at(-1).modeSwitch,true);assert.equal(applied.at(-1).all,true);
+    assert.equal(h.byId('synthAutoApplyToggle').checked,true);assert.equal(h.byId('synthFileSaveAllButton').disabled,true);
+  }finally{h.cleanup();}
+});
+
+test('Discard after a manual rename restores the original path and saved author sound without publishing another sound',async()=>{
+  const applied=[],h=harness(undefined,{onApplySaved:info=>applied.push(info)});
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:2},'Original');const original=h.files.activeTonePath;
+    await h.files.setAutoApply(false);h.patches.fm.feedback=6;h.files.markDirty();await h.rename(original,'Renamed.vgi');
+    const renamed=h.files.activeTonePath;assert.equal(h.files.getSavedEditorPreset('fm').feedback,2);const count=applied.length;
+    await h.action('discard');assert.equal(h.files.activeTonePath,original);assert.equal(h.project.fs.has(renamed),false);assert.equal(h.patches.fm.feedback,2);
+    assert.equal(applied.length,count);assert.equal(h.files.getSavedEditorPreset('fm').feedback,2);assert.deepEqual(h.project.getDirtyPaths(),[]);
+    await h.action('undo');assert.equal(h.files.activeTonePath,renamed);assert.equal(h.patches.fm.feedback,6);assert.equal(h.files.getSavedEditorPreset('fm').feedback,2);
+    assert.equal(applied.at(-1).initial,true);
   }finally{h.cleanup();}
 });

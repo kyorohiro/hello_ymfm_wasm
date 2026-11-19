@@ -105,6 +105,65 @@ as `{syncRoot:'app-storage://~/'}` are a future extension and currently reject
 with an unsupported-location error before path normalization. No external I/O
 or storage-provider framework is included in this MVP.
 
+## Working and saved versions
+
+`createVirtualFileWorkspace` is an optional layer for editors that need current
+working contents and an independently accepted saved version. Existing
+`createVirtualFileSystem` callers and checkpoint behavior are unchanged.
+
+```javascript
+import {createVirtualFileWorkspace} from 'tetorica-virtual-files';
+
+const workspace = createVirtualFileWorkspace([
+  {path:'/index.js', data:'A'},
+]); // autoSave defaults to true.
+workspace.working.writeText('/index.js', 'B');
+workspace.saved.get('/index.js').data; // B: Auto accepts edits immediately.
+workspace.setAutoSave(false);
+workspace.working.writeText('/index.js', 'C');
+workspace.saved.get('/index.js').data; // B: the baseline remains independent.
+workspace.isDirty('/index.js'); // true
+workspace.save('/index.js'); // Accept C without executing it or writing a disk.
+workspace.working.writeText('/index.js', 'D');
+workspace.discard('/index.js'); // Working returns to C; saved stays C.
+```
+
+`working` is a full filesystem. `saved` exposes copied reads (`get`, `list`,
+`has`, `stat`, `getRevision`, directory reads, `createFileReader`, `snapshot`,
+and `onDidChange`) without mutation or checkpoint methods.
+
+| API | Behavior |
+| --- | --- |
+| `autoSave`, `setAutoSave(boolean)` | Enabling Auto immediately accepts all outstanding working changes |
+| `save(path)`, `saveMany(paths)`, `saveAll()` | Mirror selected working files/subtrees into saved; groups validate and commit atomically |
+| `discard(path)`, `discardMany(paths)` | Mirror saved back into working; restore deletions and remove unsaved creations |
+| `isDirty(path='/')`, `getDirtyPaths(path='/')` | Compare contents, file types, additions, deletions, and empty directories; return sorted changed paths |
+| `snapshot()`, `restore(snapshot)` | Copy/restore both complete versions and the Auto preference |
+| `onDidChange(listener)` | Subscribe to meaningful workspace changes; callback has no arguments |
+
+Save/discard paths can name a file, a directory subtree, or a path deleted from
+the source version but still present in the other version. Unknown paths reject.
+Batch paths normalize before validation; duplicates reject and an ancestor
+covers a supplied descendant. A file blocking an unselected destination parent
+rejects the entire group. Rename is represented by the removed old path and
+added new path: save both together, or save their common containing directory.
+These operations return whether any contents or preference changed. Equal
+contents do not notify the workspace/saved view or advance revisions.
+
+Workspace snapshots have `{version:1, working, saved, autoSave}`; each version
+uses the existing filesystem snapshot format. Both versions validate before
+either is replaced. Auto-on snapshots must contain equal working/saved contents.
+Revisions belong to each live store independently, remain session-local, and
+are not serialized. The implementation shares privately owned immutable binary
+records between versions, avoiding a copy of unrelated audio files on each
+small editor write; all public byte reads and snapshots remain independent.
+
+**Saved means accepted contents in memory.** It does not mean IndexedDB, a local
+file, an export, or another storage provider has persisted anything. Hosts must
+persist the workspace snapshot separately, including both versions when manual
+mode contains edits. This feature does not use `/.tet.ss`, alter Git policy,
+or turn legacy checkpoints into the saved version.
+
 ## File checkpoints
 
 Normal paths contain the current working files. `fs.checkpoints` keeps one

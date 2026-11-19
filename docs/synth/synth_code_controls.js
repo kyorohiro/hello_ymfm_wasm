@@ -122,8 +122,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(disposed||changing||!activePath)return;
     const source=adapter.getValue();
     validateSource(activePath,source);
-    if(textFile(project,activePath,allowTextFiles)!==source)writeText(activePath,source);
-    try {localStorage.setItem(journalKey,JSON.stringify({workspaceId:files?.workspaceId,path:activePath,source}));}
+    if(textFile(project,activePath,allowTextFiles)!==source){writeText(activePath,source);files?.codeEdited?.(activePath);}
+    const versions=project.savedFs&&project.workspace?{autoSave:project.autoApply,savedSource:project.savedFs.has(activePath)?textFile({fs:project.savedFs},activePath,allowTextFiles):null}:{};
+    try {localStorage.setItem(journalKey,JSON.stringify({workspaceId:files?.workspaceId,path:activePath,source,...versions}));}
     catch(error){setStatus(`Code recovery unavailable: ${error.message}. Export Cassette to keep your work.`);}
   }
   function validateSource(path,source) {
@@ -178,9 +179,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
           if(disposed){editor.dispose();return;}
           monacoEditor=editor;monacoApi=monaco;
           // Monaco 0.52's word-occurrence Delayer can reject unhandled when
-          // mixed JS/text models switch. Disable this optional feature once,
-          // before focus/model edits, only for hosts opting into text files.
-          if(allowTextFiles)editor.updateOptions?.({occurrencesHighlight:'off'});
+          // mixed text or working/saved JS models switch. Disable this optional
+          // feature once before attachment for hosts using those model flows.
+          if(allowTextFiles||project.workspace&&project.savedFs)editor.updateOptions?.({occurrencesHighlight:'off'});
           editor.onDidChangeModelContent(changeSource);
           // Let the Code toolbar own execution shortcuts before Monaco treats
           // Ctrl/Cmd+Enter as an editor action such as inserting a new line.
@@ -290,6 +291,15 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
       showMode(state.mode==='code'?'code':'keyboard');if(state.mode==='code')void loadMonaco();
     }else if(state?.mode==='code')await setMode('code');
   }
+  function reloadFile(path=activePath){
+    if(disposed||!activePath||path!==activePath)return false;
+    if(project.fs.has(path)){setEditorSource(path,textFile(project,path,allowTextFiles));writeCurrent();}
+    else{
+      activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}rememberState();
+      try{const entry=JSON.parse(localStorage.getItem(journalKey)||'null');if(entry?.workspaceId===files?.workspaceId&&entry?.path===path)localStorage.removeItem(journalKey);}catch{}
+    }
+    update();return true;
+  }
   function pathChanged(source,destination) {
     const executing=within(executionPath,source);let stopExecution=false;
     if(executing) {
@@ -312,7 +322,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     // change itself cannot invalidate that cleanup's completion token.
     if(stopExecution)void stop();
   }
-  const controls={openFile,flush,stop,cancelPendingExecution,setMode,setExpanded,restoreState,workspaceReplaced,pathChanged,captureState,appendLog,
+  const controls={openFile,flush,stop,cancelPendingExecution,setMode,setExpanded,restoreState,reloadFile,workspaceReplaced,pathChanged,captureState,appendLog,
     getStarterCode,layoutEditor(){monacoEditor?.layout();},
     isCodeMode:()=>mode==='code',get activePath(){return activePath;},get executionPath(){return executionPath;},
     isExpanded:()=>expanded,
@@ -362,7 +372,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     try {
       const entry=JSON.parse(localStorage.getItem(journalKey)||'null');
       if(entry?.workspaceId===files?.workspaceId&&(codePath(entry.path)||allowTextFiles&&editorPath(entry.path)&&project.fs.get(entry.path)?.type==='text')&&typeof entry.source==='string') {
-        validateSource(entry.path,entry.source);writeText(entry.path,entry.source);
+        validateSource(entry.path,entry.source);
+        if(project.recoverCode&&typeof entry.autoSave==='boolean'&&(entry.savedSource===null||typeof entry.savedSource==='string'))project.recoverCode(entry.path,entry);
+        else writeText(entry.path,entry.source);
       }
     }catch(error){setStatus(`Could not recover the last code edit: ${error.message}`);}
     await restoreState(files?.getCodeState?.());

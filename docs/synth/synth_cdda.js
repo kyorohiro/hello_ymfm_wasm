@@ -8,7 +8,7 @@ import {createPceMediaKeyboard} from '../synth-huc6280/media_keyboard.js?v=huc-m
 import {setupTestPcmControls} from '../synth-huc6280/test_pcm_controls.js?v=huc-test-default-1';
 import {createTestWaveFiles} from '../synth-huc6280/test_pcm.js?v=huc-media-tools-1';
 import {createVirtualFileSystem,isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
-import {createSynthCodeProject} from './synth_code_project.js';
+import {createSynthCodeProject} from './synth_code_project.js?v=working-saved-1';
 export {resolveCddaInputPath} from '../synth-huc6280/cdda_inputs.js';
 
 const aborted=()=>new DOMException('CD-DA workspace operation cancelled','AbortError');

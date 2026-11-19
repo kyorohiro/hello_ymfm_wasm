@@ -3,7 +3,8 @@ import {
   transferVirtualFiles,
   isCheckpointPath,
   CHECKPOINT_ROOT,
-} from '../js/tetorica_virtual_files/filesystem.js';
+} from '../js/tetorica_virtual_files/filesystem.js?v=working-saved-1';
+import {createVirtualFileWorkspace} from '../js/tetorica_virtual_files/workspace.js?v=working-saved-1';
 import { resolvePath, dirname } from '../js/tetorica_virtual_files/path.js';
 import {
   createPlaygroundCassetteZip,
@@ -83,8 +84,8 @@ function validateToneStates(files) {
   for(const [path,file] of entries){
     // PSG / PCM are complete JSON documents. Their optional checkpoint is the same
     // format, never an FM sidecar, and must also validate before replacement.
-    const logical=isCheckpointPath(path)?path.slice(CHECKPOINT_ROOT.length):path;
-    if(isSynthTonePath(logical)&&isJsonTonePath(logical)){parseJsonTone(logical,file.data);continue;}
+    if(isCheckpointPath(path))continue;
+    if(isSynthTonePath(path)&&isJsonTonePath(path)){parseJsonTone(path,file.data);continue;}
     if(!isSynthTonePath(path))continue;
     const bytes=file.data;
     const format=bytes.byteLength===43?'vgi':'tfi';
@@ -111,6 +112,46 @@ function safeName(name, fallback = 'tone') {
     .replace(/[. ]+$/g, '').trim() || fallback;
 }
 
+const WORKING_METADATA_KEY='tetoricaWorkingState';
+const sameFile=(a,b)=>Boolean(a&&b&&a.type===b.type&&(typeof a.data==='string'?a.data===b.data:a.data.length===b.data.length&&a.data.every((value,index)=>value===b.data[index])));
+function encodeFile(file){
+  if(file.type==='text')return{path:file.path,type:'text',data:file.data};
+  let text='';for(let start=0;start<file.data.length;start+=32768)text+=String.fromCharCode(...file.data.subarray(start,start+32768));
+  return{path:file.path,type:'binary',data:btoa(text)};
+}
+function decodeFile(file){
+  if(!file||typeof file.path!=='string'||resolvePath(file.path)!==file.path||!['text','binary'].includes(file.type)||typeof file.data!=='string')throw Error('Invalid Cassette working file.');
+  if(file.type==='text')return{path:file.path,type:'text',data:file.data};
+  if(!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.data))throw Error('Invalid Cassette working binary encoding.');
+  return{path:file.path,type:'binary',data:Uint8Array.from(atob(file.data),char=>char.charCodeAt(0))};
+}
+function workingDelta(workspace,pendingMoves){
+  const state=workspace.snapshot(),saved=new Map(state.saved.files.map(file=>[file.path,file])),working=new Map(state.working.files.map(file=>[file.path,file]));
+  return{version:1,autoSave:state.autoSave,files:state.working.files.filter(file=>!sameFile(file,saved.get(file.path))).map(encodeFile),
+    deleted:state.saved.files.filter(file=>!working.has(file.path)).map(file=>file.path),
+    directories:{created:state.working.directories.filter(path=>!state.saved.directories.includes(path)),deleted:state.saved.directories.filter(path=>!state.working.directories.includes(path))},
+    metadataFiles:state.saved.files.filter(file=>METADATA_PATHS.has(file.path)).map(encodeFile),textPaths:state.saved.files.filter(file=>file.type==='text').map(file=>file.path),pendingMoves:[...pendingMoves]};
+}
+function applyWorkingDelta(files,directories,delta){
+  if(!delta||delta.version!==1||typeof delta.autoSave!=='boolean'||!Array.isArray(delta.files)||!Array.isArray(delta.deleted)||!Array.isArray(delta.metadataFiles)||
+    !delta.directories||!Array.isArray(delta.directories.created)||!Array.isArray(delta.directories.deleted))throw Error('Unsupported Cassette working state.');
+  const originalMetadata=delta.metadataFiles.map(decodeFile);
+  if(originalMetadata.some(file=>!METADATA_PATHS.has(file.path)))throw Error('Invalid original Cassette metadata path.');
+  const textPaths=delta.textPaths??[];
+  if(!Array.isArray(textPaths)||new Set(textPaths).size!==textPaths.length||textPaths.some(path=>typeof path!=='string'||resolvePath(path)!==path))throw Error('Invalid saved Cassette text paths.');
+  const savedFiles=[...files.filter(file=>!METADATA_PATHS.has(file.path)),...originalMetadata];
+  for(const path of textPaths){const file=savedFiles.find(file=>file.path===path);if(!file)throw Error('Missing saved Cassette text file.');if(typeof file.data!=='string'){file.data=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(file.data);file.type='text';}}
+  const saved=createVirtualFileSystem();saved.replace(savedFiles,directories);
+  const workingFiles=new Map(saved.list().map(file=>[file.path,file])),seen=new Set();
+  for(const path of delta.deleted){if(typeof path!=='string'||resolvePath(path)!==path||seen.has(path))throw Error('Invalid Cassette working deletion.');seen.add(path);workingFiles.delete(path);}
+  for(const file of delta.files.map(decodeFile)){if(seen.has(file.path))throw Error('Duplicate Cassette working path.');seen.add(file.path);workingFiles.set(file.path,file);}
+  const dirs=new Set(saved.listDirectories());
+  for(const path of delta.directories.deleted){if(typeof path!=='string'||resolvePath(path)!==path||path==='/')throw Error('Invalid Cassette working folder deletion.');dirs.delete(path);}
+  for(const path of delta.directories.created){if(typeof path!=='string'||resolvePath(path)!==path)throw Error('Invalid Cassette working folder.');dirs.add(path);}
+  const working=createVirtualFileSystem();working.replace([...workingFiles.values()],[...dirs]);
+  return{version:1,working:working.snapshot(),saved:saved.snapshot(),autoSave:delta.autoSave};
+}
+
 function fileBytes(file) {
   if (file instanceof Uint8Array) return new Uint8Array(file);
   if (file instanceof ArrayBuffer) return new Uint8Array(file.slice(0));
@@ -125,7 +166,8 @@ function fileBytes(file) {
  * @param {{snapshot?: object}} [options]
  */
 export function createSynthProject({ snapshot: initialSnapshot } = {}) {
-  const fs = createVirtualFileSystem([], {autoCheckpoint:true});
+  const workspace=createVirtualFileWorkspace();
+  const fs=workspace.working,savedFs=workspace.saved;
   const listeners = new Set();
   let selectedPath = null;
   let cassetteName = 'cassette';
@@ -133,6 +175,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
   let importSequence = 0;
   let mutationDepth = 0;
   let pendingChange = false;
+  const pendingMoves=new Map();
 
   const exists = path => fs.has(path) || fs.listDirectories().includes(path);
   function emitChange() {
@@ -154,7 +197,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       }
     }
   }
-  fs.onDidChange(changed);
+  workspace.onDidChange(changed);
 
   function uniquePath(path, occupied = new Set(project.listEntries().map(entry => entry.path))) {
     path = resolvePath(path);
@@ -180,10 +223,44 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
     preview.replace(project.listEntries().filter(entry=>entry.type==='file').map(entry=>({path:entry.path,data:''})),fs.listDirectories());
     for(const [source,target] of pairs)transferVirtualFiles(preview,source,target,{copy});
     for(const [source,target] of pairs)transferVirtualFiles(fs,source,target,{copy});
+    if(!copy)for(const [source,target]of pairs){
+      const inside=(path,root)=>path===root||path.startsWith(root+'/');
+      for(const [original,current]of [...pendingMoves])if(inside(current,source))pendingMoves.set(original,target+current.slice(source.length));
+      for(const file of savedFs.list())if(inside(file.path,source)&&!pendingMoves.has(file.path)&&workspace.isDirty(file.path))pendingMoves.set(file.path,target+file.path.slice(source.length));
+    }
   }
 
+  const toneFiles=path=>{path=resolvePath(path);if(isSynthStatePath(path))path=path.slice(0,-'.synth.json'.length);return isSynthTonePath(path)&&!isJsonTonePath(path)?[path,synthStatePath(path)].filter(value=>fs.has(value)||savedFs.has(value)):[path];};
+  function expandFiles(paths){
+    const targets=new Set(paths.flatMap(toneFiles));
+    for(const [source,target]of pendingMoves)if([...targets].some(path=>source===path||target===path||source.startsWith(path+'/')||target.startsWith(path+'/'))){
+      for(const path of [...toneFiles(source),...toneFiles(target)])targets.add(path);
+    }
+    return [...targets];
+  }
+  function clearMoves(paths){for(const [source,target]of pendingMoves)if(paths.some(path=>source===path||target===path||source.startsWith(path+'/')||target.startsWith(path+'/')))pendingMoves.delete(source);}
   const project = {
-    fs,
+    fs,savedFs,workspace,
+    get autoApply(){return workspace.autoSave;},
+    setAutoApply(enabled){mutate(()=>{workspace.setAutoSave(enabled);if(enabled)pendingMoves.clear();});return workspace.autoSave;},
+    saveFiles(paths){
+      const targets=expandFiles(paths);for(const path of targets)if(isSynthTonePath(path)&&fs.has(path))project.readTone(path);
+      mutate(()=>{workspace.saveMany(targets);clearMoves(targets);});return targets;
+    },
+    discardFiles(paths){
+      const targets=expandFiles(paths);for(const path of targets)if(isSynthTonePath(path)&&savedFs.has(path))project.readTone(path,{version:'saved'});
+      mutate(()=>{workspace.discardMany(targets);clearMoves(targets);});return targets;
+    },
+    saveAll(){const paths=workspace.getDirtyPaths();validateToneStates(fs.snapshot().files);mutate(()=>{workspace.saveAll();pendingMoves.clear();});return paths;},
+    isFileModified:path=>isSynthTonePath(path)?project.isToneModified(path):workspace.isDirty(path),
+    getDirtyPaths:()=>workspace.getDirtyPaths(),
+    getSavedPath(path){return [...pendingMoves].find(([,current])=>current===path)?.[0]??path;},
+    recoverCode(path,{source,savedSource,autoSave}){
+      path=resolvePath(path);if(path==='/'||path.split('/').some(part=>part==='.git'||part==='.tet.ss')||typeof source!=='string'||savedSource!==null&&typeof savedSource!=='string'||typeof autoSave!=='boolean')throw Error('Invalid Code recovery versions.');
+      const working=createVirtualFileSystem(),saved=createVirtualFileSystem();working.restore(fs.snapshot());saved.restore(savedFs.snapshot());
+      working.writeText(path,source);if(savedSource===null){if(saved.has(path))saved.remove(path);}else saved.writeText(path,savedSource);
+      const candidate=createVirtualFileWorkspace();candidate.restore({version:1,working:working.snapshot(),saved:saved.snapshot(),autoSave});validateToneStates(candidate.working.snapshot().files);validateToneStates(candidate.saved.snapshot().files);workspace.restore(candidate.snapshot());
+    },
     get selectedPath() { return selectedPath; },
     get cassetteName() { return cassetteName; },
     get cassetteMetadata() { return cassetteMetadata == null ? null : structuredClone(cassetteMetadata); },
@@ -233,9 +310,11 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
     listTones() {
       return project.listEntries().filter(entry => entry.type === 'file' && isSynthTonePath(entry.path)).map(entry => fs.get(entry.path));
     },
-    readTone(path) {
+    readTone(path,{version='working'}={}) {
+      if(!['working','saved'].includes(version))throw Error('Instrument version must be working or saved.');
+      const store=version==='saved'?savedFs:fs;
       path = resolvePath(path);
-      const file = fs.get(path);
+      const file = store.get(path);
       if (!file) throw new Error(`Instrument not found: ${path}`);
       if (!isSynthTonePath(path)) throw new Error('Choose a TFI or VGI instrument file, or a .psg.json / .pcm.json preset.');
       if(isJsonTonePath(path))return {path,format:jsonKind(path),preset:parseJsonTone(path,file.data),
@@ -245,7 +324,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       // Historical Synth imports accepted renamed TFI/VGI files by byte size.
       const format = bytes.byteLength === 43 ? 'vgi' : 'tfi';
       let preset = format === 'vgi' ? parseVgi(bytes) : parseTfi(bytes);
-      const state=fs.get(synthStatePath(path));
+      const state=store.get(synthStatePath(path));
       if(state)preset=mergeState(preset,parseState(state.data,format));
       else preset=mergeState(preset,extraState(preset,format));
       return { path, format, preset, bytes };
@@ -290,73 +369,17 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       const metadataPreset={...previousTone?.preset,...preset};
       metadataPreset.operators={...previousTone?.preset.operators,...preset.operators};
       const sidecar=synthStatePath(path),text=stateText(metadataPreset,format);
-      const currentState=fs.get(sidecar);
-      // Validate before materializing a legacy instrument's missing metadata.
-      if(expectedRevision!==undefined&&fs.getRevision(path)!==expectedRevision)throw Error(`Revision conflict: ${path}; read the file again`);
-      const baseline=previousTone?stateText(baselinePreset??previousTone.preset,format):null;
       mutate(() => {
-        if(previous&&!currentState)fs.writeText(sidecar,baseline);
-        const changed=!previous||previous.data.length!==bytes.length||previous.data.some((value,index)=>value!==bytes[index])||fs.get(sidecar)?.data!==text;
-        if(previous&&changed&&fs.checkpoints.auto){
-          const missing=[path,sidecar].filter(candidate=>!fs.checkpoints.has(candidate));
-          // Legacy Cassettes can have a binary baseline without its sidecar.
-          // Its unknown extras use deterministic format defaults, never today's
-          // edited LFO/AM state. Existing checkpoints are never advanced here.
-          const legacy=missing.includes(sidecar)&&fs.checkpoints.has(path)?fs.checkpoints.get(path):null;
-          let legacyText=null;
-          if(legacy){
-            const oldFormat=legacy.data.length===43?'vgi':'tfi';
-            legacyText=stateText(oldFormat==='vgi'?parseVgi(legacy.data):parseTfi(legacy.data),oldFormat);
-          }
-          if(missing.length)fs.checkpoints.setMany(missing);
-          if(legacyText!==null)fs.writeText(CHECKPOINT_ROOT+sidecar,legacyText);
-        }
         fs.writeFiles([{path,data:bytes,expectedRevision},{path:sidecar,data:text}],{checkpointChanges:false});
         if(select)selectedPath = path;
       });
       return project.readTone(path);
     },
-    syncTone(path) {
-      const tone=project.readTone(path);
-      if(['psg','pcm'].includes(tone.format)){fs.checkpoints.set(tone.path);return project.readTone(tone.path);}
-      const sidecar=synthStatePath(tone.path);
-      mutate(()=>{
-        if(!fs.has(sidecar))fs.writeText(sidecar,stateText(tone.preset,tone.format));
-        fs.checkpoints.setMany([tone.path,sidecar]);
-      });
-      return project.readTone(tone.path);
-    },
-    revertTone(path) {
-      path=resolvePath(path);
-      if(isSynthTonePath(path)&&isJsonTonePath(path)){
-        const saved=fs.checkpoints.get(path);
-        if(!saved)throw Error(`Instrument checkpoint not found: ${path}`);
-        parseJsonTone(path,saved.data);
-        fs.writeFiles([{path,data:saved.data}],{checkpointChanges:false});
-        return project.readTone(path);
-      }
-      if(!isSynthTonePath(path)||fs.get(path)?.type!=='binary')throw Error('Choose a TFI or VGI instrument file.');
-      const sidecar=synthStatePath(path);
-      const saved=fs.checkpoints.get(path),savedState=fs.checkpoints.get(sidecar);
-      if(!saved||saved.type!=='binary')throw Error(`Instrument checkpoint not found: ${path}`);
-      const format=saved.data.length===43?'vgi':'tfi';
-      const preset=format==='vgi'?parseVgi(saved.data):parseTfi(saved.data);
-      const state=savedState?parseState(savedState.data,format):extraState(preset,format);
-      // Validate the full pair before changing either current file.
-      mergeState(preset,state);
-      const text=JSON.stringify(state,null,2)+'\n';
-      const entries=[{path,data:saved.data},{path:sidecar,data:text}];
-      // Complete legacy binary-only checkpoints with their deterministic extra
-      // defaults so future recovery always has a complete, valid saved pair.
-      if(!savedState)entries.push({path:CHECKPOINT_ROOT+sidecar,data:text});
-      fs.writeFiles(entries,{checkpointChanges:false});
-      return project.readTone(path);
-    },
-    isToneModified(path) {
-      path=resolvePath(path);
-      if(!isSynthTonePath(path)||!fs.has(path))return false;
-      return fs.checkpoints.isModified(path)||!isJsonTonePath(path)&&fs.checkpoints.isModified(synthStatePath(path));
-    },
+    saveTone(path){project.readTone(path);project.saveFiles([path]);return project.readTone(path,{version:'saved'});},
+    discardTone(path){project.discardFiles([path]);return fs.has(path)?project.readTone(path):null;},
+    syncTone(path){return project.saveTone(path);},
+    revertTone(path){return project.discardTone(path);},
+    isToneModified(path){return toneFiles(path).some(value=>workspace.isDirty(value));},
     /**
      * Valid input files and original VGM/VGZ recordings are appended in one
      * filesystem commit. `paths` contains tones; `sourcePaths` contains originals.
@@ -482,42 +505,54 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       fs.mkdir(resolvePath(path), { recursive: true });
     },
     snapshot() {
-      return {
-        ...fs.snapshot(),
-        selectedPath,
-        cassetteName,
-        cassetteMetadata: cassetteMetadata == null ? null : structuredClone(cassetteMetadata),
-      };
+      const state=workspace.snapshot();
+      return {...state.working,version:2,workspace:state,selectedPath,cassetteName,
+        cassetteMetadata:cassetteMetadata==null?null:structuredClone(cassetteMetadata),pendingMoves:[...pendingMoves]};
     },
     restore(snapshot) {
-      if (snapshot?.version !== 1) throw new Error('Unsupported Synth project snapshot.');
-      // The VFS validates every path and conflict before replacing anything.
-      const candidate = createVirtualFileSystem();
-      candidate.restore(snapshot);
-      validateToneStates(snapshot.files);
-      const selection = snapshot.selectedPath == null ? null : resolvePath(snapshot.selectedPath);
-      if (selection) candidate.stat(selection);
-      const nextName = String(snapshot.cassetteName ?? 'cassette');
-      const nextMetadata = snapshot.cassetteMetadata == null ? null : structuredClone(snapshot.cassetteMetadata);
+      if(![1,2].includes(snapshot?.version))throw Error('Unsupported Synth project snapshot.');
+      const legacy=createVirtualFileSystem();if(snapshot.files)legacy.restore({...snapshot,version:1});
+      const state=snapshot.version===2?snapshot.workspace:{version:1,working:legacy.snapshot(),saved:legacy.snapshot(),autoSave:true};
+      if(snapshot.version===2&&snapshot.files){const top=legacy.snapshot(),inner=state?.working;if(!inner||top.files.length!==inner.files.length||top.files.some(file=>!sameFile(file,inner.files.find(value=>value.path===file.path)))||top.directories.join('\n')!==[...inner.directories].sort().join('\n'))throw Error('Synth working snapshot fields differ.');}
+      const candidate=createVirtualFileWorkspace();candidate.restore(state);
+      validateToneStates(candidate.working.snapshot().files);validateToneStates(candidate.saved.snapshot().files);
+      const selection=snapshot.selectedPath==null?null:resolvePath(snapshot.selectedPath);
+      if(selection)candidate.working.stat(selection);
+      const nextName=String(snapshot.cassetteName??'cassette'),nextMetadata=snapshot.cassetteMetadata==null?null:structuredClone(snapshot.cassetteMetadata);
+      const moves=snapshot.pendingMoves??[];
+      if(!Array.isArray(moves)||moves.some(pair=>!Array.isArray(pair)||pair.length!==2||pair.some(path=>typeof path!=='string'||resolvePath(path)!==path)))throw Error('Invalid pending Synth file moves.');
       importSequence++;
-      mutate(() => {
-        fs.restore(snapshot);
-        selectedPath = selection;
-        cassetteName = nextName;
-        cassetteMetadata = nextMetadata;
-      });
+      mutate(()=>{pendingMoves.clear();for(const [source,target]of moves)pendingMoves.set(source,target);workspace.restore(candidate.snapshot());selectedPath=selection;cassetteName=nextName;cassetteMetadata=nextMetadata;});
     },
     exportCassette(options = {}) {
-      const files = fs.list();
+      if(options.includeWorkingState){
+        const delta=workingDelta(workspace,pendingMoves),files=savedFs.list(),metadataEntries=files.filter(file=>METADATA_PATHS.has(file.path));
+        if(options.savedEditorPresets)delta.savedEditorPresets=structuredClone(options.savedEditorPresets);
+        const metadata={...(options.metadata??cassetteMetadata??{})};delete metadata[WORKING_METADATA_KEY];metadata[WORKING_METADATA_KEY]=delta;
+        const primary=metadataEntries.at(-1)?.path;
+        const encoded=files.map(file=>{
+          if(!METADATA_PATHS.has(file.path))return file;
+          const text=typeof file.data==='string'?file.data:new TextDecoder('utf-8',{fatal:true}).decode(file.data);
+          const match=file.path.endsWith('.js')?text.match(/export\s+default\s+([\s\S]*?)\s*;?\s*$/):null;
+          if(file.path.endsWith('.js')&&!match)throw Error('Invalid cassette metadata module.');
+          const value=JSON.parse(match?match[1]:text);if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid Cassette metadata object.');
+          delete value[WORKING_METADATA_KEY];if(file.path===primary)value[WORKING_METADATA_KEY]=delta;
+          return{path:file.path,type:'text',data:file.path.endsWith('.js')?`export default ${JSON.stringify(value,null,2)};\n`:JSON.stringify(value,null,2)+'\n'};
+        });
+        return createPlaygroundCassetteZip(encoded,{...options,directories:savedFs.listDirectories(),metadata,
+          workType:options.workType??metadata.workType,license:options.license??metadata.license,licenseName:options.licenseName??metadata.licenseName,preserveMetadataFiles:Boolean(primary)});
+      }
+      const store=options.version==='saved'?savedFs:fs;
+      const files = store.list();
       const hasMetadata = files.some(file => METADATA_PATHS.has(file.path));
       const metadataPath = options.metadataFileName === 'cassette.metadata.js' ? '/cassette.metadata.js' : '/metadata.json';
-      if (!hasMetadata && fs.listDirectories().includes(metadataPath)) {
+      if (!hasMetadata && store.listDirectories().includes(metadataPath)) {
         throw new Error(`Cassette metadata path ${metadataPath} is a folder. Rename it before exporting.`);
       }
       const metadata = options.metadata ?? cassetteMetadata ?? {};
       return createPlaygroundCassetteZip(files, {
         ...options,
-        directories: fs.listDirectories(),
+        directories: store.listDirectories(),
         metadata,
         workType: options.workType ?? metadata.workType,
         license: options.license ?? metadata.license,
@@ -529,7 +564,7 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       const sequence = ++importSequence;
       const cassette = await loadPlaygroundCassette(bytes, { name });
       if (sequence !== importSequence || !isCurrent()) return { cancelled: true };
-      const files = Array.from(cassette.files, ([path, data]) => ({ path: `/${path}`, data }));
+      const files = Array.from(cassette.files, ([path, data]) => ({ path: `/${path}`,type:'binary', data }));
       for (const file of files.filter(file => isSynthTonePath(file.path))) {
         try {
           if(isJsonTonePath(file.path))parseJsonTone(file.path,file.data);
@@ -540,15 +575,24 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
         }
       }
       validateToneStates(files);
+      const delta=cassette.metadata?.[WORKING_METADATA_KEY];
+      const base=createVirtualFileSystem();base.replace(files,cassette.directories);
+      const state=delta?applyWorkingDelta(files,cassette.directories,delta):{version:1,working:base.snapshot(),saved:base.snapshot(),autoSave:workspace.autoSave};
+      const candidate=createSynthProject();candidate.restore({version:2,workspace:state,selectedPath:null,pendingMoves:delta?.pendingMoves??[]});
+      if(delta?.savedEditorPresets){
+        if(typeof delta.savedEditorPresets!=='object'||Array.isArray(delta.savedEditorPresets))throw Error('Invalid saved editor presets in Cassette.');
+        for(const [kind,preset]of Object.entries(delta.savedEditorPresets)){if(!['fm','psg','pcm'].includes(kind)||(isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm')!==kind)throw Error('Invalid saved editor preset kind.');createSynthProject().createTone(preset,'Saved editor validation');}
+      }
+      const metadata=structuredClone(cassette.metadata);if(metadata)delete metadata[WORKING_METADATA_KEY];
       // Validate known instruments, but preserve their original bytes. All
       // other files remain opaque, avoiding JavaScript/metadata re-encoding.
       mutate(() => {
-        fs.replace(files, cassette.directories);
-        selectedPath = files.filter(file => isSynthTonePath(file.path)).sort((a, b) => comparePaths(a.path, b.path))[0]?.path ?? null;
+        pendingMoves.clear();for(const [source,target]of candidate.snapshot().pendingMoves)pendingMoves.set(source,target);workspace.restore(candidate.workspace.snapshot());
+        selectedPath = fs.list().filter(file => isSynthTonePath(file.path)).sort((a, b) => comparePaths(a.path, b.path))[0]?.path ?? null;
         cassetteName = cassette.id;
-        cassetteMetadata = cassette.metadata;
+        cassetteMetadata = metadata;
       });
-      return cassette;
+      return {...cassette,savedEditorPresets:delta?.savedEditorPresets??null};
     },
   };
   if (initialSnapshot) project.restore(initialSnapshot);

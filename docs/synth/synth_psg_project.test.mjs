@@ -9,6 +9,19 @@ const tone=createPsgPreset(),noise=createPsgPreset({source:'noise',noiseType:'pe
 const fm={algorithm:7,feedback:0,operators:{1:{tl:127},4:{tl:24}}};
 const text=data=>typeof data==='string'?data:new TextDecoder().decode(data);
 const file=(name,data)=>({name,data:typeof data==='string'?new TextEncoder().encode(data):data});
+function corruptSnapshot(snapshot,version,path,data) {
+  const changed=structuredClone(snapshot);changed.workspace[version].files.find(file=>file.path===path).data=data;
+  if(version==='working')changed.files.find(file=>file.path===path).data=data;
+  return changed;
+}
+async function corruptCassette(project,version,path,data) {
+  const cassette=await loadPlaygroundCassette(project.exportCassette({includeWorkingState:true})),metadata=structuredClone(cassette.metadata),files=project.savedFs.list();
+  if(version==='saved')files.find(file=>file.path===path).data=data;
+  else {
+    const delta=metadata.tetoricaWorkingState;delta.files=delta.files.filter(file=>file.path!==path);delta.files.push({path,type:'text',data});
+  }
+  return createPlaygroundCassetteZip(files,{directories:project.savedFs.listDirectories(),metadata});
+}
 
 test('PSG create/read/write uses a single text file with complete settings and no FM sidecar',()=>{
   const project=createSynthProject(),created=project.createTone(tone,'Square');
@@ -18,6 +31,8 @@ test('PSG create/read/write uses a single text file with complete settings and n
   assert.deepEqual(created.bytes,new TextEncoder().encode(serializePsgPreset(tone)));
   created.preset.settings.attenuation=0;created.bytes.fill(0);
   assert.deepEqual(project.readTone(created.path).preset,tone);
+  assert.equal(project.autoApply,true);assert.equal(project.isToneModified(created.path),false);
+  assert.deepEqual(project.readTone(created.path,{version:'saved'}).preset,tone);
   assert.equal(synthToneExtension(created.path),'.psg.json');assert(isPsgTonePath(created.path));
   for(const path of ['/.git/refs/heads/tone.psg.json','/.tet.ss/presets/tone.psg.json','/data.json'])assert(!isSynthTonePath(path));
   const before=project.snapshot();
@@ -34,22 +49,24 @@ test('PSG create/read/write uses a single text file with complete settings and n
   assert.deepEqual(project.snapshot(),before);
 });
 
-test('PSG edits, Sync/Revert and snapshots keep one complete checkpoint and leave FM pairs untouched',()=>{
+test('manual PSG Save/discard and v2 snapshots keep complete saved settings and leave FM pairs untouched',()=>{
   const project=createSynthProject(),path=project.createTone(tone,'Square').path;
   project.writeTone('/presets/FM.vgi',fm);project.syncTone('/presets/FM.vgi');
   const fmFiles=[project.fs.get('/presets/FM.vgi'),project.fs.get(synthStatePath('/presets/FM.vgi'))];
+  project.setAutoApply(false);
   project.writeTone(path,noise);
-  assert.deepEqual(JSON.parse(text(project.fs.checkpoints.get(path).data)),tone);
+  assert.deepEqual(JSON.parse(text(project.savedFs.get(path).data)),tone);
   assert(project.isToneModified(path));assert(!project.fs.has('/.tet.ss'+synthStatePath(path)));
-  assert.deepEqual(project.revertTone(path).preset,tone);assert(!project.isToneModified(path));
-  project.writeTone(path,noise);project.syncTone(path);assert(!project.isToneModified(path));
+  assert.deepEqual(project.discardTone(path).preset,tone);assert(!project.isToneModified(path));
+  project.writeTone(path,noise);project.saveTone(path);assert(!project.isToneModified(path));
   project.writeTone(path,tone);assert(project.isToneModified(path));
   const restored=createSynthProject({snapshot:project.snapshot()});
-  assert.deepEqual(restored.readTone(path).preset,tone);assert.deepEqual(restored.revertTone(path).preset,noise);
+  assert.equal(restored.autoApply,false);assert.deepEqual(restored.readTone(path).preset,tone);
+  assert.deepEqual(restored.readTone(path,{version:'saved'}).preset,noise);assert.deepEqual(restored.discardTone(path).preset,noise);
   assert.deepEqual(fmFiles,[project.fs.get('/presets/FM.vgi'),project.fs.get(synthStatePath('/presets/FM.vgi'))]);
 });
 
-test('PSG compound extensions and checkpoints follow duplicate/rename/move/delete without treating opaque files as sidecars',()=>{
+test('Auto apply preserves PSG compound CRUD in both versions without treating opaque files as sidecars',()=>{
   const project=createSynthProject(),path=project.createTone(tone,'Square').path;
   project.syncTone(path);project.writeTone(path,noise);
   project.fs.writeText(synthStatePath(path),'opaque neighbor');
@@ -58,9 +75,10 @@ test('PSG compound extensions and checkpoints follow duplicate/rename/move/delet
   const renamed=project.rename(copy,'Percussion');assert.equal(renamed,'/presets/Percussion.psg.json');
   project.mkdir('/presets/Kit');project.move(renamed,'/presets/Kit/Percussion.psg.json');
   assert.deepEqual(project.readTone('/presets/Kit/Percussion.psg.json').preset,noise);
-  assert.deepEqual(project.revertTone('/presets/Kit/Percussion.psg.json').preset,tone);
+  assert.deepEqual(project.readTone('/presets/Kit/Percussion.psg.json',{version:'saved'}).preset,noise);
+  assert.deepEqual(project.discardTone('/presets/Kit/Percussion.psg.json').preset,noise);
   assert.equal(project.fs.has('/presets/Kit/Percussion.psg.json.synth.json'),false);
-  project.delete(path);assert.equal(project.fs.has(path),false);assert.equal(project.fs.checkpoints.has(path),false);
+  project.delete(path);assert.equal(project.fs.has(path),false);assert.equal(project.savedFs.has(path),false);
   assert.equal(project.fs.get(synthStatePath(path)).data,'opaque neighbor');
   const before=project.snapshot();
   assert.throws(()=>project.move('/presets/Kit/Percussion.psg.json','/presets/wrong.vgi'));
@@ -87,24 +105,26 @@ test('standalone PSG imports validate before a single append and retain original
 
 test('mixed FM/PSG Cassettes preserve original bytes, Git and unknown data; invalid current or saved PSG documents reject atomically',async()=>{
   const project=createSynthProject(),path=project.createTone(tone,'Square').path;
-  project.syncTone(path);project.writeTone(path,noise);project.writeTone('/presets/FM.vgi',fm);
+  project.writeTone('/presets/FM.vgi',fm);
   project.fs.writeBinary('/.git/objects/aa/tone.psg.json',new Uint8Array([255,0,128]));
   project.fs.writeText('/misc/unknown.json','not JSON');project.mkdir('/empty');
-  const snapshot=project.snapshot(),archive=project.exportCassette(),cassette=await loadPlaygroundCassette(archive),restored=createSynthProject();
+  project.setAutoApply(false);project.writeTone(path,noise);
+  const snapshot=project.snapshot(),archive=project.exportCassette({includeWorkingState:true}),cassette=await loadPlaygroundCassette(archive),restored=createSynthProject();
   await restored.importCassette(archive);
-  assert.deepEqual(restored.readTone(path).preset,noise);assert.deepEqual(restored.revertTone(path).preset,tone);
-  assert.deepEqual(cassette.files.get(path.slice(1)),new TextEncoder().encode(project.fs.get(path).data));
+  assert.deepEqual(restored.readTone(path).preset,noise);assert.deepEqual(restored.readTone(path,{version:'saved'}).preset,tone);
+  assert.deepEqual(restored.discardTone(path).preset,tone);
+  assert.deepEqual(cassette.files.get(path.slice(1)),new TextEncoder().encode(project.savedFs.get(path).data));
   assert.deepEqual(restored.fs.get('/.git/objects/aa/tone.psg.json').data,new Uint8Array([255,0,128]));
   assert(restored.fs.listDirectories().includes('/empty'));
-  for(const badPath of [path,'/.tet.ss'+path]) {
-    const bad=structuredClone(snapshot);bad.files.find(file=>file.path===badPath).data='{"version":99}';
+  for(const version of ['working','saved']) {
+    const bad=corruptSnapshot(snapshot,version,path,'{"version":99}');
     const before=project.snapshot();assert.throws(()=>project.restore(bad));assert.deepEqual(project.snapshot(),before);
-    const badZip=createPlaygroundCassetteZip(bad.files,{directories:bad.directories});
+    const badZip=await corruptCassette(project,version,path,'{"version":99}');
     await assert.rejects(project.importCassette(badZip));assert.deepEqual(project.snapshot(),before);
   }
 });
 
-test('legacy PSG imports and saved checkpoints keep exact v1 bytes until an explicit v2 envelope edit',async()=>{
+test('legacy PSG imports retain exact v1 saved bytes until a manual v2 envelope Save',async()=>{
   const project=createSynthProject(),legacy={version:1,kind:'tetorica-sega-psg',settings:{source:'noise',attenuation:5,noiseType:'white',noiseRate:'low'}};
   const original='  '+JSON.stringify(legacy)+'\n\n';
   const imported=await project.importInstrumentFiles([file('Legacy.psg.json',original)],{directory:'/presets'}),path=imported.paths[0];
@@ -113,29 +133,30 @@ test('legacy PSG imports and saved checkpoints keep exact v1 bytes until an expl
   assert.equal(project.fs.get(path).data,original,'read does not silently rewrite an old document');
   const archive=await loadPlaygroundCassette(project.exportCassette());
   assert.deepEqual(archive.files.get(path.slice(1)),new TextEncoder().encode(original));
-  project.syncTone(path);
-  assert.equal(project.fs.checkpoints.get(path).data,original,'Sync retains the actual legacy bytes as the saved point');
+  project.setAutoApply(false);project.saveTone(path);
+  assert.equal(project.savedFs.get(path).data,original,'Save retains the actual legacy bytes as the accepted version');
   project.writeTone(path,noise);
   assert.equal(JSON.parse(project.fs.get(path).data).version,2);assert.deepEqual(project.readTone(path).preset,noise);
-  assert.equal(project.fs.checkpoints.get(path).data,original,'an edit never retrofits the old checkpoint');
-  const restored=createSynthProject();await restored.importCassette(project.exportCassette());
+  assert.equal(project.savedFs.get(path).data,original,'a manual edit does not rewrite the accepted legacy version');
+  const restored=createSynthProject();await restored.importCassette(project.exportCassette({includeWorkingState:true}));
   assert.deepEqual(restored.readTone(path).preset,noise);
-  assert.deepEqual(restored.revertTone(path).preset,migrated);assert.equal(restored.readTone(path).preset.settings.envelope.enabled,false);
-  assert.deepEqual(restored.fs.get(path).data,new TextEncoder().encode(original),'Revert restores original bytes as well as Envelope Off');
-  project.syncTone(path);assert.equal(JSON.parse(project.fs.checkpoints.get(path).data).version,2);
-  project.writeTone(path,tone);assert.deepEqual(project.revertTone(path).preset,noise,'new version 2 checkpoints retain the full envelope');
+  assert.deepEqual(restored.discardTone(path).preset,migrated);assert.equal(restored.readTone(path).preset.settings.envelope.enabled,false);
+  assert.equal(restored.fs.get(path).type,'text','recovery metadata retains the accepted file representation');
+  assert.equal(restored.fs.get(path).data,original,'discard restores the exact original text as well as Envelope Off');
+  project.saveTone(path);assert.equal(JSON.parse(project.savedFs.get(path).data).version,2);
+  project.writeTone(path,tone);assert.deepEqual(project.discardTone(path).preset,noise,'saved version 2 retains the full envelope');
 });
 
 test('malformed software envelopes in current or saved v2 documents reject snapshot and Cassette restoration atomically',async()=>{
   const project=createSynthProject(),path=project.createTone(noise,'Envelope').path;project.syncTone(path);
-  const snapshot=project.snapshot();
-  for(const badPath of [path,'/.tet.ss'+path])for(const envelope of [
+  project.setAutoApply(false);project.writeTone(path,tone);const snapshot=project.snapshot();
+  for(const version of ['working','saved'])for(const envelope of [
     {...noise.settings.envelope,sustain:-1},{...noise.settings.envelope,attackMs:0.5},{enabled:true},
   ]) {
-    const bad=structuredClone(snapshot),document=structuredClone(noise);document.settings.envelope=envelope;
-    bad.files.find(file=>file.path===badPath).data=JSON.stringify(document);
+    const document=structuredClone(noise);document.settings.envelope=envelope;
+    const bad=corruptSnapshot(snapshot,version,path,JSON.stringify(document));
     assert.throws(()=>project.restore(bad));assert.deepEqual(project.snapshot(),snapshot);
-    await assert.rejects(project.importCassette(createPlaygroundCassetteZip(bad.files,{directories:bad.directories})));
+    await assert.rejects(project.importCassette(await corruptCassette(project,version,path,JSON.stringify(document))));
     assert.deepEqual(project.snapshot(),snapshot);
   }
 });

@@ -22,9 +22,14 @@ try {
   assert.deepEqual(Object.keys(lock.packages).sort(),['','node_modules/tetorica-virtual-files']);
   run(process.execPath,['--input-type=module','-e',`
     import assert from 'node:assert/strict';
-    import {createVirtualFileSystem,createShell,transferVirtualFiles,isCheckpointPath,CHECKPOINT_ROOT} from 'tetorica-virtual-files';
+    import {createVirtualFileSystem,createVirtualFileWorkspace,createShell,transferVirtualFiles,isCheckpointPath,CHECKPOINT_ROOT} from 'tetorica-virtual-files';
     import {createShell as directShell,parseRmArgs} from 'tetorica-virtual-files/shell.js';
     const fs=createVirtualFileSystem([{path:'/index.js',data:'hello'}]);
+    const workspace=createVirtualFileWorkspace([{path:'/work.txt',data:'accepted'}],{autoSave:false});
+    workspace.working.writeText('/work.txt','draft');assert.equal(workspace.saved.get('/work.txt').data,'accepted');
+    assert(workspace.isDirty());workspace.save('/work.txt');assert.equal(workspace.saved.get('/work.txt').data,'draft');
+    workspace.working.delete('/work.txt');workspace.discard('/work.txt');assert.equal(workspace.working.get('/work.txt').data,'draft');
+    const recovered=createVirtualFileWorkspace();recovered.restore(workspace.snapshot());assert.equal(recovered.autoSave,false);
     assert.equal(createShell,directShell);
     assert.equal((await createShell({fs}).execute('cat index.js')).stdout,'hello');
     assert.deepEqual(parseRmArgs(['-fr','--','-sample']),{path:'-sample',recursive:true,force:true});
@@ -62,7 +67,7 @@ try {
     await assert.rejects(import('tetorica-virtual-files/git'),{code:'ERR_MODULE_NOT_FOUND'});
   `],consumer);
   await writeFile(join(consumer,'checkpoints.mts'), `
-    import {createVirtualFileSystem,isCheckpointPath,CHECKPOINT_ROOT} from 'tetorica-virtual-files';
+    import {createVirtualFileSystem,createVirtualFileWorkspace,isCheckpointPath,CHECKPOINT_ROOT} from 'tetorica-virtual-files';
     import {parseRmArgs} from 'tetorica-virtual-files/shell.js';
     const removal:{path:string,recursive:boolean,force:boolean}=parseRmArgs(['-rf','.']);
     // @ts-expect-error rm arguments must be strings.
@@ -70,6 +75,16 @@ try {
     // @ts-expect-error Parsed flags are booleans.
     const invalidRemoval:string=removal.recursive;
     const fs=createVirtualFileSystem([{path:'/a',data:'A'}],{autoCheckpoint:true});
+    const workspace=createVirtualFileWorkspace([{path:'/a',data:'A'}],{autoSave:false});
+    const accepted:boolean=workspace.saveMany(['/a']);const dirty:string[]=workspace.getDirtyPaths();
+    workspace.setAutoSave(true);workspace.discardMany(['/a']);workspace.restore(workspace.snapshot());
+    const auto:boolean=workspace.autoSave;workspace.saved.getRevision('/a');workspace.saved.createFileReader('/a');
+    // @ts-expect-error Saved is a read-only view.
+    workspace.saved.writeText('/a','bad');
+    // @ts-expect-error Workspace paths are strings.
+    workspace.saveMany([123]);
+    // @ts-expect-error Auto is explicitly boolean.
+    workspace.setAutoSave('true');
     fs.checkpoints.set('/a',{expectedRevision:fs.getRevision('/a')});
     const saved=fs.checkpoints.get('/a');
     if(saved?.type==='text')saved.data.toUpperCase();

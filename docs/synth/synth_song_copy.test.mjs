@@ -31,6 +31,9 @@ function snapshot(channel=0,{special=false,csm=false,dac=false,baseFnum=1200}={}
 }
 const capture = (channel=0,options) => createSynthSongCopyPreset(snapshot(channel,options),channel);
 const filesAt = (project,paths) => paths.map(path=>project.fs.get(path));
+const fromRecovery=recovery=>createSynthProject({snapshot:{version:2,workspace:{version:1,
+  working:{version:1,files:recovery.entries,directories:[]},
+  saved:{version:1,files:recovery.savedEntries??recovery.entries,directories:[]},autoSave:recovery.autoSave??true}}});
 
 test('copy retains logical operators, pan/LFO and the released source key mask without changing the snapshot',()=>{
   const source=snapshot(),before=JSON.stringify(source),copy=createSynthSongCopyPreset(source,0);
@@ -87,7 +90,7 @@ test('new copies avoid tones, folders and orphan current/checkpoint sidecars, pr
   assert.equal(project.readTone(prefix+'.vgi').preset.feedback,6,'unsynced old edits stay intact');
 });
 
-test('copied settings survive readTone, TFI/VGI sidecars and Cassette without a project format bump',async()=>{
+test('copied settings retain version-1 TFI/VGI sidecars inside version-2 projects and Cassettes',async()=>{
   const project=createSynthProject(),preset=capture(2,{special:true});
   const tone=project.createTone(preset,'CH3');
   project.writeTone('/presets/also.tfi',preset);
@@ -102,7 +105,7 @@ test('copied settings survive readTone, TFI/VGI sidecars and Cassette without a 
   }
   const archive=project.exportCassette(),cassette=await loadPlaygroundCassette(archive),restored=createSynthProject();
   await restored.importCassette(archive);
-  assert.equal(restored.snapshot().version,1);
+  assert.equal(restored.snapshot().version,2);assert.equal(restored.snapshot().workspace.version,1);
   for(const path of [tone.path,'/presets/also.tfi']) {
     assert.deepEqual(restored.readTone(path).preset.capturedVoice,preset.capturedVoice);
     assert.deepEqual(cassette.files.get(path.slice(1)),project.fs.get(path).data);
@@ -112,40 +115,41 @@ test('copied settings survive readTone, TFI/VGI sidecars and Cassette without a 
   assert(!('capturedVoice' in project.readTone('/presets/ordinary.vgi').preset),'legacy/ordinary tones retain their existing shape');
 });
 
-test('metadata-only edits participate in checkpoints, Revert and crash recovery as a complete tone pair',()=>{
+test('manual metadata-only edits retain independent saved settings through discard and complete pair recovery',()=>{
   const project=createSynthProject(),tone=project.createTone(capture(2,{special:true}),'CH3');
-  project.syncTone(tone.path);
+  project.setAutoApply(false);
   const original=project.readTone(tone.path),edited=structuredClone(original.preset);
   edited.capturedVoice.keyMask=8;edited.capturedVoice.specialFrequencies[0].fnum=999;
   project.writeTone(tone.path,edited);
   assert.deepEqual(project.fs.get(tone.path).data,original.bytes,'capture metadata is stored separately from VGI');
   assert.equal(project.isToneModified(tone.path),true);
   const recovery=parseToneRecovery(createToneRecovery(project,tone.path,'captured-workspace',1));
-  const restored=createSynthProject();restored.fs.writeFiles(recovery.entries,{checkpointChanges:false});
+  assert.equal(project.readTone(tone.path,{version:'saved'}).preset.capturedVoice.keyMask,original.preset.capturedVoice.keyMask);
+  const restored=fromRecovery(recovery);assert.equal(restored.autoApply,false);
   assert.deepEqual(restored.readTone(tone.path).preset.capturedVoice,edited.capturedVoice);
-  assert.deepEqual(restored.revertTone(tone.path).preset.capturedVoice,original.preset.capturedVoice);
-  assert.deepEqual(project.revertTone(tone.path).preset.capturedVoice,original.preset.capturedVoice);
+  assert.deepEqual(restored.discardTone(tone.path).preset.capturedVoice,original.preset.capturedVoice);
+  assert.deepEqual(project.discardTone(tone.path).preset.capturedVoice,original.preset.capturedVoice);
   assert.equal(project.isToneModified(tone.path),false);
 });
 
-test('all-Off OP settings survive TFI/VGI, Sync/Revert, Cassette and crash recovery',async()=>{
+test('all-Off OP saved settings survive manual Save/discard, TFI/VGI, Cassette and crash recovery',async()=>{
   for(const special of [false,true]) {
     const project=createSynthProject(),preset=capture(special?2:0,{special});
     preset.capturedVoice.keyMask=0;
     const tone=project.createTone(preset,special?'Silent CH3':'Silent FM');
     project.writeTone('/presets/silent.tfi',preset);
-    project.syncTone(tone.path);
+    project.setAutoApply(false);
     const edited=project.readTone(tone.path).preset;edited.capturedVoice.keyMask=15;
     project.writeTone(tone.path,edited);
     assert.equal(project.readTone(tone.path).preset.capturedVoice.keyMask,15);
-    assert.equal(project.revertTone(tone.path).preset.capturedVoice.keyMask,0);
-    project.syncTone(tone.path);
+    assert.equal(project.discardTone(tone.path).preset.capturedVoice.keyMask,0);
+    project.saveTone(tone.path);
     project.writeTone(tone.path,edited);
     const recovery=parseToneRecovery(createToneRecovery(project,tone.path,'all-Off-workspace',1));
-    const recovered=createSynthProject();recovered.fs.writeFiles(recovery.entries,{checkpointChanges:false});
+    const recovered=fromRecovery(recovery);
     assert.equal(recovered.readTone(tone.path).preset.capturedVoice.keyMask,15);
-    assert.equal(recovered.revertTone(tone.path).preset.capturedVoice.keyMask,0,'the silent checkpoint survives recovery');
-    project.revertTone(tone.path);
+    assert.equal(recovered.discardTone(tone.path).preset.capturedVoice.keyMask,0,'the accepted silent version survives recovery');
+    project.discardTone(tone.path);
     const restored=createSynthProject();await restored.importCassette(project.exportCassette());
     for(const path of [tone.path,'/presets/silent.tfi']) {
       assert.deepEqual(restored.readTone(path).preset.capturedVoice,preset.capturedVoice);
@@ -157,7 +161,7 @@ test('all-Off OP settings survive TFI/VGI, Sync/Revert, Cassette and crash recov
 
 test('malformed captured metadata is rejected before changing tone, selection, snapshots or Cassette',async()=>{
   const project=createSynthProject(),tone=project.createTone(capture(2,{special:true}),'Valid');
-  project.syncTone(tone.path);const before=project.snapshot(),good=project.readTone(tone.path).preset;
+  project.setAutoApply(false);const before=project.snapshot(),good=project.readTone(tone.path).preset;
   const badStates=[null,{},
     {...good.capturedVoice,keyMask:-1},{...good.capturedVoice,keyMask:16},{...good.capturedVoice,keyMask:1.5},
     {...good.capturedVoice,specialMode:'true'},
@@ -172,13 +176,16 @@ test('malformed captured metadata is rejected before changing tone, selection, s
     assert.throws(()=>project.createTone(bad,'Rejected'));
     assert.deepEqual(project.snapshot(),before);
     const sidecar=JSON.parse(project.fs.get(synthStatePath(tone.path)).data);sidecar.capturedVoice=capturedVoice;
-    const invalidSnapshot=structuredClone(before);
-    invalidSnapshot.files.find(file=>file.path===synthStatePath(tone.path)).data=JSON.stringify(sidecar);
-    assert.throws(()=>project.restore(invalidSnapshot));assert.deepEqual(project.snapshot(),before);
-    const archive=createPlaygroundCassetteZip(invalidSnapshot.files,{directories:invalidSnapshot.directories});
-    await assert.rejects(project.importCassette(archive));assert.deepEqual(project.snapshot(),before);
+    for(const version of ['working','saved']) {
+      const invalidSnapshot=structuredClone(before),files=invalidSnapshot.workspace[version].files;
+      files.find(file=>file.path===synthStatePath(tone.path)).data=JSON.stringify(sidecar);
+      if(version==='working')invalidSnapshot.files=structuredClone(files);
+      assert.throws(()=>project.restore(invalidSnapshot));assert.deepEqual(project.snapshot(),before);
+      const archive=createPlaygroundCassetteZip(files,{directories:invalidSnapshot.workspace[version].directories});
+      await assert.rejects(project.importCassette(archive));assert.deepEqual(project.snapshot(),before);
+    }
     const recovery=JSON.parse(createToneRecovery(project,tone.path,'workspace',0));
-    recovery.entries.find(entry=>entry.path==='/.tet.ss'+synthStatePath(tone.path)).data=JSON.stringify(sidecar);
+    recovery.savedEntries.find(entry=>entry.path===synthStatePath(tone.path)).data=JSON.stringify(sidecar);
     assert.throws(()=>parseToneRecovery(JSON.stringify(recovery)));
   }
 });

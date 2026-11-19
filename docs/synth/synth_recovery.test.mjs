@@ -7,6 +7,7 @@ const path='/presets/recovery.vgi';
 const preset={algorithm:7,feedback:0,lfo:{enabled:false,frequency:0},operators:{1:{tl:0,am:false}}};
 function setup(){
   const project=createSynthProject();project.writeTone(path,preset);project.syncTone(path);
+  project.setAutoApply(false);
   project.writeTone(path,{...preset,lfo:{enabled:true,frequency:6}});
   project.fs.writeBinary('/samples/large.wav',new Uint8Array(1024*1024));
   return project;
@@ -14,13 +15,13 @@ function setup(){
 const json=()=>JSON.parse(createToneRecovery(setup(),path,'workspace-1',2));
 const reject=value=>assert.throws(()=>parseToneRecovery(JSON.stringify(value)));
 
-test('recovery contains only the complete small current and checkpoint pairs and never mutates the project',()=>{
+test('recovery contains independent working and saved tone pairs without mutating the project',()=>{
   const project=setup(),before=project.snapshot(),raw=createToneRecovery(project,path,'workspace-1',2);
   const restored=parseToneRecovery(raw);
   assert.equal(restored.workspaceId,'workspace-1');assert.equal(restored.generation,2);assert.equal(restored.activeTonePath,path);
-  assert.equal(restored.entries.length,5);assert(!raw.includes('large.wav'));
+  assert.equal(restored.entries.length,2);assert.equal(restored.savedEntries.length,2);assert.equal(restored.autoSave,false);assert(!raw.includes('large.wav'));
   assert.deepEqual(project.snapshot(),before);
-  const target=createSynthProject();target.fs.writeFiles(restored.entries,{checkpointChanges:false});
+  const target=createSynthProject();target.restore({version:2,workspace:{version:1,working:{version:1,files:restored.entries,directories:[]},saved:{version:1,files:restored.savedEntries,directories:[]},autoSave:false}});
   assert.equal(target.readTone(path).preset.lfo.enabled,true);
   assert.equal(target.revertTone(path).preset.lfo.enabled,false);
   restored.entries.find(entry=>entry.path===path).data[0]=0;
@@ -42,14 +43,24 @@ test('malicious, duplicate, noncanonical and reserved paths are refused before r
   value=json();value.entries[4]=value.entries[0];reject(value);
 });
 
-test('incomplete pairs and malformed current or checkpoint data never become a valid recovery',()=>{
-  for(const missing of [path,synthStatePath(path),'/.tet.ss'+path,'/.tet.ss'+synthStatePath(path)]){
+test('incomplete working pairs and malformed working or saved data never become a valid recovery',()=>{
+  for(const missing of [path,synthStatePath(path)]){
     const value=json();value.entries=value.entries.filter(entry=>entry.path!==missing);reject(value);
   }
   for(const bytes of [[-1],[256],[0.5],[null],['1']]){const value=json();value.entries[0].data=bytes;reject(value);}
   let value=json();value.entries[0]={...value.entries[0],type:'text',data:'not binary'};reject(value);
   value=json();value.entries[1].data='{"version":99}';reject(value);
-  value=json();const saved=value.entries.find(entry=>entry.path==='/.tet.ss'+synthStatePath(path));saved.type='text';saved.data='{}';reject(value);
+  value=json();const saved=value.savedEntries.find(entry=>entry.path===synthStatePath(path));saved.type='text';saved.data='{}';reject(value);
+  value=json();value.savedEntries=value.savedEntries.filter(entry=>entry.path!==path);reject(value);
+  value=json();value.autoSave=true;reject(value);
+});
+
+test('legacy v1 current and checkpoint recovery remains readable without promoting the legacy baseline',()=>{
+  const value=json();value.version=1;
+  value.entries.push(...value.savedEntries.map(entry=>({...entry,path:'/.tet.ss'+entry.path})));
+  delete value.savedEntries;delete value.autoSave;
+  const restored=parseToneRecovery(JSON.stringify(value));assert.equal(restored.entries.length,4);assert.equal(restored.savedEntries,undefined);
+  value.entries.find(entry=>entry.path==='/.tet.ss'+synthStatePath(path)).data='{}';reject(value);
 });
 
 test('workspace identity, generation and total encoded size are bounded',()=>{

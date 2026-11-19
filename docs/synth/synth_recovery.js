@@ -1,4 +1,4 @@
-import {createSynthProject,isSynthTonePath,isPsgPresetPath,isPcmPresetPath,synthStatePath} from './synth_project.js?v=pcm-live-draw-1';
+import {createSynthProject,isSynthTonePath,isPsgPresetPath,isPcmPresetPath,synthStatePath} from './synth_project.js?v=working-saved-1';
 import {CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/filesystem.js';
 import {resolvePath} from '../js/tetorica_virtual_files/path.js';
 
@@ -47,7 +47,13 @@ export function createToneRecovery(project,path,workspaceId,generation) {
   for(const extra of [CHECKPOINT_ROOT+path,...(state?[CHECKPOINT_ROOT+state]:[]),'/.gitignore']){
     const entry=read(extra);if(entry)entries.push(entry);
   }
-  const raw=JSON.stringify({version:1,kind:KIND,workspaceId,generation,activeTonePath:path,entries});
+  let savedEntries=null;
+  if(project.savedFs){savedEntries=[];for(const target of [path,...(state?[state]:[])]){
+    if(!project.savedFs.has(target))continue;
+    if(project.savedFs.stat(target).size>limit)throw sizeError(limit);
+    savedEntries.push(record(project.savedFs.get(target),limit,pcm));
+  }}
+  const raw=JSON.stringify({version:savedEntries?2:1,kind:KIND,workspaceId,generation,activeTonePath:path,entries,...(savedEntries?{savedEntries,autoSave:project.autoApply}: {})});
   // Use the same validation for locally produced and recovered records.
   parseToneRecovery(raw);
   return raw;
@@ -60,7 +66,7 @@ export function parseToneRecovery(raw) {
   if(typeof raw!=='string'||raw.length>PCM_MAX_BYTES||encoder.encode(raw).byteLength>PCM_MAX_BYTES)throw sizeError(PCM_MAX_BYTES);
   let value;
   try{value=JSON.parse(raw);}catch{throw Error('Invalid Synth recovery JSON');}
-  if(!value||value.version!==1||value.kind!==KIND||!Array.isArray(value.entries)||value.entries.length<1||value.entries.length>5)throw Error('Unsupported Synth recovery format');
+  if(!value||![1,2].includes(value.version)||value.kind!==KIND||!Array.isArray(value.entries)||value.entries.length<1||value.entries.length>5)throw Error('Unsupported Synth recovery format');
   validateIdentity(value.workspaceId,value.generation);
   const path=validatePath(value.activeTonePath),limit=isPcmPresetPath(path)?PCM_MAX_BYTES:MAX_BYTES;
   if(raw.length>limit||encoder.encode(raw).byteLength>limit)throw sizeError(limit);
@@ -86,5 +92,21 @@ export function parseToneRecovery(raw) {
     if(state&&old.find(entry=>entry.path===path).type!=='binary')throw Error('Synth recovery checkpoint must contain binary TFI/VGI data');
     createSynthProject({snapshot:{version:1,files:old,directories:[]}}).readTone(path);
   }
-  return {workspaceId:value.workspaceId,generation:value.generation,activeTonePath:path,entries};
+  let savedEntries;
+  if(value.version===2){
+    if(typeof value.autoSave!=='boolean'||!Array.isArray(value.savedEntries)||value.savedEntries.length>(state?2:1))throw Error('Invalid Synth saved recovery state');
+    const allowedSaved=new Set([path,...(state?[state]:[])]),seenSaved=new Set();savedEntries=[];
+    for(const entry of value.savedEntries){
+      if(!entry||!allowedSaved.has(entry.path)||seenSaved.has(entry.path))throw Error('Invalid saved Synth recovery path');
+      seenSaved.add(entry.path);let data;
+      if(entry.type==='text'&&typeof entry.data==='string')data=entry.data;
+      else if(entry.type==='binary'&&Array.isArray(entry.data)&&entry.data.length<=limit&&entry.data.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255))data=Uint8Array.from(entry.data);
+      else throw Error('Invalid saved Synth recovery data');
+      savedEntries.push({path:entry.path,type:entry.type,data});
+    }
+    if(savedEntries.length&&!seenSaved.has(path)||state&&seenSaved.has(state)&&!seenSaved.has(path))throw Error('Incomplete saved Synth recovery instrument');
+    if(savedEntries.length)createSynthProject({snapshot:{version:1,files:savedEntries,directories:[]}}).readTone(path);
+    if(value.autoSave){const working=entries.filter(entry=>allowedSaved.has(entry.path));if(working.length!==savedEntries.length||working.some(entry=>{const saved=savedEntries.find(file=>file.path===entry.path);return !saved||saved.type!==entry.type||(typeof entry.data==='string'?entry.data!==saved.data:entry.data.length!==saved.data.length||entry.data.some((byte,index)=>byte!==saved.data[index]));}))throw Error('Auto apply recovery versions differ');}
+  }
+  return {workspaceId:value.workspaceId,generation:value.generation,activeTonePath:path,entries,...(savedEntries?{savedEntries,autoSave:value.autoSave}:{})};
 }
