@@ -36,12 +36,24 @@ async function playReady(f){
   assert(f.preview.read().bufferedFrames>0);
 }
 
-test('manual writes enter the producer boundary without changing old PCM or publishing unheard settings',async()=>{
+test('manual writes enter the producer boundary without changing old PCM or publishing unheard settings',async t=>{
+ for(const splitStartup of [false,true])await t.test(splitStartup?'cooperatively split startup':'normal startup',async t=>{
+  if(splitStartup){
+    // Each VGM parser event exhausts its cooperative CPU budget. Model a slow
+    // runner without delaying the test or advancing the fake audible clock.
+    let cpuMs=0;t.mock.method(performance,'now',()=>cpuMs+=5);
+  }
   const f=setup();try{
     assert.equal(f.preview.noteOn('idle',60,0),false);assert.equal(f.opens,0);
     await f.preview.load(waveSong());await playReady(f);
-    // Cooperative parsing can yield before the first checkpoint under load.
-    for(let i=0;i<50&&!f.preview.read().seekCache.count;i++)f.tick(.008);
+    // A checkpoint confirms native production, not the throttled heard Live
+    // publication. After split startup the latter can still show the earlier
+    // frame-zero partial state until the next 50ms observation boundary.
+    for(let i=0;i<50;i++){
+      const state=f.preview.read();
+      if(state.seekCache.count&&(state.liveState?.registers[0][4]&31)===31)break;
+      f.tick(.008);
+    }
     const state=f.preview.read(),epoch=state.manualEpoch,cached=state.seekCache.count;
     assert(state.manualReady);assert(cached>0);assert.equal(state.liveState.registers[0][4]&31,31);
     const original=f.buffers.map(b=>b.data.map(side=>side.slice())),sources=f.sources().slice();
@@ -55,6 +67,7 @@ test('manual writes enter the producer boundary without changing old PCM or publ
     assert(f.buffers.some(b=>b.data[0].some(v=>Math.abs(v)>.001)),'actual native PCM is nonzero');
     assert.equal(f.maxLive,1,'manual operation shares the reference core');
   }finally{await f.close();}
+ });
 });
 
 test('later VGM gates and frequencies supersede only the corresponding hand ownership',async()=>{
