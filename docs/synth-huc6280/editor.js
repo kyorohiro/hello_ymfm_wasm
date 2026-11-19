@@ -3,6 +3,8 @@
 import {createDefaultPreset, readPreset, waveShape} from './preset.js?v=wave-held-1';
 import {decodeDdaData, MAX_AUDIO_FILE_BYTES} from './dda_pcm.js';
 
+const hardwareFieldPaths={source:'source',volume:'volume',panLeft:'pan.left',panRight:'pan.right',noiseFrequency:'noise.frequency',lfoFrequency:'lfo.frequency',lfoDepth:'lfo.depth',lfoCarrierPeriod:'lfo.carrierPeriod',lfoModulatorPeriod:'lfo.modulatorPeriod',lfoEnabled:'lfo.enabled',lfoReset:'lfo.reset',lfoOutputEnabled:'lfo.output.enabled',lfoOutputVolume:'lfo.output.volume',lfoOutputLeft:'lfo.output.pan.left',lfoOutputRight:'lfo.output.pan.right'};
+
 /** A passive editor. Editing never creates an audio device. */
 export function createEditor({root, onChange = () => {}, onError = () => {},
   onLoadAudio = async () => {throw new Error('Audio loading is not connected');}}) {
@@ -493,8 +495,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     conversionRate.setDisabled(Boolean(loadController)); drawDda();
     resizeWave(); drawWave(stroke?.samples);
     if (!stroke) waveReadout.textContent = (target==='main'?view.waveKnown:view.lfoWaveKnown)===false?'Wave RAM not fully recorded · no replacement waveform is assumed.':`${target === 'main' ? 'Main wave' : 'LFO wave · CH2'} · 32 samples · 5-bit levels${view.readOnly?' · recorded configuration':' · draw, then release to apply'}`;
-    const fieldPaths={source:'source',volume:'volume',panLeft:'pan.left',panRight:'pan.right',noiseFrequency:'noise.frequency',lfoFrequency:'lfo.frequency',lfoDepth:'lfo.depth',lfoCarrierPeriod:'lfo.carrierPeriod',lfoModulatorPeriod:'lfo.modulatorPeriod',lfoEnabled:'lfo.enabled',lfoReset:'lfo.reset',lfoOutputEnabled:'lfo.output.enabled',lfoOutputVolume:'lfo.output.volume',lfoOutputLeft:'lfo.output.pan.left',lfoOutputRight:'lfo.output.pan.right'};
-    for(const[id,path]of Object.entries(fieldPaths))if(view.unknownFields?.includes(path)){
+    for(const[id,path]of Object.entries(hardwareFieldPaths))if(view.unknownFields?.includes(path)){
       const field=fields.get(id),input=field?.input;if(input){
         if(hardwareOnly){if(field.setDisabled)field.setDisabled(true);else input.disabled=true;}
         input.dataset.unknown='true';input.setAttribute('aria-valuetext','Not recorded');
@@ -512,6 +513,19 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   render();
   return {
     isInteracting:()=>Boolean(stroke||parameterDrags.size),
+    getLiveHighlightControls() {
+      // Cache nodes/getters once. Card visibility uses DOM flags, never layout
+      // measurements or canvas/PCM data, during the existing Live updates.
+      return Object.entries(hardwareFieldPaths).map(([id,path])=>{
+        const {input,get}=fields.get(id),element=input.type==='checkbox'?input.parentElement:input,sections=[];
+        for(let node=element;node&&node!==body;node=node.parentElement)if(node.tagName==='DETAILS')sections.push(node);
+        element.classList.add('huc-live-value');
+        // Mode zero means LFO Off. Its displayed 1–3 depth is a preset-schema
+        // placeholder then, so it must not flash as a hardware depth change.
+        return{element,path,read:get,available:()=>
+          (path!=='lfo.depth'||preset.lfo.enabled)&&sections.every(section=>section.open&&!section.hidden)};
+      });
+    },
     update(value,options={}) {
       if (disposed) return;
       const next = readPreset(value);

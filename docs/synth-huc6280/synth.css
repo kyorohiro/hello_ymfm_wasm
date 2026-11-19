@@ -98,7 +98,13 @@ input[type="range"] { accent-color:#458eb8; }
 .huc-song-cache-toggle input { margin:0; }
 #hucSongClearCache { min-height:28px; padding:5px 9px; font-size:.73rem; }
 
-#hucCodeLiveTools .spu-code-live-row { gap:7px 12px; }
+#hucCodeLiveTools .spu-code-live-row { gap:7px 6px; }
+.huc-live-value.is-live-changed { animation:synth-live-change 420ms ease-out; border-radius:5px; }
+@keyframes synth-live-change {
+  0%,25% { background-color:#ffd595; color:#5c2c07; box-shadow:0 0 0 2px #d9792b; }
+  100% { background-color:transparent; box-shadow:0 0 0 2px transparent; }
+}
+@media(prefers-reduced-motion:reduce) { .huc-live-value.is-live-changed { animation-duration:1ms; } }
 #hucSaveSelectedPreset { min-height:30px; padding:5px 9px; font-size:.73rem; }
 .huc-song-channels { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:9px 0 0; }
 .huc-source-mixer .huc-song-channels { padding-top:12px; border-top:1px solid var(--line); }

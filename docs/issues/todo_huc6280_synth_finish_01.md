@@ -220,3 +220,13 @@ Files横のCode／Synthと、拡大中のCode／HuC6280／MSM5205／CD-DA／Mixe
 切り替えを追加。元のeditor・transport・Masterを維持し、Code／VGMの演奏、
 選択CH、未保存の編集を保つ。727件のNodeテストと、ソース／実ZIPの8通りの
 Chromium／WebKit・Monaco／fallback検証が成功。人の実聴・公開・Tauri反映は未実行。
+
+## Live changed-value highlighting — 2026-11-19
+
+[詳細TODO](todo_huc6280_live_highlight_20261119.md)、
+[検証記録](verification_huc6280_live_highlight_20261119.json)。
+既存のAuto updateを使い、選択CHの既知のhardware値の変化を420msで表示。
+Live highlightは初期Onで独立して記憶し、Off時の比較・DOM更新や追加の音声read／timerは発生しない。
+初回・CH／owner切替・Pause／Seek・非表示・Unknown・Auto update再開で比較を取り直す。
+746件のNodeテストと、ソース／実ZIPのChromium／WebKit・Monaco／fallbackの
+8通り・64項目が成功。人の実聴・公開・Tauri反映は未実行。

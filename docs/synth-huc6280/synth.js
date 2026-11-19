@@ -11,7 +11,8 @@ import {createPcEngineSourceMix,setupPcEngineSourceMix} from './source_mix.js?v=
 import {createTestWaveFiles} from './test_pcm.js?v=huc-media-tools-1';
 import {setupTestPcmControls} from './test_pcm_controls.js?v=huc-test-default-1';
 import {addPcEngineCodeExamples} from './cdrom2_examples.js?v=huc-channel-ui-1';
-import {createEditor} from './editor.js?v=huc-vgm-manual-2';
+import {createEditor} from './editor.js?v=huc-live-highlight-1';
+import {createHuc6280LiveHighlighter} from './live_highlight.js?v=huc-live-highlight-1';
 import {setupHuc6280CodeHost} from './code_host.js?v=huc-code-workspace-1';
 import {createHuc6280CodeLive,huc6280CodeLiveView} from './code_live.js?v=huc-live-1';
 import {createHuc6280CodeEdit,createHuc6280CodeChanges} from './code_parameter_edit.js?v=huc-working-saved-1';
@@ -47,6 +48,7 @@ let msmSource=null,msmControls=null,cddaSource=null,cddaControls=null,cddaReader
 const cddaSession=createCddaSessionFiles();
 let songControls=null, songState=null, chipView='huc6280';
 let expandedTabs=null;
+let liveHighlighter=null;
 const sourceMix=createPcEngineSourceMix();
 const sourceMixerUi=setupPcEngineSourceMix({root:$('hucSourceMixer'),mix:sourceMix});
 const unsubscribeSourceMix=sourceMix.onChange(value=>{
@@ -255,6 +257,20 @@ async function loadDdaAudio(file,{sampleRate,signal,onCommit}) {
 }
 const editor = createEditor({root: $('voiceEditor'), onChange: value => {void editVisiblePreset(value).catch(report);},
   onError:report,onLoadAudio:loadDdaAudio});
+const liveHighlightToggle=$('hucLiveHighlightToggle'),liveHighlightPreference='tetorica-huc6280-synth-live-highlight';
+try{liveHighlightToggle.checked=localStorage.getItem(liveHighlightPreference)!=='off';}catch{}
+liveHighlighter=createHuc6280LiveHighlighter({controls:editor.getLiveHighlightControls(),enabled:liveHighlightToggle.checked});
+function setLiveHighlight(){
+  const enabled=liveHighlightToggle.checked;
+  try{localStorage.setItem(liveHighlightPreference,enabled?'on':'off');}catch{}
+  liveHighlighter.setEnabled(enabled);liveHighlightToggle.blur();renderCodeLive();
+}
+liveHighlightToggle.addEventListener('change',setLiveHighlight);
+// Native details/visibility changes can cancel animationend. Reconcile cached
+// display state so hidden cards/views cannot retain an old pulse.
+const refreshLiveHighlight=()=>renderCodeLive();
+$('voiceEditor').addEventListener('toggle',refreshLiveHighlight,true);
+document.addEventListener('visibilitychange',refreshLiveHighlight);
 vgmLibrary = createVgmLibrary({root:$('vgmImport'),onSource:(source,options)=>codeHost.files.importVgm(source,{...options,announce:false}), onSelect:value => applyPreset(value, {
   load:true, fromVgm:true, message:`${value.name} loaded from VGM · Software Envelope off · play the keyboard.`,
 })});
@@ -552,6 +568,7 @@ $('copyCode').addEventListener('click',async()=>{
 window.addEventListener('pagehide',event=>{
   songControls?.stop();
   if(event.persisted){stopNotes();void codeHost?.stop();void msmSource?.stop().catch(()=>{});void cddaSource?.stop().catch(()=>{});return;}
+  liveHighlighter?.dispose();liveHighlightToggle.removeEventListener('change',setLiveHighlight);$('voiceEditor').removeEventListener('toggle',refreshLiveHighlight,true);document.removeEventListener('visibilitychange',refreshLiveHighlight);
   disposed=true;expandedTabs?.dispose();for(const controls of testPcmControls)controls.dispose();const mediaDisposing=Object.values(mediaKeyboards??{}).map(controller=>controller.dispose());mediaPressedKeys.clear();channelTabs?.dispose();msmControls?.dispose();cddaControls?.dispose();cddaSession.dispose();sourceMixerUi.dispose();unsubscribeSourceMix();epoch++;notes.clear();auditionNotes.clear();songControls?.dispose();codeLive?.dispose();editorLive?.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();const closing=audio;audio=null;void Promise.allSettled([...mediaDisposing,codeHost?.dispose(),audition?.dispose(),msmSource?.dispose(),cddaSource?.dispose()]).finally(()=>closing?.dispose()).catch(()=>{});
 });
 function selectedPresetFor(context,snapshot){
@@ -593,7 +610,12 @@ function renderCodeLive() {
   mount.setAttribute('aria-label',physical?`${readOnly?'Read-only VGM':'Edit'} CH ${channelTarget+1}`:'HuC6280 instrument editor');
   const {data:_data,...dda}=value.dda;
   const signature=JSON.stringify([{...value,dda},meta,context,channelTarget,revision]);
-  if(signature!==liveSignature&&!editor.isInteracting()) {editor.update(value,meta);displayedPreset=readPreset(value);liveSignature=signature;}
+  const interacting=editor.isInteracting();
+  if(signature!==liveSignature&&!interacting) {editor.update(value,meta);displayedPreset=readPreset(value);liveSignature=signature;}
+  liveHighlighter?.update({physical,origin:context,channel:channelTarget,preset:displayedPreset,snapshot,unknownFields:meta.unknownFields,
+    following:autoUpdate,paused:Boolean(observed?.paused),waiting,error:Boolean(observed?.liveError||physical&&snapshot&&!shown||context==='vgm'&&songState?.busy),
+    visible:chipView==='huc6280'&&!$('hucSynthEditor').hidden&&!document.hidden,interacting,
+    owner:context==='vgm'?songControls:audio,epoch:context==='vgm'?songState?.manualEpoch:context==='code'?audio?.codeSession:epoch});
   const paused=pausedVoice();
   const liveVoice=playingSelection();
   for(const [wheel]of pitchWheels)wheel.disabled=value.source==='noise'||Boolean(readOnly&&(!paused?.playable||paused.source==='noise'))||Boolean(songState?.busy)||Boolean(context==='vgm'&&physical&&(songState?.paused?!paused?.playable:songState?.playing&&!liveVoice?.playable));
@@ -663,8 +685,8 @@ codeHost=setupHuc6280CodeHost({msm5205Source:msmSource,cddaSource,
   onBeforeWorkspaceReplace:()=>{for(const controls of testPcmControls)controls.cancel({reset:true});testWaveFiles?.clear();cddaSession.clear();},ensureAudio:()=>enqueue(ensureAudio),getAudio:()=>audio,
   getSettings:()=>readPreset(preset),getAcceptedSettings:()=>readPreset(playbackPreset),applySettings:(value,options={})=>applyPreset(value,{load:true,...options}),stopKeyboard:()=>stopNotes(),
   stopSong:async()=>{songControls?.stop();await stopAudition();},
-  onViewChange:mode=>expandedTabs?.showInput(mode),
-  onExpandedChange:value=>expandedTabs?.setExpanded(value),
+  onViewChange:mode=>{expandedTabs?.showInput(mode);renderCodeLive();},
+  onExpandedChange:value=>{expandedTabs?.setExpanded(value);renderCodeLive();},
   onActivity(){const running=Boolean(codeHost?.isRunning());if(running!==codeWasRunning){if(!running){msmControls?.cancelPlay();cddaControls?.cancelPlay();}epoch++;notes.clear();setPitchUi(0);codeWasRunning=running;updateKeys();}syncChannelObservers();renderCodeLive();msmControls?.refresh();cddaControls?.refresh();visualizer.wake();},setStatus:status});
 cddaReader=createCddaInputReader({project:codeHost.project,session:cddaSession});
 msmControls=setupMsm5205Controls({root:$('msm5205Controls'),source:msmSource,project:codeHost.project,

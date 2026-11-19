@@ -240,7 +240,17 @@ The **MSM5205** tab has one **CH1** source and **CD-DA** has one **Stereo** sour
 their child tabs describe those single outputs. Mixer has no channel editor.
 **Auto update** reads the configured wave and sent registers at up to 20 Hz;
 turn it off to reduce readback. This is an observation of software writes, not
-an oscillator-phase measurement. Physical-channel edits and raw Code register
+an oscillator-phase measurement.
+**Live highlight** defaults On and briefly pulses changed, known hardware
+controls in the selected physical channel: source, level, balance, Noise and
+shared LFO settings, including the existing CH1/CH2 period controls. Its display
+preference is remembered locally, separately from presets/Cassettes. Initial
+observations, channel/run changes, Pause, hidden views and frozen Auto update
+establish fresh baselines without replaying old differences. Closed cards and
+unknown fields start quietly when shown. Rapid changes share one short CSS
+pulse; reduced motion shortens it. Highlighting adds no audio reads, polling,
+timers or PCM/wave comparisons. Auto's common authored sound is not a Live CH.
+Physical-channel edits and raw Code register
 writes are session changes; they do not overwrite the common sound document.
 **Stop** fades the software output briefly, cancels Code and restores the saved
 common instrument with all notes released.
@@ -864,6 +874,9 @@ SaveだけではJavaScriptを実行しません。明示的なRun／Applyはsave
 ブラウザー保存に失敗してもメモリ内の両状態は保ちます。Export projectで退避してください。session WAVは引き続き保存対象外です。
 音色の選択はAutoへ切り替わり、CodeやVGMのPlay／Pause位置を保ちます。KeyboardからCodeへ無理に切り替えません。
 HuC6280タブの下の子タブでAuto／CH1–CH6を選びます。Autoは共通音色と自動割当、各CHは表示・編集・鍵盤の対象を揃えます。
+Live highlightは初期Onで、表示中の既知のhardware値の変更を短く光らせます。設定は音色と分けてブラウザーへ記憶します。
+対象はSource・音量・左右balance・Noise・共有LFOと既存のCH1／CH2周期欄です。追加の音声読取・poll・timer・波形比較はしません。
+初回・CH切替・Pause・非表示・Auto update停止時は比較を取り直し、古い差分を再生しません。閉じた欄やUnknownの初回表示も光りません。
 MSM5205は単一のCH1、CD-DAはStereoの音源を表示し、MixerにはCH編集タブを出しません。
 FilesのExamplesボタンから`examples/huc6280.js`／`msm5205.js`／`cdda.js`を明示追加できます。
 既存ファイルを上書きせず、不足分だけ追加し、選択・Keyboard／Code・実行中のCodeは変えません。

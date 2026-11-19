@@ -10,7 +10,7 @@
   <title>Tetorica HuC6280 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_huc6280_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_huc6280_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=huc-code-workspace-1">
+  <link rel="stylesheet" href="./synth.css?v=huc-live-highlight-1">
 </head>
 <body>
   <main>
@@ -135,9 +135,10 @@
             <button id="hucChannel6Tab" type="button" role="tab" data-huc-channel="5" aria-selected="false" aria-controls="voiceEditor" tabindex="-1">CH6</button>
           </div>
           <label><input id="hucLiveEnabled" type="checkbox" checked>Auto update</label>
+          <label title="Highlight changed channel values while Auto update is on. No additional audio reads."><input id="hucLiveHighlightToggle" type="checkbox" checked>Live highlight</label>
           <button id="hucSongCaptureButton" type="button" disabled hidden>Copy to Auto</button>
           <button id="hucSaveSelectedPreset" type="button" disabled>Save to presets</button>
-          <details id="hucChannelHelp" class="spu-code-help huc-inline-help"><summary aria-label="About channel controls">?</summary><p>Auto edits your common instrument and allocates keyboard notes by round robin. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 edit hardware and use keys on that same reference chip. Already-generated audio is kept, and the controls follow the heard position. Software Envelope and PCM assets belong to Auto. DDA level and balance are editable, but its transient DAC value is not a keyboard sample; Pause freezes the song position while the selected CH remains individually editable. The keyboard auditions its known Wave, Noise or CH1 LFO pair through the same Master. Copy to Auto copies that configured sound into Auto, keeping the song paused. Save to presets stores the selected sound under Files/presets/ without changing the current view or song position. A transient DDA value or unknown Wave RAM cannot be saved as a playable sound. Auto update follows at up to 20 times per second, and Off retains the last observation. Manual edits still get one update when their audio boundary is heard. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p><p id="hucChannelReadout" class="subtext"></p><p id="hucSongCaptureInfo" class="subtext"></p></details>
+          <details id="hucChannelHelp" class="spu-code-help huc-inline-help"><summary aria-label="About channel controls">?</summary><p>Auto edits your common instrument and allocates keyboard notes by round robin. A physical CH uses its own settings and keyboard voice in normal and Code modes. Choosing a view alone never copies settings to other channels. During VGM playback, CH1–CH6 edit hardware and use keys on that same reference chip. Already-generated audio is kept, and the controls follow the heard position. Software Envelope and PCM assets belong to Auto. DDA level and balance are editable, but its transient DAC value is not a keyboard sample; Pause freezes the song position while the selected CH remains individually editable. The keyboard auditions its known Wave, Noise or CH1 LFO pair through the same Master. Copy to Auto copies that configured sound into Auto, keeping the song paused. Save to presets stores the selected sound under Files/presets/ without changing the current view or song position. A transient DDA value or unknown Wave RAM cannot be saved as a playable sound. Auto update follows at up to 20 times per second, and Off retains the last observation. Live highlight briefly pulses changed, known hardware controls in the selected CH, using that same observation. Initial values, channel changes and Pause start quietly; its On / Off preference is saved separately from the sound. Manual edits still get one update when their audio boundary is heard. Unknown Wave RAM stays blank; DDA shows the last recorded DAC code. These are sent settings, not oscillator-phase readback. Hardware LFO connects CH2 to CH1; Noise uses CH5 / CH6.</p><p id="hucChannelReadout" class="subtext"></p><p id="hucSongCaptureInfo" class="subtext"></p></details>
         </div>
         <p id="hucChannelStatus" class="subtext" role="status"></p>
         <p id="hucSongCaptureStatus" class="subtext" role="status" hidden></p>
@@ -317,6 +318,6 @@
     </article>
     <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
   </main>
-  <script type="module" src="./synth.js?v=huc-code-workspace-1"></script>
+  <script type="module" src="./synth.js?v=huc-live-highlight-1"></script>
 </body>
 </html>

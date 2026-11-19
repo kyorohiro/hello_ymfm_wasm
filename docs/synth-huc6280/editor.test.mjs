@@ -34,6 +34,36 @@ function fixture(t){
 }
 const live=(channel=0,extra={})=>({physical:true,readOnly:false,origin:'VGM',channel,waveKnown:true,lfoWaveKnown:true,unknownFields:[],...extra});
 
+test('Live highlight bindings cache hardware scalar controls and card visibility without layout or source edits',t=>{
+  const f=fixture(t),controls=f.editor.getLiveHighlightControls(),preset=createDefaultPreset();
+  assert.equal(controls.length,15);assert.equal(new Set(controls.map(control=>control.element)).size,15);
+  assert(controls.every(control=>control.element.classList.contains('huc-live-value')));
+  assert(!controls.some(control=>/^(dda|envelope)|wave/.test(control.path)));
+  for(const node of walk(f.root))node.getBoundingClientRect=()=>assert.fail('Highlight must not read layout');
+  const byPath=path=>controls.find(control=>control.path===path);
+  assert.equal(byPath('source').read(preset),'wave');assert.equal(byPath('volume').read(preset),24);
+  assert.equal(byPath('lfo.enabled').element,f.get('lfoEnabled').parentElement);
+  assert.equal(byPath('noise.frequency').available(),false);
+  assert.equal(byPath('volume').available(),true);
+  f.get('levelSection').open=false;assert.equal(byPath('volume').available(),false);
+  f.get('levelSection').open=true;preset.source='noise';f.editor.update(preset,live(4));
+  assert.equal(byPath('noise.frequency').available(),true);assert.equal(byPath('source').read(preset),'noise');
+  const next=f.editor.getLiveHighlightControls();assert.deepEqual(next.map(control=>control.element),controls.map(control=>control.element));
+  assert(controls.every(control=>['number','boolean','string'].includes(typeof control.read(preset))));
+  assert.equal(f.changes.length,0);assert.equal(f.errors.length,0);
+});
+
+test('LFO Off keeps the schema fallback depth outside hardware highlighting',t=>{
+  const f=fixture(t),controls=f.editor.getLiveHighlightControls(),preset=createDefaultPreset();
+  const depth=controls.find(control=>control.path==='lfo.depth'),enabled=controls.find(control=>control.path==='lfo.enabled');
+  preset.lfo.enabled=true;preset.lfo.depth=3;f.editor.update(preset,live());
+  assert.equal(depth.available(),true);assert.equal(depth.read(preset),3);
+  preset.lfo.enabled=false;preset.lfo.depth=1;f.editor.update(preset,live());
+  assert.equal(depth.available(),false);assert.equal(enabled.available(),true);assert.equal(enabled.read(preset),false);
+  preset.lfo.enabled=true;f.editor.update(preset,live());assert.equal(depth.available(),true);
+  assert.equal(f.changes.length,0);
+});
+
 test('playing VGM keeps hardware controls editable while software Envelope, PCM source and follow-mode remain unavailable',async t=>{
   const f=fixture(t),preset=createDefaultPreset();preset.lfo.enabled=true;f.editor.update(preset,live());
   assert.equal(f.step('volume',1).disabled,false);assert.equal(f.get('envelopeEnabled').disabled,true);
