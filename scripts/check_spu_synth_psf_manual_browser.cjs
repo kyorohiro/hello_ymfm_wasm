@@ -152,6 +152,7 @@ async function check(browser,name,origin,fixture){
     await key(page,e4,true);await until(()=>manual(page).then(events=>events.some(event=>event.method==='noteOn'&&event.core===identity)),'native manual On');
     const on=(await manual(page)).filter(event=>event.method==='noteOn').at(-1);assertSparse(on,0,[2]);assert(on.after.snapshot.channels[0].gate);
     assert.equal(on.after.snapshot.channels[0].pitch,Math.round(0x1000*2**(4/12)),'E4 has an unbent hand pitch distinct from the later CPU C4 pitch');
+    await until(()=>input(page,'ps1-pitch').locator('..').evaluate(node=>node.classList.contains('is-live-changed')),'audible PSF Pitch changes flash');
     await bend(page,1.5);await until(()=>native(page).then(v=>v.snapshot.channels[0].pitch>Math.round(0x1000*2**(4/12))),'manual Pitch bend reaches the held E4');
     await until(()=>native(page).then(v=>v.frame>=next+4096),'actual later CPU gate');assert.equal((await native(page)).snapshot.channels[0].pitch,0x1000);
     await key(page,e4,false);await bend(page,0);await wait(80);
@@ -179,6 +180,7 @@ async function check(browser,name,origin,fixture){
 
     step('Pause retains exact frozen source state and independent audition, then Resume continues the same core');
     await page.locator('#spuLiveChannel').selectOption('0');await page.locator('#psfPauseSong').click();await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Resume'),'paused');
+    assert.equal(await page.locator('#spuVoicePanel .is-live-changed').count(),0,'Pause clears Live pulses');
     const paused=await view(page),pausedNative=await native(page);await key(page,c4,true);await wait(100);assert.equal((await view(page)).position,paused.position);assert.deepEqual(await native(page),pausedNative,'paused independent audition never advances or edits the source');await key(page,c4,false);
     await page.locator('#psfPauseSong').click();await until(()=>page.locator('#psfPauseSong').textContent().then(value=>value==='Pause'),'resumed');assert.equal((await native(page)).id,identity);await until(()=>view(page).then(v=>v.position>paused.position),'resumed source position');
 

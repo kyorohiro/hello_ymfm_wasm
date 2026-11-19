@@ -129,6 +129,23 @@ async function check(browser,name,origin){
   await until(async()=>((await observation(page)).channels[1].adsr2&31)===9,'selected release changed');const after=await observation(page);
   assert.equal(after.channels[0].adsr2,before.channels[0].adsr2);for(const ch of[0,1]){assert.equal(after.channels[ch].pitch,before.channels[ch].pitch);assert.equal(after.channels[ch].sample,before.channels[ch].sample);assert(after.channels[ch].gate);}
   await running(page,tick);assert.equal((await rpc(page,'getInstrument',[0])).preset.adsr2&31,9);await page.locator('#spuLiveEnabled').uncheck();await until(()=>page.locator(control('attack-rate')).inputValue().then(value=>value==='0'),'Live Off repaints authored attack');await page.locator('#spuLiveEnabled').check();await until(()=>page.locator(control('attack-rate')).inputValue().then(value=>value==='22'),'Live On restores physical attack');
+  step('Live highlights use existing Code observations, reset on CH/tab changes and obey Off');
+  assert(await page.locator('#spuLiveHighlightToggle').isChecked());
+  await page.locator('#spuLiveChannel').selectOption('1');await page.locator('[data-spu-editor-tab=adsr]').click();
+  const release=page.locator(control('release-rate')),releaseLabel=release.locator('..');
+  await page.evaluate(()=>document.activeElement?.blur());await wait(450);
+  await page.evaluate(()=>__spuParameters.ps1.setEnvelope(1,{releaseRate:10}));
+  await until(()=>releaseLabel.evaluate(node=>node.classList.contains('is-live-changed')),'changed Code ADSR flashes');
+  assert.equal(await releaseLabel.evaluate(node=>getComputedStyle(node).animationName),'synth-live-change','the CSS pulse is active');
+  await page.locator('#spuLiveHighlightToggle').uncheck();assert(!await releaseLabel.evaluate(node=>node.classList.contains('is-live-changed')));
+  await page.evaluate(()=>__spuParameters.ps1.setEnvelope(1,{releaseRate:11}));await until(()=>release.inputValue().then(v=>v==='11'),'Off still updates Live');
+  assert(!await releaseLabel.evaluate(node=>node.classList.contains('is-live-changed')));
+  await page.locator('#spuLiveHighlightToggle').check();assert(!await releaseLabel.evaluate(node=>node.classList.contains('is-live-changed')));
+  await page.locator('[data-spu-editor-tab=pcm]').click();await page.evaluate(()=>__spuParameters.ps1.setEnvelope(1,{releaseRate:12}));
+  await until(async()=>((await observation(page)).channels[1].adsr2&31)===12,'hidden ADSR changed');
+  await page.locator('[data-spu-editor-tab=adsr]').click();assert(!await releaseLabel.evaluate(node=>node.classList.contains('is-live-changed')),'opening a panel starts fresh');
+  await page.locator('#spuLiveChannel').selectOption('0');await page.locator('#spuLiveChannel').selectOption('1');
+  assert(!await releaseLabel.evaluate(node=>node.classList.contains('is-live-changed')),'CH switch starts fresh');
   step('shared Reverb remains editable and CH1 clearly disables impossible hardware PMON');
   await page.locator('[data-spu-editor-tab=fx]').click();await editNumber(page,'reverb-right',.35);await until(async()=>Math.abs((await observation(page)).reverb.volumeRight-.35)<1e-8,'shared right return');
   await page.locator('#spuLiveChannel').selectOption('0');await until(()=>page.locator('#spuVoicePanel [data-pmon=enabled]').isDisabled(),'CH1 PMON disabled');assert.match(await page.locator('#spuVoicePanel [data-pmon=enabled]').getAttribute('title'),/no preceding/);

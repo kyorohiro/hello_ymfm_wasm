@@ -14,6 +14,7 @@ import {SPU_DOCUMENT_METHODS,editSpuInstrumentDocument,spuInstrumentDocumentChan
 import {setupSpuCodeHost} from './code_host.js?v=draft-reconnect-1';
 import {SPU_PROJECT_FILE_BYTES} from './code_project.js?v=draft-reconnect-1';
 import {prepareVabTonePreset,prepareVabBankPresets} from './spu_bank_presets.js?v=ps1-vab-api-1';
+import {createSpuLiveHighlighter,getSpuLiveHighlightControls} from './live_highlight.js';
 import {createSpuCodeLive} from './code_live.js?v=spu-code-1';
 import {morphPcm} from './spu_synth_morph.js';
 import {createPs1InitSample} from '../js/ps1synth.js?v=ps1-oneshot-marker-1';
@@ -49,7 +50,7 @@ function showInstrumentDocument(value){
 function authorDisplay(value=state){return displayInstrument?displaySpuInstrumentDocument(value,displayInstrument,`draft-${documentRevision}`):value;}
 
 let noteSequence = 0, topologyPending = 0, switchingAudioOutput = false;
-let codeHost = null, codeLive = null, expandedTabs = null, disposed = false, liveReadOnly = false;
+let codeHost = null, codeLive = null, expandedTabs = null, liveHighlighter = null, disposed = false, liveReadOnly = false;
 let clickGuardIntent = 0, clickGuardApplied = true;
 let psfSong=null;
 let psfSeekControls=null;
@@ -226,6 +227,9 @@ function updateCodeDisplay() {
   // Off transport ticks must not redraw the authored editor or interrupt a
   // drawing gesture. Actual editor changes already arrive through applyState.
   if (displayed&&((observing&&live.liveState&&!seeking)||readOnlyChanged||viewChanged)) panel.update(displayed);
+  liveHighlighter?.update({snapshot:observing?displayed:null,following:observing,
+    visible:!document.hidden,paused:live.paused,waiting:seeking||live.liveWaiting||!live.liveState,error:live.liveError,
+    owner:fromPsf?psfSong:audio,origin:source,epoch:fromPsf?`${psfActionEpoch}:${psfViewEpoch}`:audio?.codeSession,channel:live.liveVoice});
   for (const id of ['pitchBend','keyboardPitchBend']) $(id).disabled=fromPsf?!(live.playing&&(psfView==='synth'||psfEditable)):running&&Boolean(codeHost?.isCodeMode());
   if (running) for (const input of document.querySelectorAll('[data-morph-performance-amount]'))
     input.disabled=seeking||(fromPsf?!((live.paused||live.playing)&&psfView==='synth'):false)||!displayed?.morph?.enabled||Boolean(displayed?.noise?.enabled);
@@ -424,6 +428,14 @@ const panel = createSpuInstrumentPanel({
     return {sourceSampleId:source.sampleId,sourceToken:source.token,adpcm:encoded.adpcm};
   },
 });
+const highlightToggle=$('spuLiveHighlightToggle'),highlightPreference='tetorica-spu-synth-live-highlight';
+try{highlightToggle.checked=localStorage.getItem(highlightPreference)!=='off';}catch{}
+liveHighlighter=createSpuLiveHighlighter({controls:getSpuLiveHighlightControls($('spuVoicePanel')),enabled:highlightToggle.checked});
+highlightToggle.addEventListener('change',()=>{
+  const enabled=highlightToggle.checked;
+  try{localStorage.setItem(highlightPreference,enabled?'on':'off');}catch{}
+  liveHighlighter.setEnabled(enabled);highlightToggle.blur();updateCodeDisplay();
+});
 setupSynthMenu({document,window});
 $('synthMenuPanel').addEventListener('click',event=>{
   const action=event.target.closest('[data-spu-open-panel],[data-spu-restore-editor]');
@@ -476,6 +488,7 @@ function selectEditorTab(name, focus = false) {
     button.tabIndex = active ? 0 : -1;
   }
   expandedTabs?.showChip(selected);
+  updateCodeDisplay();
   if (focus) selected.focus();
 }
 for (const [index, button] of editorTabs.entries()) {
@@ -673,7 +686,7 @@ document.addEventListener('visibilitychange', () => {
   codeLive.sync();
   if (document.hidden) {releaseKeyboard(true);resetBend();panel.setVisible(false);}
   else panel.setVisible(true);
-  visualizer.setVisible(!document.hidden);
+  visualizer.setVisible(!document.hidden);updateCodeDisplay();
 });
 $('sustainToggle').addEventListener('change', () => {if (!$('sustainToggle').checked) for (const [source, note] of notes) if (note.released) release(source, true);});
 for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) $(id).addEventListener('click', () => {releaseKeyboard(true); octave = Math.max(-2, Math.min(2, octave + delta)); renderKeyboard();});
@@ -1253,7 +1266,7 @@ $('resetPreset').addEventListener('click', async () => {
   } catch (error) {report(error);}
 });
 window.addEventListener('pagehide', event => {
-  if(!event.persisted){disposed=true;expandedTabs?.dispose();codeLive.dispose();psfChannelActivity.dispose();psfSeekControls?.dispose();}
+  if(!event.persisted){disposed=true;expandedTabs?.dispose();liveHighlighter?.dispose();codeLive.dispose();psfChannelActivity.dispose();psfSeekControls?.dispose();}
   epoch++; beginAssetOperation(); preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
   if (event.persisted) visualizer.stop(); else visualizer.dispose();
   void (async()=>{
@@ -1285,8 +1298,8 @@ codeHost=setupSpuCodeHost({ensureAudio,getAudio:()=>audio,getInstrument:getNativ
   },
   async beforeRun(){await stopPausedKeyboard({releaseEdited:true});await psfSong?.stop();beginAssetOperation();preparation?.cancel();},
   onActivity:codeActivity,
-  onViewChange:mode=>expandedTabs?.showInput(mode),
-  onExpandedChange:value=>expandedTabs?.setExpanded(value),
+  onViewChange:mode=>{expandedTabs?.showInput(mode);updateCodeDisplay();},
+  onExpandedChange:value=>{expandedTabs?.setExpanded(value);updateCodeDisplay();},
   setStatus:message=>status(message),
 });
 expandedTabs=setupSynthExpandedTabs({codeControls:codeHost.controls,

@@ -153,8 +153,9 @@ async function check(browser,name,origin){
   assert.equal(await page.locator('#synthCodeEditor').inputValue(),codeText);
   await page.setViewportSize({width:1240,height:1000});
   // Both file layers survive a real IndexedDB save and reload; no automatic Run.
-  await page.locator('[data-spu-editor-tab=adsr]').click();await edit(22);await pause(350);await page.reload();await page.locator('#spuAutoApplyToggle').waitFor({state:'attached'});
+  await page.locator('[data-spu-editor-tab=adsr]').click();await edit(22);await pause(350);await page.locator('#spuLiveHighlightToggle').uncheck();await page.reload();await page.locator('#spuAutoApplyToggle').waitFor({state:'attached'});
   await until(()=>page.locator('#spuAutoApplyToggle').isEnabled(),'project restored');
+  assert.equal(await page.locator('#spuLiveHighlightToggle').isChecked(),false,'SPU highlight preference survives reload');
   assert.equal(await page.locator('#spuAutoApplyToggle').isChecked(),false);assert.equal(await page.evaluate(()=>__spuCodeAudit.graph().contexts),0);
   await page.locator('#startAudio').click();await until(()=>page.evaluate(()=>__spuCodeAudit.graph().editorWorklets===1),'restored worklet');await until(()=>state().then(s=>(s.preset.adsr2&31)===17),'reload accepted sound');
   await page.locator('[data-spu-editor-tab=adsr]').click();assert.equal(await page.locator('[data-chip-control=ps1-release-rate]').inputValue(),'22');

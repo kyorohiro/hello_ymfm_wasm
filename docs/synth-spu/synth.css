@@ -452,3 +452,10 @@ footer a { color: #4a5e74; }
 .spu-navigation-main #synthExpandedTabsSlot > .spu-code-toolbar { margin-bottom:12px; }
 .is-code-expanded .spu-navigation-main .spu-input-section { margin-top:0; padding-top:0; border-top:0; }
 .spu-navigation-main .synth-expanded-heading .instrument-tabs > [role="tab"] { flex:0 0 auto; min-width:max-content; }
+
+.spu-live-value.is-live-changed { animation:synth-live-change 420ms ease-out; border-radius:5px; }
+@keyframes synth-live-change {
+  0%,25% { background-color:#d8eaff; box-shadow:0 0 0 2px #4a80bc; }
+  100% { background-color:transparent; box-shadow:0 0 0 2px transparent; }
+}
+@media(prefers-reduced-motion:reduce) { .spu-live-value.is-live-changed { animation-duration:1ms; } }

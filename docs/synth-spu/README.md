@@ -249,6 +249,15 @@ accepted instrument when audio is already active. ZIPs and their expanded
 contents are limited to 16 MiB;
 use **Menu → Export → Instrument · SPU JSON** for larger Software audio instruments.
 
+**Highlight changes** beside Live is On by default. Observed scalar changes
+briefly highlight the corresponding visible control: ADSR, source/Noise,
+Reverb, physical PSF pitch/levels, and the displayed Code PMON/Morph parameters.
+Its On/Off preference is stored separately for SPU. Pause, switching CH/source,
+Live Off and opening a previously hidden panel start a fresh comparison;
+focused controls are left alone. It follows the existing Live snapshots, so
+intermediate writes between snapshots can be missed. PCM/sample arrays and
+waveform previews are not diffed. Highlighting adds no polling or sound changes.
+
 ## Code workspace layout
 
 The **Code / Synth** buttons beside **Files** select the layout. **Code** opens
