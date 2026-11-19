@@ -117,6 +117,12 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.setViewportSize({width:390,height:844});
    // Let the canvas ResizeObserver and responsive grid settle after resize.
    await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo(0,window.scrollY);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+   // The help body must remain usable when open, and disappear from layout
+   // when closed. Linux WebKit used its collapsed 26px inline box as a text
+   // overflow source even though no element border crossed the viewport.
+   const inlineHelp=page.locator('.voice-routing .scsp-inline-help').first();
+   await inlineHelp.locator('summary').click();assert(await inlineHelp.locator('p').first().isVisible());
+   await inlineHelp.locator('summary').click();assert(await inlineHelp.locator('p').first().isHidden());
    // Native control focus/scrollbars can finish resizing after the second
    // frame on Linux. Keep the same strict bound, waiting for actual layout.
    await page.waitForFunction(()=>document.documentElement.scrollWidth-innerWidth<=1).catch(()=>{});

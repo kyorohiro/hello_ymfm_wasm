@@ -326,18 +326,28 @@ async function check(browser, engine, origin, fixture) {
 				'highlight reference reaches ' + seconds,
 			);
 		async function toggle(enabled) {
-			const popup = page.locator('#aswanChannelControls details.spu-code-help');
-			if (!(await popup.evaluate((node) => node.open)))
+			// Preference/menu clicks are not part of the VGM performance clock.
+			// Freeze it while operating the UI so slow runners cannot cross a
+			// driver write before Off has actually taken effect.
+			await page.evaluate(() => __aswanAudit.contexts[0].suspend());
+			try {
+				const popup = page.locator('#aswanChannelControls details.spu-code-help');
+				if (!(await popup.evaluate((node) => node.open)))
+					await popup.locator('summary').click();
+				await clearEvents();
+				if (enabled) await page.check('#aswanHighlightEnabled');
+				else await page.uncheck('#aswanHighlightEnabled');
+				assert.notEqual(await page.evaluate(() => document.activeElement?.id),'aswanHighlightEnabled');
+				assert.equal(await active(), 0, 'toggle clears prior pulses immediately');
 				await popup.locator('summary').click();
-			if (enabled) await page.check('#aswanHighlightEnabled');
-			else await page.uncheck('#aswanHighlightEnabled');
-			assert.notEqual(
-				await page.evaluate(() => document.activeElement?.id),
-				'aswanHighlightEnabled',
-			);
-			assert.equal(await active(), 0, 'toggle clears prior pulses immediately');
-			await popup.locator('summary').click();
+				if(enabled)assert.deepEqual(await events(),[],'On establishes a current baseline instead of replaying missed changes');
+				// Discard only events before the completed preference boundary.
+				await clearEvents();
+			} finally {
+				await page.evaluate(() => __aswanAudit.contexts[0].resume());
+			}
 		}
+
 		step('heard VGM controls highlight only changed fields; Off, Pause and frozen Live rebase');
 		const authored = (await state()).preset;
 		await importVgm('highlight.vgm', fixture.highlight);
@@ -411,11 +421,6 @@ async function check(browser, engine, origin, fixture) {
 			'toggle adds no polling interval',
 		);
 		await toggle(true);
-		assert.deepEqual(
-			await events(),
-			[],
-			'On establishes a current baseline instead of replaying missed changes',
-		);
 		await until(() => eventFor('volumeLeft'), 'new VGM change pulses after re-enabling');
 		assert((await eventFor('volumeLeft')).frame >= 5.5 * 44100);
 		await page.uncheck('#aswanLiveEnabled');

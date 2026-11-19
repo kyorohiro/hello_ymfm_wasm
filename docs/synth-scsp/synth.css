@@ -959,6 +959,11 @@ footer {
 	font-size: 0.72rem;
 	color: var(--muted);
 }
+/* Linux WebKit can include closed details text in scrollable overflow.
+   Remove only the closed body from layout; summary and open help stay visible. */
+.scsp-inline-help:not([open]) > :not(summary) {
+	display: none;
+}
 .scsp-inline-help > summary {
 	display: inline-flex;
 	align-items: center;

@@ -146,14 +146,18 @@ async function check(browser,name,origin,fixture,loadCassette){
     assert(await page.locator('#hucChannelReadout').isHidden());
     assert.equal(await page.locator('#hucChannelReadout').evaluate(node=>Boolean(node.closest('#hucChannelHelp'))),true);
 
-    step('Files Examples adds missing code without opening audio, changing input mode, running it or overwriting a user example');
+    step('Files starts with examples passively, and reloading preserves edited examples without autoplay');
     const examples=['examples/huc6280.js','examples/msm5205.js','examples/cdda.js'];
     const beforeExamples={mode:await page.locator('#synthInputSection').getAttribute('data-input-mode'),selection:await page.locator('#hucFilesSelected').textContent(),code:await page.locator('#synthCodeState').textContent()};
-    await page.locator('#hucFileExamplesButton').click();
+    assert.equal(await page.locator('#hucFileExamplesButton').count(),0,'examples are seeded without a separate button');
     for(const path of examples)await until(()=>page.locator('#hucFilesTree [data-file-path="/'+path+'"]').count().then(Boolean),'example '+path);
     assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),beforeExamples.mode);assert.equal(await page.locator('#hucFilesSelected').textContent(),beforeExamples.selection);assert.equal(await page.locator('#synthCodeState').textContent(),beforeExamples.code);assert.equal((await graph(page)).contexts,0);
     await selectIndex(page);await page.locator('#hucFilesTree [data-file-path="/examples/huc6280.js"]').click();await until(()=>page.locator('#hucFilesSelected').textContent().then(text=>text.includes('/examples/huc6280.js')),'selected user example');await until(()=>page.locator('#synthCodeEditor').isEditable(),'example editor ready');await page.locator('#synthCodeEditor').fill('// keep my HuC6280 example\n');
-    await selectIndex(page);const exampleSelection=await page.locator('#hucFilesSelected').textContent();await page.locator('#hucFileExamplesButton').click();
+    await selectIndex(page);const exampleSelection=await page.locator('#hucFilesSelected').textContent();
+    await page.locator('#hucFileSaveButton').click();
+    await until(()=>page.locator('#hucFilesStatus').textContent().then(value=>value==='Saved /index.js.'),'local project write completes before reload');
+    await page.reload();await files(page);await until(()=>page.locator('#hucFilesSelected').textContent().then(value=>value===exampleSelection),'saved example/index selection restored');
+    assert.equal((await graph(page)).contexts,0,'restoring a project never starts audio');
     assert.equal(await page.locator('#synthInputSection').getAttribute('data-input-mode'),'code');assert.equal(await page.locator('#hucFilesSelected').textContent(),exampleSelection);
     const exampleProject=await loadCassette(await download(page,'#hucProjectExportButton'));
     assert.equal(new TextDecoder().decode(exampleProject.files.get('examples/huc6280.js')),'// keep my HuC6280 example\n');

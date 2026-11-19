@@ -392,3 +392,47 @@ the shared chip class (matching the recorder's already listed operation).
   `/private/tmp/actions-875-scsp-final.json`. Narrow layouts report 0 px
   overflow. Strict layout assertions remain; Linux CI confirmation stays open.
 - `git diff --check` and both generated mixer-policy checks passed.
+
+## Follow-up: Actions push 8cff2596 (2026-11-19)
+
+- [x] ASWAN `44538457447`: pending-key transition now passes; later highlight
+  Off check includes a legitimate volume pulse recorded before Off completed.
+  Freeze the test audio clock during the multi-click preference operation and
+  clear the audit at the completed toggle boundary, retaining future-pulse,
+  no-replayed-baseline, no-new-interval and no-buffer-cancellation assertions.
+- [x] SCSP `44538456427`: Linux WebKit diagnostics identified hidden paragraphs
+  inside closed inline help as the 15px overflow source. Explicitly hide only
+  closed help bodies; retain open help and the strict viewport assertion. The
+  browser check now opens/closes help before measuring. Local Chromium/WebKit
+  pass at 390px with zero overflow; Linux CI confirmation remains pending.
+- [x] HuC6280 `44538456293`: Capture check still clicked the removed Examples
+  button. Verify default seeded examples instead, then save/reload/export to
+  prove edited examples survive without autoplay. Complete Capture suite passes
+  in Chromium/WebKit. No product JavaScript change was needed.
+- Preserve the original SCSP CSS in the pinned test-only historical source
+  archive so old calibration evidence stays immutable. Nine history/revision
+  tests pass; both strict current Mixer/default generators pass unchanged.
+- ASWAN also passes a WebKit stress run with 1.5 seconds of artificial menu
+  delays per toggle. Assertions for future pulses, baseline rebasing, interval
+  count and buffer ownership remain intact.
+
+Local muted browser evidence:
+
+- `/private/tmp/actions-8cff-aswan-final.json`
+- `/private/tmp/actions-8cff-aswan-slow.json`
+- `/private/tmp/actions-8cff-scsp-final.json`
+- `/private/tmp/actions-8cff-huc-capture-final.json`
+
+All four subsequent HuC6280 browser checks also pass in Chromium/WebKit against
+the source tree, with physical output muted:
+
+- `/private/tmp/actions-8cff-check_huc6280_synth_mixer_browser.json`
+- `/private/tmp/actions-8cff-check_huc6280_shared_channel_mixer_browser.json`
+- `/private/tmp/actions-8cff-check_huc6280_synth_seek_browser.json`
+- `/private/tmp/actions-8cff-check_huc6280_synth_cache_browser.json`
+
+Combined log: `/private/tmp/actions-8cff-huc-remaining.log`.
+
+npm, SDK, VGM, SBI and Pages jobs succeeded on `8cff2596`. The itch ZIP job was
+still running at the last check. These follow-up fixes have not been committed
+or pushed; remote success has not yet been established for them.
