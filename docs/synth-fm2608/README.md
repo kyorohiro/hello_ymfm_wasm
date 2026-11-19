@@ -52,7 +52,7 @@ an ideal template. RF5C164 stores PCM amplitudes directly and has different
 reconstruction behavior.
 
 Keyboard ADPCM-B release and `opna.adpcm.noteOff()` use a **Synth software**
-8 ms volume fade. One request reaches the dedicated Synth AudioWorklet, which
+12 ms volume fade. One request reaches the dedicated Synth AudioWorklet, which
 starts the fade on its own audio clock. Delayed message delivery delays its
 start without compressing the fade into an abrupt cut. The renderer updates
 changed integer volume levels at output-frame boundaries and leaves physical

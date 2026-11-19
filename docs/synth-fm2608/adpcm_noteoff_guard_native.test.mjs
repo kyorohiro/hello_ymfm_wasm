@@ -24,7 +24,7 @@ async function sineProfile(rate,hold,kind) {
       for(let step=1;step<=64;step++) {
         const commands=[{type:'write',port:1,register:11,value:Math.round(192*(1-step/64))}];
         if(step===64)commands.push({type:'write',port:1,register:0,value:1},{type:'write',port:1,register:11,value:192});
-        assert(f.queue.receive({performance:{session:1,owner:'old-linear-reference',time:hold/rate+128/rate+.008*step/64},commands}));
+        assert(f.queue.receive({performance:{session:1,owner:'old-linear-reference',time:hold/rate+128/rate+.012*step/64},commands}));
       }
     }
     return{before,after:f.render(1024).left,volume:f.audio.capturePreset().adpcm.volume};

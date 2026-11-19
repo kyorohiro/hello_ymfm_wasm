@@ -41,7 +41,7 @@ export function createYm2608AdpcmRelease({sampleRate,nowFrame,writePhysical,onSt
       if (data.owner === owner) retire(data);
       return true;
     }
-    const duration = data.durationSeconds ?? .008,frames = Math.round(duration * sampleRate);
+    const duration = data.durationSeconds ?? .012,frames = Math.round(duration * sampleRate);
     if (data.action !== 'release' || !Number.isFinite(duration) || duration <= 0 || duration > 1 ||
         !Number.isSafeInteger(frames) || frames < 1 || !Number.isSafeInteger(at + frames)) { rejectedMessages++; return true; }
     if (!gate || data.owner === owner) return true;

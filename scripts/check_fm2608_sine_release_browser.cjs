@@ -200,9 +200,9 @@ function releaseProfile(events) {
   assert.equal(request.type, 'synth-adpcm-release');
   assert.equal(request.action, 'release');
   assert.match(request.owner, /^fm2608-adpcm-release:\d+$/);
-  assert.equal(request.durationSeconds, .008);
+  assert.equal(request.durationSeconds, .012);
   assert(!('performance' in request) && !('commands' in request), 'no sender-clock deadlines or register burst');
-  return {requests:1,durationSeconds:.008,receiverRelative:true,owner:request.owner};
+  return {requests:1,durationSeconds:.012,receiverRelative:true,owner:request.owner};
 }
 async function keyTrial(page, key, screen = false, shape = 'sine') {
   await page.evaluate(() => document.activeElement?.blur());
@@ -229,7 +229,7 @@ async function retriggerTrial(page, key) {
   const before = (await graph(page)).releases;
   await page.keyboard.down(key); await until(() => graph(page).then(value => value.audio.rms > .01), 'first Sine');
   // Dispatch the two handlers in one browser turn, so automation transport
-  // latency cannot let the complete 8 ms old tail elapse before the retrigger.
+  // latency cannot let the complete 12 ms old tail elapse before the retrigger.
   await page.evaluate(({key, next}) => {
     document.body.dispatchEvent(new KeyboardEvent('keyup', {key, bubbles:true}));
     document.body.dispatchEvent(new KeyboardEvent('keydown', {key:next, bubbles:true}));

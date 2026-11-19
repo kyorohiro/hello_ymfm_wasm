@@ -26,7 +26,7 @@ for (const rate of [44100,48000]) test(`ADPCM release uses bounded smooth audio-
   const firstZero=events.find(event=>event.commands[0].value===0);
   assert(Math.round(firstZero.performance.time*rate)<Math.round(state.end*rate)-4,'rounded cosine reaches zero before decoder Stop');
   assert.equal(Math.round(state.start*rate),128);
-  assert.equal(Math.round(state.end*rate),128+Math.round(.008*rate));
+  assert.equal(Math.round(state.end*rate),128+Math.round(.012*rate));
   f.advance(Math.round(state.end*rate));
   assert.equal(f.physical.filter(value => value.register === 0 && value.value === 1).length,1);
   assert.deepEqual(f.physical.slice(-3).map(({register,value}) => [register,value]),[[11,0],[0,1],[11,192]]);

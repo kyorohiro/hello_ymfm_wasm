@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Standalone Synth software release; the common YM2608/ADPCM hardware API stays raw.
-export const FM2608_ADPCM_RELEASE_SECONDS = .008;
+export const FM2608_ADPCM_RELEASE_SECONDS = .012;
 // At most 255 distinct level changes plus the final Stop/restore batch.
 export const FM2608_ADPCM_RELEASE_STEPS = 256;
 const SESSION = 1;

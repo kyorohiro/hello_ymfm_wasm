@@ -22,10 +22,10 @@ for(const rate of [44100,48000])test(`audio-owned release sends one arrival-rela
   assert.deepEqual(f.physical,[],'main does not mute or stop before the audio owner fades');
   assert.equal(f.messages.length,1);
   const message=f.messages[0];assert.match(message.owner,/^fm2608-adpcm-release:\d+$/);
-  assert.deepEqual(message,{type:'synth-adpcm-release',action:'release',owner:message.owner,durationSeconds:.008});
+  assert.deepEqual(message,{type:'synth-adpcm-release',action:'release',owner:message.owner,durationSeconds:.012});
   assert.deepEqual(Object.keys(message).sort(),['action','durationSeconds','owner','type'],
     'neither a stale main-thread deadline nor a captured nominal volume is transmitted');
-  const diagnostic=f.guard.getState();assert.equal(diagnostic.start,7);assert(Math.abs(diagnostic.end-7-.008)<1e-12);
+  const diagnostic=f.guard.getState();assert.equal(diagnostic.start,7);assert(Math.abs(diagnostic.end-7-.012)<1e-12);
   assert.equal(diagnostic.pending,true);assert.equal(diagnostic.needsRestore,true);
 });
 
