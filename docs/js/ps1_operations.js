@@ -5,6 +5,7 @@ import {Ps1Synth} from './ps1synth.js';
 const arity = Object.freeze({
   setPreset:[2,3], setChannel:[2,3], setEnvelope:[2,3], setReverb:[1,1],
   setPitch:[2,2], setFrequency:[2,2], setNote:[2,2], keyOn:[1,1], keyOff:[1,1],
+  setNoiseEnabled:[2,2], setNoiseClock:[1,1], setPmonEnabled:[2,2],
   noteOn:[1,2], noteOff:[1,1], allNotesOff:[0,0],
 });
 

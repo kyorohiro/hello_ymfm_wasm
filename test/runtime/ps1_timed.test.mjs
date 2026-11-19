@@ -87,3 +87,43 @@ test('custom reference sample rate is independent of the output device rate',()=
  const plan=build(b=>{b.atSample(480).setPitch(0,12);b.atSeconds(.01).setPitch(0,13);},{referenceSampleRate:48000});
  assert.deepEqual(compile(plan,createPs1OperationResetState()).map(row=>row.offsetSeconds),[.01,.01]);
 });
+
+for(const rate of [44100,48000])test(`${rate}: Noise/PMON masked operations match compile and preserve later manual shared bits`,async t=>{
+ const p=await setup(rate);t.after(()=>p.close());
+ const plan=build(b=>{b.setNoiseEnabled(0,true).setPmonEnabled(1,true).setNoiseClock(7);
+  b.atSample(441).setNoiseEnabled(23,true).setPmonEnabled(23,true).setNoiseClock(35);
+  b.atSeconds(.02).setNoiseEnabled(0,false).setPmonEnabled(1,false).setReverb({preset:'room'}).setNoiseClock(18);});
+ // Manual fields are changed after admission, so execution must resolve again.
+ p.request({action:'schedule',operations:plan,options:{name:'flags'}});
+ p.synth.setNoiseEnabled(5,true);p.synth.setPmonEnabled(6,true);p.synth.setReverb({preset:'hall'});
+ const snapshot=createPs1TimedSnapshot(capture(p.synth),{instanceId:'test',frame:0,sampleRate:rate}),before=structuredClone(snapshot);
+ const expected=compile(plan,snapshot.state);p.writes.length=0;p.render(1400);
+ assert.deepEqual(p.writes,expected.map(({offsetSeconds,register,value})=>({frame:128+Math.round(offsetSeconds*rate),register,value})));
+ assert.deepEqual(snapshot,before);assert.equal(p.core.read(0x194),1<<5);assert.equal(p.core.read(0x196),1<<7);
+ assert.equal(p.core.read(0x190),1<<6);assert.equal(p.core.read(0x192),1<<7);assert.equal((p.core.read(0x1aa)>>8)&63,18);assert(p.core.read(0x1aa)&128);
+});
+
+test('invalid Noise/PMON replacement does not disturb an existing reservation or live registers',async t=>{
+ const p=await setup();t.after(()=>p.close());const plan=build(b=>b.setNoiseClock(21));
+ p.request({action:'schedule',operations:plan,options:{name:'flags',repeatSeconds:.01}});
+ const state=capture(p.synth),stats=p.performance.getStats();
+ for(const bad of [build(b=>b.setNoiseClock(64)),build(b=>b.setPmonEnabled(0,true)),build(b=>b.setNoiseEnabled(24,true))]){
+  assert.throws(()=>p.request({action:'schedule',operations:bad,options:{name:'flags'}}));
+  assert.deepEqual(capture(p.synth),state);assert.equal(p.performance.getStats().patternCount,stats.patternCount);
+ }
+ p.render(200);assert.equal(p.synth.getState().noiseClock,21);
+});
+
+test('the shipped Noise and PMON examples execute against the real SPU queue without uploading samples',async t=>{
+ const {SPU_NOISE_EXAMPLE,SPU_PMON_EXAMPLE}=await import('../../docs/synth-spu/code_examples.js');
+ for(const [source,kind]of [[SPU_NOISE_EXAMPLE,'noise'],[SPU_PMON_EXAMPLE,'pmon']]){
+  const p=await setup();try{
+   const before=p.synth.samples.length,rows=[],api=attachPs1TimedClient({_requestControl:async(_method,[payload])=>p.request(payload)},{instanceId:'test'});
+   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+   await new AsyncFunction('useSoundChip','CH1','CH2','console',source)(async()=>api,0,1,{table:value=>rows.push(value)});
+   p.render(200);assert.equal(p.synth.samples.length,before);assert.equal(rows.length,1);assert(rows[0].length>0);
+   if(kind==='noise'){assert.equal(p.core.read(0x194)&1,1);assert.equal(p.synth.getState().noiseClock,18);assert(p.synth.gates[0]);}
+   else {assert.equal(p.core.read(0x190)&2,2);assert.equal(p.core.read(0),0);assert.equal(p.core.read(2),0);assert(p.synth.gates[0]&&p.synth.gates[1]);}
+  }finally{p.close();}
+ }
+});

@@ -103,7 +103,8 @@ First register-operation slice implemented on 2026-11-20. Details and remaining 
 Follow the [shared timed-API contract](todo_synth_timed_register_api_20261119.md).
 
 - [x] Existing-sample notes, pitch, voice presets, ADSR, shared reverb and ordered KON/KOFF events.
-- [ ] Public Noise/PMON operations and a safe raw-register API; RAM transfer remains separate.
+- [x] Public Noise/PMON operations in Web Audio: [details](todo_spu_noise_pmon_api_20261120.md).
+- [ ] A safe raw-register API and Native global masked controls; RAM transfer remains separate.
 - [x] Retain raw keyOff versus software noteOff semantics and ordered retriggers; scope sample RAM transfer and long software audio separately.
 - [x] Apply the shared compilation/snapshot, ownership, atomicity, type/example
   and 44.1/48 kHz verification checklist to this first operation slice.

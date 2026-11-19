@@ -2149,8 +2149,9 @@ type PlaygroundPs1Preset = Partial<Omit<PlaygroundPs1VoiceState,'sample'>> & {sa
 interface PlaygroundPs1State {
   /** Native source rate; the client sampleRate is the AudioContext output rate. */
   sampleRate:44100;channelCount:24;nextAddress:number;nativeFrames:number;
+  /** Actual shared SPUCNT noise clock code, 0..63. */ noiseClock:number;
   samples:PlaygroundPs1Sample[];
-  channels:Array<PlaygroundPs1VoiceState & {gate:boolean;envelope:number;envelopeParameters:PlaygroundPs1Envelope;ended:boolean;
+  channels:Array<PlaygroundPs1VoiceState & {noise:boolean;pmon:boolean;gate:boolean;envelope:number;envelopeParameters:PlaygroundPs1Envelope;ended:boolean;
     /** Original 112-point PCM for the currently assigned SPU-tab waveform, otherwise null. */
     waveform:{pcm:number[];sample:number}|null}>;
   reverb:PlaygroundPs1Reverb;
@@ -2165,6 +2166,12 @@ interface PlaygroundPs1OperationProgram {
   readonly operations:readonly {readonly time:{readonly unit:'sample'|'seconds';readonly value:number};readonly order:number;readonly method:string;readonly args:readonly unknown[]}[];
 }
 interface PlaygroundPs1OperationRecorder {
+  /** Hardware NON bit only, no PCM allocation or Gate change. */
+  setNoiseEnabled(channel:PlaygroundPs1Channel,enabled:boolean):PlaygroundPs1OperationRecorder;
+  /** One shared SPUCNT clock for all Noise voices, 0..63. */
+  setNoiseClock(code:number):PlaygroundPs1OperationRecorder;
+  /** ch-1 modulates ch; CH1 cannot be a carrier. Source is not auto-triggered. */
+  setPmonEnabled(channel:Exclude<PlaygroundPs1Channel,0>,enabled:boolean):PlaygroundPs1OperationRecorder;
   atSample(offset:number):PlaygroundPs1OperationRecorder;
   atSeconds(offset:number):PlaygroundPs1OperationRecorder;
   setPreset(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset,options?:PlaygroundPs1EnvelopeUpdateOptions):PlaygroundPs1OperationRecorder;
@@ -2190,6 +2197,14 @@ interface PlaygroundPs1StateSnapshot {
 }
 interface PlaygroundPs1CompiledWrite {offsetSeconds:number;register:number;value:number;operationIndex:number;writeIndex:number;}
 interface PlaygroundPs1 {
+  /** Hardware NON bit only; no sample upload, PITCH or Gate change.
+   * AudioWorklet controls; Native currently rejects global masked updates. */
+  setNoiseEnabled(channel:PlaygroundPs1Channel,enabled:boolean):void;
+  /** Shared hardware noise clock code 0..63, not Hz or musical pitch. */
+  setNoiseClock(code:number):void;
+  /** Hardware PMON bit; previous physical voice is the source. No automatic
+   * waveform, ratio, muting, pairing or source key-on. CH1 cannot be a carrier. */
+  setPmonEnabled(channel:Exclude<PlaygroundPs1Channel,0>,enabled:boolean):void;
   /** Record once; no chip state is captured or changed. */
   build<Result>(callback:(builder:PlaygroundPs1OperationRecorder)=>Result & (Result extends PromiseLike<unknown>?never:unknown),options?:{referenceSampleRate?:number}):PlaygroundPs1OperationProgram;
   /** AudioWorklet applied state. Native transport does not support timed operations. */

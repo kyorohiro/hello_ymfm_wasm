@@ -37,7 +37,15 @@ await ps1.compile(ops,{initialState:'reset'});await ps1.compile(ops,{initialStat
 await ps1.schedule(ops,{name:'phrase',repeatSeconds:1});await ps1.clearSchedule('phrase');
 // @ts-expect-error sample RAM is not part of timed authoring
 ps1.build(b=>b.loadADPCM(new Uint8Array(16),{rootNote:'C4'}));
+await ps1.setNoiseEnabled(CH1,true);await ps1.setNoiseClock(37);await ps1.setPmonEnabled(CH2,true);
+ps1.build(b=>b.setNoiseEnabled(CH1,true).setNoiseClock(12).setPmonEnabled(CH2,true));
+// @ts-expect-error CH1 is the first voice, which cannot be modulated by a previous voice
+ps1.setPmonEnabled(CH1,true);
+// @ts-expect-error the recorder has the same carrier constraint
+ps1.build(b=>b.setPmonEnabled(CH1,true));
 const state=await ps1.getState();
+const globalNoiseClock:number=state.noiseClock;
+const hardwareNoise:boolean=state.channels[0].noise, hardwarePmon:boolean=state.channels[1].pmon;
 const channel=state.pmon.enabled?CH2:CH1;
 const clock:number=state.noise.clock, amount:number=state.morph.amount;
 const frames:number|undefined=state.hostAudio?.frames;

@@ -345,3 +345,31 @@ test('held cyclic Sine has no coarse first-quarter staircase in actual SPU PCM',
   const relativeDb=10*Math.log10(residual/((sine*sine+cosine*cosine)/2));
   assert(relativeDb< -55,`Actual held-Sine residual ${relativeDb} dBc must stay below -55 dBc`);
 });
+
+test('hardware Noise/PMON change only the selected 16-bit mask bit and shared clock',async t=>{
+ const {synth,core}=await create(t);const sample=load(synth);synth.setPreset(0,{sample});synth.noteOn(0,'C4');render(synth,64);
+ const env=core.read(12),gate=synth.gates[0],ram=core.readRam();
+ synth.setNoiseEnabled(0,true);synth.setNoiseEnabled(15,true);synth.setNoiseEnabled(16,true);synth.setNoiseEnabled(23,true);
+ assert.equal(core.read(0x194),0x8001);assert.equal(core.read(0x196),0x81);
+ synth.setNoiseEnabled(15,false);assert.equal(core.read(0x194),1);assert.equal(core.read(0x196),0x81);
+ synth.setPmonEnabled(1,true);synth.setPmonEnabled(17,true);synth.setPmonEnabled(23,true);synth.setPmonEnabled(17,false);
+ assert.equal(core.read(0x190),2);assert.equal(core.read(0x192),0x80);assert.equal(core.read(0x194),1);
+ const control=core.read(0x1aa);synth.setNoiseClock(37);assert.equal(core.read(0x1aa),(control&~0x3f00)|(37<<8));
+ assert.equal(core.read(12),env);assert.equal(synth.gates[0],gate);assert.deepEqual(core.readRam(),ram);
+ const state=synth.getState();assert.equal(state.noiseClock,37);assert(state.channels[0].noise);assert(state.channels[23].pmon);assert(!state.channels[0].pmon);
+ const before=synth.snapshot();
+ for(const [method,args]of [['setNoiseClock',[-1]],['setNoiseClock',[64]],['setNoiseClock',[1.5]],['setNoiseEnabled',[24,true]],['setNoiseEnabled',[0,1]],['setPmonEnabled',[0,true]],['setPmonEnabled',[1,0]]])assert.throws(()=>synth[method](...args));
+ assert.deepEqual(synth.snapshot(),before);
+ synth.stopVoices();assert.equal(synth.getState().noiseClock,37);assert(synth.getState().channels[23].noise);assert(synth.getState().channels[23].pmon);
+ synth.reset();assert.equal(core.read(0x194)|core.read(0x196)|core.read(0x190)|core.read(0x192),0);assert.equal(synth.getState().noiseClock,0);
+});
+
+test('real SPU PMON uses the preceding source before its output volume and does not auto-trigger it',async t=>{
+ const a=await create(t),b=await create(t);
+ for(const {synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,volumeLeft:0,volumeRight:0});synth.setPreset(1,{sample,volumeLeft:.2,volumeRight:.2});synth.setFrequency(0,55);synth.setFrequency(1,220);}
+ a.synth.setPmonEnabled(1,true);assert.deepEqual(a.synth.gates.slice(0,2),[false,false]);
+ for(const {synth}of[a,b]){synth.keyOn(0);const source=render(synth,512);assert.equal(Math.max(...source.left.map(Math.abs)),0,'source can be inaudible');synth.keyOn(1);}
+ const modulated=render(a.synth,2048),plain=render(b.synth,2048);
+ assert(modulated.left.some(v=>Math.abs(v)>.001));assert.notDeepEqual(modulated.left,plain.left,'only PMON differs between the aligned cores');
+ assert.equal(a.core.read(0),0);assert.equal(a.core.read(2),0);assert.equal(a.synth.gates[0],true);
+});

@@ -54,7 +54,8 @@ compileはチップのレジスタ操作の仮想実行であり、Synth固有�
 - [x] SPU単体の読みやすい配布ZIPを生成・ソース照合。
 - [x] 共有トランスポート変更後のPS1/WonderSwan/SCSP/POKEY校正を再計測し、
   同じ基準音量でPlayground/npmの配布チェックを通す。校正チェックの迂回はしない。
-- [ ] Noise/PMONの公開操作・raw 16bitレジスタAPIは別設計（今回の既存API対象外）。
+- [x] Noise/PMONの公開操作を追加: [TODO / scope](todo_spu_noise_pmon_api_20261120.md)。
+- [ ] raw 16bitレジスタAPIとNativeのglobal masked updatesは別作業。
 - [ ] 人による実聴と任意の実PSF併用確認。
 
 完了した測定・配布記録: [verification](verification_spu_timed_register_api_20261120.md)。

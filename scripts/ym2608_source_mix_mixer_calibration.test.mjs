@@ -30,8 +30,8 @@ for(const [kind,key,validate]of [
  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources],
  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources],
  ['scsp','scspReport',validateScspMixerCalibrationSources],
-])test(`${kind} current SPU timed calibration and verification cover every route with exact current provenance`,async()=>{
- const base=`docs/issues/${kind}_spu_timed_chip_levels_`;
+])test(`${kind} current SPU hardware calibration and verification cover every route with exact current provenance`,async()=>{
+ const base=`docs/issues/${kind}_spu_hardware_chip_levels_`;
  const raw=await json(base+'01.json'),verified=await json(base+'verify_01.json');
  const previous=await json(`docs/issues/${kind}_ay_single_output_chip_levels_01.json`);
  const expectedRows=kind==='pokey'?96:48;

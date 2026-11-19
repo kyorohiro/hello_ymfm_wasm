@@ -357,3 +357,9 @@ for(const execution of ['main','worker'])test(`Native PS1 ${execution} cancels o
     await f.synth.flush();const view=await f.synth.chipInspector.read('side');assert.equal(view.channels[0].active,false);assert.equal(view.channels[1].active,true);assert.deepEqual(f.errors,[]);
   }finally{await runtime.finalize();}
 });
+
+test('Native rejects unsupported global Noise/PMON controls before sending or mutating its shadow',async t=>{
+ const f=await fixture(t),client=f.synth.spu,before=await client.getState(),count=f.commands().length;
+ for(const [method,args]of [['setNoiseEnabled',[0,true]],['setNoiseClock',[63]],['setPmonEnabled',[1,true]]])assert.throws(()=>client[method](...args),/Native global masked updates are not supported/);
+ assert.equal(f.commands().length,count);assert.deepEqual(await client.getState(),before);assert.deepEqual(f.errors,[]);
+});

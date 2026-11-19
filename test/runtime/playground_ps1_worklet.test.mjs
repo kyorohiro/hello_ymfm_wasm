@@ -403,3 +403,14 @@ test('Main and Worker timed APIs share authoritative state, execute and cancel w
  await worker.schedule(plan,{name:'stop',repeatSeconds:.02});await worker._stopVoices();p.render(1000);
  assert.equal(p.processor.synth.gates[0],false);assert.equal(p.processor.performance.getStats().patternCount,0);
 });
+
+test('Main/Worker Noise clock and mask operations preserve each other and remain visible in captured registers',async t=>{
+ const p=await setup(48000);t.after(()=>p.close());const secondary=new MessageChannel();
+ p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});const worker=createPs1Client(secondary.port2,p.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});
+ p.client.setNoiseEnabled(0,true);p.client.setNoiseClock(12);await p.client.getState();
+ const plan=worker.build(b=>b.setNoiseEnabled(23,true).setPmonEnabled(23,true).setNoiseClock(37));await worker.schedule(plan,{name:'flags'});
+ p.client.setNoiseEnabled(5,true);p.client.setPmonEnabled(6,true);await p.client.getState();p.render(256);
+ const state=await p.client.getState();assert.equal(state.noiseClock,37);assert(state.channels[0].noise&&state.channels[5].noise&&state.channels[23].noise);assert(state.channels[6].pmon&&state.channels[23].pmon);
+ const snapshot=await worker.captureState(),writes=await worker.compile(plan,{initialState:snapshot});assert(writes.some(row=>row.register===0x196&&row.value===128));
+ assert.equal(snapshot.state.registers[0x190/2],1<<6);assert.equal(snapshot.state.registers[0x192/2],128);
+});

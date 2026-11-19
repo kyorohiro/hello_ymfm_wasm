@@ -219,6 +219,18 @@ export class Ps1Synth {
    * only on Stop/reset, not on preset selection. Changes affect active voices.
    * @param {Partial<Ps1ReverbState>} settings */
   setReverb(settings){const next=this._reverb(settings);this._writeReverb(next);this.reverb=next;}
+  /** Hardware NON bit only. Does not allocate PCM or trigger a voice.
+   * Noise uses the shared clock rather than the voice's PITCH register.
+   * @param {number} ch @param {boolean} enabled */
+  setNoiseEnabled(ch,enabled){this._open();channel(ch);if(typeof enabled!=='boolean')throw new TypeError('Noise enabled must be boolean');this._writeVoiceMask(0x194,ch,enabled);}
+  /** Shared SPUCNT Noise clock code (0..63), not Hz or a note number.
+   * @param {number} code */
+  setNoiseClock(code){this._open();integer(code,0,63,'Noise clock');const current=this.core.read(0x1aa);this.core.write(0x1aa,(current&~0x3f00)|(code<<8));}
+  /** Hardware PMON bit only. Voice ch-1 modulates voice ch. No source allocation,
+   * retuning, muting or automatic key-on. Physical CH1 cannot be a carrier.
+   * @param {number} ch @param {boolean} enabled */
+  setPmonEnabled(ch,enabled){this._open();integer(ch,1,23,'PMON carrier channel');if(typeof enabled!=='boolean')throw new TypeError('PMON enabled must be boolean');this._writeVoiceMask(0x190,ch,enabled);}
+  _writeVoiceMask(base,ch,enabled){const register=base+(ch>=16?2:0),bit=1<<(ch%16),current=this.core.read(register);this.core.write(register,enabled?current|bit:current&~bit);}
   /** @param {number} ch @returns {Ps1VoiceState} */
   getPreset(ch){this._open();channel(ch);return {...this.channels[ch]};}
   /** Raw hardware pitch 0..16383. Zero holds the current sample position.
@@ -249,11 +261,11 @@ export class Ps1Synth {
    * preserving RAM, sample IDs, tuning and all programmed voice presets.
    * This also resets the core's native frame counter.
    */
-  stopVoices(){this._open();this.core.reset({clearRam:false});this.gates.fill(false);this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);this._writeReverb(this.reverb);}
+  stopVoices(){this._open();const modulation=[0x190,0x192,0x194,0x196].map(register=>[register,this.core.read(register)]),clock=this.core.read(0x1aa)&0x3f00;this.core.reset({clearRam:false});this.gates.fill(false);this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);this._writeReverb(this.reverb);for(const [register,value]of modulation)this.core.write(register,value);this.core.write(0x1aa,(this.core.read(0x1aa)&~0x3f00)|clock);}
   /** Serializable metadata and requested key gates; ENVX/END reflect the core.
    * Sample byte payloads are available through snapshot(). */
   getState(){this._open();return {sampleRate:this.sampleRate,channelCount:this.channelCount,nextAddress:this.nextAddress,nativeFrames:this.core.nativeFrames??0,
-    samples:this.samples.map(s=>({...s})),reverb:{...this.reverb},channels:this.channels.map((p,ch)=>({...p,waveform:this.editorWaveforms[ch]?.sample===p.sample?{sample:p.sample,pcm:this.editorWaveforms[ch].pcm.slice()}:null,envelopeParameters:decodePs1Envelope(p.adsr1,p.adsr2),gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
+    noiseClock:(this.core.read(0x1aa)>>8)&63,samples:this.samples.map(s=>({...s})),reverb:{...this.reverb},channels:this.channels.map((p,ch)=>({...p,noise:!!(this.core.read(0x194+(ch>=16?2:0))&(1<<(ch%16))),pmon:ch>0&&!!(this.core.read(0x190+(ch>=16?2:0))&(1<<(ch%16))),waveform:this.editorWaveforms[ch]?.sample===p.sample?{sample:p.sample,pcm:this.editorWaveforms[ch].pcm.slice()}:null,envelopeParameters:decodePs1Envelope(p.adsr1,p.adsr2),gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
   /** Explicit, potentially large copy of RAM/registers for inspection. */
   snapshot(){this._open();const registers=new Uint16Array(512);for(let at=0;at<512;at++)registers[at]=this.core.read(at*2);return {...this.getState(),ram:this.core.readRam(),registers};}
   /** @param {Float32Array} left @param {Float32Array} right @param {number} [frames] @param {number} [offset] */

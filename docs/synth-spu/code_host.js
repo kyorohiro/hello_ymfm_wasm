@@ -1,4 +1,4 @@
-import {SPU_TIMED_EXAMPLE} from './code_examples.js';
+import {SPU_TIMED_EXAMPLE,SPU_NOISE_EXAMPLE,SPU_PMON_EXAMPLE} from './code_examples.js';
 // SPDX-License-Identifier: BSD-3-Clause
 // Shared software scheduler/editor over the upper instrument's existing SPU.
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=ps1-vab-api-1';
@@ -28,7 +28,7 @@ const aborted=()=>new DOMException('SPU Code stopped','AbortError');
 export function setupSpuCodeHost({ensureAudio,getAudio,getInstrument,getCachedInstrument,applyInstrument,applyVabTone,stopKeyboard,onWorkspaceRestored,onNewProjectCommitted,getExportNotice,beforeNewProject=async()=>{},beforeUndoFiles=async()=>{},
   beforeRun=async()=>{},prepareOutput=async()=>{},onActivity=()=>{},onViewChange=()=>{},onExpandedChange=()=>{},setStatus=()=>{}}={}){
   let disposed=false,epoch=0,modeEpoch=0,runtime=null,controls=null,files=null;
-  const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE,starterFiles:{'/examples/timed-phrase.js':SPU_TIMED_EXAMPLE}});
+  const project=createSpuCodeProject({getStarterCode:()=>SPU_STARTER_CODE,starterFiles:{'/examples/timed-phrase.js':SPU_TIMED_EXAMPLE,'/examples/hardware-noise.js':SPU_NOISE_EXAMPLE,'/examples/hardware-pmon.js':SPU_PMON_EXAMPLE}});
   const audio=createSpuCodeAudio({ensureReady:ensureAudio,getAudio,onLog:line=>controls?.appendLog(line)});
   const valid=token=>{if(disposed||token!==epoch)throw aborted();};
   function openOutput(){

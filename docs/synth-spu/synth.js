@@ -216,7 +216,7 @@ function updateCodeDisplay() {
         $('spuLiveReadout').textContent=`CH ${live.liveVoice+1} · Gate request ${voice.gate?'On':'Off'} · Core ${voice.active?'active':'inactive'} · ENV ${voice.envelope??'—'} · ENDX ${voice.ended?'set':'clear'} · PITCH ${voice.pitch} · Vol L ${voice.volumeLeft?.toFixed(3)??'—'} / R ${voice.volumeRight?.toFixed(3)??'—'} · Start ${addressText(voice.startAddress)} · Repeat ${addressText(voice.repeatAddress)} (programmed)`;
       } else {
         updateSampleName(snapshot,live.liveVoice,true);
-        $('spuLiveReadout').textContent=`CH ${live.liveVoice+1} · Gate ${voice.gate?'On':'Off'} · ENV ${voice.envelope??'—'} · PITCH ${voice.pitch} · Sample ${voice.sample??'—'}`;
+        $('spuLiveReadout').textContent=`CH ${live.liveVoice+1} · Gate ${voice.gate?'On':'Off'} · ENV ${voice.envelope??'—'} · PITCH ${voice.pitch} · Sample ${voice.sample??'—'} · Noise ${voice.noise?'On':'Off'} · Clock ${voice.noiseClock??snapshot.noiseClock??0} · PMON bit ${voice.pmon?'On':'Off'}`;
       }
     }
   } else {$('spuLiveReadout').textContent='';updateSampleName();}

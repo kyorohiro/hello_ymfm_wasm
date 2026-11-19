@@ -7,7 +7,7 @@ import {Ps1Resampler} from './ps1_resampler.js?v=scsp-fm-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
-const METHODS=new Set(['loadADPCM','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);
+const METHODS=new Set(['loadADPCM','setPreset','setChannel','setEnvelope','setReverb','setNoiseEnabled','setNoiseClock','setPmonEnabled','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);
 const RESOURCES=new Set(['loadADPCM','getState','getPreset','snapshot']);
 const INSPECTOR_METHODS=new Set(['_auditionKeyOn','_auditionKeyOff','_refreshEnvelope']);
 export class Ps1InstrumentProcessor extends AudioWorkletProcessor {

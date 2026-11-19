@@ -145,6 +145,7 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
     async _stopVoices(){const op=operation();try{await admit([identify({method:'stop-voices'})],{},op);}finally{operations.delete(op);}},
     loadADPCM,getState:()=>readControl('getState'),getPreset:ch=>readControl('getPreset',[ch]),snapshot:()=>readControl('snapshot'),dispose(){}};
   for(const method of nativePs1Controls)client[method]=(...args)=>{const pending=controls(method,clone(args));report(pending);};
+  for(const method of ['setNoiseEnabled','setNoiseClock','setPmonEnabled'])client[method]=()=>{throw new Error('PS1 hardware Noise/PMON controls require AudioWorklet; Native global masked updates are not supported yet');};
   attachPs1TimedClient(client,{native:true});
   function dispatch(message,timing={}){const {method,args=[]}=message;let result;if(method==='dispose')result=true;
     else if(method==='loadADPCM')result=loadADPCM(args[0],args[1],timing);

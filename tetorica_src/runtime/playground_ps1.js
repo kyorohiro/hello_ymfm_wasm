@@ -49,6 +49,11 @@ export function createPs1Client(port,initial={},lifecycle={}) {
     /** @param {number} ch @param {number} pitch */ setPitch(ch,pitch){control('setPitch',[ch,pitch]);},
     /** @param {number} ch @param {number} hz */ setFrequency(ch,hz){control('setFrequency',[ch,hz]);},
     /** @param {number} ch @param {string|number} note */ setNote(ch,note){control('setNote',[ch,note]);},
+    /** Hardware Noise bit; does not allocate or trigger a sample. @param {number} ch @param {boolean} enabled */
+    setNoiseEnabled(ch,enabled){control('setNoiseEnabled',[ch,enabled]);},
+    /** Shared clock code 0..63. @param {number} code */ setNoiseClock(code){control('setNoiseClock',[code]);},
+    /** Previous physical CH is the source; no auto pairing. @param {number} ch @param {boolean} enabled */
+    setPmonEnabled(ch,enabled){control('setPmonEnabled',[ch,enabled]);},
     /** @param {number} ch */ keyOn(ch){control('keyOn',[ch]);},
     /** @param {number} ch */ keyOff(ch){control('keyOff',[ch]);},
     /** @param {number} ch @param {string|number} [note] */ noteOn(ch,note){control('noteOn',note===undefined?[ch]:[ch,note]);},

@@ -1821,3 +1821,31 @@ test('Synth Code timed schedule uses the borrowed SPU, maintains raw/guarded rel
  p.command('stop');p.render(2000);assert.equal(p.processor.performance.getStats().patternCount,0);
  assert.throws(()=>p.command('codeTimed',[session,{action:'capture'}]),/session stopped/);
 });
+
+test('Code hardware flags do not allocate samples, retune a PMON source or survive Code Stop',async t=>{
+ const p=await setup(48000);t.after(()=>p.close());const authored=p.command('getInstrument',[0]),{session}=p.command('beginCode');
+ const call=(method,...args)=>p.command('code',[session,method,args]),core=p.processor.synth.core;
+ const before=core.readRam(),sampleCount=p.processor.synth.samples.length,sourceWords=Array.from({length:8},(_,at)=>core.read(at*2));
+ call('setNoiseEnabled',23,true);call('setNoiseClock',42);call('setPmonEnabled',1,true);
+ assert.equal(p.processor.synth.samples.length,sampleCount);assert.deepEqual(core.readRam(),before);assert.deepEqual(Array.from({length:8},(_,at)=>core.read(at*2)),sourceWords);
+ assert.deepEqual([...p.processor.codeGates],[]);assert.equal(core.read(0x192),0);assert.equal(core.read(0x190)&2,2);
+ call('noteOn',1,'E3');assert.deepEqual([...p.processor.codeGates],[1],'no helper source key-on');
+ // A normal voice edit and helper synchronization cannot erase raw control bits.
+ call('setPreset',23,{volumeLeft:.1});p.processor.syncModulators();
+ assert.equal(core.read(0x196)&128,128);assert.equal(core.read(0x190)&2,2);assert.equal((core.read(0x1aa)>>8)&63,42);
+ const observed=call('getState');assert.equal(observed.channels[23].noise,true);assert.equal(observed.channels[1].pmon,true);assert.equal(observed.noiseClock,42);
+ assert.deepEqual(p.command('getInstrument',[0]),authored);
+ p.command('stop');assert.equal(core.read(0x194)|core.read(0x196)|core.read(0x190)|core.read(0x192),0);
+ assert.equal(p.processor.codeHardwareNoise.size,0);assert.equal(p.processor.codeHardwarePmon.size,0);assert.equal(p.processor.codeHardwareNoiseClock,null);
+});
+
+test('scheduled Code Noise/PMON shares compile masks and manual Noise clock edits use actual write order',async t=>{
+ const p=await setup(44100);t.after(()=>p.close());const {session}=p.command('beginCode'),core=p.processor.synth.core;
+ const {buildPs1Operations}=await import('../../tetorica_src/runtime/ps1_operations.js');
+ const plan=buildPs1Operations(b=>{b.setNoiseEnabled(0,true).setPmonEnabled(1,true).setNoiseClock(12);b.atSample(256).setNoiseClock(34);});
+ p.command('codeTimed',[session,{action:'schedule',operations:plan,options:{name:'flags'}}]);p.render(200);
+ assert.equal((core.read(0x1aa)>>8)&63,12);assert.equal(core.read(0x190)&2,2);
+ p.command('editInstrument',[session,0,'setInstrumentNoise',[{clock:18},['clock'],sine()]]);
+ assert.equal((core.read(0x1aa)>>8)&63,18);
+ p.render(300);assert.equal((core.read(0x1aa)>>8)&63,34);assert.equal(core.read(0x194)&1,1);
+});
