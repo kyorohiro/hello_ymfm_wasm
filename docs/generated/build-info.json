@@ -2081,7 +2081,7 @@
     {
       "id": "ym2608",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "f731f611a11d318d34b19ef32f61df39d1b5513fda0aa5fa51731671a90c58bc",
+      "sourceFingerprint": "8739932dd63124ef773b52194bdfb852d657297809c69c8a1b5a116c5b372e08",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -2090,8 +2090,8 @@
         },
         {
           "path": "scripts/build_ym2608_wasm.sh",
-          "sha256": "e62d5f7e50ec0af80f743fb8464ac0f9b72091f1bc154b6087140d691524190e",
-          "size": 1265
+          "sha256": "ec793325b99032e35db9765dc6abe19601c83c8b9651f3dc3886334cff720f42",
+          "size": 1292
         },
         {
           "path": "scripts/record_wasm_build.mjs",
@@ -2230,8 +2230,8 @@
         },
         {
           "path": "wasm/ym2608_wasm.cpp",
-          "sha256": "edcc0f8369514fded3c8bee51ff747594dceeb0223946a0f9a94260dae02fdc4",
-          "size": 6574
+          "sha256": "88dcd408391a090284492054506afbe30cfdbbee6adb5f02fe6103b60b0c4946",
+          "size": 12371
         },
         {
           "path": "wasm/ymfm_wasm_interface.h",
@@ -2242,13 +2242,13 @@
       "outputs": [
         {
           "path": "ym2608_wasm.js",
-          "sha256": "34b64e4e21587dd419116cb0b1acccac89628a58670064b3fe39ac0ee2accc5f",
-          "size": 36733
+          "sha256": "881db04bfc01297774b591b1bb5420bbda8894b6508b53eb9c711d23c62e6b6e",
+          "size": 37110
         },
         {
           "path": "ym2608_wasm.wasm",
-          "sha256": "7323c75faea0576087d120676d1975f20560b10db490097c6627d845dd6f829a",
-          "size": 54488
+          "sha256": "024dbdd07e30d8a7fece97b266b9b15225922a23d06fe08472e00780f1732f8d",
+          "size": 55761
         }
       ],
       "compiler": {

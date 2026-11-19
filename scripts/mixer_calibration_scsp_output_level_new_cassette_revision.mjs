@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createYm2608SourceMixPolicyReadContext} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
 
 export const SCSP_OUTPUT_LEVEL_NEW_CASSETTE_BASE='db1e739d5bf8dac68bf93aa3aea34ef098153b25';
 export const SCSP_OUTPUT_LEVEL_NEW_CASSETTE_RECEIPT='docs/issues/scsp_output_level_new_cassette_source_revision_01.json';
@@ -143,11 +144,15 @@ function createRestorer(readSource,snapshot=false){
     return restoreBody(Buffer.from(bytes),entry);
   };
 }
-export function restoreMixerCalibrationScspOutputLevelNewCassetteRevision(path,bytes,{readSource=read}={}){return createRestorer(readSource)(path,bytes);}
+export function restoreMixerCalibrationScspOutputLevelNewCassetteRevision(path,bytes,{readSource=read}={}){
+  const latest=createYm2608SourceMixPolicyReadContext(readSource);
+  return createRestorer(latest.readSource)(path,latest.restore(path,bytes));
+}
 export function createScspOutputLevelNewCassetteRevisionReadContext(readSource=read){
+  const latest=createYm2608SourceMixPolicyReadContext(readSource);readSource=latest.readSource;
   const originals=new Map(),predecessors=new Map();
   const original=url=>{const key=url instanceof URL?url.href:url;if(!originals.has(key))originals.set(key,Buffer.from(readSource(url)));return originals.get(key);};
   const restore=createRestorer(original,true);
   const reader=url=>{const key=url instanceof URL?url.href:url;if(!predecessors.has(key)){const bytes=original(url),name=url instanceof URL&&url.protocol==='file:'?relative(root,fileURLToPath(url)).replaceAll('\\','/'):null;predecessors.set(key,name===null?bytes:restore(name,bytes));}return predecessors.get(key);};
-  return {restore,readSource:reader};
+  return {restore:(path,bytes)=>restore(path,latest.restore(path,bytes)),readSource:reader};
 }

@@ -22,7 +22,7 @@ async function compareOutput(section,fileMultiplier = 1) {
   ]);
   try {
     const source = {sourceChip:'ym2203',compatibility:{extraVolumeEntries:[{section,chipIndex:0,relative:true,multiplier:fileMultiplier}]}};
-    opna.setOutputGains(resolveFm2608OutputMix({ym2203Mode:true},source).effective);
+    opna.setSourceGains(resolveFm2608OutputMix({ym2203Mode:true},source).effective);
     const write = (register,value) => {opn.writeYm2203(register,value);opna.writeYm2608(0,register,value);};
     write(7,0x3f);write(8,0);write(9,0);write(10,0);
     if (section === 'ssg') {

@@ -149,11 +149,16 @@ continues to use the bundled Tetorica synthetic ROM.
 
 ## Output Mixer
 
-Mixer has separate 0–380% software levels for the FM / Rhythm / ADPCM stereo
-bus and the SSG mono bus. They apply to Keyboard, Code and reference playback.
+Mixer has independent 0–380% software levels for **FM, SSG, Rhythm and ADPCM**.
+They apply to Keyboard, Code and reference playback before the source outputs
+are mixed, while keeping sound registers and hardware envelope levels intact.
 The current effective multipliers include the manual faders, YM2203 correction
 and selected VGM volume entries. Channel mute buttons and the final Master
 remain available alongside these levels.
+
+YM2203 correction and VGM volume entries affect FM and SSG only; Rhythm and
+ADPCM retain their individual fader values. The source faders are separate
+from the Rhythm volume and ADPCM Level controls that program the sound chip.
 
 YM2203 mode can also be enabled manually. A newly selected song sets the mode
 from its source chip while retaining manual fader values. Gain changes preserve

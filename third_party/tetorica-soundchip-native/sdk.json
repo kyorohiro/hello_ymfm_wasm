@@ -1,6 +1,6 @@
 {
   "name": "tetorica-soundchip-native",
-  "version": "0.1.8-fm2608-mixer",
+  "version": "0.1.8-fm2608-source-mixer",
   "stage": "bootstrap",
   "description": "Self-contained sound-chip source collection and Native/WASM build recipes",
   "catalog": "catalog/chips.json",

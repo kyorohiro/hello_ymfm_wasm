@@ -5,9 +5,10 @@ import {createPlaygroundSoundChipMixer} from '../docs/playground/playground_mixe
 import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
 import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
+import {validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
 const root=new URL('../',import.meta.url),reportPath=new URL('docs/issues/playground_chip_levels_01.json',root);
 const workflow=await readFile(new URL('.github/workflows/itch-web.yml',root),'utf8');
-for(const [kind,parameter,validate]of [['ps1','ps1Report',validatePs1MixerCalibrationSources],['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources],['pokey','pokeyReport',validatePokeyMixerCalibrationSources]]){
+for(const [kind,parameter,validate]of [['ps1','ps1Report',validatePs1MixerCalibrationSources],['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources],['pokey','pokeyReport',validatePokeyMixerCalibrationSources],['scsp','scspReport',validateScspMixerCalibrationSources]]){
  test(`itch workflow ${kind} verification baseline matches current sources and primary/extra policy`,async()=>{
   const commands=[...workflow.matchAll(new RegExp(`node scripts/calibrate_${kind}_levels\\.cjs --verify --baseline ([^\\s]+)`,'g'))];assert.equal(commands.length,1,`one ${kind} browser verification command`);
   const report=JSON.parse(await readFile(new URL(commands[0][1],root),'utf8'));

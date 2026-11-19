@@ -40,6 +40,8 @@ jobs:
           npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
       - name: Test FM2612 and PSG Synth behavior with actual WASM cores
         run: node --test docs/synth/*.test.mjs scripts/synth_pcm_reference_timing.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-core-tests.log"
+      - name: Verify current source-mix measurements and immutable calibration history
+        run: node --test scripts/ym2608_source_mix_mixer_calibration.test.mjs scripts/mixer_calibration_ym2608_source_mix_history.test.mjs scripts/mixer_calibration_ym2608_source_mix_policy_revision.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/source-mix-calibration-tests.log"
       - name: Test batch packaging, Run ZIP preparation, UI bundling, archives and Game Boy conversion
         run: node --test scripts/package_itch_all.test.mjs scripts/build_spu_import_demos.test.mjs scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
       - name: Test PCM to BRR with the native and WASM S-DSP
@@ -67,20 +69,20 @@ jobs:
       - name: Verify PS1 and WonderSwan Mixer references, generated defaults and saved absolute settings
         run: |
           node --test scripts/soundchip_calibration_ps1.test.mjs scripts/ps1_mixer_calibration.test.mjs scripts/soundchip_calibration_wonderswan.test.mjs scripts/wonderswan_mixer_calibration.test.mjs scripts/mixer_calibration_sources.test.mjs scripts/mixer_calibration_synth_source_navigation_revision.test.mjs scripts/mixer_calibration_fm2608_navigation_revision.test.mjs scripts/mixer_calibration_measured_policy_revision.test.mjs scripts/mixer_calibration_synth_controls_revision.test.mjs scripts/itch_web_calibration_baselines.test.mjs scripts/mixer_calibration_ps1_starter.test.mjs scripts/live_controls_mixer_calibration.test.mjs scripts/live_api_mixer_calibration.test.mjs scripts/live_release_mixer_calibration.test.mjs scripts/deferred_release_mixer_calibration.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs test/runtime/soundchip_mixer.test.mjs test/runtime/soundchip_mixer_presets.test.mjs docs/playground/playground_mixer_state.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer-tests.log"
-          node scripts/calibrate_ps1_levels.cjs --verify --baseline docs/issues/ps1_ay_single_output_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/ps1-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer.log"
-          node scripts/calibrate_wonderswan_levels.cjs --verify --baseline docs/issues/wonderswan_ay_single_output_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/wonderswan-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/wonderswan-mixer.log"
+          node scripts/calibrate_ps1_levels.cjs --verify --baseline docs/issues/ps1_ym2608_source_mix_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/ps1-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer.log"
+          node scripts/calibrate_wonderswan_levels.cjs --verify --baseline docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/wonderswan-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/wonderswan-mixer.log"
       - name: Verify POKEY square-family reference, dual chips and generated Mixer defaults
         run: |
           node --test scripts/soundchip_calibration_pokey.test.mjs scripts/pokey_mixer_calibration.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-tests.log"
           node scripts/check_pokey_calibration_offline.mjs --out "$RUNNER_TEMP/itch-web/pokey-mixer-offline.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-offline.log"
-          node scripts/calibrate_pokey_levels.cjs --verify --baseline docs/issues/pokey_ay_single_output_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/pokey-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer.log"
+          node scripts/calibrate_pokey_levels.cjs --verify --baseline docs/issues/pokey_ym2608_source_mix_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/pokey-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer.log"
       - name: Test SCSP two-bus DSP routing and unchanged default output
         run: |
           node --test test/runtime/scsp_dsp_routing.test.mjs test/runtime/scspsynth_routing.test.mjs test/runtime/playground_scsp_worklet.test.mjs docs/playground/playground_scsp_dsp_routing_example.test.mjs docs/playground/playground_scsp_dsp_execution_declarations.test.mjs scripts/mixer_calibration_scsp_dsp_routing_revision.test.mjs scripts/playground_scsp_dsp_routing_default_parity.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-routing-tests.log"
       - name: Verify SCSP current source provenance, state restoration and generated Mixer defaults
         run: |
           node --test scripts/scsp_mixer_calibration.test.mjs scripts/vab_mixer_calibration.test.mjs scripts/mixer_calibration_virtual_files_revision.test.mjs test/runtime/native_runtime_synth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-mixer-tests.log"
-          node scripts/calibrate_scsp_levels.cjs --verify --baseline docs/issues/scsp_ay_single_output_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/scsp-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-mixer.log"
+          node scripts/calibrate_scsp_levels.cjs --verify --baseline docs/issues/scsp_ym2608_source_mix_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/scsp-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/scsp-mixer.log"
       - name: Distinguish renderer clock observations from captured PCM loss
         run: node scripts/check_audio_clock_browser.cjs --out "$RUNNER_TEMP/itch-web/audio-clock.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/audio-clock.log"
       - name: Test standalone PS1 SPU in browser and worker

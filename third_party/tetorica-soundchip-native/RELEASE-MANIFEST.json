@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "bc86d6758f63e38769dce5452faa6f9e7a628e6cc3765bab6ed6d9931c474c16",
-      "size": 28539
+      "sha256": "1280aa34e333a6a41d561920c07be02b30d404a66f3701ffc57267075112c9dc",
+      "size": 29575
     },
     "CMakeLists.txt": {
       "sha256": "769d676f59f1e9ba925b04d7e67cd43d49141f11da37ab897f7eea6029d4e121",
@@ -45,7 +45,7 @@
       "size": 52978
     },
     "catalog/source_inventory.json": {
-      "sha256": "98da8d69847dcd705711b9544c83d04ca15e1f80c84dca68f9196473781556ee",
+      "sha256": "eff2b4df392917dc751b400c29e1a70395fba5af8ed5a36c6d6fceb6a95f4c2c",
       "size": 156996
     },
     "docs/architecture.md": {
@@ -75,6 +75,10 @@
     "docs/verification.md": {
       "sha256": "78cdb20afecb63b2093f51e317913aa5a5f6834c41217cda803f4c3df57aa841",
       "size": 106852
+    },
+    "docs/ym2608-source-mixer.md": {
+      "sha256": "16fdb08e3d16a73d153a16f5f572643e056c5296895eb822fb2982aa41663d69",
+      "size": 2603
     },
     "native/CMakeLists.txt": {
       "sha256": "c18c60a8e891321714d25383d7a6a24281f842ebcb29ada35ad62afc9fcd8d6b",
@@ -801,8 +805,8 @@
       "size": 1067
     },
     "scripts/build_ym2608_wasm.sh": {
-      "sha256": "e62d5f7e50ec0af80f743fb8464ac0f9b72091f1bc154b6087140d691524190e",
-      "size": 1265
+      "sha256": "ec793325b99032e35db9765dc6abe19601c83c8b9651f3dc3886334cff720f42",
+      "size": 1292
     },
     "scripts/build_ym2610b_wasm.sh": {
       "sha256": "cab13d11416f6c0ede3bbfacdb9e73fa4feb6eb4127947ba54c76fb11ab373e5",
@@ -865,8 +869,8 @@
       "size": 15168
     },
     "sdk.json": {
-      "sha256": "fed055b65e3fd40abee4b3ca5783c57ab313843a48296d9b7ca5d144adfae668",
-      "size": 298
+      "sha256": "48b53d9cfee9ee7f8f9c6501fce6edfd5c530bd1e9878c8523285d4a7aaac2cf",
+      "size": 305
     },
     "tests/README.md": {
       "sha256": "ede0407989c463210456947818b82bf7137f2ec1f84f3e9864bb9295c7399541",
@@ -937,8 +941,12 @@
       "size": 11926
     },
     "tests/ym2608_output_gains_wasm_smoke.mjs": {
-      "sha256": "406aeea76450b62c925a2fae22dafa898e3d583b818e609cf7ae163562b2ca27",
-      "size": 6387
+      "sha256": "d43692db04b2c96d25319a474b89b38da5eb7b34a48e5e180d3c1491c1507d58",
+      "size": 6576
+    },
+    "tests/ym2608_source_gains_wasm_smoke.mjs": {
+      "sha256": "ed72d4bfda2be2bbd9f5d7ca709c2d82da5ca01808fa9a17fd0225aceaa60626",
+      "size": 8934
     },
     "vendor/README.md": {
       "sha256": "e8bf25567d12d8fbf51772fa356d2bf713a51acbc5c8fac160ee523ac378018d",
@@ -1893,8 +1901,8 @@
       "size": 2026
     },
     "wasm/ym2608_wasm.cpp": {
-      "sha256": "edcc0f8369514fded3c8bee51ff747594dceeb0223946a0f9a94260dae02fdc4",
-      "size": 6574
+      "sha256": "88dcd408391a090284492054506afbe30cfdbbee6adb5f02fe6103b60b0c4946",
+      "size": 12371
     },
     "wasm/ym2610b_wasm.cpp": {
       "sha256": "aeda15e37d3336028f46a8daf9ae48d092d7188f079d74a3492db25d21f6f849",
@@ -1928,5 +1936,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.8-fm2608-mixer"
+  "version": "0.1.8-fm2608-source-mixer"
 }

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readHistoricalYm2608SourceMixFileSync as readFileSync,createHistoricalYm2608SourceMixReader} from '../test/helpers/historical_ym2608_source_mix_fixture.mjs';
 import {createHash} from 'node:crypto';
-import {restoreMixerCalibrationYm2608OutputGainRevision as restore,
+import {restoreMixerCalibrationYm2608OutputGainRevision as restoreArchived,
   YM2608_OUTPUT_GAIN_REVISION_SOURCE_PATHS as paths,YM2608_OUTPUT_GAIN_REVISION_RELATED_PATHS as related,
   YM2608_OUTPUT_GAIN_REVISION_REPORT_PATHS as reports,YM2608_OUTPUT_GAIN_DEFAULT_PCM_PATH as proofPath,
   YM2608_OUTPUT_GAIN_REVISION_RECEIPT_PATH as receiptPath,YM2608_OUTPUT_GAIN_REVISION_RECEIPT_OBJECT_SHA256 as pin,
@@ -11,6 +11,8 @@ import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources
 import {ym2608OutputGainDefaultChecker} from './check_ym2608_output_gain_defaults.mjs';
 
 const read=name => readFileSync(new URL('../'+name,import.meta.url));
+const restore=(path,bytes,options={})=>restoreArchived(path,bytes,{...options,
+  readSource:createHistoricalYm2608SourceMixReader(options.readSource)});
 const sha=bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(read(receiptPath));
 const measured=JSON.parse(read(reports[0]));
@@ -23,7 +25,8 @@ test('the exact dormant YM2608 revision restores both measured bodies and retain
     for(const path of paths) {
       const current=read('docs/'+path),record=report.sources[path];
       assert.equal(restore(path,current,{record,report}).toString(),receipt.sources[path].beforeText);
-      assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:current,record,report}),'ym2608-dormant-output-gain-api');
+      assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:restore(path,current,{record,report}),record,report}),'raw',
+        'Authenticated archived bytes identify history; current-source approval comes from fresh measurements');
     }
     assert.equal(sha(read(file)),sha(bytes));
   }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {VgmPlayer} from '../js/vgmplayer.js';
-import {YM2608Synth} from '../js/ym2608synth.js';
+import {YM2608Synth} from '../js/ym2608synth.js?v=ym2608-source-gains-1';
 import {prepareFm2608SongSource} from './song_source.js';
 import {createFm2608SongTimeline,createFm2608RegisterState} from './song_state.js';
-import {createFm2608SongEngine,installFm2608SongMix,FM2608_SONG_CHANNELS} from './song_engine.js';
-import {readFm2608OutputMix,resolveFm2608OutputMix} from './output_mix.js';
+import {createFm2608SongEngine,installFm2608SongMix,FM2608_SONG_CHANNELS} from './song_engine.js?v=fm2608-source-mixer-1';
+import {readFm2608OutputMix,resolveFm2608OutputMix} from './output_mix.js?v=fm2608-source-mixer-1';
 import {createPerformanceQueue} from '../js/playground_performance_queue.js';
 import {createFm2608AdpcmNoteOffGuard} from './adpcm_noteoff_guard.js?v=opna-sine-release-2';
 
@@ -199,7 +199,7 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
   }
   function applyMix(run) {
     for (const [section,channels] of Object.entries(enabled)) channels.forEach((value,channel) => run.mix.setChannelEnabled(section,channel,value));
-    run.engine.setOutputGains(resolveFm2608OutputMix(outputMix,run.source).effective);
+    run.engine.setSourceGains(resolveFm2608OutputMix(outputMix,run.source).effective);
     run.gain.gain.value = volume;
   }
   function scheduleSegment(run,segment) {
@@ -484,8 +484,8 @@ export function createFm2608SongPlayer({getAudio,beforePlay=async()=>{},onState=
     open();
     const next = readFm2608OutputMix(value,outputMix);
     const effective = resolveFm2608OutputMix(next,source).effective;
-    active?.engine.setOutputGains(effective);
-    audition?.engine.setOutputGains(effective);
+    active?.engine.setSourceGains(effective);
+    audition?.engine.setSourceGains(effective);
     outputMix = next;
     // Existing queued stereo buffers finish at the previous mix. New PCM uses
     // these gains within the normal short lookahead, including after Resume.

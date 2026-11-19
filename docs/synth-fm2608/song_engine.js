@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {Ym2608AudioEngine} from '../js/ym2608audioengine.js';
+import {Ym2608AudioEngine} from '../js/ym2608audioengine.js?v=ym2608-source-gains-1';
 import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 import {createFm2608RegisterState} from './song_state.js';
 
 export const FM2608_SONG_CALIBRATED_GAIN = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(value => value.name === 'ym2608').volume;
 export const FM2608_SONG_CHANNELS = Object.freeze({fm:6,ssg:3,rhythm:6,adpcm:1});
-let rhythmBytes = null;
+let rhythmBytes = null, wasmBytes = null;
 
 /** The same measured OPNA gain and original rhythm ROM as RuntimeSynth.
  * Source mutes keep the native clocks running and retain every authored value. */
 export async function createFm2608SongEngine(header) {
-  const {default:ym2608ModuleFactory} = await import('../generated/ym2608_wasm.js');
+  const {default:ym2608ModuleFactory} = await import('../generated/ym2608_wasm.js?v=fm2608-source-mixer-1');
+  if (!wasmBytes) {
+    const response = await fetch(new URL('../generated/ym2608_wasm.wasm?v=fm2608-source-mixer-1',import.meta.url));
+    if (!response.ok) throw new Error(`OPNA audio processor could not be loaded (${response.status})`);
+    wasmBytes = new Uint8Array(await response.arrayBuffer());
+  }
   const engine = await Ym2608AudioEngine.create({ym2608ModuleFactory,ym2608Clock:header.ym2608Clock,
+    ym2608ModuleOptions:{wasmBinary:wasmBytes},
     outputSampleRate:44100,masterVolume:FM2608_SONG_CALIBRATED_GAIN});
   try {
     if (!rhythmBytes) {

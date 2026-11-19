@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 
-export const FM2608_OUTPUT_MIX_DEFAULTS = Object.freeze({fm:1,ssg:1,ym2203Mode:false});
+export const FM2608_OUTPUT_MIX_DEFAULTS = Object.freeze({fm:1,ssg:1,rhythm:1,adpcm:1,ym2203Mode:false});
 
 /** Software output controls. Voice registers and envelope levels stay intact. */
 export function readFm2608OutputMix(input = {},previous = FM2608_OUTPUT_MIX_DEFAULTS) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new TypeError('Output mix must be an object');
-  const result = {...previous};
+  const result = {...FM2608_OUTPUT_MIX_DEFAULTS,...previous};
+  // A restored two-bus record used fm for the whole FM/Rhythm/ADPCM bus.
+  // New partial edits only change their named source; they do not share gain.
+  if (!Object.hasOwn(previous,'rhythm')) result.rhythm = result.fm;
+  if (!Object.hasOwn(previous,'adpcm')) result.adpcm = result.fm;
   for (const key of Object.keys(input)) {
     if (!Object.hasOwn(FM2608_OUTPUT_MIX_DEFAULTS,key)) throw new TypeError('Unknown output mix control ' + key);
     const value = input[key];
@@ -42,6 +46,7 @@ export function resolveFm2608OutputMix(input = {},source = null) {
     if (!Number.isFinite(file[section]) || file[section] < 0 || file[section] >= 256) throw new RangeError('Invalid VGM output volume multiplier');
     appliedSections.add(section);
   }
-  return {...controls,correction,file,effective:{fm:controls.fm * correction.fm * file.fm,ssg:controls.ssg * correction.ssg * file.ssg},
+  return {...controls,correction,file,effective:{fm:controls.fm * correction.fm * file.fm,ssg:controls.ssg * correction.ssg * file.ssg,
+    rhythm:controls.rhythm,adpcm:controls.adpcm},
     fileVolumeEntries,volumeAdjustmentsApplied:controls.ym2203Mode && entries.length > 0};
 }

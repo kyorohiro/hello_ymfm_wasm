@@ -4,10 +4,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
+import {createYm2608SourceMixPolicyReader} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
 import {AY_SINGLE_OUTPUT_POLICY_RECEIPT_PATH as receiptPath,AY_SINGLE_OUTPUT_POLICY_RECEIPT_OBJECT_SHA256 as pin,
  AY_SINGLE_OUTPUT_POLICY_SOURCE_PATH as path,AY_SINGLE_OUTPUT_POLICY_REPORT_PATHS as paths,
  restoreMixerCalibrationAySingleOutputPolicyRevision as restore} from './mixer_calibration_ay_single_output_policy_revision.mjs';
-const read=path=>readFileSync(new URL('../'+path,import.meta.url)),json=path=>JSON.parse(read(path)),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const policyHistory=createYm2608SourceMixPolicyReader();
+const read=path=>policyHistory(new URL('../'+path,import.meta.url)),json=path=>JSON.parse(read(path)),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 test('new exact gain-policy transition is pinned to fresh raw captures and affected applied-gain verification',()=>{
  const receipt=json(receiptPath);assert.equal(sha(JSON.stringify(receipt)),pin);
  const latest=read(path),previous=restore(path,latest),prior=json('docs/issues/spc_voice_edit_mixer_policy_revision_01.json');

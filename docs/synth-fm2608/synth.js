@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createDefaultPreset, readPreset, readFmPreset, FM_PRESETS, RHYTHM_NAMES, waveShape, decodeAdpcm, decodeBase64} from './preset.js?v=opna-sine-release-2';
-import {createFm2608Audio} from './audio.js?v=audio-owned-release-1';
+import {createFm2608Audio} from './audio.js?v=fm2608-source-mixer-1';
 import {setupFm2608CodeHost} from './code_host.js?v=opna-output-menu-1';
-import {setupFm2608SongControls} from './song_controls.js?v=opna-sine-release-2';
+import {setupFm2608SongControls} from './song_controls.js?v=fm2608-source-mixer-1';
 import {createParamControl, buildHeader, buildOperatorControls} from '../synth/synth_controls.js';
 import {createOperatorEnvelopeView} from '../synth/synth_operator_envelope.js';
 import {createSynthOutputVisualizer} from '../synth/synth_output_visualizer.js';
@@ -892,7 +892,7 @@ function updateMaster(value) {
 }
 function updateOutputMixer(mix = songs?.getState().outputMix) {
   if (!mix) return;
-  for (const [key,id] of [['fm','Fm'],['ssg','Ssg']]) {
+  for (const [key,id] of [['fm','Fm'],['ssg','Ssg'],['rhythm','Rhythm'],['adpcm','Adpcm']]) {
     byId('mixer' + id + 'Volume').value = String(mix[key]);
     byId('mixer' + id + 'Volume').dataset.boosted = String(mix[key] > 1);
     byId('mixer' + id + 'Value').textContent = Math.round(mix[key] * 100) + '%';
@@ -901,8 +901,9 @@ function updateOutputMixer(mix = songs?.getState().outputMix) {
   byId('ym2203Mode').checked = mix.ym2203Mode;
   byId('mixerCorrection').textContent = (mix.ym2203Mode ? 'YM2203 correction · SSG ×0.75' : 'YM2203 correction Off') +
     (mix.volumeAdjustmentsApplied ? ' · VGM FM ×' + multiplier(mix.file.fm) + ' / SSG ×' + multiplier(mix.file.ssg) : '');
-  byId('mixerEffective').textContent = 'Effective output · FM ×' + multiplier(mix.effective.fm) + ' · SSG ×' + multiplier(mix.effective.ssg);
-  if (audio && audio.context.state !== 'closed') audio.setOutputGains(mix.effective);
+  byId('mixerEffective').textContent = 'Effective output · FM ×' + multiplier(mix.effective.fm) + ' · SSG ×' + multiplier(mix.effective.ssg) +
+    ' · Rhythm ×' + multiplier(mix.effective.rhythm) + ' · ADPCM ×' + multiplier(mix.effective.adpcm);
+  if (audio && audio.context.state !== 'closed') audio.setSourceGains(mix.effective);
 }
 async function stopAll() {
   generation++;
@@ -1158,7 +1159,7 @@ byId('instrumentName').addEventListener('change',event => {
 byId('startAudio').addEventListener('click',() => run(ensureAudio));
 byId('stopAudio').addEventListener('click',() => run(stopAll));
 for (const id of ['masterVolume','monitorVolume']) byId(id).addEventListener('input',event => updateMaster(Number(event.target.value)));
-for (const [key,id] of [['fm','mixerFmVolume'],['ssg','mixerSsgVolume']]) {
+for (const [key,id] of [['fm','mixerFmVolume'],['ssg','mixerSsgVolume'],['rhythm','mixerRhythmVolume'],['adpcm','mixerAdpcmVolume']]) {
   byId(id).addEventListener('input',event => {
     try { songs.player.setOutputMix({[key]:Number(event.target.value)}); }
     catch (error) { report(error); }

@@ -1,3 +1,9 @@
+# Unpublished YM2608 four-source mixer candidate
+
+- Add the optional WASM host ABI `ym2608_set_source_gains(handle, fm, ssg, rhythm, adpcm)`. Four floating-point gains leave registers, envelopes, clocks and decoder state unchanged; zero-gain sources continue advancing. The existing two-bus `ym2608_set_output_gains` keeps its FM-side-plus-SSG meaning.
+- Retain pinned ymfm sources unchanged. Bridge-local source taps share its exact FM/ADPCM clock and SSG resampler cadence; all-source unity preserves the historical aggregate integer/clipping path bit-for-bit. A versioned same-build checkpoint trailer saves source gains and cached stems and rejects incompatible raw snapshots before mutation.
+- Add standalone, device-free WASM checks for source isolation, gain composition, continued state evolution, validation/restore and default PCM parity. Existing local SPC/HuC/AY/output-bus overlays remain included. This candidate does not add four-source mixing to the separate Native Playground C ABI and is not a published SDK release.
+
 # Unpublished SPC voice editing candidate
 
 Adds spc_write_voice for bounded full-SPC host voice edits while preserving CPU, DSP phase, RAM and decoder/envelope history. Offline trace and RAM read-tracking sessions reject host writes. Existing DSP-only API behavior is unchanged. Includes the existing HuC state local candidate.

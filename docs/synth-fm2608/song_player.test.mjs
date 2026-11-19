@@ -26,7 +26,7 @@ function rig({beforePlay=async()=>{},createGate=null}={}) {
   const createEngine=async()=>{
     if(createGate)await createGate(engines.length);
     const engine={frames:0,writes:[],disposed:false,sampleRate:()=>44100,writeYm2608(...write){this.writes.push(write);},
-      outputGains:{fm:1,ssg:1},setOutputGains(value){this.outputGains={...value};},
+      sourceGains:{fm:1,ssg:1,rhythm:1,adpcm:1},setSourceGains(value){this.sourceGains={...value};},
       reset(){this.frames=0;},loadAdpcmBMemory(){},clearAdpcmBMemory(){},loadAdpcmARom(){},
       processFrames(frames){this.frames+=frames;return{left:new Float32Array(frames).fill(.1),right:new Float32Array(frames).fill(.1)};},dispose(){this.disposed=true;}};
     engines.push(engine);return engine;
@@ -161,12 +161,12 @@ test('YM2203 songs default to correction and file volumes, retaining user faders
   await r.player.load(opnFixture(),'OPN');
   let state=r.player.getState();
   assert.equal(state.outputMix.ym2203Mode,true);
-  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.6005859375});
+  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.6005859375,rhythm:1,adpcm:1});
   assert.equal(state.compatibility.volumeAdjustmentsApplied,true);
   assert.equal(state.compatibility.extraVolumeEntries[0].applied,true);
   assert.equal(r.engines.length,0);
   r.player.setOutputMix({ym2203Mode:false});
-  assert.deepEqual(r.player.getState().outputMix.effective,{fm:1.5,ssg:.5});
+  assert.deepEqual(r.player.getState().outputMix.effective,{fm:1.5,ssg:.5,rhythm:1,adpcm:1});
   assert.equal(r.player.getState().compatibility.extraVolumeEntries[0].applied,false);
   await assert.rejects(r.player.load(new Uint8Array(4),'bad'),/header/);
   assert.equal(r.player.getState().outputMix.ym2203Mode,false);
@@ -174,41 +174,41 @@ test('YM2203 songs default to correction and file volumes, retaining user faders
   assert.equal(r.player.getState().outputMix.ym2203Mode,true);
   await r.player.load(fixture(),'OPNA');
   state=r.player.getState();assert.equal(state.outputMix.ym2203Mode,false);
-  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.5});
-  r.player.clear();assert.deepEqual(r.player.getState().outputMix.effective,{fm:1.5,ssg:.5});
+  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.5,rhythm:1,adpcm:1});
+  r.player.clear();assert.deepEqual(r.player.getState().outputMix.effective,{fm:1.5,ssg:.5,rhythm:1,adpcm:1});
   await r.player.load(opnFixture(),'OPN to clear');
   r.player.clear();
   state=r.player.getState();
   assert.equal(state.sourceChip,null);assert.equal(state.outputMix.ym2203Mode,false);
   assert.equal(state.outputMix.volumeAdjustmentsApplied,false);
-  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.5});
+  assert.deepEqual(state.outputMix.effective,{fm:1.5,ssg:.5,rhythm:1,adpcm:1});
   r.player.dispose();
 });
 test('output mix changes retain transport, note registers and paused position through Resume and Seek',async()=>{
   const r=rig();await r.player.load(opnFixture(),'OPN');await r.player.play();
   const main=r.engines[0];
-  assert.deepEqual(main.outputGains,{fm:1,ssg:1.201171875});
+  assert.deepEqual(main.sourceGains,{fm:1,ssg:1.201171875,rhythm:1,adpcm:1});
   r.advance(.1);
   const firstPosition=r.player.getState().positionSeconds,writes=main.writes.length;
-  r.player.setOutputMix({fm:.8,ssg:1.2});
+  r.player.setOutputMix({fm:.8,ssg:1.2,rhythm:0,adpcm:3.8});
   assert.equal(main.writes.length,writes);
   assert.equal(main.disposed,false);assert.equal(r.player.getState().playback,'playing');
   assert.equal(r.player.getState().positionSeconds,firstPosition);
-  assert.deepEqual(main.outputGains,{fm:.8,ssg:1.4414062499999998});
+  assert.deepEqual(main.sourceGains,{fm:.8,ssg:1.4414062499999998,rhythm:0,adpcm:3.8});
   r.advance(.1);await r.player.pause();
   const pausedPosition=r.player.getState().positionSeconds,frames=main.frames;
   const audition=r.engines[1],chip=r.player.getChip();chip.ssg.noteOn(0,'C4');
   const auditionWrites=audition.writes.length;
   r.player.setOutputMix({ym2203Mode:false});
-  assert.deepEqual(main.outputGains,{fm:.8,ssg:1.2});
-  assert.deepEqual(audition.outputGains,{fm:.8,ssg:1.2});
+  assert.deepEqual(main.sourceGains,{fm:.8,ssg:1.2,rhythm:0,adpcm:3.8});
+  assert.deepEqual(audition.sourceGains,{fm:.8,ssg:1.2,rhythm:0,adpcm:3.8});
   assert.equal(audition.writes.length,auditionWrites);assert.equal(main.frames,frames);
   assert.equal(r.player.getState().positionSeconds,pausedPosition);
   assert.equal(r.player.getState().liveState.ssg.channels[0].volume,12);
   await r.player.resume();assert.equal(r.player.getState().playback,'playing');
   assert.equal(r.player.getState().positionSeconds,pausedPosition);
   r.advance(.1);assert(r.player.getState().positionSeconds>pausedPosition);
-  await r.player.seek(.5);assert.deepEqual(r.engines.at(-1).outputGains,{fm:.8,ssg:1.2});
+  await r.player.seek(.5);assert.deepEqual(r.engines.at(-1).sourceGains,{fm:.8,ssg:1.2,rhythm:0,adpcm:3.8});
   assert.equal(r.player.getState().playback,'playing');
   const current=r.player.getState().outputMix;
   assert.throws(()=>r.player.setOutputMix({fm:-1}),/0–3.8/);

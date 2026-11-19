@@ -11,7 +11,7 @@ import {createChipPortReceiver} from "./playground_chip_port.js";
  * AudioContext.audioWorklet.addModule() で読み込む専用エントリーポイント。音源コアの WASM も必要。
  */
 import ym2608ModuleFactory from "./generated/ym2608_wasm.js";
-import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains } from "./ym2608.js";
+import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js";
 
 class YM2608Processor extends AudioWorkletProcessor {
   constructor() {
@@ -21,6 +21,7 @@ class YM2608Processor extends AudioWorkletProcessor {
     this.chipRate = sampleRate;
     this.remainder = 0; this.lastLeft = 0; this.lastRight = 0;
     this.outputGains = {fm:1,ssg:1};
+    this.sourceGains = {fm:1,ssg:1,rhythm:1,adpcm:1};
     this.sectionOwners = {ssg: new Array(3).fill(null), rhythm: new Array(6).fill(null), adpcm: null};
     this.performanceOwnership = createPerformanceChipOwnership({
       writeFm: (register, value, port) => this.chip?.writeRegister(register, value, port),
@@ -61,6 +62,14 @@ class YM2608Processor extends AudioWorkletProcessor {
         } catch (error) { reply({type:'error',message:String(error.message ?? error)}); }
         return;
       }
+      if (data.type === 'source-gains') {
+        try {
+          const gains = normalizeYm2608SourceGains(data.gains,this.sourceGains);
+          this.chip?.setSourceGains(gains);
+          this.sourceGains = gains;
+        } catch (error) { reply({type:'error',message:String(error.message ?? error)}); }
+        return;
+      }
       if (data.type === 'loadRhythmRom' || data.type === 'loadAdpcmMemory') {
         const type = data.type === 'loadRhythmRom' ? 'rhythm-rom-loaded' : 'adpcm-memory-loaded';
         try {
@@ -90,6 +99,7 @@ class YM2608Processor extends AudioWorkletProcessor {
         moduleOptions: { wasmBinary: new Uint8Array(wasmBinary) },
       });
       this.chip.setOutputGains(this.outputGains);
+      if (Object.values(this.sourceGains).some(value => value !== 1)) this.chip.setSourceGains(this.sourceGains);
       this.auditions = createOpnAuditionGuard(this.chip, 6);
       this.opnInspector = new OpnKeyboardInspector(this.chip,{kind:'ym2608',guard:this.auditions,clock:()=>this.clock??8000000,sampleRate});
       this.chipRate = this.chip.sampleRate(YM2608_CLOCK);

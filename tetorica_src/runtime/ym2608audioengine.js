@@ -4,7 +4,7 @@
  * 依存: 音源チップ／WASM バックエンド（ファクトリーまたはエンジンを注入）。
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
-import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains } from "./ym2608.js";
+import { Ym2608, YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js";
 
 const DEFAULT_OUTPUT_SAMPLE_RATE = 44100;
 
@@ -39,7 +39,7 @@ export class Ym2608AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2608ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number, outputGains?:import('./ym2608.js').Ym2608OutputGainPatch}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2608ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number, outputGains?:import('./ym2608.js').Ym2608OutputGainPatch,sourceGains?:import('./ym2608.js').Ym2608SourceGainPatch}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2608AudioEngine>} Initialized engine owned by the caller.
@@ -52,12 +52,14 @@ export class Ym2608AudioEngine {
       outputSampleRate = DEFAULT_OUTPUT_SAMPLE_RATE,
       masterVolume = 1,
       outputGains,
+      sourceGains,
     } = options;
 
     if (!ym2608ModuleFactory) {
       throw new Error("ym2608ModuleFactory is required");
     }
     const gains = outputGains === undefined ? null : normalizeYm2608OutputGains(outputGains);
+    const sources = sourceGains === undefined ? null : normalizeYm2608SourceGains(sourceGains);
 
     const ym2608 = await Ym2608.create({
       moduleFactory: ym2608ModuleFactory,
@@ -65,6 +67,7 @@ export class Ym2608AudioEngine {
     });
     try {
       if (gains) ym2608.setOutputGains(gains);
+      if (sources) ym2608.setSourceGains(sources);
     } catch (error) { ym2608.dispose(); throw error; }
     const chipSampleRate = ym2608.sampleRate(ym2608Clock);
 
@@ -77,7 +80,7 @@ export class Ym2608AudioEngine {
   }
 
   supportsState() { return !this.writeOki6258 && Boolean(this.ym2608.supportsState?.()); }
-  stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this._rhythmRomRevision, this.getOutputGains()]); }
+  stateSettingsKey() { return JSON.stringify([this._chipSampleRate, this._sampleRate, this._masterVolume, this._sourceMuteMask, this._rhythmRomRevision, this.getOutputGains(),this.getSourceGains()]); }
   /** @returns {Readonly<{byteLength:number}>} Opaque snapshot owned by this instance. */
   saveState() {
     if (!this.supportsState()) throw new Error('OPN state saving unavailable');
@@ -154,6 +157,17 @@ export class Ym2608AudioEngine {
 
   /** @returns {import('./ym2608.js').Ym2608OutputGains} Detached output gains. */
   getOutputGains() { return this.ym2608.getOutputGains?.() ?? {fm:1,ssg:1}; }
+
+  /** @param {import('./ym2608.js').Ym2608SourceGainPatch} gains Independent source gains. */
+  setSourceGains(gains) {
+    if (this.ym2608.setSourceGains) return this.ym2608.setSourceGains(gains);
+    const next = normalizeYm2608SourceGains(gains,this.getSourceGains());
+    if (Object.values(next).some(value => value !== 1)) throw new Error('Reload the generated YM2608 WASM runtime to use independent source gains.');
+    return next;
+  }
+
+  /** @returns {import('./ym2608.js').Ym2608SourceGains} Detached independent source gains. */
+  getSourceGains() { return this.ym2608.getSourceGains?.() ?? {fm:1,ssg:1,rhythm:1,adpcm:1}; }
 
   /**
    * Dispatch a VGM register/command write to the corresponding sound chip.

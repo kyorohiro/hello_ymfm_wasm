@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {YM2608RuntimeSynth} from '../js/ym2608synth.js';
+import {YM2608RuntimeSynth} from '../js/ym2608synth.js?v=ym2608-source-gains-1';
 import {readSamplePCM} from '../js/adpcm_b_sample.js';
 import {encodeFm2608Adpcm} from './adpcm_encoder.js?v=opna-adpcm-lookahead-1';
 import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
@@ -109,8 +109,8 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
   codeInputNode.connect(codeFadeNode); codeFadeNode.connect(outputNode); outputNode.connect(context.destination);
   outputNode.gain.value = volume;
   const runtime = createRuntime({audioContext:context,outputNode:codeInputNode,masterVolume:1,
-    workletUrl:new URL('./audio_worklet.js?v=audio-owned-release-1',import.meta.url).href,
-    wasmUrl:new URL('../generated/ym2608_wasm.wasm',import.meta.url).href});
+    workletUrl:new URL('./audio_worklet.js?v=fm2608-source-mixer-1',import.meta.url).href,
+    wasmUrl:new URL('../generated/ym2608_wasm.wasm?v=fm2608-source-mixer-1',import.meta.url).href});
   const fade = createSynthCodeOutput({getContext:() => context,getGain:() => codeFadeNode});
   let chip, monitor, channel3, memory, adpcmGuard, restoreAdpcmAfterStop = false, disposed = false, closing = null, stopping = null, queue = Promise.resolve();
   let preset = createDefaultPreset(), accepted = null, pitch = 0, sampleEpoch = 0;
@@ -357,6 +357,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
   }
   function setMasterVolume(value) { checkVolume(value); assertOpen(); outputNode.gain.value = value; }
   function setOutputGains(value) { assertOpen(); return runtime.setOutputGains(value); }
+  function setSourceGains(value) { assertOpen(); return runtime.setSourceGains(value); }
   async function dispose() {
     if (closing) return closing;
     disposed = true; sampleEpoch++; gateEpoch++; held.clear(); fade.dispose(); adpcmGuard?.dispose();
@@ -409,7 +410,7 @@ export async function createFm2608Audio({volume = .7,onError = () => {},
     await applyPreset(preset);
     runtime.node?.addEventListener?.('processorerror',() => { report(new Error('OPNA audio processor failed. Enable audio to restart.')); void dispose(); });
     return {context,outputNode,codeInputNode,codeOutputNode:codeFadeNode,codeFadeNode,
-      getChip() { assertOpen(); return chip; },getPreset:() => readPreset(preset),applyPreset,setMasterVolume,setOutputGains,
+      getChip() { assertOpen(); return chip; },getPreset:() => readPreset(preset),applyPreset,setMasterVolume,setOutputGains,setSourceGains,
       noteOn,noteOff,setPitch,stopAll,loadAudio,setWave,
       getRegisterState() { assertOpen(); return monitor.registers.map(registers => Array.from(registers)); },
       getFmState() { assertOpen(); return monitor.getFmState(); },

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import factory from '../generated/ym2608_wasm.js';
-import {Ym2608,YM2608_CLOCK,normalizeYm2608OutputGains} from '../js/ym2608.js';
+import {Ym2608,YM2608_CLOCK,normalizeYm2608OutputGains,normalizeYm2608SourceGains} from '../js/ym2608.js';
 import {createPerformanceQueue,createPerformanceChipOwnership} from '../js/playground_performance_queue.js';
 import {createChipPortReceiver} from '../js/playground_chip_port.js';
 import {validateChipClock} from '../js/playground_chip_clock.js';
@@ -16,7 +16,7 @@ let module;
 const moduleFactory=async() => module??=await factory({wasmBinary});
 async function fixture(file,rate) {
   let Processor;
-  const messages=[],writes=[],scope={sampleRate:rate,currentFrame:0,YM2608_CLOCK,normalizeYm2608OutputGains,validateChipClock,
+  const messages=[],writes=[],scope={sampleRate:rate,currentFrame:0,YM2608_CLOCK,normalizeYm2608OutputGains,normalizeYm2608SourceGains,validateChipClock,
     createPerformanceQueue,createPerformanceChipOwnership,createYm2608AdpcmRelease,
     receiveOpnAuditionCommand:() => false,receiveChipInspector:() => false,
     AudioWorkletProcessor:class {constructor(){this.port={postMessage:message => messages.push(message)};}},

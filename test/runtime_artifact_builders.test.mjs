@@ -10,11 +10,12 @@ import {tmpdir} from 'node:os';
 
 const root = resolve(import.meta.dirname, '..');
 // These use application-local source closures and artifact recorders; their
-// independent SID tests cover them without the stubbed SDK dispatcher below.
-const standaloneSidBuilders = ['build_sid_wasm.sh', 'build_sid_player_wasm.sh', 'build_sid_rsid_wasm.sh'];
+// independent source-package tests cover them without the stubbed SDK dispatcher below.
+const standaloneBuilders = ['build_sid_wasm.sh', 'build_sid_player_wasm.sh', 'build_sid_rsid_wasm.sh',
+  'build_atari_audio_player_wasm.sh'];
 const wrappers = (await readdir(join(root, 'scripts')))
   .filter(name => /^build_.*_wasm\.sh$/.test(name)
-    && name !== 'build_opn_variant_wasm.sh' && !standaloneSidBuilders.includes(name));
+    && name !== 'build_opn_variant_wasm.sh' && !standaloneBuilders.includes(name));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const nativeEffectSources = ['sample', 'noise', 'gain', 'reverb', 'compressor', 'noise_gate', 'eq', 'graph', 'extra_fx']
   .map(name => 'tetorica_src/native/audio_effect/' + name + '.c');

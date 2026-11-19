@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {restoreMixerCalibrationAySingleOutputPolicyRevision} from './mixer_calibration_ay_single_output_policy_revision.mjs';
+import {restoreMixerCalibrationYm2608SourceMixPolicyRevision} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
 
 export const MEASURED_POLICY_REVISION_RECEIPT_PATH = 'docs/issues/spc_voice_edit_mixer_policy_revision_01.json';
 export const MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256 = 'ab1701112defa1016f19a2bdd82c3d3edf28ad4b2c3cc3892a01e7cf84086e1f';
@@ -41,6 +42,7 @@ function verifiedReceipt() {
 
 export function restoreMixerCalibrationMeasuredPolicyRevision(path, bytes, {readSource = url => readFileSync(url)} = {}) {
   if (path !== MEASURED_POLICY_REVISION_SOURCE_PATH) return bytes;
+  bytes = restoreMixerCalibrationYm2608SourceMixPolicyRevision(path,bytes,{readSource});
   bytes = restoreMixerCalibrationAySingleOutputPolicyRevision(path,bytes,{readSource});
   const evidence = verifiedReceipt();
   if (bytes.length !== evidence.after.bytes || sha(bytes) !== evidence.after.sha256) return bytes;

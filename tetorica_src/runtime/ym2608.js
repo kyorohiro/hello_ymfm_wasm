@@ -9,6 +9,8 @@ export const YM2608_ADPCM_B_MEMORY_SIZE = 0x200000;
 
 /** @typedef {{fm:number,ssg:number}} Ym2608OutputGains */
 /** @typedef {{fm?:number,ssg?:number}} Ym2608OutputGainPatch */
+/** @typedef {{fm:number,ssg:number,rhythm:number,adpcm:number}} Ym2608SourceGains */
+/** @typedef {{fm?:number,ssg?:number,rhythm?:number,adpcm?:number}} Ym2608SourceGainPatch */
 
 /** Validate host-side output gains before changing either bus.
  * FM includes the chip's already combined Rhythm and ADPCM-B outputs.
@@ -23,6 +25,22 @@ export function normalizeYm2608OutputGains(gains, current = {fm:1,ssg:1}) {
     if (bus !== 'fm' && bus !== 'ssg') throw new TypeError('Unknown YM2608 output bus ' + bus);
     if (!Number.isFinite(value) || value < 0 || value > 1024) throw new RangeError('YM2608 output gains must be finite values from 0 to 1024');
     next[bus] = value;
+  }
+  return next;
+}
+
+/** Validate independent source gains before changing any sound source.
+ * @param {Ym2608SourceGainPatch} gains Partial linear gains, each 0..1024.
+ * @param {Ym2608SourceGains} [current] Previously accepted gains.
+ * @returns {Ym2608SourceGains} Detached validated source gains.
+ */
+export function normalizeYm2608SourceGains(gains, current = {fm:1,ssg:1,rhythm:1,adpcm:1}) {
+  if (!gains || typeof gains !== 'object' || Array.isArray(gains)) throw new TypeError('YM2608 source gains must be an object');
+  const next = {...current};
+  for (const [source,value] of Object.entries(gains)) {
+    if (!['fm','ssg','rhythm','adpcm'].includes(source)) throw new TypeError('Unknown YM2608 source ' + source);
+    if (!Number.isFinite(value) || value < 0 || value > 1024) throw new RangeError('YM2608 source gains must be finite values from 0 to 1024');
+    next[source] = value;
   }
   return next;
 }
@@ -54,6 +72,7 @@ export class Ym2608 {
     this.rightPtr = 0;
     this.bufferFrames = 0;
     this.outputGains = {fm:1,ssg:1};
+    this.sourceGains = {fm:1,ssg:1,rhythm:1,adpcm:1};
   }
 
   /**
@@ -86,6 +105,7 @@ export class Ym2608 {
       clearAdpcmBMemory: optionalCwrap(module, "ym2608_clear_adpcm_b_memory", null, ["number"]),
       setSourceMuteMask: optionalCwrap(module, "ym2608_set_source_mute_mask", null, ["number", "number"]),
       setOutputGains: optionalCwrap(module, "ym2608_set_output_gains", "number", ["number", "number", "number"]),
+      setSourceGains: optionalCwrap(module, "ym2608_set_source_gains", "number", ["number", "number", "number", "number", "number"]),
       generate: module.cwrap("ym2608_generate", null, ["number", "number", "number", "number"]),
     };
 
@@ -106,7 +126,7 @@ export class Ym2608 {
       this.module._ym2608_save_state(this.handle, ptr);
       const bytes = new Uint8Array(this.module.HEAPF32.buffer, ptr, size).slice();
       const state = Object.freeze({byteLength: size});
-      this.#states.set(state, {bytes,outputGains:this.getOutputGains()});
+      this.#states.set(state, {bytes,outputGains:this.getOutputGains(),sourceGains:this.getSourceGains()});
       return state;
     } finally { this.module._free(ptr); }
   }
@@ -123,6 +143,7 @@ export class Ym2608 {
       new Uint8Array(this.module.HEAPF32.buffer, ptr, bytes.length).set(bytes);
       if (!this.module._ym2608_load_state(this.handle, ptr, bytes.length)) throw new Error('Invalid native state');
       this.outputGains = {...saved.outputGains};
+      this.sourceGains = {...saved.sourceGains};
       this.#syncIrq();
     } finally { this.module._free(ptr); }
   }
@@ -341,6 +362,26 @@ export class Ym2608 {
 
   /** @returns {Ym2608OutputGains} Detached linear output gain multipliers. */
   getOutputGains() { return {...this.outputGains}; }
+
+  /** Set independent host gains for FM, SSG, Rhythm and ADPCM-B before mixing.
+   * This does not change the legacy two-bus output gains or chip registers.
+   * @param {Ym2608SourceGainPatch} gains Partial linear gain multipliers, each 0..1024.
+   * @returns {Ym2608SourceGains} Accepted source gains.
+   */
+  setSourceGains(gains) {
+    if (!this.handle) throw new Error('YM2608 chip is disposed');
+    const next = normalizeYm2608SourceGains(gains,this.sourceGains);
+    if (this.api.setSourceGains) {
+      if (this.api.setSourceGains(this.handle,next.fm,next.ssg,next.rhythm,next.adpcm) !== 1) throw new Error('YM2608 source gains were rejected by the native runtime');
+    } else if (Object.values(next).some(value => value !== 1)) {
+      throw new Error('Reload the generated YM2608 WASM runtime to use independent source gains.');
+    }
+    this.sourceGains = next;
+    return this.getSourceGains();
+  }
+
+  /** @returns {Ym2608SourceGains} Detached independent source gain multipliers. */
+  getSourceGains() { return {...this.sourceGains}; }
 
   /**
    * Generate PCM synchronously, advancing the chip by the requested number of frames.

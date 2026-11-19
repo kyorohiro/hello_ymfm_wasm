@@ -15,13 +15,16 @@ import {restoreMixerCalibrationRf5c164NoteRevision as restore,RF5C164_NOTE_REVIS
   RF5C164_NOTE_REVISION_RECEIPT_PATH as receiptPath,RF5C164_NOTE_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   RF5C164_NOTE_REVISION_SOURCE_PATHS as paths,RF5C164_NOTE_REVISION_REPORT_PATHS as reports} from './mixer_calibration_rf5c164_note_revision.mjs';
 import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationCompletionPresetImportRevision} from './mixer_calibration_sources.mjs';
-import {restoreMixerCalibrationYm2608OutputGainRevision} from './mixer_calibration_ym2608_output_gain_revision.mjs';
+import {restoreMixerCalibrationYm2608OutputGainRevision as restoreYm2608} from './mixer_calibration_ym2608_output_gain_revision.mjs';
+import {createHistoricalYm2608SourceMixReader} from '../test/helpers/historical_ym2608_source_mix_fixture.mjs';
 import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
 import {sampleBytes} from '../tetorica_src/runtime/rf5c164_pcm.js';
 import {Rf5c164} from '../tetorica_src/runtime/rf5c164.js';
 import factory from '../docs/generated/rf5c164_wasm.js';
 
 const read=path=>readFile(new URL('../'+path,import.meta.url));
+const historicalYm2608=createHistoricalYm2608SourceMixReader();
+const restoreMixerCalibrationYm2608OutputGainRevision=(path,bytes,options)=>restoreYm2608(path,bytes,{...options,readSource:historicalYm2608});
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const receipt=JSON.parse(await read(receiptPath));
 const currentMeasurement=JSON.parse(await read('docs/issues/ps1_spc_voice_edit_chip_levels_01.json'));

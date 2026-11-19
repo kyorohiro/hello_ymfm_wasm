@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createFm2608SongPlayer} from './song_player.js?v=opna-sine-release-2';
+import {createFm2608SongPlayer} from './song_player.js?v=fm2608-source-mixer-1';
 import {captureFm2608SongPreset} from './song_state.js';
 
 const songPath = path => /^\/vgm\/.*\.(?:vgm|vgz|s98)$/i.test(path);

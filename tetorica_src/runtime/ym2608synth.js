@@ -7,7 +7,7 @@
 import { OPNDirectTransport, OPNWorkletTransport, OPNFMSynth } from "./opn_fm_synth.js";
 import { OPNRuntimeSynth } from "./opn_runtime_synth.js";
 import { SSGSynth } from "./ssgsynth.js?v=ssg-period-1";
-import { YM2608_CLOCK, normalizeYm2608OutputGains } from "./ym2608.js";
+import { YM2608_CLOCK, normalizeYm2608OutputGains, normalizeYm2608SourceGains } from "./ym2608.js";
 import {readSamplePCM, encodeAdpcmB} from './adpcm_b_sample.js';
 
 /** Direct transport for YM2608 register operations. */
@@ -283,9 +283,10 @@ export class YM2608Synth extends OPNFMSynth {
 
 /** Browser-hosted YM2608 FM synth with shared Tetorica audio services. */
 export class YM2608RuntimeSynth extends OPNRuntimeSynth {
-  /** @param {import('./opn_runtime_synth.js').OPNRuntimeSynthOptions & {outputGains?:import('./ym2608.js').Ym2608OutputGainPatch}} [options] */
+  /** @param {import('./opn_runtime_synth.js').OPNRuntimeSynthOptions & {outputGains?:import('./ym2608.js').Ym2608OutputGainPatch,sourceGains?:import('./ym2608.js').Ym2608SourceGainPatch}} [options] */
   constructor(options = {}) {
     const outputGains = normalizeYm2608OutputGains(options.outputGains ?? {});
+    const sourceGains = normalizeYm2608SourceGains(options.sourceGains ?? {});
     super(options, {
       chip: "ym2608",
       chipName: "YM2608",
@@ -298,11 +299,13 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),
     });
     this.outputGains = outputGains;
+    this.sourceGains = sourceGains;
   }
 
   async start() {
     await super.start();
     this.node.port.postMessage({type:'output-gains',gains:this.getOutputGains()});
+    if (Object.values(this.sourceGains).some(value => value !== 1)) this.node.port.postMessage({type:'source-gains',gains:this.getSourceGains()});
     return this;
   }
 
@@ -319,4 +322,17 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
 
   /** @returns {import('./ym2608.js').Ym2608OutputGains} Detached linear gains. */
   getOutputGains() { return {...this.outputGains}; }
+
+  /** Configure independent host gains without changing chip registers.
+   * @param {import('./ym2608.js').Ym2608SourceGainPatch} gains Partial linear gains, each 0..1024.
+   * @returns {import('./ym2608.js').Ym2608SourceGains} Accepted gains.
+   */
+  setSourceGains(gains) {
+    this.sourceGains = normalizeYm2608SourceGains(gains,this.sourceGains);
+    if (this.isReady()) this.node.port.postMessage({type:'source-gains',gains:this.getSourceGains()});
+    return this.getSourceGains();
+  }
+
+  /** @returns {import('./ym2608.js').Ym2608SourceGains} Detached independent source gains. */
+  getSourceGains() { return {...this.sourceGains}; }
 }

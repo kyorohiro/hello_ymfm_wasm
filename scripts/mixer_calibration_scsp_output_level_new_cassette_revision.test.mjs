@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {createYm2608SourceMixPolicyReader} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
 import {SCSP_OUTPUT_LEVEL_NEW_CASSETTE_BASE as base,SCSP_OUTPUT_LEVEL_NEW_CASSETTE_RECEIPT as receiptPath,
  SCSP_OUTPUT_LEVEL_NEW_CASSETTE_PIN as pin,SCSP_OUTPUT_LEVEL_NEW_CASSETTE_SOURCES as paths,
  SCSP_OUTPUT_LEVEL_NEW_CASSETTE_UNCHANGED as unchanged,
@@ -16,7 +17,8 @@ import {createScspSynthSlotAllocationRevisionReadContext} from './mixer_calibrat
 import {createScspSsfSlotMapRevisionReadContext} from './mixer_calibration_scsp_ssf_slot_map_revision.mjs';
 import {createScspCycle2UiRevisionReadContext} from './mixer_calibration_scsp_cycle2_ui_revision.mjs';
 import {createScspCycle2PresetsRevisionReadContext} from './mixer_calibration_scsp_cycle2_presets_revision.mjs';
-const url=name=>new URL('../'+name,import.meta.url),read=name=>readFileSync(url(name));
+const policyHistory=createYm2608SourceMixPolicyReader();
+const url=name=>new URL('../'+name,import.meta.url),read=name=>policyHistory(url(name));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const historical=name=>execFileSync('git',['show',base+':'+name],{maxBuffer:4*1024*1024});
 const receipt=JSON.parse(read(receiptPath));

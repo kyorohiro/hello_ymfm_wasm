@@ -4,13 +4,15 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {restoreMixerCalibrationAySingleOutputPolicyRevision as restoreLatest} from './mixer_calibration_ay_single_output_policy_revision.mjs';
 import {renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
+import {createYm2608SourceMixPolicyReader} from './mixer_calibration_ym2608_source_mix_policy_revision.mjs';
 import {MEASURED_POLICY_REVISION_RECEIPT_PATH as receiptPath,
   MEASURED_POLICY_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   MEASURED_POLICY_REVISION_SOURCE_PATH as path,
   MEASURED_POLICY_REVISION_REPORT_PATHS as reports,
   restoreMixerCalibrationMeasuredPolicyRevision as restore} from './mixer_calibration_measured_policy_revision.mjs';
 
-const read = path => readFileSync(new URL('../' + path,import.meta.url));
+const policyHistory=createYm2608SourceMixPolicyReader();
+const read = path => policyHistory(new URL('../' + path,import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const receipt = JSON.parse(read(receiptPath));
 

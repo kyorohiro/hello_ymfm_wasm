@@ -19,7 +19,7 @@ const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
 const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
-const currentScspReportPath='docs/issues/scsp_ay_single_output_chip_levels_01.json';
+const currentScspReportPath='docs/issues/scsp_ym2608_source_mix_chip_levels_01.json';
 
 test('source relocation retains the exact measured SCSP script digests and rejects unrelated edits',async()=>{
  for(const path of ['scripts/calibrate_scsp_levels.cjs','scripts/soundchip_calibration_scsp.mjs']){
@@ -53,13 +53,13 @@ test('SCSP script provenance accepts a complete historical or current layout and
  }
 });
 
-test('current SCSP measurement retains every exact script/source fingerprint after AY Single Output',async()=>{
+test('current SCSP measurement retains every exact script/source fingerprint after the source-mix remeasurement',async()=>{
  const bytes=await readFile(new URL('../'+currentScspReportPath,import.meta.url)),current=JSON.parse(bytes);
  await validateScspMixerCalibrationSources({reportPath,scspReport:current});
  const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
  for(const [path,expected]of Object.entries(current.scripts)){
    const bytes=await readFile(new URL('../'+path,import.meta.url));
-   assert.equal(sha(restoreMixerCalibrationScspDspExecutionRevision(path,bytes)),expected,path);
+   assert.equal(sha(bytes),expected,path);
  }
  for(const [path,record]of Object.entries(current.sources)){
    const actual=await readFile(new URL('../docs/'+path,import.meta.url));

@@ -51,8 +51,10 @@ input[data-boosted="true"] { accent-color:#eb8c35; }
 .opna-reference button { min-height:31px; padding:5px 10px; }
 #songTime { font-size:.72rem; color:var(--muted); white-space:nowrap; }
 #songCompatibility { font-size:.7rem; color:var(--muted); }
-.opna-output-mixer { display:grid; gap:12px; padding:14px; margin:12px 0 18px; border:1px solid var(--line); border-radius:10px; }
-.opna-output-mixer > label:not(.check-control) { display:grid; grid-template-columns:minmax(130px,1fr) minmax(80px,2fr) 52px; align-items:center; gap:10px; font-size:.78rem; }
+.opna-output-mixer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 20px; padding:14px; margin:12px 0 18px; border:1px solid var(--line); border-radius:10px; }
+.opna-output-mixer > .check-control,.opna-output-mixer > p { grid-column:1/-1; }
+.opna-output-mixer > label:not(.check-control) { display:grid; grid-template-columns:minmax(0,1fr) 52px; align-items:center; gap:5px 10px; font-size:.78rem; }
+.opna-output-mixer > label:not(.check-control) > span { grid-column:1/-1; }
 .opna-output-mixer input[type="range"] { width:100%; min-width:0; }
 .opna-output-mixer output { text-align:right; font-variant-numeric:tabular-nums; }
 .opna-output-mixer p { margin:0; overflow-wrap:anywhere; }
@@ -176,8 +178,7 @@ footer p { margin:0; max-width:80ch; } footer div { display:flex; gap:12px; flex
 #opnaFileNameDialog input { width:100%; margin:8px 0 14px; padding:8px; }
 .spu-file-context-menu { background:var(--panel); }
 @media(max-width:600px) {
-  .opna-output-mixer > label:not(.check-control) { grid-template-columns:minmax(0,1fr) 52px; }
-  .opna-output-mixer > label:not(.check-control) > span { grid-column:1/-1; }
+  .opna-output-mixer { grid-template-columns:minmax(0,1fr); }
 }
 @media(max-width:800px) { .opna-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.opna-code-workspace.has-files.is-code-expanded .opna-expanded-code { grid-column:1; }#opnaFilesTree { max-height:240px; } }
 @media(max-width:600px) { main { padding:12px 8px 20px; }.synth-shell { padding:15px 11px; }.product-icon { width:76px; height:76px; border-radius:17px; }.title-row,.product-identity { gap:10px; }.description { font-size:.72rem; }h1 { font-size:1.65rem; }.masthead nav { gap:8px; }.laboratory-link span { display:none; }.opna-tabs > button { padding:8px 11px; }.monitor-master input { width:85px; }.opna-rhythm-pads { grid-template-columns:repeat(2,minmax(0,1fr)); }.param-control { width:104px; }.keyboard-mount .key { padding:7px 1px; }.keyboard-wheel { flex-basis:42px; }.master-control input { width:110px; } }

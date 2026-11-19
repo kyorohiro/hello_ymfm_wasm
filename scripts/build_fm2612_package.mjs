@@ -9,10 +9,10 @@ const stage = join(root, 'dist/fm2612');
 // Keep the opt-in npm policy in sync with the complete measured Playground baseline.
 await generateSoundChipMixerPresets({
   reportPath:join(root, 'docs/issues/playground_chip_levels_01.json'),
-  ps1ReportPath:join(root, 'docs/issues/ps1_ay_single_output_chip_levels_01.json'),
-  wonderswanReportPath:join(root, 'docs/issues/wonderswan_ay_single_output_chip_levels_01.json'),
-  scspReportPath:join(root, 'docs/issues/scsp_ay_single_output_chip_levels_01.json'),
-  pokeyReportPath:join(root, 'docs/issues/pokey_ay_single_output_chip_levels_01.json'),
+  ps1ReportPath:join(root, 'docs/issues/ps1_ym2608_source_mix_chip_levels_01.json'),
+  wonderswanReportPath:join(root, 'docs/issues/wonderswan_ym2608_source_mix_chip_levels_01.json'),
+  scspReportPath:join(root, 'docs/issues/scsp_ym2608_source_mix_chip_levels_01.json'),
+  pokeyReportPath:join(root, 'docs/issues/pokey_ym2608_source_mix_chip_levels_01.json'),
   outPath:join(root, 'tetorica_src/runtime/soundchip_mixer_presets.js'),check:true,
 });
 // Only this generated package directory is replaced; the CLI distribution stays intact.

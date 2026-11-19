@@ -280,17 +280,17 @@
         {
           "path": "vendor/mame-ay8910/README.md",
           "originPath": "third_party/mame-ay8910/README.md",
-          "sha256": "d41552a7edc4156988dfee0395d501431507f5c8429217786d6a4be5078ae99f"
+          "sha256": "431783f35c52689eb9cc0d39d8073e62f6d0ccf2fbf2eed5c108522c5646eb4b"
         },
         {
           "path": "vendor/mame-ay8910/ay8910.cpp",
           "originPath": "third_party/mame-ay8910/ay8910.cpp",
-          "sha256": "3ea3efe1b29a554c39a2b1995e9ed3d2588c16d24b085ca1565c3a24f4414646"
+          "sha256": "e6f3cf07bd25e1f5f18455db302758993910154a82e401ee1566103e184f432b"
         },
         {
           "path": "vendor/mame-ay8910/ay8910.h",
           "originPath": "third_party/mame-ay8910/ay8910.h",
-          "sha256": "e93d1904d2c232f820c23a6df59dfebf309550a6f8b0032e20c51295e7d31e7a"
+          "sha256": "1663b65a64715f23826eece168489ca2a15e001f01fee93779bf4cf307ae7156"
         },
         {
           "path": "vendor/mame-ay8910/upstream/ay8910.cpp",
@@ -1205,7 +1205,7 @@
         {
           "path": "wasm/ay8910_wasm.cpp",
           "originPath": "wasm/ay8910_wasm.cpp",
-          "sha256": "15107f52744c9e67db2daf0bfa052ebb04a63dc92779576e46c4c10b64009ebb"
+          "sha256": "d5a03082806adc7d1aac6ce8f4fae0aa96b669707b22d837749a19eefe55846b"
         },
         {
           "path": "wasm/gameboy_apu_wasm.cpp",
@@ -1302,7 +1302,7 @@
         {
           "path": "wasm/ym2608_wasm.cpp",
           "originPath": "wasm/ym2608_wasm.cpp",
-          "sha256": "edcc0f8369514fded3c8bee51ff747594dceeb0223946a0f9a94260dae02fdc4",
+          "sha256": "88dcd408391a090284492054506afbe30cfdbbee6adb5f02fe6103b60b0c4946",
           "originalSha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c",
           "modification": "Local SDK extension: independent host output gains for the FM/Rhythm/ADPCM stereo bus and SSG mono bus; default PCM preserved, validated gain checkpoints retained."
         },

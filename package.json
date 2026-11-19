@@ -54,7 +54,7 @@
     "build": "npm run build:vgm",
     "test": "node --test --test-concurrency=2 test/*.test.mjs test/runtime/*.test.mjs",
     "test:runtime": "node --test --test-concurrency=2 test/runtime/*.test.mjs",
-    "test:runtime:types": "tsc --noEmit --strict --allowJs --module nodenext --moduleResolution nodenext --target es2022 test/runtime/scspsynth.types.test.ts",
+    "test:runtime:types": "tsc --noEmit --strict --allowJs --module nodenext --moduleResolution nodenext --target es2022 test/runtime/scspsynth.types.test.ts test/runtime/ym2608_source_gains.types.test.ts",
     "test:analyzer": "node --test --test-concurrency=2 test/runtime/*.test.mjs docs/vgm_analyzer/*.test.mjs",
     "sync:runtime-artifacts": "node scripts/sync_runtime_artifacts.mjs",
     "check:runtime-artifacts": "node scripts/sync_runtime_artifacts.mjs --check",

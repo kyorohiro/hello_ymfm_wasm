@@ -20,6 +20,7 @@ async function backend(directory) {
   return factory({wasmBinary:await readFile(resolve(directory,'ym2608_wasm.wasm'))});
 }
 const module = await backend(options['--wasm-dir']);
+const hostTrailer = module._ym2608_set_source_gains ? 56 : 8;
 const handle = module._ym2608_create();
 assert(handle);
 const write = (register,value,port=0) => {
@@ -92,15 +93,15 @@ try {
   assert.equal(gains(1,1),1);render();
   assert.equal(load(gainState),1);assert.deepEqual(render(),expected);
   const badState = gainState.slice();
-  new DataView(badState.buffer).setFloat32(badState.length-4,NaN,true);
+  new DataView(badState.buffer).setFloat32(badState.length-hostTrailer+4,NaN,true);
   const validBefore = save();
   assert.equal(load(badState),0);assert.deepEqual(save(),validBefore);
   checks.push('atomic-gain-validation-and-checkpoint-restore');
 
   assert.equal(gains(.6,.75),1);module._ym2608_reset(handle);configure();
   const afterReset = save(), view = new DataView(afterReset.buffer);
-  assert.equal(view.getFloat32(afterReset.length-8,true),Math.fround(.6));
-  assert.equal(view.getFloat32(afterReset.length-4,true),.75);
+  assert.equal(view.getFloat32(afterReset.length-hostTrailer,true),Math.fround(.6));
+  assert.equal(view.getFloat32(afterReset.length-hostTrailer+4,true),.75);
   checks.push('host-gains-survive-chip-reset');
 
   if (options['--legacy-dir']) {
@@ -111,7 +112,8 @@ try {
       assert.equal(load(initial),1);assert.equal(gains(1,1),1);
       // Default-gain checkpoint is the previous chip layout followed by two
       // host floats. Only the historical chip portion is sent to that build.
-      const bytes = initial.subarray(0,initial.length-8), pointer = legacy._malloc(bytes.length);
+      const legacyTrailer = legacy._ym2608_set_output_gains ? 8 : 0;
+      const bytes = initial.subarray(0,initial.length-hostTrailer+legacyTrailer), pointer = legacy._malloc(bytes.length);
       try {
         new Uint8Array(legacy.HEAPU8.buffer,pointer,bytes.length).set(bytes);
         assert.equal(legacy._ym2608_load_state(original,pointer,bytes.length),1);

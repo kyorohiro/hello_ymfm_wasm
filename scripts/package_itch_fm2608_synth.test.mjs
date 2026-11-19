@@ -92,7 +92,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   }
   const wasm = new WebAssembly.Module(await readFile(join(result.stage, 'generated/ym2608_wasm.wasm')));
   assert(WebAssembly.Module.exports(wasm).some(entry => entry.name === 'ym2608_set_output_gains' && entry.kind === 'function'),
-    'The packaged WASM exposes the native output-gain setter used by Mixer');
+    'The packaged WASM preserves the legacy two-bus output-gain setter');
+  assert(WebAssembly.Module.exports(wasm).some(entry => entry.name === 'ym2608_set_source_gains' && entry.kind === 'function'),
+    'The packaged WASM exposes the four independent source gains used by Mixer');
   assert.deepEqual(await readFile(join(result.stage, 'tetorica_fm2608_synth.webp')),
     await readFile(new URL('docs/tetorica_fm2608_synth.webp', root)));
   const native = JSON.parse(await readFile(join(result.stage, 'sources/YM2608.json')));

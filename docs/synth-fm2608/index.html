@@ -8,7 +8,7 @@
   <title>Tetorica FM2608 Synth</title>
   <link rel="icon" type="image/webp" href="../tetorica_fm2608_synth.webp">
   <link rel="apple-touch-icon" href="../tetorica_fm2608_synth.webp">
-  <link rel="stylesheet" href="./synth.css?v=opna-output-menu-1">
+  <link rel="stylesheet" href="./synth.css?v=fm2608-source-mixer-1">
 </head>
 <body>
   <main>
@@ -163,13 +163,15 @@
           </section>
 
           <section id="panel-mixer" class="opna-panel" role="tabpanel" aria-labelledby="tab-mixer" hidden>
-            <div class="section-heading"><h2>Mixer</h2><details class="inline-help"><summary aria-label="About Mixer">?</summary><p>Software output levels are shared by Keyboard, Code and reference playback. FM, Rhythm and ADPCM share one stereo output bus. SSG has its own mono bus. Channel buttons mute the output while retaining source settings. Master applies after both output buses.</p><p>YM2203 mode multiplies SSG by 0.75 to match Tetorica's calibrated YM2203 balance. Loading a YM2203 song enables it automatically. While enabled, the selected YM2203 VGM's FM and SSG volume entries also apply. Manual output levels multiply these adjustments. Changes follow the normal audio buffer latency.</p></details></div>
+            <div class="section-heading"><h2>Mixer</h2><details class="inline-help"><summary aria-label="About Mixer">?</summary><p>FM, SSG, Rhythm and ADPCM have independent software output levels, shared by Keyboard, Code and reference playback. These faders retain the instrument's registers and envelope settings. Channel buttons mute the output while retaining source settings. Master applies after the source mix.</p><p>YM2203 mode multiplies SSG by 0.75 to match Tetorica's calibrated YM2203 balance. Loading a YM2203 song enables it automatically. While enabled, the selected YM2203 VGM's FM and SSG volume entries also apply. Manual output levels multiply these adjustments. Rhythm and ADPCM keep their independent levels. Changes follow the normal audio buffer latency.</p></details></div>
             <div class="opna-output-mixer">
-              <label for="mixerFmVolume"><span>FM / Rhythm / ADPCM</span><input id="mixerFmVolume" type="range" min="0" max="3.8" step="0.01" value="1"><output id="mixerFmValue">100%</output></label>
+              <label for="mixerFmVolume"><span>FM</span><input id="mixerFmVolume" type="range" min="0" max="3.8" step="0.01" value="1"><output id="mixerFmValue">100%</output></label>
               <label for="mixerSsgVolume"><span>SSG</span><input id="mixerSsgVolume" type="range" min="0" max="3.8" step="0.01" value="1"><output id="mixerSsgValue">100%</output></label>
+              <label for="mixerRhythmVolume"><span>Rhythm</span><input id="mixerRhythmVolume" type="range" min="0" max="3.8" step="0.01" value="1"><output id="mixerRhythmValue">100%</output></label>
+              <label for="mixerAdpcmVolume"><span>ADPCM</span><input id="mixerAdpcmVolume" type="range" min="0" max="3.8" step="0.01" value="1"><output id="mixerAdpcmValue">100%</output></label>
               <label class="check-control opna-compatibility-toggle"><input id="ym2203Mode" type="checkbox">YM2203 mode</label>
               <p id="mixerCorrection" class="subtext">YM2203 correction Off</p>
-              <p id="mixerEffective" class="subtext">Effective output · FM ×1 · SSG ×1</p>
+              <p id="mixerEffective" class="subtext">Effective output · FM ×1 · SSG ×1 · Rhythm ×1 · ADPCM ×1</p>
             </div>
             <div id="mixerControls" class="opna-mixer"></div>
           </section>
@@ -210,6 +212,6 @@
   <input id="soundFileInput" type="file" accept=".json,.tfi,.vgi" hidden>
   <input id="audioFileInput" type="file" accept="audio/*,.wav,.ogg,.mp3,.m4a,.flac" hidden>
   <input id="songFileInput" type="file" accept=".vgm,.vgz,.s98" multiple hidden>
-  <script type="module" src="./synth.js?v=audio-owned-release-1"></script>
+  <script type="module" src="./synth.js?v=fm2608-source-mixer-1"></script>
 </body>
 </html>
